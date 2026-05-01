@@ -3,7 +3,7 @@
 Dispatch 1 Agent (in background, concurrent with Phase 2 zone agents) to inventory our system. Running this in parallel is safe because inventory is a read-only catalog of our codebase:
 
 ```
-You are cataloging the claude-code-toolkit repository for comparison purposes.
+You are cataloging the vexjoy-agent repository for comparison purposes.
 
 Inventory these component types:
 1. Agents (agents/*.md) - count and list with brief descriptions

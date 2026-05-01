@@ -14,7 +14,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `quick` | Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full |
 | `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more |
 | `workflow-help` | Interactive guide to workflow system: agents, skills, routing, execution patterns |
-| `install` | Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup |
+| `install` | Verify VexJoy Agent installation, diagnose issues, and guide first-time setup |
 
 ---
 

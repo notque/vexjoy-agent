@@ -3,7 +3,7 @@
 <!-- no-pair-required: section-header-only; document title for preferred-patterns reference file -->
 
 > **Scope**: Correct patterns for creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python patterns — see those agents for language-specific issues.
-> **Version range**: claude-code-toolkit all versions
+> **Version range**: vexjoy-agent all versions
 > **Generated**: 2026-04-09 — verify detection commands against current repo structure
 
 ---

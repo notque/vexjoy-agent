@@ -341,7 +341,7 @@ Phase 3 are the natural boundaries.
 For each ADR:
 
 1. Find the next available number:
-   `ls /home/feedgen/claude-code-toolkit/adr/ | grep -E '^[0-9]' | sort | tail -1`
+   `ls /home/feedgen/vexjoy-agent/adr/ | grep -E '^[0-9]' | sort | tail -1`
 2. Read the actual source files referenced in the findings before writing the ADR — do
    not describe issues you have not verified by reading the file
 3. Include both the original finding and the critique disposition in the Context section
@@ -392,7 +392,7 @@ serially.
 ```
 You are implementing ADR-NNN: [title].
 
-1. Read /home/feedgen/claude-code-toolkit/adr/NNN-*.md fully before touching any files.
+1. Read /home/feedgen/vexjoy-agent/adr/NNN-*.md fully before touching any files.
 2. Read each source file in the Components section before modifying it.
 3. Execute every task in the Decision section. Do not skip tasks.
 4. Run language-appropriate tests after each change:

@@ -7,7 +7,7 @@
 #   ./scripts/kb-compile-cron.sh --topic X # Compile specific topic
 #
 # Cron example (nightly at 3:37 AM, after toolkit-evolution at 3:07 AM):
-#   37 3 * * * /home/feedgen/claude-code-toolkit/scripts/kb-compile-cron.sh >> /home/feedgen/claude-code-toolkit/cron-logs/kb-compile/cron.log 2>&1
+#   37 3 * * * /home/feedgen/vexjoy-agent/scripts/kb-compile-cron.sh >> /home/feedgen/vexjoy-agent/cron-logs/kb-compile/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"

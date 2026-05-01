@@ -63,7 +63,7 @@ Before loading, understand that this skill **requires a voice target** — conte
 **Step 1: Locate voice directory**
 
 ```bash
-ls $HOME/claude-code-toolkit/skills/voice-{name}/
+ls $HOME/vexjoy-agent/skills/voice-{name}/
 ```
 
 **Step 2: Load required files**
@@ -127,7 +127,7 @@ If absent, skip to Phase 3.
 Run the script at `scripts/research-stats-checkpoint.py` from the toolkit repo root:
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/research-stats-checkpoint.py research/{topic}/
+python3 $HOME/vexjoy-agent/scripts/research-stats-checkpoint.py research/{topic}/
 ```
 
 The script emits a Markdown summary table (artifacts total, per-agent counts, primary-source ratio, conflicts) to stdout. Read the table and treat conflicts as advisory signals worth resolving with the user before generation.
@@ -222,7 +222,7 @@ Joy-check is not optional, not even if validation passed. Voice validation check
 **Step 1: Run regex pre-filter**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/scan-negative-framing.py /tmp/voice-content-draft.md
+python3 $HOME/vexjoy-agent/scripts/scan-negative-framing.py /tmp/voice-content-draft.md
 ```
 
 If regex hits are found, fix them before proceeding. These are high-confidence negative framing patterns (victimhood, accusation, bitterness, passive aggression). Apply the scanner's suggested reframes and re-run until clean.
@@ -347,7 +347,7 @@ Result: Voice-consistent technical piece with full validation
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| Voice Not Found | Misspelled name or missing directory | Check spelling; `ls $HOME/claude-code-toolkit/skills/voice-*/`; use `create-voice` |
+| Voice Not Found | Misspelled name or missing directory | Check spelling; `ls $HOME/vexjoy-agent/skills/voice-*/`; use `create-voice` |
 | Profile or Config Missing | Files absent from voice directory | Run `voice-calibrator`; see `references/voice-infrastructure.md` for schema |
 | Validator Script Failed (Exit Code 2) | File not found, invalid JSON, or Python issue | Verify paths; check `python3 --version`; test with `--help` flag |
 | Validation Failed After 3 Iterations | Content cannot meet threshold | Output best attempt with failure report; user edits flagged lines; recalibrate if systemic |

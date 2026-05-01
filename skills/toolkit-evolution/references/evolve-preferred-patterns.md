@@ -106,7 +106,7 @@ Runs nightly at 3:07 AM, after auto-dream (2:07 AM) finishes consolidating learn
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "toolkit-evolution" \
   --schedule "7 3 * * *" \
-  --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1"
+  --command "/home/feedgen/vexjoy-agent/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/toolkit-evolution/cron.log 2>&1"
 ```
 
 Schedule uses 3:07 AM (off-minute per cron best practice, 1 hour after auto-dream). Budget set to $5.00 per run.

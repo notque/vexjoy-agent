@@ -10,7 +10,7 @@
 #   ./scripts/reddit-automod-cron.sh --execute
 #
 # Cron example (twice daily at 8am and 8pm):
-#   0 8,20 * * * /home/feedgen/claude-code-toolkit/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/claude-code-toolkit/reddit-data/sap/cron-log/cron.log 2>&1
+#   0 8,20 * * * /home/feedgen/vexjoy-agent/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"

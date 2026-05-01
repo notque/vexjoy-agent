@@ -11,7 +11,7 @@
 #   ./scripts/auto-dream-cron.sh --execute
 #
 # Cron example (nightly at 2:07 AM):
-#   7 2 * * * /home/feedgen/claude-code-toolkit/scripts/auto-dream-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/auto-dream/cron.log 2>&1
+#   7 2 * * * /home/feedgen/vexjoy-agent/scripts/auto-dream-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/auto-dream/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"

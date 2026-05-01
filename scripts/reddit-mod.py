@@ -71,7 +71,7 @@ ServerError = Exception
 _DEFAULT_LIMIT = 25
 _MAX_LIMIT = 100
 _BODY_TRUNCATE = 500
-_USER_AGENT = "python:reddit_mod:v1.0 (by /u/claude-code-toolkit)"
+_USER_AGENT = "python:reddit_mod:v1.0 (by /u/vexjoy-agent)"
 
 _REQUIRED_ENV_VARS = [
     "REDDIT_CLIENT_ID",

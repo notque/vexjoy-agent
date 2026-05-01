@@ -3886,7 +3886,7 @@
         1,
         7
       ],
-      "block_text": "# Pipeline Orchestration — Anti-Patterns\n\n> **Scope**: Common mistakes when creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python anti-patterns — see those agents for language-specific issues.\n> **Version range**: claude-code-toolkit all versions\n> **Generated**: 2026-04-09 — verify detection commands against current repo structure\n\n---\n",
+      "block_text": "# Pipeline Orchestration — Anti-Patterns\n\n> **Scope**: Common mistakes when creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python anti-patterns — see those agents for language-specific issues.\n> **Version range**: vexjoy-agent all versions\n> **Generated**: 2026-04-09 — verify detection commands against current repo structure\n\n---\n",
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {

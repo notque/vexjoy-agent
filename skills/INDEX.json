@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-29T00:21:33Z",
+  "generated": "2026-05-01T02:13:43Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -903,7 +903,7 @@
     },
     "install": {
       "file": "skills/install/SKILL.md",
-      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup.",
+      "description": "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup.",
       "triggers": [
         "install toolkit",
         "verify installation",
@@ -2247,14 +2247,23 @@
     },
     "voice-feynman": {
       "file": "skills/voice-feynman/SKILL.md",
-      "description": "Apply Richard Feynman's voice profile for content generation: mechanism-first",
+      "description": "Apply Richard Feynman's voice profile for content generation: mechanism-first thinking, refusal of jargon, plain English when truth is embarrassing...",
       "triggers": [
         "voice-feynman",
-        "voice",
-        "feynman"
+        "feynman voice",
+        "richard feynman voice",
+        "feynman writing style",
+        "feynman explanation"
       ],
+      "category": "voice",
+      "force_route": true,
       "user_invocable": false,
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "pairs_with": [
+        "voice-writer",
+        "voice-validator",
+        "anti-ai-editor"
+      ]
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",

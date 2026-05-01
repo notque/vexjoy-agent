@@ -1,4 +1,4 @@
-# Claude Code Toolkit — AI Agent Reference
+# VexJoy Agent — AI Agent Reference
 
 For LLMs operating in this repository. Not Claude Code specific — any AI agent benefits from this.
 
@@ -13,7 +13,7 @@ Inventory date: 2026-04-01. Counts verified against filesystem.
 ## Repository Map
 
 ```
-claude-code-toolkit/
+vexjoy-agent/
   agents/                  # Domain expert markdown files + INDEX.json
   skills/                  # Skill directories, each with SKILL.md
   hooks/                   # Python event hooks + lib/ shared modules

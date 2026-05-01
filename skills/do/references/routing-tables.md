@@ -93,7 +93,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **decision-helper** | User wants a weighted decision framework for architectural or technology choices: pros/cons, trade-off matrix, "which is better", "should I use X or Y". |
 | **socratic-debugging** | User wants to be guided to find the root cause themselves through questions rather than being given the answer directly: coaching mode, "teach me to find it". |
 | **plant-seed** | User wants to capture a forward-looking idea with trigger conditions so it surfaces automatically during future feature design. |
-| **install** | User wants to verify Claude Code Toolkit installation, diagnose setup issues, or check if the toolkit is correctly configured. |
+| **install** | User wants to verify VexJoy Agent installation, diagnose setup issues, or check if the toolkit is correctly configured. |
 | **skill-creator** | User wants to create or improve a Claude Code skill, workflow automation, or agent configuration. |
 | **swift-concurrency** | User wants Swift concurrency patterns: async/await, Actor, Task, Sendable, structured concurrency. Companion skill for swift-general-engineer. |
 | **swift-testing** | User wants Swift testing patterns: XCTest, Swift Testing framework, async test patterns. Companion skill for swift-general-engineer. |
