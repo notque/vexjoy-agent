@@ -15,8 +15,9 @@
 #   1. Verifies Python 3.10+ is available
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
-#   4. Sets up local overlay directory
-#   5. Configures hooks in settings.json
+#   4. Mirrors skills, agents, and hooks to ~/.codex and ~/.gemini
+#   5. Sets up local overlay directory
+#   6. Configures hooks in settings.json
 #
 
 set -e
@@ -35,6 +36,10 @@ CODEX_DIR="${HOME}/.codex"
 CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
 CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
 CODEX_HOOKS_DIR="${CODEX_DIR}/hooks"
+GEMINI_DIR="${HOME}/.gemini"
+GEMINI_SKILLS_DIR="${GEMINI_DIR}/skills"
+GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
+GEMINI_HOOKS_DIR="${GEMINI_DIR}/hooks"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                Claude Code Toolkit - Installation Script               ║${NC}"
@@ -391,6 +396,146 @@ os.rename(tmp, dst)
     # Note: [features] codex_hooks = true is intentionally left in config.toml.
     # Users may have other Codex hook configurations we did not write.
 
+    # Phase 3.7: Clean toolkit-owned Gemini skills mirror
+    echo ""
+    echo -e "${YELLOW}Cleaning Gemini skills mirror...${NC}"
+    if [ -d "$GEMINI_SKILLS_DIR" ]; then
+        for item in "${SCRIPT_DIR}/skills/"*; do
+            [ -e "$item" ] || continue
+            target="${GEMINI_SKILLS_DIR}/$(basename "$item")"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove Gemini entry: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed Gemini entry: ${target}${NC}"
+                fi
+                REMOVED+=("Gemini skill $(basename "$item")")
+            fi
+        done
+
+        if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+            for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+                [ -d "$voice_dir" ] || continue
+                skill_src="${voice_dir}/skill"
+                [ -d "$skill_src" ] || continue
+                voice_name=$(basename "$voice_dir")
+                target="${GEMINI_SKILLS_DIR}/voice-${voice_name}"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Gemini entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Gemini entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Gemini skill voice-${voice_name}")
+                fi
+            done
+        fi
+
+        if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+            for item in "${SCRIPT_DIR}/private-skills/"*; do
+                [ -e "$item" ] || continue
+                target="${GEMINI_SKILLS_DIR}/$(basename "$item")"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Gemini entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Gemini entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Gemini skill $(basename "$item")")
+                fi
+            done
+        fi
+    else
+        echo "  No ~/.gemini/skills mirror found. Nothing to clean."
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Cleaning Gemini agents mirror...${NC}"
+    if [ -d "$GEMINI_AGENTS_DIR" ]; then
+        for item in "${SCRIPT_DIR}/agents/"*; do
+            [ -e "$item" ] || continue
+            target="${GEMINI_AGENTS_DIR}/$(basename "$item")"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove Gemini entry: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed Gemini entry: ${target}${NC}"
+                fi
+                REMOVED+=("Gemini agent $(basename "$item")")
+            fi
+        done
+
+        if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+            for item in "${SCRIPT_DIR}/private-agents/"*; do
+                [ -e "$item" ] || continue
+                target="${GEMINI_AGENTS_DIR}/$(basename "$item")"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Gemini entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Gemini entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Gemini agent $(basename "$item")")
+                fi
+            done
+        fi
+    else
+        echo "  No ~/.gemini/agents mirror found. Nothing to clean."
+    fi
+
+    # Phase 3.8: Clean toolkit-owned Gemini hooks mirror
+    echo ""
+    echo -e "${YELLOW}Cleaning Gemini hooks mirror...${NC}"
+    if [ -d "$GEMINI_HOOKS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${GEMINI_HOOKS_DIR}${NC}"
+        else
+            rm -rf "$GEMINI_HOOKS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${GEMINI_HOOKS_DIR}${NC}"
+        fi
+        REMOVED+=("Gemini hooks mirror directory")
+    else
+        echo "  No ~/.gemini/hooks mirror found. Nothing to clean."
+    fi
+
+    if [ -f "${GEMINI_DIR}/settings.json" ]; then
+        # Check if settings.json has a hooks key we should clean
+        HAS_GEMINI_HOOKS=$(python3 -c "import json; d=json.load(open('${GEMINI_DIR}/settings.json')); print('yes' if 'hooks' in d else 'no')" 2>/dev/null || echo "no")
+        if [ "$HAS_GEMINI_HOOKS" = "yes" ]; then
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would archive hooks from: ${GEMINI_DIR}/settings.json${NC}"
+            else
+                ARCHIVE_TS=$(date +%Y%m%d-%H%M%S)
+                cp "${GEMINI_DIR}/settings.json" "${GEMINI_DIR}/settings.json.uninstalled.${ARCHIVE_TS}"
+                # Remove only the hooks key, preserve everything else
+                python3 -c "
+import json, os
+dst = '${GEMINI_DIR}/settings.json'
+with open(dst, encoding='utf-8') as f:
+    data = json.load(f)
+data.pop('hooks', None)
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
+"
+                echo -e "${GREEN}  ✓ Archived and cleaned hooks from ${GEMINI_DIR}/settings.json${NC}"
+            fi
+            REMOVED+=("Gemini hooks config from settings.json (archived)")
+        else
+            echo "  No hooks key found in ~/.gemini/settings.json. Nothing to clean."
+        fi
+    else
+        echo "  No ~/.gemini/settings.json found. Nothing to archive."
+    fi
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -436,6 +581,7 @@ os.rename(tmp, dst)
     echo "  • ~/.claude/projects/"
     echo "  • ~/.claude/memory/"
     echo "  • ~/.codex/config.toml (including [features] codex_hooks flag)"
+    echo "  • ~/.gemini/settings.json (all keys except hooks)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -528,6 +674,24 @@ else
 fi
 echo -e "${GREEN}✓ ${CODEX_AGENTS_DIR} ready${NC}"
 
+echo ""
+echo -e "${YELLOW}Setting up ~/.gemini skills directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${GEMINI_SKILLS_DIR}${NC}"
+else
+    mkdir -p "${GEMINI_SKILLS_DIR}"
+fi
+echo -e "${GREEN}✓ ${GEMINI_SKILLS_DIR} ready${NC}"
+
+echo ""
+echo -e "${YELLOW}Setting up ~/.gemini agents directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${GEMINI_AGENTS_DIR}${NC}"
+else
+    mkdir -p "${GEMINI_AGENTS_DIR}"
+fi
+echo -e "${GREEN}✓ ${GEMINI_AGENTS_DIR} ready${NC}"
+
 # Install components
 echo ""
 echo -e "${YELLOW}Installing components (mode: ${MODE})...${NC}"
@@ -581,15 +745,16 @@ install_component() {
     fi
 }
 
-sync_codex_entry() {
+sync_mirror_entry() {
     local source=$1
     local target=$2
+    local label=${3:-Mirror}
     local name
     name=$(basename "$source")
 
     if [ -e "$target" ] || [ -L "$target" ]; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would replace Codex entry: ${target}${NC}"
+            echo -e "${BLUE}  Would replace ${label} entry: ${target}${NC}"
         else
             rm -rf "$target"
         fi
@@ -597,23 +762,28 @@ sync_codex_entry() {
 
     if [ "$MODE" = "symlink" ]; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would symlink Codex entry: ${source} -> ${target}${NC}"
+            echo -e "${BLUE}  Would symlink ${label} entry: ${source} -> ${target}${NC}"
         else
             ln -s "$source" "$target"
-            echo -e "${GREEN}  ✓ Codex symlinked ${name}${NC}"
+            echo -e "${GREEN}  ✓ ${label} symlinked ${name}${NC}"
         fi
     else
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would copy Codex entry: ${source} -> ${target}${NC}"
+            echo -e "${BLUE}  Would copy ${label} entry: ${source} -> ${target}${NC}"
         else
             if [ -d "$source" ]; then
                 cp -r "$source" "$target"
             else
                 cp "$source" "$target"
             fi
-            echo -e "${GREEN}  ✓ Codex copied ${name}${NC}"
+            echo -e "${GREEN}  ✓ ${label} copied ${name}${NC}"
         fi
     fi
+}
+
+# Backward-compatible wrapper for existing call sites
+sync_codex_entry() {
+    sync_mirror_entry "$1" "$2" "Codex"
 }
 
 # Install main components
@@ -802,6 +972,132 @@ if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
     fi
 else
     echo -e "${YELLOW}  ⚠ Codex hooks allowlist not found at ${CODEX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
+fi
+
+# Sync Gemini skills mirror
+echo ""
+echo -e "${YELLOW}Syncing Gemini skills mirror...${NC}"
+GEMINI_ENTRY_COUNT=0
+for item in "${SCRIPT_DIR}/skills/"*; do
+    [ -e "$item" ] || continue
+    target="${GEMINI_SKILLS_DIR}/$(basename "$item")"
+    sync_mirror_entry "$item" "$target" "Gemini"
+    GEMINI_ENTRY_COUNT=$((GEMINI_ENTRY_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${GEMINI_SKILLS_DIR}/voice-${voice_name}"
+        sync_mirror_entry "$skill_src" "$target" "Gemini"
+        GEMINI_ENTRY_COUNT=$((GEMINI_ENTRY_COUNT + 1))
+    done
+fi
+
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    for item in "${SCRIPT_DIR}/private-skills/"*; do
+        [ -e "$item" ] || continue
+        target="${GEMINI_SKILLS_DIR}/$(basename "$item")"
+        sync_mirror_entry "$item" "$target" "Gemini"
+        GEMINI_ENTRY_COUNT=$((GEMINI_ENTRY_COUNT + 1))
+    done
+fi
+
+echo ""
+echo -e "${YELLOW}Syncing Gemini agents mirror...${NC}"
+GEMINI_AGENT_COUNT=0
+for item in "${SCRIPT_DIR}/agents/"*; do
+    [ -e "$item" ] || continue
+    target="${GEMINI_AGENTS_DIR}/$(basename "$item")"
+    sync_mirror_entry "$item" "$target" "Gemini"
+    GEMINI_AGENT_COUNT=$((GEMINI_AGENT_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+    for item in "${SCRIPT_DIR}/private-agents/"*; do
+        [ -e "$item" ] || continue
+        target="${GEMINI_AGENTS_DIR}/$(basename "$item")"
+        sync_mirror_entry "$item" "$target" "Gemini"
+        GEMINI_AGENT_COUNT=$((GEMINI_AGENT_COUNT + 1))
+    done
+fi
+
+# Sync Gemini hooks mirror
+echo ""
+echo -e "${YELLOW}Syncing Gemini hooks mirror...${NC}"
+GEMINI_HOOK_COUNT=0
+GEMINI_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/gemini-hooks-allowlist.txt"
+
+if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
+    # Ensure hooks directory exists
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${GEMINI_HOOKS_DIR}${NC}"
+    else
+        mkdir -p "$GEMINI_HOOKS_DIR"
+    fi
+
+    # Parse allowlist and mirror each allowlisted hook file.
+    while IFS= read -r line || [ -n "$line" ]; do
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+        [ -z "$trimmed" ] && continue
+        [ "${trimmed#\#}" != "$trimmed" ] && continue
+
+        rest="${trimmed#*:}"
+        filename="${rest%% *}"
+
+        source_file="${SCRIPT_DIR}/hooks/${filename}"
+        if [ ! -f "$source_file" ]; then
+            echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
+            continue
+        fi
+
+        target_file="${GEMINI_HOOKS_DIR}/${filename}"
+        sync_mirror_entry "$source_file" "$target_file" "Gemini"
+        GEMINI_HOOK_COUNT=$((GEMINI_HOOK_COUNT + 1))
+    done < "$GEMINI_HOOKS_ALLOWLIST"
+
+    # Also mirror the hooks/lib directory so intra-hook imports resolve.
+    if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
+        lib_target="${GEMINI_HOOKS_DIR}/lib"
+        sync_mirror_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target" "Gemini"
+    fi
+
+    # Merge hooks into ~/.gemini/settings.json via the dedicated script.
+    GEMINI_SETTINGS="${GEMINI_DIR}/settings.json"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would merge hooks into: ${GEMINI_SETTINGS}${NC}"
+    else
+        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-gemini-settings-hooks.py" \
+            --allowlist "$GEMINI_HOOKS_ALLOWLIST" \
+            --output "$GEMINI_SETTINGS" \
+            --gemini-hooks-dir "$GEMINI_HOOKS_DIR" 2>&1; then
+            echo -e "${GREEN}  ✓ Merged hooks into ${GEMINI_SETTINGS}${NC}"
+        else
+            echo -e "${RED}  ✗ Failed to merge hooks into settings.json${NC}"
+        fi
+    fi
+
+    # Warn if installed Gemini CLI is below the hook-support minimum (v0.26.0).
+    if command -v gemini >/dev/null 2>&1; then
+        gm_ver=$(gemini --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ -n "$gm_ver" ]; then
+            min_major=0; min_minor=26; min_patch=0
+            IFS='.' read -r gm_maj gm_min gm_pat <<< "$gm_ver"
+            if [ "$gm_maj" -lt "$min_major" ] || \
+               { [ "$gm_maj" -eq "$min_major" ] && [ "$gm_min" -lt "$min_minor" ]; } || \
+               { [ "$gm_maj" -eq "$min_major" ] && [ "$gm_min" -eq "$min_minor" ] && [ "${gm_pat:-0}" -lt "$min_patch" ]; }; then
+                echo -e "${YELLOW}  ⚠ Gemini CLI version ${gm_ver} is below 0.26.0. Hooks may not work.${NC}"
+            fi
+        fi
+    else
+        echo -e "${BLUE}  (gemini CLI not installed; hooks will activate when Gemini CLI is installed)${NC}"
+    fi
+else
+    echo -e "${YELLOW}  ⚠ Gemini hooks allowlist not found at ${GEMINI_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
 fi
 
 # Set up local overlay
@@ -993,6 +1289,9 @@ echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} us
 echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
 echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
 echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
+echo "  • Gemini skills: ${GEMINI_ENTRY_COUNT} mirrored entries in ~/.gemini/skills"
+echo "  • Gemini agents: ${GEMINI_AGENT_COUNT} mirrored entries in ~/.gemini/agents"
+echo "  • Gemini hooks: ${GEMINI_HOOK_COUNT} mirrored entries in ~/.gemini/hooks"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"

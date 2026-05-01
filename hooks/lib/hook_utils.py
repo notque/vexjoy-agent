@@ -435,3 +435,65 @@ def deny_tool_use(event_name: str, reason: str) -> None:
         }
     }
     print(json.dumps(output))
+
+
+# =============================================================================
+# CLI Detection and Input Normalization
+#
+# These functions are infrastructure for hook authors to import as needed.
+# They are NOT auto-applied; individual hooks must call them explicitly.
+# =============================================================================
+
+
+def detect_cli() -> str:
+    """Detect which CLI is invoking this hook based on environment variables.
+
+    Detection is best-effort and may need updating as Gemini CLI's
+    environment contract stabilises.  We avoid using ``GEMINI_API_KEY``
+    alone because users commonly set it for direct API access even when
+    running Claude Code.
+
+    Returns:
+        One of "gemini", "codex", or "claude".
+    """
+    # Most specific: explicit CLI identification env var
+    if os.environ.get("GEMINI_CLI"):
+        return "gemini"
+    # Process-based: the _ var contains the invoking command path
+    invocation = os.environ.get("_", "")
+    if "gemini" in invocation.lower():
+        return "gemini"
+    if "codex" in invocation.lower():
+        return "codex"
+    # Codex-specific env vars
+    if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
+        return "codex"
+    return "claude"
+
+
+def normalize_input(data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize hook stdin fields across CLI implementations.
+
+    Gemini CLI uses different field names than Claude/Codex:
+      - tool_input  -> input
+      - tool_name   -> tool
+
+    This function translates Gemini field names to the Claude/Codex
+    convention so hooks can use a single code path. Fields that already
+    exist under the Claude/Codex name are not overwritten.
+
+    Args:
+        data: Parsed JSON dict from stdin.
+
+    Returns:
+        The same dict (mutated in place) with normalized field names.
+    """
+    # Gemini: tool_input -> input
+    if "tool_input" in data and "input" not in data:
+        data["input"] = data["tool_input"]
+
+    # Gemini: tool_name -> tool
+    if "tool_name" in data and "tool" not in data:
+        data["tool"] = data["tool_name"]
+
+    return data

@@ -30,7 +30,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines. 
 
 ## Installation
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI is also supported: the installer mirrors toolkit skills into `~/.codex/skills` and toolkit agents into `~/.codex/agents` so Codex can use the same skill and agent library (`codex --version` should print a version number if you want Codex support too).
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI and Gemini CLI are also supported: the installer mirrors toolkit skills and agents into `~/.codex/` and `~/.gemini/` so all three CLIs can use the same skill and agent library.
 
 ```bash
 git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
@@ -38,7 +38,7 @@ cd ~/claude-code-toolkit
 ./install.sh --symlink
 ```
 
-The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. It also mirrors skills into `~/.codex/skills` and agents into `~/.codex/agents` for Codex. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
+The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. It also mirrors skills and agents into `~/.codex/` for Codex and `~/.gemini/` for Gemini CLI. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
 
 Verify the install with:
 
@@ -47,7 +47,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-If you update the repo later and want Codex to see newly added skills, rerun `./install.sh --symlink` from the repo root.
+If you update the repo later and want Codex/Gemini to see newly added skills, rerun `./install.sh --symlink` from the repo root.
 
 Command entry points:
 - Claude Code: `/do`
@@ -78,6 +78,35 @@ The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.codex
 There is no opt-out flag. The mirror is harmless when Codex CLI is not installed: `~/.codex/` entries sit unused until you install Codex. To skip the hooks portion, delete `~/.codex/hooks/` and `~/.codex/hooks.json` after install; the toolkit does not recreate them on normal use.
 
 **Reference**: [`adr/182-codex-hooks-mirror.md`](adr/182-codex-hooks-mirror.md). Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
+
+## Gemini CLI Support
+
+The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.gemini/` so they work with the Google Gemini CLI alongside Claude Code and Codex. The mirror runs automatically on every `install.sh`; no flags required.
+
+**What mirrors**
+
+- **Agents**: every agent under `agents/` (and `private-agents/` if present) is copied or symlinked to `~/.gemini/agents/`.
+- **Skills**: every skill under `skills/`, `private-skills/`, and `private-voices/*/skill/` goes to `~/.gemini/skills/`.
+- **Hooks**: the same Phase 1 hooks as Codex, with translated event names, go to `~/.gemini/hooks/`. Hook configuration is merged into `~/.gemini/settings.json` (only the `hooks` key is modified; all other settings are preserved). See `scripts/gemini-hooks-allowlist.txt`.
+
+**Event name mapping**
+
+| Claude/Codex | Gemini CLI |
+|---|---|
+| SessionStart | SessionStart |
+| Stop | SessionEnd |
+| PostToolUse | AfterTool |
+| PreToolUse | BeforeTool |
+
+Tool name mapping: Codex `Bash` becomes Gemini `run_shell_command`.
+
+**Hook runtime compatibility**
+
+Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hook_utils.py`. Normalization functions (`normalize_input()`, `detect_cli()`) are available in `hooks/lib/hook_utils.py` for hooks to import — they are not auto-applied. Output format (`hookSpecificOutput`) is shared across all three CLIs.
+
+**Opting out**
+
+The mirror is harmless when Gemini CLI is not installed. To remove hooks after install, delete `~/.gemini/hooks/` and remove the `hooks` key from `~/.gemini/settings.json`.
 
 ## Running Claude Code with the toolkit
 
