@@ -67,11 +67,57 @@ _GIT_SUBMISSION_PATTERNS = [
 _DANGEROUS_BYPASS_ENV = "DANGEROUS_GUARD_BYPASS"
 
 _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
-    # Filesystem destruction
-    (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+/\s*$"), "filesystem", "rm -rf /"),
-    (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+/\*"), "filesystem", "rm -rf /*"),
-    (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+~/?(\s|$)"), "filesystem", "rm -rf ~"),
-    (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+\./?(\s|$)"), "filesystem", "rm -rf ."),
+    # Filesystem destruction — match -r and -f flags in ANY order, including:
+    #   combined short flags: -rf, -fr, -rfi, etc.
+    #   separate short flags: -r -f, -f -r
+    #   long flags: --recursive --force, --recursive -f, -r --force
+    #   mixed: -rf, -r -f, --recursive --force, --recursive -f, -r --force
+    # The pattern uses a lookahead to require both recursive AND force flags
+    # before the dangerous target path.
+    (
+        re.compile(
+            r"\brm\s+"
+            r"(?=.*(?:-[a-zA-Z]*r[a-zA-Z]*\b|--recursive\b))"
+            r"(?=.*(?:-[a-zA-Z]*f[a-zA-Z]*\b|--force\b))"
+            r"(?:(?:-[a-zA-Z]+|--(?:recursive|force|no-preserve-root))\s+)*"
+            r"/\s*$"
+        ),
+        "filesystem",
+        "rm -rf /",
+    ),
+    (
+        re.compile(
+            r"\brm\s+"
+            r"(?=.*(?:-[a-zA-Z]*r[a-zA-Z]*\b|--recursive\b))"
+            r"(?=.*(?:-[a-zA-Z]*f[a-zA-Z]*\b|--force\b))"
+            r"(?:(?:-[a-zA-Z]+|--(?:recursive|force|no-preserve-root))\s+)*"
+            r"/\*"
+        ),
+        "filesystem",
+        "rm -rf /*",
+    ),
+    (
+        re.compile(
+            r"\brm\s+"
+            r"(?=.*(?:-[a-zA-Z]*r[a-zA-Z]*\b|--recursive\b))"
+            r"(?=.*(?:-[a-zA-Z]*f[a-zA-Z]*\b|--force\b))"
+            r"(?:(?:-[a-zA-Z]+|--(?:recursive|force|no-preserve-root))\s+)*"
+            r"~/?(\s|$)"
+        ),
+        "filesystem",
+        "rm -rf ~",
+    ),
+    (
+        re.compile(
+            r"\brm\s+"
+            r"(?=.*(?:-[a-zA-Z]*r[a-zA-Z]*\b|--recursive\b))"
+            r"(?=.*(?:-[a-zA-Z]*f[a-zA-Z]*\b|--force\b))"
+            r"(?:(?:-[a-zA-Z]+|--(?:recursive|force|no-preserve-root))\s+)*"
+            r"\./?(\s|$)"
+        ),
+        "filesystem",
+        "rm -rf .",
+    ),
     # Database destruction
     (re.compile(r"\bDROP\s+DATABASE\b", re.IGNORECASE), "database", "DROP DATABASE"),
     (re.compile(r"\bDROP\s+SCHEMA\b", re.IGNORECASE), "database", "DROP SCHEMA"),
@@ -210,17 +256,34 @@ def _is_whitelisted(command: str, whitelist: list[str]) -> bool:
 
 
 def _load_guard_patterns() -> list[tuple[re.Pattern[str], str, str]]:
-    """Load per-project sensitive patterns from .guard-patterns."""
+    """Load per-project sensitive patterns from .guard-patterns.
+
+    Entries are treated as glob-like patterns: ``*`` matches any sequence,
+    ``?`` matches a single character, and all other regex metacharacters
+    are escaped.  Malformed entries that fail ``re.compile`` are logged to
+    stderr and skipped so that a single bad line cannot disable the entire
+    sensitive-file guard.
+    """
     guard_path = Path.cwd() / ".guard-patterns"
     if not guard_path.is_file():
         return []
-    extra = []
+    extra: list[tuple[re.Pattern[str], str, str]] = []
     try:
         for line in guard_path.read_text().splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
-                regex = line.replace(".", r"\.").replace("*", ".*").replace("?", ".")
-                extra.append((re.compile(regex), "custom", line))
+                # Escape ALL regex metacharacters first, then selectively
+                # convert glob wildcards back to their regex equivalents.
+                regex = re.escape(line)
+                regex = regex.replace(r"\*", ".*")  # glob * -> regex .*
+                regex = regex.replace(r"\?", ".")  # glob ? -> regex .
+                try:
+                    extra.append((re.compile(regex), "custom", line))
+                except re.error as exc:
+                    print(
+                        f"[sensitive-file-guard] WARN: Skipping malformed .guard-patterns entry {line!r}: {exc}",
+                        file=sys.stderr,
+                    )
     except OSError:
         pass
     return extra
