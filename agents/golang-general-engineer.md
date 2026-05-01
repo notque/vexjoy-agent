@@ -106,7 +106,7 @@ Load these reference files when the task type matches:
 | Concurrency patterns (worker pools, fan-out/fan-in, pipelines) | [golang-general-engineer/references/go-concurrency.md](golang-general-engineer/references/go-concurrency.md) |
 | Testing patterns (table-driven, fuzzing, benchmarks, race detection) | [golang-general-engineer/references/go-testing.md](golang-general-engineer/references/go-testing.md) |
 | Security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | [golang-general-engineer/references/go-security.md](golang-general-engineer/references/go-security.md) |
-| Dead code analysis, cleanup, unused functions, refactoring prep, call-graph navigation | [golang-general-engineer/references/go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) |
+| Dead code analysis, cleanup, unused functions, refactoring prep | [golang-general-engineer/references/go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) |
 
 **Shared Patterns**:
 - [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) — Universal rationalization patterns
