@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import get_tool_output, get_tool_result
 from stdin_timeout import read_stdin
 
 _GAP_PATTERN = re.compile(r"GAP DETECTED:\s*No match for\s+\[?([^\]\n]+)\]?")
@@ -35,13 +36,13 @@ def main():
         event = json.loads(event_data)
 
         # Only process PostToolUse events
-        event_type = event.get("hook_event_name") or event.get("type", "")
+        event_type = event.get("hook_event_name")
         if event_type != "PostToolUse":
             return
 
         # Check tool output for GAP DETECTED banner
-        tool_result = event.get("tool_result", {})
-        output = tool_result.get("output", "")
+        tool_result = get_tool_result(event)
+        output = get_tool_output(tool_result)
         if not isinstance(output, str) or "GAP DETECTED" not in output:
             return
 

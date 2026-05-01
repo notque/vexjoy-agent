@@ -49,9 +49,36 @@ def tmp_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
     return session_id
 
 
-def _make_hook_input(tool_name: str = "Bash", is_error: bool = False, output: str = "ok") -> str:
-    """Build JSON hook input string."""
+def _make_hook_input(
+    tool_name: str = "Bash",
+    is_error: bool = False,
+    output: str = "ok",
+    schema: str = "claude",
+) -> str:
+    """Build JSON hook input string.
+
+    Args:
+        tool_name: The tool that was called.
+        is_error: Whether the tool reported an error.
+        output: The tool output text.
+        schema: ``"claude"`` for Claude/Codex/Gemini schema (tool_result/is_error/output)
+            or ``"factory"`` for Factory schema (tool_response/exitCode/stdout).
+    """
+    if schema == "factory":
+        return json.dumps(
+            {
+                "tool_name": tool_name,
+                "tool_response": {"stdout": output, "exitCode": 1 if is_error else 0},
+            }
+        )
     return json.dumps({"tool_name": tool_name, "tool_result": {"output": output, "is_error": is_error}})
+
+
+# Schema parameter used by tests that exercise tool-result data.
+_SCHEMAS = [
+    pytest.param("claude", id="claude-schema"),
+    pytest.param("factory", id="factory-schema"),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -62,27 +89,31 @@ def _make_hook_input(tool_name: str = "Bash", is_error: bool = False, output: st
 class TestToolFiltering:
     """Verify only Edit/Write/Bash tools are tracked."""
 
-    def test_skips_read_tool(self, tmp_session: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_skips_read_tool(self, tmp_session: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(tool_name="Read")
+            mock_stdin.read.return_value = _make_hook_input(tool_name="Read", schema=schema)
             mod.main()
             mock_run.assert_not_called()
 
-    def test_skips_grep_tool(self, tmp_session: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_skips_grep_tool(self, tmp_session: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(tool_name="Grep")
+            mock_stdin.read.return_value = _make_hook_input(tool_name="Grep", schema=schema)
             mod.main()
             mock_run.assert_not_called()
 
-    def test_skips_glob_tool(self, tmp_session: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_skips_glob_tool(self, tmp_session: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(tool_name="Glob")
+            mock_stdin.read.return_value = _make_hook_input(tool_name="Glob", schema=schema)
             mod.main()
             mock_run.assert_not_called()
 
-    def test_skips_error_results(self, tmp_session: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_skips_error_results(self, tmp_session: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(is_error=True)
+            mock_stdin.read.return_value = _make_hook_input(is_error=True, schema=schema)
             mod.main()
             mock_run.assert_not_called()
 
@@ -95,23 +126,25 @@ class TestToolFiltering:
 class TestBatching:
     """Verify only every 10th successful call triggers recording."""
 
-    def test_no_record_before_10th_call(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_no_record_before_10th_call(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         """Calls 1-9 should not trigger subprocess."""
         for i in range(1, 10):
             with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-                mock_stdin.read.return_value = _make_hook_input()
+                mock_stdin.read.return_value = _make_hook_input(schema=schema)
                 mod.main()
                 if i < 10:
                     mock_run.assert_not_called()
 
-    def test_records_on_10th_call(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_records_on_10th_call(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         """The 10th call should trigger a record-session subprocess."""
         # Set counter to 9 so next call is the 10th
         counter_file = tmp_path / f"claude-activation-counter-{tmp_session}"
         counter_file.write_text("9")
 
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             mock_run.assert_called_once()
             cmd = mock_run.call_args[0][0]
@@ -126,7 +159,8 @@ class TestBatching:
 class TestRetroDetection:
     """Verify --had-retro flag is passed only when marker exists."""
 
-    def test_had_retro_flag_when_marker_exists(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_had_retro_flag_when_marker_exists(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         # Set counter to 9 and create retro marker
         counter_file = tmp_path / f"claude-activation-counter-{tmp_session}"
         counter_file.write_text("9")
@@ -134,17 +168,18 @@ class TestRetroDetection:
         marker.write_text("1")
 
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             assert "--had-retro" in cmd
 
-    def test_no_retro_flag_without_marker(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_no_retro_flag_without_marker(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         counter_file = tmp_path / f"claude-activation-counter-{tmp_session}"
         counter_file.write_text("9")
 
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             assert "--had-retro" not in cmd
@@ -164,7 +199,8 @@ class TestErrorResilience:
             mod.main()
             mock_exit.assert_called_with(0)
 
-    def test_subprocess_timeout_exits_cleanly(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_subprocess_timeout_exits_cleanly(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         counter_file = tmp_path / f"claude-activation-counter-{tmp_session}"
         counter_file.write_text("9")
 
@@ -173,11 +209,12 @@ class TestErrorResilience:
             patch("sys.stdin") as mock_stdin,
             patch("sys.exit") as mock_exit,
         ):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             mock_exit.assert_called_with(0)
 
-    def test_missing_script_exits_cleanly(self, tmp_session: str, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_missing_script_exits_cleanly(self, tmp_session: str, tmp_path: Path, schema: str) -> None:
         counter_file = tmp_path / f"claude-activation-counter-{tmp_session}"
         counter_file.write_text("9")
 
@@ -187,6 +224,6 @@ class TestErrorResilience:
             patch("sys.stdin") as mock_stdin,
             patch("sys.exit"),
         ):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             mock_run.assert_not_called()

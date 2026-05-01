@@ -13,11 +13,13 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Claude Code is the primary runtime. If you also use Codex CLI, the same install mirrors toolkit skills into `~/.codex/skills` and toolkit agents into `~/.codex/agents`.
+Claude Code is the primary runtime. If you also use Codex CLI, Gemini CLI, or Factory, the same install mirrors toolkit skills and agents into `~/.codex/`, `~/.gemini/`, and `~/.factory/` so all four CLIs share the same skill and agent library.
 
 Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
+- Gemini CLI: `/do`
+- Factory: `/do`
 
 **Alternative (bootstrap via Claude):** Start Claude Code in the vexjoy-agent directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
 
@@ -82,7 +84,7 @@ The system figures out which tools to use and tells you what it selected.
 
 ### Option B: Use the Router for Specific Workflows
 
-The router command routes your request to the right agent and skill automatically. Use `/do` in Claude Code and `$do` in Codex:
+The router command routes your request to the right agent and skill automatically. Use `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex:
 
 | Want This? | Try This |
 |------------|----------|
@@ -132,7 +134,7 @@ These phrases automatically activate the right tools:
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│         /do in Claude | $do in Codex                    │
+│         /do in Claude | $do in Codex | /do in Gemini/Factory    │
 │         (or natural-language routing)                   │
 └─────────────────────────────────────────────────────────┘
                           │

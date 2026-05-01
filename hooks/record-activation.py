@@ -25,7 +25,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import get_session_id
+from hook_utils import get_session_id, get_tool_result, is_tool_error
 from stdin_timeout import read_stdin
 
 
@@ -37,8 +37,8 @@ def main() -> None:
         # tool_name filter removed — matcher "Edit|Write|Bash" in settings.json
         # prevents this hook from spawning for non-matching tools.
 
-        tool_result = hook_input.get("tool_result", {})
-        if tool_result.get("is_error", False):
+        tool_result = get_tool_result(hook_input)
+        if is_tool_error(tool_result):
             return
 
         session_id = get_session_id()
