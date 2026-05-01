@@ -36,7 +36,7 @@ def main():
         event = json.loads(event_data)
 
         # Only process PostToolUse events
-        event_type = event.get("hook_event_name")
+        event_type = event.get("hook_event_name") or event.get("type", "")
         if event_type != "PostToolUse":
             return
 
