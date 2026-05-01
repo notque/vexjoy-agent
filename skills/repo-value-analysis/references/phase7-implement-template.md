@@ -70,6 +70,17 @@ When done, report:
 | **Quality gates** | which gates ran, pass/fail |
 | **Existing component extended** | name, or "N/A — new component created" |
 | **PHILOSOPHY.md alignment** | which principles were applied and how |
+
+## Citation Reporting
+
+Your output is used by the orchestrator to build a citation entry in `docs/CITATIONS.md`. Report implementation details clearly enough to populate that entry:
+
+- **For implemented recommendations**: State the exact files and components created or modified so the citation can reference them as implementation locations (e.g., "Rebuilt as `agents/foo/references/bar.md`" or "Added to `scripts/baz.py`"). Be specific — "created a reference file" is not enough; "created `agents/ui-design-engineer/references/ai-slop-detection.md` with 8 detection patterns" is.
+- **For deferred recommendations**: State the deferral reason precisely so the citation can explain why the pattern was noted but not adopted.
+
+The orchestrator maps your output to the citation format:
+- DONE → "Patterns adopted" with your file paths as implementation locations
+- DEFERRED → "Patterns noted but not adopted" with your deferral reason
 ```
 
 ---
