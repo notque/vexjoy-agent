@@ -52,11 +52,15 @@ Actual: [What actually happens]
 Environment: [OS, language version, dependencies]
 ```
 
-**Step 2: Create minimal reproduction**
+**Step 2: Build a feedback loop**
 
+The feedback loop is the most important artifact in debugging. A loop that reproduces the bug on demand in under 5 seconds is worth 30 minutes of construction time. For detailed guidance on 10 concrete loop construction methods (failing test, curl script, headless browser, replay trace, throwaway harness, property/fuzz testing, bisection, differential comparison, HITL script, log correlation), read `${CLAUDE_SKILL_DIR}/references/feedback-loop-construction.md`.
+
+Pick the simplest method that captures the failure:
 - Strip to essentials -- remove unrelated code
 - Use smallest dataset that shows the bug
 - Isolate from external services where possible
+- Target < 5 seconds per loop iteration
 
 **Step 3: Verify consistency**
 
@@ -294,6 +298,7 @@ Solution:
 ## References
 
 ### Reference Files
+- `${CLAUDE_SKILL_DIR}/references/feedback-loop-construction.md`: 10 concrete loop construction methods, loop quality iteration, non-deterministic bug techniques
 - `${CLAUDE_SKILL_DIR}/references/debugging-patterns.md`: Common bug patterns by category
 - `${CLAUDE_SKILL_DIR}/references/tools.md`: Language-specific debugging tools
 - `${CLAUDE_SKILL_DIR}/references/isolation-techniques.md`: Advanced isolation strategies
