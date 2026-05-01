@@ -195,7 +195,7 @@ Review output structure is enforced by JSON Schemas in `skills/shared-patterns/s
 
 | Schema File | Review Type | Validates |
 |-------------|------------|-----------|
-| `review-output-base.schema.json` | All reviews | verdict, findings with file:line, positives |
+| `review-output-base.schema.json` | base | Generic review validation: verdict, findings (critical/high/medium/low) with file:line locations, positives |
 | `systematic-code-review.schema.json` | systematic-code-review | + risk_level, severity: blocking/should_fix/suggestions |
 | `parallel-code-review.schema.json` | parallel-code-review | + severity_matrix, reviewer attribution per finding |
 | `sapcc-review.schema.json` | sapcc-review | + 10-agent scorecard, quick_wins |
