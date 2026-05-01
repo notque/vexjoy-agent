@@ -42,7 +42,9 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
 | game UI, AAA game, polished game, Steam game, roguelike UI, Slay the Spire | `game-ui-polish.md` | Loads game-native polish rules that prevent website-like surfaces, excessive gradients, nested boxes, and fake-premium chrome. |
+| placeholder, missing assets, placeholder image, no imagery | `honest-placeholders.md` | Striped placeholder pattern for missing assets that prevents false design decisions |
 | example-driven tasks | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
+| color palette, harmony, oklch, perceptual, color generation | `oklch-color-harmony.md` | oklch() technique for perceptually uniform color palette generation |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
 | tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
 | tasks related to this reference | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |
@@ -217,6 +219,8 @@ These reference files contain the curated domain knowledge that drives design de
 - `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules for AAA/Steam/roguelike surfaces, including anti-patterns learned from Road to AEW
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`: grep/rg detection commands for banned fonts, hardcoded colors, over-animation, and flat backgrounds in implementation code — load when auditing CSS/SCSS/TSX files or verifying a generated spec was implemented correctly
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`: CSS property render costs, compositor-thread promotion rules, layout thrashing detection commands, frame budget reference — load when animation performance is in scope or "animation performance profiling" optional capability is enabled
+- `${CLAUDE_SKILL_DIR}/references/oklch-color-harmony.md`: oklch() perceptually uniform color palette generation — analogous, complementary, triadic harmony, lightness roles, dark mode inversion, chroma guidelines
+- `${CLAUDE_SKILL_DIR}/references/honest-placeholders.md`: Striped placeholder pattern for missing assets — prevents false design decisions from placeholder imagery
 
 ## Error Handling
 
@@ -234,3 +238,5 @@ See `references/error-handling.md` for recovery procedures covering banned fonts
 - `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`
+- `${CLAUDE_SKILL_DIR}/references/oklch-color-harmony.md`
+- `${CLAUDE_SKILL_DIR}/references/honest-placeholders.md`

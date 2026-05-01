@@ -44,6 +44,25 @@ Single-skill Claude Code repository that distills public figures into runnable v
 - Required attribution footer in every generated skill. We attribute in this file; produced artifacts stay clean.
 - `npx skills add` distribution layer. Orthogonal to our flat `~/.claude/skills/` model.
 
+### Trystan-SA/claude-design-system-prompt
+https://github.com/Trystan-SA/claude-design-system-prompt
+
+Design-oriented system prompt with 14 procedural design skills for Claude Code. Studied for its design-specific quality patterns and UI review methodologies.
+
+**Patterns adopted:**
+- AI slop detection checklist (8 concrete anti-patterns for AI-generated UI). Rebuilt as `agents/ui-design-engineer/references/ai-slop-detection.md` with positive-instruction-first format and detection commands.
+- Interaction state coverage matrix (6-state exhaustive check per interactive element). Rebuilt as `agents/ui-design-engineer/references/interaction-state-coverage.md` with CSS specifics and timing bounds.
+- Spacing/type scale enforcement (flag any px value not on a 4px/8px grid). Rebuilt as `scripts/design-scale-check.py` — fully deterministic, zero LLM involvement.
+- oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/distinctive-frontend-design/references/oklch-color-harmony.md`.
+- Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/distinctive-frontend-design/references/honest-placeholders.md`.
+
+**Patterns noted but not adopted:**
+- Discovery questions anti-pattern #4 ("don't ask about info you already have"). Valuable general principle but already partially encoded in our blocker tables' "skip-if-answered" rules.
+- Polish pass umbrella skill (parallel 4-agent design review). Architecturally interesting but we already have the multi-wave review pattern; adding a design-specific umbrella is future work.
+- Wireframe discipline conventions (greyscale-only exploration). Valuable if we build design artifact generation workflows; filed for future reference.
+- Component gap analysis (near-duplicates, missing states, implied-but-undefined variants). Useful but only relevant when we build component extraction workflows.
+- Five-question content filler test. Good rubric but too narrow for a standalone reference; the principle is already embedded in our "one job per section" constraint.
+
 ### notque/consensuscode
 https://github.com/notque/consensuscode
 

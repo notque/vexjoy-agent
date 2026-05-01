@@ -164,6 +164,8 @@ Uses the **Implementation Schema**: ANALYZE (surface type, narrative brief, cont
 | card, table, badge, avatar, progress, alert | `component-library-display.md` | Cards, tables, badges, avatars, progress indicators, alerts |
 | Tailwind config, @apply, responsive, purge, JIT, arbitrary | `tailwind-preferred-patterns.md` | Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values |
 | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | `animation-patterns.md` | Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions |
+| AI slop, generic UI, AI-generated, template look, default styling | `ai-slop-detection.md` | 8 concrete anti-patterns that make AI-generated UI look generic, with detection commands and fixes |
+| interaction states, hover, focus, disabled, loading, active, pressed | `interaction-state-coverage.md` | 6-state coverage matrix for interactive elements with specific CSS values and timing bounds |
 
 ## Error Handling
 
@@ -256,5 +258,7 @@ Load on demand — fetch only the file(s) relevant to the current task:
 | Cards, tables, badges, avatars, progress indicators, alerts | card, table, badge, avatar, progress, alert | [references/component-library-display.md](references/component-library-display.md) |
 | Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values | Tailwind config, @apply, responsive, purge, JIT, arbitrary | [references/tailwind-preferred-patterns.md](references/tailwind-preferred-patterns.md) |
 | Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | [references/animation-patterns.md](references/animation-patterns.md) |
+| 8 AI anti-patterns with detection commands: gradients, emoji, left-border cards, fonts, colors, spacing | AI slop, generic UI, AI-generated, template look, default styling | [references/ai-slop-detection.md](references/ai-slop-detection.md) |
+| 6-state coverage matrix, transition timing bounds, element-by-element checklist | interaction states, hover, focus, disabled, loading, active, pressed | [references/interaction-state-coverage.md](references/interaction-state-coverage.md) |
 
 **Shared Patterns**: [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) | [verification-checklist.md](../skills/shared-patterns/verification-checklist.md)
