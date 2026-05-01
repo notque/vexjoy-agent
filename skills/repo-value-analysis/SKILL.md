@@ -236,7 +236,32 @@ For each dispatched agent, collect:
 - Which quality gates passed
 - Any deferred items with explicit reasons
 
-**Step 4: Write implementation log**
+**Step 4: Append citation to `docs/CITATIONS.md`**
+
+After implementations complete (or after all HIGH recommendations are deferred), append a citation entry under the `## Repos` section of `docs/CITATIONS.md`. Use the Phase 6 report's comparison table and Step 3 results to populate it. The entry must follow the existing format in that file:
+
+```markdown
+### RepoName
+https://github.com/org/repo
+
+Description of what the repo is and why it was studied.
+
+**Patterns adopted:**
+- [Pattern name] ([implementation location]). Brief description of what was adopted and how it was rebuilt in our architecture.
+
+**Patterns noted but not adopted:**
+- [Pattern name]. Brief reason why it wasn't adopted.
+```
+
+Mapping rules:
+- **HIGH + implemented** → "Patterns adopted" — include the specific files or components created (from Step 3 results) as the implementation location
+- **HIGH + deferred** → "Patterns noted but not adopted" — state the deferral reason
+- **MEDIUM** → "Patterns noted but not adopted" — state why it was not auto-implemented (e.g., "Nice to have but not high priority")
+- **LOW** → "Patterns noted but not adopted" — brief note on why it was marginal
+
+Every recommendation from the Phase 6 report must appear in exactly one of the two sections. Do not omit MEDIUM or LOW items — citation completeness tracks what was studied and why each decision was made, which prevents future re-analysis of the same repo.
+
+**Step 5: Write implementation log**
 
 Append an "## Implementation Results" section to `research-[REPO_NAME]-comparison.md`:
 
@@ -255,7 +280,7 @@ Append an "## Implementation Results" section to `research-[REPO_NAME]-compariso
 - [recommendation]: [brief note]
 ```
 
-**Gate**: All HIGH recommendations either implemented (branch created, quality gates passed) or explicitly deferred with a documented reason. Each implementation follows our architecture — no direct imports of external code. Implementation log appended to the report. Proceed only when gate passes.
+**Gate**: All HIGH recommendations either implemented (branch created, quality gates passed) or explicitly deferred with a documented reason. Each implementation follows our architecture — no direct imports of external code. Citation entry appended to `docs/CITATIONS.md` with all recommendations mapped (HIGH adopted/deferred, MEDIUM noted, LOW noted). Implementation log appended to the report. Proceed only when gate passes.
 
 ---
 
