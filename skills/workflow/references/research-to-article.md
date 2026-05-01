@@ -154,9 +154,9 @@ content/[site]/test/[subject]-article.md
 **Step 1: Run validator**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
+python3 $HOME/vexjoy-agent/scripts/voice-validator.py validate \
   --content /path/to/article-draft.md \
-  --profile $HOME/claude-code-toolkit/skills/voice-[name]/profile.json \
+  --profile $HOME/vexjoy-agent/skills/voice-[name]/profile.json \
   --voice [name] \
   --format json
 ```
