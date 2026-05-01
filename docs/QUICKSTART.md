@@ -6,10 +6,10 @@
 
 ## Installation
 
-Before using Claude Code Toolkit, run the installer:
+Before using VexJoy Agent, run the installer:
 
 ```bash
-cd ~/claude-code-toolkit
+cd ~/vexjoy-agent
 ./install.sh
 ```
 
@@ -19,14 +19,14 @@ Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
 
-**Alternative (bootstrap via Claude):** Start Claude Code in the claude-code-toolkit directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
+**Alternative (bootstrap via Claude):** Start Claude Code in the vexjoy-agent directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
 
 ```bash
-cd ~/claude-code-toolkit
+cd ~/vexjoy-agent
 claude
 ```
 
-> **Note:** The initial sync must run from the claude-code-toolkit directory. After that, hooks work globally from any directory.
+> **Note:** The initial sync must run from the vexjoy-agent directory. After that, hooks work globally from any directory.
 
 Verify the install:
 

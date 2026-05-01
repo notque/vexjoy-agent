@@ -196,7 +196,7 @@ Default. Applied when `--variants N` > 1.
 Before shipping any change to this skill, run:
 
 ```bash
-cd /home/feedgen/claude-code-toolkit
+cd /home/feedgen/vexjoy-agent
 python3 scripts/generate-skill-index.py
 python3 scripts/validate-references.py --check-do-framing
 ruff check . --config pyproject.toml

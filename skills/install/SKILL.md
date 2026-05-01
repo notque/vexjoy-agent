@@ -1,6 +1,6 @@
 ---
 name: install
-description: "Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup."
+description: "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup."
 user-invocable: true
 allowed-tools:
   - Read
@@ -24,7 +24,7 @@ routing:
 
 # /install — Setup & Health Check
 
-Verify your Claude Code Toolkit installation, diagnose issues, and get oriented. Use after cloning the repo and running `install.sh`, when something seems broken (hooks not firing, missing commands), for first-time orientation, or after a `git pull` to verify nothing broke.
+Verify your VexJoy Agent installation, diagnose issues, and get oriented. Use after cloning the repo and running `install.sh`, when something seems broken (hooks not firing, missing commands), for first-time orientation, or after a `git pull` to verify nothing broke.
 
 ## Instructions
 

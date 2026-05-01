@@ -1,6 +1,6 @@
 # Scripts
 
-Utility scripts for the Claude Code Toolkit.
+Utility scripts for the VexJoy Agent.
 
 ## Index Generators
 

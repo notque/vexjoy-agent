@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-install-doctor.py — Deterministic health checks for Claude Code Toolkit installation.
+install-doctor.py — Deterministic health checks for VexJoy Agent installation.
 
 Usage:
     python3 scripts/install-doctor.py check          # From repo root
@@ -676,7 +676,7 @@ def main():
             if use_json:
                 print(json.dumps({"checks": results, "all_passed": all(r["passed"] for r in results)}, indent=2))
             else:
-                print("\n  Claude Code Toolkit — Installation Health Check\n")
+                print("\n  VexJoy Agent — Installation Health Check\n")
                 all_passed = print_results(results)
                 passed = sum(1 for r in results if r["passed"])
                 total = len(results)

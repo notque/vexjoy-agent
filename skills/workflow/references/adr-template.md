@@ -1,6 +1,6 @@
 # ADR Template
 
-General-purpose template for Architecture Decision Records in the Claude Code Toolkit.
+General-purpose template for Architecture Decision Records in the VexJoy Agent.
 Copy the block below for each new ADR.
 
 ---

@@ -50,7 +50,7 @@ key algorithms from their source code using only numpy + scipy.
 
 ```bash
 # Create venv (one-time)
-python3 -m venv /home/feedgen/claude-code-toolkit/motion-pipeline-env/
+python3 -m venv /home/feedgen/vexjoy-agent/motion-pipeline-env/
 
 # Install CPU-only deps
 motion-pipeline-env/bin/pip install numpy scipy pygltflib Pillow

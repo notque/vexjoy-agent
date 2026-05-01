@@ -1,7 +1,7 @@
 # Pipeline Orchestration — Fan-Out/Fan-In Patterns
 
 > **Scope**: Concrete patterns for dispatching parallel sub-agents, collecting outputs, and enforcing phase gates. Covers the orchestrator role only — not individual component templates.
-> **Version range**: claude-code-toolkit all versions
+> **Version range**: vexjoy-agent all versions
 > **Generated**: 2026-04-09 — verify Agent tool parameter names against current SDK
 
 ---

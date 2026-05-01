@@ -1,7 +1,7 @@
 # Retro and ADR Validation Phases
 
 Full details for Phase 4c (RETRO) and Phase 4d (ADR VALIDATION) of the PR Pipeline.
-Both phases apply to the claude-code-toolkit repo only.
+Both phases apply to the vexjoy-agent repo only.
 
 ---
 

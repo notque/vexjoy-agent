@@ -26,7 +26,7 @@ KAIROS_MARKER = "KAIROS-lite"
 CONFIG_DIR = Path.home() / ".claude" / "config"
 CONFIG_FILE = CONFIG_DIR / "kairos.json"
 LOG_DIR = Path.home() / ".claude" / "logs"
-TOOLKIT_DIR = Path("/home/feedgen/claude-code-toolkit")
+TOOLKIT_DIR = Path("/home/feedgen/vexjoy-agent")
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +294,7 @@ def print_summary(owner: str, repo: str) -> None:
     print()
     print("  Manual check:")
     print(
-        "    cd /home/feedgen/claude-code-toolkit && "
+        "    cd /home/feedgen/vexjoy-agent && "
         'CLAUDE_KAIROS_ENABLED=true claude -p "$(cat skills/kairos-lite/monitor-prompt.md)" --model sonnet'
     )
     print()

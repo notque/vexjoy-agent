@@ -4,7 +4,7 @@ For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background). Audit 
 
 ```
 You are auditing whether recommendation "[recommendation]" is already
-addressed in the claude-code-toolkit repository.
+addressed in the vexjoy-agent repository.
 
 The recommendation suggests: [description]
 
