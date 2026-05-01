@@ -351,19 +351,30 @@ grep -rnE '(/tmp/[a-z][a-z0-9_-]+|/home/[a-z][a-z0-9_-]+|/Users/[a-z][a-z0-9_-]+
 
 The validation pass invoked at the post-scaffold gate (next section) includes this grep. New skills do not ship with leaked author paths.
 
-### Post-scaffold: regenerate skills INDEX.json (mandatory)
+### Post-scaffold: register in routing table + INDEX.json (mandatory)
 
-After the skill directory + SKILL.md are on disk, regenerate the skills index.
-Without this step the router cannot discover the new skill and requests that
-should match it fall through to the fallback handler.
+After the skill directory + SKILL.md are on disk, TWO registrations are required.
+Skipping either one causes the router to miss the new skill.
+
+**Step 1: Routing table entry.** Add an entry to the canonical routing table at
+`skills/do/references/routing-tables.md`. This is where EVERY skill must be
+registered — not in skill-local files, not only in frontmatter. Then verify:
+
+```bash
+python3 scripts/check-routing-drift.py
+```
+
+CI enforces this check. If it fails, the entry is missing or in the wrong file.
+
+**Step 2: INDEX.json.** Regenerate the skills index:
 
 ```bash
 python3 scripts/generate-skill-index.py
 ```
 
-Run it from the repo root. Treat it as a commit-gating step: the scaffold is
-not complete until INDEX.json reflects the new skill. Diff the file before
-staging to confirm exactly one new entry was added.
+Run both from the repo root. The scaffold is not complete until the routing
+table has an entry AND INDEX.json reflects the new skill. Diff both files
+before staging to confirm exactly one new entry was added to each.
 
 ### Post-scaffold: joy-check + do-pair validation
 
