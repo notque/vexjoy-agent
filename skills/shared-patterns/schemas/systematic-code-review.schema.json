@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "systematic-code-review.schema.json",
+  "title": "Systematic Code Review Output Schema",
+  "description": "Schema for 4-phase systematic code review output. Verdict: APPROVE, REQUEST-CHANGES, or NEEDS-DISCUSSION. Severity tiers: blocking, should_fix, suggestions.",
+  "type": "object",
+  "required": ["verdict", "findings", "risk_level"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["APPROVE", "REQUEST-CHANGES", "NEEDS-DISCUSSION"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    },
+    "findings": {
+      "type": "object",
+      "properties": {
+        "blocking": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "should_fix": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "suggestions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "positives": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["title", "location"],
+      "properties": {
+        "title": { "type": "string" },
+        "location": {
+          "type": "string",
+          "pattern": ".*:\\d+"
+        },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    }
+  }
+}

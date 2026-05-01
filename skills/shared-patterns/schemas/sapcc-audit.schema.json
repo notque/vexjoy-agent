@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sapcc-audit.schema.json",
+  "title": "SAPCC Audit Output Schema",
+  "description": "Schema for full-repo SAPCC compliance audit. Severity tiers: must_fix, should_fix, nit. Requires package_summary with per-package breakdown.",
+  "type": "object",
+  "required": ["verdict", "findings", "package_summary"],
+  "properties": {
+    "verdict": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "package_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package", "files", "must_fix", "should_fix", "nit", "verdict"],
+        "properties": {
+          "package": { "type": "string" },
+          "files": { "type": "integer", "minimum": 0 },
+          "must_fix": { "type": "integer", "minimum": 0 },
+          "should_fix": { "type": "integer", "minimum": 0 },
+          "nit": { "type": "integer", "minimum": 0 },
+          "verdict": { "type": "string" }
+        }
+      },
+      "minItems": 1
+    },
+    "findings": {
+      "type": "object",
+      "properties": {
+        "must_fix": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "should_fix": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "nit": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "positives": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["title", "location"],
+      "properties": {
+        "title": { "type": "string" },
+        "location": {
+          "type": "string",
+          "pattern": ".*:\\d+"
+        },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "convention": { "type": "string" }
+      }
+    }
+  }
+}
