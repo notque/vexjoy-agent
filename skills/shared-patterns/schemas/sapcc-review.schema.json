@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sapcc-review.schema.json",
+  "title": "SAPCC Review Output Schema",
+  "description": "Schema for 10-agent domain-specialist SAPCC code review. Requires scorecard with exactly 10 entries (one per domain specialist) and quick_wins section.",
+  "type": "object",
+  "required": ["verdict", "findings", "scorecard", "quick_wins"],
+  "properties": {
+    "verdict": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "scorecard": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain", "agent", "findings", "critical", "high", "medium", "low"],
+        "properties": {
+          "domain": { "type": "string" },
+          "agent": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "findings": { "type": "integer", "minimum": 0 },
+          "critical": { "type": "integer", "minimum": 0 },
+          "high": { "type": "integer", "minimum": 0 },
+          "medium": { "type": "integer", "minimum": 0 },
+          "low": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "quick_wins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "location"],
+        "properties": {
+          "title": { "type": "string" },
+          "location": {
+            "type": "string",
+            "pattern": "^[\\w./\\-]+:\\d+"
+          },
+          "description": { "type": "string" },
+          "effort": { "type": "string" }
+        }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "properties": {
+        "critical": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "high": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "medium": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "low": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "positives": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["title", "location"],
+      "properties": {
+        "title": { "type": "string" },
+        "location": {
+          "type": "string",
+          "pattern": "^[\\w./\\-]+:\\d+"
+        },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "domain": { "type": "string" },
+        "agent": { "type": "integer" }
+      }
+    }
+  }
+}

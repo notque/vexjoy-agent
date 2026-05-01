@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-output-base.schema.json",
+  "title": "Review Output Base Schema",
+  "description": "Base schema shared by all review output formats. Defines verdict, findings, and positives structure.",
+  "type": "object",
+  "required": ["verdict", "findings"],
+  "properties": {
+    "verdict": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "findings": {
+      "type": "object",
+      "properties": {
+        "critical": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "high": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "medium": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "low": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "positives": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["title", "location"],
+      "properties": {
+        "title": { "type": "string" },
+        "location": {
+          "type": "string",
+          "pattern": "^[\\w./\\-]+:\\d+"
+        },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "reviewer": { "type": "string" }
+      }
+    }
+  }
+}

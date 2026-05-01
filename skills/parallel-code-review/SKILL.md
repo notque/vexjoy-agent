@@ -169,6 +169,12 @@ Details by reviewer below.
 **VERDICT** - [1-2 sentence rationale]
 ```
 
+**Schema Validation (automatic):** After producing the structured report, validate structure:
+```bash
+python3 scripts/validate-review-output.py --type parallel review-output.md
+```
+This checks: verdict present, severity_matrix populated, findings have reviewer attribution and file:line references.
+
 **Step 3: If BLOCK verdict, initiate re-review protocol**
 
 After user addresses CRITICAL issues, re-run ALL 3 reviewers (not just the one that found the issue) to verify:

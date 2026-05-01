@@ -223,6 +223,12 @@ Verdict: APPROVE | REQUEST-CHANGES | NEEDS-DISCUSSION
 Rationale: [1-2 sentences explaining verdict]
 ```
 
+**Schema Validation (automatic):** After producing review output, validate structure:
+```bash
+python3 scripts/validate-review-output.py --type systematic review-output.md
+```
+This checks: verdict is one of APPROVE/REQUEST-CHANGES/NEEDS-DISCUSSION, risk_level present, findings have file:line references, positives section exists.
+
 After producing the review, remove any temporary analysis files, notes, or debug outputs created during review because only the final review document should persist.
 
 **Gate**: Structured review output with clear verdict. Review is complete.

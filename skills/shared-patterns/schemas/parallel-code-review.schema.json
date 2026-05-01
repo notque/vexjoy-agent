@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "parallel-code-review.schema.json",
+  "title": "Parallel Code Review Output Schema",
+  "description": "Schema for 3-reviewer parallel code review output. Verdict: BLOCK, FIX, or APPROVE. Requires severity_matrix and reviewer_summary. Each finding must identify its reviewer.",
+  "type": "object",
+  "required": ["verdict", "findings", "severity_matrix", "reviewer_summary"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["BLOCK", "FIX", "APPROVE"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "severity_matrix": {
+      "type": "object",
+      "required": ["critical", "high", "medium", "low"],
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "reviewer_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reviewer", "critical", "high", "medium", "low"],
+        "properties": {
+          "reviewer": { "type": "string" },
+          "critical": { "type": "integer", "minimum": 0 },
+          "high": { "type": "integer", "minimum": 0 },
+          "medium": { "type": "integer", "minimum": 0 },
+          "low": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "properties": {
+        "critical": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "high": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "medium": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        },
+        "low": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finding" }
+        }
+      }
+    },
+    "positives": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["title", "location", "reviewer"],
+      "properties": {
+        "title": { "type": "string" },
+        "location": {
+          "type": "string",
+          "pattern": "^[\\w./\\-]+:\\d+"
+        },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "reviewer": { "type": "string" }
+      }
+    }
+  }
+}
