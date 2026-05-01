@@ -19,6 +19,13 @@ routing:
     - what can we learn from
     - compare against repo
     - read every file in repo
+    - check if repo is valuable
+    - evaluate this repo
+    - what can we adopt from
+    - study this repo
+    - clone and analyze repo
+    - external repo analysis
+    - skills repo evaluation
   pairs_with:
     - workflow
   complexity: Complex
@@ -29,7 +36,7 @@ routing:
 
 ## Overview
 
-This skill conducts systematic 6-phase analysis of external repositories to assess their value for adoption. You dispatch parallel subagents to read and catalog every file in an external repo, inventory your own toolkit in parallel, identify genuine capability gaps, audit those gaps against your actual codebase, and produce a reality-grounded comparison report with adoption recommendations.
+This skill conducts systematic 7-phase analysis of external repositories to assess their value for adoption, then implements the findings. You dispatch parallel subagents to read and catalog every file in an external repo, inventory your own toolkit in parallel, identify genuine capability gaps, audit those gaps against your actual codebase, produce a reality-grounded comparison report, and implement HIGH-value recommendations by rebuilding them in our architecture. Use `--analyze-only` to stop at the report (Phase 6) without implementing.
 
 The pipeline enforces **full file reading** (not sampling), **parallel execution** (up to 8 agent zones simultaneously), and **mandatory audit** (every recommendation verified before reporting). Optional flags allow local analysis (`--local`), zone focus (`--zone`), and quick comparison (`--quick` skips audit).
 
@@ -44,6 +51,7 @@ The pipeline enforces **full file reading** (not sampling), **parallel execution
 | tasks related to this reference | `phase3-inventory-template.md` | Loads detailed guidance from `phase3-inventory-template.md`. |
 | tasks related to this reference | `phase5-audit-template.md` | Loads detailed guidance from `phase5-audit-template.md`. |
 | tasks related to this reference | `phase6-report-template.md` | Loads detailed guidance from `phase6-report-template.md`. |
+| implementation, adopt, build recommendations | `phase7-implement-template.md` | Loads agent dispatch template for Phase 7 IMPLEMENT. |
 
 ## Instructions
 
@@ -184,6 +192,71 @@ See `references/phase6-report-template.md` for the full 4-step workflow and fina
 
 **Gate**: Final report saved to `research-[REPO_NAME]-comparison.md`. Report contains comparison table, adjusted recommendations based on audit findings, and verdict. No "DRAFT" watermark remains. All recommendations have been reality-checked against Phase 5 audit findings (or marked as unaudited if --quick was used). Proceed only when gate passes.
 
+### Phase 7: IMPLEMENT (Optional — skipped with `--analyze-only`)
+
+**Goal**: Take HIGH-value recommendations from the Phase 6 report and rebuild them inside our architecture. This is the adoption phase — it closes the loop from "we found something valuable" to "we built our version of it."
+
+If `--analyze-only` was passed at invocation, skip this phase entirely and deliver the Phase 6 report as the final output. The default behavior is to run Phase 7 because the whole point of this pipeline is end-to-end adoption, not just analysis.
+
+**Step 1: Parse the final report for actionable recommendations**
+
+Read `research-[REPO_NAME]-comparison.md` and extract all recommendations by priority:
+
+| Priority | Action |
+|----------|--------|
+| **HIGH** with MISSING or PARTIAL coverage | Dispatch an implementation agent (Step 2) |
+| **MEDIUM** | Add to "Future Consideration" section — do not auto-implement |
+| **LOW** | Note in the implementation log — do not action |
+
+If no HIGH recommendations exist (all gaps are MEDIUM or LOW), log the outcome and skip to the gate.
+
+**Step 2: Dispatch implementation agents**
+
+For each HIGH recommendation, load `references/phase7-implement-template.md` and dispatch 1 Agent with:
+
+1. **The recommendation details** — what to build, what gap it fills, which files are affected
+2. **The external repo's approach** — for reference only, not to copy. The external code is research input, not an installation source (per PHILOSOPHY.md: "External Components Are Research Inputs, Not Imports")
+3. **PHILOSOPHY.md constraints** — the agent MUST read `docs/PHILOSOPHY.md` before writing any code. Key principles enforced:
+   - Rebuild in our architecture: our naming, our structure, our routing model
+   - Check existing components first: search `agents/`, `skills/`, `scripts/` for overlap before creating anything new ("One Domain, One Component")
+   - Progressive disclosure: thin runtime files, deep content in `references/`
+   - Deterministic execution: if the work can be a script, write a script
+4. **Quality gates** — the agent must run applicable validation before declaring done:
+   - `ruff check . --config pyproject.toml` and `ruff format --check . --config pyproject.toml` for Python
+   - `python3 scripts/validate-references.py` for new agent/skill reference files
+   - Verify new components are registered in INDEX files
+5. **Branch discipline** — each implementation creates a feature branch (not committing to main)
+
+Agents run in parallel where recommendations are independent. Sequential dispatch when one recommendation depends on another.
+
+**Step 3: Collect implementation results**
+
+For each dispatched agent, collect:
+- What was built (files created or modified)
+- Which quality gates passed
+- Any deferred items with explicit reasons
+
+**Step 4: Write implementation log**
+
+Append an "## Implementation Results" section to `research-[REPO_NAME]-comparison.md`:
+
+```markdown
+## Implementation Results
+
+### HIGH Recommendations — Implemented
+| Recommendation | Status | Branch | Files Changed | Quality Gates |
+|---------------|--------|--------|---------------|---------------|
+| ... | DONE / DEFERRED | feat/... | ... | ruff PASS, validate-references PASS |
+
+### MEDIUM Recommendations — Future Consideration
+- [recommendation]: [why it's worth considering later]
+
+### LOW Recommendations — Noted
+- [recommendation]: [brief note]
+```
+
+**Gate**: All HIGH recommendations either implemented (branch created, quality gates passed) or explicitly deferred with a documented reason. Each implementation follows our architecture — no direct imports of external code. Implementation log appended to the report. Proceed only when gate passes.
+
 ---
 
 ## Error Handling
@@ -198,4 +271,5 @@ See `references/error-handling.md` for clone failures, large repos (10k+ files),
 - `references/phase3-inventory-template.md` — Phase 3 INVENTORY agent template
 - `references/phase5-audit-template.md` — Phase 5 AUDIT agent template
 - `references/phase6-report-template.md` — Phase 6 REPORT workflow and final template
+- `references/phase7-implement-template.md` — Phase 7 IMPLEMENT agent dispatch template
 - `references/error-handling.md` — Pipeline error handling

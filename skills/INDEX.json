@@ -1652,14 +1652,21 @@
     },
     "repo-value-analysis": {
       "file": "skills/repo-value-analysis/SKILL.md",
-      "description": "Analyze external repositories for adoptable ideas and patterns.",
+      "description": "Analyze external repositories for adoptable ideas and patterns, then implement HIGH-value findings in our architecture.",
       "triggers": [
         "repo value analysis",
         "does repo add value",
         "analyze repo for ideas",
         "what can we learn from",
         "compare against repo",
-        "read every file in repo"
+        "read every file in repo",
+        "check if repo is valuable",
+        "evaluate this repo",
+        "what can we adopt from",
+        "study this repo",
+        "clone and analyze repo",
+        "external repo analysis",
+        "skills repo evaluation"
       ],
       "category": "analysis",
       "user_invocable": false,
