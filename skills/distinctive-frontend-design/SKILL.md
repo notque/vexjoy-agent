@@ -42,9 +42,9 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
 | game UI, AAA game, polished game, Steam game, roguelike UI, Slay the Spire | `game-ui-polish.md` | Loads game-native polish rules that prevent website-like surfaces, excessive gradients, nested boxes, and fake-premium chrome. |
-| color palette, harmony, oklch, perceptual, color generation | `oklch-color-harmony.md` | oklch() technique for perceptually uniform color palette generation |
 | placeholder, missing assets, placeholder image, no imagery | `honest-placeholders.md` | Striped placeholder pattern for missing assets that prevents false design decisions |
 | example-driven tasks | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
+| color palette, harmony, oklch, perceptual, color generation | `oklch-color-harmony.md` | oklch() technique for perceptually uniform color palette generation |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
 | tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
 | tasks related to this reference | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |

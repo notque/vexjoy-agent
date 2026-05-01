@@ -19,7 +19,7 @@ Use striped placeholders instead of bad imagery. When final assets are not avail
   align-items: center;
   justify-content: center;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
   min-height: 200px;
   border: 1px dashed #ccc;

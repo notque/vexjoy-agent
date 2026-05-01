@@ -24,7 +24,7 @@ from pathlib import Path
 
 # Properties whose px values must snap to the grid.
 SPACING_PROPS = re.compile(
-    r"\b(margin|margin-top|margin-right|margin-bottom|margin-left"
+    r"(?<!-)\b(margin|margin-top|margin-right|margin-bottom|margin-left"
     r"|padding|padding-top|padding-right|padding-bottom|padding-left"
     r"|gap|row-gap|column-gap"
     r"|font-size"
@@ -44,7 +44,7 @@ INLINE_STYLE = re.compile(r'style\s*=\s*["{]([^"}>]+)["}]', re.IGNORECASE)
 
 # CSS-in-JS patterns: property: "Npx" or property: 'Npx' or property: Npx
 CSS_IN_JS_PROP = re.compile(
-    r"\b(margin|marginTop|marginRight|marginBottom|marginLeft"
+    r"(?<!-)\b(margin|marginTop|marginRight|marginBottom|marginLeft"
     r"|padding|paddingTop|paddingRight|paddingBottom|paddingLeft"
     r"|gap|rowGap|columnGap"
     r"|fontSize"
@@ -75,13 +75,13 @@ def check_line(line: str, base: int, allowed: set[int]) -> list[tuple[int, int]]
             if "." in raw:
                 continue
             val = int(raw)
-            if val < 0:
-                val = abs(val)
-            if val in allowed:
+            sign = -1 if val < 0 else 1
+            abs_val = abs(val)
+            if abs_val in allowed:
                 continue
-            if val % base != 0:
-                nearest = round(val / base) * base
-                violations.append((int(m.group(1)), nearest))
+            if abs_val % base != 0:
+                nearest = sign * (round(abs_val / base) * base)
+                violations.append((val, nearest))
 
     # Check CSS-in-JS camelCase properties (only when no standard CSS property matched,
     # to avoid double-counting lines like "padding: 7px" which match both patterns)
@@ -91,30 +91,32 @@ def check_line(line: str, base: int, allowed: set[int]) -> list[tuple[int, int]]
             if "." in raw:
                 continue
             val = int(raw)
-            if val < 0:
-                val = abs(val)
-            if val in allowed:
+            sign = -1 if val < 0 else 1
+            abs_val = abs(val)
+            if abs_val in allowed:
                 continue
-            if val % base != 0:
-                nearest = round(val / base) * base
-                violations.append((int(m.group(2)), nearest))
+            if abs_val % base != 0:
+                nearest = sign * (round(abs_val / base) * base)
+                violations.append((val, nearest))
 
-    # Check inline style attributes
-    for style_match in INLINE_STYLE.finditer(line):
-        style_content = style_match.group(1)
-        if SPACING_PROPS.search(style_content):
-            for m in PX_VALUE.finditer(style_content):
-                raw = m.group(1)
-                if "." in raw:
-                    continue
-                val = int(raw)
-                if val < 0:
-                    val = abs(val)
-                if val in allowed:
-                    continue
-                if val % base != 0:
-                    nearest = round(val / base) * base
-                    violations.append((int(m.group(1)), nearest))
+    # Check inline style attributes (skip if the SPACING_PROPS path already matched
+    # to avoid duplicate violations for lines like style="padding: 7px;")
+    if not found_css_prop:
+        for style_match in INLINE_STYLE.finditer(line):
+            style_content = style_match.group(1)
+            if SPACING_PROPS.search(style_content):
+                for m in PX_VALUE.finditer(style_content):
+                    raw = m.group(1)
+                    if "." in raw:
+                        continue
+                    val = int(raw)
+                    sign = -1 if val < 0 else 1
+                    abs_val = abs(val)
+                    if abs_val in allowed:
+                        continue
+                    if abs_val % base != 0:
+                        nearest = sign * (round(abs_val / base) * base)
+                        violations.append((val, nearest))
 
     return violations
 
