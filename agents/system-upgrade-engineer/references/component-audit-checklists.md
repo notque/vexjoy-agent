@@ -1,7 +1,7 @@
 # Component Audit Checklists Reference
 
 > **Scope**: Per-component-type audit checklists for agents, skills, hooks, and routing tables. Covers what to inspect, detection commands, and stale-pattern signals.
-> **Version range**: claude-code-toolkit, all versions
+> **Version range**: vexjoy-agent, all versions
 > **Generated**: 2026-04-15 — adapt checks to current frontmatter schema
 
 ---

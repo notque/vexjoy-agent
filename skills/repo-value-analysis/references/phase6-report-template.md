@@ -18,7 +18,7 @@ This adjustment step catches the false positive anti-pattern: "we should adopt X
 Overwrite `research-[REPO_NAME]-comparison.md` with the final report:
 
 ```markdown
-# Competitive Analysis: [REPO_NAME] vs claude-code-toolkit
+# Competitive Analysis: [REPO_NAME] vs vexjoy-agent
 
 ## Executive Summary
 [2-3 sentences: what the repo is, whether it adds value, headline finding]

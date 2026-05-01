@@ -223,7 +223,7 @@ Flag if count exceeds `config.thresholds.state_file_warn_count` (default: 50).
 
 ### ADR Backlog
 ```bash
-ls /home/feedgen/claude-code-toolkit/adr/*.md 2>/dev/null | wc -l
+ls /home/feedgen/vexjoy-agent/adr/*.md 2>/dev/null | wc -l
 ```
 
 Report the count. Flag if more than 20 ADRs are present (backlog may need attention).
@@ -259,7 +259,7 @@ scan_date = "YYYY-MM-DD"  # from PHASE 1
 output_path = Path.home() / ".claude" / "state" / f"briefing{project_hash}-{scan_date}.md"
 ```
 
-For example: `/home/feedgen/claude-code-toolkit` → `project_hash = -home-feedgen-claude-code-toolkit`, producing `briefing-home-feedgen-claude-code-toolkit-2026-04-01.md`.
+For example: `/home/feedgen/vexjoy-agent` → `project_hash = -home-feedgen-vexjoy-agent`, producing `briefing-home-feedgen-vexjoy-agent-2026-04-01.md`.
 
 Note: `project_hash` starts with `-`, which joins directly to `briefing` without a separator.
 
@@ -282,7 +282,7 @@ tmp_path = Path(str(output_path) + ".tmp")
 briefing_content = """# KAIROS-lite Briefing — {date}
 
 Generated: {iso_timestamp}
-Project: claude-code-toolkit ({project_path})
+Project: vexjoy-agent ({project_path})
 Scan type: {scan_type}
 
 ## Action Required
@@ -356,19 +356,19 @@ Project: {project name} ({project path})
 Scan type: quick | deep
 
 ## Action Required
-- [CRITICAL] CI failure on main: "build" failed 2h ago (claude-code-toolkit)
+- [CRITICAL] CI failure on main: "build" failed 2h ago (vexjoy-agent)
 - [HIGH] PR #247 assigned to you for 4 days: "feat: add hook telemetry"
 - No action items found.
 
 ## FYI
-- [INFO] 3 new issues opened in last 24h (claude-code-toolkit)
+- [INFO] 3 new issues opened in last 24h (vexjoy-agent)
 - [INFO] Stale branch: feat/old-experiment (12 days, no commits)
 - No informational items found.
 
 ## Toolkit Health
 - [HIGH] Hook error rate: 12% (trending INCREASING — was 5% last week)
 - [HEALTH] Hook error rate: 23% (46/200 events blocked, last 7 days) — above 20% threshold, trending STABLE
-- [HEALTH] 8 stale memory files (oldest: user_role.md, 31 days, project: -home-feedgen-claude-code-toolkit)
+- [HEALTH] 8 stale memory files (oldest: user_role.md, 31 days, project: -home-feedgen-vexjoy-agent)
 - [HEALTH] State directory: 67 files (threshold: 50)
 - All systems nominal.
 

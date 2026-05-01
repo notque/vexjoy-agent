@@ -49,7 +49,7 @@ def _project_hash(cwd: str) -> str:
 
     Mirrors the convention Claude Code uses for project-specific directories:
     replace '/' with '-', then strip the leading '-'.
-    Example: /home/feedgen/claude-code-toolkit -> home-feedgen-claude-code-toolkit
+    Example: /home/feedgen/vexjoy-agent -> home-feedgen-vexjoy-agent
     """
     return cwd.replace("/", "-").lstrip("-")
 

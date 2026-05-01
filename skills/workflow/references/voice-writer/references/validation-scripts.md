@@ -7,9 +7,9 @@ Command reference and output schema for Phase 4 (VALIDATE) of the voice-writer p
 ## Primary Validation Command
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
+python3 $HOME/vexjoy-agent/scripts/voice-validator.py validate \
   --content /tmp/voice-content-draft.md \
-  --profile $HOME/claude-code-toolkit/skills/voice-{name}/profile.json \
+  --profile $HOME/vexjoy-agent/skills/voice-{name}/profile.json \
   --voice {name} \
   --format json
 ```
@@ -63,7 +63,7 @@ The validator returns JSON with the following shape:
 ### Negative Framing Scanner (Phase 6 pre-filter)
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/scan-negative-framing.py /tmp/voice-content-draft.md
+python3 $HOME/vexjoy-agent/scripts/scan-negative-framing.py /tmp/voice-content-draft.md
 ```
 
 Returns a list of regex-matched negative framing patterns (victimhood, accusation, bitterness, passive aggression) with suggested reframes.
@@ -75,7 +75,7 @@ If this script is unavailable, skip the regex pre-filter and proceed directly to
 ## Validator Help
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice-validator.py --help
+python3 $HOME/vexjoy-agent/scripts/voice-validator.py --help
 ```
 
 Use this to check available flags if the command syntax above fails.

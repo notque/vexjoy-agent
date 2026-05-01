@@ -1,8 +1,8 @@
-# Claude Code Toolkit
+# VexJoy Agent
 
-<img src="docs/repo-hero.png" alt="Claude Code Toolkit" width="100%">
+<img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
-Claude Code Toolkit is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Codex](https://github.com/openai/codex). It gives Claude and Codex domain-specific expertise, step-by-step workflows, and automated quality gates. The result is Claude working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
+VexJoy Agent is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), and [Gemini CLI](https://github.com/google-gemini/gemini-cli). It gives all three CLIs domain-specific expertise, step-by-step workflows, and automated quality gates. The result is your coding agent working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
 
 ## How It Works
 
@@ -12,7 +12,7 @@ It starts from the moment you type a request. You don't pick agents, configure w
 /do debug this Go test
 ```
 
-In Claude Code, the smart router command is `/do`. In Codex, use `$do`.
+In Claude Code, the smart router command is `/do`. In Codex, use `$do`. In Gemini CLI, use `/do` (Gemini discovers skills from `~/.gemini/skills/` automatically).
 
 A router reads your intent and selects a Go specialist agent paired with a systematic debugging methodology. The agent creates a branch, gathers evidence before guessing, runs through phased diagnosis, applies a fix, executes tests, reviews its own work, and presents a PR. You describe the problem. The system handles everything else.
 
@@ -33,8 +33,8 @@ A game built entirely by Claude Code using these agents, skills, and pipelines. 
 Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI and Gemini CLI are also supported: the installer mirrors toolkit skills and agents into `~/.codex/` and `~/.gemini/` so all three CLIs can use the same skill and agent library.
 
 ```bash
-git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
-cd ~/claude-code-toolkit
+git clone https://github.com/notque/vexjoy-agent.git ~/vexjoy-agent
+cd ~/vexjoy-agent
 ./install.sh --symlink
 ```
 
@@ -122,7 +122,7 @@ Trade-off: overriding the default strips Claude Code's built-in tool-use instruc
 
 ## The Core Workflow
 
-1. **Routing.** You type a request. The router entry point is `/do` in Claude Code and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
+1. **Routing.** You type a request. The router entry point is `/do` in Claude Code and Gemini CLI, and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
 
 2. **Planning.** For non-trivial work, the system creates a plan before touching code. Plans have phases, gates, and saved artifacts at each step.
 

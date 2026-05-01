@@ -23,11 +23,11 @@ Command entry points:
 Three commands. Copy-paste them.
 
 ```bash
-git clone https://github.com/notque/claude-code-toolkit.git
+git clone https://github.com/notque/vexjoy-agent.git
 ```
 
 ```bash
-cd claude-code-toolkit
+cd vexjoy-agent
 ```
 
 ```bash

@@ -103,8 +103,8 @@ Your `.claude/` directory might be the most underutilized part of your developme
 The repo is open source. MIT licensed. Three commands to install:
 
 ```
-git clone https://github.com/notque/claude-code-toolkit.git
-cd claude-code-toolkit
+git clone https://github.com/notque/vexjoy-agent.git
+cd vexjoy-agent
 ./install.sh
 ```
 

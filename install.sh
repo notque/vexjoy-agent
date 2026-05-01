@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Claude Code Toolkit - Installation Script
+# VexJoy Agent - Installation Script
 #
-# This script sets up the Claude Code Toolkit agent ecosystem in your Claude Code environment.
+# This script sets up the VexJoy Agent ecosystem in your Claude Code environment.
 #
 # Usage:
 #   ./install.sh              # Interactive install
@@ -42,7 +42,7 @@ GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
 GEMINI_HOOKS_DIR="${GEMINI_DIR}/hooks"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║                Claude Code Toolkit - Installation Script               ║${NC}"
+echo -e "${BLUE}║                VexJoy Agent - Installation Script               ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -174,7 +174,7 @@ print_manual_pip_command() {
 # Function to uninstall
 uninstall() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║               Claude Code Toolkit - Uninstaller               ║${NC}"
+    echo -e "${BLUE}║               VexJoy Agent - Uninstaller               ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 

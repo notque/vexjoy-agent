@@ -11,7 +11,7 @@
 #   ./scripts/toolkit-evolution-cron.sh --execute
 #
 # Cron example (nightly at 3:07 AM, after auto-dream at 2:07 AM):
-#   7 3 * * * /home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1
+#   7 3 * * * /home/feedgen/vexjoy-agent/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/toolkit-evolution/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
@@ -82,7 +82,7 @@ MODE="dry-run"
 echo "Mode: $MODE | Budget: \$${MAX_BUDGET}"
 
 # Build the prompt
-PROMPT="You are running the nightly toolkit evolution cycle for the claude-code-toolkit.
+PROMPT="You are running the nightly toolkit evolution cycle for the vexjoy-agent.
 
 Read and execute the skill at skills/toolkit-evolution/SKILL.md — it defines the full 6-phase pipeline:
 DIAGNOSE → PROPOSE → CRITIQUE → BUILD → VALIDATE → EVOLVE
