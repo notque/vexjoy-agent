@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from feedback_tracker import check_pending_feedback, set_pending_feedback
+from hook_utils import get_tool_error, get_tool_output, get_tool_result
 from learning_db_v2 import (
     DEFAULT_FIX_ACTIONS,
     boost_confidence,
@@ -68,14 +69,15 @@ def detect_error(event: dict) -> tuple[bool, str]:
     Returns:
         Tuple of (has_error, error_message)
     """
-    tool_result = event.get("tool_result", {})
+    tool_result = get_tool_result(event)
 
     # Direct error field
-    if "error" in tool_result:
-        return True, str(tool_result["error"])
+    err = get_tool_error(tool_result)
+    if err:
+        return True, str(err)
 
     # Check for error in output
-    output = tool_result.get("output", "")
+    output = get_tool_output(tool_result)
     if isinstance(output, str):
         output_lower = output.lower()
 

@@ -27,7 +27,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import empty_output
+from hook_utils import empty_output, get_tool_output, get_tool_result
 from learning_db_v2 import record_learning
 from stdin_timeout import read_stdin
 
@@ -121,9 +121,9 @@ def main() -> None:
         # this hook from spawning for non-Agent tools.
 
         # Get tool result text
-        tool_result = event.get("tool_result", "")
+        tool_result = get_tool_result(event)
         if isinstance(tool_result, dict):
-            tool_result = tool_result.get("output", "")
+            tool_result = get_tool_output(tool_result)
         if not isinstance(tool_result, str) or not tool_result:
             return
 

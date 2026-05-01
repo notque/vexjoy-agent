@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import get_tool_result, is_tool_error
 from stdin_timeout import read_stdin
 
 
@@ -102,8 +103,8 @@ def main():
             return
 
         # Skip failed git mv commands — no rename happened
-        tool_result = data.get("tool_result", {})
-        if tool_result.get("is_error", False):
+        tool_result = get_tool_result(data)
+        if is_tool_error(tool_result):
             return
 
         tool_input = data.get("tool_input", {})

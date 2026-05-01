@@ -12,11 +12,13 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: if you also use Codex CLI, run `codex --version`. The toolkit mirrors its skills into `~/.codex/skills` and its agents into `~/.codex/agents`, so Codex sessions can Read the same domain expertise Claude Code dispatches. Claude Code is still the full runtime for hooks, commands, and scripts.
+Optional: if you also use Codex CLI, Gemini CLI, or Factory, run `codex --version` / `gemini --version` / `factory --version`. The toolkit mirrors its skills into `~/.codex/skills`, `~/.gemini/skills/`, and `~/.factory/skills/`, and its agents into `~/.codex/agents`, `~/.gemini/agents/`, and `~/.factory/droids/` (Factory calls agents "droids"), so all four CLIs can dispatch the same domain expertise. Claude Code is still the full runtime for hooks, commands, and scripts.
 
 Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
+- Gemini CLI: `/do`
+- Factory: `/do`
 
 ## Install
 
@@ -47,7 +49,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `inventory` shows what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex to pick up new skills or agents, rerun `./install.sh`.
+`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `inventory` lists what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex, Gemini, or Factory to pick up new skills or agents, rerun `./install.sh`.
 
 ## Your First Commands
 
@@ -65,7 +67,7 @@ Now try these.
 /do what can you do?
 ```
 
-The router command is the front door. Use `/do` in Claude Code and `$do` in Codex. It reads your request, picks the right agent and skill, and runs it. This one shows you the full routing system -- every domain it handles, every workflow it knows.
+The router command is the front door. Use `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex. It reads your request, picks the right agent and skill, and runs it. This one shows you the full routing system -- every domain it handles, every workflow it knows.
 
 ### Explore a codebase
 
