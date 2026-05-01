@@ -10,6 +10,8 @@
 
 The routing system maps user intent to agents and skills via trigger phrases and metadata. Phantom routes (entries pointing to nonexistent components) and ambiguous triggers (two components claiming the same phrase) are the most common failure modes — both cause silent routing failures where the router selects a component that doesn't exist or picks the wrong one without warning.
 
+**Canonical routing table location**: `skills/do/references/routing-tables.md`. This is the single source of truth for all routing entries. Every agent and skill must have an entry there — not in skill-local files, not only in agent frontmatter. Run `python3 scripts/check-routing-drift.py` after any routing change to verify consistency. CI enforces this check.
+
 ---
 
 ## Routing Entry Structure
