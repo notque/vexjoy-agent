@@ -12,6 +12,7 @@ allowed-tools:
   - Grep
   - Glob
 routing:
+  force_route: true
   triggers:
     - repo value analysis
     - does repo add value
@@ -26,6 +27,10 @@ routing:
     - clone and analyze repo
     - external repo analysis
     - skills repo evaluation
+    - steal from
+    - adopt from
+    - assess repo
+    - assess this repo
   pairs_with:
     - workflow
   complexity: Complex

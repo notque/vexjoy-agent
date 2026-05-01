@@ -1666,9 +1666,14 @@
         "study this repo",
         "clone and analyze repo",
         "external repo analysis",
-        "skills repo evaluation"
+        "skills repo evaluation",
+        "steal from",
+        "adopt from",
+        "assess repo",
+        "assess this repo"
       ],
       "category": "analysis",
+      "force_route": true,
       "user_invocable": false,
       "pairs_with": [
         "workflow"
