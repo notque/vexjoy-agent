@@ -65,39 +65,10 @@ deadcode ./...
 go test -v -race ./...
 ```
 
-## Tree-Sitter Call Graph — Complementary Tool for Navigation
+## Why Not Tree-Sitter for Go?
 
-`scripts/call-graph.py` (when available in the toolkit) builds a cross-file call graph from tree-sitter syntax analysis with a SQLite cache. It answers "who calls this function?" and "what does this function call?" across all files in a codebase.
+Tree-sitter parses syntax, not semantics. It cannot resolve interface dispatch, method values, or reflection. In Go codebases that use interfaces (which is most of them), syntax-level call graph tools produce false positives: functions called through interfaces appear to have zero callers because the call site references the interface method, not the concrete implementation.
 
-### Commands
+A/B tested across 5 tests on 2 repos (hermes, log-router): tree-sitter call graph added no measurable value over grep + file reading for dead code detection, code audits, PR reviews, or impact analysis. `deadcode` + `gopls` + grep cover all Go use cases with equal or better results.
 
-```bash
-# Build the call graph index (SQLite-cached)
-python3 scripts/call-graph.py index ./
-
-# Find all callers of a function
-python3 scripts/call-graph.py callers MyFunction
-
-# Find all callees of a function
-python3 scripts/call-graph.py callees MyFunction
-```
-
-### When to Use
-
-- **Impact analysis**: "What breaks if I change this function's signature?"
-- **Navigation in unfamiliar codebases**: "Where is this function called from? What does it depend on?"
-- **Understanding call chains**: tracing the path from entry point to a specific function.
-
-### When NOT to Use for Go Dead Code
-
-Tree-sitter parses syntax, not semantics. It cannot resolve interface dispatch, method values, or reflection. In Go codebases that use interfaces (which is most of them), tree-sitter produces false positives: functions called through interfaces appear to have zero callers because the call site references the interface method, not the concrete implementation. Use deadcode instead — it resolves these edges correctly.
-
-## Decision Table
-
-| Task | deadcode | call-graph.py |
-|------|----------|---------------|
-| Find dead code | Primary tool — SSA resolves interfaces | Too many false positives in Go |
-| Impact analysis ("what calls X?") | Wrong tool | Primary tool |
-| Code review (dead code check) | Run as part of review | Supplement only |
-| Navigate unfamiliar codebase | Wrong tool | Primary tool |
-| Refactoring prep | Find what is safe to remove | Find what calls what |
+For **impact analysis** ("what calls this function?"), use `gopls` MCP's `go_symbol_references` tool or grep. Both outperformed tree-sitter call graphs in blind testing.
