@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-01T18:00:20Z",
+  "generated": "2026-05-01T18:31:13Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1504,7 +1504,7 @@
     },
     "publish": {
       "file": "skills/publish/SKILL.md",
-      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
+      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, Page...",
       "triggers": [
         "outline post",
         "blog structure",
@@ -1559,7 +1559,14 @@
         "search media library",
         "find existing wordpress image",
         "find existing image",
-        "reuse existing media"
+        "reuse existing media",
+        "page speed",
+        "pagespeed",
+        "page insights",
+        "core web vitals",
+        "lighthouse",
+        "site speed",
+        "performance audit"
       ],
       "category": "content-publishing",
       "user_invocable": false,
