@@ -59,7 +59,7 @@
         "title": { "type": "string" },
         "location": {
           "type": "string",
-          "pattern": ".*:\\d+"
+          "pattern": "^[\\w./\\-]+:\\d+"
         },
         "description": { "type": "string" },
         "recommendation": { "type": "string" },

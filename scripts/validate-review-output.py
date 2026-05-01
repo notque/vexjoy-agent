@@ -38,13 +38,14 @@ import jsonschema
 # Constants
 # ---------------------------------------------------------------------------
 
-REVIEW_TYPES = ("systematic", "parallel", "sapcc-review", "sapcc-audit")
+REVIEW_TYPES = ("systematic", "parallel", "sapcc-review", "sapcc-audit", "base")
 
 SCHEMA_MAP: dict[str, str] = {
     "systematic": "systematic-code-review.schema.json",
     "parallel": "parallel-code-review.schema.json",
     "sapcc-review": "sapcc-review.schema.json",
     "sapcc-audit": "sapcc-audit.schema.json",
+    "base": "review-output-base.schema.json",
 }
 
 # Severity heading patterns mapped to normalized keys per review type.
@@ -345,11 +346,10 @@ def _extract_findings_section(
 
     current_severity: str | None = None
     current_block: list[str] = []
-    current_reviewer: str | None = None
 
     def _flush_block() -> None:
         if current_block and current_severity:
-            finding = _parse_finding_block(current_block, reviewer=current_reviewer)
+            finding = _parse_finding_block(current_block)
             if finding.get("title"):
                 findings[current_severity].append(finding)
 
@@ -589,7 +589,7 @@ def _extract_reviewer_summary(lines: list[str]) -> list[dict[str, Any]]:
         if heading:
             _, text = heading
             text_lower = text.lower()
-            if ("summary" in text_lower and "reviewer" in text_lower) or "reviewer" in text_lower:
+            if ("summary" in text_lower and "reviewer" in text_lower) or text_lower.startswith("reviewer summary"):
                 in_table = True
                 continue
             if in_table and heading[0] <= 3:
@@ -709,9 +709,15 @@ def load_schema(review_type: str) -> dict[str, Any]:
         Parsed JSON Schema dict.
 
     Raises:
+        ValueError: If review_type is not a valid type.
         FileNotFoundError: If schema file doesn't exist.
     """
-    schema_file = SCHEMAS_DIR / SCHEMA_MAP[review_type]
+    try:
+        schema_filename = SCHEMA_MAP[review_type]
+    except KeyError:
+        valid_types = ", ".join(sorted(SCHEMA_MAP.keys()))
+        raise ValueError(f"Invalid review type {review_type!r}. Valid types: {valid_types}") from None
+    schema_file = SCHEMAS_DIR / schema_filename
     if not schema_file.exists():
         raise FileNotFoundError(f"Schema file not found: {schema_file}")
     return json.loads(schema_file.read_text())
@@ -844,7 +850,7 @@ def main() -> int:
     parser.add_argument(
         "--type",
         required=True,
-        choices=REVIEW_TYPES,
+        choices=sorted(SCHEMA_MAP.keys()),
         dest="review_type",
         help="Review type to validate against.",
     )
