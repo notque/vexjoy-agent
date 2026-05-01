@@ -435,3 +435,51 @@ def deny_tool_use(event_name: str, reason: str) -> None:
         }
     }
     print(json.dumps(output))
+
+
+# =============================================================================
+# CLI Detection and Input Normalization
+# =============================================================================
+
+
+def detect_cli() -> str:
+    """Detect which CLI is invoking this hook based on environment variables.
+
+    Returns:
+        One of "gemini", "codex", or "claude".
+    """
+    # Gemini CLI sets GEMINI_API_KEY or GEMINI_MODEL
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_MODEL"):
+        return "gemini"
+    # Codex CLI sets CODEX_HOME or similar
+    if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
+        return "codex"
+    return "claude"
+
+
+def normalize_input(data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize hook stdin fields across CLI implementations.
+
+    Gemini CLI uses different field names than Claude/Codex:
+      - tool_input  -> input
+      - tool_name   -> tool
+
+    This function translates Gemini field names to the Claude/Codex
+    convention so hooks can use a single code path. Fields that already
+    exist under the Claude/Codex name are not overwritten.
+
+    Args:
+        data: Parsed JSON dict from stdin.
+
+    Returns:
+        The same dict (mutated in place) with normalized field names.
+    """
+    # Gemini: tool_input -> input
+    if "tool_input" in data and "input" not in data:
+        data["input"] = data["tool_input"]
+
+    # Gemini: tool_name -> tool
+    if "tool_name" in data and "tool" not in data:
+        data["tool"] = data["tool_name"]
+
+    return data
