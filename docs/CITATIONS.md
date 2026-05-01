@@ -63,6 +63,24 @@ Design-oriented system prompt with 14 procedural design skills for Claude Code. 
 - Component gap analysis (near-duplicates, missing states, implied-but-undefined variants). Useful but only relevant when we build component extraction workflows.
 - Five-question content filler test. Good rubric but too narrow for a standalone reference; the principle is already embedded in our "one job per section" constraint.
 
+### mattpocock/skills
+https://github.com/mattpocock/skills
+
+Focused collection of 12 active Claude Code skills centered on DDD-inspired domain modeling, grilling-based requirement clarification, and "deep module" architecture improvement. Small repo (57 files) with high-quality, opinionated patterns. Studied 2026-05-01.
+
+**Patterns adopted:**
+- Domain glossary convention (CONTEXT.md format). A formalized project-level domain vocabulary file with terms, aliases to avoid, relationships, and flagged ambiguities. Rebuilt as `skills/generate-claudemd/references/domain-glossary-convention.md` with extraction methodology (grep patterns for business-named types) and integration into the generate-claudemd workflow.
+- Architecture deepening vocabulary and methodology (ADR drafted). Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. ADR at `adr/architecture-deepening.md` for follow-up implementation via skill-creator.
+
+**Patterns noted but not adopted:**
+- Grilling / requirement interviewing (`/grill-me`). Our `planning` skill's `depth-first-interview.md` already provides equivalent decision-tree traversal with ranked branches and max 5 questions.
+- Feedback-loop-first debugging emphasis. Their `/diagnose` skill's 10 loop construction methods are worth adding as a reference file to our existing debugging workflow in a future session, but not a new skill.
+- Issue triage state machine (`/triage`). Specific to GitHub Issues project management workflows, not aligned with our toolkit's focus.
+- Compressed communication mode (`/caveman`). Marginal token savings relative to total session cost. Conflicts with our plain language philosophy.
+- Agent briefs format (AGENT-BRIEF.md). Interesting durable behavioral spec for async agents, but we already have task decomposition in our planning skill.
+- Out-of-scope knowledge base (`.out-of-scope/` directory). Persistent rejection tracking with reasoning. Interesting pattern but low priority.
+- Plugin distribution format (`.claude-plugin/plugin.json`). Orthogonal to our flat `~/.claude/skills/` model.
+
 ### notque/consensuscode
 https://github.com/notque/consensuscode
 
