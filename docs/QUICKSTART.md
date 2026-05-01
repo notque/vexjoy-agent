@@ -134,7 +134,7 @@ These phrases automatically activate the right tools:
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│         /do in Claude | $do in Codex | /do in Gemini/Factory    │
+│   /do in Claude | $do in Codex | /do in Gemini/Factory  │
 │         (or natural-language routing)                   │
 └─────────────────────────────────────────────────────────┘
                           │

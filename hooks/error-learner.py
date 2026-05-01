@@ -72,8 +72,9 @@ def detect_error(event: dict) -> tuple[bool, str]:
     tool_result = get_tool_result(event)
 
     # Direct error field
-    if bool(get_tool_error(tool_result)):
-        return True, str(get_tool_error(tool_result))
+    err = get_tool_error(tool_result)
+    if err:
+        return True, str(err)
 
     # Check for error in output
     output = get_tool_output(tool_result)
