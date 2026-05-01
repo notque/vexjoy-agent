@@ -6,10 +6,10 @@ Calls the Google PageSpeed Insights API v5 and outputs structured results
 for performance, SEO, accessibility, and best-practices scores.
 
 Usage:
-    python3 pagespeed.py --url https://vexjoy.com
-    python3 pagespeed.py --url https://vexjoy.com --strategy mobile --format markdown
-    python3 pagespeed.py --url https://vexjoy.com --threshold 90 --output report.md
-    python3 pagespeed.py --url https://vexjoy.com --categories performance,seo --format json
+    python3 pagespeed.py --url https://example.com
+    python3 pagespeed.py --url https://example.com --strategy mobile --format markdown
+    python3 pagespeed.py --url https://example.com --threshold 90 --output report.md
+    python3 pagespeed.py --url https://example.com --categories performance,seo --format json
 """
 
 import argparse
@@ -178,8 +178,7 @@ def extract_opportunities(data: dict[str, Any]) -> list[dict[str, str]]:
                 }
             )
 
-    # Sort by savings string (rough heuristic: longer savings = more impactful)
-    # Put items with savings first
+    # Put items with savings first, then sort alphabetically by title
     opportunities.sort(key=lambda x: (not x["savings"], x["title"]))
     return opportunities[:5]
 
@@ -329,7 +328,9 @@ def run_analysis(
     data = fetch_psi_data(url, strategy, categories, api_key)
 
     if output_format == "json":
-        return json.dumps(data, indent=2), True
+        scores = extract_scores(data, categories)
+        all_pass = all(s is not None and s >= threshold for s in scores.values())
+        return json.dumps(data, indent=2), all_pass
 
     scores = extract_scores(data, categories)
     failing_audits = extract_failing_audits(data, categories)
@@ -351,11 +352,11 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    %(prog)s --url https://vexjoy.com
-    %(prog)s --url https://vexjoy.com --strategy mobile
-    %(prog)s --url https://vexjoy.com --format markdown --output report.md
-    %(prog)s --url https://vexjoy.com --categories performance,seo --threshold 90
-    %(prog)s --url https://vexjoy.com --format json
+    %(prog)s --url https://example.com
+    %(prog)s --url https://example.com --strategy mobile
+    %(prog)s --url https://example.com --format markdown --output report.md
+    %(prog)s --url https://example.com --categories performance,seo --threshold 90
+    %(prog)s --url https://example.com --format json
 
 Environment:
     PAGESPEED_API_KEY   Google API key for reliable access (optional).
