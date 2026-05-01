@@ -384,8 +384,18 @@ def test_cli_dry_run_preserves_existing_settings():
 
 def test_all_known_events_are_accepted():
     """Every event in ALL_KNOWN_EVENTS is accepted by parse_allowlist (where possible)."""
-    # Events that don't require matcher
-    no_matcher_events = ["SessionStart", "SessionEnd", "Notification", "PreCompress", "BeforeToolSelection"]
+    # Events that don't require matcher (including agent/model lifecycle events)
+    no_matcher_events = [
+        "SessionStart",
+        "SessionEnd",
+        "BeforeAgent",
+        "AfterAgent",
+        "BeforeModel",
+        "AfterModel",
+        "Notification",
+        "PreCompress",
+        "BeforeToolSelection",
+    ]
     for event in no_matcher_events:
         text = f"{event}:test-hook.py\n"
         entries = parse_allowlist(text)
@@ -401,10 +411,14 @@ def test_all_known_events_are_accepted():
         assert entries[0]["event"] == event
         assert entries[0]["matcher"] == "run_shell_command"
 
-    # Events that accept optional matcher
-    optional_events = ["BeforeAgent", "AfterAgent", "BeforeModel", "AfterModel"]
-    for event in optional_events:
+
+def test_agent_model_events_no_matcher_in_output():
+    """BeforeAgent, AfterAgent, BeforeModel, AfterModel produce blocks without matcher."""
+    for event in ("BeforeAgent", "AfterAgent", "BeforeModel", "AfterModel"):
         text = f"{event}:test-hook.py\n"
         entries = parse_allowlist(text)
-        assert len(entries) == 1
-        assert entries[0]["event"] == event
+        result = build_hooks_json(entries, gemini_hooks_dir="/fake/hooks")
+        assert event in result
+        blocks = result[event]
+        assert len(blocks) == 1
+        assert "matcher" not in blocks[0], f"{event} blocks must not have a 'matcher' field."

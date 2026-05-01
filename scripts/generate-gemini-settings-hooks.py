@@ -31,9 +31,21 @@ from pathlib import Path
 EVENTS_REQUIRING_MATCHER = {"BeforeTool", "AfterTool"}
 
 # Events where matcher field is omitted entirely.
-EVENTS_WITHOUT_MATCHER = {"SessionStart", "SessionEnd", "Notification", "PreCompress", "BeforeToolSelection"}
+EVENTS_WITHOUT_MATCHER = {
+    "SessionStart",
+    "SessionEnd",
+    "BeforeAgent",
+    "AfterAgent",
+    "BeforeModel",
+    "AfterModel",
+    "Notification",
+    "PreCompress",
+    "BeforeToolSelection",
+}
 
 # Events where matcher should default to a value when omitted.
+# Currently empty — reserved for future events that need an implicit matcher
+# (e.g., if Gemini adds an event that always targets a specific tool type).
 EVENTS_WITH_DEFAULT_MATCHER: dict[str, str] = {}
 
 # All known Gemini CLI events, in canonical output order.
@@ -267,7 +279,13 @@ def main() -> None:
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(output_json + "\n", encoding="utf-8")
+        tmp = str(output_path) + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(output_json)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.rename(tmp, str(output_path))
     except OSError as exc:
         print(f"Error writing {output_path}: {exc}", file=sys.stderr)
         sys.exit(1)

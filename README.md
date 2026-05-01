@@ -102,7 +102,7 @@ Tool name mapping: Codex `Bash` becomes Gemini `run_shell_command`.
 
 **Hook runtime compatibility**
 
-Hooks detect which CLI is invoking them via environment variables (`GEMINI_API_KEY`, `GEMINI_MODEL` for Gemini; `CODEX_HOME` for Codex). Input field names are normalized automatically (`tool_input` to `input`, `tool_name` to `tool`). Output format (`hookSpecificOutput`) is shared across all three CLIs.
+Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hook_utils.py`. Normalization functions (`normalize_input()`, `detect_cli()`) are available in `hooks/lib/hook_utils.py` for hooks to import — they are not auto-applied. Output format (`hookSpecificOutput`) is shared across all three CLIs.
 
 **Opting out**
 
