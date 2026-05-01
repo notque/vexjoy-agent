@@ -40,6 +40,10 @@ GEMINI_DIR="${HOME}/.gemini"
 GEMINI_SKILLS_DIR="${GEMINI_DIR}/skills"
 GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
 GEMINI_HOOKS_DIR="${GEMINI_DIR}/hooks"
+FACTORY_DIR="${HOME}/.factory"
+FACTORY_SKILLS_DIR="${FACTORY_DIR}/skills"
+FACTORY_DROIDS_DIR="${FACTORY_DIR}/droids"
+FACTORY_HOOKS_DIR="${FACTORY_DIR}/hooks"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                VexJoy Agent - Installation Script               ║${NC}"
@@ -536,6 +540,38 @@ os.rename(tmp, dst)
         echo "  No ~/.gemini/settings.json found. Nothing to archive."
     fi
 
+    # Phase 3.9: Clean toolkit-owned Factory mirror
+    echo ""
+    echo -e "${YELLOW}Cleaning Factory mirror...${NC}"
+    for dir_var in FACTORY_SKILLS_DIR FACTORY_DROIDS_DIR FACTORY_HOOKS_DIR; do
+        target="${!dir_var}"
+        if [ -d "$target" ]; then
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would remove: ${target}${NC}"
+            else
+                rm -rf "$target"
+                echo -e "${GREEN}  ✓ Removed: ${target}${NC}"
+            fi
+            REMOVED+=("Factory $(basename "$target")")
+        fi
+    done
+
+    if [ -f "${FACTORY_DIR}/settings.json" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would archive: ${FACTORY_DIR}/settings.json${NC}"
+        else
+            ARCHIVE_TS=$(date +%Y%m%d-%H%M%S)
+            mv "${FACTORY_DIR}/settings.json" "${FACTORY_DIR}/settings.json.uninstalled.${ARCHIVE_TS}"
+            echo -e "${GREEN}  ✓ Archived ${FACTORY_DIR}/settings.json${NC}"
+        fi
+        REMOVED+=("Factory settings.json (archived)")
+    else
+        echo "  No ~/.factory/settings.json found. Nothing to archive."
+    fi
+
+    # Note: ~/.factory/config.toml is intentionally left untouched.
+    # Users may have other Factory configurations we did not write.
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -582,6 +618,7 @@ os.rename(tmp, dst)
     echo "  • ~/.claude/memory/"
     echo "  • ~/.codex/config.toml (including [features] codex_hooks flag)"
     echo "  • ~/.gemini/settings.json (all keys except hooks)"
+    echo "  • ~/.factory/config.toml (if present, like Codex)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -691,6 +728,17 @@ else
     mkdir -p "${GEMINI_AGENTS_DIR}"
 fi
 echo -e "${GREEN}✓ ${GEMINI_AGENTS_DIR} ready${NC}"
+
+echo ""
+echo -e "${YELLOW}Setting up ~/.factory directories...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${FACTORY_SKILLS_DIR}${NC}"
+    echo -e "${BLUE}  Would create: ${FACTORY_DROIDS_DIR}${NC}"
+    echo -e "${BLUE}  Would create: ${FACTORY_HOOKS_DIR}${NC}"
+else
+    mkdir -p "${FACTORY_SKILLS_DIR}" "${FACTORY_DROIDS_DIR}" "${FACTORY_HOOKS_DIR}"
+fi
+echo -e "${GREEN}✓ Factory directories ready${NC}"
 
 # Install components
 echo ""
@@ -974,7 +1022,111 @@ else
     echo -e "${YELLOW}  ⚠ Codex hooks allowlist not found at ${CODEX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
 fi
 
-# Sync Gemini skills mirror
+echo ""
+echo -e "${YELLOW}Syncing Factory skills mirror...${NC}"
+FACTORY_SKILL_COUNT=0
+for item in "${SCRIPT_DIR}/skills/"*; do
+    [ -e "$item" ] || continue
+    target="${FACTORY_SKILLS_DIR}/$(basename "$item")"
+    sync_codex_entry "$item" "$target"
+    FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${FACTORY_SKILLS_DIR}/voice-${voice_name}"
+        sync_codex_entry "$skill_src" "$target"
+        FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
+    done
+fi
+
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    for item in "${SCRIPT_DIR}/private-skills/"*; do
+        [ -e "$item" ] || continue
+        target="${FACTORY_SKILLS_DIR}/$(basename "$item")"
+        sync_codex_entry "$item" "$target"
+        FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
+    done
+fi
+
+echo ""
+echo -e "${YELLOW}Syncing Factory droids mirror...${NC}"
+FACTORY_DROID_COUNT=0
+for item in "${SCRIPT_DIR}/agents/"*; do
+    [ -e "$item" ] || continue
+    target="${FACTORY_DROIDS_DIR}/$(basename "$item")"
+    sync_codex_entry "$item" "$target"
+    FACTORY_DROID_COUNT=$((FACTORY_DROID_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+    for item in "${SCRIPT_DIR}/private-agents/"*; do
+        [ -e "$item" ] || continue
+        target="${FACTORY_DROIDS_DIR}/$(basename "$item")"
+        sync_codex_entry "$item" "$target"
+        FACTORY_DROID_COUNT=$((FACTORY_DROID_COUNT + 1))
+    done
+fi
+
+# Sync Factory hooks mirror (no allowlist — mirror all hooks like Claude does)
+echo ""
+echo -e "${YELLOW}Syncing Factory hooks mirror...${NC}"
+FACTORY_HOOK_COUNT=0
+for item in "${SCRIPT_DIR}/hooks/"*; do
+    [ -e "$item" ] || continue
+    bname=$(basename "$item")
+    [ "$bname" = "__pycache__" ] && continue
+    [ "$bname" = "tests" ] && continue
+    if [ -f "$item" ] && [[ "$item" != *.py ]]; then continue; fi
+    target="${FACTORY_HOOKS_DIR}/${bname}"
+    sync_codex_entry "$item" "$target"
+    FACTORY_HOOK_COUNT=$((FACTORY_HOOK_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
+    lib_target="${FACTORY_HOOKS_DIR}/lib"
+    sync_codex_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target"
+fi
+
+# Generate ~/.factory/settings.json
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would sync hooks from ${SCRIPT_DIR}/.claude/settings.json to ${FACTORY_DIR}/settings.json (with path rewrite)${NC}"
+elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
+    FACTORY_SETTINGS="${FACTORY_DIR}/settings.json"
+    if [ ! -f "$FACTORY_SETTINGS" ]; then
+        echo '{}' > "$FACTORY_SETTINGS"
+    fi
+    BACKUP_TS=$(date +%Y%m%d-%H%M%S)
+    cp "$FACTORY_SETTINGS" "${FACTORY_SETTINGS}.backup.${BACKUP_TS}"
+    $PYTHON_CMD -c "
+import json, os
+repo = json.load(open('${SCRIPT_DIR}/.claude/settings.json'))
+dst = '${FACTORY_SETTINGS}'
+try:
+    merged = json.load(open(dst, encoding='utf-8'))
+except (FileNotFoundError, json.JSONDecodeError):
+    merged = {}
+hooks_json = json.dumps(repo.get('hooks', {}))
+hooks_json = hooks_json.replace('\$HOME/.claude/', '\$HOME/.factory/')
+hooks_json = hooks_json.replace('\${HOME}/.claude/', '\${HOME}/.factory/')
+merged['hooks'] = json.loads(hooks_json)
+merged.setdefault('attribution', repo.get('attribution', {'commit': '', 'pr': ''}))
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(merged, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
+print('  Factory hooks configured from .claude/settings.json')
+"
+else
+    echo -e "${YELLOW}  Warning: ${SCRIPT_DIR}/.claude/settings.json not found, skipping Factory hook sync${NC}"
+fi
+
 echo ""
 echo -e "${YELLOW}Syncing Gemini skills mirror...${NC}"
 GEMINI_ENTRY_COUNT=0
@@ -1212,6 +1364,7 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
+    echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
 else
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
     find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
@@ -1222,6 +1375,8 @@ else
     chmod 600 "$(ls -1t "${SETTINGS_FILE}.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
     chmod 700 "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
+    chmod 600 "${FACTORY_DIR}/settings.json" 2>/dev/null || true
+    chmod 600 "$(ls -1t "${FACTORY_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 
@@ -1258,6 +1413,9 @@ manifest = {
     'toolkit_path': '${SCRIPT_DIR}',
     'mode': '${MODE}',
     'components': ['agents', 'skills', 'hooks', 'commands', 'scripts'],
+    'codex_components': ['skills', 'agents', 'hooks'],
+    'gemini_components': ['skills', 'agents', 'hooks'],
+    'factory_components': ['skills', 'droids', 'hooks'],
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
 print('  Install manifest written to ~/.claude/.install-manifest.json')
@@ -1292,6 +1450,9 @@ echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
 echo "  • Gemini skills: ${GEMINI_ENTRY_COUNT} mirrored entries in ~/.gemini/skills"
 echo "  • Gemini agents: ${GEMINI_AGENT_COUNT} mirrored entries in ~/.gemini/agents"
 echo "  • Gemini hooks: ${GEMINI_HOOK_COUNT} mirrored entries in ~/.gemini/hooks"
+echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
+echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
+echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"

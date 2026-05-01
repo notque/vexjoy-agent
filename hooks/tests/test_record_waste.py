@@ -39,9 +39,34 @@ def session_env(monkeypatch: pytest.MonkeyPatch) -> str:
     return session_id
 
 
-def _make_hook_input(is_error: bool = True, output: str = "error: something failed") -> str:
-    """Build JSON hook input string."""
+def _make_hook_input(
+    is_error: bool = True,
+    output: str = "error: something failed",
+    schema: str = "claude",
+) -> str:
+    """Build JSON hook input string.
+
+    Args:
+        is_error: Whether the tool reported an error.
+        output: The tool output text.
+        schema: ``"claude"`` for Claude/Codex/Gemini schema (tool_result/is_error/output)
+            or ``"factory"`` for Factory schema (tool_response/exitCode/stdout).
+    """
+    if schema == "factory":
+        return json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_response": {"stdout": output, "exitCode": 1 if is_error else 0},
+            }
+        )
     return json.dumps({"tool_name": "Bash", "tool_result": {"output": output, "is_error": is_error}})
+
+
+# Schema parameter used by tests that exercise tool-result data.
+_SCHEMAS = [
+    pytest.param("claude", id="claude-schema"),
+    pytest.param("factory", id="factory-schema"),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -52,15 +77,17 @@ def _make_hook_input(is_error: bool = True, output: str = "error: something fail
 class TestErrorFiltering:
     """Verify only failures are tracked."""
 
-    def test_skips_successful_tool_use(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_skips_successful_tool_use(self, session_env: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(is_error=False, output="all good")
+            mock_stdin.read.return_value = _make_hook_input(is_error=False, output="all good", schema=schema)
             mod.main()
             mock_run.assert_not_called()
 
-    def test_records_on_error(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_records_on_error(self, session_env: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(is_error=True)
+            mock_stdin.read.return_value = _make_hook_input(is_error=True, schema=schema)
             mod.main()
             mock_run.assert_called_once()
 
@@ -73,28 +100,31 @@ class TestErrorFiltering:
 class TestTokenEstimation:
     """Verify waste token calculation logic."""
 
-    def test_minimum_100_tokens_for_short_output(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_minimum_100_tokens_for_short_output(self, session_env: str, schema: str) -> None:
         """Short error output should still register MIN_WASTE_TOKENS."""
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(output="err")
+            mock_stdin.read.return_value = _make_hook_input(output="err", schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             tokens_idx = cmd.index("--tokens") + 1
             assert int(cmd[tokens_idx]) == 100  # MIN_WASTE_TOKENS
 
-    def test_token_estimate_scales_with_output(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_token_estimate_scales_with_output(self, session_env: str, schema: str) -> None:
         """Longer output should produce proportionally more waste tokens."""
         long_output = "x" * 2000  # 2000 chars / 4 = 500 tokens
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(output=long_output)
+            mock_stdin.read.return_value = _make_hook_input(output=long_output, schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             tokens_idx = cmd.index("--tokens") + 1
             assert int(cmd[tokens_idx]) == 500
 
-    def test_empty_output_uses_minimum(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_empty_output_uses_minimum(self, session_env: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input(output="")
+            mock_stdin.read.return_value = _make_hook_input(output="", schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             tokens_idx = cmd.index("--tokens") + 1
@@ -109,9 +139,10 @@ class TestTokenEstimation:
 class TestCLIArgs:
     """Verify correct arguments are passed to learning-db.py."""
 
-    def test_passes_session_and_tokens(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_passes_session_and_tokens(self, session_env: str, schema: str) -> None:
         with patch("subprocess.run") as mock_run, patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             cmd = mock_run.call_args[0][0]
             assert "record-waste" in cmd
@@ -134,22 +165,24 @@ class TestErrorResilience:
             mod.main()
             mock_exit.assert_called_with(0)
 
-    def test_subprocess_timeout_exits_cleanly(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_subprocess_timeout_exits_cleanly(self, session_env: str, schema: str) -> None:
         with (
             patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="test", timeout=5)),
             patch("sys.stdin") as mock_stdin,
             patch("sys.exit") as mock_exit,
         ):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             mock_exit.assert_called_with(0)
 
-    def test_oserror_exits_cleanly(self, session_env: str) -> None:
+    @pytest.mark.parametrize("schema", _SCHEMAS)
+    def test_oserror_exits_cleanly(self, session_env: str, schema: str) -> None:
         with (
             patch("subprocess.run", side_effect=OSError("disk full")),
             patch("sys.stdin") as mock_stdin,
             patch("sys.exit") as mock_exit,
         ):
-            mock_stdin.read.return_value = _make_hook_input()
+            mock_stdin.read.return_value = _make_hook_input(schema=schema)
             mod.main()
             mock_exit.assert_called_with(0)

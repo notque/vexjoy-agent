@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, get_tool_output, get_tool_result
 from stdin_timeout import read_stdin
 
 DB_PATH = Path.home() / ".claude" / "learning" / "learning.db"
@@ -34,8 +34,8 @@ def main() -> None:
     # prevents this hook from spawning for non-Bash tools.
 
     # Early-exit: check if output indicates a PR was created (PostToolUse schema: tool_result.output)
-    tool_result = data.get("tool_result", {})
-    stdout = tool_result.get("output", "") if isinstance(tool_result, dict) else ""
+    tool_result = get_tool_result(data)
+    stdout = get_tool_output(tool_result) if isinstance(tool_result, dict) else ""
     if not isinstance(stdout, str) or "github.com" not in stdout or "pull/" not in stdout:
         empty_output(EVENT).print_and_exit(0)
         return

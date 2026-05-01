@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Import the module under test
 # ---------------------------------------------------------------------------
@@ -37,6 +39,19 @@ def run_hook(event: dict) -> tuple[str, str, int]:
         timeout=10,
     )
     return result.stdout, result.stderr, result.returncode
+
+
+# Parametrize fixtures for "no error, no output" — equivalent across schemas.
+_EMPTY_RESULT_PARAMS = [
+    pytest.param({"tool_result": {}}, id="claude-schema"),
+    pytest.param({"tool_response": {}}, id="factory-schema"),
+]
+
+# Parametrize fixtures for "error result" — equivalent across schemas.
+_ERROR_RESULT_PARAMS = [
+    pytest.param({"tool_result": {"is_error": True}}, id="claude-schema"),
+    pytest.param({"tool_response": {"exitCode": 1}}, id="factory-schema"),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -128,34 +143,37 @@ class TestToolFiltering:
         assert rc == 0
         assert stdout == ""
 
-    def test_failed_git_mv_silent(self):
-        """Failed git mv commands (is_error=True) produce no output."""
+    @pytest.mark.parametrize("tool_result_block", _ERROR_RESULT_PARAMS)
+    def test_failed_git_mv_silent(self, tool_result_block: dict) -> None:
+        """Failed git mv commands (is_error=True / exitCode=1) produce no output."""
         event = {
             "tool_name": "Bash",
             "tool_input": {"command": "git mv nonexistent.py dest.py"},
-            "tool_result": {"is_error": True},
+            **tool_result_block,
         }
         stdout, stderr, rc = run_hook(event)
         assert rc == 0
         assert stdout == ""
 
-    def test_no_git_mv_in_command_silent(self):
+    @pytest.mark.parametrize("tool_result_block", _EMPTY_RESULT_PARAMS)
+    def test_no_git_mv_in_command_silent(self, tool_result_block: dict) -> None:
         """Bash commands without git mv produce no output."""
         event = {
             "tool_name": "Bash",
             "tool_input": {"command": "ls -la"},
-            "tool_result": {},
+            **tool_result_block,
         }
         stdout, stderr, rc = run_hook(event)
         assert rc == 0
         assert stdout == ""
 
-    def test_short_stem_silent(self):
+    @pytest.mark.parametrize("tool_result_block", _EMPTY_RESULT_PARAMS)
+    def test_short_stem_silent(self, tool_result_block: dict) -> None:
         """Stems under 3 characters are skipped to avoid noisy results."""
         event = {
             "tool_name": "Bash",
             "tool_input": {"command": "git mv a.py b.py"},
-            "tool_result": {},
+            **tool_result_block,
         }
         stdout, stderr, rc = run_hook(event)
         assert rc == 0
@@ -190,11 +208,12 @@ class TestExitCode:
         )
         assert result.returncode == 0
 
-    def test_valid_bash_no_git_mv(self):
+    @pytest.mark.parametrize("tool_result_block", _EMPTY_RESULT_PARAMS)
+    def test_valid_bash_no_git_mv(self, tool_result_block: dict) -> None:
         event = {
             "tool_name": "Bash",
             "tool_input": {"command": "echo hello"},
-            "tool_result": {},
+            **tool_result_block,
         }
         stdout, stderr, rc = run_hook(event)
         assert rc == 0

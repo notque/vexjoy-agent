@@ -497,3 +497,54 @@ def normalize_input(data: dict[str, Any]) -> dict[str, Any]:
         data["tool"] = data["tool_name"]
 
     return data
+
+
+# ===== Schema-Compatibility Helpers (PostToolUse) =====
+
+
+def get_tool_result(event: dict) -> dict:
+    """Return the tool result dict from a PostToolUse event.
+
+    Handles both Claude/Codex/Gemini ('tool_result') and Factory CLI
+    ('tool_response') schemas. Returns {} if neither key is present.
+    """
+    if "tool_result" in event:
+        return event["tool_result"] or {}
+    if "tool_response" in event:
+        return event["tool_response"] or {}
+    return {}
+
+
+def get_tool_output(result: dict) -> str:
+    """Return the tool's stdout/output string.
+
+    Claude/Codex/Gemini use 'output'; Factory uses 'stdout'.
+    """
+    if "output" in result:
+        return result["output"] or ""
+    if "stdout" in result:
+        return result["stdout"] or ""
+    return ""
+
+
+def get_tool_error(result: dict) -> str:
+    """Return the tool's error/stderr string when an error occurred.
+
+    Claude/Codex/Gemini surface 'error'; Factory uses 'stderr' (and exitCode != 0
+    indicates failure). Returns empty string when no error.
+    """
+    if result.get("error"):
+        return result["error"]
+    if result.get("exitCode", 0) != 0:
+        return result.get("stderr", "") or result.get("stdout", "")
+    return ""
+
+
+def is_tool_error(result: dict) -> bool:
+    """Detect tool failure across schemas.
+
+    Claude/Codex/Gemini set is_error=True; Factory exposes exitCode (non-zero = error).
+    """
+    if "is_error" in result:
+        return bool(result["is_error"])
+    return result.get("exitCode", 0) != 0

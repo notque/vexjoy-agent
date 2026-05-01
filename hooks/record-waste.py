@@ -24,7 +24,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import get_session_id
+from hook_utils import get_session_id, get_tool_output, get_tool_result, is_tool_error
 from stdin_timeout import read_stdin
 
 # Minimum token waste estimate per failure
@@ -39,12 +39,12 @@ def main() -> None:
     try:
         hook_input = json.loads(read_stdin(timeout=2))
 
-        tool_result = hook_input.get("tool_result", {})
-        if not tool_result.get("is_error", False):
+        tool_result = get_tool_result(hook_input)
+        if not is_tool_error(tool_result):
             return  # Only track failures
 
         # Estimate wasted tokens from output length
-        output = tool_result.get("output", "")
+        output = get_tool_output(tool_result)
         waste_tokens = max(len(output) // CHARS_PER_TOKEN, MIN_WASTE_TOKENS)
 
         session_id = get_session_id()
