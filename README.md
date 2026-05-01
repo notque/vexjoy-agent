@@ -2,7 +2,7 @@
 
 <img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
-VexJoy Agent is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), and [Gemini CLI](https://github.com/google-gemini/gemini-cli). It gives all three CLIs domain-specific expertise, step-by-step workflows, and automated quality gates. The result is your coding agent working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
+VexJoy Agent is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Factory](https://factory.ai). It gives all four CLIs domain-specific expertise, step-by-step workflows, and automated quality gates. The result is your coding agent working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
 
 ## How It Works
 
@@ -12,7 +12,7 @@ It starts from the moment you type a request. You don't pick agents, configure w
 /do debug this Go test
 ```
 
-In Claude Code, the smart router command is `/do`. In Codex, use `$do`. In Gemini CLI, use `/do` (Gemini discovers skills from `~/.gemini/skills/` automatically).
+In Claude Code, the smart router command is `/do`. In Codex, use `$do`. In Gemini CLI, use `/do` (Gemini discovers skills from `~/.gemini/skills/` automatically). In Factory, use `/do` (Factory discovers skills from `~/.factory/skills/` automatically).
 
 A router reads your intent and selects a Go specialist agent paired with a systematic debugging methodology. The agent creates a branch, gathers evidence before guessing, runs through phased diagnosis, applies a fix, executes tests, reviews its own work, and presents a PR. You describe the problem. The system handles everything else.
 
@@ -30,7 +30,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines. 
 
 ## Installation
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI and Gemini CLI are also supported: the installer mirrors toolkit skills and agents into `~/.codex/` and `~/.gemini/` so all three CLIs can use the same skill and agent library.
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI, Gemini CLI, and Factory are also supported: the installer mirrors toolkit skills and agents into `~/.codex/`, `~/.gemini/`, and `~/.factory/` so all four CLIs can use the same skill and agent library.
 
 ```bash
 git clone https://github.com/notque/vexjoy-agent.git ~/vexjoy-agent
@@ -38,7 +38,7 @@ cd ~/vexjoy-agent
 ./install.sh --symlink
 ```
 
-The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. It also mirrors skills and agents into `~/.codex/` for Codex and `~/.gemini/` for Gemini CLI. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
+The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. It also mirrors skills and agents into `~/.codex/` for Codex, `~/.gemini/` for Gemini CLI, and `~/.factory/` for Factory. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
 
 Verify the install with:
 
@@ -47,11 +47,13 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-If you update the repo later and want Codex/Gemini to see newly added skills, rerun `./install.sh --symlink` from the repo root.
+If you update the repo later and want Codex/Gemini/Factory to see newly added skills, rerun `./install.sh --symlink` from the repo root.
 
 Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
+- Gemini CLI: `/do`
+- Factory: `/do`
 
 **Detailed setup:** [docs/start-here.md](docs/start-here.md)
 
@@ -108,6 +110,24 @@ Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hoo
 
 The mirror is harmless when Gemini CLI is not installed. To remove hooks after install, delete `~/.gemini/hooks/` and remove the `hooks` key from `~/.gemini/settings.json`.
 
+## Factory CLI Support
+
+The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.factory/` so they work with the Factory CLI alongside Claude Code, Codex, and Gemini. The mirror runs automatically on every `install.sh`; no flags required.
+
+**What mirrors**
+
+- **Droids**: every agent under `agents/` (and `private-agents/` if present) is copied or symlinked to `~/.factory/droids/`. Factory calls agents "droids"; the directory name differs but the content is identical.
+- **Skills**: every skill under `skills/`, `private-skills/`, and `private-voices/*/skill/` goes to `~/.factory/skills/`.
+- **Hooks**: all hooks are mirrored to `~/.factory/hooks/` (no allowlist — same set as Claude Code). Hook configuration is merged into `~/.factory/settings.json` with paths rewritten from `$HOME/.claude/` to `$HOME/.factory/` (only the `hooks` key is modified; all other settings are preserved).
+
+**Hook runtime compatibility**
+
+Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hook_utils.py`. The same `normalize_input()` and `detect_cli()` normalization functions that support Codex and Gemini also cover Factory. Output format (`hookSpecificOutput`) is shared across all four CLIs.
+
+**Opting out**
+
+The mirror is harmless when Factory is not installed. To remove hooks after install, delete `~/.factory/hooks/` and remove the `hooks` key from `~/.factory/settings.json`.
+
 ## Running Claude Code with the toolkit
 
 The toolkit already supplies routing (`/do`), domain knowledge (agents), methodology (skills), and enforcement (hooks, CLAUDE.md). The shipped Claude Code system prompt, which is several thousand tokens, largely duplicates that structure for toolkit users. Override it to shrink per-request token cost:
@@ -122,7 +142,7 @@ Trade-off: overriding the default strips Claude Code's built-in tool-use instruc
 
 ## The Core Workflow
 
-1. **Routing.** You type a request. The router entry point is `/do` in Claude Code and Gemini CLI, and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
+1. **Routing.** You type a request. The router entry point is `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
 
 2. **Planning.** For non-trivial work, the system creates a plan before touching code. Plans have phases, gates, and saved artifacts at each step.
 
