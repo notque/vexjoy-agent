@@ -1,0 +1,34 @@
+# Gemini CLI hooks allowlist — Phase 1 (safe on Gemini CLI v0.26.0+)
+# Format: EVENT:filename [matcher]
+# Lines starting with # are comments. Blank lines ignored.
+#
+# Gemini CLI event name mapping from Claude Code / Codex:
+#   Claude/Codex SessionStart  → Gemini SessionStart  (same name)
+#   Claude/Codex Stop          → Gemini SessionEnd
+#   Claude/Codex PostToolUse   → Gemini AfterTool
+#   Claude/Codex PreToolUse    → Gemini BeforeTool
+#
+# Gemini CLI tool name mapping:
+#   Codex Bash → Gemini run_shell_command
+#
+# All known Gemini CLI hook events:
+#   SessionStart, SessionEnd, BeforeTool, AfterTool,
+#   BeforeAgent, AfterAgent, BeforeModel, AfterModel,
+#   Notification, PreCompress, BeforeToolSelection
+#
+# BeforeTool/AfterTool require a matcher (tool name).
+# SessionStart/SessionEnd/Notification do not use a matcher.
+
+# ----- Phase 1: functional + verified safe -----
+
+# SessionStart injectors (pure stdout, no tool interception)
+SessionStart:kairos-briefing-injector.py
+SessionStart:operator-context-detector.py
+SessionStart:team-config-loader.py
+SessionStart:rules-distill-injector.py
+
+# SessionEnd recorders (pure observation, no tool interception)
+SessionEnd:session-learning-recorder.py
+
+# AfterTool shell scanners (run_shell_command matcher — equivalent of Codex Bash)
+AfterTool:posttool-bash-injection-scan.py run_shell_command

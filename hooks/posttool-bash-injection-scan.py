@@ -95,7 +95,7 @@ def main() -> None:
         empty_output(EVENT_NAME).print_and_exit()
 
     tool_name = event.get("tool_name") or event.get("tool", "")
-    if tool_name != "Bash":
+    if tool_name not in ("Bash", "run_shell_command"):
         empty_output(EVENT_NAME).print_and_exit()
 
     tool_input = event.get("tool_input", event.get("input", {}))
