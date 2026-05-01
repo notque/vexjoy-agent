@@ -37,49 +37,72 @@ normalize_input = _mod.normalize_input
 class TestDetectCli:
     """Tests for the detect_cli() function."""
 
-    def test_detects_gemini_via_api_key(self):
-        """detect_cli returns 'gemini' when GEMINI_API_KEY is set."""
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False):
-            # Clear Codex vars to avoid false positive
-            env = {k: v for k, v in os.environ.items() if not k.startswith("CODEX_")}
-            with patch.dict(os.environ, env, clear=True):
-                os.environ["GEMINI_API_KEY"] = "test-key"
-                assert detect_cli() == "gemini"
+    @staticmethod
+    def _clean_env() -> dict[str, str]:
+        """Return env dict stripped of Gemini/Codex/_ vars."""
+        return {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_")) and k != "_"}
 
-    def test_detects_gemini_via_model(self):
-        """detect_cli returns 'gemini' when GEMINI_MODEL is set."""
-        with patch.dict(os.environ, {"GEMINI_MODEL": "gemini-2.5-pro"}, clear=False):
-            env = {k: v for k, v in os.environ.items() if not k.startswith("CODEX_")}
-            with patch.dict(os.environ, env, clear=True):
-                os.environ["GEMINI_MODEL"] = "gemini-2.5-pro"
-                assert detect_cli() == "gemini"
+    def test_detects_gemini_via_gemini_cli_env(self):
+        """detect_cli returns 'gemini' when GEMINI_CLI is set."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["GEMINI_CLI"] = "1"
+            assert detect_cli() == "gemini"
+
+    def test_detects_gemini_via_underscore_var(self):
+        """detect_cli returns 'gemini' when _ contains 'gemini'."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["_"] = "/usr/local/bin/gemini"
+            assert detect_cli() == "gemini"
+
+    def test_detects_codex_via_underscore_var(self):
+        """detect_cli returns 'codex' when _ contains 'codex'."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["_"] = "/usr/local/bin/codex"
+            assert detect_cli() == "codex"
 
     def test_detects_codex_via_codex_home(self):
         """detect_cli returns 'codex' when CODEX_HOME is set."""
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_"))}
+        env = self._clean_env()
         with patch.dict(os.environ, env, clear=True):
             os.environ["CODEX_HOME"] = "/home/user/.codex"
             assert detect_cli() == "codex"
 
     def test_detects_codex_via_hooks_dir(self):
         """detect_cli returns 'codex' when CODEX_HOOKS_DIR is set."""
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_"))}
+        env = self._clean_env()
         with patch.dict(os.environ, env, clear=True):
             os.environ["CODEX_HOOKS_DIR"] = "/home/user/.codex/hooks"
             assert detect_cli() == "codex"
 
     def test_defaults_to_claude(self):
         """detect_cli returns 'claude' when no Gemini or Codex vars are set."""
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_"))}
+        env = self._clean_env()
         with patch.dict(os.environ, env, clear=True):
             assert detect_cli() == "claude"
 
-    def test_gemini_takes_precedence_over_codex(self):
-        """When both Gemini and Codex vars are set, Gemini wins."""
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_"))}
+    def test_gemini_cli_env_takes_precedence_over_codex(self):
+        """When both GEMINI_CLI and Codex vars are set, Gemini wins."""
+        env = self._clean_env()
         with patch.dict(os.environ, env, clear=True):
-            os.environ["GEMINI_API_KEY"] = "test"
+            os.environ["GEMINI_CLI"] = "1"
             os.environ["CODEX_HOME"] = "/home/user/.codex"
+            assert detect_cli() == "gemini"
+
+    def test_gemini_api_key_alone_does_not_trigger_gemini(self):
+        """GEMINI_API_KEY alone should NOT cause detection as gemini (false positive)."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["GEMINI_API_KEY"] = "test-key"
+            assert detect_cli() == "claude"
+
+    def test_underscore_var_case_insensitive(self):
+        """_ var detection is case-insensitive."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["_"] = "/opt/Gemini-CLI/bin/Gemini"
             assert detect_cli() == "gemini"
 
 

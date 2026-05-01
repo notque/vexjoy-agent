@@ -439,19 +439,33 @@ def deny_tool_use(event_name: str, reason: str) -> None:
 
 # =============================================================================
 # CLI Detection and Input Normalization
+#
+# These functions are infrastructure for hook authors to import as needed.
+# They are NOT auto-applied; individual hooks must call them explicitly.
 # =============================================================================
 
 
 def detect_cli() -> str:
     """Detect which CLI is invoking this hook based on environment variables.
 
+    Detection is best-effort and may need updating as Gemini CLI's
+    environment contract stabilises.  We avoid using ``GEMINI_API_KEY``
+    alone because users commonly set it for direct API access even when
+    running Claude Code.
+
     Returns:
         One of "gemini", "codex", or "claude".
     """
-    # Gemini CLI sets GEMINI_API_KEY or GEMINI_MODEL
-    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_MODEL"):
+    # Most specific: explicit CLI identification env var
+    if os.environ.get("GEMINI_CLI"):
         return "gemini"
-    # Codex CLI sets CODEX_HOME or similar
+    # Process-based: the _ var contains the invoking command path
+    invocation = os.environ.get("_", "")
+    if "gemini" in invocation.lower():
+        return "gemini"
+    if "codex" in invocation.lower():
+        return "codex"
+    # Codex-specific env vars
     if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
         return "codex"
     return "claude"
