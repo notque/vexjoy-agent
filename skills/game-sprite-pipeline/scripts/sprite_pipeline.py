@@ -57,6 +57,7 @@ except ImportError as e:
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+import qa_artifacts
 import sprite_bg
 import sprite_canvas
 import sprite_generate
@@ -585,28 +586,90 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
         return rc
     phases.append({"phase": "F", "name": "normalize", "rc": rc})
 
-    # Phase H: assembly
-    assemble_argv = [
-        "assemble",
-        "--frames-dir",
-        str(frames_norm_dir),
-        "--grid",
-        effective_grid,
-        "--cell-size",
-        str(args.cell_size),
-        "--output-dir",
-        str(work_dir / "out"),
-        "--name",
-        name,
-        "--fps",
-        str(args.fps),
-    ]
-    if args.no_strips:
-        assemble_argv.append("--no-strips")
-    rc = sprite_process.main(assemble_argv)
-    if rc != 0:
-        return rc
-    phases.append({"phase": "H", "name": "assemble", "rc": rc})
+    # Phase H: assembly with per-frame timing (Phase 8)
+    # Extract timing from preset for assembly
+    timing_dict: dict[str, list[int]] = {}
+    state_name_list: list[str] = []
+    for rd in row_defs:
+        state_name_list.append(rd["state"])
+        if "timing" in rd:
+            timing_dict[rd["state"]] = rd["timing"]
+
+    # Write timing JSON for assembly to consume
+    timing_json_path: Path | None = None
+    if timing_dict:
+        timing_json_path = work_dir / f"{name}_timing_input.json"
+        timing_json_path.write_text(json.dumps(timing_dict, indent=2), encoding="utf-8")
+
+    # Also accept --timing-json override
+    if getattr(args, "timing_json", None):
+        timing_json_path = Path(args.timing_json)
+
+    # Use direct assembly call instead of CLI to pass timing
+    from sprite_assemble import assemble_outputs
+    from sprite_slicing import _parse_grid
+
+    frame_paths = sorted((frames_norm_dir).glob("*_frame_*.png"))
+    expected = effective_cols * total_rows
+    by_idx: dict[int, Image.Image] = {}
+    for p in frame_paths:
+        idx_str = p.stem.split("_frame_")[-1]
+        try:
+            idx = int(idx_str)
+        except ValueError:
+            continue
+        by_idx[idx] = Image.open(p).convert("RGBA")
+    assembly_frames: list[Image.Image | None] = [by_idx.get(i) for i in range(expected)]
+
+    emit_strips = effective_cols in (4, 8) and not args.no_strips
+    assemble_outputs(
+        frames=assembly_frames,
+        output_dir=work_dir / "out",
+        name=name,
+        grid_cols=effective_cols,
+        grid_rows=total_rows,
+        cell_w=args.cell_size,
+        cell_h=args.cell_size,
+        fps=args.fps,
+        emit_strips=emit_strips,
+        timing=timing_dict if timing_dict else None,
+        state_names=state_name_list if state_name_list else None,
+    )
+    phases.append({"phase": "H", "name": "assemble", "rc": 0})
+
+    # Phase 7: QA artifacts (when --qa-artifacts is set)
+    if getattr(args, "qa_artifacts", False):
+        sheet_for_qa = work_dir / "out" / f"{name}_sheet.png"
+        if sheet_for_qa.exists():
+            qa_dir = work_dir / "qa"
+            qa_dir.mkdir(parents=True, exist_ok=True)
+            qa_artifacts.make_contact_sheet(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "contact_sheet.png",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+            )
+            qa_artifacts.render_preview_videos(
+                input_path=sheet_for_qa,
+                output_dir=qa_dir / "previews",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+                fps=args.fps,
+            )
+            qa_artifacts.generate_qa_report(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "review.json",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+            )
+            phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
+            logger.info("[per-row] QA artifacts written to %s", qa_dir)
 
     # Metadata
     sidecar = {
@@ -942,7 +1005,16 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     if args.variants > 1:
         phases.append({"phase": "G", "name": "auto-curate", "rc": 0, "note": "variants > 1 not yet wired in dry-run"})
 
-    # Phase H: assembly
+    # Phase H: assembly (with timing support from --timing-json)
+    timing_dict: dict[str, list[int]] | None = None
+    state_name_list: list[str] | None = None
+    timing_json_arg = getattr(args, "timing_json", None)
+    if timing_json_arg:
+        tjp = Path(timing_json_arg)
+        if tjp.exists():
+            timing_dict = json.loads(tjp.read_text(encoding="utf-8"))
+            state_name_list = list(timing_dict.keys()) if timing_dict else None
+
     assemble_argv = [
         "assemble",
         "--frames-dir",
@@ -964,6 +1036,37 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     if rc != 0:
         return rc
     phases.append({"phase": "H", "name": "assemble", "rc": rc})
+
+    # Phase 7: QA artifacts (when --qa-artifacts is set)
+    if getattr(args, "qa_artifacts", False):
+        sheet_for_qa = work_dir / "out" / f"{name}_sheet.png"
+        if sheet_for_qa.exists():
+            qa_dir = work_dir / "qa"
+            qa_dir.mkdir(parents=True, exist_ok=True)
+            qa_artifacts.make_contact_sheet(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "contact_sheet.png",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+            )
+            qa_artifacts.render_preview_videos(
+                input_path=sheet_for_qa,
+                output_dir=qa_dir / "previews",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+                fps=args.fps,
+            )
+            qa_artifacts.generate_qa_report(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "review.json",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+            )
+            phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
+            logger.info("[spritesheet] QA artifacts written to %s", qa_dir)
 
     # Metadata
     sidecar = {
@@ -1180,6 +1283,29 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Named animation preset defining rows, frame counts, and timing. "
             "Use with --per-row for row-strip generation mode."
+        ),
+    )
+    # Phase 5: Video source per row
+    parser.add_argument(
+        "--video-rows",
+        help=(
+            "Video source per row: comma-separated 'row_idx:state:path' entries. "
+            "Example: '0:idle:/path/to/idle.mp4,4:jump:/path/to/jump.mp4'. "
+            "Rows with video sources use the video extraction pipeline."
+        ),
+    )
+    # Phase 7: QA artifacts
+    parser.add_argument(
+        "--qa-artifacts",
+        action="store_true",
+        help=("Generate QA artifacts (contact sheet, preview GIFs, review JSON) after verifier gates. Default OFF."),
+    )
+    # Phase 8: Custom timing
+    parser.add_argument(
+        "--timing-json",
+        help=(
+            "Path to JSON file with per-state timing overrides. Format: "
+            '{"state_name": [ms_per_frame, ...]}. Overrides preset timing.'
         ),
     )
     # Logging level controls (ADR-202). Mutually exclusive; default INFO.
