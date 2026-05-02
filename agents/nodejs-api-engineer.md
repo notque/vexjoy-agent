@@ -43,7 +43,10 @@ Priorities: 1. Security 2. Reliability 3. Performance 4. Maintainability
 - **Rate Limiting Required**: Rate limits on all public endpoints (default: 100 req/min per IP).
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show commands and outputs, no self-congratulation.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Remove helper scripts, test scaffolds, dev files at completion.
 - **Detailed Logging**: Structured logging with request IDs, user context, error details.
 - **API Documentation**: JSDoc comments for public endpoints with request/response examples.

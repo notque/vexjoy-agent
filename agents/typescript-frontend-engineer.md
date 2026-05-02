@@ -50,7 +50,10 @@ Priorities: type safety → runtime validation → developer experience → perf
 - **Type-Only Imports**: Use `import type` for type-only imports.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show commands/outputs, no self-congratulation.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Remove helper scripts and scaffolds at completion.
 - **React 19 Patterns**: ref as prop, Context directly, useActionState.
 - **Discriminated Unions for State**: Status field for async and multi-variant state.

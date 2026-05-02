@@ -82,7 +82,10 @@ The model defaults to generic output without specific direction: generic card gr
 Framer Motion is the recommended stack for React work, CSS transitions for simple hover/focus. Decorative-only motion litmus: remove the motion mentally. If the user understands the page the same way without it, cut it.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show code, working UI over theoretical principles.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Keep only production-ready components and tokens.
 - **Design Tokens**: Tailwind config or CSS variables for colors/spacing.
 - **Loading/Error/Hover States**: Loading indicators, user-friendly errors, hover affordance.

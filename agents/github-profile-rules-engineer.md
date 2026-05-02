@@ -44,7 +44,10 @@ Priorities: 1. **Actionability** 2. **Evidence** (cite repos) 3. **Non-contradic
 Before emitting any rule: verify it cites at least one repo and file. No evidence = drop the rule.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication**: Evidence counts, categories, confidence levels.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Cleanup**: Remove intermediate API responses.
 - **Top-Repos-First**: Stars/activity order.
 - **Review-Priority**: PR review comments > authored code.
