@@ -73,7 +73,9 @@ routing:
 
 # Go Patterns Skill
 
-Umbrella skill for Go development: testing, concurrency, error handling, anti-patterns, code review, SAP CC conventions, and quality gates. Routes to the correct reference based on the task.
+Umbrella skill for Go development: testing, concurrency, error handling, anti-patterns,
+code review, SAP CC conventions, and quality gates. Routes to the correct reference
+based on the Go task at hand.
 
 ## Reference Loading Table
 
@@ -82,66 +84,93 @@ Umbrella skill for Go development: testing, concurrency, error handling, anti-pa
 | Testing | `testing.md` | Writing, fixing, or reviewing Go tests |
 | Concurrency | `concurrency.md` | Goroutines, channels, sync primitives, race conditions |
 | Error handling | `error-handling.md` | Error wrapping, sentinels, custom types, errors.Is/As |
-| Review patterns | `preferred-patterns.md` | Code smells, over-engineering, bad Go patterns |
-| Code review | `code-review.md` | Reviewing Go code or PRs |
+| Review patterns | `preferred-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
+| Code review | `code-review.md` | Reviewing Go code or PRs for quality |
 | SAP CC conventions | `sapcc-conventions.md` | Working in sapcc/* repos with go-bits |
-| Quality gate | `quality-gate.md` | make check, linting, pre-commit validation |
+| Quality gate | `quality-gate.md` | Running make check, linting, pre-commit validation |
 
 ## Instructions
 
 ### Step 1: Identify the Go Domain
 
-Classify the task, then load the corresponding reference files. Only load what is needed.
+Classify the task into one or more domains, then load the corresponding reference files.
+Only load what is needed -- do not load all references for every task.
 
 | Domain | Load Reference | When |
 |--------|---------------|------|
 | Testing | `references/testing.md` | Writing, fixing, or reviewing Go tests |
 | Concurrency | `references/concurrency.md` | Goroutines, channels, sync primitives, race conditions |
 | Error handling | `references/error-handling.md` | Error wrapping, sentinels, custom types, errors.Is/As |
-| Review patterns | `references/preferred-patterns.md` | Code smells, over-engineering, bad Go patterns |
-| Code review | `references/code-review.md` | Reviewing Go code or PRs |
+| Review patterns | `references/preferred-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
+| Code review | `references/code-review.md` | Reviewing Go code or PRs for quality |
 | SAP CC conventions | `references/sapcc-conventions.md` | Working in sapcc/* repos with go-bits |
-| Quality gate | `references/quality-gate.md` | make check, linting, pre-commit validation |
+| Quality gate | `references/quality-gate.md` | Running make check, linting, pre-commit validation |
 
-Multiple domains may apply (e.g., reviewing a PR with concurrency code → load both `code-review.md` and `concurrency.md`).
+Multiple domains may apply. For example, reviewing a PR that includes concurrency code
+should load both `code-review.md` and `concurrency.md`.
 
 ### Step 2: Load and Follow the Reference
 
-Read via `${CLAUDE_SKILL_DIR}/references/<name>.md`. Each reference contains the full methodology, phases, code examples, and error handling. Follow its instructions directly.
+Read the selected reference file(s) using `${CLAUDE_SKILL_DIR}/references/<name>.md`.
+Each reference contains the full methodology, phases, code examples, and error handling
+for that domain. Follow the instructions in the reference as if they were this skill's
+instructions.
 
 ### Step 3: Use Domain-Specific Sub-References
 
-Some references point to sub-reference files:
+Some references point to their own sub-reference files for extended patterns:
 
-**Testing**: `references/testing/go-test-patterns.md`, `references/testing/go-benchmark-and-concurrency.md`
-**Concurrency**: `references/concurrency/concurrency-patterns.md`
-**Error handling**: `references/error-handling/patterns.md`
-**Review patterns**: `references/preferred-patterns/code-examples.md`
-**Code review**: `references/code-review/common-review-comments.md`
-**SAP CC conventions**:
-- `references/sapcc-conventions/sapcc-code-patterns.md` — primary code patterns
-- `references/sapcc-conventions/library-reference.md` — approved/restricted library table
-- `references/sapcc-conventions/architecture-patterns.md` — 102-rule architecture spec
-- `references/sapcc-conventions/review-standards-lead.md` — 21 lead review comments
-- `references/sapcc-conventions/review-standards-secondary.md` — 15 secondary review comments
-- `references/sapcc-conventions/preferred-patterns.md` — 20+ quality issues with BAD/GOOD examples
-- `references/sapcc-conventions/extended-patterns.md` — security, K8s, PR hygiene
-- Plus: `api-design-detailed.md`, `build-ci-detailed.md`, `error-handling-detailed.md`, `go-bits-philosophy-detailed.md`, `pr-mining-insights.md`, `testing-patterns-detailed.md`
+**Testing** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/testing/go-test-patterns.md` -- Full table-driven test, helper, mock examples
+- `${CLAUDE_SKILL_DIR}/references/testing/go-benchmark-and-concurrency.md` -- b.Loop() benchmarks, synctest
 
-**Quality gate**: `references/quality-gate/common-lint-errors.json`, `references/quality-gate/makefile-targets.json`, `references/quality-gate/expert-review-patterns.md`, `references/quality-gate/examples.md`
+**Concurrency** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/concurrency/concurrency-patterns.md` -- Worker pool, fan-out/fan-in, pipeline, rate limiter, graceful shutdown
+
+**Error handling** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/error-handling/patterns.md` -- gopls tracing, HTTP handler patterns, error wrapping in middleware
+
+**Review-pattern** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` -- Extended before/after for all 7 anti-patterns
+
+**Code review** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/code-review/common-review-comments.md` -- Go code patterns with good/bad examples
+
+**SAP CC conventions** sub-references (extensive):
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md` -- Primary reference: actual code patterns
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md` -- Complete approved/restricted library table
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md` -- Full 102-rule architecture spec
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md` -- 21 lead review comments
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md` -- 15 secondary review comments
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/preferred-patterns.md` -- 20+ quality issues with BAD/GOOD examples
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/extended-patterns.md` -- Security, K8s, PR hygiene patterns
+- Plus: `api-design-detailed.md`, `build-ci-detailed.md`, `error-handling-detailed.md`,
+  `go-bits-philosophy-detailed.md`, `pr-mining-insights.md`, `testing-patterns-detailed.md`
+
+**Quality gate** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/common-lint-errors.json` -- Linter descriptions and fix suggestions
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/makefile-targets.json` -- Available make targets
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/expert-review-patterns.md` -- Manual review patterns
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/examples.md` -- Detailed usage examples
 
 ### Step 4: Execute
 
-Follow the loaded reference methodology. Each reference has its own phases, gates, and completion criteria.
+Follow the loaded reference methodology. Each reference has its own phases, gates,
+and completion criteria. Apply them as written.
 
 ## Available Scripts
+
+Scripts are organized by domain in sub-directories:
 
 - **Testing**: `scripts/gen-table-test.sh`, `scripts/bench-compare.sh`
 - **Error handling**: `scripts/check-errors.sh`
 - **Code review**: `scripts/check-interface-compliance.sh`
-- **SAP CC conventions**: `scripts/check-sapcc-identify-endpoint.sh`, `scripts/check-sapcc-auth-ordering.sh`, `scripts/check-sapcc-json-strict.sh`, `scripts/check-sapcc-time-now.sh`, `scripts/check-sapcc-httptest.sh`, `scripts/check-sapcc-todo-format.sh`
+- **SAP CC conventions**: `scripts/check-sapcc-identify-endpoint.sh`, `scripts/check-sapcc-auth-ordering.sh`,
+  `scripts/check-sapcc-json-strict.sh`, `scripts/check-sapcc-time-now.sh`, `scripts/check-sapcc-httptest.sh`,
+  `scripts/check-sapcc-todo-format.sh`
 - **Quality gate**: `scripts/quality_checker.py`, `scripts/validate.py`
 
 ## Error Handling
 
-Errors are domain-specific. Load the relevant reference file and check its Error Handling section.
+Errors are domain-specific. Load the relevant reference file and check its Error Handling
+section for troubleshooting guidance.

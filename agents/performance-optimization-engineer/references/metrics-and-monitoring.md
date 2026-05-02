@@ -9,7 +9,7 @@
 
 ## Overview
 
-Performance monitoring requires two layers: **synthetic** (Lighthouse, lab conditions) and **RUM** (real users in production). RUM data always wins when they conflict — lab conditions don't reflect CDN variance, device diversity, or real network conditions. The most common failure mode is measuring only in lab and shipping regressions that only appear at P75 percentile in production.
+Two layers: synthetic (Lighthouse, lab) and RUM (real users). RUM wins when they conflict. Most common failure: measuring only in lab, shipping regressions that appear at P75 in production.
 
 ---
 
@@ -57,7 +57,7 @@ onTTFB(sendToAnalytics)
 onINP(sendToAnalytics, { reportAllChanges: true }) // INP updates on each interaction
 ```
 
-**Why**: `onINP` without `reportAllChanges` only fires on page unload. Interactions throughout the session that degrade INP are invisible without this flag.
+**Why**: Without `reportAllChanges`, `onINP` only fires on page unload. Mid-session INP degradation is invisible.
 
 ---
 
@@ -82,7 +82,7 @@ function sendToAnalytics(metric: MetricPayload) {
 }
 ```
 
-**Why**: At 1M pageviews/day, 100% reporting generates 5M+ events. 10% sampling gives P75 accuracy with 500K events. Below 1% loses statistical significance at the page-segment level.
+**Why**: 1M pageviews/day = 5M+ events at 100%. 10% sampling gives P75 accuracy. Below 1% loses significance at page-segment level.
 
 ---
 
@@ -108,7 +108,7 @@ onLCP((metric) => {
 })
 ```
 
-**Why**: LCP value alone doesn't tell you if the delay is TTFB, resource load time, or render blocking. Attribution data cuts debugging time from hours to minutes.
+**Why**: LCP alone doesn't identify root cause (TTFB vs resource load vs render blocking). Attribution cuts debugging from hours to minutes.
 
 ---
 
@@ -127,7 +127,7 @@ import { getFID } from 'web-vitals' // deprecated in 3.0, removed in 3.5+
 getFID(sendToAnalytics)
 ```
 
-**Why this matters**: FID was removed from web-vitals 3.0. It only captures the *first* interaction delay, missing the broader picture of all interactions. Google replaced it with INP for Core Web Vitals in March 2024. Code using `getFID` silently does nothing on web-vitals 3.0+.
+**Why this matters**: FID removed in web-vitals 3.0 (only captured first interaction). Google replaced with INP (March 2024). `getFID` silently does nothing on 3.0+.
 
 **Preferred action**:
 ```typescript
@@ -156,7 +156,7 @@ function sendToAnalytics(metric) {
 }
 ```
 
-**Why this matters**: `fetch()` calls initiated during page unload are cancelled by the browser. Metrics like CLS and INP report on page unload — fetch-based reporting loses 20-40% of metric events in production. The browser kills in-flight fetch requests when the user navigates away.
+**Why this matters**: `fetch()` during page unload is cancelled by the browser. CLS and INP report on unload — fetch loses 20-40% of events in production.
 
 **Preferred action**:
 ```typescript
@@ -188,7 +188,7 @@ grep -rn "await.*vitals\|vitals.*await\|onLCP.*await" --include="*.ts" --include
 await setupVitalsMonitoring() // Blocks rendering
 ```
 
-**Why this matters**: Metric setup code in the render critical path adds to LCP. Vitals measurement is observational — it should never affect what it's measuring.
+**Why this matters**: Metric setup in render critical path adds to LCP. Vitals measurement should never affect what it measures.
 
 **Preferred action**:
 ```typescript

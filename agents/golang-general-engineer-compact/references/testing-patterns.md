@@ -1,16 +1,9 @@
 # Go Testing Patterns — Compact Reference
 
-> **Scope**: Table-driven tests, subtests, benchmarks, fuzzing, goroutine leak detection. Does NOT cover integration test infrastructure.
-> **Version range**: Go 1.21+ (t.Context requires 1.24+, b.Loop requires 1.24+)
-> **Generated**: 2026-04-08
+> **Scope**: Table-driven tests, subtests, benchmarks, fuzzing, goroutine leak detection. Not integration infra.
+> **Version range**: Go 1.21+ (t.Context/b.Loop require 1.24+)
 
----
-
-## Overview
-
-Go testing has evolved substantially from 1.21 to 1.24+. The compact agent default is table-driven tests with `t.Run` subtests. The most common gap is test cleanup: forgetting `t.Cleanup`, not using `t.Context()` for goroutines, and missing `t.Parallel()` on independent subtests.
-
----
+Default: table-driven tests with `t.Run`. Common gaps: missing `t.Cleanup`, no `t.Context()` for goroutines, no `t.Parallel()` on independent subtests.
 
 ## Pattern Table
 
@@ -60,7 +53,7 @@ func TestParse(t *testing.T) {
 }
 ```
 
-**Why**: `t.Parallel()` at both levels maximizes parallelism. `t.Fatalf` on error prevents confusing nil-deref panics on subsequent assertions.
+`t.Parallel()` at both levels maximizes parallelism. `t.Fatalf` on error prevents nil-deref panics.
 
 ---
 
@@ -83,7 +76,7 @@ func createTempDB(t *testing.T) *sql.DB {
 }
 ```
 
-**Why**: `t.Helper()` is essential — without it, failure line numbers point to the helper, not the caller. `t.Cleanup` is more reliable than defer in helpers because it runs even after `t.FailNow()`.
+`t.Helper()` makes failures point to caller. `t.Cleanup` runs even after `t.FailNow()`.
 
 ---
 
@@ -112,7 +105,7 @@ func FuzzParseURL(f *testing.F) {
 }
 ```
 
-**Why**: Fuzz tests find edge cases like empty strings, null bytes, and extremely long inputs that table tests miss. The roundtrip property is a strong invariant to check.
+Fuzz tests find edge cases table tests miss. Roundtrip property is a strong invariant.
 
 ---
 
@@ -136,9 +129,9 @@ for _, tt := range tests {
 }
 ```
 
-**Why this matters**: Sequential subtests are 10-100x slower on multi-core machines. `go test -count=10` reveals this.
+**Why**: Sequential subtests 10-100x slower on multi-core.
 
-**Preferred action**: Add `t.Parallel()` as first line of each subtest. If subtests share mutable state, move that state inside the struct or use `t.Cleanup` for isolation.
+**Fix**: `t.Parallel()` as first line. Shared state: move inside struct or `t.Cleanup`.
 
 ---
 
@@ -158,7 +151,7 @@ func TestWriteFile(t *testing.T) {
 }
 ```
 
-**Why this matters**: `os.TempDir()` returns the system temp dir, not a test-scoped dir. Multiple test runs in the same process share it. If the test panics before defer, temp files leak.
+**Why**: `os.TempDir()` = system dir, shared across runs. Panic before defer = leaked files.
 
 **Preferred action**:
 ```go
@@ -188,7 +181,7 @@ func TestServer(t *testing.T) {
 }
 ```
 
-**Why this matters**: Goroutines started with `context.Background()` in tests run until process exit, causing goroutine leaks detected by `goleak`.
+**Why**: `context.Background()` goroutines run until process exit. `goleak` detects them.
 
 **Preferred action** (Go 1.24+):
 ```go
@@ -228,7 +221,7 @@ func BenchmarkProcess(b *testing.B) {
 }
 ```
 
-**Why this matters**: `loadLargeDataset()` runs once but the time is counted in benchmark initialization, skewing results.
+**Why**: Setup time counted in benchmark, skewing results.
 
 **Preferred action** (Go 1.24+):
 ```go

@@ -1,7 +1,7 @@
 # E-commerce Review Patterns
 <!-- Loaded by nextjs-ecommerce-engineer when reviewing e-commerce code for security, correctness, or reliability issues -->
 
-These are the e-commerce mistakes that cause real damage — lost revenue, security incidents, overselling, and data corruption. Each one has a canonical fix.
+E-commerce mistakes that cause real damage. Each has a canonical fix.
 
 ## Client-Side Price Calculation
 **What it looks like:**
@@ -21,9 +21,9 @@ function CartSummary({ items }: { items: CartItem[] }) {
 }
 ```
 
-**Why it's wrong:** Any user can open DevTools, modify the hidden input, and pay $0.01 for any order. This is trivially exploitable.
+**Why wrong:** User opens DevTools, modifies hidden input, pays $0.01 for any order.
 
-**Fix:** Calculate all prices server-side. Never trust a client-provided price.
+**Fix:** Calculate all prices server-side. Never trust client-provided prices.
 
 ```typescript
 // CORRECT: Price calculated server-side from product IDs
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 }
 ```
 
-**Why it's wrong:** Stripe retries webhook delivery on timeout or 5xx. Without idempotency, a single payment creates multiple orders, depletes inventory twice, and floods the user with emails.
+**Why wrong:** Stripe retries on timeout or 5xx. Without idempotency: duplicate orders, double inventory depletion, email floods.
 
 **Fix:** Check order status before fulfilling.
 
@@ -113,9 +113,9 @@ export async function addToCart(productId: string) {
 }
 ```
 
-**Why it's wrong:** Two simultaneous requests both see stock = 1, both pass the check, both decrement — resulting in stock = -1.
+**Why wrong:** Two simultaneous requests both see stock = 1, both pass the check, both decrement to stock = -1.
 
-**Fix:** Use a database transaction with an atomic update and a constraint check.
+**Fix:** Database transaction with atomic update and constraint check.
 
 ```typescript
 // CORRECT: Atomic check-and-decrement
@@ -143,9 +143,9 @@ function ProductDescription({ description }: { description: string }) {
 }
 ```
 
-**Why it's wrong:** If product descriptions come from a CMS or user input, this is an XSS vector. A malicious description can execute arbitrary JavaScript.
+**Why wrong:** Product descriptions from CMS or user input are XSS vectors.
 
-**Fix:** Use a sanitization library or render as plain text. Only use `dangerouslySetInnerHTML` with content from a trusted, sanitized source.
+**Fix:** Sanitize or render as plain text. Only use `dangerouslySetInnerHTML` with trusted, sanitized content.
 
 ```typescript
 // CORRECT: Sanitize before rendering
@@ -177,7 +177,7 @@ function ProductDescription({ description }: { description: string }) {
 const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY!)
 ```
 
-**Why it's wrong:** `NEXT_PUBLIC_` variables are bundled into the client JavaScript. Anyone can read your secret key from the browser, use it to create charges, issue refunds, or read customer data.
+**Why wrong:** `NEXT_PUBLIC_` variables are bundled into client JS. Anyone can read the secret key from the browser.
 
 **Fix:** Never prefix Stripe secret key with `NEXT_PUBLIC_`. Only the publishable key goes to the client.
 
@@ -210,7 +210,7 @@ async function createOrder(cartId: string) {
 }
 ```
 
-**Why it's wrong:** Creates and deletes database records unnecessarily. Between create and delete, another process might act on the "pending" order. The cleanup path is error-prone.
+**Why wrong:** Creates/deletes records unnecessarily. Between create and delete, another process may act on the "pending" order.
 
 **Fix:** Validate stock before creating anything.
 
@@ -246,7 +246,7 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
 }
 ```
 
-**Why it's wrong:** An authenticated user can enumerate order IDs (they're often sequential) and view other customers' purchase history, addresses, and payment details.
+**Why wrong:** User can enumerate order IDs and view other customers' data.
 
 **Fix:** Always scope queries to the current user's ID.
 

@@ -1,20 +1,12 @@
 # Review Detection Commands
 
-> **Scope**: Concrete grep/rg commands for finding issues each perspective is responsible for flagging. Use these during the VERIFY phase before drafting findings.
+> **Scope**: grep/rg commands for finding issues each perspective flags. Run during VERIFY phase before drafting findings.
 > **Version range**: All languages (language-specific variants noted inline)
 > **Generated**: 2026-04-14 — adapt file extensions to match the repository under review
 
 ---
 
-## Overview
-
-Each perspective has a natural class of defects it should find. The commands below turn perspective intuition into repeatable detection — run them before drafting findings so evidence comes from the actual codebase, not recall. Findings backed by grep output are harder to argue away than findings backed by "I noticed."
-
----
-
 ## Newcomer Perspective — Documentation & Clarity Gaps
-
-Newcomers flag things that make the codebase harder to enter. These commands surface the most common entry barriers.
 
 ### Undocumented public exports
 
@@ -35,16 +27,14 @@ rg '^func [A-Z]|^type [A-Z]|^var [A-Z]|^const [A-Z]' --type go | rg -v '// '
 rg 'export (function|const|class|async function) ' --type ts | rg -v '/\*\*'
 ```
 
-### Magic numbers (no symbolic name)
+### Magic numbers
 
 ```bash
-# Find numeric literals that aren't 0, 1, or -1
+# Numeric literals that aren't 0, 1, or -1 — confirm each lacks a named constant before flagging
 rg '[^0-9]\b([2-9][0-9]{2,}|[0-9]{4,})\b' --type py --type ts --type go -n
 ```
 
-**Detection note**: Magic numbers above are candidates, not findings — confirm each one lacks a named constant before flagging.
-
-### TODO/FIXME/HACK comments indicating unfinished work
+### TODO/FIXME/HACK comments
 
 ```bash
 rg 'TODO|FIXME|HACK|XXX|TEMP|KLUDGE' --type py --type ts --type go --type js -n
@@ -54,7 +44,6 @@ rg 'todo!|unimplemented!|todo_or_die' --type rs -n
 ### Long functions (complexity proxy)
 
 ```bash
-# Functions over 50 lines (approximate — adjust threshold)
 awk '/^def |^func |^function /{start=NR} start && NR-start==50{print FILENAME ":" start " (50+ lines)"}' **/*.py **/*.go **/*.ts 2>/dev/null
 
 # Go: quick approximation
@@ -65,16 +54,14 @@ rg -c '^func ' --type go | sort -t: -k2 -rn | head -20
 
 ## Skeptical Senior Perspective — Production Readiness
 
-Senior reviewers look for what fails silently in production. These commands find the most common silent killers.
-
 ### Missing error handling
 
 ```bash
-# Go: errors discarded with _ (silent failures)
+# Go: errors discarded with _
 rg '\b_, err\b' --type go -n
 rg 'if err != nil' --type go -c  # compare to _ usage above
 
-# Python: bare except clauses (catches everything including SystemExit)
+# Python: bare except clauses
 rg 'except\s*:' --type py -n
 
 # TypeScript: promise chains without .catch()
@@ -84,10 +71,10 @@ rg '\.then\(' --type ts | rg -v '\.catch\('
 ### Missing timeouts on network calls
 
 ```bash
-# Go: http.Get/http.Post without a timeout context
+# Go: http.Get/http.Post without timeout context
 rg 'http\.Get\(|http\.Post\(' --type go -n
 
-# Python: requests without timeout parameter
+# Python: requests without timeout
 rg 'requests\.(get|post|put|delete|patch)\(' --type py | rg -v 'timeout='
 ```
 
@@ -97,7 +84,7 @@ rg 'requests\.(get|post|put|delete|patch)\(' --type py | rg -v 'timeout='
 # Python: os.path.exists followed by open (TOCTOU)
 rg 'os\.path\.exists' --type py -n -A 3 | grep -A3 'exists' | grep 'open\('
 
-# Go: sync/mutex missing on shared state (heuristic)
+# Go: sync/mutex missing on shared state
 rg 'var\s+\w+\s+map\[' --type go | rg -v 'sync\.'
 ```
 
@@ -135,8 +122,6 @@ rg 'Authorization.*Bearer [A-Za-z0-9+/]{20,}' -in
 
 ## Pedant Perspective — Spec Compliance & Terminology
 
-Pedants verify technical correctness against specs. These commands find common spec violations.
-
 ### HTTP status code misuse (RFC 7231)
 
 ```bash
@@ -150,24 +135,22 @@ rg 'router\.(get|GET)\(' --type ts | rg -v '#'  # review manually for mutations
 ### REST conventions
 
 ```bash
-# POST endpoints returning 200 instead of 201
+# POST returning 200 instead of 201
 rg 'router\.(post|POST)\(' --type ts --type py -n -A 10 | grep -A10 'post' | grep '200'
 
-# PUT used for partial update (should be PATCH)
+# PUT for partial update (should be PATCH)
 rg 'router\.(put|PUT)\(' --type ts --type py -n
 ```
 
 ### JWT claim misuse (RFC 7519)
 
 ```bash
-# Custom claims where standard claims exist (sub, iss, aud, exp, iat)
 rg '"userId"|"user_id"|"userName"' --type ts --type py -n | rg -v 'sub'
 ```
 
-### SemVer violations in package manifests
+### SemVer violations
 
 ```bash
-# Breaking changes in minor version bumps (heuristic — find removed exports)
 git diff HEAD~1 HEAD -- '*.ts' '*.py' | grep '^-export ' | head -20
 git diff HEAD~1 HEAD -- 'package.json' | grep '"version"'
 ```
@@ -175,8 +158,6 @@ git diff HEAD~1 HEAD -- 'package.json' | grep '"version"'
 ---
 
 ## Contrarian Perspective — Unnecessary Complexity
-
-Contrarians look for complexity that doesn't earn its keep.
 
 ### Abstraction layers with single implementations
 
@@ -190,24 +171,17 @@ done
 rg 'type \w+ interface' --type go -n
 ```
 
-### Copy-pasted code blocks (duplication without abstraction)
-
-```bash
-# Find 5-line blocks that appear more than twice
-rg --count '(def |function |func )' --type py --type ts --type go | sort -t: -k2 -rn | head -20
-```
-
 ### Unused flags, config keys, or feature toggles
 
 ```bash
 rg 'feature_flag|FeatureFlag|feature_toggle' --type py --type ts --type go -n
-rg 'os\.environ\.get\(' --type py -n | head -30  # audit for unchecked values
+rg 'os\.environ\.get\(' --type py -n | head -30
 ```
 
 ### Deep nesting (complexity indicator)
 
 ```bash
-# Python: functions with 4+ levels of indentation
+# Python: 4+ levels of indentation
 rg '^\s{16,}' --type py -n | rg 'if |for |while ' | head -20
 
 # TypeScript: callback nesting
@@ -218,39 +192,29 @@ rg '^\s{12,}' --type ts -n | rg 'then\(' | head -20
 
 ## User Advocate Perspective — User-Facing Impact
 
-User advocates flag changes that break users or increase their cognitive load.
-
-### Breaking API changes (removed or renamed exports)
+### Breaking API changes
 
 ```bash
-# Removed exports since last release
 git diff main HEAD -- '*.ts' '*.py' | grep '^-export ' | grep -v '//'
-
-# Renamed functions (old name referenced in tests or docs)
 git log --oneline -20 -- '*.ts' '*.py'  # scan for "rename" in commits
 ```
 
 ### Missing user-facing error messages
 
 ```bash
-# Generic internal errors exposed to users
 rg '"Internal Server Error"|"Something went wrong"' --type ts --type py -n | grep -v 'test'
-
-# Errors without user guidance (just a code, no message)
 rg 'throw new Error\(|raise Exception\(' --type ts --type py -n | rg -v '[A-Z][a-z].*[a-z]{10}'
 ```
 
 ### Loading states and error boundaries missing
 
 ```bash
-# React: async operations without loading state
 rg 'useEffect' --type tsx --type jsx -n -A 5 | grep -A5 'fetch\|axios\|api' | rg -v 'loading\|isLoading\|pending'
 ```
 
-### Non-obvious UX: empty states not handled
+### Empty states not handled
 
 ```bash
-# Array renders without empty-state fallback
 rg '\.map\(' --type tsx --type jsx -n -B 2 | grep -B2 '\.map\(' | rg -v 'length|empty|fallback|\?\.'
 ```
 
@@ -258,12 +222,9 @@ rg '\.map\(' --type tsx --type jsx -n -B 2 | grep -B2 '\.map\(' | rg -v 'length|
 
 ## Meta-Process Perspective — Structural Health
 
-Meta-process reviewers map structural fragility that no single file reveals.
-
 ### Single points of failure: high fan-in modules
 
 ```bash
-# Files imported by many others (fan-in)
 rg 'from \.\./\.\.' --type ts --type py | awk -F'from' '{print $2}' | sort | uniq -c | sort -rn | head -10
 
 # Go: packages with high import count
@@ -273,22 +234,16 @@ rg '"github\.com/[^"]+/([^"]+)"' --type go --only-matching | sort | uniq -c | so
 ### Authority concentration: single config owners
 
 ```bash
-# Single config file controlling broad behavior
 find . -name 'config.*' -o -name '*.config.*' | xargs wc -l 2>/dev/null | sort -rn | head -5
-
-# Catch-all routing that silences failures
 rg 'catch.*\{\s*\}|except:\s*pass' --type py --type ts -n
 ```
 
 ### Reversibility: schema migrations without rollback
 
 ```bash
-# Migration files without down() or rollback
 rg 'def up\|async up\|exports\.up' --include='*migration*' -l | while read f; do
   grep -L 'def down\|async down\|exports\.down' "$f" 2>/dev/null && echo "NO ROLLBACK: $f"
 done
-
-# ALTER TABLE without corresponding rollback
 grep -r 'ALTER TABLE\|DROP COLUMN\|DROP TABLE' migrations/ 2>/dev/null
 ```
 
@@ -298,7 +253,7 @@ grep -r 'ALTER TABLE\|DROP COLUMN\|DROP TABLE' migrations/ 2>/dev/null
 # Python: module-level mutable state
 rg '^[a-z_]+ = \[\]|^[a-z_]+ = \{\}|^[a-z_]+ = 0' --type py -n | rg -v '^#|test'
 
-# Go: package-level vars (mutable globals)
+# Go: package-level vars
 rg '^var [a-z]' --type go -n | rg -v '_test\.go'
 
 # TypeScript: module-level mutable state
@@ -307,9 +262,7 @@ rg '^let [a-z]|^var [a-z]' --type ts -n | rg -v 'export '
 
 ---
 
-## Detection Commands Reference
-
-Quick reference — copy and run before drafting any perspective's findings:
+## Quick Reference
 
 ```bash
 # === NEWCOMER ===
@@ -341,19 +294,14 @@ grep -r 'ALTER TABLE\|DROP TABLE' migrations/ 2>/dev/null
 
 ---
 
-## Review Pass Detection Commands
+## Review Pass Detection
 
-**Detection**:
 ```bash
-# Check if the review output cites file:line evidence
+# Check if review output cites file:line evidence
 grep -c 'File:\|Where:\|:\d\+:' review_output.md 2>/dev/null || echo "No line references found"
 ```
 
-**What it looks like**: A review with findings like "the code seems complex" or "error handling may be insufficient" — no file reference, no line number, no grep evidence.
-
-**Why wrong**: Vague findings are unfalsifiable. The author cannot verify them, cannot rebut them, and cannot be sure what to fix. Evidence-free reviews waste everyone's time.
-
-**Do instead:** Before writing any finding, run the relevant detection command above. If the finding cannot be grounded in a file:line reference, it does not meet the `Evidence-Based Critique` hardcoded behavior.
+Findings like "the code seems complex" without file:line references are unfalsifiable. Run the relevant detection command above before writing any finding. If it cannot be grounded in a file:line reference, it does not meet the Evidence-Based Critique requirement.
 
 ---
 

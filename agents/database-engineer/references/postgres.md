@@ -1,16 +1,9 @@
 # PostgreSQL Patterns Reference
 
-> **Scope**: PostgreSQL-specific features, index types, EXPLAIN analysis, isolation levels, and JSONB patterns
-> **Version range**: PostgreSQL 14+ (notes for 12–13 where behavior differs)
-> **Generated**: 2026-04-04 — verify against current PostgreSQL release notes
+> **Scope**: PostgreSQL-specific features, index types, EXPLAIN analysis, isolation levels, JSONB
+> **Version range**: PostgreSQL 14+ (notes for 12-13 where behavior differs)
 
----
-
-## Overview
-
-PostgreSQL is the primary production database for most web applications in this toolkit. The most common performance failures are: missing index on a foreign key (every JOIN scans the FK column), wrong index type (B-tree on a full-text search column), and incorrect isolation level causing phantom reads or serialization errors. Read the EXPLAIN plan before adding any index.
-
----
+Common failures: missing FK index, wrong index type, incorrect isolation level. Always EXPLAIN before adding indexes.
 
 ## Pattern Table: Index Types
 
@@ -78,7 +71,7 @@ WHERE status = 'active'
 ORDER BY created_at DESC;
 ```
 
-**Why**: A partial index on 200K rows is 50x smaller than a full index on 10M rows. Index scans are faster, index builds are faster, writes are faster. Application queries that always filter by status benefit significantly.
+Partial index on 200K rows is 50x smaller than full index on 10M. Faster scans, builds, and writes.
 
 ---
 
@@ -113,7 +106,7 @@ SELECT * FROM products
 WHERE attributes->>'brand' = 'Acme';
 ```
 
-**Why**: Without a GIN index, every JSONB containment query is a full table scan. GIN indexes JSONB keys and values for `@>` (contains) and `?` (key exists) operators. For frequent queries on a specific key, an expression index on that key is faster than GIN.
+Without GIN, JSONB containment = full scan. GIN indexes `@>` and `?`. For frequent specific-key queries, expression index > GIN.
 
 ---
 
@@ -146,7 +139,7 @@ COMMIT;
 -- Application must retry on serialization failure
 ```
 
-**Why**: `READ COMMITTED` is appropriate for most reads but allows non-repeatable reads. For financial operations or any multi-statement "read → decide → write" pattern, use `SERIALIZABLE` with retry logic.
+`READ COMMITTED` for most reads. `SERIALIZABLE` with retry logic for financial or read-decide-write patterns.
 
 ---
 
@@ -178,9 +171,9 @@ AND (tc.table_name, kcu.column_name) NOT IN (
 
 **Signal**: `orders.user_id` references `users.id` but has no index. Every `JOIN orders ON user_id = users.id` scans the entire orders table.
 
-**Why this matters**: A JOIN on an unindexed foreign key does a sequential scan of the child table for every parent row. On a 1M row orders table with 100K users, that's 100K × 10ms sequential scans = 16 minutes for a simple user-orders join.
+**Why**: Unindexed FK JOIN = seq scan per parent row. 1M orders, 100K users = 16 minutes.
 
-**Preferred action:**
+**Fix**:
 ```sql
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 -- Verify with EXPLAIN that query now uses Index Scan instead of Seq Scan
@@ -201,9 +194,9 @@ grep -rn "LIKE '%\|ilike '%\|SIMILAR TO '%" src/ --include="*.py" --include="*.g
 SELECT * FROM products WHERE name ILIKE '%laptop%';
 ```
 
-**Why this matters**: B-tree indexes require a known prefix. `LIKE '%term%'` always does a full sequential scan regardless of indexes. On 100K products, this is 100K string comparisons per query.
+**Why**: `LIKE '%term%'` = full seq scan regardless of indexes. 100K string comparisons per query.
 
-**Preferred action:**
+**Fix**:
 ```sql
 -- Option 1: PostgreSQL full-text search (for natural language)
 ALTER TABLE products ADD COLUMN search_vector tsvector
@@ -245,9 +238,9 @@ ORDER BY n_live_tup DESC;
 
 **Signal**: After a bulk insert of 500K rows into a table that previously had 10K rows, the query planner still thinks the table has 10K rows and uses nested loops instead of hash joins.
 
-**Why this matters**: PostgreSQL's query planner uses row count estimates to choose join strategies and index selection. Stale statistics (50x off) cause the planner to pick catastrophically wrong query plans.
+**Why**: Stale statistics (50x off) cause catastrophically wrong query plans.
 
-**Preferred action:**
+**Fix**:
 ```sql
 -- After bulk loads, run ANALYZE immediately
 ANALYZE orders;

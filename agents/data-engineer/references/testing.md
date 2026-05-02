@@ -1,16 +1,9 @@
 # Data Pipeline Testing Reference
 
-> **Scope**: dbt tests, Great Expectations suites, data quality gates, and pipeline contract testing
+> **Scope**: dbt tests, Great Expectations, data quality gates, pipeline contract testing
 > **Version range**: dbt Core 1.5+ / Great Expectations 0.18+ / Airflow 2.6+
-> **Generated**: 2026-04-04 — verify against current dbt and Great Expectations documentation
 
----
-
-## Overview
-
-Data pipeline testing has a different failure mode than application testing: tests that pass but don't catch real data quality issues are common because test authors don't know what "bad data" looks like for their domain. Good pipeline tests are specific: they assert grain, referential integrity, freshness windows, and business-rule violations — not just "column is not null."
-
----
+Good pipeline tests assert grain, referential integrity, freshness, and business-rule violations -- not just "column is not null."
 
 ## Pattern Table: Test Layers
 
@@ -62,7 +55,7 @@ models:
               values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
 ```
 
-**Why**: The minimum set is `unique` + `not_null` on PKs, and `relationships` on FKs. Missing referential integrity tests allow orphaned facts that produce wrong aggregates without any error.
+Minimum: `unique` + `not_null` on PKs, `relationships` on FKs. Missing referential integrity allows orphaned facts.
 
 ---
 
@@ -91,7 +84,7 @@ GROUP BY order_line_id, order_date
 HAVING COUNT(*) > 1
 ```
 
-**Why**: Generic schema tests (`unique`, `not_null`) can't enforce business-domain rules. Singular tests let you write any SQL that returns rows to fail the test — domain logic as code.
+Singular tests enforce business rules as SQL. Returns rows = test fails.
 
 ---
 
@@ -128,7 +121,7 @@ dbt source freshness --select source:raw
 # If this fails, don't run downstream transforms — they'd work on stale data
 ```
 
-**Why**: Running transforms on stale data produces silent errors — pipelines appear to succeed but produce yesterday's numbers. Freshness checks prevent this by failing loudly before transforms run.
+Stale data = silent errors. Freshness checks fail loudly before transforms run.
 
 ---
 
@@ -166,7 +159,7 @@ reconcile_task = PythonOperator(
 )
 ```
 
-**Why**: Row count mismatch is the simplest possible data quality check and catches most load failures — truncated loads, missed partitions, duplicate loads. Implement this before more complex statistical tests.
+Simplest quality check. Catches truncated loads, missed partitions, duplicates. Implement before complex tests.
 
 ---
 
@@ -189,9 +182,9 @@ echo "Tests: $(dbt ls --resource-type test | wc -l)"
 
 **Signal**: Models in `models/` directory with no corresponding entries in `schema.yml`, or schema.yml entries with empty `tests:` lists.
 
-**Why this matters**: Untransformed SQL that silently produces wrong data. Without `unique` + `not_null` tests on PKs, duplicate or null keys can corrupt downstream joins, producing 2x or 0.5x metrics with no error.
+**Why**: Without PK tests, duplicate/null keys corrupt downstream joins (2x or 0.5x metrics, no error).
 
-**Preferred action**: Add minimum test set for every model. The absolute minimum is `unique` + `not_null` on the primary key column.
+**Fix**: `unique` + `not_null` on primary key as absolute minimum.
 
 ---
 
@@ -212,9 +205,9 @@ for path_prefix in ['staging', 'intermediate', 'marts']:
 
 **Signal**: Many tests on `models/staging/` but zero tests on `models/marts/` or `models/reporting/`.
 
-**Why this matters**: Staging tests catch source quality issues. But mart models introduce aggregation logic, joins, and business rules that can produce wrong numbers even when source data is clean. Mart tests catch transform logic errors.
+**Why**: Mart models introduce aggregation/joins that produce wrong numbers even with clean source data.
 
-**Preferred action**: Add singular tests to every mart model that assert business rules — grain, no negative revenue, referential integrity across dimensions.
+**Fix**: Singular tests on every mart: grain, no negative revenue, referential integrity.
 
 ---
 
@@ -233,9 +226,9 @@ grep -rn "not_null" models/ --include="*.yml" -B2 \
     - not_null  # Customers often don't have notes
 ```
 
-**Why this matters**: `not_null` on optional columns causes valid data to fail tests. When tests always fail, engineers start skipping them or marking them as warnings, which erodes confidence in the entire test suite.
+**Why**: `not_null` on optional columns fails valid data. Engineers skip always-failing tests, eroding suite confidence.
 
-**Preferred action**: Only add `not_null` to columns that are logically required (PKs, FKs, required business fields). Use `dbt_utils.not_null_proportion` for columns that are usually-but-not-always populated:
+**Fix**: `not_null` only on logically required columns. Use `dbt_utils.not_null_proportion` for usually-populated:
 
 ```yaml
 - name: customer_notes

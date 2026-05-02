@@ -1,10 +1,8 @@
 # Go Concurrency Patterns
 
-> Reference file for golang-general-engineer agent. Loaded as context during Go development tasks.
-
 ## Worker Pool (with generics)
 
-Distributes work across a fixed number of goroutines. Use when you have many independent tasks and want to bound resource usage.
+Distribute work across fixed goroutines to bound resource usage.
 
 ```go
 func WorkerPool[T any, R any](ctx context.Context, workers int, tasks []T, fn func(context.Context, T) (R, error)) ([]R, error) {
@@ -57,7 +55,7 @@ func WorkerPool[T any, R any](ctx context.Context, workers int, tasks []T, fn fu
 
 ## Fan-out/Fan-in with errgroup
 
-Launch multiple concurrent operations and collect results. `errgroup` cancels remaining work if any task fails.
+Launch concurrent operations, collect results. `errgroup` cancels remaining work on any failure.
 
 ```go
 func fetchAll(ctx context.Context, urls []string) ([]Response, error) {
@@ -86,7 +84,7 @@ Use `errgroup.SetLimit(n)` to cap the number of concurrent goroutines.
 
 ## Context Propagation Rules
 
-Contexts flow down the call chain. Never store contexts in structs; pass them as the first argument.
+Pass contexts as first argument. Never store in structs.
 
 ```go
 // RULE 1: context is always the first parameter
@@ -121,7 +119,7 @@ cause := context.Cause(ctx) // "user requested shutdown"
 
 ## Channel Ownership
 
-The goroutine that creates a channel should close it. Receivers should never close channels.
+Producer creates and closes the channel. Receivers never close.
 
 ```go
 // GOOD: producer creates, writes, and closes
@@ -154,7 +152,7 @@ func consume(events <-chan Event) {
 
 ## sync.Once for Lazy Initialization
 
-Initialize expensive resources exactly once, safe for concurrent access.
+Initialize expensive resources exactly once, concurrency-safe.
 
 ```go
 type Client struct {
@@ -188,8 +186,6 @@ var loadConfig = sync.OnceValue(func() *Config {
 ```
 
 ## Rate Limiting with time.Ticker
-
-Control the rate of operations (API calls, message sends, etc.).
 
 ```go
 func rateLimitedProcess(ctx context.Context, items []Item, rps int) error {
@@ -229,7 +225,7 @@ func boundedProcess(ctx context.Context, items []Item, maxConcurrent int) error 
 
 ## Mutex Scope Minimization
 
-Hold locks for the shortest time possible. Never do I/O while holding a lock.
+Hold locks briefly. Never do I/O under a lock.
 
 ```go
 // BAD: lock held during network call
@@ -261,8 +257,6 @@ func (s *Service) Update(id string) error {
 ```
 
 ## Select with Default (Non-blocking)
-
-Use `select` with a `default` case to attempt a channel operation without blocking.
 
 ```go
 // Non-blocking send: drop the event if the channel is full
@@ -298,7 +292,7 @@ func receiveWithTimeout(ch <-chan Result, timeout time.Duration) (Result, error)
 
 ## Pipeline Pattern
 
-Chain stages where each stage is a goroutine reading from one channel and writing to another.
+Chain stages: each goroutine reads from one channel, writes to another.
 
 ```go
 func pipeline(ctx context.Context, input <-chan int) <-chan string {

@@ -38,12 +38,6 @@ If the voice skill has no `## Architectural Patterns` section, skip this step en
 
 NEVER generate em-dashes in any voice output. Em-dashes are the most reliable AI marker. Use commas, periods, or restructure sentences instead.
 
-**Verification command** (run after generation, before validation):
-```bash
-python3 ~/vexjoy/scripts/content-check.py /tmp/voice-content-draft.md --strict
-```
-Result must show score ≤ 5. This covers em-dashes plus all other deterministic checks.
-
 This applies to all voices, all modes, all content types. No exceptions.
 
 ---

@@ -2,18 +2,16 @@
 name: publish
 description: |
   Content-publishing umbrella covering the blog pipeline from blueprint to
-  upload: post outlining, pre-publication validation, SEO optimization,
-  PageSpeed Insights analysis, bulk find/replace and frontmatter editing,
-  link auditing, image auditing, taxonomy management, and WordPress upload.
-  Use for "outline post", "article outline", "pre-publish check",
-  "frontmatter validation", "check SEO", "keyword analysis", "meta
-  description", "page speed", "pagespeed", "core web vitals", "lighthouse",
-  "site speed", "performance audit", "batch edit posts", "bulk frontmatter
-  update", "mass edit", "audit links", "broken links", "audit images",
-  "alt text check", "audit taxonomy", "fix tags", "merge categories",
-  "upload to wordpress", "create wordpress draft", "post to wordpress",
-  "edit wordpress post", "create wp categories", "auto-create categories",
-  "search wp media", or "find existing wordpress image".
+  upload: post outlining, pre-publication validation, SEO optimization, bulk
+  find/replace and frontmatter editing, link auditing, image auditing,
+  taxonomy management, and WordPress upload. Use for "outline post",
+  "article outline", "pre-publish check", "frontmatter validation", "check
+  SEO", "keyword analysis", "meta description", "batch edit posts", "bulk
+  frontmatter update", "mass edit", "audit links", "broken links", "audit
+  images", "alt text check", "audit taxonomy", "fix tags", "merge
+  categories", "upload to wordpress", "create wordpress draft", "post to
+  wordpress", "edit wordpress post", "create wp categories", "auto-create
+  categories", "search wp media", or "find existing wordpress image".
 user-invocable: false
 agent: general-purpose
 allowed-tools:
@@ -80,13 +78,6 @@ routing:
     - "find existing wordpress image"
     - "find existing image"
     - "reuse existing media"
-    - "page speed"
-    - "pagespeed"
-    - "page insights"
-    - "core web vitals"
-    - "lighthouse"
-    - "site speed"
-    - "performance audit"
   category: content-publishing
   complexity: medium
   pairs_with:
@@ -96,16 +87,17 @@ routing:
 
 # Publish Skill
 
-Umbrella skill for content-publishing pipeline. Routes to the correct reference based on intent.
+Umbrella skill for the content-publishing pipeline. Routes to the correct reference based on the intent requested: outline a post, run a pre-publication check, optimize SEO, bulk-edit posts, audit links, audit images, manage taxonomy, or upload to WordPress.
 
 ## Routing
+
+Detect the user's intent and load the appropriate reference file:
 
 | Intent | Trigger phrases | Reference |
 |--------|----------------|-----------|
 | **Outline** | "outline post", "blog structure", "content blueprint", "article outline", "content structure" | `${CLAUDE_SKILL_DIR}/references/outline.md` |
 | **Pre-publish** | "pre-publish check", "Hugo validation", "front matter check", "publication check", "frontmatter validation" | `${CLAUDE_SKILL_DIR}/references/pre-publish.md` |
 | **SEO** | "check SEO", "optimize SEO", "keyword analysis", "meta description", "keyword optimization" | `${CLAUDE_SKILL_DIR}/references/seo.md` |
-| **PageSpeed** | "page speed", "pagespeed", "page insights", "core web vitals", "lighthouse", "site speed", "performance audit" | `${CLAUDE_SKILL_DIR}/references/pagespeed-insights.md` |
 | **Batch-edit** | "batch edit posts", "bulk frontmatter update", "find replace across files", "mass edit", "bulk update" | `${CLAUDE_SKILL_DIR}/references/batch-edit.md` |
 | **Link-audit** | "audit links", "find broken links", "link health", "broken links", "dead links" | `${CLAUDE_SKILL_DIR}/references/link-audit.md` |
 | **Image-audit** | "audit images", "check broken images", "image accessibility", "alt text check", "image optimization" | `${CLAUDE_SKILL_DIR}/references/image-audit.md` |
@@ -119,7 +111,6 @@ Umbrella skill for content-publishing pipeline. Routes to the correct reference 
 | "outline post", "blog structure", "content blueprint", "article outline", "content structure" | `outline.md` | **Outline** |
 | "pre-publish check", "Hugo validation", "front matter check", "publication check", "frontmatter validation" | `pre-publish.md` | **Pre-publish** |
 | "check SEO", "optimize SEO", "keyword analysis", "meta description", "keyword optimization" | `seo.md` | **SEO** |
-| "page speed", "pagespeed", "page insights", "core web vitals", "lighthouse", "site speed", "performance audit" | `pagespeed-insights.md` | **PageSpeed** |
 | "batch edit posts", "bulk frontmatter update", "find replace across files", "mass edit", "bulk update" | `batch-edit.md` | **Batch-edit** |
 | "audit links", "find broken links", "link health", "broken links", "dead links" | `link-audit.md` | **Link-audit** |
 | "audit images", "check broken images", "image accessibility", "alt text check", "image optimization" | `image-audit.md` | **Image-audit** |

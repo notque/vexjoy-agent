@@ -1,19 +1,14 @@
 # Framer Motion Combat Juice Reference
 <!-- Loaded by combat-effects-upgrade when task involves card trajectories, hit-react animations, multi-hit stagger, or layout animations in combat components -->
 
-## Overview
-
-Framer Motion was renamed to **Motion** in 2025 when it became an independent project. The npm package moved from `framer-motion` to `motion`, with import paths changing from `framer-motion` to `motion/react`. The API surface is identical. Check your project's package.json to determine which version is installed.
+Framer Motion renamed to **Motion** in 2025. Package: `framer-motion` → `motion`, imports: `framer-motion` → `motion/react`. API identical. Check package.json.
 
 ```typescript
-// Modern (motion package)
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react';
-
-// Legacy (framer-motion package — same API)
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+// Legacy: import from 'framer-motion' (same API)
 ```
 
-The patterns below use `motion/react`. Replace with `framer-motion` if needed.
+Patterns below use `motion/react`. Replace with `framer-motion` if needed.
 
 ---
 
@@ -35,7 +30,7 @@ The patterns below use `motion/react`. Replace with `framer-motion` if needed.
 
 ## Pattern 1: Card Play Trajectory
 
-Card flies from hand to a target slot before triggering the effect. Uses `layoutId` so Motion measures start/end positions automatically.
+Card flies from hand to target slot. `layoutId` measures start/end positions automatically.
 
 ```tsx
 // src/components/FramedCard.tsx
@@ -85,7 +80,7 @@ export function FramedCard({ card, isPlaying, targetRef }: FramedCardProps) {
 
 ## Pattern 2: Hand Reflow with Layout Animation
 
-When a card is played, remaining cards automatically animate into their new positions. No manual position calculation needed.
+Remaining cards auto-animate into new positions. No manual position calculation.
 
 ```tsx
 // src/components/CardHand.tsx
@@ -135,7 +130,7 @@ export function CardHand({ cards, onPlay }: CardHandProps) {
 
 ## Pattern 3: Hit React with Spring Overshoot
 
-Spring physics on hit reaction means the character squishes, overshoots back past normal, then settles — feeling physical rather than mechanical.
+Character squishes, overshoots past normal, settles. Spring physics handle interruption automatically.
 
 ```tsx
 // src/components/PlayerCharacter.tsx
@@ -174,7 +169,7 @@ export function PlayerCharacter({ isHit, hitType }: PlayerCharacterProps) {
 
 ## Pattern 4: Multi-Hit Damage Stagger
 
-When an attack deals multiple hits, each damage number appears 100ms after the previous, so players can track individual values instead of an overlapping pile.
+Each damage number 100ms after previous, so players track individual values.
 
 ```tsx
 // src/components/CombatPopups.tsx
@@ -226,7 +221,7 @@ export function CombatPopups({ damageEvents }: CombatPopupsProps) {
 
 ## Pattern 5: Finisher Move — Dramatic Scale Sequence
 
-Finisher moves get a three-stage dramatic entrance: pause (anticipation) → explosive scale → settle.
+Three-stage: anticipation pause → explosive scale → settle.
 
 ```tsx
 // src/components/CombatArena.tsx
@@ -272,8 +267,6 @@ export function FinisherOverlay({ isActive, finisherName }: FinisherOverlayProps
 ---
 
 ## Pattern 6: Status Badge Jiggle on Value Change
-
-When a status badge value increases or decreases, it jiggles to draw attention to the change.
 
 ```tsx
 // src/components/PlayerCharacter.tsx
@@ -321,7 +314,7 @@ export function StatusBadge({ label, value, type }: StatusBadgeProps) {
 
 ## Pattern 7: Card Draw from Pile Position
 
-When a card is drawn, it animates from the draw pile's position to its slot in the hand. Uses `useRef` to capture the pile position.
+Animates from draw pile position to hand slot via `useRef`.
 
 ```tsx
 // src/components/CardHand.tsx
@@ -371,7 +364,7 @@ function DrawnCard({ card, pileRef }: { card: Card; pileRef: React.RefObject<HTM
 
 ## Pattern 8: Enemy Idle Sway
 
-Enemy character gets subtle sway in addition to the existing scale breathing animation.
+Subtle rotation sway added to existing scale breathing.
 
 ```tsx
 // src/components/EnemyCharacter.tsx
@@ -404,7 +397,7 @@ export function EnemyCharacter({ enemy }: EnemyCharacterProps) {
 
 ## Pattern 9: Screen Shake with Motion Blur
 
-Enhances the existing CSS-class screen shake by adding a simultaneous filter blur via Framer Motion, simulating camera shake motion blur.
+Adds filter blur to existing CSS screen shake for camera-shake effect.
 
 ```tsx
 // src/components/CombatArena.tsx
@@ -447,17 +440,10 @@ export function CombatArena({ isShaking, children }: CombatArenaProps) {
 | Floaty, playful | 150 | 18 | 0.8 | Heal float, buff text |
 | Stiff, precise | 600 | 40 | 1 | Tilt follow (fast cursor tracking) |
 
-Interruption behavior: Motion springs automatically handle being interrupted mid-animation by carrying current velocity into the new animation. No special code needed.
-
----
+Springs auto-handle interruption by carrying current velocity. No special code needed.
 
 ## Common Mistakes
 
-### `useAnimation` instead of `animate` prop with variants
-`useAnimation` is correct when you need to trigger animations imperatively (e.g., from a non-React event). For most combat animations driven by state, the `animate` prop with conditional values is simpler and avoids synchronization bugs.
-
-### `AnimatePresence` without `key` on children
-`AnimatePresence` tracks components by their `key`. If cards don't have stable unique keys, exit animations will misfire when cards swap positions.
-
-### Nesting `motion.div` inside another `motion.div` with `layout`
-Layout animations propagate down. If a parent has `layout` and a child also has `layout`, both will animate on every layout change. Verify the flame chart for unexpected layout measurements.
+- **`useAnimation` instead of `animate` prop**: `useAnimation` for imperative triggers only. State-driven combat animations use `animate` prop.
+- **`AnimatePresence` without `key`**: Exit animations misfire without stable unique keys.
+- **Nested `motion.div` with `layout`**: Layout propagates down. Both parent and child animate on every change. Check flame chart.

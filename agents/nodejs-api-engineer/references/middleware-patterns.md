@@ -12,7 +12,7 @@ description: Error handling middleware, validation, rate limiting, and security 
 
 ## Overview
 
-Middleware order in Express is execution-critical. Error-handling middleware (4-argument signature) must come last. Rate limiting before authentication avoids leaking timing data about valid users. Validation middleware that returns early on bad input prevents downstream handlers from processing untrusted data. Missing any of these produces APIs that are either broken or insecure in non-obvious ways.
+Middleware order is execution-critical. Error middleware (4-arg) must come last. Rate limiting before auth avoids leaking timing data. Validation before handlers prevents untrusted data processing.
 
 ---
 
@@ -84,7 +84,7 @@ function errorHandler(
 app.use(errorHandler);
 ```
 
-**Why**: Express identifies error-handling middleware by the 4-argument signature. A 3-argument function with `err` as the first parameter is treated as a regular middleware and never called for errors.
+**Why**: Express identifies error middleware by arity. A 3-argument function is never called for errors.
 
 ---
 
@@ -130,7 +130,7 @@ app.post('/users', validateBody(CreateUserSchema), async (req, res) => {
 });
 ```
 
-**Why**: `safeParse` collects all validation errors in one pass. `parse()` throws on the first error — users get one error at a time, requiring multiple form submissions to fix all issues.
+**Why**: `safeParse` collects all errors in one pass. `parse()` throws on first error only.
 
 ---
 
@@ -171,7 +171,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 ```
 
-**Why**: In-memory store doesn't work across multiple Node.js processes (PM2 cluster, K8s pods). Process 1 and Process 2 have separate limits — attackers bypass limits by distributing requests across pods. Redis store is shared across all processes.
+**Why**: In-memory store doesn't work across multiple processes. Attackers bypass by distributing requests across pods. Redis store is shared.
 
 ---
 
@@ -215,7 +215,7 @@ app.use(cors({
 }));
 ```
 
-**Why**: `cors({ origin: '*' })` allows any site to make credentialed requests. Explicit allowlist prevents CSRF via cross-origin requests from malicious sites.
+**Why**: `origin: '*'` allows any site to make requests. Explicit allowlist prevents cross-origin CSRF.
 
 ---
 
@@ -238,7 +238,7 @@ app.use((err: Error, req: Request, res: Response) => {
 });
 ```
 
-**Why this matters**: Express identifies error-handling middleware by arity (argument count). A 3-argument function is a regular middleware. When `next(err)` is called or an error is thrown, Express skips all 3-argument middlewares looking for a 4-argument error handler. Errors propagate unhandled to Express's default error handler, which sends HTML error pages.
+**Why this matters**: A 3-argument function is regular middleware. Express skips them looking for 4-arg error handlers. Errors propagate to Express's default HTML handler.
 
 **Preferred action**: Always use exactly 4 arguments: `(err, req, res, next)`.
 
@@ -256,7 +256,7 @@ rg "cors\(\{.*origin.*\*" --type ts src/
 app.use(cors({ origin: '*', credentials: true }));
 ```
 
-**Why this matters**: `origin: '*'` with `credentials: true` is rejected by browsers (CORS spec prohibits it), but `origin: '*'` without credentials still allows any malicious site to read API responses. Attack: attacker hosts `evil.com`, victim visits it, victim's browser sends cookies to your API, attacker reads the response.
+**Why this matters**: `origin: '*'` without credentials allows any site to read API responses. With `credentials: true` it's rejected by browsers (CORS spec).
 
 **Preferred action**: Explicit origin allowlist. If truly public (no auth), `origin: '*'` without `credentials` is acceptable.
 
@@ -282,7 +282,7 @@ app.post('/users', async (req, res) => {
 });
 ```
 
-**Why this matters**: If `req.body.email` is `undefined`, `db.users.create()` may throw a database constraint error that leaks schema details, or worse — insert NULL values. Validation must run before any side effects.
+**Why this matters**: If `req.body.email` is `undefined`, `db.users.create()` may throw constraint errors leaking schema details or insert NULLs. Validate before side effects.
 
 **Preferred action**: Validate first with middleware, then call handlers.
 

@@ -1,12 +1,8 @@
 # Kotlin Patterns Reference
 
-Deep reference for null safety, coroutines/Flow, sealed classes/enums/data classes, and Koin DI.
-
----
-
 ## Null Safety
 
-Kotlin's type system distinguishes nullable (`T?`) from non-nullable (`T`) at compile time. The `!!` operator circumvents this guarantee — replace all occurrences with safe alternatives in production code.
+Replace all `!!` with safe alternatives. `!!` circumvents compile-time null safety.
 
 ### Safe Alternatives to `!!`
 
@@ -33,7 +29,7 @@ val label = requireNotNull(config["display_name"]) {
 
 ### Java Interop Boundaries
 
-Platform types (returned from Java with unknown nullability) must be annotated or guarded at the boundary -- always handle explicitly:
+Platform types must be annotated or guarded at the boundary:
 
 ```kotlin
 // BAD -- platform type passes through silently
@@ -62,7 +58,7 @@ fun getRequiredHeader(request: HttpServletRequest): String {
 
 ### Structured Concurrency
 
-Always launch coroutines within a structured scope. Use `viewModelScope`, `lifecycleScope`, or explicit scopes instead of `GlobalScope` in production code.
+Launch within structured scopes (`viewModelScope`, `lifecycleScope`, explicit scopes). Never `GlobalScope` in production.
 
 ```kotlin
 // BAD -- GlobalScope leaks coroutines
@@ -129,7 +125,7 @@ class SearchViewModel(private val repo: ProductRepository) : ViewModel() {
 
 ### Testing Coroutines
 
-Always use `runTest` from `kotlinx-coroutines-test` instead of `runBlocking` in tests.
+Use `runTest` from `kotlinx-coroutines-test`, not `runBlocking`.
 
 ```kotlin
 // BAD -- runBlocking in tests masks timing issues
@@ -186,7 +182,7 @@ data class AppUser(val id: UserId, val name: String, val email: String)
 value class OrderId(val value: Long)
 ```
 
-### Exhaustive `when` -- List All Cases on Sealed Types
+### Exhaustive `when` — No `else` on Sealed Types
 
 ```kotlin
 // BAD -- else suppresses exhaustiveness check; new subtypes silently fall through
@@ -205,8 +201,6 @@ fun describeResult(result: LoadResult<AppUser>): String = when (result) {
 ```
 
 ### Extension Functions Over Inheritance
-
-Prefer extension functions to add behavior without modifying the original class:
 
 ```kotlin
 // Instead of subclassing or utility class
@@ -233,7 +227,7 @@ val logged = value.also {               // also: side effect, returns original v
 
 ## Koin Dependency Injection
 
-Use Koin in Ktor projects and Android projects where Hilt is not already established.
+Use in Ktor and Android projects where Hilt is not established.
 
 ```kotlin
 // Module definition -- prefer interface bindings

@@ -1,16 +1,8 @@
 # GitHub Profile Rules — Category Taxonomy
 
-> **Scope**: Taxonomy of extractable rule types, confidence scoring methodology, and output formats for CLAUDE.md compatibility.
-> **Version range**: GitHub REST API v3 (all versions)
-> **Generated**: 2026-04-08
+> **Scope**: Rule taxonomy, confidence scoring, CLAUDE.md output formats
 
----
-
-## Overview
-
-Rules extracted from a GitHub profile fall into six categories. Not all categories are always present — a data-focused developer may have no frontend style signals. The confidence scoring prevents over-fitting to a single repo's project-specific conventions. Low-confidence rules should be flagged to the user, not omitted — they may reflect intentional style.
-
----
+Six categories (not all always present). Confidence scoring prevents over-fitting to single-repo conventions. Low-confidence rules: flag, don't omit.
 
 ## Rule Category Taxonomy
 
@@ -81,59 +73,29 @@ EXCEPTION: If repos < 3 total, downgrade all scores by one level.
 ## Pattern Catalog
 
 ### Extract Only Developer-Specific Patterns
-**Detection** (in your own rule output — review before emitting):
-Look for rules that would appear in any developer's CLAUDE.md:
-- "Use meaningful variable names"
-- "Write tests for your code"
-- "Handle errors appropriately"
-- "Use consistent formatting"
-
-**Why this matters**: Universal patterns add no value. The user already knows these. The value of extraction is finding *this developer's* specific choices that differ from the default.
-
-**Preferred action**: Only emit rules where the developer made a non-obvious choice:
-- "Uses `_` prefix for unexported package-level vars" (unusual)
-- "Prefers `errors.New` over fmt.Errorf for leaf errors" (specific style)
-- "Names test files `foo_integration_test.go` for integration vs `foo_test.go` for unit" (specific org)
+Universal patterns ("use meaningful names", "write tests") add no value. Only emit non-obvious choices:
+- "Uses `_` prefix for unexported package-level vars"
+- "Prefers `errors.New` over fmt.Errorf for leaf errors"
+- "Names test files `foo_integration_test.go` for integration vs `foo_test.go` for unit"
 
 ---
 
-### Cite Repo and File Evidence for Every Rule
-**Detection** (in your rule generation):
-```
-Rule: "Always wrap errors with context"
-Evidence: [none cited]
-```
-
-**Why this matters**: Without evidence, the rule is a guess. The user can't verify it, and it may conflict with their actual preference.
-
-**Preferred action**: Every rule must cite at minimum:
-- Which repo the pattern was observed in
-- Which file (or file pattern) contains the example
-- Optionally: the specific line or code snippet
+### Cite Evidence for Every Rule
+Without evidence, the rule is a guess. Every rule must cite: repo, file (or pattern), optionally line/snippet.
 
 ---
 
-### Cross-Reference Multiple Repos Before Claiming Personal Style
-**Detection**: When a pattern appears in only one repo, check if that repo has a contributing guide, linter config, or external style guide that explains it.
-
-**Signal**: Extracting "Always use 2-space indentation in Python" from one repo — but the repo is a web framework with enforced formatter config.
-
-**Why this matters**: The developer may be following the project's style, not their own preference. They may write 4-space indentation in personal projects.
-
-**Preferred action**: Cross-reference at least 2 repos before claiming it's a personal convention. When in doubt, label as `"project-specific"` in confidence metadata.
+### Cross-Reference Before Claiming Personal Style
+Single-repo patterns may be project-enforced (framework formatter, contributing guide). Cross-reference 2+ repos. When in doubt: `"project-specific"` label.
 
 ---
 
-### Prioritize PR Review Comments as Strongest Signal
-**Detection**: If rule extraction only reads authored code files without checking PR reviews, it misses preference signals.
-
-**Why this matters**: PR review comments reveal what the developer considers important enough to enforce on *others*. A developer who writes sloppy error handling in their own draft PRs but consistently requests proper error wrapping in reviews is showing you their real standard.
-
-**Correct priority order**:
-1. PR review comments (highest signal — explicit preference statements)
-2. Cross-repo patterns (broad signal — consistent habits)
-3. Single-repo patterns (narrow signal — may be project-specific)
-4. README/CONTRIBUTING files (explicit rules, but project-scoped)
+### PR Review Comments = Strongest Signal
+Reviews reveal what the developer enforces on others. Priority order:
+1. PR review comments (explicit preferences)
+2. Cross-repo patterns (consistent habits)
+3. Single-repo patterns (may be project-specific)
+4. README/CONTRIBUTING files (project-scoped)
 
 ---
 

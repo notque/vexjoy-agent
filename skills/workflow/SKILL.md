@@ -69,14 +69,16 @@ Load the appropriate workflow reference based on the task.
 
 ## How to Use (MANDATORY)
 
-**Load the reference file before executing any workflow phase.** The table above is a routing index — actual methodology, phases, gates, and instructions are in the reference files.
+**You MUST load the reference file before executing any workflow phase.** The table above is a routing index — the actual methodology, phases, gates, and instructions are in the reference files.
 
-1. **Identify** the workflow category from the user's task
-2. **Load** the matching reference via `Read` on `${CLAUDE_SKILL_DIR}/references/<name>.md`
-3. **Follow** phases and gates exactly — do not improvise
-4. **Report** using the output format in the loaded reference
+1. **Identify** the workflow category from the user's task using the table above
+2. **Load** the matching reference file using `Read` tool on `${CLAUDE_SKILL_DIR}/references/<name>.md`
+3. **Follow** the phases and gates defined in that reference exactly — do not improvise phases
+4. **Report** using the output format specified in the loaded reference
 
-If the task spans multiple workflows, load each reference in sequence.
+If the task spans multiple workflows (e.g., research then write), load each reference in sequence and follow them in order.
+
+**Workflow rule**: Load the reference file before executing a workflow phase. The table shows names only; the reference file contains the actual instructions, gates, artifact requirements, and quality criteria.
 
 ## Reference Loading Table
 

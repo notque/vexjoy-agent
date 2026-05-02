@@ -1,16 +1,9 @@
 # Go Concurrency Patterns — Compact Reference
 
-> **Scope**: Goroutine lifecycle, channel patterns, sync primitives, context propagation. Does NOT cover networking or I/O.
-> **Version range**: Go 1.21+ (compact idioms require 1.21+, modern WaitGroup requires 1.25+)
-> **Generated**: 2026-04-08 — verify version-specific content against current release notes
+> **Scope**: Goroutine lifecycle, channels, sync primitives, context propagation. Not networking/I/O.
+> **Version range**: Go 1.21+ (modern WaitGroup requires 1.25+)
 
----
-
-## Overview
-
-Go concurrency bugs fall into three classes: goroutine leaks (no exit strategy), data races (shared state without sync), and deadlocks (circular channel waits). The compact agent's job is to catch these before they reach production. Go 1.25+ `wg.Go()` eliminates the Add/Done race that was the #1 WaitGroup mistake.
-
----
+Three bug classes: goroutine leaks (no exit), data races (shared state without sync), deadlocks (circular waits). `wg.Go()` (1.25+) eliminates the #1 WaitGroup mistake.
 
 ## Pattern Table
 
@@ -53,7 +46,7 @@ func runPool(ctx context.Context, jobs <-chan Job) error {
 }
 ```
 
-**Why**: `wg.Go()` ensures Add happens before goroutine launch — the classic race with `go func(){ wg.Add(1) ...}()` is impossible. Context cancel provides clean shutdown.
+`wg.Go()` ensures Add before launch. Context cancel provides clean shutdown.
 
 ---
 
@@ -85,7 +78,7 @@ func fanOut[T any](ctx context.Context, in <-chan T, n int, fn func(T) T) <-chan
 }
 ```
 
-**Why**: Only the goroutine that owns channel creation closes it. Multiple writers need a final goroutine to close after all writers exit.
+Only the channel owner closes it. Multiple writers need a final goroutine to close after all exit.
 
 ---
 
@@ -109,7 +102,7 @@ func startBackgroundJob() {
 }
 ```
 
-**Why this matters**: The goroutine runs until process exit. If called repeatedly (e.g., in tests), goroutines accumulate. `goleak` in tests will catch this; production just slowly runs out of memory.
+**Why**: Runs until process exit. Repeated calls accumulate goroutines. `goleak` catches in tests; production leaks memory.
 
 **Preferred action**:
 ```go
@@ -150,7 +143,7 @@ for _, item := range items {
 wg.Wait()
 ```
 
-**Why this matters**: `wg.Wait()` may return before some goroutines call `wg.Add(1)`. This is a race condition — Go's race detector catches it, but only if the timing is unlucky.
+**Why**: `wg.Wait()` may return before `wg.Add(1)` runs. Race detector catches it only with unlucky timing.
 
 **Preferred action** (Go < 1.25):
 ```go
@@ -193,7 +186,7 @@ for _, worker := range workers {
 }
 ```
 
-**Why this matters**: Only one goroutine should close a channel. Multiple goroutines closing the same channel causes a runtime panic.
+**Why**: Multiple goroutines closing same channel = runtime panic.
 
 **Preferred action**:
 ```go

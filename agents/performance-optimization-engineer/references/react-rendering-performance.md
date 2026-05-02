@@ -2,11 +2,10 @@
 <!-- Loaded by performance-optimization-engineer when task involves rendering, layout, CLS, hydration, or visual performance -->
 
 ## CSS content-visibility for Long Lists
-**Impact:** HIGH — faster initial render; 10x improvement for lists of 1000+ items
+**Impact:** HIGH — 10x improvement for 1000+ item lists
 
-`content-visibility: auto` lets the browser skip layout and paint for off-screen items. For a list of 1000 messages, the browser skips those calculations for ~990 off-screen items. `contain-intrinsic-size` provides a placeholder size so the scrollbar remains accurate without forcing layout of every item.
+`content-visibility: auto` skips layout/paint for off-screen items. `contain-intrinsic-size` provides a placeholder size for accurate scrollbar.
 
-**Use:**
 ```css
 .message-item {
   content-visibility: auto;
@@ -32,14 +31,13 @@ function MessageList({ messages }: { messages: Message[] }) {
 ---
 
 ## Hoist Static JSX Outside Render
-**Impact:** LOW — avoids object re-creation on every render
+**Impact:** LOW — avoids object re-creation per render
 
-JSX evaluates to object creation. Static elements that never change can be declared once at module scope rather than recreated on every render call. This is especially valuable for large static SVG nodes.
+Static elements that never change can be declared at module scope. Especially valuable for large static SVG nodes.
 
 **Instead of:**
 ```tsx
 function Container() {
-  // New object created every render
   return (
     <div>
       {loading && <div className="animate-pulse h-20 bg-gray-200" />}
@@ -63,26 +61,15 @@ function Container() {
 }
 ```
 
-Note: If React Compiler is enabled in your project, it automatically hoists static JSX — manual hoisting is unnecessary in that case.
+Note: React Compiler auto-hoists static JSX — manual hoisting unnecessary if enabled.
 
 ---
 
 ## SVG Precision Optimization
 **Impact:** LOW — reduces file size
 
-SVG coordinate precision beyond 1 decimal place is rarely visible at typical display sizes. Reducing precision shrinks file size with no perceptible quality loss. The optimal precision depends on the viewBox size.
+Precision beyond 1 decimal place is rarely visible. Automate with SVGO:
 
-**Instead of:**
-```svg
-<path d="M 10.293847 20.847362 L 30.938472 40.192837" />
-```
-
-**Use:**
-```svg
-<path d="M 10.3 20.8 L 30.9 40.2" />
-```
-
-Automate with SVGO:
 ```bash
 npx svgo --precision=1 --multipass icon.svg
 ```
@@ -92,29 +79,8 @@ npx svgo --precision=1 --multipass icon.svg
 ## Hydration Mismatch Prevention
 **Impact:** MEDIUM — avoids visual flicker and hydration errors
 
-When rendering content that depends on client-side storage (localStorage, cookies), a naive `useEffect` approach causes a visible flash: the server renders a default value, hydration completes, then the effect runs and updates to the real value. Injecting a synchronous inline script that runs before React hydrates avoids both the SSR error and the flash.
+Client-side storage (localStorage, cookies) causes flash when read in `useEffect`. Inject a synchronous inline script that runs before React hydrates:
 
-**Instead of (SSR error):**
-```tsx
-function ThemeWrapper({ children }: { children: ReactNode }) {
-  const theme = localStorage.getItem('theme') || 'light' // throws on server
-  return <div className={theme}>{children}</div>
-}
-```
-
-**Instead of (visible flash):**
-```tsx
-function ThemeWrapper({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState('light')
-  useEffect(() => {
-    const stored = localStorage.getItem('theme')
-    if (stored) setTheme(stored) // runs after hydration — user sees flash
-  }, [])
-  return <div className={theme}>{children}</div>
-}
-```
-
-**Use (no flash, no hydration error):**
 ```tsx
 function ThemeWrapper({ children }: { children: ReactNode }) {
   return (
@@ -140,8 +106,6 @@ function ThemeWrapper({ children }: { children: ReactNode }) {
 }
 ```
 
-The inline script executes synchronously before the first paint, so the DOM already has the correct value when React hydrates — no mismatch, no flash.
-
 Useful for: theme toggles, user preferences, authentication states, locale settings.
 
 ---
@@ -149,39 +113,15 @@ Useful for: theme toggles, user preferences, authentication states, locale setti
 ## Script defer and async Placement
 **Impact:** HIGH — eliminates render-blocking
 
-Script tags without `defer` or `async` block HTML parsing while downloading and executing, delaying First Contentful Paint and Time to Interactive. Adding the correct attribute costs nothing and gains significant render-blocking elimination.
+- `defer`: downloads in parallel, executes after HTML parsing, maintains order — DOM-dependent scripts
+- `async`: downloads in parallel, executes immediately when ready, no order guarantee — analytics
 
-- `defer`: downloads in parallel, executes after HTML parsing, maintains order — use for DOM-dependent scripts
-- `async`: downloads in parallel, executes immediately when ready, no order guarantee — use for independent scripts like analytics
-
-**Instead of:**
-```html
-<script src="https://example.com/analytics.js"></script>
-<script src="/scripts/utils.js"></script>
-```
-
-**Use:**
 ```html
 <script src="https://example.com/analytics.js" async></script>
 <script src="/scripts/utils.js" defer></script>
 ```
 
-In React:
-```tsx
-export default function Document() {
-  return (
-    <html>
-      <head>
-        <script src="https://example.com/analytics.js" async />
-        <script src="/scripts/utils.js" defer />
-      </head>
-      <body>{/* content */}</body>
-    </html>
-  )
-}
-```
-
-Next.js variant using the `Script` component with `strategy` prop:
+Next.js variant:
 ```tsx
 import Script from 'next/script'
 
@@ -194,29 +134,10 @@ import Script from 'next/script'
 ## Explicit Conditional Rendering
 **Impact:** LOW — prevents rendering `0` or `NaN` as visible text
 
-The `&&` operator renders any falsy value that is not `false`, `null`, or `undefined` — notably `0` and `NaN` both render as visible text. Explicit ternary operators avoid this class of bug entirely.
+`&&` renders falsy values `0` and `NaN` as visible text. Use explicit ternary:
 
-**Instead of:**
 ```tsx
-function Badge({ count }: { count: number }) {
-  return (
-    <div>
-      {count && <span className="badge">{count}</span>}
-      {/* When count = 0, renders: <div>0</div> */}
-    </div>
-  )
-}
-```
-
-**Use:**
-```tsx
-function Badge({ count }: { count: number }) {
-  return (
-    <div>
-      {count > 0 ? <span className="badge">{count}</span> : null}
-    </div>
-  )
-}
+{count > 0 ? <span className="badge">{count}</span> : null}
 ```
 
 ---
@@ -224,41 +145,23 @@ function Badge({ count }: { count: number }) {
 ## React DOM Resource Hints
 **Impact:** HIGH — reduces load time for critical resources
 
-React DOM provides APIs to hint the browser about resources it will need. These are especially useful in server components: the hints travel with the HTML response, so the browser can start loading resources before scripts execute.
-
 ```tsx
 import { prefetchDNS, preconnect, preload, preinit } from 'react-dom'
 
 export default function App() {
-  prefetchDNS('https://analytics.example.com')      // resolve DNS early
-  preconnect('https://api.example.com')              // DNS + TCP + TLS
-  preload('/fonts/inter.woff2', {
-    as: 'font',
-    type: 'font/woff2',
-    crossOrigin: 'anonymous'
-  })
-  preinit('/styles/critical.css', { as: 'style' })  // fetch and apply
-
+  prefetchDNS('https://analytics.example.com')
+  preconnect('https://api.example.com')
+  preload('/fonts/inter.woff2', { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' })
+  preinit('/styles/critical.css', { as: 'style' })
   return <main>{/* content */}</main>
 }
 ```
 
-Preload modules for likely next navigation on hover:
+Preload modules on hover:
 ```tsx
-import { preloadModule } from 'react-dom'
-
-function Navigation() {
-  return (
-    <nav>
-      <a
-        href="/dashboard"
-        onMouseEnter={() => preloadModule('/dashboard.js', { as: 'script' })}
-      >
-        Dashboard
-      </a>
-    </nav>
-  )
-}
+<a href="/dashboard" onMouseEnter={() => preloadModule('/dashboard.js', { as: 'script' })}>
+  Dashboard
+</a>
 ```
 
 | API | Use case |
@@ -275,32 +178,10 @@ Reference: [React DOM Resource Preloading APIs](https://react.dev/reference/reac
 ---
 
 ## useTransition for Loading States
-**Impact:** LOW — reduces re-renders and improves code clarity
+**Impact:** LOW — reduces re-renders, auto-resets on error
 
-`useTransition` provides built-in `isPending` state that automatically resets even when a transition throws. It also lets React keep the UI responsive by marking the update as non-urgent. Compared to manual `useState` + `setIsLoading(true/false)` pairs, it eliminates the risk of forgetting to reset loading state in error paths.
+`useTransition` provides `isPending` that auto-resets even on throw. Eliminates forgotten `setIsLoading(false)` in error paths. New transitions cancel pending ones.
 
-**Instead of:**
-```tsx
-function SearchResults() {
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSearch = async (value: string) => {
-    setIsLoading(true)
-    const data = await fetchResults(value)
-    setResults(data)
-    setIsLoading(false) // forgotten in error paths = stuck spinner
-  }
-
-  return (
-    <>
-      <input onChange={e => handleSearch(e.target.value)} />
-      {isLoading && <Spinner />}
-    </>
-  )
-}
-```
-
-**Use:**
 ```tsx
 import { useTransition, useState } from 'react'
 
@@ -325,8 +206,6 @@ function SearchResults() {
 }
 ```
 
-New transitions automatically cancel pending ones, so rapid input changes cancel earlier in-flight fetches.
-
 Reference: [useTransition](https://react.dev/reference/react/useTransition)
 
 ---
@@ -334,9 +213,8 @@ Reference: [useTransition](https://react.dev/reference/react/useTransition)
 ## Activity Component for Show/Hide
 **Impact:** MEDIUM — preserves state and DOM for frequently-toggled components
 
-React's `<Activity>` keeps the component tree mounted and state intact when switching to `hidden` mode, then makes it visible again without re-initialization. This avoids the cost of unmounting and remounting expensive components on every toggle.
+`<Activity>` keeps tree mounted and state intact when hidden. Avoids unmount/remount cost.
 
-**Use:**
 ```tsx
 import { Activity } from 'react'
 
@@ -349,27 +227,15 @@ function Dropdown({ isOpen }: Props) {
 }
 ```
 
-Use when: components have expensive initialization, stateful forms that should not reset on hide, or animations that need DOM continuity.
+Use when: expensive initialization, stateful forms, animations needing DOM continuity.
 
 ---
 
 ## SVG Animation Wrapping
 **Impact:** LOW — enables hardware acceleration for SVG animations
 
-Many browsers do not have hardware acceleration for CSS animations applied directly to SVG elements. Wrapping the SVG in a `<div>` and animating the wrapper allows the browser to use GPU compositing for smooth animations.
+Browsers lack GPU acceleration for CSS animations on SVG elements directly. Wrap SVG in a `<div>` and animate the wrapper:
 
-**Instead of:**
-```tsx
-function LoadingSpinner() {
-  return (
-    <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" />
-    </svg>
-  )
-}
-```
-
-**Use:**
 ```tsx
 function LoadingSpinner() {
   return (
@@ -382,34 +248,21 @@ function LoadingSpinner() {
 }
 ```
 
-Applies to all CSS transforms and transitions (`transform`, `opacity`, `translate`, `scale`, `rotate`) on SVG elements.
+Applies to `transform`, `opacity`, `translate`, `scale`, `rotate` on SVG elements.
 
 ---
 
 ## Suppress Expected Hydration Warnings
 **Impact:** LOW-MEDIUM — eliminates noisy console warnings for known server/client differences
 
-Some values are intentionally different between server render and client hydration: timestamps, random IDs, timezone-formatted dates. `suppressHydrationWarning` tells React to skip the mismatch warning for that specific element. Use it only for genuinely expected differences — do not use it to hide real bugs.
+For intentionally different values (timestamps, random IDs, timezone-formatted dates):
 
-**Instead of:**
 ```tsx
-function Timestamp() {
-  return <span>{new Date().toLocaleString()}</span>
-  // Warning: Prop `children` did not match...
-}
+<span suppressHydrationWarning>
+  {new Date().toLocaleString()}
+</span>
 ```
 
-**Use:**
-```tsx
-function Timestamp() {
-  return (
-    <span suppressHydrationWarning>
-      {new Date().toLocaleString()}
-    </span>
-  )
-}
-```
-
-Apply at the specific element with the known mismatch, not at a container level.
+Apply at the specific element with the known mismatch, not at container level. Do not use to hide real bugs.
 
 ---

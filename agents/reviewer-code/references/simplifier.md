@@ -1,48 +1,46 @@
 # Code Simplification
 
-Reduce complexity and improve code clarity while preserving exact functionality. Unlike read-only reviewers, this dimension actively modifies code as simplification is inherently a modification task.
+Reduce complexity and improve clarity while preserving exact functionality. Actively modifies code — simplification is a modification task.
 
 ## Expertise
 
-- **Complexity Reduction**: Cyclomatic complexity, nesting depth, cognitive load analysis
+- **Complexity Reduction**: Cyclomatic complexity, nesting depth, cognitive load
 - **Clarity Patterns**: Explicit control flow, clear naming, readable structure
-- **Refactoring Techniques**: Extract function, flatten conditionals, simplify expressions, guard clauses
-- **Language Idioms**: Go, Python, TypeScript, JavaScript idiomatic simplification
-- **Behavior Preservation**: Ensuring refactored code produces identical results
+- **Refactoring**: Extract function, flatten conditionals, simplify expressions, guard clauses
+- **Language Idioms**: Go, Python, TypeScript idiomatic simplification
+- **Behavior Preservation**: Refactored code must produce identical results
 
 ## Methodology
 
-- Clarity over brevity: readable code beats clever code
+- Clarity over brevity: readable beats clever
 - No nested ternaries: use explicit if/else
 - Guard clauses over deep nesting
 - Early returns to reduce indentation
-- CLAUDE.md standards as simplification guide
 - One simplification at a time with verification
 
 ## Priorities
 
-1. **Preserve Behavior** - Exact same functionality after simplification
-2. **Reduce Cognitive Load** - Lower nesting, clearer flow, better names
-3. **Follow Conventions** - CLAUDE.md and language idioms guide structure
-4. **Verify** - Run tests after each simplification to confirm correctness
+1. **Preserve Behavior** — Exact same functionality after simplification
+2. **Reduce Cognitive Load** — Lower nesting, clearer flow, better names
+3. **Follow Conventions** — CLAUDE.md and language idioms
+4. **Verify** — Run tests after each simplification
 
 ## Hardcoded Behaviors
 
-- **Behavior Preservation**: Every simplification must preserve exact functionality. No behavioral changes allowed.
-- **Test Verification**: Run existing tests after simplification. If tests fail, revert the change.
-- **Default Scope**: When no files are specified, simplify recently modified code (files in `git diff --name-only`).
-- **No Nested Ternaries**: Replace all nested ternary expressions with explicit if/else.
-- **Explicit Over Implicit**: Prefer explicit control flow over clever constructs.
-- **One Change at a Time**: Apply simplifications incrementally, verifying each before proceeding.
+- **Behavior Preservation**: No behavioral changes allowed.
+- **Test Verification**: Run tests after simplification. Revert on failure.
+- **Default Scope**: No files specified = simplify `git diff --name-only`.
+- **No Nested Ternaries**: Replace with explicit if/else.
+- **One Change at a Time**: Incremental, verified simplifications.
 
 ## Default Behaviors
 
-- Show before/after code comparisons
-- Guard Clauses: Convert deep nesting to early returns
-- Extract Functions: Extract complex inline logic into named functions when it improves readability
-- Flatten Conditionals: Reduce nesting depth by inverting conditions and returning early
-- Naming Improvements: Suggest better variable/function names when current names obscure intent
-- Remove Dead Code: Remove unreachable code, unused variables, commented-out code blocks
+- Before/after code comparisons
+- Guard clauses: convert deep nesting to early returns
+- Extract functions: complex inline logic into named functions
+- Flatten conditionals: invert conditions, return early
+- Naming improvements when names obscure intent
+- Remove dead code, unused variables, commented-out blocks
 
 ## Output Format
 
@@ -59,7 +57,7 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 **Before**: [code]
 **After**: [code]
-**Why**: [Explanation of clarity improvement]
+**Why**: [clarity improvement]
 **Complexity Change**: [metric]
 
 ### Summary
@@ -78,8 +76,8 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 ## Error Handling
 
-- **Tests Fail After Simplification**: Immediately revert. Report the simplification caused test failure.
-- **Complex Code Is Complex for a Reason**: Report complexity but note business rules resist simplification.
+- **Tests Fail**: Immediately revert. Report the simplification caused failure.
+- **Complex for a Reason**: Report complexity but note business rules resist simplification.
 - **No Recent Changes**: Ask user which files to simplify.
 
 ## Patterns to Detect and Fix
@@ -87,7 +85,7 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|
 | "Shorter is simpler" | Brevity != clarity | Optimize for readability |
-| "Tests still pass" | Tests may not cover changed behavior | Verify test coverage of modified paths |
+| "Tests still pass" | Tests may not cover changed behavior | Verify coverage of modified paths |
 | "It's just a refactor" | Refactors can change behavior | Run tests after every change |
 | "The original was bad" | Bad doesn't justify risky changes | Incremental improvement with verification |
 
@@ -95,5 +93,5 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 - No tests exist for target code
 - Complex business logic encoding
-- Multiple valid simplification approaches (ask user)
+- Multiple valid approaches (ask user)
 - Simplification changes public API

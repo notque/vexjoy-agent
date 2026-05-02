@@ -8,7 +8,7 @@
 
 ## Overview
 
-Runbooks fail when they describe how the system works instead of what to do when it breaks. A runbook is read under stress — at 2am when something is paging. The reader needs specific commands, not explanations of architecture. The most common failure mode: a runbook that says "check the logs" without specifying where the logs are, what to grep for, or what the output means.
+Runbooks are read at 2am under stress. Reader needs commands, not architecture explanations. Common failure: "check the logs" without specifying where, what to grep, or what output means.
 
 ---
 
@@ -94,13 +94,13 @@ If not resolved in 15 minutes:
 - War room: https://meet.example.com/incident-response
 ```
 
-**Why**: The 5-section structure ensures a new oncall engineer can triage without domain knowledge. "Root Causes" table maps observable symptoms to likely causes — no guesswork required.
+**Why**: New oncall can triage without domain knowledge. Root Causes table maps symptoms to causes.
 
 ---
 
 ### Diagnosis Section — Commands Before Explanation
 
-Every diagnosis command must appear before the explanation of what it shows, not after.
+Command first, then interpretation. Never explanation before command.
 
 ```markdown
 <!-- Good: command first, then interpretation -->
@@ -117,7 +117,7 @@ When this happens, you should check the metrics endpoint to see the current pool
 The command for this is: ...
 ```
 
-**Why**: Under stress, readers skim. Command-first format means they can paste the command immediately. Explanation after the command is read only when the output is unexpected.
+**Why**: Under stress, readers skim and paste. Explanation read only when output is unexpected.
 
 ---
 
@@ -138,7 +138,7 @@ Before running any commands in this runbook:
 If any prerequisite fails, escalate to `#oncall-platform` immediately.
 ```
 
-**Why**: Runbooks without prerequisites fail when a new oncall engineer doesn't have access. The verification command for each prerequisite converts "do you have X?" into a yes/no test.
+**Why**: New oncall without access = runbook fails. Verification commands make each prereq a yes/no test.
 
 ---
 
@@ -154,8 +154,6 @@ grep -n "may\|might\|could\|possibly\|sometimes" runbooks/**/*.md | grep -i "sym
 rg "(may|might|could) (be|indicate|suggest|mean)" --glob "runbooks/**/*.md"
 ```
 
-**Preferred action:** List each symptom as a concrete, named signal: the exact alert expression that fired, the observed user-facing failure, and a dashboard URL. Every symptom must be specific enough that the oncall engineer can confirm the diagnosis without guessing.
-
 **Signal**:
 ```markdown
 ## Symptoms
@@ -164,9 +162,7 @@ The service may be experiencing issues. Performance might degrade under load.
 Users could see errors.
 ```
 
-**Why this matters**: "May be experiencing issues" is a description of the alert condition, not the symptom. The oncall engineer is reading this because they got paged — they already know something is wrong. They need to know what specific signal confirms the diagnosis.
-
-**Preferred action:** Write symptoms as concrete, observable signals: the exact alert name and threshold that fired, the user-visible behavior (specific action that fails), and a link to the relevant dashboard. The oncall engineer should be able to confirm they are looking at the right problem with a single glance.
+**Why this matters**: "May be experiencing issues" is not a symptom. Oncall needs exact alert name, threshold, user-visible failure, and dashboard link.
 
 **Preferred action**:
 ```markdown
@@ -203,11 +199,9 @@ kubectl rollout restart deploy/checkout -n prod
 ```
 *(no verification step after)*
 
-**Why this matters**: The restart command runs but the deployment might fail (OOMKilled, ImagePullError). The oncall engineer thinks they fixed it but the pods are crash-looping. The alert fires again in 2 minutes.
+**Why this matters**: Restart runs but deploy may fail (OOMKilled, ImagePullError). Without verification, oncall thinks it's fixed while pods crash-loop.
 
-**Preferred action:** Follow every fix command with a verification step that checks the expected outcome explicitly. The verification command must show what "success" looks like (e.g., `"successfully rolled out"`) so the engineer knows whether the fix worked before closing the incident.
-
-**Preferred action**:
+**Preferred action** — verify after every fix:
 ```markdown
 Restart the service:
 ```bash
@@ -238,8 +232,6 @@ grep -n "escalate\|contact\|reach out\|ask" runbooks/**/*.md \
 rg "escalate to (the )?team|contact support" --glob "runbooks/**/*.md"
 ```
 
-**Preferred action:** Write escalation steps with named Slack channels, PagerDuty policy names, and time thresholds (e.g., "If not resolved in 15 minutes, post in `#oncall-platform`"). Every escalation path must be actionable without prior knowledge of the team structure.
-
 **Signal**:
 ```markdown
 ## Escalation
@@ -248,11 +240,9 @@ rg "escalate to (the )?team|contact support" --glob "runbooks/**/*.md"
 If the issue persists, escalate to the platform team.
 ```
 
-**Why this matters**: "The platform team" doesn't exist at 2am — specific people and channels do. Vague escalation paths cause delay while the oncall engineer asks "who is the platform team?"
+**Why this matters**: "The platform team" doesn't exist at 2am. Specific channels and policies do.
 
-**Preferred action:** Name specific Slack channels, PagerDuty policies, and war room links with a time threshold for each escalation step. Include a brief summary of what information to include when escalating (alert link, pod state, what was tried), so the engineer doesn't have to improvise under stress.
-
-**Preferred action**:
+**Preferred action** — named channels, policies, time thresholds, info to include:
 ```markdown
 ## Escalation
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -280,9 +270,7 @@ grep -l "deploy\|release" runbooks/**/*.md \
 
 **Signal**: A deploy runbook with steps to apply a new version, but no section on what to do if the deploy breaks production.
 
-**Why this matters**: When a deploy causes a P0, the first question is "how do we roll back?" A missing rollback section means someone must figure this out under pressure without documentation.
-
-**Preferred action:** Add a `## Rollback` section to every deploy runbook with the exact rollback command, the verification step confirming the previous version is running, and the post-rollback action (e.g., file an incident review ticket). Rollback is not an afterthought — it is a required section.
+**Why this matters**: Deploy P0 without rollback docs = figuring it out under pressure.
 
 **Preferred action**: Every deploy runbook needs:
 ```markdown

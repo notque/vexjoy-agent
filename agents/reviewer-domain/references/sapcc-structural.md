@@ -1,56 +1,54 @@
 # SAP CC Structural Domain
 
-Structural and design review for SAP Converged Cloud Go repositories. Checks 9 categories at the type, API surface, and dependency level -- above syntax/idiom, below full architecture.
+Structural and design review for SAP Converged Cloud Go repos. 9 categories at the type, API surface, and dependency level.
 
 ## Required Context Loading
-Always load these before reviewing:
+Always load before reviewing:
 - `skills/go-sapcc-conventions/references/library-reference.md`
 - `skills/go-sapcc-conventions/references/go-bits-philosophy-detailed.md`
 
 ## Voice
-Directive review tone -- statements not suggestions. "Delete this" not "consider removing this."
+Directive tone. "Delete this" not "consider removing this."
 
 ## Default Tools
-- MUST use gopls MCP tools when available: `go_workspace` at start, `go_file_context` after reading .go files, `go_symbol_references` to trace type usage, `go_diagnostics` after edits
-- Fallback to grep if gopls unavailable
+- MUST use gopls MCP when available: `go_workspace` at start, `go_file_context` after reading .go files, `go_symbol_references` for type usage, `go_diagnostics` after edits
+- Fallback to grep if unavailable
 
 ## The 9 Structural Categories
 
-### Category 1: Type Export Decisions (HIGH)
-Flag exported struct types that should be unexported because only their interface is used externally.
+### 1: Type Export Decisions (HIGH)
+Flag exported structs that should be unexported because only their interface is used externally.
 
 **Check**: "Is this type only used through an interface? If yes, unexport it."
-
 ```go
 // FLAGGED: type FileBackingStore struct { ... }
 // CORRECT: type fileBackingStore struct { ... }
 ```
 
-### Category 2: Unnecessary Wrappers/Helpers (MEDIUM)
+### 2: Unnecessary Wrappers/Helpers (MEDIUM)
 Functions wrapping a single stdlib/go-bits call without adding value.
 
-**Checks**: Custom `go func()` wrappers when `wg.Go()` exists, custom `mustXxx` when `must.ReturnT` exists, manual row iteration when `sqlext.ForeachRow` exists, getter methods that just return a field.
+**Checks**: Custom `go func()` when `wg.Go()` exists, custom `mustXxx` when `must.ReturnT` exists, manual row iteration when `sqlext.ForeachRow` exists, getter methods returning a field.
 
-**must vs assert**: `must.SucceedT` for setup/preconditions (fatal), `assert.ErrEqual` for testing operation results (non-fatal).
+**must vs assert**: `must.SucceedT` for setup/preconditions (fatal), `assert.ErrEqual` for operation results (non-fatal).
 
-### Category 3: Option[T] Resolution Timing (HIGH)
-Flag `Option[T]` fields that persist beyond parse/config phase into runtime structs.
+### 3: Option[T] Resolution Timing (HIGH)
+Flag `Option[T]` persisting beyond parse/config into runtime structs.
 
-**Convention**: Resolve Options at parse time, pass concrete values to core logic. `cfg.MaxFileSize.UnwrapOr(defaultValue)` at init, not in every method.
+**Convention**: Resolve at parse time. `cfg.MaxFileSize.UnwrapOr(defaultValue)` at init, not in every method.
 
-### Category 4: Dependency/Resource Management (HIGH/MEDIUM)
-Creating separate pools when shared ones should be passed. Importing heavy packages when go-bits utilities exist.
+### 4: Dependency/Resource Management (HIGH/MEDIUM)
+Separate pools when shared ones should be passed. Heavy packages when go-bits utilities exist.
 
 **Convention**: Move utilities to internal to avoid transitive dep pollution.
 
-### Category 5: Anti-Over-Engineering (MEDIUM/HIGH)
-Throwaway struct types for simple JSON, manual error concatenation, custom test helpers duplicating go-bits, inference that won't scale, repository patterns wrapping direct DB access, option structs for constructors.
+### 5: Anti-Over-Engineering (MEDIUM/HIGH)
+Throwaway structs for JSON, manual error concatenation, custom test helpers duplicating go-bits, inference that won't scale, repository patterns, option structs for constructors.
 
-### Category 6: Forward-Compatible Naming (MEDIUM)
-Names that block future siblings without renaming. `keppel test` should be `keppel test-driver storage`.
+### 6: Forward-Compatible Naming (MEDIUM)
+Names blocking future siblings. `keppel test` should be `keppel test-driver storage`.
 
-### Category 7: go-bits Library Usage (MEDIUM/HIGH)
-Manual implementations of patterns go-bits provides. Cross-reference against library-reference.md.
+### 7: go-bits Library Usage (MEDIUM/HIGH)
 
 | Manual Pattern | go-bits Replacement |
 |----------------|---------------------|
@@ -63,13 +61,13 @@ Manual implementations of patterns go-bits provides. Cross-reference against lib
 | `os.Getenv` without validation | `osext.MustGetenv()` |
 | Manual factory maps | `pluggable.Registry[T]` |
 
-### Category 8: Test Structure (HIGH/MEDIUM)
-Missing `testWithEachTypeOf` when multiple implementations exist. Production code containing `MockXxx` types. `PedanticRegistry` in production (test-only). Integration tests using table-driven format instead of sequential narrative.
+### 8: Test Structure (HIGH/MEDIUM)
+Missing `testWithEachTypeOf` for multi-implementation interfaces. `MockXxx` in production. `PedanticRegistry` in production (test-only). Integration tests using table-driven format instead of sequential narrative.
 
-### Category 9: Contract Cohesion (MEDIUM/LOW)
-Constants, error sentinels, and validation functions must live in the same file as their owning interface. Flag artifacts in `util.go` or `constants.go` that belong to a specific contract.
+### 9: Contract Cohesion (MEDIUM/LOW)
+Constants, error sentinels, validation functions must live with their owning interface. Flag artifacts in `util.go` belonging to a specific contract.
 
-**Test**: If you can name which interface owns an artifact, it must live in the interface's file.
+**Test**: If you can name which interface owns it, it lives in that interface's file.
 
 **Acceptable in util.go**: Genuinely cross-cutting utilities serving multiple unrelated types.
 
@@ -101,20 +99,19 @@ Constants, error sentinels, and validation functions must live in the same file 
 | Rationalization | Required Action |
 |-----------------|-----------------|
 | "The exported type is fine" | Check if only used through interface; unexport if yes |
-| "The wrapper adds readability" | Delete wrapper, use the call directly |
+| "The wrapper adds readability" | Delete wrapper, use call directly |
 | "Option[T] in struct is clearer" | Resolve at parse time |
 | "We might need the heavy dependency" | Use go-bits alternative |
 | "Manual row iteration is more flexible" | Use sqlext.ForeachRow |
-| "Tests work with one implementation" | testWithEachTypeOf for all implementations |
-| "The constant is fine in util.go" | Move to the interface's file |
+| "Tests work with one implementation" | testWithEachTypeOf for all |
+| "The constant is fine in util.go" | Move to interface's file |
 
 ## Detailed References
 
-For the complete category catalog with code examples and severity levels:
-- [structural-categories.md](structural-categories.md) -- Full 9-category reference with examples
+- [structural-categories.md](structural-categories.md) — Full 9-category reference with examples
 
 ## Error Handling
 
 - **No go.mod**: Ask "Where is the go.mod for this project?"
-- **Not an sapcc repo**: Note go-bits-specific categories (2, 3, 7) may have reduced findings
-- **Single implementation interface**: Check for pluggable.Registry or driver semantics before requiring testWithEachTypeOf
+- **Not sapcc repo**: go-bits categories (2, 3, 7) may have reduced findings
+- **Single implementation interface**: Check for pluggable.Registry before requiring testWithEachTypeOf

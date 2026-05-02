@@ -1,38 +1,22 @@
 # PixiJS v8 Particle Systems Reference
 
-> **Scope**: GPU particles with @spd789562/pixi-v8-particle-emitter, wrestling-specific effect presets, DOM particle replacement
-> **Version range**: pixi.js ^8.5.0, @spd789562/pixi-v8-particle-emitter (JSR package)
-> **Context**: The game's effects.ts creates DOM elements per particle with setTimeout removal — this is the primary replacement target
+> **Scope**: GPU particles with @spd789562/pixi-v8-particle-emitter, wrestling presets, DOM particle replacement
+> **Version range**: pixi.js ^8.5.0
 
 ---
 
 ## Why Replace DOM Particles
 
-The DOM particle pattern in `effects.ts`:
-
-```typescript
-// Current effects.ts anti-pattern — causes reflow on every particle
-function spawnStrikeEffect(x: number, y: number): void {
-  const el = document.createElement('div');
-  el.className = 'particle strike-particle';
-  el.style.left = `${x}px`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 300);  // no RAF coordination
-}
-```
-
-GPU particles via `ParticleContainer`: 1000 particles = 1 draw call. No DOM, no reflow, no style recalc. PixiJS v8 `ParticleContainer` handles 1M particles at 60fps on desktop.
+The `effects.ts` anti-pattern — `document.createElement` + `setTimeout` removal — causes reflow per particle. GPU particles via `ParticleContainer`: 1000 particles = 1 draw call, zero reflow.
 
 ---
 
 ## Installation
 
-`@spd789562/pixi-v8-particle-emitter` is on JSR (not npm — the original `@pixi/particle-emitter` is v7 only):
+`@spd789562/pixi-v8-particle-emitter` is on JSR (original `@pixi/particle-emitter` is v7 only):
 
 ```bash
 npx jsr add @spd789562/particle-emitter
-# or
-pnpm dlx jsr add @spd789562/particle-emitter
 ```
 
 ---
@@ -40,17 +24,14 @@ pnpm dlx jsr add @spd789562/particle-emitter
 ## Core Emitter Setup
 
 ```typescript
-// src/combat/particles/ParticleManager.ts
 import { Emitter } from '@spd789562/particle-emitter';
 import { ParticleContainer, Assets } from 'pixi.js';
-import type { Container, EmitterConfig } from 'pixi.js';
 
 export class ParticleManager {
   private particleContainer: ParticleContainer;
   private activeEmitters: Map<string, Emitter> = new Map();
 
   constructor(parentContainer: Container) {
-    // maxSize covers burst peak — finisher emits 50 at once
     this.particleContainer = new ParticleContainer(5000, {
       position: true, alpha: true, scale: true, rotation: true, tint: true,
     });
@@ -87,17 +68,12 @@ export class ParticleManager {
 
 ## Wrestling Effect Presets
 
-All presets follow the same `EmitterConfig` shape. Key fields:
-- `emitterLifetime: 0.05-0.15` = burst (one-shot); `-1` = infinite (manual stop)
-- `maxParticles`: set to burst peak, not average — silent drops if too low
-- `frequency`: lower = faster emission (0.001 = nearly instant burst)
+Key fields: `emitterLifetime: 0.05-0.15` = burst; `-1` = infinite. `maxParticles` = burst peak (silent drops if too low).
 
-### Strike Impact — orange/gold radial burst, 300ms
-
+### Strike — orange/gold radial burst, 300ms
 ```typescript
 const STRIKE_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.15, max: 0.3 },
-  frequency: 0.001, emitterLifetime: 0.05, maxParticles: 20,
+  lifetime: { min: 0.15, max: 0.3 }, frequency: 0.001, emitterLifetime: 0.05, maxParticles: 20,
   pos: { x: 0, y: 0 },
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 1, time: 0 }, { value: 0, time: 1 }] } } },
@@ -110,13 +86,10 @@ const STRIKE_CONFIG: EmitterConfig = {
 };
 ```
 
-### Aerial Landing — dust cloud + impact ring, 500ms
-
+### Aerial — dust cloud, 500ms
 ```typescript
 const AERIAL_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.3, max: 0.5 },
-  frequency: 0.002, emitterLifetime: 0.1, maxParticles: 25,
-  pos: { x: 0, y: 0 },
+  lifetime: { min: 0.3, max: 0.5 }, frequency: 0.002, emitterLifetime: 0.1, maxParticles: 25,
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 0.8, time: 0 }, { value: 0, time: 1 }] } } },
     { type: 'scale', config: { scale: { list: [{ value: 0.3, time: 0 }, { value: 1.5, time: 1 }] } } },
@@ -128,13 +101,10 @@ const AERIAL_CONFIG: EmitterConfig = {
 };
 ```
 
-### Submission Hold — blue/teal tendrils, continuous until stopped
-
+### Submission — blue tendrils, continuous
 ```typescript
 const SUBMISSION_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.5, max: 1.0 },
-  frequency: 0.05, emitterLifetime: -1, maxParticles: 60,  // -1 = infinite
-  pos: { x: 0, y: 0 },
+  lifetime: { min: 0.5, max: 1.0 }, frequency: 0.05, emitterLifetime: -1, maxParticles: 60,
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 0, time: 0 }, { value: 0.8, time: 0.2 }, { value: 0, time: 1 }] } } },
     { type: 'scale', config: { scale: { list: [{ value: 0.2, time: 0 }, { value: 0.6, time: 0.5 }, { value: 0.1, time: 1 }] }, minMult: 0.3 } },
@@ -143,16 +113,13 @@ const SUBMISSION_CONFIG: EmitterConfig = {
     { type: 'spawnShape', config: { type: 'circle', data: { radius: 15 } } },
   ],
 };
-// Stop: emitter.emit = false; let particles exhaust naturally
+// Stop: emitter.emit = false; let particles exhaust
 ```
 
-### Block Shield — cyan flash + scatter, 200ms
-
+### Block — cyan flash, 200ms
 ```typescript
 const BLOCK_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.1, max: 0.2 },
-  frequency: 0.001, emitterLifetime: 0.02, maxParticles: 15,
-  pos: { x: 0, y: 0 },
+  lifetime: { min: 0.1, max: 0.2 }, frequency: 0.001, emitterLifetime: 0.02, maxParticles: 15,
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 1, time: 0 }, { value: 0, time: 1 }] } } },
     { type: 'scale', config: { scale: { list: [{ value: 1.0, time: 0 }, { value: 0.2, time: 1 }] } } },
@@ -164,13 +131,10 @@ const BLOCK_CONFIG: EmitterConfig = {
 };
 ```
 
-### Finisher — screen-filling gold explosion, 40+ particles, 1s
-
+### Finisher — gold explosion, 1s
 ```typescript
 const FINISHER_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.5, max: 1.0 },
-  frequency: 0.001, emitterLifetime: 0.15, maxParticles: 50,
-  pos: { x: 0, y: 0 },
+  lifetime: { min: 0.5, max: 1.0 }, frequency: 0.001, emitterLifetime: 0.15, maxParticles: 50,
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 1, time: 0 }, { value: 0.8, time: 0.5 }, { value: 0, time: 1 }] } } },
     { type: 'scale', config: { scale: { list: [{ value: 1.5, time: 0 }, { value: 0.2, time: 1 }] }, minMult: 0.8 } },
@@ -183,12 +147,9 @@ const FINISHER_CONFIG: EmitterConfig = {
 ```
 
 ### Heal — green upward float, 800ms
-
 ```typescript
 const HEAL_CONFIG: EmitterConfig = {
-  lifetime: { min: 0.5, max: 0.8 },
-  frequency: 0.04, emitterLifetime: 0.4, maxParticles: 20,
-  pos: { x: 0, y: 0 },
+  lifetime: { min: 0.5, max: 0.8 }, frequency: 0.04, emitterLifetime: 0.4, maxParticles: 20,
   behaviors: [
     { type: 'alpha', config: { alpha: { list: [{ value: 0, time: 0 }, { value: 1, time: 0.2 }, { value: 0, time: 1 }] } } },
     { type: 'scale', config: { scale: { list: [{ value: 0.3, time: 0 }, { value: 0.7, time: 1 }] } } },
@@ -204,7 +165,6 @@ const HEAL_CONFIG: EmitterConfig = {
 ## Effect Config Registry
 
 ```typescript
-// src/combat/particles/effectConfigs.ts
 export type WrestlingEffect = 'strike' | 'aerial' | 'submission' | 'block' | 'finisher' | 'heal';
 
 export const EFFECT_CONFIGS: Record<WrestlingEffect, { texturePath: string; emitterConfig: EmitterConfig }> = {
@@ -220,10 +180,9 @@ export const EFFECT_CONFIGS: Record<WrestlingEffect, { texturePath: string; emit
 
 ---
 
-## Integration in the PixiJS React Tree
+## Integration in PixiJS React Tree
 
 ```typescript
-// src/combat/CombatScene.tsx — wire particle manager to ticker and store
 export function CombatScene(): React.JSX.Element {
   const containerRef = useRef<Container>(null);
   const particleManagerRef = useRef<ParticleManager | null>(null);
@@ -231,62 +190,41 @@ export function CombatScene(): React.JSX.Element {
   useEffect(() => {
     if (!containerRef.current) return;
     particleManagerRef.current = new ParticleManager(containerRef.current);
-    return () => { particleManagerRef.current?.destroy(); particleManagerRef.current = null; };
+    return () => { particleManagerRef.current?.destroy(); };
   }, []);
 
-  // Subscribe to combat events → spawn particle effect
   useEffect(() => {
     return useCombatStore.subscribe(
       (state) => state.lastEffectType,
-      (effectType) => {
-        if (!effectType || !particleManagerRef.current) return;
-        particleManagerRef.current.spawnEffect(effectType as WrestlingEffect, 640, 360);
-      }
+      (effectType) => { if (effectType && particleManagerRef.current) particleManagerRef.current.spawnEffect(effectType as WrestlingEffect, 640, 360); }
     );
   }, []);
 
-  // Drive emitter update from PixiJS ticker (not React renders)
   useTick((ticker) => { particleManagerRef.current?.update(ticker.deltaMS); });
-
   return <container ref={containerRef} />;
 }
 ```
 
 ---
 
-## Performance Budget by Effect
+## Performance Budget
 
 | Effect | maxParticles | Duration | Mobile reduction |
 |--------|-------------|----------|-----------------|
-| Strike | 20 | 300ms | None needed |
-| Aerial | 25 | 500ms | None needed |
+| Strike | 20 | 300ms | None |
+| Aerial | 25 | 500ms | None |
 | Submission | 60 (continuous) | Until released | Reduce to 25 |
-| Block | 15 | 200ms | None needed |
+| Block | 15 | 200ms | None |
 | Finisher | 50 | 1000ms | Reduce to 20 |
-| Heal | 20 | 800ms | None needed |
+| Heal | 20 | 800ms | None |
 
-```typescript
-const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-const mobileMultiplier = isMobile ? 0.5 : 1.0;
-config.maxParticles = Math.floor(config.maxParticles * mobileMultiplier);
-```
+Mobile: `config.maxParticles = Math.floor(config.maxParticles * 0.5)`
 
 ---
 
-## Patterns to Detect and Fix
+## Patterns to Fix
 
-### Use the v8-Compatible Particle Emitter Package
-The original `@pixi/particle-emitter` uses v7's `Container` internally and fails at runtime. Use `@spd789562/pixi-v8-particle-emitter`.
-
-### Call emitter.update() in the Ticker
-```typescript
-// WRONG — particles freeze
-// CORRECT:
-useTick((ticker) => { emitter.update(ticker.deltaMS * 0.001); });
-```
-
-### Set maxParticles to the Burst Peak
-A finisher with `maxParticles: 20` silently drops 30 particles when emitting 50 at once. No error is thrown. Always set `maxParticles` to the burst peak, not the average.
-
-### Destroy Emitters on Component Unmount
-Each emitter holds GPU memory. Emitters that are never destroyed accumulate silently. Always call `emitter.destroy()` or use the `ParticleManager` lifecycle tracking which destroys when particle count reaches zero.
+- **Use v8-compatible package**: `@spd789562/pixi-v8-particle-emitter`, not `@pixi/particle-emitter` (v7).
+- **Call emitter.update() in ticker**: `useTick((ticker) => { emitter.update(ticker.deltaMS * 0.001); })`
+- **Set maxParticles to burst peak**: Finisher with `maxParticles: 20` silently drops 30. No error thrown.
+- **Destroy emitters on unmount**: Each holds GPU memory. Use ParticleManager lifecycle tracking.

@@ -1,17 +1,9 @@
 # CSS 3D Card Transforms Reference
 <!-- Loaded by combat-effects-upgrade when task involves card tilt, backface-visibility, CSS perspective, or Framer Motion + CSS 3D integration -->
 
-## Overview
-
-CSS 3D transforms give cards a physical feel: they tilt toward the cursor on hover, revealing a subtle depth effect. For card flip reveals (e.g. drawing a card face-down), `backface-visibility: hidden` hides the back face during the 180deg rotation. All transforms use GPU-composited properties (`transform`, `opacity`) — no layout or paint triggered.
-
-**Browser support**: `perspective`, `transform-style: preserve-3d`, `backface-visibility` — universal modern browser support (Chrome 36+, Firefox 16+, Safari 9+).
-
----
+CSS 3D transforms: tilt toward cursor on hover, `backface-visibility: hidden` for flip reveals. GPU-composited only (`transform`, `opacity`). Universal browser support (Chrome 36+, Firefox 16+, Safari 9+).
 
 ## Tilt Formula
-
-Mouse position within the card → rotation angles:
 
 ```
 rotateY = (mouseX - cardCenterX) / cardWidth  * MAX_TILT_DEG
@@ -231,9 +223,9 @@ export function FlippableCard({ card, isRevealed }: FlippableCardProps) {
 
 ---
 
-## Performance on Mobile
+## Mobile Performance
 
-### What to do
+### Touch Device Detection
 
 ```typescript
 // Detect touch/no-hover devices and disable tilt
@@ -263,11 +255,11 @@ useEffect(() => {
 | `filter: blur()` | Yes (separate layer) | Use sparingly — creates compositor layer |
 | `will-change: transform` | — | Creates GPU layer; apply only during animation |
 
-### Mobile-specific limits
+### Mobile Limits
 
-- 3D transforms with `preserve-3d` create a stacking context and compositor layer for every card in the hand. On low-end mobile (< 2GB RAM), this can cause VRAM pressure if 7+ cards are all tilting simultaneously.
-- `will-change: transform` on all hand cards at once is the most common cause of mobile jank. Apply it only on the card being hovered, remove it on `mouseleave`.
-- For the game context: the hand typically has 3-7 cards. 3D tilt on all simultaneously is fine on mid-range mobile; on low-end, disable entirely via `(hover: none)`.
+- `preserve-3d` creates a compositor layer per card. On low-end mobile (< 2GB RAM), 7+ simultaneous tilts cause VRAM pressure.
+- `will-change: transform` on all hand cards is the top mobile jank cause. Apply only on hovered card.
+- Hand has 3-7 cards. Mid-range mobile handles all; low-end: disable via `(hover: none)`.
 
 ---
 
@@ -293,9 +285,7 @@ const handleMouseLeave = useCallback(() => {
 
 ---
 
-## Framer Motion `useTransform` for Rarity Glow Intensity
-
-The card's rarity glow can intensify as the card tilts, making rare cards feel more alive.
+## Rarity Glow Intensity via `useTransform`
 
 ```tsx
 import { useTransform, useSpring, useMotionValue } from 'motion/react';
@@ -318,14 +308,7 @@ const glowIntensity = useTransform(absRotate, [0, MAX_TILT_DEG], [0.4, 1.0]);
 
 ## Common Mistakes
 
-### `perspective` on the card instead of the container
-Each card with its own `perspective` has its own vanishing point, so cards in a fan layout will each tilt toward different horizons — looks wrong. Always set `perspective` on the parent container.
-
-### Setting `rotateX`/`rotateY` inside `useState`/`useReducer`
-Motion values update at 60fps during mousemove. Storing them in React state triggers 60fps re-renders, which kills performance. Always use `useMotionValue` — it updates the DOM directly without React reconciliation.
-
-### Forgetting `backface-visibility: hidden` on both faces
-Without `backface-visibility: hidden`, both front and back faces are visible simultaneously during the flip rotation. The back face bleeds through the front at 90deg.
-
-### `transform-style: preserve-3d` missing on intermediate wrappers
-If a parent element between the `perspective` container and the rotating card doesn't have `transform-style: preserve-3d`, 3D transforms flatten at that layer and the tilt stops working. Every element in the chain needs `preserve-3d`.
+- **`perspective` on card instead of container**: Each card gets its own vanishing point. Set `perspective` on parent.
+- **`rotateX`/`rotateY` in `useState`**: 60fps re-renders kill performance. Use `useMotionValue`.
+- **Missing `backface-visibility: hidden`**: Both faces visible during flip. Back bleeds through at 90deg.
+- **Missing `preserve-3d` on intermediate wrappers**: 3D transforms flatten. Every element in chain needs it.

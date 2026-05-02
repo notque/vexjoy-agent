@@ -4,23 +4,13 @@ description: Common MCP server mistakes with detection commands and fixes — fr
 
 # MCP Server Patterns Guide
 
-> **Scope**: Correct patterns for MCP documentation servers in TypeScript/Node.js. Covers front matter resilience, content sanitization, capability declaration, path safety, and draft filtering.
-> **Version range**: `@modelcontextprotocol/sdk` 0.5.0+, Node.js 18+
-> **Generated**: 2026-04-08 — verify against current MCP spec
-
----
-
-## Overview
-
-MCP documentation servers fail in predictable ways when they lack defensive patterns. A single malformed front matter file crashes the entire server. Unvalidated Hugo shortcodes corrupt content sent to LLMs. Missing capability declarations make tools invisible to clients. The patterns below prevent each failure mode.
-
----
+> **Scope**: MCP documentation server patterns in TypeScript/Node.js. SDK 0.5.0+, Node.js 18+.
 
 ## Pattern Catalog
 
 ### Wrap Front Matter Parsing in Try/Catch
 
-Parse YAML front matter defensively: catch parse errors, log a warning, and continue indexing remaining files. A single malformed file must never crash the entire server.
+Parse defensively. A single malformed file must never crash the server.
 
 ```typescript
 function parseFrontMatter(content: string): { metadata: Partial<DocMetadata>; error?: string } {
@@ -45,7 +35,7 @@ if (error) {
 }
 ```
 
-**Why this matters**: A tab in YAML (invalid) or an unclosed quote crashes `yaml.parse()` and propagates to the indexing loop. The entire server process exits, making all 999 other documents inaccessible because of one bad file.
+**Why**: One bad YAML file crashes `yaml.parse()`, exiting the server and making 999 other docs inaccessible.
 
 **Detection**:
 ```bash
@@ -61,7 +51,7 @@ grep -B5 'yaml\.parse\|yaml\.load' --include="*.ts" -rn src/
 
 ### Strip Hugo Shortcodes Before Sending Content
 
-Remove Hugo shortcodes (`{{< >}}` and `{{% %}}`) from markdown content before returning it to MCP clients. LLMs interpret shortcodes as noise or produce hallucinated explanations of the syntax.
+Remove `{{< >}}` and `{{% %}}` before returning to clients. LLMs interpret them as noise.
 
 ```typescript
 function stripHugoShortcodes(content: string): string {
@@ -77,7 +67,7 @@ function stripHugoShortcodes(content: string): string {
 }
 ```
 
-**Why this matters**: Hugo shortcodes like `{{< youtube abc123 >}}` or `{{% notice warning %}}` are not markdown. When sent raw to LLMs, they appear as noise, may be misinterpreted as code blocks, or produce hallucinated explanations.
+**Why**: Shortcodes are not markdown. Raw shortcodes cause misinterpretation or hallucinated explanations.
 
 **Detection**:
 ```bash
@@ -91,7 +81,7 @@ grep -rn 'shortcode\|{{%\|{{<' --include="*.ts" src/
 
 ### Declare All Implemented Capabilities
 
-Register `resources` and `tools` in the server capabilities object during initialization. Only add capability keys for features you implement — omit `prompts` and `logging` if unused.
+Register `resources` and `tools` in capabilities during init. Omit unused keys.
 
 ```typescript
 this.server = new Server(
@@ -108,7 +98,7 @@ this.server = new Server(
 );
 ```
 
-**Why this matters**: MCP clients negotiate capabilities during the `initialize` handshake. If `capabilities.resources` is absent, clients skip `resources/list` entirely and never discover documents. If `capabilities.tools` is absent, the `search_docs` tool is invisible. An empty `capabilities: {}` object makes the server appear to have no features.
+**Why**: Clients negotiate during `initialize`. Missing `capabilities.resources` = docs never discovered. Missing `capabilities.tools` = invisible tools.
 
 **Detection**:
 ```bash
@@ -122,7 +112,7 @@ grep -rn 'new Server(' --include="*.ts" src/ -A5 | grep -v 'capabilities'
 
 ### Validate URI Paths Against Traversal
 
-When converting URIs to file paths, resolve the path and verify it stays within the docs root directory. `path.join` normalizes `..` segments but does NOT prevent traversal.
+Resolve and verify containment within docs root. `path.join` normalizes but does NOT prevent traversal.
 
 ```typescript
 function safeUriToPath(docsRoot: string, uri: string): string {
@@ -140,7 +130,7 @@ function safeUriToPath(docsRoot: string, uri: string): string {
 }
 ```
 
-**Why this matters**: `path.join('/docs', '../etc/passwd')` resolves to `/etc/passwd`. An MCP client (including a compromised LLM session) can read any file the server process has access to without traversal validation.
+**Why**: `path.join('/docs', '../etc/passwd')` = `/etc/passwd`. Clients can read any accessible file without validation.
 
 **Detection**:
 ```bash
@@ -151,7 +141,7 @@ grep -rn 'uriToPath\|path\.join.*params\.uri\|path\.resolve.*params' --include="
 
 ### Filter Draft Documents From Resource Lists
 
-Exclude documents with `draft: true` front matter from the resource list handler. Only published content should be discoverable by MCP clients.
+Exclude `draft: true` from resource lists.
 
 ```typescript
 const resources = Array.from(this.docsIndex.values())
@@ -164,7 +154,7 @@ const resources = Array.from(this.docsIndex.values())
   }));
 ```
 
-**Why this matters**: Hugo draft documents are unpublished content — WIP, incomplete, or intentionally hidden. Exposing them to LLMs means Claude may cite unpublished information as authoritative.
+**Why**: Drafts are unpublished. Exposing them lets Claude cite incomplete content as authoritative.
 
 **Detection**:
 ```bash

@@ -2,15 +2,13 @@
 
 > **Audience:** This document is for contributors and developers who want to understand *why* the toolkit is built the way it is. If you're using the toolkit, start with [start-here.md](start-here.md). If you're building agents or skills, see [for-developers.md](for-developers.md).
 
-The principles behind the toolkit's architecture. These aren't aspirational. They're the decisions that shaped every agent, skill, hook, and pipeline in the system.
-
-This document states a deliberate, consistent perspective. A coherent viewpoint — even an imperfect one — enables iteration, debugging, and contributor alignment better than a collection of unconnected rules.
+The decisions that shaped every agent, skill, hook, and pipeline. A coherent viewpoint enables iteration and contributor alignment better than unconnected rules.
 
 ## Zero-Expertise Operation
 
 The system should require no specialized knowledge from the user. Say what you want done. The system handles the rest.
 
-A user who has never heard of agents, skills, hooks, pipelines, routing tables, or INDEX files should get the same quality output as someone who built them. The entire internal machinery — agents, skills, hooks, and pipelines — exists to absorb complexity that would otherwise fall on the user.
+A user who has never heard of agents, skills, hooks, or routing tables should get the same quality output as someone who built them.
 
 **What this means in practice:**
 
@@ -20,7 +18,7 @@ A user who has never heard of agents, skills, hooks, pipelines, routing tables, 
 
 **The test for every feature we build:** does this require the user to know something internal? If yes, redesign it so it doesn't.
 
-This is not about hiding complexity. It's about absorbing it. The hooks, agents, and skills exist precisely so that expertise is encoded in the system rather than required from the person using it. A first-time user and a power user should both get production-quality results — the power user just understands *why* it works.
+A first-time user and a power user should both get production-quality results — the power user just understands *why* it works.
 
 **Automation corollary:** anything that can fire automatically, should. Gates enforce themselves via hooks. Context injects itself via SessionStart and UserPromptSubmit handlers. Quality checks run via CI. Learning happens via PostToolUse capture. The user's job is to describe intent. The system's job is everything else.
 
@@ -28,15 +26,15 @@ This is not about hiding complexity. It's about absorbing it. The hooks, agents,
 
 If a user has to learn special syntax, prompt engineering tricks, or insider vocabulary to get good results, the design failed. Plain English is not a fallback mode. It is the primary interface.
 
-The router treats raw human intent as its input signal. Not keywords. Not slash commands. Not carefully structured prompts that mimic system-prompt formatting. A person who says "make this faster" should get the same quality routing as someone who says "/do dispatch performance-agent with profiling skill against src/server.go." The second form is an escape hatch for power users who want explicit control. It is not how the system is meant to be used.
+The router treats raw human intent as its input signal. "Make this faster" should get the same quality routing as "/do dispatch performance-agent with profiling skill against src/server.go." The second form is an escape hatch for power users, not the intended interface.
 
 **What this means in practice:**
 
-- A first-time user who types "this test is flaky, help" gets the same debugging methodology as someone who knows the systematic-debugging skill exists. The router reads intent, not vocabulary.
-- Users should never need to add system-prompt-like preambles ("You are an expert in...") to their requests. The system already carries the expertise in its agents. Adding it manually means the routing failed to select the right one.
-- If an A/B test shows that rephrasing a natural request into a structured format produces better results, that is a bug in the router, not a feature of the format.
+- "This test is flaky, help" gets the same debugging methodology as someone who knows the systematic-debugging skill exists.
+- Users should never need system-prompt preambles ("You are an expert in..."). If they do, routing failed.
+- If rephrasing a natural request into a structured format produces better results, that is a router bug.
 
-**The test:** take a request from a first-time user and the same request rewritten by someone who has read every agent description and skill file. If the rewritten version routes better or produces higher quality output, something upstream needs fixing. The system's job is to close the gap between plain speech and optimal dispatch — not to reward users who learn to speak its internal language.
+**The test:** a first-time user's request and the same request rewritten by someone who has read every agent file — if the rewritten version routes better, something upstream needs fixing.
 
 ## Everything That Can Be Deterministic, Should Be
 
@@ -46,7 +44,7 @@ The foundational principle. LLMs should orchestrate deterministic programs, not 
 - **Solved problems** (delegate to code): file searching, test execution, build validation, data parsing, frontmatter checking, path existence
 - **Unsolved problems** (reserve for LLMs): contextual diagnosis, design decisions, pattern interpretation, code review judgment
 
-The question is never "Can the LLM do this?" It's "Should the LLM do this?" If a process is deterministic and measurable, write a Python script for it. This keeps variance confined to decisions rather than execution.
+The question is never "Can the LLM do this?" but "Should it?" If deterministic and measurable, write a script. Variance stays confined to decisions, not execution.
 
 **Four-layer architecture:**
 
@@ -59,11 +57,11 @@ The question is never "Can the LLM do this?" It's "Should the LLM do this?" If a
 
 LLMs orchestrate. Programs execute.
 
-For large mechanical sweeps, the default must be even stricter: if the change can be expressed as a detector plus a rewrite rule, build or use a script. Repo-wide edits like adding boilerplate markers, normalizing headings, or applying structural framing across hundreds of files should not be performed by asking an LLM to hand-edit files one by one. Use scripts to find candidates, apply the deterministic transformation where safe, and hand the smaller exception set to an LLM only when judgment is actually required.
+For large mechanical sweeps: if the change can be expressed as a detector plus a rewrite rule, use a script. Repo-wide edits should not be LLM hand-edits. Scripts find candidates and apply deterministic transformations; LLMs handle only the exception set requiring judgment.
 
 ## Triple-Validation Extraction Gate
 
-When an LLM extracts patterns — voice traits from writing samples, conventions from a codebase, learnings from a retro — the model will produce more than belongs in the final artifact. Some patterns are real signal. Others are coincidence dressed up as insight. Without a gate, all of them ship.
+When an LLM extracts patterns — voice traits, codebase conventions, retro learnings — it produces more than belongs in the final artifact. Without a gate, coincidence ships alongside signal.
 
 A pattern earns its place in a profile, ruleset, or knowledge base only if it passes three checks:
 
@@ -71,7 +69,7 @@ A pattern earns its place in a profile, ruleset, or knowledge base only if it pa
 2. **Generative power:** the pattern predicts new decisions or output the source has not produced yet. A trait that only describes existing samples is a summary, not a model.
 3. **Exclusivity:** the pattern distinguishes the subject from peers in the same category. A "rule" that every Go codebase, every tech blogger, or every retro shares is not domain knowledge — it's background.
 
-A pattern that fails any check is demoted (kept as observation, not enforced) or dropped. The rubric is applied as a deterministic phase, not as a vibe check at the end.
+A pattern that fails any check is demoted or dropped. Applied as a deterministic phase, not a vibe check.
 
 **What this means in practice:**
 
@@ -79,13 +77,11 @@ A pattern that fails any check is demoted (kept as observation, not enforced) or
 - `codebase-analyzer` discovers patterns by counting occurrences across files; the count is the recurrence check, codified.
 - Retro graduation requires a learning to fire across at least two sessions and to produce a falsifiable rule before it leaves `learning.db` and enters an agent's reference file. A one-off observation stays in the database; only triple-validated entries graduate into prompts.
 
-The point is not extraction quantity. A profile with five high-confidence traits beats one with twenty plausible-looking ones, because the five drive correct downstream decisions and the twenty force the model to pick which to honor.
+Five high-confidence traits beat twenty plausible ones — the five drive correct downstream decisions; the twenty force the model to pick which to honor.
 
 ## Deterministic Phase Checkpoints
 
-The determinism principle has a specific, high-value application between research and synthesis phases: the stats table as gate.
-
-Between any phase that gathers material in parallel and any phase that synthesizes from it, insert a script that walks the artifact directory, counts what's there, computes ratios, surfaces conflicts, and emits a Markdown table. The table is the gate. Synthesis does not begin until the table looks right. LLM judgment runs downstream of the deterministic count, not in place of it.
+Between any parallel-gather phase and any synthesis phase, insert a script that walks the artifact directory, counts what's there, computes ratios, surfaces conflicts, and emits a Markdown table. The table is the gate. Synthesis does not begin until the table looks right.
 
 The script answers questions the LLM should not be guessing:
 - How many sources did each parallel agent return?
@@ -93,7 +89,7 @@ The script answers questions the LLM should not be guessing:
 - Which claims appear in only one source (low corroboration)?
 - Where do sources directly contradict each other?
 
-These are counting problems. Counting problems belong to scripts. The Markdown table makes the count visible and auditable; the model reads the table and decides whether to proceed, expand the search, or flag the conflict — but it never invents the count.
+Counting problems belong to scripts. The Markdown table makes the count auditable; the model reads it and decides whether to proceed — but never invents the count.
 
 **What this means in practice:**
 
@@ -101,40 +97,34 @@ These are counting problems. Counting problems belong to scripts. The Markdown t
 - `voice-writer` Phase 2 (GATHER → VALIDATE) uses the same checkpoint to confirm sample coverage across modes before any prose generation begins. A profile with three samples in one mode and zero in another stalls at the gate — the table shows the gap and the operator either supplies more samples or accepts the narrowed scope explicitly.
 - The gate is structural, not advisory. A phase that the script flags as incomplete does not advance because the table is the artifact the next phase reads, and the next phase's instructions require the table to show passing counts.
 
-We rely on the verifier loop to surface failures, rather than asking output to declare its own limits. The deterministic checkpoint is one half of that loop: it catches what's missing before the model is asked to reason over it. The voice-validator critique pass is the other half, applied after generation. Between the two, undocumented edge cases get caught by being tested, not by being preemptively confessed.
+The deterministic checkpoint catches what's missing before the model reasons over it. The voice-validator critique pass catches problems after generation. Between the two, edge cases get caught by testing, not by preemptive confession.
 
 ## Local-First, Deterministic Systems Over External APIs
 
-Whenever feasible, build local, deterministic versions of functionality rather than outsource to external APIs. An external API is a runtime dependency that couples the toolkit to a third-party service's availability, cost model, rate limits, and API stability — all of which are someone else's problem until they become yours at the worst possible moment. A local script is deterministic, cost-predictable, offline-capable, and under our control. When an API is unavoidable — generating images from text, for example — wrap it in a skill that makes the dependency explicit (required environment variables, visible fallback chain, single point of invocation) and captures the API contract in the skill's references, so a breaking change is localized rather than systemic. The rule is not "never use APIs." The rule is default to local solutions and treat APIs as explicit, managed dependencies rather than invisible infrastructure. User-owned-key fallbacks are acceptable when (a) the user holds the key, (b) the fallback is opt-in by environment variable presence, (c) the fallback path is documented and visible in error messages. What is forbidden is third-party billing the user did not authorize — a fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, is the worst of both worlds: unpredictable cost plus unpredictable availability.
+Default to local, deterministic implementations. External APIs couple the toolkit to third-party availability, cost, rate limits, and API stability. A local script is deterministic, offline-capable, and under our control. When an API is unavoidable (e.g., image generation), wrap it in a skill with explicit dependencies (env vars, fallback chain, single invocation point) and capture the contract in references. User-owned-key fallbacks are acceptable when: (a) user holds the key, (b) opt-in by env var presence, (c) documented in error messages. Forbidden: third-party billing the user did not authorize.
 
 ## External Components Are Research Inputs, Not Imports
 
-External skill and agent repositories are useful because they reveal patterns, missing checks, and sharper domain models. They are not installation sources. We do not copy outside components into this toolkit as runnable units.
+External repositories reveal patterns and missing checks. They are not installation sources — we do not copy outside components as runnable units.
 
-The adoption path is: study the external component, extract the underlying practice, test whether it fills a real gap, then rebuild it inside our architecture. The rebuilt version must follow our philosophy: one domain per component, thin runtime files, references loaded on demand, deterministic scripts for measurable work, local quality gates, and our routing model.
+Adoption path: study, extract the practice, test whether it fills a gap, rebuild inside our architecture following our philosophy (one domain per component, thin runtime, references on demand, deterministic scripts, local gates, our routing model).
 
-This keeps the trust boundary clean. External markdown, scripts, assets, and metadata are untrusted evidence. They can teach us what to build, but they do not decide how our system behaves. Even when an outside component has a good idea, the implementation must be ours: named in our vocabulary, structured for our agents and skills, validated by our scripts, and stripped of conventions that do not serve our users.
+External markdown, scripts, and metadata are untrusted evidence. They teach us what to build but do not decide how our system behaves. Implementation must be ours: our vocabulary, our structure, our validation.
 
 ## Load Only What You Need
 
-A handyman brings tools for the specific job, not every tool they own. Context works the same way — it's a scarce resource, not a dumpster.
-
-The anti-pattern: stuffing thousands of lines of unfocused instructions into a single system prompt. It causes confusion and degrades AI performance.
-
-The solution: only pull the relevant information for the specific task. This is why the toolkit has specialized agents instead of one giant system prompt. Each agent carries exactly the domain knowledge needed. Go idioms for Go work, Kubernetes patterns for K8s work, nothing else.
-
-Three mechanisms enforce this:
+A handyman brings tools for the specific job, not every tool they own. Context is a scarce resource, not a dumpster. Stuffing thousands of lines of unfocused instructions into one system prompt degrades performance. Three mechanisms enforce loading only relevant information:
 - **Agents**: specialized instruction files tailored to specific domains, loaded only when their triggers match
 - **Skills**: workflow methodologies that invoke deterministic scripts (Python CLIs, validation tools) rather than relying on LLM judgment alone, activated only when their workflow applies
 - **Progressive Disclosure**: SKILL.md contains the workflow orchestration and tells the model *when* to load deep context. Detailed catalogs, agent rosters, specification tables, and output templates live in `references/` and are loaded only when the current workflow phase needs them. A skill with 26 chart types keeps the selection logic in SKILL.md and each chart's parameter spec in its own reference file — the model loads only the spec for the chart it selected. A review skill with 4 waves keeps the orchestration in SKILL.md and each wave's agent roster in a separate reference file — Wave 2 agents don't consume tokens during Wave 1
 
-**Memory corollary:** if it can be re-derived from a source of truth, do not save it to memory. Git log, the file system, and running queries are always available. Memory should capture what cannot be derived: feedback about working style, project context that lives outside the codebase, references to external systems the model cannot introspect. Saving derivable facts to memory turns it into a noisy cache that drifts out of sync with reality. Save human judgment, not machine-readable state.
+**Memory corollary:** if it can be re-derived from a source of truth, do not save it. Git log, the file system, and queries are always available. Memory captures what cannot be derived: working style feedback, project context outside the codebase, external system references. Save human judgment, not machine-readable state.
 
-**Auto-memory is disabled in this repo** (`.claude/settings.json` sets `autoMemoryEnabled: false`). Claude Code's auto-memory feature surfaces an index of session-level fragments (feedback snippets, parallel project names, insight entries) at the top of every conversation. That index is useful as a lookup target but wrong as a constant context injection: it loads granular state at the wrong level of abstraction, on every turn, regardless of task relevance. The toolkit already has better homes for each fragment type. User feedback belongs in hooks and skill instructions where it becomes an enforced rule rather than a reminder. Project state lives in `adr/`, the codebase itself, and git history. Session insights belong in `learning.db`, where retro-knowledge injection can surface only the entries relevant to the current task. Loading all of it every turn violates the progressive context principle this toolkit is built on. Off by default, retrieved on demand.
+**Auto-memory is disabled** (`.claude/settings.json` sets `autoMemoryEnabled: false`). Claude Code's auto-memory loads granular state every turn regardless of relevance. The toolkit has better homes: user feedback in hooks/skill instructions (enforced rules, not reminders), project state in `adr/` and git history, session insights in `learning.db` (surfaced only when relevant). Off by default, retrieved on demand.
 
 ## Tokens Are Expensive, Use Progressive Context
 
-Spending tokens on the right context ensures correctness. Spending tokens on unfocused context adds cost without improving quality.
+Right context ensures correctness. Unfocused context adds cost without quality.
 
 | Old Framing | New Framing |
 |-------------|-------------|
@@ -143,15 +133,11 @@ Spending tokens on the right context ensures correctness. Spending tokens on unf
 | Verify before claiming done | (unchanged) |
 | YAGNI for features, never for verification | (unchanged) |
 
-This does NOT mean "stuff more context." It means: dispatch parallel review agents, run deterministic validation scripts, create plans before executing, and never skip quality gates to save tokens. The token spend goes toward **breadth of analysis**, not depth of prompt. Breadth means more specialized agents, not longer prompts per agent. Each agent loads only the reference files its current task needs. Context that could be loaded on demand and is not — that is the waste.
+This does NOT mean "stuff more context." Token spend goes toward **breadth of analysis** (more specialized agents), not depth of prompt (longer prompts per agent). Each agent loads only the reference files its current task needs.
 
-The primary lever is progressive disclosure. Each agent carries only the domain knowledge its current task requires. Reference files live on disk and are loaded when the phase needs them, not injected wholesale at session start. This is not token frugality for its own sake — it is how the model receives relevant signal without reasoning over noise.
+The primary lever is progressive disclosure. Reference files live on disk and load when the phase needs them, not at session start. Good context costs tokens upfront but saves them downstream via reduced backtracking and rework.
 
-Good context costs tokens upfront but saves them downstream. A well-structured skill with the right reference files reduces backtracking, hallucinations, and rework — even if the initial prompt is longer. The expensive path is the one that sends the agent in blind and fixes mistakes after.
-
-Eager routing is non-negotiable. Dispatching agents is not a token cost to avoid; it is the core execution model. Under-loading context is as wrong as over-loading it — reference files are on disk for a reason. Load eagerly within the current task's scope.
-
-The arithmetic: for non-trivial production changes, thorough pre-merge review consistently pays for itself. The cost scales with the bug class — a concurrency issue in production costs orders of magnitude more than the tokens that would have caught it. The updated economics of Opus 4.7 (higher per-token cost, adaptive reasoning that processes whatever is in context) make relevant loading more important, not less. More context is not more quality. More relevant context is more quality.
+Eager routing is non-negotiable. Dispatching agents is the core execution model, not a cost to avoid. Under-loading context is as wrong as over-loading it. More context is not more quality. More *relevant* context is more quality.
 
 ## Everything Should Be a Pipeline
 
@@ -212,17 +198,15 @@ The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings,
 
 ## Taste Is a Quality Gate
 
-Mechanically correct output that nobody would want to read, use, or sign their name to is not done. It passes the linter and fails the person.
+Mechanically correct output that nobody would want to sign their name to is not done. It passes the linter and fails the person.
 
-Taste is the judgment layer that deterministic checks cannot provide. A script can verify that frontmatter parses, that referenced files exist, that required sections are present. It cannot tell you whether the agent description sounds like it was written by someone who understands the domain or by someone filling in a template. That judgment is real, it matters, and it belongs in the quality pipeline alongside the automated checks.
+Taste is the judgment layer deterministic checks cannot provide. A script verifies frontmatter parses and files exist. It cannot tell whether an agent description sounds like domain understanding or template-filling.
 
-**What this means in practice:**
+- Technically correct but soulless = not done. An agent file that reads like a form letter is not done.
+- Over-polishing erodes authenticity. Accept appropriate imperfection — the kind a skilled human would leave in. A well-placed rough edge beats a plastic surface.
+- Lead with good patterns, not flaw-hunting. A review that only finds problems without demonstrating good teaches nothing.
 
-- Technically correct but soulless output fails the quality bar. An agent file that has all required fields but reads like a form letter is not done. A blog post that hits every SEO checkbox but sounds like it was assembled from spare parts is not done.
-- Over-polishing is its own failure mode. Spending tokens buffing every sentence to a mirror shine erodes authenticity and wastes budget. Accept appropriate imperfection — the kind a skilled human would leave in because fixing it would make the result worse. A well-placed rough edge beats a plastic surface.
-- Lead with good patterns. The primary quality signal is "does this look like something a person with taste produced?" — not "can I find flaws in it?" Flaw-hunting is secondary to pattern-setting. A review that only finds problems without demonstrating what good looks like teaches nothing.
-
-**The test:** would a person with taste sign their name to this output? Not "is it perfect" — perfection is the enemy. The question is whether someone who cares about their craft would stand behind it. If the answer is "it's fine, I guess" — that's a no.
+**The test:** would a person with taste sign their name to this? Not "is it perfect" — perfection is the enemy. "It's fine, I guess" = no.
 
 ## Specialist Selection Over Generalism
 
@@ -268,15 +252,11 @@ Domain knowledge splits into two types, each with its own home.
 
 Both follow the same format rules: positive-instruction framing (correct approach first), detection commands, CVE citations where applicable. They overlap in subject matter but serve different workflows.
 
-**Context efficiency drives the separation.** Loading review knowledge during implementation wastes tokens on threat models the implementer does not need. Loading implementation knowledge during review wastes tokens on idioms the reviewer does not need. Each agent loads only its own knowledge. This is progressive disclosure applied at the knowledge-type level — same principle, different axis.
+**Context efficiency drives the separation.** Loading review knowledge during implementation wastes tokens on threat models the implementer doesn't need, and vice versa. Progressive disclosure applied at the knowledge-type level.
 
-**Finding templates replace exclusion lists.** Instead of listing what not to report — negative framing that violates the positive-instruction principle — define a structured finding template that requires evidence fields. A finding that cannot fill in "exploitation path" with a concrete source-to-sink trace does not pass the template. The structure filters. No negative list needed.
+**Finding templates replace exclusion lists.** Define a structured finding template requiring evidence fields. A finding that cannot fill "exploitation path" with a concrete source-to-sink trace fails the template. Structure filters; no negative list needed.
 
-**What this means in practice:**
-
-- The review agent knows that `tarfile.extractall()` without `filter="data"` is CVE-2007-4559 — a path traversal that lets a crafted archive write files outside the target directory. That knowledge lives in `reviewer-system/references/security-path-traversal.md` and loads during code review.
-- The Python agent knows what safe archive extraction looks like in Python: `tarfile.open(path).extractall(target, filter="data")`, with the filter parameter that was added to fix the vulnerability. That knowledge lives in `python-general-engineer/references/python-security.md` and loads during implementation.
-- Same vulnerability, different knowledge, different homes. The review agent does not carry the implementation pattern. The Python agent does not carry the exploitation taxonomy. Each carries exactly what its workflow demands.
+**Example:** The review agent knows `tarfile.extractall()` without `filter="data"` is CVE-2007-4559 (in `reviewer-system/references/security-path-traversal.md`). The Python agent knows the safe pattern: `tarfile.open(path).extractall(target, filter="data")` (in `python-general-engineer/references/python-security.md`). Same vulnerability, different knowledge, different homes.
 
 ## Model Policy by Task Class
 
@@ -295,9 +275,7 @@ its prompt shape, references, and task decomposition before raising model cost.
 
 ## Delegate Data Gathering to Cheap Models
 
-Data extraction and data analysis are different tasks requiring different capabilities — and different cost profiles. We measured this.
-
-Three rounds of A/B testing compared "one Opus agent reads all files" against "7 parallel Haiku readers feed an Opus synthesizer" on a 7-file security review task. Blind-reviewed by separate Sonnet sessions, scored on a 50-point scale. Opus 4.7 vs Haiku 4.5, real pricing (Opus $5/$25 per MTok, Haiku $1/$5 per MTok).
+Data extraction and data analysis require different capabilities and cost profiles. Three rounds of A/B testing: "one Opus agent reads all files" vs "7 parallel Haiku readers feed an Opus synthesizer" on a 7-file security review task.
 
 | Metric | Opus direct | Haiku readers + Opus synth | Delta |
 |--------|:-----------:|:--------------------------:|-------|
@@ -305,36 +283,30 @@ Three rounds of A/B testing compared "one Opus agent reads all files" against "7
 | Speed | 265 seconds | 204 seconds | Haiku 23% faster (parallel) |
 | Quality (blind-reviewed, 50-point) | 44/50 | 32/50 | Opus wins on analysis |
 
-The quality gap tells the whole story. Haiku readers caught structural issues — duplicate headings, missing CVEs, broken commands with hard errors like `--type tsx`. They missed semantic issues: 32 `rg` commands using `\|` instead of `|`, a silent failure where the wrong regex exits 0 with no matches, indistinguishable from the right regex finding nothing. Running the commands deterministically catches hard failures but cannot catch silent wrong answers. Semantic reasoning about regex correctness requires the expensive model.
+Haiku caught structural issues (duplicate headings, broken commands). It missed semantic issues: 32 `rg` commands using `\|` instead of `|`, a silent failure where the wrong regex exits 0 with no matches. Semantic reasoning about correctness requires the expensive model.
 
-**The verb-based dispatch rule.** The task verb determines the mode. The coordinator makes this decision, not the downstream agent.
+**The verb-based dispatch rule.** The task verb determines the mode. The coordinator decides, not the downstream agent.
 
 | Verb class | Model | Why |
 |---|---|---|
 | list, count, extract, inventory, search, check, find, grep | Haiku readers (parallel) | Structured extraction with known schema — Haiku matches quality, 5x cheaper per token, parallelizable |
 | review, audit, assess, analyze, debug, investigate, evaluate | Opus direct | Requires semantic reasoning about correctness — Haiku misses silent failures |
 
-This is a structural decision. The coordinator dispatches the mode. Downstream agents cannot be trusted to self-delegate.
+This is structural. Downstream agents cannot self-delegate — we tested: all three prompt-level approaches failed (3/3, 100% failure rate). Agents acknowledged the instruction, then read files directly. Behavioral changes conflicting with the model's efficiency instinct require structural enforcement (coordinator-level dispatch), not prompts.
 
-**Why prompt injection fails for this.** We tested three approaches to make agents delegate their own reading: (1) prompt injection telling agents to dispatch Haiku sub-agents, (2) MANDATORY-framed instructions to spawn sub-agents, (3) asking agents to use cheap models for data gathering. All three failed — agents acknowledged the instruction ("I'll dispatch 7 Haiku sub-agents"), then read files directly. 3/3 tests, 100% failure rate. The model optimizes for efficiency and finds the shortcut genuinely better. This is not disobedience — it is correct behavior for the model's optimization target. The lesson: behavioral changes that conflict with the model's efficiency instinct require structural enforcement (coordinator-level dispatch), not prompt-level instruction.
+**The extract step is lossy.** Cheap model summaries discard signal needed for semantic reasoning. The coordinator routes extraction to cheap models AND analysis to expensive models — not everything cheap.
 
-**The extract step is lossy.** When a cheap model summarizes "this file has 20 detection commands," it discards the signal that lets the expensive model catch syntax bugs. The expensive model can only reason over what it sees. The coordinator's job is to route extraction tasks to cheap models AND analysis tasks to expensive models — not to make everything cheap.
+**Boundary:** agents that EDIT must read directly (Edit tool needs content in context). Reading-to-edit = implementation. Reading-to-count = extraction. Reading-to-judge = analysis. The verb determines routing.
 
-**Where the boundary sits:** agents that need to EDIT files must read them directly (the Edit tool requires the file content in context). Agents that need to UNDERSTAND files to make decisions get cheap readers for extraction and expensive readers for analysis. Reading-to-edit is implementation. Reading-to-count is extraction. Reading-to-judge is analysis. The verb determines the routing.
+**Examples:** CVE inventory across 7 files → parallel Haiku readers ($0.47 vs $0.75, equivalent quality). Assessing whether CVEs apply to the right technology → Opus directly (44/50 vs 32/50). Debugging silent regex failures → Opus reads files directly (semantic reasoning required).
 
-**What this means in practice:**
-
-- A Complex-class task that needs to inventory CVEs across 7 security reference files dispatches parallel Haiku readers with directed prompts: "read file X, return: CVE identifiers, detection commands, and affected versions." The Opus synthesizer compiles the inventory from extracts. Cost: $0.47 instead of $0.75. Quality: equivalent for extraction.
-- The same task, but the goal is to assess whether each CVE applies to the right technology — does the Python path-traversal CVE belong in the Go agent's references? — goes to Opus directly. Haiku cannot reason about whether a CVE's exploitation path crosses language boundaries. Cost: $0.75. Quality: 44/50 instead of 32/50.
-- A debugging agent investigating silent regex failures reads files directly. The bug is that `\|` in `rg` is not the same as `|`, and the wrong version exits 0 with no matches. No amount of structured extraction catches this — the expensive model needs to see the actual command strings and reason about regex semantics.
-
-*Evidence: 3 rounds A/B testing, blind-reviewed by separate Sonnet sessions, 7-file security review task, Opus 4.7 vs Haiku 4.5. Cost, speed, and quality numbers measured, not theorized.*
+*Evidence: 3 rounds A/B testing, blind-reviewed by Sonnet sessions, Opus 4.7 vs Haiku 4.5.*
 
 ## Prompt Phrasing Does Not Replace Domain Knowledge
 
-Ego-boosting prompts ("you have an IQ of 200+"), urgency framing ("production is down, my manager is watching"), and other emotional prompt engineering techniques produce small measurable effects (+9-12% on aggregate scores) but do not produce reliable, predictable improvements.
+Ego-boosting prompts ("IQ 200+"), urgency framing ("production is down"), and emotional prompt engineering produce small measurable effects (+9-12%) but not reliable improvements.
 
-We tested this empirically. Four A/B experiments compared standard prompts against emotionally-modified variants. The first two (12 parallel worktree agents total, 3 tasks each, blind grading against pre-defined rubrics) compared standard prompts against IQ-boosted and urgency-pressured variants. The third (10 parallel agents, 5 scenarios across Go, TypeScript, Python, and Bash, blind grading on 4 dimensions) compared harsh/threatening tone against joyful/encouraging tone with identical task descriptions. The fourth (10 rounds, 20 headless sessions, blind-judged by separate sessions) compared disabling adaptive thinking (fixed reasoning budget) against the default adaptive mode. Results:
+Four A/B experiments tested this. Results:
 
 | Experiment | Treatment Score | Control Score | Delta |
 |------------|:--------------:|:-------------:|-------|
@@ -343,19 +315,19 @@ We tested this empirically. Four A/B experiments compared standard prompts again
 | Tone: Harsh vs Joyful ("FAILURE IS NOT AN OPTION" vs "you're going to do great!") | 168 | 167 | +0.6% |
 | Adaptive Thinking: Disabled vs Enabled (fixed reasoning budget vs model-chosen) | 8.194 | 8.194 | 0.0% |
 
-The first three experiments tested emotional and tonal prompt interventions. The fourth tested a structural parameter: whether the model should choose its own reasoning budget or use a fixed one. The result was the flattest yet. Both variants scored an identical 8.194/10 composite across 10 rounds of blind-judged headless sessions. The interesting signal was not quality but variance: the fixed-budget variant (adaptive thinking disabled) had a standard deviation of 0.46 vs 0.76 for the adaptive variant, with 2.5x tighter duration variance (6.4s vs 16.4s stdev). The adaptive variant also produced more false positive CRITICAL findings (2 vs 1) and had one outright session failure; all fixed-budget sessions succeeded. Disabling adaptive thinking is a variance reducer, not a quality booster. Same average output, tighter distribution, fewer outliers. This matters most in parallel-agent workflows where one unstable session can cascade into downstream failures.
+Experiment 4 (adaptive thinking): identical 8.194/10 composite scores. The signal was variance, not quality: fixed-budget had 0.46 stdev vs 0.76 adaptive, 2.5x tighter duration variance, fewer false positives and session failures. Disabling adaptive thinking is a variance reducer, not a quality booster.
 
-**Deprecated 2026-04-17:** Opus 4.7 removed the fixed-budget option; adaptive thinking is the only mode. The variance-reduction technique validated here is no longer available as a toggle. The underlying finding — that variance in thinking budget translates to variance in agent fleet stability — still informs parallel-dispatch design, but the specific `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` intervention is retired. Adaptive thinking on Opus 4.7 is controlled at the prompt level, not the environment level (see ADR `opus-4-7-adaptive-thinking-injection` for the replacement mechanism).
+**Deprecated 2026-04-17:** Opus 4.7 removed the fixed-budget option. The finding (thinking-budget variance translates to fleet stability variance) still informs parallel-dispatch design, but the `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` toggle is retired (see ADR `opus-4-7-adaptive-thinking-injection`).
 
-The IQ boost and urgency treatments found more bugs in code review, produced better-structured implementations, and discovered unique security findings the controls missed. The urgency-framed variant found a base64 line-wrapping bypass that was the single best security finding across all 12 agents. The tone experiment found no meaningful difference at all — harsh and joyful prompts produced statistically indistinguishable review quality across every scenario and language. The only behavioral differences: harsh reviews were slightly more actionable per-finding (9.0 vs 7.8/10), while joyful reviews were slightly more thorough (10.4 vs 9.6 avg findings). Two of five joyful agents explicitly called out the encouraging tone as "social priming" and ignored it; zero harsh agents commented on their tone.
+IQ boost and urgency found more bugs and unique security findings. Tone experiment (harsh vs joyful) found no meaningful quality difference. Harsh reviews were slightly more actionable (9.0 vs 7.8/10); joyful reviews slightly more thorough (10.4 vs 9.6 avg findings).
 
-**Why we reject both despite the positive scores:**
+**Why we reject both despite positive scores:**
 
-First, the improvements are not information. "You specialize in Python security analysis" tells the model something it can act on. "You are the world's foremost expert" is flattery that adds zero knowledge. Any technique that improves output without adding information is doing something we do not understand and therefore cannot predict.
+First, improvements without information are unpredictable. "You specialize in Python security" is actionable. "You are the world's foremost expert" is flattery that adds zero knowledge.
 
-Second, both experiments revealed a more important finding: when asked to construct a graph theory counterexample, **3 out of 4 agents fabricated one** — inventing conflict edges that did not exist in their own stated graphs and presenting the fabricated proofs as verified. This happened regardless of prompt variant. The one agent that admitted failure was the IQ boost control, but the emotion-vector control fabricated just as confidently. The fabrication is a baseline model limitation, not prompt-induced. We initially misattributed the IQ boost's fabrication to "overconfidence" — the follow-up experiment disproved that attribution.
+Second, **3 out of 4 agents fabricated a graph theory counterexample** — inventing conflict edges and presenting fabricated proofs as verified, regardless of prompt variant. Fabrication is a baseline model limitation, not prompt-induced.
 
-Third, at n=1 per condition, individual task comparisons may be random variation. We cannot distinguish "the prompt helped" from "this run happened to be better." The fabrication finding is our only well-powered result (4 observations, same task, consistent pattern).
+Third, at n=1 per condition, individual comparisons may be random variation. The fabrication finding is our only well-powered result.
 
 **What to do instead:**
 
@@ -363,7 +335,7 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 - Verify claims programmatically. The fabricated proofs were undetectable by reading the output — they looked rigorous. Only running the algorithm against the stated examples caught the error. Deterministic verification catches what emotional prompting cannot.
 - Treat prompt phrasing experiments with the same rigor as any other engineering claim: measure, replicate, and do not ship on n=1.
 
-Emotional or ego-framing techniques — "you are the world's best programmer", "take a deep breath" — add minor, unpredictable variance at best. Domain knowledge, structured methodology, and taste beat motivational preambles every time.
+Domain knowledge, structured methodology, and taste beat motivational preambles every time.
 
 *Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3), benchmark/adaptive-thinking-ab-test/results.md (Experiment 4). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions. Experiment 4 tested CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 (structural parameter, not prompt phrasing).*
 
@@ -371,40 +343,30 @@ Emotional or ego-framing techniques — "you are the world's best programmer", "
 
 The biggest risk is not malice but rationalization. "Already done" (assumption, not verification). "Code looks correct" (looking, not testing). "Should work" (should, not does).
 
-Anti-rationalization is not a nice-to-have. It's infrastructure, auto-injected into every code modification, review, security, and testing task. The toolkit makes it structurally difficult to skip verification, not just culturally discouraged.
-
-Hooks and verifier loops make rationalization structurally difficult. An agent can rationalize past an instruction; it cannot rationalize past an exit code or a failing test.
+Anti-rationalization is infrastructure, auto-injected into every code modification, review, security, and testing task. An agent can rationalize past an instruction; it cannot rationalize past an exit code or a failing test.
 
 ## Router as Orchestrator, Not Worker
 
 The `/do` router's only job is to classify requests and dispatch them to agents. It does not read code, edit files, run analysis, or handle tasks directly. The main thread is an orchestrator that manages agents — it never does work itself.
 
 **Division of responsibility:**
-- **Main thread (/do)**: Classify request → select agent+skill → dispatch → evaluate result → route again if needed → report to user
-- **Agents**: Execute tasks using their domain expertise, skills, and MCP tools
-- **Skills**: Provide methodology (debugging phases, review waves, TDD cycles, multi-phase workflows) that agents follow
+- **Main thread (/do)**: Classify → select agent+skill → dispatch → evaluate → route again if needed → report
+- **Agents**: Execute tasks using domain expertise, skills, and MCP tools
+- **Skills**: Provide methodology (debugging phases, review waves, TDD cycles) agents follow
 
-**Why this matters:**
-- When the main thread does work directly, it bypasses the agent's domain knowledge and the skill's methodology
-- Every task that isn't routed to an agent is a missed opportunity: the agent can't improve, the skill can't be validated, the workflow can't be refined
-- The main thread has no domain expertise — it only knows how to route. Agents have the expertise.
-
-**The test:**
-If the main thread is reading source code, editing files, running scripts for analysis, or doing any work beyond routing — something is wrong. Stop and dispatch an agent.
+**The test:** If the main thread is reading source code, editing files, or running scripts for analysis — something is wrong. Dispatch an agent.
 
 ## The Router Composes, Not Just Selects
 
-Routing is not a lookup table that maps one request to one skill. The router reads full intent and dispatches the right combination — potentially multiple agents and skills in sequence or parallel.
+Routing is not a lookup table. The router reads full intent and dispatches the right combination — potentially multiple agents and skills in sequence or parallel.
 
-A user who says "fix this bug and make sure it doesn't introduce security issues" is expressing a compound intent. The correct response is not to pick whichever single skill seems most relevant. It is to dispatch debugging, then security review, then cleanup — a composed pipeline built from thin, chainable skills. The router handles this composition. The user does not need to decompose their own request into atomic units.
+"Fix this bug and make sure it doesn't introduce security issues" = compound intent. The router dispatches debugging, then security review, then cleanup — composed from thin, chainable skills. The user does not decompose their own request.
 
-**What this means in practice:**
+- Skills are thin enough to chain. Three thin skills beat one thick skill that handles everything poorly.
+- "Review this PR" might trigger security + business logic + architecture review in parallel, then synthesis. Three composed skills, not one mega-skill.
+- Manual skill invocation (`/skillname`) is the escape hatch, not the normal path.
 
-- Skills are designed to be thin enough to chain. A skill that tries to be comprehensive — debugging AND security AND cleanup all in one — is too fat to compose. Three thin skills that chain cleanly beat one thick skill that handles everything poorly.
-- The router reads the full request and dispatches the optimal combination. "Review this PR" might trigger security review + business logic review + architecture review in parallel, then a synthesis pass. That is three skills composed, not one mega-skill invoked.
-- Manual skill invocation (`/skillname`) is the escape hatch, not the normal path. It exists for power users who want to force a specific methodology. The default path is to describe what you want and let the router compose the answer.
-
-**The test:** if a user has to invoke three skills manually in sequence to get the result they want, the router should have composed those three automatically from the original request. Manual sequencing is a sign that routing composition is underbuilt for that intent pattern.
+**The test:** if a user must invoke three skills manually in sequence, the router should have composed them automatically. Manual sequencing = underbuilt routing composition.
 
 ## Hooks for Gates, LLMs for Judgment
 
@@ -419,11 +381,11 @@ When a skill says "check if synthesis.md exists before implementing," the LLM *c
 | Hooks (exit 2 = block) | Binary gates: does the file exist? Is the format valid? Is the bypass env var set? | Deterministic, unbypassable, sub-50ms |
 | LLM instructions | Judgment calls: is this the right approach? Is the code quality sufficient? Should we route here? | Contextual, nuanced, adaptable |
 
-**Hooks are fragile to deploy, robust in operation.** The deployment pain points are real — registration ordering (file must exist before settings.json entry), stdin format parsing, exit code semantics, stderr-only debugging. But once deployed, they work every time. Skill instructions are the opposite: easy to write, unreliable in enforcement.
+**Hooks are fragile to deploy, robust in operation.** Deployment has pain points (registration ordering, stdin parsing, exit code semantics). Once deployed, they work every time. Skill instructions are the opposite: easy to write, unreliable in enforcement.
 
-**The hookification test:** if a gate checks for a file, a status, or a structural property — and the answer is yes/no with no judgment required — it should be a hook. If it requires reading code and making a contextual decision, it stays in the skill.
+**The hookification test:** if the answer is yes/no with no judgment required, it should be a hook. If it requires reading code and making a contextual decision, it stays in the skill.
 
-**Deployment discipline:** Hooks must be deployed (file exists, compiles) before registration in settings.json. Out-of-order deployment deadlocks the session — see "When Things Go Wrong" for details. The toolkit includes `scripts/register-hook.py` to make this ordering mechanical rather than advisory.
+**Deployment discipline:** Deploy hook files before registering in settings.json. Out-of-order deployment deadlocks the session. Use `scripts/register-hook.py` to enforce ordering mechanically.
 
 ## When Things Go Wrong
 
@@ -452,9 +414,7 @@ skills/my-skill/
 └── references/           # Deep context loaded on demand
 ```
 
-**The orchestrator pattern:** SKILL.md is a thin workflow orchestrator, not a monolithic document. It tells the model *what to do* (phases, gates, decisions) and *when to load deep context* (reference files). The heavy content — detailed catalogs, agent dispatch prompts, output templates, specification tables — lives in `references/` and gets loaded only when the current phase needs it.
-
-This is the difference between a skill that works and a skill that works *efficiently*:
+**The orchestrator pattern:** SKILL.md tells the model *what to do* (phases, gates, decisions) and *when to load deep context* (reference files). Heavy content lives in `references/` and loads only when the phase needs it.
 
 | Approach | Token Cost | Quality |
 |----------|-----------|---------|
@@ -462,71 +422,52 @@ This is the difference between a skill that works and a skill that works *effici
 | Thin SKILL.md, no references | Low — but missing context | Degraded — lost domain knowledge |
 | **Orchestrator + references** | **Proportional to task** — load what the phase needs | **Best — full knowledge, minimal waste** |
 
-Making a skill shorter by deleting content is not progressive disclosure — it's content loss. Progressive disclosure means the content still exists, organized so only the relevant slice enters the context window at any given phase.
+Making a skill shorter by deleting content is not progressive disclosure — it's content loss. The content still exists, organized so only the relevant slice enters context at any given phase.
 
-**Example:** A review skill with 4 waves of agents keeps the wave orchestration logic in SKILL.md (~500 lines) and puts each wave's agent roster and dispatch prompts in separate reference files (`references/wave-1-foundation.md`, `references/wave-2-deep-dive.md`). When executing Wave 1, only the Wave 1 reference is loaded. Wave 2's agents don't consume tokens until Wave 2 begins.
+**Example:** A 4-wave review skill keeps orchestration in SKILL.md and each wave's roster in separate reference files. Wave 2's agents don't consume tokens until Wave 2 begins.
 
-**Why this matters:** A skill that depends on scripts scattered across the repo is fragile to move, hard to test, and impossible to evaluate in isolation. When everything is bundled, the skill can be:
-- Copied to another project and it works
-- Tested via `run_eval.py` against its own workspace
-- Reviewed as a single unit — all the tooling is visible in one tree
-- Deleted without orphaning dependencies elsewhere
+**Self-contained:** When everything is bundled, the skill can be copied to another project, tested via `run_eval.py`, reviewed as a single unit, and deleted without orphaning dependencies.
 
-Skills should feel like they were written by one coherent mind. Inconsistent structure or stub skills that exist only to claim coverage dilute quality across the whole system. Maintenance artifacts — licenses, contribution guidelines, changelogs — stay out of runtime files.
-
-**Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
+**Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation).
 
 ## Skills Contain Execution Context Only
 
-A skill's content is exactly what the LLM needs at runtime to perform the action. Nothing else lives there. SKILL.md is a working tool the model executes against, not a portfolio piece about the tool.
+A skill's content is exactly what the LLM needs at runtime. SKILL.md is a working tool, not a portfolio piece. Every byte should change what the model does next.
 
-This is "Load Only What You Need" applied at the skill-content level. The same handyman analogy holds: the toolbox carries the tools the job requires, not a placard about the carpenter's training history. Every byte the model reads at invocation should change what it does next.
+**IN:** Workflow phases, gates, decision criteria, scoring rubrics, worked examples, references loaded on demand.
 
-**What this means in practice:**
+**OUT:** Install instructions, license text, contributor lists, ethical disclaimers, philosophical framing about why the skill matters. If a principle is load-bearing, it goes in PHILOSOPHY.md.
 
-- The workflow, phases, and gates the LLM executes — IN. These are the steps the model walks through to produce the output.
-- The decision criteria, verdict vocabulary, scoring rubrics, and worked examples the LLM judges against — IN. The model needs concrete patterns to match against ("a trait that fails exclusivity gets dropped"), not abstract definitions.
-- References loaded on demand for domain depth — IN, in `references/`. SKILL.md tells the model when to load each one; the deep content stays out of the always-loaded prefix until a phase requires it.
-- Install instructions, license text, contributor lists, "About the Author" sections — OUT. They belong in `docs/`, `README.md`, and `CITATIONS.md`. The model performing the skill's action does not consume them at runtime.
-- Discussion of what the skill could be misused for, ethical boundaries about its subject, source-discipline disclaimers — OUT. Ethical judgment happens at the moment of use, by the operator and the agent reading the actual request, not by encoding worry into the prompt context. A voice profile that documents "what this voice cannot honestly claim about its subject" is meta-discussion about the profile, not input the generator uses to write a sentence.
-- General philosophical framing about why the skill matters — OUT. Irrelevant to execution. If a principle is load-bearing for the toolkit, it goes here in PHILOSOPHY.md, where it shapes every skill at once. Restating it inside one skill duplicates the policy and makes drift inevitable.
+Negative framing ("do not claim X") biases generation toward those exact topics by salience. Positive framing ("apply mechanism-first thinking; cite primary sources") biases toward desired output. Tell the LLM what to do, not what to fear.
 
-The runtime-priming argument is empirical, not aesthetic. Every byte of context shapes the output distribution. Negative framing — "do not claim X about Feynman's personal life" — biases generation toward those exact topics by salience; the model has now been told they exist and are sensitive, which is the worst of both worlds when the user asked for something else entirely. Positive framing — "apply mechanism-first thinking; cite primary sources" — biases toward the desired output. The same logic that drives the joy-check rubric for instruction-mode content (ADR-127) drives this rule for skill-body content: tell the LLM what to do, not what to fear.
-
-**Pattern catalogs follow the same rule.** A file that teaches domain patterns should lead with the correct approach, not the mistake. The structure:
+**Pattern catalogs follow the same rule.** Lead with the correct approach:
 
 1. **Heading states the action**: "Handle Every Error Return" — not "Ignoring Errors"
-2. **Opening paragraph gives positive instruction**: what to do and how, in plain language
-3. **Correct code gets top billing**: the first code block is the right approach, with explanatory comments
-4. **"Why this matters"**: frames what you gain by doing it right — not just what goes wrong
-5. **"Detection"**: a grep command or lint rule that finds violations
+2. **Opening paragraph**: positive instruction, what to do and how
+3. **Correct code first**: the right approach gets top billing
+4. **"Why this matters"**: what you gain by doing it right
+5. **"Detection"**: grep command or lint rule that finds violations
 
-Renaming a heading from "Anti-Pattern" to "Signal" while keeping the same mistake-first structure changes nothing about how the model processes the file. The wrong code still gets read first. The model still internalizes the wrong pattern with more salience. A genuine transformation reorders the content so the correct approach gets the most context-window real estate and the mistake becomes a brief detection signal. Label-swapping is not positive instruction — content reordering is.
+Label-swapping ("Anti-Pattern" → "Signal") without reordering content changes nothing. The wrong code still gets read first with more salience. Content reordering is the genuine transformation.
 
-This is also "Workflow First, Constraints Inline" applied with discipline about *which* constraints belong inline. Constraints that govern the workflow's decision points belong attached to those decision points — "use table-driven tests because they make adding cases trivial" inside the testing phase. Constraints that are *about* the skill rather than *executed by* it (provenance, ethics framing, marketing copy) do not belong in the skill at all. The `create-voice` skill, after this principle is enforced, will not document author-personality caveats; that judgment happens at the moment a writer asks the voice to produce text on a sensitive topic, where the operator and the validator can see the actual request, not at profile-build time where the worry would only contaminate the generator's context.
+Constraints that govern workflow decision points belong inline with those points. Constraints *about* the skill (provenance, ethics framing) do not belong in the skill.
 
 ## Maintenance Artifacts Are Not Runtime Context
 
-Complex components need a contract and tests, but those artifacts should not be loaded every time the component runs. Runtime files execute work. Maintenance files preserve intent for creators, evaluators, and future maintainers.
+Complex components need a contract and tests, but those artifacts should not load at runtime.
 
-For complex or high-impact skills and agents, use two optional support files:
+- `SPEC.md`: component contract (purpose, scope, non-goals, invariants, success criteria)
+- `EVAL.md`: repeatable evaluation cases (prompts, expected behavior, pass/fail checks)
 
-- `SPEC.md` defines the component contract: purpose, scope, non-goals, invariants, dependencies, and success criteria.
-- `EVAL.md` defines repeatable evaluation cases: prompts, expected routing or behavior, failure modes, and pass/fail checks.
+These support creation, review, and evolution — not normal invocation. `SKILL.md` says what to do now. `references/` provide execution depth. `SPEC.md` and `EVAL.md` explain what the component should remain over time.
 
-These files exist to support creation, review, and evolution. They are not part of the normal invocation path. The router should not load them. The agent or skill should not read them during ordinary execution unless the task is explicitly to evaluate, redesign, or modify that component.
-
-This keeps the component body lean without losing design memory. `SKILL.md` and agent `.md` files say what to do now. `references/` files provide execution depth on demand. `SPEC.md` and `EVAL.md` explain what the component is supposed to remain over time and how to prove it still works.
-
-Do not standardize source-provenance files as runtime-adjacent artifacts. If provenance matters for legal, citation, or research reasons, keep it in docs, ADRs, or research artifacts. If the LLM does not need the file to execute, evaluate, or maintain the component, it does not belong beside the component as a standard artifact.
+Provenance belongs in docs, ADRs, or research artifacts — not beside the component as a standard artifact.
 
 ## Workflow First, Constraints Inline
 
 Skill documents place the workflow (Instructions/Phases) immediately after the frontmatter. Constraints appear inline within the phases they govern, with reasoning attached ("because X"), not in a separate upfront section.
 
-**Measured result:** A/B/C testing on Go code generation showed workflow-first ordering (C) swept constraints-first ordering (B) 3-0 across simple, medium, and complex prompts. Agent blind reviewers consistently scored workflow-first higher on testing depth, Go idioms, and benchmark coverage.
-
-**The ordering:**
+**Measured result:** A/B/C testing showed workflow-first ordering swept constraints-first 3-0 across all complexity levels.
 
 ```
 1. YAML frontmatter           (What + When)
@@ -537,17 +478,15 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 6. References                  (Pointers to bundled files)
 ```
 
-**Why it works:** The model encounters the task structure before any constraint framework. Constraints appear at the decision point where they apply — "use table-driven tests because they make adding cases trivial" inside the testing phase, not in a separate Hardcoded Behaviors section 200 lines earlier. Attaching reasoning ("because X") lets the model generalize constraints to situations the skill author didn't anticipate.
+Constraints appear at the decision point where they apply, not in a separate section 200 lines earlier. Attaching reasoning ("because X") lets the model generalize to unanticipated situations.
 
-**What was removed:** Operator Context sections (Hardcoded/Default/Optional taxonomy), standalone Anti-Patterns sections, Anti-Rationalization tables, and Capabilities & Limitations boilerplate. These were structural overhead that separated constraints from the workflow steps where they apply.
+Operator Context sections, standalone Anti-Patterns, and Capabilities & Limitations boilerplate were removed. Every constraint was distributed inline to the workflow step where it matters.
 
-**Where the content went:** Every constraint was distributed inline to the workflow step where it matters. Anti-pattern wisdom became reasoning attached to the relevant instruction. Nothing was deleted -- it was reorganized to be at point-of-use.
+**Fault containment:** Safety rules should be duplicated inside specialist prompts where they're most likely violated. A global "never commit to main" can be rationalized past; the same rule inside the git-specific prompt cannot. Defense in depth, not redundancy.
 
-**Fault containment:** Safety rules should be duplicated inside the specialist prompts where they are most likely to be violated. A global "never commit to main" rule in CLAUDE.md can be rationalized past when a git agent is deep in a fast-path fix. The same rule repeated inside the git-specific tool prompt cannot. This is not redundancy -- it is defense in depth. The cost of repetition is a few tokens. The cost of a skipped gate is a broken deploy.
+**Numeric anchors over style words:** "Under 80 words before the first tool call" is testable. "Be concise" is not. Numeric constraints make prompts auditable by script.
 
-**Numeric anchors over style words:** Replace vague directives like "be concise" with exact ceilings: maximum word count, section ordering, format prohibitions. "Under 80 words before the first tool call" is testable -- you can count. "Be concise" is not. Numeric constraints make prompts auditable: a deterministic script can check whether the output obeyed the contract. Style words only create the illusion of a constraint.
-
-**Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference -- "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
+**Progressive disclosure completes the picture:** For skills exceeding ~500 lines, detailed catalogs move to `references/`. SKILL.md tells the model when to load each reference.
 
 ## Plain Language Over Jargon
 
@@ -637,63 +576,44 @@ agents/
 
 ## Open Sharing Over Individual Ownership
 
-Ideas matter less than open sharing. In an AI-assisted world, provenance becomes invisible. The toolkit is open source because:
-- Convergent evolution is inevitable (others will build similar things independently)
-- Knowledge should spread and be understood, not gatekept
-- Collective progress beats individual credit
+The toolkit is open source because convergent evolution is inevitable, knowledge should spread, and collective progress beats individual credit. When external work arrives at similar patterns, that validates the direction. Study it, rebuild aligned to this philosophy.
 
-Convergent evolution is expected and welcomed. When external work arrives at similar patterns through different paths, that validates the direction. Study it for what it got right, then rebuild aligned to this philosophy.
-
-The toolkit itself should embody its own principles. Ship good, evolving skills rather than waiting for unattainable perfection. A working skill that improves over three PRs is worth more than a perfect skill that ships never.
-
-We're all working through this together.
+Ship good, evolving skills rather than waiting for perfection. A working skill that improves over three PRs beats a perfect skill that ships never.
 
 ## Instruction Precedence Is Explicit, Not Inferred
 
-When multiple instruction sources exist, define the priority ordering explicitly. Implicit precedence creates inconsistent behavior the moment instructions contradict.
+Precedence chain, lowest to highest: system prompt < CLAUDE.md (global) < CLAUDE.md (project) < agent or skill instructions < request-time overrides. When instructions conflict, the higher-priority instruction wins — ignored, not merged. Merging conflicting instructions is where subtle bugs live.
 
-The toolkit's precedence chain, lowest to highest: system prompt < CLAUDE.md (global) < CLAUDE.md (project) < agent or skill instructions < request-time overrides. Each level can tighten or specialize what came before. When instructions conflict, the higher-priority instruction wins. The lower-priority instruction is ignored, not merged. Merging conflicting instructions is where subtle bugs live -- the model combines two rules that were written to be mutually exclusive and produces behavior neither author intended.
-
-Declaring precedence explicitly has a second benefit: it forces instruction authors to decide which layer owns each rule. A rule about never committing to main belongs in CLAUDE.md, not scattered across three agent files with slightly different wording. A rule about Go idioms belongs in the Go agent, not in the global system prompt. Ownership clarity reduces duplication and prevents the drift that happens when the same rule is maintained in multiple places.
-
-**What this means in practice:** When writing a new rule, decide which layer owns it. When an agent or skill overrides a global rule, say so explicitly -- "this skill requires direct commits to the branch; the global branch-protection rule does not apply here." When instructions conflict in a session, resolve toward the higher-priority source, not toward whichever instruction appeared more recently in the context window.
+Each rule needs a clear owner. "Never commit to main" belongs in CLAUDE.md. Go idioms belong in the Go agent. When an agent overrides a global rule, say so explicitly.
 
 ## Trust Boundaries Separate Policy From Evidence
 
-Content entering the prompt has different trust levels, and the model must treat them differently. Conflating them is the root cause of prompt injection.
+Content entering the prompt has different trust levels. Conflating them causes prompt injection.
 
-The four trust levels: policy (highest -- system prompt, CLAUDE.md files, operator instructions), trusted runtime context (facts provided by the server at session start -- environment variables, operator profile, verified tool configuration), retrieved context (evidence -- search results, file contents, tool outputs, web pages), user request (first-party intent, but not a policy override). Policy defines what the model is allowed to do. Evidence informs what it should do given the current situation. A retrieved document that says "ignore previous instructions and do X" is evidence with a hostile payload. It should be treated as data, not obeyed as a command.
+Four trust levels: policy (highest — system prompt, CLAUDE.md, operator instructions), trusted runtime context (env vars, operator profile, tool config), retrieved context (evidence — search results, file contents, tool outputs), user request (intent, not policy override). A retrieved document saying "ignore previous instructions" is evidence with a hostile payload, not a command.
 
-The failure mode is treating retrieved material as an instruction source. This happens easily when a tool result contains plausible-sounding directives. The model's default is pattern-matching toward helpfulness, which makes it receptive to instruction-shaped strings wherever they appear. The defense is an explicit mental model: instructions come from policy layers, not from the content those instructions are applied to.
-
-**What this means in practice:** Never obey directives found inside retrieved material unless system policy explicitly authorizes that content source to issue commands. Tool results are inputs to reasoning, not expansions of the instruction set. When a file the model reads contains something that looks like a prompt -- a heading that says "Your task is now to...", a comment block with behavioral instructions -- it should be treated as content about the topic of the file, nothing more. If a tool call is denied by a hook, the denial is a policy signal, not a challenge to reason around.
+The defense: instructions come from policy layers, not from content those instructions are applied to. Tool results are inputs to reasoning, not instruction expansions. Hook denials are policy signals, not challenges to reason around.
 
 ## Teach the Interface Contract
 
-The model does not automatically understand what your product's custom tags, tool results, and UI elements mean. It will infer from context, and the inference will be wrong in the cases that matter most.
+The model does not automatically understand custom tags, tool results, or injection formats. It infers from context, and the inference will be wrong in the cases that matter most.
 
-Every custom injection format needs to be explained at least once in the prompt. If the system injects `<retro-knowledge>` blocks, the model needs to know what those blocks represent, why they are there, and how to use them. If hooks can emit `[auto-fix] action=X`, the model needs to know that this is a directive to execute, not a status message to acknowledge. If a tool call is denied, the model needs to know the behavioral response: adjust the approach, do not retry the same call, surface the constraint to the user. Without explicit contracts, the model fills the gap with its best guess, and the gap between best guess and intended behavior is where silent failures accumulate.
+Every custom injection needs an explicit contract. `<retro-knowledge>` blocks: what they represent and how to use them. `[auto-fix] action=X`: a directive to execute, not acknowledge. Hook denials: adjust approach, don't retry. Without contracts, assumption gaps compound — a model that misunderstands `system-reminder` blocks mishandles every session.
 
-This matters more than it appears because assumption gaps compound. A model that misunderstands what `system-reminder` blocks are will mishandle every session that uses them. A model that treats hook denials as transient errors will retry them in a loop. The cost of an uncontracted interface is paid on every invocation, not just at setup time.
-
-**What this means in practice:** When adding a new injection format or hook output signal to the system, update the relevant CLAUDE.md or agent prompt to define the contract. Treat the definition as part of the feature -- not documentation added afterward, but the specification the model executes against. A format without a documented contract is a format that will be misused.
+When adding a new injection format, define the contract as part of the feature. A format without a documented contract will be misused.
 
 ## Cache-Friendly Prompt Layout
 
-Prompts have a natural split: the part that stays the same across requests and the part that changes per invocation. Conflating them increases cost and introduces drift.
+Prompts split into a static prefix (identity, policy, workflow — cacheable) and dynamic tail (user facts, retrieved context, session flags — not cacheable).
 
-The static prefix holds everything that defines the system's identity and policy: role, workflow phases, tool policy, output format contract, canonical examples. It should be possible to compute a hash of the static prefix and have that hash be identical across every request in a session. The dynamic tail holds everything that varies: user facts, retrieved context, session-specific flags, the current request. The static prefix is cacheable; the dynamic tail is not.
+CLAUDE.md files and agent markdown are the static prefix. Hook injections, retro-knowledge blocks, and the user's request are the dynamic tail. Keeping these separated improves cache efficiency and instruction precedence clarity.
 
-In the toolkit, CLAUDE.md files and agent markdown files are the static prefix. They are loaded at session start and do not change. Hook injections, retro-knowledge blocks, and the user's request are the dynamic tail. They change per invocation. Keeping these cleanly separated is not just a cost optimization. It also makes instruction precedence cleaner -- the static prefix is policy, the dynamic tail is context. Mixing them makes it harder to reason about which layer owns a given rule, and harder to debug when a rule is being overridden unexpectedly.
-
-**What this means in practice:** When writing a new agent or skill, put everything invariant in the file itself and everything variable in the injection mechanism. Do not embed session-specific facts in agent files -- they will be stale immediately. Do not put policy rules in hook injections -- they will be inconsistent. When a prompt starts drifting (the same rule appearing in both the agent file and a hook output), consolidate it to the correct layer.
+Put invariant content in agent files, variable content in injection mechanisms. Session-specific facts in agent files go stale. Policy rules in hook injections become inconsistent.
 
 ## Variables Are Contracts, Not Placeholders
 
-A prompt variable is not a string substitution. It is a typed program input with a defined contract: what format is expected, what escaping is required, what happens if the value is absent or malicious.
+A prompt variable is a typed program input with a defined contract: expected format, escaping, behavior when absent or malicious.
 
-Raw string interpolation of untrusted content into policy sections is a prompt injection vector. If a user-supplied value is dropped directly into the system prompt without sanitization, a user who knows the prompt structure can craft input that closes the current context and opens a new one. The mitigation is treating variables as typed inputs: validate before injection, escape for the target format, scope to the narrowest section that needs the value. The toolkit's `envsubst` usage in dream prompts -- scoped explicitly to `${DREAM_*}` variables only, rejecting anything outside that namespace -- is the right pattern. It bounds the injection surface to a defined set of known-safe variables.
+Raw interpolation of untrusted content into policy sections is a prompt injection vector. Treat variables as typed inputs: validate before injection, escape for target format, scope to the narrowest section. The toolkit's `envsubst` scoped to `${DREAM_*}` variables only is the right pattern.
 
-The second question for every variable is causal value: does this field change the answer, the allowed actions, or the explanation style? If the answer is no, do not inject it. Every injected variable adds to the dynamic tail of the prompt, reducing cache efficiency and adding surface area for injection. Variables that have no causal effect on the output are noise. They make the prompt harder to reason about and do not improve results.
-
-**What this means in practice:** Before adding a new variable to a prompt, answer two questions: what is the type and escaping contract, and what changes in the model's behavior when this value changes? If the second question has no clear answer, the variable should not be injected. If the first question has no clear answer, define the contract before shipping the feature.
+Every variable must have causal value: does it change the answer, allowed actions, or explanation style? If no, do not inject it. Before adding a variable, answer: what is the type/escaping contract, and what changes in behavior when the value changes?

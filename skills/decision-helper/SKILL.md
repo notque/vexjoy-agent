@@ -29,27 +29,27 @@ routing:
 
 # Decision Helper Skill
 
-Structured weighted scoring for architectural and technology choices. Runs inline (no context fork) -- users adjust criteria and weights interactively.
+Structured weighted scoring for architectural and technology choices. Runs inline (no context fork) because users adjust criteria and weights interactively.
 
 ## Instructions
 
 ### Step 1: Frame the Decision
 
-**Goal**: Turn the question into a clear, scorable decision.
+**Goal**: Turn the user's question into a clear, scorable decision.
 
-- State the decision in one sentence
-- List 2-4 concrete options. More than 4: help eliminate or group before proceeding -- larger matrices dilute focus and invite paralysis
-- Identify hard constraints that eliminate options immediately (e.g., "must be MIT licensed")
+- State the decision in one sentence (e.g., "Which HTTP router should we use for the API service?")
+- List 2-4 concrete options. If the user provides more than 4, help them eliminate or group options before proceeding -- never score more than 4 at once because larger matrices dilute focus and invite analysis paralysis
+- Identify hard constraints that eliminate options immediately (e.g., "must be MIT licensed" eliminates Option C)
 
-If the request is too vague, ask clarifying questions. Do not guess at options. Run the full framework even when a quick answer feels tempting.
+If the user's request is too vague to frame, ask clarifying questions. Do not guess at options. If someone invoked this skill, the decision is not obvious -- run the full framework even when a quick answer feels tempting.
 
-**Gate**: Decision defined, 2-4 options listed, hard constraints applied.
+**Gate**: Decision statement defined, 2-4 options listed, hard constraints applied.
 
 ### Step 2: Define Criteria
 
-**Goal**: Establish what matters and how much.
+**Goal**: Establish what matters for this decision and how much.
 
-Present default criteria unless the user provides custom ones. Ask if they want to adjust.
+Present the default criteria table unless the user provides custom criteria. Ask if they want to adjust weights or add/remove criteria.
 
 | Criterion | Weight | What It Measures |
 |-----------|--------|-----------------|
@@ -61,38 +61,40 @@ Present default criteria unless the user provides custom ones. Ask if they want 
 | Familiarity | 2 | Team/user comfort with this approach |
 | Ecosystem | 1 | Library support, documentation, community |
 
-Correctness dominates because a wrong solution has zero value. Complexity/Maintainability/Risk are long-term cost. Effort/Familiarity are temporary. Ecosystem rarely decides between otherwise-equal options.
+WHY these defaults: Correctness dominates because a wrong solution has zero value regardless of other factors. Complexity/Maintainability/Risk form a middle tier because they determine long-term cost. Effort/Familiarity are lower because they're temporary (teams learn, effort is one-time). Ecosystem is lowest because it rarely decides between otherwise-equal options.
 
-Use defaults unless strong reason to change. Set weights before scoring -- adjusting weights after seeing results to make a preferred option win is confirmation bias.
+Use defaults unless the user has a strong reason to change them. Agonizing over whether Complexity should be weight 3 or 4 rarely changes the outcome -- the framework exists to make decisions faster, not slower. Set weights before scoring; adjusting weights after seeing results to make a preferred option win is confirmation bias with extra steps.
 
-For sensitivity analysis, re-score with adjusted weights after the initial pass to test stability.
+If the user wants sensitivity analysis, re-score with adjusted weights after the initial pass to test recommendation stability.
 
-**Gate**: Criteria and weights confirmed.
+**Gate**: Criteria and weights confirmed (default or custom).
 
 ### Step 3: Score Each Option
 
-**Goal**: Rate each option 1-10 per criterion with justification.
+**Goal**: Rate each option against each criterion with justification.
 
-Score 1-3 poor, 4-6 adequate, 7-9 strong, 10 exceptional. One-sentence justification per score.
+Score every criterion 1-10 (1-3 poor, 4-6 adequate, 7-9 strong, 10 exceptional). Provide a one-sentence justification per score -- this prevents arbitrary numbers and makes disagreements productive.
 
-Calculate: `sum(score * weight) / sum(weights)`
+Calculate weighted score: `sum(score * weight) / sum(weights)`
 
-Scores are subjective estimates. A 0.03 difference is noise, not signal.
+Treat scores as subjective estimates, not measurements. A difference of 0.03 between two options is noise, not signal -- the close-call detection in Step 4 handles this.
 
 **Gate**: All options scored, all scores justified, weighted scores calculated.
 
 ### Step 4: Analyze Results
 
-**Goal**: Interpret scores and recommend.
+**Goal**: Interpret the scores and provide a clear recommendation.
 
-Apply in order:
+Apply these rules in order:
 
-1. **No Good Option** (all <6.0): Flag. Suggest alternatives or revisiting constraints.
-2. **Close Call** (top two within 0.5): Flag as "close call -- additional factors should decide." Identify which criteria drive the difference. Never dismiss with "just pick one."
-3. **Clear Winner** (leads by >0.5): Recommend. Note which high-weight criteria drove it.
-4. **Dominant Option** (leads on ALL weight-5 criteria): Note dominance -- high-confidence recommendation.
+1. **No Good Option** (all weighted scores <6.0): Flag that none of the options are strong. Suggest the user explore alternatives or revisit constraints
+2. **Close Call** (top two within 0.5): Always flag as "close call -- additional factors should decide." Identify which criteria drive the difference and ask the user what matters most. Never hand-wave a close call with "close enough, just pick one" -- these deserve explicit acknowledgment
+3. **Clear Winner** (top option leads by >0.5): Recommend the winner. Note which high-weight criteria drove the result
+4. **Dominant Option** (top option leads on ALL weight-5 criteria): Note the dominance -- this is a high-confidence recommendation
 
-If the matrix contradicts intuition, do not override the math. Ask which criterion is missing or mis-weighted. Add it, re-score. If still disagrees, trust the matrix.
+If the matrix contradicts the user's intuition, do not override the math. Instead, ask which criterion is missing or mis-weighted. Add it, re-score, and see if the matrix now agrees. If it does, you found the hidden factor. If it still disagrees, trust the matrix -- it surfaces the reasoning that gut feelings obscure.
+
+Present the output table:
 
 ```
 ## Decision: [statement]
@@ -108,25 +110,27 @@ If the matrix contradicts intuition, do not override the math. Ask which criteri
 | Ecosystem (1)       | 7        | 6        | 8        |
 | **Weighted Score**  | **7.0**  | **6.7**  | **5.2**  |
 
-**Recommendation**: Option A (7.0) -- [key reasoning]
+**Recommendation**: Option A (7.0) — [key reasoning]
 **Confidence**: High / Medium (scores within 0.5) / Low (no option >6.0)
 ```
 
-**Gate**: Recommendation stated with confidence. Close calls flagged.
+**Gate**: Recommendation stated with confidence level. Close calls flagged.
 
 ### Step 5: Persist Decision
 
 **Goal**: Record the decision for future reference.
 
+Check for an active ADR session:
+
 ```bash
 cat .adr-session.json 2>/dev/null
 ```
 
-**If ADR exists**: Append decision record (statement, options, winner, reasoning, confidence, date).
+**If ADR exists**: Append a decision record (statement, options, winner, key reasoning, confidence, date) to the ADR's decisions section.
 
-**If no ADR**: Note in active task plan (`plan/active/*.md`). If neither exists, present the record to the user.
+**If no ADR**: Note the decision in the active task plan (`plan/active/*.md`). If neither exists, present the record to the user for manual recording.
 
-User can skip persistence for informal exploration.
+The user can skip persistence for informal exploration by requesting it.
 
 **Gate**: Decision recorded or presented. Workflow complete.
 
@@ -135,16 +139,16 @@ User can skip persistence for informal exploration.
 ## Error Handling
 
 ### Error: "Too many options"
-**Cause**: 5+ options
-**Solution**: Group similar options or eliminate clearly inferior ones. Score remaining 2-4.
+**Cause**: User presents 5+ options
+**Solution**: Help decompose. Group similar options or eliminate clearly inferior ones first. Then score the remaining 2-4.
 
 ### Error: "Criteria don't fit this decision"
-**Cause**: Default criteria irrelevant (e.g., scoring a content strategy)
-**Solution**: Ask for custom criteria. Suggest domain-appropriate alternatives.
+**Cause**: Default criteria aren't relevant (e.g., scoring a content strategy, not a technical choice)
+**Solution**: Ask the user to define custom criteria. Suggest domain-appropriate alternatives.
 
 ### Error: "Scores feel wrong"
-**Cause**: User disagrees with a score
-**Solution**: Adjust and recalculate. If many feel wrong, revisit criteria.
+**Cause**: User disagrees with a score after seeing the matrix
+**Solution**: Adjust the score and recalculate. The matrix is a tool for the user, not an authority over them. If many scores feel wrong, the criteria may need revisiting.
 
 ---
 
@@ -154,8 +158,10 @@ User can skip persistence for informal exploration.
 
 ### Reference Loading Table
 
+Load these files when the corresponding signals appear in the decision request:
+
 | Signal | Reference File | What It Adds |
 |--------|---------------|-------------|
-| "build vs buy", "vendor", "SaaS", "self-host", database, cloud provider, framework, library, API design | `references/decision-archetypes.md` | Archetype-specific weight adjustments, hard-constraint checklists, detection commands |
-| User adjusts weights after scoring, adds options mid-scoring, scores feel arbitrary | `references/decision-preferred-patterns.md` | Anti-pattern identification, intervention scripts, error-fix mappings |
-| 5+ options, close call (<0.5 margin), repeated score changes | `references/decision-preferred-patterns.md` | Structural anti-patterns and fixes |
+| "build vs buy", "vendor", "SaaS", "self-host", database, cloud provider, framework, library, API design | `references/decision-archetypes.md` | Archetype-specific criteria weight adjustments, hard-constraint checklists, detection commands |
+| User adjusts weights after scoring, adds options mid-scoring, scores feel arbitrary, "something feels off" | `references/decision-preferred-patterns.md` | Anti-pattern identification, intervention scripts, error-fix mappings |
+| 5+ options presented, close call (<0.5 margin), repeated score changes | `references/decision-preferred-patterns.md` | Structural anti-patterns and fixes |

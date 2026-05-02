@@ -20,7 +20,7 @@ routing:
 
 # Kubernetes Debugging Skill
 
-Systematic diagnosis of pod failures, networking issues, and resource problems: describe, logs, events, exec.
+Systematic diagnosis of pod failures, networking issues, and resource problems using a structured triage flow: describe, logs, events, exec.
 
 ## Reference Loading Table
 
@@ -30,43 +30,43 @@ Systematic diagnosis of pod failures, networking issues, and resource problems: 
 | service resolution, DNS, nslookup, CoreDNS, port-forward, NetworkPolicy, ingress, egress | `references/network-debugging.md` | ~50 lines |
 | CPU throttling, memory limit, OOMKill, ephemeral storage, DiskPressure, debug container, distroless, kubectl reference, rollout, exec | `references/resource-debugging.md` | ~100 lines |
 
-**Load greedily.** If the user's question touches any signal keyword, load the matching reference before responding. Multiple matches = load all.
+**Load greedily.** If the user's question touches any signal keyword, load the matching reference before responding. Multiple signals matching = load all matching references.
 
 ## Instructions
 
 ### Triage Flow
 
-Follow this sequence for every pod or workload issue. Do not skip steps -- scheduling, image pull, and volume mount failures are only visible in events and describe output, not logs.
+Follow this sequence for every pod or workload issue. Do not skip steps -- many failures (scheduling, image pull, volume mount) are only visible in events and describe output, not in logs, so jumping straight to logs misses them.
 
-Always specify `-n <namespace>` in every command. Never rely on default context namespace.
+Always specify `-n <namespace>` explicitly in every command; never rely on the default context namespace, because the wrong namespace silently returns empty or misleading results.
 
 ```bash
-# 1. Overview of resource state
+# 1. Get an overview of the resource state
 kubectl get pods -n <namespace> -o wide
 
-# 2. Describe for events, conditions, status
+# 2. Describe the resource for events, conditions, and status
 kubectl describe pod <pod-name> -n <namespace>
 
-# 3. Current container logs
+# 3. Check current container logs
 kubectl logs <pod-name> -n <namespace> -c <container-name>
 
-# 4. Previous container logs (critical for CrashLoopBackOff)
-# Check --previous before current for crashed containers;
-# restarting the pod destroys these logs permanently.
+# 4. Check previous container logs (critical for CrashLoopBackOff)
+# Always check --previous before current logs for crashed containers,
+# because deleting or restarting the pod destroys these logs permanently.
 kubectl logs <pod-name> -n <namespace> -c <container-name> --previous
 
-# 5. Namespace events sorted by time
+# 5. Check namespace events sorted by time
 kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 
-# 6. If container is running, exec in for live inspection
+# 6. If the container is running, exec in for live inspection
 kubectl exec -it <pod-name> -n <namespace> -c <container-name> -- /bin/sh
 ```
 
-Use read-only commands to gather evidence before proposing modifications. Never suggest changes based on assumptions.
+Use read-only commands (describe, logs, get) to gather evidence before proposing any modifications. Never suggest changes based on assumptions -- gather diagnostic output first.
 
 ### Diagnosis Routing
 
-Based on triage output, load the appropriate reference:
+Based on triage output, load the appropriate reference and follow its diagnosis flow:
 
 | Symptom | Reference |
 |---------|-----------|
@@ -75,7 +75,7 @@ Based on triage output, load the appropriate reference:
 | CPU throttling, OOMKill, disk pressure, need debug container | `references/resource-debugging.md` |
 
 ### Error: "no endpoints available for service"
-Cause: Service selector does not match any running pod labels.
+Cause: The Service selector does not match any running pod labels.
 Solution: Compare `kubectl get svc <name> -o yaml` selector with `kubectl get pods --show-labels`. Fix the label mismatch.
 
 ---

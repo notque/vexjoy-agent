@@ -1,16 +1,9 @@
 # Database Performance Reference
 
-> **Scope**: Index selection, query optimization, connection pooling, and EXPLAIN plan interpretation
-> **Version range**: PostgreSQL 14+ / MySQL 8.0+ (notes where they differ)
-> **Generated**: 2026-04-04 — benchmark before applying any optimization
+> **Scope**: Index selection, query optimization, connection pooling, EXPLAIN interpretation
+> **Version range**: PostgreSQL 14+ / MySQL 8.0+
 
----
-
-## Overview
-
-Database performance problems fall into three categories: the query is doing too much work (wrong query plan, missing index), the database is doing the right work but slowly (connection saturation, lock contention), or the schema makes efficient querying impossible (no partition, wrong column type). Always get an EXPLAIN plan before adding an index — the plan tells you what's slow and why.
-
----
+Three categories: wrong query plan/missing index, connection saturation/lock contention, schema prevents efficient queries. Always EXPLAIN before adding an index.
 
 ## Pattern Table: Index Selection
 
@@ -45,7 +38,7 @@ CREATE INDEX idx_users_email_covering ON users(email)
 SELECT id, name, created_at FROM users WHERE email = $1;
 ```
 
-**Why**: On large tables, heap fetches involve random disk I/O for each result row. An index-only scan reads only the index (sequential I/O). For queries that return many rows from a large table, this is 10-100× faster.
+Index-only scan avoids heap fetches (random disk I/O). 10-100x faster for many-row queries on large tables.
 
 ---
 
@@ -67,7 +60,7 @@ ORDER BY created_at DESC LIMIT 20;
 -- Should show: Index Scan using idx_orders_correct
 ```
 
-**Why**: B-tree indexes are traversed left-to-right. The query planner can skip a range-column prefix but not an equality-column prefix. Putting equality before range allows the index to filter both conditions.
+B-tree traversal is left-to-right. Equality before range allows filtering both conditions.
 
 ---
 
@@ -102,7 +95,7 @@ engine = create_engine(
 )
 ```
 
-**Why**: PostgreSQL has a hard limit on concurrent connections (default 100). Each connection uses ~5-10MB RAM. A 100-connection pool with 20 workers × 5 connections each = connection exhaustion. PgBouncer multiplexes thousands of application connections onto a small PostgreSQL connection pool.
+PostgreSQL: default 100 connections, ~5-10MB RAM each. PgBouncer multiplexes thousands of app connections onto a small pool.
 
 ---
 
@@ -134,7 +127,7 @@ WHERE state != 'idle'
 ORDER BY duration DESC;
 ```
 
-**Why**: Lock pile-ups are multiplicative: one long-running transaction blocks one query, which holds a lock that blocks five more, which hold locks that block twenty more. Finding the root blocker early prevents cascading failures.
+Lock pile-ups are multiplicative. Finding the root blocker early prevents cascading failures.
 
 ---
 
@@ -177,9 +170,9 @@ CREATE INDEX idx_users_country ON users(country);
 -- Plus 4 more indexes that are never queried
 ```
 
-**Why this matters**: Every index slows down writes (INSERT/UPDATE/DELETE must update all indexes). A table with 10 indexes has 10× write amplification. Index maintenance during VACUUM is slower. Buffer cache fills with index pages instead of table data.
+**Why**: 10 indexes = 10x write amplification. VACUUM slower. Buffer cache fills with index pages.
 
-**Preferred action:** Check `pg_stat_user_indexes.idx_scan = 0` after running the application under production load for 1+ weeks. Drop indexes with zero usage. Keep only indexes that serve known query patterns.
+**Fix**: Check `pg_stat_user_indexes.idx_scan = 0` after 1+ weeks production load. Drop zero-usage indexes.
 
 ---
 
@@ -202,9 +195,9 @@ ALTER TABLE orders ADD COLUMN processed BOOLEAN NOT NULL DEFAULT false;
 -- PostgreSQL < 11: rewrites entire table with new column!
 ```
 
-**Why this matters**: On PostgreSQL < 11, adding a column with a default value requires rewriting the entire table. On a 500GB table, this takes hours with an ExclusiveLock that blocks ALL reads and writes.
+**Why**: PostgreSQL < 11 rewrites entire table. 500GB = hours with ExclusiveLock blocking all reads/writes.
 
-**Preferred action:**
+**Fix**:
 ```sql
 -- PostgreSQL 11+: adding column with DEFAULT is safe (metadata only), do it directly
 
@@ -238,9 +231,9 @@ WHERE state = 'active'
 
 **Signal**: Application has no statement timeout configured. A user runs `SELECT * FROM orders` (full table scan, no WHERE clause) that runs for 30 minutes and holds shared locks.
 
-**Why this matters**: Long-running queries on PostgreSQL prevent autovacuum from cleaning dead rows (transaction ID wraparound risk), hold shared memory, and block DDL operations that need ExclusiveLock.
+**Why**: Long queries prevent autovacuum, hold shared memory, block DDL.
 
-**Preferred action:**
+**Fix**:
 ```sql
 -- Set per-session timeout (application layer)
 SET statement_timeout = '30s';

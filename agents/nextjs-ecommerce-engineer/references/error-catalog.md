@@ -1,7 +1,7 @@
 # Error Catalog Reference
 <!-- Loaded by nextjs-ecommerce-engineer when task involves error handling, payment failures, webhook errors, or inventory conflicts -->
 
-E-commerce errors fall into four categories: payment failures (user-recoverable), auth errors (session/permission), inventory conflicts (race conditions), and infrastructure errors (rate limits, webhooks).
+Four categories: payment failures (user-recoverable), auth errors (session/permission), inventory conflicts (race conditions), infrastructure errors (rate limits, webhooks).
 
 ## Payment Failures
 
@@ -43,8 +43,8 @@ function mapStripeError(error: Stripe.StripeError): string {
 
 ### Authentication Required (3D Secure)
 **Stripe code:** `authentication_required`
-**What happens:** Bank requires 3DS challenge; `stripe.confirmPayment` triggers the flow automatically with Elements.
-**Recovery:** Handled automatically by Stripe Elements — no special code needed unless using manual confirmation.
+**What happens:** Bank requires 3DS challenge; `stripe.confirmPayment` triggers the flow automatically.
+**Recovery:** Handled automatically by Stripe Elements unless using manual confirmation.
 
 ---
 
@@ -102,7 +102,7 @@ export default async function AdminPage() {
 ## Inventory Conflicts
 
 ### Out of Stock at Checkout
-**When it happens:** Product was in stock when added to cart, sold out before payment confirmation.
+**When:** Product in stock when added to cart, sold out before payment.
 
 ```typescript
 // actions/checkout.ts — validate stock before creating order
@@ -127,11 +127,11 @@ export async function validateCartStock(cartId: string): Promise<{
 }
 ```
 
-Show the user which items are unavailable and offer to adjust quantities or remove items.
+Show user which items are unavailable; offer to adjust quantities or remove items.
 
 ### Oversell Race Condition
-**When it happens:** Two users purchase the last unit simultaneously.
-**Solution:** Atomic transaction with pessimistic lock — see `shopping-cart-patterns.md`.
+**When:** Two users purchase the last unit simultaneously.
+**Fix:** Atomic transaction with pessimistic lock — see `shopping-cart-patterns.md`.
 
 ---
 
@@ -152,8 +152,8 @@ export async function POST(req: Request) {
 **Debugging:** Use `stripe listen` locally to see the exact body and signature Stripe sends.
 
 ### Webhook Timeout
-**Cause:** Handler is doing too much work synchronously.
-**Solution:** Acknowledge immediately, process asynchronously.
+**Cause:** Handler doing too much work synchronously.
+**Fix:** Acknowledge immediately, process asynchronously.
 
 ```typescript
 export async function POST(req: Request) {
@@ -167,11 +167,11 @@ export async function POST(req: Request) {
 }
 ```
 
-Stripe retries with exponential backoff if it doesn't receive a 2xx within 30 seconds.
+Stripe retries with exponential backoff if no 2xx within 30 seconds.
 
 ### Duplicate Webhook Events
 **Cause:** Stripe guarantees at-least-once delivery.
-**Solution:** Always check order/event status before processing. See `stripe-integration.md` webhook idempotency section.
+**Fix:** Check order/event status before processing. See `stripe-integration.md` webhook idempotency section.
 
 ---
 
@@ -223,7 +223,7 @@ Add `?connection_limit=20&pool_timeout=10` to `DATABASE_URL` for higher-traffic 
 
 ## Error Response Patterns
 
-Consistent error shapes make client-side error handling predictable:
+Consistent error shapes for predictable client-side handling:
 
 ```typescript
 // types/api.ts

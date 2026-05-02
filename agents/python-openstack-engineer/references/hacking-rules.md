@@ -1,14 +1,8 @@
 # OpenStack Hacking Rules Reference
 
-> **Scope**: H-series PEP 8 extensions enforced by `hacking` package in OpenStack services. Does not cover standard PEP 8 rules (covered by pycodestyle/flake8).
-> **Version range**: hacking 6.x+ (used with flake8 5.x+, tox -e pep8)
-> **Generated**: 2026-04-09 — verify against https://docs.openstack.org/hacking/latest/
-
----
-
-## Overview
-
-OpenStack uses a custom `hacking` flake8 plugin that enforces community conventions beyond PEP 8. Rules are in the H100-H900 range. The most commonly violated are H201 (bare except), H301-H307 (import ordering), and H501 (old-style string formatting). All must pass `tox -e pep8` before any patch can merge via Gerrit.
+> **Scope**: H-series PEP 8 extensions enforced by `hacking` package. Does not cover standard PEP 8.
+> **Version range**: hacking 6.x+ (flake8 5.x+, tox -e pep8)
+> **Generated**: 2026-04-09
 
 ---
 
@@ -19,15 +13,14 @@ OpenStack uses a custom `hacking` flake8 plugin that enforces community conventi
 | H201 | No bare `except:` | Hard block |
 | H202 | No `except Exception:` without re-raise | Warning |
 | H301 | No `import` of multiple modules per line | Hard block |
-| H302 | No `import` of full module when `from … import` available | Warning |
-| H303 | No wildcard imports (`from foo import *`) | Hard block |
+| H302 | No full module import when `from … import` available | Warning |
+| H303 | No wildcard imports | Hard block |
 | H304 | No relative imports | Hard block |
-| H306 | Imports not in alphabetical order within group | Warning |
-| H307 | Module-level `__all__` exports must list all public names | Informational |
+| H306 | Alphabetical order within import groups | Warning |
 | H401 | No docstring starting with a space | Warning |
-| H501 | No `%s` string formatting with `locals()` or `self.__dict__` | Hard block |
-| H701 | No `i18n` import from `oslo.i18n` old namespace | Hard block |
-| H903 | Windows line endings not allowed | Hard block |
+| H501 | No `%s` formatting with `locals()` or `self.__dict__` | Hard block |
+| H701 | No i18n import from old `oslo.i18n` namespace | Hard block |
+| H903 | No Windows line endings | Hard block |
 
 ---
 
@@ -35,10 +28,7 @@ OpenStack uses a custom `hacking` flake8 plugin that enforces community conventi
 
 ### H201 — Specific Exception Handling
 
-Always name the exception class. Catching `Exception` is acceptable only when you re-raise.
-
 ```python
-# Correct: specific exception
 try:
     result = nova_client.servers.get(server_id)
 except nova_exceptions.NotFound:
@@ -47,11 +37,11 @@ except nova_exceptions.ClientException as exc:
     LOG.error('Nova API error: %s', exc)
     raise
 
-# Correct: catching Exception when re-raising
+# Exception acceptable when re-raising
 try:
     do_risky_thing()
 except Exception:
-    LOG.exception('Unexpected error during risky_thing')
+    LOG.exception('Unexpected error')
     raise
 ```
 
@@ -59,10 +49,9 @@ except Exception:
 
 ### H301/H303/H304 — Import Conventions
 
-Imports must be: one per line, no wildcards, no relative paths, ordered stdlib → third-party → project.
+One per line, no wildcards, no relative paths, ordered stdlib -> third-party -> project.
 
 ```python
-# Correct import order and style
 import os
 import sys
 
@@ -79,11 +68,8 @@ from myservice import utils
 ### H501 — No locals()/self.__dict__ in % formatting
 
 ```python
-# Correct
 LOG.error('Server %(server_id)s not found in zone %(zone)s',
           {'server_id': server_id, 'zone': zone})
-
-# Correct (modern oslo.log style)
 LOG.info('Created resource %s', resource.id)
 ```
 
@@ -92,12 +78,7 @@ LOG.info('Created resource %s', resource.id)
 ### H701 — i18n Import from New Namespace
 
 ```python
-# Correct: project-specific i18n module
 from myservice.i18n import _
-from myservice.i18n import _LE  # error log messages (oslo <= 3.x)
-from myservice.i18n import _LW  # warning log messages (oslo <= 3.x)
-
-# In modern oslo.log (5.x+), just use _ for user-facing exceptions
 raise exception.ResourceNotFound(msg=_('Resource %s not found') % res_id)
 ```
 
@@ -112,17 +93,6 @@ raise exception.ResourceNotFound(msg=_('Resource %s not found') % res_id)
 grep -rn 'except:' --include="*.py"
 rg 'except:\s*$' --type py
 ```
-
-**Signal**:
-```python
-try:
-    result = db.get_resource(context, resource_id)
-except:   # H201 — catches SystemExit, KeyboardInterrupt, GeneratorExit
-    LOG.warning('Resource not found')
-    return None
-```
-
-**Why this matters**: Catches `SystemExit` and `KeyboardInterrupt`, preventing clean service shutdown. `tox -e pep8` hard blocks this.
 
 **Preferred action**:
 ```python
@@ -140,22 +110,9 @@ except exception.ResourceNotFound:
 **Detection**:
 ```bash
 grep -rn 'from .* import \*' --include="*.py"
-rg 'from \S+ import \*' --type py
 ```
 
-**Signal**:
-```python
-from oslo_config.cfg import *
-from myservice.common import *
-```
-
-**Why this matters**: Pollutes namespace, breaks introspection, makes `tox -e pep8` fail, and hides dependency chain from code review tools like Zuul.
-
-**Preferred action**: Import only what you use explicitly.
-
-```python
-from oslo_config.cfg import CONF, StrOpt, IntOpt
-```
+**Preferred action**: `from oslo_config.cfg import CONF, StrOpt, IntOpt`
 
 ---
 
@@ -164,22 +121,11 @@ from oslo_config.cfg import CONF, StrOpt, IntOpt
 **Detection**:
 ```bash
 grep -rn 'from \.' --include="*.py" | grep -v "test\|#"
-rg 'from \.' --type py
 ```
 
-**Signal**:
-```python
-from .utils import format_id
-from ..exception import ResourceNotFound
-```
+OpenStack enforces absolute imports. Relative imports break `oslo-config-generator`, tox, and Zuul.
 
-**Why this matters**: OpenStack enforces absolute imports throughout. Relative imports break `oslo-config-generator`, tox environments, and Zuul dependency resolution.
-
-**Preferred action**:
-```python
-from myservice.common.utils import format_id
-from myservice import exception
-```
+**Preferred action**: `from myservice.common.utils import format_id`
 
 ---
 
@@ -188,21 +134,12 @@ from myservice import exception
 **Detection**:
 ```bash
 grep -rn 'locals()\|self\.__dict__' --include="*.py" | grep '%'
-rg '% (locals|self\.__dict__)' --type py
 ```
 
-**Signal**:
-```python
-msg = 'Creating %(resource_type)s for user %(user_id)s' % locals()
-LOG.debug('State: %(state)s timeout: %(timeout)s' % self.__dict__)
-```
-
-**Why this matters**: `locals()` captures entire local scope including sensitive values (passwords, tokens). Implicit coupling makes refactoring silently break string formatting.
+`locals()` captures entire scope including sensitive values.
 
 **Preferred action**:
 ```python
-msg = ('Creating %(resource_type)s for user %(user_id)s'
-       % {'resource_type': resource_type, 'user_id': user_id})
 LOG.debug('State: %s timeout: %s', self.state, self.timeout)
 ```
 
@@ -212,32 +149,22 @@ LOG.debug('State: %s timeout: %s', self.state, self.timeout)
 
 | `tox -e pep8` Output | Rule | Fix |
 |----------------------|------|-----|
-| `H201 no 'except:' at module scope` | H201 | Replace `except:` with specific exception class |
-| `H303 no wildcard imports` | H303 | Replace `from x import *` with explicit names |
-| `H304 No relative imports` | H304 | Change `from .utils` to `from myservice.utils` |
-| `H306 imports not in alphabetical order` | H306 | Sort imports alphabetically within each group |
-| `H501 Do not use self.__dict__` | H501 | Replace with explicit `{'key': self.key}` dict |
-| `H701 DEPRECATED oslo.i18n` | H701 | Change `from oslo.i18n import _` to project-local `from myservice.i18n import _` |
+| `H201 no 'except:'` | H201 | Specific exception class |
+| `H303 no wildcard imports` | H303 | Explicit names |
+| `H304 No relative imports` | H304 | `from myservice.utils` |
+| `H306 imports not alphabetical` | H306 | Sort within groups |
+| `H501 Do not use self.__dict__` | H501 | Explicit dict |
+| `H701 DEPRECATED oslo.i18n` | H701 | `from myservice.i18n import _` |
 
 ---
 
 ## Running the Checks
 
 ```bash
-# Full pep8 check (same as CI)
-tox -e pep8
-
-# Run hacking checks only (faster, no format checks)
-flake8 --select=H myservice/
-
-# Check a single file
-flake8 --select=H myservice/api/v1/resources.py
-
-# Show all H-rules currently configured
-grep -r "H[0-9]\{3\}" tox.ini setup.cfg
-
-# Auto-detect what rules are active
-flake8 --select=H --show-pep8 myservice/
+tox -e pep8                                    # Full check (same as CI)
+flake8 --select=H myservice/                   # Hacking only
+flake8 --select=H myservice/api/v1/resources.py  # Single file
+grep -r "H[0-9]\{3\}" tox.ini setup.cfg       # Show configured rules
 ```
 
 ---

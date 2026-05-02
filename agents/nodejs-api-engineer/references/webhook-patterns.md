@@ -12,7 +12,7 @@ description: Webhook processing patterns — signature verification, idempotency
 
 ## Overview
 
-Webhooks fail in two distinct phases: verification (signature check, replay prevention) and processing (idempotency, error handling). A webhook handler that crashes mid-processing causes the sender to retry — which may execute the same business logic twice. The correct architecture separates acknowledgment (fast HTTP 200) from processing (durable queue).
+Two failure phases: verification (signature, replay prevention) and processing (idempotency, error handling). Correct architecture: separate acknowledgment (fast 200) from processing (durable queue).
 
 ---
 
@@ -31,7 +31,7 @@ Webhooks fail in two distinct phases: verification (signature check, replay prev
 
 ### Raw Body Preservation for Signature Verification
 
-Stripe and GitHub sign the raw request body. Once `express.json()` parses it, the original bytes are gone and the signature check fails.
+Stripe and GitHub sign the raw body. Once `express.json()` parses it, original bytes are gone and signature check fails.
 
 ```typescript
 import express from 'express';
@@ -61,13 +61,13 @@ app.post('/webhooks/stripe', (req, res) => {
 });
 ```
 
-**Why**: `express.raw()` captures the original bytes. After `express.json()` runs, `req.body` is a parsed object — re-serializing it changes whitespace and ordering, breaking the HMAC.
+**Why**: After `express.json()`, `req.body` is a parsed object. Re-serializing changes whitespace/ordering, breaking the HMAC.
 
 ---
 
 ### Idempotency with Redis
 
-Store processed event IDs to prevent duplicate processing on retry.
+Store processed event IDs to prevent duplicate processing.
 
 ```typescript
 import { createClient } from 'redis';
@@ -115,7 +115,7 @@ app.post('/webhooks/stripe', async (req, res) => {
 });
 ```
 
-**Why**: Without idempotency, a failed handler causes Stripe to retry. On retry, `payment.succeeded` fires again — duplicate charge fulfillment. Redis `SET NX` is atomic: no two workers can claim the same event ID.
+**Why**: Without idempotency, Stripe retries cause duplicate fulfillment. Redis `SET NX` is atomic: no two workers claim the same event.
 
 ---
 
@@ -155,7 +155,7 @@ app.post('/webhooks/stripe', async (req, res) => {
 });
 ```
 
-**Why**: Stripe requires an HTTP 200 response within 30 seconds. Database operations, email sending, or external API calls can exceed this. Queue offloading guarantees fast acknowledgment. BullMQ's `jobId` deduplication handles retries.
+**Why**: Stripe requires 200 within 30s. DB/email/API calls can exceed this. Queue offloading guarantees fast ack. BullMQ `jobId` deduplicates retries.
 
 ---
 
@@ -180,7 +180,7 @@ app.post('/webhooks/stripe', (req, res) => {
 });
 ```
 
-**Why this matters**: `express.json()` consumes the request stream and replaces `req.body` with a parsed object. The original bytes are gone. `stripe.webhooks.constructEvent()` requires the raw body to recompute the HMAC — it will always throw `No signatures found matching the expected signature for payload`.
+**Why this matters**: `express.json()` consumes the stream. `stripe.webhooks.constructEvent()` requires raw bytes to recompute HMAC — always throws signature mismatch.
 
 **Preferred action**: Register `express.raw({ type: 'application/json' })` on webhook paths before `express.json()` on the general middleware stack.
 
@@ -209,7 +209,7 @@ app.post('/webhooks/stripe', async (req, res) => {
 });
 ```
 
-**Why this matters**: If any operation throws or takes > 30 seconds, Stripe retries the webhook. Without idempotency, the order gets updated twice, two receipts are sent, two shipments triggered. The `res.status(200)` after the operations also means a timeout sends no response at all.
+**Why this matters**: If any operation throws or exceeds 30s, Stripe retries. Without idempotency: duplicate updates, receipts, shipments. Timeout means no response at all.
 
 **Preferred action**: Respond 200 immediately, push to BullMQ for processing.
 
@@ -231,7 +231,7 @@ app.post('/webhooks', async (req, res) => {
 });
 ```
 
-**Why this matters**: If Redis is slow or down, the queue push blocks and may exceed the webhook sender's timeout. The sender retries, causing duplicate queue entries.
+**Why this matters**: If Redis is slow, queue push blocks and may exceed sender's timeout, causing duplicate entries.
 
 **Preferred action**: Respond first, queue second. If Redis is unavailable, log and still return 200 (accept the event, process manually later via retry mechanism):
 ```typescript

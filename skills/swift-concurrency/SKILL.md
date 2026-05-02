@@ -17,24 +17,24 @@ routing:
 
 # Swift Structured Concurrency
 
-Pattern catalog for Swift's structured concurrency: async/await, Actors, TaskGroups, AsyncSequence, Sendable, cancellation. Load the reference matching the question.
+Pattern catalog for Swift's structured concurrency model: async/await, Actors, TaskGroups, AsyncSequence, Sendable, and cancellation. Load the reference file matching the developer's question.
 
 ## Reference Loading Table
 
 | Signal | Reference File | Content |
 |--------|---------------|---------|
-| async/await, Task, Sendable | references/fundamentals.md | async/await, Task/Task.detached, Sendable/@Sendable |
+| async/await, Task, Sendable | references/fundamentals.md | async/await patterns, Task/Task.detached, Sendable/@Sendable |
 | Actor, @MainActor, nonisolated | references/actor-isolation.md | Actor isolation, MainActor UI confinement, nonisolated opt-out |
 | TaskGroup, AsyncSequence, AsyncStream, cancellation | references/task-patterns.md | Structured concurrency, rate-limited groups, streams, cancellation |
 | Anti-patterns, common mistakes | references/preferred-patterns.md | Blocking MainActor, task leaking, actor reentrancy hazard |
 
 ## Key Conventions
 
-- **Prefer structured concurrency** -- `TaskGroup` over loose `Task { }` for automatic cancellation/error propagation
-- **Mark types Sendable** -- enable `-strict-concurrency=complete`, resolve warnings before Swift 6
-- **Use actors for shared mutable state** -- compiler-verified safety, no manual locks
-- **Cancel what you create** -- every stored `Task` needs a cancellation path
-- **Minimize @MainActor surface** -- isolate UI layer only; business logic and networking off main actor
+- **Prefer structured concurrency** -- use `TaskGroup` over loose `Task { }` whenever possible; structured tasks propagate cancellation and errors automatically.
+- **Mark types Sendable** -- enable strict concurrency checking (`-strict-concurrency=complete`) and resolve all warnings before they become errors in Swift 6.
+- **Use actors for shared mutable state** -- avoid manual locks; actors provide compiler-verified safety.
+- **Cancel what you create** -- every `Task` stored in a property should have a corresponding cancellation path.
+- **Minimize @MainActor surface** -- isolate only the UI layer; keep business logic and networking off the main actor.
 
 ## References
 
