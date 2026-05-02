@@ -312,29 +312,27 @@ describe('Payment processing', () => {
 
 ---
 
-## Summary: Testing Automation Checklist
+## Checklist
 
-Before implementing tests, verify:
+1. Test behavior, not implementation details
+2. Each test isolated and independent
+3. Mock only external boundaries
+4. Strong, specific assertions
+5. Proper async waiting (no timeouts)
+6. Happy path + error + edge cases
+7. Run in any order, in parallel
+8. Names describe verified behavior
+9. Setup in beforeEach, not shared variables
+10. <1s per unit test
 
-1. ✅ Testing user-visible behavior, not implementation details
-2. ✅ Each test completely isolated and independent
-3. ✅ Mocking only external dependencies (APIs, databases, third-party services)
-4. ✅ Strong, specific assertions that validate actual behavior
-5. ✅ Proper async waiting strategies (no arbitrary timeouts)
-6. ✅ Coverage of happy path, error cases, and edge cases
-7. ✅ Tests can run in any order and in parallel
-8. ✅ Test names clearly describe what they verify
-9. ✅ Setup/teardown in beforeEach/afterEach, not shared variables
-10. ✅ Fast execution (<1s per test for unit tests)
+## Test Smells
 
-## Common Test Smells
-
-| Smell | Indicator | Fix |
-|-------|-----------|-----|
-| Long test | >50 lines | Break into multiple focused tests |
-| Unclear name | "test1", "it works" | Describe behavior: "displays error when invalid input" |
-| Multiple assertions | Testing 5+ things | One concept per test |
-| Deep setup | 20+ lines of setup | Extract to factory function |
-| setTimeout | Arbitrary waits | Use waitFor with condition |
-| test.skip | Skipped tests | Fix or remove, don't skip |
-| Intermittent failure | Passes 80% of time | Find root cause, don't retry |
+| Smell | Fix |
+|-------|-----|
+| >50 lines | Split into focused tests |
+| "test1", "it works" | Describe behavior |
+| 5+ assertions | One concept per test |
+| 20+ setup lines | Factory function |
+| setTimeout | waitFor with condition |
+| test.skip | Fix or remove |
+| Intermittent failure | Find root cause |

@@ -8,7 +8,7 @@
 
 ## Overview
 
-The technical journalist voice informs without editorial coloring. The most common failure mode is enthusiasm contamination — single words like "amazing" or "seamlessly" break the matter-of-fact register. A second failure mode is persuasive framing ("you should", "you must") that substitutes the author's judgment for evidence. Detection is straightforward because both failure modes are specific lexical items.
+Two failure modes: enthusiasm contamination (words like "amazing", "seamlessly") and persuasive framing ("you should", "you must"). Both are detectable lexical items.
 
 ---
 
@@ -55,7 +55,7 @@ The system is amazing! It elegantly leverages PostgreSQL's powerful MVCC capabil
 to beautifully solve concurrency without compromising performance.
 ```
 
-**Why this matters**: Enthusiasm adjectives make claims that can't be verified. "Powerful" compared to what? "Elegantly" by whose standard? These words add editorializing without adding information. Readers tracking the matter-of-fact register notice immediately and discount subsequent factual claims.
+**Why this matters**: Unverifiable claims. "Powerful" compared to what? Editorializing without information.
 
 **Preferred action:**
 ```
@@ -83,7 +83,7 @@ You absolutely must write documentation! It's the single most important thing
 you can do. Trust me, you'll thank yourself later.
 ```
 
-**Why this matters**: The journalist voice informs, it doesn't prescribe. "You must" assumes authority over the reader's situation — which the author doesn't have. "Trust me" substitutes author credibility for evidence, which is the opposite of journalism.
+**Why this matters**: "You must" assumes authority the author doesn't have. "Trust me" substitutes credibility for evidence.
 
 **Preferred action:**
 ```
@@ -110,9 +110,9 @@ It's a fascinating problem that many developers face! Let me share an
 exciting new approach...
 ```
 
-**Why this matters**: The first sentence is the highest-value real estate in any article. Rhetorical questions and scene-setting delay the information the reader came for. Technical readers opened the article knowing the topic — delay signals filler.
+**Why this matters**: First sentence is highest-value real estate. Rhetorical questions delay information.
 
-**Preferred action:** First sentence states the topic directly.
+**Preferred action:** First sentence states topic directly.
 ```
 The database migration system changed. The old approach used schema files;
 the new one uses versioned migration scripts.
@@ -133,7 +133,7 @@ As you probably know, JWT stands for JSON Web Token. Don't worry if this
 sounds complicated — I'll break it down step by step!
 ```
 
-**Why this matters**: The knowledgeable reader assumption means this audience knows JWT basics. Explaining them signals the author misjudged the audience, eroding trust in the technical claims that follow.
+**Why this matters**: This audience knows JWT basics. Explaining them signals misjudged audience, eroding trust.
 
 **Preferred action:**
 ```
@@ -157,7 +157,7 @@ The API has rate limiting. It returns an error when you make too many requests.
 You should implement appropriate backoff strategies to handle this gracefully.
 ```
 
-**Why this matters**: "Appropriate" and "gracefully" are placeholders for specific knowledge the author didn't provide. The reader needs the specific behavior: what HTTP status code, which response header, how many seconds.
+**Why this matters**: "Appropriate" and "gracefully" are placeholders. Reader needs: HTTP status code, response header, seconds.
 
 **Preferred action:**
 ```
@@ -188,7 +188,7 @@ Top 5 Reasons Schema Files Failed
 5. State drift over time
 ```
 
-**Why this matters**: Numbered lists atomize related ideas and hide logical relationships. The journalist voice builds arguments in prose where causation is explicit ("X caused Y because Z"), not implied by list adjacency.
+**Why this matters**: Lists hide logical relationships. This voice builds arguments in prose with explicit causation.
 
 **Correction:**
 ```

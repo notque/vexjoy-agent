@@ -9,7 +9,7 @@
 
 ## Overview
 
-Synthetic performance testing in CI/CD catches regressions before they reach production. The most common failure mode is running Lighthouse manually during development and never catching performance regressions in CI — so bundle size grows 20% over 6 months with no alerts. Performance budgets with automated gates prevent this category of problem entirely.
+Catches regressions before production. Without CI gates, bundle size grows 20% over 6 months with no alerts. Automated budgets prevent this.
 
 ---
 
@@ -64,7 +64,7 @@ module.exports = {
 }
 ```
 
-**Why**: `numberOfRuns: 3` is essential — single-run Lighthouse scores have 10-15 point variance on CI machines. Assertions use `'error'` to fail CI (not just warn). The upload step stores historical data so you can see score trends over time.
+**Why**: Single-run scores have 10-15 point variance on CI. `numberOfRuns: 3` averages it out. `'error'` assertions fail CI. Upload stores historical trends.
 
 ---
 
@@ -94,7 +94,7 @@ jobs:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 ```
 
-**Why**: Running `lhci autorun` reads `.lighthouserc.js` automatically. The `LHCI_GITHUB_APP_TOKEN` enables PR status checks and comments. Without it, Lighthouse results don't appear inline in PRs.
+**Why**: `lhci autorun` reads config automatically. `LHCI_GITHUB_APP_TOKEN` enables PR status checks and inline comments.
 
 ---
 
@@ -133,7 +133,7 @@ jobs:
     github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**Why**: `size-limit` measures gzipped output, which is what the browser actually downloads. Failing CI on bundle size regressions prevents the incremental growth pattern where no single PR is "bad" but 6 months of PRs add 150KB.
+**Why**: Measures gzipped output (what browser downloads). Prevents incremental growth where no single PR is "bad" but 6 months add 150KB.
 
 ---
 
@@ -159,7 +159,7 @@ module.exports = {
 }
 ```
 
-**Why this matters**: A single Lighthouse run has 10-15 point score variance on CI machines (shared CPU, GC pauses, network jitter). A score of 85 one run, 72 the next — both from the same code. Single-run CI gates either false-positive (blocking good PRs) or miss real regressions.
+**Why this matters**: Single run has 10-15 point variance on CI. Score 85 one run, 72 the next from same code. Single-run gates false-positive or miss real regressions.
 
 **Preferred action**:
 ```javascript
@@ -186,7 +186,7 @@ assertions: {
 },
 ```
 
-**Why it matters**: `warn` level assertions appear in logs but allow regressions to ship. LCP regressions only stop at the gate when the check fails the build.
+**Why it matters**: `warn` appears in logs but allows regressions to ship. Only `error` fails the build.
 
 **Preferred action**:
 ```javascript
@@ -211,7 +211,7 @@ collect: {
 },
 ```
 
-**Why this matters**: `next dev` doesn't minify, doesn't split bundles, doesn't optimize images. A dev server Lighthouse score is meaningless for production performance — typically 20-40 points lower than production. You're testing the wrong artifact.
+**Why this matters**: `next dev` doesn't minify, split bundles, or optimize images. Dev scores are 20-40 points lower than production. Wrong artifact.
 
 **Preferred action**:
 ```javascript
@@ -232,7 +232,7 @@ grep -rn "size-limit\|bundlesize" .github/workflows/*.yml
 # If neither exists: no automated bundle regression detection
 ```
 
-**Why this matters**: Without automated bundle size gates, bundle size grows incrementally. Each PR adds "just a small dependency" until the main bundle is 500KB and LCP is 4.5s. Manual review doesn't catch this — bundle analysis is only done when performance is already bad.
+**Why this matters**: Without automated gates, each PR adds "just a small dependency" until main bundle hits 500KB. Manual review only catches it when performance is already bad.
 
 **Preferred action**: Add `size-limit` with `error` thresholds to CI. Start with current bundle size as the baseline and set limits 10% above it to allow headroom, then tighten over time.
 

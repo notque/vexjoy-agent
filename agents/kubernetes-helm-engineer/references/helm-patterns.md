@@ -1,20 +1,10 @@
 # Helm Chart Patterns Reference
 
-> **Scope**: Helm 3.x chart structure, values hierarchy, template anti-patterns, and deployment safety. Does NOT cover Helm plugin development.
-> **Version range**: Helm 3.x (Helm 2 is EOL — all patterns assume Helm 3)
-> **Generated**: 2026-04-08
-
----
-
-## Overview
-
-Helm chart bugs fall into three classes: template errors (only caught at `helm lint` or deploy time), values hierarchy confusion (defaulting vs overriding at the wrong level), and idempotency failures (releases that break on upgrade). The detection commands below catch the most expensive mistakes before deploy.
-
----
+> **Scope**: Helm 3.x chart structure, values hierarchy, template patterns, deployment safety.
 
 ## Chart Validation Pipeline
 
-Run in this order before every deploy:
+Run before every deploy:
 
 ```bash
 # 1. Lint for syntax errors and missing required values
@@ -35,7 +25,7 @@ helm diff upgrade myapp ./charts/myapp \
   --namespace production
 ```
 
-**Why**: `helm lint` catches template syntax. `--dry-run=server` validates against the actual Kubernetes API (catches `apiVersion` deprecations that `--dry-run=client` misses).
+**Why**: `helm lint` catches syntax. `--dry-run=server` validates against actual K8s API (catches apiVersion deprecations `--dry-run=client` misses).
 
 ---
 
@@ -55,8 +45,6 @@ helm diff upgrade myapp ./charts/myapp \
 ## Correct Patterns
 
 ### Values File Hierarchy
-
-Structure values from most-generic to most-specific:
 
 ```
 charts/myapp/
@@ -111,7 +99,7 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
 ```
 
-**Why**: Consistent labels enable `kubectl get` filtering, `helm diff`, and monitoring dashboards that rely on `app.kubernetes.io` standard labels.
+**Why**: Consistent labels enable `kubectl get` filtering, `helm diff`, monitoring dashboards.
 
 ---
 

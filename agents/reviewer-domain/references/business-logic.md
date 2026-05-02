@@ -1,30 +1,28 @@
 # Business Logic Domain
 
-Domain correctness and business logic review: requirements coverage, edge case analysis, state machine verification, data validation rules, and failure mode analysis.
+Domain correctness review: requirements coverage, edge cases, state machines, data validation, failure modes.
 
 ## Expertise
 - **Requirements Analysis**: Mapping code to requirements, identifying gaps
 - **Edge Case Detection**: Boundary conditions, null handling, overflow, data limits
 - **State Machine Verification**: Valid transitions, terminal states, error recovery, concurrent access
 - **Data Validation**: Business rules, constraints, invariants, calculation correctness
-- **Failure Mode Analysis**: Error paths, recovery mechanisms, graceful degradation, rollback logic
+- **Failure Mode Analysis**: Error paths, recovery, graceful degradation, rollback
 
 ## Hardcoded Review Rules
 
-- **Caller Tracing**: When reviewing interfaces or functions with contract semantics, grep for ALL callers across the entire repo. Verify every caller honors the contract.
-- **Library Assumption Verification**: When reviewing control flow that assumes library behavior, verify by reading library source in GOMODCACHE, not protocol docs or training data.
-- **Extraction Severity Escalation**: When a diff extracts inline code into a named helper, re-evaluate all defensive guards. A missing check rated LOW as inline (1 caller) becomes MEDIUM as reusable (N callers).
-- **Value Space Analysis**: When tracing a parameter, identify the VALUE SPACE. For query parameters: user-controlled (ANY string). For token/auth fields: server-controlled. For constants: fixed.
+- **Caller Tracing**: For interfaces/functions with contract semantics, grep ALL callers. Verify every caller honors the contract.
+- **Library Assumption Verification**: Verify control flow assumptions by reading library source in GOMODCACHE, not docs or training data.
+- **Extraction Severity Escalation**: When inline code becomes a named helper, re-evaluate guards. Missing check rated LOW inline (1 caller) becomes MEDIUM reusable (N callers).
+- **Value Space Analysis**: Identify parameter VALUE SPACE. Query params: user-controlled (ANY string). Token fields: server-controlled. Constants: fixed.
 
 ## Edge Case Tables
-
-See detailed tables for systematic checking:
 
 ### Numeric Types
 | Type | Check | Common Bugs |
 |------|-------|-------------|
-| Integers | 0, 1, -1, MAX_INT, MIN_INT, overflow | Division by zero, integer truncation, off-by-one |
-| Floats | 0.0, NaN, Infinity, precision loss | Rounding errors compounding in loops |
+| Integers | 0, 1, -1, MAX_INT, MIN_INT, overflow | Division by zero, truncation, off-by-one |
+| Floats | 0.0, NaN, Infinity, precision loss | Rounding compounding in loops |
 | Money | 0.00, negative, MAX_DECIMAL | Rounding at wrong step |
 
 ### String Types
@@ -57,11 +55,11 @@ See detailed tables for systematic checking:
 
 1. **Integer Division Truncation**: `totalPrice / itemCount` loses precision
 2. **Order of Operations**: `price * 1 + taxRate` vs `price * (1 + taxRate)`
-3. **Rounding Errors Compound**: Rounding each item vs rounding final total
-4. **Off-by-One in Ranges**: `>` vs `>=` for bounds checking
-5. **Missing State Validation**: Setting status without checking current state
-6. **Check-Then-Act Race**: Checking availability then decrementing without atomic operation
-7. **Partial Failure Not Handled**: Multi-step operation without rollback
+3. **Rounding Errors Compound**: Rounding each item vs final total
+4. **Off-by-One**: `>` vs `>=` for bounds
+5. **Missing State Validation**: Setting status without checking current
+6. **Check-Then-Act Race**: Check then decrement without atomic op
+7. **Partial Failure Not Handled**: Multi-step without rollback
 8. **Non-Idempotent Retry**: Retrying increments counter multiple times
 
 ## Output Template
@@ -72,15 +70,15 @@ See detailed tables for systematic checking:
 ## Business Logic Review: [File/Component]
 
 ### Domain Understanding
-- **Purpose**: [What this code does in business terms]
-- **Key Operations**: [Main business operations]
+- **Purpose**: [business terms]
+- **Key Operations**: [main operations]
 
 ### CRITICAL (blocks business function)
 1. **[Finding]** - `file:42`
-   - **Issue**: [Logic error description]
-   - **Business Impact**: [How this affects users/business]
-   - **Expected Behavior**: [What should happen]
-   - **Recommendation**: [How to fix]
+   - **Issue**: [logic error]
+   - **Business Impact**: [user/business effect]
+   - **Expected Behavior**: [what should happen]
+   - **Recommendation**: [fix]
 
 ### Edge Case Coverage
 | Category | Checked | Issues |
@@ -102,13 +100,12 @@ See detailed tables for systematic checking:
 ## State Machine Verification Checklist
 
 1. All valid states documented, initial and terminal identified
-2. All valid transitions documented, invalid transitions rejected
-3. State changes are atomic, race conditions prevented
-4. Error states have recovery paths, retry logic is idempotent
+2. All valid transitions documented, invalid rejected
+3. State changes atomic, race conditions prevented
+4. Error states have recovery paths, retry is idempotent
 
 ## Detailed References
 
-For comprehensive review catalogs, load these supplementary files:
-- [edge-case-tables.md](edge-case-tables.md) -- Systematic edge cases by data type
-- [common-bugs.md](common-bugs.md) -- Real-world business logic bugs with code examples
-- [state-machine-verification.md](state-machine-verification.md) -- State machine review methodology and patterns
+- [edge-case-tables.md](edge-case-tables.md) — Systematic edge cases by data type
+- [common-bugs.md](common-bugs.md) — Real-world bugs with code examples
+- [state-machine-verification.md](state-machine-verification.md) — State machine review methodology

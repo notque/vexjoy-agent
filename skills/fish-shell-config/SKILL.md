@@ -32,7 +32,7 @@ routing:
 
 # Fish Shell Configuration Skill
 
-Fish is not POSIX. Targets Fish 3.0+ (`$()`, `&&`, `||` supported). Fish 4.0 (Rust rewrite) has no syntax changes. All generated code must use Fish-native syntax -- never emit Bash constructs (`VAR=value`, `[[ ]]`, `export`, heredocs) in Fish contexts.
+Fish is not POSIX. Every pattern here targets Fish 3.0+ (supports `$()`, `&&`, `||`). Fish 4.0 (Rust rewrite) has no syntax changes. All generated code must use Fish-native syntax exclusively — never emit Bash constructs (`VAR=value`, `[[ ]]`, `export`, heredocs) in Fish contexts.
 
 ## Reference Loading Table
 
@@ -48,15 +48,16 @@ Fish is not POSIX. Targets Fish 3.0+ (`$()`, `&&`, `||` supported). Fish 4.0 (Ru
 ### Step 1: Confirm Fish Context
 
 Before writing any shell code, confirm the target is Fish:
+
 - `$SHELL` contains `fish`, or
 - Target file has `.fish` extension, or
 - Target directory is `~/.config/fish/`
 
-If none hold, stop -- this skill does not apply to Bash, Zsh, or POSIX shells.
+If none of these hold, stop — this skill does not apply to Bash, Zsh, or POSIX shells.
 
 ### Step 2: Choose the Correct File Location
 
-Place configuration in `conf.d/` modules with numeric prefixes -- keep `config.fish` minimal.
+Place configuration in `conf.d/` modules with numeric prefixes for ordering — keep `config.fish` minimal. A monolithic `config.fish` with hundreds of lines is slow to load, hard to maintain, and impossible to selectively disable.
 
 **Directory layout**:
 ```
@@ -88,7 +89,7 @@ Place configuration in `conf.d/` modules with numeric prefixes -- keep `config.f
 
 ### Step 3: Write Variables
 
-Variable assignment is always `set VAR value` -- never `VAR=value` or `export VAR=value`.
+Variable assignment is always `set VAR value` — never `VAR=value` (syntax error in Fish) or `export VAR=value`.
 
 ```fish
 set -l VAR value    # Local — current block only
@@ -101,11 +102,11 @@ set -e VAR          # Erase variable
 set -q VAR          # Test if set (silent, for conditionals)
 ```
 
-Every Fish variable is a list. Never use colon-separated strings for PATH -- `set PATH "$PATH:/new/path"` creates a single malformed element.
+Every Fish variable is a list. Never use colon-separated strings for PATH or similar variables — `set PATH "$PATH:/new/path"` creates a single malformed element because Fish PATH is a list, not a colon-delimited string.
 
 ### Step 4: Manage PATH
 
-Use `fish_add_path` -- it handles deduplication and persistence. Manual `set PATH` only for session-scoped overrides.
+Use `fish_add_path` for PATH manipulation — it handles deduplication and persistence automatically. Manual `set PATH` only for session-scoped overrides.
 
 ```fish
 # CORRECT: fish_add_path handles deduplication and persistence
@@ -122,7 +123,7 @@ set -gx PATH ~/custom/bin $PATH
 
 ### Step 5: Write Functions
 
-Autoloaded function filename must match function name -- `functions/foo.fish` must contain `function foo`. Mismatch causes "Unknown command" errors.
+The autoloaded function filename must match the function name exactly — `functions/foo.fish` must contain `function foo`. A mismatch causes "Unknown command" errors.
 
 ```fish
 # ~/.config/fish/functions/mkcd.fish
@@ -159,9 +160,10 @@ end
 | Needs arguments/logic | `function` in `functions/` | Full programming, works in scripts |
 | Wrapping a command | `alias ll "ls -la"` | Convenience; creates function internally |
 
-Abbreviations are interactive-only -- they do not work in scripts. Always guard with interactive check:
+Abbreviations are interactive-only — they do not work in scripts. Always wrap them in an interactive guard because they have no effect during non-interactive sourcing:
 
 ```fish
+# Always guard abbreviations
 if status is-interactive
     abbr -a g git
     abbr -a ga "git add"
@@ -173,9 +175,10 @@ end
 
 ### Step 7: Write Conditionals and Control Flow
 
-Use `test` builtin -- never `[[ ]]` (syntax error) or `[ ]` (calls external `/bin/[`, slower). Fish has no word splitting, so `$var` and `"$var"` behave identically -- quote only to prevent list expansion or preserve empty strings.
+Use the `test` builtin for conditionals — never `[[ ]]` (syntax error in Fish) or `[ ]` (calls external `/bin/[`, slower than the builtin). Fish has no word splitting, so `$var` and `"$var"` behave identically — quote only when you need to prevent list expansion or preserve empty strings.
 
 ```fish
+# Conditionals — use 'test', not [[ ]]
 if test -f config.json
     echo "exists"
 else if test -d config
@@ -205,7 +208,7 @@ end
 
 ### Step 8: Integrate External Tools
 
-Guard every tool integration with `type -q`:
+Guard every tool integration with `type -q` so the config works on machines where the tool is not installed:
 
 ```fish
 # ~/.config/fish/conf.d/30-tools.fish
@@ -234,22 +237,24 @@ end
 
 ### Step 9: Verify
 
-1. **Syntax check** -- `fish -n <file>` (parse without executing)
-2. **Function name match** -- verify filename matches function name in `functions/`
-3. **Interactive guards** -- verify `status is-interactive` on abbreviations and key bindings in `conf.d/`
-4. **Clean environment test** -- `fish --no-config` then `source <file>`
+1. **Syntax check** — run `fish -n <file>` (parse without executing)
+2. **Function name match** — verify filename matches function name for every file in `functions/`
+3. **Interactive guards** — verify `status is-interactive` guards on abbreviations and key bindings in `conf.d/`
+4. **Clean environment test** — run `fish --no-config` then `source <file>` to confirm isolated correctness
 
 ---
 
 ## Reference Material
 
 ### Example: Setting Up a New Fish Config
+User says: "Set up my Fish shell config"
 1. Confirm Fish context
 2. Create modular structure in `~/.config/fish/`
 3. Write `conf.d/00-path.fish`, `conf.d/10-env.fish`, `conf.d/20-abbreviations.fish`
 4. Syntax-check all files
 
 ### Example: Migrating a Bash Alias File
+User says: "Convert my .bash_aliases to Fish"
 1. Read `.bash_aliases`, confirm Fish target
 2. Determine which become abbreviations vs functions
 3. Write abbreviations to `conf.d/`, functions to `functions/`
@@ -261,19 +266,19 @@ end
 
 ### Error: "Unknown command" for new function
 Cause: Filename does not match function name
-Solution: Ensure `functions/foo.fish` contains exactly `function foo`. Check for typos in both.
+Solution: Ensure `functions/foo.fish` contains exactly `function foo`. Check for typos in both the filename and the function declaration.
 
 ### Error: PATH changes not persisting across sessions
-Cause: Used `set -gx PATH` (session-only) instead of `fish_add_path`
-Solution: Use `fish_add_path /new/path` which persists by default, or `set -U fish_user_paths /path $fish_user_paths`.
+Cause: Used `set -gx PATH` (session-only) instead of `fish_add_path` (writes to universal `fish_user_paths`)
+Solution: Use `fish_add_path /new/path` which persists by default, or use `set -U fish_user_paths /path $fish_user_paths` explicitly.
 
 ### Error: Abbreviations not expanding in scripts
 Cause: Abbreviations are interactive-only by design
-Solution: Use a function instead. Move logic from `abbr` to a file in `functions/`.
+Solution: Use a function instead. Move the logic from `abbr` to a file in `functions/`.
 
 ### Error: Variable not visible to child process
-Cause: Missing `-x` (export) flag
-Solution: Use `set -gx VAR value`. Check with `set --show VAR`.
+Cause: Missing `-x` (export) flag on `set`
+Solution: Use `set -gx VAR value` to make variable visible to subprocesses. Check with `set --show VAR` to inspect current scope and export status.
 
 ---
 
@@ -281,10 +286,10 @@ Solution: Use `set -gx VAR value`. Check with `set --show VAR`.
 
 | Task Signal | Load | Why |
 |-------------|------|-----|
-| Migrating from Bash, `.bashrc`/`.bash_aliases`, `source`, `export`, `[[` in Fish file | `bash-migration.md` | Full Bash-to-Fish syntax translation table |
-| Variable scoping, PATH, `fish_add_path`, `set` flags, `abbr`, completions | `fish-quick-reference.md` | Variable scope guide, special variables, control flow cheatsheet |
-| Error audit, "unknown command", PATH not persisting, syntax error, broken conf.d | `fish-preferred-patterns.md` | Anti-patterns with grep detection commands and error-fix mappings |
-| Go, Rust, Docker, Node.js, Python, pyenv, fnm, starship, direnv, fzf, zoxide, mise | `tool-integrations.md` | Concrete integration patterns for common dev tools |
+| Migrating from Bash, converting `.bashrc`/`.bash_aliases`, `source`, `export`, `[[` in Fish file | `bash-migration.md` | Full Bash-to-Fish syntax translation table |
+| Variable scoping, PATH management, `fish_add_path`, `set` flags, `abbr`, completions | `fish-quick-reference.md` | Variable scope guide, special variables, control flow cheatsheet |
+| Error audit, "unknown command", PATH not persisting, abbreviation not working, syntax error, broken conf.d | `fish-preferred-patterns.md` | Anti-patterns with grep detection commands and error-fix mappings |
+| Go, Rust, Docker, Node.js, Python, pyenv, fnm, starship, direnv, fzf, zoxide, mise, tool setup | `tool-integrations.md` | Concrete integration patterns for common dev tools |
 
 - `${CLAUDE_SKILL_DIR}/references/bash-migration.md`: Complete Bash-to-Fish syntax translation table
 - `${CLAUDE_SKILL_DIR}/references/fish-quick-reference.md`: Variable scoping, special variables, and command cheatsheet

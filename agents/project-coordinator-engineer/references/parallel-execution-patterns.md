@@ -1,166 +1,97 @@
 # Parallel Execution Patterns Reference
 
-> **Scope**: Identifying safe parallel agent streams, detecting file domain conflicts, structuring concurrent workloads.
-> **Version range**: All versions — Claude Code multi-agent coordination
-> **Generated**: 2026-04-09 — verify against current agent capability roster
+> **Scope**: Safe parallel agent streams, file domain conflict detection, concurrent workloads.
 
 ---
 
-## Overview
+## Task Parallelism Categories
 
-Parallel execution is the primary throughput lever in multi-agent coordination. The constraint is file domain overlap — two agents touching the same file concurrently create merge conflicts. The coordinator's job is to identify the maximum safe parallelism while enforcing non-overlapping domains.
-
-Common failure mode: sequential execution of work that could have been parallel, or parallel execution of work that shares a file domain (races).
-
----
-
-## Pattern Table: Task Parallelism Categories
-
-| Task Type | Safe to Parallelize? | Constraint |
-|-----------|---------------------|------------|
-| Different file domains (A edits `api/`, B edits `ui/`) | Yes | No shared files |
+| Task Type | Safe? | Constraint |
+|-----------|-------|------------|
+| Different file domains | Yes | No shared files |
 | Same file, different sections | No | Serialize via handoff |
-| Read-only analysis (research, audit, review) | Always | No write conflicts |
-| Test-only agents (no source modifications) | Yes | Read-only against source |
-| Schema migration + application code | No | Migration must complete first |
-| Lint + format on same file | No | Run sequentially post-compile |
-| Documentation updates | Usually | Check for shared index files |
+| Read-only analysis/audit/review | Always | No write conflicts |
+| Test-only agents | Yes | Read-only against source |
+| Schema migration + app code | No | Migration first |
+| Lint + format on same file | No | Sequential post-compile |
+| Documentation updates | Usually | Check shared index files |
 
 ---
 
-## Correct Patterns
-
-### Fan-Out Parallel Dispatch
-
-Dispatch independent agents simultaneously when file domains don't overlap.
+## Fan-Out Parallel Dispatch
 
 ```markdown
-# In STATUS.md — parallel stream tracking
 STREAM A: golang-general-engineer → src/api/ (RUNNING)
 STREAM B: typescript-frontend-engineer → src/ui/ (RUNNING)
 STREAM C: database-engineer → migrations/ (RUNNING)
 
-All streams are read-only against each other's domains.
-Fan-in: wait for A+B+C before integration phase.
+Fan-in: wait for A+B+C before integration.
 ```
-
-**Why**: Sequential dispatch of independent work is the most common coordinator waste. A 3-stream parallel dispatch completes in 1x agent time vs 3x.
 
 ---
 
-### File Domain Declaration (Pre-Dispatch)
-
-Before dispatching any agent, declare its file domain explicitly.
+## File Domain Declaration (Pre-Dispatch)
 
 ```markdown
-# TodoWrite task description — mandatory format
 Task: Refactor authentication middleware
 Agent: nodejs-api-engineer
 Domain: src/middleware/auth.ts, src/middleware/session.ts
 Excludes: src/routes/ (owned by STREAM B)
-Success: `npm test -- auth` passes, no TypeScript errors
+Success: `npm test -- auth` passes
 ```
 
-**Why**: Implicit domain assumptions cause conflicts discovered only at integration. Explicit declaration makes conflicts visible at planning time — before agents run.
-
-**Detection** — find tasks missing domain declarations:
-```
-rg "Agent:.*\nDomain:" --multiline --files-without-matches STATUS.md
-```
+Explicit declaration makes conflicts visible at planning time.
 
 ---
 
-### Fan-In Gate Pattern
-
-After parallel streams, hold integration until ALL streams complete.
+## Fan-In Gate
 
 ```markdown
-## Phase 2 Gate (Fan-In)
-
 Wait conditions:
-- [ ] STREAM A: golang-general-engineer — src/api/ complete
-- [ ] STREAM B: typescript-frontend-engineer — src/ui/ complete
-- [ ] STREAM C: database-engineer — migrations/ complete
+- [ ] STREAM A complete
+- [ ] STREAM B complete
+- [ ] STREAM C complete
 
-BLOCKED: Do not dispatch integration agent until all 3 boxes checked.
+BLOCKED: Do not dispatch integration until all checked.
 ```
 
-**Why**: Partial integration (2 of 3 streams done) creates inconsistent state that the integration agent will produce wrong output from.
-
----
-
-### Sequential Dependency Chain
-<!-- no-pair-required: inline anti-pattern annotation within a correct-pattern block, not a standalone anti-pattern -->
-
-When output of one agent is input to the next, enforce sequential execution.
-
-```markdown
-# Correct dependency chain
-Step 1: database-engineer → schema.sql (MUST COMPLETE FIRST)
-Step 2: golang-general-engineer → generated models from schema
-Step 3: nodejs-api-engineer → API handlers using models
-
-# Anti-pattern — will fail:
-[WRONG] Step 1 + Step 2 parallel → Step 2 reads schema before it exists
-```
-<!-- no-pair-required: inline anti-pattern annotation within a correct-pattern code block example -->
+Partial integration creates inconsistent state.
 
 ---
 
 ## Pattern Catalog
-<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Verify Domain Isolation Before Dispatch
+**Signal**: Dispatching 3 agents without checking shared files.
+**Detection**: `grep -r "config/config" src/ | cut -d: -f1 | sort | uniq -d`
+**Fix**: Run domain conflict check before every parallel wave. Serialize agents sharing any file.
 
-**Signal**: Dispatching 3 agents without checking if any share `pkg/config/config.go`.
-
-**Detection**:
-```
-grep -r "config/config" src/ | cut -d: -f1 | sort | uniq -d
-```
-Any file appearing in multiple agent domains signals a conflict.
-
-**Preferred action**: Run the domain conflict check before every parallel dispatch wave. When any file appears in two agent domains, assign it to exactly one agent and add that agent as a prerequisite for any other agent that reads it. Serialize agents that share any file.
-
----
-
-### Treat Code Generation as a Sequential Gate
-
-**Signal**: Running `go generate` in STREAM A while STREAM B reads generated files.
-
-**Why this matters**: Generated file content is undefined mid-generation. STREAM B reads partial state.
-
-**Preferred action**: Treat code generation as a single-stream gate. STREAM A runs generation to completion, generation fan-in confirms the output files exist and are stable, then downstream consumers start in a new phase. Generation is always sequential; downstream consumers wait for generation fan-in.
-
----
+### Treat Code Generation as Sequential Gate
+**Signal**: Running `go generate` while another stream reads generated files.
+**Fix**: Generation completes fully, fan-in confirms output exists, then downstream starts.
 
 ### Enforce Compile-Test-Lint-Format Sequence
-
-**Signal**: Dispatching lint agent and compile agent simultaneously.
-
-**Why this matters**: If compile fails, lint output is wasted work. If lint changes code, compile state is stale.
-
-**Preferred action**: Within any single file domain, enforce the fixed sequence: Compile, then Test, then Lint, then Format. Only move to the next step after the previous one exits 0. Never parallelize these steps within the same domain.
+**Signal**: Lint and compile agents dispatched simultaneously.
+**Fix**: Within any domain: Compile → Test → Lint → Format. Only proceed after previous exits 0.
 
 ---
 
 ## Parallel Capacity Heuristics
 
-| Scenario | Max Safe Parallel Agents |
-|----------|--------------------------|
-| Large codebase, clean domain boundaries | 5-8 streams |
-| Shared config/constants layer | 3-4 streams (config agent first) |
-| Monorepo with cross-cutting concerns | 2-3 streams |
-| Active schema migration in progress | 1 stream (schema owner) + blocked |
-| Context at 70%+ | 1 stream only (preserve context budget) |
+| Scenario | Max Parallel |
+|----------|-------------|
+| Clean domain boundaries | 5-8 |
+| Shared config layer | 3-4 (config agent first) |
+| Monorepo cross-cutting | 2-3 |
+| Active schema migration | 1 + blocked |
+| Context at 70%+ | 1 only |
 
 ---
 
 ## Parallelism Decision Checklist
 
-Before each dispatch wave, verify:
-1. `[ ]` Domain overlap check complete — no shared files across streams
-2. `[ ]` Dependencies resolved — prerequisites complete before dependents start
-3. `[ ]` Generated files stabilized — no generation in progress
-4. `[ ]` Context budget allows N agents — check against 70% threshold
-5. `[ ]` Fan-in gate documented in STATUS.md — clear wait conditions
+1. `[ ]` Domain overlap check — no shared files
+2. `[ ]` Dependencies resolved — prerequisites complete
+3. `[ ]` Generated files stabilized
+4. `[ ]` Context budget allows N agents
+5. `[ ]` Fan-in gate documented in STATUS.md

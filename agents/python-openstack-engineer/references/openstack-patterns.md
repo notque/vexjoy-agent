@@ -2,18 +2,12 @@
 
 ## Oslo.config Integration
 
-**Configuration Definition**:
 ```python
 from oslo_config import cfg
 
 service_opts = [
-    cfg.StrOpt('api_url',
-               default='http://localhost:8080',
-               help='API endpoint URL'),
-    cfg.IntOpt('workers',
-               default=4,
-               min=1,
-               help='Number of worker processes'),
+    cfg.StrOpt('api_url', default='http://localhost:8080', help='API endpoint URL'),
+    cfg.IntOpt('workers', default=4, min=1, help='Number of worker processes'),
 ]
 
 CONF = cfg.CONF
@@ -22,7 +16,6 @@ CONF.register_opts(service_opts, group='myservice')
 
 ## Oslo.messaging RPC
 
-**RPC Server**:
 ```python
 from oslo_messaging import rpc
 
@@ -40,7 +33,6 @@ class MyServiceAPI(object):
 
 ## Database Migration
 
-**Alembic Migration**:
 ```python
 # alembic/versions/001_initial_schema.py
 def upgrade():

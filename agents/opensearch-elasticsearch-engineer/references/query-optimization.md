@@ -12,7 +12,7 @@ description: Query DSL patterns, aggregation optimization, caching strategies, a
 
 ## Overview
 
-Query performance in OpenSearch/Elasticsearch fails in three predictable ways: using query context where filter context is appropriate (query context scores and doesn't cache), returning all fields when only a subset is needed (network and memory overhead), and running large aggregations without sampling (cardinality explosions block query threads). The profile API pinpoints which part of a query is slow; without it, optimization is guesswork.
+Three failure modes: query context where filter context suffices (scores + no cache), returning all fields (network overhead), large aggregations without sampling (cardinality explosions). Profile API pinpoints slow parts; without it, optimization is guesswork.
 
 ---
 
@@ -56,7 +56,7 @@ Use `filter` for non-scoring conditions — filter results are cached and reused
 }
 ```
 
-**Why**: `filter` context is cached in the filter cache. `must` (query context) recalculates relevance scores on every request. Status checks, date ranges, and term filters have no relevance to scoring — they belong in `filter`.
+**Why**: `filter` context is cached. `must` recalculates scores every request. Non-scoring conditions belong in `filter`.
 
 ---
 
@@ -73,7 +73,7 @@ Use `filter` for non-scoring conditions — filter results are cached and reused
 }
 ```
 
-**Why**: `content` fields of 50KB+ per document mean a 20-hit response could return 1MB+ over the wire. Excluding large fields reduces network transfer by 90%+ for content-heavy indices.
+**Why**: 50KB+ content fields mean 20 hits = 1MB+ response. Excluding large fields reduces transfer 90%+.
 
 ---
 
@@ -100,7 +100,7 @@ Use `filter` for non-scoring conditions — filter results are cached and reused
 }
 ```
 
-**Why**: `size: 0` or missing `size` defaults to 10. Missing `shard_size` means each shard returns `size` results — set `shard_size` to 5x `size` for accuracy. `cardinality` with high `precision_threshold` uses more memory — tune to accuracy needs.
+**Why**: Missing `size` defaults to 10. Set `shard_size` to 5x `size` for accuracy. High `precision_threshold` uses more memory.
 
 ---
 
@@ -169,7 +169,7 @@ grep -rn 'wildcard.*\*.*value\|value.*\*.*wild' --include="*.py" --include="*.ts
 }
 ```
 
-**Why this matters**: Leading wildcards (`*smith`) force a full index scan — every term in the inverted index must be checked. On a 10M document index with 500K unique usernames, this scans 500K terms per shard. Query latency jumps from ~5ms to 5+ seconds. Trailing wildcards (`smith*`) can use the index efficiently.
+**Why this matters**: Leading wildcards force full index scan. On 10M docs with 500K unique terms: ~5ms jumps to 5+ seconds. Trailing wildcards use the index efficiently.
 
 **Preferred action**: Use `match_phrase_prefix` for prefix searches or `n-gram` tokenization for infix searches. For substring search, configure `edge_ngram` analyzer at index time.
 
@@ -202,7 +202,7 @@ rg '"from":\s*[0-9]{4,}' --type json
 }
 ```
 
-**Why this matters**: `from: 10000` fetches 10,020 documents per shard, discards 10,000, returns 20. On a 5-shard index: 50,100 documents fetched, 50,080 discarded. Memory and CPU scale linearly with `from` value. Default limit is `index.max_result_window: 10000` — exceeding it throws an exception.
+**Why this matters**: `from: 10000` fetches 10,020 per shard, discards 10,000. On 5 shards: 50,100 fetched, 50,080 discarded. CPU/memory scale linearly. Default limit `max_result_window: 10000`.
 
 **Preferred action**: Use search_after for deep pagination:
 ```json
@@ -239,7 +239,7 @@ rg '"terms"' --type json queries/ -A5 | grep -B3 '"field"' | grep -v size
 }
 ```
 
-**Why this matters**: Default `size: 10` returns only the top 10 buckets, which is often wrong but doesn't cause performance issues. The real danger is `size: 0` (some clients send this meaning "all") — OpenSearch interprets 0 as default (10). Some versions also accept very large sizes that materialize all buckets in memory, causing heap pressure on the coordinating node.
+**Why this matters**: Default `size: 10` returns top 10 only. Very large sizes materialize all buckets in memory, causing heap pressure on the coordinating node.
 
 **Preferred action**: Always set explicit `size`. For cardinality estimates, use `cardinality` aggregation instead of `terms`.
 
@@ -268,7 +268,7 @@ grep -rn 'script_score\|script_fields\|scripted_metric' --include="*.json" queri
 }
 ```
 
-**Why this matters**: Painless scripts run JVM-compiled code per document. On a 1M document index with `match_all`, this executes 1M script invocations per query, per shard. Compiled script cache is limited — frequent cache misses add compilation overhead.
+**Why this matters**: Scripts run per document. On 1M docs with `match_all`: 1M invocations per shard. Script cache misses add compilation overhead.
 
 **Preferred action**: Precompute scores at index time using `rank_features` field type or store the computed value as a regular numeric field.
 

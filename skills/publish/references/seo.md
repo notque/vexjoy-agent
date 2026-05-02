@@ -16,33 +16,6 @@ This skill operates as an SEO analysis and optimization workflow for blog posts.
 
 **Goal**: Build a complete picture of the post's current search optimization.
 
-**Step 0: Machine baseline (PageSpeed Insights)**
-
-This step is conditional — it runs only when `PAGESPEED_API_KEY` is set. If the env var is missing, skip silently and proceed to Step 1. No message needed — the manual analysis in Steps 1-7 is complete on its own.
-
-If `PAGESPEED_API_KEY` is set:
-1. Determine the post URL. Derive it from the site's `baseURL` (read from `hugo.toml` or `config.toml`) plus the post slug. Do not hardcode any URL.
-2. Run the scan:
-   ```bash
-   python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <site-url>/<post-slug> --strategy both --format summary
-   ```
-3. Capture the PSI SEO score and the list of failing SEO audits as the machine-measured baseline.
-
-**How the machine baseline feeds downstream steps:**
-- If PSI flags `meta-description` as missing → Step 5 (Check meta description) treats this as a confirmed finding, not something to discover manually. Auto-fix: generate from first 155 characters of content and add as `description` in front matter. This is a mechanical fix per the auto-fix protocol in `${CLAUDE_SKILL_DIR}/references/pagespeed-insights.md`.
-- If PSI flags `heading-order` → Step 6 (Audit header structure) inherits the specific violations. No need to re-scan headers manually.
-- If PSI flags `image-alt` → the finding carries forward to Phase 2 as a confirmed issue.
-
-**Machine baseline output** (include in Phase 1 results):
-```
-Machine Baseline (PageSpeed Insights):
-  SEO Score: XX/100
-  Confirmed issues: [list of PSI SEO audit failures]
-  Performance Score: XX/100 (for context)
-```
-
-In Phase 2 (DECIDE), issues confirmed by both manual analysis AND machine measurement get higher priority. A "missing meta description" flagged by both PSI and Step 5 is a stronger signal than either alone.
-
 **Step 1: Read and parse the post**
 
 Read the target post file. Extract:

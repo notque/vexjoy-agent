@@ -1,7 +1,5 @@
 # MCP Server Templates Reference
 
-> Loaded by mcp-local-docs-engineer when scaffolding a new MCP server or reviewing core structure for TypeScript/Node.js or Go implementations.
-
 ## TypeScript/Node.js Core Structure
 
 ```typescript
@@ -150,23 +148,11 @@ func (s *DocsServer) IndexDocs() error {
 }
 ```
 
-## Preferred Patterns (with Code)
+## Preferred Patterns
 
-### Async File Reading in Handlers
-
-Use async file operations; cache parsed documents in memory and serve from cache; index once at startup, serve from memory.
-
-See `mcp-patterns.md` for the full async indexing pattern with mtime-based cache invalidation.
-
-### Custom URI Scheme
-
-Use custom URI schemes (`docs://` or `doc://`) with relative paths from documentation root. Keep filesystem paths internal to the server.
-
-See `mcp-patterns.md` for the `pathToUri`/`uriToPath` implementation with path traversal protection.
-
-### Front Matter Error Handling
-
-Wrap YAML/TOML parsing in try-catch blocks; return partial results with error metadata for failed parses; log warnings for malformed documents but continue indexing.
+- **Async I/O**: Cache in memory, serve from cache, index once at startup. See `mcp-patterns.md`.
+- **Custom URI scheme**: `docs://` with relative paths. Never expose filesystem paths. See `mcp-patterns.md`.
+- **Front matter error handling**: Try-catch, partial results, continue indexing.
 
 ```typescript
 function parseFrontMatter(content: string): DocMetadata {

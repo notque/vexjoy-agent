@@ -1,22 +1,14 @@
 # Agent Capability Map Reference
 
-> **Scope**: Routing table for task types to specialized agents; what each agent can and cannot do.
-> **Version range**: Toolkit v2+ agent roster as of 2026-04
-> **Generated**: 2026-04-09 — verify agent list against `agents/` directory before dispatching
-
----
-
-## Overview
-
-The coordinator's primary routing decision is which agent to dispatch for a given task. Wrong routing means either: (1) an under-specialized agent producing lower quality output, or (2) an agent receiving work outside its capability and failing (using up one of the 3 attempts). Route correctly the first time.
+> **Scope**: Task-to-agent routing table; capabilities and boundaries per agent.
 
 ---
 
 ## Primary Routing Table
 
-| Task Type | Primary Agent | Fallback Agent | Avoid for this task |
-|-----------|--------------|----------------|------------|
-| Go source code changes | `golang-general-engineer` | `golang-general-engineer-compact` | general-purpose |
+| Task Type | Primary Agent | Fallback | Avoid |
+|-----------|--------------|----------|-------|
+| Go source code | `golang-general-engineer` | `golang-general-engineer-compact` | general-purpose |
 | TypeScript backend API | `nodejs-api-engineer` | `typescript-frontend-engineer` | general-purpose |
 | TypeScript frontend/React | `typescript-frontend-engineer` | — | nodejs-api-engineer |
 | Python scripts/data | `python-general-engineer` | `python-openstack-engineer` | general-purpose |
@@ -24,167 +16,89 @@ The coordinator's primary routing decision is which agent to dispatch for a give
 | Kubernetes/Helm | `kubernetes-helm-engineer` | — | ansible-automation-engineer |
 | Ansible playbooks | `ansible-automation-engineer` | — | kubernetes-helm-engineer |
 | OpenSearch/Elasticsearch | `opensearch-elasticsearch-engineer` | — | database-engineer |
-| Prometheus/Grafana dashboards | `prometheus-grafana-engineer` | — | — |
+| Prometheus/Grafana | `prometheus-grafana-engineer` | — | — |
 | Swift iOS/macOS | `swift-general-engineer` | — | — |
 | Kotlin Android/JVM | `kotlin-general-engineer` | — | — |
 | PHP backend | `php-general-engineer` | — | — |
 | React Native / Expo | `react-native-engineer` | — | typescript-frontend-engineer |
-| Code review (any language) | `reviewer-code-playbook` | `reviewer-system-playbook` | — |
+| Code review | `reviewer-code-playbook` | `reviewer-system-playbook` | — |
 | Security audit | `security-threat-model` | — | — |
-| Performance optimization | `performance-optimization-engineer` | — | — |
-| Documentation writing | `technical-documentation-engineer-playbook` | — | — |
-| Multi-agent coordination | `project-coordinator-engineer` (self) | — | — |
+| Performance | `performance-optimization-engineer` | — | — |
+| Documentation | `technical-documentation-engineer-playbook` | — | — |
 
-**Detection** — verify agent exists before dispatching:
-```
-ls ~/.claude/agents/ | grep {agent-name}
-```
+Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 
 ---
 
 ## Agent Scope Boundaries
 
-### golang-general-engineer
+**golang-general-engineer**: CAN modify `.go` files, run `go build/test/vet`, add packages, fix linting. CANNOT modify non-Go files, make architectural decisions, run migrations.
 
-**Can**: Modify `.go` files, run `go build`, `go test`, `go vet`, add packages, fix linting.
-**Cannot**: Modify non-Go files, make architectural decisions, run migrations.
-**Signals needing this agent**: `.go` compile errors, `golangci-lint` failures, goroutine leaks.
+**nodejs-api-engineer**: CAN do REST endpoints, middleware, auth, webhooks, DB integration. CANNOT do frontend components, native code, infrastructure.
 
-```
-# Dispatch signal detection
-rg "\.go$" --files-with-matches | head -5  # Go files present
-rg "go build.*failed|cannot use|undefined:" build.log  # Compile errors
-```
+**database-engineer**: CAN do schema design, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
 
----
-
-### nodejs-api-engineer
-
-**Can**: REST endpoints, middleware, auth (JWT/OAuth), file uploads, webhooks, DB integration.
-**Cannot**: Frontend components, Swift/Kotlin native code, infrastructure provisioning.
-**Signals**: `app.get/post/put/delete`, Express/Fastify routes, `prisma`, `typeorm`.
-
-```
-rg "(app|router)\.(get|post|put|delete|patch)\(" src/  # Route definitions
-rg "import.*express|import.*fastify" src/  # Framework detection
-```
-
----
-
-### database-engineer
-
-**Can**: Schema design, migrations, index strategy, query optimization, replication.
-**Cannot**: Application code changes, ORM model generation (route to language agent after schema).
-**Signals**: Slow queries, schema changes requested, missing indexes, N+1 query patterns.
-
-**Mandatory sequencing**: Database agent ALWAYS before application agents when schema changes.
-
----
-
-### performance-optimization-engineer
-
-**Can**: Core Web Vitals, bundle analysis, rendering optimization, profiling.
-**Cannot**: Fix application logic bugs unrelated to performance.
-**Signals**: LCP > 2.5s, bundle > 500KB, render blocking resources, memory leaks.
+**performance-optimization-engineer**: CAN do Core Web Vitals, bundle analysis, rendering optimization, profiling. CANNOT fix unrelated logic bugs.
 
 ---
 
 ## Compound Task Routing
 
-Some tasks require multiple agents in sequence. Common patterns:
-
 ### API + Frontend Feature
-
 ```
-Step 1: database-engineer → schema migration
-Step 2: nodejs-api-engineer → new endpoint (parallel with Step 3 if no shared types)
-Step 3: typescript-frontend-engineer → UI consuming endpoint
-Step 4: reviewer-code-playbook → full-stack review
-```
-
-### Go Service Performance Issue
-
-```
-Step 1: performance-optimization-engineer → profile, identify hotspot (read-only)
-Step 2: golang-general-engineer → fix based on profiling report
-Step 3: golang-general-engineer → benchmark validation (go test -bench=.)
+1. database-engineer → schema migration
+2. nodejs-api-engineer → endpoint (parallel with 3 if no shared types)
+3. typescript-frontend-engineer → UI
+4. reviewer-code-playbook → full-stack review
 ```
 
-### Infrastructure + Application Deployment
-
+### Go Service Performance
 ```
-Step 1: kubernetes-helm-engineer → Helm chart / deployment config
-Step 2: ansible-automation-engineer → provisioning playbooks (parallel with Step 1 if isolated)
-Step 3: Application agent → smoke test against deployed environment
+1. performance-optimization-engineer → profile, identify hotspot (read-only)
+2. golang-general-engineer → fix
+3. golang-general-engineer → benchmark validation
+```
+
+### Infrastructure + Application
+```
+1. kubernetes-helm-engineer → Helm chart (parallel with 2 if isolated)
+2. ansible-automation-engineer → provisioning
+3. Application agent → smoke test
 ```
 
 ---
 
-## Routing Mismatches
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+## Preferred Patterns
 
-### Route to the Specialist Agent
-
-**Signal**: Dispatching `Agent({ subagent_type: undefined })` for Go compilation errors.
-
-**Why this matters**: A general-purpose agent lacks Go-specific pattern libraries, correction catalogs, and idiomatic guidance. It can still produce functional code, but the result often needs rework.
-
-**Preferred action**: Look up the task type in the Primary Routing Table above and specify the exact `subagent_type`. For Go compilation errors, use `golang-general-engineer`. Reserve the general-purpose agent for domains with no specialist listed.
-
----
+### Route to Specialist Agent
+**Signal**: Dispatching undefined subagent_type for Go errors.
+**Fix**: Look up task type in routing table, specify exact `subagent_type`.
 
 ### Match Agent to Language Domain
+**Signal**: TypeScript backend work sent to frontend engineer.
+**Fix**: Check imports — `express`/`@nestjs`/`fastify` → nodejs-api-engineer. `react`/`next` → typescript-frontend-engineer.
 
-**Signal**: Sending TypeScript backend work to `typescript-frontend-engineer`.
-
-**Why this matters**: A frontend agent optimizes for bundle size, React patterns, and CSR/SSR rather than REST APIs, database connection pooling, or request middleware.
-
-**Preferred action**: Run the detection commands below before dispatching. Backend imports (`express`, `@nestjs`, `fastify`) route to `nodejs-api-engineer`. Frontend imports (`react`, `next`) route to `typescript-frontend-engineer`. When the entry file has neither, read the first 20 lines and use the import block to resolve the domain.
-
-**Detection**:
-```
-rg "import.*express|import.*@nestjs" --files-with-matches src/
-# → backend work → nodejs-api-engineer
-rg "import.*react|import.*next" --files-with-matches src/
-# → frontend work → typescript-frontend-engineer
+```bash
+rg "import.*express|import.*@nestjs" --files-with-matches src/  # → backend
+rg "import.*react|import.*next" --files-with-matches src/       # → frontend
 ```
 
----
-
-### Route Schema Changes to the Database Agent
-
-**Signal**: Asking `nodejs-api-engineer` to add a database column.
-
-**Why this matters**: An application agent may update the ORM model without creating the migration, which can cause runtime errors on deploy.
-
-**Preferred action**: Dispatch `database-engineer` first to create and verify the migration. Once the migration is committed, dispatch the application agent to update ORM models against the stable schema. Keep schema changes first and application changes second.
+### Route Schema Changes to Database Agent
+**Signal**: Asking nodejs-api-engineer to add a column.
+**Fix**: database-engineer first for migration, then application agent for ORM models.
 
 ---
 
 ## Agent Selection Decision Tree
 
 ```
-Task involves .go files?
-  → golang-general-engineer
-
-Task involves TypeScript?
-  → Backend/API? → nodejs-api-engineer
-  → Frontend/React? → typescript-frontend-engineer
-
-Task involves database schema?
-  → database-engineer (first, before application agents)
-
-Task involves infrastructure?
-  → Kubernetes/containers? → kubernetes-helm-engineer
-  → VM provisioning? → ansible-automation-engineer
-
-Task involves performance profiling?
-  → performance-optimization-engineer
-
-Task involves code review?
-  → reviewer-code-playbook
-
-Otherwise?
-  → Check agents/ directory for domain match
-  → general-purpose only as last resort
+.go files? → golang-general-engineer
+TypeScript backend/API? → nodejs-api-engineer
+TypeScript frontend/React? → typescript-frontend-engineer
+Database schema? → database-engineer (first, before app agents)
+K8s/containers? → kubernetes-helm-engineer
+VM provisioning? → ansible-automation-engineer
+Performance? → performance-optimization-engineer
+Code review? → reviewer-code-playbook
+Otherwise? → Check agents/ for domain match → general-purpose as last resort
 ```

@@ -1,6 +1,6 @@
 # TodoWrite Integration Reference
 
-> **Scope**: Patterns for using TodoWrite with multi-agent coordination — task structure, agent assignments, dependency tracking, and completion verification.
+> **Scope**: TodoWrite patterns for multi-agent coordination — task structure, dependencies, and completion verification.
 > **Version range**: Claude Code TodoWrite system (all versions)
 > **Generated**: 2026-04-09
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-TodoWrite is the coordinator's task registry — it tracks which agents own which tasks, what dependencies exist between tasks, and which tasks are complete. The critical discipline is keeping the TodoWrite list synchronized with STATUS.md and PROGRESS.md. A task marked `completed` in TodoWrite but not reflected in STATUS.md creates phantom progress that misleads fresh agents.
+TodoWrite tracks agent task ownership, dependencies, and completion. Keep TodoWrite synchronized with STATUS.md and PROGRESS.md — a task marked `completed` in TodoWrite but not in STATUS.md creates phantom progress.
 
 ---
 
@@ -31,8 +31,6 @@ TodoWrite is the coordinator's task registry — it tracks which agents own whic
 Structure each task with explicit `blockedBy` when it depends on prior output.
 
 ```markdown
-TodoWrite tasks for a 3-phase project:
-
 Task: "Phase 1: Generate database schema"
   id: phase-1-schema
   status: in_progress
@@ -61,39 +59,34 @@ Task: "Phase 4: Integration tests"
   output: tests/integration/*
 ```
 
-**Why**: The `blockedBy` chain makes the execution order explicit. The coordinator can read the TodoWrite list to determine which tasks are ready to dispatch — any task whose blockedBy tasks are all `completed` is ready.
-
 ---
 
 ### Completion Verification Before Status Update
 
-Never mark a task `completed` based on agent claim alone — verify with the success criteria before updating TodoWrite.
+Never mark `completed` based on agent claim alone — verify with success criteria first.
 
 ```markdown
-Verification sequence before marking completed:
-
+Verification sequence:
 1. Agent reports: "Phase 1 complete, schema.sql created"
 2. VERIFY: ls -la schema.sql  (file must exist)
-3. VERIFY: python3 -c "import json; open('schema.sql')"  (or language-specific check)
+3. VERIFY: python3 -c "import json; open('schema.sql')"
 4. VERIFY: SUCCESS CRITERIA from HANDOFF.md all pass
-5. ONLY THEN: Update TodoWrite task phase-1-schema to completed
-6. THEN: Update STATUS.md completed phases list
+5. ONLY THEN: Update TodoWrite to completed
+6. THEN: Update STATUS.md
 7. THEN: Update PROGRESS.md if context >70%
 ```
-
-**Why**: Agents sometimes report completion when they have only partially completed work. Premature `completed` status causes Phase 2 to start before its dependency is actually ready, producing "file not found" errors that cost another retry cycle.
 
 ---
 
 ### Parallel Task Structure
 
-For tasks that can safely run in parallel, assign multiple agents with non-overlapping file domains.
+For parallel tasks, assign non-overlapping file domains.
 
 ```markdown
 Task: "Phase 4: Integration tests (parallel)"
   id: phase-4-tests
   status: in_progress
-  blockedBy: phase-3-api  (must be completed before this starts)
+  blockedBy: phase-3-api
   parallel_agents:
     - agent: nodejs-api-engineer
       files: tests/integration/api/*.test.js
@@ -103,7 +96,7 @@ Task: "Phase 4: Integration tests (parallel)"
       id: phase-4b-model-tests
 ```
 
-File domains MUST NOT overlap. If they do, serialize instead of parallelizing.
+File domains MUST NOT overlap. If they do, serialize instead.
 
 ---
 
@@ -114,23 +107,10 @@ File domains MUST NOT overlap. If they do, serialize instead of parallelizing.
 
 **Detection**:
 ```bash
-# Look for completed status updates without a verification step in notes
 grep -B5 "completed" todo*.md 2>/dev/null | grep -v "VERIFY\|exits 0\|tests pass"
-# Any completed entry without verification evidence is premature
 ```
 
-**Signal**:
-```markdown
-Task: "Implement user endpoint"
-  status: completed  ← marked complete based on agent message alone
-  note: "Agent said it was done"
-```
-
-**Why this matters**: Agent self-report is not evidence of completion. The agent may have hit a timeout, written partial output, or misread a test result. Premature `completed` causes the next dependent task to start with missing inputs.
-
-**Preferred action**: Run the success criteria from the task's HANDOFF.md before updating the TodoWrite status. The `completed` transition requires a verification command result recorded in the task note — the output file exists, the test command exits 0, or the observable behavior matches the spec.
-
-**Example**: Every `completed` transition must include a verification command result:
+**Preferred action**: Run success criteria from HANDOFF.md before updating status. Every `completed` transition must include verification evidence:
 ```markdown
 Task: "Implement user endpoint"
   status: completed
@@ -143,20 +123,10 @@ Task: "Implement user endpoint"
 
 **Detection**:
 ```bash
-# Find tasks that reference prior phases in their description but have no blockedBy
 grep -B2 "Phase [2-9]\|depends on\|requires" todo*.md 2>/dev/null | grep -v "blockedBy"
 ```
 
-**Signal**:
-```markdown
-Task: "Phase 2: Write ORM models using the schema"
-  status: pending
-  # No blockedBy — can be accidentally dispatched before Phase 1 completes
-```
-
-**Why this matters**: Without `blockedBy`, the coordinator has no automated signal to wait. In multi-session or parallel scenarios, a fresh coordinator agent may dispatch Phase 2 before Phase 1's output exists.
-
-**Preferred action**: Add `blockedBy: {prior-task-id}` to every task that reads output from a prior task. At planning time, walk each task's inputs and identify which task produces them. If there is a dependency, there must be a blockedBy.
+**Preferred action**: Add `blockedBy: {prior-task-id}` to every task that reads output from a prior task.
 
 ---
 
@@ -164,21 +134,10 @@ Task: "Phase 2: Write ORM models using the schema"
 
 **Detection**:
 ```bash
-# Find tasks with multiple agents assigned without parallel structure
 grep -A5 "assigned:" todo*.md 2>/dev/null | grep -E "assigned:.*,.*,"
-# Multiple agent assignments to one task without parallel_agents structure = ambiguous ownership
 ```
 
-**Signal**:
-```markdown
-Task: "Implement and test the API"
-  assigned: nodejs-api-engineer, python-general-engineer, database-engineer
-  # Who owns what? What happens if one fails?
-```
-
-**Why this matters**: Single-task multi-agent assignment has no file domain boundaries, no independent completion criteria, and no retry tracking per agent. If one agent fails, the entire task fails with no clear path to recovery.
-
-**Preferred action**: Split multi-agent work into separate tasks using the `parallel_agents` structure, with each sub-task having its own file domain, its own id, and its own success criteria. Each agent's retry count tracks independently, and a single agent's failure does not block the others.
+**Preferred action**: Split into `parallel_agents` subtasks with own file domain, id, and success criteria. Each agent's retry count tracks independently.
 
 ---
 
@@ -186,11 +145,11 @@ Task: "Implement and test the API"
 
 | Symptom | Root Cause | Fix |
 |---------|------------|-----|
-| Phase N+1 dispatched before Phase N output exists | Missing `blockedBy` on Phase N+1 task | Add `blockedBy: phase-N-id` to all dependent tasks |
-| Task marked `completed` but next agent reports missing files | Premature completion without verification | Require verification command result before any `completed` status change |
-| Two agents edit conflicting files | Multi-agent assignment to single task without parallel structure | Split into parallel_agents subtasks with non-overlapping file domains |
-| Coordinator cannot determine which tasks are ready | No clear dependency chain | Rebuild TodoWrite with explicit `blockedBy` for every inter-phase dependency |
-| Fresh agent re-does completed tasks | TodoWrite not synced with PROGRESS.md | Update PROGRESS.md to include TodoWrite `completed` task list |
+| Phase N+1 dispatched before Phase N output | Missing `blockedBy` | Add `blockedBy: phase-N-id` |
+| Task `completed` but next agent reports missing files | Premature completion | Require verification before `completed` |
+| Two agents edit conflicting files | Multi-agent single task | Split into parallel_agents with non-overlapping domains |
+| Can't determine which tasks are ready | No dependency chain | Rebuild TodoWrite with explicit `blockedBy` |
+| Fresh agent re-does completed tasks | TodoWrite not synced with PROGRESS.md | Update PROGRESS.md with TodoWrite completed list |
 
 ---
 

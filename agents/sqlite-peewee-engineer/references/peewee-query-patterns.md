@@ -8,11 +8,7 @@
 
 ## Overview
 
-The most common performance failures in Peewee/SQLite are N+1 queries (accessing related models
-inside a loop without prefetch) and missing indexes on foreign keys. Peewee's `prefetch()` and
-`join()` solve N+1 in fundamentally different ways — choosing the wrong one produces either
-cartesian products or extra round-trips. SQLite adds a constraint: `EXPLAIN QUERY PLAN` is the
-primary tool for diagnosing slow queries, not pg_explain.
+Most common Peewee/SQLite performance failures: N+1 queries and missing FK indexes. `prefetch()` and `join()` solve N+1 differently — wrong choice produces cartesian products or extra round-trips. Use `EXPLAIN QUERY PLAN` for diagnosis.
 
 ---
 
@@ -33,8 +29,7 @@ primary tool for diagnosing slow queries, not pg_explain.
 
 ### Prefetch for Reverse FK Relations
 
-`prefetch()` executes exactly 2 SQL queries: one for the primary model, one for each prefetched
-relation. Related objects are attached in Python, not via JOIN.
+`prefetch()` executes exactly 2 queries: one for primary model, one per prefetched relation. Attached in Python, not via JOIN.
 
 ```python
 # Load users with all their posts — 2 queries total
@@ -44,15 +39,13 @@ for user in users:
         print(post.title)
 ```
 
-**Why**: Each `user.posts` access without prefetch executes a new SELECT. With 100 users that's
-101 queries. Prefetch flattens this to 2 queries regardless of user count.
+**Why**: Without prefetch, each `user.posts` access executes a SELECT. 100 users = 101 queries. Prefetch: always 2.
 
 ---
 
 ### Join for Filter/Order on Related Field
 
-Use `join()` when you need to filter or order by a related model's field, not to load the related
-model itself.
+Use `join()` to filter or order by a related field, not to load related data.
 
 ```python
 # Find users who have published posts — efficient single query
@@ -70,14 +63,13 @@ users = (User
     .order_by(fn.MAX(Post.created_at).desc()))
 ```
 
-**Why**: `prefetch()` can't filter — it loads all related rows. Use `join()` when the related
-table drives the WHERE or ORDER BY clause.
+**Why**: `prefetch()` can't filter — it loads all related rows. Use `join()` when related table drives WHERE or ORDER BY.
 
 ---
 
 ### WAL Mode for Read-Heavy Workloads
 
-Enable Write-Ahead Logging to allow concurrent readers during writes. Set once at connection time.
+Enable WAL for concurrent readers during writes. Set once at connection time.
 
 ```python
 from peewee import SqliteDatabase
@@ -90,15 +82,14 @@ db = SqliteDatabase('app.db', pragmas={
 })
 ```
 
-**Why**: Default SQLite journal mode blocks all readers during any write. WAL mode allows
-readers to continue while a write transaction is open, essential for web applications.
+**Why**: Default journal mode blocks all readers during writes. WAL allows concurrent reads, essential for web apps.
 
 ---
 
-### Targeted SELECT for Minimal Column Loading
+### Targeted SELECT
 <!-- no-pair-required: positive pattern section, title contains 'avoid' triggering false positive -->
 
-Specify only needed columns — prevents loading TEXT/BLOB columns when only IDs or names needed.
+Specify only needed columns to avoid loading TEXT/BLOB when only IDs or names needed.
 
 ```python
 # Bad: loads all columns including large blob fields
@@ -141,14 +132,9 @@ for user in users:
     latest = user.posts.order_by(Post.created_at.desc()).first()
 ```
 
-**Why this matters**: Each `user.posts` access opens a new database connection and executes a SELECT.
-With 500 users this is 1001 queries. SQLite holds a read lock per query — accumulated latency
-grows linearly with row count.
+**Why this matters**: Each `user.posts` access executes a SELECT. 500 users = 1001 queries. Latency grows linearly.
 
-**Preferred action:**
-
-Use `prefetch()` to load all related data in 2 queries, or annotate with a subquery to compute
-aggregates in a single SQL statement:
+**Preferred action:** Use `prefetch()` (2 queries) or annotate with subquery (1 query):
 
 ```python
 # Option 1: prefetch + Python aggregation
@@ -191,14 +177,9 @@ class Post(Model):
     category = ForeignKeyField(Category, backref='posts')  # No index!
 ```
 
-**Why this matters**: Peewee does NOT automatically index ForeignKeyField (unlike Django). Queries
-filtering on `Post.user == user_id` do a full table scan. At 10k rows this is noticeable; at
-100k rows it's a reported bug.
+**Why this matters**: Peewee does NOT auto-index ForeignKeyField (unlike Django). Full table scan at 10k+ rows.
 
-**Preferred action:**
-
-Declare `index=True` on every `ForeignKeyField` and add composite indexes in `Meta.indexes`
-for any query patterns that filter on multiple columns:
+**Preferred action:** `index=True` on every FK, composite indexes for multi-column filters:
 
 ```python
 class Post(Model):
@@ -236,14 +217,9 @@ users = (User
     .prefetch(Post))  # Also prefetches — duplicates Post rows
 ```
 
-**Why this matters**: `join()` and `prefetch()` for the same model are mutually exclusive operations.
-Using both causes Post rows to appear multiple times in `user.posts` after prefetch populates
-from the JOIN result set.
+**Why this matters**: `join()` + `prefetch()` on same model are mutually exclusive. Combining duplicates Post rows.
 
-**Preferred action:**
-
-Pick one strategy per query: `join()` for filter/order operations, `prefetch()` for loading
-related objects into memory:
+**Preferred action:** One strategy per query — `join()` for filter/order, `prefetch()` for loading:
 
 ```python
 # For filtering: use join only, no prefetch
@@ -274,12 +250,9 @@ for post in posts:
     print(post.title)  # Only needed title
 ```
 
-**Why this matters**: SQLite reads entire row pages into cache. Loading unused large columns wastes
-cache and increases I/O, especially in list views rendering only titles or IDs.
+**Why this matters**: SQLite reads entire row pages. Unused large columns waste cache and I/O.
 
 **Preferred action:**
-
-Select only the columns required for the operation, keeping queries narrow and cache-efficient:
 
 ```python
 posts = Post.select(Post.id, Post.title, Post.created_at)

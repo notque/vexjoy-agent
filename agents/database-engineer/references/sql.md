@@ -1,16 +1,9 @@
 # SQL Patterns Reference
 
-> **Scope**: Cross-database SQL anti-patterns, N+1 detection, migration safety, and query correctness
+> **Scope**: Cross-database SQL patterns, N+1, migration safety, query correctness
 > **Version range**: Standard SQL / PostgreSQL 14+ / MySQL 8.0+
-> **Generated**: 2026-04-04 — syntax notes for PostgreSQL vs MySQL where they differ
 
----
-
-## Overview
-
-SQL bugs are silent: wrong queries don't raise errors, they return wrong data that propagates to reports and APIs. The most common SQL failures are N+1 patterns (100 queries where 1 would do), NULL comparison mistakes (`col = NULL` always returns false), and implicit type coercion in WHERE clauses that prevent index use. Detection requires EXPLAIN plans and slow query logs, not code review alone.
-
----
+SQL bugs are silent: wrong data, not errors. Common: N+1 patterns, NULL comparison (`col = NULL` = always false), implicit type coercion bypassing indexes. Detection requires EXPLAIN + slow query logs.
 
 ## Pattern Table: NULL Handling
 
@@ -51,7 +44,7 @@ JOIN users u ON o.user_id = u.id
 WHERE o.status = 'pending';
 ```
 
-**Why**: 1001 round-trips to the database at 1ms each = 1 second of latency. 1 JOIN query = 5ms. The performance difference scales with result set size.
+1001 round-trips at 1ms = 1 second. 1 JOIN = 5ms. Scales with result set size.
 
 ---
 
@@ -110,7 +103,7 @@ ALTER TABLE orders VALIDATE CONSTRAINT orders_processed_at_not_null;
 ALTER TABLE orders ALTER COLUMN processed_at SET NOT NULL;
 ```
 
-**Why**: `ALTER TABLE ... ALTER COLUMN ... SET NOT NULL` without prior constraint validation requires a full table scan with ExclusiveLock, blocking all writes. The NOT VALID → VALIDATE approach does the check incrementally, only holding a ShareLock during validation.
+`SET NOT NULL` without prior validation = full scan with ExclusiveLock. NOT VALID + VALIDATE = incremental check with ShareLock only.
 
 ---
 
@@ -138,7 +131,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT 20;
 ```
 
-**Why**: OFFSET scans all rows up to the offset. Page 1000 is 1000× slower than page 1. Keyset pagination uses the index to jump directly to the right position — always the same speed regardless of page depth.
+OFFSET scans all rows up to offset. Page 1000 = 1000x slower than page 1. Keyset jumps via index — constant speed.
 
 **Version note**: Composite comparison `(col1, col2) < (val1, val2)` is standard SQL and supported in PostgreSQL and MySQL 8.0+.
 
@@ -163,9 +156,9 @@ grep -rn "\.find_all\(\|\.all()\|fetchAll()" src/ --include="*.py" --include="*.
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 ```
 
-**Why this matters**: Retrieves all columns including large TEXT/BLOB fields even when only `name` and `email` are needed. Breaks when schema adds columns (new columns appear in API responses). Prevents index-only scans (which need only indexed columns).
+**Why**: Retrieves all columns including large TEXT/BLOB. Breaks on schema additions. Prevents index-only scans.
 
-**Preferred action:**
+**Fix**:
 ```python
 cursor.execute(
     "SELECT id, name, email, created_at FROM users WHERE id = %s",
@@ -198,9 +191,9 @@ SELECT * FROM users WHERE id = '12345';
 -- PostgreSQL: may work or throw type mismatch error depending on context
 ```
 
-**Why this matters**: In MySQL, comparing an integer column to a string `'12345'` coerces the string to integer for comparison but may or may not use the index depending on the column type. PostgreSQL is stricter and often throws an error, but implicit casts in some cases bypass indexes.
+**Why**: MySQL silently coerces, may bypass index. PostgreSQL may throw type mismatch.
 
-**Preferred action:** Pass the correct type from the application:
+**Fix**:
 ```python
 # Python: pass integer, not string
 cursor.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
@@ -226,9 +219,9 @@ query = f"SELECT * FROM users WHERE id = {user_id}"  # NEVER DO THIS
 cursor.execute(query)
 ```
 
-**Why this matters**: Attacker passes `id=1 OR 1=1` to dump all users, or `id=1; DROP TABLE users` to destroy data. This is OWASP Top 10 #3.
+**Why**: OWASP Top 10 #3. `id=1 OR 1=1` dumps all users.
 
-**Preferred action:**
+**Fix**:
 ```python
 # Always use parameterized queries
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
@@ -256,9 +249,9 @@ SELECT * FROM orders WHERE DATE(created_at) = '2026-04-04';
 SELECT * FROM users WHERE LOWER(email) = 'alice@example.com';
 ```
 
-**Why this matters**: Applying a function to an indexed column prevents index use. `DATE(created_at)` computes a new value for every row, forcing a full sequential scan. The index stores values of `created_at`, not values of `DATE(created_at)`.
+**Why**: Function on indexed column forces full scan. Index stores `created_at`, not `DATE(created_at)`.
 
-**Preferred action:**
+**Fix**:
 ```sql
 -- Date range instead of function (uses index)
 SELECT * FROM orders

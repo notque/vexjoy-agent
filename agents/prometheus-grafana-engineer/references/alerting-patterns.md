@@ -1,20 +1,14 @@
 # Alerting Patterns Reference
 
-> **Scope**: SLO-based alerting, multi-window burn rate, and Alertmanager configuration patterns
+> **Scope**: SLO-based alerting, multi-window burn rate, Alertmanager configuration
 > **Version range**: Prometheus 2.0+ / Alertmanager 0.20+
 > **Generated**: 2026-04-09 — verify burn rate math against your SLO targets
 
 ---
 
-## Overview
-
-SLO-based alerting is the production standard for actionable alerts. The primary failure mode is alerting on symptoms (CPU, disk, memory) that have no direct user impact, or using single-window burn rate that misses both slow and fast burns. Google's SRE book multi-window burn rate pattern detects 99% of SLO violations with low false-positive rate.
-
----
-
 ## SLO Burn Rate — Core Math
 
-A burn rate of N means you're consuming your error budget N× faster than allowed.
+A burn rate of N means you're consuming error budget N× faster than allowed.
 
 | Burn Rate | Time to Exhaust Budget | Severity | Window |
 |-----------|----------------------|----------|--------|
@@ -58,7 +52,7 @@ groups:
           severity: warning
 ```
 
-The `0.001` is the error threshold for a 99.9% SLO (1 - 0.999). For 99.5% SLO, use `0.005`.
+The `0.001` is the error threshold for 99.9% SLO (1 - 0.999). For 99.5% SLO, use `0.005`.
 
 ---
 
@@ -66,7 +60,7 @@ The `0.001` is the error threshold for a 99.9% SLO (1 - 0.999). For 99.5% SLO, u
 
 ### Alertmanager Inhibition Rules
 
-Use inhibition to suppress lower-severity alerts when a higher-severity alert fires for the same service:
+Suppress lower-severity alerts when a higher-severity alert fires for the same service:
 
 ```yaml
 # alertmanager.yml
@@ -80,21 +74,17 @@ inhibit_rules:
       - instance
 ```
 
-**Why**: Without inhibition, a database outage fires both `DBDown (critical)` and `SlowQueries (warning)` for the same instance. On-call gets paged twice and must mentally correlate. Inhibition auto-suppresses the warning when the critical is active.
-
 ---
 
 ### Alert Grouping by Team
-
-Group alerts before routing to team channels:
 
 ```yaml
 # alertmanager.yml
 route:
   group_by: [alertname, job, severity]
-  group_wait: 30s      # wait 30s to batch alerts in same group
-  group_interval: 5m   # send new alerts in existing group every 5m
-  repeat_interval: 4h  # re-notify if still firing after 4h
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
   receiver: default
 
   routes:
@@ -106,10 +96,10 @@ route:
     - match:
         severity: critical
       receiver: pagerduty
-      continue: true    # continue to check other routes too
+      continue: true
 ```
 
-**Why**: Without `group_by`, Alertmanager sends one notification per alert, generating 50+ Slack messages during an incident. Grouping collapses a K8s node failure (5+ firing alerts per pod) into one actionable message.
+Without `group_by`, Alertmanager sends one notification per alert — 50+ Slack messages during an incident. Grouping collapses related alerts into one message.
 
 ---
 
@@ -124,16 +114,9 @@ grep -rn 'burn_rate\|burnrate\|error_rate.*ratio' --include="*.yml" -A 5 | grep 
 rg 'alert.*[Bb]urn' --type yaml -A 8 | grep -v 'and\s*$'
 ```
 
-**Signal**:
-```yaml
-- alert: SLOBurnRate
-  expr: job:error_rate:ratio5m > 0.01
-  # Single window — misses slow burns over hours
-```
+**Signal**: Single-window burn rate alert (misses slow burns over hours).
 
-**Why this matters**: A single 5-minute window catches fast burns (many errors quickly) but misses slow burns (few errors sustained over hours) that also exhaust the error budget. 30% of budget-exhausting incidents are slow burns invisible to single-window alerting.
-
-**Preferred action**: Multi-window burn rate — require both a long window (confirming trend) and a short window (confirming it's ongoing):
+**Preferred action**: Require both a long window (trend) and short window (ongoing):
 ```yaml
 - alert: SLOBurnRate
   expr: |
@@ -149,32 +132,17 @@ rg 'alert.*[Bb]urn' --type yaml -A 8 | grep -v 'and\s*$'
 
 **Detection**:
 ```bash
-# Check if amtool is available and used in CI
 grep -rn 'amtool' --include="Makefile" --include="*.sh" --include="*.yml"
-# If no results: amtool validation is missing from deployment pipeline
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**Signal**:
-```bash
-# alertmanager.yml applied directly without validation
-kubectl apply -f alertmanager-config.yaml
-# A YAML syntax error silences ALL alerts
-```
-
-**Why this matters**: A single YAML syntax error in `alertmanager.yml` causes Alertmanager to reject the config and continue using the previous valid config — or fail to start. No error surfaces in the UI until alerts fail to route. Silent alert failures are worse than loud ones.
+A YAML syntax error in `alertmanager.yml` causes Alertmanager to reject the config silently. No error surfaces until alerts fail to route.
 
 **Preferred action**:
 ```bash
-# Validate before applying
 amtool check-config alertmanager.yml
-
-# Test routing for a specific alert label set
 amtool config routes test --config.file=alertmanager.yml \
   severity=critical job=api team=platform
-
-# In CI: add this to pre-commit or CI pipeline
-amtool check-config alertmanager.yml && echo "Config valid"
 ```
 
 ---
@@ -187,24 +155,11 @@ grep -rn '^\s*- alert:' --include="*.yml" -A 15 | grep -B 10 'severity: critical
 rg 'alert:' --type yaml -A 12 | grep -B8 'severity: critical' | grep -v runbook_url
 ```
 
-**Signal**:
-```yaml
-- alert: DatabaseConnectionPoolExhausted
-  expr: pg_stat_activity_count > 90
-  labels:
-    severity: critical
-  annotations:
-    summary: "DB connections exhausted"
-    # No runbook_url — on-call must guess remediation at 3am
-```
-
-**Why this matters**: Alerts without runbooks produce "now what?" paralysis at incident time. The 3am on-call engineer shouldn't be solving novel problems — they should be executing a known remediation. Missing runbooks convert paging alerts into learning exercises.
-
 **Preferred action**:
 ```yaml
 annotations:
   summary: "DB connections exhausted on {{ $labels.instance }}"
-  description: "Connection pool at {{ $value }}/100. Spike in slow queries or leaked connections."
+  description: "Connection pool at {{ $value }}/100."
   runbook_url: "https://wiki.example.com/runbooks/db-connection-pool"
   dashboard_url: "https://grafana.example.com/d/db-overview?var-instance={{ $labels.instance }}"
 ```
@@ -216,25 +171,11 @@ annotations:
 **Detection**:
 ```bash
 grep -n 'receiver:' alertmanager.yml | wc -l
-# If only 1-2 unique receivers with no routes: flat routing
 grep -c 'routes:' alertmanager.yml
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**Signal**:
-```yaml
-# alertmanager.yml
-route:
-  receiver: all-alerts-slack  # everything goes to one channel
-receivers:
-  - name: all-alerts-slack
-    slack_configs:
-      - channel: "#alerts"
-```
-
-**Why this matters**: Mixing critical pages (database down), warnings (disk at 70%), and informational (deployment complete) into one channel trains teams to ignore the channel. Critical alerts get lost in noise. Mean time to acknowledge increases.
-
-**Preferred action**: Route by severity and team:
+**Preferred action**:
 ```yaml
 route:
   receiver: default
@@ -253,12 +194,12 @@ route:
 
 | Error / Symptom | Root Cause | Fix |
 |-----------------|------------|-----|
-| Alert fires then immediately resolves (flapping) | No `for:` clause or `for:` too short | Add `for: 5m` minimum to all non-critical alerts |
-| Alertmanager silently stops routing alerts | YAML syntax error in config — old config still active | Run `amtool check-config` before applying; add to CI |
-| No alerts during incident | Inhibition rule too broad — critical silenced warnings AND pages | Narrow `equal:` labels in inhibit_rules to specific instance |
-| PagerDuty deduplication not working | Missing `source_matchers` or wrong `equal:` set | Add `equal: [alertname, job]` to inhibit rules |
-| Alerts fire during rolling deployment | `absent()` alert with short `for:` | Increase `for:` to 10m+ to tolerate pod restart gaps |
-| Burn rate alert never fires | Error threshold wrong for SLO (e.g., using 0.01 for 99.9%) | SLO = 99.9% → threshold = `1 - 0.999 = 0.001`, not `0.01` |
+| Alert flapping | No `for:` clause or too short | Add `for: 5m` minimum for non-critical |
+| Alertmanager silently stops routing | YAML syntax error | Run `amtool check-config` before applying |
+| No alerts during incident | Inhibition too broad | Narrow `equal:` labels in inhibit_rules |
+| PagerDuty dedup not working | Missing `source_matchers` | Add `equal: [alertname, job]` |
+| Alerts fire during deployment | `absent()` with short `for:` | Increase `for:` to 10m+ |
+| Burn rate alert never fires | Wrong error threshold | 99.9% SLO → threshold = `0.001`, not `0.01` |
 
 ---
 
@@ -266,10 +207,10 @@ route:
 
 | Version | Change | Impact |
 |---------|--------|--------|
-| Alertmanager 0.20 | `inhibit_rules.source_matchers` / `target_matchers` syntax | Old `source_match` / `target_match` deprecated in 0.22 |
-| Alertmanager 0.22 | `matchers` field for routes (replaces `match` + `match_re`) | `match:` still works but `matchers:` is preferred |
-| Alertmanager 0.25 | `time_intervals` replaces `time_intervals` in mute_time_intervals | Check config if upgrading — key rename causes silent ignore |
-| Prometheus 2.28 | `for` clause resets on alert state change | Alerts that briefly resolve then re-fire restart the `for:` timer |
+| Alertmanager 0.20 | `source_matchers` / `target_matchers` syntax | Old `source_match` deprecated in 0.22 |
+| Alertmanager 0.22 | `matchers` field for routes | `match:` still works but `matchers:` preferred |
+| Alertmanager 0.25 | `time_intervals` replaces mute_time_intervals key | Key rename causes silent ignore on upgrade |
+| Prometheus 2.28 | `for` clause resets on state change | Alerts that briefly resolve restart `for:` timer |
 
 ---
 
@@ -279,16 +220,16 @@ route:
 # Find alerts missing for: clause
 grep -rn '^\s*- alert:' --include="*.yml" -A 8 | grep -B 5 'expr:' | grep -v 'for:'
 
-# Find single-window burn rate alerts (no 'and' multi-window)
+# Find single-window burn rate alerts
 grep -rn 'burn_rate\|error_rate.*ratio' --include="*.yml" -A 6 | grep -v '^\s*and\s'
 
 # Find alerts without runbook annotations
 grep -rn 'severity: critical' --include="*.yml" -B 10 | grep -v runbook_url
 
-# Validate Alertmanager config syntax
+# Validate Alertmanager config
 amtool check-config /etc/alertmanager/alertmanager.yml
 
-# Test alert routing for a label set
+# Test alert routing
 amtool config routes test severity=critical job=api
 ```
 
@@ -296,5 +237,5 @@ amtool config routes test severity=critical job=api
 
 ## See Also
 
-- `promql-patterns.md` — PromQL query correctness, rate/irate pitfalls, histogram_quantile usage
-- `cardinality-management.md` — Label cardinality detection and reduction before adding alert label dimensions
+- `promql-patterns.md` — PromQL query correctness, rate/irate pitfalls
+- `cardinality-management.md` — Label cardinality detection and reduction

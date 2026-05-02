@@ -1,15 +1,9 @@
 # Error Handling Reference
 <!-- Loaded by react-native-engineer when task involves error boundaries, Sentry, crash recovery, try/catch, ErrorBoundary, error states -->
 
-> **Scope**: Production error handling in React Native: Error Boundaries, Sentry integration, promise rejection capture, and crash-safe rendering patterns.
+> **Scope**: Production error handling: Error Boundaries, Sentry, promise rejection capture, crash-safe rendering.
 > **Version range**: React 18+, React Native 0.72+, @sentry/react-native 5+
-> **Generated**: 2026-04-12 — verify Sentry DSN config patterns against current @sentry/react-native docs
-
----
-
-## Overview
-
-React Native apps crash hard on unhandled errors — there's no browser error overlay to recover from. A production crash closes the app. The three failure modes are: (1) synchronous render errors without an `ErrorBoundary`, (2) unhandled promise rejections that swallow failures silently, and (3) native module errors that surface as cryptic red boxes during development but silent crashes in production builds.
+> **Generated**: 2026-04-12
 
 ---
 
@@ -17,19 +11,17 @@ React Native apps crash hard on unhandled errors — there's no browser error ov
 
 | Pattern | Version | Use When | Avoid When |
 |---------|---------|----------|------------|
-| `ErrorBoundary` (class component) | React 16+ | catching render-phase errors | async errors inside event handlers |
-| `react-native-error-boundary` | any | quick ErrorBoundary with fallback UI | you need custom recovery logic |
-| `Sentry.init()` in app entry | `@sentry/react-native 5+` | production crash reporting | local dev — noise ratio is high |
-| `unhandledRejection` global handler | RN 0.68+ | catching all unhandled promise rejections | replacing proper `try/catch` per call |
-| `InteractionManager.runAfterInteractions` | any | deferring error-prone work past animation frames | time-sensitive data fetching |
+| `ErrorBoundary` (class component) | React 16+ | Render-phase errors | Async errors in event handlers |
+| `react-native-error-boundary` | any | Quick ErrorBoundary with fallback UI | Custom recovery logic needed |
+| `Sentry.init()` in app entry | `@sentry/react-native 5+` | Production crash reporting | Local dev |
+| `unhandledRejection` global handler | RN 0.68+ | All unhandled promise rejections | Replacing proper `try/catch` |
+| `InteractionManager.runAfterInteractions` | any | Deferring error-prone work past animations | Time-sensitive fetching |
 
 ---
 
 ## Correct Patterns
 
 ### Wrap Screen Roots in ErrorBoundary
-
-Every screen-level component should be wrapped in an `ErrorBoundary`. A crash in one screen should not bring down the entire app.
 
 ```tsx
 import { ErrorBoundary } from 'react-error-boundary'
@@ -46,7 +38,6 @@ function FeedScreen() {
         </View>
       )}
       onError={(error, info) => {
-        // report to Sentry or your crash service
         captureException(error, { extra: { componentStack: info.componentStack } })
       }}
     >
@@ -56,49 +47,41 @@ function FeedScreen() {
 }
 ```
 
-**Why**: Without a boundary, any render-phase throw (null dereference, bad prop type, failed deserialization) crashes the entire React tree. The boundary catches it, renders fallback UI, and lets the user recover without restarting the app.
+Without a boundary, any render-phase throw crashes the entire React tree.
 
 ---
 
 ### Initialize Sentry Before the React Tree
 
-Sentry must be initialized before `AppRegistry.registerComponent` — before any React component mounts. Errors during app startup are otherwise invisible.
-
 ```ts
-// index.js (app entry — before importing App)
+// index.js — before importing App
 import * as Sentry from '@sentry/react-native'
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   environment: process.env.EXPO_PUBLIC_ENV ?? 'development',
-  // Sample at 10% in production to control event volume
   tracesSampleRate: process.env.EXPO_PUBLIC_ENV === 'production' ? 0.1 : 1.0,
   enabled: process.env.EXPO_PUBLIC_ENV !== 'development',
 })
 
-// Then import and register App
 import { registerRootComponent } from 'expo'
 import App from './App'
 registerRootComponent(App)
 ```
 
-**Why**: Errors that occur during app initialization (config load, font loading, initial navigation mount) are lost if Sentry isn't set up first. `EXPO_PUBLIC_*` variables are safe to embed in the bundle — do not use secret keys here.
+Errors during app initialization are lost if Sentry isn't set up first.
 
 ---
 
 ### Capture Unhandled Promise Rejections
 
-React Native 0.68+ surfaces unhandled rejections as yellow warnings in dev, but in production they silently swallow errors. Install a global handler.
-
 ```ts
-// App.tsx or index.js setup
 const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
   console.error('Unhandled promise rejection:', event.reason)
   captureException(event.reason, { tags: { type: 'unhandled_rejection' } })
-  // Don't call event.preventDefault() — let RN's default handling also run
 }
 
-// Node-style (Hermes engine, RN 0.64+)
+// Hermes engine (RN 0.64+)
 if (global.HermesInternal) {
   const tracking = require('promise/setimmediate/rejection-tracking')
   tracking.enable({
@@ -110,13 +93,11 @@ if (global.HermesInternal) {
 }
 ```
 
-**Why**: Fire-and-forget async calls (`fetchUser()` without `await` or `.catch()`) fail silently in production. The global handler catches them for visibility without requiring every call site to add error handling.
+Fire-and-forget async calls fail silently in production without a global handler.
 
 ---
 
 ### Type Fetch Errors — Never Assume the Shape
-
-Network errors in React Native come in three shapes: `Error` instances from `fetch` throwing on network failure, JSON parse errors when the server returns HTML (503 page), and valid JSON with an error status code.
 
 ```ts
 async function fetchUser(id: string): Promise<User> {
@@ -125,12 +106,10 @@ async function fetchUser(id: string): Promise<User> {
   try {
     res = await fetch(`${API_URL}/users/${id}`)
   } catch (err) {
-    // Network failure — no response at all
     throw new Error(`Network error fetching user ${id}: ${String(err)}`)
   }
 
   if (!res.ok) {
-    // Server returned 4xx/5xx — body may not be JSON
     const text = await res.text().catch(() => '<unreadable>')
     throw new Error(`HTTP ${res.status} fetching user ${id}: ${text.slice(0, 200)}`)
   }
@@ -143,7 +122,7 @@ async function fetchUser(id: string): Promise<User> {
 }
 ```
 
-**Why**: `fetch` does NOT throw on 4xx/5xx status codes. Calling `res.json()` on a 503 HTML error page throws a parse error with a misleading message. Wrapping each phase separately gives actionable error messages in Sentry.
+`fetch` does NOT throw on 4xx/5xx. Calling `res.json()` on an HTML error page throws a misleading parse error. Wrap each phase separately for actionable Sentry messages.
 
 ---
 
@@ -154,32 +133,16 @@ async function fetchUser(id: string): Promise<User> {
 **Detection**:
 ```bash
 grep -rn 'console\.error' --include="*.tsx" --include="*.ts" | grep -v "\.test\." | grep -v "\.spec\."
-rg 'console\.error' --type ts --type tsx | grep -v test
 ```
 
 **Signal**:
 ```tsx
-try {
-  await syncData()
-} catch (err) {
-  console.error('Sync failed', err)  // invisible in production
-}
+try { await syncData() } catch (err) { console.error('Sync failed', err) }
 ```
 
-**Why this matters**: `console.error` is stripped or suppressed in production builds. Errors logged this way are invisible to on-call and never trigger alerts. Crashes go undetected until users report them.
+`console.error` is stripped in production builds. Errors are invisible.
 
-**Preferred action**:
-```tsx
-import { captureException } from '@sentry/react-native'
-
-try {
-  await syncData()
-} catch (err) {
-  captureException(err, { tags: { operation: 'sync' } })
-  // optionally also console.error in dev
-  if (__DEV__) console.error('Sync failed', err)
-}
-```
+**Preferred action**: Use `captureException(err)`. Keep `console.error` only in `__DEV__`.
 
 ---
 
@@ -188,27 +151,19 @@ try {
 **Detection**:
 ```bash
 grep -rn 'catch\s*(.*)\s*{\s*}' --include="*.ts" --include="*.tsx"
-rg 'catch\s*\(.*\)\s*\{\s*\}' --type ts
 ```
 
 **Signal**:
 ```ts
-try {
-  await loadUserPreferences()
-} catch (err) {
-  // TODO: handle this
-}
+try { await loadUserPreferences() } catch (err) { /* TODO */ }
 ```
 
-**Why this matters**: Silent swallow. The error is gone. The app is now in an inconsistent state — preferences were not loaded, but no error boundary fired, no fallback rendered, no alert triggered. These are the hardest bugs to diagnose because there's no stack trace.
+Silent swallow. No stack trace, no fallback, inconsistent state.
 
-**Preferred action**: At minimum, report and reset to a safe default:
+**Preferred action**: Report and reset to safe default:
 ```ts
-try {
-  await loadUserPreferences()
-} catch (err) {
+try { await loadUserPreferences() } catch (err) {
   captureException(err)
-  // explicit fallback state
   await setDefaultPreferences()
 }
 ```
@@ -220,7 +175,6 @@ try {
 **Detection**:
 ```bash
 grep -rn 'Stack.Screen\|Tabs.Screen' --include="*.tsx" | grep -v ErrorBoundary
-rg 'NavigationContainer' --type tsx | grep -B5 -A10 'NavigationContainer'
 ```
 
 **Signal**:
@@ -235,21 +189,9 @@ export default function RootLayout() {
 }
 ```
 
-**Why this matters**: If `ProfileScreen` throws during render, it unwinds the entire navigation tree. With no boundary, the app white-screens. Users must force-quit.
+If any screen throws during render, the entire navigation tree white-screens.
 
-**Preferred action**: Wrap each screen's content component in an ErrorBoundary, or add a root-level boundary around the entire navigator:
-```tsx
-export default function RootLayout() {
-  return (
-    <ErrorBoundary fallback={<AppCrashFallback />} onError={captureException}>
-      <Stack>
-        <Stack.Screen name="(tabs)" component={TabsLayout} />
-        <Stack.Screen name="profile" component={ProfileScreen} />
-      </Stack>
-    </ErrorBoundary>
-  )
-}
-```
+**Preferred action**: Wrap each screen or the navigator root in an ErrorBoundary.
 
 ---
 
@@ -257,26 +199,20 @@ export default function RootLayout() {
 
 **Detection**:
 ```bash
-grep -rn '\.data\.' --include="*.ts" --include="*.tsx" | grep -v "\.test\." | grep "await fetch\|axios\|useFetch"
-rg '(await\s+\w+\(.*\))\.data\.' --type ts
+grep -rn '\.data\.' --include="*.ts" --include="*.tsx" | grep -v "\.test\." | grep "await fetch\|axios"
 ```
 
 **Signal**:
 ```ts
-const response = await fetch('/api/user')
 const json = await response.json()
 setUser(json.data.profile.name)  // throws if data or profile is undefined
 ```
 
-**Why this matters**: API contracts break. A server returns `{ error: "not found" }` instead of `{ data: { profile: ... } }`. The chain `.data.profile.name` throws `Cannot read properties of undefined (reading 'profile')` — a crash with a misleading error message.
-
-**Preferred action**: Validate the response shape before accessing nested paths, or use optional chaining with a fallback:
+**Preferred action**: Validate or use optional chaining with fallback:
 ```ts
-const json = await response.json()
 if (!json.data?.profile) {
   throw new Error(`Unexpected API shape: ${JSON.stringify(json).slice(0, 200)}`)
 }
-setUser(json.data.profile.name)
 ```
 
 ---
@@ -285,12 +221,12 @@ setUser(json.data.profile.name)
 
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
-| `TypeError: Cannot read properties of undefined (reading 'X')` | Null/undefined accessed via property chain after API response | Add optional chaining or explicit null check before deep access |
-| `Network request failed` | No network or wrong host in dev | Check `__DEV__` vs production API URL; verify device can reach the API host |
-| `JSON Parse error: Unrecognized token '<'` | Server returned HTML (error page) instead of JSON | Check `res.ok` before calling `res.json()` — server returned 4xx/5xx |
-| `Maximum update depth exceeded` | State setter called inside render or effect without dependency guard | Move setter into event handler or add correct deps array to `useEffect` |
-| `Warning: Can't perform a React state update on an unmounted component` | Async operation completes after component unmounts | Return cleanup function from `useEffect` that cancels in-flight request |
-| `Unhandled promise rejection: Error: Invariant Violation` | Native module call outside the main thread context | Move native module calls to a dedicated service, not inside callbacks |
+| `TypeError: Cannot read properties of undefined` | Null access on API response | Optional chaining or null check |
+| `Network request failed` | No network or wrong host | Check `__DEV__` vs production API URL |
+| `JSON Parse error: Unrecognized token '<'` | Server returned HTML instead of JSON | Check `res.ok` before `res.json()` |
+| `Maximum update depth exceeded` | State setter in render or effect without deps | Move to event handler or fix deps array |
+| `Can't perform state update on unmounted component` | Async completes after unmount | Return cleanup from `useEffect` |
+| `Invariant Violation` from native module | Native call outside main thread | Move to dedicated service |
 
 ---
 
@@ -298,29 +234,29 @@ setUser(json.data.profile.name)
 
 | Version | Change | Impact |
 |---------|--------|--------|
-| RN 0.71 | `Promise.allSettled` enabled by default in Hermes | Use `allSettled` instead of `all` when you want partial results on failure |
-| RN 0.73 | Unhandled rejection handling improved in Hermes | Stack traces from async errors are now preserved — update Sentry sourcemap upload |
-| React 18 | `startTransition` errors fall back to nearest ErrorBoundary | Transitions that throw no longer crash the whole tree |
-| `@sentry/react-native` 5.0 | `Sentry.wrap(App)` deprecated — use `Sentry.init()` then `withSentry(App)` | Update app entry if using older Sentry integration pattern |
+| RN 0.71 | `Promise.allSettled` default in Hermes | Use for partial results on failure |
+| RN 0.73 | Improved async stack traces in Hermes | Update Sentry sourcemap upload |
+| React 18 | `startTransition` errors fall back to ErrorBoundary | Transitions no longer crash whole tree |
+| `@sentry/react-native` 5.0 | `Sentry.wrap(App)` deprecated | Use `Sentry.init()` then `withSentry(App)` |
 
 ---
 
 ## Detection Commands Reference
 
 ```bash
-# Find console.error used as only error reporting (not in tests)
+# console.error as only reporting (not in tests)
 grep -rn 'console\.error' --include="*.tsx" --include="*.ts" | grep -v "\.test\.\|\.spec\."
 
-# Find empty catch blocks
+# Empty catch blocks
 grep -rn 'catch\s*(.*)\s*{\s*}' --include="*.ts" --include="*.tsx"
 
-# Find fetch calls without .ok check
+# Fetch without .ok check
 grep -rn 'await fetch\|\.json()' --include="*.ts" --include="*.tsx" | grep -v 'res\.ok\|response\.ok'
 
-# Find deep property access on API responses without null guards
+# Deep property access without null guards
 grep -rn '\.data\.\|\.result\.' --include="*.ts" --include="*.tsx" | grep -v '\?\.'
 
-# Find missing ErrorBoundary around screen components (Expo Router pattern)
+# Missing ErrorBoundary around screens
 grep -rn 'Stack\.Screen\|Tabs\.Screen' --include="*.tsx" | grep -v 'ErrorBoundary'
 ```
 
@@ -328,5 +264,5 @@ grep -rn 'Stack\.Screen\|Tabs\.Screen' --include="*.tsx" | grep -v 'ErrorBoundar
 
 ## See Also
 
-- `rendering-patterns.md` — Text component crashes and conditional render crashes during render phase
-- `state-management.md` — Stale state that causes incorrect error recovery
+- `rendering-patterns.md` — Text component and conditional render crashes
+- `state-management.md` — Stale state causing incorrect error recovery

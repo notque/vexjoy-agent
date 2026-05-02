@@ -1,16 +1,8 @@
 # Go Modern Patterns — Compact Reference
 
-> **Scope**: Version-specific idiom upgrades and core Go patterns. Tracks what changed in each release.
-> **Version range**: Go 1.18–1.26
-> **Generated**: 2026-04-08
+> **Scope**: Version-specific idiom upgrades, core patterns. Go 1.18–1.26.
 
----
-
-## Overview
-
-The compact agent targets Go 1.26+ but must detect go.mod to avoid using features unavailable to the project. This file is the canonical version-upgrade reference — before suggesting a modern idiom, verify the go.mod declares the required version.
-
----
+Targets Go 1.26+ but must check go.mod before using version-specific features.
 
 ## Version Upgrade Table
 
@@ -71,7 +63,7 @@ if nf, ok := errors.AsType[*NotFoundError](err); ok {
 }
 ```
 
-**Why**: `%w` (1.13+) preserves the error chain so `errors.Is` and `errors.As` can unwrap. Without `%w`, callers using `errors.Is(err, sql.ErrNoRows)` get false even when the root cause is ErrNoRows.
+`%w` preserves the error chain for `errors.Is`/`errors.As`. Without it, `errors.Is(err, sql.ErrNoRows)` returns false.
 
 ---
 
@@ -98,7 +90,7 @@ func NewServer(opts ...Option) *Server {
 }
 ```
 
-**Why**: Functional options avoid zero-value ambiguity (is `timeout: 0` "unset" or "no timeout"?). Extend without breaking callers — new options don't change existing call sites.
+Avoids zero-value ambiguity. Extends without breaking callers.
 
 ---
 
@@ -120,7 +112,7 @@ type EntityManager interface {
 }
 ```
 
-**Why**: Fat interfaces make mocking painful and tight coupling inevitable. Each caller should define the interface it needs (consumer-side interfaces), not the implementer.
+Fat interfaces = painful mocking + tight coupling. Consumer-side interfaces.
 
 ---
 
@@ -169,7 +161,7 @@ func getConfig(path string) (*Config, error) {
 }
 ```
 
-**Why this matters**: Caller receives `open /etc/config: no such file or directory` with no indication that `getConfig` was the call site. Stack traces only available with `debug.Stack()`.
+**Why**: Caller gets raw error with no call-site context.
 
 **Preferred action**:
 ```go

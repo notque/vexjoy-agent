@@ -1,7 +1,5 @@
 # Python Modern Features (3.11+)
 
-Quick reference for modern Python features and patterns.
-
 ## Python 3.11+ Features
 
 ### Structural Pattern Matching (3.10+)
@@ -18,29 +16,22 @@ def process_command(command: dict) -> str:
         case _:
             return "Invalid command"
 
-# Pattern matching with guards
 def classify_age(age: int) -> str:
     match age:
-        case n if n < 0:
-            return "Invalid"
-        case n if n < 18:
-            return "Minor"
-        case n if n < 65:
-            return "Adult"
-        case _:
-            return "Senior"
+        case n if n < 0: return "Invalid"
+        case n if n < 18: return "Minor"
+        case n if n < 65: return "Adult"
+        case _: return "Senior"
 ```
 
 ### Exception Groups (3.11+)
 
 ```python
-# TaskGroup raises ExceptionGroup if any task fails
 async def fetch_all():
     async with asyncio.TaskGroup() as tg:
         tg.create_task(fetch_users())
         tg.create_task(fetch_orders())
 
-# Catch exception groups
 try:
     async with asyncio.TaskGroup() as tg:
         tg.create_task(task1())
@@ -63,13 +54,6 @@ class Builder:
     def add(self, n: int) -> Self:
         self.value += n
         return self
-
-    def multiply(self, n: int) -> Self:
-        self.value *= n
-        return self
-
-# Type inference works with method chaining
-result = Builder().add(5).multiply(2).add(3)  # Type is Builder
 ```
 
 ### NotRequired in TypedDict (3.11+)
@@ -81,10 +65,7 @@ class UserDict(TypedDict):
     id: int
     name: str
     email: str
-    age: NotRequired[int]  # Optional field
-
-user: UserDict = {"id": 1, "name": "Alice", "email": "alice@example.com"}
-# age is optional
+    age: NotRequired[int]
 ```
 
 ## Python 3.12+ Features
@@ -92,16 +73,7 @@ user: UserDict = {"id": 1, "name": "Alice", "email": "alice@example.com"}
 ### PEP 695 Type Parameter Syntax
 
 ```python
-# Old style
-from typing import TypeVar, Generic
-
-T = TypeVar("T")
-
-class Container(Generic[T]):
-    def __init__(self, value: T) -> None:
-        self.value = value
-
-# New PEP 695 style (3.12+)
+# New syntax (3.12+)
 class Container[T]:
     def __init__(self, value: T) -> None:
         self.value = value
@@ -109,7 +81,6 @@ class Container[T]:
 def first[T](items: list[T]) -> T | None:
     return items[0] if items else None
 
-# Type aliases
 type Point = tuple[float, float]
 type Vector[T] = list[T]
 ```
@@ -119,14 +90,11 @@ type Vector[T] = list[T]
 ```python
 import asyncio
 
-# Structured concurrency - all tasks must complete
 async def fetch_all_data() -> dict:
     results = {}
-
     async with asyncio.TaskGroup() as tg:
         users_task = tg.create_task(fetch_users(), name="users")
         orders_task = tg.create_task(fetch_orders(), name="orders")
-
     results["users"] = users_task.result()
     results["orders"] = orders_task.result()
     return results
@@ -138,11 +106,7 @@ async def fetch_with_timeout() -> dict:
             async with asyncio.TaskGroup() as tg:
                 users_task = tg.create_task(fetch_users())
                 orders_task = tg.create_task(fetch_orders())
-
-            return {
-                "users": users_task.result(),
-                "orders": orders_task.result(),
-            }
+            return {"users": users_task.result(), "orders": orders_task.result()}
     except TimeoutError:
         return {"error": "Request timed out"}
 ```
@@ -178,22 +142,12 @@ class User(BaseModel):
 ## Modern Package Management with uv
 
 ```bash
-# Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create project
 uv init my-project
 cd my-project
-
-# Add dependencies
 uv add fastapi uvicorn pydantic
 uv add --dev pytest ruff mypy
-
-# Run commands
-uv run python app.py
 uv run pytest
-
-# Sync environment
 uv sync
 ```
 
@@ -222,10 +176,8 @@ from typing import Annotated
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     app.state.db = await create_db_pool()
     yield
-    # Shutdown
     await app.state.db.close()
 
 app = FastAPI(lifespan=lifespan)

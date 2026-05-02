@@ -32,26 +32,33 @@ Create skills and iteratively improve them through measurement.
 
 ## Output style directive (applies to every generated skill/agent)
 
-Generated SKILL.md and agent bodies: dense informational text, maximize signal.
+Generated SKILL.md and agent bodies must be written as **dense informational
+text focused on accuracy**. Minimize prose, maximize signal, no filler.
 
-- No motivational framing, pep talk, or "this will help you..."
-- No repeated restatement of the same constraint
-- Prefer tables, numbered phases, bullet lists over paragraphs
-- Every sentence must carry information the model acts on
-- "Why" stays short, attached to its rule -- one clause, not a paragraph
+- No motivational framing, no pep talk, no "this will help you...".
+- No repeated restatement of the same constraint in different words.
+- Prefer tables, numbered phases, and bullet lists over paragraphs.
+- Every sentence must carry information the model will act on; cut anything
+  that is only atmosphere.
+- Explanations of "why" stay short and attached to the rule they justify --
+  one clause, not a paragraph.
 
-This governs outputs of this skill, not this file's own prose.
+This is a generation constraint on the outputs of this skill, not a style note
+for this skill's own prose. Enforce it during the "Write the SKILL.md" phase
+and during any agent scaffolding.
 
 The process:
 
-- Decide what the skill should do
-- Write a draft
-- Create test prompts, run claude-with-the-skill on them
-- Evaluate results (agent reviewers + optional human review)
-- Improve based on evaluation
+- Decide what the skill should do and how it should work
+- Write a draft of the skill
+- Create test prompts and run claude-with-the-skill on them
+- Evaluate the results -- both with agent reviewers and optionally human review
+- Improve the skill based on what the evaluation reveals
 - Repeat until the skill demonstrably helps
 
-Meet the user where they are. "I want to make a skill for X" -> help narrow scope, draft, test, eval. Already have a draft -> go straight to testing.
+Figure out where the user is in this process and help them progress. If they say
+"I want to make a skill for X", help narrow scope, write a draft, write test cases,
+and run the eval loop. If they already have a draft, go straight to testing.
 
 ---
 
@@ -59,16 +66,21 @@ Meet the user where they are. "I want to make a skill for X" -> help narrow scop
 
 ### Capture intent
 
-Understand what the user wants. If the current conversation contains a workflow worth capturing, extract:
+Start by understanding what the user wants. The current conversation might already
+contain a workflow worth capturing ("turn this into a skill"). If so, extract:
 
 1. What should this skill enable Claude to do?
-2. When should it trigger? (phrases, contexts)
-3. Expected output?
-4. Are outputs objectively verifiable (code, data, structured files) or subjective (writing quality, design)? Verifiable -> test cases. Subjective -> human review.
+2. When should this skill trigger? (what user phrases, what contexts)
+3. What is the expected output?
+4. Are the outputs objectively verifiable (code, data transforms, structured files)
+   or subjective (writing quality, design aesthetics)? Objectively verifiable outputs
+   benefit from test cases. Subjective outputs are better evaluated by human review.
 
 ### Duplicate Domain Check
 
-Mandatory before creating any new skill.
+Before creating any new skill, check whether an existing umbrella skill already
+covers this domain. This is mandatory -- skipping it leads to system prompt bloat
+and routing degradation.
 
 **Step 1**: Search for existing domain coverage.
 ```bash
@@ -76,24 +88,35 @@ grep -i "<domain-keyword>" skills/INDEX.json
 ls skills/ | grep "<domain-prefix>"
 ```
 
-**Step 2**: If domain skill exists and new scope is a sub-concern, add as reference file on existing skill.
+**Step 2**: If a domain skill exists, determine whether the new skill's scope is a
+sub-concern of the existing skill. Sub-concerns MUST be added as reference files
+on the existing skill, not created as separate skills.
 
-Correct: `skills/perses/references/plugins.md`
-Wrong: `skills/perses-plugin-creator/SKILL.md`
+Pattern (correct): `skills/perses/references/plugins.md`
+Anti-pattern (wrong): `skills/perses-plugin-creator/SKILL.md`
 
-**Step 3**: If no domain skill exists and domain has multiple sub-concerns, create with `references/` from the start.
+**Step 3**: If no domain skill exists and the domain has multiple sub-concerns,
+create the skill with a `references/` directory from the start.
 
-**One domain = one skill + many reference files.**
+**One domain = one skill + many reference files. Never create multiple skills for
+the same domain.**
 
-Proceed only if no existing skill covers the domain, or user explicitly confirms after reviewing overlap.
+Only proceed to writing a new SKILL.md if no existing skill covers the domain, or
+if the user explicitly confirms creating a new skill after reviewing the overlap.
 
 ### Research
 
-Read `docs/PHILOSOPHY.md` before writing any component -- it contains binding architectural decisions governing agent knowledge, skill workflow structure, reference organization, and content framing.
+Read `docs/PHILOSOPHY.md` before writing any component. The philosophy contains
+binding architectural decisions — not suggestions — that govern how agents carry
+knowledge, how skills structure workflows, how references are organized, and how
+content is framed. Components that violate the philosophy will fail review.
 
-Read CLAUDE.md. Project conventions override defaults.
+Read the repository CLAUDE.md before writing anything. Project conventions override
+default patterns.
 
 ### Write the SKILL.md
+
+Based on the user interview, create the skill directory and write the SKILL.md.
 
 **Skill structure:**
 
@@ -101,137 +124,224 @@ Read CLAUDE.md. Project conventions override defaults.
 skill-name/
 ├── SKILL.md              # Required -- the workflow
 ├── SPEC.md               # Optional -- contract for complex/high-impact skills
-├── EVAL.md               # Optional -- repeatable eval cases
-├── scripts/              # Deterministic CLI tools
-├── agents/               # Subagent prompts (internal to skill)
+├── EVAL.md               # Optional -- repeatable eval cases for complex/high-impact skills
+├── scripts/              # Deterministic CLI tools the skill invokes
+├── agents/               # Subagent prompts used only by this skill
 ├── references/           # Deep context loaded on demand
 └── assets/               # Templates, viewers, static files
 ```
 
-**Maintenance artifacts** -- For Complex, security-sensitive, router-facing, PR/release, or frequently-iterated skills, create `SPEC.md` and `EVAL.md`:
+**Maintenance artifacts** -- For Complex skills, security-sensitive skills,
+router-facing skills, PR/release workflows, and skills likely to be iterated over
+time, create `SPEC.md` and `EVAL.md` alongside SKILL.md:
 
-- `SPEC.md`: purpose, scope, non-goals, invariants, dependencies, success criteria
-- `EVAL.md`: representative prompts, expected behavior, failure modes, pass/fail checks
+- `SPEC.md`: purpose, scope, non-goals, invariants, dependencies, and success
+  criteria. It is the contract maintainers use when changing the skill.
+- `EVAL.md`: representative prompts/cases, expected routing or behavior,
+  known failure modes, and pass/fail checks. It is the regression suite for
+  skill behavior.
 
-Do not create `SOURCES.md`. Provenance belongs in docs/ADRs/citations. Maintenance artifacts are not runtime context -- SKILL.md should not load `SPEC.md`/`EVAL.md` during ordinary execution.
+Do not create `SOURCES.md` as a standard artifact. Provenance belongs in docs,
+ADRs, citations, or research files when it matters. If the LLM does not need the
+file to execute, evaluate, or maintain the component, keep it out of the
+component directory.
 
-**Frontmatter** -- name, description, routing metadata. Description caps: 60 chars (non-invocable), 120 chars (user-invocable). No "Use when:", "Use for:", or "Example:" in description.
+Maintenance artifacts are not runtime context. SKILL.md should not instruct the
+model to load `SPEC.md` or `EVAL.md` during ordinary execution. Load them only
+when creating, evaluating, redesigning, or modifying the skill.
 
-**`user_invocable` default is `false`.** Emit explicitly:
+**Frontmatter** -- name, description, routing metadata. Description caps: 60 chars max for non-invocable skills, 120 chars for user-invocable. No "Use when:", "Use for:", or "Example:" in the description. The `/do` router has its own routing tables.
+
+**`user_invocable` default is `false`.** New skills are agent-facing by default:
+the `/do` router dispatches them, and the user never types the skill name. Emit
+the frontmatter field explicitly so the default is visible:
 
 ```yaml
-user_invocable: false  # default -- router-dispatched
+user_invocable: false  # default -- router-dispatched, not user-typed
 ```
 
-Flipping to `true` requires justification comment naming trigger phrases and why `/do` dispatch is insufficient:
+Flipping to `true` requires an explicit justification comment in the
+frontmatter naming the user-facing trigger phrases and why routing through
+`/do` is insufficient. Example:
 
 ```yaml
-user_invocable: true  # justification: users type "/pr-workflow" directly;
-                      # /do dispatch bypassed because user is scoped to PR lifecycle.
+user_invocable: true  # justification: users type "/pr-workflow" directly as
+                      # a slash-command entry point; /do dispatch is bypassed
+                      # because the user is already scoped to the PR lifecycle.
 ```
 
-No justification = leave `false`.
+No justification = leave it `false`. User-invocable expands the system-prompt
+surface and the slash-command namespace; both are scarce.
 
-> See `references/skill-template.md` for complete frontmatter template.
+> See `references/skill-template.md` for the complete frontmatter template with all fields and valid values.
 
-**Frontmatter validation (mandatory post-write gate):**
+**Frontmatter validation (mandatory post-write gate):** After writing SKILL.md,
+validate YAML frontmatter:
 
 ```bash
 python3 scripts/validate-skill-frontmatter.py skills/<skill-name>/SKILL.md
 ```
 
-Scaffold not complete until exit 0. Catches: broken YAML, name/directory mismatch, missing routing/triggers/category, top-level `pairs_with`, `force_routing` typo.
+Scaffold is not complete until this exits 0. The validator catches: broken YAML,
+name/directory mismatch, missing routing section, missing triggers, missing
+category, top-level `pairs_with`, and `force_routing` typo.
 
-**Body** -- workflow first:
+The description is the primary triggering mechanism. Claude tends to undertrigger skills -- be explicit about trigger contexts. Include "Use for" with concrete phrases users would say.
 
-1. Brief overview (2-3 sentences)
-2. Instructions / workflow phases
+**Body** -- workflow first, then context:
+
+1. Brief overview (2-3 sentences: what this does and how)
+2. Instructions / workflow phases (the actual methodology)
 3. Reference material (commands, guides, schemas)
-4. Error handling (cause/solution pairs)
+4. Error handling (cause/solution pairs for common failures)
 5. References to bundled files
 
-Constraints inline within workflow steps. Explain reasoning -- "Run with `-race` because race conditions are silent until production" generalizes; "ALWAYS run with -race" does not.
+Constraints belong inline within the workflow step where they apply. Explain the reasoning behind constraints -- "Run with `-race` because race conditions are silent until production" generalizes; "ALWAYS run with -race" does not.
 
-**Do-pair validation** -- After writing anti-pattern blocks:
+**Do-pair validation** -- After writing any anti-pattern blocks, run:
 ```bash
 python3 scripts/validate-references.py --check-do-framing
 ```
-Every anti-pattern needs a paired "Do instead". Blocks without one: annotate `<!-- no-pair-required: reason -->`. Ship only after exit 0.
+Every anti-pattern block must have a paired "Do instead" counterpart. Blocks
+without one fail the check. If a prohibition genuinely has no correct alternative,
+annotate it with `<!-- no-pair-required: reason -->` to pass validation without
+a "Do instead" block. Ship the skill only after this check exits 0.
 
-**Triple-validation verdicts** -- When the skill documents patterns (mental models, heuristics, phrase fingerprints, code conventions), every pattern block carries a verdict: **KEEP**, **FOOTNOTE**, or **DROP**.
+**Triple-validation verdicts on documented patterns** -- When the skill
+documents patterns the model is supposed to apply (mental models, heuristics,
+phrase fingerprints, voice traits, code conventions), every pattern block
+carries an explicit verdict from the triple-validation rubric: **KEEP**,
+**FOOTNOTE**, or **DROP**. KEEP and FOOTNOTE patterns ship in the SKILL.md;
+DROP patterns stay in working notes (`pattern-candidates.md` or equivalent)
+and never reach the published file.
 
-Rubric (recurrence, generative power, exclusivity) at `skills/create-voice/references/extraction-validation.md`. Load on demand.
+The rubric (recurrence, generative power, exclusivity) lives at
+`skills/create-voice/references/extraction-validation.md`. Load it on demand
+when running the gate; do not duplicate the content here.
 
-Accepted verdict markers (priority order):
-1. `**Verdict**: KEEP` / `FOOTNOTE` / `DROP` in block body
-2. Inline tag on H3: `### M1: Mechanism-first (KEEP)`
-3. Blanket tag on H2: `## Mental Models (KEEP-verdict)` (per-block overrides blanket)
+Three accepted verdict markers, in priority order:
 
-Each KEEP/FOOTNOTE pattern needs one-line evidence covering three checks ("appears in X and Y; predicts Z; distinguishes from W"). Verdict without evidence fails gate.
+1. A line in the pattern's body containing `**Verdict**: KEEP` /
+   `**Verdict**: FOOTNOTE` / `**Verdict**: DROP`.
+2. An inline tag at the end of the H3 heading: `### M1: Mechanism-first (KEEP)`.
+3. A blanket tag on the parent H2 heading covering every child:
+   `## Mental Models (KEEP-verdict)`. Per-block markers override the blanket.
 
-**Phase gate:**
+For each KEEP or FOOTNOTE pattern, attach one line of evidence covering the
+three checks ("appears in X and Y; predicts Z; distinguishes from peer W").
+Patterns without that evidence fail the gate even if they carry a verdict
+word -- the verdict is a claim, the evidence is what makes it auditable.
+
+**Phase gate (before shipping):** every documented pattern carries a KEEP or
+FOOTNOTE verdict with one-line evidence covering the three checks. Patterns
+without verdicts fail the gate. The deterministic check below enforces the
+verdict half; the evidence half is read by reviewers.
+
 ```bash
 python3 scripts/check-skill-verdicts.py skills/<your-skill>/SKILL.md
 ```
 
-Walks H3 sections under pattern-related H2s. Exits non-zero on missing/DROP verdicts. Pure workflow skills exit 0 trivially.
+The script walks H3 sections under H2 parents named Mental Models, Heuristics,
+Phrase Fingerprints, or Patterns (case-insensitive substring match) and exits
+non-zero on any block lacking a KEEP or FOOTNOTE verdict, or carrying DROP.
+Wire it into the post-scaffold gate alongside `validate-references.py`. Skills
+that document no patterns (pure workflow skills) exit 0 trivially -- the gate
+only fires when there are patterns to verdict.
 
-**Progressive disclosure** -- SKILL.md is the routing target, not the reference library.
+**Progressive disclosure** -- SKILL.md is the routing target, not the reference
+library. It stays lean so it loads fast when Claude considers invoking it, then
+reads `references/` on demand as phases execute. See
+`references/progressive-disclosure.md` for the full model, economics, and
+extraction decision tree.
 
 Key rules:
-- SKILL.md: brief overview, phase structure with gates, one-line pointers to references, error handling
-- `references/`: checklists, rubrics, agent prompts, templates, pattern catalogs
-- Over **500 lines**: extract detailed content to `references/`
-- Over **700 lines**: extraction mandatory
+- SKILL.md: brief overview, phase structure with gates, one-line pointers to
+  reference files, error handling
+- `references/`: checklists, rubrics, agent dispatch prompts, report templates,
+  pattern catalogs, example collections -- anything only needed at execution time
+- If SKILL.md exceeds **500 lines** after writing, extract detailed content to
+  `references/` before proceeding
+- If SKILL.md exceeds **700 lines**, extraction is mandatory -- it is carrying
+  reference content that should not be loaded on every routing decision
 
-> See `references/progressive-disclosure.md` for economics and extraction decision tree.
+The most effective complex skills (`sapcc-review`, `voice-writer`) keep SKILL.md under 600 lines and put operational depth in `references/` and `agents/`. Rich `references/` content adds depth at zero routing cost; deterministic `scripts/` ensure consistency; bundled `agents/` prompts enable specialized dispatch without routing overhead.
+
+> See `references/progressive-disclosure.md` for the real numbers and extraction decision tree.
 
 ### Bundled scripts
 
-Extract deterministic operations into `scripts/*.py` with argparse. Saves tokens, ensures consistency, testable independently.
+Extract deterministic, repeatable operations into `scripts/*.py` CLI tools with
+argparse interfaces. Scripts save tokens (the model doesn't reinvent the wheel
+each invocation), ensure consistency across runs, and can be tested independently.
+
+Pattern: `scripts/` for deterministic ops, SKILL.md for LLM-orchestrated workflow.
 
 ### Bundled agents
 
-Bundle subagent prompts in `agents/` for skill-internal use (not registered in routing).
+For skills that spawn subagents with specialized roles, bundle agent prompts in
+`agents/`. These are not registered in the routing system -- they are internal to
+the skill's workflow.
 
 | Scenario | Approach |
 |----------|----------|
 | Agent used only by this skill | Bundle in `agents/` |
-| Agent shared across skills | Keep in repo `agents/` |
-| Agent needs routing metadata | Keep in repo `agents/` |
+| Agent shared across skills | Keep in repo `agents/` directory |
+| Agent needs routing metadata | Keep in repo `agents/` directory |
 
 ### Agent creation standard
 
-Read `docs/PHILOSOPHY.md` first. Apply same maintenance-artifact rules:
+When this skill scaffolds a repo-level agent, read `docs/PHILOSOPHY.md` first.
+The philosophy governs how agents carry knowledge (not thin wrappers), how review
+knowledge separates from implementation knowledge, and how references are
+organized for progressive disclosure. An agent built without reading the
+philosophy will misplace domain knowledge or violate structural conventions.
+
+Apply the same maintenance-artifact rule to the agent package:
 
 ```
 agents/
 ├── {agent-name}.md
 └── {agent-name}/
-    ├── SPEC.md            # Optional
-    ├── EVAL.md            # Optional
+    ├── SPEC.md            # Optional -- contract for complex/high-impact agents
+    ├── EVAL.md            # Optional -- repeatable eval cases
     └── references/
+        └── ...
 ```
 
-Use `SPEC.md`/`EVAL.md` for complex, high-impact, security-sensitive, router-facing, or frequently-tuned agents. Do not create `SOURCES.md`.
+Use `SPEC.md` and `EVAL.md` for agents that are complex, high-impact,
+security-sensitive, router-facing, or likely to be tuned repeatedly. Do not
+create `SOURCES.md` as a default agent artifact.
 
 ### Path placeholder convention (per ADR-201)
 
-Paths matching `/tmp/...`, `/home/<author>/...`, `~/<user>/...`, `/Users/<author>/...`, `/private/var/folders/...` in published reference docs MUST be either angle-bracket placeholders or labelled author-harness.
+Author-machine paths leak into reference docs as casually as paste-from-shell-history. They look like stable interfaces ("see `/tmp/foo/` for the canonical layout") but they exist on the author's box only. A user who follows the doc literally arrives at a path that does not exist — or, worse, finds an unrelated `/tmp/foo/` from someone else's tooling.
 
-**Placeholder (preferred):**
+Any path appearing in a published reference doc that matches one of the following MUST be either an angle-bracket placeholder OR a path explicitly labelled as the author's local validation harness:
+
+- `/tmp/...`
+- `/home/<author>/...`
+- `~/<author-specific>/...` (anything with a user-name segment)
+- `/Users/<author>/...` (macOS user dir)
+- `/private/var/folders/...` (macOS tmp dir)
+
+**Form (a) — placeholder (preferred):**
+
 ```markdown
 Place outputs at `<your-output-dir>/assets/<slug>/final.png`.
 ```
 
-**Labelled harness (only when path has documentary value):**
+**Form (b) — labelled author-harness (only when the path has documentary value as a worked example):**
+
 ```markdown
 > **Author's local validation harness, replace before use:** `/tmp/sprite-demo/...`
 ```
 
-Integration-target paths (`~/road-to-aew`, `~/deeproute`) stay literal when the skill explicitly targets that project.
+Form (b) is allowed only when the path is referenced for evidence (e.g. "in our test run we observed X at /tmp/sprite-demo/foo.png"). Form (a) is preferred everywhere else.
 
-**Enforcement:**
+**Integration-target paths stay as-is.** When a skill explicitly knows about a target project — `~/road-to-aew`, `~/deeproute` — those references stay literal. The skill's frontmatter and body explain that the skill targets that project; the path is part of the integration contract, not a leak.
+
+**Authoring-time enforcement.** Before declaring a skill shippable, run the toolkit-wide audit grep. Any non-empty result is a violation requiring placeholder replacement:
+
 ```bash
 grep -rnE '(/tmp/[a-z][a-z0-9_-]+|/home/[a-z][a-z0-9_-]+|/Users/[a-z][a-z0-9_-]+)' \
   skills/<your-skill>/SKILL.md skills/<your-skill>/references/*.md 2>/dev/null \
@@ -239,164 +349,242 @@ grep -rnE '(/tmp/[a-z][a-z0-9_-]+|/home/[a-z][a-z0-9_-]+|/Users/[a-z][a-z0-9_-]+
   | grep -v "Author's local validation harness"
 ```
 
-### Post-scaffold: register in routing table + INDEX.json (mandatory)
+The validation pass invoked at the post-scaffold gate (next section) includes this grep. New skills do not ship with leaked author paths.
 
-**Step 1: Routing table entry.** Add to `skills/do/references/routing-tables.md`. Verify:
-```bash
-python3 scripts/check-routing-drift.py
-```
+### Post-scaffold: regenerate skills INDEX.json (mandatory)
 
-**Step 2: INDEX.json.** Regenerate:
+After the skill directory + SKILL.md are on disk, regenerate the skills index.
+Without this step the router cannot discover the new skill and requests that
+should match it fall through to the fallback handler.
+
 ```bash
 python3 scripts/generate-skill-index.py
 ```
 
-Scaffold not complete until routing table has entry AND INDEX.json reflects new skill. Diff both before staging.
+Run it from the repo root. Treat it as a commit-gating step: the scaffold is
+not complete until INDEX.json reflects the new skill. Diff the file before
+staging to confirm exactly one new entry was added.
 
 ### Post-scaffold: joy-check + do-pair validation
 
-**Joy-check** (framing):
+Before declaring the skill shippable, run both checks. They catch different
+failure modes: joy-check catches grievance-mode framing that drags the model
+toward pessimism; do-pair validation catches anti-patterns with no paired
+"Do instead" counterpart.
+
+**Joy-check** (framing). Invoke the `joy-check` skill on the SKILL.md and each
+`references/*.md` file. The accepted deterministic substitute is:
+
 ```bash
 python3 scripts/validate-references.py --check-do-framing
 ```
 
-For prose-heavy references, prefer full `joy-check` skill.
+This script enforces the positive-pairing rule that joy-check encodes
+structurally: every anti-pattern gets a constructive counterpart. Use it when
+dispatching the full `joy-check` skill is disproportionate (small edits,
+CI contexts, or when only structural pairing matters). For any new skill that
+ships prose-heavy references, prefer the full `joy-check` skill -- tone drift
+is not caught by the pairing script.
 
-**Do-pair validation** (structural). Same command. Ship only after exit 0.
+**Do-pair validation** (structural). Same command, different failure class.
+Ship the skill only after this exits 0:
+
+```bash
+python3 scripts/validate-references.py --check-do-framing
+```
+
+### Post-scaffold: condense
+
+After creation and validation, run the `condense` skill on the new SKILL.md to
+maximize information density. The condense skill strips prose filler while
+preserving every instruction, rule, gate, and code block — because new skills
+tend to ship verbose and the condense pass catches what the author's eye skips.
 
 ---
 
 ## Testing the skill
 
-Core of the eval loop. Do not stop after writing -- test against real prompts.
+This is the core of the eval loop. Do not stop after writing -- test the skill
+against real prompts and measure whether it actually helps.
 
 ### Create test prompts
 
-2-3 realistic, detailed prompts. Not abstract one-liners.
+Write 2-3 realistic test prompts -- the kind of thing a real user would say. Rich,
+detailed, specific. Not abstract one-liners.
 
 Bad: `"Format this data"`
-Good: `"I have a CSV in ~/downloads/q4-sales.csv with revenue in column C and costs in column D. Add a profit margin percentage column and highlight rows where margin is below 10%."`
+Good: `"I have a CSV in ~/downloads/q4-sales.csv with revenue in column C and costs
+in column D. Add a profit margin percentage column and highlight rows where margin
+is below 10%."`
 
-Share prompts with user before running.
+Share prompts with the user for review before running them.
 
-> See `references/bundled-components.md` for evals.json format and workspace layout.
+> See `references/bundled-components.md` for the evals.json format and workspace directory layout.
 
 ### Run test prompts
 
-Spawn two subagents per test case (same turn): one with skill loaded, one without (baseline).
+For each test case, spawn two subagents in the same turn -- one with the skill
+loaded, one without (baseline). Launch everything at once so it finishes together.
 
-**With-skill**: Read SKILL.md first, execute task, save outputs.
-**Baseline**: Same prompt, no skill, separate directory.
+**With-skill run:** Tell the subagent to read the skill's SKILL.md first, then
+execute the task. Save outputs to the workspace.
+
+**Baseline run:** Same prompt, no skill loaded. Save to a separate directory.
 
 ### Evaluate results
 
-**Tier 1: Deterministic** -- compile, test, lint where applicable.
+Evaluation has three tiers, applied in order:
 
-**Tier 2: Agent blind review** -- dispatch `agents/comparator.md`. Outputs labeled "Output 1"/"Output 2" (blind). Scores dimensions, picks winner with reasoning.
+**Tier 1: Deterministic checks** -- run automatically where applicable:
+- Does the code compile? (`go build`, `tsc --noEmit`, `python -m py_compile`)
+- Do tests pass? (`go test -race`, `pytest`, `vitest`)
+- Does the linter pass? (`go vet`, `ruff`, `biome`)
 
-**Tier 3: Human review (optional)**:
+**Tier 2: Agent blind review** -- dispatch using `agents/comparator.md`:
+- Comparator receives both outputs labeled "Output 1" / "Output 2"
+- It does NOT know which is the skill version
+- Scores on relevant dimensions, picks a winner with reasoning
+- Save results to `blind_comparison.json`
+
+**Tier 3: Human review (optional)** -- generate the comparison viewer:
 ```bash
 python3 scripts/eval_compare.py path/to/workspace
 open path/to/workspace/compare_report.html
 ```
 
-Side-by-side viewer with blind labels, review panels, deterministic results, winner picker, feedback textarea.
+The viewer shows outputs side by side with blind labels, agent review panels,
+deterministic check results, winner picker, feedback textarea, and a
+skip-to-results option. Human reviews are optional -- agent reviews are sufficient
+for iteration.
 
 ### Draft assertions
 
-Draft quantitative assertions for objective criteria. Good assertions discriminate -- fail without skill, pass with it.
+While test runs are in progress, draft quantitative assertions for objective
+criteria. Good assertions are discriminating -- they fail when the skill doesn't
+help and pass when it does. Non-discriminating assertions ("file exists") provide
+false confidence.
 
-Run grader (`agents/grader.md`): PASS requires substance, not surface compliance. Grader critiques assertions too.
+Run the grader (`agents/grader.md`) to evaluate assertions against outputs:
+- PASS requires genuine substance, not surface compliance
+- The grader also critiques the assertions themselves -- flagging ones that would
+  pass regardless of skill quality
 
-Aggregate with `scripts/aggregate_benchmark.py` for pass rates, timing, token usage.
+Aggregate results with `scripts/aggregate_benchmark.py` to get pass rates,
+timing, and token usage with mean/stddev across runs.
 
 ---
 
 ## Improving the skill
 
-**Generalize from feedback.** If a fix only helps the test case, it's overfitting. Try different approaches.
+This is the iterative heart of the process.
 
-**Keep instructions lean.** Read transcripts, not just outputs. Remove instructions that waste attention.
+**Generalize from feedback.** If a fix only helps the test case but wouldn't generalize, it's overfitting. Try different approaches rather than fiddly adjustments.
 
-**Explain reasoning.** "Prefer X because Y" generalizes better than bare "ALWAYS X".
+**Keep instructions lean.** Read execution transcripts, not just final outputs. Remove instructions that cause the model to waste time -- they consume attention budget without producing value.
 
-**Extract repeated work.** If all subagents wrote similar helpers, bundle in `scripts/`.
+**Explain the reasoning.** Motivation-based instructions generalize better than bare imperatives. "Prefer X because Y" lets the model apply the principle to situations the skill author didn't anticipate.
+
+**Extract repeated work.** If all subagents independently wrote similar helper scripts, bundle that script in `scripts/`. One shared implementation beats N independent reinventions.
 
 ### The iteration loop
 
-1. Apply improvements
-2. Rerun all test cases into `iteration-<N+1>/` with baselines
-3. Generate comparison viewer with `--previous-workspace`
-4. Review (agent or human)
-5. Repeat until plateau or user satisfied
+1. Apply improvements to the skill
+2. Rerun all test cases into `iteration-<N+1>/`, including baselines
+3. Generate the comparison viewer with `--previous-workspace` pointing at the
+   prior iteration
+4. Review -- agent or human
+5. Repeat until results plateau or the user is satisfied
 
-Stop when: feedback empty, pass rates not improving, user satisfied.
+Stop iterating when:
+- Feedback is empty (outputs look good)
+- Pass rates aren't improving between iterations
+- The user says they're satisfied
 
 ---
 
 ## Description optimization
 
-After the skill works, optimize description for triggering accuracy.
+After the skill works well, optimize the description for triggering accuracy.
 
-> See `references/bundled-components.md` for the optimization loop: eval queries, train/test split, `optimize_description.py`, overfitting guards.
+> See `references/bundled-components.md` for the full optimization loop: eval query format, train/test split, `optimize_description.py` usage, and overfitting guards.
 
 ---
 
 ## Enriching existing skills
 
-Use when a skill exists but produces shallow output -- thin `references/`, no `scripts/`, passes eval by luck.
+Use this mode when a skill already exists but produces shallow, generic output -- it
+has thin `references/`, no `scripts/`, and passes an eval by luck rather than
+by containing domain knowledge that changes behavior.
 
-Indicators: <2 reference files, no scripts, outputs lack domain idioms, skill passes because model already knows domain.
+Indicators this mode is appropriate:
+- `references/` has fewer than 2 files, or none at all
+- No `scripts/` directory
+- Eval outputs look plausible but lack domain idioms, concrete examples, or
+  checklists specific to the skill's domain
+- The skill passes a test because the model already knows the domain, not because
+  the skill contributes anything
 
 ### The enrichment loop
 
-Six phases: AUDIT, RESEARCH, ENRICH, TEST, EVALUATE, PUBLISH. Max 3 iterations. Each retry uses different angle: iteration 1 = official docs, 2 = common mistakes, 3 = advanced patterns.
+Six phases: AUDIT (measure current depth), RESEARCH (find gaps), ENRICH (add reference content), TEST (A/B vs baseline), EVALUATE (blind comparator), PUBLISH (branch + PR). Max 3 iterations before escalating to the user. Each retry uses a different research angle: iteration 1 = official docs, iteration 2 = common mistakes, iteration 3 = advanced patterns.
 
-> See `references/enrichment-workflow.md` for full checklist, scoring, retry logic, commit/PR flow.
+> See `references/enrichment-workflow.md` for the full phase-by-phase checklist, scoring details, retry logic, and exact commit/PR flow.
 
 ---
 
 ## Bundled agents and scripts
 
-> See `references/bundled-components.md` for agents (`grader.md`, `comparator.md`, `analyzer.md`), scripts, workspace layout, evals.json format.
+> See `references/bundled-components.md` for the full list of bundled agents (`grader.md`, `comparator.md`, `analyzer.md`), bundled scripts, workspace layout, and evals.json format.
 
 ---
 
 ## Reference files
 
-- `references/progressive-disclosure.md` -- Disclosure model, economics, size gates, extraction examples
-- `references/skill-template.md` -- Complete SKILL.md template
-- `references/artifact-schemas.md` -- JSON schemas for eval artifacts
+- `references/progressive-disclosure.md` -- The disclosure model: economics, size
+  gates, what to extract, real examples from the toolkit, script and agent patterns
+- `references/skill-template.md` -- Complete SKILL.md template with all sections
+- `references/artifact-schemas.md` -- JSON schemas for eval artifacts (evals.json,
+  grading.json, benchmark.json, comparison.json, timing.json, metrics.json)
 - `references/complexity-tiers.md` -- Skill examples by complexity tier
 - `references/workflow-patterns.md` -- Reusable phase structures and gate patterns
 - `references/error-catalog.md` -- Common skill creation errors with solutions
-- `references/enrichment-workflow.md` -- Enrichment loop: AUDIT through PUBLISH
-- `references/domain-research-targets.md` -- Lookup table: domain -> primary/secondary sources
-- `references/bundled-components.md` -- Agents, scripts, workspace layout, evals.json, description optimization
+- `references/enrichment-workflow.md` -- Deep reference for the enrichment loop:
+  AUDIT checklist, RESEARCH strategy, ENRICH structuring, TEST/EVALUATE/PUBLISH phases,
+  and retry logic in detail
+- `references/domain-research-targets.md` -- Lookup table: given a skill's domain,
+  which primary sources, secondary sources, and extraction targets to use during RESEARCH
+- `references/bundled-components.md` -- Bundled agents, scripts, workspace layout,
+  evals.json format, and description optimization procedure
 
 ---
 
 ## Error handling
 
-### Skill doesn't trigger
-Cause: Description too vague or missing trigger phrases.
-Solution: Add explicit trigger phrases matching user language. Test with `scripts/optimize_description.py`.
+### Skill doesn't trigger when it should
+Cause: Description is too vague or missing trigger phrases
+Solution: Add explicit "Use for" phrases matching what users actually say.
+Test with `scripts/optimize_description.py`.
 
 ### Test run produces empty output
-Cause: `claude -p` didn't load skill, or path wrong.
-Solution: Verify SKILL.md exists (exact case). Check `--skill-path` points to directory, not file.
+Cause: The `claude -p` subprocess didn't load the skill, or the skill path is wrong
+Solution: Verify the skill directory contains SKILL.md (exact case). Check
+the `--skill-path` argument points to the directory, not the file.
 
-### All-pass grading regardless of skill
-Cause: Non-discriminating assertions (e.g., "file exists").
-Solution: Test behavior, not structure. Read grader's eval critique section.
+### Grading results show all-pass regardless of skill
+Cause: Assertions are non-discriminating (e.g., "file exists")
+Solution: Write assertions that test behavior, not structure. The grader's
+eval critique section flags these -- read it.
 
 ### Iteration loop doesn't converge
-Cause: Overfitting to test cases.
-Solution: Expand test set. Focus on understanding WHY outputs differ.
+Cause: Changes are overfitting to test cases rather than improving the skill
+Solution: Expand the test set with more diverse prompts. Focus improvements
+on understanding WHY outputs differ, not on patching specific failures.
 
-### Description optimization overfits
-Cause: Test set too small or train/test queries too similar.
-Solution: Ensure should-trigger and should-not-trigger queries are realistic near-misses. 60/40 split guards against this only if queries are well-designed.
+### Description optimization overfits to train set
+Cause: Test set is too small or train/test queries are too similar
+Solution: Ensure should-trigger and should-not-trigger queries are realistic
+near-misses, not obviously different. The 60/40 split guards against this,
+but only if the queries are well-designed.
 
 ## Reference Loading Table
 

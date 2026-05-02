@@ -29,7 +29,7 @@ routing:
 
 # Gemini Image Generator
 
-Generate images from text prompts via Google Gemini APIs. Supports model selection (`gemini-2.5-flash-image` for speed, `gemini-3-pro-image-preview` for quality), batch generation, watermark removal, and background transparency.
+Generate images from text prompts via CLI using Google Gemini APIs. Supports model selection between fast (`gemini-2.5-flash-image`) and quality (`gemini-3-pro-image-preview`) models, batch generation, watermark removal, and background transparency.
 
 ## Reference Loading Table
 
@@ -41,23 +41,32 @@ Generate images from text prompts via Google Gemini APIs. Supports model selecti
 
 ### Step 1: Validate Environment
 
+Verify the API key exists before any generation attempt -- a missing key produces confusing errors that waste time debugging.
+
 ```bash
 echo "GEMINI_API_KEY is ${GEMINI_API_KEY:+set}"
 ```
 
 Expect: `GEMINI_API_KEY is set`. If not set, instruct user to configure it and stop.
 
+Verify Python dependencies are available:
+
 ```bash
 python3 -c "from google import genai; from PIL import Image; print('OK')"
 ```
 
-If missing: `pip install google-genai Pillow`
+If missing, install:
+```bash
+pip install google-genai Pillow
+```
 
-Use absolute paths for all output files. Verify the parent directory exists.
+Determine the output path. Always use absolute paths for output files -- relative paths break when scripts run in different working directories. Verify the parent directory exists or will be created.
 
-**Proceed only when**: API key set, dependencies installed, output path valid.
+**Proceed only when**: API key is set, dependencies installed, output path is valid.
 
 ### Step 2: Select Model and Compose Prompt
+
+Choose the model based on the use case:
 
 | Scenario | Model | Why |
 |----------|-------|-----|
@@ -67,7 +76,7 @@ Use absolute paths for all output files. Verify the parent directory exists.
 | Text in image, typography | `gemini-3-pro-image-preview` | Better text rendering |
 | Product photography | `gemini-3-pro-image-preview` | Detail matters |
 
-Use ONLY these exact model strings — date suffixes and other variants return cryptic errors:
+Use ONLY these exact model strings -- the API returns cryptic errors for anything else, and date suffixes (valid for text models) do not work for image models:
 
 | Correct (use exactly) | WRONG (never use) |
 |------------------------|-------------------|
@@ -76,19 +85,24 @@ Use ONLY these exact model strings — date suffixes and other variants return c
 | | `gemini-3-flash-image` (doesn't exist) |
 | | `gemini-pro-vision` (that's image input) |
 
-Prompt structure: `[Subject] [Style] [Background] [Constraints]`
+Compose the prompt using this structure: `[Subject] [Style] [Background] [Constraints]`
 
-For transparent background post-processing, include "solid dark gray background" or "solid uniform gray background (#3a3a3a)" and "no background elements or scenery".
+For transparent background post-processing, include:
+- "solid dark gray background" or "solid uniform gray background (#3a3a3a)"
+- "no background elements or scenery"
 
 Always include negative constraints: "no text", "no labels", "character only"
 
-Post-processing flags: `--remove-watermark`, `--transparent-bg`, `--bg-color "#FFFFFF" --bg-tolerance 20`.
+Determine post-processing flags:
+- Need watermark removal? Add `--remove-watermark`
+- Need transparent background? Add `--transparent-bg`
+- Custom background color? Add `--bg-color "#FFFFFF" --bg-tolerance 20`
 
 **Proceed only when**: Model selected, prompt composed, flags determined.
 
 ### Step 3: Generate
 
-Always use the provided script — it contains retry logic, rate limiting, post-processing, model validation, and error handling.
+Always use the provided `generate_image.py` script -- it contains retry logic, rate limiting, post-processing, model validation, and error handling that inline Python would miss.
 
 ```bash
 python3 $HOME/vexjoy-agent/skills/gemini-image-generator/scripts/generate_image.py \
@@ -97,7 +111,7 @@ python3 $HOME/vexjoy-agent/skills/gemini-image-generator/scripts/generate_image.
   --model gemini-3-pro-image-preview
 ```
 
-Batch mode:
+For batch mode:
 ```bash
 python3 $HOME/vexjoy-agent/skills/gemini-image-generator/scripts/generate_image.py \
   --batch /path/to/prompts.txt \
@@ -105,45 +119,83 @@ python3 $HOME/vexjoy-agent/skills/gemini-image-generator/scripts/generate_image.
   --model gemini-2.5-flash-image
 ```
 
-Display full script output — never summarize it. Check for `SUCCESS` or `ERROR`. Rate limit (429) retries are automatic with exponential backoff (up to 3 attempts).
+Display the full script output -- never summarize it, since the user needs to see status, warnings, and any partial failures.
 
-**Proceed only when**: Script exited 0 and printed SUCCESS.
+Check for `SUCCESS` or `ERROR` in output. If rate limited (429), the script handles retry automatically with exponential backoff (up to 3 attempts).
+
+**Proceed only when**: Script exited with code 0 and printed SUCCESS.
 
 ### Step 4: Verify Output
 
-Confirm output exists with non-zero size:
+Confirm the output file exists and has non-zero size -- a zero-byte file means the write succeeded but no image data was returned:
+
 ```bash
 ls -la /absolute/path/to/output.png
 ```
 
-Check dimensions:
+Optionally check dimensions:
+
 ```bash
 python3 -c "from PIL import Image; img = Image.open('/absolute/path/to/output.png'); print(f'Size: {img.size}, Mode: {img.mode}')"
 ```
 
-**Visual inspection is mandatory.** Read the generated image with the Read tool. Check for: correct subject/composition, no unwanted watermarks/artifacts, correct text rendering (if requested), appropriate aspect ratio, no excessive empty space.
+**Visual inspection is mandatory.** Read the generated image file using the Read tool to visually inspect it. A file can pass all size and dimension checks but still contain watermarks, wrong composition, excessive padding, or content that doesn't match the prompt.
 
-If visual inspection fails, regenerate with adjusted prompt before reporting. Do not deliver unverified images.
+Check for:
+- Content matches the prompt intent (correct subject, layout, composition)
+- No unwanted watermarks, logos, or artifacts
+- Text renders correctly (if text was requested)
+- Appropriate aspect ratio and framing
+- No excessive empty space or dark padding that needs cropping
+
+If the image fails visual inspection, regenerate with an adjusted prompt before reporting to the user. Do not commit or deliver images without visual verification.
 
 ### Step 5: Report Result
 
-Provide: output file path, dimensions, model used, visual verification status, any post-processing applied.
+Provide the user with:
+- Output file path
+- Image dimensions
+- Model used
+- Visual verification status (what you checked and confirmed)
+- Any post-processing applied (cropping, resizing)
 
-Only report what was requested — do not suggest additional generations or variations.
+Only report what was directly requested -- do not suggest additional generations, style variations, or enhancements the user did not ask for.
+
+---
 
 ## Error Handling
 
 ### Error: "GEMINI_API_KEY not set"
-Set the variable: `export GEMINI_API_KEY="your-key"`. In CI/CD, check secrets configuration.
+Cause: Environment variable missing or empty
+Solution:
+1. Set the variable: `export GEMINI_API_KEY="your-key"`
+2. If in a CI/CD environment, check secrets configuration
+3. Verify the key is valid by testing with a simple prompt
 
 ### Error: "Rate limit exceeded (429)"
-Script retries automatically. If persistent, wait 60s. For batch, increase `--delay` to 5-10s. Consider `gemini-2.5-flash-image` for higher throughput.
+Cause: Too many requests to Gemini API in short period
+Solution:
+1. The script retries automatically with exponential backoff
+2. If persistent after retries, wait 60 seconds and try again
+3. For batch operations, increase `--delay` to 5-10 seconds
+4. Consider switching to `gemini-2.5-flash-image` for higher throughput
 
 ### Error: "No image in response"
-Add more detail to the prompt. Try a different model. Check content policy compliance. Verify `response_modalities=["IMAGE", "TEXT"]` is set.
+Cause: API returned text-only response or generation was blocked
+Solution:
+1. Add more detail to the prompt -- vague prompts sometimes fail
+2. Try a different model
+3. Check that the prompt does not violate content policy
+4. Verify the script sets `response_modalities=["IMAGE", "TEXT"]`
 
 ### Error: "Content policy violation (400)"
-Remove problematic terms, rephrase with neutral language. API-side restriction, cannot be bypassed.
+Cause: Prompt contains restricted content or triggers safety filters
+Solution:
+1. Remove potentially problematic terms from the prompt
+2. Rephrase the request using neutral language
+3. This is an API-side restriction and cannot be bypassed
+
+---
 
 ## References
 
@@ -171,13 +223,16 @@ Remove problematic terms, rephrase with neutral language. API-side restriction, 
 
 ### Prompt Engineering Quick Reference
 
-**Structure**: `[Subject] [Style] [Background] [Constraints]`
+**Effective prompt structure**: `[Subject] [Style] [Background] [Constraints]`
 
-**For transparent background**: "solid dark gray background" or "#3a3a3a", "no background elements", combine with `--transparent-bg`
+**For transparent background post-processing**:
+- Use "solid dark gray background" or "solid uniform gray background (#3a3a3a)"
+- Include "no background elements or scenery" and "no ground shadows"
+- Combine with `--transparent-bg` flag
 
 **For clean edges**: "clean edges", "sharp outlines", "heavy ink outlines"
 
-**Negative constraints**: "no text", "no labels", "no watermarks", "character only"
+**Negative constraints**: Always include "no text", "no labels", "no watermarks", "character only"
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/prompts.md`: Categorized example prompts by use case
+- `${CLAUDE_SKILL_DIR}/references/prompts.md`: Categorized example prompts by use case (game art, characters, product photography, pixel art, icons)

@@ -9,7 +9,7 @@
 
 ## Overview
 
-Next.js App Router introduces React Server Components, streaming, and partial prerendering — all of which change the performance optimization playbook. The most common failure mode is applying Pages Router patterns to App Router: using `getServerSideProps` mental models with Server Components, or blocking streaming with synchronous data fetching in layout files.
+App Router changes the performance playbook (RSC, streaming, partial prerendering). Most common failure: applying Pages Router patterns — `getServerSideProps` mental models or blocking streaming in layout files.
 
 ---
 
@@ -52,7 +52,7 @@ async function DashboardPage() {
 }
 ```
 
-**Why**: Sequential fetches in a single Server Component are serialized on the server — a 3-request chain of 200ms each = 600ms total. Parallel fetches = 200ms total. This directly impacts TTFB and LCP.
+**Why**: Sequential: 3 x 200ms = 600ms. Parallel: max(200ms) = 200ms. Directly impacts TTFB and LCP.
 
 ---
 
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 }
 ```
 
-**Why**: Without Suspense, the entire page waits for the slowest data source. With Suspense, React streams HTML progressively — users see content faster and LCP improves because the above-fold content doesn't block on slow queries.
+**Why**: Without Suspense, entire page waits for slowest source. With it, HTML streams progressively — above-fold content doesn't block on slow queries.
 
 ---
 
@@ -105,7 +105,7 @@ import Image from 'next/image'
 />
 ```
 
-**Why**: Without `sizes`, the browser downloads the image at full display width regardless of viewport. A 1600px image downloaded on a 375px mobile viewport is a 4-5x image size regression. The `priority` prop skips lazy loading for LCP candidates — critical for images above the fold.
+**Why**: Without `sizes`, browser downloads full-width image regardless of viewport (4-5x size regression on mobile). `priority` skips lazy loading for LCP candidates.
 
 ---
 
@@ -133,7 +133,7 @@ export default function RootLayout({ children }) {
 }
 ```
 
-**Why**: `@import url('...')` in CSS blocks rendering. `next/font` downloads fonts at build time, serves them from the same domain (no DNS lookup), and automatically inlines the font-face declaration — eliminating the layout shift from font swapping that contributes to CLS.
+**Why**: `@import` blocks rendering. `next/font` downloads at build time, serves from same domain, inlines font-face — eliminating CLS from font swapping.
 
 ---
 
@@ -154,7 +154,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = false // or: export const dynamic = 'force-static'
 ```
 
-**Why**: Overusing `force-dynamic` bypasses the Next.js data cache and kills performance. Profile which routes actually need fresh data (user-specific, real-time) vs. can be cached (product pages, blog posts). Misconfigured `dynamic` is one of the most common causes of unexpectedly slow Next.js apps.
+**Why**: Overusing `force-dynamic` bypasses the data cache. Misconfigured `dynamic` is a top cause of slow Next.js apps. Profile which routes need fresh data vs. can be cached.
 
 ---
 
@@ -181,7 +181,7 @@ export default async function RootLayout({ children }) {
 }
 ```
 
-**Why wrong**: `layout.tsx` wraps every route. A slow await in root layout adds its latency to every page load site-wide. Layouts don't participate in streaming — they must fully resolve before any child page can start rendering.
+**Why wrong**: `layout.tsx` wraps every route. Slow await in root layout adds latency to every page load. Layouts don't stream — they must fully resolve first.
 
 **Fix**:
 ```typescript
@@ -210,7 +210,7 @@ import dynamic from 'next/dynamic'
 const ProductCard = dynamic(() => import('./ProductCard'))
 ```
 
-**Why wrong**: In App Router, `dynamic()` forces client-side rendering. For components with no browser-only APIs (no `window`, `localStorage`, event handlers), Server Components render faster and send less JS to the client. `dynamic()` is only appropriate when: (a) the component uses browser-only APIs, (b) you need `ssr: false`, or (c) it's a heavy client component.
+**Why wrong**: In App Router, `dynamic()` forces client-side rendering. For components without browser-only APIs, Server Components render faster with less JS. Only use `dynamic()` for browser-only APIs, `ssr: false`, or heavy client components.
 
 **Fix**:
 ```typescript
@@ -237,7 +237,7 @@ rg '<Image' --type tsx -A 4 | grep -v "priority"
 <Image src="/hero.jpg" width={1200} height={600} alt="Hero" />
 ```
 
-**Why wrong**: `next/image` lazy-loads by default using Intersection Observer. The hero image is immediately visible and is the LCP element — lazy loading it means the browser discovers it late, causing LCP regressions of 300-800ms. Lighthouse flags this as "Image elements do not have explicit width and height" or "Preload largest contentful paint image."
+**Why wrong**: `next/image` lazy-loads by default. Hero image is the LCP element — lazy loading causes 300-800ms LCP regression.
 
 **Fix**:
 ```tsx

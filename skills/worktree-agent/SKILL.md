@@ -17,10 +17,10 @@ routing:
 
 Mandatory rules for any agent dispatched with `isolation: "worktree"`.
 
-## Rule 1: Verify Working Directory
+## Rule 1: Verify Your Working Directory
 
-On start, run `pwd`. Path MUST contain `.claude/worktrees/`.
-If CWD is the main repo path, **STOP** and report the error.
+On start, run `pwd`. Your path MUST contain `.claude/worktrees/`.
+If your CWD is the main repo path, **STOP** and report the error.
 
 ## Rule 2: Create Feature Branch First
 
@@ -28,16 +28,16 @@ If CWD is the main repo path, **STOP** and report the error.
 git checkout -b <branch-name>
 ```
 
-Never commit on the default `worktree-agent-*` branch. Create feature branch FIRST.
+Never commit on the default `worktree-agent-*` branch. Create your feature branch FIRST.
 
 ## Rule 3: Use Worktree-Relative Paths
 
-Never hardcode main repo absolute paths. Use `$(git rev-parse --show-toplevel)/path`.
+Never hardcode absolute paths from the main repo. Use `$(git rev-parse --show-toplevel)/path`.
 **Exception**: Reading gitignored ADR files requires the main repo absolute path.
 
 ## Rule 4: Ignore Auto-Plan Hooks
 
-Keep planning inline. If auto-plan hook fires, continue with current task.
+Keep planning inline instead of creating `task_plan.md`. If the auto-plan hook fires, continue with the current task and keep your attention on implementation.
 
 ## Rule 5: Stage Specific Files Only
 
@@ -49,30 +49,30 @@ Never `git add .`, `git add -A`, or `git add --all`. Verify with `git diff --cac
 
 ## Rule 6: Do Not Touch the Main Worktree
 
-Never write outside your worktree directory. Never `git checkout` in the main repo.
+Never write to paths outside your worktree directory. Never run `git checkout` in the main repo.
 
 ## Rule 7: Commit with Conventional Format
 
-Use the commit message from your prompt. No attribution lines.
+Use the commit message specified in your prompt. No attribution lines.
 
-## Rule 8: Run Both ruff Checks Before CI-Ready
+## Rule 8: Run Both ruff Checks Before Declaring CI-Ready
 
-For Python changes, run both before pushing:
+For any Python code changes, run both checks before pushing or creating a PR:
 
 ```bash
 ruff check . --config pyproject.toml
 ruff format --check . --config pyproject.toml
 ```
 
-Running only `ruff check` misses formatting violations. CI runs both — skipping `ruff format --check` fails the PR.
+Running only `ruff check` misses formatting violations. The `Tests / lint` CI job runs both — if you skip `ruff format --check`, the PR will fail CI and cannot merge due to branch protection.
 
 ## Failure Modes This Prevents
 
 | Failure | Rule | Without It |
 |---------|------|-----------|
-| Agent edits main repo files | 1, 6 | Changes leak to main |
+| Agent edits main repo files | 1, 6 | Changes leak to main, get stashed/lost |
 | Context wasted on task_plan.md | 4 | Implementation budget consumed by planning |
 | Commit on wrong branch | 2 | Orchestrator merges wrong content |
 | PR has changes from 2 ADRs | 5, 6 | Cross-contamination between agents |
 | Branch locked by worktree | 2 | Fatal error on checkout |
-| PR fails CI on format | 8 | Merge blocked |
+| PR fails CI on format | 8 | Merge blocked; `ruff format --check` was skipped |

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-01T18:31:13Z",
+  "generated": "2026-05-02T17:12:28Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -241,6 +241,25 @@
       "pairs_with": [
         "code-cleanup",
         "systematic-code-review"
+      ]
+    },
+    "condense": {
+      "file": "skills/condense/SKILL.md",
+      "description": "Maximize information density: preserve all instructions, remove prose filler.",
+      "triggers": [
+        "condense",
+        "reduce words",
+        "clarity pass",
+        "information density",
+        "remove prose",
+        "tighten",
+        "fewer words"
+      ],
+      "category": "code-quality",
+      "user_invocable": true,
+      "pairs_with": [
+        "skill-creator",
+        "anti-ai-editor"
       ]
     },
     "condition-based-waiting": {
@@ -1504,7 +1523,7 @@
     },
     "publish": {
       "file": "skills/publish/SKILL.md",
-      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, Page...",
+      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
       "triggers": [
         "outline post",
         "blog structure",
@@ -1559,14 +1578,7 @@
         "search media library",
         "find existing wordpress image",
         "find existing image",
-        "reuse existing media",
-        "page speed",
-        "pagespeed",
-        "page insights",
-        "core web vitals",
-        "lighthouse",
-        "site speed",
-        "performance audit"
+        "reuse existing media"
       ],
       "category": "content-publishing",
       "user_invocable": false,
@@ -1687,21 +1699,9 @@
         "analyze repo for ideas",
         "what can we learn from",
         "compare against repo",
-        "read every file in repo",
-        "check if repo is valuable",
-        "evaluate this repo",
-        "what can we adopt from",
-        "study this repo",
-        "clone and analyze repo",
-        "external repo analysis",
-        "skills repo evaluation",
-        "steal from",
-        "adopt from",
-        "assess repo",
-        "assess this repo"
+        "read every file in repo"
       ],
       "category": "analysis",
-      "force_route": true,
       "user_invocable": false,
       "pairs_with": [
         "workflow"

@@ -1,7 +1,5 @@
 # Data Engineer Error Catalog
 
-Common data pipeline errors and solutions. Loaded when diagnosing pipeline failures.
-
 ## DAG Dependency Deadlock
 **Cause**: Circular dependencies between pipeline tasks, or upstream tasks that never complete, blocking the entire DAG.
 **Solution**: Map the dependency graph explicitly. Break cycles with staging tables or intermediate datasets. Use Airflow's `ExternalTaskSensor` with timeout for cross-DAG dependencies.

@@ -78,9 +78,11 @@ routing:
 
 # PR Workflow Skill
 
-Umbrella skill for the pull request lifecycle. Routes to the correct reference based on intent.
+Umbrella skill for the entire pull request lifecycle. Routes to the correct reference based on the PR task requested.
 
 ## Routing
+
+Detect the user's intent and load the appropriate reference file:
 
 | Intent | Trigger phrases | Reference |
 |--------|----------------|-----------|
