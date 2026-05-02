@@ -12,6 +12,9 @@
 # Architecture Decision Records (internal development artifacts)
 adr/
 
+# Retrospective notes (internal development artifacts)
+retro/
+
 # Environment files (NEVER commit credentials)
 .env
 .env.*

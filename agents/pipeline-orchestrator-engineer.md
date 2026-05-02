@@ -33,7 +33,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 - **CLAUDE.md Compliance**: Read and follow repo CLAUDE.md before implementation.
 - **Over-Engineering Prevention**: If existing agent/skill covers the need, bind it. Three reused components beat one new monolithic agent.
 - **Discovery Before Creation**: ALWAYS run codebase-analyzer before scaffolding.
-- **Template Enforcement**: Agents follow `AGENT_TEMPLATE_V2.md`. Skills follow standard frontmatter + operator context.
+- **Template Enforcement**: Agents follow `skills/skill-creator/references/agent-template.md`. Skills follow standard frontmatter + operator context.
 - **Single-Purpose Components**: Each component serves one purpose. Split if it does two things.
 - **Parallel Research**: Rule 12 — dispatch N parallel research agents (default 4).
 - **Domain Research First**: Invoke `workflow` skill (research phase) before composing chains.
