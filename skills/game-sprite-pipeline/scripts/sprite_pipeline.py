@@ -125,8 +125,16 @@ def _run_spritesheet_verifiers(
     rows: int,
     cell_size: int,
     allow_frame_duplication: bool = False,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> tuple[list[str], list[dict]]:
-    """Run the spritesheet gate suite against a final sheet PNG."""
+    """Run the spritesheet gate suite against a final sheet PNG.
+
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (per-row mode padding). Forwarded to
+            verify_frames_have_content and verify_frames_distinct so they
+            skip these cells instead of flagging them.
+    """
     gates_run: list[str] = []
     failures: list[dict] = []
 
@@ -162,7 +170,13 @@ def _run_spritesheet_verifiers(
     try:
         _record_gate(
             "verify_frames_have_content",
-            verify_frames_have_content(sheet_path, cols, rows, cell_size),
+            verify_frames_have_content(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                expected_empty_cells=expected_empty_cells,
+            ),
         )
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_have_content")
@@ -172,7 +186,14 @@ def _run_spritesheet_verifiers(
         dup_pct_max = 100.0 if allow_frame_duplication else 70.0
         _record_gate(
             "verify_frames_distinct",
-            verify_frames_distinct(sheet_path, cols, rows, cell_size, max_duplicate_pct=dup_pct_max),
+            verify_frames_distinct(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                max_duplicate_pct=dup_pct_max,
+                expected_empty_cells=expected_empty_cells,
+            ),
         )
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_distinct")
@@ -631,6 +652,15 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
             elapsed_seconds=0.0,
         )
 
+    # Compute expected-empty cells: per-row mode pads shorter rows to
+    # max_frames columns. Cells beyond a row's frame count are intentionally
+    # blank and must not trigger verify_frames_have_content or
+    # verify_frames_distinct failures.
+    expected_empty_cells: list[tuple[int, int]] = []
+    for row_idx, row_def in enumerate(row_defs):
+        for col in range(row_def["frames"], effective_cols):
+            expected_empty_cells.append((row_idx, col))
+
     started_verify = time.perf_counter()
     gates_run, failures = _run_spritesheet_verifiers(
         sheet_path=sheet_path,
@@ -639,6 +669,7 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
         rows=total_rows,
         cell_size=args.cell_size,
         allow_frame_duplication=getattr(args, "allow_frame_duplication", False),
+        expected_empty_cells=expected_empty_cells,
     )
     elapsed = time.perf_counter() - started_verify
 

@@ -373,6 +373,7 @@ def verify_frames_have_content(
     cell_size: int,
     min_alpha_pixel_pct: float = 2.0,
     max_blank_count: int = 0,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> dict:
     """Per-cell alpha-coverage gate. Catches blank-cell failure class.
 
@@ -391,6 +392,11 @@ def verify_frames_have_content(
 
     The default (max_blank_count=0) is strict; relax for assets where one
     blank frame is a deliberate art choice.
+
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (e.g. per-row mode padding). These cells are
+            excluded from the blank-cell check entirely.
     """
     if not HAS_NUMPY:
         return {"passed": True, "blank_cells": [], "error": "numpy required"}
@@ -398,6 +404,11 @@ def verify_frames_have_content(
         img = Image.open(img)
     img = img.convert("RGBA")
     cells = _slice_grid_into_cells(img, grid_cols, grid_rows)
+    # Build a set of linear cell indices to skip (per-row padding cells).
+    skip_indices: set[int] = set()
+    if expected_empty_cells:
+        for row, col in expected_empty_cells:
+            skip_indices.add(row * grid_cols + col)
     blanks: list[dict] = []
     pcts: list[float] = []
     for i, cell in enumerate(cells):
@@ -405,6 +416,8 @@ def verify_frames_have_content(
         alpha = arr[..., 3]
         pct = float((alpha > 16).sum()) / max(alpha.size, 1) * 100.0
         pcts.append(round(pct, 2))
+        if i in skip_indices:
+            continue
         if pct < min_alpha_pixel_pct:
             blanks.append({"cell_index": i, "alpha_pct": round(pct, 2)})
     result: dict = {
@@ -465,6 +478,7 @@ def verify_frames_distinct(
     max_duplicate_pct: float = 10.0,
     skip_blank_cells: bool = True,
     blank_alpha_pct: float = 2.0,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> dict:
     """Perceptual-hash duplicate-frame gate. Catches "two frames merged" failure.
 
@@ -483,6 +497,11 @@ def verify_frames_distinct(
     headroom. Action cycles should hit far higher distances; if dup_pct
     exceeds threshold, the cycle is broken (frames repeated).
 
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (e.g. per-row mode padding). These cells are
+            excluded from duplicate analysis regardless of skip_blank_cells.
+
     Returns the involved cell indices for diagnosis.
     """
     if not HAS_NUMPY:
@@ -491,16 +510,23 @@ def verify_frames_distinct(
         img = Image.open(img)
     img = img.convert("RGBA")
     cells = _slice_grid_into_cells(img, grid_cols, grid_rows)
+    # Build a set of linear cell indices to skip (per-row padding cells).
+    skip_indices: set[int] = set()
+    if expected_empty_cells:
+        for row, col in expected_empty_cells:
+            skip_indices.add(row * grid_cols + col)
     if skip_blank_cells:
         # Pre-filter to cells with content so blank vs blank doesn't pollute.
         valid_cells: list[tuple[int, Image.Image]] = []
         for i, c in enumerate(cells):
+            if i in skip_indices:
+                continue
             arr = np.array(c)
             pct = float((arr[..., 3] > 16).sum()) / max(arr[..., 3].size, 1) * 100.0
             if pct >= blank_alpha_pct:
                 valid_cells.append((i, c))
     else:
-        valid_cells = list(enumerate(cells))
+        valid_cells = [(i, c) for i, c in enumerate(cells) if i not in skip_indices]
     hashes = [(i, _dhash(c)) for i, c in valid_cells]
     duplicates: list[dict] = []
     cells_in_dup: set[int] = set()
