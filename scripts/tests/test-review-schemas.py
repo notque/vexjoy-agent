@@ -28,7 +28,7 @@ import textwrap
 from pathlib import Path
 from typing import Any
 
-_validator_path = Path(__file__).resolve().parent / "validate-review-output.py"
+_validator_path = Path(__file__).resolve().parent.parent / "validate-review-output.py"
 _spec = importlib.util.spec_from_file_location("validate_review_output", _validator_path)
 assert _spec is not None and _spec.loader is not None
 _mod = importlib.util.module_from_spec(_spec)

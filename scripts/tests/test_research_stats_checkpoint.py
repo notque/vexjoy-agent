@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 # Load the hyphenated script as a module via importlib.
-SCRIPT_PATH = Path(__file__).resolve().parent / "research-stats-checkpoint.py"
+SCRIPT_PATH = Path(__file__).resolve().parent.parent / "research-stats-checkpoint.py"
 _spec = importlib.util.spec_from_file_location("research_stats_checkpoint", SCRIPT_PATH)
 assert _spec is not None and _spec.loader is not None
 checkpoint = importlib.util.module_from_spec(_spec)
