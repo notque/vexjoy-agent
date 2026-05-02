@@ -42,7 +42,7 @@ Use the `{.wp-button}` attribute to create WordPress button blocks:
 Use `--validate` to check Gutenberg HTML structure without uploading:
 
 ```bash
-python3 ~/.claude/scripts/wordpress-upload.py --file article.md --validate
+python3 ~/.claude/skills/publish/scripts/wordpress-upload.py --file article.md --validate
 ```
 
 Output is JSON: `{"status": "valid", "block_count": N}` or `{"status": "invalid", "errors": [...]}`.

@@ -1,0 +1,42 @@
+{
+  "voice": "voice_a",
+  "metrics": {
+    "total_words": 301,
+    "total_sentences": 18,
+    "sentence_length_distribution": {
+      "short": 5,
+      "medium": 4,
+      "long": 4,
+      "very_long": 5
+    },
+    "comma_density": 0.12,
+    "contraction_rate": 0.03,
+    "em_dash_count": 0,
+    "fragment_rate": 0.17,
+    "max_consecutive_similar": 2
+  },
+  "sentence_starters": {
+    "conjunction": ["And", "And"],
+    "pronoun": ["She", "She", "She"],
+    "determiner": ["The", "The", "The", "The"],
+    "preposition": ["With", "Whether"],
+    "adverb": ["Sometimes", "Together", "Together", "Together"]
+  },
+  "function_word_signature": {
+    "the": 15,
+    "and": 8,
+    "a": 6,
+    "to": 5,
+    "in": 4,
+    "of": 4,
+    "her": 3,
+    "she": 3
+  },
+  "patterns_detected": {
+    "light_imagery": ["lights", "shine", "blaze", "fire", "glow", "brighter"],
+    "community_language": ["community", "together", "we", "fans"],
+    "triple_rhythm": true,
+    "sentence_start_conjunctions": true,
+    "fragment_punches": true
+  }
+}

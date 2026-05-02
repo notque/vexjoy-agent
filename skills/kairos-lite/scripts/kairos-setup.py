@@ -5,8 +5,8 @@ Creates the config file, validates prerequisites, and installs cron jobs for
 KAIROS-lite monitoring. Idempotent: safe to run multiple times.
 
 Usage:
-    python3 scripts/kairos-setup.py
-    python3 scripts/kairos-setup.py --non-interactive
+    python3 skills/kairos-lite/scripts/kairos-setup.py
+    python3 skills/kairos-lite/scripts/kairos-setup.py --non-interactive
 """
 
 import argparse

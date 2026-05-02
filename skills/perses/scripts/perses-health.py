@@ -5,7 +5,7 @@ Check Perses server connectivity, MCP server status,
 percli availability, and auth token validity.
 
 Usage:
-    python3 scripts/perses-health.py [--url URL] [--verbose]
+    python3 skills/perses/scripts/perses-health.py [--url URL] [--verbose]
 """
 
 import argparse

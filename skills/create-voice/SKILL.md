@@ -95,7 +95,7 @@ Always run script-based analysis before AI interpretation, because scripts produ
 #### Run the Analyzer
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py analyze \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 ```
@@ -103,7 +103,7 @@ python3 ~/.claude/scripts/voice-analyzer.py analyze \
 #### Also Get the Text Report
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py analyze \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --format text
 ```

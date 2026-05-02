@@ -6,11 +6,11 @@ Scrapes posts from any WordPress.com-hosted blog using the WordPress.com public 
 each post as a separate .md file with YAML frontmatter.
 
 Usage:
-    python3 scripts/wordpress-scraper.py \\
+    python3 skills/publish/scripts/wordpress-scraper.py \\
         --source https://example-blog.wordpress.com --output /tmp/articles/ --human
-    python3 scripts/wordpress-scraper.py \\
+    python3 skills/publish/scripts/wordpress-scraper.py \\
         --source https://example-blog.wordpress.com --output /tmp/articles/ --limit 5 --human
-    python3 scripts/wordpress-scraper.py \\
+    python3 skills/publish/scripts/wordpress-scraper.py \\
         --source https://example-blog.wordpress.com --output /tmp/articles/ \\
         --download-images --human
 
