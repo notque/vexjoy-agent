@@ -73,7 +73,7 @@ Clear language proves understanding. Jargon proves the opposite. If output sound
 - A brief summary after each agent completes — what changed, not how
 
 **What stays internal:**
-- Haiku routing agent responses — consumed by the router, never printed
+- Routing agent responses — consumed by the router, never printed
 - Classification reasoning
 - Enhancement stacking details (unless Verbose Routing is ON)
 
@@ -102,9 +102,7 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 | Medium | **Required** | **Required** | Route to agent |
 | Complex | Required (2+) | Required (2+) | Route to agent |
 
-**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down. Routing up finds the agent who ships it complete; tokens are cheap, and an agent that actually ships is what the user came for.
-
-**Opus 4.7 override:** Opus 4.7 defaults to fewer subagents and more direct handling. That default is correct for ad-hoc prompting; it is wrong here. The /do router is a delegation machine by design. Do not apply the model's default judiciousness. Classify Simple+ tasks to agents without reasoning about whether you could handle them directly. If a task is reading a file the user named by exact path, it is Trivial; if it is anything else — including tasks the model feels capable of handling in one response — it is Simple+ and MUST route.
+**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down. Routing up finds the agent who ships it complete; tokens are cheap, and an agent that actually ships is what the user came for. The /do router is a delegation machine by design — classify Simple+ tasks to agents without reasoning about whether you could handle them directly. If a task is reading a file the user named by exact path, it is Trivial; if it is anything else, it is Simple+ and MUST route.
 
 **Progressive Depth**: For requests where complexity is ambiguous, consider starting at a shallower depth and allowing the agent to escalate. See `references/progressive-depth.md` for the escalation protocol and signal format.
 
@@ -112,9 +110,7 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT. Skills encode domain patterns earned through prior work; using them gives you that expertise for free.
 
-**Check for parallel patterns FIRST** because independent work items finish fastest when dispatched concurrently, and the routing table below matches the shape of the work: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
-
-**Opus 4.7 override:** Opus 4.7 is more judicious about spawning subagents by default. When the router detects 2+ independent items, dispatch all agents in parallel in a single message. Do not consolidate independent items into a single agent dispatch to "save subagent spawns" — that consolidation is the model's default under Opus 4.7 and it is wrong for this router.
+**Check for parallel patterns FIRST** because independent work items finish fastest when dispatched concurrently, and the routing table below matches the shape of the work: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, use `feature-state.py status` for current phase). When the router detects 2+ independent items, dispatch all agents in parallel in a single message. Do not consolidate independent items into a single agent dispatch — parallel dispatch is the correct default for this router.
 
 **Optional: Force Direct** — OFF by default. When explicitly enabled, overrides routing for trivial operations. Only applies when the user explicitly requests it.
 
@@ -139,19 +135,19 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill combination via the Haiku routing agent.
+**Goal**: Select the correct agent + skill combination via a lightweight routing agent.
 
-All routing goes through a single Haiku agent dispatch. The manifest includes `FORCE`-labeled entries that the Haiku agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed Haiku-only scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
+All routing goes through a single routing agent dispatch. The manifest includes `FORCE`-labeled entries that the routing agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed the single-agent approach scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
 
-**Step 1: Dispatch Haiku routing agent**
+**Step 1: Dispatch routing agent**
 
-Generate the routing manifest, then dispatch the Haiku agent:
+Generate the routing manifest, then dispatch the routing agent:
 
 ```bash
 python3 scripts/routing-manifest.py
 ```
 
-Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
+Dispatch the Agent tool with this prompt structure:
 
 ```
 You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
@@ -188,11 +184,11 @@ Rules:
 - Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
 
-**Step 1b: Apply the Haiku agent's recommendation**
+**Step 1b: Apply the routing agent's recommendation**
 
-Use the Haiku agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
+Use the routing agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
 
-**The Haiku agent's response is internal.** Do not print its JSON or reasoning to the user. Extract the fields, apply them, move on. The routing banner is the user-facing summary.
+**The routing agent's response is internal.** Do not print its JSON or reasoning to the user. Extract the fields, apply them, move on. The routing banner is the user-facing summary.
 
 **Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates. The skills bundle lint, tests, review loops, CI verification, and repo classification into the single command so the push lands cleanly.
 
@@ -239,7 +235,7 @@ python3 ~/.claude/scripts/learning-db.py record \
     --tags "{applicable_flags}"
 ```
 
-Tags: `auto-pipeline` (as applicable), `thinking:slow` (if "think carefully" directive injected in Phase 4 Step 2), `thinking:fast` (if "respond quickly" directive injected in Phase 4 Step 2). This call is advisory — if it fails, continue.
+Tags: `auto-pipeline` (as applicable). This call is advisory — if it fails, continue.
 Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, misroute`. Use `effectiveness` for successful routing, `misroute` for reroutes.
 
 **Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
@@ -326,7 +322,7 @@ The quality-loop does NOT apply when:
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
-**Opus 4.7 override: Prepend first-turn Task Specification block for Medium+ tasks.** Opus 4.7 benefits most from well-specified first-turn task descriptions. The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
+**Prepend first-turn Task Specification block for Medium+ tasks.** The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
 
 ```
 ## Task Specification (auto-extracted)
@@ -344,27 +340,14 @@ Extraction rules: Intent from the request's verb and object (one sentence, not a
 
 **MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
 
-**Opus 4.7 override: Inject complexity-calibrated thinking directive.** Opus 4.7 exposes thinking rate to prompt-level control. Prepend the appropriate directive to the dispatched agent's prompt as a single sentence (verbatim, no framing), because calibrating thinking rate per task class reduces both over-reasoning on simple work and under-reasoning on complex work:
-
-| Complexity | Thinking Directive |
-|---|---|
-| Trivial | None (handled directly, no agent dispatched) |
-| Simple | "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly." |
-| Medium | None (let adaptive thinking decide) |
-| Complex | "Think carefully and step-by-step before responding; this problem is harder than it looks." |
-
-Category overrides (regardless of complexity class). Always inject "Think carefully and step-by-step before responding; this problem is harder than it looks." for: security work (threat modeling, vulnerability analysis, auth changes), API or schema design, migrations (data, code, legacy systems), code review spanning 5+ files, architectural decisions (ADR writing, design proposals). Always inject "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly." for: lookups with clear answers (what file contains X, what commit did Y), status checks (is CI green, is the PR mergeable), simple renames or straightforward refactors inside a single function.
-
-Record the injected directive in the Phase 2 Step 4 `--tags` field as `thinking:slow` (for "think carefully") or `thinking:fast` (for "respond quickly"), so the learning-db can correlate dispatch outcome with thinking-rate choice.
-
-**Verb-based model dispatch for Complex tasks.** When the task verb indicates data extraction rather than analysis, the coordinator dispatches parallel Haiku readers instead of a single Opus agent. This is 38% cheaper and 23% faster with equivalent quality for extraction tasks (A/B tested, blind-reviewed).
+**Verb-based dispatch for Complex tasks.** When the task verb indicates data extraction rather than analysis, the coordinator dispatches parallel lightweight readers instead of a single agent doing all reads. This is cheaper and faster with equivalent quality for extraction tasks (see `docs/PHILOSOPHY.md` — "Delegate Data Gathering to Cheap Models").
 
 | Task verb class | Dispatch mode | Rationale |
 |---|---|---|
-| list, count, extract, inventory, search, check, find, grep | Parallel Haiku readers → Opus synthesizer | Structured extraction. Haiku matches quality. 5x cheaper per token. |
-| review, audit, assess, analyze, debug, investigate, evaluate | Single Opus agent (direct) | Requires semantic reasoning. Haiku misses silent failures. |
+| list, count, extract, inventory, search, check, find, grep | Parallel lightweight readers → synthesizer | Structured extraction with known schema. Cheaper per token. Parallelizable. |
+| review, audit, assess, analyze, debug, investigate, evaluate | Single agent (direct) | Requires semantic reasoning about correctness. Lightweight readers miss silent failures. |
 
-To dispatch Haiku readers: for each file or data source, spawn an Agent with `model: "haiku"` and a directed prompt ("read file X, return: [specific fields]"). Collect all results, then dispatch the synthesis agent with only the extracts. The synthesis agent never sees raw file contents.
+To dispatch lightweight readers: for each file or data source, spawn an Agent with a directed prompt ("read file X, return: [specific fields]"). Collect all results, then dispatch the synthesis agent with only the extracts. The synthesis agent never sees raw file contents.
 
 This applies to Complex tasks with 3+ data sources. For Simple/Medium tasks, dispatch directly — the overhead of parallel readers outweighs the savings.
 
