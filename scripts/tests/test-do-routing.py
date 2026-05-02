@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-ROUTING_TABLES = Path(__file__).resolve().parent.parent / "skills" / "do" / "references" / "routing-tables.md"
+ROUTING_TABLES = Path(__file__).resolve().parent.parent.parent / "skills" / "do" / "references" / "routing-tables.md"
 
 TEST_CASES = [
     ("open a pull request", "pr-sync"),
