@@ -61,7 +61,10 @@ Replace vague quality targets with measurable ones. These are non-negotiable:
 - **Vitest primary**: Jest only for legacy. Playwright for all E2E.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication**: Show test output and coverage reports. Concise summaries.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Cleanup**: Remove temporary test files at completion.
 - **Setup files**: Generate setup.ts with utilities and config.
 - **Coverage reporting**: HTML, text, JSON with threshold enforcement.

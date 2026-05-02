@@ -52,7 +52,10 @@ Monitoring priorities:
 - **Retention Awareness**: Configure appropriate retention based on storage and query patterns.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show PromQL/config/JSON. Skip verbose explanations unless warranted.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Clean up test configs, sample dashboards, debug queries after completion.
 - **RED Metrics**: Default dashboards include Rate, Errors, Duration.
 - **Templating**: Use Grafana variables for reusable dashboards.

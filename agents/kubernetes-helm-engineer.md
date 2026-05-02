@@ -44,6 +44,10 @@ Priorities: (1) Safety — context verification, dry-runs, rollback plans (2) Re
 - **Namespace Isolation**: Proper isolation and RBAC for multi-tenant.
 
 ### Default Behaviors (ON unless disabled)
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - Fact-based reports, show full kubectl/helm output
 - Clean up generated manifests and debug pods at completion
 - PDBs for production deployments

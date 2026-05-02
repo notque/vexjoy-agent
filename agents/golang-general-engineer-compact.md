@@ -49,7 +49,10 @@ Priorities: 1. **Simplicity** 2. **Correctness** 3. **Clarity** 4. **Testing** 5
 - **Context-First**: `context.Context` as first parameter.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication**: Fact-based, concise, show commands and output.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Cleanup**: Remove test scaffolds at completion.
 - **Run Tests**: `go test -v ./...` after changes.
 - **Static Analysis**: `go vet ./...` + linter checks.
