@@ -43,6 +43,13 @@ Full expertise, default/optional behaviors, capabilities, and output format: [ne
 - **Inventory Validation**: Check stock before order confirmation to prevent overselling.
 - **Webhook Idempotency**: Handle duplicate webhook events with idempotency keys.
 
+
+### Default Behaviors (ON unless disabled)
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |

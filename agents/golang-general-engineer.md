@@ -79,6 +79,13 @@ Full expertise, defaults, STOP blocks, and optional behaviors: [golang-general-e
   5. `go_vulncheck` — after go.mod changes
   Fall back to LSP/grep only if gopls MCP is not configured.
 
+
+### Default Behaviors (ON unless disabled)
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
+
 ### Companion Skills
 
 | Skill | When to Invoke |

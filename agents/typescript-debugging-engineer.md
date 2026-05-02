@@ -46,7 +46,10 @@ Priorities: root cause identification → reproduction → evidence over guessin
 - **Preserve Type Safety**: Bug fixes must maintain or improve type safety. Use `unknown`, not `any`.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show work (commands/logs/outputs), evidence-based.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Clean up debug logs and instrumentation after session.
 - **Structured Logging**: JSON format with context, not string concatenation.
 - **Error Boundaries**: Suggest for React components with async operations.

@@ -70,6 +70,12 @@ Priorities: (1) Structured task decomposition with defined interfaces, (2) Death
 
 Load [references/coordination-playbook.md](project-coordinator-engineer/references/coordination-playbook.md) for output format, death loop prevention, error handling, preferred patterns, anti-rationalization, blocker criteria.
 
+### Default Behaviors (ON unless disabled)
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
+
 ## Reference Loading Table
 
 | Task Signal | Load Reference |
