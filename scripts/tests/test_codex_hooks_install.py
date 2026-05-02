@@ -64,7 +64,7 @@ def _parse_allowlist_filenames() -> set[str]:
     """Return the set of hook filenames from the allowlist.
 
     Returns:
-        Set of bare filenames (e.g. 'kairos-briefing-injector.py').
+        Set of bare filenames (e.g. 'session-github-briefing.py').
     """
     filenames: set[str] = set()
     for line in ALLOWLIST.read_text(encoding="utf-8").splitlines():
@@ -107,8 +107,8 @@ def test_install_sh_creates_codex_hooks_dir(fake_home: Path) -> None:
     assert hooks_dir.exists(), f"~/.codex/hooks/ not created.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
     assert hooks_dir.is_dir(), "~/.codex/hooks is not a directory"
 
-    target_hook = hooks_dir / "kairos-briefing-injector.py"
-    assert target_hook.exists(), f"kairos-briefing-injector.py missing from hooks dir.\nSTDOUT:\n{result.stdout}"
+    target_hook = hooks_dir / "session-github-briefing.py"
+    assert target_hook.exists(), f"session-github-briefing.py missing from hooks dir.\nSTDOUT:\n{result.stdout}"
 
 
 def test_install_sh_mirrors_all_allowlisted_hooks(fake_home: Path) -> None:

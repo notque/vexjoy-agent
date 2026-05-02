@@ -55,7 +55,6 @@ Specialized Claude Code sub-agents. Defined in `agents/*.md` with YAML frontmatt
 
 | Agent | Description |
 |-------|-------------|
-| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core development |
 
 ---
 

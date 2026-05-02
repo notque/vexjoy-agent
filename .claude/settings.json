@@ -68,8 +68,8 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/kairos-briefing-injector.py\"",
-            "description": "Inject most recent KAIROS monitoring briefing (opt-in: CLAUDE_KAIROS_ENABLED=true)",
+            "command": "python3 \"$HOME/.claude/hooks/session-github-briefing.py\"",
+            "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 2000,
             "once": true
           }
