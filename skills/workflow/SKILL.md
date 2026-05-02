@@ -62,8 +62,6 @@ Load the appropriate workflow reference based on the task.
 | **Upgrade** | Toolkit improvement | `references/toolkit-improvement.md` |
 | **Testing** | Pipeline test runner | `references/pipeline-test-runner.md` |
 | **Testing** | Pipeline retro | `references/pipeline-retro.md` |
-| **Perses** | Dashboard-as-Code | `references/perses-dac-pipeline.md` |
-| **Perses** | Plugin pipeline | `references/perses-plugin-pipeline.md` |
 | **GitHub** | Profile rules extraction | `references/github-profile-rules.md` |
 | **Orchestration** | Task orchestration | `references/workflow-orchestrator.md` |
 
@@ -111,7 +109,5 @@ If the task spans multiple workflows (e.g., research then write), load each refe
 | **Upgrade** | `toolkit-improvement.md` | Toolkit improvement |
 | **Testing** | `pipeline-test-runner.md` | Pipeline test runner |
 | **Testing** | `pipeline-retro.md` | Pipeline retro |
-| **Perses** | `perses-dac-pipeline.md` | Dashboard-as-Code |
-| **Perses** | `perses-plugin-pipeline.md` | Plugin pipeline |
 | **GitHub** | `github-profile-rules.md` | Profile rules extraction |
 | **Orchestration** | `workflow-orchestrator.md` | Task orchestration |

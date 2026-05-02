@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-02T20:27:15Z",
+  "generated": "2026-05-02T21:04:08Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -56,24 +56,6 @@
         "agent-comparison",
         "skill-eval",
         "skill-creator"
-      ]
-    },
-    "anti-ai-editor": {
-      "file": "skills/anti-ai-editor/SKILL.md",
-      "description": "Remove AI-sounding patterns from content.",
-      "triggers": [
-        "remove AI patterns",
-        "de-AI content",
-        "make it sound human",
-        "remove AI voice",
-        "humanize text"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "voice-validator",
-        "joy-check"
       ]
     },
     "architecture-deepening": {
@@ -318,26 +300,6 @@
       "user_invocable": false,
       "pairs_with": [
         "x-api"
-      ]
-    },
-    "create-voice": {
-      "file": "skills/create-voice/SKILL.md",
-      "description": "Create voice profiles from writing samples.",
-      "triggers": [
-        "create voice",
-        "new voice",
-        "build voice",
-        "voice from samples",
-        "calibrate voice",
-        "voice profile from scratch",
-        "make a voice"
-      ],
-      "category": "content",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-validator",
-        "voice-writer"
       ]
     },
     "cron-job-auditor": {
@@ -975,77 +937,6 @@
         "systematic-code-review"
       ]
     },
-    "joy-check": {
-      "file": "skills/joy-check/SKILL.md",
-      "description": "Validate content framing on joy-grievance spectrum.",
-      "triggers": [
-        "joy check",
-        "check framing",
-        "tone check",
-        "negative framing",
-        "joy validation",
-        "too negative",
-        "reframe positively",
-        "positive framing check",
-        "instruction framing"
-      ],
-      "category": "content",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor",
-        "voice-validator",
-        "skill-creator"
-      ]
-    },
-    "kairos-lite": {
-      "file": "skills/kairos-lite/SKILL.md",
-      "description": "Proactive monitoring \u2014 checks GitHub, CI, and toolkit health, produces briefings.",
-      "triggers": [
-        "morning briefing",
-        "what happened",
-        "check notifications",
-        "check CI",
-        "project status",
-        "what's new",
-        "monitoring",
-        "health check",
-        "kairos"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "pairs_with": [
-        "auto-dream"
-      ]
-    },
-    "kb": {
-      "file": "skills/kb/SKILL.md",
-      "description": "Knowledge base operations on `research/{topic}/` wikis: compile raw sources into wiki articles, query the wiki for answers, or health-check wiki consistency.",
-      "triggers": [
-        "compile knowledge base",
-        "kb compile",
-        "compile wiki",
-        "build knowledge base",
-        "compile raw sources",
-        "query knowledge base",
-        "kb query",
-        "ask knowledge base",
-        "search kb",
-        "kb question",
-        "lint knowledge base",
-        "kb lint",
-        "check kb health",
-        "knowledge base health",
-        "kb consistency"
-      ],
-      "category": "research",
-      "user_invocable": false,
-      "pairs_with": [
-        "research-pipeline",
-        "topic-brainstormer"
-      ],
-      "agent": "general-purpose"
-    },
     "kotlin-coroutines": {
       "file": "skills/kotlin-coroutines/SKILL.md",
       "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
@@ -1238,33 +1129,6 @@
         "systematic-code-review",
         "verification-before-completion"
       ]
-    },
-    "perses": {
-      "file": "skills/perses/SKILL.md",
-      "description": "Perses platform operations: dashboards, plugins, deployment, migration, and quality.",
-      "triggers": [
-        "perses",
-        "perses dashboard",
-        "perses plugin",
-        "perses lint",
-        "perses migrate",
-        "percli",
-        "Grafana to Perses",
-        "perses deploy",
-        "perses datasource",
-        "perses variable",
-        "perses project",
-        "perses CUE",
-        "dashboard-as-code"
-      ],
-      "category": "infrastructure",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "perses-engineer",
-        "prometheus-grafana-engineer"
-      ],
-      "agent": "perses-engineer"
     },
     "phaser-gamedev": {
       "file": "skills/phaser-gamedev/SKILL.md",
@@ -2283,63 +2147,6 @@
         "test-driven-development",
         "typescript-check",
         "e2e-testing"
-      ]
-    },
-    "voice-feynman": {
-      "file": "skills/voice-feynman/SKILL.md",
-      "description": "Apply Richard Feynman's voice profile for content generation: mechanism-first thinking, refusal of jargon, plain English when truth is embarrassing...",
-      "triggers": [
-        "voice-feynman",
-        "feynman voice",
-        "richard feynman voice",
-        "feynman writing style",
-        "feynman explanation"
-      ],
-      "category": "voice",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-writer",
-        "voice-validator",
-        "anti-ai-editor"
-      ]
-    },
-    "voice-validator": {
-      "file": "skills/voice-validator/SKILL.md",
-      "description": "Critique-and-rewrite loop for voice fidelity validation.",
-      "triggers": [
-        "validate voice",
-        "check voice fidelity",
-        "voice critique",
-        "voice fidelity",
-        "writing style check"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor",
-        "joy-check"
-      ]
-    },
-    "voice-writer": {
-      "file": "skills/voice-writer/SKILL.md",
-      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
-      "triggers": [
-        "write article",
-        "blog post",
-        "write in voice",
-        "blog post voice",
-        "content pipeline"
-      ],
-      "category": "voice",
-      "user_invocable": true,
-      "pairs_with": [
-        "voice-validator",
-        "anti-ai-editor",
-        "joy-check",
-        "voice-feynman"
       ]
     },
     "webgl-card-effects": {

@@ -16,7 +16,7 @@
 # ----- Phase 1: functional + verified safe -----
 
 # SessionStart injectors (pure stdout, no tool interception, Codex fires on startup or resume)
-SessionStart:kairos-briefing-injector.py
+SessionStart:session-github-briefing.py
 SessionStart:operator-context-detector.py
 SessionStart:team-config-loader.py
 SessionStart:rules-distill-injector.py

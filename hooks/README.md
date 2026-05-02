@@ -33,7 +33,7 @@ Task completes: TaskCompleted
 | `afk-mode` | Injects autonomous behavioral posture for unattended sessions (SSH, tmux, or `CLAUDE_AFK_MODE=always`). See [AFK Mode docs](afk-mode/README.md) |
 | `cross-repo-agents` | Discovers local `.claude/agents/` in the working directory and injects them for `/do` routing |
 | `fish-shell-detector` | Detects Fish shell users and injects the `fish-shell-config` skill |
-| `kairos-briefing-injector` | Injects the most recent KAIROS monitoring briefing into session context (opt-in: `CLAUDE_KAIROS_ENABLED=true`) |
+| `session-github-briefing` | Injects GitHub monitoring briefing into session context (opt-in: `CLAUDE_KAIROS_ENABLED=true`) |
 | `operator-context-detector` | Detects operator context (personal/work/ci/production) and injects behavioral profile |
 | `retro-knowledge-injector` | Stub — previously injected retro knowledge; replaced by auto-dream via `session-context.py` |
 | `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
@@ -53,7 +53,6 @@ Task completes: TaskCompleted
 | `capability-catalog-injector` | Injects full skill/agent catalog into `/do` routing context |
 | `creation-request-enforcer-userprompt` | Stub — previously detected creation requests; now handled by `/do` Phase 1 |
 | `instruction-reminder` | Stub — previously re-injected CLAUDE.md; now handled natively by Claude Code |
-| `perses-mcp-injector` | Detects Perses-related prompts and injects MCP tool discovery instructions |
 | `pipeline-context-detector` | Detects pipeline creation requests and injects an environmental state snapshot |
 | `skill-evaluator` | Discovers skills/agents and injects a targeted evaluation protocol |
 | `user-correction-capture` | Records user corrections and capability-gap signals to `learning.db` |
@@ -81,7 +80,6 @@ Task completes: TaskCompleted
 | Hook | Matcher | Description |
 |------|---------|-------------|
 | `creation-protocol-enforcer` | Agent | Soft-warns when an Agent dispatch appears to be a creation request without a recent ADR session |
-| `perses-lint-gate` | Bash | Redirects raw `percli apply` to the `perses-lint` skill for pre-deployment validation |
 | `pretool-file-backup` | Edit | Silently copies edited files to `/tmp/.claude-backups/{session_id}/` before each edit |
 | `pretool-learning-injector` | Bash, Edit | Injects high-confidence error patterns from `learning.db` before tools run |
 | `pretool-prompt-injection-scanner` | Write, Edit | Scans agent context files for LLM-level prompt injection patterns (advisory only) |

@@ -58,7 +58,7 @@ def test_comments_and_blanks_only_produces_empty():
 
 def test_single_session_start_no_matcher():
     """SessionStart entry with no matcher gets default matcher 'startup|resume'."""
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/home/user/.codex/hooks")
 
@@ -70,7 +70,7 @@ def test_single_session_start_no_matcher():
     assert len(block["hooks"]) == 1
     hook = block["hooks"][0]
     assert hook["type"] == "command"
-    assert "kairos-briefing-injector.py" in hook["command"]
+    assert "session-github-briefing.py" in hook["command"]
     assert hook["timeout"] == 600
 
 
@@ -82,7 +82,7 @@ def test_single_session_start_no_matcher():
 def test_multiple_session_start_entries_grouped():
     """Multiple SessionStart entries are grouped into one matcher block."""
     text = (
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "SessionStart:adr-context-injector.py\n"
         "SessionStart:instruction-reminder.py\n"
     )
@@ -94,7 +94,7 @@ def test_multiple_session_start_entries_grouped():
     hook_list = blocks[0]["hooks"]
     assert len(hook_list) == 3
     names = [h["command"] for h in hook_list]
-    assert any("kairos-briefing-injector.py" in n for n in names)
+    assert any("session-github-briefing.py" in n for n in names)
     assert any("adr-context-injector.py" in n for n in names)
     assert any("instruction-reminder.py" in n for n in names)
 
@@ -155,7 +155,7 @@ def test_comments_and_blank_lines_ignored():
     text = (
         "# Phase 1: safe on Codex v0.114.0+\n"
         "\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "\n"
         "# Another comment\n"
         "Stop:suggest-compact.py\n"
@@ -227,7 +227,7 @@ def test_cli_dry_run_produces_valid_json():
     """CLI invocation with --dry-run prints valid JSON to stdout."""
     allowlist_text = (
         "# Phase 1 hooks\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "UserPromptSubmit:instruction-reminder.py\n"
         "PreToolUse:pretool-bash-injection-scan.py Bash\n"
         "Stop:suggest-compact.py\n"
@@ -262,7 +262,7 @@ def test_cli_dry_run_produces_valid_json():
     # Verify structure depth: hooks.SessionStart[0].hooks[0].command
     session_hook = parsed["hooks"]["SessionStart"][0]["hooks"][0]
     assert session_hook["type"] == "command"
-    assert "kairos-briefing-injector.py" in session_hook["command"]
+    assert "session-github-briefing.py" in session_hook["command"]
     assert session_hook["timeout"] == 600
 
 
@@ -276,7 +276,7 @@ def test_event_ordering():
     text = (
         "Stop:suggest-compact.py\n"
         "PostToolUse:posttool-bash-injection-scan.py Bash\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "PreToolUse:pretool-bash-injection-scan.py Bash\n"
         "UserPromptSubmit:instruction-reminder.py\n"
     )
@@ -295,14 +295,14 @@ def test_event_ordering():
 
 def test_command_shape_uses_configured_dir():
     """Hook command uses python3 and the codex-hooks-dir path."""
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/home/testuser/.codex/hooks")
 
     hook = result["hooks"]["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
     assert cmd.startswith("python3 "), f"Command should start with 'python3 ': {cmd}"
-    assert "/home/testuser/.codex/hooks/kairos-briefing-injector.py" in cmd
+    assert "/home/testuser/.codex/hooks/session-github-briefing.py" in cmd
 
 
 def test_command_shape_default_dir_uses_home():
@@ -310,10 +310,10 @@ def test_command_shape_default_dir_uses_home():
     import os
 
     home = os.environ.get("HOME", "~")
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries)
 
     hook = result["hooks"]["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
-    assert f"{home}/.codex/hooks/kairos-briefing-injector.py" in cmd
+    assert f"{home}/.codex/hooks/session-github-briefing.py" in cmd

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # hook-version: 1.0.0
 """
-SessionStart Hook: KAIROS-lite Briefing Injector
+SessionStart Hook: GitHub Briefing Injector
 
-Injects the most recent KAIROS monitoring briefing into session context.
+Injects the most recent GitHub monitoring briefing into session context.
 Opt-in: requires CLAUDE_KAIROS_ENABLED=true environment variable.
 Graceful degradation: always exits 0, never blocks session start.
 """
@@ -27,7 +27,7 @@ MAX_INJECTION_CHARS = 1600  # ~400 tokens
 def _debug(message: str) -> None:
     """Write debug message to stderr only when CLAUDE_HOOK_DEBUG is set."""
     if os.environ.get("CLAUDE_HOOK_DEBUG"):
-        print(f"[kairos-briefing] {message}", file=sys.stderr)
+        print(f"[github-briefing] {message}", file=sys.stderr)
 
 
 def _compute_project_hash(project_path: str | None = None) -> str:
@@ -171,6 +171,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         if os.environ.get("CLAUDE_HOOK_DEBUG"):
-            print(f"[kairos-briefing] Fatal: {type(e).__name__}: {e}", file=sys.stderr)
+            print(f"[github-briefing] Fatal: {type(e).__name__}: {e}", file=sys.stderr)
     finally:
         sys.exit(0)  # ALWAYS exit 0 — non-blocking requirement
