@@ -18,11 +18,7 @@ routing:
 
 # PHP Testing Skill
 
-## Overview
-
-Apply PHPUnit testing patterns for PHP projects: unit tests with data providers, test doubles (stubs, mocks, Prophecy), database testing (Laravel/Symfony), HTTP testing, and coverage configuration.
-
-> See `references/patterns.md` for full code examples, the anti-patterns table, and the commands reference.
+PHPUnit testing patterns: unit tests, data providers, test doubles, database testing (Laravel/Symfony), HTTP testing, coverage. See `references/patterns.md` for code examples, anti-patterns, and commands.
 
 ## Reference Loading Table
 
@@ -35,24 +31,24 @@ Apply PHPUnit testing patterns for PHP projects: unit tests with data providers,
 ### Phase 1: IDENTIFY
 
 Determine what needs testing:
-- Unit logic: use PHPUnit `TestCase` with `test` prefix or `@test` annotation
-- Table-driven cases: use `@dataProvider` static methods
-- Collaborator behavior: use stubs (return values only) or mocks (assert interactions)
-- Database state: use `DatabaseTransactions` (Laravel) or `KernelTestCase` (Symfony)
-- HTTP endpoints: use Laravel HTTP helpers or Symfony `WebTestCase`
+- Unit logic: PHPUnit `TestCase` with `test` prefix or `@test`
+- Table-driven cases: `@dataProvider` static methods
+- Collaborator behavior: stubs (return values) or mocks (assert interactions)
+- Database state: `DatabaseTransactions` (Laravel) or `KernelTestCase` (Symfony)
+- HTTP endpoints: Laravel HTTP helpers or Symfony `WebTestCase`
 
 ### Phase 2: WRITE
 
-Write tests following these rules:
+Rules:
 - Call `parent::setUp()` first in every `setUp()` method
-- Use `assertSame()` instead of `assertTrue($a === $b)` for meaningful failure messages
-- Mock only collaborators and dependencies, never the class under test
-- Keep tests independent -- do not use `@depends` chains
-- Extract repetitive cases to `@dataProvider` rather than duplicating test methods
+- Use `assertSame()` over `assertTrue($a === $b)` for meaningful failure messages
+- Mock only collaborators, never the class under test
+- Keep tests independent -- no `@depends` chains
+- Extract repetitive cases to `@dataProvider`
 
-For test doubles: use `createStub()` when you only need return values, `createMock()` when asserting method calls, and Prophecy (`phpspec/prophecy-phpunit`) for more expressive interaction assertions.
+Test doubles: `createStub()` for return values only, `createMock()` for asserting calls, Prophecy (`phpspec/prophecy-phpunit`) for expressive interaction assertions.
 
-For database tests: use `DatabaseTransactions` (Laravel) or DoctrineTestBundle (Symfony) to roll back state after each test.
+Database tests: `DatabaseTransactions` (Laravel) or DoctrineTestBundle (Symfony) to roll back after each test.
 
 ### Phase 3: VERIFY
 

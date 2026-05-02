@@ -37,11 +37,9 @@ routing:
 
 # Game Pipeline Skill
 
-## Overview
+Orchestrates full game lifecycle: SCAFFOLD -> ASSETS -> DESIGN -> AUDIO -> QA -> DEPLOY. Each phase can be entered independently. The orchestrator delegates each phase to the appropriate engine skill or domain reference -- it never writes game code directly.
 
-This skill orchestrates the full game development lifecycle: SCAFFOLD → ASSETS → DESIGN → AUDIO → QA → DEPLOY. Each phase can be entered independently — you do not need to start from SCAFFOLD. The orchestrator never writes game code directly; it delegates each phase to the appropriate engine-specific skill or domain reference.
-
-**Scope**: Use for any browser-based game (Three.js, Phaser, or vanilla canvas), cross-cutting concerns that span engines (audio, QA, promo, deploy), and iOS export via Capacitor. Skip Unity/Godot/native engines, non-game web apps, and server-side logic.
+**Scope**: Browser-based games (Three.js, Phaser, vanilla canvas), cross-engine concerns (audio, QA, promo, deploy), iOS via Capacitor. Not for Unity/Godot/native engines, non-game web apps, or server-side logic.
 
 ---
 
@@ -60,32 +58,30 @@ This skill orchestrates the full game development lifecycle: SCAFFOLD → ASSETS
 
 ### Entry Point Detection
 
-**Before executing any phase**, determine which phase applies:
-
 | User request | Entry phase |
 |---|---|
-| "make a game", "start a game", "new game" | SCAFFOLD |
+| "make a game", "new game" | SCAFFOLD |
 | "generate assets", "add sprites", "need art" | ASSETS |
 | "add juice", "game feels flat", "particles", "screen shake" | DESIGN |
 | "add audio", "background music", "sound effects" | AUDIO |
-| "test my game", "visual regression", "playwright", "game qa" | QA |
+| "test my game", "visual regression", "game qa" | QA |
 | "deploy", "ship", "publish", "github pages", "promo video", "ios" | DEPLOY |
 
-If the entry phase is not SCAFFOLD, skip to that phase. Phases are independently re-enterable.
+If entry phase is not SCAFFOLD, skip to that phase. Phases are independently re-enterable.
 
 ---
 
 ### Phase 1: SCAFFOLD
 
-**Goal**: Initialize the project and delegate engine-specific setup.
+**Goal**: Initialize project and delegate engine-specific setup.
 
 **Step 1: Detect engine**
 
 | Signal | Engine | Delegate to |
 |---|---|---|
-| `import * as THREE`, three.js in package.json | Three.js | `threejs-builder` skill |
-| `new Phaser.Game()`, phaser in package.json | Phaser | `phaser-gamedev` skill |
-| No engine signal | Ask user before proceeding | — |
+| `import * as THREE`, three.js in package.json | Three.js | `threejs-builder` |
+| `new Phaser.Game()`, phaser in package.json | Phaser | `phaser-gamedev` |
+| No engine signal | Ask user | -- |
 
 **Step 2: Initialize project structure**
 
@@ -95,11 +91,11 @@ game/
 ├── src/
 │   └── main.js
 ├── assets/
-│   └── assets_index.json   # Asset manifest (required for Capacitor iOS)
-└── dist/                   # Build output
+│   └── assets_index.json   # Required for Capacitor iOS
+└── dist/
 ```
 
-`assets_index.json` format:
+`assets_index.json`:
 ```json
 {
   "version": "1.0",
@@ -112,10 +108,9 @@ game/
 
 **Step 3: Wire EventBus**
 
-Every game needs an EventBus before any feature — it is the integration contract that lets audio, effects, and analytics attach without touching game logic:
+EventBus is the integration contract -- audio, effects, analytics attach without touching game logic:
 
 ```javascript
-// src/EventBus.js
 export const EventBus = new EventTarget();
 export const emit = (name, detail = {}) =>
   EventBus.dispatchEvent(new CustomEvent(name, { detail }));
@@ -123,45 +118,31 @@ export const on = (name, fn) =>
   EventBus.addEventListener(name, (e) => fn(e.detail));
 ```
 
-Pre-wire these event names so downstream phases attach immediately:
-`ENEMY_HIT`, `PLAYER_DEATH`, `LEVEL_UP`, `GAME_OVER`, `SCORE_CHANGE`, `SPECTACLE_*`
+Pre-wire: `ENEMY_HIT`, `PLAYER_DEATH`, `LEVEL_UP`, `GAME_OVER`, `SCORE_CHANGE`, `SPECTACLE_*`
 
-**Gate**: Engine chosen, project structure created, EventBus wired.
+**Gate**: Engine chosen, structure created, EventBus wired.
 
 ---
 
 ### Phase 2: ASSETS
 
-**Goal**: Source or generate game assets and register them in the asset manifest.
+**Goal**: Source or generate assets and register in manifest.
 
-**Step 1: Audit what exists**
+**Step 1: Audit existing**: `ls assets/` and `cat assets/assets_index.json`
 
-```bash
-ls assets/
-cat assets/assets_index.json
-```
+**Step 2: Delegate to game-asset-generator** with: asset list, art style, output format (PNG spritesheet for Phaser, GLB for Three.js), target path `assets/`.
 
-**Step 2: Delegate to game-asset-generator**
+**Step 3: Update `assets/assets_index.json`**. Use relative paths only (manifest read by both web game and Capacitor iOS).
 
-Dispatch a subagent with: asset list, art style, output format (PNG spritesheet for Phaser, GLB for Three.js), target path `assets/`.
-
-**Step 3: Update asset manifest**
-
-After generation, update `assets/assets_index.json`. This manifest is read by both the web game and the Capacitor iOS wrapper — use relative paths only.
-
-**Gate**: All assets generated, manifest updated, assets load in-game without errors.
+**Gate**: All assets generated, manifest updated, assets load without errors.
 
 ---
 
 ### Phase 3: DESIGN
 
-**Goal**: Add visual polish and "juice" — effects that make a game feel great.
+**Goal**: Add visual polish ("juice") wired to EventBus, not game logic.
 
-**Load reference**: Read `references/game-designer.md` for patterns.
-
-**Key principle**: Design polish wires to the EventBus, not to game logic. Effects can be added, removed, or swapped without touching gameplay code.
-
-**Core effects**:
+**Load reference**: `references/game-designer.md`
 
 | Effect | Trigger event | Impact |
 |---|---|---|
@@ -171,23 +152,21 @@ After generation, update `assets/assets_index.json`. This manifest is read by bo
 | Floating score text | `SCORE_CHANGE` | Progress reward |
 | Combo text | `COMBO_REACHED` | Achievement surge |
 
-**Opening moment rule**: The first 3 seconds must hook the player — immediate visual spectacle, never a loading screen or empty scene.
+**Opening moment rule**: First 3 seconds must hook the player -- immediate spectacle, never loading screen or empty scene.
 
-**Gate**: At least 3 juice effects wired to EventBus events. Opening moment is compelling. No effects hardcoded into gameplay logic.
+**Gate**: At least 3 juice effects wired to EventBus. Opening moment compelling. No effects hardcoded into gameplay logic.
 
 ---
 
 ### Phase 4: AUDIO
 
-**Goal**: Add background music and sound effects using Web Audio API.
+**Goal**: Background music and SFX via Web Audio API.
 
-**Load reference**: Read `references/game-audio.md` for patterns.
+**Load reference**: `references/game-audio.md`
 
-**Key constraint**: Create `AudioContext` only on first user interaction — browser autoplay policy silently blocks contexts created before a gesture.
+**Key constraint**: Create `AudioContext` only on first user interaction -- browser autoplay policy silently blocks premature contexts.
 
-**AudioManager pattern**:
 ```javascript
-// src/AudioManager.js
 let ctx = null;
 export function getCtx() {
   if (!ctx) ctx = new AudioContext();
@@ -195,19 +174,16 @@ export function getCtx() {
 }
 ```
 
-**AudioBridge — wire to EventBus**:
+**AudioBridge -- wire to EventBus**:
 ```javascript
-import { on } from './EventBus.js';
-import { getCtx } from './AudioManager.js';
-
 on('ENEMY_HIT', () => playSFX('hit'));
 on('LEVEL_UP',  () => { stopBGM(); startBGM('level2'); });
 on('GAME_OVER', () => playSFX('gameover'));
 ```
 
-**Volume hierarchy**: master gain → category gains (music, sfx, ambient) → individual sources. Never set volume directly on sources.
+**Volume hierarchy**: master gain -> category gains (music, sfx, ambient) -> individual sources. Never set volume directly on sources.
 
-**Gate**: AudioContext created on user interaction only. BGM plays. At least 2 SFX events wired. Volume controls work.
+**Gate**: AudioContext on user interaction only. BGM plays. At least 2 SFX wired. Volume controls work.
 
 ---
 
@@ -215,26 +191,22 @@ on('GAME_OVER', () => playSFX('gameover'));
 
 **Goal**: Automated testing via Playwright with visual regression and canvas test seams.
 
-**Load reference**: Read `references/game-qa.md` for patterns.
+**Load reference**: `references/game-qa.md`
 
-**Scripts** (run from project root):
+**Scripts**:
 ```bash
 python3 skills/game-pipeline/scripts/imgdiff.py baseline.png current.png
 python3 skills/game-pipeline/scripts/with_server.py "npx playwright test"
 ```
 
-**Test seam** — inject into game bootstrap:
+**Test seam**:
 ```javascript
 const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
 const SEED = parseInt(new URLSearchParams(location.search).get('seed') || '0');
 if (TEST_MODE) window.__TEST__ = { seed: SEED, state: null };
 ```
 
-**Visual regression workflow**:
-1. Take baseline: `npx playwright screenshot --save-as baseline.png`
-2. Make change
-3. Diff: `python3 skills/game-pipeline/scripts/imgdiff.py baseline.png current.png`
-4. RMS > 5.0 means investigate the diff image
+**Visual regression**: Take baseline -> make change -> diff with imgdiff.py -> RMS > 5.0 means investigate.
 
 **Gate**: At least 1 Playwright test passes. Visual baseline captured. Canvas test seam exists.
 
@@ -242,20 +214,17 @@ if (TEST_MODE) window.__TEST__ = { seed: SEED, state: null };
 
 ### Phase 6: DEPLOY
 
-**Goal**: Ship the game to a live URL.
+**Goal**: Ship to live URL.
 
-**Load reference**: Read `references/deploy.md`. Load `references/capacitor-ios.md` if iOS export needed.
-Load `references/promo-video.md` if recording gameplay for social.
+**Load**: `references/deploy.md`. Add `references/capacitor-ios.md` if iOS. Add `references/promo-video.md` if recording gameplay.
 
-**Pre-deploy checklist** (mandatory before any deploy):
+**Pre-deploy checklist**:
 ```bash
 npm run build
 ls dist/
 grep -r "localhost" dist/ && echo "FAIL: localhost refs" || echo "OK"
 grep -r 'src="/' dist/ && echo "WARN: absolute paths" || echo "OK"
 ```
-
-**Deploy targets**:
 
 | Target | Command | Notes |
 |---|---|---|
@@ -271,28 +240,28 @@ grep -r 'src="/' dist/ && echo "WARN: absolute paths" || echo "OK"
 ## Error Handling
 
 ### Error: AudioContext Blocked
-**Cause**: `AudioContext` created outside a user gesture handler
-**Fix**: Use the `getCtx()` lazy-init pattern from `game-audio.md`. First call must happen inside click/keydown handler.
+**Cause**: Created outside user gesture handler
+**Fix**: Use `getCtx()` lazy-init. First call must be inside click/keydown handler.
 
 ### Error: Playwright Can't Interact With Canvas
 **Cause**: No test seams, non-deterministic state, or missing readiness signal
-**Fix**: Add `window.__TEST__` with `?test=1&seed=42`. Wait for `game.events.once('ready')` before asserting. Use `render_game_to_text()` to expose state as text.
+**Fix**: Add `window.__TEST__` with `?test=1&seed=42`. Wait for `game.events.once('ready')`. Use `render_game_to_text()` to expose state.
 
-### Error: imgdiff.py FAIL With Unexpected Diff
+### Error: imgdiff.py Unexpected Diff
 **Cause**: Font rendering or anti-aliasing differences between platforms
-**Fix**: `python3 skills/game-pipeline/scripts/imgdiff.py a.png b.png --tolerance 10.0`. If still failing, retake baseline on the same platform.
+**Fix**: `python3 skills/game-pipeline/scripts/imgdiff.py a.png b.png --tolerance 10.0`. If still failing, retake baseline on same platform.
 
 ### Error: Capacitor iOS Build Fails
-**Cause**: Absolute paths in `dist/`, missing `webDir` config, or CocoaPods conflict
-**Fix**: All asset paths must be relative. Check `capacitor.config.ts` has `webDir: 'dist'`. Capacitor 5+ uses SPM — run `npx cap sync`, not `pod install`. See `capacitor-ios.md`.
+**Cause**: Absolute paths, missing `webDir`, or CocoaPods conflict
+**Fix**: All paths relative. Check `capacitor.config.ts` has `webDir: 'dist'`. Capacitor 5+ uses SPM -- `npx cap sync`, not `pod install`. See `capacitor-ios.md`.
 
 ### Error: Assets Missing After Deploy
-**Cause**: Absolute asset paths (`/assets/player.png` instead of `assets/player.png`)
-**Fix**: `grep -r '"/assets/' dist/`. Fix paths in build config or source — use relative paths everywhere.
+**Cause**: Absolute paths (`/assets/player.png` instead of `assets/player.png`)
+**Fix**: `grep -r '"/assets/' dist/`. Use relative paths everywhere.
 
-### Error: Promo Video Looks Choppy
+### Error: Promo Video Choppy
 **Cause**: Screenshot rate too slow or FFmpeg framerate mismatch
-**Fix**: Use CDP screencast instead of screenshot loop. Set game speed to 0.5 before recording, encode with `-r 50` in FFmpeg. See `promo-video.md`.
+**Fix**: Use CDP screencast. Set game speed to 0.5, encode with `-r 50`. See `promo-video.md`.
 
 ---
 

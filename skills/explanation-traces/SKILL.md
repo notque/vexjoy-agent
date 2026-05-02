@@ -26,15 +26,13 @@ routing:
 
 # Explanation Traces: Structured Decision Query
 
-## Overview
+Reads `session-trace.json` and presents routing decisions, agent selections, skill phase transitions, and gate verdicts as a human-readable timeline. Every answer comes from recorded trace data -- never from post-hoc reconstruction.
 
-This skill reads the current session's `session-trace.json` and presents routing decisions, agent selections, skill phase transitions, and gate verdicts as a human-readable timeline. Every answer comes from what the trace actually recorded at decision time -- never from post-hoc reconstruction or rationalization.
-
-**Key constraints baked into the workflow:**
-- Read-only: this skill never modifies trace files or any other file
-- Answers must come from recorded trace data, not from memory or inference about what "probably happened"
-- If no trace file exists, explain how to enable tracing rather than guessing at decisions
-- When the user asks about a specific decision, filter to that decision -- do not dump the full log
+**Constraints:**
+- Read-only: never modifies trace files or any other file
+- Answers from recorded trace data only, not memory or inference
+- If no trace file exists, explain how to enable tracing -- do not guess
+- When user asks about a specific decision, filter to that decision
 - Timestamps and evidence fields are authoritative; do not paraphrase away precision
 
 ---
@@ -47,17 +45,16 @@ This skill reads the current session's `session-trace.json` and presents routing
 
 **Step 1: Search for trace data**
 
-Check for `session-trace.json` in these locations, in order:
+Check in order:
+1. `./session-trace.json`
+2. `.claude/session-trace.json`
+3. Glob fallback: `**/session-trace.json`
 
-1. Current working directory: `./session-trace.json`
-2. `.claude/` directory: `.claude/session-trace.json`
-3. Glob fallback: `**/session-trace.json` (in case a custom path was used)
-
-Use the Read tool on the first match found.
+Read the first match found.
 
 **Step 2: Handle missing trace**
 
-If no `session-trace.json` exists anywhere, stop and inform the user:
+If no `session-trace.json` exists:
 
 ```
 No session-trace.json found.
@@ -68,52 +65,50 @@ session-trace.json. See: skills/explanation-traces/references/trace-schema.md
 for the expected JSON format.
 ```
 
-Do not fabricate trace data. Do not attempt to reconstruct decisions from memory or conversation history. The entire value of this skill is that it reads what was actually recorded -- without a trace file, there is nothing to read.
+Do not fabricate trace data or reconstruct decisions from conversation history.
 
-**GATE**: Trace file found and readable. Proceed only when gate passes.
+**GATE**: Trace file found and readable.
 
 ### Phase 2: PARSE
 
-**Goal**: Extract decision points from the trace and filter to the user's query.
+**Goal**: Extract decision points and filter to the user's query.
 
 **Step 1: Read the trace file**
 
-Parse the JSON from `session-trace.json`. Extract the `decisions` array. Each entry contains:
+Parse JSON, extract `decisions` array. Each entry:
 
 | Field | Purpose |
 |-------|---------|
-| `timestamp` | When the decision was made (ISO-8601) |
-| `type` | Category: `routing`, `agent-selection`, `skill-phase`, `gate-verdict` |
+| `timestamp` | When decided (ISO-8601) |
+| `type` | `routing`, `agent-selection`, `skill-phase`, `gate-verdict` |
 | `chosen` | What was selected |
 | `alternatives` | What else was considered |
-| `evidence` | Triggers matched, scores, signals that drove the choice |
-| `context` | The user request or phase that prompted the decision |
+| `evidence` | Triggers matched, scores, signals |
+| `context` | User request or phase that prompted the decision |
 
-**Step 2: Filter if user asked about a specific decision**
-
-If the user's query targets a specific decision (e.g., "why did you pick the code reviewer?", "why that agent?"), filter the decisions array:
+**Step 2: Filter by user query**
 
 | User signal | Filter strategy |
 |-------------|-----------------|
-| Names an agent | Filter to `type: agent-selection` entries mentioning that agent in `chosen` or `alternatives` |
-| Names a skill | Filter to `type: skill-phase` or `type: routing` entries involving that skill |
-| Says "routing" | Filter to `type: routing` entries |
-| Says "gate" or "failed" | Filter to `type: gate-verdict` entries |
-| No specific target | Return all decisions in chronological order |
+| Names an agent | `type: agent-selection` entries mentioning that agent |
+| Names a skill | `type: skill-phase` or `type: routing` involving that skill |
+| Says "routing" | `type: routing` entries |
+| Says "gate" or "failed" | `type: gate-verdict` entries |
+| No specific target | All decisions chronologically |
 
 **Step 3: Validate data integrity**
 
-Check that each decision entry has all required fields. Flag any entries missing `evidence` or `alternatives` -- these are lower-confidence records where the trace was incomplete.
+Flag entries missing `evidence` or `alternatives` -- lower-confidence records with incomplete trace.
 
-**GATE**: Decisions parsed and filtered. At least one decision entry available. Proceed only when gate passes.
+**GATE**: Decisions parsed and filtered. At least one entry available.
 
 ### Phase 3: PRESENT
 
-**Goal**: Format trace data as a human-readable decision timeline.
+**Goal**: Format trace data as human-readable decision timeline.
 
 **Step 1: Build the timeline**
 
-For each decision entry, format as:
+Per decision entry:
 
 ```
 [TIMESTAMP] TYPE
@@ -123,11 +118,11 @@ For each decision entry, format as:
   Context: CONTEXT
 ```
 
-Order chronologically. Group consecutive entries of the same type under a shared heading if there are more than 5 entries total, to prevent wall-of-text for long sessions.
+Chronological order. Group consecutive same-type entries under shared headings if >5 total entries.
 
-**Step 2: Highlight the answer to the user's question**
+**Step 2: Highlight the answer**
 
-If the user asked "why did you choose X?", lead with the specific decision entry that answers their question, then show surrounding context:
+If user asked "why did you choose X?", lead with the matching decision, then surrounding context:
 
 ```
 You asked: "Why did you choose the code reviewer?"
@@ -136,7 +131,7 @@ Decision found at [TIMESTAMP]:
   Chosen: reviewer-code agent
   Alternatives: reviewer-domain, reviewer-perspectives
   Evidence: Request matched "review this function" trigger; code-specific
-            keywords ("function", "bug") scored highest for reviewer-code
+            keywords scored highest for reviewer-code
   Context: User said "review this function for bugs"
 
 --- Full session timeline (3 decisions) ---
@@ -145,98 +140,82 @@ Decision found at [TIMESTAMP]:
 
 **Step 3: Flag gaps honestly**
 
-If the trace has gaps (missing timestamps, empty evidence fields, decisions without alternatives), say so explicitly:
+If the trace has gaps (missing timestamps, empty evidence, decisions without alternatives):
 
 ```
 Note: [N] decision(s) have incomplete evidence fields. These entries
-show WHAT was decided but not WHY -- the recording hook may not have
-captured full context for these decisions.
+show WHAT was decided but not WHY.
 ```
 
-Do not fill gaps with speculation. Incomplete data presented honestly is more useful than complete-looking data that includes fabrication.
+Do not fill gaps with speculation.
 
-**GATE**: Timeline presented. User's question answered from trace data. Done.
+**GATE**: Timeline presented. User's question answered from trace data.
 
 ---
 
 ## Examples
 
 ### Example 1: General session review
-User says: "Show me the decision log"
-```
-skill: explanation-traces
-```
-Actions:
-1. Locate session-trace.json (Phase 1)
-2. Parse all decision entries (Phase 2)
-3. Present full chronological timeline (Phase 3)
-Result: Complete session decision history with evidence for each choice
+User: "Show me the decision log"
+1. Locate session-trace.json
+2. Parse all entries
+3. Present full chronological timeline
 
 ### Example 2: Specific agent question
-User says: "Why did you pick that agent?"
-```
-skill: explanation-traces "why that agent?"
-```
-Actions:
-1. Locate session-trace.json (Phase 1)
-2. Filter to agent-selection entries (Phase 2)
-3. Present the most recent agent selection with evidence, then full timeline for context (Phase 3)
-Result: Evidence-backed explanation of agent choice, not a post-hoc rationalization
+User: "Why did you pick that agent?"
+1. Locate session-trace.json
+2. Filter to agent-selection entries
+3. Present most recent agent selection with evidence, then full timeline
 
 ### Example 3: Gate failure investigation
-User says: "Why did the gate fail?"
-```
-skill: explanation-traces "gate failure"
-```
-Actions:
-1. Locate session-trace.json (Phase 1)
-2. Filter to gate-verdict entries, especially failures (Phase 2)
-3. Present gate verdicts with the evidence that caused pass/fail (Phase 3)
-Result: Specific gate failure reason from the trace, with what was expected vs. what was found
+User: "Why did the gate fail?"
+1. Locate session-trace.json
+2. Filter to gate-verdict entries, especially failures
+3. Present gate verdicts with pass/fail evidence
 
 ---
 
 ## Patterns to Detect and Fix
 
 ### Pattern 1: Evidence-Backed Trace Reading
-**Wrong**: Reconstructing "why" from memory when the trace file is missing.
-**Right**: If no trace file exists, say so and explain how to enable tracing. Never fabricate an explanation.
+**Wrong**: Reconstructing "why" from memory when trace file is missing.
+**Right**: If no trace file, say so and explain how to enable tracing.
 
 ### Pattern 2: Preserve the Evidence Field
 **Wrong**: "The router probably picked that agent because it seemed relevant."
 **Right**: Quote the exact `evidence` field: "Trigger 'review this function' matched reviewer-code with score 0.92."
 
 ### Pattern 3: Format, Don't Dump
-**Wrong**: Printing the entire session-trace.json as-is.
-**Right**: Parse, filter to the user's question, and format as a readable timeline with clear labels.
+**Wrong**: Printing entire session-trace.json raw.
+**Right**: Parse, filter to user's question, format as readable timeline.
 
 ### Pattern 4: Report Missing Trace Data
 **Wrong**: "The alternatives field is empty, but it likely considered agents X and Y."
-**Right**: "No alternatives were recorded for this decision -- the trace is incomplete at this point."
+**Right**: "No alternatives were recorded for this decision."
 
 ### Pattern 5: Answer the Specific Question First
-**Wrong**: Always showing the full timeline regardless of what the user asked.
-**Right**: Lead with the specific answer, then offer full context as supplementary detail.
+**Wrong**: Always showing full timeline regardless of question.
+**Right**: Lead with the specific answer, then offer full context.
 
 ---
 
 ## Error Handling
 
 ### Error: No Trace File Found
-**Cause**: Tracing hook not enabled or session-trace.json was cleaned up.
-**Solution**: Inform user that no trace exists. Point to `skills/explanation-traces/references/trace-schema.md` for the schema a tracing hook should produce. Do not reconstruct decisions from conversation history.
+**Cause**: Tracing hook not enabled or session-trace.json cleaned up.
+**Solution**: Point to `skills/explanation-traces/references/trace-schema.md` for the schema. Do not reconstruct from conversation history.
 
 ### Error: Trace File Is Malformed JSON
-**Cause**: Partial write, race condition, or manual corruption.
-**Solution**: Report the parse error with the specific line/character offset. Attempt to extract any valid decision entries before the corruption point. Flag that the trace is incomplete.
+**Cause**: Partial write, race condition, or corruption.
+**Solution**: Report parse error with line/character offset. Extract valid entries before corruption point. Flag trace as incomplete.
 
-### Error: Trace File Has No Decision Entries
-**Cause**: Hook is writing the file but not recording decisions (e.g., only session metadata).
-**Solution**: Report that the trace exists but contains zero decision entries. Check whether the `decisions` array is present but empty vs. missing entirely, and report which case applies.
+### Error: No Decision Entries
+**Cause**: Hook writes file but not recording decisions.
+**Solution**: Report that trace exists but contains zero entries. Check whether `decisions` array is empty vs. missing.
 
-### Error: User Asks About a Decision Not in the Trace
-**Cause**: The specific decision the user is asking about was not recorded.
-**Solution**: Show what IS in the trace and explain that the requested decision type was not captured. Suggest which hook event type would need to emit that decision.
+### Error: Decision Not in Trace
+**Cause**: Requested decision type was not recorded.
+**Solution**: Show what IS in the trace. Suggest which hook event type would capture that decision.
 
 ---
 
@@ -247,11 +226,11 @@ Result: Specific gate failure reason from the trace, with what was expected vs. 
 | Task type | Signals | Reference file |
 |---|---|---|
 | Hook authoring / writing traces | "write hook", "add tracing", "record decisions", "emit trace" | `references/trace-schema.md` |
-| Diagnosing why trace is wrong | "alternatives null", "evidence empty", "overwrite", "post-hoc", "vague" | `references/preferred-patterns.md` |
+| Diagnosing wrong trace data | "alternatives null", "evidence empty", "overwrite", "post-hoc", "vague" | `references/preferred-patterns.md` |
 | Handling parse or read errors | "malformed", "missing field", "no decisions", "invalid type", "not found" | `references/error-handling.md` |
 | Presenting filtered timeline | "why did you", "show trace", "decision log", "explain routing" | `references/trace-schema.md` |
 
 ### Reference Files
-- `references/trace-schema.md`: JSON schema for session-trace.json with field descriptions and example entries
-- `references/preferred-patterns.md`: Anti-pattern catalog for trace producers (hooks) and consumers (skill behavior) with detection commands
-- `references/error-handling.md`: Error-fix mappings for all error states — missing file, malformed JSON, empty decisions, invalid fields
+- `references/trace-schema.md`: JSON schema for session-trace.json with field descriptions and examples
+- `references/preferred-patterns.md`: Anti-pattern catalog for trace producers and consumers with detection commands
+- `references/error-handling.md`: Error-fix mappings for all error states

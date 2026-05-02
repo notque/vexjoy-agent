@@ -21,7 +21,7 @@ routing:
 
 ## JUnit 5 Fundamentals
 
-Use `@Test` for simple test cases. Prefer `@DisplayName` for readable test names.
+Use `@Test` for simple cases. Prefer `@DisplayName` for readable names.
 
 ```kotlin
 import org.junit.jupiter.api.Test
@@ -92,7 +92,7 @@ class ValidatorTest {
 
 ## Table-Driven Tests
 
-Kotlin's data classes and list literals make table-driven tests natural without frameworks.
+Kotlin's data classes and list literals make table-driven tests natural.
 
 ```kotlin
 @Test
@@ -115,7 +115,7 @@ fun `should parse duration strings correctly`() {
 
 ## Kotest Styles
 
-Kotest offers multiple spec styles. Pick one per project for consistency.
+Pick one spec style per project for consistency.
 
 ```kotlin
 import io.kotest.core.spec.style.FunSpec
@@ -124,7 +124,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow
 
-// FunSpec — closest to JUnit, good default choice
+// FunSpec — closest to JUnit, good default
 class CalculatorFunSpec : FunSpec({
     test("addition of two numbers") {
         Calculator.add(2, 3) shouldBe 5
@@ -179,8 +179,6 @@ class StringSpecExample : StringSpec({
 
 ## Kotest Matchers
 
-Kotest provides expressive matchers beyond `shouldBe`.
-
 ```kotlin
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
@@ -198,7 +196,7 @@ greeting shouldStartWith "Hello"
 
 ## Coroutine Testing
 
-Use `runTest` from `kotlinx-coroutines-test` to test suspending functions. `runTest` auto-advances virtual time.
+Use `runTest` from `kotlinx-coroutines-test`. It auto-advances virtual time.
 
 ```kotlin
 import kotlinx.coroutines.test.runTest
@@ -234,7 +232,7 @@ class NotificationServiceTest {
 
 ## MockK
 
-MockK is the idiomatic Kotlin mocking library. Use `every {}` for stubs, `verify {}` for assertions, and `coEvery {}` / `coVerify {}` for suspending functions.
+Use `every {}` for stubs, `verify {}` for assertions, `coEvery {}` / `coVerify {}` for suspending functions.
 
 ```kotlin
 import io.mockk.mockk
@@ -283,8 +281,8 @@ class OrderServiceTest {
 
 ## Key Principles
 
-1. **One assertion concept per test** -- a test should verify one behavior, though it may need multiple assertions to do so.
-2. **Use `runTest` for all coroutine tests** -- never use `runBlocking` in tests; `runTest` handles virtual time and uncaught exceptions.
-3. **Prefer fakes over mocks** -- mocks couple tests to implementation; fakes (manual implementations) couple tests to contracts.
-4. **Name tests as behavior specifications** -- backtick names like `` `should return empty list when no results` `` read better in reports.
-5. **Inject dispatchers** -- never hardcode `Dispatchers.IO` in production code; accept a `CoroutineDispatcher` parameter so tests can supply `TestDispatcher`.
+1. **One assertion concept per test** -- verify one behavior, though multiple assertions may be needed.
+2. **Use `runTest` for all coroutine tests** -- never `runBlocking`; `runTest` handles virtual time and uncaught exceptions.
+3. **Prefer fakes over mocks** -- mocks couple tests to implementation; fakes couple tests to contracts.
+4. **Name tests as behavior specs** -- backtick names like `` `should return empty list when no results` `` read better in reports.
+5. **Inject dispatchers** -- never hardcode `Dispatchers.IO`; accept `CoroutineDispatcher` so tests can supply `TestDispatcher`.

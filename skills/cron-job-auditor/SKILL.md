@@ -22,7 +22,7 @@ routing:
 
 # Cron Job Auditor Skill
 
-Static analysis of cron and scheduled job scripts against a 9-point reliability checklist. Produces structured PASS/FAIL/WARN results with severity classification (CRITICAL, HIGH, MEDIUM, LOW) and paste-ready code fixes for every finding. Audits are read-only and pattern-based -- scripts are never executed, because cron scripts may delete data, send emails, or modify production state.
+Static analysis of cron/scheduled job scripts against a 9-point reliability checklist. Produces PASS/FAIL/WARN results with severity (CRITICAL, HIGH, MEDIUM, LOW) and paste-ready code fixes. Audits are read-only and pattern-based -- scripts are never executed.
 
 ## Reference Loading Table
 
@@ -38,23 +38,23 @@ Static analysis of cron and scheduled job scripts against a 9-point reliability 
 
 **Goal**: Locate all cron/scheduled scripts to audit.
 
-**Step 1: Read repository CLAUDE.md** (if present) to understand project conventions before auditing.
+**Step 1**: Read repository CLAUDE.md (if present) for project conventions.
 
 **Step 2: Identify target scripts**
 
-If the user provides specific paths, use those. Otherwise search these directories recursively:
+If user provides paths, use those. Otherwise search recursively:
 ```
 scripts/*.sh, cron/*.sh, jobs/*.sh, bin/*.sh
 ```
 
-Also check for scripts referenced in crontab files, Makefiles, or CI configs.
+Also check scripts referenced in crontab files, Makefiles, or CI configs.
 
 **Step 3: Validate targets**
 
 For each discovered file:
 - Confirm it exists and is readable
-- Check it has a shell shebang (`#!/bin/bash`, `#!/bin/sh`, `#!/usr/bin/env bash`)
-- Skip non-shell files (Python cron jobs, etc.) with a note -- this skill audits shell scripts only; it cannot replace shellcheck for syntax issues or analyze complex control flow beyond pattern matching
+- Check for a shell shebang (`#!/bin/bash`, `#!/bin/sh`, `#!/usr/bin/env bash`)
+- Skip non-shell files with a note -- this skill audits shell scripts only
 
 **Step 4: Log discovery results**
 
@@ -69,15 +69,15 @@ For each discovered file:
 
 ### Phase 2: AUDIT
 
-**Goal**: Run every check against every script. Run all 9 checks regardless of script size or apparent simplicity -- small scripts grow, and missing basics cause production incidents.
+**Goal**: Run all 9 checks against every script regardless of size or simplicity.
 
 **Step 1: Read each script fully**
 
-Read the entire file content. Do not sample or skip sections. If the script sources a common library file (`source ...` or `. ...`), read the sourced file too -- patterns provided by sourced libraries count as PASS (with a note indicating the source).
+Read the entire file. If the script sources a library (`source ...` or `. ...`), read the sourced file too -- patterns from sourced libraries count as PASS (with a note).
 
 **Step 2: Run the 9-point checklist**
 
-Use regex pattern matching for reliable, reproducible detection. Verify matches are not inside comments (`# ...`) before counting them -- when a match appears in a comment or string, note reduced confidence rather than silently accepting it.
+Use regex pattern matching. Verify matches are not inside comments before counting -- note reduced confidence for comment/string matches.
 
 | # | Check | Patterns | Severity |
 |---|-------|----------|----------|
@@ -92,8 +92,8 @@ Use regex pattern matching for reliable, reproducible detection. Verify matches 
 | 9 | Failure notification | `mail -s`, `curl *webhook`, `notify`, `alert` | LOW |
 
 For each check, record:
-- PASS with line number where pattern found, OR
-- FAIL/WARN with specific recommendation including a paste-ready code snippet (findings without fixes create work without guidance)
+- PASS with line number, OR
+- FAIL/WARN with recommendation including a paste-ready code snippet
 
 **Step 3: Calculate score**
 
@@ -101,13 +101,13 @@ For each check, record:
 Score = passed / total_checks * 100
 ```
 
-Classify scripts: 90-100% Excellent, 70-89% Good, 50-69% Needs Work, <50% Critical.
+Classify: 90-100% Excellent, 70-89% Good, 50-69% Needs Work, <50% Critical.
 
 **Gate**: All 9 checks run against every script. No checks skipped. Proceed only when gate passes.
 
 ### Phase 3: REPORT
 
-**Goal**: Produce structured, actionable audit output. Do not modify any scripts -- report problems with recommendations only.
+**Goal**: Produce structured, actionable output. Do not modify any scripts.
 
 **Step 1: Format per-script results**
 
@@ -124,7 +124,7 @@ SCORE: 7/9 (78%) - Good
 
 **Step 2: Provide recommendations**
 
-Every FAIL and WARN must include a specific code snippet the user can paste. Keep recommendations proportional to the script's scope -- suggest lock files, not monitoring frameworks.
+Every FAIL and WARN must include a paste-ready code snippet. Keep recommendations proportional to script scope.
 
 ```bash
 # Recommendation: Add lock file
@@ -134,9 +134,7 @@ flock -n 200 || { echo "Already running"; exit 0; }
 trap "rm -f $LOCK_FILE" EXIT
 ```
 
-**Step 3: Produce aggregate summary**
-
-If auditing multiple scripts:
+**Step 3: Produce aggregate summary** (if auditing multiple scripts)
 
 ```
 AGGREGATE SUMMARY
@@ -147,12 +145,12 @@ Critical issues: 2 (missing error handling)
 Most common gap: Lock files (3/4 scripts missing)
 ```
 
-**Gate**: Every finding has a recommendation. Report is complete. Audit is done.
+**Gate**: Every finding has a recommendation. Report complete. Audit done.
 
 ## Error Handling
 
 ### Error: "No Shell Scripts Found"
-Cause: Scripts in unexpected locations, or cron jobs written in Python/Ruby
+Cause: Scripts in unexpected locations, or cron jobs in Python/Ruby
 Solution:
 1. Ask user for explicit paths
 2. Search broader: `**/*.sh` across the entire repository
@@ -161,22 +159,22 @@ Solution:
 ### Error: "Script Has No Shebang"
 Cause: Script relies on default shell interpreter
 Solution:
-1. Still audit the script (treat as bash)
+1. Still audit (treat as bash)
 2. Add finding: "Missing shebang line" as MEDIUM severity
 3. Recommend adding `#!/bin/bash` or `#!/usr/bin/env bash`
 
 ### Error: "Regex Produces False Positive"
 Cause: Pattern matches in comments, strings, or unrelated context
 Solution:
-1. Verify match by reading surrounding lines for context
-2. Check if match is inside a comment (`# ...`) and exclude
-3. Report the finding but note reduced confidence
+1. Read surrounding lines for context
+2. Check if match is inside a comment and exclude
+3. Report finding with reduced confidence note
 
 ### Error: "Script Uses Non-Standard Patterns"
 Cause: Custom error handling, logging frameworks, or wrapper functions
 Solution:
 1. Check if script sources a common library file
-2. Read the sourced file for the missing patterns
+2. Read sourced file for the missing patterns
 3. If patterns exist in sourced libraries, mark as PASS with note
 
 ## Reference Loading

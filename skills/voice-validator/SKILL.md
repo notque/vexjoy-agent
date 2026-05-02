@@ -29,11 +29,11 @@ routing:
 
 ## Overview
 
-This skill operates a rigorous critique-and-rewrite enforcement loop for voice fidelity. It scans content against voice-specific negative prompt checklists, documents violations with evidence, fixes them while preserving intent, and rescans to confirm the revision passes — up to 3 iterations maximum.
+Critique-and-rewrite enforcement loop for voice fidelity. Scans content against voice-specific negative prompt checklists, documents violations with evidence, fixes them preserving intent, and rescans to confirm. Maximum 3 iterations.
 
-The workflow implements the **Iterative Refinement** pattern: scan → document violations → revise → rescan. This ensures voice violations are caught systematically and fixed methodically without over-engineering or changing meaning.
+**Workflow**: scan -> document violations -> revise -> rescan.
 
-**CRITICAL CONSTRAINT**: Never revise content without first scanning against the full checklist. Every violation must cite a specific quote. After 3 failed iterations, output with flagged concerns rather than continuing indefinitely.
+**Critical**: Never revise without first scanning the full checklist. Every violation must cite a specific quote. After 3 failed iterations, output with flagged concerns.
 
 ---
 
@@ -41,90 +41,73 @@ The workflow implements the **Iterative Refinement** pattern: scan → document 
 
 ### Phase 1: IDENTIFY TARGET
 
-**Goal**: Determine the voice, mode, and content to validate.
+**Goal**: Determine voice, mode, and content to validate.
 
-**Step 1: Identify voice target**
-- Determine target voice from context or user instruction
-- Identify mode if applicable — casual modes may have additional specific checks
-- Reference the target voice's checklist (contact user if unclear)
+1. Identify target voice from context or user instruction
+2. Identify mode if applicable (casual modes have additional checks)
+3. Reference the target voice's checklist (ask user if unclear)
+4. Read the content to validate; note length (longer content drifts more)
 
-**Step 2: Load content**
-- Read the content to validate
-- Note content length — longer content is more prone to drift
-
-**Gate**: Voice target and mode identified. Content loaded. Proceed only when gate passes.
+**Gate**: Voice target and mode identified. Content loaded.
 
 ### Phase 2: SCAN
 
-**Goal**: Run full checklist against content and identify all violations with evidence.
+**Goal**: Run full checklist against content, identify all violations with evidence.
 
 **Step 1: Run negative prompt checklist**
 
-Check all categories against the target voice's checklist. Standard categories include:
+Check all categories against the target voice's checklist:
 
-- **Tone**: Does the tone match the voice profile? (e.g., too polished, too corporate, missing warmth)
-- **Structure**: Does the structure match? (e.g., front-loaded constraints, clean outlines, wrap-ups)
-- **Sentences**: Do sentence patterns match? (e.g., dramatic short sentences, rhetorical flourishes, symmetrical structure)
-- **Language**: Any banned words? (amazing, terrible, revolutionary, perfect, game-changing, transformative, incredible, outstanding, exceptional, groundbreaking), marketing/hype, inspirational, unnecessary superlatives
-- **Emotion**: Does emotion handling match? (e.g., explicitly named emotions, venting/ranting, moralizing)
-- **Questions**: Do question patterns match? (e.g., open-ended brainstorming, vague curiosity)
-- **Metaphors**: Do metaphor patterns match? (e.g., journey/path, biological/growth, narrative/story)
+- **Tone**: Matches voice profile? (too polished, too corporate, missing warmth)
+- **Structure**: Matches? (front-loaded constraints, clean outlines, wrap-ups)
+- **Sentences**: Patterns match? (dramatic short sentences, rhetorical flourishes, symmetrical structure)
+- **Language**: Banned words? (amazing, terrible, revolutionary, perfect, game-changing, transformative, incredible, outstanding, exceptional, groundbreaking), marketing/hype, unnecessary superlatives
+- **Emotion**: Handling matches? (explicitly named emotions, venting, moralizing)
+- **Questions**: Patterns match? (open-ended brainstorming, vague curiosity)
+- **Metaphors**: Patterns match? (journey/path, biological/growth, narrative/story)
 
 **Step 2: Check pass conditions**
 
-Verify the content matches the target voice's positive identity markers. Common pass conditions include:
-
 - Feels like the person actually wrote it
-- Voice-specific patterns are present (thinking out loud, warmth, precision, etc.)
-- Could NOT be posted on LinkedIn without edits (for casual voices) — this heuristic catches ~80% of voice violations
-- Does NOT sound like AI wrote it
-- Mode-specific patterns are present (casual modes: no preamble, no wrap-up; formal modes: structured flow)
+- Voice-specific patterns present (thinking out loud, warmth, precision, etc.)
+- Could NOT be posted on LinkedIn without edits (catches ~80% of violations for casual voices)
+- Does NOT sound AI-written
+- Mode-specific patterns present
 
 **Step 3: Document violations**
 
-For each violation, record:
+For each violation record:
 1. Category (tone, structure, sentence, language, emotion, question, metaphor)
-2. Quoted text from the content
+2. Quoted text from content
 3. Specific fix recommendation
 
-**Key constraint**: Only scan at this stage; save revisions for the next phase. Subjective assessment without a checklist misses specific violations.
+Only scan here; save revisions for Phase 3.
 
-**Gate**: Full checklist scanned. All violations documented with evidence. Proceed only when gate passes.
+**Gate**: Full checklist scanned. All violations documented with evidence.
 
 ### Phase 3: REVISE
 
-**Goal**: Fix all violations while preserving content intent and substance.
+**Goal**: Fix all violations preserving content intent and substance.
 
-**Step 1: Apply fixes**
-- Address each violation with the smallest change that resolves it
-- Preserve the original meaning and information
-- Maintain natural flow — fixes should not create new violations
+1. Address each violation with the smallest change that resolves it
+2. Preserve original meaning and information
+3. Fixes must not create new violations
+4. Do not strip necessary content or change substance (scope creep)
 
-**Step 2: Verify no overcorrection**
-- Ensure revisions did not strip necessary content
-- Confirm the substance and technical accuracy remain intact
-- Keep the revision to voice-level changes only; leave paragraphs and arguments intact
-
-**Key constraint**: Make the smallest change that resolves each violation. Preserve all meaning. Changing substance is scope creep.
-
-**Gate**: All documented violations addressed. Intent preserved. Proceed only when gate passes.
+**Gate**: All documented violations addressed. Intent preserved.
 
 ### Phase 4: VERIFY
 
 **Goal**: Confirm revised content passes all checks.
 
-**Step 1: Rescan revised content**
+**Step 1**: Rescan revised content against full Phase 2 checklist. "Should be fine" is rationalization — always rescan.
 
-Run the full checklist from Phase 2 against the revised version.
+**Step 2**: Evaluate:
+- PASS: Output final content with validation report
+- FAIL, iteration < 3: Return to Phase 3 with new violations
+- FAIL, iteration = 3: Output with flagged remaining concerns
 
-**Step 2: Evaluate result**
-- If PASS: Output final content with validation report
-- If FAIL and iteration < 3: Return to Phase 3 with new violations
-- If FAIL and iteration = 3: Output content with flagged remaining concerns
-
-**Key constraint**: Always rescan. "Should be fine" is a rationalization. Fixes can introduce new violations.
-
-**Step 3: Output validation report**
+**Step 3**: Output validation report:
 
 ```
 VOICE VALIDATION: [Voice Name] Mode [mode]
@@ -136,76 +119,34 @@ ITERATION: [1-3]
 1. [Category]: "[quoted violation]"
    Fix: [specific correction]
 
-2. [Category]: "[quoted violation]"
-   Fix: [specific correction]
-
 REVISED OUTPUT:
 [Corrected content]
 
 RESCAN RESULT: [PASS/FAIL]
 ```
 
-**Gate**: Content passes all checks, or maximum iterations reached with flagged concerns. Validation complete.
-
----
-
-## Examples
-
-### Example 1: Technical Voice Validation
-User says: "Validate this draft is in the right voice"
-
-Actions:
-1. Identify target voice from context, determine mode from content style (IDENTIFY TARGET)
-2. Run full 7-category negative prompt checklist, find 2 violations (SCAN)
-3. Fix "I'm excited to share" (named emotion) and "This changes everything" (dramatic short sentence) (REVISE)
-4. Rescan revised content, confirm PASS (VERIFY)
-
-Result: Clean content with validation report
-
-### Example 2: Community Voice Validation
-User says: "Does this sound like the right voice?"
-
-Actions:
-1. Identify target voice from context (IDENTIFY TARGET)
-2. Scan against voice checklist, find missing warmth and no sensory details (SCAN)
-3. Add experiential language and warmth while preserving substance (REVISE)
-4. Rescan, confirm warmth and sensory details present, PASS (VERIFY)
-
-Result: Content matches voice profile
+**Gate**: Content passes all checks, or max iterations reached with flagged concerns.
 
 ---
 
 ## Error Handling
 
 ### Error: "Voice Target Unclear"
-Cause: Content doesn't specify which voice to validate against, or context is ambiguous
-
-Solution:
-1. Check conversation context for voice mentions
-2. Look for voice-specific patterns to infer target
-3. If still unclear, ask user to specify voice name and mode
+Cause: No voice specified and context is ambiguous.
+Solution: Check context for voice mentions, look for voice-specific patterns to infer target, ask user if still unclear.
 
 ### Error: "Violations Persist After 3 Iterations"
-Cause: Fundamental mismatch between content substance and voice requirements, or conflicting checklist items
-
-Solution:
-1. Output content with clearly flagged remaining violations
-2. List specific checklist items that resist correction
-3. Suggest the content may need to be regenerated from scratch with the correct voice skill
+Cause: Fundamental mismatch between content and voice requirements.
+Solution: Output with flagged violations, list resistant checklist items, suggest regeneration from scratch with correct voice skill.
 
 ### Error: "Revision Introduced New Violations"
-Cause: Fixing one category created violations in another (e.g., removing dramatic sentences introduced polished phrasing)
-
-Solution:
-1. Address new violations in next iteration
-2. If oscillating between two violation types, fix both simultaneously
-3. Prioritize tone and language violations over structural ones
+Cause: Fixing one category created violations in another.
+Solution: Address new violations next iteration. If oscillating between types, fix both simultaneously. Prioritize tone/language over structural.
 
 ---
 
 ## References
 
-### Related Skills
 - `voice-{name}` - Generates content in a specific voice (validate output with this skill)
 - `anti-ai-editor` - Complementary anti-AI pattern detection
 - `voice-writer` - Unified voice content generation pipeline that invokes this skill

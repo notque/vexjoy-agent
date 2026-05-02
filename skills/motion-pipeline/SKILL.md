@@ -34,17 +34,11 @@ routing:
 
 # Motion Pipeline Skill
 
-CPU-only motion data processing pipeline for game animation, inspired by Meta's
-ai4animationpy framework (CC BY-NC 4.0). All operations run on numpy and scipy
-with no GPU or PyTorch required.
+CPU-only motion data processing for game animation, inspired by Meta's ai4animationpy (CC BY-NC 4.0). All operations use numpy and scipy -- no GPU or PyTorch required.
 
 ## Why standalone implementations?
 
-ai4animationpy's `Math/Tensor.py` imports `torch` unconditionally at the top
-level, which propagates through every module (Animation, Import, IK, Math).
-This means zero ai4animationpy modules are importable without PyTorch installed.
-The standalone implementations in `scripts/motion-pipeline.py` replicate the
-key algorithms from their source code using only numpy + scipy.
+ai4animationpy's `Math/Tensor.py` imports `torch` unconditionally at the top level, propagating through every module. Zero ai4animationpy modules are importable without PyTorch. The standalone implementations in `scripts/motion-pipeline.py` replicate key algorithms using only numpy + scipy.
 
 ## Environment setup
 
@@ -59,7 +53,7 @@ motion-pipeline-env/bin/pip install numpy scipy pygltflib Pillow
 motion-pipeline-env/bin/python -c "import numpy; import scipy; import pygltflib; print('OK')"
 ```
 
-The venv is gitignored. The skill documents setup; it does not commit the venv.
+The venv is gitignored.
 
 ## Commands
 
@@ -74,13 +68,11 @@ motion-pipeline-env/bin/python scripts/motion-pipeline.py import-bvh FILE \
   [--scale 0.01]   # scale cm->m for CMU/Mixamo files
 ```
 
-Output fields: `name`, `num_frames`, `num_joints`, `framerate`,
-`total_time_seconds`, `bones[]`, `root_trajectory` (x/y/z range).
+Output: `name`, `num_frames`, `num_joints`, `framerate`, `total_time_seconds`, `bones[]`, `root_trajectory` (x/y/z range).
 
 ### extract-contacts
 
-Detect ground contact frames per bone (foot, hand) using height + velocity
-thresholds. Replicates `ContactModule.GetContacts()` from ai4animationpy.
+Detect ground contact frames per bone using height + velocity thresholds. Replicates `ContactModule.GetContacts()`.
 
 ```bash
 motion-pipeline-env/bin/python scripts/motion-pipeline.py extract-contacts FILE \
@@ -93,30 +85,25 @@ Output: `{ "bones": { "<name>": { "contact_frames": [...] } }, "total_frames": N
 
 ### decompose
 
-Split motion into root trajectory (WHERE + HOW) and per-joint local Euler
-angles (POSE). Implements the RootModule / MotionModule decomposition pattern.
+Split motion into root trajectory (WHERE + HOW) and per-joint local Euler angles (POSE). Implements RootModule / MotionModule decomposition.
 
 ```bash
 motion-pipeline-env/bin/python scripts/motion-pipeline.py decompose FILE \
   --hip Hips
 ```
 
-Output: `root_trajectory.positions[]`, `root_trajectory.velocities[]`,
-`root_trajectory.facing_directions[]`, `per_joint_euler_zyx_degrees{}`.
+Output: `root_trajectory.positions[]`, `root_trajectory.velocities[]`, `root_trajectory.facing_directions[]`, `per_joint_euler_zyx_degrees{}`.
 
 First 5 frames shown in stdout; full data requires piping to a file.
 
 ### blend
 
-Blend two BVH clips at a fixed alpha using SLERP rotations and LERP positions.
-Clips must share the same bone hierarchy.
+Blend two BVH clips at fixed alpha using SLERP rotations and LERP positions. Clips must share the same bone hierarchy.
 
 ```bash
 motion-pipeline-env/bin/python scripts/motion-pipeline.py blend FILE_A FILE_B \
   --alpha 0.5
 ```
-
-Output: summary of the blended motion.
 
 ### solve-ik
 
@@ -129,14 +116,11 @@ motion-pipeline-env/bin/python scripts/motion-pipeline.py solve-ik FILE \
   --frame 10
 ```
 
-Output: `chain[]`, `target[]`, `initial_positions[]`, `solved_positions[]`,
-`end_effector_error` (metres).
+Output: `chain[]`, `target[]`, `initial_positions[]`, `solved_positions[]`, `end_effector_error` (metres).
 
 ### generate-move-ts
 
-Convert a BVH mocap file into a TypeScript `MoveFrame` function compatible with
-road-to-aew's `wrestlingMoves.ts` interface. Outputs keyframe-interpolated
-TypeScript to stdout (and optionally a file).
+Convert BVH mocap into a TypeScript `MoveFrame` function for road-to-aew's `wrestlingMoves.ts` interface. Outputs keyframe-interpolated TypeScript.
 
 ```bash
 motion-pipeline-env/bin/python scripts/generate-move-ts.py BVH MOVE_NAME \
@@ -149,17 +133,15 @@ motion-pipeline-env/bin/python scripts/generate-move-ts.py BVH MOVE_NAME \
 
 | Argument | Default | Purpose |
 |---|---|---|
-| `BVH` | — | Path to .bvh mocap file |
-| `MOVE_NAME` | — | Kebab-case name (e.g. `roundhouse-kick`) used in TS identifiers |
-| `--scale` | `0.01` | Position scale; 0.01 converts cm→m for CMU/Mixamo files |
-| `--contact-bones` | `LeftToeBase RightToeBase LeftHand RightHand` | Bones used to detect the impact window |
-| `--num-keyframes` | `12` | Keyframe count in the output array (min 2) |
+| `BVH` | -- | Path to .bvh mocap file |
+| `MOVE_NAME` | -- | Kebab-case name (e.g. `roundhouse-kick`) for TS identifiers |
+| `--scale` | `0.01` | Position scale; 0.01 converts cm->m |
+| `--contact-bones` | `LeftToeBase RightToeBase LeftHand RightHand` | Bones for impact window detection |
+| `--num-keyframes` | `12` | Keyframe count in output array (min 2) |
 | `--hip-bone` | `Hips` | Root bone name for trajectory extraction |
-| `--output` | stdout only | Write TS to this file path in addition to stdout |
+| `--output` | stdout only | Write TS to this file path |
 
-**Implementation note:** The script imports `motion-pipeline.py` as a module
-via `importlib` rather than calling it as a subprocess. This bypasses the 5-frame
-truncation applied by the `decompose` CLI command, giving access to all frames.
+The script imports `motion-pipeline.py` via `importlib` (not subprocess), bypassing the 5-frame CLI truncation for full frame access.
 
 **Output structure:**
 
@@ -175,24 +157,13 @@ export function getRoundhouseKick(progress: number): MoveFrame {
 }
 ```
 
-The attacker's `offsetX/Y/Z` are root trajectory positions normalized to
-start at origin. Rotations are in radians (converted from the BVH's Euler
-ZYX degrees). The defender reaction is computed procedurally: pushed backward
-at impact, eases to mat post-impact.
+Attacker `offsetX/Y/Z` are root trajectory positions normalized to origin. Rotations in radians (converted from BVH Euler ZYX degrees). Defender reaction computed procedurally: pushed backward at impact, eases to mat post-impact.
 
-**Impact detection:** The script finds the first run of 3+ consecutive contact
-frames across the specified bones. For strike moves, this captures the moment
-of hit. For walking/idle clips (feet always down), the window will be frame-0
-and `isImpact` will be nearly never true — this is correct behavior.
+**Impact detection:** Finds the first run of 3+ consecutive contact frames across specified bones. For walking/idle clips (feet always down), the window is frame-0 and `isImpact` is nearly never true -- correct behavior.
 
-**Validation:** The script prints a summary to stderr including trajectory
-range, impact window, and a structural syntax check. Exit code 1 if validation
-fails.
+**Validation:** Prints summary to stderr (trajectory range, impact window, syntax check). Exit code 1 on failure.
 
 ## Data architecture pattern
-
-The decomposition from ai4animationpy becomes a design contract for all
-game animation work:
 
 ```
 Animation State
@@ -202,21 +173,18 @@ Animation State
   [guidance]        -- WHY (intent; handled at game engine layer)
 ```
 
-This separation enables:
-- Different movement speeds without distorting body pose
-- Contact-driven game events (damage triggers, sound, VFX)
-- AI/input guidance independent of motion playback
+This separation enables: different movement speeds without distorting pose, contact-driven game events (damage, sound, VFX), and AI/input guidance independent of motion playback.
 
 ## Source reference: ai4animationpy modules adopted
 
 | ai4animationpy module | This script equivalent | Notes |
 |-----------------------|------------------------|-------|
-| `Import/BVHImporter.BVH` | `load_bvh()` | Same parsing logic; scipy replaces torch |
-| `Animation/Motion` | `Motion` dataclass | numpy-only; no torch backend |
-| `Animation/ContactModule` | `extract_contacts()` | Height + velocity criterion identical |
+| `Import/BVHImporter.BVH` | `load_bvh()` | Same parsing; scipy replaces torch |
+| `Animation/Motion` | `Motion` dataclass | numpy-only |
+| `Animation/ContactModule` | `extract_contacts()` | Identical height + velocity criterion |
 | `Animation/RootModule` | `decompose()` root section | FK decomposition via matrix inverse |
 | `Animation/MotionModule` | `decompose()` joint section | Local Euler extraction via scipy |
-| `IK/FABRIK` | `solve_ik_fabrik()` | Algorithm identical; no Actor dependency |
+| `IK/FABRIK` | `solve_ik_fabrik()` | Same algorithm; no Actor dependency |
 
 ## Integration points
 
@@ -229,17 +197,15 @@ This separation enables:
 
 ## Sample BVH for testing
 
-A walking cycle from ai4animationpy demos is available at:
 ```
 /tmp/ai4animationpy/Demos/BVHLoading/WalkingStickLeft_BR.bvh
 ```
 
-This is a full-body biped walking clip from the Geno character rig.
+Full-body biped walking clip from the Geno character rig.
 
 ## Reference: ai4animationpy
 
 - Source: `/tmp/ai4animationpy` (cloned locally)
-- License: CC BY-NC 4.0 (non-commercial; aligned with hobby game projects)
+- License: CC BY-NC 4.0 (non-commercial)
 - GitHub: https://github.com/facebookresearch/ai4animationpy
-- Key finding: ALL modules require torch at import time via `Math/Tensor.py` line 5.
-  No conditional import path exists. Standalone implementations are the correct approach.
+- ALL modules require torch at import time via `Math/Tensor.py` line 5. No conditional import path exists.

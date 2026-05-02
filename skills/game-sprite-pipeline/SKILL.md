@@ -38,13 +38,13 @@ routing:
 
 # Game Sprite Pipeline
 
-Local-first AI sprite generation. One skill, three modes behind `--mode`:
+Local-first AI sprite generation. Three modes behind `--mode`:
 
-- `portrait` — single full-body character PNG (road-to-aew wrestlers, card-game characters).
-- `portrait-loop` — 2×2 = 4-frame subtle idle (breathing + blink) at 200ms/frame in ONE Codex call. Animated portraits without re-prompting new poses.
+- `portrait` — single full-body character PNG.
+- `portrait-loop` — 2x2 = 4-frame subtle idle (breathing + blink) at 200ms/frame in ONE Codex call.
 - `spritesheet` — animated multi-frame grid with connected-components detection, ground-line anchor alignment, and Phaser atlas output.
 
-Backend chain (per ADR-198): Codex CLI imagegen is the default when installed and authed. When Codex is unavailable AND `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set, the skill falls back to Nano Banana via `nano-banana-builder`'s scripts. When neither is available, the skill fails loud with `BackendUnavailableError` listing both fix paths. Both paths use keys the user already holds — there is no third-party billing the toolkit hides. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md` (user-owned-key clause).
+Backend chain (per ADR-198): Codex CLI default. Falls back to Nano Banana via `nano-banana-builder` when Codex unavailable AND `GEMINI_API_KEY`/`GOOGLE_API_KEY` is set. Fails loud with `BackendUnavailableError` listing both fix paths when neither is available. Both paths use user-owned keys only.
 
 ## When to use
 
@@ -56,8 +56,6 @@ Backend chain (per ADR-198): Codex CLI imagegen is the default when installed an
 | "make a walk cycle spritesheet" | `spritesheet` | `sprite_pipeline.py` |
 | "4-direction character sheet" | `spritesheet` | `sprite_pipeline.py --grid 4x4` |
 | "Phaser-ready texture atlas" | `spritesheet` | `sprite_pipeline.py` (emits atlas JSON) |
-
-Portrait is the road-to-aew immediate need; spritesheet is the forward-looking capability. Both share one backbone (prompt scaffolding, backend dispatch, bg removal, validation).
 
 ## Reference Loading Table
 
@@ -74,10 +72,10 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | Phase H assembly / output shape | `references/output-formats.md` | PNG / GIF / WebP / atlas JSON |
 | any phase errors | `references/error-catalog.md` | failure mode → fix mapping |
 | user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" anti-pattern; debug slicer, never raw |
-| asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction. ADR-207 RC-1: on dense grids (`cols * rows >= 16` AND both dims >= 4) `--content-aware-extraction` is silently downgraded to strict-pitch with a warning unless `--effects-asset` is also passed (orchestrator-side) or `effects_asset: True` is set (spec-side). Use `--effects-asset` only for genuine sparse-but-cross-boundary content (fire breath, plasma trails, projectile auras). |
+| asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | Content extending past cell boundaries needs centroid-ownership extraction. ADR-207 RC-1: on dense grids (`cols * rows >= 16` AND both dims >= 4) `--content-aware-extraction` silently downgrades to strict-pitch with a warning unless `--effects-asset` is also passed. Use `--effects-asset` only for genuine sparse-but-cross-boundary content. |
 | `--target road-to-aew` deploy | `references/road-to-aew-integration.md` | snake_case, paths, manifest regen |
 
-Load greedily when a signal matches — references are only read on demand, so the cost is paid once per execution, not once per routing decision.
+Load greedily when a signal matches.
 
 ## Portrait-mode pipeline (5 phases)
 
@@ -95,16 +93,16 @@ End-to-end: `python3 scripts/portrait_pipeline.py --prompt "<desc>" --style <pre
 
 | Phase | Script | What |
 |-------|--------|------|
-| A1 — Prompt build | `sprite_prompt.py build-portrait-loop` | Slot-structured prompt: same character, same pose, same framing, only breath + blink variation across 4 cells. |
-| A2 — Backend dispatch | `sprite_generate.py generate-portrait` | Codex CLI call; produces a 1024×1024 PNG with 2×2 cells of 512×512. |
-| D — Per-cell extract | inline in `portrait_pipeline.run_portrait_loop` | Naive 2×2 cell crop (cells are well-defined here). |
+| A1 — Prompt build | `sprite_prompt.py build-portrait-loop` | Same character, same pose, same framing, only breath + blink variation across 4 cells. |
+| A2 — Backend dispatch | `sprite_generate.py generate-portrait` | Codex CLI call; produces 1024x1024 PNG with 2x2 cells of 512x512. |
+| D — Per-cell extract | inline in `portrait_pipeline.run_portrait_loop` | Naive 2x2 cell crop (cells are well-defined here). |
 | E — Per-cell bg removal | `sprite_process.chroma_pass1` + `chroma_pass2_edge_flood` + `alpha_fade_magenta_fringe` + `color_despill_magenta` + `dilate_alpha_zero` | Same despill chain as portrait/spritesheet modes. |
-| F — Ground-line anchor | `sprite_process.detect_ground_line` + `apply_ground_line_anchor` | Drift-free: the four near-identical bodies stay perfectly registered across the loop. |
+| F — Ground-line anchor | `sprite_process.detect_ground_line` + `apply_ground_line_anchor` | Drift-free: four near-identical bodies stay registered across the loop. |
 | H — Assembly | inline | PNG sheet, animated GIF (200ms/frame, 800ms loop), animated WebP, per-frame PNGs. |
 
 End-to-end: `python3 scripts/portrait_pipeline.py --mode portrait-loop --display-name "..." --description "..." --style <preset>`.
 
-The loop must be SUBTLE: viewers should barely notice the animation (just feels alive). New poses defeat the purpose — that's spritesheet mode. See `references/prompt-rules.md` for the loop prompt template.
+The loop must be SUBTLE: viewers should barely notice the animation (just feels alive). New poses belong in spritesheet mode. See `references/prompt-rules.md` for the loop prompt template.
 
 ## Spritesheet-mode pipeline (8 phases)
 
@@ -125,8 +123,8 @@ End-to-end: `python3 scripts/sprite_pipeline.py --prompt "<desc>" --grid <CxR> -
 
 Per generation call, evaluated in order:
 
-1. `codex` in `PATH` and `codex --version` exits 0 → use Codex CLI imagegen. Codex CLI 0.125+ no longer exposes `--output-image`/`--aspect-ratio`/`--reference`/`--seed` as direct flags; image generation goes through the agent's internal `image_gen` tool, invoked from prompt text. Canonical invocation: `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check [-i <ref>... --] "<wrapped prompt>"`. The wrapped prompt instructs the agent to call `image_gen` and save to an absolute path; aspect ratio, seed, and reference semantics are encoded into the prompt text. Reference list (when used) MUST be terminated with `--` before the positional prompt or it consumes the prompt as another image filename. Subprocess timeout: 360s.
-2. Else if `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set → fall back to Nano Banana via `nano-banana-builder`'s scripts (`scripts/nano-banana-generate.py with-reference` for reference-guided, `batch` for multi-variant). The skill never imports the Gemini SDK directly — composition through the existing skill is the contract.
+1. `codex` in `PATH` and `codex --version` exits 0 → use Codex CLI imagegen. Codex CLI 0.125+ no longer exposes `--output-image`/`--aspect-ratio`/`--reference`/`--seed` as direct flags; image generation goes through the agent's internal `image_gen` tool via prompt text. Canonical invocation: `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check [-i <ref>... --] "<wrapped prompt>"`. Reference list MUST be terminated with `--` before the positional prompt. Subprocess timeout: 360s.
+2. Else if `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set → Nano Banana via `nano-banana-builder`'s scripts (`scripts/nano-banana-generate.py with-reference` for reference-guided, `batch` for multi-variant). The skill never imports the Gemini SDK directly.
 3. Else fail loudly with `BackendUnavailableError` listing BOTH fix paths:
    ```
    BackendUnavailableError: No image-generation backend available.
@@ -138,11 +136,11 @@ Per generation call, evaluated in order:
      Set GEMINI_API_KEY (or GOOGLE_API_KEY) in your environment to enable the Nano Banana fallback.
    ```
 
-Both paths use keys the user already holds (Codex subscription, Gemini API key). There is no third-party billing the toolkit hides. The skill never calls `api.openai.com` directly, `remove.bg`, or any service the user did not authorize. See `references/backend-chain.md` for the locked-in invocation contract and failure modes.
+See `references/backend-chain.md` for the locked-in invocation contract and failure modes.
 
 ## --max-frames: pack the canvas
 
-One Codex imagegen call produces ONE image. To get N frames, pack as many cells as possible into that one image rather than firing N calls.
+One Codex imagegen call produces ONE image. Pack as many cells as possible into that one image rather than firing N calls.
 
 `--max-frames` (on `sprite_canvas.py make-template` and `sprite_pipeline.py`) auto-computes the largest square grid that fits `--max-canvas` (default 1024x1024) at the given `--cell-size`:
 
@@ -177,23 +175,23 @@ See `references/grid-shapes.md` for direction-to-row conventions.
 
 ## Auto-curation (deterministic)
 
-Default. Applied when `--variants N` > 1.
+Default when `--variants N` > 1.
 
 1. Fewest edge-touch frames wins (sprite touching canvas edge = clipping).
-2. Tiebreak: smallest shared-scale variance (visually consistent height across frames).
-3. Tiebreak: lowest seed number (reproducible tie resolution).
+2. Tiebreak: smallest shared-scale variance (visually consistent height).
+3. Tiebreak: lowest seed number (reproducible).
 
-`--curate` writes a contact sheet and opens a manual review gate. Off by default; interactive gates block automation.
+`--curate` opens a manual review gate. Off by default; interactive gates block automation.
 
 ## Shared constraints
 
-- **User-owned keys only.** Codex CLI (default) and Nano Banana via `GEMINI_API_KEY`/`GOOGLE_API_KEY` (fallback) are the two authorized backends — both billed under the user's existing accounts. The skill never calls `api.openai.com` directly, `remove.bg`, or any service the user did not authorize. See ADR-198 and the user-owned-key clause in `docs/PHILOSOPHY.md`.
-- **Magenta background (`#FF00FF`)** is the chroma-key default because it never appears in realistic character skin or wrestling gear. Backend prompts include explicit "solid magenta background" instruction; post-processing validates the dominant corner color.
-- **Fixed seed per run** for reproducibility. Re-running with the same `--seed` should produce identical output given identical backend output (best-effort: Codex CLI does not currently expose a public seed flag, so the seed travels in the prompt body as a comment).
+- **User-owned keys only.** Codex CLI and Nano Banana via `GEMINI_API_KEY`/`GOOGLE_API_KEY` are the two authorized backends. The skill never calls `api.openai.com` directly, `remove.bg`, or any unauthorized service. See ADR-198.
+- **Magenta background (`#FF00FF`)** is the chroma-key default — never appears in realistic character skin or gear. Backend prompts include explicit "solid magenta background" instruction; post-processing validates dominant corner color.
+- **Fixed seed per run** for reproducibility (best-effort: seed travels in the prompt body as a comment since Codex CLI lacks a public seed flag).
 
 ## Verification
 
-Before shipping any change to this skill, run:
+Before shipping any change to this skill:
 
 ```bash
 cd /home/feedgen/vexjoy-agent
@@ -203,7 +201,7 @@ ruff check . --config pyproject.toml
 ruff format --check . --config pyproject.toml
 ```
 
-Plus the two smoke tests:
+Smoke tests:
 
 ```bash
 # Portrait (no backend required in dry-run)
@@ -211,38 +209,35 @@ python3 skills/game-sprite-pipeline/scripts/portrait_pipeline.py \
     --prompt "veteran wrestler, indie circuit, 35yo, scarred face, leather jacket" \
     --style slay-the-spire-painted --target road-to-aew --dry-run
 
-# Spritesheet (no backend required in dry-run; --allow-frame-duplication
-# because the synthetic fixture has 4 near-identical figures that trip the
-# verify_frames_distinct gate by construction at the new 70% threshold;
-# see "Verifier gates" below). Default-on verify; exits 0 on success,
-# 2 on gate failure, 3 on --no-verify (ADR-207 Rule 4).
+# Spritesheet (--allow-frame-duplication because synthetic fixture has 4
+# near-identical figures that trip verify_frames_distinct at the 70% threshold)
 python3 skills/game-sprite-pipeline/scripts/sprite_pipeline.py \
     --prompt "wrestler walk cycle, 4 frames" \
     --grid 4x1 --cell-size 256 --dry-run --allow-frame-duplication
 ```
 
-Both dry-run modes skip the backend call, generate a synthetic fixture, and exercise every post-processing phase. Pass criteria: exit 0, expected output files present, dimension gates satisfied.
+Both dry-run modes skip the backend, generate a synthetic fixture, and exercise every post-processing phase. Pass: exit 0, expected outputs present, dimension gates satisfied.
 
 ## Verifier gates (default-on, ADR-199)
 
-Both pipelines run a verifier suite as the LAST step (after assemble). Default-on; opt out with `--no-verify`.
+Both pipelines run a verifier suite as the LAST step. Default-on; opt out with `--no-verify`.
 
 | Flag | Default | Effect |
 |------|---------|--------|
-| `--verify` | ON | Run the applicable verifier gate suite after assembly. Print structured JSON to stdout; exit 2 on any failure. |
-| `--no-verify` | — | Skip all gates. Logs `WARNING: --no-verify opted out; output not validated` to stderr so silent skips remain visible. **Spritesheet mode (ADR-207 Rule 4)**: returns exit code 3 (`VERIFIER_SKIPPED_EXIT_CODE`) instead of 0 so orchestrators cannot silently mask spritesheet failures with the same exit status as success. **Portrait + portrait-loop modes**: retain exit 0 because their verifier surface is small enough (`verify_no_magenta` only) that an explicit skip is plausibly intentional. |
-| `--allow-frame-duplication` | OFF | Relax `verify_frames_distinct` from 70% to 100% duplicate-pct (ADR-208 RC-3). Use for spec-known sheets with legitimate frame repetition: idle loops where 8 frames repeat to fill 64 cells, taunt poses where the character holds a stance, or any animation where >70% duplicate-pct is the artist's intent. Without this flag the gate fires at 70% to catch the layout-drift signature where centroid mis-routing lands most cells on a few near-identical poses. |
-| `--effects-asset` | OFF | Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). Use ONLY for sparse-but-cross-boundary content: fire breath, plasma trails, projectile auras. Keep dense character grids on strict-pitch slicing because content-aware routing can drop cells via centroid drift (ADR-207 RC-1). |
+| `--verify` | ON | Run gate suite after assembly. Print JSON to stdout; exit 2 on failure. |
+| `--no-verify` | — | Skip all gates. Logs `WARNING: --no-verify opted out; output not validated`. **Spritesheet mode (ADR-207 Rule 4)**: exit code 3 (`VERIFIER_SKIPPED_EXIT_CODE`) instead of 0 so orchestrators cannot mask failures. **Portrait + portrait-loop**: retain exit 0 (small verifier surface). |
+| `--allow-frame-duplication` | OFF | Relax `verify_frames_distinct` from 70% to 100% duplicate-pct (ADR-208 RC-3). Use for sheets with legitimate frame repetition (idle loops filling 64 cells, held taunt poses). Without this flag the gate catches layout-drift where centroid mis-routing lands most cells on few poses. |
+| `--effects-asset` | OFF | Opt INTO content-aware routing on dense grids (>= 4x4, >= 16 cells). Use ONLY for sparse-but-cross-boundary content (fire breath, plasma trails). Keep dense character grids on strict-pitch (ADR-207 RC-1). |
 
 Per-mode gate selection:
 
 | Mode | Entry | Gates |
 |------|-------|-------|
-| spritesheet | `sprite_pipeline.py run_pipeline` | `verify_no_magenta`, `verify_grid_alignment`, `verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_pixel_preservation` (when `{name}_sheet_raw.png` is present), `verify_raw_vs_final_cell_parity` (ADR-207 Rule 3 — same precondition as `verify_pixel_preservation`) |
-| portrait | `portrait_pipeline.py run_pipeline` (mode=portrait) | `verify_no_magenta` (single-image mode; per-cell gates do not apply) |
+| spritesheet | `sprite_pipeline.py run_pipeline` | `verify_no_magenta`, `verify_grid_alignment`, `verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_pixel_preservation` (when `{name}_sheet_raw.png` present), `verify_raw_vs_final_cell_parity` (ADR-207 Rule 3) |
+| portrait | `portrait_pipeline.py run_pipeline` (mode=portrait) | `verify_no_magenta` |
 | portrait-loop | `portrait_pipeline.py run_portrait_loop` | `verify_no_magenta`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_anchor_consistency` |
 
-Output JSON shape on stdout (last thing the pipeline prints before exit):
+Output JSON shape:
 
 ```json
 {
@@ -255,109 +250,91 @@ Output JSON shape on stdout (last thing the pipeline prints before exit):
 }
 ```
 
-`verifier_verdict` (ADR-207 Rule 2) is the contracted consumer-facing field. Manifest writers, orchestrators, and downstream classifiers MUST derive their own status fields from this string; the toolkit's `write_manifest_record` writer asserts at write time that `verifier_verdict == "PASS"` implies an empty `verifier_failures` list (and vice versa).
+`verifier_verdict` (ADR-207 Rule 2) is the contracted consumer-facing field. `write_manifest_record` asserts `verifier_verdict == "PASS"` implies empty `verifier_failures` list (and vice versa).
 
-Exit codes:
-- 0: `passed: true` (or `--no-verify` for portrait / portrait-loop modes).
-- 2: at least one gate failed (distinct from generic pipeline error rc=1 so CI can branch on "verifier said no" vs "the pipeline blew up").
-- 3: `--no-verify` was passed in spritesheet mode (ADR-207 Rule 4 — `VERIFIER_SKIPPED_EXIT_CODE`). Orchestrators that explicitly want to skip spritesheet verification must explicitly accept exit code 3.
+Exit codes: 0 = passed (or `--no-verify` for portrait modes). 2 = gate failed. 3 = `--no-verify` in spritesheet mode (ADR-207 Rule 4).
 
 ## Logging (ADR-202)
 
-Both pipelines emit diagnostic logs via stdlib `logging` on stderr. Verifier JSON and other structured machine-readable output stays on stdout. Logger name pattern: `sprite-pipeline.<module>` (e.g., `sprite-pipeline.sprite_pipeline`, `sprite-pipeline.sprite_bg`). Default level: INFO.
+Both pipelines emit diagnostics via stdlib `logging` on stderr. Verifier JSON and structured output on stdout. Logger name: `sprite-pipeline.<module>`. Default: INFO.
 
-| Flag | Default | Effect |
-|------|---------|--------|
-| (none) | — | INFO level. Phase boundaries, backend selection, asset paths, per-phase status. |
-| `--quiet` / `-q` | — | WARNING level. Suppresses INFO chatter; only fallback warnings + errors reach stderr. Mutually exclusive with `--verbose`. |
-| `--verbose` / `-v` | — | DEBUG level. Adds detailed parameter dumps and intermediate counters. Mutually exclusive with `--quiet`. |
+| Flag | Effect |
+|------|--------|
+| (none) | INFO: phase boundaries, backend selection, asset paths, per-phase status. |
+| `--quiet` / `-q` | WARNING only. Mutually exclusive with `--verbose`. |
+| `--verbose` / `-v` | DEBUG: parameter dumps, intermediate counters. Mutually exclusive with `--quiet`. |
 
-Stream contract: stdout carries structured output (verifier JSON, generated paths); stderr carries diagnostic logs. Redirect them independently (e.g., `python3 sprite_pipeline.py ... 1>out.json 2>logs.txt`).
+Stream contract: stdout = structured output; stderr = diagnostics. Redirect independently.
 
 ## Error handling
 
-**Error: "BackendUnavailableError: No image-generation backend available"**
-- Cause: Neither `codex` CLI nor `GEMINI_API_KEY`/`GOOGLE_API_KEY` is available.
-- Solution: Install Codex CLI (`npm install -g @openai/codex` or per-OS) and run `codex auth`, OR set `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in your environment to use the Nano Banana fallback. Both paths use keys the user already holds; pick whichever is available. Never set `OPENAI_API_KEY` for this skill — direct OpenAI calls are not an authorized path.
+**"BackendUnavailableError: No image-generation backend available"**
+Install Codex CLI (`npm install -g @openai/codex` + `codex auth`), OR set `GEMINI_API_KEY`/`GOOGLE_API_KEY` for Nano Banana fallback. Never set `OPENAI_API_KEY` — direct OpenAI calls are not authorized.
 
-**Error: "Aspect ratio X outside allowed range [1:1.5, 1:2.5]"**
-- Cause: Character rendered too wide (crouched pose) or too tall (full-extension jump pose).
-- Solution: Re-generate with a neutral standing prompt. If the character must have an atypical pose, add `--force-dimensions` (logs loudly, should not become routine).
+**"Aspect ratio X outside allowed range [1:1.5, 1:2.5]"**
+Re-generate with a neutral standing prompt. For atypical poses, use `--force-dimensions` (not routine).
 
-**Error: "Frame count mismatch: detected 6 components, grid expected 8"**
-- Cause: Connected-components merged neighboring frames, or small fragments were filtered.
-- Solution: Increase cell-size (gives more separation gap), re-generate, or use `--chroma-threshold` to tighten the bg mask. See `references/frame-detection.md`.
+**"Frame count mismatch: detected 6 components, grid expected 8"**
+Connected-components merged neighboring frames or small fragments were filtered. Increase cell-size, re-generate, or use `--chroma-threshold` to tighten the bg mask. See `references/frame-detection.md`.
 
-**Error: "Codex CLI grid-template input not supported"**
-- Cause: Codex imagegen may not consume a magenta grid canvas as a structural input.
-- Solution: Skill auto-falls-back to per-frame generation + Pillow compositing. Slower but deterministic.
+**"Codex CLI grid-template input not supported"**
+Skill auto-falls-back to per-frame generation + Pillow compositing. Slower but deterministic.
 
-**Error: "rembg not installed"**
-- Cause: `--bg-mode rembg` requested without the opt-in dependency.
-- Solution: `pip install rembg onnxruntime` (~200MB ONNX model). Or re-run with default magenta chroma key.
+**"rembg not installed"**
+`pip install rembg onnxruntime` (~200MB ONNX model), or re-run with default magenta chroma key.
 
-**Error: "road-to-aew directory not found at ~/road-to-aew"**
-- Cause: `--target road-to-aew` resolves to a path that does not exist.
-- Solution: Pass `--target-dir <explicit-path>` or clone the repo to `~/road-to-aew`. The deploy step refuses to guess.
+**"road-to-aew directory not found at ~/road-to-aew"**
+Pass `--target-dir <explicit-path>` or clone the repo to `~/road-to-aew`. The deploy step refuses to guess.
 
 <!-- no-pair-required: section header; pairs live in subsections -->
 ## Failure Patterns
 
 ### Failure mode: Codex regeneration as a post-processing fix
 
-**What it looks like:** A verifier flags a blank cell, clipped fire, missing silhouette, or any other final-asset defect. The reflex is to re-run `codex exec` to redraw the raw with a different prompt or seed. STOP.
+**What it looks like:** Verifier flags a blank cell, clipped fire, or missing silhouette. The reflex is to re-run `codex exec`. STOP.
 
-**Why wrong:** Codex generation is treated as ground truth. The raw PNG in `<your-output-dir>/raw/<slug>.png` is what Codex painted, and it is almost always correct. If the final-sheet shows blank cells, clipped effects, or missing silhouettes, the bug is in one of the post-processing steps:
-- `slice_grid_cells` derived the wrong pitch (raw_size / grid math) and cut the cell at the wrong place
-- `slice_with_content_awareness` claimed a component to the wrong cell (centroid mapping bug)
-- The despill chain (`chroma_pass2_edge_flood`, `kill_pink_fringe`, `neutralize_interior_magenta_spill`) ate the silhouette
-- The mass-centroid anchor pinned the wrong body part to the ground line
-- The LANCZOS resize between magenta padding and content created pink fringe
+**Why wrong:** The raw PNG is almost always correct. If the final sheet shows defects, the bug is in post-processing: wrong pitch in `slice_grid_cells`, wrong centroid mapping in `slice_with_content_awareness`, despill chain eating the silhouette, mass-centroid anchor pinning wrong body part, or LANCZOS resize creating pink fringe.
 
-The user's framing: "the codex generation has never failed, it is working perfectly, the rest has failed."
+**Do instead:** Open raw and final side-by-side. Confirm raw has the content. Trace which post-processing step lost it. For boundary clipping: set `has_effects: True` and/or `content_aware_extraction: True` to use `slice_with_content_awareness`.
 
-**Do instead:** Open the raw and the final side-by-side. Confirm the raw has the content (it almost always does). Trace which post-processing step lost it. Specifically for boundary clipping (asset 27 dragon flame, asset 30 plasma trail): set `has_effects: True` and/or `content_aware_extraction: True` in the spec to use `slice_with_content_awareness`, which expands cell windows to recover content extending past conceptual cell boundaries.
-
-**Caveat (ADR-207 RC-1, dense-grid downgrade):** on dense grids (`cols * rows >= 16` AND both dims >= 4 — i.e. 4x4 and denser), the slicer dispatch in `sprite_pipeline.py` and `cmd_extract_frames` silently downgrades `--content-aware-extraction` (and the spec's `content_aware_extraction` / `has_effects` slicer leg) to strict-pitch with a WARNING log because content-aware routing on Codex's fractional-pitch raws drops cells via centroid drift. To opt INTO content-aware on a dense grid for genuine sparse effects assets, also pass `--effects-asset` (orchestrator-side) or set `effects_asset: True` (spec-side). Character grids with arms touching cell edges should stay on the strict slicer and rely on `verify_raw_vs_final_cell_parity` to flag genuine slicing bugs.
+**Caveat (ADR-207 RC-1, dense-grid downgrade):** On dense grids (`cols * rows >= 16` AND both dims >= 4), the slicer silently downgrades `--content-aware-extraction` to strict-pitch because content-aware routing on fractional-pitch raws drops cells via centroid drift. To opt in on a dense grid, also pass `--effects-asset`. Character grids with arms touching cell edges should stay on strict slicer.
 
 See `references/error-catalog.md` for the full diagnostic procedure.
 
-### Failure mode: Calling a third-party paid API the user did not authorize
+### Failure mode: Calling an unauthorized third-party paid API
 
-**What it looks like:** Adding a try/except that falls back from Codex CLI → `api.openai.com` direct / `remove.bg` / any service whose billing relationship the user did not establish.
+**What it looks like:** Adding a fallback from Codex CLI → `api.openai.com` direct / `remove.bg` / any service the user did not authorize.
 
-**Why wrong:** The user-owned-key clause (PHILOSOPHY.md, ADR-198) authorizes fallbacks gated on environment variables the user explicitly set — Codex's auth and `GEMINI_API_KEY`/`GOOGLE_API_KEY` for Nano Banana qualify because the user holds the keys. A fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, does not. That's the failure mode the Local-First principle exists to prevent.
-
-**Do instead**: Stop at the two authorized backends (Codex CLI, then Nano Banana via user-set Gemini key). When neither is available, raise `BackendUnavailableError` with both fix paths in the message. Adding a third backend requires a new env-var-gated path AND an ADR amendment — never a silent runtime fallback.
+**Do instead:** Stop at the two authorized backends. When neither is available, raise `BackendUnavailableError` with both fix paths. Adding a third backend requires a new env-var-gated path AND an ADR amendment.
 
 ### Failure mode: Naive grid-math frame cropping
 
-**What it looks like:** `frame = sheet.crop((col*CELL, row*CELL, (col+1)*CELL, (row+1)*CELL))` for every cell.
+**What it looks like:** `frame = sheet.crop((col*CELL, row*CELL, (col+1)*CELL, (row+1)*CELL))`.
 
-**Why wrong:** Generated frames drift within their cells (the model does not respect grid boundaries precisely). Naive cropping captures neighbor-cell pixels and truncates the current sprite.
+**Why wrong:** Generated frames drift within cells. Naive cropping captures neighbor-cell pixels and truncates the sprite.
 
-**Do instead**: Use connected-components clustering (flood-fill from non-magenta pixels, bound each cluster by its actual pixel extent). See `references/frame-detection.md`.
+**Do instead:** Connected-components clustering. See `references/frame-detection.md`.
 
 ### Failure mode: Trusting the backend's alpha channel
 
 **What it looks like:** Prompting "transparent background" and consuming the output PNG directly.
 
-**Why wrong:** Both Codex CLI and Nano Banana produce backgrounds that are nominally transparent but often have magenta/white/gray fringing, full-opacity backgrounds, or inconsistent alpha. Downstream consumers get dirty assets.
+**Why wrong:** Both backends produce backgrounds with magenta/white/gray fringing, full-opacity backgrounds, or inconsistent alpha.
 
-**Do instead**: Always post-process: prompt for a known chroma color (magenta `#FF00FF`), then run local bg removal. Two-pass flood fill handles feathering. `references/bg-removal-local.md` has the algorithm.
+**Do instead:** Always post-process: prompt for magenta `#FF00FF`, then run local bg removal. Two-pass flood fill handles feathering. See `references/bg-removal-local.md`.
 
 ### Failure mode: Interactive curation as the default
 
 **What it looks like:** Every pipeline run opens a contact-sheet viewer and waits for user confirmation.
 
-**Why wrong:** Blocks automation (batch generation of 50 wrestlers), adds cognitive load, and prevents reproducibility. The user is not always at the keyboard.
+**Why wrong:** Blocks automation, adds cognitive load, prevents reproducibility.
 
-**Do instead**: Deterministic auto-curation is the default (rank by edge-touches → scale variance → seed). Expose `--curate` for cases where the automated pick is visibly wrong. Reproducibility matters more than picking the single prettiest variant.
+**Do instead:** Deterministic auto-curation is the default. Expose `--curate` for cases where the automated pick is wrong.
 
 ## Reference files
 
-- `references/style-presets.md` — full catalog of 9 era/hardware presets, prompt fragments, `--style custom` slot.
-- `references/wrestler-archetypes.md` — 9 color archetypes, 10 gimmick types, tier modifiers (Act 1/2/3).
+- `references/style-presets.md` — 9 era/hardware presets, prompt fragments, `--style custom` slot.
+- `references/wrestler-archetypes.md` — 9 color archetypes, 10 gimmick types, tier modifiers.
 - `references/grid-shapes.md` — cell-size table, grid validation, direction-to-row mapping.
 - `references/prompt-rules.md` — ART_STYLE, CHAR_STYLE, GRID_RULES slot content; negative prompts.
 - `references/backend-chain.md` — Codex CLI invocation pattern, auth checks, failure modes.
@@ -370,7 +347,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 
 ## Demo idempotency
 
-Demo orchestrators (e.g. `<your-output-dir>/generate.py`) should be idempotent: running them again on a partial output skips assets whose `assets/<slug>/final.png` (or `final-sheet.png`) AND `meta.json` already exist. This saves ~30-60s per asset of Codex CLI time when iterating. The pattern:
+Demo orchestrators should be idempotent: re-running on partial output skips assets whose `final.png` (or `final-sheet.png`) AND `meta.json` already exist. Saves ~30-60s per asset of Codex CLI time.
 
 ```python
 def _is_done(asset_dir: Path) -> bool:
@@ -386,11 +363,11 @@ def run_one(spec, force=False):
     ...
 ```
 
-Provide `--force` to override (re-run all) and `--force-slug <prefix>` to re-run a specific asset. Document the behavior in the orchestrator's docstring so future maintainers don't accidentally regenerate everything.
+`--force` overrides (re-run all); `--force-slug <prefix>` re-runs a specific asset.
 
 ## Related skills
 
 - `phaser-gamedev` — downstream consumer of spritesheet output (atlas JSON).
 - `threejs-builder` — may consume portrait output for 3D card framing.
-- `game-asset-generator` — sibling umbrella for 3D models / textures / matrix-driven pixel art. Its `references/pixel-art-sprites.md` redirects AI-driven sprite work here.
-- `game-pipeline` — parent lifecycle orchestrator; slot this skill under its ASSETS phase when building a new game.
+- `game-asset-generator` — sibling for 3D models / textures / matrix-driven pixel art. Its `references/pixel-art-sprites.md` redirects AI-driven sprite work here.
+- `game-pipeline` — parent lifecycle orchestrator; slot this skill under its ASSETS phase.

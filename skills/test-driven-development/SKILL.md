@@ -30,7 +30,7 @@ routing:
 
 # Test-Driven Development (TDD) Skill
 
-Enforce the RED-GREEN-REFACTOR cycle for all code changes. Tests are written before implementation code, verified to fail for the right reasons, and maintained through disciplined development cycles.
+Enforce RED-GREEN-REFACTOR for all code changes. Tests written before implementation, verified to fail for the right reasons, maintained through disciplined cycles.
 
 ## Reference Loading Table
 
@@ -42,68 +42,68 @@ Enforce the RED-GREEN-REFACTOR cycle for all code changes. Tests are written bef
 
 ## Instructions
 
-Before starting any TDD cycle, read and follow repository CLAUDE.md files. Project instructions override default TDD behaviors because local conventions (test frameworks, directory layout, naming) vary across codebases.
+Read and follow repository CLAUDE.md files before starting any TDD cycle. Local conventions (test frameworks, directory layout, naming) override defaults.
 
-Full phase guidance (steps, rationale, code examples, language commands) lives in [references/phase-guidance.md](references/phase-guidance.md). Load it when you need detailed instructions or examples. The sections below are the lean phase skeleton plus the mandatory gates.
+Full phase guidance (steps, rationale, code examples, language commands) lives in [references/phase-guidance.md](references/phase-guidance.md). Load when you need detailed instructions. Sections below are the lean phase skeleton plus mandatory gates.
 
 ### Phase 1: Write a Failing Test (RED)
 
-Write a test that describes the desired behavior before any implementation exists. Use specific assertions, descriptive names, Arrange-Act-Assert pattern, and one concept per test. Run the test and show full output. Details: [references/phase-guidance.md](references/phase-guidance.md).
+Write a test describing desired behavior before any implementation. Use specific assertions, descriptive names, Arrange-Act-Assert, one concept per test. Run the test and show full output. Details: [references/phase-guidance.md](references/phase-guidance.md).
 
 #### RED Phase Gate
 
-Proceed to the GREEN phase only after all of these are true:
-- [ ] Test file is created and saved
-- [ ] Test has been executed
-- [ ] Test output shows FAILURE (not syntax/import error)
+Proceed to GREEN only after all true:
+- [ ] Test file created and saved
+- [ ] Test executed
+- [ ] Output shows FAILURE (not syntax/import error)
 - [ ] Failure message indicates missing implementation
 
 ### Phase 2: Verify Failure Reason (RED Verification)
 
-The test must fail because the feature is not implemented, NOT because of syntax errors, import errors, wrong test setup, or unrelated failures. Expected patterns per language and recovery steps: [references/phase-guidance.md](references/phase-guidance.md).
+The test must fail because the feature is not implemented, NOT because of syntax errors, import errors, wrong test setup, or unrelated failures. Expected patterns and recovery steps: [references/phase-guidance.md](references/phase-guidance.md).
 
 ### Phase 3: Implement Minimum Code (GREEN)
 
-Write ONLY enough code to make the failing test pass. No extra features. Hardcoded values are OK initially. Over-engineering and correct examples: [references/phase-guidance.md](references/phase-guidance.md).
+Write ONLY enough code to make the failing test pass. No extra features. Hardcoded values OK initially. Details: [references/phase-guidance.md](references/phase-guidance.md).
 
 ### Phase 4: Verify Test Passes (GREEN Verification)
 
-Run the test and the full suite; show complete output. Never summarize. Debug guidance: [references/phase-guidance.md](references/phase-guidance.md).
+Run the test and full suite; show complete output. Never summarize. Debug guidance: [references/phase-guidance.md](references/phase-guidance.md).
 
 #### GREEN Phase Gate
 
-Proceed to the REFACTOR phase only after all of these are true:
-- [ ] Implementation code is written
-- [ ] New test has been executed and shows PASS
-- [ ] Full test suite has been executed
-- [ ] No other tests have been broken
+Proceed to REFACTOR only after all true:
+- [ ] Implementation code written
+- [ ] New test executed and shows PASS
+- [ ] Full test suite executed
+- [ ] No other tests broken
 
 ### Phase 5: Refactor (REFACTOR)
 
-Improve code quality without changing behavior. Establish a green baseline first, refactor incrementally, run tests after every step. Test behavior, not internals. Decision criteria table and behavior-vs-internals examples: [references/phase-guidance.md](references/phase-guidance.md).
+Improve code quality without changing behavior. Establish green baseline first, refactor incrementally, run tests after every step. Test behavior, not internals. Decision criteria and examples: [references/phase-guidance.md](references/phase-guidance.md).
 
 #### REFACTOR Phase Gate
 
-Mark the task complete only after all of these are true:
-- [ ] All refactoring changes are saved
-- [ ] Full test suite has been executed
+Mark complete only after all true:
+- [ ] All refactoring changes saved
+- [ ] Full test suite executed
 - [ ] ALL tests pass (not just the new one)
-- [ ] Code quality has been evaluated against the criteria table above
+- [ ] Code quality evaluated against criteria table
 
 ### Phase 6: Commit
 
-Commit the test and implementation together as an atomic unit. Run the full suite, commit with a descriptive message, clean up temporary files. Report facts without self-congratulation.
+Commit test and implementation together as atomic unit. Run full suite, commit with descriptive message, clean up temporary files. Report facts without self-congratulation.
 
 ### Cycle Discipline
 
-Each feature gets its own RED-GREEN-REFACTOR cycle. Do not batch multiple features into one cycle. Wrong-vs-correct cycle examples: [references/phase-guidance.md](references/phase-guidance.md).
+Each feature gets its own RED-GREEN-REFACTOR cycle. Do not batch multiple features into one cycle. Examples: [references/phase-guidance.md](references/phase-guidance.md).
 
 ## Reference Material
 
-- [references/phase-guidance.md](references/phase-guidance.md) — Full phase steps, rationale, code examples, Arrange-Act-Assert, optional techniques, language-specific testing commands
-- [references/error-handling.md](references/error-handling.md) — Symptoms, causes, and solutions for stuck cycles (passes too early, wrong failure reason, green-but-broken, refactor breakage)
-- [references/examples.md](references/examples.md) — Language-specific TDD examples (Go, Python, JavaScript)
+- [references/phase-guidance.md](references/phase-guidance.md) -- Full phase steps, rationale, code examples, Arrange-Act-Assert, language-specific testing commands
+- [references/error-handling.md](references/error-handling.md) -- Symptoms, causes, solutions for stuck cycles
+- [references/examples.md](references/examples.md) -- Language-specific TDD examples (Go, Python, JavaScript)
 
 ## Error Handling
 
-Load [references/error-handling.md](references/error-handling.md) when a cycle is stuck. It covers: test passes before implementation, test fails for wrong reason, tests pass but feature does not work, refactoring breaks tests.
+Load [references/error-handling.md](references/error-handling.md) when a cycle is stuck. Covers: test passes before implementation, test fails for wrong reason, tests pass but feature does not work, refactoring breaks tests.

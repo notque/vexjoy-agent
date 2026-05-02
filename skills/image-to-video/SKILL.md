@@ -30,7 +30,7 @@ routing:
 
 # Image to Video Skill
 
-Combine a static image with an audio file to produce an MP4 video using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing of matched image+audio pairs. For image generation, use `gemini-image-generator` instead.
+Combine a static image with an audio file to produce an MP4 using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing. For image generation, use `gemini-image-generator`.
 
 ## Reference Loading Table
 
@@ -42,35 +42,29 @@ Combine a static image with an audio file to produce an MP4 video using FFmpeg. 
 
 ### Phase 1: VALIDATE
 
-Confirm all prerequisites before attempting video creation.
-
-**Step 1: Check FFmpeg installation**
-
-Always run this check first -- many systems lack FFmpeg or have minimal builds, and skipping it produces confusing subprocess errors instead of clear install guidance.
+**Step 1: Check FFmpeg**
 
 ```bash
 ffmpeg -version
 ```
 
-If FFmpeg is not installed, provide platform-specific install instructions and stop.
+If not installed, provide platform-specific install instructions and stop.
 
-**Step 2: Verify input files exist**
+**Step 2: Verify inputs exist**
 
-Both the image and audio files must be confirmed present before processing. Use absolute paths for all arguments -- relative paths break silently when the script executes from a different working directory.
+Use absolute paths for all arguments — relative paths break silently when the script executes from a different working directory.
 
 ```bash
 ls -la /absolute/path/to/image.png /absolute/path/to/audio.mp3
 ```
 
-Confirm both files exist and have non-zero size. Supported formats:
+Confirm both exist with non-zero size. Supported formats:
 - **Images**: PNG, JPG, JPEG, GIF, WEBP, BMP
 - **Audio**: MP3, WAV, M4A, OGG, FLAC
 
 **Step 3: Determine parameters**
 
-Re-read the user's request before selecting defaults. Resolve resolution preset and visualization mode from what the user actually asked for. Only apply defaults (1080p, static) when the user did not specify -- defaulting to static when the user requested a visualization is a common mistake.
-
-If the user mentions a target platform, select the matching preset to avoid cropping or black bars on delivery:
+Re-read the user's request before selecting defaults. Only apply defaults (1080p, static) when the user did not specify.
 
 | Preset | Dimensions | Platform |
 |--------|------------|----------|
@@ -79,38 +73,25 @@ If the user mentions a target platform, select the matching preset to avoid crop
 | `square` | 1080x1080 | Instagram, social media |
 | `vertical` | 1080x1920 | Stories, Reels, TikTok |
 
-Optional visualization modes (off unless the user requests one):
-- `--visualization waveform` -- Neon waveform overlay
-- `--visualization spectrum` -- Scrolling frequency spectrum
-- `--visualization cqt` -- Piano-roll style bars
-- `--visualization bars` -- Frequency bar graph
+Visualization modes (off unless requested):
+- `--visualization waveform` — Neon waveform overlay
+- `--visualization spectrum` — Scrolling frequency spectrum
+- `--visualization cqt` — Piano-roll style bars
+- `--visualization bars` — Frequency bar graph
 
-**Gate**: FFmpeg installed, both input files exist, parameters resolved. Proceed only when gate passes.
+**Gate**: FFmpeg installed, both inputs exist, parameters resolved.
 
 ### Phase 2: PREPARE
 
-Set up output path and confirm no conflicts.
+Determine output path. If none given, derive from audio filename: `/same/directory/as/audio/filename.mp4`. The script creates parent directories automatically. Verify the target directory is writable.
 
-**Step 1: Determine output path**
-
-Use the path provided by the user. If none given, derive from the audio filename:
-```
-/same/directory/as/audio/filename.mp4
-```
-
-**Step 2: Ensure output directory exists**
-
-The script creates parent directories automatically. Verify the target directory is writable.
-
-**Gate**: Output path determined, directory accessible. Proceed only when gate passes.
+**Gate**: Output path determined, directory accessible.
 
 ### Phase 3: ENCODE
 
-Execute FFmpeg to produce the video. Only implement what the user requested -- no extra visualizations or format conversions beyond MP4.
+Only implement what the user requested — no extra visualizations or format conversions.
 
-Encoding defaults: libx264 preset medium, CRF 23, yuv420p pixel format, 192k AAC audio.
-
-**Step 1: Run the script**
+Encoding defaults: libx264 preset medium, CRF 23, yuv420p, 192k AAC audio.
 
 ```bash
 python3 $HOME/vexjoy-agent/skills/image-to-video/scripts/image_to_video.py \
@@ -121,7 +102,7 @@ python3 $HOME/vexjoy-agent/skills/image-to-video/scripts/image_to_video.py \
   --visualization static
 ```
 
-For workspace batch mode (processes all matched pairs in `workspace/input/`):
+Workspace batch mode (processes all matched pairs in `workspace/input/`):
 
 ```bash
 python3 $HOME/vexjoy-agent/skills/image-to-video/scripts/image_to_video.py \
@@ -129,26 +110,20 @@ python3 $HOME/vexjoy-agent/skills/image-to-video/scripts/image_to_video.py \
   --visualization waveform
 ```
 
-**Step 2: Monitor output**
+Watch for ERROR lines in output.
 
-The script prints progress including input paths, resolution, visualization mode, and duration. Watch for ERROR lines in output.
-
-**Gate**: Script exits with code 0. Proceed only when gate passes.
+**Gate**: Script exits with code 0.
 
 ### Phase 4: VERIFY
 
-Confirm the output video is valid. Do not report success based on exit code alone -- FFmpeg can exit 0 but produce a corrupt or zero-duration file.
+Do not report success based on exit code alone — FFmpeg can exit 0 but produce a corrupt or zero-duration file.
 
-**Step 1: Check file exists and has reasonable size**
-
+**Step 1: Check file exists with reasonable size**
 ```bash
 ls -la /absolute/path/to/output.mp4
 ```
 
 **Step 2: Probe video metadata**
-
-File size alone does not prove video integrity. Always probe with ffprobe to confirm the output is a valid video with correct duration.
-
 ```bash
 ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height \
   -of default=noprint_wrappers=1 /absolute/path/to/output.mp4
@@ -156,43 +131,25 @@ ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_n
 
 Confirm video duration matches audio duration (within 1 second tolerance).
 
-**Step 3: Report to user**
+**Step 3: Report** — output file path, file size, duration, resolution, visualization mode used.
 
-Provide: output file path, file size, duration, resolution, and visualization mode used.
-
-**Gate**: Output file exists, duration matches audio, metadata is valid. Task complete.
+**Gate**: Output exists, duration matches audio, metadata valid. Task complete.
 
 ## Error Handling
 
 ### Error: "FFmpeg is not installed or not in PATH"
-Cause: FFmpeg binary not found on system
-Solution:
-1. Install via package manager: `brew install ffmpeg` (macOS), `sudo apt install ffmpeg` (Ubuntu)
-2. Verify with `ffmpeg -version` after install
-3. Ensure FFmpeg is in system PATH
+Install: `brew install ffmpeg` (macOS), `sudo apt install ffmpeg` (Ubuntu). Verify with `ffmpeg -version`.
 
 ### Error: "Image file not found" or "Audio file not found"
-Cause: Path is incorrect, relative, or file does not exist
-Solution:
-1. Verify the path is absolute, not relative
-2. Check file permissions with `ls -la`
-3. Confirm the file extension matches a supported format
+Verify path is absolute. Check permissions with `ls -la`. Confirm file extension matches a supported format.
 
 ### Error: "FFmpeg failed" with filter errors
-Cause: FFmpeg build lacks filter support (showwaves, showspectrum, showcqt)
-Solution:
-1. Install the full FFmpeg build, not a minimal variant
-2. On Ubuntu: `sudo apt install ffmpeg` (full package)
-3. Fall back to `--visualization static` which requires no special filters
+FFmpeg build lacks filter support. Install full FFmpeg package. Fall back to `--visualization static` (requires no special filters).
 
 ### Error: "Could not determine audio duration"
-Cause: Audio file is corrupted or uses an unsupported container format
-Solution:
-1. Test the audio independently: `ffprobe /path/to/audio.mp3`
-2. Convert to a known format: `ffmpeg -i input.audio -acodec pcm_s16le output.wav`
-3. Re-run with the converted file
+Audio file is corrupted or unsupported. Test with `ffprobe /path/to/audio.mp3`. Convert: `ffmpeg -i input.audio -acodec pcm_s16le output.wav`.
 
 ## References
 
 - `${CLAUDE_SKILL_DIR}/references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
-- `${CLAUDE_SKILL_DIR}/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)
+- `${CLAUDE_SKILL_DIR}/scripts/image_to_video.py`: Python CLI (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)
