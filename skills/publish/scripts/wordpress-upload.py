@@ -9,10 +9,10 @@ Categories are skipped with a warning if they don't exist, unless
 ``--create-missing-categories`` is passed (then they are created on demand).
 
 Usage:
-    python3 scripts/wordpress-upload.py --file article.md --status draft --human
-    python3 scripts/wordpress-upload.py --file article.md --title "My Title" --category "News" --status draft
-    python3 scripts/wordpress-upload.py --file article.md --classic --status draft
-    python3 scripts/wordpress-upload.py --file article.md --create-missing-categories --human
+    python3 skills/publish/scripts/wordpress-upload.py --file article.md --status draft --human
+    python3 skills/publish/scripts/wordpress-upload.py --file article.md --title "My Title" --category "News" --status draft
+    python3 skills/publish/scripts/wordpress-upload.py --file article.md --classic --status draft
+    python3 skills/publish/scripts/wordpress-upload.py --file article.md --create-missing-categories --human
 
 Environment Variables (from ~/.env):
     WORDPRESS_SITE         WordPress site URL (e.g., https://your-blog.com)

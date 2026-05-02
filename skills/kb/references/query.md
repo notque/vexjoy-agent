@@ -7,7 +7,7 @@ Answer a question using the compiled wiki for a knowledge base topic. Reads rele
 **Goal**: Confirm the topic exists and load its index.
 
 1. Parse the invocation to extract `{topic}`, `{question}`, and whether `--no-file` was specified.
-2. Read `research/{topic}/kb.yaml` — if it does not exist, stop and report: "Topic `{topic}` not found. Run `python3 scripts/kb-init.py {topic}` to initialize it."
+2. Read `research/{topic}/kb.yaml` — if it does not exist, stop and report: "Topic `{topic}` not found. Run `python3 skills/kb/scripts/kb-init.py {topic}` to initialize it."
 3. Read `research/{topic}/wiki/_index.md` — this is the full index of compiled concepts and source summaries. If it does not exist, stop and report: "Wiki index not found for `{topic}`. Run `/kb compile {topic}` first."
 4. Confirm to yourself: you now have the index and know what articles are available. Do not proceed to Phase 2 until you have read the index.
 

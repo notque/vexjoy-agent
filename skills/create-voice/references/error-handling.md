@@ -13,7 +13,7 @@
 **Cause**: Script execution error.
 **Solution**:
 1. Check Python 3 is available: `python3 --version`
-2. Check script exists: `ls scripts/voice-analyzer.py`
+2. Check script exists: `ls skills/create-voice/scripts/voice-analyzer.py`
 3. Check file paths: Glob expansion may not work as expected in all shells. Try listing files first: `ls skills/voice-{name}/references/samples/*.md`
 4. Try with explicit file list instead of glob: `--samples file1.md file2.md file3.md`
 

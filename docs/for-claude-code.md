@@ -393,8 +393,8 @@ The toolkit includes deterministic tooling for detecting and removing AI writing
 | `scripts/scan-ai-patterns.py` | Script | Regex scan against `scripts/data/banned-patterns.json` (105 patterns, 5 categories) |
 | `skills/anti-ai-editor/` | Skill | Targeted revision: scan for patterns, propose minimal fixes, preserve meaning |
 | `skills/workflow/references/de-ai-pipeline.md` | Skill | Full loop: SCAN -> FIX -> VERIFY, max 3 iterations |
-| `scripts/voice-analyzer.py` | Script | Extract metrics from writing samples |
-| `scripts/voice-validator.py` | Script | Validate content against voice profiles |
+| `skills/create-voice/scripts/voice-analyzer.py` | Script | Extract metrics from writing samples |
+| `skills/voice-validator/scripts/voice-validator.py` | Script | Validate content against voice profiles |
 
 ### Wabi-Sabi Principle
 
