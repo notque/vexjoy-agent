@@ -65,7 +65,7 @@ Describe what the agent should specialize in, what triggers should route to it, 
 - `/do create an agent for Terraform infrastructure management that knows HCL, state management, and module patterns`
 - `/do create an agent for Redis caching that specializes in data structures, eviction policies, and cluster management`
 
-The agent creator uses the `AGENT_TEMPLATE_V2.md` template and produces a complete agent with operator context, hardcoded/default/optional behaviors, anti-patterns, and reference files.
+The agent creator uses the `skills/skill-creator/references/agent-template.md` template and produces a complete agent with operator context, hardcoded/default/optional behaviors, anti-patterns, and reference files.
 
 For complex, security-sensitive, router-facing, or frequently tuned agents, the
 creator also adds optional maintenance files under `agents/[agent-name]/`:

@@ -42,7 +42,7 @@ Entry point command for the Pipeline Creator meta-pipeline.
 2. **Discovery** (`codebase-analyzer`): Analyzes existing components to prevent duplication and identify reusable patterns.
 3. **Scaffolding** (fan-out via `workflow` skill, scaffolder phase): Dispatches parallel sub-agents to create:
    - Python detector hook (environment evaluation before LLM invocation)
-   - Agent manifest (following `AGENT_TEMPLATE_V2.md`)
+   - Agent manifest (following `skills/skill-creator/references/agent-template.md`)
    - Skill definition (`SKILL.md` with phases and gates)
 4. **Integration** (`routing-table-updater`): Injects the new pipeline into `/do` routing tables.
 
