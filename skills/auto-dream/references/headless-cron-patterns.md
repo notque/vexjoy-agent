@@ -272,4 +272,4 @@ python3 ~/.claude/scripts/crontab-manager.py verify --tag auto-dream
 
 - `skills/auto-dream/dream-prompt.md` — prompt template with all `${VARIABLE}` placeholders
 - `skills/auto-dream/references/memory-file-operations.md` — memory file lifecycle patterns
-- `scripts/reddit-automod-cron.sh` — reference implementation of this headless cron pattern
+- `skills/reddit-moderate/scripts/reddit-automod-cron.sh` — reference implementation of this headless cron pattern

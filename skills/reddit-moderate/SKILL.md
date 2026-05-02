@@ -56,7 +56,7 @@ report classification, and executes mod actions you confirm.
 **Phase 1: FETCH** -- Get the modqueue with classification prompts.
 
 ```bash
-python3 ~/.claude/scripts/reddit_mod.py queue --json --limit 25 | python3 ~/.claude/scripts/reddit_mod.py classify
+python3 skills/reddit-moderate/scripts/reddit-mod.py queue --json --limit 25 | python3 skills/reddit-moderate/scripts/reddit-mod.py classify
 ```
 
 This pipes modqueue items through the classify subcommand, which loads subreddit
@@ -108,8 +108,8 @@ Wait for user input. Wait for explicit user confirmation before proceeding.
 **Phase 5: ACT** -- Execute confirmed actions:
 
 ```bash
-python3 ~/.claude/scripts/reddit_mod.py approve --id t1_def456
-python3 ~/.claude/scripts/reddit_mod.py remove --id t3_abc123 --reason "Rule 3: Self-promotion"
+python3 skills/reddit-moderate/scripts/reddit-mod.py approve --id t1_def456
+python3 skills/reddit-moderate/scripts/reddit-mod.py remove --id t3_abc123 --reason "Rule 3: Self-promotion"
 ```
 
 Report results after each action.
@@ -122,7 +122,7 @@ When invoked with `--auto` argument or when the user says "auto mode":
 
 1. Fetch queue and build classification prompts:
    ```bash
-   python3 ~/.claude/scripts/reddit_mod.py queue --auto --since-minutes 15 --json | python3 ~/.claude/scripts/reddit_mod.py classify
+   python3 skills/reddit-moderate/scripts/reddit-mod.py queue --auto --since-minutes 15 --json | python3 skills/reddit-moderate/scripts/reddit-mod.py classify
    ```
 
 2. For each item, read the rendered `prompt` field and classify it using
@@ -149,7 +149,7 @@ When invoked with `--auto` argument or when the user says "auto mode":
 Scan recent posts/comments for rule violations that were not reported:
 
 ```bash
-python3 ~/.claude/scripts/reddit_mod.py scan --json --classify --limit 50 --since-hours 24
+python3 skills/reddit-moderate/scripts/reddit-mod.py scan --json --classify --limit 50 --since-hours 24
 ```
 
 With `--classify`, the scan output includes classification prompts. Read each
