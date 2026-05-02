@@ -8,14 +8,14 @@
 
 ```bash
 # 1. Upload the featured image
-python3 ~/.claude/scripts/wordpress-media-upload.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-media-upload.py \
   --file images/photo.jpg \
   --alt "Description" \
   --human
 # Note the media_id from output
 
 # 2. Create the post (frontmatter auto-parsed for title, categories, tags, slug)
-python3 ~/.claude/scripts/wordpress-upload.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-upload.py \
   --file content/article.md \
   --category "News" \
   --tag "Example Tag" --tag "Example Event" \
@@ -24,7 +24,7 @@ python3 ~/.claude/scripts/wordpress-upload.py \
 # Note the post_id from output
 
 # 3. Attach featured image to post
-python3 ~/.claude/scripts/wordpress-edit-post.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-edit-post.py \
   --id <post_id> \
   --featured-image <media_id> \
   --human
@@ -38,10 +38,10 @@ Upload multiple files sequentially, confirming each completes before proceeding 
 
 ```bash
 # 1. List existing drafts to find old version
-python3 ~/.claude/scripts/wordpress-edit-post.py --list-drafts --human
+python3 ~/.claude/skills/publish/scripts/wordpress-edit-post.py --list-drafts --human
 
 # 2. Delete old draft
-python3 ~/.claude/scripts/wordpress-edit-post.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-edit-post.py \
   --id <old_post_id> \
   --delete \
   --human

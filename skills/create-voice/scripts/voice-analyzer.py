@@ -6,15 +6,15 @@ Extracts quantitative voice metrics from text samples and outputs as JSON or tex
 Designed for Phase 1 of voice system infrastructure.
 
 Usage:
-    python3 scripts/voice-analyzer.py analyze \
+    python3 skills/create-voice/scripts/voice-analyzer.py analyze \
         --samples file1.md file2.md file3.md \
         --output profile.json
 
-    python3 scripts/voice-analyzer.py analyze \
+    python3 skills/create-voice/scripts/voice-analyzer.py analyze \
         --samples file1.md file2.md file3.md \
         --format text
 
-    python3 scripts/voice-analyzer.py compare \
+    python3 skills/create-voice/scripts/voice-analyzer.py compare \
         --profile1 voice_a.json \
         --profile2 voice_b.json
 

@@ -4,13 +4,13 @@
 Edit, delete, and list existing WordPress posts via the REST API.
 
 Usage:
-    python3 scripts/wordpress-edit-post.py --id 12345 --get --human
-    python3 scripts/wordpress-edit-post.py --id 12345 --title "New Title"
-    python3 scripts/wordpress-edit-post.py --id 12345 --content-file updated.md
-    python3 scripts/wordpress-edit-post.py --id 12345 --status publish
-    python3 scripts/wordpress-edit-post.py --id 12345 --featured-image 67890
-    python3 scripts/wordpress-edit-post.py --id 12345 --delete --human
-    python3 scripts/wordpress-edit-post.py --list-drafts --human
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --get --human
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --title "New Title"
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --content-file updated.md
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --status publish
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --featured-image 67890
+    python3 skills/publish/scripts/wordpress-edit-post.py --id 12345 --delete --human
+    python3 skills/publish/scripts/wordpress-edit-post.py --list-drafts --human
 
 Environment Variables (from ~/.env):
     WORDPRESS_SITE         WordPress site URL (e.g., https://your-blog.com)

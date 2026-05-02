@@ -5,9 +5,9 @@ WordPress REST API media uploader.
 Uploads images and other media files to WordPress media library.
 
 Usage:
-    python3 scripts/wordpress-media-upload.py --file image.jpg
-    python3 scripts/wordpress-media-upload.py --file image.jpg --alt "Alt text" --caption "Caption"
-    python3 scripts/wordpress-media-upload.py --file image.jpg --title "Image Title"
+    python3 skills/publish/scripts/wordpress-media-upload.py --file image.jpg
+    python3 skills/publish/scripts/wordpress-media-upload.py --file image.jpg --alt "Alt text" --caption "Caption"
+    python3 skills/publish/scripts/wordpress-media-upload.py --file image.jpg --title "Image Title"
 
 Environment Variables (from ~/.env):
     WORDPRESS_SITE         WordPress site URL (e.g., https://your-blog.com)

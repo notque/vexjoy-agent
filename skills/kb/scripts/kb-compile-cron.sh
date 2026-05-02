@@ -3,11 +3,11 @@
 # Compiles all KB topics under research/ that have a kb.yaml config.
 #
 # Usage:
-#   ./scripts/kb-compile-cron.sh           # Compile all topics
-#   ./scripts/kb-compile-cron.sh --topic X # Compile specific topic
+#   ./skills/kb/scripts/kb-compile-cron.sh           # Compile all topics
+#   ./skills/kb/scripts/kb-compile-cron.sh --topic X # Compile specific topic
 #
 # Cron example (nightly at 3:37 AM, after toolkit-evolution at 3:07 AM):
-#   37 3 * * * /home/feedgen/vexjoy-agent/scripts/kb-compile-cron.sh >> /home/feedgen/vexjoy-agent/cron-logs/kb-compile/cron.log 2>&1
+#   37 3 * * * /home/feedgen/vexjoy-agent/skills/kb/scripts/kb-compile-cron.sh >> /home/feedgen/vexjoy-agent/cron-logs/kb-compile/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"

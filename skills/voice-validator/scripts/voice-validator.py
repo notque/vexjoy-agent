@@ -6,22 +6,22 @@ Validates content against voice profiles and banned patterns.
 Returns structured JSON output with violations and metrics.
 
 Usage:
-    python3 scripts/voice-validator.py validate \
+    python3 skills/voice-validator/scripts/voice-validator.py validate \
         --content draft.md \
         --profile profile.json \
         --format json
 
-    python3 scripts/voice-validator.py validate \
+    python3 skills/voice-validator/scripts/voice-validator.py validate \
         --content draft.md \
         --profile profile.json \
         --format text \
         --verbose
 
-    python3 scripts/voice-validator.py check-banned \
+    python3 skills/voice-validator/scripts/voice-validator.py check-banned \
         --content draft.md \
         --banned-file scripts/data/banned-patterns.json
 
-    python3 scripts/voice-validator.py check-rhythm \
+    python3 skills/voice-validator/scripts/voice-validator.py check-rhythm \
         --content draft.md \
         --profile profile.json
 
