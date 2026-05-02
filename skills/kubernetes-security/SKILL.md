@@ -30,13 +30,13 @@ Harden Kubernetes clusters and workloads through RBAC, pod security, network iso
 | NetworkPolicy, default-deny, allow-list, egress, ingress, DNS, lateral movement, namespace isolation | `references/network-policies.md` | ~70 lines |
 | cosign, Kyverno, OPA, admission controller, Sealed Secrets, External Secrets, supply chain, misconfiguration, privileged | `references/supply-chain.md` | ~120 lines |
 
-**Load greedily.** If the user's question touches any signal keyword, load the matching reference before responding. Multiple signals matching = load all matching references.
+**Load greedily.** If the user's question touches any signal keyword, load the matching reference before responding. Multiple matches = load all.
 
 ---
 
 ## Phase 1: IDENTIFY
 
-Determine which security domain the user is asking about.
+Determine the security domain.
 
 | Domain | Reference |
 |--------|-----------|
@@ -45,17 +45,17 @@ Determine which security domain the user is asking about.
 | Network isolation, traffic rules | `references/network-policies.md` |
 | Image signing, secrets, admission control | `references/supply-chain.md` |
 
-If the question spans multiple domains, load all relevant references. Most production hardening tasks touch at least RBAC + pod security.
+If the question spans multiple domains, load all relevant references. Most production hardening touches at least RBAC + pod security.
 
-**Gate**: Domain identified. Reference(s) loaded. Proceed to Phase 2.
+**Gate**: Domain identified. Reference(s) loaded.
 
 ---
 
 ## Phase 2: RESPOND
 
-Use loaded reference knowledge to answer with concrete YAML manifests and specific configurations. The references contain complete, copy-paste-ready examples for each security domain.
+Use loaded reference knowledge to answer with concrete YAML manifests and specific configurations. References contain complete, copy-paste-ready examples.
 
-For general Kubernetes debugging, pair with the `kubernetes-debugging` skill.
+For general Kubernetes debugging, pair with `kubernetes-debugging`.
 
 **Gate**: Question answered with reference-backed manifests, not generic advice.
 
@@ -63,7 +63,7 @@ For general Kubernetes debugging, pair with the `kubernetes-debugging` skill.
 
 ## Phase 3: VERIFY
 
-Validate the security posture against the misconfiguration table in `references/supply-chain.md`. Flag any of the 8 common misconfigurations if present in the user's manifests.
+Validate security posture against the misconfiguration table in `references/supply-chain.md`. Flag any of the 8 common misconfigurations present in the user's manifests.
 
 ---
 

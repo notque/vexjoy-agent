@@ -21,27 +21,27 @@ routing:
 
 # Learn Error Pattern Skill
 
-Parse a user-provided "error -> solution" pair, classify it, store it in the cross-session learning database at high confidence, and confirm back. One pattern per invocation. All database operations go through the `learning-db.py` CLI.
+Parse a user-provided "error -> solution" pair, classify it, store it in the learning database at high confidence, and confirm. One pattern per invocation. All database operations go through `learning-db.py`.
 
 ## Instructions
 
 ### Step 1: Parse Input
 
-Extract two fields from the user's input:
+Extract two fields:
 
-- `error_pattern`: The error message or symptom text
-- `solution`: The fix or resolution text
+- `error_pattern`: The error message or symptom
+- `solution`: The fix or resolution
 
-Accepted input formats:
+Accepted formats:
 - `/learn "error pattern" -> "solution"`
 - `/learn "error pattern" => "solution"`
 - Freeform: "teach that X means Y" or "remember: when X, do Y"
 
-Both fields must be non-empty. If either is missing, ask the user for the missing part before proceeding. If the error pattern is vague (e.g., "it broke") or the solution is non-actionable (e.g., "fix it"), ask the user to provide the specific error message and concrete fix steps — vague patterns fail to match future errors and waste database space.
+Both fields must be non-empty. If either is missing, ask the user. If the error pattern is vague (e.g., "it broke") or the solution non-actionable (e.g., "fix it"), ask for specifics -- vague patterns fail to match future errors.
 
 ### Step 2: Classify Fix Type
 
-Determine `fix_type` and `fix_action` from the solution text by applying these rules in order:
+Determine `fix_type` and `fix_action` by applying these rules in order:
 
 1. Solution contains an install command (`pip install`, `npm install`, `apt install`) -> `fix_type=auto`, `fix_action=install_dependency`
 2. Solution contains `replace_all` -> `fix_type=auto`, `fix_action=use_replace_all`
@@ -51,7 +51,7 @@ Determine `fix_type` and `fix_action` from the solution text by applying these r
 
 ### Step 3: Store Pattern
 
-Execute the `learning-db.py` CLI to persist the pattern. Always pass user-provided strings as CLI arguments exactly as shown — never inline them into Python code via f-strings or string concatenation, because quotes or special characters in error text will break the script and create injection risk.
+Always pass user-provided strings as CLI arguments exactly as shown -- never inline them via f-strings or concatenation (injection risk).
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
@@ -62,9 +62,9 @@ python3 ~/.claude/scripts/learning-db.py record \
   --confidence 0.9
 ```
 
-- `<error_type>`: The classified type (e.g., "missing_file", "multiple_matches")
-- `<error_signature>`: A kebab-case key derived from the error pattern
-- Confidence is always 0.9 for manually taught patterns. If the pattern already exists, this updates its confidence to 0.9.
+- `<error_type>`: Classified type (e.g., "missing_file", "multiple_matches")
+- `<error_signature>`: Kebab-case key derived from the error pattern
+- Confidence is always 0.9 for manually taught patterns
 
 Example:
 ```bash
@@ -76,11 +76,11 @@ python3 ~/.claude/scripts/learning-db.py record \
   --confidence 0.9
 ```
 
-The script must exit 0 and print confirmation. If it fails, see Error Handling below.
+Script must exit 0 and print confirmation. If it fails, see Error Handling.
 
 ### Step 4: Confirm to User
 
-Always display what was stored so the user can verify correctness — silently storing without confirmation hides typos and misclassifications:
+Display what was stored so the user can verify:
 
 ```
 Learned pattern:
@@ -93,16 +93,16 @@ Learned pattern:
 ## Error Handling
 
 ### Error: "Script fails with ImportError or FileNotFoundError"
-Cause: scripts/learning-db.py not found or not synced to ~/.claude/scripts/
-Solution: Verify working directory is the repo root, or use `~/.claude/scripts/learning-db.py` for cross-repo access.
+Cause: `scripts/learning-db.py` not found or not synced to `~/.claude/scripts/`
+Solution: Verify working directory is repo root, or use `~/.claude/scripts/learning-db.py`.
 
 ### Error: "Database locked"
-Cause: Another process holds the SQLite lock
-Solution: Retry after 2 seconds. If persistent, check for hung processes with `lsof ~/.claude/learning/learning.db`.
+Cause: Another process holds the SQLite lock.
+Solution: Retry after 2 seconds. If persistent, check `lsof ~/.claude/learning/learning.db`.
 
 ### Error: "User provides only error, no solution"
-Cause: Incomplete input
-Solution: Ask the user explicitly for the solution text. Do not guess or fabricate solutions.
+Cause: Incomplete input.
+Solution: Ask the user explicitly. Do not guess or fabricate solutions.
 
 ## References
 

@@ -52,9 +52,9 @@ routing:
 
 ## Overview
 
-This skill builds complete Three.js web applications using a **Phased Construction** pattern with four phases: Design, Build, Animate, Polish. It supports three paradigms — imperative Three.js, React Three Fiber (R3F), and WebGPU — detected automatically from project context. Only the relevant paradigm's reference is loaded.
+Builds complete Three.js web applications using **Phased Construction**: Design, Build, Animate, Polish. Supports three paradigms -- imperative Three.js, React Three Fiber (R3F), and WebGPU -- detected automatically from project context. Only the relevant paradigm's reference is loaded.
 
-**Scope**: Use for 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, and product viewers. For game engines, 3D model creation, VR/AR experiences, or CAD workflows, use a more specialized skill.
+**Scope**: 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, product viewers. For game engines, 3D model creation, VR/AR, or CAD, use a specialized skill.
 
 ---
 
@@ -83,110 +83,88 @@ This skill builds complete Three.js web applications using a **Phased Constructi
 
 ### Phase 1: DESIGN
 
-**Goal**: Detect the paradigm, understand what the user wants, and select appropriate components.
+**Goal**: Detect paradigm, understand requirements, select components.
 
 **Core Constraints**:
-- **Build only what the user asked for** — no speculative features or "while I'm here" additions
-- **Detect the paradigm before selecting components** — imperative, R3F, and WebGPU have fundamentally different patterns; using the wrong one is the #1 source of bugs
-- **Structure through the scene graph** — use `Group` for logical groupings and maintain proper hierarchy
-- **Vary style by context** — portfolio/showcase use elegant muted palettes; games use bright colors; data viz uses clean lines; backgrounds use subtle slow movement; product viewers use realistic PBR lighting
-- **Read repository CLAUDE.md before building** — ensure compliance with local development standards
+- Build only what the user asked for -- no speculative features
+- Detect paradigm before selecting components -- imperative, R3F, and WebGPU have fundamentally different patterns
+- Use `Group` for logical scene graph hierarchy
+- Vary style by context -- portfolio: elegant muted; games: bright; data viz: clean; backgrounds: subtle slow; product viewers: realistic PBR
+- Read repository CLAUDE.md first
 
 **Step 0: Detect paradigm**
 
-Scan the user's request, existing project files (package.json, imports), and stated requirements to identify which paradigm applies:
+Scan request, project files (package.json, imports), and requirements:
 
 | Signal | Paradigm / Context | Reference to Load |
 |--------|-------------------|-------------------|
-| `@react-three/fiber`, `r3f`, `drei`, `useFrame`, `<Canvas>`, `<mesh>`, React project with 3D | **React Three Fiber** | `references/react-three-fiber.md` |
-| `WebGPURenderer`, `TSL`, `tsl`, `compute shader`, `wgsl`, `node material`, WebGPU mentioned | **WebGPU** | `references/webgpu.md` |
-| Standalone HTML, CDN imports, `new THREE.Scene()`, no React, vanilla JS/TS | **Imperative** | `references/advanced-topics.md` (load as needed) |
-| Game project: `EventBus`, `GameState`, player controller, enemies, scoring, multiple game systems | **Game architecture** | `references/game-architecture.md` + `references/game-patterns.md` (alongside paradigm reference) |
-| GLTF/GLB model loading, `.glb` files, animated characters, skeletal rigs, model import | **GLTF loading** | `references/gltf-loading.md` (alongside paradigm reference) |
+| `@react-three/fiber`, `r3f`, `drei`, `useFrame`, `<Canvas>`, `<mesh>`, React+3D | **React Three Fiber** | `references/react-three-fiber.md` |
+| `WebGPURenderer`, `TSL`, `tsl`, `compute shader`, `wgsl`, `node material` | **WebGPU** | `references/webgpu.md` |
+| Standalone HTML, CDN imports, `new THREE.Scene()`, no React, vanilla JS/TS | **Imperative** | `references/advanced-topics.md` (as needed) |
+| `EventBus`, `GameState`, player controller, enemies, scoring | **Game architecture** | `references/game-architecture.md` + `references/game-patterns.md` (alongside paradigm) |
+| GLTF/GLB loading, `.glb` files, animated characters, skeletal rigs | **GLTF loading** | `references/gltf-loading.md` (alongside paradigm) |
 
-If ambiguous (e.g., user says "3D scene" with no project context), ask which paradigm — don't guess, because imperative Three.js patterns actively conflict with R3F patterns (OrbitControls setup, animation loops, component lifecycle).
+If ambiguous, ask which paradigm -- imperative patterns actively conflict with R3F (OrbitControls setup, animation loops, component lifecycle).
 
-Game and GLTF references load **alongside** the paradigm reference — they are complementary, not alternative. A game project using R3F loads both `react-three-fiber.md` and the relevant game references.
+Game and GLTF references load **alongside** the paradigm reference -- they are complementary, not alternative.
 
-**After detecting paradigm**: Read the corresponding reference file. The reference contains paradigm-specific patterns, anti-patterns, and component selection guidance that override the generic steps below.
+**After detecting paradigm**: Read the corresponding reference file. It contains paradigm-specific patterns and anti-patterns that override generic steps below.
 
-Additional reference loading signals (visual-polish, shader-patterns, performance-patterns, advanced-animation) are listed in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 1: Additional Reference Loading Signals).
+Additional reference loading signals in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 1: Additional Reference Loading Signals).
 
-**Step 1: Identify the core visual element**
+**Step 1: Identify core visual element** -- Primary 3D content? Interaction needed? Animation? Context (portfolio, game, data viz, background, product viewer)?
 
-Determine from the user request:
-- What is the primary 3D content? (geometric shapes, loaded model, particles, terrain)
-- What interaction is needed? (none, orbit, click, mouse tracking)
-- What animation brings it to life? (rotation, oscillation, morphing, physics)
-- What is the context? (portfolio, game, data viz, background, product viewer)
+**Step 2: Select components** -- See Scene Plan template in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 1).
 
-**Step 2: Select components**
+**Step 3: Document visual style** -- Record direction (e.g., "elegant minimal portfolio"). Guides material colors, lighting warmth, animation pacing.
 
-See the Scene Plan template in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 1: Scene Plan Template).
-
-**Step 3: Document visual style**
-
-Record the visual direction for this scene (e.g., "elegant minimal portfolio style", "vibrant interactive game", "clean data visualization"). Use this to guide material colors, lighting warmth, and animation pacing.
-
-**Gate**: Scene plan documented with geometry, material, lighting, animation, and controls selected. Proceed only when gate passes.
+**Gate**: Scene plan documented with geometry, material, lighting, animation, and controls. Proceed only when gate passes.
 
 ### Phase 2: BUILD
 
 **Goal**: Construct the scene with proper structure and modern patterns.
 
-**Paradigm-specific build instructions**: If you loaded a paradigm reference in Step 0, follow its build patterns instead of the imperative defaults. R3F uses JSX components and `<Canvas>`, not manual renderer setup. WebGPU uses `WebGPURenderer` with different initialization. The reference file is authoritative for its paradigm.
+**Paradigm-specific**: Follow loaded paradigm reference patterns. R3F uses JSX and `<Canvas>`, not manual renderer setup. WebGPU uses `WebGPURenderer`. The reference file is authoritative.
 
-Core constraints for the imperative paradigm (single HTML, resize handling, CONFIG object, modular setup functions, three-point lighting, `renderer.setAnimationLoop()`) are in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2: Core Constraints).
+Core imperative constraints (single HTML, resize handling, CONFIG object, modular setup, three-point lighting, `renderer.setAnimationLoop()`) in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2).
 
-**Step 1: Create HTML boilerplate**
+**Step 1: Create HTML boilerplate** -- See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2).
 
-See the HTML boilerplate in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2: HTML Boilerplate).
+**Step 2: Build scene infrastructure** -- CONFIG object, scene/camera/renderer, resize handler. See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2).
 
-**Step 2: Build scene infrastructure**
+**Step 3: Add lighting, geometry, materials per scene plan** -- Create geometry once and reuse. Use `Group` for hierarchical transforms.
 
-See the scene infrastructure code (CONFIG object, scene/camera/renderer setup, resize handler) in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 2: Scene Infrastructure).
-
-**Step 3: Add lighting, geometry, and materials per scene plan**
-
-Build each component from the Phase 1 plan. Create geometry once and reuse where possible (avoid allocating new geometries in animation loops). Use `Group` for hierarchical transforms and logical scene organization.
-
-**Gate**: Scene renders without errors. All planned geometry, materials, and lights are present. Proceed only when gate passes.
+**Gate**: Scene renders without errors. All planned components present. Proceed only when gate passes.
 
 ### Phase 3: ANIMATE
 
-**Goal**: Add motion, interaction, and life to the scene.
+**Goal**: Add motion, interaction, and life.
 
-**Paradigm-specific animation**: R3F uses `useFrame` hooks (never `requestAnimationFrame` or `setAnimationLoop`). WebGPU may use compute shaders for GPU-driven animation. See the loaded paradigm reference for patterns.
+**Paradigm-specific**: R3F uses `useFrame` (never `requestAnimationFrame`/`setAnimationLoop`). WebGPU may use compute shaders. See loaded paradigm reference.
 
-Core constraints for the imperative paradigm (no geometry/material allocation in the loop, `time` parameter usage, OrbitControls default, transform-only-per-frame) are in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 3: Core Constraints).
+Core imperative constraints (no allocation in loop, `time` parameter, OrbitControls default, transforms-only-per-frame) in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 3).
 
-**Step 1: Set up animation loop**
+**Step 1: Set up animation loop** -- See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 3).
 
-See the animation loop pattern in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 3: Animation Loop).
+**Step 2: Implement planned animations** -- Time-based transforms per `references/build-recipes.md`.
 
-**Step 2: Implement planned animations**
-
-Apply transforms per frame. Time-based animation follows the pattern shown in `references/build-recipes.md`.
-
-**Step 3: Add interaction handlers**
-
-Wire up mouse/touch events, orbit controls, or raycasting per the scene plan.
+**Step 3: Add interaction handlers** -- Mouse/touch events, orbit controls, raycasting per scene plan.
 
 **Gate**: Animations run smoothly. Interactions respond correctly. No console errors. Proceed only when gate passes.
 
 ### Phase 4: POLISH
 
-**Goal**: Ensure quality, performance, and completeness.
+**Goal**: Quality, performance, completeness.
 
-Core constraints (remove debug helpers / commented code, handle window resize, ensure visible lighting, match visual style) and the four verification steps (responsive behavior, visual quality, output testing, cleanup) are in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 4: Core Constraints + Polish Verification Steps).
+Core constraints (remove debug/commented code, handle resize, ensure visible lighting, match visual style) and four verification steps in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 4).
 
-**Gate**: All verification steps pass. Output is complete and ready to deliver.
+**Gate**: All verification steps pass. Output complete and ready to deliver.
 
 ---
 
 ## Error Handling
 
-See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` for error cases: black screen / nothing renders, OrbitControls not defined, model loads but is invisible or tiny.
+See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` for: black screen / nothing renders, OrbitControls not defined, model loads but invisible or tiny.
 
 ---
 
@@ -194,14 +172,14 @@ See `${CLAUDE_SKILL_DIR}/references/build-recipes.md` for error cases: black scr
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/build-recipes.md` | Phase 2/3 build, error diagnosis | HTML boilerplate, CONFIG + scene/camera/renderer setup, animation loop, error handling (black screen, OrbitControls, model scale) |
-| `references/advanced-topics.md` | Imperative paradigm | GLTF loading, post-processing, shaders, raycasting, physics, InstancedMesh, TypeScript |
-| `references/react-three-fiber.md` | R3F paradigm | Declarative patterns, Drei helpers, camera pitfalls, post-processing, Zustand, performance |
-| `references/webgpu.md` | WebGPU paradigm | WebGPURenderer, TSL shaders, compute shaders, version-specific changes, device loss |
-| `references/visual-polish.md` | Visual quality signal | Material recipes, dramatic lighting, post-processing stacking, HDR environments, shadow quality |
-| `references/gltf-loading.md` | GLTF/GLB model loading signal | Coordinate system contract, SkeletonUtils.clone, model caching, auto-centering, bone hierarchy, asset manifest |
-| `references/game-patterns.md` | Game project signal | Animation state machine, camera-relative movement, delta capping, mobile input, player controller |
-| `references/game-architecture.md` | Game project signal | EventBus, GameState singleton, Constants module, restart-safety, pre-ship checklist |
-| `references/shader-patterns.md` | Custom GLSL / visual effects | ShaderMaterial vs RawShaderMaterial, vertex displacement, fragment effects (holographic, dissolve, chromatic aberration), EffectComposer postprocessing pipeline |
-| `references/performance-patterns.md` | Performance / many objects | InstancedMesh, BufferGeometry typed arrays, draw call batching, LOD, KTX2 textures, dispose patterns |
-| `references/advanced-animation.md` | Animation systems / skeletal rigs | AnimationMixer morph targets, bone manipulation, procedural IK, spring physics, GSAP integration, particle animation |
+| `references/build-recipes.md` | Phase 2/3 build, error diagnosis | HTML boilerplate, CONFIG + scene setup, animation loop, error handling |
+| `references/advanced-topics.md` | Imperative paradigm | GLTF, post-processing, shaders, raycasting, physics, InstancedMesh, TypeScript |
+| `references/react-three-fiber.md` | R3F paradigm | Declarative patterns, Drei helpers, camera pitfalls, Zustand, performance |
+| `references/webgpu.md` | WebGPU paradigm | WebGPURenderer, TSL shaders, compute shaders, device loss |
+| `references/visual-polish.md` | Visual quality | Material recipes, dramatic lighting, post-processing, HDR, shadows |
+| `references/gltf-loading.md` | GLTF/GLB loading | Coordinate contract, SkeletonUtils.clone, caching, auto-centering, bones |
+| `references/game-patterns.md` | Game project | Animation state machine, camera-relative movement, delta capping, mobile input |
+| `references/game-architecture.md` | Game project | EventBus, GameState singleton, Constants, restart-safety, pre-ship checklist |
+| `references/shader-patterns.md` | Custom GLSL / effects | ShaderMaterial vs Raw, vertex displacement, fragment effects, EffectComposer |
+| `references/performance-patterns.md` | Performance / many objects | InstancedMesh, BufferGeometry, draw call batching, LOD, KTX2, dispose |
+| `references/advanced-animation.md` | Animation / skeletal rigs | AnimationMixer, morph targets, bone manipulation, procedural IK, springs, GSAP |

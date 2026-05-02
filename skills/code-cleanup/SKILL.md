@@ -39,15 +39,15 @@ routing:
 
 # Code Cleanup Skill
 
-Scan repositories for 9 categories of technical debt (TODOs, unused imports, dead code, missing type hints, deprecated functions, naming inconsistencies, high complexity, duplicate code, missing docstrings), prioritize findings by impact/effort ratio with time estimates, and generate structured markdown reports with exact file:line references. Can apply safe auto-fixes when the user grants explicit permission.
+Scan for 9 categories of technical debt (TODOs, unused imports, dead code, missing type hints, deprecated functions, naming inconsistencies, high complexity, duplicate code, missing docstrings). Prioritize by impact/effort ratio with time estimates. Generate structured reports with exact file:line references. Apply safe auto-fixes with explicit permission.
 
 ### Examples
 
-**Focused cleanup** -- User says "Clean up the API handlers in src/api/". Read project config, scan src/api/ for all 9 categories, prioritize (5 unused imports auto-fixable, 2 stale TODOs >90d, 1 high-complexity function), present tiered report with auto-fix commands.
+**Focused cleanup** -- "Clean up the API handlers in src/api/". Scan src/api/ for all 9 categories, prioritize (5 unused imports auto-fixable, 2 stale TODOs >90d, 1 high-complexity function), present tiered report.
 
-**Broad debt scan** -- User says "What's the state of technical debt in this repo?". Identify languages and source directories, run all applicable scans, group 47 findings into Quick Wins (12), Important (8), Polish (27), generate full report with effort estimates: 2h quick wins, 6h important, 4h polish.
+**Broad debt scan** -- "What's the state of technical debt?". Identify languages and source dirs, run all scans, group 47 findings into Quick Wins (12), Important (8), Polish (27) with effort estimates.
 
-**Auto-fix request** -- User says "Fix all the unused imports and sort them". Verify ruff/goimports available, scan for F401 and I001 violations only, report 23 unused imports across 8 files, user confirms, apply fixes, run tests, show diff.
+**Auto-fix request** -- "Fix all unused imports and sort them". Verify tools available, scan F401/I001 only, report 23 unused imports across 8 files, user confirms, apply, test, show diff.
 
 ---
 
@@ -63,73 +63,65 @@ Scan repositories for 9 categories of technical debt (TODOs, unused imports, dea
 
 ### Phase 1: SCOPE
 
-**Goal**: Determine what to scan and verify tooling is available.
+**Goal**: Determine scan scope and verify tooling.
 
 **Step 1: Read project context**
-- Check for CLAUDE.md, .gitignore, pyproject.toml, go.mod, package.json -- read and follow any repository CLAUDE.md before doing anything else, since it may contain project-specific exclusions or conventions that override defaults
-- Identify primary languages and project structure
+- Check for CLAUDE.md, .gitignore, pyproject.toml, go.mod, package.json -- read and follow repository CLAUDE.md first
+- Identify primary languages and structure
 
 **Step 2: Determine scan scope**
-- If the user specified a directory or issue type, use that exactly -- only scan for requested issue types or smart defaults, never build elaborate reporting dashboards or speculative features
-- If the user specified only an issue type (e.g., "find unused imports"), scan all source directories for that type only
-- If the request is vague ("clean up code"), ask the user for a target area rather than scanning the entire codebase, because unfocused scans produce overwhelming noise that users cannot act on
-- Always exclude: vendor/, node_modules/, .venv/, build/, dist/, generated/, .git/ -- these contain third-party or generated code that the user cannot fix, so including them buries real findings
-- Respect .gitignore patterns when determining what to scan
+- User specified directory/type: use exactly that
+- User specified only type (e.g., "find unused imports"): scan all source dirs for that type
+- Vague request ("clean up code"): ask for target area -- unfocused scans produce overwhelming noise
+- Always exclude: vendor/, node_modules/, .venv/, build/, dist/, generated/, .git/
+- Respect .gitignore patterns
 
 **Step 3: Verify tool availability**
 
-Check which analysis tools are installed so you know what scans are possible before starting. Report missing tools with install commands.
-
 ```bash
-# Python tools
 command -v ruff && echo "ruff: available" || echo "ruff: MISSING (pip install ruff)"
 command -v vulture && echo "vulture: available" || echo "vulture: MISSING (pip install vulture)"
-
-# Go tools
 command -v gocyclo && echo "gocyclo: available" || echo "gocyclo: MISSING (go install github.com/fzipp/gocyclo/cmd/gocyclo@latest)"
 command -v goimports && echo "goimports: available" || echo "goimports: MISSING (go install golang.org/x/tools/cmd/goimports@latest)"
 ```
 
-If critical tools are missing, offer to proceed with partial scan using available tools (grep, git blame are always available).
+If critical tools missing, offer partial scan. grep and git blame are always available.
 
-**Gate**: Scope defined, languages identified, tool availability known. Proceed only when gate passes.
+**Gate**: Scope defined, languages identified, tool availability known.
 
 ### Phase 2: SCAN
 
-**Goal**: Detect all cleanup opportunities within scope using deterministic tools.
+**Goal**: Detect all cleanup opportunities using deterministic tools.
 
-Run applicable scans based on language and scope. See `references/scan-commands.md` for full command reference.
+Run applicable scans. See `references/scan-commands.md` for full command reference.
 
 **Core scans (all languages)**:
-1. **Stale TODOs**: grep for TODO/FIXME/HACK/XXX, then age every match with git blame -- a 180-day-old TODO about a data race is fundamentally different from yesterday's "TODO: add test case", so age-based triage is essential for prioritization
+1. **Stale TODOs**: grep TODO/FIXME/HACK/XXX, age every match with git blame -- a 180-day-old TODO about a data race differs fundamentally from yesterday's "TODO: add test"
 2. **Unused imports**: ruff (Python), goimports (Go)
 3. **Dead code**: vulture (Python), staticcheck (Go)
 4. **Complexity**: radon (Python), gocyclo (Go)
 
 **Extended scans (if tools available)**:
-5. Missing type hints (Python: ruff --select ANN)
-6. Deprecated function usage (staticcheck, grep for known patterns)
-7. Naming inconsistencies (grep for convention violations)
+5. Missing type hints (ruff --select ANN)
+6. Deprecated function usage (staticcheck, grep)
+7. Naming inconsistencies (grep for violations)
 8. Duplicate code (pylint --enable=duplicate-code)
 9. Missing docstrings (ruff --select D)
 
-Collect all output with exact file:line references -- never summarize away specifics, because the user needs precise locations to act on findings. For each scan, record:
-- Number of findings
-- Files affected
-- Whether findings are auto-fixable
+Collect all output with exact file:line references. For each scan record: finding count, files affected, auto-fixable status.
 
-If a scan tool is unavailable, note it as skipped and continue with remaining scans. Never abort the entire scan because one tool is missing.
+If a tool is unavailable, note as skipped and continue.
 
-**Gate**: All applicable scans complete with raw output collected. Proceed only when gate passes.
+**Gate**: All applicable scans complete with raw output.
 
 ### Phase 3: PRIORITIZE
 
-**Goal**: Rank findings by impact/effort ratio and categorize. Never present a flat unsorted list -- a critical 90-day-old security TODO buried among trivial missing docstrings wastes the user's attention.
+**Goal**: Rank by impact/effort ratio and categorize.
 
 **Step 1: Assign impact and effort**
 
-| Issue Type | Impact | Effort | Priority Score |
-|------------|--------|--------|----------------|
+| Issue Type | Impact | Effort | Priority |
+|------------|--------|--------|----------|
 | Stale TODOs (>90 days) | High | Low | 8 |
 | Unused imports | Medium | Trivial | 10 |
 | Deprecated functions | High | Medium | 6 |
@@ -142,69 +134,60 @@ If a scan tool is unavailable, note it as skipped and continue with remaining sc
 | Magic numbers | Low | Low | 5 |
 
 **Step 2: Group into tiers**
-- **Quick Wins** (High priority, low effort): Unused imports, stale TODOs, dead code -- present auto-fixable issues first so the user gets immediate value
-- **Important** (High impact, medium+ effort): Deprecated functions, high complexity, duplicates
-- **Polish** (Lower impact): Missing types, docstrings, naming, magic numbers
+- **Quick Wins** (high priority, low effort): Unused imports, stale TODOs, dead code -- auto-fixable first
+- **Important** (high impact, medium+ effort): Deprecated functions, high complexity, duplicates
+- **Polish** (lower impact): Missing types, docstrings, naming, magic numbers
 
-**Step 3: Estimate total effort per tier**
-
-Include time estimates so the user can plan their cleanup budget:
+**Step 3: Estimate effort per tier**
 
 | Issue Type | Time per Instance |
 |------------|-------------------|
 | Unused imports | 1-2 min (auto-fix) |
-| Stale TODOs | 5-15 min each |
-| Dead code removal | 5-10 min each |
-| Magic numbers | 2-5 min each |
-| Missing type hints | 10-20 min per function |
-| Missing docstrings | 5-15 min per function |
-| Naming fixes | 10-30 min per violation |
-| High complexity refactor | 30-120 min per function |
-| Duplicate code elimination | 30-90 min per instance |
-| Deprecated function replacement | 15-60 min per usage |
+| Stale TODOs | 5-15 min |
+| Dead code removal | 5-10 min |
+| Magic numbers | 2-5 min |
+| Missing type hints | 10-20 min/function |
+| Missing docstrings | 5-15 min/function |
+| Naming fixes | 10-30 min/violation |
+| High complexity refactor | 30-120 min/function |
+| Duplicate elimination | 30-90 min/instance |
+| Deprecated replacement | 15-60 min/usage |
 
 Multiply by instance count for tier totals.
 
-**Gate**: All findings categorized and prioritized with effort estimates. Proceed only when gate passes.
+**Gate**: All findings categorized and prioritized with effort estimates.
 
 ### Phase 4: REPORT
 
 **Goal**: Present findings in structured, actionable format.
 
-This skill defaults to read-only scan and report. Do not modify any files during this phase.
+Defaults to read-only. Do not modify files.
 
-Generate report with this structure:
+Generate report:
 1. Executive summary (total issues, tier counts, estimated effort)
-2. Quick Wins with auto-fix commands where available
-3. Important issues with specific suggestions
-4. Polish items grouped by type
+2. Quick Wins with auto-fix commands
+3. Important issues with suggestions
+4. Polish items by type
 5. Files sorted by issue count
 
-See `references/report-template.md` for complete template.
+See `references/report-template.md` for template.
 
-Print the complete report to stdout so the user can inspect every finding in full.
+Print complete report to stdout. If `--output {file}` provided, also write to file.
 
-If the user provided `--output {file}` flag, also write report to the specified file.
+Each finding includes: exact file:line, 3 lines of context, specific fix or auto-fix command, auto-fixable status.
 
-For each finding in the report:
-- Include exact file:line reference
-- Show 3 lines of surrounding context for quick comprehension
-- Provide specific fix suggestion or auto-fix command
-- Note whether the fix is auto-fixable or requires manual effort
+Remove intermediate scan outputs. Keep only final report.
 
-Remove any intermediate scan outputs at completion, keeping only the final report.
+**Gate**: Report delivered with all findings and actionable suggestions.
 
-**Gate**: Report delivered with all findings, exact references, and actionable suggestions.
-
-### Phase 5: FIX (Optional -- only with explicit permission)
+### Phase 5: FIX (Optional -- explicit permission only)
 
 **Goal**: Apply safe, deterministic fixes.
 
-MUST have explicit user permission before proceeding. Never auto-enter this phase -- the user expected a report, not file modifications, and changes may conflict with in-progress work.
+Never auto-enter this phase -- user expected a report, not modifications.
 
-**Step 1: Confirm scope with user**
+**Step 1: Confirm scope**
 
-Before applying any fixes, confirm exactly what will be changed:
 ```markdown
 Will apply these auto-fixes:
 - Remove {N} unused imports across {N} files
@@ -214,46 +197,41 @@ Will apply these auto-fixes:
 {N} files will be modified. Proceed? (y/n)
 ```
 
-**Step 2: Apply auto-fixes**
-
-Apply fixes in order of safety (most safe first):
-
-```bash
-# Python - safe fixes only
-ruff check . --select F401,I001 --fix    # Remove unused imports, sort
-ruff format .                             # Consistent formatting
-
-# Go - safe fixes only
-goimports -w .                            # Remove unused imports, sort, format
-gofmt -w .                                # Consistent formatting
-go mod tidy                               # Clean up go.mod/go.sum
-```
-
-Apply only fixes flagged as safe by ruff in this phase. Keep variable names, function structure, and semantic behavior unchanged.
-
-**Step 3: Validate fixes**
-
-Run the project's existing test suite to verify nothing broke:
+**Step 2: Apply auto-fixes (most safe first)**
 
 ```bash
 # Python
-pytest                  # Run full test suite
-ruff check .           # Verify no new lint issues
+ruff check . --select F401,I001 --fix
+ruff format .
 
 # Go
-go test ./...          # Run full test suite
-go build ./...         # Verify build succeeds
-golangci-lint run      # Verify no new lint issues
+goimports -w .
+gofmt -w .
+go mod tidy
 ```
 
-**Step 4: Show diff and results**
+Only safe fixes. Keep variable names, function structure, and semantics unchanged.
+
+**Step 3: Validate**
 
 ```bash
-git diff --stat        # Summary of changes
-git diff               # Full diff for review
+# Python
+pytest
+ruff check .
+
+# Go
+go test ./...
+go build ./...
+golangci-lint run
 ```
 
-Present results:
+**Step 4: Show diff**
+
+```bash
+git diff --stat
+git diff
+```
+
 ```markdown
 ## Fix Results
 - Files modified: {N}
@@ -267,42 +245,33 @@ Review diff above. Commit when satisfied.
 **Step 5: Handle failures**
 
 If tests fail after auto-fix:
-1. Roll back ALL changes immediately: `git checkout .`
-2. Report exactly which test(s) failed and why
-3. Suggest applying fixes incrementally (one file at a time) with testing between each
+1. Roll back ALL changes: `git checkout .`
+2. Report which test(s) failed and why
+3. Suggest incremental fixes (one file at a time) with testing between each
 
-Keep the repository in a working state after the cleanup pass.
+Keep repository in working state.
 
-**Gate**: All auto-fixes applied, tests pass, diff shown to user. Repository is in a clean, working state.
+**Gate**: All fixes applied, tests pass, diff shown. Repository clean and working.
 
 ---
 
 ## Error Handling
 
 ### Error: "Required analysis tool not found"
-Cause: ruff, vulture, gocyclo, or other tool not installed
-Solution:
-1. Report which tools are missing with install commands
-2. Offer to proceed with partial scan using available tools
-3. grep and git blame are always available as fallback
+Cause: ruff, vulture, gocyclo, etc. not installed
+Solution: Report missing tools with install commands. Offer partial scan. grep/git blame always available.
 
 ### Error: "Not a git repository"
 Cause: Cannot use git blame for TODO aging
-Solution: Continue scan but mark all TODO ages as "unknown". Warn user that age-based triage is unavailable.
+Solution: Continue but mark all TODO ages "unknown". Warn age-based triage unavailable.
 
 ### Error: "Tests fail after auto-fix"
-Cause: Auto-fix changed behavior that tests depend on
-Solution:
-1. Roll back all changes immediately: `git checkout .`
-2. Report which fixes caused failures
-3. Suggest applying fixes file-by-file with incremental testing
+Cause: Auto-fix changed behavior tests depend on
+Solution: Roll back (`git checkout .`), report failures, suggest file-by-file incremental fixes.
 
 ### Error: "Permission denied modifying files"
-Cause: Files are read-only, locked, or user did not grant write permission
-Solution:
-1. Respect the current permission boundary and report any files that cannot be modified
-2. Report which files could not be modified and why
-3. Provide the fix commands so user can run them manually
+Cause: Read-only, locked, or no write permission
+Solution: Respect permission boundary. Report unmodifiable files. Provide commands for manual execution.
 
 ---
 

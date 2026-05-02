@@ -26,7 +26,7 @@ routing:
 
 # Agent Comparison Skill
 
-Compare agent variants through controlled A/B benchmarks. Runs identical tasks on both agents, grades output quality with domain-specific checklists, and reports total session token cost to a working solution. This skill is exclusively for agent variant comparison — use `agent-evaluation` for single-agent assessment, and `skill-eval` for skill testing.
+Compare agent variants through controlled A/B benchmarks. Runs identical tasks on both agents, grades output with domain-specific checklists, reports total session token cost to working solution. Use `agent-evaluation` for single-agent assessment, `skill-eval` for skill testing.
 
 ## Reference Loading Table
 
@@ -48,7 +48,7 @@ Compare agent variants through controlled A/B benchmarks. Runs identical tasks o
 
 **Goal**: Create benchmark environment and validate both agent variants exist.
 
-Read and follow the repository CLAUDE.md before starting any execution.
+Read and follow the repository CLAUDE.md before starting.
 
 **Step 1: Analyze original agent**
 
@@ -66,11 +66,11 @@ If creating a compact variant, preserve:
 - Error handling philosophy
 
 Remove or condense:
-- Lengthy code examples (keep 1-2 representative per pattern)
-- Verbose explanations (condense to bullet points)
+- Lengthy code examples (keep 1-2 per pattern)
+- Verbose explanations (condense to bullets)
 - Redundant instructions and changelogs
 
-Target 10-15% of original size while keeping essential knowledge. Remove redundancy, not capability — stripping error handling patterns or concurrency guidance creates an unfair comparison because the compact agent is missing essential knowledge rather than expressing it concisely.
+Target 10-15% of original size. Remove redundancy, not capability -- stripping error handling or concurrency guidance creates an unfair comparison.
 
 **Step 3: Validate compact variant structure**
 
@@ -86,11 +86,11 @@ echo "Compact:  $(wc -l < agents/{compact-agent}.md) lines"
 mkdir -p benchmark/{task-name}/{full,compact}
 ```
 
-Write the task prompt ONCE, then copy it for both agents. Both agents must receive the exact same task description, character-for-character, because different requirements produce different solutions and invalidate all measurements.
+Write the task prompt ONCE, copy for both agents. Both must receive identical task descriptions character-for-character -- different requirements invalidate all measurements.
 
-Keep benchmark scripts simple — no speculative features or configurable frameworks that were not requested.
+Keep benchmark scripts simple -- no speculative features or configurable frameworks.
 
-**Gate**: Both agent variants exist with valid YAML frontmatter. Benchmark directories created. Identical task prompts written. Proceed only when gate passes.
+**Gate**: Both variants exist with valid YAML. Benchmark directories created. Identical prompts written.
 
 ### Phase 2: BENCHMARK
 
@@ -98,9 +98,9 @@ Keep benchmark scripts simple — no speculative features or configurable framew
 
 **Step 1: Run simple task benchmark (2-3 tasks)**
 
-Use algorithmic problems with clear specifications (e.g., Advent of Code Day 1-6). Simple tasks establish a baseline — if an agent fails here, it has fundamental issues. Running multiple simple tasks is necessary because a single data point is sensitive to task selection bias and cannot distinguish luck from systematic quality.
+Use algorithmic problems with clear specs (e.g., Advent of Code Day 1-6). Simple tasks establish a baseline -- failure here indicates fundamental issues. Multiple tasks needed to distinguish luck from systematic quality.
 
-Spawn both agents in parallel using Task tool:
+Spawn both agents in parallel:
 
 ```
 Task(
@@ -114,20 +114,15 @@ Task(
 )
 ```
 
-Run in parallel to avoid caching effects or system load variance skewing results.
+Run in parallel to avoid caching effects or load variance.
 
 **Step 2: Run complex task benchmark (1-2 tasks)**
 
-Use production-style problems that require concurrency, error handling, edge case anticipation — these are where quality differences emerge because simple tasks mask differences in edge case handling. See `references/benchmark-tasks.md` for standard tasks.
+Use production-style problems requiring concurrency, error handling, edge cases -- where quality differences emerge. See `references/benchmark-tasks.md` for standard tasks.
 
-Recommended complex tasks:
-- **Worker Pool**: Rate limiting, graceful shutdown, panic recovery
-- **LRU Cache with TTL**: Generics, background goroutines, zero-value semantics
-- **HTTP Service**: Middleware chains, structured errors, health checks
+Recommended: Worker Pool (rate limiting, graceful shutdown, panic recovery), LRU Cache with TTL (generics, background goroutines, zero-value semantics), HTTP Service (middleware, structured errors, health checks).
 
-**Step 3: Capture metrics for each run**
-
-Record immediately after each agent completes — delayed recording loses precision. Track input/output token counts per turn where visible, since total session cost (not just prompt size) is what matters.
+**Step 3: Capture metrics immediately after each agent completes**
 
 | Metric | Full Agent | Compact Agent |
 |--------|------------|---------------|
@@ -146,9 +141,9 @@ cd benchmark/{task-name}/full && go test -race -v -count=1
 cd benchmark/{task-name}/compact && go test -race -v -count=1
 ```
 
-Use `-count=1` to disable test caching. All generated code must pass the same test suite with the `-race` flag because race conditions are automatic quality failures.
+`-count=1` disables test caching. Race conditions are automatic quality failures.
 
-**Gate**: Both agents completed all tasks. Metrics captured for every run. Test output saved. Proceed only when gate passes.
+**Gate**: Both agents completed all tasks. Metrics captured. Test output saved.
 
 ### Phase 3: GRADE
 
@@ -156,11 +151,11 @@ Use `-count=1` to disable test caching. All generated code must pass the same te
 
 **Step 1: Create quality checklist BEFORE reviewing code**
 
-Define criteria before seeing results to prevent bias — inventing criteria after seeing one agent's output skews the comparison. See `references/grading-rubric.md` for standard rubrics.
+Define criteria before seeing results to prevent bias. See `references/grading-rubric.md` for standard rubrics.
 
 | Criterion | 5/5 | 3/5 | 1/5 |
 |-----------|-----|-----|-----|
-| Correctness | All tests pass, no race conditions | Some failures | Broken |
+| Correctness | All tests pass, no races | Some failures | Broken |
 | Error Handling | Comprehensive, production-ready | Adequate | None |
 | Idioms | Exemplary for the language | Acceptable | Anti-patterns |
 | Documentation | Thorough | Adequate | None |
@@ -168,7 +163,7 @@ Define criteria before seeing results to prevent bias — inventing criteria aft
 
 **Step 2: Score each solution independently**
 
-Grade each agent's code on all five criteria. Score one agent completely before starting the other. Report facts and show command output rather than describing it — every claim must be backed by measurable data (tokens, test counts, quality scores).
+Grade one agent completely before starting the other. Every claim must be backed by measurable data (tokens, test counts, quality scores).
 
 ```markdown
 ## {Agent} Solution - {Task}
@@ -185,8 +180,6 @@ Grade each agent's code on all five criteria. Score one agent completely before 
 
 **Step 3: Document specific bugs with production impact**
 
-For each bug found, record:
-
 ```markdown
 ### Bug: {description}
 - Agent: {which agent}
@@ -196,7 +189,7 @@ For each bug found, record:
 - Test coverage: {did tests catch it? why not?}
 ```
 
-"Tests pass" is necessary but not sufficient — production bugs often pass tests. Apply the domain-specific quality checklist rather than relying only on test pass rates, because tests can miss goroutine leaks, wrong semantics, and other production issues.
+"Tests pass" is necessary but not sufficient -- tests can miss goroutine leaks, wrong semantics, and other production issues. Apply the quality checklist.
 
 **Step 4: Calculate effective cost**
 
@@ -204,9 +197,9 @@ For each bug found, record:
 effective_cost = total_tokens * (1 + bug_count * 0.25)
 ```
 
-An agent using 194k tokens with 0 bugs has better economics than one using 119k tokens with 5 bugs requiring fixes. The metric that matters is total cost to working, production-quality solution — not prompt size, because prompt is a one-time cost while reasoning tokens dominate sessions. Check quality scores before claiming token savings, since savings that come from cutting corners are not real savings.
+194k tokens with 0 bugs beats 119k tokens with 5 bugs. The metric is total cost to working, production-quality solution -- not prompt size. Check quality scores before claiming token savings.
 
-**Gate**: Both solutions graded with evidence. Specific bugs documented with production impact. Effective cost calculated. Proceed only when gate passes.
+**Gate**: Both solutions graded with evidence. Bugs documented. Effective cost calculated.
 
 ### Phase 4: REPORT
 
@@ -214,11 +207,11 @@ An agent using 194k tokens with 0 bugs has better economics than one using 119k 
 
 **Step 1: Generate comparison report**
 
-Use the report template from `references/report-template.md`. Include:
+Use `references/report-template.md`. Include:
 - Executive summary with clear winner per metric
 - Per-task results with metrics tables
-- Token economics analysis (one-time prompt cost vs session cost)
-- Specific bugs found and their production impact
+- Token economics (one-time prompt cost vs session cost)
+- Specific bugs and production impact
 - Verdict based on total evidence
 
 **Step 2: Run comparison analysis**
@@ -229,41 +222,36 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/compare.py benchmark/{task-name}/
 
 **Step 3: Analyze token economics**
 
-The key economic insight: agent prompts are a one-time cost per session. Everything after — reasoning, code generation, debugging, retries — costs tokens on every turn. When a micro agent produces correct code, it uses approximately the same total tokens. The savings appear only when it cuts corners.
+Agent prompts are a one-time cost per session. Reasoning, code generation, debugging, retries cost tokens every turn.
 
 | Pattern | Description |
 |---------|-------------|
 | Large agent, low churn | High initial cost, fewer retries, less debugging |
 | Small agent, high churn | Low initial cost, more retries, more debugging |
 
-Our data showed a 57-line agent used 69.5k tokens vs 69.6k for a 3,529-line agent on the same correct solution — prompt size alone does not determine cost.
+Data: a 57-line agent used 69.5k tokens vs 69.6k for a 3,529-line agent on the same correct solution -- prompt size alone does not determine cost.
 
 **Step 4: State verdict with evidence**
 
-The verdict must be backed by data. Include:
-- Which agent won on simple tasks (expected: equivalent)
-- Which agent won on complex tasks (expected: full agent)
-- Total session cost comparison
-- Effective cost comparison (with bug penalty)
-- Clear recommendation for when to use each variant
+Include: which agent won simple tasks (expected: equivalent), which won complex tasks (expected: full agent), total session cost, effective cost with bug penalty, recommendation for when to use each variant.
 
-See `references/methodology.md` for the complete testing methodology with December 2024 data.
+See `references/methodology.md` for complete methodology with December 2024 data.
 
 **Step 5: Clean up**
 
 Remove temporary benchmark files and debug outputs. Keep only the comparison report and generated code.
 
-**Gate**: Report generated with all metrics. Verdict stated with evidence. Report saved to benchmark directory.
+**Gate**: Report generated with all metrics. Verdict stated with evidence. Report saved.
 
-### Phase 5: OPTIMIZE (optional — invoked explicitly)
+### Phase 5: OPTIMIZE (optional -- invoked explicitly)
 
-**Goal**: Run an automated optimization loop that improves a markdown target's frontmatter `description` using trigger-rate eval tasks, then selects the best measured variants through beam search or single-path search.
+**Goal**: Automated optimization loop improving a markdown target's frontmatter `description` using trigger-rate eval tasks, selecting best variants through beam search or single-path search.
 
-Invoke when the user says "optimize this skill", "optimize the description", or "run autoresearch". The existing manual A/B comparison (Phases 1-4) remains the path for full agent benchmarking.
+Invoke when user says "optimize this skill", "optimize the description", or "run autoresearch". Manual A/B comparison (Phases 1-4) remains the path for full agent benchmarking.
 
-> See `references/optimize-phase.md` for the full 9-step procedure, all CLI flags, recommended modes, live eval defaults, current reality check, and optional extensions.
+> See `references/optimize-phase.md` for the full 9-step procedure, CLI flags, recommended modes, live eval defaults, and optional extensions.
 
-**Gate**: Optimization complete. Results reviewed. Cherry-picked improvements applied and verified against full task set. Results recorded.
+**Gate**: Optimization complete. Results reviewed. Cherry-picked improvements applied and verified.
 
 ---
 

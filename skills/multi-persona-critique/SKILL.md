@@ -31,21 +31,18 @@ routing:
 
 ## Overview
 
-This skill takes a set of proposals — feature ideas, architectural decisions, design choices, strategy options — and sends ALL of them to 5 distinct intellectual personas for parallel, independent critique. Each persona brings a different philosophical lens. The skill then synthesizes all critiques into a consensus report showing where personas agree, where they disagree, and what the disagreements reveal.
+Takes proposals -- feature ideas, architectural decisions, design choices, strategy options -- and sends ALL to 5 distinct intellectual personas for parallel, independent critique. Synthesizes all critiques into a consensus report showing agreement, disagreement, and what disagreements reveal.
 
-**This is NOT the roast skill.** Key differences:
-- `roast` critiques CODE with HackerNews personas and validates file:line claims
-- This skill critiques IDEAS/PROPOSALS with philosophical/methodological personas and evaluates logical coherence, practical viability, and human impact
-- `roast` is evidence-based (checking actual code); this is argument-based (evaluating reasoning)
+**Not the roast skill.** `roast` critiques CODE with HackerNews personas and validates file:line claims. This skill critiques IDEAS/PROPOSALS with philosophical personas and evaluates logical coherence, practical viability, and human impact.
 
-**Key constraints baked into the workflow:**
-- Every persona sees ALL proposals — no cherry-picking
-- Personas run in parallel with no awareness of each other — independence is the source of value
-- Ratings are mandatory: STRONG / PROMISING / WEAK / REJECT for every proposal from every persona
-- Rankings are mandatory: each persona orders proposals from strongest to weakest
-- Fairness mandate: genuine strengths must be acknowledged, genuine weaknesses explained with precision
-- Disagreements are preserved, not averaged away — the disagreements ARE the insight
-- The synthesis phase adds cross-cutting analysis, it does not edit persona outputs
+**Key constraints:**
+- Every persona sees ALL proposals
+- Personas run in parallel with no awareness of each other
+- Ratings mandatory: STRONG / PROMISING / WEAK / REJECT for every proposal from every persona
+- Rankings mandatory: each persona orders proposals strongest to weakest
+- Genuine strengths acknowledged, genuine weaknesses explained with precision
+- Disagreements preserved, not averaged away -- disagreements ARE the insight
+- Synthesis adds cross-cutting analysis; it does not edit persona outputs
 
 ---
 
@@ -69,23 +66,17 @@ This skill takes a set of proposals — feature ideas, architectural decisions, 
 |-------|--------|
 | User provides proposals directly | Extract and number them |
 | User says "generate N ideas about X" | Research the domain, read relevant code/docs, then generate proposals |
-| Ambiguous input | Ask user to clarify before proceeding |
+| Ambiguous input | Ask user to clarify |
 
 **Step 2: Normalize proposals**
 
-Each proposal must be a clear, self-contained description (2-4 sentences) that any of the 5 personas can evaluate independently. If user-provided proposals are vague, expand them to include:
-- What the proposal does
-- Why it matters (the problem it solves)
-- How it differs from the status quo
+Each proposal must be self-contained (2-4 sentences) for independent evaluation. If vague, expand to include: what it does, why it matters, how it differs from status quo.
 
-If generating proposals, research the domain first:
-- Use Glob and Grep to understand existing code, docs, and architecture
-- Use Read to examine key files relevant to the domain
-- Generate proposals grounded in actual context, not hypotheticals
+If generating proposals, research first: Glob/Grep existing code and docs, Read key files. Ground proposals in actual context.
 
 **Step 3: Number and present**
 
-Present the numbered proposal list back to the user before proceeding. Format:
+Present numbered list before proceeding:
 
 ```
 Proposals for critique:
@@ -94,89 +85,66 @@ Proposals for critique:
 ...
 ```
 
-**Gate**: Numbered list of proposals ready. Each proposal is self-contained with 2-4 sentences. Proceed only when gate passes.
+**Gate**: Numbered list ready. Each proposal self-contained with 2-4 sentences.
 
 ### Phase 2: BRIEF PERSONAS
 
 **Goal**: Construct prompts for each of the 5 personas.
 
-Load the full persona specifications from `${CLAUDE_SKILL_DIR}/references/personas.md`. For each persona, construct a prompt containing an identity block, the numbered proposals, rating and ranking requirements, a fairness mandate, and the structured output format — see `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 2: Persona Prompt Construction) for the complete construction recipe.
+Load full persona specs from `${CLAUDE_SKILL_DIR}/references/personas.md`. For each persona, construct a prompt with identity block, numbered proposals, rating/ranking requirements, fairness mandate, and structured output format -- see `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 2: Persona Prompt Construction) for the complete recipe.
 
-**Gate**: 5 persona prompts constructed, each containing all proposals and the full persona specification. Proceed only when gate passes.
+**Gate**: 5 persona prompts constructed, each containing all proposals and full persona spec.
 
 ### Phase 3: DISPATCH (Parallel)
 
 **Goal**: Launch all 5 personas in parallel and collect independent critiques.
 
-Launch 5 agents using the Agent tool, one per persona. Each agent runs independently with no awareness of other personas.
+Launch 5 agents using the Agent tool, one per persona, independently:
 
-**The 5 parallel agents:**
-
-1. **The Logician** (Bertrand Russell)
-   Focus: Logical coherence, hidden assumptions, falsifiability, necessity vs novelty
-
-2. **The Pragmatic Builder** (20-year staff engineer)
-   Focus: Build cost vs value, maintenance burden, simpler alternatives, user need
-
-3. **The Systems Purist** (Edsger Dijkstra)
-   Focus: Accidental complexity, separation of concerns, elegance, failure modes
-
-4. **The End User Advocate** (8-hours-a-day tool user)
-   Focus: Daily impact, friction, delight, whether the problem is already solved
-
-5. **The Skeptical Philosopher** (Illich/Postman/Franklin)
-   Focus: Human agency, dependency risk, genuine vs manufactured problems, unintended consequences
+1. **The Logician** (Bertrand Russell) -- logical coherence, hidden assumptions, falsifiability
+2. **The Pragmatic Builder** (20-year staff engineer) -- build cost vs value, maintenance burden, simpler alternatives
+3. **The Systems Purist** (Edsger Dijkstra) -- accidental complexity, separation of concerns, elegance, failure modes
+4. **The End User Advocate** (8-hours-a-day tool user) -- daily impact, friction, delight, solved-problem check
+5. **The Skeptical Philosopher** (Illich/Postman/Franklin) -- human agency, dependency risk, manufactured problems, unintended consequences
 
 **Each agent must produce:**
-- A rating (STRONG / PROMISING / WEAK / REJECT) for every proposal with 2-3 sentence justification
-- A ranked list of all proposals from strongest to weakest
-- Any cross-cutting observations that apply to multiple proposals
+- Rating (STRONG / PROMISING / WEAK / REJECT) for every proposal with 2-3 sentence justification
+- Ranked list of all proposals strongest to weakest
+- Cross-cutting observations across multiple proposals
 
-**CRITICAL**: Wait for ALL 5 agents to complete before proceeding to Phase 4. Do not begin synthesis on partial results. Every persona must contribute before consensus can be determined.
+Wait for ALL 5 agents before proceeding. Do not synthesize partial results.
 
-**Gate**: All 5 persona reports received. Each report contains ratings for all proposals and a ranked list. Proceed only when gate passes.
+**Gate**: All 5 persona reports received with ratings for all proposals and ranked lists.
 
 ### Phase 4: SYNTHESIZE
 
-**Goal**: Build a consensus matrix and identify agreement, disagreement, and cross-cutting patterns.
+**Goal**: Build consensus matrix and identify agreement, disagreement, and patterns.
 
-**Step 1: Build the consensus matrix**
-
-Create a matrix: proposals (rows) x personas (columns) x ratings. See the consensus matrix template in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`.
+**Step 1: Build consensus matrix** -- proposals (rows) x personas (columns) x ratings. See template in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`.
 
 **Step 2: Classify consensus patterns**
+- **CONSENSUS** (4+ agree within one tier): Strong signal
+- **CONTESTED** (2-3 split): Disagreement is informative
+- **OUTLIER** (1 disagrees with 4): Worth understanding why
 
-For each proposal, classify:
-- **CONSENSUS** (4+ personas agree within one tier): Strong signal
-- **CONTESTED** (2-3 split): The disagreement itself is informative
-- **OUTLIER** (1 disagrees with 4): Worth understanding why one persona sees differently
-
-**Step 3: Extract disagreement specifics**
-
-For CONTESTED and OUTLIER proposals, extract the specific disagreement:
+**Step 3: Extract disagreement specifics** for CONTESTED and OUTLIER proposals:
 - What does each side see that the other does not?
-- Is the disagreement about values (what matters) or facts (what is true)?
+- Is it about values (what matters) or facts (what is true)?
 - Does one persona have domain-relevant insight the others lack?
 
-**Step 4: Calculate weighted consensus score**
+**Step 4: Calculate weighted consensus score** -- STRONG=3, PROMISING=2, WEAK=1, REJECT=0. Sum all 5 ratings per proposal (range 0-15).
 
-Assign numeric values: STRONG=3, PROMISING=2, WEAK=1, REJECT=0
+**Step 5: Rank proposals** by consensus score. Note ties and distinguishing factors.
 
-For each proposal: sum all 5 ratings, giving a score from 0-15.
-
-**Step 5: Rank proposals by consensus score**
-
-Sort proposals from highest to lowest weighted score. Note ties and what distinguishes tied proposals.
-
-**Gate**: Consensus matrix complete with classifications, disagreement analysis, and ranked scores. Proceed only when gate passes.
+**Gate**: Consensus matrix complete with classifications, disagreement analysis, ranked scores.
 
 ### Phase 5: PRESENT
 
-**Goal**: Deliver the synthesis report using the template from `${CLAUDE_SKILL_DIR}/references/synthesis-template.md`.
+**Goal**: Deliver synthesis report using `${CLAUDE_SKILL_DIR}/references/synthesis-template.md`.
 
-Load the synthesis template and populate all 7 sections (Consensus Matrix; Features to Build; Worth Investigating; Interesting Disagreements; Shelve; Cross-Cutting Insights; Deepest Insight). See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 5: Synthesis Report Sections) for each section's purpose and score-band criteria.
+Load template and populate all 7 sections (Consensus Matrix; Features to Build; Worth Investigating; Interesting Disagreements; Shelve; Cross-Cutting Insights; Deepest Insight). See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 5) for section purposes and score-band criteria.
 
-**Gate**: Report complete with all sections populated. Critique done.
+**Gate**: Report complete with all sections populated.
 
 ---
 
@@ -199,5 +167,5 @@ See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
 - `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples, anti-patterns, error handling
 
 ### Related Skills
-- `roast`: Code critique with evidence-based validation (complementary — roast critiques code, this critiques ideas)
-- `decision-helper`: Weighted decision scoring for architectural choices (narrower — single-dimension scoring vs multi-persona critique)
+- `roast`: Code critique with evidence-based validation (roast critiques code, this critiques ideas)
+- `decision-helper`: Weighted decision scoring (single-dimension scoring vs multi-persona critique)

@@ -27,9 +27,9 @@ routing:
 
 # Distinctive Frontend Design Skill
 
-Systematic aesthetic exploration that produces contextual, validated design specifications. Every design choice flows from project context -- purpose, audience, emotion -- not from defaults or convenience. The workflow enforces exploration before implementation: you cannot write CSS until you have a validated aesthetic direction, typography selection, color palette, animation strategy, and atmospheric background.
+Systematic aesthetic exploration producing contextual, validated design specifications. Every design choice flows from project context -- purpose, audience, emotion -- not defaults. The workflow enforces exploration before implementation: no CSS until you have a validated aesthetic direction, typography, color palette, animation strategy, and atmospheric background.
 
-Optional capabilities (off unless explicitly enabled by the user): design system generation, full WCAG accessibility auditing, animation performance profiling, dark mode variant generation.
+Optional capabilities (off unless user enables): design system generation, full WCAG auditing, animation performance profiling, dark mode variants.
 
 ## Reference Loading Table
 
@@ -53,146 +53,131 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 
 ### Vocabulary
 
-See `references/vocabulary.md` for term definitions (Hero, Full-bleed, Narrative brief, Surface type, Linear-style restraint, Decorative-only motion, Brand override). Read these once before Phase 1 so the rules do not feel like jargon when they gate your work.
+See `references/vocabulary.md` for term definitions (Hero, Full-bleed, Narrative brief, Surface type, Linear-style restraint, Decorative-only motion, Brand override). Read once before Phase 1.
 
 ### Phase 1: Context Discovery
 
-**Goal**: Understand the project deeply before making any aesthetic decisions.
+**Goal**: Understand the project deeply before making aesthetic decisions.
 
-**Step 1: Read and follow the repository CLAUDE.md**, then gather context by asking (adapt based on what is already known):
+**Step 1**: Read and follow the repository CLAUDE.md, then gather context (adapt based on what is already known):
 
-1. **Purpose**: What is this frontend for? (portfolio, SaaS product, creative showcase, documentation, landing page)
-2. **Surface type**: Landing page or app/dashboard? Design rules diverge sharply. Landing pages lean on a full-bleed hero and narrative sequence. Apps and dashboards lean on Linear-style calm surfaces, strong typography, few colors, and dense readable information. Classify this up front because every downstream decision depends on it.
-3. **Audience**: Who will use it? (developers, artists, enterprise users, general public, specific demographics)
+1. **Purpose**: What is this frontend for? (portfolio, SaaS, creative showcase, docs, landing page)
+2. **Surface type**: Landing page or app/dashboard? Design rules diverge sharply. Landing pages: full-bleed hero, narrative sequence. Apps: Linear-style calm surfaces, strong typography, few colors, dense information. Classify up front -- every downstream decision depends on it.
+3. **Audience**: Who will use it?
 4. **Emotion**: What should users feel? (professional, playful, sophisticated, rebellious, calm, energetic)
-5. **Cultural context**: Any geographic, cultural, or thematic associations? (Japanese minimalism, industrial, retro, academic)
-6. **Constraints**: Accessibility requirements, performance budgets, existing brand elements to preserve?
-7. **Tech stack**: React, Vue, vanilla HTML/CSS, Next.js, framework preferences?
-8. **Real content**: Gather the actual copy, real product name, real imagery, real product context. Placeholder text produces placeholder thinking. If final content is not yet available, secure at minimum the hero headline, product name, and the single promise you want the first viewport to convey.
-9. **Previous projects**: Any recent frontend work? Variety across projects is mandatory, so check for choices that would overlap with recent work and avoid them.
+5. **Cultural context**: Geographic, cultural, or thematic associations?
+6. **Constraints**: Accessibility, performance budgets, existing brand elements?
+7. **Tech stack**: React, Vue, vanilla, Next.js?
+8. **Real content**: Gather actual copy, product name, imagery. Placeholder text produces placeholder thinking. At minimum: hero headline, product name, first-viewport promise.
+9. **Previous projects**: Check for overlapping choices with recent work -- variety is mandatory.
 
-**Step 2: Define 3-5 distinct aesthetic directions** using `references/color-inspirations.json` and `references/font-catalog.json` as starting points. Providing multiple directions prevents anchoring on a first instinct, which is the primary source of generic "AI slop" output. See `references/phase-details.md` for example directions (Neo-Brutalist Technical, Warm Artisan, Midnight Synthwave, Botanical Minimal, Arctic Technical).
+**Step 2**: Define 3-5 distinct aesthetic directions using `references/color-inspirations.json` and `references/font-catalog.json`. Multiple directions prevent anchoring on first instinct. See `references/phase-details.md` for examples.
 
-**Step 3: Output** `aesthetic_direction.json` with chosen direction(s) and contextual justification. Every direction must link back to project purpose, audience, and emotion -- context-driven justification is what separates distinctive design from arbitrary choices. See `references/implementation-examples.md` for template.
+**Step 3**: Output `aesthetic_direction.json` with direction(s) and contextual justification linking purpose, audience, and emotion. See `references/implementation-examples.md` for template.
 
-**Step 4: Write the narrative brief**. Before any code or visual exploration, commit three sentences to the page: visual thesis, content plan, interaction thesis. See `references/phase-details.md` for the full definition with examples.
+**Step 4**: Write the narrative brief: visual thesis, content plan, interaction thesis. See `references/phase-details.md` for definition with examples.
 
-**Gate**: Aesthetic direction is defined with contextual justification linking project purpose, audience, and emotion to the chosen direction. Narrative brief from Step 4 is written with visual thesis, content plan, and interaction thesis. Proceed only after both gate items pass.
+**Gate**: Aesthetic direction defined with contextual justification. Narrative brief written with all three theses. Proceed only after both pass.
 
-**Skip-if-answered**: If the user's original request already provides the surface type, the product name, and a clear promise for the hero, treat those answers as already gathered. Ask only for missing context. The context-gathering questions exist to close gaps, not to gate every request on ceremony.
+**Skip-if-answered**: If the request already provides surface type, product name, and hero promise, ask only for missing context.
 
 ### Phase 2: Typography Selection
 
-**Goal**: Select distinctive, contextual font pairings that define the design's personality.
+**Goal**: Select distinctive, contextual font pairings.
 
-**Step 1: Load** `references/font-catalog.json`. All fonts in the catalog are pre-approved. Use alternatives to the following overused fonts, which are overused to the point of invisibility and signal generic output: Inter, Roboto, Arial, Helvetica, system fonts (e.g., `-apple-system, BlinkMacSystemFont, 'Segoe UI'`), Space Grotesk. Keep them out of selections and fallback stacks.
+**Step 1**: Load `references/font-catalog.json`. Avoid these overused fonts (signal generic output): Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk. Keep them out of selections and fallback stacks.
 
-**Step 2: Select font pairing** following the selection process and criteria in `references/phase-details.md` (5-step process, two-typefaces-maximum rule, brand-first rule).
+**Step 2**: Select font pairing per `references/phase-details.md` (5-step process, two-typefaces-maximum, brand-first rule).
 
-**Step 3: Validate** font selection against the banned list. See `references/phase-details.md` for the validation block and manual verification steps.
+**Step 3**: Validate against banned list. See `references/phase-details.md` for validation and manual verification.
 
-**Step 4: Document** typography specification with font families, weights, usage roles, and rationale for each selection. Be specific -- include exact font names and weights, not vague descriptions. See `references/implementation-examples.md` for template.
+**Step 4**: Document typography specification with families, weights, usage roles, and rationale. See `references/implementation-examples.md` for template.
 
-**Gate**: Font validation passes with no banned fonts, no recent reuse, and a confirmed aesthetic match. Proceed only after the gate passes.
+**Gate**: No banned fonts, no recent reuse, confirmed aesthetic match. Proceed only after gate passes.
 
 ### Phase 3: Color Palette
 
-**Goal**: Create a contextual palette with clear dominance hierarchy, not a random collection of colors.
+**Goal**: Create a contextual palette with clear dominance hierarchy.
 
-**Step 1: Research** cultural/contextual inspiration using `references/color-inspirations.json`. See `references/phase-details.md` for the full list of inspiration source categories. Select an inspiration source that resonates with the project context from Phase 1. The palette must trace back to that context -- convenience or personal preference is not a valid reason for a color choice.
+**Step 1**: Research cultural/contextual inspiration using `references/color-inspirations.json`. See `references/phase-details.md` for categories. Palette must trace to project context -- not convenience.
 
-**Step 2: Build palette** with strict dominance structure:
-- **Dominant** (60-70%): Base background and major surfaces -- this sets the mood
-- **Secondary** (20-30%): Supporting elements, containers, navigation -- provides structure
-- **Accent** (5-10%): High-impact moments, CTAs, highlights -- demands attention sparingly
-- **Functional**: Success, warning, error, info states -- consistent across all designs
+**Step 2**: Build palette with strict dominance:
+- **Dominant** (60-70%): Base background and major surfaces
+- **Secondary** (20-30%): Supporting elements, containers, navigation
+- **Accent** (5-10%): High-impact moments, CTAs, highlights
+- **Functional**: Success, warning, error, info
 
-Colors distributed evenly without a clear dominant create visual chaos. The 60/30/10 ratio is non-negotiable because without it, no coherent aesthetic emerges.
+The 60/30/10 ratio is non-negotiable. **One accent color, not two.** A second accent is usually a functional color or a weight variation.
 
-**One accent color, not two.** The accent slot is for a single hue. If a second accent seems necessary, it is almost always either (a) a functional color (error/success/warning/info, which belongs in the Functional group), or (b) a weight variation of the dominant or secondary. Two competing accents dilute the hierarchy and signal a page that does not know what it wants the user to look at.
+**Step 3**: Check against cliche list in `references/preferred-patterns.json`. See `references/phase-details.md` for the reference set.
 
-**Step 3: Check the palette against the cliche list** in `references/preferred-patterns.json`. See `references/phase-details.md` for the explicit reference set (purple-on-white, generic blue, etc.).
+**Step 4**: Validate. See `references/phase-details.md` for validation and manual verification.
 
-**Step 4: Validate** palette against cliche detection. See `references/phase-details.md` for the validation block and manual verification steps.
-
-**Gate**: Palette passes cliche detection and demonstrates a clear 60/30/10 dominance ratio. Proceed only after the gate passes.
+**Gate**: Passes cliche detection. Clear 60/30/10 dominance. Proceed only after gate passes.
 
 ### Phase 4: Animation Strategy
 
-**Goal**: Design choreography for high-impact moments only. Restraint is a feature -- animating everything dilutes impact and signals lack of intentionality.
+**Goal**: Choreography for high-impact moments only. Restraint is a feature.
 
-**The 2-to-3 rule**. Ship two or three intentional motions per page, not ten. Motion creates presence and hierarchy. Too much motion creates noise. The interaction thesis from Phase 1 should already name the three slots; this phase choreographs them in detail.
+**The 2-to-3 rule**: Two or three intentional motions per page. The interaction thesis from Phase 1 names the slots; this phase choreographs them.
 
-**Step 1: Fill the three motion slots** (entrance, scroll, interaction). See `references/phase-details.md` for slot definitions, the moments NOT worth animating, the decorative-only litmus, and recommended stack.
+**Step 1**: Fill three motion slots (entrance, scroll, interaction). See `references/phase-details.md` for definitions, moments NOT worth animating, decorative-only litmus, recommended stack.
 
-**Step 2: Design choreography** for each identified moment. Reference `references/animation-patterns.md` for battle-tested patterns and `references/phase-details.md` for the choreography catalog summary.
+**Step 2**: Design choreography per `references/animation-patterns.md` and `references/phase-details.md`.
 
-**Step 3: Define easing curves and timing** for the design. See `references/phase-details.md` for the easing-by-purpose table and duration-by-scope table.
+**Step 3**: Define easing curves and timing. See `references/phase-details.md` for easing-by-purpose and duration-by-scope tables.
 
-**Gate**: At least one high-impact moment has a fully defined choreography including element order, easing curves, and timing values. Proceed only after this is defined.
+**Gate**: At least one high-impact moment fully defined with element order, easing, and timing. Proceed only after defined.
 
 ### Phase 5: Hero Composition, Background & Atmosphere
 
-**Goal**: Construct the first viewport as a single composition, then add depth and mood through layered effects. Flat solid-color backgrounds fail this phase because they produce no atmospheric depth -- every surface needs at least two layers.
+**Goal**: Construct the first viewport as a single composition, then add depth through layered effects. Flat solid-color backgrounds fail this phase.
 
-**Step 0: Hero composition rules** (landing pages). The first viewport must read as one composition, not a grid of parts. See `references/phase-details.md` for the hard rules (one composition, no cards in hero, full-bleed by default, brand-first, one job per section, hero image litmus). Apps and dashboards follow different rules; see `references/app-vs-landing-rules.md`.
+**Step 0**: Hero composition rules (landing pages). First viewport: one composition, not a grid of parts. See `references/phase-details.md` for hard rules (no cards in hero, full-bleed default, brand-first, one job per section, hero image litmus). Apps: see `references/app-vs-landing-rules.md`.
 
-**Step 1: Choose technique** from `references/background-techniques.md` based on aesthetic direction. See `references/phase-details.md` for the technique-by-aesthetic mapping.
+**Step 1**: Choose technique from `references/background-techniques.md` by aesthetic direction. See `references/phase-details.md` for technique-by-aesthetic mapping.
 
-**Step 2: Implement** background CSS that matches the aesthetic direction. See `references/phase-details.md` for the minimum-layers requirement (base surface color, gradient layer, pattern/texture layer).
+**Step 2**: Implement background CSS. See `references/phase-details.md` for minimum layers (base surface, gradient, pattern/texture).
 
-**Step 3: Verify** background does not compromise text readability. Check contrast ratios against WCAG AA minimums.
+**Step 3**: Verify text readability against WCAG AA contrast minimums.
 
-**Gate**: Background uses at least 2 layers creating visual depth and atmospheric mood. Solid single-color backgrounds fail this gate.
+**Gate**: Background uses at least 2 layers creating visual depth. Solid single-color backgrounds fail.
 
 ### App vs Landing Page Rules
 
-See `references/app-vs-landing-rules.md` for the full rule sets, app litmus test, and landing litmus test. The surface type classified in Phase 1 determines which rule set governs layout. Mixing the two rule sets is the fastest way to produce a page that feels generic in one direction and cluttered in the other.
+See `references/app-vs-landing-rules.md` for full rule sets, app litmus test, and landing litmus test. Surface type from Phase 1 determines which governs layout.
 
 ### Phase 6: Validation & Scoring
 
-**Goal**: Objective quality assessment before any finalization. Validation must run before delivering specifications -- skipping it means flaws compound through every downstream implementation decision.
+**Goal**: Objective quality assessment before finalization.
 
-**Step 1: Run comprehensive validation**
+**Step 1**: Run validation:
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py design-spec.json
 ```
 
-**Step 2: Review** validation report. See `references/phase-details.md` for the full list of report checks (banned fonts, cliche colors, dominance ratio, motion count, hero composition, etc.).
+**Step 2**: Review report. See `references/phase-details.md` for full check list.
 
-**Step 3: Address issues** -- if overall score < 80:
-1. Review each failed check in the report
-2. Iterate on the specific problematic area (return to that phase)
-3. Re-run validation after each fix
-4. Keep iterating until the score is at least 80 before moving to specification output
+**Step 3**: If score < 80: review failed checks, iterate on that phase, re-run. Repeat until score >= 80.
 
-**Gate**: Validation score is at least 80 (Grade B or higher). Deliver specification output only after the gate passes.
+**Gate**: Validation score >= 80 (Grade B+). Deliver specification only after gate passes.
 
 ### Phase 7: Design Specification Output
 
-**Goal**: Deliver a complete, implementable design specification. Only implement what was directly requested -- focus on distinctive aesthetics, not unnecessary abstractions or design system scaffolding unless the user explicitly asked for it.
+**Goal**: Complete, implementable design specification. Only implement what was requested.
 
-**Step 1: Generate CSS custom properties** (design tokens) covering typography, colors, spacing, shadows, and animation values. Reference `references/implementation-examples.md` for comprehensive token template.
+**Step 1**: Generate CSS custom properties (design tokens) covering typography, colors, spacing, shadows, animations. See `references/implementation-examples.md`.
 
-**Step 2: Create base styles** that apply tokens to:
-- Typography hierarchy (display, heading, body, mono)
-- Atmospheric background (layered gradients/patterns)
-- Layout reset and defaults
+**Step 2**: Create base styles applying tokens to typography hierarchy, atmospheric background, layout defaults.
 
-**Step 3: Document design specification** as a structured document covering:
-- Aesthetic direction and inspiration
-- Typography system with font families, weights, and usage roles
-- Color palette with dominance structure and hex values
-- Animation strategy with timing specifications
-- Background technique and implementation
-- Validation score and grade
+**Step 3**: Document specification: aesthetic direction, typography system, color palette with dominance, animation strategy with timing, background technique, validation score.
 
-**Step 4: If implementation is requested**, provide framework-specific starter code. Reference `references/implementation-examples.md` for React+Tailwind config, HTML+CSS templates, and design system templates.
+**Step 4**: If implementation requested, provide framework-specific starter code. See `references/implementation-examples.md`.
 
-**Step 5: Clean up** temporary exploration artifacts (intermediate JSON files, draft palettes). Keep only the final specification and validation report.
+**Step 5**: Clean up temporary exploration artifacts. Keep final specification and validation report.
 
-**Gate**: Design specification document delivered with all sections complete and validation score included.
+**Gate**: Design specification delivered with all sections and validation score.
 
 ### Examples
 
@@ -202,29 +187,27 @@ See `references/examples.md` for two worked examples (new landing page, design a
 
 ### Design Catalogs
 
-These reference files contain the curated domain knowledge that drives design decisions:
-
-- `${CLAUDE_SKILL_DIR}/references/font-catalog.json`: Curated fonts by aesthetic category (banned fonts excluded)
-- `${CLAUDE_SKILL_DIR}/references/color-inspirations.json`: Cultural/contextual color palette sources
-- `${CLAUDE_SKILL_DIR}/references/animation-patterns.md`: High-impact animation choreography patterns with CSS and React examples
-- `${CLAUDE_SKILL_DIR}/references/background-techniques.md`: Atmospheric background creation methods with code snippets
-- `${CLAUDE_SKILL_DIR}/references/preferred-patterns.json`: Banned fonts, cliche colors, layout and component cliches
-- `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`: CSS tokens, base styles, framework templates, specification document templates
-- `${CLAUDE_SKILL_DIR}/references/project-history.json`: Aesthetic choices across projects (auto-generated by validation)
-- `${CLAUDE_SKILL_DIR}/references/vocabulary.md`: Term definitions used as hard rules across phases
-- `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Detailed selection processes, validation blocks, easing/timing tables, hero composition rules, validation checks
-- `${CLAUDE_SKILL_DIR}/references/app-vs-landing-rules.md`: Full rule sets for landing vs app surface types
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Worked examples for new landing page and design audit
-- `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Recovery for banned fonts, cliche palettes, low distinctiveness scores
-- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules for AAA/Steam/roguelike surfaces, including anti-patterns learned from Road to AEW
-- `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`: grep/rg detection commands for banned fonts, hardcoded colors, over-animation, and flat backgrounds in implementation code — load when auditing CSS/SCSS/TSX files or verifying a generated spec was implemented correctly
-- `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`: CSS property render costs, compositor-thread promotion rules, layout thrashing detection commands, frame budget reference — load when animation performance is in scope or "animation performance profiling" optional capability is enabled
-- `${CLAUDE_SKILL_DIR}/references/oklch-color-harmony.md`: oklch() perceptually uniform color palette generation — analogous, complementary, triadic harmony, lightness roles, dark mode inversion, chroma guidelines
-- `${CLAUDE_SKILL_DIR}/references/honest-placeholders.md`: Striped placeholder pattern for missing assets — prevents false design decisions from placeholder imagery
+- `${CLAUDE_SKILL_DIR}/references/font-catalog.json`: Curated fonts by aesthetic category
+- `${CLAUDE_SKILL_DIR}/references/color-inspirations.json`: Cultural/contextual palette sources
+- `${CLAUDE_SKILL_DIR}/references/animation-patterns.md`: High-impact animation choreography with CSS and React examples
+- `${CLAUDE_SKILL_DIR}/references/background-techniques.md`: Atmospheric background methods with code
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns.json`: Banned fonts, cliche colors, layout/component cliches
+- `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`: CSS tokens, base styles, framework templates, spec templates
+- `${CLAUDE_SKILL_DIR}/references/project-history.json`: Aesthetic choices across projects (auto-generated)
+- `${CLAUDE_SKILL_DIR}/references/vocabulary.md`: Term definitions used as hard rules
+- `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Selection processes, validation blocks, easing/timing tables, hero rules, validation checks
+- `${CLAUDE_SKILL_DIR}/references/app-vs-landing-rules.md`: Landing vs app surface type rule sets
+- `${CLAUDE_SKILL_DIR}/references/examples.md`: Worked examples
+- `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Recovery for banned fonts, cliche palettes, low scores
+- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules
+- `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`: grep/rg detection commands for banned fonts, hardcoded colors, over-animation, flat backgrounds
+- `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`: CSS render costs, compositor promotion, layout thrashing detection, frame budgets
+- `${CLAUDE_SKILL_DIR}/references/oklch-color-harmony.md`: oklch() perceptually uniform palette generation
+- `${CLAUDE_SKILL_DIR}/references/honest-placeholders.md`: Striped placeholder pattern for missing assets
 
 ## Error Handling
 
-See `references/error-handling.md` for recovery procedures covering banned fonts, cliche color schemes, and low distinctiveness scores.
+See `references/error-handling.md` for recovery: banned fonts, cliche palettes, low distinctiveness scores.
 
 ## References
 

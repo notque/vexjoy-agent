@@ -25,7 +25,7 @@ routing:
 
 # Comment Quality Skill
 
-Review code comments for temporal references, development-activity language, and relative comparisons. Produces structured reports with actionable rewrites that explain WHAT the code does and WHY, only WHAT the code does and WHY. Supports `.go`, `.py`, `.js`, `.ts`, `.md`, and `.txt` files.
+Review code comments for temporal references, development-activity language, and relative comparisons. Produces structured reports with actionable rewrites that explain only WHAT the code does and WHY. Supports `.go`, `.py`, `.js`, `.ts`, `.md`, and `.txt` files.
 
 ## Instructions
 
@@ -35,15 +35,15 @@ Review code comments for temporal references, development-activity language, and
 
 **Step 1: Determine scope**
 
-Read the repository CLAUDE.md first to pick up any project-specific comment conventions.
+Read the repository CLAUDE.md first for project-specific comment conventions.
 
-Scan only what was requested. If user specifies files, scan those files. If user specifies a directory, scan that directory. Honor the explicit scope -- even if you suspect other files have issues, honor the explicit scope and suggest expansion separately at the end.
+Scan only what was requested. Honor the explicit scope -- suggest expansion separately at the end if you suspect other files have issues.
 
-If user explicitly requests auto-fix, enable it. Otherwise present findings for review. For large codebases, group findings by directory when reporting.
+If user explicitly requests auto-fix, enable it. Otherwise present findings for review. Group findings by directory for large codebases.
 
 **Step 2: Search for temporal patterns**
 
-Flag every instance of the following categories. No temporal word is "harmless" -- all temporal language ages poorly and must be rewritten regardless of how innocuous it seems:
+Flag every instance. No temporal word is "harmless" -- all temporal language ages poorly:
 
 - **Temporal words**: "new", "old", "previous", "current", "now", "recently", "latest", "modern"
 - **Development activity**: "added", "removed", "deleted", "updated", "changed", "modified", "fixed", "improved", "enhanced", "refactored", "optimized"
@@ -53,16 +53,16 @@ Flag every instance of the following categories. No temporal word is "harmless" 
 
 **Step 3: Filter false positives**
 
-Exclude from findings -- these are not developer comments and must remain untouched:
-- Copyright and license headers (legal requirements, not code comments)
-- `@generated` markers (tooling markers)
+Exclude -- these must remain untouched:
+- Copyright and license headers
+- `@generated` markers
 - `@deprecated` annotations (keep the tag, flag only temporal explanation text after it)
-- Variable names or string literals that happen to contain temporal words
-- TODO/FIXME items that describe future work without temporal references
+- Variable names or string literals containing temporal words
+- TODO/FIXME items describing future work without temporal references
 
-When a finding appears, inspect nearby comments in the same function or block -- temporal language tends to cluster.
+When a finding appears, inspect nearby comments in the same function -- temporal language clusters.
 
-**Gate**: All files in scope scanned. Findings list populated with file path, line number, and matched text. Every finding listed, not just the first few. Proceed only when gate passes.
+**Gate**: All files in scope scanned. Findings list populated with file path, line number, and matched text. Every finding listed. Proceed only when gate passes.
 
 ### Phase 2: ANALYZE
 
@@ -70,7 +70,7 @@ When a finding appears, inspect nearby comments in the same function or block --
 
 **Step 1: Read surrounding code**
 
-For each finding, read the function, block, or section the comment describes. Understand what the code actually does. A rewrite without code context produces vague replacements that strip temporal words without adding substance.
+For each finding, read the function or block the comment describes. A rewrite without code context produces vague replacements.
 
 **Step 2: Classify the comment**
 
@@ -97,7 +97,7 @@ For each comment, identify:
 
 **Step 1: Draft rewrites**
 
-For each finding, produce a structured entry with file path, line number, current text, suggested replacement, and reasoning:
+For each finding, produce a structured entry:
 
 ```markdown
 **File: `path/to/file.ext`**
@@ -110,13 +110,13 @@ Line X - [Comment type]:
 
 **Step 2: Validate rewrite quality**
 
-Each rewrite MUST pass these checks:
+Each rewrite MUST pass:
 - [ ] Would this comment make sense in 10 years?
 - [ ] Does it explain WHAT or WHY, not WHEN?
-- [ ] Is it more specific than what it replaces (not just temporal word removed)?
+- [ ] Is it more specific than what it replaces?
 - [ ] Does it add value for a future maintainer?
 
-If a rewrite just removes the temporal word without adding substance, it fails validation. Simply deleting a word produces a useless comment -- `// Updated error handling` becoming `// Error handling` adds nothing. Rewrite with specific, descriptive content: `// Handles database connection errors with exponential backoff retry`.
+Simply deleting a temporal word produces a useless comment -- `// Updated error handling` becoming `// Error handling` adds nothing. Rewrite with specifics: `// Handles database connection errors with exponential backoff retry`.
 
 **Gate**: All rewrites pass quality checks. No vague or empty replacements. Proceed only when gate passes.
 
@@ -126,7 +126,7 @@ If a rewrite just removes the temporal word without adding substance, it fails v
 
 **Step 1: Generate report**
 
-Report facts concisely with file paths and line numbers. Every finding must include the current text, suggested replacement, and reasoning -- a diagnostic-only count without rewrites creates work without providing solutions.
+Every finding must include current text, suggested replacement, and reasoning.
 
 ```markdown
 ## Comment Quality Review
@@ -146,7 +146,7 @@ Report facts concisely with file paths and line numbers. Every finding must incl
 
 **Step 2: Apply fixes (if auto-fix enabled)**
 
-If user requested auto-fix, apply all rewrites using Edit tool. Verify each edit succeeded. Wait for explicit user permission before auto-fixing without explicit user authorization.
+If user requested auto-fix, apply all rewrites using Edit tool. Verify each edit succeeded. Wait for explicit permission before auto-fixing without authorization.
 
 **Step 3: Cleanup**
 
@@ -160,8 +160,8 @@ Remove any scan results, intermediate reports, or helper files created during ex
 Cause: Files are clean or scope was too narrow
 Solution:
 1. Verify common files were scanned (README, main source files)
-2. Report clean results -- this is a valid positive outcome
-3. Suggest expanding scope if user suspects issues exist elsewhere
+2. Report clean results -- a valid positive outcome
+3. Suggest expanding scope if user suspects issues elsewhere
 
 ### Error: "Too Many Results to Display"
 Cause: Large codebase with widespread temporal language
@@ -175,13 +175,13 @@ Cause: Comment only makes sense with development context that no longer exists
 Solution:
 1. Read surrounding code to infer current purpose
 2. If purpose is clear from code, suggest removing the comment entirely
-3. If purpose is unclear, ask user for clarification before rewriting
+3. If purpose is unclear, ask user for clarification
 
 ## References
 
 ### Reference Loading Table
 
-Load on demand — only pull what the current task requires.
+Load on demand -- only pull what the current task requires.
 
 | Task Signal | Load |
 |-------------|------|
