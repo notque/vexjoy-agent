@@ -79,7 +79,7 @@ The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.codex
 
 There is no opt-out flag. The mirror is harmless when Codex CLI is not installed: `~/.codex/` entries sit unused until you install Codex. To skip the hooks portion, delete `~/.codex/hooks/` and `~/.codex/hooks.json` after install; the toolkit does not recreate them on normal use.
 
-**Reference**: [`adr/182-codex-hooks-mirror.md`](adr/182-codex-hooks-mirror.md). Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
+Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
 
 ## Gemini CLI Support
 
@@ -218,16 +218,17 @@ Deterministic Python utilities for mechanical operations: INDEX generation, lear
 
 ## Philosophy
 
-The toolkit is built on tested principles, not aspirations. Key ideas:
+Tested principles, not aspirations. The toolkit absorbs complexity so the user does not have to.
 
-- **Zero-expertise operation.** The system requires no specialized knowledge from the user. Say what you want done. The system handles the rest.
-- **LLMs orchestrate, programs execute.** If a process is deterministic and measurable, use a script. Reserve LLM judgment for design decisions and contextual diagnosis.
-- **Tokens are cheap, quality is expensive.** Dispatch parallel review agents, run validation scripts, create plans before executing. Quality gates run on every invocation regardless of token budget.
-- **Agents carry the knowledge, not the model.** Agent quality is proportional to the specificity of attached knowledge, not the confidence of attached tone. We tested this empirically with A/B experiments.
-- **Anti-rationalization as infrastructure.** The toolkit enforces verification structurally. Quality gates are built into the pipeline, not left to discipline.
+- **Zero-expertise operation.** Say what you want done. The system classifies, selects specialists, enforces quality, and delivers. No agent names, no configuration, no prompt engineering.
+- **LLMs orchestrate, programs execute.** Deterministic and measurable work belongs to scripts. LLM judgment is reserved for design decisions, contextual diagnosis, and code review.
+- **Information density.** High fidelity, minimum words. Dense output beats verbose output. Complete results beat partial results. Every word should carry instruction, rule, or decision.
+- **Tokens buy breadth, not depth.** Token spend goes toward more specialized agents analyzing in parallel, not longer prompts per agent. Right context ensures correctness; unfocused context adds cost without quality.
+- **Agents carry the knowledge, not the model.** Agent quality is proportional to the specificity of attached knowledge, not the confidence of attached tone. A/B tested: domain knowledge and structured methodology beat motivational preambles every time.
+- **Anti-rationalization as infrastructure.** Exit codes enforce what instructions cannot. Quality gates are structural, not advisory.
 - **Everything should be a pipeline.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
-Read the full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
 
 ## License
 

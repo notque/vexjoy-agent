@@ -14,7 +14,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 # Load the hyphenated script as a module via importlib.
-SCRIPT_PATH = Path(__file__).resolve().parent / "check-skill-verdicts.py"
+SCRIPT_PATH = Path(__file__).resolve().parent.parent / "check-skill-verdicts.py"
 _spec = importlib.util.spec_from_file_location("check_skill_verdicts", SCRIPT_PATH)
 assert _spec is not None and _spec.loader is not None
 checker = importlib.util.module_from_spec(_spec)
