@@ -42,7 +42,7 @@ reddit-data/{subreddit}/
 Bootstrap a subreddit before first use:
 
 ```bash
-python3 ~/.claude/scripts/reddit_mod.py setup
+python3 skills/reddit-moderate/scripts/reddit-mod.py setup
 ```
 
 This creates `reddit-data/{subreddit}/` with auto-generated rules, mod log summary, repeat offender list, and template files.

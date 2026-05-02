@@ -104,7 +104,7 @@ For each modqueue item, run these steps in order:
 
 3. **Fetch author history** -- Run:
    ```bash
-   python3 ~/.claude/scripts/reddit_mod.py user-history --username {author} --limit 20
+   python3 skills/reddit-moderate/scripts/reddit-mod.py user-history --username {author} --limit 20
    ```
    Check for: account age, post diversity, whether they only mention one vendor/product, ratio of promotional vs. organic content.
 
