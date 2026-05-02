@@ -144,7 +144,7 @@ See: `skills/shared-patterns/wabi-sabi-authenticity.md`
 All voice content must pass validation:
 
 ```bash
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content [file] \
   --voice [voice-name] \
   --format json

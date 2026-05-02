@@ -15,9 +15,9 @@ Study any existing voice profile in `skills/voice-*/` to understand what "done" 
 
 | Component | Type | What It Does | When Called |
 |-----------|------|-------------|-------------|
-| `scripts/voice-analyzer.py analyze` | Script | Extract quantitative metrics from writing samples | Step 2: EXTRACT |
-| `scripts/voice-analyzer.py compare` | Script | Compare two voice profiles | Optional (cross-voice comparison) |
-| `scripts/voice-validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
-| `scripts/voice-validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
+| `skills/create-voice/scripts/voice-analyzer.py analyze` | Script | Extract quantitative metrics from writing samples | Step 2: EXTRACT |
+| `skills/create-voice/scripts/voice-analyzer.py compare` | Script | Compare two voice profiles | Optional (cross-voice comparison) |
+| `skills/voice-validator/scripts/voice-validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
+| `skills/voice-validator/scripts/voice-validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
 | `scripts/data/banned-patterns.json` | Data | AI pattern database used by validator | Step 6 (via validator) |
 | `skills/workflow/references/voice-calibrator.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |

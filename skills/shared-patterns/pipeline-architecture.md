@@ -257,7 +257,7 @@ Task(agent3, "Research music...")
 
 ```bash
 # Validation is deterministic, reproducible
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content article.md \
   --voice {voice-name} \
   --format json
@@ -298,7 +298,7 @@ When a pipeline step performs a deterministic operation (repo classification, fi
 **Examples in this repo:**
 - `scripts/classify-repo.py` — deterministic repo classification (used by pr-workflow)
 - `scripts/usage-report.py` — skill/agent usage telemetry
-- `scripts/voice-validator.py` — deterministic voice validation
+- `skills/voice-validator/scripts/voice-validator.py` — deterministic voice validation
 
 **Rule**: If a pipeline step doesn't need LLM judgment, it should be a script.
 

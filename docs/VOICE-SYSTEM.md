@@ -13,7 +13,7 @@ Gather 3-5 pieces of writing (blog posts, articles, emails). More samples = bett
 ### 2. Analyze the Samples
 
 ```bash
-python3 scripts/voice-analyzer.py analyze --samples your-samples.md
+python3 skills/create-voice/scripts/voice-analyzer.py analyze --samples your-samples.md
 ```
 
 Produces a voice profile: sentence length distribution, opening patterns, distinctive elements (comma density, contraction rate, fragment usage).
@@ -35,7 +35,7 @@ Produces a voice profile: sentence length distribution, opening patterns, distin
 ### 5. Validate the Output
 
 ```bash
-python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
+python3 skills/voice-validator/scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
 ```
 
 Checks: banned patterns, rhetorical pivots, sentence rhythm monotony, metric deviations from profile, architectural patterns, overall score (pass threshold: 60/100).
@@ -44,7 +44,7 @@ Checks: banned patterns, rhetorical pivots, sentence rhythm monotony, metric dev
 
 ## How It Works
 
-### Voice Analyzer (`scripts/voice-analyzer.py`)
+### Voice Analyzer (`skills/create-voice/scripts/voice-analyzer.py`)
 
 | Metric | What It Measures |
 |--------|-----------------|
@@ -56,13 +56,13 @@ Checks: banned patterns, rhetorical pivots, sentence rhythm monotony, metric dev
 | Em-dash usage | Punctuation preferences |
 | Function word signature | Word frequency fingerprint |
 
-### Voice Validator (`scripts/voice-validator.py`)
+### Voice Validator (`skills/voice-validator/scripts/voice-validator.py`)
 
 ```bash
-python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
-python3 scripts/voice-validator.py check-banned --content draft.md
-python3 scripts/voice-validator.py check-rhythm --content draft.md --profile your-voice-profile.json
-python3 scripts/voice-analyzer.py compare --profile1 voice1.json --profile2 voice2.json
+python3 skills/voice-validator/scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
+python3 skills/voice-validator/scripts/voice-validator.py check-banned --content draft.md
+python3 skills/voice-validator/scripts/voice-validator.py check-rhythm --content draft.md --profile your-voice-profile.json
+python3 skills/create-voice/scripts/voice-analyzer.py compare --profile1 voice1.json --profile2 voice2.json
 ```
 
 ### Voice Calibrator (`skills/workflow/references/voice-calibrator.md`)
@@ -92,7 +92,7 @@ Reads samples, extracts metrics, identifies distinctive patterns, generates test
 ### Step 3: Iterative Refinement
 
 ```bash
-python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --format text --verbose
+python3 skills/voice-validator/scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --format text --verbose
 /do refine voice your-voice with additional samples
 ```
 

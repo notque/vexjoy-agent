@@ -81,12 +81,12 @@ mkdir -p skills/voice-{name}/references/samples
 Run voice analyzer on samples to extract quantitative metrics:
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py analyze \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 
 # View text report for interpretation
-python3 ~/.claude/scripts/voice-analyzer.py analyze \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --format text
 ```
@@ -243,7 +243,7 @@ Generate test content using the voice skill, then validate against profile:
 # Generate test content (AI), save to temp file
 # Then validate against profile
 
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content test-output.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -316,7 +316,7 @@ Process:
 
 Quick validation:
 ```bash
-python3 ~/.claude/scripts/voice-validator.py check-banned \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py check-banned \
   --content test-output.md \
   --voice {name} \
   --format text
@@ -337,7 +337,7 @@ Process:
 4. Generate CALIBRATED output (apply SKILL.md)
 5. Validate CALIBRATED output:
    ```bash
-   python3 ~/.claude/scripts/voice-validator.py validate \
+   python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
      --content calibrated-output.md \
      --profile skills/voice-{name}/profile.json \
      --format text
@@ -353,7 +353,7 @@ Process:
 Use when: Comparing two calibrated voices
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py compare \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py compare \
   --profile1 skills/voice-profile-a/profile.json \
   --profile2 skills/voice-profile-b/profile.json \
   --format text
@@ -593,7 +593,7 @@ Two required scripts power deterministic analysis:
 Extracts quantitative metrics from writing samples:
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py analyze \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 ```
@@ -610,7 +610,7 @@ Produces profile.json with:
 Validates generated content against profile:
 
 ```bash
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content test-output.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -648,7 +648,7 @@ Commands to manage:
 /voice show --name {name}
 
 # Compare two voices
-python3 ~/.claude/scripts/voice-analyzer.py compare \
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py compare \
   --profile1 skills/voice-a/profile.json \
   --profile2 skills/voice-b/profile.json
 ```
@@ -699,16 +699,16 @@ Check:
 3. File paths valid
 
 ```bash
-python3 ~/.claude/scripts/voice-analyzer.py --help
-python3 ~/.claude/scripts/voice-validator.py --help
+python3 ~/.claude/skills/create-voice/scripts/voice-analyzer.py --help
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py --help
 ```
 
 ---
 
 ## References
 
-- `scripts/voice-analyzer.py`: Deterministic metrics extraction
-- `scripts/voice-validator.py`: Content validation against profile
+- `skills/create-voice/scripts/voice-analyzer.py`: Deterministic metrics extraction
+- `skills/voice-validator/scripts/voice-validator.py`: Content validation against profile
 - `scripts/data/banned-patterns.json`: Shared banned pattern database
 
 ## Reference Implementations
@@ -785,7 +785,7 @@ After calibration, use the voice profile when:
 Validation command for drafts:
 
 ```bash
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content draft.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \

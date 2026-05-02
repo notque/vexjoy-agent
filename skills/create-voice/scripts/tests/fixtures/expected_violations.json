@@ -1,0 +1,210 @@
+{
+  "voice": "voice_a",
+  "score": 32,
+  "pass": false,
+  "violations": {
+    "errors": [
+      {
+        "type": "em_dash",
+        "line": 11,
+        "text": "The match \u2014 one of the best of the year \u2014 set a new standard.",
+        "message": "Em-dash detected. ABSOLUTELY FORBIDDEN. Use comma, period, or rewrite."
+      },
+      {
+        "type": "em_dash",
+        "line": 12,
+        "text": "The underdog finally won \u2014 and the crowd erupted.",
+        "message": "Em-dash detected. ABSOLUTELY FORBIDDEN. Use comma, period, or rewrite."
+      },
+      {
+        "type": "banned_pattern",
+        "line": 14,
+        "text": "This wasn't just a performance. It was the culmination...",
+        "message": "Banned pattern: 'It's not X. It's Y' structure detected."
+      },
+      {
+        "type": "banned_pattern",
+        "line": 15,
+        "text": "This isn't just a list of winners. This is a love letter...",
+        "message": "Banned pattern: 'It's not X. It's Y' structure detected."
+      },
+      {
+        "type": "banned_pattern",
+        "line": 16,
+        "text": "Her year wasn't just impressive. It was unlike anything...",
+        "message": "Banned pattern: 'It's not X. It's Y' structure detected."
+      }
+    ],
+    "warnings": [
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "delve",
+        "category": "exploration_verbs",
+        "message": "Banned word: 'delve' - AI cliche, no one says this"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "comprehensive",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'comprehensive' - Every guide claims this"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "journey",
+        "category": "exploration_verbs",
+        "message": "Banned word: 'journey' - Narrative padding"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "robust",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'robust' - Means nothing specific"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "landscape",
+        "category": "abstract_nouns",
+        "message": "Banned word: 'landscape' - Abstract"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "dynamic",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'dynamic' - Meaningless modifier"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "explore",
+        "category": "exploration_verbs",
+        "message": "Banned word: 'explore' - Vague, overused"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "innovative",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'innovative' - Self-congratulatory"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "leverage",
+        "category": "corporate_verbs",
+        "message": "Banned word: 'leverage' - Corporate jargon"
+      },
+      {
+        "type": "banned_word",
+        "line": 3,
+        "word": "cutting-edge",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'cutting-edge' - Hype word"
+      },
+      {
+        "type": "observer_language",
+        "line": 7,
+        "text": "There's something deeply satisfying about watching...",
+        "message": "Observer perspective detected. This voice tells stories from inside, not outside."
+      },
+      {
+        "type": "meta_commentary",
+        "line": 7,
+        "text": "This is what long-term storytelling can achieve...",
+        "message": "Meta-commentary on storytelling. This voice TELLS the story, doesn't comment on it."
+      },
+      {
+        "type": "rhythm_violation",
+        "line": 20,
+        "text": "The match was good. The crowd was loud...",
+        "message": "Monotonous rhythm: 7 consecutive sentences with similar length (5-10 words)."
+      },
+      {
+        "type": "banned_word",
+        "line": 24,
+        "word": "holistic",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'holistic' - Consultant speak"
+      },
+      {
+        "type": "banned_word",
+        "line": 24,
+        "word": "game-changing",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'game-changing' - Hype"
+      },
+      {
+        "type": "banned_word",
+        "line": 24,
+        "word": "ecosystem",
+        "category": "abstract_nouns",
+        "message": "Banned word: 'ecosystem' - Overused metaphor"
+      },
+      {
+        "type": "banned_phrase",
+        "line": 24,
+        "text": "In conclusion",
+        "message": "Banned phrase: 'In conclusion' - Redundant signaling"
+      },
+      {
+        "type": "banned_phrase",
+        "line": 24,
+        "text": "as we've seen",
+        "message": "Banned phrase: 'as we've seen' - Self-referential"
+      },
+      {
+        "type": "banned_word",
+        "line": 26,
+        "word": "transformative",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'transformative' - Corporate speak"
+      },
+      {
+        "type": "banned_word",
+        "line": 26,
+        "word": "incredible",
+        "category": "enthusiasm_markers",
+        "message": "Banned word: 'incredible' - Hyperbole"
+      },
+      {
+        "type": "banned_word",
+        "line": 26,
+        "word": "synergy",
+        "category": "corporate_verbs",
+        "message": "Banned word: 'synergy' - Mocked cliche"
+      },
+      {
+        "type": "banned_word",
+        "line": 26,
+        "word": "seamless",
+        "category": "empty_adjectives",
+        "message": "Banned word: 'seamless' - Rarely true"
+      },
+      {
+        "type": "banned_phrase",
+        "line": 26,
+        "text": "At the end of the day",
+        "message": "Banned phrase: 'At the end of the day' - Cliche"
+      }
+    ],
+    "info": [
+      {
+        "type": "abstract_praise",
+        "line": 22,
+        "text": "She reinvented what it means to command attention.",
+        "message": "Abstract praise without specific story beats. Name the actual character arcs."
+      }
+    ]
+  },
+  "metrics": {
+    "errors_count": 5,
+    "warnings_count": 23,
+    "info_count": 1,
+    "score_calculation": "100 - (5*10) - (23*3) - (1*1) = 32"
+  }
+}

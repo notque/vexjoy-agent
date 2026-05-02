@@ -5,7 +5,7 @@ Audit Perses dashboard definitions for quality metrics:
 panel count, query complexity, variable chains, datasource references.
 
 Usage:
-    python3 scripts/perses-dashboard-audit.py <file> [--format json|text]
+    python3 skills/perses/scripts/perses-dashboard-audit.py <file> [--format json|text]
 """
 
 import argparse

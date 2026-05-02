@@ -50,7 +50,7 @@ Always use `--human` flag for all script invocations to get human-readable outpu
 **For new posts:**
 
 ```bash
-python3 ~/.claude/scripts/wordpress-upload.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-upload.py \
   --file <path-to-markdown> \
   --title "Post Title" \
   --human
@@ -63,7 +63,7 @@ The `--title` flag is optional. If omitted, the script extracts the title from m
 By default, frontmatter or `--category` names that don't exist on the target site are skipped with a warning, and the post lands without them. Pass `--create-missing-categories` to create them on the fly via `POST /wp/v2/categories`:
 
 ```bash
-python3 ~/.claude/scripts/wordpress-upload.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-upload.py \
   --file <path-to-markdown> \
   --create-missing-categories \
   --human
@@ -76,7 +76,7 @@ Auto-create only applies at upload time. `wordpress-edit-post.py` accepts catego
 **For media uploads:**
 
 ```bash
-python3 ~/.claude/scripts/wordpress-media-upload.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-media-upload.py \
   --file <path-to-image> \
   --alt "Descriptive alt text" \
   --human
@@ -87,7 +87,7 @@ Always provide descriptive alt text for accessibility.
 **For editing existing posts:**
 
 ```bash
-python3 ~/.claude/scripts/wordpress-edit-post.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-edit-post.py \
   --id <post-id> \
   --human \
   [--title "New Title"] \
@@ -99,7 +99,7 @@ python3 ~/.claude/scripts/wordpress-edit-post.py \
 **For inspecting a post before editing:**
 
 ```bash
-python3 ~/.claude/scripts/wordpress-edit-post.py \
+python3 ~/.claude/skills/publish/scripts/wordpress-edit-post.py \
   --id <post-id> \
   --get \
   --human
@@ -233,9 +233,9 @@ See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-error-handling.md` for comm
 ## References
 
 **Script Files**:
-- `~/.claude/scripts/wordpress-upload.py`: Create new posts from markdown
-- `~/.claude/scripts/wordpress-media-upload.py`: Upload images/media to library
-- `~/.claude/scripts/wordpress-edit-post.py`: Edit existing posts (title, content, status, featured image)
+- `~/.claude/skills/publish/scripts/wordpress-upload.py`: Create new posts from markdown
+- `~/.claude/skills/publish/scripts/wordpress-media-upload.py`: Upload images/media to library
+- `~/.claude/skills/publish/scripts/wordpress-edit-post.py`: Edit existing posts (title, content, status, featured image)
 
 **Environment Configuration**:
 - File: `~/.env`

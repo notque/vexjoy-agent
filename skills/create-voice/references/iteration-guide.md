@@ -16,7 +16,7 @@ Save each to a temp file.
 For each test piece:
 
 ```bash
-python3 ~/.claude/scripts/voice-validator.py validate \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py validate \
   --content /tmp/voice-test-{name}-{N}.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -27,7 +27,7 @@ python3 ~/.claude/scripts/voice-validator.py validate \
 ### Run Banned Pattern Check
 
 ```bash
-python3 ~/.claude/scripts/voice-validator.py check-banned \
+python3 ~/.claude/skills/voice-validator/scripts/voice-validator.py check-banned \
   --content /tmp/voice-test-{name}-{N}.md \
   --voice {name}
 ```
