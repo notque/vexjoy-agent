@@ -26,7 +26,7 @@ These rules are enforced by `pipeline-scaffolder` when generating pipeline compo
 | Constraint | Limit | Enforcement |
 |-----------|-------|-------------|
 | Main agent file | 10,000 words max | Hard gate — move to references/ |
-| YAML description | 3 example blocks | Required by AGENT_TEMPLATE_V2 |
+| YAML description | 3 example blocks | Required by agent template |
 | Hardcoded behaviors | 3-5 items | Excess indicates over-engineering |
 | Capabilities list | 4-6 items | More suggests scope creep |
 | Pattern coverage | 3+ items | Minimum for quality |
@@ -339,7 +339,7 @@ The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely i
 | File | Why |
 |------|-----|
 | The pipeline ADR | Context and decisions |
-| `AGENT_TEMPLATE_V2.md` | Required structure |
+| `skills/skill-creator/references/agent-template.md` | Required structure |
 | `architecture-rules.md` | Constraints |
 | Every skill it pairs with | Verify skill references are accurate |
 

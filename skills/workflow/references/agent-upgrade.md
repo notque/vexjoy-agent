@@ -93,11 +93,10 @@ Retro candidates: [N found | none]
 
 **Goal**: Gap analysis against current patterns, templates, and peers.
 
-**Step 1**: Compare target against `AGENT_TEMPLATE_V2` structure. Read the template:
+**Step 1**: Compare target against the agent template structure. Read the template:
 ```bash
-# Look for AGENT_TEMPLATE_V2 reference
-ls agents/ | grep -i template
-grep -rl "AGENT_TEMPLATE_V2" agents/ skills/ | head -5
+# Read the agent template
+cat skills/skill-creator/references/agent-template.md | head -50
 ```
 
 Check for required sections. For agents:
@@ -213,7 +212,7 @@ Proceed with implementation? (or specify which items to include/exclude)
 
 **Step 2**: For each approved improvement, apply in order of tier (Critical first):
 
-**For missing sections** (add from AGENT_TEMPLATE_V2 patterns):
+**For missing sections** (add from agent-template patterns):
 - Operator Context: Add the three-subsection structure. Populate Hardcoded with behaviors that ARE enforced, Default with on-by-default behaviors, Optional with opt-in behaviors.
 - Error Handling: Add 2–4 concrete error cases with Cause + Solution format.
 
@@ -301,8 +300,8 @@ Solution: Read the target file manually and apply the scoring rubric from the CL
 Cause: No relevant learnings in the database for this agent's domain.
 Solution: Skip retro graduation step and note it in the diff report. Learnings accumulate naturally during work.
 
-### Error: "No AGENT_TEMPLATE_V2 found in repository"
-Cause: Template file not yet created or named differently.
+### Error: "Agent template not found in repository"
+Cause: Template file not at expected path (`skills/skill-creator/references/agent-template.md`).
 Solution: Use the highest-scoring agent (from recent agent-evaluation runs or MEMORY.md) as the de facto template for structural comparison. Note the substitution in the diff report.
 
 ### Error: "Regression detected in Phase 5 (delta is negative)"
@@ -319,5 +318,5 @@ Solution: Re-read the file before editing. If the baseline state has changed mat
 
 - [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 1 (baseline) and Phase 5 (re-evaluate)
 - [system-upgrade](../system-upgrade/SKILL.md) - Top-down multi-component upgrade pipeline (complements this bottom-up single-agent pipeline)
-- [AGENT_TEMPLATE_V2](../../agents/AGENT_TEMPLATE_V2.md) - Structural template used for gap analysis in Phase 2
+- [agent-template](../../skill-creator/references/agent-template.md) - Structural template used for gap analysis in Phase 2
 - [learning-db.py](../../scripts/learning-db.py) - Script for querying retro graduation candidates
