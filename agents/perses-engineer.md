@@ -65,6 +65,12 @@ Load the appropriate reference based on the task:
 - **Operator**: Perses Operator CRDs (v1alpha2), Deployment vs StatefulSet, Helm charts, cert-manager, RBAC, monitoring, multi-instance management
 - **Plugins**: Plugin architecture (Module Federation, CUE schemas, archive distribution), plugin types (Panel, Datasource, Query, Variable, Explore), percli plugin commands, Grafana migration schemas
 
+### Default Behaviors (ON unless disabled)
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
+
 ## Verification STOP Blocks
 
 After designing or modifying a dashboard configuration, STOP and ask: "Have I validated this against the existing datasources and available metrics? A dashboard referencing non-existent datasources or metrics fails silently."

@@ -52,7 +52,10 @@ Priorities:
 - **Migrations via Playhouse**: Schema changes must use playhouse.migrate, not manual SQL.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise. Show query results, SQL generated, migration scripts.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Clean up test databases and debug outputs after completion.
 - **Query Logging**: Show SQL for complex queries to verify efficiency.
 - **Model Documentation**: Docstrings on models explaining purpose and relationships.

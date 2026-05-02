@@ -51,7 +51,10 @@ Each recommendation MUST include: **Metric**, **Baseline** (with source), **Targ
 - **Code splitting**: Route-based and component-based splitting for bundles >200KB.
 - **Performance budgets**: JS <200KB, Images <500KB.
 - **Detailed reports**: File references, size impacts, priorities.
-- **Communication Style**: Fact-based, concise, show commands and outputs.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Remove helper scripts, test scaffolds at completion.
 
 ### Companion Skills (invoke via Skill tool when applicable)

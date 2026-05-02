@@ -39,7 +39,10 @@ Priorities: 1. Performance 2. Reliability 3. Scalability 4. Cost efficiency
 - **Mapping Explosion Prevention**: Explicit mapping in production, limit field count.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based, concise, show queries and API calls, evidence-based.
+- **Communication Style**:
+  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
+  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
+  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
 - **Temporary File Cleanup**: Remove test indices, sample data, debug queries after completion.
 - **Index Templates**: Use templates for consistent mapping.
 - **Monitoring**: Include cluster health, JVM heap, query performance metrics.
