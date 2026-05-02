@@ -310,6 +310,8 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product. Ship the complete thing."
 
+**MANDATORY: Inject density standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write dense: high fidelity, minimum words. Cut filler, prefer tables over paragraphs, report what changed — not how."
+
 **Opus 4.7: Inject thinking directive.** Prepend verbatim, no framing:
 
 | Complexity | Thinking Directive |
