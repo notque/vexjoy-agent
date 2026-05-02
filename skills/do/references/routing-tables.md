@@ -42,7 +42,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
 | **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
-| **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
+
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
 | **react-native-engineer** | User is building or optimizing React Native or Expo mobile apps: list performance (FlashList, LegendList), animations (Reanimated, gesture handler), navigation (native-stack, expo-router), native UI patterns, or mobile-specific state management. NOT: React web apps (use typescript-frontend-engineer). NOT: React Native animation design mockups (use ui-design-engineer for design, then react-native-engineer for Reanimated implementation). NOT: mobile list virtualization or JS thread optimization (performance-optimization-engineer covers web Core Web Vitals only — react-native-engineer covers mobile performance). NOT: React Native apps targeting iOS/Android with Swift/Kotlin native modules (use swift-general-engineer or kotlin-general-engineer for native layer). |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
@@ -131,10 +131,10 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **github-notification-triage** | User wants to triage GitHub notifications: fetch, classify, and report actions needed. Common phrasings: "check notifications", "github inbox", "triage notifications". |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
-| **kb** | User wants to compile, query, or health-check a knowledge base wiki under `research/{topic}/`. Routes to compile/query/lint reference by intent. Triggers: "compile knowledge base", "kb compile", "compile wiki", "build knowledge base", "compile raw sources", "query knowledge base", "kb query", "ask knowledge base", "search kb", "kb question", "lint knowledge base", "kb lint", "check kb health", "knowledge base health", "kb consistency". Category: research. |
+
 | **roast** | User wants constructive critique of a design doc, idea, or code via 5 HackerNews personas with claim validation. Common phrasings: "roast this", "devil's advocate", "stress test this idea", "poke holes in this". |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
-| **kairos-lite** | User wants a project status briefing, health check, or to see what happened overnight — GitHub notifications, CI status, toolkit health. Common phrasings: "what happened", "morning briefing", "check notifications", "project status", "health check". NOT: specific PR status (use pr-workflow ci-check), specific CI debugging (use systematic-debugging). |
+
 | **pr-workflow** (miner mode) | User wants to extract review comments or learnings from past GitHub PRs, or coordinate batch mining. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
@@ -170,16 +170,12 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. |
-| **anti-ai-editor** | User wants to edit content to remove AI-sounding patterns, genericness, or sterile phrasing. |
+| **anti-ai-editor** | User wants to edit content to remove AI-sounding patterns, genericness, or sterile phrasing. Available as private skill. |
 | **content-engine** | User wants to repurpose source assets (articles, demos, docs) into platform-native social content. Common phrasings: "repurpose this", "adapt for social", "turn this into posts", "platform variants". |
 | **de-ai-pipeline (FORCE)** | User wants to scan and systematically fix AI patterns across documentation or a content repository. |
 | **publish** | Content-publishing umbrella. Routes to one of eight intents: outline (structure a blog post before writing), pre-publish (validate Hugo post front matter, SEO, links, images before publishing), SEO (optimize keywords, title, meta description, internal links), batch-edit (bulk find/replace and frontmatter updates across Hugo posts), link-audit (scan markdown, build link graph, validate paths, find broken links), image-audit (non-destructive image validation for accessibility and page-weight health), taxonomy (audit tags/categories, merge duplicates, fix case variations), and WordPress-upload (REST API integration for posts and media). NOT: writing article prose (use voice-writer), live post-upload rendering verification (use wordpress-live-validation). |
 | **topic-brainstormer** | User wants ideas or topics to write about in a domain. |
-| **create-voice** | User wants to create a new voice profile from writing samples for use in future content generation. |
-| **voice-calibrator** | User wants to refine or calibrate an existing voice profile against new samples. |
-| **voice-validator** | User wants to validate that generated content matches a voice profile. |
-| **joy-check** | User wants to validate that content frames events positively rather than negatively on the joy-grievance spectrum — used as a validation gate in the voice-writer pipeline. Triggers: "joy check", "check framing", "tone check", "negative framing". NOT: full voice profile validation (use voice-validator). NOT: grammar/style editing (use anti-ai-editor). |
+| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. Available as private skill. |
 | **series-planner** | User wants to plan a multi-part content series with coherent arc and progression. |
 | **content-calendar** | User wants to plan content publication over a time period. |
 | **wordpress-live-validation** | User wants to validate WordPress posts live after upload: check rendering, canonical URLs, or publication status. |
@@ -200,20 +196,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 ---
 
-## Voice Skills
-
-| Skill | When to Route Here |
-|-------|-------------------|
-| **create-voice** | User wants to build a new voice profile from their writing samples. This is the entry point for establishing a new voice. |
-| **voice-writer** | User wants to generate content in an established voice — multi-step generation with validation. |
-| **voice-calibrator** | User wants to refine an existing voice profile or improve how well it captures their writing style. |
-| **voice-validator** | User wants to run a validation loop to confirm generated content matches the voice profile. |
-
-**Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-writer` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
-
-**Wabi-sabi principle:** Perfection is an AI tell. Natural imperfections are features. Don't over-polish.
-
----
 
 ## Feature Lifecycle Skills
 
@@ -242,7 +224,7 @@ All workflow pipelines live in `skills/workflow/references/` and are accessed vi
 | **research-pipeline** (research-coordinator-engineer) | User wants formal research with saved artifacts, multiple sources, and a synthesized deliverable. NOT: a quick lookup or single-source check. | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
 | **agent-upgrade** (skill-creator) | User wants to audit and improve a specific agent to bring it up to current template standards. | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
 | **pr-workflow** (pipeline mode) | User wants the full structured PR workflow with review gates. | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
-| **voice-writer** | User wants to write content in a specific voice with multi-step generation and validation. | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
+| **voice-writer** (private skill) | User wants to write content in a specific voice with multi-step generation and validation. | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
 | **github-profile-rules** (github-profile-rules-engineer) | User wants to extract programming rules or coding conventions from a GitHub user's repositories. | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
 | **workflow-orchestrator** | User wants to orchestrate a plan with structured phases — brainstorm, plan, execute. | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
 | **do-perspectives** | User wants multi-lens analysis of a problem from 10 different perspectives. | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
@@ -253,15 +235,13 @@ Workflows that work together in common sequences:
 
 | Workflow | Sequence | When |
 |----------|----------|------|
-| **Content creation** | research-pipeline → voice-writer | Research-backed articles in a specific voice |
+| **Content creation** | research-pipeline → voice-writer (private) | Research-backed articles in a specific voice |
 | **Feature lifecycle** | workflow (explore) → workflow-orchestrator → pr-workflow | Understand → implement → ship |
 | **Code review** | workflow (comprehensive-review) → pr-workflow | Review then submit |
 | **Agent improvement** | agent-upgrade → skill-creator | Audit agent, then scaffold missing skills |
 | **Toolkit improvement** | workflow (toolkit-improvement) → system-upgrade → agent-upgrade | Evaluate → fix → upgrade system → upgrade agents |
 | **System upgrade** | system-upgrade → agent-upgrade | Upgrade system, then individual agents |
-| **Voice development** | workflow (voice-calibrator) → voice-writer → workflow (article-evaluation) | Calibrate → write → evaluate |
 | **Documentation** | workflow (explore) → workflow (doc-generation) | Understand codebase → generate docs |
-| **Perses** | perses (dac mode) → perses (plugin mode) | Dashboard-as-Code + plugin development |
 
 ---
 
@@ -303,13 +283,6 @@ Umbrella skill for all C-suite decision support. Detects mode (STRATEGY, TECHNOL
 
 ---
 
-## Perses Skills
-
-| Skill | When to Route Here |
-|-------|-------------------|
-| **perses (FORCE)** (perses-engineer) | User wants to work with the Perses observability platform: dashboards, plugins, deployment, migration, linting, datasources, variables, projects, CUE schemas, or code review. Routes to the correct sub-workflow based on intent. NOT: general Prometheus/Grafana work (use prometheus-grafana-engineer). |
-
----
 
 ## Reviewer Agents
 
