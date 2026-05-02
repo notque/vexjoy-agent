@@ -39,11 +39,9 @@ routing:
 
 # Repo Competitive Analysis Pipeline
 
-## Overview
+7-phase pipeline: clone external repo, dispatch parallel subagents to read every file, inventory our toolkit in parallel, identify capability gaps, audit gaps against our codebase, produce a reality-grounded report, and implement HIGH-value recommendations by rebuilding in our architecture. Use `--analyze-only` to stop at Phase 6.
 
-This skill conducts systematic 7-phase analysis of external repositories to assess their value for adoption, then implements the findings. You dispatch parallel subagents to read and catalog every file in an external repo, inventory your own toolkit in parallel, identify genuine capability gaps, audit those gaps against your actual codebase, produce a reality-grounded comparison report, and implement HIGH-value recommendations by rebuilding them in our architecture. Use `--analyze-only` to stop at the report (Phase 6) without implementing.
-
-The pipeline enforces **full file reading** (not sampling), **parallel execution** (up to 8 agent zones simultaneously), and **mandatory audit** (every recommendation verified before reporting). Optional flags allow local analysis (`--local`), zone focus (`--zone`), and quick comparison (`--quick` skips audit).
+Enforces **full file reading** (not sampling), **parallel execution** (up to 8 zones), and **mandatory audit** (every recommendation verified). Optional flags: `--local` (skip clone), `--zone` (focus), `--quick` (skip audit).
 
 ---
 
@@ -62,188 +60,151 @@ The pipeline enforces **full file reading** (not sampling), **parallel execution
 
 ### Input Parsing
 
-Before starting Phase 1, parse the user's input:
-- **GitHub URL**: Extract repo name from URL (e.g., `https://github.com/org/repo` -> `repo`)
-- **Local path**: Validate the path exists and contains files
+Before Phase 1, parse:
+- **GitHub URL**: Extract repo name (e.g., `https://github.com/org/repo` -> `repo`)
+- **Local path**: Validate path exists
 - **Bare repo name**: Assume `https://github.com/{name}` if it looks like `org/repo`
 
-Set `REPO_NAME` and `REPO_PATH` variables for use throughout the pipeline.
+Set `REPO_NAME` and `REPO_PATH` for the pipeline.
 
 ### Phase 1: CLONE
 
-**Goal**: Obtain the repository and categorize its contents into zones for parallel deep-read.
+**Goal**: Obtain repo and categorize contents into zones for parallel deep-read.
 
-**Step 1: Clone the repository**
+**Step 1: Clone**
 
 ```bash
 git clone --depth 1 <url> /tmp/<REPO_NAME>
 ```
 
-If `--local` flag was provided, skip cloning and use the provided path instead. This allows re-analysis of already-cloned repos without redundant network calls.
+With `--local`, skip clone and use provided path.
 
-**Step 2: Count and categorize files**
+**Step 2: Count and categorize**
 
-Survey the repository structure:
-- Count total files (excluding `.git/`)
-- List top-level directories with file counts
-
-This gives you a baseline for zone complexity and helps identify sub-repo patterns.
+Count total files (excluding `.git/`), list top-level directories with file counts.
 
 **Step 3: Define analysis zones**
 
-Categorize files into zones based on directory names and file patterns. Zones organize the repo into digestible chunks:
-
-| Zone | Typical directories/patterns | Purpose |
-|------|------------------------------|---------|
-| skills | `skills/`, `commands/`, `prompts/`, `templates/` | Reusable skill/prompt definitions |
+| Zone | Typical patterns | Purpose |
+|------|-----------------|---------|
+| skills | `skills/`, `commands/`, `prompts/`, `templates/` | Skill/prompt definitions |
 | agents | `agents/`, `personas/`, `roles/` | Agent configurations |
 | hooks | `hooks/`, `middleware/`, `interceptors/` | Event-driven automation |
-| docs | `docs/`, `*.md` (non-config), `adr/`, `guides/` | Documentation and decisions |
+| docs | `docs/`, `*.md`, `adr/`, `guides/` | Documentation |
 | tests | `tests/`, `*_test.*`, `*.spec.*`, `__tests__/` | Test suites |
 | config | Config files, CI/CD, `*.yaml`, `*.toml`, `*.json` (root) | Configuration |
 | code | `scripts/`, `src/`, `lib/`, `pkg/`, `*.py`, `*.go`, `*.ts` | Source code |
-| other | Everything else | Uncategorized files |
+| other | Everything else | Uncategorized |
 
-**Step 4: Cap zones for parallel feasibility**
+**Step 4: Cap zones**
 
-If any zone exceeds ~100 files, split it into sub-zones by subdirectory. Each sub-zone gets its own agent in Phase 2. Cap at ~100 files per agent because:
-- Agents MUST read **every file** in their zone, not sample or skim (sampling introduces bias and misses distinguishing components)
-- ~100 files is feasible for a single agent within budget and timeout
-- Larger zones are split, so no single agent is overwhelmed
+If any zone exceeds ~100 files, split by subdirectory. Agents MUST read **every file** in their zone (sampling introduces bias). ~100 files is feasible per agent. Log split decisions.
 
-Log the split decisions in the analysis notes for transparency.
-
-**Gate**: Repository cloned (or local path validated). All files categorized into zones. Zone file counts recorded. No zone exceeds ~100 files (split if needed). Proceed only when gate passes.
+**Gate**: Repo cloned/validated. All files zoned. No zone >~100 files.
 
 ### Phase 2: DEEP-READ (Parallel)
 
-**Goal**: Read every file in every zone of the external repository to extract techniques, patterns, and potential capability gaps.
+**Goal**: Read every file in every zone to extract techniques, patterns, and gaps.
 
-Dispatch 1 Agent per analysis zone (background). Each agent receives the zone name and file list, instructions to read EVERY file (not sample, not skim) to avoid sampling bias, and a structured output template.
+Dispatch 1 Agent per zone (background). Each gets zone name, file list, instructions to read EVERY file, and structured output template.
 
-See `references/phase2-agent-template.md` for the full agent instructions template and parallel dispatch rules.
+See `references/phase2-agent-template.md` for agent template and dispatch rules.
 
-**Gate**: All zone agents have completed (or timed out after 5 minutes each). At least 75% of agents returned results (tolerance for individual agent failure). Zone finding files exist in `/tmp/`. Proceed only when gate passes.
+**Gate**: All zone agents completed (or timed out at 5min). >=75% returned results. Zone findings in `/tmp/`.
 
 ### Phase 3: INVENTORY (Parallel with Phase 2)
 
-**Goal**: Catalog our own toolkit simultaneously with Phase 2 deep-read for faster wall-clock time.
+**Goal**: Catalog our toolkit concurrently with Phase 2.
 
-Dispatch 1 Agent (in background, concurrent with Phase 2 zone agents) to inventory our system. Running this in parallel is safe because inventory is a read-only catalog of our codebase.
+Dispatch 1 Agent (background, concurrent with Phase 2) to inventory our system. Safe: inventory is read-only.
 
-See `references/phase3-inventory-template.md` for the full agent instructions and parallel-execution rationale.
+See `references/phase3-inventory-template.md` for agent template.
 
-**Gate**: Self-inventory agent completed (or timed out after 5 minutes). `/tmp/self-inventory.md` exists and contains counts for all 4 component types. Proceed only when gate passes.
+**Gate**: Inventory agent completed (or timed out at 5min). `/tmp/self-inventory.md` exists with counts for all 4 component types.
 
 ### Phase 4: SYNTHESIZE
 
-**Goal**: Merge Phase 2 and Phase 3 findings into a draft comparison with candidate adoption recommendations.
+**Goal**: Merge Phase 2+3 findings into draft comparison with adoption candidates.
 
-**Step 1: Read all zone findings and inventory**
-
-Read every `/tmp/[REPO_NAME]-zone-*.md` file and `/tmp/self-inventory.md` to build a unified picture.
+**Step 1**: Read all `/tmp/[REPO_NAME]-zone-*.md` and `/tmp/self-inventory.md`.
 
 **Step 2: Build comparison table**
-
-For each capability area discovered in the external repo, document what we have vs what they have:
 
 | Capability | Their Approach | Our Approach | Gap? |
 |------------|---------------|--------------|------|
 | ... | ... | ... | Yes/No/Partial |
 
-This table is relative: "what do they have that we lack?" not "what do they have?"
+Focus: "what do they have that we lack?" not "what do they have?"
 
-**Step 3: Identify candidate recommendations**
+**Step 3: Identify candidates**
 
-For each genuine gap (not just a different approach to the same thing):
-- Describe what they have
-- Describe what we lack
-- Rate value honestly: HIGH / MEDIUM / LOW
-  - HIGH = addresses a real pain point or enables new capability
-  - MEDIUM = nice to have, improves existing workflow
-  - LOW = marginal improvement, different but not better
+Per genuine gap (not just a different approach):
+- Describe what they have / what we lack
+- Rate: HIGH (real pain point or new capability), MEDIUM (nice-to-have), LOW (marginal)
 
-Resist the temptation to over-count differences as gaps. A different naming convention is not a gap worth addressing.
+Resist over-counting differences as gaps.
 
-**Step 4: Save draft report**
+**Step 4: Save draft**
 
-Save to `research-[REPO_NAME]-comparison.md` with:
-- Executive summary
-- Comparison table
-- Candidate recommendations with ratings
-- Clear "DRAFT — pending Phase 5 audit" watermark
+Save `research-[REPO_NAME]-comparison.md` with executive summary, comparison table, rated candidates, and "DRAFT -- pending Phase 5 audit" watermark.
 
-This draft is intentionally unaudited so you can bail out early if findings look weak.
-
-**Gate**: Draft report saved. At least 1 candidate recommendation identified (or explicit "no gaps found" conclusion). All recommendations have value ratings. Proceed only when gate passes.
+**Gate**: Draft saved. >=1 candidate (or explicit "no gaps found"). All rated.
 
 ### Phase 5: AUDIT (Parallel)
 
-**Goal**: Reality-check each HIGH and MEDIUM recommendation against our actual codebase to catch "we already have this" false positives.
+**Goal**: Reality-check each HIGH/MEDIUM recommendation against our codebase.
 
-For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background). Audit is what separates superficial analysis from rigorous analysis — skipping it produces unverified recommendations that erode trust.
+Per HIGH/MEDIUM recommendation, dispatch 1 Agent (background). Catches "we already have this" false positives.
 
-See `references/phase5-audit-template.md` for the full audit agent instructions, coverage levels (ALREADY EXISTS / PARTIAL / MISSING), and `--quick` flag behavior.
+See `references/phase5-audit-template.md` for audit agent template, coverage levels (ALREADY EXISTS / PARTIAL / MISSING), and `--quick` behavior.
 
-**Gate**: All audit agents completed (or timed out after 5 minutes). At least 75% returned results. Audit files exist in `/tmp/`. Proceed only when gate passes.
+**Gate**: All audit agents completed (or timed out at 5min). >=75% returned. Audit files in `/tmp/`.
 
 ### Phase 6: REPORT
 
-**Goal**: Produce the final, reality-grounded report with recommendations verified by Phase 5 audit.
+**Goal**: Produce final reality-grounded report with audit-verified recommendations.
 
-Read audit findings, adjust recommendations (ALREADY EXISTS → move to "Already Covered"; PARTIAL → focus on gaps; MISSING → keep), overwrite `research-[REPO_NAME]-comparison.md` with the final report, and remove temporary `/tmp/` files.
+Read audit findings. Adjust: ALREADY EXISTS -> "Already Covered"; PARTIAL -> focus on gaps; MISSING -> keep. Overwrite `research-[REPO_NAME]-comparison.md` with final report. Remove `/tmp/` files.
 
-See `references/phase6-report-template.md` for the full 4-step workflow and final report markdown template.
+See `references/phase6-report-template.md` for workflow and template.
 
-**Gate**: Final report saved to `research-[REPO_NAME]-comparison.md`. Report contains comparison table, adjusted recommendations based on audit findings, and verdict. No "DRAFT" watermark remains. All recommendations have been reality-checked against Phase 5 audit findings (or marked as unaudited if --quick was used). Proceed only when gate passes.
+**Gate**: Final report saved. Contains comparison table, adjusted recommendations, verdict. No "DRAFT" watermark. All recommendations reality-checked (or marked unaudited if --quick).
 
-### Phase 7: IMPLEMENT (Optional — skipped with `--analyze-only`)
+### Phase 7: IMPLEMENT (Optional -- skipped with `--analyze-only`)
 
-**Goal**: Take HIGH-value recommendations from the Phase 6 report and rebuild them inside our architecture. This is the adoption phase — it closes the loop from "we found something valuable" to "we built our version of it."
+**Goal**: Rebuild HIGH-value recommendations in our architecture.
 
-If `--analyze-only` was passed at invocation, skip this phase entirely and deliver the Phase 6 report as the final output. The default behavior is to run Phase 7 because the whole point of this pipeline is end-to-end adoption, not just analysis.
+Default: run Phase 7. `--analyze-only`: deliver Phase 6 report.
 
-**Step 1: Parse the final report for actionable recommendations**
-
-Read `research-[REPO_NAME]-comparison.md` and extract all recommendations by priority:
+**Step 1: Parse report**
 
 | Priority | Action |
 |----------|--------|
-| **HIGH** with MISSING or PARTIAL coverage | Dispatch an implementation agent (Step 2) |
-| **MEDIUM** | Add to "Future Consideration" section — do not auto-implement |
-| **LOW** | Note in the implementation log — do not action |
+| **HIGH** + MISSING/PARTIAL | Dispatch implementation agent (Step 2) |
+| **MEDIUM** | Add to "Future Consideration" -- no auto-implement |
+| **LOW** | Note in log -- no action |
 
-If no HIGH recommendations exist (all gaps are MEDIUM or LOW), log the outcome and skip to the gate.
+No HIGH recommendations => log and skip to gate.
 
 **Step 2: Dispatch implementation agents**
 
-For each HIGH recommendation, load `references/phase7-implement-template.md` and dispatch 1 Agent with:
+Per HIGH recommendation, load `references/phase7-implement-template.md` and dispatch 1 Agent with:
 
-1. **The recommendation details** — what to build, what gap it fills, which files are affected
-2. **The external repo's approach** — for reference only, not to copy. The external code is research input, not an installation source (per PHILOSOPHY.md: "External Components Are Research Inputs, Not Imports")
-3. **PHILOSOPHY.md constraints** — the agent MUST read `docs/PHILOSOPHY.md` before writing any code. Key principles enforced:
-   - Rebuild in our architecture: our naming, our structure, our routing model
-   - Check existing components first: search `agents/`, `skills/`, `scripts/` for overlap before creating anything new ("One Domain, One Component")
-   - Progressive disclosure: thin runtime files, deep content in `references/`
-   - Deterministic execution: if the work can be a script, write a script
-4. **Quality gates** — the agent must run applicable validation before declaring done:
-   - `ruff check . --config pyproject.toml` and `ruff format --check . --config pyproject.toml` for Python
-   - `python3 scripts/validate-references.py` for new agent/skill reference files
-   - Verify new components are registered in INDEX files
-5. **Branch discipline** — each implementation creates a feature branch (not committing to main)
+1. Recommendation details
+2. External repo's approach (reference only, not to copy -- per PHILOSOPHY.md "External Components Are Research Inputs, Not Imports")
+3. PHILOSOPHY.md constraints: rebuild in our architecture, check existing components first ("One Domain, One Component"), progressive disclosure, deterministic execution
+4. Quality gates: `ruff check . --config pyproject.toml`, `ruff format --check . --config pyproject.toml`, `python3 scripts/validate-references.py`, INDEX registration
+5. Branch discipline: feature branch per implementation
 
-Agents run in parallel where recommendations are independent. Sequential dispatch when one recommendation depends on another.
+Parallel when independent, sequential when dependent.
 
-**Step 3: Collect implementation results**
+**Step 3: Collect results**
 
-For each dispatched agent, collect:
-- What was built (files created or modified)
-- Which quality gates passed
-- Any deferred items with explicit reasons
+Per agent: what was built, quality gates passed, deferred items with reasons.
 
-**Step 4: Append citation to `docs/CITATIONS.md`**
+**Step 4: Append to `docs/CITATIONS.md`**
 
-After implementations complete (or after all HIGH recommendations are deferred), append a citation entry under the `## Repos` section of `docs/CITATIONS.md`. Use the Phase 6 report's comparison table and Step 3 results to populate it. The entry must follow the existing format in that file:
+Under `## Repos` section, following existing format:
 
 ```markdown
 ### RepoName
@@ -252,54 +213,54 @@ https://github.com/org/repo
 Description of what the repo is and why it was studied.
 
 **Patterns adopted:**
-- [Pattern name] ([implementation location]). Brief description of what was adopted and how it was rebuilt in our architecture.
+- [Pattern name] ([implementation location]). Brief description.
 
 **Patterns noted but not adopted:**
-- [Pattern name]. Brief reason why it wasn't adopted.
+- [Pattern name]. Brief reason.
 ```
 
-Mapping rules:
-- **HIGH + implemented** → "Patterns adopted" — include the specific files or components created (from Step 3 results) as the implementation location
-- **HIGH + deferred** → "Patterns noted but not adopted" — state the deferral reason
-- **MEDIUM** → "Patterns noted but not adopted" — state why it was not auto-implemented (e.g., "Nice to have but not high priority")
-- **LOW** → "Patterns noted but not adopted" — brief note on why it was marginal
+Mapping:
+- HIGH + implemented -> "Patterns adopted" (include files from Step 3)
+- HIGH + deferred -> "Patterns noted but not adopted" (state reason)
+- MEDIUM -> "Patterns noted but not adopted"
+- LOW -> "Patterns noted but not adopted"
 
-Every recommendation from the Phase 6 report must appear in exactly one of the two sections. Do not omit MEDIUM or LOW items — citation completeness tracks what was studied and why each decision was made, which prevents future re-analysis of the same repo.
+Every recommendation must appear in exactly one section.
 
 **Step 5: Write implementation log**
 
-Append an "## Implementation Results" section to `research-[REPO_NAME]-comparison.md`:
+Append `## Implementation Results` to `research-[REPO_NAME]-comparison.md`:
 
 ```markdown
 ## Implementation Results
 
-### HIGH Recommendations — Implemented
+### HIGH Recommendations -- Implemented
 | Recommendation | Status | Branch | Files Changed | Quality Gates |
 |---------------|--------|--------|---------------|---------------|
 | ... | DONE / DEFERRED | feat/... | ... | ruff PASS, validate-references PASS |
 
-### MEDIUM Recommendations — Future Consideration
-- [recommendation]: [why it's worth considering later]
+### MEDIUM Recommendations -- Future Consideration
+- [recommendation]: [why worth considering later]
 
-### LOW Recommendations — Noted
+### LOW Recommendations -- Noted
 - [recommendation]: [brief note]
 ```
 
-**Gate**: All HIGH recommendations either implemented (branch created, quality gates passed) or explicitly deferred with a documented reason. Each implementation follows our architecture — no direct imports of external code. Citation entry appended to `docs/CITATIONS.md` with all recommendations mapped (HIGH adopted/deferred, MEDIUM noted, LOW noted). Implementation log appended to the report. Proceed only when gate passes.
+**Gate**: All HIGH recommendations implemented or explicitly deferred with documented reason. Each follows our architecture. Citation appended to `docs/CITATIONS.md`. Implementation log appended.
 
 ---
 
 ## Error Handling
 
-See `references/error-handling.md` for clone failures, large repos (10k+ files), agent timeouts, no-gaps-found outcome, and self-inventory failures.
+See `references/error-handling.md` for clone failures, large repos (10k+ files), agent timeouts, no-gaps-found, and self-inventory failures.
 
 ---
 
 ## References
 
-- `references/phase2-agent-template.md` — Phase 2 DEEP-READ agent template
-- `references/phase3-inventory-template.md` — Phase 3 INVENTORY agent template
-- `references/phase5-audit-template.md` — Phase 5 AUDIT agent template
-- `references/phase6-report-template.md` — Phase 6 REPORT workflow and final template
-- `references/phase7-implement-template.md` — Phase 7 IMPLEMENT agent dispatch template
-- `references/error-handling.md` — Pipeline error handling
+- `references/phase2-agent-template.md` -- Phase 2 DEEP-READ agent template
+- `references/phase3-inventory-template.md` -- Phase 3 INVENTORY agent template
+- `references/phase5-audit-template.md` -- Phase 5 AUDIT agent template
+- `references/phase6-report-template.md` -- Phase 6 REPORT workflow and template
+- `references/phase7-implement-template.md` -- Phase 7 IMPLEMENT agent dispatch template
+- `references/error-handling.md` -- Pipeline error handling

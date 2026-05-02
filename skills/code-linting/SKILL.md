@@ -25,7 +25,7 @@ routing:
 
 # Code Linting Skill
 
-Unified linting workflow for Python (ruff) and JavaScript (Biome). Covers check, format, and auto-fix for both languages. Only handles Python and JavaScript/TypeScript -- complex logic issues and other languages are out of scope.
+Unified linting for Python (ruff) and JavaScript (Biome). Covers check, format, and auto-fix. Only Python and JS/TS -- other languages out of scope.
 
 ## Reference Loading Table
 
@@ -41,14 +41,14 @@ Unified linting workflow for Python (ruff) and JavaScript (Biome). Covers check,
 
 ### 1. Read Project Configuration
 
-Before running any linter, read the repository's CLAUDE.md for project-specific linting rules -- those override every default below. Then locate the project's linter config files (`pyproject.toml` for ruff, `biome.json` for Biome). All linter invocations must use these configs as-is; never override line width, rule sets, or other project settings.
+Read repository CLAUDE.md first for project-specific rules -- those override all defaults. Locate config files (`pyproject.toml` for ruff, `biome.json` for Biome). Use configs as-is; never override line width, rule sets, or project settings.
 
 ### 2. Detect Languages and Run Checks
 
-When a project contains both Python and JavaScript/TypeScript, lint both unless the user explicitly requests a single language. Run the check command first to see what violations exist:
+Lint both Python and JS/TS if both present, unless user requests a single language.
 
 ```bash
-# Python -- use project venv when available
+# Python
 ruff check .
 # or: ./venv/bin/ruff check .
 
@@ -56,15 +56,15 @@ ruff check .
 npx @biomejs/biome check src/
 ```
 
-**Always display the complete linter output.** Never summarize results as "no issues found" or describe output secondhand -- show the actual command output so the user can see every error, warning, and style issue together.
+**Always show complete linter output.** Never summarize or describe secondhand.
 
 ### 3. Review Output Before Fixing
 
-Read the full output and understand what violations exist and their severity before applying any fixes. Jumping straight to `--fix` without reviewing risks auto-removing imports that are still needed or making changes that reduce readability.
+Read full output and understand violations before applying fixes. Jumping to `--fix` risks removing needed imports or reducing readability.
 
 ### 4. Apply Auto-Fixes
 
-Apply `--fix` for safe categories: formatting, import ordering, and style issues that the linter can correct mechanically.
+Safe categories only: formatting, import ordering, style issues.
 
 ```bash
 # Python
@@ -76,26 +76,22 @@ npx @biomejs/biome check --write src/
 npx @biomejs/biome format --write src/
 ```
 
-Only run the linters and fixes that were requested. Do not add custom rules, configuration changes, or additional tooling unless the user explicitly asks.
+Only run requested linters/fixes. Do not add custom rules or tooling unless asked.
 
 ### 5. Review the Diff
-
-After auto-fix, review the diff to verify changes are correct and safe:
 
 ```bash
 git diff
 ```
 
-Auto-fixes can occasionally remove imports that are still needed, reformat code in ways that hurt readability, or introduce subtle bugs through variable shadowing changes. Revert any problematic auto-fixes before proceeding.
+Auto-fixes can remove needed imports, hurt readability, or introduce bugs. Revert problematic changes.
 
 ### 6. Fix Remaining Issues Manually
 
-For violations that cannot be auto-fixed, explain each one and how to resolve it:
-
 **Python common fixes:**
-- Unused import (F401): Remove or use the import
-- Import order (I001): Run `ruff check --fix`
-- Line too long (E501): Break into multiple lines or adjust line-length config
+- F401 (unused import): Remove or use
+- I001 (import order): `ruff check --fix`
+- E501 (line too long): Break lines or adjust config
 
 **JavaScript common fixes:**
 - noVar: Replace `var` with `let`/`const`
@@ -104,25 +100,23 @@ For violations that cannot be auto-fixed, explain each one and how to resolve it
 
 ### 7. Verify Before Commit
 
-Run the linter one final time to confirm zero violations before suggesting a commit:
-
 ```bash
 ruff check .
 ruff format --check .
 npx @biomejs/biome check src/
 ```
 
-Report output factually -- no self-congratulation, just the command results.
+Report output factually.
 
 ### 8. Clean Up
 
-Remove any temporary lint report files or cache files created during execution.
+Remove temporary lint report or cache files.
 
 ### Combined Commands (if Makefile configured)
 
 ```bash
-make lint       # Check both Python and JS
-make lint-fix   # Fix both Python and JS
+make lint       # Check both
+make lint-fix   # Fix both
 ```
 
 ### Configuration Reference
@@ -134,38 +128,33 @@ make lint-fix   # Fix both Python and JS
 
 ### Optional Modes
 
-- **Strict mode**: Treat warnings as errors (fail on any issue) -- enable when requested
-- **Format only**: Skip linting, only run formatting -- enable when requested
-- **Ignore specific rules**: Disable particular lint rules for edge cases -- enable when requested
+- **Strict mode**: Treat warnings as errors -- enable when requested
+- **Format only**: Skip linting, only format -- enable when requested
+- **Ignore specific rules**: Disable particular rules -- enable when requested
 
 ## Error Handling
 
 ### Error: "ruff not found"
-**Cause**: Virtual environment not activated or ruff not installed
-**Solution**:
-- Use virtual environment path: `./venv/bin/ruff` or `./env/bin/ruff`
-- Or install globally: `pip install ruff`
-- Or use pipx: `pipx run ruff check .`
+**Cause**: Venv not activated or ruff not installed
+**Solution**: Use `./venv/bin/ruff` or `./env/bin/ruff`. Or `pip install ruff`. Or `pipx run ruff check .`
 
 ### Error: "biome not found"
-**Cause**: Biome not installed in project
-**Solution**: Run `npx @biomejs/biome` to use npx-based execution
+**Cause**: Not installed
+**Solution**: `npx @biomejs/biome` for npx-based execution
 
 ### Error: "Configuration file not found"
-**Cause**: Running from wrong directory
+**Cause**: Wrong directory
 **Solution**: cd to project root where pyproject.toml/biome.json exist
 
 ## Reference Loading
 
-Load these files when the task involves the corresponding domain:
-
 | Task type | Reference file |
 |-----------|---------------|
-| Python violations, ruff rules, F401/E711/B006/UP errors | `references/ruff-rules-reference.md` |
-| ruff not found, pyproject.toml config, ruff version differences | `references/ruff-rules-reference.md` |
-| JavaScript/TypeScript violations, Biome rules, noVar/useConst/noDoubleEquals | `references/biome-rules-reference.md` |
-| biome not found, biome.json config, migrating from ESLint | `references/biome-rules-reference.md` |
-| Linting CI failures, format check vs lint check differences | `references/ruff-rules-reference.md` + `references/biome-rules-reference.md` |
+| Python violations, ruff rules, F401/E711/B006/UP | `references/ruff-rules-reference.md` |
+| ruff not found, pyproject.toml config, versions | `references/ruff-rules-reference.md` |
+| JS/TS violations, Biome rules, noVar/useConst/noDoubleEquals | `references/biome-rules-reference.md` |
+| biome not found, biome.json config, ESLint migration | `references/biome-rules-reference.md` |
+| CI failures, format vs lint check differences | `references/ruff-rules-reference.md` + `references/biome-rules-reference.md` |
 
 ## References
 

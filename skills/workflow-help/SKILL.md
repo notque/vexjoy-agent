@@ -26,7 +26,7 @@ routing:
 
 ## Overview
 
-This skill operates as an educational guide for repository workflows. It answers questions about how the agent/skill/routing architecture works, what tools and components are available, and when to use each workflow phase (brainstorm, plan, execute). The skill prioritizes accuracy over speed by reading actual SKILL.md and agent files rather than relying on memory.
+Educational guide for repository workflows. Answers questions about the agent/skill/routing architecture, available components, and when to use each workflow phase. Reads actual files rather than relying on memory.
 
 ---
 
@@ -34,31 +34,29 @@ This skill operates as an educational guide for repository workflows. It answers
 
 ### Phase 1: UNDERSTAND THE QUESTION
 
-**Goal**: Determine exactly what the user wants to know about.
+**Goal**: Determine what the user wants to know.
 
-Parse the user's topic and $ARGUMENTS. Common categories:
-- `brainstorm` / `plan` / `execute` - Workflow phases
-- `skills` / `agents` / `hooks` - Component types
-- `routing` / `do` - How routing works
-- `subagent` - Subagent-driven execution
-- No argument - Provide system overview
+Parse topic and $ARGUMENTS. Common categories:
+- `brainstorm` / `plan` / `execute` — Workflow phases
+- `skills` / `agents` / `hooks` — Component types
+- `routing` / `do` — How routing works
+- `subagent` — Subagent-driven execution
+- No argument — System overview
 
-**Constraint (Over-Engineering Prevention)**: Answer only what was asked. Do not dump the entire system architecture when the user asks about one skill. Scope your response to the question asked, then offer to explain related concepts.
+Answer only what was asked. Do not dump entire architecture for a single-skill question. Offer related concepts after.
 
-**Gate**: Topic identified. Proceed only when you know what to explain.
+**Gate**: Topic identified.
 
 ### Phase 2: GATHER ACCURATE INFORMATION
 
-**Goal**: Read actual files before explaining anything.
+**Goal**: Read actual files before explaining anything. Never describe components from memory.
 
 **Step 1: Read relevant files**
 
-This constraint (Accuracy Over Speed) is non-negotiable. Never describe components from memory. Always read the actual SKILL.md or agent files:
-
-- For a specific skill: `Read skills/{skill-name}/SKILL.md`
-- For a specific agent: `Read agents/{agent-name}.md`
-- For routing overview: Check the /do router configuration
-- For system overview: `Glob for skills/*/SKILL.md and agents/*.md` to get current counts
+- Specific skill: `Read skills/{skill-name}/SKILL.md`
+- Specific agent: `Read agents/{agent-name}.md`
+- Routing overview: Check /do router configuration
+- System overview: `Glob for skills/*/SKILL.md and agents/*.md` for current counts
 
 **Step 2: Extract key information**
 - Name, description, version
@@ -66,27 +64,27 @@ This constraint (Accuracy Over Speed) is non-negotiable. Never describe componen
 - How to invoke it
 - Related skills or agents
 
-**Constraint (No Fabrication)**: If a skill or agent does not exist, say so rather than inventing capabilities. If a skill or agent was recently deleted or merged, search with Glob for similar names and suggest the closest match.
+If a component does not exist, say so. If recently deleted/merged, search with Glob for similar names and suggest closest match.
 
-**Gate**: Information gathered from actual files, not memory. Proceed only when gate passes.
+**Gate**: Information gathered from actual files.
 
 ### Phase 3: EXPLAIN CLEARLY
 
-**Goal**: Present information in the format most useful for the user's question.
+**Goal**: Present information in the most useful format.
 
-**For system overview**, present the execution architecture:
+**For system overview**:
 
 ```
 Router (/do) -> Agent (domain expert) -> Skill (methodology) -> Script (execution)
 ```
 
-Then show key workflow:
-1. BRAINSTORM - Clarify requirements, explore approaches
-2. WRITE-PLAN - Break into atomic, verifiable tasks
-3. EXECUTE - Direct or subagent-driven execution
-4. VERIFY - Run tests, validate changes
+Key workflow:
+1. BRAINSTORM — Clarify requirements, explore approaches
+2. WRITE-PLAN — Break into atomic, verifiable tasks
+3. EXECUTE — Direct or subagent-driven execution
+4. VERIFY — Run tests, validate changes
 
-**For specific components**, use this format:
+**For specific components**:
 
 ```markdown
 ## [Component Name]
@@ -97,7 +95,7 @@ Then show key workflow:
 **Related**: Links to related components
 ```
 
-**For "when to use what"**, use a decision table:
+**For "when to use what"**:
 
 | You Want To... | Use This |
 |----------------|----------|
@@ -107,67 +105,46 @@ Then show key workflow:
 | Execute an existing plan | `skill: subagent-driven-development` |
 | Create a PR | `/pr-workflow` |
 
-**Constraint (Show Real Examples)**: Reference actual skill names, commands, and file paths from this repository. Use tables for lists when presenting available skills, agents, and commands. Include invocation syntax for each component mentioned. Apply progressive disclosure: start with overview, offer deeper detail on request. Cross-reference related skills and agents when explaining one component.
+Reference actual skill names, commands, and file paths. Include invocation syntax. Use tables for lists. Apply progressive disclosure: overview first, deepen on request. Cross-reference related components.
 
-**Step: Offer next steps**
-
-After explaining, ask if the user wants to:
+**After explaining**, ask if the user wants to:
 - Learn about a related component
-- Actually execute a workflow (route to appropriate skill)
-- See more detail on a specific aspect
+- Execute a workflow (route to appropriate skill)
+- See more detail
 
-**Constraint (Route When Appropriate)**: If user actually wants to execute a workflow, detect the execution intent and route to the correct skill instead of explaining it. For example, if user asks "how do I debug X" meaning "debug X for me", recognize the intent is execution and route to systematic-debugging, not an explanation of the debugging process.
+If user wants execution, not explanation (e.g., "how do I debug X" meaning "debug X for me"), route to the correct skill instead of explaining.
 
-**Gate**: User's question answered with information from actual files.
+**Gate**: Question answered from actual files.
 
 ---
 
 ## Error Handling
 
 ### Error: "Skill or Agent Not Found"
-Cause: User asked about a component that does not exist or was renamed
-Solution:
-1. Search with Glob for similar names
-2. Check if it was recently deleted or merged
-3. Suggest the closest matching component
+Cause: Component does not exist or was renamed.
+Solution: Glob for similar names, check for recent deletion/merge, suggest closest match.
 
 ### Error: "User Wants Execution, Not Explanation"
-Cause: User asked "how do I debug X" meaning "debug X for me"
-Solution:
-1. Recognize the intent is execution, not education
-2. Route to the appropriate skill (e.g., systematic-debugging)
-3. Do not explain the debugging process; invoke it
+Cause: "How do I debug X" means "debug X for me."
+Solution: Route to appropriate skill (e.g., systematic-debugging). Do not explain; invoke.
 
 ### Error: "Stale Information"
-Cause: Skill files may have changed since last read
-Solution:
-1. Always read files fresh; never rely on cached descriptions
-2. Check file modification dates if information seems inconsistent
-3. Report any discrepancies found
+Cause: Files may have changed since last read.
+Solution: Always read fresh. Check modification dates if inconsistent. Report discrepancies.
 
 ---
 
 ## References
 
-### Core Constraints Embedded in Workflow
+### Core Constraints
 
-This skill is built on five hardcoded constraints that must always apply:
+1. **CLAUDE.md Compliance**: Follow repository CLAUDE.md before answering
+2. **Accuracy Over Speed**: Read actual files before explaining; never describe from memory
+3. **Show Real Examples**: Reference actual names, commands, file paths
+4. **No Fabrication**: If a component doesn't exist, say so
+5. **Route When Appropriate**: If user wants execution, route to the skill
 
-1. **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before answering any question
-2. **Accuracy Over Speed**: Read actual SKILL.md and agent files before explaining them; never describe from memory
-3. **Show Real Examples**: Reference actual skill names, commands, and file paths from this repository
-4. **No Fabrication**: If a skill or agent does not exist, say so rather than inventing capabilities
-5. **Route When Appropriate**: If user actually wants to execute a workflow, route to the correct skill instead of explaining it
-
-The skill's default behaviors reinforce accuracy:
-- Scope to the specific question asked (over-engineering prevention)
-- Use tables for presenting lists of skills, agents, and commands
-- Include invocation syntax for every component mentioned
-- Apply progressive disclosure: start with overview, deepen on request
-- Cross-reference related components when explaining one
-
-Optional advanced modes (disabled by default):
-- Full Architecture Dump: Explain the entire Router → Agent → Skill → Script pipeline
-- Comparison Mode: Compare two skills or agents side-by-side
-- Troubleshooting Guide: Help diagnose why a skill or route isn't working as expected
-
+Optional modes (off by default):
+- Full Architecture Dump: Entire Router -> Agent -> Skill -> Script pipeline
+- Comparison Mode: Side-by-side skill/agent comparison
+- Troubleshooting Guide: Diagnose why a skill or route isn't working

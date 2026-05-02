@@ -48,24 +48,8 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 ## When to Use
 
 - Gathering recent Bluesky posts from a specific person for research
-- Searching a profile's posts for mentions of a topic
-- Feeding Bluesky content into a news or content pipeline
-
-## Reference Loading
-
-| Task type | Load this reference |
-|-----------|-------------------|
-| Endpoint details, data shapes, pagination | `references/at-protocol-api.md` |
-| Debugging fetch errors, wrong output, missing posts | `references/at-protocol-preferred-patterns.md` |
-| Extending the script with new endpoints or search | `references/at-protocol-api.md` |
-| Code review of AT Protocol Python code | `references/at-protocol-preferred-patterns.md` |
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0    | Success |
-| 1    | Error (network failure, invalid handle, no posts found) |
+- Searching a profile's posts for topic mentions
+- Feeding Bluesky content into a content pipeline
 
 ## Reference Loading Table
 
@@ -75,3 +59,10 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 | Debugging fetch errors, wrong output, missing posts | `at-protocol-preferred-patterns.md` | Routes to the matching deep reference |
 | Extending the script with new endpoints or search | `at-protocol-api.md` | Routes to the matching deep reference |
 | Code review of AT Protocol Python code | `at-protocol-preferred-patterns.md` | Routes to the matching deep reference |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0    | Success |
+| 1    | Error (network failure, invalid handle, no posts found) |

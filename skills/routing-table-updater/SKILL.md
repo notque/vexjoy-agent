@@ -26,11 +26,9 @@ routing:
 
 # Routing Table Updater Skill
 
-## Overview
+Maintains /do routing tables and command references when skills or agents change. Phase-gated pipeline: scan, extract, generate, update, verify -- deterministic script execution at each phase.
 
-This skill maintains /do routing tables and command references when skills or agents are added, modified, or removed. It implements a **Phase-Gated Pipeline** -- scan, extract, generate, update, verify -- with deterministic script execution at each phase.
-
-The skill reads metadata from all skills and agents (never modifies them) and safely updates `skills/do/SKILL.md`, `skills/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md` files. All changes are backed up before modification, and markdown syntax is validated before commit.
+Reads metadata from all skills/agents (never modifies them). Safely updates `skills/do/SKILL.md`, `skills/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md`. All changes backed up before modification.
 
 ---
 
@@ -50,205 +48,148 @@ The skill reads metadata from all skills and agents (never modifies them) and sa
 
 ### Phase 1: SCAN -- Discover All Skills and Agents
 
-**Goal**: Find every skill and agent file in the repository.
+**Constraints**: Repo must be at toolkit root (requires `commands/do.md`); only scan `skills/*/SKILL.md` and `agents/*.md`; files must be readable.
 
-**Constraints**: Repository must be at agents toolkit root (requires `commands/do.md`); only scan `skills/*/SKILL.md` and `agents/*.md` formats; file permissions must allow reading.
-
-**Step 1: Run scan script**
+**Step 1**: Run scan:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/scan.py --repo $HOME/vexjoy-agent
 ```
 
-**Step 2: Validate scan output**
+**Step 2**: Validate output -- JSON with `skills_found`, `agents_found`, `skills` (paths), `agents` (paths).
 
-Expected output is JSON with `skills_found`, `agents_found`, `skills` (array of paths to skills/*/SKILL.md), `agents` (array of paths to agents/*.md).
+**Step 3**: Compare discovered count against expected. If missing, check directory/file naming or permissions.
 
-**Step 3: Check for gaps**
-
-Compare discovered count against expected. If missing, check directory naming, agent file naming, or file permissions.
-
-**Gate**: All skill directories and agent files are discovered without permission errors. Proceed to Phase 2 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All skill directories and agent files discovered without errors. See `references/error-handling.md` for recovery.
 
 ---
 
 ### Phase 2: EXTRACT -- Parse Metadata
 
-**Goal**: Extract YAML frontmatter, trigger patterns, complexity, and routing table targets from every discovered file.
+**Constraints**: Valid YAML frontmatter; required fields (`name`, `description`); complexity inference per `references/extraction-patterns.md`.
 
-**Constraints**: YAML frontmatter must be valid; required fields (`name`, `description`) must be present; trigger patterns extracted from description text; complexity inference must follow `references/extraction-patterns.md`.
-
-**Step 1: Run extraction script**
+**Step 1**: Run extraction:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
 ```
 
-**Step 2: Verify extraction completeness**
+**Step 2**: Verify per capability: `name`, `description`, `trigger_patterns` (skills), `domain_keywords` (agents), `complexity`, `routing_table`.
 
-For each capability, confirm extracted fields: `name`, `description`, `trigger_patterns` (skills), `domain_keywords` (agents), `complexity` (Simple, Medium, Complex), `routing_table` (Intent Detection, Task Type, Domain-Specific, or Combination).
+**Step 3**: Validate trigger quality against `references/extraction-patterns.md` -- specific enough to avoid false matches, broad enough for common phrasings.
 
-**Step 3: Validate trigger pattern quality**
-
-Review against `references/extraction-patterns.md`. Patterns must be specific enough to avoid false matches, broad enough to catch common phrasings, and free of generic terms.
-
-**Gate**: All YAML parsed successfully, required fields are present, trigger patterns are extracted for skills, and domain keywords are extracted for agents. Proceed to Phase 3 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All YAML parsed, required fields present, triggers/keywords extracted. See `references/error-handling.md` for recovery.
 
 ---
 
 ### Phase 3: GENERATE -- Create Routing Table Entries
 
-**Goal**: Map extracted metadata to routing entries and detect conflicts.
+**Constraints**: Deterministic (no randomness); exact /do format per `references/routing-format.md`; conflicts detected; sorted alphabetically; no duplicates.
 
-**Constraints**: Deterministic generation (no randomness); entries follow exact /do format spec (`references/routing-format.md`); pattern conflicts detected immediately; entries sorted alphabetically; duplicates within same table block gate passage.
-
-**Step 1: Run generation script**
+**Step 1**: Run generation:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
 ```
 
-**Step 2: Understand the generation process**
+**Step 2**: Process: load format spec, map to routing tables, format entries, detect conflicts (see `references/conflict-resolution.md`), sort alphabetically.
 
-1. Load routing format spec from `references/routing-format.md`
-2. Map each capability to appropriate routing table
-3. Format entries according to /do table structure
-4. Detect pattern conflicts (see `references/conflict-resolution.md`)
-5. Sort entries alphabetically within tables
+**Step 3**: Low-severity conflicts: auto-resolved via specificity rules. High-severity: blocks gate, requires manual resolution.
 
-**Step 3: Review conflict detection output**
-
-Low-severity conflicts: script applies specificity rules automatically. High-severity conflicts: script blocks gate passage and requires manual resolution.
-
-**Gate**: All capabilities are mapped, entries follow /do format, conflicts are documented, and no duplicates remain within the same table. Proceed to Phase 4 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All mapped, /do format followed, conflicts documented, no duplicates. See `references/error-handling.md` for recovery.
 
 ---
 
-### Phase 4A: UPDATE -- Safely Modify commands/do.md
+### Phase 4A: UPDATE -- Modify commands/do.md
 
-**Goal**: Apply generated routing entries to do.md with backup and validation.
+**Constraints**: Timestamped backup before modification; hand-written entries (without `[AUTO-GENERATED]`) never overwritten; markdown validated; atomic restore on failure.
 
-**Constraints**: Always create timestamped backup before modification; preserve all hand-written entries (entries without `[AUTO-GENERATED]` marker are never overwritten); markdown table syntax validates after updates; atomic backup/restore on validation failure.
-
-**Step 1: Run update script with backup**
+**Step 1**: Run update:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/update_routing.py --input routing_entries.json --target $HOME/vexjoy-agent/commands/do.md --backup
 ```
 
-**Step 2: Verify backup exists**
+**Step 2**: Confirm backup at `commands/.do.md.backup.{timestamp}`.
 
-Confirm backup file at `commands/.do.md.backup.{timestamp}` before any modifications proceed.
+**Step 3**: Review diff (new +, modified - old / + new, preserved unchanged).
 
-**Step 3: Review the diff**
+**Step 4**: Correct => confirm. Unexpected => abort. With --auto-commit: skip confirmation.
 
-The script outputs a diff showing new entries (+), modified entries (- old / + new), and preserved manual entries (unchanged). Review for correctness.
+**Step 5**: Post-update validation: pipe alignment, header separators, column counts, no orphaned rows. Failure => automatic restore.
 
-**Step 4: Confirm or abort**
-
-If diff looks correct: confirm to apply. If unexpected: abort and investigate. With --auto-commit: confirmation skipped.
-
-**Step 5: Post-update validation**
-
-The script validates pipe alignment, header separator rows, consistent column counts, and no orphaned rows. On validation failure: automatic restore from backup. Report error details.
-
-**Gate**: Backup created, all manual entries preserved, markdown validated, diff confirmed. If gate fails, RESTORE from backup.
+**Gate**: Backup created, manual entries preserved, markdown validated, diff confirmed. Failure => RESTORE.
 
 ---
 
 ### Phase 4B: UPDATE -- Update Command Files
 
-**Goal**: Update command files with current skill/agent references.
+**Constraints**: Only update if referencing outdated/invalid skills; backups for all modified files; all referenced skills must exist; markdown validated.
 
-**Constraints**: Command files updated only if they reference outdated/invalid skills; backups created for all modified files; all referenced skills must exist; markdown syntax validated after updates.
-
-**Step 1: Run update script with backup**
+**Step 1**: Run:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/update_commands.py --commands-dir $HOME/vexjoy-agent/commands --metadata metadata.json --backup
 ```
 
-**Step 2: Understand the update process**
+**Step 2**: Process: scan command files for skill references, identify outdated/invalid, update, backup, validate.
 
-1. Scan command files for skill invocations and references
-2. Identify outdated or invalid references (renamed/removed skills)
-3. Update references to match current metadata
-4. Create backups for all modified command files
-5. Validate updated markdown syntax
-
-**Gate**: Backups created for all modified files, all referenced skills exist, markdown validated.
+**Gate**: Backups created, all referenced skills exist, markdown validated.
 
 ---
 
-### Phase 5: VERIFY -- Validate Routing Correctness
+### Phase 5: VERIFY -- Final Validation
 
-**Goal**: Final validation of all routing tables.
+**Constraints**: All auto-generated entries marked `[AUTO-GENERATED]`; no duplicates; all referenced skills/agents exist; complexity matches Simple/Medium/Complex; overlapping patterns documented.
 
-**Constraints**: All auto-generated entries must have `[AUTO-GENERATED]` markers; no duplicate patterns within same routing table; all referenced skills/agents must exist; complexity values must match Simple/Medium/Complex; overlapping patterns documented with priority rules.
-
-**Step 1: Run validation script**
+**Step 1**: Run:
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/validate.py --target $HOME/vexjoy-agent/commands/do.md
 ```
 
-**Step 2: Understand verification checks**
+**Step 2**: Checks: structural (tables present, headers, pipes), content (markers, no duplicates, references valid), conflicts (documented, priority applied), integration (sample pattern tests).
 
-1. **Structural**: All routing tables present, headers formatted, pipes aligned
-2. **Content**: All auto-generated entries marked, no duplicates, all referenced skills/agents exist
-3. **Conflicts**: Overlapping patterns documented, priority rules applied
-4. **Integration**: Sample pattern matching tests pass
-
-**Gate**: All checks pass. Task complete ONLY if final gate passes. See `references/error-handling.md` for gate failure recovery.
-
----
-
-## Examples
-
-See `references/skill-examples.md` for worked examples (new skill created, agent description updated, conflict detection, manual entry preserved).
+**Gate**: All checks pass. Task complete. See `references/error-handling.md` for recovery.
 
 ---
 
 ## Batch Mode
 
-When invoked by `pipeline-scaffolder` Phase 4 (INTEGRATE), this skill operates in batch mode to register N skills and 0-1 agents in a single pass.
+When invoked by `pipeline-scaffolder` Phase 4 (INTEGRATE), operates in batch to register N skills and 0-1 agents in a single pass.
 
-See `references/batch-mode.md` for batch input format, batch process, and the batch vs single mode comparison table.
+See `references/batch-mode.md` for input format, process, and comparison table.
 
 ---
 
 ## Integration
 
-This skill is typically invoked after other creation skills complete:
+Typically invoked after:
+- **skill-creator**: New skill needs routing entry
+- **skill/agent modification**: Description or trigger changes need refresh
+- **Repository maintenance**: Periodic sync to catch drift
+- **pipeline-scaffolder Phase 3**: N skills need routing (batch mode)
 
-- **After skill-creator**: New skill created, routing tables need updated entry
-- **After skill/agent modification**: Description or trigger changes require routing refresh
-- **During repository maintenance**: Periodic sync to catch manual drift
-- **After pipeline-scaffolder Phase 3**: N skills created for a domain, all need routing (batch mode)
-
-Invocation by other skills:
 ```
 skill: routing-table-updater
 ```
 
-The skill reads metadata from all skills and agents but never modifies them. It only writes to `skills/do/SKILL.md`, `skills/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md` files.
+Reads all skill/agent metadata but never modifies them. Writes only to `skills/do/SKILL.md`, `skills/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md`.
 
 ---
 
 ## Error Handling
 
-See `references/error-handling.md` for the full error matrix (YAML parse errors, routing conflicts, manual entry overwrites, markdown validation failures) and per-phase gate failure recovery.
+See `references/error-handling.md` for full error matrix and per-phase gate failure recovery.
 
 ---
 
 ## References
 
-### Reference Files
-
-- `${CLAUDE_SKILL_DIR}/references/routing-format.md`: /do routing table format specification (table structure, entry formats, ordering rules)
-- `${CLAUDE_SKILL_DIR}/references/extraction-patterns.md`: Trigger phrase extraction patterns (regex, keyword maps, complexity inference)
-- `${CLAUDE_SKILL_DIR}/references/conflict-resolution.md`: Conflict types, priority rules, severity levels, resolution process
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world examples of routing table updates (new skill, updated agent, conflict detection, manual preservation)
-- `${CLAUDE_SKILL_DIR}/references/skill-examples.md`: Worked examples for the 5-phase pipeline (Phase 1-5 walkthroughs)
-- `${CLAUDE_SKILL_DIR}/references/batch-mode.md`: Batch mode invocation by pipeline-scaffolder (input format, process, comparison)
-- `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Error matrix and per-phase gate failure recovery
+- `${CLAUDE_SKILL_DIR}/references/routing-format.md`: /do routing table format spec
+- `${CLAUDE_SKILL_DIR}/references/extraction-patterns.md`: Trigger extraction patterns
+- `${CLAUDE_SKILL_DIR}/references/conflict-resolution.md`: Conflict types, priority rules, resolution
+- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world routing table update examples
+- `${CLAUDE_SKILL_DIR}/references/skill-examples.md`: Worked 5-phase pipeline examples
+- `${CLAUDE_SKILL_DIR}/references/batch-mode.md`: Batch mode invocation
+- `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Error matrix and recovery

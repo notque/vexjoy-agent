@@ -35,18 +35,12 @@ routing:
 
 # Perses Operations
 
-Umbrella skill for all Perses platform operations.
+Umbrella skill for all Perses platform operations. Load the matching reference file before starting any Perses work.
 
-## How to Use (MANDATORY)
-
-**You MUST load the matching reference file before starting any Perses work.** The table below routes tasks to domain-specific references containing the actual methodology, commands, and patterns.
-
-1. **Match** the user's task to a sub-domain in the table below
-2. **Load** the reference file using `Read` tool on `${CLAUDE_SKILL_DIR}/references/<name>.md`
-3. **Follow** the instructions in the loaded reference exactly
+1. **Match** the user's task to a sub-domain below
+2. **Load** the reference via `Read` on `${CLAUDE_SKILL_DIR}/references/<name>.md`
+3. **Follow** the loaded reference exactly
 4. If the task spans multiple sub-domains, load each relevant reference
-
-**Preferred action**: Load the reference files before Perses operations. They contain the percli commands, CUE schema patterns, and deployment procedures specific to this toolkit's Perses setup.
 
 ## Sub-domains
 

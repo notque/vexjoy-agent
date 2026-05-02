@@ -42,9 +42,9 @@ routing:
 
 ## Overview
 
-This skill loads a real WordPress post in a Playwright headless browser and verifies that what readers see matches what was uploaded. **The browser is the source of truth** -- REST API success does not guarantee correct rendering.
+Loads a real WordPress post in a Playwright headless browser and verifies rendered output matches what was uploaded. **The browser is the source of truth** — REST API success does not guarantee correct rendering.
 
-**Browser backend selection**: Playwright MCP (default) is used for automated validation and CI/CD. Use Chrome DevTools MCP when the user explicitly asks to "check in my browser" or "debug live", or when the task involves Lighthouse audits or performance profiling.
+**Browser backend**: Playwright MCP (default) for automated validation/CI. Chrome DevTools MCP when user asks to "check in my browser", "debug live", or needs Lighthouse audits.
 
 ## Reference Loading Table
 
@@ -61,58 +61,56 @@ This skill loads a real WordPress post in a Playwright headless browser and veri
 
 ### Constraints (Always Applied)
 
-1. **Read-Only Observation Only**: Never click, type, fill forms, or modify anything on the WordPress site. This is observation-only validation—any write action risks mutating published content.
+1. **Read-Only Only**: Never click, type, fill forms, or modify anything. Observation-only — write actions risk mutating published content.
 
-2. **Evidence-Based Reporting**: Every check result must reference a concrete artifact (DOM value, network response, screenshot path). "Looks fine" is not acceptable. Report what the browser shows, not assumptions.
+2. **Evidence-Based Reporting**: Every result must reference a concrete artifact (DOM value, network response, screenshot path). "Looks fine" is not acceptable.
 
-3. **Non-Blocking Reports**: Failed validation produces a report but does not revert the upload or block the pipeline. The user decides how to act on findings.
+3. **Non-Blocking Reports**: Failed validation produces a report but does not revert uploads or block the pipeline. User decides.
 
 4. **Severity Classification** (enforce strictly):
-   - **BLOCKER**: Readers see broken content (missing title, broken images, placeholder text, wrong H1)
+   - **BLOCKER**: Broken content visible to readers (missing title, broken images, placeholder text, wrong H1)
    - **WARNING**: Degraded quality but functional (missing OG tags, JS errors, responsive overflow)
    - **INFO**: Informational only (rendered values without comparison baseline)
-   - Never inflate or deflate—alert fatigue and hidden problems are equal harms.
+   - Never inflate or deflate.
 
-5. **Browser Availability**: Requires either Playwright MCP or Chrome DevTools MCP. If neither is available, exit in Phase 1 with a skip report. Do not retry.
+5. **Browser Availability**: Requires Playwright MCP or Chrome DevTools MCP. If neither available, exit in Phase 1 with skip report.
 
 6. **Default Behaviors** (ON):
    - Run all check categories (content integrity, SEO/social, responsive)
-   - Test three breakpoints: mobile (375px), tablet (768px), desktop (1440px)
-   - Save screenshots at each breakpoint as evidence
-   - Exclude known benign console patterns: ad networks (doubleclick, googlesyndication), analytics (gtag, fbevents), consent managers (cookiebot, onetrust)
-   - Try content selectors in order: `article` → `.entry-content` → `.post-content` → `main`
+   - Three breakpoints: mobile (375px), tablet (768px), desktop (1440px)
+   - Save screenshots at each breakpoint
+   - Exclude known benign console patterns: ad networks, analytics, consent managers
+   - Content selectors in order: `article` -> `.entry-content` -> `.post-content` -> `main`
 
 7. **Optional Behaviors** (OFF unless enabled):
-   - Draft preview mode (requires authenticated WordPress session)
+   - Draft preview mode (requires authenticated session)
    - Custom content selector override
-   - Strict mode (treat all WARNINGs as BLOCKERs)
-   - OG image fetch verification (navigates to og:image URL to check 200 response)
+   - Strict mode (WARNINGs become BLOCKERs)
+   - OG image fetch verification
 
 8. **Input Requirements**:
-   - WordPress post URL (from wordpress-uploader, direct user input, or `{WORDPRESS_SITE}/?p={post_id}&preview=true`)
-   - Optional: expected title (for title match comparison)
-   - Optional: expected H2 count (for structure comparison)
-   - Optional: custom content selector
+   - WordPress post URL (from uploader, user input, or `{WORDPRESS_SITE}/?p={post_id}&preview=true`)
+   - Optional: expected title, expected H2 count, custom content selector
 
 ---
 
 ### Phase 1: NAVIGATE
 
-**Goal**: Load the WordPress post and confirm the content area is present.
+**Goal**: Load the post and confirm content area present.
 
-See `references/phase-checks.md` "Phase 1: NAVIGATE — Detailed Steps" for the 4-step procedure (verify browser MCP availability, navigate, wait for content area with selector chain, remove cookie/consent banners with the JS snippet).
+See `references/phase-checks.md` "Phase 1: NAVIGATE" for the 4-step procedure (verify browser MCP, navigate, wait for content selector chain, remove cookie/consent banners).
 
-**GATE**: Page loaded with HTTP 200 (or 30x redirect to 200), content selector found. If 4xx/5xx or no selector found: capture screenshot, report FAIL with HTTP status, STOP. Do not proceed to Phase 2.
+**GATE**: HTTP 200 (or 30x -> 200), content selector found. If 4xx/5xx or no selector: screenshot, report FAIL, STOP.
 
 ---
 
 ### Phase 2: VALIDATE
 
-> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+> **Opus 4.7 override:** Run the command. Do not reason about whether it would pass. Execute the check, paste the exit code and output. A verdict without an observed tool result is a guess.
 
 **Goal**: Inspect rendered DOM and network activity for content integrity and SEO completeness. Run all checks without stopping on individual failures.
 
-The 7 checks (with severity, JS extraction snippets, and pass/fail criteria) are documented in `references/phase-checks.md` "Phase 2: VALIDATE — All 7 Checks":
+7 checks documented in `references/phase-checks.md` "Phase 2: VALIDATE":
 
 1. **Title Match** (BLOCKER)
 2. **H2 Structure** (WARNING)
@@ -122,15 +120,13 @@ The 7 checks (with severity, JS extraction snippets, and pass/fail criteria) are
 6. **Meta Description** (WARNING)
 7. **Placeholder/Draft Text** (BLOCKER)
 
-**GATE**: All 7 checks executed, each with severity and evidence. Proceed to Phase 3.
+**GATE**: All 7 checks executed with severity and evidence.
 
 ---
 
 ### Phase 3: RESPONSIVE CHECK
 
-**Goal**: Verify rendering at three standard breakpoints. Capture visual evidence.
-
-Test each viewport in sequence:
+**Goal**: Verify rendering at three breakpoints with visual evidence.
 
 | Viewport | Width | Height | Represents |
 |----------|-------|--------|------------|
@@ -138,54 +134,47 @@ Test each viewport in sequence:
 | Tablet | 768 | 1024 | iPad-class |
 | Desktop | 1440 | 900 | Standard laptop |
 
-See `references/phase-checks.md` "Phase 3: RESPONSIVE CHECK — Detailed Steps" for the per-viewport 4-step procedure (resize, screenshot, overflow check, container visibility check) with the JS snippets.
+See `references/phase-checks.md` "Phase 3: RESPONSIVE CHECK" for per-viewport procedure (resize, screenshot, overflow check, container visibility).
 
-**GATE**: Screenshots captured at all three viewports. Overflow and visibility recorded. Proceed to Phase 4.
+**GATE**: Screenshots at all three viewports. Overflow and visibility recorded.
 
 ---
 
 ### Phase 4: REPORT
 
-**Goal**: Produce structured pass/fail report with severity counts and evidence artifacts.
+**Goal**: Structured pass/fail report with severity counts and evidence.
 
-See `references/output-format.md` for the full report template, status markers (`[PASS]`, `[FAIL]`, `[WARN]`, `[INFO]`, `[SKIP]`), and result classification rules.
+See `references/output-format.md` for report template, status markers, and classification rules.
 
-**GATE**: Report generated with accurate severity counts. Screenshots saved. Result matches blocker tally.
+**GATE**: Report generated with accurate severity counts. Screenshots saved.
 
 ---
 
 ## Integration with wordpress-uploader
 
-When invoked after `wordpress-uploader`, this skill acts as an optional **Phase 5: POST-PUBLISH VALIDATION**. See `references/examples.md` for the integration flow and the `post_url` / `post_id` / `--title` inputs the uploader provides.
-
-The validation is **non-blocking by default**: a FAIL result produces a report for the user but does not revert the upload. The user decides whether to act on findings.
-
----
+After `wordpress-uploader`, this skill acts as optional **Phase 5: POST-PUBLISH VALIDATION**. See `references/examples.md` for integration flow. Non-blocking by default.
 
 ## Examples
 
-See `references/examples.md` for worked examples (post-upload validation, standalone live check, OG tag verification) and the wordpress-uploader integration flow.
-
----
+See `references/examples.md` for worked examples and wordpress-uploader integration flow.
 
 ## Error Handling
 
-See `references/error-handling.md` for the full error matrix (Playwright MCP not available, page returns 4xx/5xx, content selector not found, network timeout on image checks, cookie banner blocks content).
+See `references/error-handling.md` for the full error matrix.
 
 ---
 
 ## References
 
-For detailed check specifications and Playwright tool usage:
-- **Validation Checks**: [references/validation-checks.md](references/validation-checks.md) – severity rationale, edge cases, and extended check specifications
-- **Playwright Tools**: [references/playwright-tools.md](references/playwright-tools.md) – MCP tool signatures, usage patterns, and common pitfalls
-- **Phase Check Details**: [references/phase-checks.md](references/phase-checks.md) – Phase 1/2/3 step-by-step procedures with JS snippets
-- **Output Format**: [references/output-format.md](references/output-format.md) – Phase 4 report template, status markers, result classification
-- **Examples**: [references/examples.md](references/examples.md) – worked examples and wordpress-uploader integration flow
-- **Error Handling**: [references/error-handling.md](references/error-handling.md) – full error matrix for browser availability, HTTP failures, selector misses, network timeouts, cookie banners
+- **Validation Checks**: [references/validation-checks.md](references/validation-checks.md) — severity rationale, edge cases, extended specs
+- **Playwright Tools**: [references/playwright-tools.md](references/playwright-tools.md) — MCP tool signatures, usage patterns, pitfalls
+- **Phase Check Details**: [references/phase-checks.md](references/phase-checks.md) — Phase 1/2/3 step-by-step with JS snippets
+- **Output Format**: [references/output-format.md](references/output-format.md) — report template, status markers, classification
+- **Examples**: [references/examples.md](references/examples.md) — worked examples and uploader integration
+- **Error Handling**: [references/error-handling.md](references/error-handling.md) — browser availability, HTTP failures, selector misses, timeouts, cookie banners
 
 ### Complementary Skills
-- [pre-publish-checker](../pre-publish-checker/SKILL.md) – validates source markdown before upload (complementary, not overlapping)
-- [wordpress-uploader](../wordpress-uploader/SKILL.md) – uploads content to WordPress (upstream integration)
-- [seo-optimizer](../seo-optimizer/SKILL.md) – validates SEO properties against source (data consumer of this skill's output)
-- [endpoint-validator](../endpoint-validator/SKILL.md) – similar validation pattern for API endpoints
+- [pre-publish-checker](../pre-publish-checker/SKILL.md) — validates source markdown before upload
+- [wordpress-uploader](../wordpress-uploader/SKILL.md) — uploads content to WordPress (upstream)
+- [seo-optimizer](../seo-optimizer/SKILL.md) — validates SEO properties (data consumer)
+- [endpoint-validator](../endpoint-validator/SKILL.md) — similar validation pattern for APIs

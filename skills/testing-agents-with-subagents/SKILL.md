@@ -27,13 +27,20 @@ routing:
 
 ## Overview
 
-This skill applies **TDD methodology to agent development** — RED (observe failures), GREEN (fix agent definition), REFACTOR (edge cases and robustness) — with subagent dispatch as the execution mechanism.
+Applies TDD methodology to agent development -- RED (observe failures), GREEN (fix agent definition), REFACTOR (edge cases and robustness) -- with subagent dispatch as the execution mechanism.
 
-Test what the agent DOES, not what the prompt SAYS. Evidence-based verification only: capture exact outputs from subagent dispatch, verify every prompt change through testing. Always test via the Task tool, always test via the Task tool rather than reading prompts.
+Test what the agent DOES, not what the prompt SAYS. Evidence-based verification only: capture exact outputs from subagent dispatch. Always test via the Task tool rather than reading prompts.
 
-Minimum test counts vary by agent type: Reviewer agents need 6 cases (2 real issues, 2 clean, 1 edge, 1 ambiguous), Implementation agents 5 cases (2 typical, 1 complex, 1 minimal, 1 error), Analysis agents 4 cases (2 standard, 1 edge, 1 malformed), Routing/orchestration 4 cases (2 correct route, 1 ambiguous, 1 invalid). No agent is simple enough to skip testing — get human confirmation before exempting any agent.
+Minimum test counts by agent type:
 
-Each test runs in a fresh subagent to avoid context pollution. After any fix, re-run ALL test cases to catch regressions. One fix at a time — you cannot determine what changed the outcome with multiple simultaneous fixes.
+| Agent Type | Min Tests | Required Coverage |
+|------------|-----------|-------------------|
+| Reviewer | 6 | 2 real issues, 2 clean, 1 edge, 1 ambiguous |
+| Implementation | 5 | 2 typical, 1 complex, 1 minimal, 1 error |
+| Analysis | 4 | 2 standard, 1 edge, 1 malformed |
+| Routing/orchestration | 4 | 2 correct route, 1 ambiguous, 1 invalid |
+
+No agent is simple enough to skip testing -- get human confirmation before exempting any agent. Each test runs in a fresh subagent to avoid context pollution. After any fix, re-run ALL test cases. One fix at a time.
 
 ---
 
@@ -46,7 +53,7 @@ Each test runs in a fresh subagent to avoid context pollution. After any fix, re
 
 ## Instructions
 
-### Phase 0: PREPARE — Understand the Agent
+### Phase 0: PREPARE -- Understand the Agent
 
 **Goal**: Read the agent definition and understand what it claims to do before writing tests.
 
@@ -60,97 +67,51 @@ cat agents/{agent-name}.md
 cat skills/{skill-name}/SKILL.md
 ```
 
-**Step 2: Identify testable claims**
+**Step 2: Identify testable claims** -- Extract concrete behaviors: inputs accepted, output structure, routing triggers, error conditions, skills invoked.
 
-Extract concrete, testable behaviors from the agent definition:
-- What inputs does it accept?
-- What output structure does it produce?
-- What routing triggers should activate it?
-- What error conditions does it handle?
-- What skills does it invoke?
+**Step 3: Determine minimum test count** -- Use the table above.
 
-**Step 3: Determine minimum test count**
+No gate -- preparation only. Move to Phase 1.
 
-| Agent Type | Minimum Tests | Required Coverage |
-|------------|---------------|-------------------|
-| Reviewer agents | 6 | 2 real issues, 2 clean, 1 edge, 1 ambiguous |
-| Implementation agents | 5 | 2 typical, 1 complex, 1 minimal, 1 error |
-| Analysis agents | 4 | 2 standard, 1 edge, 1 malformed |
-| Routing/orchestration | 4 | 2 correct route, 1 ambiguous, 1 invalid |
-
-No gate — this phase is preparation. Move directly to Phase 1.
-
-### Phase 1: RED — Observe Current Behavior
+### Phase 1: RED -- Observe Current Behavior
 
 **Goal**: Run agent with test inputs and document exact current behavior before any changes.
 
-**Step 1: Define test plan**
+**Step 1: Define test plan** -- Write to a file before executing. See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for template.
 
-Write the test plan to a file before executing — this creates a reproducible baseline. See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for the Test Plan template.
+**Step 2: Dispatch subagent with test inputs** -- Use Task tool (see dispatch template in `references/examples-and-errors.md`). Each test in a fresh subagent to prevent context pollution.
 
-**Step 2: Dispatch subagent with test inputs**
+**Step 3: Capture results verbatim** -- Document exact agent outputs. See template in `references/examples-and-errors.md`.
 
-Use the Task tool to dispatch the agent (see dispatch template in `references/examples-and-errors.md`). Each test runs in a fresh subagent — this prevents context pollution from earlier tests affecting later ones.
+**Step 4: Identify failure patterns** -- Which categories fail? Structural (missing sections) or behavioral (wrong answers)? Correlate with input characteristics.
 
-**Step 3: Capture results verbatim**
+**Gate**: All test cases executed. Exact outputs captured verbatim. Failures documented with specific issues. Proceed only when gate passes.
 
-Document exact agent outputs. See the verbatim result capture template in `references/examples-and-errors.md`.
-
-**Step 4: Identify failure patterns**
-- Which test categories fail (happy path, error, edge)?
-- Are failures structural (missing sections) or behavioral (wrong answers)?
-- Do failures correlate with input characteristics?
-
-**Gate**: All test cases executed. Exact outputs captured verbatim. Failures documented with specific issues identified. Proceed only when gate passes.
-
-### Phase 2: GREEN — Fix Agent Definition
+### Phase 2: GREEN -- Fix Agent Definition
 
 **Goal**: Update agent definition until all test cases pass. One fix at a time.
 
-**Step 1: Prioritize failures**
+**Step 1: Prioritize failures** -- Triage by severity (Critical/High/Medium/Low). See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`.
 
-Triage failures by severity — see the Failure Severity table in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Critical/High/Medium/Low).
+**Step 2: Diagnose root cause** -- Map failure type to fix approach. See `references/examples-and-errors.md`.
 
-**Step 2: Diagnose root cause**
+**Step 3: Make one fix at a time** -- Change one thing. Re-run ALL test cases. Document which tests now pass/fail. One fix at a time -- you cannot determine which change was effective.
 
-Map the failure type to a fix approach — see the Root Cause → Fix Approach table in `references/examples-and-errors.md`.
+**Step 4: Iterate until green** -- Repeat Step 3 until all pass. If a fix causes regression, revert and try differently. Track iterations using Fix Log template in `references/examples-and-errors.md`.
 
-**Step 3: Make one fix at a time**
+**Gate**: All test cases pass. No regressions. Can explain what each fix changed and why. Proceed only when gate passes.
 
-Change one thing in the agent definition. Re-run ALL test cases. Document which tests now pass/fail.
-
-Make one fix at a time — you cannot determine which change was effective. Same debugging principle: one variable at a time.
-
-**Step 4: Iterate until green**
-
-Repeat Step 3 until all test cases pass. If a fix causes a previously passing test to fail, revert and try a different approach. Track fix iterations using the Fix Log template in `references/examples-and-errors.md`.
-
-**Gate**: All test cases pass. No regressions from previously passing tests. Can explain what each fix changed and why. Proceed only when gate passes.
-
-### Phase 3: REFACTOR — Edge Cases and Robustness
+### Phase 3: REFACTOR -- Edge Cases and Robustness
 
 **Goal**: Verify agent handles boundary conditions and produces consistent outputs.
 
-**Step 1: Add edge case tests**
+**Step 1: Add edge case tests** -- See Edge Case Categories in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Empty / Large / Unusual / Ambiguous inputs).
 
-See the Edge Case Categories table in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Empty / Large / Unusual / Ambiguous inputs).
+**Step 2: Run consistency tests** -- Same input 3 times. Outputs must have same structure, same key findings. Acceptable variation in phrasing only. If inconsistent: add more explicit instructions, re-test.
 
-**Step 2: Run consistency tests**
+**Step 3: Run regression suite** -- Re-run ALL test cases (original + edge cases).
 
-Run the same input 3 times. Outputs should be consistent:
-- Same structure
-- Same key findings (for analysis agents)
-- Acceptable variation in phrasing only
-
-If inconsistent: add more explicit instructions to the agent definition. Re-test.
-
-**Step 3: Run regression suite**
-
-Re-run ALL test cases (original + edge cases) to confirm nothing broke during refactoring.
-
-**Step 4: Document final test report**
-
-See the Test Report template in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`.
+**Step 4: Document final test report** -- See template in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`.
 
 **Gate**: Edge cases handled. Consistency verified. Full suite green. Test report documented. Fix is complete.
 
@@ -158,13 +119,7 @@ See the Test Report template in `${CLAUDE_SKILL_DIR}/references/examples-and-err
 
 ## Error Handling
 
-See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for error cases: agent-type-not-found, inconsistent-outputs, subagent-timeout, agent-asks-questions.
-
----
-
-## Examples
-
-See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for worked examples: testing a new reviewer agent, testing after agent modification, testing routing logic.
+See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for: agent-type-not-found, inconsistent-outputs, subagent-timeout, agent-asks-questions.
 
 ---
 
@@ -177,4 +132,4 @@ See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for worked examples:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/testing-patterns.md`: Dispatch patterns, test scenarios, eval harness integration
-- `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples (new reviewer, modification, routing) and error handling (agent-not-found, inconsistency, timeout, question-asking)
+- `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples and error handling
