@@ -1,7 +1,7 @@
 # Rive React Setup Reference
 <!-- Loaded by rive-skeletal-animator when task involves: installing Rive, mounting canvas, useRive hook, useStateMachineInput, Zustand wiring, CombatEngine events, lazy loading, Vite WASM config -->
 
-Rive's React runtime is `@rive-app/react-canvas` — a React wrapper over the Rive Web runtime that handles canvas lifecycle, WASM loading, and resize observation. Version 4.x supports React 16.8 through 19. The WASM bundle is ~150KB gzipped, so lazy loading to the combat screen only is worth the one-time setup cost.
+`@rive-app/react-canvas` — React wrapper over Rive Web runtime. Handles canvas lifecycle, WASM loading, resize. Version 4.x supports React 16.8–19. WASM bundle ~150KB gzip.
 
 ## Installation
 
@@ -9,7 +9,7 @@ Rive's React runtime is `@rive-app/react-canvas` — a React wrapper over the Ri
 npm install @rive-app/react-canvas
 ```
 
-No other dependencies. The WASM is bundled inside the npm package and loaded at runtime on first mount.
+WASM bundled in npm package, loaded at runtime on first mount.
 
 ## Basic useRive Pattern
 
@@ -37,7 +37,7 @@ function PlayerCharacter() {
 }
 ```
 
-`RiveComponent` fills its container by default. Wrap in an explicit-sized div. Do not set width/height directly on `RiveComponent` — the canvas scales to the container.
+`RiveComponent` fills its container. Wrap in explicit-sized div. Do not set width/height on `RiveComponent` directly.
 
 ## useRive Parameters
 
@@ -57,7 +57,7 @@ useRive({
 })
 ```
 
-`stateMachines` takes the name string exactly as defined in the Rive Editor — case-sensitive.
+`stateMachines` name is case-sensitive, must match Rive Editor exactly.
 
 ## Return Values
 
@@ -70,11 +70,11 @@ const {
 } = useRive(params);
 ```
 
-The `rive` instance exposes the Web runtime API directly: `rive.play()`, `rive.pause()`, `rive.reset()`, `rive.stop()`.
+`rive` exposes Web runtime API: `rive.play()`, `rive.pause()`, `rive.reset()`, `rive.stop()`.
 
 ## State Machine Inputs
 
-`useStateMachineInput` grabs a reference to a named input from the active state machine.
+`useStateMachineInput` returns a reference to a named input from the active state machine.
 
 ```tsx
 import { useRive, useStateMachineInput } from '@rive-app/react-canvas';
@@ -107,7 +107,7 @@ function PlayerCharacter() {
 }
 ```
 
-Input name strings are case-sensitive and must match the Rive Editor exactly. A mismatch returns `null` silently. Log `useStateMachineInput` return values in dev to catch typos early.
+Input names are case-sensitive, must match Rive Editor. Mismatch returns `null` silently — log return values in dev to catch typos.
 
 ## Input Object Types
 
@@ -119,7 +119,7 @@ Input name strings are case-sensitive and must match the Rive Editor exactly. A 
 
 ## Replacing img + motion.div
 
-**Before (Framer Motion sprite):**
+**Before:**
 ```tsx
 <motion.div
   animate={{ y: [0, -3, 0] }}
@@ -137,11 +137,11 @@ Input name strings are case-sensitive and must match the Rive Editor exactly. A 
 </div>
 ```
 
-Remove the `motion.div` entirely. The idle bob is an animation state in the `.riv` file. Do not wrap `RiveComponent` in `motion.div` — Rive owns all animation.
+Remove `motion.div` entirely. Idle bob lives in the `.riv` file. Do not wrap `RiveComponent` in `motion.div`.
 
 ## Wiring to Zustand Combat Store
 
-Zustand state is the source of truth. Bridge changes to Rive inputs via `useEffect`. Never call `input.fire()` inside Zustand actions — keep Rive coupling inside the component.
+Zustand is source of truth. Bridge to Rive inputs via `useEffect`. Never call `input.fire()` inside Zustand actions — keep Rive coupling in the component.
 
 ```tsx
 import { useRive, useStateMachineInput } from '@rive-app/react-canvas';
@@ -174,9 +174,9 @@ function PlayerCharacter() {
 }
 ```
 
-### The timestamp trick for re-triggering same action type
+### Timestamp trick for re-triggering same action type
 
-Zustand `useEffect` won't re-fire if the same action type repeats consecutively. Use a timestamp to guarantee re-trigger:
+`useEffect` won't re-fire for consecutive identical action types. Use a timestamp:
 
 ```ts
 // combatStore.ts
@@ -189,11 +189,11 @@ interface CombatAction {
 dispatchAction: (type) => set({ playerLastAction: { type, timestamp: Date.now() } }),
 ```
 
-The timestamp change causes a new object reference on every dispatch, so the `useEffect` fires even for consecutive identical action types.
+Timestamp change creates new object reference, forcing `useEffect` to fire.
 
 ## CombatEngine Event Wiring
 
-Wire CombatEngine events through the Zustand store rather than directly to Rive. CombatEngine stays decoupled from the renderer:
+Wire CombatEngine events through Zustand, not directly to Rive:
 
 ```ts
 // CombatEngine.ts — when an attack lands
@@ -206,11 +206,11 @@ function resolveAttack(attackerId: 'player' | 'enemy') {
 }
 ```
 
-Components subscribe and fire their own Rive inputs. This keeps CombatEngine decoupled from `@rive-app/react-canvas`.
+Components subscribe and fire their own Rive inputs. CombatEngine stays decoupled from `@rive-app/react-canvas`.
 
 ## Lazy Loading the Runtime
 
-Load the WASM (~150KB gzip) only when the combat screen mounts:
+Load WASM only when combat screen mounts:
 
 ```tsx
 // CombatScreen.tsx
@@ -227,7 +227,7 @@ export function CombatScreen() {
 }
 ```
 
-Optional: preload on hover over the Fight button to hide download latency:
+Preload on hover to hide download latency:
 
 ```tsx
 function FightButton({ onClick }: { onClick: () => void }) {
@@ -244,7 +244,6 @@ function FightButton({ onClick }: { onClick: () => void }) {
 // vite.config.ts
 export default defineConfig({
   assetsInclude: ['**/*.riv'],
-  // WASM handled automatically by Vite 5+ — no additional config needed
 });
 ```
 
@@ -271,15 +270,15 @@ const { RiveComponent } = useRive({
 });
 ```
 
-For a 400×400 artboard designed for that exact canvas size, `Fit.Contain` + `Alignment.BottomCenter` is the right default — no letterboxing, feet stay on the ground line.
+For 400x400 artboard: `Fit.Contain` + `Alignment.BottomCenter` — no letterboxing, feet grounded.
 
 ## WebGL Context Limit
 
-Browsers cap active WebGL contexts at 8–16 per page. The Canvas renderer (`@rive-app/react-canvas`) uses 2D canvas context — no WebGL, no context limit. Use this package for the AEW game's two-character setup. Only consider `@rive-app/react-webgl2-canvas` if profiling shows 2D canvas compositing as a bottleneck.
+`@rive-app/react-canvas` uses 2D canvas context — no WebGL, no context limit. Use for the AEW game's two-character setup. Only consider `@rive-app/react-webgl2-canvas` if profiling shows 2D canvas as bottleneck.
 
 ## onStateChange for Game Logic Sync
 
-Signal animation completion back to the game engine without setTimeout:
+Signal animation completion without setTimeout:
 
 ```tsx
 const { RiveComponent } = useRive({
@@ -295,11 +294,11 @@ const { RiveComponent } = useRive({
 });
 ```
 
-CombatEngine listens for `animationComplete` before dispatching the next action, so it never races ahead of the active animation.
+CombatEngine waits for `animationComplete` before dispatching next action.
 
 ## Conditional Rendering
 
-Unmount, don't hide. Hidden Rive canvases still animate and consume CPU:
+Unmount, don't hide. Hidden canvases still animate and consume CPU:
 
 ```tsx
 // Correct — unmount stops the Rive instance
@@ -309,7 +308,7 @@ Unmount, don't hide. Hidden Rive canvases still animate and consume CPU:
 <PlayerCharacter style={{ visibility: isCombatActive ? 'visible' : 'hidden' }} />
 ```
 
-`useRive` cleans up the Rive instance automatically on unmount.
+`useRive` cleans up automatically on unmount.
 
 ## TypeScript Types
 
@@ -327,7 +326,7 @@ import type {
 } from '@rive-app/react-canvas';
 ```
 
-Cast to specific input type to access type-specific API:
+Cast to specific input type:
 
 ```ts
 const hitTrigger = useStateMachineInput(rive, SM, 'hit') as SMITrigger | null;
@@ -339,4 +338,4 @@ if (healthInput) healthInput.value = 75;
 
 ## Isolation Pattern
 
-Rive instances bind tightly to their canvas element. If you need isolated character instances (player and enemy must never share a Rive instance), ensure each character component mounts its own `useRive` call. Do not pass the `rive` instance from one component to another.
+Each character component must mount its own `useRive` call. Do not share `rive` instances between components — player and enemy must never share a Rive instance.

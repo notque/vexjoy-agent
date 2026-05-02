@@ -4,17 +4,7 @@ description: Core MCP SDK patterns for TypeScript/Node.js server implementation,
 
 # MCP Server Development Patterns
 
-> **Scope**: TypeScript/Node.js MCP server implementation using `@modelcontextprotocol/sdk`. Does not cover Go MCP servers (see agent body) or MCP client implementation.
-> **Version range**: `@modelcontextprotocol/sdk` 0.5.0+
-> **Generated**: 2026-04-08 — verify against current MCP spec at https://spec.modelcontextprotocol.io/
-
----
-
-## Overview
-
-MCP (Model Context Protocol) servers expose resources and tools to LLM clients via JSON-RPC 2.0 over stdio or HTTP/SSE transports. The most common failure modes are: blocking the event loop in request handlers, re-indexing on every request instead of caching, and leaking filesystem paths in resource URIs. These failures cause client timeouts and security issues that are invisible during development.
-
----
+> **Scope**: TypeScript/Node.js MCP via `@modelcontextprotocol/sdk` 0.5.0+.
 
 ## Pattern Table
 
@@ -32,7 +22,7 @@ MCP (Model Context Protocol) servers expose resources and tools to LLM clients v
 
 ### Tool Registration with Input Schema
 
-Register tools with explicit JSON Schema to get client-side validation and LLM parameter guidance.
+Explicit JSON Schema for client-side validation and LLM parameter guidance.
 
 ```typescript
 import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -59,13 +49,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 ```
 
-**Why**: Without schema validation, malformed arguments cause cryptic internal errors instead of useful MCP `InvalidParams` responses. The `McpError` class maps to proper JSON-RPC error codes.
+**Why**: Without schema, malformed arguments cause cryptic errors instead of `InvalidParams`.
 
 ---
 
 ### Resource URI Design with Custom Scheme
 
-Use a custom `docs://` scheme — never expose real filesystem paths.
+`docs://` scheme — never expose filesystem paths.
 
 ```typescript
 function pathToUri(docsRoot: string, filePath: string): string {
@@ -88,13 +78,13 @@ function uriToPath(docsRoot: string, uri: string): string {
 }
 ```
 
-**Why**: `file:///home/user/...` exposes the server's filesystem layout to all clients. The docs:// scheme is also portable across deployments.
+**Why**: `file:///` exposes filesystem layout. `docs://` is portable.
 
 ---
 
 ### Startup Indexing with Background Continuation
 
-Complete initial indexing before accepting connections, but return partial results for large corpora.
+Serve partial results for large corpora while indexing continues.
 
 ```typescript
 class DocsServer {
@@ -127,7 +117,7 @@ class DocsServer {
 }
 ```
 
-**Why**: Awaiting full indexing before connecting causes MCP client timeouts on large repos. Batch processing prevents heap exhaustion.
+**Why**: Full indexing before connect causes client timeouts. Batch processing prevents heap exhaustion.
 
 ---
 

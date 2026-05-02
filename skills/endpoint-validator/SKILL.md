@@ -24,7 +24,7 @@ routing:
 
 # Endpoint Validator Skill
 
-Deterministic HTTP validation: Discover, Validate, Report. Tests endpoints against expectations, produces machine-readable results with pass/fail verdicts and CI-compatible exit codes.
+Deterministic HTTP endpoint validation following a **Discover, Validate, Report** pattern. Finds endpoints, tests each against expectations, and produces machine-readable results with clear pass/fail verdicts and CI-compatible exit codes.
 
 ## Reference Loading Table
 
@@ -38,24 +38,24 @@ Deterministic HTTP validation: Discover, Validate, Report. Tests endpoints again
 
 ### Phase 1: DISCOVER
 
-**Goal**: Locate or receive endpoint definitions before making requests.
+**Goal**: Locate or receive endpoint definitions before making any requests.
 
 **Step 1: Read repository CLAUDE.md**
 
-Check for base URL conventions, environment variable names, or endpoint paths.
+Check for and follow any repository-level CLAUDE.md before running validation. It may contain base URL conventions, environment variable names, or endpoint paths relevant to the project.
 
 **Step 2: Search for endpoint configuration**
 
-Priority order:
+Look for definitions in priority order:
 1. `endpoints.json` in project root
 2. `tests/endpoints.json`
-3. Inline specification from user or calling agent
+3. Inline specification provided by user or calling agent
 
-Prefer config files in version control over ad-hoc lists.
+Prefer config files checked into version control over ad-hoc endpoint lists. Manually listing endpoints every run leads to drift and missed endpoints.
 
 **Step 3: Parse and validate configuration**
 
-Must contain `base_url` and at least one endpoint:
+Configuration must contain `base_url` and at least one endpoint:
 
 ```json
 {
@@ -68,67 +68,67 @@ Must contain `base_url` and at least one endpoint:
 }
 ```
 
-Supported fields:
+Each endpoint supports these fields:
 - `path` (required): URL path appended to base_url
 - `expect_status` (default: 200): Expected HTTP status code
-- `expect_key` (optional): Top-level JSON key that must exist. Full JSON schema validation is out of scope.
-- `timeout` (default: 5): Request timeout in seconds
-- `max_time` (optional): Fail if response exceeds this threshold
-- `method` (optional): HTTP method, default GET. POST/PUT/DELETE require explicit config with request body.
-- `headers` (optional): Per-endpoint headers (Accept, Content-Type, Authorization)
+- `expect_key` (optional): Top-level JSON key that must exist in response. Only top-level key presence is checked -- full JSON schema validation is out of scope.
+- `timeout` (default: 5): Request timeout in seconds. The 5-second default prevents hanging on unresponsive endpoints.
+- `max_time` (optional): Fail if response exceeds this threshold in seconds
+- `method` (optional): HTTP method. Defaults to GET. POST/PUT/DELETE require explicit configuration with a request body -- send mutating requests only when the user explicitly configures them.
+- `headers` (optional): Additional headers per endpoint (e.g., Accept, Content-Type, Authorization)
 
-If `base_url` is production and config includes POST/PUT/DELETE, warn before proceeding. Use staging for write operations; reserve production for GET-only health checks.
+If `base_url` points to a production host and the config includes POST/PUT/DELETE endpoints, warn the user before proceeding. Mutating production data or triggering rate limits during a smoke test is a serious risk. Use staging environments for write operations; reserve production for GET-only health checks.
 
-Use hostnames or environment variables in `base_url`, not hardcoded IPs. `http://192.168.1.42:8000` breaks on every other machine.
+Use hostnames or environment variables instead of hardcoded IP addresses in `base_url` (e.g., `http://192.168.1.42:8000`). They break on every other machine and CI environment. Use `localhost` with a configurable port or environment variables instead.
 
 **Step 4: Confirm base URL is reachable**
 
-Single request to `base_url` before running full suite. If unreachable, report immediately.
+Make a single request to `base_url` before running the full suite. If unreachable, report immediately rather than failing every endpoint individually.
 
-**Gate**: Configuration parsed, base URL reachable, at least one endpoint defined.
+**Gate**: Configuration parsed, base URL reachable, at least one endpoint defined. Proceed only when gate passes.
 
 ### Phase 2: VALIDATE
 
-> **Opus 4.7 override:** Run the command. Do not reason about whether it would pass. Execute the check, paste the exit code and output. A verdict without observed tool output is a guess.
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
 
-**Goal**: Test each endpoint against expected criteria and collect structured results.
+**Goal**: Test each endpoint against its expected criteria and collect structured results.
 
 **Step 1: Execute requests sequentially**
 
-One at a time for predictable, reproducible output. Per endpoint:
+Test endpoints one at a time for predictable, reproducible output. For each endpoint:
 1. Construct full URL from `base_url` + `path`
-2. Send request with configured method and timeout
-3. Record status code, response time, body
-4. Display each result as it completes
+2. Send request with configured method (GET by default) and timeout
+3. Record status code, response time, and body
+4. Display each result as it completes so the user sees progress
 
-This is contract validation, not load testing.
+This skill sends one request per endpoint. It is not a load tester or stress tester -- it validates contract compliance, not throughput.
 
 **Step 2: Evaluate against expectations**
 
-Per response, check in order:
-1. **Status code**: Match `expect_status`? If not, FAIL.
-2. **JSON key**: If `expect_key` set, parse JSON, check key exists. If missing or invalid JSON, FAIL.
-3. **Response time**: If `max_time` set and exceeded, SLOW.
-4. **Security headers**: Check for common headers, report missing as WARN (not FAIL):
-   - `Strict-Transport-Security` (HTTPS endpoints)
-   - `Content-Security-Policy`
-   - `X-Content-Type-Options` (should be `nosniff`)
-   - `X-Frame-Options` (or CSP `frame-ancestors`)
+For each response, check in order:
+1. **Status code**: Does it match `expect_status`? If not, mark FAIL.
+2. **JSON key**: If `expect_key` set, parse JSON and check key exists. If missing or not valid JSON, mark FAIL.
+3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW. Flag slow endpoints -- they indicate degradation that becomes failure under load.
+4. **Security headers**: Check response headers for common security headers. Report missing headers as WARN (not FAIL):
+   - `Strict-Transport-Security` -- HSTS enforcement (expected on HTTPS endpoints)
+   - `Content-Security-Policy` -- XSS mitigation
+   - `X-Content-Type-Options` -- should be `nosniff`
+   - `X-Frame-Options` -- clickjacking prevention (or CSP `frame-ancestors`)
 
-Skip security header checks for localhost/127.0.0.1. Only check non-localhost unless explicitly configured.
+Skip security header checks for localhost/127.0.0.1 endpoints (development environments typically omit these). Only check on non-localhost base URLs unless explicitly configured.
 
 **Step 3: Handle failures gracefully**
 
-- Connection refused: FAIL with "Connection refused"
-- Timeout: FAIL with "Timeout after Ns"
-- Invalid JSON when `expect_key` set: FAIL with "Invalid JSON response"
-- Unexpected exception: FAIL with exception message
+- Connection refused: Record as FAIL with "Connection refused" error
+- Timeout exceeded: Record as FAIL with "Timeout after Ns" error
+- Invalid JSON when `expect_key` set: Record as FAIL with "Invalid JSON response"
+- Unexpected exception: Record as FAIL with exception message
 
-**Gate**: All endpoints tested. Every result has PASS, FAIL, or SLOW verdict.
+**Gate**: All endpoints tested. Every result has a clear PASS, FAIL, or SLOW verdict. Proceed only when gate passes.
 
 ### Phase 3: REPORT
 
-**Goal**: Structured, machine-readable output with summary statistics.
+**Goal**: Produce structured, machine-readable output with summary statistics.
 
 **Step 1: Format individual results**
 
@@ -162,24 +162,28 @@ SUMMARY:
 
 **Step 3: Set exit code**
 
-- Exit 0 if all passed (SLOW counts as pass unless `max_time` was set)
-- Exit 1 if any failed
+- Exit 0 if all endpoints passed (SLOW counts as pass unless `max_time` was set)
+- Exit 1 if any endpoint failed
 
-**Gate**: Report printed, exit code set.
+**Gate**: Report printed, exit code set. Validation complete.
 
 ### Examples
 
 #### Example 1: Pre-Deployment Health Check
-User: "Validate all endpoints before we deploy"
-1. Find `endpoints.json` (DISCOVER)
-2. Test each endpoint (VALIDATE)
+User says: "Validate all endpoints before we deploy"
+Actions:
+1. Find `endpoints.json` in project root (DISCOVER)
+2. Test each endpoint, collect status codes and times (VALIDATE)
 3. Print report, exit 0 if all pass (REPORT)
+Result: Structured pass/fail report with CI-compatible exit code
 
 #### Example 2: Smoke Test After Migration
-User: "Check if the API still works after the database migration"
-1. Read config, confirm base URL reachable (DISCOVER)
+User says: "Check if the API is still working after the database migration"
+Actions:
+1. Read endpoint config, confirm base URL reachable (DISCOVER)
 2. Hit each endpoint, check status and expected keys (VALIDATE)
-3. Surface failures with error details (REPORT)
+3. Surface any failures with error details (REPORT)
+Result: Quick verification that migration did not break API contracts
 
 ---
 
@@ -188,21 +192,21 @@ User: "Check if the API still works after the database migration"
 ### Error: "Base URL Unreachable"
 Cause: Service not running, wrong port, or network issue
 Solution:
-1. Verify service is running (`ps aux`, `docker ps`)
-2. Confirm port matches config (`ss -tlnp`)
-3. Check firewall rules or container networking
+1. Verify service is running (`ps aux`, `docker ps`, or equivalent)
+2. Confirm port matches config (`netstat -tlnp` or `ss -tlnp`)
+3. Check for firewall rules or container networking issues
 
 ### Error: "All Endpoints Timeout"
 Cause: Service overwhelmed, wrong host, or proxy misconfiguration
 Solution:
-1. Test manually with `curl -v`
-2. Increase timeout values if service is legitimately slow
-3. Check for reverse proxy or load balancer intercepting requests
+1. Test a single endpoint manually with `curl -v`
+2. Increase timeout values in config if service is legitimately slow
+3. Check if a reverse proxy or load balancer is intercepting requests
 
 ### Error: "JSON Parse Failure on expect_key Check"
 Cause: Endpoint returns HTML, XML, or empty body instead of JSON
 Solution:
-1. Verify endpoint returns JSON (check Content-Type header)
+1. Verify endpoint actually returns JSON (check Content-Type header)
 2. Remove `expect_key` if endpoint legitimately returns non-JSON
 3. Check if authentication is required (HTML login page returned)
 

@@ -32,53 +32,55 @@ Proactive monitoring and briefing agent. Runs between sessions via `cron + claud
 ## When to invoke
 
 - User says "morning briefing", "what happened", "project status", "check notifications", "health check", "kairos"
-- Cron every 4 hours during business hours (quick scan — Category A only)
+- Invoked automatically by cron every 4 hours during business hours (quick scan — Category A only)
 - Nightly deep scan at 2:30 AM (all categories)
 
 ## Instructions
 
-When invoked interactively, read `skills/kairos-lite/monitor-prompt.md` and execute its phases directly. The prompt is self-contained.
+When invoked interactively, read `skills/kairos-lite/monitor-prompt.md` and execute its phases directly. The prompt is self-contained — it describes the full monitoring cycle including check categories, output format, and file paths.
 
-For cron: the monitor prompt is passed directly to `claude -p` as a standalone headless session (no CLAUDE.md, no hooks, no project context).
+For cron invocation: the monitor prompt is passed directly to `claude -p` and runs as a standalone headless session with no CLAUDE.md, no hooks, no project context. All instructions are embedded in the prompt.
 
-Requires `CLAUDE_KAIROS_ENABLED=true`. If not set, exit silently.
+Requires `CLAUDE_KAIROS_ENABLED=true` environment variable. If not set, exit silently.
 
 ## Monitoring Categories
 
-**Category A — Action Required** (quick and deep):
-- PRs assigned to @me (open)
+**Category A — Action Required** (quick and deep scans):
+- PRs assigned to @me with open state
 - Review requests pending for @me
 - CI failures on watched branches
-- Dependabot security alerts (critical/high)
+- Dependabot security alerts (critical and high severity)
 
-**Category B — FYI** (deep only):
-- New issues since last check
-- Non-security dependency updates
-- Stale branches (> 7 days)
+**Category B — FYI** (deep scan only):
+- New issues opened since last check
+- Dependency updates available (non-security)
+- Stale branches (> 7 days since last commit)
 - Uncommitted changes on feature branches
 
-**Category C — Toolkit Health** (deep only):
+**Category C — Toolkit Health** (deep scan only):
 - Hook error rate from learning.db
-- Stale memory files (> 14 days)
-- ADR backlog count (local `adr/`)
+- Stale memory files (> 14 days since last update)
+- ADR backlog count (local `adr/` directory)
 - State file accumulation in `~/.claude/state/`
 
 ## Phases
 
-1. **LOAD CONFIG** — Read `~/.claude/config/kairos.json` for watched repos, branches, thresholds. Determine scan mode from `KAIROS_MODE`.
-2. **GITHUB CHECKS** — `gh` queries in parallel. Category A always; Category B for deep scans.
-3. **REPO CHECKS** — Stale branches, uncommitted changes. Deep only.
-4. **TOOLKIT HEALTH** — Hook error rates, memory file mtimes, state directory counts. Deep only.
-5. **COMPILE BRIEFING** — Aggregate findings. Empty categories get "all clear" entries.
-6. **WRITE OUTPUT** — Write atomically (`.tmp` then rename) to `~/.claude/state/briefing-{project-hash}-{date}.md`.
+1. **LOAD CONFIG** — Read `~/.claude/config/kairos.json` for watched repos, branches, and thresholds. Determine scan mode from `KAIROS_MODE` env var.
+2. **GITHUB CHECKS** — Run `gh` queries in parallel. Category A always; Category B added for deep scans.
+3. **REPO CHECKS** — Check local repo state: stale branches, uncommitted changes. Deep scan only.
+4. **TOOLKIT HEALTH** — Query learning.db for hook error rates, scan memory file mtimes, count state directory files. Deep scan only.
+5. **COMPILE BRIEFING** — Aggregate findings into structured sections. Empty categories get explicit "all clear" entries.
+6. **WRITE OUTPUT** — Write briefing atomically (write to `.tmp`, then rename) to `~/.claude/state/briefing-{project-hash}-{date}.md`.
 
 ## Output
 
-Briefing at `~/.claude/state/briefing-{project-hash}-{date}.md`. Project hash uses same encoding as `~/.claude/projects/` directory names (URL-encode path, replace `/` with `-`).
+Briefing written to `~/.claude/state/briefing-{project-hash}-{date}.md`.
+
+The project hash uses the same encoding as `~/.claude/projects/` directory names (URL-encode the project path, replace `/` with `-`).
 
 ## Config
 
-`~/.claude/config/kairos.json`:
+Read from `~/.claude/config/kairos.json`. Example structure:
 
 ```json
 {
@@ -97,27 +99,27 @@ Briefing at `~/.claude/state/briefing-{project-hash}-{date}.md`. Project hash us
 
 | Mode | Trigger | Categories | Frequency |
 |------|---------|------------|-----------|
-| Quick | Default / every 4 hours business hours | A only | Every 4h (8 AM-6 PM) |
+| Quick | Default / every 4 hours business hours | A only | Every 4h (8 AM–6 PM) |
 | Deep | `KAIROS_MODE=deep` / nightly | A + B + C | 2:30 AM nightly |
 
-Set `KAIROS_MODE=deep` to force deep scan interactively.
+Set `KAIROS_MODE=deep` to force a deep scan interactively.
 
 ## Opt-in requirement
 
-`CLAUDE_KAIROS_ENABLED=true` must be set. If absent, exits 0 silently — no output, no error.
+`CLAUDE_KAIROS_ENABLED=true` must be set in the environment. If absent, the skill exits 0 silently — no output, no error. This prevents accidental runs during toolkit development.
 
 ## Cost estimate
 
-~$0.04 per quick run (~8-12K input tokens at Sonnet pricing).
-~$0.08 per deep run (~18-25K input tokens).
+~$0.04 per quick run (Category A only, ~8-12K input tokens at Sonnet pricing).
+~$0.08 per deep run (all categories, ~18-25K input tokens).
 ~$14/year for full automated operation (4h quick + nightly deep, 5-day business week).
 
 ## Cron setup
 
-Use `crontab-manager.py` (not raw `crontab -e`):
+Use `crontab-manager.py` (not raw `crontab -e`) to install both schedules.
 
 ```bash
-# Quick scan every 4 hours, 8 AM-6 PM business hours
+# Quick scan every 4 hours, 8 AM–6 PM business hours
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "kairos-quick" \
   --schedule "0 8,12,16 * * 1-5" \
@@ -150,11 +152,12 @@ CLAUDE_KAIROS_ENABLED=true KAIROS_MODE=deep ./scripts/kairos-cron.sh --dry-run
 # Check output
 ls ~/.claude/state/briefing-*.md | tail -1 | xargs cat
 
-# Interactive: just invoke this skill — it reads and runs the prompt inline
+# Interactive invocation (reads monitor-prompt.md and executes directly)
+# Just invoke this skill — it reads and runs the prompt inline
 ```
 
 ## Pairs with auto-dream
 
-auto-dream runs at 2:07 AM (memory consolidation), kairos-lite at 2:30 AM (external state). Nightly deep scan can incorporate dream report into toolkit health.
+kairos-lite and auto-dream are complementary. auto-dream runs nightly at 2:07 AM and consolidates memories. kairos-lite runs at 2:30 AM and checks external state. The nightly deep scan can incorporate the dream report into the toolkit health section.
 
-Session-start injection: if both `dream-injection-{project-hash}.md` and `briefing-{project-hash}-{date}.md` exist, load both. Briefing takes precedence for action items; dream injection for memory context.
+Session-start injection: if both `dream-injection-{project-hash}.md` and `briefing-{project-hash}-{date}.md` exist, load both. Briefing takes precedence for action items; dream injection takes precedence for memory context.

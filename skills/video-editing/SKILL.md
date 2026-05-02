@@ -32,7 +32,9 @@ routing:
 
 # Video Editing Skill
 
-6-layer pipeline: AI handles judgment (what to keep, what to cut, highlight selection); FFmpeg/Remotion handle mechanical execution deterministically.
+## Overview
+
+This skill implements a **6-layer pipeline** where AI handles judgment tasks (what to keep, what to cut, highlight selection) and FFmpeg/Remotion handle mechanical execution deterministically.
 
 | Layer | Name | Mechanism | Primary Tool |
 |-------|------|-----------|-------------|
@@ -60,61 +62,61 @@ routing:
 ### Preflight (Run before Phase 1)
 
 **Hard requirements** (BLOCK if missing): `ffmpeg` (all phases), `node` (Remotion / npx).
-**Soft requirements** (WARN if missing): `remotion` (Phase 4 only).
+**Soft requirements** (WARN if missing): `remotion` (only required for Phase 4).
 
-Preflight script: `references/preflight.md`.
+Preflight script (dependency checks, install hints, exit codes): `references/preflight.md`.
 
 ---
 
 ## Phase 1: CAPTURE
 
-**Goal**: Inventory all source footage, confirm files exist on disk.
+**Goal**: Inventory all source footage and confirm files exist on disk before any processing.
 
-**Constraint**: Source files are read-only. All FFmpeg commands write to new files only.
+**Constraint**: Source files are read-only. All FFmpeg commands write to new files only. Never overwrite source footage.
 
-Steps: locate sources (find), inspect with `ffprobe`, generate proxies for files >10 min (see `references/ffmpeg-commands.md` Proxy Generation), create working directories (`segments/`, `assembled/`). Full commands: `references/phase-commands.md` Phase 1.
+Steps: locate source files (find), inspect each with `ffprobe`, generate proxies for files >10 min (see `references/ffmpeg-commands.md` -> Proxy Generation), create working directories (`segments/`, `assembled/`). Full command block: `references/phase-commands.md` -> Phase 1.
 
-**Gate**: Source files confirmed on disk. `source-inventory.txt` written. Proceed only when gate passes.
+**Gate**: Source files confirmed on disk. File list written to `source-inventory.txt`. Proceed only when gate passes.
 
 ---
 
 ## Phase 2: AI STRUCTURE
 
-**Goal**: Analyze content and produce EDL (`cuts.txt`) for downstream cutting.
+**Goal**: Analyze content and produce a written EDL (`cuts.txt`) that drives all downstream cutting.
 
-**Constraint**: `cuts.txt` is the contract -- only source of truth for downstream phases. Do not hand-edit FFmpeg commands; generate from EDL.
+**Constraint**: `cuts.txt` is the contract. The EDL file is the only source of truth for downstream phases. Do not hand-edit FFmpeg commands — generate them from the EDL.
 
-**Constraint**: Run FFmpeg scene/silence detection before writing EDL manually. Detection informs judgment, does not replace it.
+**Constraint**: Before writing the EDL manually, run FFmpeg scene/silence detection. Detection output informs judgment, not replaces it.
 
-Steps: transcribe (whisper/AssemblyAI), run scene/silence detection, apply judgment (narrative value, filler, target duration), write `cuts.txt` as `START_TIME,END_TIME,LABEL`, check for overlap and total duration. Full commands: `references/phase-commands.md` Phase 2.
+Steps: transcribe with whisper/AssemblyAI, run scene/silence detection, apply judgment (what advances narrative, what is filler, target duration), write `cuts.txt` in EDL format `START_TIME,END_TIME,LABEL`, review for overlap and total duration. Full command block and EDL format example: `references/phase-commands.md` -> Phase 2.
 
-**Gate**: `transcript.txt` and `cuts.txt` exist on disk. Proceed only when both present.
+**Gate**: `transcript.txt` exists. `cuts.txt` written to disk. Proceed only when both files exist.
 
 ---
 
 ## Phase 3: FFMPEG CUTS
 
-**Goal**: Execute EDL deterministically -- one FFmpeg cut per segment.
+**Goal**: Execute the EDL deterministically — one FFmpeg cut per segment in `cuts.txt`.
 
-**Constraint**: Batch-cut from EDL using a loop. Do not create individual commands per cut.
+**Constraint**: Batch-cut from EDL using a loop. Do not create individual FFmpeg commands per cut. This ensures reproducibility and review capability as a list.
 
-**Constraint**: Generate `concat-list.txt` from `cuts.txt` order, not shell glob. Glob sorts alphabetically, not by EDL order.
+**Constraint**: Always generate concat-list.txt from cuts.txt order, not from shell glob. Shell glob (`segments/*.mp4`) sorts alphabetically, not by EDL order.
 
-Steps: batch-cut with while loop (libx264/aac, `-avoid_negative_ts make_zero`), verify segments, generate `concat-list.txt` in EDL order, concat with `-f concat -safe 0 -c copy`. Full commands: `references/phase-commands.md` Phase 3 and `references/ffmpeg-commands.md` Batch Cutting.
+Steps: batch-cut from EDL with while loop (libx264/aac, `-avoid_negative_ts make_zero`), verify segments, generate `concat-list.txt` in EDL order, concat with `-f concat -safe 0 -c copy`. Full command block: `references/phase-commands.md` -> Phase 3. See also `references/ffmpeg-commands.md` -> Batch Cutting.
 
-**Gate**: All segment files exist. `assembled/rough-cut.mp4` written. Proceed only when gate passes.
+**Gate**: All segment files exist. `assembled/rough-cut.mp4` written to disk. Proceed only when gate passes.
 
 ---
 
 ## Phase 4: REMOTION COMPOSITION
 
-**Goal**: Wrap segments in Remotion TSX for programmatic overlays, titles, or transitions.
+**Goal**: Wrap segments in a Remotion TSX composition for programmatic overlays, titles, or transitions.
 
-**When to use**: Only when rough-cut.mp4 requires programmatic elements (animated titles, lower thirds, captions, brand overlays). If rough-cut is sufficient, skip to Phase 6.
+**When to use**: Only when rough-cut.mp4 requires programmatic elements (animated titles, lower thirds, caption tracks, brand overlays). If rough-cut.mp4 is sufficient, skip to Phase 6.
 
-**Constraint**: Requires TypeScript/React. Hand off to `typescript-frontend-engineer` for TSX; return to `python-general-engineer` for Phase 5+.
+**Constraint**: Layer 4 requires TypeScript/React. Hand off to `typescript-frontend-engineer` for TSX work; return to `python-general-engineer` for Phase 5 onward.
 
-Steps: init Remotion (`npm create video@latest` or `npm install @remotion/cli @remotion/player remotion`), scaffold composition (see `references/remotion-scaffold.md`), render with `npx remotion render`. Full commands: `references/phase-commands.md` Phase 4.
+Steps: initialize Remotion (`npm create video@latest` first time; otherwise `npm install @remotion/cli @remotion/player remotion`), scaffold composition (see `references/remotion-scaffold.md`), render with `npx remotion render`. Full command block: `references/phase-commands.md` -> Phase 4.
 
 **Gate**: `assembled/remotion-output.mp4` exists. Proceed only when gate passes.
 
@@ -122,36 +124,37 @@ Steps: init Remotion (`npm create video@latest` or `npm install @remotion/cli @r
 
 ## Phase 5: AI GENERATION
 
-**Goal**: Fill genuine gaps in source material with generated assets -- only when needed.
+**Goal**: Fill genuine gaps in source material with generated assets — only when needed.
 
-**Constraint**: Check existing footage first. Generate only what doesn't exist.
+**Constraint**: Check whether existing footage covers the gap before generating anything. Generate only what doesn't exist.
 
-Decision tree: cut around gap -> update cuts.txt, re-run Phase 3; voiceover -> ElevenLabs (authorization required); music/b-roll -> fal.ai (defer to fal-ai-media). Commands: `references/phase-commands.md` Phase 5.
+Decision tree: cut around the gap → update cuts.txt and re-run Phase 3; voiceover → ElevenLabs (authorization required); music → fal.ai (defer to fal-ai-media); b-roll → fal.ai (defer to fal-ai-media). ElevenLabs Python helper, authorization pattern, and save-to-disk flow: `references/phase-commands.md` -> Phase 5.
 
-**Gate**: All required generated assets saved to `assets/`.
+**Gate**: All required generated assets saved to `assets/` directory before proceeding.
 
 ---
 
 ## Phase 6: FINAL POLISH
 
-**Goal**: Deliver assembled output, hand off taste-layer to human.
+**Goal**: Deliver assembled output and hand off taste-layer work to human.
 
-**Constraint**: Layer 6 is human territory. Do not attempt programmatically:
-- Color grading and matching between clips
+**Constraint**: Layer 6 is human territory. The skill assembles; the human finishes. The following require human judgment and should not be attempted programmatically:
+
+- Color grading and color matching between clips
 - Music timing and volume ducking
 - Caption style, font, positioning
 - Transition timing and style
 - Final audio mix levels
 
-Handoff template (`handoff-notes.txt`): `references/phase-commands.md` Phase 6.
+Handoff template (`handoff-notes.txt` with source list, EDL, rough-cut path, remaining-for-human checklist): `references/phase-commands.md` -> Phase 6.
 
-**Gate**: `assembled/rough-cut.mp4` (or `assembled/remotion-output.mp4`) exists. `handoff-notes.txt` written.
+**Gate**: `assembled/rough-cut.mp4` (or `assembled/remotion-output.mp4`) exists. `handoff-notes.txt` written to disk.
 
 ---
 
 ## Error Handling
 
-Common errors (missing sources, codec errors, composition-not-found, concat-order bugs, ElevenLabs 401) and fixes: `references/errors.md`.
+Common errors (missing source files, FFmpeg codec errors, Remotion composition-not-found, concat-order bugs, ElevenLabs 401) and fixes: `references/errors.md`.
 
 ---
 
@@ -159,11 +162,11 @@ Common errors (missing sources, codec errors, composition-not-found, concat-orde
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/preflight.md` | Before Phase 1 | Dependency checks: ffmpeg, node, remotion |
-| `references/phase-commands.md` | Each phase | Shell commands for Phases 1-6 and gate checks |
+| `references/preflight.md` | Before Phase 1 | Dependency check script: ffmpeg, node, remotion |
+| `references/phase-commands.md` | Each phase | Full shell command blocks for Phases 1-6 and gate checks |
 | `references/errors.md` | Error Handling | Error matrix with causes and fixes |
-| `references/ffmpeg-commands.md` | Phase 3, Proxy | FFmpeg recipes: timestamps, batch cutting, concat, proxy, audio normalization, scene/silence detection, social reframing |
-| `references/remotion-scaffold.md` | Phase 4 | TSX scaffold, render command, reuse patterns |
+| `references/ffmpeg-commands.md` | Phase 3, Proxy | FFmpeg recipes: timestamp extraction, batch cutting, concatenation, proxy generation, audio normalization, scene/silence detection, social reframing |
+| `references/remotion-scaffold.md` | Phase 4 | TSX composition scaffold, render command, reuse patterns |
 
 - [Remotion docs](https://www.remotion.dev/docs) -- TSX composition API
 - [FFmpeg docs](https://ffmpeg.org/documentation.html) -- Flag reference

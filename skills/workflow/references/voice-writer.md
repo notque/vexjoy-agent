@@ -245,13 +245,6 @@ See `references/joy-check-rubric.md` for the full rubric table, scoring system, 
 
 Voice validation checks stylistic fidelity. Joy-check checks tonal framing. Neither catches AI tells: emotional flatline ("This is the part I find most interesting"), false concessions, synonym cycling, puffery, dangling -ing clauses, or reasoning chain artifacts. The anti-AI editor has 14 detection categories with regex patterns and LLM analysis that catch patterns invisible to the other gates. This phase is not optional.
 
-**Step 0: Deterministic pattern scan** (MANDATORY — run before LLM scan)
-
-Run `python3 ~/vexjoy/scripts/content-check.py <draft-file> --strict`
-
-Score must be ≤ 5. If non-zero findings, fix each one before proceeding.
-This catches every regex-matchable pattern from detection-patterns.md, voice-guide.md, and pre-publish rules.
-
 **Step 1: Invoke the anti-AI editor skill**
 
 The anti-AI editor is a **skill**, not a script. Do not attempt to run `scripts/anti-ai-editor.py` (it does not exist). Invoke the skill by dispatching an agent with the `anti-ai-editor` skill, or by reading `skills/anti-ai-editor/SKILL.md` and following its ASSESS phase against the draft content.

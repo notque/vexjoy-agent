@@ -1,9 +1,7 @@
 # CSS Particle Migration Reference
 <!-- Loaded by combat-effects-upgrade when task involves DOM particle replacement, element pooling, or CSS @keyframes for effects.ts -->
 
-## Overview
-
-The game's `effects.ts` creates and destroys DOM elements for every particle using this anti-pattern:
+Current anti-pattern in `effects.ts`:
 
 ```typescript
 // ANTI-PATTERN — runs on every effect call
@@ -13,7 +11,7 @@ document.body.appendChild(el);
 setTimeout(() => el.remove(), duration);
 ```
 
-This causes two compounding problems: (1) GC pressure from frequent allocation/deallocation, and (2) each `appendChild`/`remove` forces a style recalculation. The fix is a pre-allocated pool with CSS class toggling — elements are created once at mount and reused indefinitely.
+Problems: GC pressure from allocation/deallocation + `appendChild`/`remove` forces style recalculation. Fix: pre-allocated pool with CSS class toggling.
 
 ---
 
@@ -423,9 +421,9 @@ Add to your global stylesheet or a `particles.css` module. All animations use on
 
 ---
 
-## CSS `cos()`/`sin()` Browser Support Note
+## CSS `cos()`/`sin()` Browser Support
 
-The `cos()` and `sin()` CSS math functions are supported in Chromium 111+, Firefox 108+, Safari 15.4+. For older targets, compute the X/Y components in JavaScript and pass as separate CSS custom properties:
+Supported: Chromium 111+, Firefox 108+, Safari 15.4+. Fallback for older targets:
 
 ```typescript
 // Fallback for environments where CSS trig isn't supported
@@ -475,4 +473,4 @@ grep -n "createElement\|appendChild\|\.remove()" src/effects.ts
 # Expected: 0 matches after migration (pool elements are created in ParticlePool constructor)
 ```
 
-Chrome DevTools: open Performance tab, record 5 seconds of combat, check "Layout" in the flame chart. Target: no layout events during particle animations.
+DevTools Performance tab: record 5 seconds of combat, check "Layout" in flame chart. Target: no layout events during particle animations.

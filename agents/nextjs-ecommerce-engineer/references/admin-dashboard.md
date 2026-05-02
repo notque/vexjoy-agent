@@ -1,10 +1,10 @@
 # Admin Dashboard Reference
 <!-- Loaded by nextjs-ecommerce-engineer when task involves admin UI, order management, product CRUD, inventory tracking, analytics, or role-based access -->
 
-Admin dashboards are internal tools where correctness and auditability matter more than aesthetic polish. Every destructive action needs confirmation; every mutation needs authorization.
+Every destructive action needs confirmation; every mutation needs authorization.
 
 ## Role-Based Access Control
-**When to use:** Any admin route. Gate at the middleware level and repeat the check in Server Components — defense in depth.
+**When to use:** Any admin route. Gate at middleware and repeat in Server Components (defense in depth).
 
 ```typescript
 // lib/auth.ts — extend NextAuth session with role
@@ -340,7 +340,7 @@ export default async function AnalyticsPage() {
 ---
 
 ## Audit Logging
-**When to use:** Any destructive or financial admin action. Audit logs answer "who did what and when" during incident investigation.
+**When to use:** Any destructive or financial admin action.
 
 ```typescript
 // lib/audit.ts

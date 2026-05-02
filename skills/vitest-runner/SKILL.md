@@ -25,7 +25,7 @@ routing:
 
 ## Overview
 
-Runs Vitest tests and parses results into structured reports. Executes in non-interactive mode, extracts failure details (test name, assertion error, stack trace), and organizes results by file with timing. Use when tests need running and results need reporting — not for test installation, creation, modification, or auto-fixing.
+This skill runs Vitest tests and parses results into actionable reports. It executes tests in non-interactive mode, extracts failure details (test name, assertion error, stack trace), and organizes results by test file with timing information. Use this skill when tests need to run and results need structured, complete reporting—not when tests need installation, creation, modification, or auto-fixing.
 
 ---
 
@@ -33,7 +33,9 @@ Runs Vitest tests and parses results into structured reports. Executes in non-in
 
 ### Step 1: Verify Vitest Project
 
-Confirm Vitest is installed before running. This skill handles only Vitest — not Jest, Mocha, or Playwright.
+Before running tests, confirm Vitest is installed and configured. Why: Running tests in a non-Vitest project wastes time and produces misleading results. This skill is designed only for Vitest—not Jest, Mocha, or Playwright.
+
+Verify vitest is available:
 
 ```bash
 # Check for vitest configuration
@@ -41,24 +43,26 @@ ls vitest.config.* vite.config.* 2>/dev/null
 grep -q "vitest" package.json && echo "vitest found in package.json"
 ```
 
-If no configuration found, stop and inform the user. Do not install dependencies or configure Vitest.
+If no vitest configuration found, stop and inform the user. Do not attempt to install dependencies or configure Vitest—that is outside this skill's scope.
 
 ### Step 2: Run Tests in Non-Interactive Mode
 
-Always use `run` subcommand — bare `npx vitest` starts watch mode, which never completes in a non-interactive shell.
+Execute Vitest using the `run` subcommand (not bare `npx vitest`, which starts interactive watch mode and will never complete in a non-interactive shell). Why: Watch mode is interactive and incompatible with automation. The `run` mode executes all tests once and exits with a status code reflecting pass/fail.
+
+Default execution:
 
 ```bash
 npx vitest run --reporter=verbose 2>&1
 ```
 
-For specific files or patterns:
+For specific files or patterns (optional behavior):
 
 ```bash
 npx vitest run path/to/test.ts 2>&1
 npx vitest run --grep "pattern" 2>&1
 ```
 
-For coverage (when requested):
+For coverage reporting (when user requests coverage):
 
 ```bash
 npx vitest run --coverage 2>&1
@@ -66,18 +70,20 @@ npx vitest run --coverage 2>&1
 
 ### Step 3: Respect Exit Codes and Parse Complete Output
 
-Exit code is source of truth: 0 = pass, nonzero = fail. Never assume pass from partial output. Show all failures completely.
+Capture the full exit code and output. Why: The exit code is the source of truth for pass/fail—code 0 = pass, nonzero = fail. Never assume tests passed based on partial output. Show all failures completely, including test names, assertion errors, and stack traces. Hiding failures prevents users from fixing them.
 
-Extract per test:
-- **Test file**: Path
-- **Test name**: Full path (describe > it)
+Extract for each test:
+- **Test file**: Path to the test file
+- **Test name**: Full test path (describe > it)
 - **Status**: PASS / FAIL / SKIP
 - **Duration**: Time taken
-- **Error detail**: Complete assertion error and stack trace (do not abbreviate)
+- **Error detail**: Complete assertion error and stack trace for failures (do not abbreviate)
 
 ### Step 4: Format Results as Structured Report
 
-Group failures by test file with complete error details.
+Present output in a format that groups failures by test file and includes complete error details. Why: Users need to see which tests failed, why they failed, and where in the code the assertions failed—this prevents wasted debugging time.
+
+Example format:
 
 ```
 === Vitest Test Results ===
@@ -104,21 +110,24 @@ Duration:   4.23s
 ## Error Handling
 
 ### Error: "Cannot find vitest"
-Cause: Vitest not installed or node_modules missing.
-This skill does not install dependencies.
-Solution: Check `grep vitest package.json`, then `npm install` or `npm install -D vitest`. Re-run after.
+Cause: Vitest not installed or node_modules missing
+Constraint: This skill does not install dependencies; it assumes a fully configured Vitest project.
+Solution: Advise user to check `grep vitest package.json` for presence, then run `npm install` or `npm install -D vitest`. After installation, re-run this skill.
 
 ### Error: "No test files found"
-Cause: Test file patterns don't match vitest.config include/exclude globs.
-Solution: Verify files use correct naming (*.test.ts, *.spec.ts, etc.) and match vitest.config patterns. Show user the config.
+Cause: Test file patterns don't match vitest.config include/exclude globs
+Constraint: Test discovery is driven by Vitest's configuration; this skill does not modify vitest.config.ts.
+Solution: Verify test files exist with correct naming (*.test.ts, *.spec.ts, *.test.js, etc.) and match the patterns in vitest.config include/exclude. Show user the vitest.config.ts to help them debug the mismatch.
 
 ### Error: "Test environment not found"
-Cause: Missing jsdom or happy-dom dependency for DOM tests.
-Solution: Check vitest.config.ts environment setting. Install required devDependency: `npm install -D jsdom` or `npm install -D happy-dom`.
+Cause: Missing jsdom or happy-dom dependency for DOM tests
+Constraint: This skill does not install dependencies or modify configurations.
+Solution: Check vitest.config.ts environment setting (likely `environment: 'jsdom'` or `'happy-dom'`). Advise user to install the required devDependency: `npm install -D jsdom` or `npm install -D happy-dom`, or `@testing-library/jest-dom` for additional matchers.
 
 ### Error: "Out of memory" (large test suites)
-Cause: Too many tests in shared thread pool.
-Solution: Run in batches by directory (`npx vitest run src/unit/`), use `--pool=forks` for memory isolation, or `--shard=1/N` to split the suite.
+Cause: Too many tests running in shared thread pool
+Constraint: This skill runs all tests in the suite; it does not pre-filter by complexity.
+Solution: When memory errors occur, advise user to split test execution: run tests in batches by directory (e.g., `npx vitest run src/unit/`), use `--pool=forks` for memory isolation, or use `--shard=1/N` to split the suite across N shards. The user controls which tests to run; this skill respects that choice.
 
 ---
 
@@ -127,12 +136,12 @@ Solution: Run in batches by directory (`npx vitest run src/unit/`), use `--pool=
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
 - [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
 
-### Key Constraints
+### Key Constraints (Inline with Workflow)
 
-**Do not auto-fix tests.** Report failures completely; do not fix them. The test may be correct and the implementation wrong.
+**Constraint: Do not auto-fix tests.** This skill's role is to report test failures completely, not to fix them. The test may be correct and the implementation wrong—only the user knows. Changing test assertions to make them pass would hide real bugs and violate the skill's scope.
 
-**Always use `npx vitest run`, not bare `npx vitest`.** Watch mode is incompatible with non-interactive execution.
+**Constraint: Always use `npx vitest run`, not bare `npx vitest`.** Watch mode is interactive and incompatible with non-interactive execution. The skill must use `run` mode to ensure tests execute once and exit with a status code.
 
-**Show all failures completely.** Stack traces, assertion details, and test names are essential. Never abbreviate failure output.
+**Constraint: Show all failures completely.** Reporting "3 tests failed" without showing which tests or why wastes user time. Stack traces, assertion details, and test names are essential for debugging. Never abbreviate failure output.
 
-**Respect exit codes as source of truth.** Exit code 0 = pass, nonzero = fail. Do not rely on partial output.
+**Constraint: Respect exit codes as source of truth.** The process exit code (0 = pass, nonzero = fail) is the definitive signal. Do not rely on partial output or assumptions about test results.

@@ -24,11 +24,13 @@ routing:
 
 # /install — Setup & Health Check
 
-Verify installation, diagnose issues, get oriented. Use after cloning + running `install.sh`, when something seems broken, for first-time orientation, or after `git pull`.
+Verify your VexJoy Agent installation, diagnose issues, and get oriented. Use after cloning the repo and running `install.sh`, when something seems broken (hooks not firing, missing commands), for first-time orientation, or after a `git pull` to verify nothing broke.
 
 ## Instructions
 
 ### Phase 1: DIAGNOSE
+
+**Goal**: Run deterministic health checks and report results.
 
 **Step 1: Run install-doctor.py**
 
@@ -36,27 +38,33 @@ Verify installation, diagnose issues, get oriented. Use after cloning + running 
 python3 ~/.claude/scripts/install-doctor.py check
 ```
 
-If not found at `scripts/install-doctor.py`, try `~/.claude/scripts/install-doctor.py`.
+If the script is not found at `scripts/install-doctor.py`, try `~/.claude/scripts/install-doctor.py`.
 
 **Step 2: Interpret results**
 
 | Result | Action |
 |--------|--------|
 | All checks pass | Skip to Phase 3 (Inventory) |
-| `~/.claude` missing | Guide user to run `install.sh` — Phase 2 |
-| Components missing | Guide user to run `install.sh` — Phase 2 |
-| Hooks not configured | Guide user to run `install.sh` — Phase 2 |
-| Broken symlinks | Re-run `install.sh --symlink --force` |
-| Python deps missing | `pip install -r requirements.txt` from repo directory |
-| Permissions wrong | `chmod 755` on affected files |
+| `~/.claude` missing | Guide user to run `install.sh` — go to Phase 2 |
+| Components missing | Guide user to run `install.sh` — go to Phase 2 |
+| Hooks not configured | Guide user to run `install.sh` — go to Phase 2 |
+| Broken symlinks | Symlink targets moved. Re-run `install.sh --symlink --force` |
+| Python deps missing | Run `pip install -r requirements.txt` from the repo directory |
+| Permissions wrong | Run `chmod 755` on affected files |
 
-**Step 3: Display results** — show raw script output without paraphrasing (it already formats diagnostics for readability).
+**Step 3: Display results clearly**
 
-**Gate**: Health check complete. If issues, proceed to Phase 2. If clean, skip to Phase 3.
+Show the check output to the user with a clear pass/fail summary. Display the raw script output without paraphrasing or reformatting, because the script already formats diagnostics for readability and rewriting them risks losing detail or misrepresenting status.
+
+**Gate**: Health check complete. If issues found, proceed to Phase 2. If clean, skip to Phase 3.
 
 ### Phase 2: FIX (only if issues found)
 
-**Step 1: Guide install.sh if needed**
+**Goal**: Guide the user through fixing detected issues.
+
+**Step 1: Determine if install.sh needs to run**
+
+If `~/.claude` is missing or components are not installed, the user needs to run install.sh. Tell them:
 
 ```
 The toolkit hasn't been installed yet. Run this from the repo directory:
@@ -65,30 +73,45 @@ The toolkit hasn't been installed yet. Run this from the repo directory:
   ./install.sh --dry-run     # preview first
 ```
 
-Wait for user confirmation, then re-run health check. Always show what needs fixing and let the user choose.
+Wait for the user to confirm they've run it, then re-run the health check. This phase is interactive because installation changes system state -- always show the user what needs fixing and let them choose before acting.
 
-**Step 2: Fix individual issues** (only with user approval):
+**Step 2: Fix individual issues**
+
+For fixable issues (permissions, missing deps), offer to fix them:
 
 ```bash
+# Fix permissions
 find ~/.claude/hooks -name "*.py" -exec chmod 755 {} \;
 find ~/.claude/scripts -name "*.py" -exec chmod 755 {} \;
+
+# Install Python deps (from repo directory)
 pip install -r requirements.txt
 ```
 
+Only run fixes the user approves, because automated fixes to `~/.claude` can break an existing setup if assumptions about the environment are wrong.
+
 **Step 3: Re-check**
+
+After fixes, re-run:
 ```bash
 python3 ~/.claude/scripts/install-doctor.py check
 ```
 
-**Gate**: All checks pass.
+**Gate**: All checks pass. Proceed to Phase 3.
 
 ### Phase 3: INVENTORY
+
+**Goal**: Show the user what they have installed.
+
+**Step 1: Run inventory**
 
 ```bash
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-Show actual counts from the script — never display hardcoded numbers:
+**Step 2: Display summary**
+
+Show the actual counts returned by `install-doctor.py inventory` -- never display hardcoded numbers, because component counts change with every install and stale numbers erode trust. Present them as:
 
 ```
 Your toolkit is ready. Here's what's installed:
@@ -100,17 +123,23 @@ Your toolkit is ready. Here's what's installed:
   Scripts:  [N] utility scripts
 ```
 
-**Gate**: User sees inventory.
+**Gate**: User sees their inventory. Proceed to Phase 3.5.
 
 ### Phase 3.5: MCP INVENTORY
+
+**Goal**: Show which MCP servers are available and their status.
+
+**Step 1: Run MCP registry check**
 
 ```bash
 python3 ~/.claude/scripts/mcp-registry.py list
 ```
 
-If not found at `scripts/mcp-registry.py`, try `~/.claude/scripts/mcp-registry.py`.
+If the script is not found at `scripts/mcp-registry.py`, try `~/.claude/scripts/mcp-registry.py`.
 
-Show MCP status with checkmarks for connected, X for missing (with install commands):
+**Step 2: Display MCP status**
+
+Show the MCP inventory as:
 
 ```
 MCP Servers:
@@ -125,11 +154,15 @@ MCP Servers:
       Install: claude mcp add context7 -- npx @anthropic-ai/mcp-context7@latest
 ```
 
-**Gate**: MCP inventory displayed.
+Use checkmark for connected MCPs and X for missing ones. For missing MCPs, show the install command.
+
+**Gate**: MCP inventory displayed. Proceed to Phase 4.
 
 ### Phase 4: ORIENT
 
-**Step 1: Essential commands**
+**Goal**: Give the user their bearings -- what to do first.
+
+**Step 1: Show the three essential commands**
 
 ```
 Getting started:
@@ -139,7 +172,7 @@ Getting started:
   /install                        — run this again anytime to check health
 ```
 
-**Step 2: Practical examples**
+**Step 2: Show a few practical examples**
 
 ```
 Try these:
@@ -150,7 +183,7 @@ Try these:
   /do create a voice profile from my writing samples
 ```
 
-**Step 3: Docs**
+**Step 3: Mention the docs**
 
 ```
 Documentation:
@@ -163,10 +196,10 @@ Documentation:
 ## Error Handling
 
 ### Error: install-doctor.py not found
-Script not installed. Check if user is in the repo directory. If so, run from `scripts/`. If not, guide to clone and install.
+The script hasn't been installed yet. Check if the user is in the repo directory. If so, run it directly from `scripts/`. If not, guide them to clone and install first.
 
 ### Error: Permission denied on install.sh
-Run `chmod +x install.sh`.
+Run `chmod +x install.sh` first.
 
 ### Error: Python not found
-Toolkit requires Python 3.10+. Guide user to install for their platform.
+The toolkit requires Python 3.10+. Guide the user to install Python for their platform.

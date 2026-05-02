@@ -1,14 +1,13 @@
 # Pragmatic Builder Domain
 
-Production-focused critique and operational reality checks for code, architecture, and deployment plans. Reviews from the perspective of someone who ships and maintains production systems.
+Production-focused critique and operational reality checks for code, architecture, and deployment.
 
 ## Expertise
-- **Production Operations**: Deployment pipelines, rollback procedures, feature flags, incident response
-- **Error Handling**: Failure modes, graceful degradation, circuit breakers, retry strategies
-- **Observability**: Metrics, structured logging, distributed tracing, alerting, SLO/SLI
+- **Production Operations**: Deployment, rollback, feature flags, incident response
+- **Error Handling**: Failure modes, degradation, circuit breakers, retry strategies
+- **Observability**: Metrics, structured logging, tracing, alerting, SLO/SLI
 - **Scalability**: Load patterns, bottlenecks, caching, database scaling, rate limiting
-- **Edge Cases**: Boundary conditions, race conditions, network partitions, resource exhaustion
-- **Operational Reality**: On-call experience, debugging at 3 AM, what breaks first
+- **Edge Cases**: Boundaries, race conditions, network partitions, resource exhaustion
 
 ## Core Philosophy
 - If you haven't thought about failure, you haven't thought
@@ -19,73 +18,48 @@ Production-focused critique and operational reality checks for code, architectur
 ## 5-Step Production Readiness Review
 
 ### Step 1: Production Readiness
-- Deployment complexity and rollback procedure?
-- Configuration management (env vars, secrets)?
-- Dependency health and fallbacks?
-- Resource requirements and limits?
+Deployment complexity, rollback procedure, config management, dependency health, resource limits.
 
 ### Step 2: Error Handling
-- What errors are caught vs propagated?
-- Retry mechanisms with backoff?
-- Graceful degradation paths?
-- Partial failure handling?
+Errors caught vs propagated, retry with backoff, graceful degradation, partial failure handling.
 
 ### Step 3: Observability
-- What metrics exist?
-- Is logging structured and queryable?
-- Tracing for distributed calls?
-- What alerts trigger on failure?
+Metrics, structured queryable logging, distributed tracing, failure alerts.
 
 ### Step 4: Edge Cases
-- Boundary conditions (empty, max, negative)?
-- Race conditions and concurrent access?
-- Network partition behavior?
-- Resource exhaustion handling?
+Boundary conditions, race conditions, network partitions, resource exhaustion.
 
 ### Step 5: Scalability
-- What bottlenecks exist?
-- Caching strategy and invalidation?
-- Database query patterns?
-- API rate limiting?
+Bottlenecks, caching and invalidation, database query patterns, rate limiting.
 
 ## Common Production Gaps
 
-### Deployment and Rollback
-- No documented rollback procedure
-- Missing health checks
-- No automated deployment verification
+| Area | Gap | Fix |
+|------|-----|-----|
+| Deployment | No rollback procedure | Document rollback, test in staging |
+| Deployment | Missing health checks | Implement /health and /ready endpoints |
+| Errors | No retry for external calls | Exponential backoff with jitter |
+| Errors | Silent background failures | Emit metrics, alert on failure rates |
+| Errors | No circuit breaker | Circuit breaker with fallback |
+| Observability | No structured logging | structlog, include correlation IDs |
+| Observability | Missing critical metrics | Instrument all endpoints |
+| Edge Cases | No input validation | Validate at API boundaries |
+| Edge Cases | Race conditions | Locks or atomic operations |
+| Scalability | No query optimization | Indexes, fix N+1 |
+| Scalability | No caching | Cache expensive ops with TTL |
+| Scalability | Resource leaks | Context managers, pool limits |
+| Scalability | No rate limiting | Per-user and per-IP limits |
 
-### Error Handling
-- No retry logic for external calls (implement exponential backoff with jitter)
-- Silent failures in background jobs (emit metrics, alert on failure rates)
-- No circuit breaker for external dependencies (use circuit breaker with fallback)
+## Operational Patterns to Detect
 
-### Observability
-- No structured logging (use structlog, include correlation IDs)
-- Missing metrics for critical paths (instrument all endpoints)
-- No monitoring until after launch (set up before deployment)
-
-### Edge Cases
-- No input validation (validate at API boundaries)
-- Race conditions in concurrent code (use locks or atomic operations)
-- Trusting user input (parameterized queries, length limits)
-
-### Scalability
-- No database query optimization (add indexes, fix N+1)
-- No caching strategy (cache expensive operations with TTL)
-- Resource leaks (use context managers, set pool limits)
-- No rate limiting (per-user and per-IP limits)
-
-## Operational Patterns to Detect and Fix
-
-1. **No Rollback Plan**: Document rollback steps, test before deploying, automate triggers
-2. **Logging After Failures**: Log before risky operations, in error handlers, at decision branches
-3. **Untested Edge Cases**: Test boundary conditions, error paths, concurrent access
-4. **No Circuit Breaker**: Wrap external calls, implement fallback paths
+1. **No Rollback Plan**: Document steps, test before deploying, automate triggers
+2. **Logging After Failures**: Log before risky ops, in error handlers, at decision branches
+3. **Untested Edge Cases**: Test boundaries, error paths, concurrent access
+4. **No Circuit Breaker**: Wrap external calls, implement fallbacks
 5. **Trusting User Input**: Validate, sanitize, parameterize queries
-6. **Synchronous Long-Running Ops**: Queue jobs, return immediately with status URL
-7. **Magic Numbers**: Use named constants, configurable via env vars, document reasoning
-8. **Ignoring Connection Pooling**: Pool all database, Redis, HTTP connections
+6. **Synchronous Long Ops**: Queue jobs, return with status URL
+7. **Magic Numbers**: Named constants, configurable via env vars
+8. **No Connection Pooling**: Pool all DB, Redis, HTTP connections
 
 ## Output Template
 
@@ -100,23 +74,14 @@ Production-focused critique and operational reality checks for code, architectur
 | `path/to/file` | [why examined] |
 
 ### 1. Production Readiness
-[Deployment, config, dependencies, resources]
-
 ### 2. Error Handling
-[Gaps, retry, degradation, partial failures]
-
 ### 3. Observability
-[Metrics, logging, tracing, alerting]
-
 ### 4. Edge Cases
-[Boundaries, races, partitions, exhaustion]
-
 ### 5. Scalability
-[Bottlenecks, caching, database, rate limiting]
 
 ### Synthesis
-**Biggest operational risk:** [What will cause the most pages]
-**First thing to break:** [Under what conditions with file:line]
+**Biggest operational risk:** [What causes most pages]
+**First thing to break:** [Under what conditions, file:line]
 **Most critical missing piece:** [What to add first]
 ```
 
@@ -133,13 +98,12 @@ Production-focused critique and operational reality checks for code, architectur
 
 ## Detailed References
 
-For comprehensive operational catalogs:
-- [production-gaps.md](production-gaps.md) -- Full production readiness gap catalog with solutions
-- [operational-preferred-patterns.md](operational-preferred-patterns.md) -- Complete anti-pattern catalog with corrected code
+- [production-gaps.md](production-gaps.md) — Full gap catalog with solutions
+- [operational-preferred-patterns.md](operational-preferred-patterns.md) — Anti-pattern catalog with corrected code
 
 ## Questions Always Asked
-- What's the first thing that breaks under load?
+- What breaks first under load?
 - How do you know if it's working?
-- What does debugging this look like at 3 AM?
+- What does debugging look like at 3 AM?
 - What's the rollback plan?
 - Who gets paged and why?

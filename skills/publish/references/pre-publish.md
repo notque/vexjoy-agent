@@ -121,39 +121,7 @@ This check exists because voice validation and joy-check do not catch AI writing
 
 Placeholder patterns: `[insert X here]`, `[TBD]`, `[TODO]`, `XXX`, `PLACEHOLDER`, `Lorem ipsum`.
 
-**Step 8: PageSpeed Insights validation**
-
-This step is conditional — it runs only when the `PAGESPEED_API_KEY` environment variable is set AND a site URL is available. If either condition is missing, SKIP with an explanatory message. This follows the automation corollary: anything that can fire automatically, should, but external API dependencies must be opt-in via environment variable presence.
-
-**Prerequisite check**:
-1. Check if `PAGESPEED_API_KEY` is set. If not → SKIP with message: "Set PAGESPEED_API_KEY for PageSpeed validation"
-2. Determine the site URL: read `hugo.toml` or `config.toml` and extract the `baseURL` field. If neither file exists or `baseURL` is empty, ask the user for the site URL. Do not hardcode any URL.
-
-**Run the scan**:
-```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/pagespeed.py --url <baseURL> --strategy mobile --threshold 80
-```
-
-**Severity mapping**:
-
-| PSI Category | Score >= 90 | Score 80-89 | Score < 80 |
-|---|---|---|---|
-| Performance | PASS | WARN | FAIL (content check) |
-| SEO | PASS | WARN | BLOCKER |
-| Accessibility | PASS | WARN | BLOCKER |
-| Best Practices | PASS | INFO | WARN |
-
-**Auto-fix content-level issues** found by PageSpeed during this step. These are mechanical, deterministic fixes — apply them without waiting for user confirmation because they are the same fixes the SEO and image validation steps already recommend. The auto-fix protocol is defined in `${CLAUDE_SKILL_DIR}/references/pagespeed-insights.md` under "Auto-Fix Protocol".
-
-| PSI Finding | Auto-Fix Action |
-|---|---|
-| Missing `description` in front matter | Generate from the first 155 characters of post content, add as `description` field. Same fix as Step 2 SEO validation. |
-| Missing `alt` text on images | Flag as BLOCKER with file path and line number. Cannot auto-generate meaningful alt text. Same check as Step 5. |
-| Heading order violations (H1→H3 skip) | Flag as WARNING with specific locations. Do not auto-restructure — heading changes affect content flow and require user judgment. |
-
-**Infrastructure-level issues** (server response time, caching headers, render-blocking resources) → report as INFO. These are hosting/CDN concerns, not actionable in content. Do not flag them as blockers.
-
-**Gate**: All validation checks executed (Steps 1-8). Each check produced a status (PASS, FAIL, WARN, SKIP, INFO). Proceed only when gate passes.
+**Gate**: All validation checks executed. Each check produced a status (PASS, FAIL, WARN, SKIP, INFO). Proceed only when gate passes.
 
 ### Phase 3: SUGGEST TAXONOMY
 
@@ -204,12 +172,6 @@ Format the report as:
 
  DRAFT STATUS:
    [status] check: result
-
- PAGESPEED (mobile):
-   [status] Performance: XX/100
-   [status] SEO: XX/100
-   [status] Accessibility: XX/100
-   [status] Best Practices: XX/100
 
 ===============================================================
  RESULT: [READY FOR PUBLISH | NOT READY - N blockers]

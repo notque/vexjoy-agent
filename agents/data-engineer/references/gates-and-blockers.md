@@ -1,13 +1,8 @@
 # Data Engineer Gates and Blockers
 
-Hard gate patterns, verification STOP blocks, point-of-failure constraints, recommendation format, blocker criteria, and death loop prevention. Loaded when designing or reviewing pipelines.
-
 ## Hard Gate Patterns
 
-Before designing or writing pipeline code, check for these patterns. If found:
-1. STOP - Pause execution
-2. REPORT - Flag to user
-3. FIX - Correct before continuing
+If found: STOP, REPORT, FIX before continuing.
 
 | Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
@@ -37,17 +32,15 @@ Before designing or writing pipeline code, check for these patterns. If found:
 
 ## Verification STOP Blocks
 
-After designing a dimensional model or pipeline architecture, STOP and ask: "Have I validated this design against the existing schema and source system reality? Dimensional modeling without validation against actual source data is speculation."
-
-After recommending a performance optimization (partitioning, clustering, materialized views, incremental processing), STOP and ask: "Am I providing before/after metrics, or can I explain why measurement is impossible here? Unmeasured optimization is guesswork."
-
-After modifying a pipeline that feeds downstream consumers, STOP and ask: "Have I checked for breaking changes in dependent pipelines, dashboards, reports, and ML models? A grain change or column rename cascades everywhere."
+- After dimensional model/pipeline design: "Validated against existing schema and source reality?"
+- After performance optimization: "Providing before/after metrics?"
+- After modifying pipeline with downstream consumers: "Checked for breaking changes in dependent pipelines/dashboards/models?"
 
 ## Constraints at Point of Failure
 
-Before any destructive pipeline operation (DROP TABLE, TRUNCATE, partition deletion, full-refresh of a large table): confirm the operation is reversible or that backups/snapshots exist. Irreversible data loss in a warehouse propagates to every downstream consumer.
+Before destructive operations (DROP, TRUNCATE, partition deletion, full-refresh): confirm reversibility or backups. Irreversible warehouse data loss cascades everywhere.
 
-Before applying pipeline changes to production: validate SQL syntax and DAG structure in a staging environment first. A syntax error in a production pipeline causes failed runs and data gaps that compound daily.
+Before production pipeline changes: validate in staging first.
 
 ## Recommendation Format
 
@@ -70,21 +63,10 @@ STOP and ask the user (get explicit confirmation) when:
 | Source system ownership unclear | Affects data contract design and schema evolution strategy | "Who owns the source schema? Can we establish a data contract for change notification?" |
 | Orchestrator not chosen | DAG syntax, operator selection, and deployment differ by tool | "Which orchestrator: Airflow, Prefect, Dagster, or dbt Cloud scheduled jobs?" |
 
-### Always Confirm Before Acting On
-- Fact table grain (one row per ___)
-- SCD type for dimensions (Type 1 vs 2 vs 3)
-- Batch vs. streaming architecture
-- Warehouse platform selection
-- Source system ownership and data contracts
-- Orchestrator choice
-
 ## Death Loop Prevention
 
-### Retry Limits
-- Maximum 3 attempts for any pipeline design iteration
-- If data model doesn't converge after 3 revisions, stop and re-examine requirements with user
+Max 3 attempts per pipeline design iteration. If not converging, re-examine requirements.
 
-### Recovery Protocol
-1. **Detection**: Repeated redesigns of the same fact/dimension table, or cycling between SCD types
-2. **Intervention**: Go back to requirements -- the grain or SCD choice is likely ambiguous
-3. **Prevention**: Always resolve blocker criteria before starting design
+1. **Detection**: Repeated redesigns or cycling between SCD types
+2. **Intervention**: Return to requirements -- grain or SCD choice is ambiguous
+3. **Prevention**: Resolve blocker criteria before starting design

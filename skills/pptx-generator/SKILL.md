@@ -31,7 +31,11 @@ routing:
 
 # PPTX Presentation Generator
 
-6-phase pipeline: content decisions (LLM) → slide construction (script) → visual validation (fresh-eyes subagent). Separates generation from QA to prevent rationalizing away visual defects.
+## Overview
+
+This skill generates polished PowerPoint decks through a 6-phase pipeline that separates content decisions (LLM) from slide construction (deterministic script) from visual validation (fresh-eyes subagent). The core principle: "Slides are visual documents, not text dumps. Generate mechanically, validate visually."
+
+This separation prevents the common failure mode where the generator rationalizes away visual defects it introduced. The visual QA subagent has zero generation context and sees slides as viewers would.
 
 ---
 
@@ -52,21 +56,42 @@ routing:
 
 ### Phase 1: GATHER
 
-**Goal**: Collect content, determine structure and presentation type.
+**Goal**: Collect content, determine presentation structure, identify the presentation type.
+
+**Why this phase exists**: Jumping straight to slide design without understanding the content produces a generic deck that doesn't serve the audience. Gathering first ensures every slide has a purpose.
 
 **Step 1: Parse the user request**
 
-Extract: topic, audience (executives/engineers/students/general), tone (formal/casual/technical/inspirational), slide count (default 8-12), presentation type (pitch deck, tech talk, status update, educational, general).
+Extract from the user's input:
+- **Topic**: What is the presentation about?
+- **Audience**: Who will view it? (executives, engineers, students, general public)
+- **Tone**: Formal, casual, technical, inspirational?
+- **Slide count**: Explicit request or estimate from content volume. Default: 8-12 slides.
+- **Presentation type**: Classify as one of:
+  - **Pitch deck**: Investor/stakeholder persuasion
+  - **Tech talk**: Engineering audience, architecture, code
+  - **Status update**: Progress report, metrics, next steps
+  - **Educational**: Teaching, workshop, tutorial
+  - **General**: Does not fit above categories
 
 **Step 2: Extract content**
 
-- Source material provided: extract key points, data, quotes; organize into sections; map content to slide types (data→table, insight→quote, comparison→two-column)
-- No source material: develop outline with user via clarifying questions
-- Existing .pptx template: read with python-pptx, plan modifications
+If the user provides source material (document, outline, notes, article):
+- Extract key points, data, and quotes
+- Organize into logical sections
+- Identify content that maps to specific slide types (data -> table, key insight -> quote, comparison -> two-column)
+
+If no source material is provided:
+- Work with the user to develop an outline
+- Ask clarifying questions about scope and depth
+
+If the user provides an existing .pptx as a template:
+- Read it with python-pptx to understand the existing structure
+- Plan which slides to modify vs. add
 
 **Step 3: Determine slide structure**
 
-Follow layout rhythm from `references/slide-layouts.md`:
+Based on content volume and presentation type, plan the slide sequence. Follow the layout rhythm guidelines in `references/slide-layouts.md`:
 
 | Deck Size | Rhythm Pattern |
 |-----------|----------------|
@@ -74,15 +99,19 @@ Follow layout rhythm from `references/slide-layouts.md`:
 | Medium (8-12) | Title, Content, Content, Quote, Section, Content, Two-Column, Content, Closing |
 | Long (12+) | Title, Content, Content, Quote, Section, Content, Image+Text, Content, Section, Two-Column, Table, Content, Closing |
 
-**GATE**: Content outline with 1+ key point per slide. Type identified. Count determined. If content too thin, suggest smaller deck.
+**GATE**: Content outline exists with at least 1 key point per planned slide. Presentation type identified. Slide count determined. If the user's content is too thin for the requested slide count, flag this and suggest a smaller deck rather than padding with filler.
 
 ---
 
 ### Phase 2: DESIGN
 
-**Goal**: Select palette, produce slide map, get user approval before generation. Design changes after generation require full regeneration.
+**Goal**: Select palette and typography, produce the slide map, get user approval before generation.
 
-**Step 1: Select color palette** (from `references/design-system.md`)
+**Why this phase exists**: Design decisions made after generation are expensive -- they require regenerating the entire deck. Making them upfront and getting user approval saves iteration budget for visual fixes, not content rework.
+
+**Step 1: Select color palette**
+
+Use the palette selection heuristic from `references/design-system.md`:
 
 | Presentation Type | Recommended Palette | Fallback |
 |-------------------|--------------------|---------|
@@ -95,47 +124,73 @@ Follow layout rhythm from `references/slide-layouts.md`:
 | Startup / Energy | Sunset | Warm |
 | Unknown / General | Minimal | Corporate |
 
-User preference overrides. Default: **Minimal**.
+If the user specifies a palette preference, use it. When in doubt, use **Minimal**.
 
 **Step 2: Plan layout rhythm**
 
-Available layouts: `title`, `section`, `content`, `two_column`, `image_text`, `quote`, `table`, `closing`. See `references/slide-layouts.md`.
+Select layout types for each slide. Use at least 2-3 distinct layout types to avoid the "AI-generated sameness" anti-pattern. See `references/slide-layouts.md` for all layout types.
 
-Rules:
-- Max 3 consecutive same-type slides -- identical layouts are the #1 AI-slide tell
-- 10+ slide decks: at least 3 distinct layout types
-- Break repetition with quote, two-column, or section divider
+Available layouts: `title`, `section` (divider), `content` (bullets), `two_column`, `image_text`, `quote` (callout), `table`, `closing`
+
+Layout rhythm rules:
+- Use a different layout after 3 consecutive slides of the same type in a row. (Reason: Identical layouts are the most obvious AI-slide tell. Real presentations have visual rhythm with varied layouts.)
+- For 10+ slide decks, use at least 3 distinct layout types
+- Insert a different layout type (quote, two-column, section divider) to break repetition
 
 **Step 3: Produce the slide map**
 
-JSON array, one element per slide. Supported types and required fields:
+Create a JSON array where each element represents one slide. Supported types and their required fields:
+
 - `title`: `title`, `subtitle`
-- `content`: `title`, `bullets` (max 6 items, max 10 words each)
+- `content`: `title`, `bullets` (list of strings, max 6, max 10 words each)
 - `two_column`: `title`, `left` (header + bullets), `right` (header + bullets)
 - `quote`: `quote`, `attribution`
 - `table`: `title`, `headers`, `rows`
 - `section`: `title`
 - `closing`: `title`, `subtitle`
 
-**Step 4: Validate against anti-AI rules** (`references/anti-ai-slide-rules.md`)
+> See `references/slide-layouts.md` for full JSON examples for each layout type.
 
-- [ ] 2-3+ distinct layout types
-- [ ] No 4+ consecutive same-layout slides
-- [ ] Max 6 bullets, 10 words each
-- [ ] Title first, closing last
-- [ ] Section dividers before new sections (8+ slide decks)
+**Step 4: Validate the slide map against anti-AI rules**
+
+Before presenting to the user, check:
+- [ ] At least 2-3 distinct layout types used (not all `content`)
+- [ ] No more than 3 consecutive slides with the same layout
+- [ ] Max 6 bullets per content slide, max 10 words per bullet (Reason: 9 bullets is a document paragraph, not a slide. Readability degrades sharply past 6.)
+- [ ] Title slide is first, closing slide is last (if appropriate)
+- [ ] Section dividers placed before new sections (for 8+ slide decks)
+
+> See `references/anti-ai-slide-rules.md` for the full checklist.
 
 **Step 5: Present slide map for user approval**
 
-Show numbered list with layout type, title, bullet count. Get explicit approval before generation.
+Show the user the planned deck structure:
+```
+SLIDE MAP (10 slides, Corporate palette):
 
-**GATE**: User approves slide map.
+  1. [Title] "Q4 Revenue Analysis"
+  2. [Content] "Executive Summary" (4 bullets)
+  3. [Content] "Revenue by Region" (5 bullets)
+  4. [Quote] Key insight from CFO
+  5. [Section] "Deep Dive: EMEA"
+  6. [Two-Column] EMEA vs APAC comparison
+  7. [Content] "Contributing Factors" (4 bullets)
+  8. [Table] Quarterly figures
+  9. [Content] "Recommendations" (3 bullets)
+  10. [Closing] "Questions?"
+
+Approve this structure, or suggest changes?
+```
+
+**GATE**: User approves the slide map. If the user requests changes, update the slide map and re-present. Get explicit user approval before proceeding to generation. Why: regeneration costs iteration budget that should be reserved for visual QA fixes.
 
 ---
 
 ### Phase 3: GENERATE
 
-**Goal**: Run the deterministic script to produce the .pptx file.
+**Goal**: Execute the deterministic Python script to produce the .pptx file.
+
+**Why this phase exists**: Slide construction is mechanical work -- given a slide map and design config, the output is deterministic. This belongs in a script, not in LLM-generated inline code. Scripts are testable, reproducible, and consistent. (Reason: Inline code is not testable, wastes tokens on boilerplate, and risks inconsistency. The script encapsulates palette application, layout selection, font sizing, spacing rules, and all design system constraints.)
 
 **Step 1: Check dependencies**
 
@@ -143,13 +198,18 @@ Show numbered list with layout type, title, bullet count. Get explicit approval 
 python3 -c "from pptx import Presentation; print('python-pptx OK')"
 ```
 
-If missing: `pip install python-pptx Pillow`
+If python-pptx is not installed, install it:
+```bash
+pip install python-pptx Pillow
+```
 
-**Step 2: Write slide map and design config to JSON**
+**Step 2: Write the slide map and design config to JSON files**
 
-Save to `/tmp/slide_map.json` and `/tmp/design_config.json`. Use absolute paths. See `references/script-reference.md` for format.
+Save the approved slide map and design config to `/tmp/slide_map.json` and `/tmp/design_config.json` using `python3 -c "import json; ..."` with the approved data. Use absolute paths for all file arguments.
 
-**Step 3: Run generation**
+> See `references/script-reference.md` for the design config JSON format and a copy-paste template for this step.
+
+**Step 3: Run the generation script**
 
 ```bash
 python3 /path/to/skills/pptx-generator/scripts/generate_pptx.py \
@@ -158,14 +218,14 @@ python3 /path/to/skills/pptx-generator/scripts/generate_pptx.py \
   --output /absolute/path/to/output.pptx
 ```
 
-Exit codes: 0=success, 1=missing python-pptx, 2=invalid input, 3=generation failed.
+Exit codes: 0 = success, 1 = missing python-pptx, 2 = invalid input, 3 = generation failed.
 
-**Generation constraints**:
-- **Blank Layout Only**: `slide_layouts[6]` -- template layouts inherit unpredictable formatting
-- **Safe Fonts Only**: Calibri and Arial -- custom fonts break on other machines
-- **Widescreen**: 16:9 (13.333 x 7.5 inches)
+**Constraints applied during generation**:
+- **Blank Layout Only**: Always use `slide_layouts[6]` (blank) as the base layout. Why: using template-specific layouts (title, content) inherits unpredictable formatting from whatever default template python-pptx ships. Blank gives us full control.
+- **Safe Fonts Only**: Use Calibri and Arial exclusively. Why: presentations are shared documents. Custom fonts cause rendering failures on machines that lack them. Portability trumps aesthetics.
+- **Widescreen Format**: 16:9 (13.333 x 7.5 inches). This is the universal modern presentation format.
 
-**Step 4: Structural validation**
+**Step 4: Run structural validation**
 
 ```bash
 python3 /path/to/skills/pptx-generator/scripts/validate_structure.py \
@@ -173,25 +233,30 @@ python3 /path/to/skills/pptx-generator/scripts/validate_structure.py \
   --slide-map /tmp/slide_map.json
 ```
 
-Validates: slide count, text content per slide, title slide exists, no empty slides.
+This validates: slide count matches, each slide has text content, title slide exists, no empty slides.
 
-**GATE**: .pptx exists with non-zero size AND validation passes. Max 2 retries before escalating.
+**GATE**: .pptx file exists with non-zero size AND structural validation passes. If validation fails, diagnose the issue (usually a slide map JSON problem), fix, and re-run. Max 2 retries at this gate before escalating to the user.
 
 ---
 
 ### Phase 4: CONVERT (Requires LibreOffice)
 
-**Goal**: Convert .pptx to per-slide PNGs for visual QA. The QA subagent needs rendered images -- visual defects are only visible in rendered output.
+**Goal**: Convert the .pptx to per-slide PNG images for visual QA.
 
-**Step 1: Check LibreOffice**
+**Why this phase exists**: The QA subagent cannot read .pptx files. It needs rendered images to evaluate visual quality -- text clipping, color contrast, alignment, and anti-AI violations are only visible in rendered output.
+
+**Step 1: Check LibreOffice availability**
 
 ```bash
 soffice --version 2>/dev/null
 ```
 
-If unavailable: skip Phase 5, proceed to Phase 6, note visual QA was skipped.
+If LibreOffice is not installed:
+- Log: "LibreOffice not available. Skipping visual QA, using structural validation only."
+- Skip Phase 5 (QA) and proceed directly to Phase 6 (OUTPUT)
+- Note in the output report that visual QA was skipped
 
-**Step 2: Convert**
+**Step 2: Run the conversion script**
 
 ```bash
 python3 /path/to/skills/pptx-generator/scripts/convert_slides.py \
@@ -200,65 +265,96 @@ python3 /path/to/skills/pptx-generator/scripts/convert_slides.py \
   --dpi 150
 ```
 
-Exit codes: 0=success, 1=no LibreOffice, 2=conversion failed, 3=invalid input.
+Exit codes: 0 = success, 1 = no LibreOffice, 2 = conversion failed, 3 = invalid input.
 
-**Step 3: Verify** one PNG per slide exists. Note any missing.
+**Step 3: Verify conversion output**
 
-**GATE**: (a) one PNG per slide, proceed to Phase 5, or (b) LibreOffice unavailable, skip to Phase 6.
+Check that one PNG exists per slide. If fewer PNGs than slides, some slides may have failed to render. Note which slides are missing.
+
+**GATE**: Either (a) one PNG per slide exists, proceed to Phase 5, or (b) LibreOffice unavailable, skip to Phase 6 with a note. If conversion partially fails (some PNGs missing), proceed to QA with available images and note the gaps.
 
 ---
 
 ### Phase 5: QA (Visual Inspection Loop)
 
-**Goal**: Fresh-eyes subagent inspects rendered slides. Fix and re-render up to 3 times. Max 3 because persistent issues indicate a design problem, not implementation.
+**Goal**: A fresh-eyes subagent inspects the rendered slides and identifies visual issues. Fix and re-render up to 3 times.
+
+**Why a subagent**: The generating agent has context bias -- it "knows" what the slide should look like and will rationalize visual problems. A fresh-eyes subagent with zero generation context sees the slide as a viewer would.
+
+**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Stop iterating after 3 attempts. More iterations burn context without convergence.
 
 **Step 1: Dispatch QA subagent**
 
-Launch via Task tool with slide PNGs, slide map, and `references/qa-checklist.md`. Evaluates: text readability, layout alignment, color usage, content accuracy, anti-AI violations, structural checks.
+Launch a subagent (via Task tool) with the slide PNG images, the original slide map, and the QA checklist from `references/qa-checklist.md`. The subagent evaluates text readability, layout alignment, color usage, content accuracy, anti-AI violations, and structural checks.
+
+> See `references/qa-checklist.md` for the full subagent prompt template, all six check categories, severity levels, and expected output format.
 
 **Step 2: Process QA results**
 
-- PASS: proceed to Phase 6
-- FAIL (Blocker/Major): fix slide map, re-run Phases 3-4, re-dispatch QA. Minor issues reported only.
+If QA returns PASS: proceed to Phase 6.
 
-Track: `QA Iteration N/3: X issues (Y Blocker, Z Major)`
+If QA returns FAIL with Blocker or Major issues: parse the fix instructions, modify the slide map JSON to address each issue, re-run Phases 3 and 4, re-dispatch the QA subagent. Minor issues are reported without triggering a fix cycle.
 
-**GATE**: QA PASS, or 3 iterations exhausted. Remaining issues go in output report.
+Track iteration count:
+```
+QA Iteration 1/3: 2 issues found (1 Blocker, 1 Major)
+QA Iteration 2/3: 1 issue found (1 Minor)
+QA Iteration 3/3: PASS (0 Blocker, 0 Major)
+```
+
+**GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report.
 
 ---
 
 ### Phase 6: OUTPUT
 
-**Goal**: Deliver .pptx, report, clean up.
+**Goal**: Deliver the final .pptx file with a summary report. Clean up intermediate files.
 
-**Step 1**: Copy final .pptx to user-specified path or `./[topic-slug].pptx`.
+**Step 1: Move the final .pptx to the user's working directory**
 
-**Step 2**: Print summary: file path, slide count, palette, format (16:9), file size, slide map, QA result, remaining issues. See `references/script-reference.md` for template.
+Copy from temp location to a sensible output path:
+- If user specified an output path, use it
+- Otherwise: `./presentation.pptx` or `./[topic-slug].pptx`
 
-**Step 3**: Remove `/tmp/slide_map.json`, `/tmp/design_config.json`, `/tmp/pptx_qa_images/`.
+**Step 2: Generate the output report**
+
+Print a summary block with: file path, slide count, palette, format (16:9 widescreen), file size, the full slide map, QA result (PASS/FAIL, iterations, issues fixed), and any remaining minor issues.
+
+> See `references/script-reference.md` for the exact output report template.
+
+**Step 3: Clean up intermediate files**
+
+Remove:
+- `/tmp/slide_map.json`
+- `/tmp/design_config.json`
+- `/tmp/pptx_qa_images/` directory (PNG renders and PDFs)
+
+Keep only the final .pptx file. (Reason: Cleanup is a default behavior to remove intermediate files after final output.)
 
 ---
 
 ## Error Handling
 
-Full details: `references/error-handling.md`. Common errors:
+> See `references/error-handling.md` for full error descriptions, blocker criteria, confirm-with-user list, and retry limits.
+
+**Quick reference** (the four errors you'll hit most):
 - `python-pptx` missing: `pip install python-pptx Pillow`
-- LibreOffice missing: skip Phases 4-5, note in report
-- Slide map JSON invalid: check `type` field on every slide
-- QA loop > 3: stop, report remaining issues, deliver best version
+- LibreOffice missing: soft dependency, skip Phases 4-5, note in output report
+- Slide map JSON invalid: check `type` field on every slide object
+- QA loop > 3 iterations: stop, report remaining issues, deliver best available version
 
 ---
 
 ## References
 
-- `references/design-system.md` -- palettes, typography, spacing
-- `references/slide-layouts.md` -- 8 layouts with JSON examples and rhythm guidelines
-- `references/anti-ai-slide-rules.md` -- 10 anti-patterns with detection criteria
-- `references/qa-checklist.md` -- visual QA criteria, severity levels, output format
-- `references/script-reference.md` -- CLI args, config format, exit codes
-- `references/dependencies.md` -- required/optional packages
-- `references/examples.md` -- 3 worked examples
+- **Design System**: `references/design-system.md` -- color palettes with hex codes, typography rules, spacing guidelines
+- **Slide Layouts**: `references/slide-layouts.md` -- 8 layout types with JSON examples, positioning specs, and rhythm guidelines
+- **Anti-AI Slide Rules**: `references/anti-ai-slide-rules.md` -- 10 patterns to avoid, detection criteria, and the summary checklist
+- **QA Checklist**: `references/qa-checklist.md` -- visual QA criteria for the subagent, severity levels, and output format
+- **Script Reference**: `references/script-reference.md` -- CLI arguments, design config format, and exit codes for all three scripts
+- **Dependencies**: `references/dependencies.md` -- required and optional packages with install commands
+- **Examples**: `references/examples.md` -- three worked examples (tech talk, pitch deck, status update)
 
 ### Complementary Skills
-- `skills/workflow/references/research-to-article.md` -- research feeds slide content
+- `skills/workflow/references/research-to-article.md` -- research output can feed slide content
 - `skills/gemini-image-generator/SKILL.md` -- generate images for slides

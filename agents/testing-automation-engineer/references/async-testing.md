@@ -8,7 +8,7 @@
 
 ## Overview
 
-Async testing is the primary source of flaky tests. The two failure modes are (1) not waiting for async state updates before asserting, and (2) adding arbitrary `setTimeout` delays instead of waiting for a deterministic condition. RTL's `waitFor` and Playwright's auto-waiting locators eliminate both — when used correctly.
+Primary source of flaky tests: (1) asserting before async state updates, (2) arbitrary `setTimeout` delays. RTL `waitFor` and Playwright auto-waiting locators eliminate both.
 
 ---
 
@@ -47,7 +47,7 @@ it('shows success message after form submission', async () => {
 })
 ```
 
-**Why**: `userEvent.click` triggers the event but the state update (API call → response → re-render) happens asynchronously. Without `waitFor`, the assertion runs before the component re-renders.
+**Why**: Click triggers event but state update (API -> response -> re-render) is async. Without `waitFor`, assertion runs before re-render.
 
 ---
 
@@ -66,7 +66,7 @@ it('loads and displays user data', async () => {
 })
 ```
 
-**Why**: `findBy*` is shorthand for `waitFor(() => getBy*(...))`. Use it when an element is absent at render and appears after a data fetch. After the first `findBy*` resolves, subsequent assertions can use `getBy*` synchronously.
+**Why**: `findBy*` = `waitFor(() => getBy*(...))`. Use when element appears after data fetch. After first `findBy*` resolves, use `getBy*` synchronously.
 
 ---
 
@@ -103,7 +103,7 @@ it('shows error when user not found', async () => {
 })
 ```
 
-**Why**: MSW intercepts at the network layer, not the module layer. The component's actual `fetch` call runs, so error handling, response parsing, and timeout logic are all exercised. `onUnhandledRequest: 'error'` catches unexpected API calls that would otherwise silently return `undefined`.
+**Why**: MSW intercepts at network layer. Real `fetch` runs — error handling, parsing, timeouts exercised. `onUnhandledRequest: 'error'` catches unexpected API calls.
 
 ---
 
@@ -136,7 +136,7 @@ test('submits form and shows confirmation', async ({ page }) => {
 })
 ```
 
-**Why**: Playwright's `expect(locator).toBeVisible()` auto-waits. Using `page.waitForSelector()` manually or `page.waitForTimeout(2000)` is an anti-pattern — fixed delays are slow on fast machines and flaky on slow ones.
+**Why**: Playwright `expect(locator).toBeVisible()` auto-waits. `waitForTimeout()` is an anti-pattern — slow on fast machines, flaky on slow ones.
 
 ---
 
@@ -164,7 +164,7 @@ await page.waitForTimeout(2000)
 expect(await page.textContent('.result')).toBe('Done')
 ```
 
-**Why this matters**: Arbitrary delays make tests slow on fast machines and flaky on slow ones. If the operation takes 600ms instead of 500ms (CI under load), the test fails. These tests hide timing bugs rather than revealing them.
+**Why this matters**: Arbitrary delays are slow on fast machines, flaky on slow ones. 600ms instead of 500ms (CI under load) = failure.
 
 **Preferred action:**
 ```typescript
@@ -196,7 +196,7 @@ user.type(input, 'hello')
 expect(screen.getByText(/hello/i)).toBeInTheDocument()
 ```
 
-**Why this matters**: `userEvent.setup()` returns async methods in RTL 14+. Without `await`, the events fire but React state updates haven't processed before assertions run. Test passes inconsistently depending on microtask scheduling.
+**Why this matters**: RTL 14+ `userEvent.setup()` returns async methods. Without `await`, state updates haven't processed before assertions. Flaky, not immediate errors.
 
 **Preferred action:**
 ```typescript
@@ -205,8 +205,6 @@ await user.click(button)
 await user.type(input, 'hello')
 await screen.findByText(/hello/i)
 ```
-
-**Version note**: RTL 13 and earlier used synchronous `userEvent`. RTL 14+ switched to async. Un-awaited calls produce flaky tests, not immediate errors — the breakage is subtle.
 
 ---
 
@@ -223,7 +221,7 @@ await user.click(screen.getByRole('button', { name: /save/i }))
 expect(screen.getByText(/saved/i)).toBeInTheDocument()  // may not exist yet
 ```
 
-**Why this matters**: `user.click` resolves after the event dispatches, not after React re-renders from async work (API calls, state transitions). The `getByText` assertion runs synchronously and finds the element absent.
+**Why this matters**: `user.click` resolves after dispatch, not after React re-renders from async work. `getByText` runs synchronously, element absent.
 
 **Preferred action:**
 ```typescript
@@ -246,7 +244,7 @@ rg 'setupServer' --type ts -l | xargs rg -L 'onUnhandledRequest'
 server.listen()  // no onUnhandledRequest — silent network failures
 ```
 
-**Why this matters**: When a component makes an unexpected API call (wrong path, URL typo), MSW passes it through or returns undefined without failing the test. The component renders broken UI, tests assert on something unrelated, and the bug is hidden until production.
+**Why this matters**: Unexpected API calls (wrong path, typo) pass through silently. Component renders broken UI, test passes, bug hidden until production.
 
 **Preferred action:**
 ```typescript

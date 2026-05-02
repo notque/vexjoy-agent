@@ -1,14 +1,8 @@
 # RabbitMQ Error Handling & Reliability Reference
 
-> **Scope**: Publisher confirms, consumer acknowledgment patterns, dead letter exchanges, and retry logic. Does not cover cluster failover or network partition handling.
-> **Version range**: All AMQP 0-9-1 clients; quorum queue notes apply to RabbitMQ 3.8+
+> **Scope**: Publisher confirms, consumer acknowledgment, dead letter exchanges, retry logic. Not cluster failover or network partitions.
+> **Version range**: AMQP 0-9-1 clients; quorum queue notes for RabbitMQ 3.8+
 > **Generated**: 2026-04-09
-
----
-
-## Overview
-
-RabbitMQ delivers at-least-once semantics when configured correctly. The three mechanisms that enforce delivery guarantees are: publisher confirms (broker acknowledges receipt), consumer manual acks (broker retains message until consumer confirms processing), and dead letter exchanges (failed messages routed to a holding queue instead of dropped). Missing any one of these creates a silent message loss vector.
 
 ---
 
@@ -17,7 +11,7 @@ RabbitMQ delivers at-least-once semantics when configured correctly. The three m
 | Pattern | When Required | Performance Cost |
 |---------|---------------|-----------------|
 | Publisher confirms | Critical messages (orders, payments, events) | ~10-15% throughput reduction |
-| Manual consumer ack | All production consumers | None (default behavior, `auto_ack=False`) |
+| Manual consumer ack | All production consumers | None (`auto_ack=False` default) |
 | Dead letter exchange | Any queue where message loss is unacceptable | None at publish time |
 | Nack + requeue=False | Poison messages that fail repeatedly | Requires DLX or message is dropped |
 | Retry with TTL queue | Transient failures (DB down, network blip) | Extra queue + TTL overhead |
@@ -34,7 +28,6 @@ import pika
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
 
-# Enable publisher confirms on this channel
 channel.confirm_delivery()
 
 try:
@@ -43,24 +36,21 @@ try:
         routing_key='order.created',
         body=json.dumps(order).encode(),
         properties=pika.BasicProperties(
-            delivery_mode=2,       # persistent — survives broker restart
+            delivery_mode=2,       # persistent
             content_type='application/json',
             message_id=str(order['id']),
         ),
-        mandatory=True,            # return message if no queue bound
+        mandatory=True,
     )
-    # Blocks until broker acks or nacks
 except pika.exceptions.UnroutableError:
-    # mandatory=True and no binding found
     log.error("message unroutable — check exchange bindings")
     raise
 except pika.exceptions.NackError:
-    # Broker nacked (disk full, quorum not reached)
     log.error("broker nacked message — check node health")
     raise
 ```
 
-**Why**: Without `confirm_delivery()`, `basic_publish` returns immediately. If the broker crashes before writing to disk, the message is lost. Confirms add a synchronous acknowledgment from the broker's storage layer.
+Without `confirm_delivery()`, `basic_publish` returns immediately. Broker crash before disk write = message lost.
 
 ---
 
@@ -70,14 +60,11 @@ except pika.exceptions.NackError:
 def handle_message(channel, method, properties, body):
     try:
         result = process(body)
-        # Ack only after successful processing
         channel.basic_ack(delivery_tag=method.delivery_tag)
     except TransientError as e:
-        # Requeue for retry — message goes back to queue head
         log.warning("transient error, requeueing: %s", e)
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
     except PoisonMessageError as e:
-        # Don't requeue — send to dead letter exchange
         log.error("poison message, rejecting: %s", e)
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
@@ -85,13 +72,11 @@ channel.basic_qos(prefetch_count=10)
 channel.basic_consume(queue='orders', on_message_callback=handle_message)
 ```
 
-**Why**: `auto_ack=True` tells the broker to delete the message the moment it's delivered to the consumer. If the consumer crashes during `process()`, the message is gone. Manual ack means the broker retains the message until the consumer sends `basic_ack`.
+`auto_ack=True` deletes message on delivery. Consumer crash during `process()` = message gone.
 
 ---
 
 ### Dead Letter Exchange Setup
-
-Configure the queue to route failed messages to a DLX on declaration:
 
 ```python
 # 1. Declare the dead letter exchange
@@ -106,7 +91,7 @@ channel.queue_declare(
     queue='orders.dead',
     durable=True,
     arguments={
-        'x-message-ttl': 604_800_000,  # 7 days retention for investigation
+        'x-message-ttl': 604_800_000,  # 7 days retention
     }
 )
 channel.queue_bind(queue='orders.dead', exchange='dlx.orders', routing_key='order.created')
@@ -118,18 +103,16 @@ channel.queue_declare(
     arguments={
         'x-dead-letter-exchange': 'dlx.orders',
         'x-dead-letter-routing-key': 'order.created',
-        'x-message-ttl': 3_600_000,   # Messages expire to DLX after 1h if unprocessed
+        'x-message-ttl': 3_600_000,
     }
 )
 ```
 
-**Why**: Without a DLX, rejected messages (`basic_nack` with `requeue=False`) and expired messages are silently discarded. The DLX creates an audit trail and lets you replay failed messages after fixing the consumer bug.
+Without DLX, rejected/expired messages are silently discarded. DLX creates an audit trail and enables replay.
 
 ---
 
 ### Retry Queue Pattern (Delayed Retry Without Plugin)
-
-Use a secondary queue with TTL to re-route messages back to the main queue after a delay:
 
 ```python
 # Retry queue: messages expire back to main queue
@@ -139,11 +122,10 @@ channel.queue_declare(
     arguments={
         'x-message-ttl': 30_000,                  # 30s retry delay
         'x-dead-letter-exchange': '',              # default exchange
-        'x-dead-letter-routing-key': 'orders',    # route back to main queue
+        'x-dead-letter-routing-key': 'orders',
     }
 )
 
-# In consumer: route to retry queue on transient failure
 def handle_message(channel, method, properties, body):
     retry_count = int(properties.headers.get('x-retry-count', 0)) if properties.headers else 0
 
@@ -152,11 +134,10 @@ def handle_message(channel, method, properties, body):
         channel.basic_ack(delivery_tag=method.delivery_tag)
     except TransientError:
         if retry_count >= 3:
-            # Exhausted retries — send to dead letter
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
 
-        channel.basic_ack(delivery_tag=method.delivery_tag)  # ack original
+        channel.basic_ack(delivery_tag=method.delivery_tag)
         channel.basic_publish(
             exchange='',
             routing_key='orders.retry',
@@ -168,7 +149,7 @@ def handle_message(channel, method, properties, body):
         )
 ```
 
-**Why**: This avoids the `rabbitmq_delayed_message_exchange` plugin dependency while providing exponential-backoff-compatible retry. The TTL on the retry queue acts as the delay. Extend to multiple retry queues with increasing TTLs for exponential backoff.
+Avoids `rabbitmq_delayed_message_exchange` plugin. TTL on retry queue acts as delay. Use multiple retry queues with increasing TTLs for exponential backoff.
 
 ---
 
@@ -178,30 +159,20 @@ def handle_message(channel, method, properties, body):
 
 **Detection**:
 ```bash
-# Python/pika
 grep -rn 'auto_ack\s*=\s*True' --include="*.py"
 rg 'basic_consume.*auto_ack=True' --type py
-
-# Node.js/amqplib
 grep -rn 'noAck\s*:\s*true' --include="*.js" --include="*.ts"
-rg 'channel\.consume.*noAck.*true' --type js --type ts
-
-# Go
 rg '\.Consume\(' --type go -A 3 | grep 'autoAck.*true'
 ```
 
 **Signal**:
 ```python
-channel.basic_consume(
-    queue='orders',
-    on_message_callback=handle_order,
-    auto_ack=True,  # Broker deletes message on delivery
-)
+channel.basic_consume(queue='orders', on_message_callback=handle_order, auto_ack=True)
 ```
 
-**Why this matters**: Message is deleted from the queue the instant the broker delivers it to the consumer socket buffer — before `handle_order` even starts. Consumer crash, OOM kill, or application exception after delivery means the message is permanently lost.
+Message deleted on delivery before `handle_order` starts. Consumer crash = permanent loss.
 
-**Preferred action**: Remove `auto_ack=True` (defaults to `False`) and call `channel.basic_ack()` after successful processing.
+**Preferred action**: Remove `auto_ack=True` (defaults to `False`), call `channel.basic_ack()` after processing.
 
 ---
 
@@ -209,25 +180,21 @@ channel.basic_consume(
 
 **Detection**:
 ```bash
-# Python: nack with requeue=True in exception handler (no retry limit)
 rg 'basic_nack' --type py -B 5 | grep 'requeue=True'
 grep -rn 'basic_reject.*requeue=True' --include="*.py"
-
-# Go: Nack with requeue=true in error path
 rg '\.Nack\(' --type go -A 2 | grep 'true'
 ```
 
 **Signal**:
 ```python
 except Exception as e:
-    log.error("processing failed: %s", e)
     channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-    # Message goes back to queue head — immediately redelivered — infinite loop
+    # Poison message loops: deliver → fail → requeue → deliver
 ```
 
-**Why this matters**: A poison message (malformed JSON, missing field, encoding error) that always raises an exception will loop: deliver → fail → requeue → deliver → fail → requeue. This drives consumer CPU to 100% and blocks all other messages in the queue.
+Drives consumer CPU to 100%, blocks all other messages.
 
-**Preferred action**: Track retry count in message headers. After N retries, `requeue=False` to route to DLX instead.
+**Preferred action**: Track retry count in headers. After N retries, `requeue=False` to route to DLX.
 
 ---
 
@@ -235,10 +202,7 @@ except Exception as e:
 
 **Detection**:
 ```bash
-# Queues declared without x-dead-letter-exchange
 rg 'queue_declare' --type py -A 10 | grep -v 'x-dead-letter-exchange'
-
-# Check live queues missing DLX
 rabbitmqctl list_queues name dead_letter_exchange | grep -v '\S\s\S'
 ```
 
@@ -248,9 +212,9 @@ channel.queue_declare(queue='payments', durable=True)
 # No DLX — rejected/expired messages vanish
 ```
 
-**Why this matters**: Any `basic_nack(requeue=False)` or expired message is silently dropped. There is no audit trail, no replay capability, no alerting on message failures.
+No audit trail, no replay, no alerting on failures.
 
-**Preferred action**: Always declare a DLX for any production queue. At minimum, route to a `{queue}.dead` queue with 7-day TTL for investigation.
+**Preferred action**: Always declare DLX for production queues. Route to `{queue}.dead` with 7-day TTL.
 
 ---
 
@@ -258,12 +222,12 @@ channel.queue_declare(queue='payments', durable=True)
 
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
-| `pika.exceptions.UnroutableError` | `mandatory=True` but no queue bound to exchange+routing key | Declare queue + binding before publishing; check exchange name typo |
-| `pika.exceptions.NackError` | Broker nacked confirmed message (quorum not reached, disk full) | Check cluster health; `rabbitmqctl cluster_status`; check disk alarm |
-| `Channel closed by broker: 406 PRECONDITION_FAILED` | Queue redeclared with different `durable`/`x-queue-type` args | Delete queue (if empty) and redeclare, or use `passive=True` to verify |
-| `Channel closed: 404 NOT_FOUND` | Publishing to non-existent exchange or queue | Declare exchange/queue before publishing; check for typo in name |
-| Consumer receives duplicate messages after restart | Consumer crashed after processing but before acking | Idempotent consumer logic required; track processed message IDs |
-| DLX queue not receiving rejected messages | Queue missing `x-dead-letter-exchange` argument | Redeclare queue with DLX argument (requires queue delete + recreate) |
+| `pika.exceptions.UnroutableError` | `mandatory=True` but no queue bound | Declare queue + binding before publishing |
+| `pika.exceptions.NackError` | Broker nacked (quorum not reached, disk full) | Check cluster health; `rabbitmqctl cluster_status` |
+| `406 PRECONDITION_FAILED` | Queue redeclared with different args | Delete queue and redeclare, or use `passive=True` |
+| `404 NOT_FOUND` | Publishing to non-existent exchange/queue | Declare before publishing; check name typo |
+| Duplicate messages after restart | Consumer crashed after processing, before acking | Idempotent consumer logic; track processed message IDs |
+| DLX queue not receiving rejects | Queue missing `x-dead-letter-exchange` arg | Redeclare queue with DLX argument |
 | Messages requeued indefinitely | No retry limit in exception handler | Add retry counter in headers; route to DLX after N retries |
 
 ---
@@ -272,11 +236,11 @@ channel.queue_declare(queue='payments', durable=True)
 
 | Version | Change | Impact |
 |---------|--------|--------|
-| 3.8.0 | Quorum queues support publisher confirms | Publisher confirms now work with quorum queues (blocked before) |
-| 3.10.0 | Quorum queues support per-message TTL | `x-message-ttl` header now respected on quorum queues |
-| 3.13.0 | `consumer_timeout` default 30 minutes | Consumers holding unacked messages >30min get their channel closed |
-| pika 1.0.0 | `basic_publish` raises `UnroutableError`/`NackError` (not return bool) | Update exception handling; old code checking return value is broken |
-| amqplib (Node) 0.10+ | `channel.nack()` requires explicit `requeue` param | `false` is not the default; always pass explicit `requeue` argument |
+| 3.8.0 | Quorum queues support publisher confirms | Confirms now work with quorum queues |
+| 3.10.0 | Quorum queues support per-message TTL | `x-message-ttl` header respected on quorum queues |
+| 3.13.0 | `consumer_timeout` default 30 minutes | Consumers holding unacked messages >30min get channel closed |
+| pika 1.0.0 | `basic_publish` raises exceptions (not return bool) | Update exception handling |
+| amqplib (Node) 0.10+ | `channel.nack()` requires explicit `requeue` param | Always pass explicit `requeue` argument |
 
 ---
 

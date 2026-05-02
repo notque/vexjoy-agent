@@ -1,12 +1,12 @@
 # Kotlin Secure Implementation Patterns
 
-Secure-by-default patterns for Kotlin JVM and Android applications. Each section shows what correct code looks like and why it matters. Load this reference when the task involves security, auth, injection, deserialization, WebView, content providers, or any vulnerability-related code.
+Secure-by-default patterns for Kotlin JVM and Android. Load for security, auth, injection, deserialization, WebView, content providers.
 
 ---
 
 ## Disable Jackson Default Typing
 
-Configure Jackson's `ObjectMapper` without default typing enabled. Use explicit `@JsonTypeInfo` with a closed allowlist of subtypes when polymorphic deserialization is genuinely needed.
+No default typing. Use explicit `@JsonTypeInfo` with closed subtype allowlist when polymorphic deser is needed.
 
 ```kotlin
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -27,7 +27,7 @@ data class Circle(val radius: Double) : Shape
 data class Rectangle(val width: Double, val height: Double) : Shape
 ```
 
-**Why this matters**: `ObjectMapper.enableDefaultTyping()` or `@JsonTypeInfo(use = Id.CLASS)` allows the attacker to specify the deserialized class. Known gadget chains (C3P0, Spring, Hibernate) enable RCE. Log4Shell (CVE-2021-44228) and Spring4Shell (CVE-2022-22965) exploited similar class-loading paths. Jackson's documented recommendation is to avoid default typing entirely.
+**Why**: `enableDefaultTyping()` lets attackers specify deserialized class. Known RCE gadget chains (C3P0, Spring). CVE-2021-44228, CVE-2022-22965.
 
 **Detection**:
 ```bash
@@ -39,7 +39,7 @@ rg -n 'JsonTypeInfo' . --type kotlin
 
 ## Validate Android Intent Extras
 
-Use explicit intents for internal component communication. Validate all extras from implicit intents or deep links before use.
+Explicit intents for internal communication. Validate all extras from implicit intents/deep links.
 
 ```kotlin
 // Correct: explicit intent for internal navigation
@@ -65,7 +65,7 @@ override fun onCreate(savedInstanceState: Bundle?) {
 }
 ```
 
-**Why this matters**: Implicit intents and deep links deliver attacker-controlled data. Extras can contain unexpected types (bundle-unparceling attacks), missing values (null pointer), or malicious strings (SQL injection through content providers, path traversal through file URIs). Explicit intents limit the recipient to your own components.
+**Why**: Implicit intents deliver attacker-controlled data — unexpected types, missing values, malicious strings.
 
 **Detection**:
 ```bash
@@ -77,7 +77,7 @@ rg -n 'Intent\(.*ACTION' . --type kotlin
 
 ## Configure WebView Security Defaults
 
-Disable JavaScript by default. Enable it only for trusted content with explicit URL allowlists.
+Disable JS by default. Enable only for trusted content with URL allowlists.
 
 ```kotlin
 import android.webkit.WebView
@@ -106,7 +106,7 @@ webView.settings.javaScriptEnabled = true
 // webView.addJavascriptInterface(...)  // Avoid unless strictly necessary
 ```
 
-**Why this matters**: `javaScriptEnabled = true` with unrestricted navigation allows any loaded page to execute JavaScript in the WebView's context. `addJavascriptInterface` exposes Kotlin methods to JavaScript; pre-API-17, all public methods were accessible. `allowFileAccess = true` lets JavaScript read local files via `file://` URIs.
+**Why**: Unrestricted JS + navigation = arbitrary code execution. `addJavascriptInterface` exposes Kotlin methods. `allowFileAccess` enables local file reads.
 
 **Detection**:
 ```bash
@@ -118,7 +118,7 @@ rg -n 'allowFileAccess\s*=\s*true|allowContentAccess\s*=\s*true' . --type kotlin
 
 ## Prevent Content Provider Path Traversal
 
-Validate requested paths in content providers. Use `ParcelFileDescriptor` with path containment checks.
+Validate paths with `canonicalFile` + `startsWith` containment check.
 
 ```kotlin
 import android.content.ContentProvider
@@ -149,7 +149,7 @@ class SecureFileProvider : ContentProvider() {
 }
 ```
 
-**Why this matters**: Content providers that serve files based on URI path segments are vulnerable to `../` traversal. `File(baseDir, "../../../data/data/com.app/databases/secrets.db")` escapes the intended directory. `canonicalFile` resolves symlinks and `..` sequences; the `startsWith` check enforces containment.
+**Why**: URI path segments with `../` escape the intended directory. `canonicalFile` resolves traversal; `startsWith` enforces containment.
 
 **Detection**:
 ```bash
@@ -161,7 +161,7 @@ rg -n 'canonicalFile|canonicalPath' . --type kotlin
 
 ## Handle Coroutine Exceptions Without Swallowing Security Failures
 
-Use structured concurrency with `supervisorScope` or `CoroutineExceptionHandler` that logs and re-throws security-relevant exceptions.
+Structured concurrency preserves exception propagation. Never silently catch security exceptions.
 
 ```kotlin
 import kotlinx.coroutines.*
@@ -194,7 +194,7 @@ suspend fun batchProcess(items: List<Item>) = supervisorScope {
 }
 ```
 
-**Why this matters**: Catching and silently ignoring exceptions in coroutines can swallow auth failures, permission denials, and security constraint violations. A `try { verifyAuth() } catch (e: Exception) { /* ignored */ }` around auth code effectively bypasses authentication. Structured concurrency ensures parent scopes see child failures.
+**Why**: Silently catching exceptions swallows auth failures. `catch (e: Exception) { /* ignored */ }` around auth = bypass.
 
 **Detection**:
 ```bash
@@ -206,7 +206,7 @@ rg -n 'CoroutineExceptionHandler' . --type kotlin
 
 ## Use Parameterized Queries With Exposed and Room
 
-Pass user input through parameterized query APIs. Never interpolate into SQL strings.
+Parameterized APIs only. Never interpolate into SQL.
 
 ```kotlin
 // Correct: Exposed DSL (parameterized by default)
@@ -232,7 +232,7 @@ interface InvoiceDao {
 }
 ```
 
-**Why this matters**: `exec("SELECT * FROM invoices WHERE id = '$userInput'")` allows SQL injection. Exposed's DSL and Room's annotation processor parameterize queries automatically. Raw SQL escape hatches require explicit `?` placeholders with separate parameter lists.
+**Why**: String interpolation in SQL = injection. Exposed DSL and Room parameterize automatically. Raw SQL requires `?` placeholders.
 
 **Detection**:
 ```bash
@@ -244,7 +244,7 @@ rg -n '@Query.*\$\{' . --type kotlin
 
 ## Store Secrets in Android Keystore
 
-Use the Android Keystore system for cryptographic keys and sensitive credentials. Never store secrets in SharedPreferences, room databases, or hardcoded strings.
+Use Keystore for crypto keys and credentials. Never SharedPreferences, Room, or hardcoded strings.
 
 ```kotlin
 import android.security.keystore.KeyGenParameterSpec
@@ -282,7 +282,7 @@ fun encryptForStorage(plaintext: ByteArray, key: SecretKey): Pair<ByteArray, Byt
 }
 ```
 
-**Why this matters**: SharedPreferences stores data in a world-readable XML file on rooted devices. Hardcoded strings are extractable via `strings` on the APK. Android Keystore stores keys in hardware-backed storage (TEE/StrongBox) where the key material never leaves the secure environment.
+**Why**: SharedPreferences = world-readable on rooted devices. Hardcoded strings extractable from APK. Keystore uses hardware-backed TEE/StrongBox.
 
 **Detection**:
 ```bash
@@ -295,7 +295,7 @@ rg -n 'putString.*password|putString.*token|putString.*key' . --type kotlin
 
 ## Configure Ktor JWT Auth With Algorithm Pinning
 
-Pin the JWT algorithm, verify standard claims, and use short-lived tokens with the Ktor auth plugin.
+Pin algorithm, verify claims, short-lived tokens.
 
 ```kotlin
 import io.ktor.server.auth.*
@@ -326,7 +326,7 @@ fun Application.configureAuth() {
 }
 ```
 
-**Why this matters**: JWT verification without algorithm pinning allows algorithm confusion attacks. CVE-2022-23540 (jsonwebtoken) and CVE-2022-29217 (PyJWT) allowed `alg: none` or RS-to-HS key confusion. Always use `JWT.require(Algorithm.HMAC256(...))` or the equivalent for RS256, which pins the algorithm at verification time.
+**Why**: Without algorithm pinning, algorithm confusion attacks succeed. CVE-2022-23540, CVE-2022-29217 (`alg: none`, RS-to-HS confusion).
 
 **Detection**:
 ```bash

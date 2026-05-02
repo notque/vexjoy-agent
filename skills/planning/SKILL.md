@@ -96,9 +96,11 @@ routing:
 
 # Planning Skill
 
-Umbrella skill for planning lifecycle. Routes to the correct reference based on intent.
+Umbrella skill for the planning lifecycle. Routes to the correct reference based on the intent requested: write a spec, resolve ambiguities before planning, create a file-backed plan, validate a plan, manage plan lifecycle, pause a session, or resume from handoff artifacts.
 
 ## Routing
+
+Detect the user's intent and load the appropriate reference file:
 
 | Intent | Trigger phrases | Reference |
 |--------|----------------|-----------|

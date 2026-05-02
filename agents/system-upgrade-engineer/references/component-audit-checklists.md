@@ -8,10 +8,7 @@
 
 ## Overview
 
-The AUDIT phase scans affected component types to identify what needs upgrading, deprecating,
-or creating. The default scope is the 10 most-recently-modified agents + all hooks + affected
-routing tables. Comprehensive audit (all 120+ components) is opt-in. The most common failure
-is reading file names without opening the components — that detects presence, not stale patterns.
+AUDIT scans affected components for upgrade/deprecate/create decisions. Default scope: 10 most-recently-modified agents + all hooks + routing tables. Comprehensive is opt-in. Most common failure: reading filenames without opening components.
 
 ---
 

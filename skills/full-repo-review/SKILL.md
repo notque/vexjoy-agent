@@ -25,13 +25,22 @@ routing:
   category: analysis
 ---
 
-# Full-Repo Review: Codebase Health Check
+# Full-Repo Review : Codebase Health Check
 
-Orchestrates a 3-wave review against ALL source files. Delegates actual review to `comprehensive-review`. Produces a prioritized issue backlog, not auto-fixes.
+Orchestrates a comprehensive 3-wave review against ALL source files in the
+repository, not just changed files. Delegates the actual review to the
+`comprehensive-review` skill. Produces a prioritized issue backlog instead of
+auto-fixes.
 
-**When to use**: Quarterly health checks, after major refactors, onboarding to a new codebase. Expensive (all files through all waves) -- use `comprehensive-review` for PR-scoped work.
+**When to use**: Quarterly health checks, after major refactors, onboarding to
+a new codebase, or any time you want a systemic view of codebase quality. This
+is expensive (all files through all waves) -- use `comprehensive-review` for
+PR-scoped work.
 
-**Differs from comprehensive-review**: Scope phase scans all source files instead of git diff. Output is a prioritized backlog instead of auto-fix.
+**How it differs from comprehensive-review**: This skill changes the SCOPE
+phase to scan all source files instead of git diff, and changes the output from
+auto-fix to a prioritized backlog report. The review waves themselves are
+identical.
 
 ---
 
@@ -45,9 +54,9 @@ Orchestrates a 3-wave review against ALL source files. Delegates actual review t
 
 ### Options
 
-- **--directory [dir]**: Review single directory instead of full repo
-- **--skip-precheck**: Skip `score-component.py` deterministic pre-check
-- **--min-severity [level]**: Include only findings at or above threshold (CRITICAL, HIGH, MEDIUM). Default: all.
+- **--directory [dir]**: Review only a single directory (e.g., `scripts/`) instead of the full repo. Useful for splitting a large repo into manageable chunks.
+- **--skip-precheck**: Skip the `score-component.py` deterministic pre-check. Only use if the script is unavailable or you need faster iteration.
+- **--min-severity [level]**: Only include findings at or above a severity threshold (CRITICAL, HIGH, MEDIUM) in the report. Default: include all.
 
 ---
 
@@ -57,7 +66,10 @@ Orchestrates a 3-wave review against ALL source files. Delegates actual review t
 
 **Step 1: Discover source files**
 
-Always scan ALL source files -- never fall back to git diff. If `--directory` provided, scope to that directory.
+Build the complete file list by scanning these directories. Always scan ALL
+source files -- never fall back to git diff. The entire point of this skill is
+codebase-wide coverage. If a specific `--directory` was provided, scope the
+scan to that directory only.
 
 ```bash
 # Python scripts (exclude test files and __pycache__)
@@ -76,62 +88,91 @@ find agents/ -name "*.md" 2>/dev/null
 find docs/ -name "*.md" 2>/dev/null
 ```
 
-If zero files found, STOP: "No source files discovered. Verify you are in the correct repository root."
+Log the total file count. If zero files found, STOP and report: "No source files discovered. Verify you are in the correct repository root."
 
-If too many files for a single session, split by directory rather than cherry-picking files.
+If the file count is too large for a single session, split by directory
+(`scripts/`, `hooks/`, `agents/`, `skills/` separately) rather than
+cherry-picking "important" files -- selective review defeats the purpose.
 
 **Step 2: Run deterministic pre-check**
+
+Run scoring before the LLM review. Deterministic checks are cheap and catch
+structural issues (missing frontmatter, no error handling section) that LLM
+reviewers should not waste tokens rediscovering.
 
 ```bash
 python3 ~/.claude/scripts/score-component.py --all-agents --all-skills --json
 ```
 
-Flag components scoring below 60 (grade F) as CRITICAL. Scores 60-74 (grade C) as HIGH. Save raw scores for report.
+Parse the JSON output. Flag any component scoring below 60 (grade F) as a
+CRITICAL finding for the final report. Components scoring 60-74 (grade C) are
+HIGH findings.
 
-**GATE**: At least one source file discovered AND score-component.py ran. If scoring fails, proceed with warning.
+Save the raw scores -- they go into the report's "Deterministic Health Scores"
+section.
+
+**GATE**: At least one source file discovered AND score-component.py ran
+successfully. If the scoring script fails, proceed with a warning but do not
+skip the review phase.
 
 ---
 
 ### Phase 2: REVIEW
 
-**Goal**: Run comprehensive-review pipeline against all discovered files.
+**Goal**: Run the comprehensive-review pipeline against all discovered files.
+
+This skill orchestrates scope and output only. The actual 3-wave review is
+performed by `comprehensive-review` with `--review-only` mode.
 
 **Step 1: Invoke comprehensive-review**
 
-Overrides:
-- **Scope**: Full file list from Phase 1 (`--focus [files]`)
-- **Mode**: `--review-only` (backlog, not patches)
-- **All waves**: Wave 0, 1, and 2 for maximum coverage
+Invoke the `comprehensive-review` skill with these overrides:
+- **Scope**: Pass the full file list from Phase 1 (use `--focus [files]` mode)
+- **Mode**: Use `--review-only` to skip auto-fix. Output is a prioritized backlog for human triage, not patches -- full-repo auto-fix touches too many files at once and risks cascading breakage.
+- **All waves**: Run Wave 0, Wave 1, and Wave 2. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, and the full 3-wave review catches logic and design issues.
+
+The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation agents), and Wave 2 (deep-dive agents) internally.
 
 **Step 2: Collect findings**
 
-Per finding: file (path + line), severity (CRITICAL/HIGH/MEDIUM/LOW), category, description, suggested fix.
+After comprehensive-review completes, gather all findings from its output. Each finding should have:
+- **File**: path and line number
+- **Severity**: CRITICAL / HIGH / MEDIUM / LOW
+- **Category**: security, architecture, dead-code, naming, etc.
+- **Description**: what the issue is
+- **Suggested fix**: how to resolve it
 
-**GATE**: comprehensive-review completed. If failed, include partial findings and note failure.
+**GATE**: comprehensive-review completed and produced findings output. If it
+failed, include what partial findings exist and note the failure in the report.
 
 ---
 
 ### Phase 3: REPORT
 
-**Goal**: Aggregate findings into prioritized backlog.
+**Goal**: Aggregate all findings into a prioritized backlog report.
 
 **Step 1: Merge deterministic and LLM findings**
 
-Combine Phase 1 scores and Phase 2 findings. Deduplicate, keep higher severity.
+Combine:
+- Phase 1 score-component.py results (structural health)
+- Phase 2 comprehensive-review findings (deep analysis)
+
+Deduplicate where both sources flag the same issue. Keep the higher severity.
 
 **Step 2: Identify systemic patterns**
 
-Patterns appearing in 3+ files:
+Look for patterns that appear in 3+ files:
 - Repeated naming violations
 - Consistent missing error handling
-- Common anti-patterns
-- Documentation gaps following a pattern
+- Common anti-patterns across components
+- Documentation gaps that follow a pattern
 
-These go into "Systemic Patterns" section -- highest-leverage fixes.
+These go into a dedicated "Systemic Patterns" section -- they represent the
+highest-leverage fixes because one pattern change improves many files.
 
 **Step 3: Write the report**
 
-Write `full-repo-review-report.md` to repo root:
+Write `full-repo-review-report.md` to the repo root with this structure:
 
 ```markdown
 # Full-Repo Review Report
@@ -168,9 +209,11 @@ Write `full-repo-review-report.md` to repo root:
 - Score pre-check: {pass/warn/fail}
 ```
 
-Do not auto-apply fixes. User triages findings into manageable PRs.
+The report is the final output. Do not auto-apply any fixes -- the user triages
+findings and batches corrections into manageable PRs.
 
-**GATE**: Report exists at `full-repo-review-report.md` with severity sections and deterministic scores.
+**GATE**: Report file exists at `full-repo-review-report.md` and contains at
+least the severity sections and deterministic scores.
 
 ---
 
@@ -178,13 +221,13 @@ Do not auto-apply fixes. User triages findings into manageable PRs.
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| No source files found | Wrong directory or empty repo | Verify cwd is repo root with `ls agents/ skills/ scripts/` |
-| score-component.py fails | Missing script or dependency | Proceed with warning; note gap in report |
-| comprehensive-review times out | Too many files | Split into directory-scoped runs |
-| Report write fails | Permission or path issue | Fallback: `/tmp/full-repo-review-report.md` |
+| No source files found | Wrong working directory or empty repo | Verify cwd is repo root with `ls agents/ skills/ scripts/` |
+| score-component.py fails | Missing script or dependency | Proceed with warning; the LLM review still runs. Note gap in report. |
+| comprehensive-review times out | Too many files for single session | Split into directory-scoped runs: scripts/, hooks/, agents/, skills/ separately |
+| Report write fails | Permission or path issue | Try writing to `/tmp/full-repo-review-report.md` as fallback |
 
 ---
 
 ## References
 
-- [Report Template](references/report-template.md) -- Full structure for `full-repo-review-report.md`
+- [Report Template](references/report-template.md) -- Full structure for `full-repo-review-report.md` output
