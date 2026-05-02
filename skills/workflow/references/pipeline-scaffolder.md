@@ -104,7 +104,7 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 
 **When creating a new agent**:
 
-**Step 1**: Read `AGENT_TEMPLATE_V2.md` for the structural template. Every agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
+**Step 1**: Read `skills/skill-creator/references/agent-template.md` for the structural template. Every agent MUST follow this template to ensure structural consistency, which enables automated validation and routing integration.
 
 **Step 2**: Generate the agent file at `agents/{new_agent.name}.md` with:
 - YAML frontmatter: name, version, description (with 3 examples), color, routing metadata
@@ -123,7 +123,7 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 **Step 3**: If `new_agent.complexity` is Medium or higher, create `agents/{new_agent.name}/references/` directory.
 
 **Step 4**: Validate the agent:
-- [ ] All required AGENT_TEMPLATE_V2 sections present
+- [ ] All required agent-template sections present
 - [ ] Main file under 10,000 words—no monolithic prompts. If content exceeds this limit, move detail to `references/` subdirectory
 - [ ] `pairs_with` lists all N subdomain skill names
 - [ ] Naming follows `{domain}-{function}-engineer` pattern
@@ -364,4 +364,4 @@ To invoke each generated skill:
 - **Generated Skill Template**: [references/generated-skill-template.md](references/generated-skill-template.md)—template for each subdomain skill
 - **Architecture Rules**: [references/architecture-rules.md](references/architecture-rules.md)—rules to enforce on all components
 - **Step Menu**: [references/step-menu.md](references/step-menu.md)—valid steps and type compatibility
-- **Agent Template**: [../../AGENT_TEMPLATE_V2.md](../../AGENT_TEMPLATE_V2.md)—template for new agents
+- **Agent Template**: [../../skill-creator/references/agent-template.md](../../skill-creator/references/agent-template.md)—template for new agents

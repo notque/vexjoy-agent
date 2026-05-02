@@ -51,7 +51,7 @@ Agent(
   {relationships}
 
   ### Template Reference
-  Follow AGENT_TEMPLATE_V2.md for agents. Standard frontmatter + operator context for skills.
+  Follow skills/skill-creator/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
 
   ### Architecture Rules
   See skills/workflow/references/architecture-rules.md.
@@ -169,7 +169,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 
 | Creator | Components | Template |
 |---------|-----------|----------|
-| `skill-creator` | Agent manifests + skill SKILL.md + references | `AGENT_TEMPLATE_V2.md` / standard skill format |
+| `skill-creator` | Agent manifests + skill SKILL.md + references | `skills/skill-creator/references/agent-template.md` / standard skill format |
 | `hook-development-engineer` | Python hooks | `hooks/lib/hook_utils.py` conventions |
 | Direct (orchestrator) | Python scripts | `scripts/` conventions |
 

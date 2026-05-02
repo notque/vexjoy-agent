@@ -201,7 +201,7 @@ The `.claude/` directory inside the repo is gitignored. Only `settings.local.jso
 | `hooks/lib/learning_db_v2.py` | Core learning database module -- all hooks import from here |
 | `hooks/lib/hook_utils.py` | Shared hook utilities: JSON output, fallbacks, frontmatter parsing |
 | `hooks/lib/quality_gate.py` | Quality gate enforcement helpers |
-| `AGENT_TEMPLATE_V2.md` | Template for creating new agents |
+| `skills/skill-creator/references/agent-template.md` | Template for creating new agents |
 | `skills/shared-patterns/` | Shared anti-rationalization, gate enforcement, verification patterns |
 
 ---
