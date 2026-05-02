@@ -8,7 +8,7 @@
       "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "Git push intent — force-route to pr-workflow (consolidated)"
+      "notes": "Git push intent \u2014 force-route to pr-workflow (consolidated)"
     },
     {
       "request": "push back on this approach",
@@ -16,7 +16,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Disagreement, not git push — must NOT route to pr-sync"
+      "notes": "Disagreement, not git push \u2014 must NOT route to pr-sync"
     },
     {
       "request": "commit these files",
@@ -24,7 +24,7 @@
       "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "Git commit intent — force-route to pr-workflow (commit intent)"
+      "notes": "Git commit intent \u2014 force-route to pr-workflow (commit intent)"
     },
     {
       "request": "commit to this approach and move forward",
@@ -32,7 +32,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Decision/dedication, not git commit — must NOT route to pr-workflow"
+      "notes": "Decision/dedication, not git commit \u2014 must NOT route to pr-workflow"
     },
     {
       "request": "did CI pass on my PR?",
@@ -40,7 +40,7 @@
       "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "CI status check — force-route to pr-workflow (ci-check intent)"
+      "notes": "CI status check \u2014 force-route to pr-workflow (ci-check intent)"
     },
     {
       "request": "check my logic in this function",
@@ -48,7 +48,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Code review, not CI check — must NOT route to pr-workflow"
+      "notes": "Code review, not CI check \u2014 must NOT route to pr-workflow"
     },
     {
       "request": "submit a PR with full review gates",
@@ -56,7 +56,7 @@
       "expected_skill": null,
       "category": "git-operations",
       "routing_tier": "llm_only",
-      "notes": "Force-routes to pr-workflow (trigger: 'submit PR'), but intent is complex multi-gate workflow — LLM should decide final skill stack. Script correctly fires pr-workflow but benchmark expected 'workflow' — now tracked as llm_only."
+      "notes": "Force-routes to pr-workflow (trigger: 'submit PR'), but intent is complex multi-gate workflow \u2014 LLM should decide final skill stack. Script correctly fires pr-workflow but benchmark expected 'workflow' \u2014 now tracked as llm_only."
     },
     {
       "request": "clean up my merged branches",
@@ -64,7 +64,7 @@
       "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "Post-merge branch cleanup — force-route via 'cleanup branches' trigger"
+      "notes": "Post-merge branch cleanup \u2014 force-route via 'cleanup branches' trigger"
     },
     {
       "request": "debug the goroutine leak in the worker pool",
@@ -72,7 +72,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "Go domain + goroutine keyword — force-routes to go-patterns. Previously expected 'workflow' but script correctly fires go-patterns via goroutine/worker pool triggers."
+      "notes": "Go domain + goroutine keyword \u2014 force-routes to go-patterns. Previously expected 'workflow' but script correctly fires go-patterns via goroutine/worker pool triggers."
     },
     {
       "request": "write table-driven tests for the parser",
@@ -80,7 +80,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "Go tests — force-route to go-patterns via 'table-driven' trigger"
+      "notes": "Go tests \u2014 force-route to go-patterns via 'table-driven' trigger"
     },
     {
       "request": "add a worker pool with goroutines",
@@ -88,7 +88,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "Go concurrency — force-route to go-patterns via 'goroutine'/'worker pool' triggers"
+      "notes": "Go concurrency \u2014 force-route to go-patterns via 'goroutine'/'worker pool' triggers"
     },
     {
       "request": "wrap errors with fmt.Errorf and %w",
@@ -96,7 +96,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "Go error handling — force-route to go-patterns via 'fmt.Errorf'/'%w' triggers"
+      "notes": "Go error handling \u2014 force-route to go-patterns via 'fmt.Errorf'/'%w' triggers"
     },
     {
       "request": "review this Go PR for quality",
@@ -104,7 +104,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "Go code review — force-route to go-patterns via 'Go PR'/'review Go' triggers"
+      "notes": "Go code review \u2014 force-route to go-patterns via 'Go PR'/'review Go' triggers"
     },
     {
       "request": "work on the SAPCC Go repository go-bits",
@@ -112,7 +112,7 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "notes": "SAPCC Go repo — force-route to go-patterns via 'sapcc'/'go-bits' triggers"
+      "notes": "SAPCC Go repo \u2014 force-route to go-patterns via 'sapcc'/'go-bits' triggers"
     },
     {
       "request": "add auth middleware to the Python Flask API",
@@ -120,7 +120,7 @@
       "expected_skill": null,
       "category": "python-development",
       "routing_tier": "candidate",
-      "notes": "Python domain task — python-general-engineer should appear in top-3 candidates"
+      "notes": "Python domain task \u2014 python-general-engineer should appear in top-3 candidates"
     },
     {
       "request": "run ruff and mypy on this Python project",
@@ -128,7 +128,7 @@
       "expected_skill": "python-quality-gate",
       "category": "python-development",
       "routing_tier": "candidate",
-      "notes": "Python quality checks — python-quality-gate should appear in top-3 candidates (no force-route fires for 'ruff and mypy' phrasing)"
+      "notes": "Python quality checks \u2014 python-quality-gate should appear in top-3 candidates (no force-route fires for 'ruff and mypy' phrasing)"
     },
     {
       "request": "write pytest fixtures for the database layer",
@@ -136,7 +136,7 @@
       "expected_skill": null,
       "category": "python-development",
       "routing_tier": "candidate",
-      "notes": "Python testing — python-general-engineer should appear in top-3 candidates"
+      "notes": "Python testing \u2014 python-general-engineer should appear in top-3 candidates"
     },
     {
       "request": "fix the React component rendering bug",
@@ -145,7 +145,7 @@
       "category": "frontend-development",
       "routing_tier": "candidate",
       "candidate_depth": 5,
-      "notes": "React/frontend domain — typescript-frontend-engineer appears at position 5 in candidates. Trigger word overlap is weak due to 'rendering' and 'bug' not matching TS agent triggers. candidate_depth=5 relaxes assertion to top-5."
+      "notes": "React/frontend domain \u2014 typescript-frontend-engineer appears at position 5 in candidates. Trigger word overlap is weak due to 'rendering' and 'bug' not matching TS agent triggers. candidate_depth=5 relaxes assertion to top-5."
     },
     {
       "request": "debug the async race condition in TypeScript",
@@ -153,7 +153,7 @@
       "expected_skill": null,
       "category": "frontend-development",
       "routing_tier": "llm_only",
-      "notes": "TypeScript debugging — needs TypeScript agent + workflow stacking, requires LLM intent understanding. Script correctly does NOT force-route."
+      "notes": "TypeScript debugging \u2014 needs TypeScript agent + workflow stacking, requires LLM intent understanding. Script correctly does NOT force-route."
     },
     {
       "request": "fix the typo in main.go",
@@ -161,7 +161,7 @@
       "expected_skill": "quick",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Mechanical one-character fix — quick should appear in top-3 candidates (absorbed fast skill per ADR-192). quick is force_route:true but 'fix the typo' does not match any trigger phrase exactly."
+      "notes": "Mechanical one-character fix \u2014 quick should appear in top-3 candidates (absorbed fast skill per ADR-192). quick is force_route:true but 'fix the typo' does not match any trigger phrase exactly."
     },
     {
       "request": "rename this variable across the file",
@@ -169,7 +169,7 @@
       "expected_skill": "quick",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Trivial rename — quick should appear in top-3 candidates (absorbed fast skill per ADR-192). 'rename this variable' does not match the multi-word trigger 'rename variable' exactly."
+      "notes": "Trivial rename \u2014 quick should appear in top-3 candidates (absorbed fast skill per ADR-192). 'rename this variable' does not match the multi-word trigger 'rename variable' exactly."
     },
     {
       "request": "add a --verbose flag to the CLI",
@@ -177,7 +177,7 @@
       "expected_skill": "quick",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Small self-contained change — quick should appear in top-3 candidates. 'add a --verbose flag' does not match 'add a flag' trigger (substring mismatch: hyphens/spaces)."
+      "notes": "Small self-contained change \u2014 quick should appear in top-3 candidates. 'add a --verbose flag' does not match 'add a flag' trigger (substring mismatch: hyphens/spaces)."
     },
     {
       "request": "extract this block into a helper function",
@@ -185,7 +185,7 @@
       "expected_skill": "systematic-refactoring",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Contained refactor — systematic-refactoring appears as top candidate. 'quick' is force_route:true in INDEX but 'extract this block' does not match any quick trigger phrase."
+      "notes": "Contained refactor \u2014 systematic-refactoring appears as top candidate. 'quick' is force_route:true in INDEX but 'extract this block' does not match any quick trigger phrase."
     },
     {
       "request": "design a rate limiter feature for the API",
@@ -193,7 +193,7 @@
       "expected_skill": "feature-pipeline",
       "category": "feature-lifecycle",
       "routing_tier": "candidate",
-      "notes": "Feature design phrasing — feature-pipeline appears as top candidate. feature-lifecycle requires exact trigger phrases ('design feature', 'feature design') that this natural-language phrasing doesn't hit."
+      "notes": "Feature design phrasing \u2014 feature-pipeline appears as top candidate. feature-lifecycle requires exact trigger phrases ('design feature', 'feature design') that this natural-language phrasing doesn't hit."
     },
     {
       "request": "plan the implementation for this feature",
@@ -201,7 +201,7 @@
       "expected_skill": null,
       "category": "feature-lifecycle",
       "routing_tier": "llm_only",
-      "notes": "Feature plan phase — requires LLM to recognize 'plan the implementation' as feature-lifecycle. Script surfaces workflow-orchestrator, series-planner, planning but not feature-lifecycle in top-5. No false-positive force-route expected."
+      "notes": "Feature plan phase \u2014 requires LLM to recognize 'plan the implementation' as feature-lifecycle. Script surfaces workflow-orchestrator, series-planner, planning but not feature-lifecycle in top-5. No false-positive force-route expected."
     },
     {
       "request": "build the feature from the plan",
@@ -209,7 +209,7 @@
       "expected_skill": null,
       "category": "feature-lifecycle",
       "routing_tier": "llm_only",
-      "notes": "State-dependent routing — requires LLM to understand execution context. Script correctly does NOT false-positive force-route."
+      "notes": "State-dependent routing \u2014 requires LLM to understand execution context. Script correctly does NOT false-positive force-route."
     },
     {
       "request": "run quality gates on the implemented feature",
@@ -217,39 +217,7 @@
       "expected_skill": null,
       "category": "feature-lifecycle",
       "routing_tier": "llm_only",
-      "notes": "State-dependent routing — after trigger narrowing to 'run feature quality gates', script correctly returns no force-route. The correct answer is context-dependent. Tracked as llm_only."
-    },
-    {
-      "request": "migrate our Grafana dashboards to Perses",
-      "expected_agent": "perses-engineer",
-      "expected_skill": "perses",
-      "category": "perses-domain",
-      "routing_tier": "force_route",
-      "notes": "Grafana-to-Perses migration — force-route via 'Grafana to Perses' / 'perses migrate' triggers"
-    },
-    {
-      "request": "create a new Perses dashboard for API latency",
-      "expected_agent": "perses-engineer",
-      "expected_skill": "perses",
-      "category": "perses-domain",
-      "routing_tier": "force_route",
-      "notes": "Perses dashboard creation — force-route via 'perses dashboard' trigger"
-    },
-    {
-      "request": "lint this Perses dashboard definition",
-      "expected_agent": "perses-engineer",
-      "expected_skill": "perses",
-      "category": "perses-domain",
-      "routing_tier": "force_route",
-      "notes": "Perses lint — force-route via 'perses lint' trigger"
-    },
-    {
-      "request": "create a new Perses panel plugin",
-      "expected_agent": "perses-engineer",
-      "expected_skill": "perses",
-      "category": "perses-domain",
-      "routing_tier": "force_route",
-      "notes": "Perses plugin creation — force-route via 'perses plugin' trigger"
+      "notes": "State-dependent routing \u2014 after trigger narrowing to 'run feature quality gates', script correctly returns no force-route. The correct answer is context-dependent. Tracked as llm_only."
     },
     {
       "request": "comprehensive code review from multiple perspectives",
@@ -257,7 +225,7 @@
       "expected_skill": "systematic-code-review",
       "category": "code-review",
       "routing_tier": "candidate",
-      "notes": "Multi-reviewer review — systematic-code-review or parallel-code-review should appear in top-3 candidates"
+      "notes": "Multi-reviewer review \u2014 systematic-code-review or parallel-code-review should appear in top-3 candidates"
     },
     {
       "request": "roast this design doc",
@@ -265,7 +233,7 @@
       "expected_skill": "roast",
       "category": "code-review",
       "routing_tier": "llm_only",
-      "notes": "Niche skill requiring intent understanding — script does not force-route. LLM must recognize 'roast' as multi-persona critique."
+      "notes": "Niche skill requiring intent understanding \u2014 script does not force-route. LLM must recognize 'roast' as multi-persona critique."
     },
     {
       "request": "execute plan for the API redesign",
@@ -273,7 +241,7 @@
       "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
       "routing_tier": "force_route",
-      "notes": "Exact 'execute plan' trigger — force-route to feature-lifecycle is correct for unqualified plan execution."
+      "notes": "Exact 'execute plan' trigger \u2014 force-route to feature-lifecycle is correct for unqualified plan execution."
     },
     {
       "request": "execute the plan using subagents",
@@ -281,7 +249,7 @@
       "expected_skill": null,
       "category": "parallel-execution",
       "routing_tier": "llm_only",
-      "notes": "'the' breaks 'execute plan' substring match — no false positive. LLM should route to subagent-driven-development."
+      "notes": "'the' breaks 'execute plan' substring match \u2014 no false positive. LLM should route to subagent-driven-development."
     },
     {
       "request": "research the topic thoroughly then write an article",
@@ -289,7 +257,7 @@
       "expected_skill": null,
       "category": "content-creation",
       "routing_tier": "llm_only",
-      "notes": "Multi-skill chain — script fires voice-writer pipeline force-route (via 'write article' / 'write about' trigger), but correct answer requires research-to-article chain. LLM resolves the chain."
+      "notes": "Multi-skill chain \u2014 script fires voice-writer pipeline force-route (via 'write article' / 'write about' trigger), but correct answer requires research-to-article chain. LLM resolves the chain."
     },
     {
       "request": "remove AI patterns from this blog post",
@@ -305,7 +273,7 @@
       "expected_skill": null,
       "category": "infrastructure",
       "routing_tier": "candidate",
-      "notes": "K8s domain — kubernetes-helm-engineer should appear in top-3 candidates"
+      "notes": "K8s domain \u2014 kubernetes-helm-engineer should appear in top-3 candidates"
     },
     {
       "request": "set up Prometheus alerting rules",
@@ -313,7 +281,7 @@
       "expected_skill": null,
       "category": "infrastructure",
       "routing_tier": "candidate",
-      "notes": "Monitoring domain — prometheus-grafana-engineer should appear in top-3 candidates"
+      "notes": "Monitoring domain \u2014 prometheus-grafana-engineer should appear in top-3 candidates"
     },
     {
       "request": "moderate the subreddit modqueue",
@@ -321,7 +289,7 @@
       "expected_skill": "reddit-moderate",
       "category": "reddit",
       "routing_tier": "candidate",
-      "notes": "Reddit moderation task — reddit-moderate should appear in top-3 candidates. reddit-moderate is not force-routed."
+      "notes": "Reddit moderation task \u2014 reddit-moderate should appear in top-3 candidates. reddit-moderate is not force-routed."
     },
     {
       "request": "create a new Claude Code skill with quality gates",
@@ -329,7 +297,7 @@
       "expected_skill": "skill-creation-pipeline",
       "category": "meta-tooling",
       "routing_tier": "candidate",
-      "notes": "Skill creation — skill-creation-pipeline (wraps skill-creator) should appear in top-3 candidates"
+      "notes": "Skill creation \u2014 skill-creation-pipeline (wraps skill-creator) should appear in top-3 candidates"
     },
     {
       "request": "create a new hook for PostToolUse events",
@@ -337,7 +305,7 @@
       "expected_skill": "hook-development-pipeline",
       "category": "meta-tooling",
       "routing_tier": "candidate",
-      "notes": "Hook creation — hook-development-pipeline should appear in top-3 candidates"
+      "notes": "Hook creation \u2014 hook-development-pipeline should appear in top-3 candidates"
     },
     {
       "request": "go ahead and fix the bug",
@@ -345,7 +313,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "'go' as verb, not Go language — must NOT route to golang-general-engineer"
+      "notes": "'go' as verb, not Go language \u2014 must NOT route to golang-general-engineer"
     },
     {
       "request": "debug the goroutine leak causing memory issues",
@@ -353,8 +321,10 @@
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
-      "expected_stacked": ["go-patterns"],
-      "notes": "Go debug + goroutine — force-routes to go-patterns via goroutine trigger. Previously expected 'workflow' but script correctly fires go-patterns."
+      "expected_stacked": [
+        "go-patterns"
+      ],
+      "notes": "Go debug + goroutine \u2014 force-routes to go-patterns via goroutine trigger. Previously expected 'workflow' but script correctly fires go-patterns."
     },
     {
       "request": "wrap the error with %w for stack preservation",
@@ -370,7 +340,7 @@
       "expected_skill": "phaser-gamedev",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
-      "notes": "Phaser game dev — agent resolved via pairs_with (no agent field). phaser-gamedev pairs_with=['typescript-frontend-engineer', ...]. Exercises Step 2 of resolve_agent."
+      "notes": "Phaser game dev \u2014 agent resolved via pairs_with (no agent field). phaser-gamedev pairs_with=['typescript-frontend-engineer', ...]. Exercises Step 2 of resolve_agent."
     },
     {
       "request": "generate sprite sheet for AI character art",
@@ -378,7 +348,7 @@
       "expected_skill": "game-sprite-pipeline",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
-      "notes": "AI sprite generation — agent resolved via pairs_with. game-sprite-pipeline pairs_with=['phaser-gamedev', 'threejs-builder', 'python-general-engineer']. First AGENT in list is python-general-engineer (skips skill names)."
+      "notes": "AI sprite generation \u2014 agent resolved via pairs_with. game-sprite-pipeline pairs_with=['phaser-gamedev', 'threejs-builder', 'python-general-engineer']. First AGENT in list is python-general-engineer (skips skill names)."
     },
     {
       "request": "add holographic foil card effects with WebGL shader",
@@ -386,7 +356,7 @@
       "expected_skill": "webgl-card-effects",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
-      "notes": "WebGL card effects — agent resolved via pairs_with. webgl-card-effects pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
+      "notes": "WebGL card effects \u2014 agent resolved via pairs_with. webgl-card-effects pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
     },
     {
       "request": "run a security threat model audit on the toolkit",
@@ -394,7 +364,7 @@
       "expected_skill": "security-threat-model",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
-      "notes": "Security threat model — agent resolved via pairs_with=['python-general-engineer']. Single agent in pairs_with, no agent field on skill."
+      "notes": "Security threat model \u2014 agent resolved via pairs_with=['python-general-engineer']. Single agent in pairs_with, no agent field on skill."
     }
   ]
 }

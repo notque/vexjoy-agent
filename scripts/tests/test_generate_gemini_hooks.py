@@ -59,7 +59,7 @@ def test_comments_and_blanks_only_produces_empty():
 
 def test_single_session_start_no_matcher():
     """SessionStart entry with no matcher omits matcher field entirely."""
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, gemini_hooks_dir="/home/user/.gemini/hooks")
 
@@ -71,7 +71,7 @@ def test_single_session_start_no_matcher():
     assert len(block["hooks"]) == 1
     hook = block["hooks"][0]
     assert hook["type"] == "command"
-    assert "kairos-briefing-injector.py" in hook["command"]
+    assert "session-github-briefing.py" in hook["command"]
     assert hook["timeout"] == 600
 
 
@@ -83,7 +83,7 @@ def test_single_session_start_no_matcher():
 def test_multiple_session_start_entries_grouped():
     """Multiple SessionStart entries are grouped into one matcher block."""
     text = (
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "SessionStart:operator-context-detector.py\n"
         "SessionStart:team-config-loader.py\n"
     )
@@ -95,7 +95,7 @@ def test_multiple_session_start_entries_grouped():
     hook_list = blocks[0]["hooks"]
     assert len(hook_list) == 3
     names = [h["command"] for h in hook_list]
-    assert any("kairos-briefing-injector.py" in n for n in names)
+    assert any("session-github-briefing.py" in n for n in names)
     assert any("operator-context-detector.py" in n for n in names)
     assert any("team-config-loader.py" in n for n in names)
 
@@ -194,7 +194,7 @@ def test_comments_and_blank_lines_ignored():
     text = (
         "# Phase 1: safe on Gemini CLI v0.26.0+\n"
         "\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "\n"
         "# Another comment\n"
         "SessionEnd:session-learning-recorder.py\n"
@@ -248,7 +248,7 @@ def test_event_ordering():
     text = (
         "SessionEnd:session-learning-recorder.py\n"
         "AfterTool:posttool-bash-injection-scan.py run_shell_command\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
     )
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, gemini_hooks_dir="/fake/hooks")
@@ -266,14 +266,14 @@ def test_event_ordering():
 
 def test_command_shape_uses_configured_dir():
     """Hook command uses python3 and the gemini-hooks-dir path."""
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, gemini_hooks_dir="/home/testuser/.gemini/hooks")
 
     hook = result["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
     assert cmd.startswith("python3 "), f"Command should start with 'python3 ': {cmd}"
-    assert "/home/testuser/.gemini/hooks/kairos-briefing-injector.py" in cmd
+    assert "/home/testuser/.gemini/hooks/session-github-briefing.py" in cmd
 
 
 def test_command_shape_default_dir_uses_home():
@@ -281,13 +281,13 @@ def test_command_shape_default_dir_uses_home():
     import os
 
     home = os.environ.get("HOME", "~")
-    text = "SessionStart:kairos-briefing-injector.py\n"
+    text = "SessionStart:session-github-briefing.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries)
 
     hook = result["SessionStart"][0]["hooks"][0]
     cmd = hook["command"]
-    assert f"{home}/.gemini/hooks/kairos-briefing-injector.py" in cmd
+    assert f"{home}/.gemini/hooks/session-github-briefing.py" in cmd
 
 
 # ---------------------------------------------------------------------------
@@ -299,7 +299,7 @@ def test_cli_dry_run_produces_valid_json():
     """CLI invocation with --dry-run prints valid JSON to stdout."""
     allowlist_text = (
         "# Phase 1 hooks\n"
-        "SessionStart:kairos-briefing-injector.py\n"
+        "SessionStart:session-github-briefing.py\n"
         "SessionEnd:session-learning-recorder.py\n"
         "AfterTool:posttool-bash-injection-scan.py run_shell_command\n"
     )
@@ -332,7 +332,7 @@ def test_cli_dry_run_produces_valid_json():
     # Verify structure depth: hooks.SessionStart[0].hooks[0].command
     session_hook = parsed["hooks"]["SessionStart"][0]["hooks"][0]
     assert session_hook["type"] == "command"
-    assert "kairos-briefing-injector.py" in session_hook["command"]
+    assert "session-github-briefing.py" in session_hook["command"]
     assert session_hook["timeout"] == 600
 
 
@@ -343,7 +343,7 @@ def test_cli_dry_run_produces_valid_json():
 
 def test_cli_dry_run_preserves_existing_settings():
     """CLI invocation with --dry-run preserves existing settings.json keys."""
-    allowlist_text = "SessionStart:kairos-briefing-injector.py\n"
+    allowlist_text = "SessionStart:session-github-briefing.py\n"
     existing_settings = {"theme": "dark", "model": "gemini-2.5-pro"}
 
     with tempfile.TemporaryDirectory() as tmpdir:
