@@ -17,8 +17,10 @@ Per-row mode (--per-row, typically with --preset):
     For each row in preset:
         B': layout guide generation
         C': per-row strip generation with identity lock + VFX containment
-    Composite: stitch row strips into final sheet
-    D-H: standard pipeline on composited sheet
+        D': per-strip slice (pitch = strip_width / expected_frames)
+        E': per-frame bg removal on individually sliced frames
+    F: normalize all frames together (consistent anchoring)
+    H: assemble into final sheet with correct row/col mapping
 
 Usage:
     python3 sprite_pipeline.py \\
@@ -346,6 +348,114 @@ def _composite_strips(strip_paths: list[Path], output: Path, cell_size: int) -> 
     logger.info("[composite] %s written (%dx%d, %d strips)", output, max_width, total_height, len(strips))
 
 
+def _process_row_strip(
+    strip_path: Path,
+    row_index: int,
+    state: str,
+    name: str,
+    expected_frames: int,
+    cell_size: int,
+    work_dir: Path,
+    bg_mode: str,
+    chroma_threshold: int,
+) -> list[Path]:
+    """Slice a single row strip into individual frames and remove backgrounds.
+
+    Per-row mode knows the exact frame count from the preset. We slice at
+    simple pitch (strip_width / expected_frames) rather than using
+    connected-components or the dense-grid slicer, which fragment characters
+    when Codex-generated strips don't align to cell boundaries.
+
+    Steps:
+        1. Pre-despill magenta to alpha=0 (avoids LANCZOS pink fringe on resize)
+        2. Resize strip to (expected_frames * cell_size) x cell_size if needed
+        3. Slice into expected_frames cells at exact cell_size pitch
+        4. Run bg removal on each frame
+        5. Return list of processed frame paths
+
+    Args:
+        strip_path: Path to the row strip PNG.
+        row_index: Zero-based row index (for naming).
+        state: Animation state name (e.g. "idle", "dash-right").
+        name: Sprite name prefix.
+        expected_frames: Number of frames this row should contain.
+        cell_size: Target cell size in pixels.
+        work_dir: Working directory for intermediate files.
+        bg_mode: Background removal mode (chroma, gray-tolerance, etc.).
+        chroma_threshold: Chroma-key threshold for bg removal.
+
+    Returns:
+        List of paths to bg-removed frame PNGs, ordered by frame index.
+    """
+    from sprite_slicing import _pre_despill_raw_for_upscale
+
+    strip_img = Image.open(strip_path).convert("RGBA")
+
+    # Pre-despill: convert magenta to alpha=0 before any resize to avoid
+    # LANCZOS interpolating between magenta and content (produces pink fringe).
+    strip_img = _pre_despill_raw_for_upscale(strip_img, chroma_threshold=chroma_threshold)
+
+    # Target dimensions
+    target_w = expected_frames * cell_size
+    target_h = cell_size
+
+    # Resize if dimensions don't match expected
+    if strip_img.size != (target_w, target_h):
+        logger.info(
+            "[per-row] row %d (%s): resizing strip %dx%d -> %dx%d",
+            row_index,
+            state,
+            strip_img.width,
+            strip_img.height,
+            target_w,
+            target_h,
+        )
+        strip_img = strip_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+    # Slice at exact pitch — no connected-components needed
+    row_frames_dir = work_dir / f"row_{row_index:02d}_{state}" / "frames"
+    row_frames_dir.mkdir(parents=True, exist_ok=True)
+
+    frame_paths: list[Path] = []
+    for f_idx in range(expected_frames):
+        x0 = f_idx * cell_size
+        frame_img = strip_img.crop((x0, 0, x0 + cell_size, cell_size))
+        frame_path = row_frames_dir / f"{name}_row{row_index:02d}_{state}_frame_{f_idx:02d}.png"
+        frame_img.save(frame_path, format="PNG")
+        frame_paths.append(frame_path)
+
+    # Per-frame background removal
+    nobg_dir = work_dir / f"row_{row_index:02d}_{state}" / "frames_nobg"
+    nobg_dir.mkdir(parents=True, exist_ok=True)
+
+    processed_paths: list[Path] = []
+    for fp in frame_paths:
+        dst = nobg_dir / fp.name
+        if bg_mode == "chroma":
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+        elif bg_mode == "gray-tolerance":
+            sprite_bg.remove_bg_gray_tolerance(fp, dst)
+        elif bg_mode == "rembg":
+            sprite_bg.remove_bg_rembg(fp, dst)
+        elif bg_mode == "auto":
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+            if sprite_bg._alpha_coverage_too_low(dst):
+                logger.warning("[per-row] auto: chroma low-coverage on %s; falling back to rembg", fp.name)
+                sprite_bg.remove_bg_rembg(fp, dst)
+        else:
+            # Fallback to chroma
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+        processed_paths.append(dst)
+
+    logger.info(
+        "[per-row] row %d (%s): sliced %d frames, bg removed",
+        row_index,
+        state,
+        len(processed_paths),
+    )
+    return processed_paths
+
+
 def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -> int:
     """Per-row pipeline body (Phase 1 + Phase 2 + Phase 3).
 
@@ -505,7 +615,7 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
         )
         logger.info("[per-row] row %d/%d (%s, %d frames) done", row_idx + 1, len(row_defs), state, frames)
 
-    # Composite strips into final sheet
+    # Composite strips into raw sheet (reference only — slicing is per-strip)
     sheet_raw_path = work_dir / f"{name}_sheet_raw.png"
     _composite_strips(strip_paths, sheet_raw_path, args.cell_size)
     phases.append({"phase": "composite", "name": "composite-strips", "rc": 0})
@@ -513,55 +623,41 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
     # Compute effective grid for downstream phases
     total_rows = len(row_defs)
     effective_cols = max_frames
-    effective_grid = f"{effective_cols}x{total_rows}"
 
-    # Phase D-H: standard pipeline on composited sheet
-    # Phase D: extract frames
-    frames_raw_dir = work_dir / "frames_raw"
-    extract_args = [
-        "extract-frames",
-        "--input",
-        str(sheet_raw_path),
-        "--grid",
-        effective_grid,
-        "--output-dir",
-        str(frames_raw_dir),
-        "--name",
-        name,
-        "--chroma-threshold",
-        str(args.chroma_threshold),
-        "--min-pixels",
-        str(args.min_pixels),
-    ]
-    from sprite_slicing import is_dense_grid
-
-    if is_dense_grid(effective_cols, total_rows):
-        extract_args.append("--content-aware")
-    rc = sprite_process.main(extract_args)
-    if rc != 0:
-        return rc
-    phases.append({"phase": "D", "name": "extract-frames", "rc": rc})
-
-    # Phase E: per-frame bg removal
+    # Per-strip processing: slice each row strip individually and run bg
+    # removal per frame. This avoids the dense-grid slicer which fragments
+    # characters when Codex-generated strips don't align to cell boundaries.
     frames_nobg_dir = work_dir / "frames_nobg"
-    raw_frames = sorted(frames_raw_dir.glob("*_frame_*.png"))
-    if not raw_frames:
-        logger.error("no frames extracted in Phase D")
-        return 5
-    rb_argv: list[str] = [
-        "remove-bg",
-        *(str(f) for f in raw_frames),
-        "--output-dir",
-        str(frames_nobg_dir),
-        "--bg-mode",
-        args.bg_mode,
-        "--chroma-threshold",
-        str(args.chroma_threshold),
-    ]
-    rc = sprite_process.main(rb_argv)
-    if rc != 0:
-        return rc
-    phases.append({"phase": "E", "name": "remove-bg", "rc": rc, "mode": args.bg_mode})
+    frames_nobg_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track global frame index so normalize/assemble can map frames to
+    # the correct row/col position in the final sheet.
+    global_frame_idx = 0
+    for row_idx, row_def in enumerate(row_defs):
+        row_frame_paths = _process_row_strip(
+            strip_path=strip_paths[row_idx],
+            row_index=row_idx,
+            state=row_def["state"],
+            name=name,
+            expected_frames=row_def["frames"],
+            cell_size=args.cell_size,
+            work_dir=work_dir,
+            bg_mode=args.bg_mode,
+            chroma_threshold=args.chroma_threshold,
+        )
+        # Copy/rename frames to the shared nobg dir with sequential global
+        # indices so the normalize and assemble phases see them as a flat
+        # list in the correct order (row-major: row0 frames, row1 frames, …).
+        for fp in row_frame_paths:
+            dst = frames_nobg_dir / f"{name}_frame_{global_frame_idx:02d}.png"
+            # Use shutil.copy2 to avoid cross-device link issues
+            shutil.copy2(fp, dst)
+            global_frame_idx += 1
+        # Pad shorter rows with None-sentinel empty cells up to effective_cols
+        for _ in range(row_def["frames"], effective_cols):
+            global_frame_idx += 1
+
+    phases.append({"phase": "D+E", "name": "per-strip-slice-and-bg-removal", "rc": 0, "mode": args.bg_mode})
 
     # Phase F: normalize
     frames_norm_dir = work_dir / "frames_normalized"
@@ -607,7 +703,6 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
 
     # Use direct assembly call instead of CLI to pass timing
     from sprite_assemble import assemble_outputs
-    from sprite_slicing import _parse_grid
 
     frame_paths = sorted((frames_norm_dir).glob("*_frame_*.png"))
     expected = effective_cols * total_rows
