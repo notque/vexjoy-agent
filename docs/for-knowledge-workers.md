@@ -126,7 +126,7 @@ Connects to Reddit via PRAW, fetches modqueue, classifies items against your sub
 Setup:
 
 ```bash
-python3 ~/.claude/scripts/reddit_mod.py setup
+python3 skills/reddit-moderate/scripts/reddit-mod.py setup
 ```
 
 Bootstraps subreddit data: rules files, mod log summaries, repeat offender list. Also does proactive scanning:

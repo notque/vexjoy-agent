@@ -4,13 +4,13 @@
 #
 # Usage:
 #   # Dry run (classify but don't act)
-#   ./scripts/reddit-automod-cron.sh
+#   ./skills/reddit-moderate/scripts/reddit-automod-cron.sh
 #
 #   # Live mode (execute mod actions)
-#   ./scripts/reddit-automod-cron.sh --execute
+#   ./skills/reddit-moderate/scripts/reddit-automod-cron.sh --execute
 #
 # Cron example (twice daily at 8am and 8pm):
-#   0 8,20 * * * /home/feedgen/vexjoy-agent/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
+#   0 8,20 * * * /home/feedgen/vexjoy-agent/skills/reddit-moderate/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
@@ -18,7 +18,7 @@ export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SUBREDDIT="${REDDIT_SUBREDDIT:-sap}"
 LOG_DIR="$REPO_DIR/reddit-data/$SUBREDDIT/cron-log"
 LOCKFILE="/tmp/reddit-automod-$SUBREDDIT.lock"
@@ -54,7 +54,7 @@ echo "Mode: $MODE | Subreddit: r/$SUBREDDIT | Since: ${SINCE_MINUTES}m | Budget:
 PROMPT="You are running automated Reddit moderation for r/$SUBREDDIT.
 
 Step 1: Run this command to fetch and build classification prompts:
-python3 scripts/reddit_mod.py queue --auto --since-minutes $SINCE_MINUTES --json | python3 scripts/reddit_mod.py classify
+python3 skills/reddit-moderate/scripts/reddit-mod.py queue --auto --since-minutes $SINCE_MINUTES --json | python3 skills/reddit-moderate/scripts/reddit-mod.py classify
 
 Step 2: If the queue is empty (count: 0), output 'Queue empty, no action needed.' and stop.
 
@@ -64,9 +64,9 @@ FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, BAN_RECOMMENDED, NEEDS_HUMA
 Assign confidence 0-100 and one-sentence reasoning.
 
 Step 4: Apply actions for items meeting confidence thresholds:
-- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: python3 scripts/reddit_mod.py approve --id {id}
-- SPAM >= 90%: python3 scripts/reddit_mod.py remove --id {id} --reason '{reason}' --spam
-- VALID_REPORT >= 90%: python3 scripts/reddit_mod.py remove --id {id} --reason '{reason}'
+- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: python3 skills/reddit-moderate/scripts/reddit-mod.py approve --id {id}
+- SPAM >= 90%: python3 skills/reddit-moderate/scripts/reddit-mod.py remove --id {id} --reason '{reason}' --spam
+- VALID_REPORT >= 90%: python3 skills/reddit-moderate/scripts/reddit-mod.py remove --id {id} --reason '{reason}'
 - BAN_RECOMMENDED: ALWAYS skip (never auto-ban)
 - Below threshold: skip (leave for human review)
 
@@ -86,7 +86,7 @@ fi
 
 claude -p "$PROMPT" \
     --output-format text \
-    --dangerously-skip-permissions \
+    --permission-mode auto \
     --max-budget-usd "$MAX_BUDGET" \
     --no-session-persistence \
     --model claude-sonnet-4-7 \

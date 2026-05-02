@@ -7,7 +7,7 @@ This directory contains template files for the `reddit-data/{subreddit}/` local 
 When you run the setup command for a new subreddit:
 
 ```bash
-python3 scripts/reddit-mod.py setup --subreddit mysubreddit
+python3 skills/reddit-moderate/scripts/reddit-mod.py setup --subreddit mysubreddit
 ```
 
 The script:
@@ -16,7 +16,7 @@ The script:
 2. Auto-generates `rules.md` by fetching sidebar and formal rules from Reddit
 3. Auto-generates `mod-log-summary.md` by analyzing the last 500 mod log entries
 4. Auto-generates `repeat-offenders.json` from mod log removal patterns
-5. Creates a minimal `moderator-notes.md` stub for you to fill in manually (the full 7-section template is available at `templates/reddit/moderator-notes.md.template`)
+5. Creates a minimal `moderator-notes.md` stub for you to fill in manually (the full 7-section template is available at `skills/reddit-moderate/templates/moderator-notes.md.template`)
 6. Creates `config.json` with default settings from the template below
 
 ## Template files
@@ -66,8 +66,8 @@ reddit-data/
 Each subreddit gets its own directory under `reddit-data/`. Run `setup` once per subreddit:
 
 ```bash
-python3 scripts/reddit-mod.py setup --subreddit subreddit_one
-python3 scripts/reddit-mod.py setup --subreddit subreddit_two
+python3 skills/reddit-moderate/scripts/reddit-mod.py setup --subreddit subreddit_one
+python3 skills/reddit-moderate/scripts/reddit-mod.py setup --subreddit subreddit_two
 ```
 
 Switch between subreddits via the `REDDIT_SUBREDDIT` environment variable or the `--subreddit` CLI flag.
