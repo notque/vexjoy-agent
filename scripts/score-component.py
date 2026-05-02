@@ -583,11 +583,12 @@ def score_to_dict(score: ComponentScore) -> dict:
 
 
 def find_all_agents() -> list[Path]:
-    """Find all agent markdown files."""
+    """Find all agent markdown files (excludes README.md and INDEX.json)."""
     agents_dir = REPO_ROOT / "agents"
     if not agents_dir.is_dir():
         return []
-    return sorted(p for p in agents_dir.glob("*.md") if p.name != "INDEX.json")
+    excluded = {"README.md", "INDEX.json"}
+    return sorted(p for p in agents_dir.glob("*.md") if p.name not in excluded)
 
 
 def find_all_skills() -> list[Path]:
