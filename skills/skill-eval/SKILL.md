@@ -37,7 +37,7 @@ routing:
 
 # Skill Evaluation & Improvement
 
-Measure and improve skill quality through empirical testing — because structure doesn't guarantee behavior, and measurement beats assumption. Also covers head-to-head bake-offs of two peer implementations of the same artifact (Mode F).
+Measure and improve skill quality through empirical testing. Also covers head-to-head bake-offs (Mode F).
 
 ## Reference Loading Table
 
@@ -45,53 +45,47 @@ Measure and improve skill quality through empirical testing — because structur
 |---|---|---|
 | tasks related to this reference | `schemas.md` | Loads detailed guidance from `schemas.md`. |
 | tasks related to this reference | `self-improve-loop.md` | Loads detailed guidance from `self-improve-loop.md`. |
-| "bake-off", "head-to-head", "compare implementations", "grade two versions", "which Feynman skill is better" | `bake-off-methodology.md` | Loads the bake-off rubric, anti-rationalization gate, fold-filter, and worked Feynman example. |
+| "bake-off", "head-to-head", "compare implementations", "grade two versions", "which Feynman skill is better" | `bake-off-methodology.md` | Loads bake-off rubric, anti-rationalization gate, fold-filter, worked Feynman example. |
 
 ## Instructions
 
-### Phase 1: ASSESS — Determine what to evaluate
+### Phase 1: ASSESS
 
 **Step 1: Identify the skill**
 
 ```bash
-# Validate skill structure first
 python3 -m scripts.skill_eval.quick_validate <path/to/skill>
 ```
 
-This checks: SKILL.md exists, valid frontmatter, required fields (name, description), kebab-case naming, description under 1024 chars, no angle brackets.
+Checks: SKILL.md exists, valid frontmatter, required fields, kebab-case, description under 1024 chars, no angle brackets.
 
-**Step 2: Choose evaluation mode based on user intent**
+**Step 2: Choose evaluation mode**
 
 | Intent | Mode | Script |
 |--------|------|--------|
 | "Test if description triggers correctly" | Trigger eval | `run_eval.py` |
-| "Optimize/improve the description through autoresearch" | Route to `agent-comparison` | `optimize_loop.py` |
+| "Optimize/improve the description" | Route to `agent-comparison` | `optimize_loop.py` |
 | "Compare skill vs no-skill output" | Output benchmark | Manual + `aggregate_benchmark.py` |
 | "Validate skill structure" | Quick validate | `quick_validate.py` |
-| "Self-improve skill" / "optimize skill" / "improve skill with A/B" | Self-improvement loop | `references/self-improve-loop.md` |
-| "Bake-off" / "head-to-head grade these two" / "compare X vs Y implementation" | Head-to-head bake-off | `references/bake-off-methodology.md` |
+| "Self-improve skill" / "optimize skill" | Self-improvement loop | `references/self-improve-loop.md` |
+| "Bake-off" / "head-to-head" / "compare X vs Y" | Head-to-head bake-off | `references/bake-off-methodology.md` |
 
 **GATE**: Skill path confirmed, mode selected.
 
-### Phase 2: EVALUATE — Run the appropriate evaluation
+### Phase 2: EVALUATE
 
 #### Mode A: Trigger Evaluation
 
-Test whether a skill's description causes Claude to invoke it for the right queries.
-
 **Step 1: Create eval set** (or use existing)
 
-Create a JSON file with 8-20 test queries. **Eval set quality matters** — use realistic prompts with detail (file paths, context, casual phrasing), not abstract one-liners. Focus on edge cases where the skill competes with adjacent skills.
+8-20 test queries in JSON. Use realistic prompts with detail, not abstract one-liners. Focus on edge cases where the skill competes with adjacent skills.
 
-Example of good eval queries:
 ```json
 [
   {"query": "ok so my boss sent me this xlsx file (Q4 sales final FINAL v2.xlsx) and she wants profit margin as a percentage", "should_trigger": true},
   {"query": "Format this data", "should_trigger": false}
 ]
 ```
-
-**Why**: Real users write detailed, specific prompts. Abstract queries don't test real triggering behavior. Overfitting descriptions to abstract test cases bloats the description and fails on real usage.
 
 **Step 2: Run evaluation**
 
@@ -103,18 +97,11 @@ python3 -m scripts.skill_eval.run_eval \
   --verbose
 ```
 
-This spawns `claude -p` for each query, checking whether it invokes the skill. Runs each query 3 times for reliability. Output includes pass/fail per query with trigger rates. Default 30s timeout; increase with `--timeout 60` if needed for complex queries.
-
-**Constraints applied**:
-- Always run baseline eval before making improvements
-- 3 runs per query ensures statistical reliability
-- Verbose output shows per-query pass/fail during eval runs
+3 runs per query for reliability. Default 30s timeout; `--timeout 60` for complex queries. Always run baseline before improvements.
 
 **GATE**: Eval results available. Proceed to improvement if failures found.
 
 #### Mode B: Description Optimization
-
-Automated loop that tests, improves, and re-tests descriptions using Claude with extended thinking.
 
 ```bash
 python3 -m scripts.skill_eval.run_loop \
@@ -124,50 +111,30 @@ python3 -m scripts.skill_eval.run_loop \
   --verbose
 ```
 
-This will:
-1. Split eval set 60/40 train/test (stratified by should_trigger) — prevents overfitting to test cases
-2. Evaluate current description on all queries (3 runs each for reliability)
-3. Use `claude -p` to propose improvements based on training failures
-4. Re-evaluate the new description
-5. Repeat until all pass or max iterations reached
-6. Select best description by **test** score (not train score — prevents overfitting)
-7. Open an HTML report in the browser
-
-**Why 60/40 split**: Improvements should help across many prompts, not just test cases. Training on failures, validating on holdout ensures generalization.
-
-**Why report HTML**: Visual reports enable quick review of which queries improved, which regressed, and what the new description looks like.
+1. Splits 60/40 train/test (stratified by should_trigger)
+2. Evaluates current description (3 runs each)
+3. Proposes improvements via `claude -p` based on training failures
+4. Re-evaluates
+5. Repeats until all pass or max iterations
+6. Selects best by **test** score (not train -- prevents overfitting)
+7. Opens HTML report
 
 **GATE**: Loop complete. Best description identified.
 
 #### Mode C: Output Benchmark
 
-Compare skill quality by running prompts with and without the skill.
+**Step 1**: Create 2-3 realistic test prompts.
 
-**Step 1: Create test prompts** — 2-3 realistic user prompts
+**Step 2**: Spawn two agents per prompt (parallel): with-skill and baseline (no skill).
 
-**Step 2: Run with-skill and without-skill** in parallel subagents:
+**Step 3**: Grade via `agents/grader.md`.
 
-For each test prompt, spawn two agents:
-- **With skill**: Load the skill, run the prompt, save outputs
-- **Without skill** (baseline): Same prompt, no skill, save outputs
-
-**Why baseline matters**: Can't prove the skill adds value without a baseline. Maybe Claude handles it fine without the skill. The delta is what matters.
-
-**Step 3: Grade outputs**
-
-Spawn a grader subagent using `agents/grader.md`. It evaluates assertions against the outputs.
-
-**Step 4: Aggregate**
-
+**Step 4**: Aggregate:
 ```bash
 python3 -m scripts.skill_eval.aggregate_benchmark <workspace>/iteration-1 --skill-name <name>
 ```
 
-Produces `benchmark.json` and `benchmark.md` with pass rates, timing, and token usage.
-
-**Step 5: Analyze** (optional)
-
-For blind comparison, use `agents/comparator.md` to judge outputs without knowing which skill produced them. Then use `agents/analyzer.md` to understand why the winner won.
+**Step 5**: Optional blind comparison via `agents/comparator.md`, then analysis via `agents/analyzer.md`.
 
 **GATE**: Benchmark results available.
 
@@ -177,98 +144,83 @@ For blind comparison, use `agents/comparator.md` to judge outputs without knowin
 python3 -m scripts.skill_eval.quick_validate <path/to/skill>
 ```
 
-Checks: SKILL.md exists, valid frontmatter, required fields (name, description), kebab-case naming, description under 1024 chars, no angle brackets.
-
 #### Mode E: Self-Improvement Loop
 
-Automatically generate variants of a skill, A/B test them against the original, and promote winners. This is a closed-loop pipeline — baseline, hypothesize, generate, test, promote.
+Read `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md`.
 
-Read the full protocol: `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md`
+5 phases: BASELINE (3+ test cases), HYPOTHESIZE (2-3 single-variable changes), GENERATE VARIANTS (minimal diffs), BLIND A/B TEST (paired via `agents/comparator.md`), PROMOTE OR KEEP (60%+ win rate, no regressions). All outcomes recorded to learning DB.
 
-The loop runs 5 phases: BASELINE (establish metrics with 3+ test cases), HYPOTHESIZE (2-3 single-variable changes), GENERATE VARIANTS (minimal diffs), BLIND A/B TEST (paired comparison via `agents/comparator.md`), PROMOTE OR KEEP (60%+ win rate required, no regressions). All outcomes — wins and losses — are recorded to the learning DB to prevent re-testing failed hypotheses.
-
-**GATE**: Self-improvement protocol loaded from reference. Proceed through the 5 phases.
+**GATE**: Protocol loaded. Proceed through 5 phases.
 
 #### Mode F: Head-to-Head Bake-Off
 
-Score two peer implementations of the same artifact (e.g., toolkit `voice-feynman` vs an external Feynman voice profile) on a numeric rubric and declare a decisive winner. Use when the user says "bake-off", "head-to-head", "compare implementations", "grade these two", or "which X is better".
+Read `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md`.
 
-Read the full protocol: `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md`
+5 phases: PREPARE (read both artifacts, pick neutral verifier), RUBRIC (5-12 criteria scored 0-10), GRADE (every score cites path/line/quote; anti-rationalization gate), FOLD (filter loser-wins through `docs/PHILOSOPHY.md`), REPORT (output to `tmp/<topic>-bakeoff-report.md`).
 
-The protocol runs 5 phases: PREPARE (read both artifacts in full, pick a verifier that built neither side), RUBRIC (define 5–12 criteria scored 0–10, pre-state the loser-of-each-criterion before reading evidence), GRADE (every score cites a path/line range or quote; build the matrix; apply anti-rationalization gate), FOLD (filter loser-wins through `docs/PHILOSOPHY.md` before recommending any folds into the winner), REPORT (output to `tmp/<topic>-bakeoff-report.md`, gitignored).
+Canonical example: Feynman bake-off (toolkit 86 vs external 74, 11 criteria, 12-point margin).
 
-The Feynman bake-off (toolkit 86 vs external 74 across 11 criteria, 12-point margin) is the canonical worked example carried in the reference.
+**GATE**: Protocol loaded. Proceed through 5 phases.
 
-**GATE**: Bake-off protocol loaded from reference. Proceed through the 5 phases.
-
-### Phase 3: IMPROVE — Apply results
+### Phase 3: IMPROVE
 
 **Step 1: Review results**
 
-For trigger eval / description optimization:
-- Show the best description vs original
-- Show per-query results (which queries improved, which regressed)
-- Show train vs test scores
+Trigger eval / description optimization: best vs original description, per-query results, train vs test scores.
 
-For output benchmark:
-- Show pass rate delta (with-skill vs without-skill)
-- Show timing and token cost delta
-- Highlight assertions that only pass with the skill (value-add)
+Output benchmark: pass rate delta, timing/token cost delta, value-add assertions.
 
 **Step 2: Apply changes** (with user confirmation)
 
-If description optimization found a better description:
 1. Show before/after with scores
-2. Ask user to confirm
-3. Update the skill's SKILL.md frontmatter
-4. Re-run quick_validate to confirm the update is valid
+2. Confirm with user
+3. Update SKILL.md frontmatter
+4. Re-run quick_validate
 
-**Constraint**: Always show results before/after with metrics. This enables informed decisions.
-
-**GATE**: Changes applied and validated, or user chose to keep original.
+**GATE**: Changes applied and validated, or user kept original.
 
 ---
 
 ## Error Handling
 
-### Error: "No SKILL.md found"
-**Cause**: Skill path doesn't point to a valid skill directory
-**Solution**: Verify path contains a `SKILL.md` file. Skills must follow the `skill-name/SKILL.md` structure.
+### No SKILL.md found
+Cause: Invalid skill path.
+Solution: Verify path contains `SKILL.md`. Must follow `skill-name/SKILL.md` structure.
 
-### Error: "claude: command not found"
-**Cause**: Claude CLI not available for trigger evaluation
-**Solution**: Install Claude Code CLI. Trigger eval requires `claude -p` to test skill invocation.
+### claude: command not found
+Cause: CLI unavailable.
+Solution: Install Claude Code CLI. Trigger eval requires `claude -p`.
 
-### Error: "legacy SDK dependency"
-**Cause**: Outdated instructions or an old checkout still expects a direct SDK client
-**Solution**: Update to the current scripts. Description optimization now runs through `claude -p`.
+### legacy SDK dependency
+Cause: Outdated instructions expect direct SDK client.
+Solution: Update to current scripts using `claude -p`.
 
-### Error: "CLAUDECODE environment variable"
-**Cause**: Running eval from inside a Claude Code session blocks nested instances
-**Solution**: The scripts automatically strip the `CLAUDECODE` env var. If issues persist, run from a separate terminal.
+### CLAUDECODE environment variable
+Cause: Running eval inside Claude Code session blocks nested instances.
+Solution: Scripts auto-strip `CLAUDECODE` env var. If issues persist, run from separate terminal.
 
-### Error: "All queries timeout"
-**Cause**: Default 30s timeout too short for complex queries
-**Solution**: Increase with `--timeout 60`. Simple trigger queries should complete in <15s.
+### All queries timeout
+Cause: Default 30s too short.
+Solution: `--timeout 60`. Simple triggers should complete in <15s.
 
 ---
 
 ## References
 
 ### Scripts (in `scripts/skill_eval/`)
-- `run_eval.py` — Trigger evaluation: tests description against query set
-- `run_loop.py` — Eval+improve loop: automated description optimization
-- `improve_description.py` — Single-shot description improvement via Claude API
-- `generate_report.py` — HTML report from loop output
-- `aggregate_benchmark.py` — Benchmark aggregation from grading results
-- `quick_validate.py` — Structural validation of SKILL.md
+- `run_eval.py` -- Trigger evaluation
+- `run_loop.py` -- Eval+improve loop
+- `improve_description.py` -- Single-shot description improvement
+- `generate_report.py` -- HTML report from loop output
+- `aggregate_benchmark.py` -- Benchmark aggregation
+- `quick_validate.py` -- Structural validation
 
 ### Bundled Agents (in `skills/skill-eval/agents/`)
-- `grader.md` — Evaluates assertions against execution outputs
-- `comparator.md` — Blind A/B comparison of two outputs
-- `analyzer.md` — Post-hoc analysis of why one version beat another
+- `grader.md` -- Evaluates assertions against outputs
+- `comparator.md` -- Blind A/B comparison
+- `analyzer.md` -- Post-hoc analysis of winners
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/schemas.md` — JSON schemas for evals.json, grading.json, benchmark.json
-- `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md` — Self-improvement loop protocol: variant generation, blind A/B testing, promotion criteria
-- `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md` — Head-to-head bake-off protocol: rubric construction, anti-rationalization gate, philosophy-filtered fold-list, Feynman worked example
+- `${CLAUDE_SKILL_DIR}/references/schemas.md` -- JSON schemas for evals/grading/benchmark
+- `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md` -- Self-improvement protocol
+- `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md` -- Bake-off protocol with Feynman worked example

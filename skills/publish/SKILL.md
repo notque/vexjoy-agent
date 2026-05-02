@@ -96,11 +96,9 @@ routing:
 
 # Publish Skill
 
-Umbrella skill for the content-publishing pipeline. Routes to the correct reference based on the intent requested: outline a post, run a pre-publication check, optimize SEO, bulk-edit posts, audit links, audit images, manage taxonomy, or upload to WordPress.
+Umbrella skill for content-publishing pipeline. Routes to the correct reference based on intent.
 
 ## Routing
-
-Detect the user's intent and load the appropriate reference file:
 
 | Intent | Trigger phrases | Reference |
 |--------|----------------|-----------|

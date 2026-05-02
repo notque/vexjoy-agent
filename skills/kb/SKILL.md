@@ -41,11 +41,11 @@ routing:
 
 # KB Skill
 
-Umbrella skill for knowledge base operations on `research/{topic}/` wikis. Routes to the correct reference based on the intent requested.
+Umbrella skill for knowledge base operations on `research/{topic}/` wikis.
 
 ## Routing
 
-Detect the user's intent and load the appropriate reference file:
+Detect intent and load the appropriate reference:
 
 | Intent | Trigger phrases | Reference |
 |--------|----------------|-----------|

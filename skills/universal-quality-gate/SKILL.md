@@ -22,21 +22,16 @@ routing:
 
 # Universal Quality Gate Skill
 
-Language-agnostic code quality checking system. Automatically detects project languages via marker files and runs appropriate linters, formatters, and static analysis tools for each detected language.
+Language-agnostic code quality checking. Auto-detects project languages via marker files and runs appropriate linters, formatters, and static analysis.
 
-## Overview
-
-This skill implements a **Detect, Check, Report** pattern for multi-language code quality enforcement:
-1. Auto-detect languages by scanning for marker files (go.mod, package.json, pyproject.toml, Cargo.toml, etc.)
-2. Run language-specific lint, format, type-check, and security tools
-3. Report complete results with graceful degradation for unavailable tools
+**Pattern**: Detect, Check, Report.
 
 **Key Principles:**
-- **Read repository CLAUDE.md files first** — Project instructions override default behaviors
-- **Only run configured tools** — Do not add new tools, languages, or checks unless explicitly requested. Keep quality checks focused on what is already defined in language_registry.json.
-- **Show complete output** — Display full linter output, never summarize as "no issues"
-- **Graceful degradation** — Skip unavailable tools without failing the entire gate
-- **Fail only on required tools** — Only return non-zero exit if required tool failures occur
+- Read repository CLAUDE.md first -- project instructions override defaults
+- Only run configured tools -- do not add new tools or checks unless explicitly requested
+- Show complete output -- never summarize as "no issues"
+- Graceful degradation -- skip unavailable tools without failing the gate
+- Fail only on required tools
 
 ---
 
@@ -59,47 +54,38 @@ This skill implements a **Detect, Check, Report** pattern for multi-language cod
 
 ### Step 1: Execute Quality Gate
 
-Run the quality gate check against the current project:
-
 ```bash
 python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py
 ```
 
-This command automatically:
-- Detects all languages in the project by scanning for marker files
-- Runs language-specific tools for each detected language
-- Reports full output with file paths and line numbers
-- Returns zero exit code if all required tools pass
+Auto-detects languages, runs tools, reports full output with file paths and line numbers, returns zero if all required tools pass.
 
 ### Step 2: Choose Your Flow
 
-**For pre-commit validation** (fastest):
+**Pre-commit** (fastest):
 ```bash
 python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
 ```
-Checks only git-staged files, enabling rapid feedback on recent changes.
 
-**For auto-fixing** (when issues are found):
+**Auto-fix** (when issues found):
 ```bash
 python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --fix
 ```
-Auto-corrects fixable issues (formatting, imports, etc.), then re-run Step 1 to verify.
+Then re-run Step 1 to verify.
 
-**For focused checking** (single language):
+**Single language**:
 ```bash
 python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
 ```
-Narrows scope when debugging language-specific issues.
 
-**For verbose details**:
+**Verbose**:
 ```bash
 python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py -v
 ```
-Shows expanded diagnostic output for troubleshooting.
 
 ### Step 3: Interpret Results
 
-**PASSED output:**
+**PASSED:**
 ```
 ============================================================
  Quality Gate: PASSED
@@ -117,9 +103,9 @@ Tool Results:
 
 Quality gate passed: 4/5 tools OK (1 skipped)
 ```
-Gate passes when all required tools succeed. Skipped optional tools do not block.
+Skipped optional tools do not block.
 
-**FAILED output:**
+**FAILED:**
 ```
 ============================================================
  Quality Gate: FAILED
@@ -142,63 +128,25 @@ Pattern Matches:
 
 Quality gate failed: 2 tool(s) reported issues, 1 error pattern(s)
 ```
-Review marked failures [X] first. Pattern matches [WARNING] are informational.
+Review [X] failures first. [WARNING] pattern matches are informational.
 
 ### Step 4: Resolve Issues
 
-**For auto-fixable issues:**
-1. Run `python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --fix`
-2. Review changes with `git diff` to verify correctness
-3. Re-run Step 1 to confirm all checks pass
-4. Commit with message documenting the fixes
+**Auto-fixable**: Run with `--fix`, review with `git diff`, re-run Step 1, commit.
 
-**For manual fixes:**
-1. Review each issue line-by-line in the output
-2. Edit files to correct the reported problems
-3. Re-run Step 1 to verify fixes
-4. Commit changes
+**Manual**: Review each issue, edit files, re-run Step 1, commit.
 
 ### Step 5: Commit
 
-Once quality gate passes with zero required-tool failures:
-1. Run project tests to catch logic regressions
-2. Commit with descriptive message
-3. Proceed to PR/merge workflow
-
----
-
-## Common Workflows
-
-**Pre-commit validation (fastest path):**
-```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
-# If fails → fix issues → re-run
-# If passes → git commit
-```
-
-**Full repo audit:**
-```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py
-# Review all findings by language
-# Fix by category: required failures → warnings → patterns
-# Re-run after each batch of fixes
-```
-
-**Language-specific validation:**
-```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
-# Use when debugging a specific language's toolchain
-# Narrows output and speeds iteration
-```
+Once gate passes: run project tests, commit with descriptive message, proceed to PR/merge.
 
 ---
 
 ## Extending with New Languages
 
-To add language support without editing the script, modify the language registry:
+Modify `hooks/lib/language_registry.json`:
 
 ```json
-// hooks/lib/language_registry.json
 {
   "new_language": {
     "extensions": [".ext"],
@@ -215,60 +163,39 @@ To add language support without editing the script, modify the language registry
 }
 ```
 
-The quality gate script automatically detects and uses new registry entries on next run.
+Automatically detected on next run.
 
 ---
 
 ## Error Handling
 
 ### Error: "No files to check"
-**Cause**: No changed files detected or no language markers found in project
-**Solution**:
-1. Verify you are in the correct project directory
-2. Check that marker files exist (go.mod, package.json, pyproject.toml, etc.)
-3. If checking staged files with `--staged`, ensure files are staged with `git add`
-4. For empty projects, this is expected behavior — add source files first
+Cause: No changed files or no language markers found.
+Solution: Verify correct directory. Check marker files exist. If using `--staged`, ensure files are staged. Empty projects: expected -- add source files first.
 
 ### Error: "Tool not found" / "Required tool not installed"
-**Cause**: A required linter tool is not installed on the system
-**Solution**:
-1. Identify which tool is missing from the output (e.g., golangci-lint, ruff)
-2. Install the tool using your package manager:
-   - Python: `pip install ruff mypy bandit`
-   - Go: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
-   - JavaScript: `npm install --save-dev eslint biome`
-   - Rust: `cargo install clippy` (usually pre-installed with rustup)
-3. Re-run the quality gate to verify installation
-4. **Alternative**: Mark the tool as optional in `language_registry.json` if you cannot install it
+Cause: Required linter not installed.
+Solution: Install the tool:
+- Python: `pip install ruff mypy bandit`
+- Go: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
+- JavaScript: `npm install --save-dev eslint biome`
+- Rust: `cargo install clippy`
+
+Alternative: Mark tool as optional in `language_registry.json`.
 
 ### Error: "Command timed out"
-**Cause**: Tool taking longer than 60-second timeout (usually large file sets or performance issues)
-**Solution**:
-1. Use `--staged` to check only changed files instead of the entire project
-2. Use `--lang` to check one language at a time
-3. Check for generated files or very large files causing slowdown — add them to .gitignore
-4. Verify your system has adequate disk I/O (slow disks can cause timeouts)
+Cause: Tool exceeds 60s timeout.
+Solution: Use `--staged` for changed files only, `--lang` for single language, check for large generated files (.gitignore them).
 
 ### Error: "Configuration file conflict"
-**Cause**: Multiple conflicting linter configurations in the project (e.g., .eslintrc and biome.json)
-**Solution**:
-1. Check which tools the project actually uses (review package.json, go.mod, etc.)
-2. Identify the unused tool in `language_registry.json`
-3. Mark it as optional or disable it by removing it from the registry
-4. Consult the project's CLAUDE.md for tool preferences — project preferences override defaults
-5. Re-run to confirm conflict is resolved
+Cause: Multiple conflicting linter configs (e.g., .eslintrc and biome.json).
+Solution: Check which tools the project uses. Mark unused tool as optional or disable it. Consult CLAUDE.md for preferences.
 
-### Pattern Match Warnings (not failures)
-**Pattern Matches** like "Silent exception handler" or "Debug print" are informational warnings. They do not fail the gate. Review them and decide whether to fix:
-- `[WARNING]` entries identify anti-patterns but don't block commits
-- Use `--no-patterns` to skip pattern scanning if these are not relevant
-- Manually fix patterns that represent actual problems in your code
+### Pattern Match Warnings
+`[WARNING]` entries are informational, not gate failures. Use `--no-patterns` to skip pattern scanning.
 
-### Graceful Degradation (Skipped Tools)
-When a tool is marked optional and not installed:
-- Tool appears as `[-] language/tool: skipped (Optional tool not installed)`
-- Gate still passes because the tool is not required
-- If you need that tool's checks, install it and re-run
+### Graceful Degradation
+Optional tools appear as `[-] skipped`. Gate still passes. Install tool and re-run if checks needed.
 
 ---
 
@@ -285,20 +212,15 @@ skills/universal-quality-gate/
     run_quality_gate.py  # Skill entry point (thin wrapper)
 ```
 
-This skill uses the shared quality gate library from `hooks/lib/` for on-demand code quality checking.
+Uses shared quality gate library from `hooks/lib/`.
 
 ---
 
 ## References
 
-**Multi-language linting**: Language configurations in `hooks/lib/language_registry.json`
+- Language configurations: `hooks/lib/language_registry.json`
+- `code-linting`: Single-language lint/format
+- `systematic-code-review`: Comprehensive review beyond linting
+- `test-driven-development`: Full validation with tests
 
-**Related skills**:
-- Use `code-linting` for single-language lint/format tasks
-- Use `systematic-code-review` for comprehensive code review beyond linting
-- Use `test-driven-development` for full validation with tests
-
-**Key principle**: Quality gates catch syntax and style issues. They do not replace:
-- Unit and integration tests (logic errors, race conditions)
-- Code review (architectural problems, API design)
-- Domain-specific validation (business logic, performance)
+Quality gates catch syntax and style issues. They do not replace unit/integration tests, code review, or domain-specific validation.
