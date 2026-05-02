@@ -139,7 +139,7 @@ Note: schedule uses 2:07 AM (off-minute) per cron best practice — avoids load 
 
 ## Wrapper script details
 
-`scripts/auto-dream-cron.sh` follows the established headless cron pattern (see `scripts/reddit-automod-cron.sh`):
+`scripts/auto-dream-cron.sh` follows the established headless cron pattern (see `skills/reddit-moderate/scripts/reddit-automod-cron.sh`):
 - `flock` lockfile prevents concurrent runs
 - `--permission-mode auto` (never `--dangerously-skip-permissions`)
 - `--max-budget-usd 3.00` caps spend per run
