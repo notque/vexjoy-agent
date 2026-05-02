@@ -1,7 +1,7 @@
 # Rive Animation Library Reference
 <!-- Loaded by rive-skeletal-animator when task involves: animation set design, state machine inputs, clip durations, idle/attack/hit/block animations, timing sync with CombatEngine, state transitions -->
 
-The standard wrestling animation set covers the complete combat lifecycle: entering the ring, fighting, reacting, and finishing. Every clip in this library maps to a CombatEngine event. Durations are non-negotiable — they match game logic timing windows.
+Standard wrestling animation set covering the complete combat lifecycle. Every clip maps to a CombatEngine event. Durations match game logic timing windows exactly.
 
 ## Standard Animation Set
 
@@ -14,17 +14,17 @@ The standard wrestling animation set covers the complete combat lifecycle: enter
 | `hit_react` | One-Shot | 0.4s | Trigger: `hit` | Stagger from damage |
 | `block` | One-Shot (hold) | 0.3s | Boolean: `isBlocking` | Guard arms up |
 | `block_release` | One-Shot | 0.2s | (auto-chains when isBlocking = false) | Drop guard |
-| `signature_windup` | One-Shot | 0.5s | Trigger: `signature` | Dramatic power move setup |
-| `finisher_windup` | One-Shot | 0.8s | Trigger: `finisher` | Full-screen worthy build |
+| `signature_windup` | One-Shot | 0.5s | Trigger: `signature` | Power move setup |
+| `finisher_windup` | One-Shot | 0.8s | Trigger: `finisher` | Full-screen build |
 | `entrance` | One-Shot | 1.5s | Trigger: `entrance` | Walk in from side |
 | `victory` | Loop | 2s | Trigger: `victory` | Celebration loop |
 | `defeat` | One-Shot (hold) | 1s | Trigger: `defeat` | Collapse and hold |
 
-**One-Shot (hold)** means the animation plays once and stays on its last frame until the state machine transitions away. Used for block hold and defeat slump.
+**One-Shot (hold)**: Plays once, stays on last frame until state machine transitions away.
 
 ## State Machine Design
 
-The state machine is named `CombatStateMachine` in the Rive Editor. All character components reference this exact name.
+State machine name: `CombatStateMachine` (all components reference this exact name).
 
 ### Inputs
 
@@ -34,42 +34,39 @@ The state machine is named `CombatStateMachine` in the Rive Editor. All characte
 | `hit` | Trigger | — | Fires hit_react |
 | `signature` | Trigger | — | Fires signature_windup |
 | `finisher` | Trigger | — | Fires finisher_windup |
-| `entrance` | Trigger | — | Fires entrance animation |
+| `entrance` | Trigger | — | Fires entrance |
 | `victory` | Trigger | — | Fires victory loop |
 | `defeat` | Trigger | — | Fires defeat and holds |
 | `isBlocking` | Boolean | false | Drives block hold |
 
-Number inputs (optional, for future use):
+Optional number inputs:
 | Input name | Type | Default | Purpose |
 |------------|------|---------|---------|
-| `health` | Number | 100 | Drive visual health cues (stagger intensity) |
-| `angerMeter` | Number | 0 | Drive visual intensity at high anger |
+| `health` | Number | 100 | Visual health cues (stagger intensity) |
+| `angerMeter` | Number | 0 | Visual intensity at high anger |
 
 ### State Graph
 
 ```
-                    ┌─────────────────────────────────────────────────────┐
-                    │                                                      │
-                    ▼                                                      │
-              ┌─────────┐                                                  │
-    entry ──► │  idle   │ ◄── (return from all one-shot clips)            │
-              └─────────┘                                                  │
-                  │ ▲                                                       │
-     attack T │   │ (auto after recover)                                  │
-                  ▼                                                        │
-         ┌──────────────────┐                                             │
-         │  attack_windup   │                                             │
-         └─────────┬────────┘                                             │
-                   │ (auto-chain, 0.3s)                                   │
-                   ▼                                                       │
-         ┌──────────────────┐                                             │
-         │  attack_strike   │                                             │
-         └─────────┬────────┘                                             │
-                   │ (auto-chain, 0.2s)                                   │
-                   ▼                                                       │
-         ┌──────────────────┐                                             │
-         │ attack_recover   │─────────────────────────────────────────────┘
-         └──────────────────┘ (returns to idle)
+              ┌─────────┐
+    entry ──► │  idle   │ ◄── (return from all one-shot clips)
+              └─────────┘
+                  │ ▲
+     attack T │   │ (auto after recover)
+                  ▼
+         ┌──────────────────┐
+         │  attack_windup   │
+         └─────────┬────────┘
+                   │ (auto-chain, 0.3s)
+                   ▼
+         ┌──────────────────┐
+         │  attack_strike   │
+         └─────────┬────────┘
+                   │ (auto-chain, 0.2s)
+                   ▼
+         ┌──────────────────┐
+         │ attack_recover   │──► idle
+         └──────────────────┘
 
      hit T ──► hit_react ──► idle (0.4s)
      isBlocking=T ──► block (hold) ──► [isBlocking=F] ──► block_release ──► idle
@@ -80,9 +77,9 @@ Number inputs (optional, for future use):
      defeat T ──► defeat (hold)
 ```
 
-**Priority**: `hit_react` should interrupt any non-terminal state. In Rive, set `hit_react` transitions as "Any State → hit_react" with the trigger condition. This ensures a hit during windup or strike still plays the hit react.
+**Priority**: `hit_react` interrupts any non-terminal state. Set as "Any State → hit_react" with trigger condition.
 
-**Exception**: Block state should not be interrupted by hit_react when `isBlocking = true` — a successful block means no stagger. Use a condition: `hit AND NOT isBlocking → hit_react`.
+**Exception**: Block not interrupted by hit_react when `isBlocking = true`. Condition: `hit AND NOT isBlocking → hit_react`.
 
 ## Animation Detail Specifications
 
@@ -94,9 +91,9 @@ Number inputs (optional, for future use):
 | 0–90 | Chest | Y translate | 0 → 2 → 0 | Breathing |
 | 0–90 | Root | X translate | 0 → 3 → 0 → -3 → 0 | Weight shift |
 | 0–90 | Head | Z rotate | 0 → 1° → 0 → -1° → 0 | Head bob |
-| 0–90 | LowerArm_L | Z rotate | 0 → 3° → 0 | Subtle fist tension |
+| 0–90 | LowerArm_L | Z rotate | 0 → 3° → 0 | Fist tension |
 
-All curves: ease-in-out. No linear interpolation in idle — it looks mechanical.
+All curves: ease-in-out. No linear interpolation in idle.
 
 ### attack_windup (0.3s = 18 frames at 60fps)
 
@@ -106,7 +103,7 @@ All curves: ease-in-out. No linear interpolation in idle — it looks mechanical
 | 6 | UpperArm_R | Z rotate | +40° (pull back) |
 | 6 | LowerArm_R | Z rotate | -20° (cock fist) |
 | 6 | Spine1 | Z rotate | -8° (lean into windup) |
-| 18 | All | — | Hold pose for strike transition |
+| 18 | All | — | Hold for strike transition |
 
 ### attack_strike (0.2s = 12 frames)
 
@@ -115,62 +112,58 @@ All curves: ease-in-out. No linear interpolation in idle — it looks mechanical
 | 0 | All | — | Windup end pose |
 | 4 | UpperArm_R | Z rotate | -30° (fast forward) |
 | 4 | LowerArm_R | Z rotate | +40° (extend punch) |
-| 4 | Root | X translate | +20px (lunge forward) |
+| 4 | Root | X translate | +20px (lunge) |
 | 4 | Spine1 | Z rotate | +15° (commit weight) |
 
-Strike frame 4 is the impact frame — this is where hit detection should register in CombatEngine. The animation communicates impact; the engine confirms it.
-
-Curve: very fast ease-in (strike is sudden), ease-out from frame 4 onward.
+Frame 4 = impact frame for CombatEngine hit detection. Curve: fast ease-in (sudden strike), ease-out from frame 4.
 
 ### attack_recover (0.3s = 18 frames)
 
-Lerp from strike pose back to idle guard pose. Ease-out — the recovery is controlled, not snappy.
+Lerp from strike to idle guard pose. Ease-out.
 
 ### hit_react (0.4s = 24 frames)
 
 | Frame | Bone | Property | Value |
 |-------|------|----------|-------|
 | 0 | All | — | Current pose |
-| 4 | Head | Z rotate | -25° (head snap back) |
-| 4 | Spine1 | Z rotate | -15° (body lean back) |
-| 4 | Root | X translate | -15px (stagger back) |
+| 4 | Head | Z rotate | -25° (snap back) |
+| 4 | Spine1 | Z rotate | -15° (body lean) |
+| 4 | Root | X translate | -15px (stagger) |
 | 4 | UpperArm_L/R | Z rotate | +20° (arms fly up) |
 | 14 | Root | X translate | -25px (stagger peak) |
 | 24 | All | — | Near-idle pose |
 
-The original Framer Motion hit react was `scale: [1, 0.85, 1.05, 1]` over 0.5s. The Rive version replaces scale with body lean — bone-driven motion reads as more impactful than a CSS scale.
+Replaces original Framer Motion `scale: [1, 0.85, 1.05, 1]` with bone-driven body lean.
 
-**Red flash**: Framer Motion also added a red overlay CSS effect. This is not replicated in Rive — implement it as a separate absolutely-positioned div overlaid on the RiveComponent canvas, triggered by the same `hit` Zustand action.
+**Red flash**: Not in Rive — implement as separate absolutely-positioned div overlaid on canvas, triggered by same `hit` Zustand action.
 
 ### block (hold state)
 
 | Frame | Bone | Property | Value |
 |-------|------|----------|-------|
 | 0 | All | — | Idle pose |
-| 12 | UpperArm_L/R | Z rotate | -60° (arms cross in front) |
-| 12 | LowerArm_L/R | Z rotate | +45° (forearms up, vertical) |
+| 12 | UpperArm_L/R | Z rotate | -60° (arms cross) |
+| 12 | LowerArm_L/R | Z rotate | +45° (forearms up) |
 | 12 | Head | Z rotate | -5° (chin tuck) |
-| 12 | Spine1 | Z rotate | +5° (slight forward lean) |
+| 12 | Spine1 | Z rotate | +5° (forward lean) |
 
-Hold at frame 12 until `isBlocking` becomes false, then chain to `block_release`.
+Hold at frame 12 until `isBlocking = false`, then chain to `block_release`.
 
 ### entrance (1.5s = 90 frames)
 
-Character walks in from the right side (player) or left side (enemy). Root X starts at ±300px off-screen, translates to 0 over 60 frames, then plays a short pose flex for 30 frames.
-
-Walking motion: alternating leg swing on UpperLeg and LowerLeg bones, counter-rotating arms, slight torso rotation.
+Root X starts ±300px off-screen, translates to 0 over 60 frames, then 30-frame pose flex. Walking: alternating leg swing, counter-rotating arms, slight torso rotation.
 
 ### victory (2s loop)
 
-Fist pump: UpperArm_R raises, LowerArm_R extends overhead, whole body bounces slightly via Root Y.
+Fist pump: UpperArm_R raises, LowerArm_R extends overhead, body bounces via Root Y.
 
 ### defeat (1s, hold)
 
-Character slumps: Root Y drops -30px, Spine1 bends forward +30°, Head drops -20°, arms hang (UpperArm rotate +60°). Hold on final frame.
+Slump: Root Y -30px, Spine1 +30°, Head -20°, arms hang. Hold final frame.
 
 ## Timing Sync with CombatEngine
 
-The game engine must not dispatch the next action until the current animation is in an interruptible state. Use `onStateChange` to signal readiness:
+Use `onStateChange` to signal animation readiness — eliminates `setTimeout` drift:
 
 ```ts
 // In combatStore.ts
@@ -197,23 +190,16 @@ const { RiveComponent } = useRive({
 ```ts
 // In CombatEngine.ts
 async function executeAttack(attackerId: 'player' | 'enemy') {
-  // Fire the attack animation trigger
   store.dispatchAction('attack');
-
-  // Wait for animation to complete (returns to idle)
-  await waitForAnimationComplete(attackerId); // polls store flag
-
-  // Now safe to evaluate the next game state
+  await waitForAnimationComplete(attackerId);
   resolveAttackDamage();
 }
 ```
 
-This eliminates `setTimeout(resolveAttackDamage, 800)` patterns that drift when the game frame rate is inconsistent.
-
 ## State Machine Patterns to Watch
 
-**Dead-end states**: Every state must have a transition back to idle. Test this by manually triggering each input in the Rive Editor's preview — if any state doesn't return to idle, add the transition.
+**Dead-end states**: Every state must transition back to idle. Test each input in Rive Editor preview.
 
-**Race condition on rapid inputs**: If `attack` fires twice in 100ms, the second trigger may interrupt mid-windup. Decide policy in CombatEngine: either debounce triggers (reject new inputs while animation is active) or accept interruption (second attack starts from wherever the first was). The `animationComplete` flag above implements the debounce approach.
+**Rapid input race condition**: If `attack` fires twice in 100ms, second trigger may interrupt mid-windup. Policy: debounce via `animationComplete` flag (reject inputs while active) or accept interruption.
 
-**Blocking + hit_react**: When `isBlocking = true`, don't trigger `hit_react`. The state machine condition should be `hit AND NOT isBlocking → hit_react`. A successful block has no stagger reaction; consider a separate subtle `block_hit` clip (small shudder, 0.15s) for physical feedback on a blocked strike.
+**Blocking + hit_react**: When `isBlocking = true`, don't trigger `hit_react`. Consider separate `block_hit` clip (0.15s shudder) for feedback on blocked strikes.

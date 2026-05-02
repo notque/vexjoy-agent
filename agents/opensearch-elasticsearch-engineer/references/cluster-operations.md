@@ -12,7 +12,7 @@ description: Cluster health, shard allocation, capacity planning, rolling upgrad
 
 ## Overview
 
-Cluster operations have asymmetric consequences: misconfigured heap or shard counts are silent until load spikes. Yellow cluster status is tolerable; red is data loss risk. The most dangerous operations — DELETE index, update live mapping, shrink shards — are irreversible without snapshots. Every cluster configuration change requires a before/after snapshot.
+Misconfigured heap or shard counts are silent until load spikes. Yellow is tolerable; red is data loss risk. DELETE index, live mapping updates, and shrink are irreversible without snapshots.
 
 ---
 
@@ -63,7 +63,7 @@ PUT /_cluster/settings
 }
 ```
 
-**Why**: `GET /_cluster/allocation/explain` tells you exactly why a shard won't assign (disk full, no eligible node, node excluded, etc.). Guessing without this leads to misdiagnosis.
+**Why**: `allocation/explain` tells exactly why a shard won't assign. Guessing without this leads to misdiagnosis.
 
 ---
 
@@ -83,7 +83,7 @@ GET /_nodes/stats?filter_path=nodes.*.jvm.gc.collectors.*.collection_time_in_mil
 # GC time > 25% of wall clock = heap pressure
 ```
 
-**Why**: JVM uses compressed ordinary object pointers (compressed OOPs) below 32GB heap. Above 32GB (specifically above ~31GB to leave OS headroom), JVM switches to 64-bit pointers — pointer size doubles, effective heap capacity drops by 30%. Set to exactly 31g maximum; verify with `GET /_nodes` that it took effect.
+**Why**: JVM uses compressed OOPs below ~31GB. Above that, pointer size doubles, effective capacity drops 30%. Set max 31g; verify with `GET /_nodes`.
 
 ---
 
@@ -123,7 +123,7 @@ GET /_cluster/health?wait_for_status=green&timeout=300s
 # 7. Repeat for each node
 ```
 
-**Why**: Disabling allocation before stopping a node prevents shard recovery storms. Without this, the cluster starts recovering replicas to other nodes as soon as the node goes down — only to cancel and re-recover when it comes back up. This wastes network and CPU.
+**Why**: Prevents shard recovery storms. Without this, cluster recovers replicas to other nodes then cancels when the node returns.
 
 ---
 
@@ -166,7 +166,7 @@ PUT /_slm/policy/nightly-snapshots
 GET /_snapshot/backups/_all?pretty&s=start_time:desc
 ```
 
-**Why**: `include_global_state: true` captures index templates, ILM policies, and cluster settings — not just data. Without global state, a full cluster restore requires manual recreation of all configuration.
+**Why**: `include_global_state: true` captures templates, ILM policies, cluster settings. Without it, full restore requires manual config recreation.
 
 ---
 
@@ -195,9 +195,9 @@ for nid, n in data['nodes'].items():
 -Xmx64g  # 64GB — loses compressed OOPs
 ```
 
-**Why this matters**: Above ~31GB, JVM object pointers are 64-bit instead of 32-bit compressed. Memory per object increases significantly. The JVM now needs a larger heap to hold the same amount of data. A 64GB heap may hold less effective data than a properly configured 31GB heap. GC pauses also increase with heap size.
+**Why this matters**: Above ~31GB, 64-bit pointers increase memory per object. A 64GB heap may hold less effective data than 31GB. GC pauses increase with heap size.
 
-**Preferred action**: Split heap across two nodes rather than increase past 31GB. Two nodes with 15GB heap each outperform one node with 31GB.
+**Preferred action**: Split across two nodes rather than exceed 31GB.
 
 ---
 
@@ -221,7 +221,7 @@ PUT /_cluster/settings
 # Maintenance completes, engineer leaves — setting persists
 ```
 
-**Why this matters**: With `allocation.enable: none`, no new shard assignments occur. Adding a new node does nothing — no shards migrate to it. A data node failure causes replicas to become unassigned but not recovered. The cluster silently degrades toward red status.
+**Why this matters**: With `allocation.enable: none`, no shard assignments occur. New nodes receive nothing. Node failures cause unrecovered replicas. Cluster silently degrades to red.
 
 **Preferred action**: After every maintenance operation, verify allocation is re-enabled:
 ```bash
@@ -252,9 +252,9 @@ PUT /logs-2024-01
 }
 ```
 
-**Why this matters**: A node failure with 0 replicas causes data loss for all primary shards on that node. Cluster status goes RED. Documents indexed after the last snapshot are permanently lost.
+**Why this matters**: Node failure + 0 replicas = data loss for all primaries on that node. Cluster goes RED.
 
-**Preferred action**: `number_of_replicas: 1` minimum in production. Even for a single-node dev cluster, set to 0 explicitly with a comment explaining it's dev-only — don't let it be the default.
+**Preferred action**: `number_of_replicas: 1` minimum in production. Dev clusters: set 0 explicitly with comment.
 
 ---
 
@@ -280,7 +280,7 @@ PUT /tiny-index
 # 5 shards of 100MB each — massive overhead for tiny data
 ```
 
-**Why this matters**: Each shard has overhead: file descriptors, JVM memory in the shard metadata, cluster state size. 1000 shards of 1MB each consume as much overhead as 1000 shards of 50GB each — but the 1MB shards return results 100x slower due to cross-shard coordination cost on empty shards.
+**Why this matters**: Each shard has fixed overhead (file descriptors, JVM memory, cluster state). 1000 shards of 1MB = same overhead as 1000 of 50GB, but 100x slower from cross-shard coordination.
 
 **Preferred action**: `number_of_shards: 1` for indices < 5GB. Use rollover for growing indices rather than pre-allocating many shards.
 

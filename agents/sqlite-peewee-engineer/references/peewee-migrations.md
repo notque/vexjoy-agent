@@ -8,11 +8,7 @@
 
 ## Overview
 
-SQLite's ALTER TABLE support is intentionally minimal — before SQLite 3.35, only `ADD COLUMN`
-and `RENAME TABLE` were available. All other schema changes require the "12-step" table rebuild
-procedure. Peewee's `playhouse.migrate` abstracts this correctly, but only if you use it.
-Manual `execute_sql()` schema changes are the primary source of environment drift and broken
-rollbacks in SQLite applications.
+Before SQLite 3.35, only `ADD COLUMN` and `RENAME TABLE` were available. All other schema changes require table rebuild. `playhouse.migrate` handles this correctly. Manual `execute_sql()` schema changes cause environment drift and broken rollbacks.
 
 ---
 
@@ -56,16 +52,13 @@ def run_migration(db):
         db.execute_sql("UPDATE user SET bio = '' WHERE bio IS NULL")
 ```
 
-**Why**: SQLite requires all existing rows to satisfy the column's default. Adding a NOT NULL
-column without a default fails on non-empty tables. The two-step (add nullable, backfill, then
-constrain) is the safe pattern for any non-empty production table.
+**Why**: SQLite requires existing rows to satisfy the column's default. NOT NULL without default fails on non-empty tables. Two-step (add nullable, backfill, constrain) is the safe pattern.
 
 ---
 
 ### Table Rebuild for Unsupported Changes
 
-For changes SQLite can't do directly (changing column type, removing NOT NULL, adding FK),
-use the explicit 12-step rebuild. Playhouse does this internally for some operations.
+For changes SQLite can't do directly (column type, NOT NULL removal, FK addition), use explicit table rebuild:
 
 ```python
 def rebuild_table_with_new_schema(db):
@@ -100,16 +93,13 @@ def rebuild_table_with_new_schema(db):
         db.execute_sql('CREATE INDEX idx_user_email ON user(email)')
 ```
 
-**Why**: SQLite's ALTER TABLE cannot change column types, remove NOT NULL, or add FK constraints
-to existing tables. The rebuild copies data while applying transformations, then atomically
-swaps the table. All steps in one `db.atomic()` block ensure the table never exists in a
-partial state.
+**Why**: SQLite ALTER TABLE cannot change types, remove NOT NULL, or add FK constraints. Rebuild copies data with transforms, atomically swaps. All steps in one `db.atomic()` block.
 
 ---
 
 ### Tracking Migration State
 
-A simple migration version table avoids re-running migrations on restart.
+Simple version table prevents re-running migrations:
 
 ```python
 from peewee import Model, CharField, DateTimeField
@@ -148,7 +138,7 @@ def run_migrations(db):
 
 ### Data Migration with Progress Tracking
 
-For large table transforms, batch updates avoid locking the database.
+Batch updates avoid long write locks:
 
 ```python
 def backfill_in_batches(db, batch_size=1000):
@@ -174,8 +164,7 @@ def backfill_in_batches(db, batch_size=1000):
         print(f'Backfilled {min(offset, total)}/{total} rows')
 ```
 
-**Why**: Long-running write transactions block all other writes in SQLite (WAL mode) or all
-reads AND writes (default journal mode). Batching limits each lock window to `batch_size` rows.
+**Why**: Long write transactions block other writes (WAL) or all reads AND writes (default journal). Batching limits each lock window.
 
 ---
 
@@ -200,14 +189,9 @@ db.execute_sql("ALTER TABLE user ADD COLUMN phone TEXT")
 db.execute_sql("DROP TABLE IF EXISTS temp_data")
 ```
 
-**Why this matters**: Raw schema SQL skips Playhouse's pre-flight checks (e.g., does column already
-exist?), produces no migration record, and on SQLite may silently succeed when the operation
-has unintended side effects (like dropping all triggers on a table).
+**Why this matters**: Raw SQL skips Playhouse pre-flight checks, produces no migration record, and may silently drop triggers on the table.
 
 **Preferred action:**
-
-Use `playhouse.migrate` for all schema changes so operations are tracked, pre-flight checked,
-and wrapped in a single atomic call:
 
 ```python
 from playhouse.migrate import SqliteMigrator, migrate
@@ -236,14 +220,9 @@ rg 'add_column\([^)]*\)' --type py | grep -v 'null=True|default='
 migrate(migrator.add_column('post', 'status', CharField()))
 ```
 
-**Why this matters**: SQLite requires all existing rows to have a valid value for the new column.
-A non-null column with no default fails with `OperationalError: Cannot add a NOT NULL column
-with default value NULL`.
+**Why this matters**: Non-null column with no default fails with `OperationalError: Cannot add a NOT NULL column with default value NULL`.
 
-**Preferred action:**
-
-Add the column as nullable, backfill existing rows, then enforce the constraint via a table
-rebuild in a separate migration if strictly required:
+**Preferred action:** Add nullable, backfill, then constrain via table rebuild in a later migration:
 
 ```python
 # Step 1: Add as nullable
@@ -274,14 +253,9 @@ rg 'migrator\.drop_column\(' --type py
 migrate(migrator.drop_column('user', 'legacy_field'))
 ```
 
-**Why this matters**: `DROP COLUMN` was not supported in SQLite before version 3.35 (released 2021-03-12).
-Many Linux distributions ship SQLite 3.31 or earlier. Calling `drop_column()` on older SQLite
-either raises `OperationalError` or does nothing depending on Playhouse version.
+**Why this matters**: `DROP COLUMN` unsupported before SQLite 3.35 (2021-03-12). Many distros ship older versions. `drop_column()` either errors or silently does nothing.
 
-**Preferred action:**
-
-Check the SQLite version at migration time and either call `drop_column()` on 3.35+ or raise
-with a clear message directing the developer to implement a table rebuild:
+**Preferred action:** Check SQLite version, fall back to table rebuild:
 
 ```python
 import sqlite3
@@ -325,13 +299,9 @@ migrate(migrator.add_index('user', ('email',), False))               # Separate 
 # If second migrate() fails, first is committed — schema partially updated
 ```
 
-**Why this matters**: Each `migrate()` call is its own implicit transaction. If the second call fails,
-the first is already committed. The schema is now partially updated with no clean rollback path.
+**Why this matters**: Each `migrate()` is its own transaction. Second failure leaves schema partially updated with no rollback.
 
-**Preferred action:**
-
-Pass all related operations to a single `migrate()` call inside `db.atomic()` so they form
-one atomic unit:
+**Preferred action:** Single `migrate()` inside `db.atomic()`:
 
 ```python
 with db.atomic():

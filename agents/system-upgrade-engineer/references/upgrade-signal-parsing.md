@@ -8,11 +8,7 @@
 
 ## Overview
 
-Upgrade signals arrive in three forms: Claude Code release notes (feature additions, deprecations,
-breaking changes), user goal-change statements (new workflows to support), and retro-driven signals
-from the learning.db graduation queue. Each form requires a different parsing strategy. The most
-common failure is treating a feature mention as an upgrade requirement without identifying *which
-component type* is affected.
+Three signal forms: release notes, user goal-change statements, retro-driven graduation. Each needs different parsing. Common failure: treating feature mention as upgrade without identifying affected component type.
 
 ---
 

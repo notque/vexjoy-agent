@@ -85,7 +85,7 @@ Determine which phase to execute based on feature state:
    - RELEASE: Read `references/release.md`
    - END-TO-END: Read `references/pipeline.md`
 
-4. **Follow the loaded reference** exactly. Each contains full phase instructions, gates, and checkpoints.
+4. **Follow the loaded reference** exactly. Each reference contains the full phase instructions, gates, and checkpoints.
 
 ## State Conventions
 
@@ -100,7 +100,7 @@ DESIGN -> PLAN -> IMPLEMENT -> VALIDATE -> RELEASE
 design.md plan.md  impl.md   report.md  PR merged
 ```
 
-Each phase produces an artifact consumed by the next. Skipping phases is not supported.
+Each phase produces an artifact consumed by the next. Skipping phases is not supported because downstream phases depend on artifacts from earlier phases.
 
 ## Reference Loading Table
 

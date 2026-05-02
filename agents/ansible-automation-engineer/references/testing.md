@@ -1,16 +1,9 @@
 # Ansible Testing Reference
 
-> **Scope**: Molecule test scenarios, ansible-lint rules, idempotency validation, and check-mode patterns
+> **Scope**: Molecule test scenarios, ansible-lint rules, idempotency validation, check-mode patterns
 > **Version range**: Molecule 6.0+ / ansible-lint 6.0+ / ansible-core 2.14+
-> **Generated**: 2026-04-04 — verify against current Molecule and ansible-lint documentation
 
----
-
-## Overview
-
-Ansible testing has three layers that catch different failure classes: ansible-lint catches code quality and style violations before execution, check mode (`--check`) previews changes without applying them, and Molecule provides full scenario-based integration testing with real containers. Most automation breakage happens because only manual testing was done — automating these three layers catches 90% of issues before production.
-
----
+Three testing layers: ansible-lint (quality/style before execution), check mode (preview changes), Molecule (integration with real containers). Automating all three catches 90% of issues before production.
 
 ## Pattern Table
 
@@ -45,9 +38,7 @@ skip_list:
   - 'no-changed-when'  # Only if you've deliberately handled changed_when
 ```
 
-**Why**: The `production` profile enforces a stricter rule set than default. Without explicit profile selection, CI may pass with rules that flag security issues.
-
----
+`production` profile enforces stricter rules. Without it, CI may pass despite security issues.
 
 ### Molecule Scenario Structure for Role Testing
 
@@ -106,9 +97,7 @@ verifier:
         that: nginx_conf.stat.exists
 ```
 
-**Why**: `verify.yml` that only checks "did the task run" provides false confidence. Assert actual state: service running, file exists and has correct permissions, port is listening.
-
----
+Assert actual state (service running, file exists, port listening), not just "did the task run."
 
 ### Idempotency Test Pattern
 
@@ -131,9 +120,7 @@ ansible-playbook site.yml --check 2>&1 | grep -E "changed=|failed="
 # Expected: changed=0 failed=0
 ```
 
-**Why**: A role that reports `changed` on every run breaks pipeline assumptions (e.g., "if nothing changed, skip downstream steps"). Idempotency failures also indicate state corruption on repeated runs.
-
----
+A role reporting `changed` every run breaks pipeline assumptions and indicates state corruption on repeated runs.
 
 ## Pattern Catalog
 
@@ -157,9 +144,9 @@ rg -t yaml '^\s+(command|shell):' roles/ playbooks/ -A5 \
   # Missing: changed_when: false
 ```
 
-**Why this matters**: `command` and `shell` always report `changed` unless told otherwise. This breaks idempotency checks (idempotency scenario always fails), makes `--check` output noisy, and triggers handlers incorrectly.
+**Why**: `command`/`shell` always report `changed` unless told otherwise. Breaks idempotency checks, noisy `--check` output, triggers handlers incorrectly.
 
-**Preferred action**:
+**Fix**:
 ```yaml
 - name: Check disk usage
   command: df -h
@@ -197,9 +184,9 @@ grep -rn "tasks:" molecule/*/verify.yml -A5 \
       ping:
 ```
 
-**Why this matters**: Ping passing means the container is alive, not that the role worked. A role that fails to install nginx will still pass this verify.
+**Why**: Ping passing means the container is alive, not that the role worked.
 
-**Preferred action**:
+**Fix**:
 ```yaml
 ---
 - name: Verify
@@ -239,11 +226,11 @@ ls -la .ansible-lint .ansible-lint.yml ansible-lint.yml 2>/dev/null || echo "No 
 ansible-lint --list-rules 2>&1 | wc -l
 ```
 
-**Signal**: Running `ansible-lint` without config defaults to the "basic" profile, which misses production-critical rules for key management and deprecated syntax.
+**Signal**: No ansible-lint config defaults to "basic" profile, missing production-critical rules.
 
-**Why this matters**: The default profile skips rules that catch security issues (plaintext passwords, deprecated `include` vs `import_tasks`) and style issues that cause maintenance problems.
+**Why**: Default profile skips security rules (plaintext passwords, deprecated syntax).
 
-**Preferred action**:
+**Fix**:
 ```yaml
 # .ansible-lint
 profile: production
@@ -294,9 +281,7 @@ grep -rn "password:" roles/ playbooks/ group_vars/ \
   | grep -v "!vault\|_password\|#\|become_password"
 ```
 
----
-
 ## See Also
 
-- `security.md` — Vault encryption patterns and credential handling
-- `modules.md` — When to use specific modules vs command/shell
+- `security.md` — Vault encryption and credential handling
+- `modules.md` — Module selection vs command/shell

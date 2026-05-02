@@ -8,11 +8,7 @@
 
 ## Overview
 
-Peewee tests have one critical failure mode: shared database state bleeds between tests when
-models point to a module-level database instance. The standard fix is using `:memory:` SQLite
-databases per-test and binding models via `bind_ctx()`. The Playhouse `test_utils` module
-provides `test_database()` context manager for older patterns, but the `bind_ctx()` approach
-works cleanly with pytest fixtures without requiring the `playhouse.test_utils` import.
+Critical failure mode: shared database state bleeds between tests with module-level db instances. Fix: `:memory:` SQLite per-test via `bind_ctx()`. Works cleanly with pytest fixtures.
 
 ---
 
@@ -32,8 +28,7 @@ works cleanly with pytest fixtures without requiring the `playhouse.test_utils` 
 
 ### Per-Test Isolation with `bind_ctx()`
 
-Each test gets a fresh in-memory database. Models re-bind at test start, schema is dropped
-at test end. No shared state between tests.
+Fresh in-memory db per test. Models re-bind at test start, dropped at end.
 
 ```python
 import pytest
@@ -63,16 +58,13 @@ def test_post_belongs_to_user(db):
     assert post.user_id == user.id
 ```
 
-**Why**: `bind_ctx()` temporarily rebinds all model classes to the test database without
-permanently changing the model's `Meta.database`. When the context exits, models rebind to
-the original database. This is thread-safe and works with parallel test execution.
+**Why**: `bind_ctx()` temporarily rebinds models to test db without changing `Meta.database`. Thread-safe, works with parallel execution.
 
 ---
 
 ### Fixture Factories for Related Data
 
-Use factory functions inside fixtures to avoid repetitive setup and ensure consistent
-test data across related models.
+Factory functions avoid repetitive setup:
 
 ```python
 @pytest.fixture
@@ -106,9 +98,7 @@ def test_post_count_per_user(db, make_user, make_post):
 
 ---
 
-### Testing Transactions and Rollback Behavior
-
-Test that atomic() rolls back correctly on exception.
+### Testing Transactions and Rollback
 
 ```python
 def test_atomic_rollback_on_error(db):
@@ -145,8 +135,6 @@ def test_savepoint_partial_rollback(db):
 ---
 
 ### Testing Migration Scripts
-
-Verify migration scripts apply correctly against a real schema state.
 
 ```python
 import pytest
@@ -214,13 +202,9 @@ def test_user_count():
     assert User.select().count() == 0
 ```
 
-**Why this matters**: Module-level `:memory:` databases persist for the entire test session. Rows
-created in one test are visible to all subsequent tests. Test order determines results —
-passing locally but failing in CI (different ordering) is the common symptom.
+**Why this matters**: Module-level `:memory:` db persists for session. Rows bleed between tests. Passes locally, fails in CI (different ordering).
 
-**Preferred action:**
-
-Create a fresh `:memory:` database per test using a `pytest.fixture` with `bind_ctx()`:
+**Preferred action:** Fresh `:memory:` per test via `pytest.fixture` with `bind_ctx()`:
 
 ```python
 # conftest.py — CORRECT: fresh database per test
@@ -255,14 +239,9 @@ def test_delete_user():
     # Deletes from real database!
 ```
 
-**Why this matters**: Test teardown failures, CI environment errors, or parallel test runs corrupt
-the production database file. SQLite file databases have no transaction isolation between
-processes.
+**Why this matters**: Parallel runs or teardown failures corrupt the production db file.
 
-**Preferred action:**
-
-Use `:memory:` for unit tests. For integration tests that genuinely require a file path, use
-`tempfile.mkstemp()` and delete the file in fixture teardown:
+**Preferred action:** `:memory:` for unit tests. `tempfile.mkstemp()` for integration tests:
 
 ```python
 import tempfile
@@ -302,13 +281,9 @@ def test_post_without_user():
     # In production with foreign_keys=1 this raises IntegrityError
 ```
 
-**Why this matters**: SQLite disables foreign key constraints by default for backwards compatibility.
-Tests pass with invalid data that production rejects. The divergence is invisible until deploy.
+**Why this matters**: SQLite disables FK constraints by default. Tests pass with invalid data that production rejects.
 
 **Preferred action:**
-
-Always enable FK enforcement in the test database pragma so tests catch the same integrity
-errors that production would raise:
 
 ```python
 db = SqliteDatabase(':memory:', pragmas={'foreign_keys': 1})
@@ -332,13 +307,9 @@ def teardown_function():
     Post.truncate_table()
 ```
 
-**Why this matters**: `truncate_table()` clears rows but not schema state. If a test modifies a
-column (via migration test), the schema change persists. Also fails to reset SQLite
-autoincrement counters, causing ID values to grow across tests (usually harmless but causes
-confusion in count-based assertions).
+**Why this matters**: `truncate_table()` clears rows but not schema. Migration test schema changes persist. Autoincrement counters grow.
 
-**Preferred action**: Use `bind_ctx()` with `:memory:` — the database is garbage-collected between tests,
-resetting schema, data, and counters atomically.
+**Preferred action**: Use `bind_ctx()` with `:memory:` — db is garbage-collected between tests, resetting everything.
 
 ---
 

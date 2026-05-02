@@ -1,14 +1,8 @@
 # Kotlin Security & Testing Reference
 
-Deep reference for security patterns, pattern corrections, and testing methodology.
-
----
-
 ## Security
 
 ### Secrets via Environment Variables
-
-Load secrets from environment variables; keep them out of committed config files.
 
 ```kotlin
 // BAD -- hardcoded secret
@@ -25,8 +19,6 @@ val dbPassword: String = requireNotNull(System.getenv("DB_PASSWORD")) {
 ```
 
 ### Exposed DSL -- Parameterized Queries Only
-
-Use parameterized queries for all user-controlled values in database queries.
 
 ```kotlin
 // BAD -- SQL injection via string interpolation
@@ -86,7 +78,7 @@ fun Application.configureSecurity() {
 
 ### Null Safety as a Security Property
 
-The `!!` operator is not just a style violation -- it is a security vulnerability. It converts a compile-time null safety guarantee into a runtime `NullPointerException`, which can be triggered by adversarial input that causes a null to propagate from an external source. Treat any `!!` touching externally-sourced data (HTTP params, DB results, environment vars) as a critical defect.
+`!!` on externally-sourced data (HTTP params, DB results, env vars) is a security vulnerability — converts compile-time safety into runtime NPE triggerable by adversarial input. Treat as critical defect.
 
 ---
 
@@ -112,7 +104,7 @@ The `!!` operator is not just a style violation -- it is a security vulnerabilit
 
 ### Kotest Styles
 
-Choose the style that fits the context and keep it consistent within a module:
+Choose per context, keep consistent within a module:
 
 ```kotlin
 // StringSpec -- simple, flat tests

@@ -1,14 +1,7 @@
 # Code Review Detection Patterns
 
-> **Scope**: grep/rg detection commands for common code anti-patterns across languages. Load this when performing any perspective review on a real codebase — these commands surface concrete evidence to cite in findings.
-> **Version range**: Language-specific commands noted inline
+> **Scope**: Detection commands for common anti-patterns across languages. Load during any perspective review on a real codebase.
 > **Generated**: 2026-04-13
-
----
-
-## Overview
-
-Each perspective produces better findings when supported by concrete codebase evidence. This reference provides detection commands that surfaces real instances of common anti-patterns — so findings cite `file.go:42` rather than "this might exist somewhere." Each section maps to the perspective most likely to raise the issue.
 
 ---
 
@@ -16,245 +9,125 @@ Each perspective produces better findings when supported by concrete codebase ev
 
 ### Handle All Errors (Skeptical Senior, Pedant)
 
-Silent failures that turn bugs into production mysteries.
-
 **Detection**:
 ```bash
-# Go: blank identifier discarding errors
-rg -n ',\s*_\s*:?=\s*\w+' --type go
-
-# Python: bare except clauses
-rg -n 'except:' --type py
-
-# JavaScript/TypeScript: promise without .catch() or await
-rg -n '\.then\(' --type ts | rg -v '\.catch|async'
-
-# Shell: unchecked command exits
-grep -rn '^\s*[a-z].*&&\|;\s*$' --include="*.sh" | grep -v 'if\|then\|else'
+rg -n ',\s*_\s*:?=\s*\w+' --type go             # Go: blank identifier discarding errors
+rg -n 'except:' --type py                         # Python: bare except
+rg -n '\.then\(' --type ts | rg -v '\.catch|async' # JS: promise without catch
 ```
 
-**Signal**:
-```go
-result, _ := db.Query("SELECT * FROM users WHERE id = ?", id)
-```
+**Signal**: `result, _ := db.Query(...)` — silent error discard means undetected corruption.
 
-**Why this matters**: Silent error discard means data corruption or partial writes proceed undetected. In production, this surfaces as corrupted records with no error logs.
-
-**Preferred action:**
-```go
-result, err := db.Query("SELECT * FROM users WHERE id = ?", id)
-if err != nil {
-    return fmt.Errorf("query users by id %d: %w", id, err)
-}
-```
-
-**Version note**: Go 1.13+ error wrapping (`%w`) preserves the error chain. Use `errors.Is()` / `errors.As()` for unwrapping.
+**Preferred action**: Handle error, wrap with `%w` (Go 1.13+), use `errors.Is()`/`errors.As()`.
 
 ---
 
 ### Use Correct HTTP Status Codes (Pedant)
 
-Violates RFC 7231 — breaks API clients that inspect status codes.
-
 **Detection**:
 ```bash
-# 200 returned on explicit error paths
-rg -n 'status.*200|StatusOK' --type go | rg -i 'err\|fail\|error'
-rg -n 'res\.status\(200\)' --type ts | rg -i 'error\|fail'
-
-# 500 used for client errors (should be 4xx)
-rg -n 'InternalServerError|status.*500' --type go | rg -i 'invalid\|bad.request\|not.found'
-
-# 404 used for authorization failures (should be 403 or 401)
-rg -n 'NotFound|status.*404' --type go | rg -i 'auth\|permission\|forbidden'
+rg -n 'status.*200|StatusOK' --type go | rg -i 'err\|fail\|error'     # 200 on error
+rg -n 'InternalServerError|status.*500' --type go | rg -i 'invalid\|bad.request' # 500 for client error
+rg -n 'NotFound|status.*404' --type go | rg -i 'auth\|permission'     # 404 for authz
 ```
 
-**Signal**:
-```go
-func handler(w http.ResponseWriter, r *http.Request) {
-    user, err := getUser(id)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusOK) // wrong: 200 on error
-    }
-}
-```
-
-**Why this matters**: RFC 7231 §6 defines status code semantics. Clients (including monitoring tools and API gateways) use status codes to route errors — a 200 error bypasses all error-handling middleware.
-
-**Preferred action:** Use `http.StatusBadRequest` (400) for invalid input, `http.StatusNotFound` (404) for missing resources, `http.StatusUnauthorized` (401) for missing auth, `http.StatusForbidden` (403) for insufficient permissions.
+Per RFC 7231: 400 invalid input, 404 missing resource, 401 missing auth, 403 insufficient permissions.
 
 ---
 
 ### Load Credentials from Environment (Skeptical Senior, Pedant)
 
-Secrets in source code survive beyond rotation.
-
 **Detection**:
 ```bash
-# Common credential patterns
 rg -n 'password\s*=\s*"[^"]{4,}"' --type py --type go --type ts -i
 rg -n 'api[_-]?key\s*=\s*"[^"]{8,}"' -i
-rg -n 'secret\s*=\s*"[^"]{8,}"' -i
-rg -n 'token\s*=\s*"[^"]{20,}"' -i
-
-# AWS patterns
-rg -n 'AKIA[0-9A-Z]{16}'
-rg -n 'aws_secret_access_key\s*='
-
-# Connection strings
-grep -rn 'postgres://\|mysql://\|mongodb://' --include="*.go" --include="*.ts" --include="*.py" | grep -v '_test\|example\|sample'
+rg -n 'AKIA[0-9A-Z]{16}'                          # AWS key pattern
+grep -rn 'postgres://\|mysql://\|mongodb://' --include="*.go" --include="*.ts" --include="*.py" | grep -v '_test\|example'
 ```
 
-**Why this matters**: Credentials in version history are permanent — `git filter-branch` does not remove them from forks or cached copies. Leaked credentials require key rotation even after removal.
-
-**Preferred action:** Load from environment variables (`os.Getenv`, `process.env`, `os.environ`) or a secrets manager. Never commit `.env` files containing real values.
+Credentials in git history are permanent. Load from env vars or secrets manager.
 
 ---
 
 ### Paginate All List Queries (Skeptical Senior)
 
-Unbounded queries that work in development, fail in production with real data volumes.
-
 **Detection**:
 ```bash
-# SQL without LIMIT
 rg -n 'SELECT.*FROM' --type go --type py | rg -v 'LIMIT\|COUNT\|SUM\|MIN\|MAX'
-
-# ORM queries without limit/paginate
 rg -n '\.find\(\|\.all\(\|\.fetch\(' --type py | rg -v 'limit\|paginate\|first\|count'
-rg -n 'find\(\{\}' --type ts | rg -v 'limit\|skip\|take'
-
-# GraphQL resolvers returning all items
 grep -rn 'findAll\|getAll\|fetchAll' --include="*.ts" --include="*.go"
 ```
 
-**Why this matters**: A query returning 1,000 rows in development returns 50 million in production, causing OOM crashes or 30-second response times that cascade into timeouts.
-
-**Preferred action:** Add `LIMIT`/`OFFSET` or cursor-based pagination. Default page size should be 100 or fewer records.
+1,000 rows in dev = 50 million in prod. Add LIMIT/OFFSET or cursor pagination.
 
 ---
 
 ### Use Atomic Operations (Skeptical Senior)
 
-Non-atomic read-modify-write sequences that fail under concurrent load.
-
 **Detection**:
 ```bash
-# Separate read + write without lock (Go)
-rg -n 'mu\.Lock\(\)|sync\.Mutex' --type go -l | xargs -I{} sh -c 'grep -n "if.*==.*{" {} | head -5'
-
-# File existence check followed by open (TOCTOU)
-grep -rn 'os.path.exists\|path.exists' --include="*.py" | rg -v 'test\|check'
-
-# JavaScript: async race (read then write without transaction)
-rg -n 'await.*get\|await.*find' --type ts -A2 | rg 'await.*set\|await.*update\|await.*save'
+grep -rn 'os.path.exists\|path.exists' --include="*.py" | rg -v 'test\|check'  # TOCTOU
+rg -n 'await.*get\|await.*find' --type ts -A2 | rg 'await.*set\|await.*update'   # async race
 ```
 
-**Signal**:
-```go
-if _, exists := cache[key]; !exists {
-    cache[key] = computeExpensive(key) // not atomic — two goroutines can reach this
-}
-```
-
-**Why this matters**: Two goroutines can both pass the `!exists` check before either writes, causing double computation or overwriting a valid value.
-
-**Preferred action:** Use `sync.Map.LoadOrStore()`, a mutex-wrapped check-and-store, or database-level `INSERT ... ON CONFLICT DO NOTHING`.
+**Preferred action**: `sync.Map.LoadOrStore()`, mutex-wrapped check-and-store, or `INSERT ON CONFLICT`.
 
 ---
 
 ### Batch Related Queries (Skeptical Senior)
 
-Queries inside loops that scale linearly with record count.
-
 **Detection**:
 ```bash
-# Python ORM: loop with model access
 rg -n 'for.*in.*\.(all|filter|objects)' --type py -A3 | rg '\.(name|id|title|email)\b'
-
-# Go: query inside loop
 rg -n 'for.*range' --type go -A5 | rg 'db\.Query\|\.Find\|\.Get'
-
-# TypeScript: await in for loop with DB calls
-rg -n 'for.*of\|for.*in' --type ts -A3 | rg 'await.*find\|await.*get\|await.*fetch'
+rg -n 'for.*of\|for.*in' --type ts -A3 | rg 'await.*find\|await.*get'
 ```
 
-**Signal**:
-```python
-posts = Post.objects.all()
-for post in posts:
-    print(post.author.name)  # SELECT for every iteration
-```
-
-**Why this matters**: 100 posts = 101 queries. 10,000 posts = 10,001 queries. Degrades exponentially with data growth.
-
-**Preferred action:** Use `select_related`/`prefetch_related` (Django), `JOIN` (raw SQL), or batch fetch with `IN (...)`.
+100 posts = 101 queries. Use `select_related`, `JOIN`, or batch `IN (...)`.
 
 ---
 
 ### Enforce Authorization on Every Resource (Skeptical Senior, Pedant)
 
-Authentication (who are you?) verified but authorization (what can you do?) missing.
-
 **Detection**:
 ```bash
-# Handlers that read user id from token but don't check ownership
-rg -n 'userID|user_id|userId' --type go --type py --type ts -A5 | rg 'db\.\|query\|find' | rg -v 'WHERE.*user_id\|filter.*user_id\|user_id.*=='
-
-# Django views without permission checks
-grep -rn 'def get\|def post\|def put' --include="*.py" | rg -v '@login_required\|@permission_required\|IsAuthenticated'
-
-# Express routes without auth middleware
+rg -n 'userID|user_id' --type go --type py --type ts -A5 | rg 'db\.\|query\|find' | rg -v 'WHERE.*user_id\|filter.*user_id'
+grep -rn 'def get\|def post\|def put' --include="*.py" | rg -v '@login_required\|@permission_required'
 rg -n 'router\.(get|post|put|delete)\(' --type ts -B2 | rg -v 'auth\|verify\|require'
 ```
 
-**Why this matters**: Authenticated users can access other users' resources. Classic IDOR (Insecure Direct Object Reference) vulnerability — OWASP A01:2021.
-
-**Preferred action:** Always filter queries by the authenticated user's ID: `WHERE user_id = $currentUser`. For operations that modify resources, verify ownership before executing.
+IDOR: OWASP A01:2021. Always filter by authenticated user's ID.
 
 ---
 
 ## Error-Fix Mappings
 
-| Error Pattern | Root Cause | Perspective | Fix |
-|---------------|------------|-------------|-----|
-| `panic: runtime error: index out of range` | Slice access without bounds check | Skeptical Senior | Check `len(slice) > idx` before indexing |
-| `context deadline exceeded` | No timeout set on HTTP client or DB query | Skeptical Senior | Set `context.WithTimeout()` |
-| `429 Too Many Requests` from downstream | No retry backoff, no rate limit | Skeptical Senior | Add exponential backoff with jitter |
-| `200 OK` with error body | Wrong HTTP status code on error path | Pedant (RFC 7231) | Return appropriate 4xx/5xx |
-| `UNIQUE constraint failed` | No ON CONFLICT handling | Skeptical Senior | Handle with upsert or explicit check |
+| Error Pattern | Root Cause | Fix |
+|---------------|------------|-----|
+| `panic: index out of range` | No bounds check | `len(slice) > idx` |
+| `context deadline exceeded` | No timeout | `context.WithTimeout()` |
+| `429 Too Many Requests` | No backoff | Exponential backoff with jitter |
+| `200 OK` with error body | Wrong status | Appropriate 4xx/5xx |
+| `UNIQUE constraint failed` | No ON CONFLICT | Upsert or explicit check |
 
 ---
 
 ## Detection Commands Reference
 
 ```bash
-# Ignored errors (Go)
-rg -n ',\s*_\s*:?=\s*\w+' --type go
-
-# HTTP status misuse
-rg -n 'StatusOK' --type go | rg -i 'err\|fail'
-
-# Hardcoded secrets
-rg -n 'password\s*=\s*"[^"]{4,}"' -i
-
-# Missing pagination
-rg -n 'SELECT.*FROM' --type go | rg -v 'LIMIT'
-
-# Race: check-then-act
-grep -rn 'os.path.exists' --include="*.py"
-
-# N+1 query
-rg -n 'for.*range' --type go -A5 | rg 'db\.Query'
-
-# Missing authz
-rg -n 'userID' --type go -A5 | rg 'db\.' | rg -v 'WHERE.*user'
+rg -n ',\s*_\s*:?=\s*\w+' --type go                          # Ignored errors
+rg -n 'StatusOK' --type go | rg -i 'err\|fail'                # HTTP status misuse
+rg -n 'password\s*=\s*"[^"]{4,}"' -i                          # Hardcoded secrets
+rg -n 'SELECT.*FROM' --type go | rg -v 'LIMIT'                # Missing pagination
+grep -rn 'os.path.exists' --include="*.py"                     # TOCTOU race
+rg -n 'for.*range' --type go -A5 | rg 'db\.Query'             # N+1
+rg -n 'userID' --type go -A5 | rg 'db\.' | rg -v 'WHERE.*user' # Missing authz
 ```
 
 ---
 
 ## See Also
 
-- `skeptical-senior.md` — production readiness framework and severity classification
-- `pedant.md` — RFC/spec compliance and terminology precision
-- `contrarian.md` — assumption auditing and lock-in detection
+- `skeptical-senior.md` — production readiness framework
+- `pedant.md` — RFC/spec compliance
+- `contrarian.md` — assumption auditing, lock-in detection

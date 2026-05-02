@@ -1,16 +1,9 @@
 # GitHub REST API Patterns Reference
 
-> **Scope**: Efficient API usage for code analysis — repositories, file trees, content, PR reviews, rate limiting. Does NOT cover GitHub Actions or webhooks.
-> **Version range**: GitHub REST API v3 (all versions); GraphQL not covered
-> **Generated**: 2026-04-08
+> **Scope**: Efficient API usage for code analysis — repos, trees, content, PR reviews, rate limiting. Not Actions/webhooks.
+> **Version range**: GitHub REST API v3; GraphQL not covered
 
----
-
-## Overview
-
-GitHub's REST API imposes strict rate limits: 60 req/hr unauthenticated, 5000 req/hr authenticated. Code analysis requires many requests (repo list + tree + content per file × N repos). The patterns below minimize request count while maximizing signal. The wrong sequence (listing all files, then fetching each) exhausts rate limits on large repos.
-
----
+Rate limits: 60 req/hr unauth, 5000 req/hr auth. Patterns below minimize request count.
 
 ## Efficient Analysis Sequence
 
@@ -82,7 +75,7 @@ def get_file_tree(owner: str, repo: str, branch: str = "HEAD") -> list[str]:
     return [item["path"] for item in resp["tree"] if item["type"] == "blob"]
 ```
 
-**Why**: One request for the full tree vs N+1 requests to list directories recursively. For a 500-file repo, this saves 30+ requests.
+One request vs N+1 recursive directory calls. 500-file repo saves 30+ requests.
 
 ---
 
@@ -102,7 +95,7 @@ def get_file_content(owner: str, repo: str, path: str) -> str:
     return base64.b64decode(resp["content"].replace("\n", "")).decode("utf-8", errors="replace")
 ```
 
-**Why**: The `content` field from GitHub includes embedded newlines (`\n`) that must be stripped before base64 decoding. Forgetting this causes `binascii.Error: Invalid base64-encoded string`.
+GitHub `content` includes `\n` that must be stripped before base64 decode.
 
 ---
 
@@ -120,7 +113,7 @@ def get_analysis_repos(username: str, max_repos: int = 5) -> list[dict]:
     return owned[:max_repos]
 ```
 
-**Why**: Forks often contain the upstream project's style, not the user's. Top-starred owned repos show the developer's most polished work. `sort=pushed` gets recently active repos, but star-sorting selects the ones others find valuable.
+Forks contain upstream style, not user's. Star-sorted owned repos = most polished work.
 
 ---
 
@@ -144,9 +137,9 @@ def list_files(owner, repo, path=""):
             yield item["path"]
 ```
 
-**Why this matters**: A 200-file repo with 20 directories requires 21 API requests just to list files. The recursive tree endpoint does it in 1.
+**Why**: 200-file repo = 21 requests. Recursive tree = 1.
 
-**Preferred action**: Use `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for full file tree in one request.
+**Fix**: `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1`
 
 ---
 
@@ -162,9 +155,9 @@ repos = github_get(f"/users/{username}/repos?per_page=100")
 # Assumes all repos fit in one page — fails for users with 100+ repos
 ```
 
-**Why this matters**: GitHub API returns max 100 items per page. Users with 100+ repos silently get incomplete data. The API includes a `Link` header with `rel="next"` for pagination.
+**Why**: Max 100 items/page. 100+ repos = silently incomplete.
 
-**Preferred action**:
+**Fix**:
 ```python
 def paginate(url: str) -> list:
     results = []
@@ -190,9 +183,9 @@ headers = {"Accept": "application/vnd.github.v3+json"}
 # Missing: Authorization header — capped at 60 req/hr
 ```
 
-**Why this matters**: 60 requests/hr is exhausted by analyzing 2-3 repos. Profile analysis needs 50-200 requests minimum.
+**Why**: 60 req/hr exhausted by 2-3 repos. Analysis needs 50-200 minimum.
 
-**Preferred action**: Accept `--token` CLI flag; check for `GITHUB_TOKEN` env var:
+**Fix**: Accept `--token` flag; check `GITHUB_TOKEN` env var:
 ```python
 import os
 token = args.token or os.environ.get("GITHUB_TOKEN")

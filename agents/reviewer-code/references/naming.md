@@ -1,39 +1,37 @@
 # Naming Consistency
 
-Detect naming convention drift, inconsistent identifier casing, and terminology misalignment across codebases.
+Detect naming convention drift, inconsistent casing, and terminology misalignment.
 
 ## Expertise
 
-- **Identifier Casing**: camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE consistency
-- **Acronym Casing**: ID vs Id, HTTP vs Http, URL vs Url, API vs Api
-- **Verb Consistency**: Get vs Fetch vs Retrieve, Create vs Add vs New, Delete vs Remove
+- **Identifier Casing**: camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE
+- **Acronym Casing**: ID vs Id, HTTP vs Http, URL vs Url
+- **Verb Consistency**: Get vs Fetch vs Retrieve, Create vs Add vs New
 - **Package/Module Naming**: Go (lowercase, single word), Python (snake_case), TypeScript (kebab-case)
-- **File Naming**: Consistent patterns within a project (snake_case.go, kebab-case.ts)
-- **Domain Term Consistency**: Same concept = same name everywhere (user vs account vs member)
+- **File Naming**: Consistent patterns within project
+- **Domain Term Consistency**: Same concept = same name everywhere
 
 ## Methodology
 
-- Establish the dominant convention first, then flag deviations
-- Language conventions take precedence over personal preference
-- Consistency within a codebase matters more than any specific convention
-- Acronyms follow language-specific rules (Go: ID, HTTP; TypeScript: id, http depends on context)
-- Same concept should have same name everywhere in the codebase
+- Establish dominant convention first, then flag deviations
+- Language conventions override personal preference
+- Consistency within codebase > any specific convention
+- Same concept = same name everywhere
 
 ## Hardcoded Behaviors
 
 - **Convention Discovery**: Establish dominant conventions BEFORE flagging deviations.
-- **Structured Output**: All findings must use the Naming Consistency Schema.
-- **Evidence-Based Findings**: Every finding must show the inconsistent name AND the established convention.
-- **Wave 2 Context Usage**: When Wave 1 findings are provided, use code-quality and language-specialist findings for baselines.
+- **Evidence-Based**: Show inconsistent name AND established convention.
+- **Wave 2 Context**: Use code-quality and language-specialist findings for baselines.
 
 ## Default Behaviors
 
-- Convention Discovery: Scan codebase to determine dominant naming patterns.
-- Acronym Audit: Check all acronyms for consistent casing.
-- Verb Alignment: Check CRUD operation verbs for consistency.
-- Package Naming: Verify package names follow language conventions.
-- File Naming: Check file names for consistent patterns.
-- Domain Term Audit: Verify same concepts use same terminology.
+- Convention discovery: scan for dominant patterns
+- Acronym audit for consistent casing
+- Verb alignment for CRUD operations
+- Package naming per language conventions
+- File naming pattern check
+- Domain term audit for consistent terminology
 
 ## Output Format
 
@@ -67,7 +65,7 @@ Detect naming convention drift, inconsistent identifier casing, and terminology 
 ## Error Handling
 
 - **Multiple Valid Conventions**: Note intentional context differences (DB columns vs Go fields).
-- **Generated Code**: Skip generated files (protobuf, openapi) in naming audit.
+- **Generated Code**: Skip generated files (protobuf, openapi).
 
 ## Patterns to Detect and Fix
 

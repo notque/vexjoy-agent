@@ -1,62 +1,38 @@
 # gopls MCP Server Integration
 
-The gopls MCP server provides workspace-aware Go intelligence. When working in a Go workspace, these tools give you capabilities beyond generic file operations. Loaded when working in a Go workspace with gopls configured.
+Workspace-aware Go intelligence. Use when gopls MCP is configured (`.mcp.json` with gopls entry, project has `go.mod`).
 
-## Available gopls MCP Tools
+## Available Tools
 
-| Tool | Purpose | When to Use |
-|------|---------|-------------|
-| `go_workspace` | Learn workspace structure (module, workspace, GOPATH) | **Start of every Go session** — MUST use first |
-| `go_vulncheck` | Identify security vulnerabilities | After `go_workspace` confirms Go workspace; after adding/updating dependencies |
-| `go_search` | Fuzzy symbol search across workspace | Finding types, functions, variables by name |
-| `go_file_context` | Show intra-package dependencies for a file | **After reading any Go file for the first time** — MUST use |
-| `go_package_api` | Show a package's public API | Understanding third-party deps or other packages |
-| `go_symbol_references` | Find all references to a symbol | **Before modifying any symbol definition** — MUST use |
-| `go_diagnostics` | Report build/analysis errors for files | **After every code edit** — MUST use |
+| Tool | Purpose | When |
+|------|---------|------|
+| `go_workspace` | Workspace structure | **Session start** — MUST use first |
+| `go_vulncheck` | Security vulnerabilities | After `go_workspace`; after dependency changes |
+| `go_search` | Fuzzy symbol search | Finding types, functions, variables |
+| `go_file_context` | Intra-package dependencies | **After reading any .go file** — MUST use |
+| `go_package_api` | Package public API | Understanding deps or other packages |
+| `go_symbol_references` | All symbol references | **Before modifying any symbol** — MUST use |
+| `go_diagnostics` | Build/analysis errors | **After every code edit** — MUST use |
 
-## gopls Read Workflow
+## Read Workflow
 
-Follow this when understanding Go code:
+1. `go_workspace` — understand structure
+2. `go_search({"query": "Server"})` — find symbols
+3. `go_file_context({"file": "/path/to/server.go"})` — after reading any file
+4. `go_package_api({"packagePaths": ["example.com/internal/storage"]})` — inspect APIs
 
-1. **Understand workspace layout**: Use `go_workspace` to learn the overall structure
-2. **Find relevant symbols**: Use `go_search` for fuzzy symbol search
-   ```
-   go_search({"query": "Server"})
-   ```
-3. **Understand file dependencies**: After reading any Go file, use `go_file_context`
-   ```
-   go_file_context({"file": "/path/to/server.go"})
-   ```
-4. **Understand package APIs**: Use `go_package_api` for external package inspection
-   ```
-   go_package_api({"packagePaths": ["example.com/internal/storage"]})
-   ```
+## Edit Workflow
 
-## gopls Edit Workflow
+1. Follow Read Workflow to understand code
+2. `go_symbol_references` before modifying any symbol
+3. Make edits including reference updates
+4. `go_diagnostics({"files": ["/path/to/server.go"]})` after every edit
+5. Fix errors, re-run diagnostics
+6. `go_vulncheck` if go.mod changed
+7. Run tests only after diagnostics clean
 
-Follow this iterative cycle when modifying Go code:
+## Fallback (no gopls MCP)
 
-1. **Read first**: Follow the Read Workflow to understand the code
-2. **Find references**: Before modifying ANY symbol, use `go_symbol_references`
-   ```
-   go_symbol_references({"file": "/path/to/server.go", "symbol": "Server.Run"})
-   ```
-3. **Make edits**: Apply all planned changes including reference updates
-4. **Check diagnostics**: After EVERY edit, call `go_diagnostics`
-   ```
-   go_diagnostics({"files": ["/path/to/server.go"]})
-   ```
-5. **Fix errors**: Apply suggested quick fixes if correct, then re-run `go_diagnostics`
-6. **Check vulnerabilities**: If go.mod changed, run `go_vulncheck({"pattern": "./..."})`
-7. **Run tests**: Only after `go_diagnostics` reports no errors
-
-## gopls Tool Availability
-
-gopls MCP tools are only available when:
-- The gopls MCP server is configured (`.mcp.json` with gopls entry)
-- You are working in a Go workspace (has `go.mod`)
-
-If gopls tools are not available, fall back to:
 - `LSP` tool for goToDefinition, findReferences, hover, documentSymbol
 - `Grep` for symbol searching
 - `Bash` with `go build`, `go vet`, `go test` for diagnostics

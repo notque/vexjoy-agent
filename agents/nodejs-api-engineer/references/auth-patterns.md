@@ -12,7 +12,7 @@ description: JWT, OAuth, session management, and token refresh implementations w
 
 ## Overview
 
-Authentication in Node.js APIs fails in two predictable ways: insecure defaults (long-lived tokens, weak secrets, missing expiry) and broken error handling (timing attacks via username enumeration, stack traces in 401 responses). The patterns below cover production-safe JWT issuance, refresh token rotation, and OAuth callback handling.
+Auth fails in two ways: insecure defaults (long-lived tokens, weak secrets, missing expiry) and broken error handling (timing attacks via username enumeration, stack traces in 401 responses).
 
 ---
 
@@ -67,7 +67,7 @@ function issueTokenPair(userId: string, roles: string[]): TokenPair {
 }
 ```
 
-**Why**: 15-minute access tokens limit breach window. Refresh tokens enable seamless UX without long-lived access tokens. `jwtid` enables per-token revocation if needed.
+**Why**: 15-minute access tokens limit breach window. `jwtid` enables per-token revocation.
 
 ---
 
@@ -103,7 +103,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 }
 ```
 
-**Why**: `algorithms: ['HS256']` prevents the "algorithm none" attack where attackers forge tokens by setting `alg: "none"`. Without this, `jsonwebtoken` < 9 accepted unsigned tokens.
+**Why**: Prevents the "algorithm none" attack. Without `algorithms`, `jsonwebtoken` < 9 accepted unsigned tokens.
 
 ---
 
@@ -141,7 +141,7 @@ export function verifyWebhookSignature(
 }
 ```
 
-**Why**: `timingSafeEqual` takes constant time regardless of where strings differ. Regular `===` returns early on first mismatch, leaking signature bytes via timing measurements (timing oracle attack).
+**Why**: `timingSafeEqual` takes constant time. Regular `===` returns early on first mismatch, leaking signature bytes via timing oracle.
 
 ---
 
@@ -164,7 +164,7 @@ if (payload && payload.sub) {
 }
 ```
 
-**Why this matters**: `jwt.decode()` does NOT verify the signature. Any attacker can craft a token with any `sub` value by base64-encoding a JSON payload. Authentication is completely bypassed.
+**Why this matters**: `jwt.decode()` does NOT verify the signature. Any attacker can craft a token with any `sub` value. Auth completely bypassed.
 
 **Preferred action**: Always use `jwt.verify()` with `algorithms` specified.
 
@@ -193,7 +193,7 @@ async function login(email: string, password: string) {
 }
 ```
 
-**Why this matters**: When user doesn't exist, the response is ~1ms (DB miss). When user exists but password is wrong, response is ~100ms (bcrypt). Attackers enumerate valid email addresses by measuring response time differences.
+**Why this matters**: User doesn't exist = ~1ms (DB miss). Wrong password = ~100ms (bcrypt). Attackers enumerate valid emails by timing.
 
 **Preferred action**:
 ```typescript
@@ -233,7 +233,7 @@ const token = jwt.sign(
 );
 ```
 
-**Why this matters**: A 7-day access token means a stolen token gives 7 days of unauthorized access. With no server-side revocation on logout, all active sessions for a user remain valid even after a password change.
+**Why this matters**: A 7-day access token = 7 days of unauthorized access if stolen. No revocation on logout means sessions survive password changes.
 
 **Preferred action**: `expiresIn: '15m'` for access tokens + `expiresIn: '7d'` for refresh tokens. Implement refresh token rotation and revocation in Redis.
 
@@ -245,7 +245,7 @@ const token = jwt.sign(
 grep -rn 'localStorage.*refresh\|localStorage.*token' --include="*.ts" --include="*.tsx" src/
 ```
 
-**Why this matters**: `localStorage` is accessible to any JavaScript running on the page, including XSS-injected scripts. Refresh tokens in localStorage are stolen by any XSS vulnerability.
+**Why this matters**: `localStorage` is accessible to any JS on the page, including XSS-injected scripts.
 
 **Preferred action**: `httpOnly` cookies for refresh tokens — inaccessible to JavaScript:
 ```typescript

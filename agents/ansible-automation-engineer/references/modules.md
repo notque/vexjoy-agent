@@ -1,16 +1,9 @@
 # Ansible Modules Reference
 
-> **Scope**: Module selection patterns, builtin vs command/shell decisions, collection modules, and version-specific module changes
-> **Version range**: ansible-core 2.14+ / Ansible Collections (community.general 7.0+)
-> **Generated**: 2026-04-04 — verify against current Ansible module documentation
+> **Scope**: Module selection patterns, builtin vs command/shell, collection modules, version-specific changes
+> **Version range**: ansible-core 2.14+ / Collections (community.general 7.0+)
 
----
-
-## Overview
-
-The most common Ansible anti-pattern is using `command` or `shell` when an idempotent module exists. Module selection determines whether playbooks are idempotent, properly report changes, and work across environments. The hierarchy is: builtin module > collection module > command/shell with explicit `changed_when`.
-
----
+Module selection hierarchy: builtin module > collection module > command/shell with `changed_when`.
 
 ## Pattern Table: Module Selection by Task Type
 
@@ -62,9 +55,7 @@ The most common Ansible anti-pattern is using `command` or `shell` when an idemp
   when: ansible_distribution_major_version | int >= 8 and ansible_os_family == "RedHat"
 ```
 
-**Why**: `package` abstracts over OS differences. Use `apt`/`dnf` only when platform-specific options (repos, recommends, module streams) are needed.
-
----
+Use `apt`/`dnf` only when platform-specific options (repos, recommends, module streams) are needed.
 
 ### Service Management with systemd
 
@@ -92,9 +83,7 @@ The most common Ansible anti-pattern is using `command` or `shell` when an idemp
     state: restarted
 ```
 
-**Why**: Handlers ensure services restart only when the triggering resource actually changed. Using `state: restarted` directly in tasks causes restarts on every run.
-
----
+Handlers restart only when the triggering resource changed. `state: restarted` directly in tasks restarts every run.
 
 ### Making `command` Idempotent with `creates`
 
@@ -148,9 +137,9 @@ rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
   command: yum update -y
 ```
 
-**Why this matters**: `shell`/`command` always report `changed` regardless of whether nginx was already installed. Running twice installs twice (or errors). No change tracking. Breaks `--check` mode (would show false changes).
+**Why**: `shell`/`command` always report `changed`. No change tracking. Breaks `--check` mode.
 
-**Preferred action**:
+**Fix**:
 ```yaml
 - name: Install nginx
   ansible.builtin.apt:
@@ -180,9 +169,9 @@ rg -t yaml '(command|shell):.*systemctl' roles/ playbooks/
   shell: systemctl enable nginx
 ```
 
-**Why this matters**: Doesn't report the service state as a change properly. Can't use `--check` mode (would actually run `systemctl`). Doesn't integrate with handlers. Two tasks when one suffices.
+**Why**: No change detection, breaks `--check` mode, no handler integration. Two tasks when one suffices.
 
-**Preferred action**:
+**Fix**:
 ```yaml
 - name: Start and enable nginx
   ansible.builtin.systemd:
@@ -214,9 +203,9 @@ grep -rn "copy:" roles/ playbooks/ -A3 \
     # But the file contains: listen {{ nginx_port }};  ← variable!
 ```
 
-**Why this matters**: `copy` sends the file verbatim — Jinja2 variables are NOT evaluated. The destination file will contain literal `{{ nginx_port }}` text, causing nginx to fail to parse it.
+**Why**: `copy` sends verbatim — Jinja2 variables are NOT evaluated. Destination gets literal `{{ nginx_port }}`.
 
-**Preferred action**:
+**Fix**:
 ```yaml
 - name: Deploy nginx config
   ansible.builtin.template:
@@ -259,9 +248,7 @@ grep -rn -B2 "^.*copy:" roles/ playbooks/ \
   | grep "src:.*\.conf\|src:.*\.cfg"
 ```
 
----
-
 ## See Also
 
-- `testing.md` — Molecule and ansible-lint patterns to validate module correctness
-- `security.md` — Vault encryption for module credentials
+- `testing.md` — Molecule and ansible-lint validation
+- `security.md` — Vault encryption for credentials

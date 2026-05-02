@@ -4,17 +4,7 @@ description: Async/await, concurrency control, and error propagation patterns fo
 
 # TypeScript Async Patterns for MCP Servers
 
-> **Scope**: Async patterns relevant to MCP documentation servers — file I/O concurrency, indexing performance, error propagation. Does not cover general TypeScript async (unrelated to server contexts).
-> **Version range**: Node.js 18+, TypeScript 5.0+
-> **Generated**: 2026-04-08
-
----
-
-## Overview
-
-MCP documentation servers are I/O-bound: they read hundreds or thousands of files at startup. The failure modes split into two categories: doing too little concurrency (sequential file reads take minutes) and doing too much (reading all files simultaneously exhausts file descriptors and memory). The correct approach is bounded concurrency via batching or a semaphore.
-
----
+> **Scope**: MCP server file I/O concurrency, indexing performance, error propagation. Node.js 18+, TypeScript 5.0+.
 
 ## Pattern Table
 
@@ -32,7 +22,7 @@ MCP documentation servers are I/O-bound: they read hundreds or thousands of file
 
 ### Bounded Concurrency for File Indexing
 
-Process files in fixed-size batches to avoid exhausting file descriptors.
+Fixed-size batches to avoid exhausting file descriptors.
 
 ```typescript
 async function indexFilesInBatches(
@@ -70,7 +60,7 @@ await indexFilesInBatches(allFiles, 50, (f) => this.parseAndCache(f));
 
 ### Startup Timeout with Partial Results
 
-Start serving before indexing completes; return partial results with metadata.
+Serve before indexing completes.
 
 ```typescript
 class DocsServer {
@@ -111,7 +101,7 @@ class DocsServer {
 
 ### Error Propagation with Context
 
-Preserve error context through async chains for debuggable server logs.
+Preserve context through async chains.
 
 ```typescript
 async function parseDocWithContext(filePath: string): Promise<ParsedDoc> {

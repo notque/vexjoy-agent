@@ -27,16 +27,27 @@ routing:
 
 # Codebase Analyzer Skill
 
-Statistical rule discovery through measurement of Go codebases. Python scripts count patterns to avoid LLM training bias, then statistics are interpreted to derive confidence-scored rules. Core principle: **Measure First, Interpret Second** -- what IS in the code is the local standard, not what an LLM thinks "should be."
+Statistical rule discovery through measurement of Go codebases. Python scripts count patterns to avoid LLM training bias, then statistics are interpreted to derive confidence-scored rules. The core principle is **Measure First, Interpret Second** -- what IS in the code is the local standard, not what an LLM thinks "should be" there.
+
+## Reference Loading
+
+Load these files when the corresponding signals appear:
+
+| Signal | Load |
+|--------|------|
+| Understanding the three lenses (Consistency, Signature, Idiom) | `references/three-lenses.md` |
+| Worked examples, phase banners, error catalog, reconciliation matrix | `references/phase-details.md` |
+| Full 100-metric catalog across 25 categories | `references/metrics-catalog.md` |
+| Additional real-world analysis workflows | `references/examples.md` |
 
 ## Reference Loading Table
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Understanding the three lenses (Consistency, Signature, Idiom) | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
-| Worked examples, phase banners, error catalog, reconciliation matrix | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
-| Full 100-metric catalog across 25 categories | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
-| Additional real-world analysis workflows | `examples.md` | Loads detailed guidance from `examples.md`. |
+| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| tasks related to this reference | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
+| tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
+| tasks related to this reference | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
 
 ## Instructions
 
@@ -44,94 +55,99 @@ Statistical rule discovery through measurement of Go codebases. Python scripts c
 
 **Goal**: Validate target and select analyzer variant.
 
-Read and follow repository CLAUDE.md first.
+Read and follow the repository's CLAUDE.md before doing anything else -- project instructions override default behaviors.
 
-**Step 1: Validate target**
-- Confirm path has .go files
+**Step 1: Validate the target**
+- Confirm path points to a Go repository root with .go files
 - Check for standard structure (cmd/, internal/, pkg/)
-- Verify 50+ files for meaningful rules (100+ ideal). Below 50, statistics produce high variance -- combine analysis across repos rather than treating thin data as definitive.
+- Verify sufficient file count: 50+ files for meaningful rules, 100+ ideal. Below 50 files, statistics produce high variance -- patterns that look consistent may be coincidence. For small repos, combine analysis across multiple team repos rather than treating thin data as definitive.
 
 **Step 2: Select cartographer variant**
 
 | Variant | Script | Metrics | Use When |
 |---------|--------|---------|----------|
-| Omni (recommended) | `cartographer_omni.py` | 100 across 25 categories | Full profiling |
-| Basic | `cartographer.py` | ~15 categories | Quick overview |
-| Ultimate | `cartographer_ultimate.py` | 6 focused categories | Performance patterns |
+| Omni (recommended) | `cartographer_omni.py` | 100 across 25 categories | Full codebase profiling |
+| Basic | `cartographer.py` | ~15 categories | Quick pattern overview |
+| Ultimate | `cartographer_ultimate.py` | 6 focused categories | Performance pattern detection |
 
 **Step 3: Verify environment**
-- Python 3.7+, no external dependencies, output directories exist
+- Python 3.7+ available
+- No external dependencies needed (uses only Python standard library)
+- Output directories exist or can be created
 
-See `references/phase-details.md` for CONFIGURE banner template.
+See `references/phase-details.md` for the CONFIGURE banner template.
 
-**Gate**: Target exists, contains 50+ Go files, variant selected.
+**Gate**: Target directory exists, contains 50+ Go files, variant selected. Proceed only when gate passes.
 
 ### Phase 2: MEASURE
 
-**Goal**: Run statistical analysis. Pure measurement -- no interpretation.
+**Goal**: Run statistical analysis scripts. Pure measurement -- no interpretation yet.
 
-Keep measurement and interpretation separate. Combining them introduces LLM training bias -- the model reports what "should be" instead of what IS.
+This phase is strictly mechanical. Scripts count and measure; keep interpretation separate from data collection. Combining measurement with interpretation introduces LLM training bias -- the model reports what "should be" instead of what IS. Run scripts first, interpret the numbers second, always as separate steps.
 
-Auto-filter vendor/, testdata/, and generated code ("Code generated by..." markers).
+Automatically filter vendor/, testdata/, and generated code (files with "Code generated by..." markers) to avoid polluting statistics with external patterns.
 
-**Step 1: Execute cartographer**
+**Step 1: Execute the cartographer**
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer_omni.py /path/to/go/repo
+# Or for quick overview: python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer.py /path/to/go/repo
 ```
 
-Always run scripts for measurement; reserve LLM interpretation for Phase 3. When an LLM sees `return err` it may report "not wrapping errors" even if that IS the local standard.
+Always run the cartographer scripts for measurement; reserve LLM interpretation for Phase 3. When an LLM sees `return err` it may report "not wrapping errors properly" even if that IS the local standard. The scripts produce deterministic, reproducible counts; the LLM's role begins at interpretation in Phase 3.
 
-**Step 2: Verify output**
-- Valid, complete JSON
-- File count matches expectations (no vendor pollution)
-- All three lenses produced data
-- derived_rules section exists
+**Step 2: Verify output integrity**
+- Confirm JSON output is valid and complete
+- Check file count matches expectations (no vendor pollution)
+- Verify all three lenses produced data
+- Confirm derived_rules section exists in output
 
-**Step 3: Check data quality**
-- File count too high? Vendor included
-- File count too low? Subdirectories missed
-- All percentages near 50%? Mixed codebase or insufficient data
+**Step 3: Check for data quality issues**
+- File count suspiciously high? Vendor code may be included
+- File count suspiciously low? Subdirectories may be missed
+- All percentages near 50%? May indicate mixed codebase or insufficient data
 
-See `references/phase-details.md` for MEASURE banner.
+See `references/phase-details.md` for the MEASURE banner template.
 
-**Gate**: Script completed, JSON valid, file count reasonable.
+**Gate**: Script completed without errors, JSON output is valid, file count is reasonable. Proceed only when gate passes.
 
 ### Phase 3: INTERPRET
 
-**Goal**: Derive rules from statistics. LLM interpretation happens AFTER measurement.
+**Goal**: Derive rules from statistics. This is where LLM interpretation happens -- AFTER measurement is complete.
 
-Report facts and show complete statistics. No editorializing about code quality.
+Report facts and show complete statistics rather than describing them. Report facts without editorializing about code quality -- the numbers speak for themselves.
 
-**Step 1: Review three lenses**
+**Step 1: Review the three lenses**
 
 | Lens | Question | Measures |
 |------|----------|----------|
-| Consistency | "How often do they use X?" | Imports, test frameworks, logging, modern features |
-| Signature | "How do they name/structure?" | Constructors, receivers, parameters, variables |
-| Idiom | "How do they implement patterns?" | Error handling, control flow, context, defer |
+| Consistency (Frequency) | "How often do they use X?" | Imports, test frameworks, logging, modern features |
+| Signature (Structure) | "How do they name/structure things?" | Constructors, receivers, parameter order, variables |
+| Idiom (Implementation) | "How do they implement patterns?" | Error handling, control flow, context usage, defer |
 
-See `references/three-lenses.md` for details.
+For detailed lens explanations, see `references/three-lenses.md`.
 
 **Step 2: Extract rules by confidence**
 
+Only derive rules from patterns with sufficient consistency. Forcing rules from weak patterns causes false positives in reviews and may impose standards the team has not organically adopted.
+
 | Confidence | Threshold | Action | Example |
 |------------|-----------|--------|---------|
-| HIGH | >85% | Enforceable rule | "96% use err not e" -> MUST use err |
-| MEDIUM | 70-85% | Recommendation | "78% guard clauses" -> SHOULD prefer guards |
-| Below 70% | Not extracted | Observation only | "55% single-letter receivers" -> No rule |
+| HIGH | >85% consistency | Extract as enforceable rule | "96% use err not e" -> MUST use err |
+| MEDIUM | 70-85% consistency | Extract as recommendation | "78% guard clauses" -> SHOULD prefer guards |
+| Below 70% | Not extracted as rule | Report as observation only | "55% single-letter receivers" -> No rule |
 
 **Step 3: Review Style Vector** (Omni only)
 - 10 composite scores (0-100): Consistency, Modernization, Safety, Idiomaticity, Documentation, Testing Maturity, Architecture, Performance, Observability, Production Readiness
-- Identify strengths (>75) and gaps (<50)
+- Identify strengths (scores >75) and gaps (scores <50)
 - Note shadow constitution entries (accepted linter suppressions)
 
 **Step 4: Cross-reference lenses**
-- Pattern in multiple lenses = higher confidence
+- Pattern confirmed across multiple lenses = higher confidence
 - Pattern in one lens only = standard confidence
-- Contradictions = investigate further
+- Contradictions between lenses = investigate further
 
-**Gate**: Rules extracted with evidence and confidence. Style Vector reviewed.
+**Gate**: Rules extracted with evidence and confidence levels. Style Vector reviewed. Proceed only when gate passes.
 
 ### Phase 4: DELIVER
 
@@ -142,22 +158,23 @@ See `references/three-lenses.md` for details.
 cartography_data/{repo_name}_cartography.json
 ```
 
-**Step 2: Generate derived rules**
+**Step 2: Generate derived rules document**
 ```
 derived_rules/{repo_name}_rules.md
 ```
 
-Rule and Style Vector formats in `references/phase-details.md`.
+Rule and Style Vector formats, plus the DELIVER banner template, live in
+`references/phase-details.md`.
 
-**Step 3: Summarize Style Vector** (Omni only) -- see phase-details.md
+**Step 3: Summarize Style Vector** (Omni only) — see phase-details.md
 
 **Step 4: Recommend next steps**
-- Compare with pr-workflow (miner) data if available
+- Compare with pr-workflow (miner) data if available (explicit vs implicit rules)
 - Suggest CLAUDE.md updates for high-confidence rules
-- Identify golangci-lint rules for discovered patterns
-- Suggest quarterly re-analysis -- patterns evolve with team growth and Go versions
+- Identify golangci-lint rules that could enforce discovered patterns
+- Suggest quarterly re-analysis schedule -- coding patterns evolve with team growth and new Go versions, so a one-time snapshot becomes stale within months
 
-**Gate**: JSON report saved, rules generated, next steps documented.
+**Gate**: JSON report saved, rules document generated, next steps documented. Analysis complete.
 
 ---
 
@@ -166,19 +183,19 @@ Rule and Style Vector formats in `references/phase-details.md`.
 Load `references/phase-details.md` for:
 - Complementary skills (pr-workflow miner) and reconciliation matrix
 - Worked examples: single repo, team-wide discovery, onboarding
-- Error catalog: no Go files, no rules derived, vendor/generated pollution
+- Error catalog: no Go files found, no rules derived, vendor/generated pollution
 
 ---
 
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/three-lenses.md`: Three analysis lenses explained
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world analysis examples
-- `${CLAUDE_SKILL_DIR}/references/metrics-catalog.md`: Complete 100-metric catalog
-- `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Phase banners, reconciliation, examples, error handling
+- `${CLAUDE_SKILL_DIR}/references/three-lenses.md`: Detailed explanation of the three analysis lenses
+- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world analysis examples and workflows
+- `${CLAUDE_SKILL_DIR}/references/metrics-catalog.md`: Complete 100-metric catalog across 25 categories
+- `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Phase banners, reconciliation matrix, examples, error handling
 
 ### Prerequisites
 - Python 3.7+
-- Go codebase (50+ files recommended)
-- No external dependencies
+- Go codebase to analyze (50+ files recommended)
+- No external dependencies (uses only Python standard library)

@@ -1,6 +1,6 @@
 # Swift Secure Implementation Patterns
 
-Secure-by-default patterns for Swift iOS, macOS, and server-side applications. Each section shows what correct code looks like and why it matters. Load this reference when the task involves security, auth, Keychain, ATS, WebView, biometrics, deep links, or any vulnerability-related code.
+Secure-by-default patterns for Swift iOS, macOS, and server-side. Load when task involves security, auth, Keychain, ATS, WebView, biometrics, deep links, or vulnerabilities.
 
 ---
 
@@ -60,7 +60,7 @@ func loadFromKeychain(key: String) throws -> Data {
 - `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` — available after first unlock, no backup migration (recommended default)
 - `kSecAttrAccessibleWhenUnlocked` — available while unlocked, migrates with backups
 
-**Why this matters**: `UserDefaults` stores data in a plist readable on jailbroken devices and included in unencrypted backups. Keychain data is encrypted with the device key, and `ThisDeviceOnly` items do not migrate to new devices or appear in backups.
+**Why this matters**: `UserDefaults` is a plist readable on jailbroken devices and in unencrypted backups. Keychain is encrypted with device key; `ThisDeviceOnly` items don't migrate or appear in backups.
 
 **Detection**:
 ```bash
@@ -70,9 +70,9 @@ rg -n 'SecItemAdd\|SecItemCopyMatching\|kSecClass' . --type swift
 
 ---
 
-## Justify Every App Transport Security Exception
+## Justify Every ATS Exception
 
-Keep ATS enabled. Document each exception with a technical reason for why HTTPS cannot be used for that domain.
+Keep ATS enabled. Document each exception with technical reason why HTTPS cannot be used.
 
 ```xml
 <!-- Info.plist — minimal exceptions with justification -->
@@ -98,7 +98,7 @@ Keep ATS enabled. Document each exception with a technical reason for why HTTPS 
 // NSAllowsArbitraryLoads = true  // Disables ATS entirely
 ```
 
-**Why this matters**: `NSAllowsArbitraryLoads = true` disables all transport security, allowing cleartext HTTP and downgraded TLS. Man-in-the-middle attackers can read and modify all network traffic. App Store review may reject apps with blanket ATS exceptions without justification.
+**Why this matters**: `NSAllowsArbitraryLoads = true` disables all transport security, enabling MITM attacks. App Store may reject blanket ATS exceptions.
 
 **Detection**:
 ```bash
@@ -110,7 +110,7 @@ rg -n 'NSExceptionDomains|NSAppTransportSecurity' . --type xml
 
 ## Prefer Universal Links Over Custom URL Schemes
 
-Use universal links (associated domains) for deep linking. If custom URL schemes are necessary, validate all parameters before use.
+Use universal links for deep linking. If custom URL schemes necessary, validate all parameters.
 
 ```swift
 // Correct: universal link handling with validation
@@ -158,7 +158,7 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 }
 ```
 
-**Why this matters**: Custom URL schemes can be registered by any app. A malicious app that registers the same scheme receives deep link data intended for your app. Universal links use Apple's associated domains verification (`.well-known/apple-app-site-association`) to cryptographically bind URLs to your app.
+**Why this matters**: Any app can register the same custom scheme and intercept your deep links. Universal links use associated domains verification to cryptographically bind URLs to your app.
 
 **Detection**:
 ```bash
@@ -170,7 +170,7 @@ rg -n 'NSUserActivityTypeBrowsingWeb|universalLinks' . --type swift
 
 ## Configure WKWebView Security
 
-Disable JavaScript for untrusted content. Restrict navigation to allowed domains. Never use `UIWebView` (deprecated and removed).
+Disable JS for untrusted content. Restrict navigation to allowed domains. Never use `UIWebView`.
 
 ```swift
 import WebKit
@@ -205,7 +205,7 @@ class SecureNavigationDelegate: NSObject, WKNavigationDelegate {
 }
 ```
 
-**Why this matters**: `allowsContentJavaScript = true` with unrestricted navigation lets any loaded page execute JavaScript. Combined with `evaluateJavaScript` bridges or `WKScriptMessageHandler`, this can expose native app functionality to untrusted web content.
+**Why this matters**: JS enabled + unrestricted navigation lets loaded pages execute JavaScript. Combined with `WKScriptMessageHandler`, exposes native functionality to untrusted content.
 
 **Detection**:
 ```bash
@@ -218,7 +218,7 @@ rg -n 'addScriptMessageHandler|evaluateJavaScript' . --type swift
 
 ## Combine Biometrics With Server-Side Verification
 
-Never rely solely on `LocalAuthentication` for security decisions. Use biometrics to unlock a Keychain-stored credential, then verify that credential server-side.
+Never rely solely on `LocalAuthentication`. Use biometrics to unlock a Keychain-stored credential, then verify server-side.
 
 ```swift
 import LocalAuthentication
@@ -248,7 +248,7 @@ func authenticateAndFetch() async throws -> UserData {
 }
 ```
 
-**Why this matters**: `LAContext.evaluatePolicy` returns a local boolean. On jailbroken devices, the return value can be hooked to always return `true`. Biometrics should gate access to a stored credential (Keychain token), which the server then verifies independently.
+**Why this matters**: `evaluatePolicy` returns a local boolean hookable on jailbroken devices to always return `true`. Biometrics gates access to a Keychain token; the server verifies the token.
 
 **Detection**:
 ```bash
@@ -258,9 +258,9 @@ rg -n 'deviceOwnerAuthentication' . --type swift
 
 ---
 
-## Implement Certificate Pinning for Sensitive Connections
+## Certificate Pinning for Sensitive Connections
 
-Pin certificates or public keys for APIs handling authentication, payments, or personal data. Use `URLSession` delegate methods for pinning.
+Pin certificates or public keys for auth, payment, and personal data APIs.
 
 ```swift
 import CryptoKit
@@ -296,7 +296,7 @@ class PinningDelegate: NSObject, URLSessionDelegate {
 }
 ```
 
-**Why this matters**: Certificate pinning detects man-in-the-middle attacks where an attacker presents a valid certificate from a compromised or rogue CA. Without pinning, any CA trusted by the device can issue a certificate for your domain. Always include a backup pin for key rotation.
+**Why this matters**: Without pinning, any trusted CA can issue a certificate for your domain. Always include a backup pin for key rotation.
 
 **Detection**:
 ```bash
@@ -306,9 +306,9 @@ rg -n 'pinnedCertificates\|pinnedPublicKeys\|certificatePinner' . --type swift
 
 ---
 
-## Store Sensitive Data in Keychain Services
+## UserDefaults vs Keychain
 
-Store tokens, keys, and credentials in Keychain Services, which encrypts data with the device passcode. Reserve UserDefaults for non-sensitive preferences (theme, language, onboarding state).
+Store tokens, keys, credentials in Keychain. Reserve UserDefaults for non-sensitive preferences.
 
 ```swift
 // Correct: UserDefaults for preferences only
@@ -322,7 +322,7 @@ UserDefaults.standard.set("en", forKey: "preferredLanguage")
 // UserDefaults.standard.set(sessionId, forKey: "session")   // ← Keychain
 ```
 
-**Why this matters**: UserDefaults writes to an unencrypted plist in the app's Library directory. On jailbroken devices, any app can read it. iTunes/Finder backups include it in plaintext. Forensic tools extract it trivially. Keychain data is encrypted with the device passcode and optionally requires biometric auth to access.
+**Why this matters**: UserDefaults is unencrypted plist — readable on jailbroken devices, in plaintext backups, trivially extracted. Keychain is encrypted with device passcode.
 
 **Detection**:
 ```bash
@@ -333,7 +333,7 @@ rg -n 'UserDefaults.*set.*token\|UserDefaults.*set.*password\|UserDefaults.*set.
 
 ## Validate Deep Link Parameters
 
-Validate all parameters from deep links, universal links, and URL schemes before using them in navigation, API calls, or database queries.
+Validate all parameters before use in navigation, API calls, or database queries.
 
 ```swift
 // Correct: validate and sanitize deep link parameters
@@ -373,7 +373,7 @@ struct DeepLinkRouter {
 }
 ```
 
-**Why this matters**: Deep link parameters are attacker-controlled input. Passing them directly to SQL queries, file paths, or WebView URLs enables injection, traversal, and navigation attacks. Parsing into a typed enum with validation constrains input to expected formats.
+**Why this matters**: Deep link parameters are attacker-controlled. Direct use in SQL, file paths, or WebView URLs enables injection/traversal attacks. Typed enum with validation constrains to expected formats.
 
 **Detection**:
 ```bash

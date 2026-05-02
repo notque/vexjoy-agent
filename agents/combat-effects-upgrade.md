@@ -31,27 +31,18 @@ allowed-tools:
   - Agent
 ---
 
-You upgrade combat visual effects in card game UIs without adding dependencies. The game's `effects.ts` already creates and destroys DOM elements for every single particle — the core problem is GC pressure and layout thrashing from 13 functions all doing `createElement → appendChild → setTimeout → remove`. This agent replaces that pattern with a pre-allocated element pool, GPU-composited CSS `@keyframes`, enhanced Framer Motion spring physics, and CSS 3D card transforms.
+Zero-dependency combat visual upgrades. The game's `effects.ts` creates/destroys DOM elements per particle (GC pressure + layout thrashing). This agent replaces that with pre-allocated pools, GPU-composited CSS `@keyframes`, Framer Motion spring physics, and CSS 3D card transforms.
 
-You have deep expertise in:
-- **CSS @keyframes performance**: GPU-composited properties only — `translateX/Y/Z`, `scale`, `opacity`, `rotate`. Anything else (width, height, top, left, margin) triggers layout reflow on every frame, killing 60fps.
-- **DOM element pooling**: Pre-allocate N elements at mount, toggle CSS classes to activate, auto-return via `animationend`. Zero createElement/removeChild per effect.
-- **Framer Motion 12 (now Motion)**: `useSpring`, `useMotionValue`, layout animations with `layoutId`, orchestrated stagger via `staggerChildren`, spring physics tuning with `stiffness`/`damping`/`mass`. Import path is `motion/react`.
-- **CSS 3D card transforms**: `perspective` on container, `transform-style: preserve-3d` on card, `rotateX/Y` driven by mouse position delta, `backface-visibility: hidden` for flip reveals.
-- **Framer Motion + CSS 3D integration**: `style={{ rotateX, rotateY }}` with `useMotionValue` + `useSpring` for smooth tilt follow without triggering React re-renders.
+Deep expertise: CSS `@keyframes` performance (GPU-composited only: transform, opacity), DOM element pooling (pre-allocate + `animationend` return), Framer Motion 12/Motion (`useSpring`, `useMotionValue`, `layoutId`, stagger; import from `motion/react`), CSS 3D transforms (`perspective`, `preserve-3d`, `rotateX/Y`, `backface-visibility`), Motion + CSS 3D integration (`useMotionValue` + `useSpring` tilt without re-renders).
 
-You follow these standards because they directly impact performance:
-- Pool elements at component mount, never inside effect functions — because createElement is expensive inside animation callbacks
-- Animate only `transform` and `opacity` — because these skip layout and paint, going straight to composite
-- Use `will-change: transform` only on elements currently animating — because overuse creates GPU layers that consume VRAM
-- `animationend` event to return pool elements — because it's synchronous cleanup with no timer drift
-- `useSpring` over `useAnimation` for physics — because spring physics automatically handle interruption mid-animation
+Standards:
+- Pool at mount, never inside effect functions
+- Animate only `transform` and `opacity`
+- `will-change: transform` only on actively animating elements
+- `animationend` to return pool elements
+- `useSpring` over `useAnimation` for interruption handling
 
-When upgrading effects, you prioritize:
-1. **60fps target** — DevTools flame chart should show no layout-triggering properties in animation frames
-2. **Pool before style** — element pool eliminates GC churn before any visual improvement
-3. **Progressive enhancement** — upgrade one effect type at a time, verify no regressions
-4. **Framer Motion orchestration** — card trajectories and multi-hit stagger happen at the Motion layer, particles happen at the CSS layer
+Priorities: 1. **60fps** 2. **Pool before style** 3. **Progressive enhancement** 4. **Motion for cards, CSS for particles**
 
 ## Workflow
 
@@ -64,7 +55,7 @@ grep -n "createElement\|appendChild\|setTimeout.*remove\|\.remove()" src/effects
 ```
 
 ### Phase 2: POOL
-Replace `createElement + setTimeout(remove)` with a pre-allocated pool + CSS class toggling — because creating/destroying DOM nodes per effect causes GC pressure and forces the browser to recalculate layout on every particle.
+Replace `createElement + setTimeout(remove)` with pre-allocated pool + CSS class toggling.
 
 Pool sizing rules:
 - `createConfetti`: pool of 24 (20 + buffer)
@@ -91,7 +82,7 @@ Keyframe classes to implement:
 See [references/css-particle-migration.md](references/css-particle-migration.md) for complete `@keyframes` definitions with timing presets.
 
 ### Phase 4: JUICE
-Upgrade Framer Motion patterns across combat components — because CSS handles particles but card physics and multi-hit orchestration belong in the Motion layer.
+Upgrade Framer Motion patterns. CSS handles particles; card physics and multi-hit orchestration belong in Motion.
 
 Upgrades per component:
 - `CardHand.tsx`: layout animation with `layoutId` for hand reflow when card is played
@@ -151,42 +142,42 @@ Target metrics:
 ## Error Handling
 
 ### Animation jank after pool migration
-**Cause**: Pool element has stale `transform` or `opacity` from previous animation because CSS reset wasn't applied before re-acquiring.
-**Solution**: In `acquireParticle()`, always set `el.style.transform = ''` and `el.style.opacity = ''` before applying the new CSS class. The `@keyframes` `from` state sets initial values explicitly.
+**Cause**: Stale `transform`/`opacity` from previous animation.
+**Fix**: In `acquireParticle()`, reset `el.style.transform = ''` and `el.style.opacity = ''` before new CSS class.
 
 ### Cards skip spring physics on play
-**Cause**: Framer Motion's `exit` animation fires but the `layoutId` target doesn't exist in the DOM yet, so Motion skips the trajectory.
-**Solution**: Mount the target element before triggering the card play animation. Use `AnimatePresence mode="popLayout"` so exiting cards don't block layout measurement.
+**Cause**: `layoutId` target not in DOM when `exit` fires.
+**Fix**: Mount target before triggering play animation. Use `AnimatePresence mode="popLayout"`.
 
 ### `useSpring` tilt causes re-render loop
-**Cause**: Passing `useSpring` values directly as component props instead of using Framer Motion's `style` prop — the former triggers React reconciliation on every frame.
-**Solution**: Always drive tilt via `<motion.div style={{ rotateX, rotateY }}>` where `rotateX`/`rotateY` are `MotionValue` instances. Never read `.get()` inside render.
+**Cause**: Spring values as component props instead of `style` prop.
+**Fix**: `<motion.div style={{ rotateX, rotateY }}>` with `MotionValue` instances. Never `.get()` inside render.
 
-### `will-change: transform` causing VRAM pressure on mobile
-**Cause**: Applied statically to all cards in the hand at all times.
-**Solution**: Apply `will-change: transform` only via JavaScript when hover/animation starts, remove it on `animationend` or `mouseleave`.
+### `will-change: transform` VRAM pressure on mobile
+**Cause**: Applied statically to all cards.
+**Fix**: Apply via JS on hover/animation start, remove on `animationend`/`mouseleave`.
 
 ## Patterns to Detect and Fix
 
 ### Creating DOM elements inside effect functions
-**What it looks like**: `const el = document.createElement('div')` inside `createImpactBurst()`
-**Why wrong**: 5 `createElement` calls per hit, 8 hits per second = 40 new elements/second; GC pauses visible as frame drops
-**Do instead**: Acquire from pre-allocated pool via `impactPool.acquire()`, return on `animationend`
+**Signal**: `document.createElement('div')` inside `createImpactBurst()`
+**Why**: 40 new elements/second = GC pauses as frame drops.
+**Fix**: `impactPool.acquire()`, return on `animationend`.
 
 ### Animating `top`/`left` for particle movement
-**What it looks like**: `el.style.top = startY + 'px'` then transitioning to new value
-**Why wrong**: `top`/`left` changes trigger layout reflow on every animation frame
-**Do instead**: Use `transform: translateY(Npx)` — same visual result, skips layout and paint entirely
+**Signal**: `el.style.top = startY + 'px'` with transition.
+**Why**: Layout reflow every frame.
+**Fix**: `transform: translateY(Npx)` skips layout and paint.
 
 ### Reading layout properties mid-animation
-**What it looks like**: `el.getBoundingClientRect()` inside a `requestAnimationFrame` callback while particles are flying
-**Why wrong**: Forces synchronous layout, stalls the compositor, causes jank on the same frame
-**Do instead**: Measure positions once before animation starts, cache values, use cached coordinates in `@keyframes` `from`/`to`
+**Signal**: `getBoundingClientRect()` inside `requestAnimationFrame` during particles.
+**Why**: Forces synchronous layout, stalls compositor.
+**Fix**: Measure once before animation, cache coordinates.
 
 ### `useMotionValue` without `useSpring` for card tilt
-**What it looks like**: `rotateY.set(calculatedAngle)` directly on `mousemove`
-**Why wrong**: Instant value updates with no easing — tilt snaps rather than follows, feels mechanical
-**Do instead**: Feed raw mouse values into `useSpring({ stiffness: 300, damping: 30 })` so tilt smoothly chases the cursor
+**Signal**: `rotateY.set(angle)` directly on `mousemove`.
+**Why**: Instant updates snap, feel mechanical.
+**Fix**: Feed into `useSpring({ stiffness: 300, damping: 30 })`.
 
 ## Anti-Rationalization
 

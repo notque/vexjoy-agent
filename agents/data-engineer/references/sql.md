@@ -1,16 +1,9 @@
 # Data Pipeline SQL Reference
 
-> **Scope**: Idempotent pipeline SQL patterns — MERGE, partition overwrite, deduplication, and incremental processing
+> **Scope**: Idempotent pipeline SQL — MERGE, partition overwrite, deduplication, incremental processing
 > **Version range**: SQL:2003+ / PostgreSQL 15+ / BigQuery / Snowflake / Redshift
-> **Generated**: 2026-04-04 — test platform-specific syntax against your target warehouse
 
----
-
-## Overview
-
-Pipeline SQL fails in one of three ways: duplicates on re-run (non-idempotent INSERT), silent schema drift (SELECT *), or incorrect grain aggregation. Every pipeline query must answer "if I run this twice, do I get the same result?" before it is production-ready. The MERGE pattern and partition overwrite are the two primary tools for idempotency.
-
----
+Three failure modes: duplicates on re-run, silent schema drift (SELECT *), incorrect grain aggregation. Every query must answer "same result if run twice?" MERGE and partition overwrite are the primary idempotency tools.
 
 ## Pattern Table: Idempotency Approaches
 
@@ -46,7 +39,7 @@ WHEN NOT MATCHED THEN
   VALUES (source.customer_id, source.email, source.segment, NOW(), NOW());
 ```
 
-**Why**: Explicitly handles both insert and update cases. Safe to re-run: matched rows are only updated if values differ, new rows are inserted, existing unchanged rows are untouched.
+Safe to re-run: updates only on value change, inserts new, untouches unchanged.
 
 ---
 
@@ -179,9 +172,9 @@ FROM staging_orders
 GROUP BY order_id, created_at;
 ```
 
-**Why this matters**: Re-running this (after a failure, for a backfill, or due to a bug) adds duplicate rows. Aggregations on `fact_orders` will double-count, tripling the error with each re-run. Recovery requires manually deleting the partition and re-running.
+**Why**: Re-runs add duplicates. Aggregations double-count. Recovery requires manual partition deletion.
 
-**Preferred action**: Use MERGE or INSERT ON CONFLICT as shown above.
+**Fix**: Use MERGE or INSERT ON CONFLICT.
 
 ---
 
@@ -198,9 +191,9 @@ rg 'SELECT \*' --type sql
 SELECT * FROM raw.orders
 ```
 
-**Why this matters**: When the source schema adds a column, the staging model now passes that column downstream — potentially breaking downstream models that don't expect it, or silently including PII that shouldn't flow through the pipeline.
+**Why**: Schema additions pass downstream, breaking models or leaking PII.
 
-**Preferred action**:
+**Fix**:
 ```sql
 -- Explicit column selection — schema changes are opt-in
 SELECT
@@ -235,9 +228,9 @@ SELECT * FROM staging_orders
 WHERE DATE(created_at) = '2026-04-04'  -- hardcoded!
 ```
 
-**Why this matters**: This pipeline can only run for one specific date. Backfilling requires manual edits. Testing requires changing the date. CI runs with a hardcoded date will eventually fail when the date passes.
+**Why**: Only runs for one date. Backfill requires manual edits. CI breaks when date passes.
 
-**Preferred action**:
+**Fix**:
 ```sql
 -- Parameterized (Airflow Jinja templating)
 WHERE DATE(created_at) = '{{ ds }}'

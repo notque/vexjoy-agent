@@ -1,10 +1,6 @@
 # Modern Go Features by Version
 
-> Reference file for golang-general-engineer agent. Loaded as context during Go development tasks.
-
 ## Pre-Generics Era (Go 1.0 - 1.17)
-
-Key idioms introduced before generics that remain essential:
 
 | Feature | Idiom | Since |
 |---------|-------|-------|
@@ -14,13 +10,10 @@ Key idioms introduced before generics that remain essential:
 
 ## Go 1.18: Generics and Fuzzing
 
-**Generics** — type parameters for functions, types, and interfaces.
+**Generics**:
 
 ```go
-// OLD: separate functions or interface{} with type assertions
-func ContainsInt(s []int, v int) bool { ... }
-func ContainsString(s []string, v string) bool { ... }
-
+// OLD: separate per-type functions
 // NEW: single generic function
 func Contains[T comparable](s []T, v T) bool {
     for _, item := range s {
@@ -47,11 +40,11 @@ func FuzzReverse(f *testing.F) {
 }
 ```
 
-**`any` type alias** — `any` is now a builtin alias for `interface{}`. Prefer `any` everywhere.
+**`any`** — builtin alias for `interface{}`. Prefer `any` everywhere.
 
 ## Go 1.19: Atomic Types
 
-Type-safe wrappers in `sync/atomic` eliminate raw pointer casts.
+Type-safe wrappers in `sync/atomic`:
 
 ```go
 // OLD: untyped atomic operations
@@ -74,14 +67,9 @@ if ready.Load() {
 
 ## Go 1.20: errors.Join and Context Enhancements
 
-**errors.Join** — combine multiple errors into one.
+**errors.Join** — combine multiple errors:
 
 ```go
-// OLD: only one error could be returned, or custom multi-error
-func validate(cfg Config) error {
-    // could only return the first error found
-}
-
 // NEW: collect and return all errors
 func validate(cfg Config) error {
     var errs []error
@@ -100,7 +88,7 @@ func validate(cfg Config) error {
 // Each sub-error is still matchable with errors.Is / errors.As
 ```
 
-**context.WithCancelCause** — attach a reason to cancellation.
+**context.WithCancelCause** — attach reason to cancellation:
 
 ```go
 ctx, cancel := context.WithCancelCause(parentCtx)
@@ -117,7 +105,7 @@ if err := ctx.Err(); err != nil {
 
 ## Go 1.21: slices, maps, slog, and Builtins
 
-**slices and maps packages** — generic helpers in the standard library.
+**slices and maps** — generic stdlib helpers:
 
 ```go
 // OLD: hand-written sort
@@ -139,7 +127,7 @@ maps.Values(m)                 // []V from map[K]V
 maps.Clone(m)                  // shallow copy
 ```
 
-**min/max builtins** — no more hand-rolled helpers.
+**min/max builtins**:
 
 ```go
 // OLD
@@ -150,7 +138,7 @@ x := min(a, b)
 y := max(a, b, c) // variadic
 ```
 
-**slog** — structured logging in the standard library.
+**slog** — structured logging:
 
 ```go
 // OLD: log.Printf with string formatting
@@ -167,7 +155,7 @@ logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 slog.SetDefault(logger)
 ```
 
-**clear()** — built-in to zero out maps and slices.
+**clear()** — zero out maps and slices:
 
 ```go
 m := map[string]int{"a": 1, "b": 2}
@@ -177,7 +165,7 @@ s := []int{1, 2, 3}
 clear(s) // sets all elements to zero value: [0, 0, 0]
 ```
 
-**sync.OnceValue / sync.OnceFunc** — typed single-initialization helpers.
+**sync.OnceValue / sync.OnceFunc**:
 
 ```go
 var getConfig = sync.OnceValue(func() *Config {
@@ -189,7 +177,7 @@ var getConfig = sync.OnceValue(func() *Config {
 
 ## Go 1.22: Range Over Integers and Enhanced ServeMux
 
-**Range over integers** — iterate without a manual index variable.
+**Range over integers**:
 
 ```go
 // OLD
@@ -203,19 +191,9 @@ for i := range 10 {
 }
 ```
 
-**Enhanced ServeMux** — HTTP method and path parameter support in the default mux.
+**Enhanced ServeMux** — method prefix and path parameters:
 
 ```go
-// OLD: manual method checks, third-party routers for path params
-mux.HandleFunc("/users/", func(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodGet {
-        http.Error(w, "method not allowed", 405)
-        return
-    }
-    id := strings.TrimPrefix(r.URL.Path, "/users/")
-    // ...
-})
-
 // NEW: method prefix and {param} wildcards
 mux := http.NewServeMux()
 mux.HandleFunc("GET /users/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -226,21 +204,11 @@ mux.HandleFunc("POST /users", createUser)
 mux.HandleFunc("DELETE /users/{id}", deleteUser)
 ```
 
-**Loop variable fix** — loop variables are now per-iteration (no more closure capture bugs).
-
-```go
-// In Go <1.22, this was a common bug:
-for _, v := range values {
-    go func() {
-        fmt.Println(v) // all goroutines saw the same (last) v
-    }()
-}
-// In Go 1.22+, each iteration gets its own v. The bug is gone.
-```
+**Loop variable fix** — per-iteration variables (no more closure capture bugs). In Go 1.22+, each iteration gets its own `v`.
 
 ## Go 1.23: Range Over Functions and unique Package
 
-**Range over function iterators** — custom iterators that work with `for range`.
+**Range over function iterators**:
 
 ```go
 // Define an iterator using the iter package types
@@ -276,7 +244,7 @@ func Enumerate[T any](s []T) iter.Seq2[int, T] {
 }
 ```
 
-**unique package** — interned (deduplicated) comparable values for memory efficiency.
+**unique package** — interned comparable values for memory efficiency:
 
 ```go
 // Intern strings to reduce memory for repeated values
@@ -291,7 +259,7 @@ fmt.Println(h1 == h2) // true — same underlying storage
 
 ## Go 1.24: Weak Pointers, os.Root, and testing/synctest
 
-**weak package** — weak pointers that don't prevent garbage collection.
+**weak package** — weak pointers (don't prevent GC):
 
 ```go
 // Create a weak pointer — does not keep the object alive
@@ -308,7 +276,7 @@ if val := w.Value(); val != nil {
 }
 ```
 
-**os.Root** — confined filesystem access (no escaping a directory tree).
+**os.Root** — confined filesystem access:
 
 ```go
 // Open a root directory — all operations are confined within it
@@ -323,7 +291,7 @@ f, err := root.Open("user/photo.jpg")    // OK
 f, err = root.Open("../etc/passwd")       // error: path escapes root
 ```
 
-**testing/synctest** — deterministic testing of concurrent code.
+**testing/synctest** — deterministic concurrent testing:
 
 ```go
 func TestTimeout(t *testing.T) {
@@ -354,11 +322,7 @@ func TestTimeout(t *testing.T) {
 
 ## Go 1.25: Swiss Table Maps and GOROOT Removal
 
-**Swiss table map implementation** — maps now use a Swiss table internally for better performance. No code changes needed; existing map code automatically benefits from faster lookups and lower memory overhead.
-
-**GOROOT removal** — the `GOROOT` environment variable and `runtime.GOROOT()` are deprecated. The toolchain is self-contained; rely on `go env GOROOT` if you need the path.
-
-**Improved build caching** — faster incremental builds through smarter cache invalidation.
+**Swiss table maps** — automatic performance improvement, no code changes needed. **GOROOT removal** — `runtime.GOROOT()` deprecated; use `go env GOROOT`. **Improved build caching** — faster incremental builds.
 
 ```go
 // No migration needed for Swiss tables — just upgrade Go.
@@ -377,17 +341,9 @@ func BenchmarkMapLookup(b *testing.B) {
 
 ## Go 1.26: Extended new() and errors.AsType
 
-**Extended `new()` builtin** -- accepts expressions, not just types. Returns a pointer to a copy of the value.
+**Extended `new()`** — accepts expressions, returns pointer to copy:
 
 ```go
-// OLD: variable + address-of
-timeout := 30
-debug := true
-cfg := Config{
-    Timeout: &timeout,
-    Debug:   &debug,
-}
-
 // NEW: new(val) returns pointer directly
 cfg := Config{
     Timeout: new(30),   // *int
@@ -398,15 +354,9 @@ cfg := Config{
 // Do NOT use redundant casts like new(int(0)) -- just write new(0)
 ```
 
-**`errors.AsType[T]`** -- generic type assertion for errors, replacing `errors.As` with pointer dance.
+**`errors.AsType[T]`** — generic error type assertion:
 
 ```go
-// OLD: declare target variable, pass pointer
-var pathErr *os.PathError
-if errors.As(err, &pathErr) {
-    handle(pathErr)
-}
-
 // NEW: generic, returns value and bool
 if pathErr, ok := errors.AsType[*os.PathError](err); ok {
     handle(pathErr)
@@ -414,8 +364,6 @@ if pathErr, ok := errors.AsType[*os.PathError](err); ok {
 ```
 
 ## Migration Checklist
-
-When upgrading a project to modern Go, apply these changes:
 
 | Old Pattern | New Pattern | Since |
 |---|---|---|

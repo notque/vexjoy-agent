@@ -12,7 +12,7 @@ description: Mapping design, ILM policies, index templates, and reindexing strat
 
 ## Overview
 
-Index management failures are slow-moving disasters: dynamic mapping enables today, then causes mapping explosion in 3 months. ILM not configured today means manual deletion during a storage emergency. Mapping design is largely irreversible on live indices — reindexing 100GB of data takes hours. Get it right at creation time.
+Slow-moving disasters: dynamic mapping causes explosion in 3 months. No ILM means manual deletion during storage emergencies. Mapping is largely irreversible on live indices. Get it right at creation time.
 
 ---
 
@@ -68,7 +68,7 @@ PUT /articles
 }
 ```
 
-**Why**: `"dynamic": "strict"` rejects documents with unknown fields (returns a 400 error). This prevents the gradual accumulation of unknown field mappings that causes `index.mapping.total_fields.limit` to be reached silently.
+**Why**: `"dynamic": "strict"` rejects unknown fields (400 error), preventing gradual mapping accumulation that silently hits `total_fields.limit`.
 
 ---
 
@@ -116,7 +116,7 @@ PUT _ilm/policy/logs-policy
 }
 ```
 
-**Why**: Hot phase: active writes, high-priority. Warm phase: force-merge reduces segment count (read optimization), shrink consolidates shards from hot to 1 (saves file descriptors). Cold phase: frozen indices move to object storage. Delete: automatic cleanup.
+**Why**: Hot = active writes. Warm = force-merge (read optimization) + shrink to 1 shard. Cold = frozen/object storage. Delete = automatic cleanup.
 
 ---
 
@@ -150,7 +150,7 @@ POST _aliases
 GET articles/_alias
 ```
 
-**Why**: Application code always queries `articles` alias — never the versioned index name. Alias swap is atomic: no gap between removing old and adding new. Clients see no downtime.
+**Why**: Application queries alias, never versioned name. Alias swap is atomic. Zero downtime.
 
 ---
 
@@ -183,7 +183,7 @@ PUT _index_template/logs-template
 }
 ```
 
-**Why**: Template applies automatically to new indices matching the pattern. Without a template, each rollover creates an index with default settings — no ILM policy, no explicit mapping.
+**Why**: Without template, each rollover creates an index with defaults — no ILM, no explicit mapping.
 
 ---
 
@@ -225,7 +225,7 @@ GET /your-index/_mapping | jq '.[] | .mappings.properties | keys | length'
 }
 ```
 
-**Why this matters**: Each unique key in a JSON blob creates a new field mapping. Experiment names, user preference keys, and event properties grow unbounded. At `index.mapping.total_fields.limit` (default 1000), indexing fails with `limit of total fields [1000] has been exceeded`. Existing data is already corrupted by this point — reindexing required.
+**Why this matters**: Each unique JSON key creates a field mapping. At `total_fields.limit` (default 1000), indexing fails. Reindexing required to fix.
 
 **Preferred action**: Use `"dynamic": false` on nested objects with variable keys, or use the `flattened` field type:
 ```json
@@ -266,7 +266,7 @@ GET /your-index/_mapping
 }
 ```
 
-**Why this matters**: `text` fields are analyzed — `"active"` is tokenized and lowercased. A `term` query for `"active"` works, but `"Active"` misses. `"IS_ACTIVE"` gets tokenized to `["is", "active"]` — `term` query on `"IS_ACTIVE"` returns nothing. Aggregations on `text` fields throw `Fielddata is disabled on text fields`.
+**Why this matters**: `text` fields are analyzed/tokenized. `term` queries on `text` fail silently for casing differences. Aggregations on `text` throw `Fielddata is disabled`.
 
 **Preferred action**: Use `keyword` for exact-match fields (status, IDs, category); use `text` with `.keyword` sub-field when both full-text search and aggregation are needed.
 
@@ -292,7 +292,7 @@ POST _reindex
 # Then discover v2 has "date" field mapped as "text" in v1
 ```
 
-**Why this matters**: If `published_at` is `text` in v1 and `date` in v2, reindex fails on any document where `published_at` doesn't parse as a date. `_reindex` continues by default, silently skipping failed documents. The result is an incomplete index with no clear indication of what was dropped.
+**Why this matters**: Type mismatches (e.g., `text` in v1, `date` in v2) fail silently. `_reindex` skips failed docs by default, producing an incomplete index.
 
 **Preferred action**: Use `"conflicts": "proceed"` only intentionally, and check task results for failures:
 ```bash

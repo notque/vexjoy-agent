@@ -8,7 +8,7 @@
 
 ## Overview
 
-Over-mocking is the primary cause of tests that pass but fail in production. When every dependency is mocked, the test verifies that mocks behave like mocks, not that the real system works. The rule: mock at boundaries (network, file system, time, external services), not inside the application layer.
+Over-mocking: tests pass, production fails. Mock at boundaries (network, filesystem, time, external services), not inside the application layer.
 
 ---
 
@@ -58,7 +58,7 @@ vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
 }))
 ```
 
-**Why prefer MSW**: MSW intercepts at the network level via `@mswjs/interceptors` (Node). The component's `fetch` call is real — error handling, response parsing, and retry logic are all exercised. `vi.stubGlobal('fetch')` replaces the function, bypassing all of that.
+**Why**: MSW intercepts at network level. Real `fetch` runs — error handling, parsing, retry logic exercised. `vi.stubGlobal('fetch')` bypasses all of that.
 
 ---
 
@@ -95,7 +95,7 @@ it('returns null for unknown user', async () => {
 })
 ```
 
-**Why**: TypeScript enforces that `MockUserRepository` stays in sync with the real interface contract. `vi.mock` on a database module bypasses type checking and can silently drift from the real implementation.
+**Why**: TypeScript enforces mock stays in sync with interface. `vi.mock` bypasses type checking and silently drifts.
 
 ---
 
@@ -120,7 +120,7 @@ it('sends welcome email on registration', async () => {
 })
 ```
 
-**Why**: `vi.spyOn` replaces only one function. All other `emailService` exports remain real. This tests that `registerUser` calls `sendEmail` with the right arguments without disabling the rest of the email module.
+**Why**: `vi.spyOn` replaces one function. Rest of module stays real.
 
 ---
 
@@ -149,7 +149,7 @@ it('displays total', () => {
 })
 ```
 
-**Why this matters**: This test verifies that when `calculateTotal` returns `99.99`, the component displays it. It does NOT test whether `calculateTotal` returns the right value. A bug in the calculation is invisible to this test. Over-mocked tests pass while the real system is broken.
+**Why this matters**: Test verifies mock returns display correctly, NOT that calculation is correct. Bug in calculation invisible.
 
 **Preferred action:** Mock only the network boundary, let real internal logic run:
 ```typescript
@@ -180,7 +180,7 @@ vi.mock('react-router-dom', () => ({
 }))
 ```
 
-**Why this matters**: When `react-router-dom` updates its API, the mock silently diverges. The test passes but the real component breaks in production. You're testing against a fake contract you wrote yourself.
+**Why this matters**: When the library updates, mock silently diverges. Tests pass, production breaks.
 
 **Preferred action:** Use real providers in tests. For React Router v6+:
 ```typescript
@@ -219,7 +219,7 @@ it('saves user preferences', async () => {
 })
 ```
 
-**Why this matters**: This test passes even if `savePreferences` is called but returns an error the component silently swallows. Or if the UI shows a stale state. It verifies that a function was invoked, not that the user got the right outcome.
+**Why this matters**: Test passes even if `savePreferences` returns an error the component swallows, or UI shows stale state. Verifies invocation, not outcome.
 
 **Preferred action:** Assert on user-visible result first; use call assertions as secondary verification:
 ```typescript
@@ -252,7 +252,7 @@ beforeAll(() => {
 })
 ```
 
-**Why this matters**: This suppresses all React prop-type warnings, act() warnings, and real errors. A broken component renders silently. Errors that should fail the test pass unnoticed.
+**Why this matters**: Blanket suppression hides real errors. Broken components render silently.
 
 **Preferred action:** Suppress only the specific known warning; assert others still fire:
 ```typescript

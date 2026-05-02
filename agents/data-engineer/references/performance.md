@@ -1,16 +1,9 @@
 # Data Warehouse Performance Reference
 
-> **Scope**: Partitioning, clustering, incremental processing, and materialized view strategies for analytical warehouses
-> **Version range**: BigQuery (all), Snowflake (all), Redshift (ra3+), PostgreSQL 14+
-> **Generated**: 2026-04-04 — partition and clustering syntax is platform-specific
+> **Scope**: Partitioning, clustering, incremental processing, materialized views
+> **Version range**: BigQuery, Snowflake, Redshift (ra3+), PostgreSQL 14+
 
----
-
-## Overview
-
-Warehouse query performance problems are almost always partitioning and clustering failures. A 10TB table with no partition filter does a full table scan for every query; the same query on a date-partitioned table reads only the relevant partitions (often < 1% of data). Address partitioning before any other optimization.
-
----
+Performance problems are almost always partitioning/clustering failures. Address partitioning before any other optimization.
 
 ## Pattern Table: Partitioning Strategies
 
@@ -50,7 +43,7 @@ WHERE order_date BETWEEN '2026-03-01' AND '2026-03-31';
 -- If it shows all partitions, add partition column to WHERE clause
 ```
 
-**Why**: Partitioning only helps if queries filter on the partition column. A join on `customer_id` against a date-partitioned table still scans every partition unless the query also has a date filter.
+Partitioning only helps if queries filter on the partition column.
 
 ---
 
@@ -79,7 +72,7 @@ def extract_incremental(ds, **kwargs):
     # Extract records newer than last_processed
 ```
 
-**Why**: Full table refreshes on large tables are expensive and slow. Incremental processing reduces compute cost by 90%+ on stable pipelines. The 5-minute safety buffer prevents dropping late-arriving events.
+Incremental processing reduces compute 90%+. The 5-minute buffer prevents dropping late-arriving events.
 
 ---
 
@@ -108,7 +101,7 @@ CREATE INDEX idx_daily_rev_segment ON daily_revenue_by_segment(customer_segment)
 REFRESH MATERIALIZED VIEW CONCURRENTLY daily_revenue_by_segment;
 ```
 
-**Why**: Dashboard queries that aggregate 30-90 days of data can take 30+ seconds against large fact tables. A materialized view pre-computes the aggregation; dashboard queries hit the view in milliseconds.
+Pre-computes aggregation; dashboard queries hit the view in milliseconds.
 
 ---
 
@@ -146,7 +139,7 @@ LEFT JOIN {{ ref('dim_customer') }} USING (customer_id)
 {% endif %}
 ```
 
-**Why**: `insert_overwrite` with a date window handles late-arriving data without full table scans. The 3-day window catches records that arrive late and status updates (orders move from pending → shipped → delivered).
+`insert_overwrite` with date window handles late-arriving data. 3-day window catches late records and status updates.
 
 ---
 
@@ -181,9 +174,9 @@ WHERE status = 'completed'  -- No date filter!
 GROUP BY customer_segment
 ```
 
-**Why this matters**: On a 3-year table partitioned by day (1095 partitions), this scans every partition. 1TB scanned instead of 1GB (30-day window). In BigQuery, costs ~$5 per query instead of $0.005.
+**Why**: 3-year daily table = 1095 partitions scanned. 1TB instead of 1GB. BigQuery: $5/query instead of $0.005.
 
-**Preferred action**:
+**Fix**:
 ```sql
 SELECT customer_segment, SUM(amount)
 FROM fact_orders
@@ -214,9 +207,9 @@ JOIN dim_customer dc ON fo.customer_id = dc.customer_id
 WHERE fo.order_date = CURRENT_DATE
 ```
 
-**Why this matters**: Without clustering on `customer_id`, the join shuffles all data across nodes to co-locate matching rows. On 1B rows, this is a multi-minute shuffle.
+**Why**: Without clustering, join shuffles all data across nodes. On 1B rows = multi-minute shuffle.
 
-**Preferred action**:
+**Fix**:
 ```sql
 -- BigQuery: add clustering to both tables
 ALTER TABLE fact_orders CLUSTER BY customer_id;
@@ -247,9 +240,9 @@ refresh_mv = PostgresOperator(
 )
 ```
 
-**Why this matters**: `REFRESH MATERIALIZED VIEW` (non-CONCURRENT) takes an exclusive lock that blocks all queries to the view. Running during 9 AM peak hour blocks dashboards for the duration of the refresh (potentially minutes on large datasets).
+**Why**: Non-CONCURRENT refresh takes exclusive lock blocking all queries. 9 AM = peak dashboard hour.
 
-**Preferred action**:
+**Fix**:
 ```python
 # Schedule during off-peak hours
 schedule_interval="0 4 * * *"  # 4 AM

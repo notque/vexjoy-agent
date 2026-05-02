@@ -1,12 +1,8 @@
 # Go Patterns, Gates, and Rationalizations
 
-Modern idiom replacement table, anti-patterns, rationalizations, hard gate patterns, and death loop prevention. Loaded when reviewing or writing Go code.
+Modern idiom replacements, hard gates, rationalizations, and death loop prevention.
 
-## Preferred Patterns
-
-### Modern Idiom Patterns
-
-These are the most common AI-generated Go anti-patterns — using old patterns when modern alternatives exist:
+## Modern Idiom Patterns
 
 | Outdated Pattern | Modern Replacement | Since |
 |-----------------|-------------------|-------|
@@ -27,9 +23,9 @@ These are the most common AI-generated Go anti-patterns — using old patterns w
 | `var t *T; errors.As(err, &t)` | `errors.AsType[*T](err)` | Go 1.26 |
 
 ### Protocol Reasoning Instead of Library Verification
-**What it looks like**: "Kafka consumer groups will rebalance after a member leaves, so this is safe."
-**Why wrong**: Protocol-level behavior and library-level behavior are not the same. LLMs reason from training data about protocols, not from reading the specific library version in go.mod.
-**Do instead**: Read the library source in GOMODCACHE. The question is never "how does the protocol work?" but "how does THIS library version implement THIS method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
+**Signal**: "Kafka consumer groups will rebalance, so this is safe."
+**Why wrong**: Protocol-level != library-level behavior.
+**Do instead**: Read source in GOMODCACHE: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
 
 ## Anti-Rationalization
 
