@@ -10,6 +10,8 @@ The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity tha
 
 **LLMs orchestrate, programs execute.** If a process is deterministic and measurable (file searching, test execution, build validation, frontmatter checking), use a script. Reserve LLM judgment for contextual diagnosis, design decisions, and code review.
 
+**Write dense.** High fidelity, minimum words. Cut every word that carries no instruction, rule, or decision. Prefer tables and lists over paragraphs. If cutting a sentence loses no instruction, cut it.
+
 ---
 
 ## Trust Boundary: Untrusted Content
