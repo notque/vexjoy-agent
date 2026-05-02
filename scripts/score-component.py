@@ -89,15 +89,20 @@ class ComponentScore:
         return sum(c.max_points for c in self.checks)
 
     @property
+    def pct(self) -> float:
+        m = self.max_total
+        return (self.total / m * 100) if m else 0.0
+
+    @property
     def grade(self) -> str:
-        t = self.total
-        if t >= 90:
+        p = self.pct
+        if p >= 90:
             return "A"
-        elif t >= 75:
+        elif p >= 75:
             return "B"
-        elif t >= 60:
+        elif p >= 60:
             return "C"
-        elif t >= 40:
+        elif p >= 40:
             return "D"
         else:
             return "F"
@@ -354,8 +359,6 @@ def check_workflow_instructions(content: str) -> CheckResult:
     if not has_gates:
         missing.append("Gate checkpoints")
     return CheckResult("Workflow instructions", 15, earned, f"{found}/3 elements (missing: {', '.join(missing)})")
-
-
 
 
 def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
