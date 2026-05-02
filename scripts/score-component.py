@@ -89,15 +89,20 @@ class ComponentScore:
         return sum(c.max_points for c in self.checks)
 
     @property
+    def pct(self) -> float:
+        m = self.max_total
+        return (self.total / m * 100) if m else 0.0
+
+    @property
     def grade(self) -> str:
-        t = self.total
-        if t >= 90:
+        p = self.pct
+        if p >= 90:
             return "A"
-        elif t >= 75:
+        elif p >= 75:
             return "B"
-        elif t >= 60:
+        elif p >= 60:
             return "C"
-        elif t >= 40:
+        elif p >= 40:
             return "D"
         else:
             return "F"
@@ -356,23 +361,6 @@ def check_workflow_instructions(content: str) -> CheckResult:
     return CheckResult("Workflow instructions", 15, earned, f"{found}/3 elements (missing: {', '.join(missing)})")
 
 
-def check_inline_constraints(content: str) -> CheckResult:
-    """Check: Inline constraints with reasoning (10 pts).
-
-    Workflow-first model: constraints are distributed inline with "because X"
-    reasoning at point-of-use. Replaces the old CAN/CANNOT sections check.
-    """
-    because_count = len(re.findall(r"\bbecause\b", content, re.IGNORECASE))
-
-    if because_count >= 5:
-        return CheckResult("Inline constraints", 10, 10, f"{because_count} inline 'because' reasoning instances")
-    elif because_count >= 2:
-        return CheckResult("Inline constraints", 10, 5, f"{because_count} inline 'because' reasoning (target: 5+)")
-    return CheckResult(
-        "Inline constraints", 10, 0, f"Only {because_count} inline constraint reasoning found (target: 5+)"
-    )
-
-
 def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
     """Check: No broken markdown internal links (10 pts)."""
     # Match markdown links: [text](path) — exclude URLs and anchors
@@ -497,7 +485,6 @@ def score_component(file_path: Path, do_check_secrets: bool = False) -> Componen
     score.checks.append(check_routing_registration(component_type, file_path, fm))
     score.checks.append(check_reference_files(component_type, file_path))
     score.checks.append(check_workflow_instructions(content))
-    score.checks.append(check_inline_constraints(content))
     score.checks.append(check_broken_internal_links(content, file_path))
 
     if do_check_secrets:
