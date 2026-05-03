@@ -1,8 +1,10 @@
 # Go Testing Patterns
 
+> Reference file for golang-general-engineer agent. Loaded as context during Go development tasks.
+
 ## Table-Driven Tests with t.Run
 
-Standard pattern for multiple scenarios. Each subtest runs individually.
+The standard Go pattern for testing multiple scenarios. Each subtest gets its own name and can be run individually.
 
 ```go
 func TestParseSize(t *testing.T) {
@@ -44,7 +46,7 @@ Run a single subtest: `go test -run TestParseSize/kilobytes`.
 
 ## t.Helper() for Test Helpers
 
-Failure messages report caller's line, not helper's.
+Mark helper functions with `t.Helper()` so failure messages report the caller's line, not the helper's.
 
 ```go
 func assertStatusCode(t *testing.T, resp *http.Response, want int) {
@@ -66,7 +68,7 @@ func mustParseJSON[T any](t *testing.T, data []byte) T {
 
 ## t.Cleanup() for Teardown
 
-Prefer over `defer` in helpers. Runs after test+subtests, even after `t.Fatal`.
+Prefer `t.Cleanup()` over `defer` in test helpers. Cleanup functions run after the test (and subtests) finish, and they run even if the test calls `t.Fatal`.
 
 ```go
 func setupTestDB(t *testing.T) *sql.DB {
@@ -95,7 +97,7 @@ func TestUserRepo(t *testing.T) {
 
 ## Testing with Interfaces (Dependency Injection)
 
-Define small interfaces at point of use. Test with fakes.
+Define small interfaces where you need them. Test with fake implementations.
 
 ```go
 // In your production code: define a narrow interface
@@ -138,7 +140,7 @@ func TestPlaceOrder(t *testing.T) {
 
 ## httptest.NewServer for HTTP Testing
 
-Point clients at a local test server.
+Test HTTP clients by pointing them at a local test server.
 
 ```go
 func TestFetchUser(t *testing.T) {
@@ -163,7 +165,7 @@ func TestFetchUser(t *testing.T) {
 }
 ```
 
-Handler testing without a server:
+For handler testing without a server, use `httptest.NewRecorder`:
 ```go
 func TestHealthHandler(t *testing.T) {
     req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -182,7 +184,7 @@ func TestHealthHandler(t *testing.T) {
 
 ## Golden File Testing
 
-Compare output against saved golden file. Update with `-update` flag.
+Compare output against a saved "golden" file. Update golden files with `-update` flag.
 
 ```go
 var update = flag.Bool("update", false, "update golden files")
@@ -211,7 +213,7 @@ Update: `go test -run TestRenderTemplate -update`
 
 ## Benchmarks with b.ResetTimer
 
-Exclude setup time from measurement.
+Measure performance and exclude setup time.
 
 ```go
 func BenchmarkSort(b *testing.B) {
@@ -237,11 +239,13 @@ Use `b.ReportAllocs()` to always show allocation stats. Use `b.RunParallel` for 
 
 ## Race Detection
 
+Run tests with the race detector to catch data races. It instruments memory accesses at compile time.
+
 ```bash
 go test -race ./...
 ```
 
-Always enable in CI. 2-10x overhead — fine for tests, not production.
+Always enable in CI. The race detector has ~2-10x overhead, so it's fine for tests but not production.
 
 ```go
 // This test will fail with -race if the implementation has a data race
@@ -266,7 +270,7 @@ func TestConcurrentAccess(t *testing.T) {
 
 ## Fuzz Testing (Go 1.18+)
 
-Random inputs to find unexpected edge cases.
+Let Go generate random inputs to find edge cases you didn't think of.
 
 ```go
 func FuzzParseSize(f *testing.F) {
@@ -303,7 +307,7 @@ Run: `go test -fuzz FuzzParseSize -fuzztime 30s`
 
 ## testscript for CLI Testing
 
-`github.com/rogpeppe/go-internal/testscript` — test CLI tools with script files.
+The `testscript` package (from `github.com/rogpeppe/go-internal`) tests CLI tools using script files.
 
 ```go
 // In main_test.go
@@ -339,7 +343,7 @@ line3
 
 ## Test Fixtures with t.TempDir
 
-Auto-cleaned temporary directory.
+Use `t.TempDir()` for tests that need a temporary directory. It's automatically cleaned up.
 
 ```go
 func TestWriteConfig(t *testing.T) {

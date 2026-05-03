@@ -156,13 +156,6 @@ Configures Claude for idiomatic, production-ready PHP code following PSR-12 and 
 
 ---
 
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**:
-  - Dense output: High fidelity, minimum words. Cut every word that carries no instruction or decision.
-  - Fact-based: Report what changed, not how clever it was. "Fixed 3 issues" not "Successfully completed the challenging task of fixing 3 issues".
-  - Tables and lists over paragraphs. Show commands and outputs rather than describing them.
-
 ## PHP Patterns
 
 See [`references/php-patterns.md`](php-general-engineer/references/php-patterns.md) for thin controller patterns, DTOs, value objects, and preferred patterns.

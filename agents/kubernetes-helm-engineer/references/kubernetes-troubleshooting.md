@@ -1,6 +1,16 @@
 # Kubernetes Troubleshooting Reference
 
-> **Scope**: Pod failure states, resource issues, diagnostics. Kubernetes 1.24+, Helm 3.x.
+> **Scope**: Pod failure states, resource issues, networking problems, and diagnostic command patterns. Does NOT cover Helm chart development.
+> **Version range**: Kubernetes 1.24+ (pod security admission), Helm 3.x
+> **Generated**: 2026-04-08
+
+---
+
+## Overview
+
+Kubernetes pod failures follow predictable patterns. The three most frequent are: image pull failures (registry auth or typos), resource-related crashes (OOMKilled, CPU throttle), and probe failures (liveness killing healthy pods). Each has a deterministic diagnosis path — the commands below surface root cause within 60 seconds.
+
+---
 
 ## Pod State Diagnosis Table
 
