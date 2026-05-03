@@ -57,17 +57,7 @@ def _load_font(size: int = 14) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 
 def _slice_cells(sheet: Image.Image, cols: int, rows: int, cell_size: int) -> list[list[Image.Image]]:
-    """Slice a spritesheet into a 2D grid of cell images.
-
-    Args:
-        sheet: The spritesheet image.
-        cols: Number of columns.
-        rows: Number of rows.
-        cell_size: Size of each cell in pixels.
-
-    Returns:
-        2D list [row][col] of cell images.
-    """
+    """Slice a spritesheet into a 2D grid ``[row][col]`` of cell images."""
     grid: list[list[Image.Image]] = []
     for r in range(rows):
         row: list[Image.Image] = []

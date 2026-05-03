@@ -34,6 +34,10 @@ routing:
     - per-row sprite generation
     - video to sprite
     - animation preset
+    - deterministic idle
+    - breathing loop
+    - sprite QA
+    - contact sheet
   complexity: Complex
   category: game
   pairs_with:
@@ -140,11 +144,10 @@ Row-strip generation eliminates the monolithic-sheet failure mode. Instead of on
 
 **How it works:**
 
-1. Phase A generates a canonical base character image (identity lock anchor).
-2. `sprite_canvas.py make-layout-guide` generates per-row reference PNGs showing frame boundaries with numbered cells on transparent background.
-3. Each row gets its own prompt with state-specific action/pose + VFX containment rules.
-4. Layout guide + canonical base are passed as `--reference` to the backend alongside the row prompt.
-5. Strips are composited into the final sheet after all rows pass QA.
+1. Phase A generates a canonical base character image (identity lock anchor). All subsequent rows receive this base as `--reference` with "match silhouette, face, materials, palette, props exactly" -- prevents cross-row palette shifts, proportion changes, accessory drift.
+2. `sprite_canvas.py make-layout-guide` generates per-row reference PNGs (frame boundaries with numbered cells on transparent background), passed as `--reference` alongside the canonical base to prevent frame drift at generation time.
+3. Each row gets its own prompt with state-specific action/pose + VFX containment rules (see `references/vfx-containment.md`).
+4. Strips are composited into the final sheet after all rows pass QA.
 
 **Retry granularity:** re-generate a single failed row, not the whole sheet. Cost drops from O(sheet) to O(row).
 
@@ -163,21 +166,6 @@ Named animation presets replace raw `--grid CxR` with semantic state definitions
 | `custom` | user-defined via `--states` JSON | variable |
 
 `--preset` expands to `--grid` + per-row metadata + timing arrays. Users say `--preset rpg-character` instead of computing grid dimensions manually.
-
-## Layout guide grounding
-
-Layout guides are structural reference images that prevent frame drift at generation time (rather than fixing it in post-processing).
-
-- `sprite_canvas.py make-layout-guide --row <state> --frames <N> --cell-size <px>` generates a per-row reference PNG.
-- Shows frame boundaries with numbered cells on transparent background.
-- Passed as `--reference` to the backend alongside the character reference image.
-- The model uses the guide to understand where to place frames — frames land in the correct cells instead of drifting.
-
-## Identity lock (canonical base)
-
-Phase A generates a canonical base character image before any animation rows. All subsequent row-strip generations receive this base as a reference with the role label: "match silhouette, face, materials, palette, props exactly."
-
-**Why:** Without identity lock, multi-row generation re-imagines the character per row — palette shifts, proportion changes, accessory drift. Identity lock eliminates this failure class.
 
 ## Video-to-sprite pipeline
 
@@ -231,22 +219,6 @@ Example (idle): `[280, 110, 110, 140, 140, 320]` ms — longer hold on first/las
 - GIF/WebP output uses per-frame durations via Pillow's `duration` parameter.
 - Phaser atlas JSON includes `frameDurations` array and `animationTimings` map.
 - Custom timing override via `--timing-json <path>` for fine-tuning.
-
-## VFX containment rules
-
-Every row-strip prompt includes effects containment rules to prevent bad generations at prompt time rather than catching them in QA.
-
-**Allowed:** effects attached to or overlapping character silhouette, within frame boundaries, opaque hard-edged pixel-style colors.
-
-**Forbidden:** detached sparkles, floating icons, shadows (cast/drop/contact), glows, halos, auras, speed lines, motion trails, blur, smears, afterimages, text, labels, UI elements, speech bubbles, scenery, floor shadows.
-
-**State-specific rules** (injected per row):
-- `jump`: body shows motion — no dust clouds or impact effects.
-- `hit-stun`: attached effects only (flash/outline), no detached particles.
-- `charge`: energy effects attached to hands/weapon, no floating orbs.
-- `special`: effects extend from character, never free-floating.
-
-Full ruleset in `references/vfx-containment.md`.
 
 ## Backend (Codex default with Nano Banana fallback, per ADR-198)
 

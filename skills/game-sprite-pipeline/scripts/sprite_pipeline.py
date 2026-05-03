@@ -397,19 +397,10 @@ def _process_row_strip(
     bg_mode: str,
     chroma_threshold: int,
 ) -> list[Path]:
-    """Slice a single row strip into individual frames and remove backgrounds.
+    """Slice a row strip into frames and remove backgrounds.
 
-    Per-row mode knows the exact frame count from the preset. We slice at
-    simple pitch (strip_width / expected_frames) rather than using
-    connected-components or the dense-grid slicer, which fragment characters
-    when Codex-generated strips don't align to cell boundaries.
-
-    Steps:
-        1. Pre-despill magenta to alpha=0 (avoids LANCZOS pink fringe on resize)
-        2. Resize strip to (expected_frames * cell_size) x cell_size if needed
-        3. Slice into expected_frames cells at exact cell_size pitch
-        4. Run bg removal on each frame
-        5. Return list of processed frame paths
+    Uses exact pitch (strip_width / expected_frames) instead of
+    connected-components to avoid fragmenting Codex-generated strips.
 
     Args:
         strip_path: Path to the row strip PNG.
@@ -429,11 +420,9 @@ def _process_row_strip(
 
     strip_img = Image.open(strip_path).convert("RGBA")
 
-    # Pre-despill: convert magenta to alpha=0 before any resize to avoid
-    # LANCZOS interpolating between magenta and content (produces pink fringe).
+    # Pre-despill magenta before resize (prevents LANCZOS pink fringe)
     strip_img = _pre_despill_raw_for_upscale(strip_img, chroma_threshold=chroma_threshold)
 
-    # Target dimensions
     target_w = expected_frames * cell_size
     target_h = cell_size
 
@@ -556,7 +545,7 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
     phases.append({"phase": "A", "name": "canonical-base", "rc": 0, "dry_run": args.dry_run})
     logger.info("[per-row] Phase A: canonical base at %s", canonical_base_path)
 
-    # Deterministic idle from canonical base (road-to-aew pattern)
+    # Deterministic idle from canonical base
     if getattr(args, "deterministic_idle", False) and canonical_base_path.exists():
         import deterministic_idle
 
@@ -769,19 +758,23 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
     assembly_frames: list[Image.Image | None] = [by_idx.get(i) for i in range(expected)]
 
     emit_strips = effective_cols in (4, 8) and not args.no_strips
-    assemble_outputs(
-        frames=assembly_frames,
-        output_dir=work_dir / "out",
-        name=name,
-        grid_cols=effective_cols,
-        grid_rows=total_rows,
-        cell_w=args.cell_size,
-        cell_h=args.cell_size,
-        fps=args.fps,
-        emit_strips=emit_strips,
-        timing=timing_dict if timing_dict else None,
-        state_names=state_name_list if state_name_list else None,
-    )
+    try:
+        assemble_outputs(
+            frames=assembly_frames,
+            output_dir=work_dir / "out",
+            name=name,
+            grid_cols=effective_cols,
+            grid_rows=total_rows,
+            cell_w=args.cell_size,
+            cell_h=args.cell_size,
+            fps=args.fps,
+            emit_strips=emit_strips,
+            timing=timing_dict if timing_dict else None,
+            state_names=state_name_list if state_name_list else None,
+        )
+    finally:
+        for img in by_idx.values():
+            img.close()
     phases.append({"phase": "H", "name": "assemble", "rc": 0})
 
     # Phase 7: QA artifacts (when --qa-artifacts is set)
@@ -818,7 +811,7 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
             phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
             logger.info("[per-row] QA artifacts written to %s", qa_dir)
 
-    # Provenance tracking (road-to-aew pattern)
+    # Provenance tracking
     row_hashes: dict[str, str] = {}
     for row_idx, row_def in enumerate(row_defs):
         sp = strip_paths[row_idx]
@@ -1210,6 +1203,8 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     ]
     if args.no_strips:
         assemble_argv.append("--no-strips")
+    if timing_json_arg:
+        assemble_argv.extend(["--timing-json", timing_json_arg])
     rc = sprite_process.main(assemble_argv)
     if rc != 0:
         return rc
@@ -1246,7 +1241,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
             phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
             logger.info("[spritesheet] QA artifacts written to %s", qa_dir)
 
-    # Provenance tracking (road-to-aew pattern)
+    # Provenance tracking
     prompt_hash_val = None
     if sheet_prompt_path.exists():
         prompt_hash_val = _sha256_text(sheet_prompt_path.read_text(encoding="utf-8"))
@@ -1478,16 +1473,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Use with --per-row for row-strip generation mode."
         ),
     )
-    # Phase 5: Video source per row
-    parser.add_argument(
-        "--video-rows",
-        help=(
-            "Video source per row: comma-separated 'row_idx:state:path' entries. "
-            "Example: '0:idle:/path/to/idle.mp4,4:jump:/path/to/jump.mp4'. "
-            "Rows with video sources use the video extraction pipeline."
-        ),
-    )
-    # Deterministic idle (road-to-aew pattern)
+    # Deterministic idle
     parser.add_argument(
         "--deterministic-idle",
         action="store_true",

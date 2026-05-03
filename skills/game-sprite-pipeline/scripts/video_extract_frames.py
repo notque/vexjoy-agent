@@ -42,15 +42,7 @@ def extract_frames(
 ) -> list[Path]:
     """Extract frames from a video file using FFmpeg.
 
-    Args:
-        input_path: Path to the input video file.
-        output_dir: Directory to write extracted PNG frames.
-        fps: Frames per second to extract (default 10).
-        start: Start time in seconds for clip trimming.
-        duration: Duration in seconds for clip trimming.
-
-    Returns:
-        List of paths to extracted frame PNGs, sorted by frame number.
+    Returns sorted list of extracted frame PNG paths.
 
     Raises:
         FileNotFoundError: If FFmpeg is not available or input doesn't exist.

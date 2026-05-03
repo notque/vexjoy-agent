@@ -35,7 +35,6 @@ except ImportError as e:
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-import sprite_anchor
 import sprite_bg
 
 
@@ -50,17 +49,7 @@ def process_frames(
 ) -> dict:
     """Process selected frames into a horizontal strip.
 
-    Args:
-        input_dir: Directory of selected frame PNGs.
-        output_path: Path for the output strip PNG.
-        cell_size: Width and height of each cell in the strip.
-        bg_mode: Background removal mode (chroma, gray-tolerance, rembg).
-        chroma_threshold: Threshold for chroma key bg removal.
-        preview_gif: Optional path to write a preview GIF.
-        fps: FPS for preview GIF.
-
-    Returns:
-        Dict with output paths and frame count.
+    Returns dict with output paths and frame count.
 
     Raises:
         FileNotFoundError: If input_dir doesn't exist or has no frames.

@@ -34,15 +34,7 @@ BEAT_LABELS = ["anticipation", "contact", "follow-through", "recovery"]
 
 
 def select_uniform(frames: list[Path], count: int) -> list[int]:
-    """Select evenly spaced frame indices from a sequence.
-
-    Args:
-        frames: Sorted list of frame paths.
-        count: Number of frames to select.
-
-    Returns:
-        List of selected indices into the frames list.
-    """
+    """Select evenly spaced frame indices from a sequence."""
     n = len(frames)
     if count >= n:
         return list(range(n))
@@ -57,28 +49,13 @@ def select_uniform(frames: list[Path], count: int) -> list[int]:
 
 
 def select_manual(frames: list[Path], indices: list[int]) -> list[int]:
-    """Select frames by explicit index list.
-
-    Args:
-        frames: Sorted list of frame paths.
-        indices: List of indices to select.
-
-    Returns:
-        Validated list of indices (clamped to valid range).
-    """
+    """Select frames by explicit index list, clamped to valid range."""
     n = len(frames)
     return [max(0, min(i, n - 1)) for i in indices]
 
 
 def assign_beat_labels(count: int) -> list[str]:
-    """Assign beat labels to selected frames.
-
-    Args:
-        count: Number of selected frames.
-
-    Returns:
-        List of beat label strings, cycling through BEAT_LABELS.
-    """
+    """Assign beat labels to selected frames, cycling through BEAT_LABELS."""
     return [BEAT_LABELS[i % len(BEAT_LABELS)] for i in range(count)]
 
 
