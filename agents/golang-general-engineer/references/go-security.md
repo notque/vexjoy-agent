@@ -1,12 +1,12 @@
 # Go Secure Implementation Patterns
 
-Secure-by-default patterns for Go. Load when working on security, auth, injection, XSS, CSRF, SSRF, or path traversal.
+Secure-by-default patterns for Go applications. Each section shows what correct code looks like and why it matters. Load this reference when the task involves security, auth, injection, XSS, CSRF, SSRF, path traversal, or any vulnerability-related code.
 
 ---
 
 ## Use exec.Command With Explicit Arguments
 
-Pass arguments as separate strings. Never concatenate user input into a shell string.
+Pass command arguments as separate strings to `exec.Command`. Never concatenate user input into a shell string.
 
 ```go
 import "os/exec"
@@ -22,7 +22,7 @@ if err != nil {
 cmd := exec.Command("git", "checkout", "--", branchName)
 ```
 
-**Why**: Shell metacharacters (`;`, `|`, `&`, `$()`) get interpreted. Separate arguments bypass the shell. CVE-2021-22205 (GitLab ExifTool, CVSS 10.0).
+**Why this matters**: `exec.Command("sh", "-c", "git clone "+userURL)` passes the string through a shell where metacharacters (`;`, `|`, `&`, `$()`) are interpreted. `exec.Command` with separate arguments bypasses the shell entirely, sending each argument as a single argv entry. CVE-2021-22205 (GitLab ExifTool, CVSS 10.0) demonstrated command injection through shelled invocation.
 
 **Detection**:
 ```bash
@@ -34,7 +34,7 @@ rg -n 'exec\.Command.*\+.*' . --type go
 
 ## Validate Paths With filepath.Clean and Containment Checks
 
-Resolve user-supplied paths and verify containment within the base directory.
+When serving or reading files based on user input, resolve the path and verify it stays within the intended base directory.
 
 ```go
 import (
@@ -61,7 +61,7 @@ func serveFile(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-**Why**: `filepath.Join("/base", "../../etc/passwd")` escapes the base. `Clean` normalizes; `HasPrefix` enforces containment. CVE-2007-4559, CVE-2023-26111.
+**Why this matters**: `filepath.Join("/base", userInput)` does not prevent traversal. If `userInput` is `../../etc/passwd`, the result escapes the base directory. `filepath.Clean` normalizes the path, and the `HasPrefix` check ensures containment. CVE-2007-4559 (Python tarfile) and CVE-2023-26111 (node-static) are canonical path traversal incidents applicable to any language.
 
 **Detection**:
 ```bash
@@ -74,7 +74,7 @@ rg -n 'strings\.HasPrefix.*filepath' . --type go
 
 ## Use Parameterized Queries for All Database Access
 
-Pass user input as parameters. Never interpolate into SQL strings.
+Pass user input as parameters, never interpolate into SQL strings with `fmt.Sprintf` or string concatenation.
 
 ```go
 import "database/sql"
@@ -107,7 +107,7 @@ query, args, err := sq.Select("*").
     ToSql()
 ```
 
-**Why**: String interpolation in SQL allows injection. Parameterized queries separate structure from data.
+**Why this matters**: `fmt.Sprintf("SELECT * FROM users WHERE name = '%s'", name)` allows SQL injection through string interpolation. Parameterized queries separate SQL structure from data, preventing injection regardless of input content.
 
 **Detection**:
 ```bash
@@ -119,7 +119,7 @@ rg -n 'fmt\.Sprintf.*WHERE' . --type go
 
 ## Use html/template for Web Output
 
-`html/template` (not `text/template`) for browser output. Auto-escapes by context (HTML, JS, URL, CSS).
+Use `html/template` (not `text/template`) for any output that reaches a web browser. `html/template` auto-escapes values based on context (HTML, JavaScript, URL, CSS).
 
 ```go
 import "html/template"
@@ -145,7 +145,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 <p>{{.Message}}</p>
 ```
 
-**Why**: `text/template` performs no escaping — user input reaches the browser as executable JS.
+**Why this matters**: `text/template` performs no escaping. If user input contains `<script>alert(1)</script>`, it reaches the browser verbatim as executable JavaScript. `html/template` applies context-aware escaping: HTML-entity-encodes in element content, JS-encodes in script contexts, URL-encodes in href attributes.
 
 **Detection**:
 ```bash
@@ -157,7 +157,7 @@ rg -n 'template\.HTML\(' . --type go
 
 ## Use crypto/subtle for Timing-Safe Comparisons
 
-Use `crypto/subtle.ConstantTimeCompare` for secrets, tokens, HMAC digests, API keys. Never `==`.
+Compare secrets, tokens, HMAC digests, and API keys using `crypto/subtle.ConstantTimeCompare`. Never use `==` or `bytes.Equal` for security-critical comparisons.
 
 ```go
 import "crypto/subtle"
@@ -176,7 +176,7 @@ func verifyHMAC(message, providedMAC, key []byte) bool {
 }
 ```
 
-**Why**: `==` short-circuits on first mismatch. Attackers measure timing to reduce brute-force from exponential to linear.
+**Why this matters**: `==` short-circuits on the first mismatched byte. An attacker can measure response time differences to determine how many leading bytes of a token match, reducing a brute-force attack from exponential to linear time.
 
 **Detection**:
 ```bash
@@ -188,7 +188,7 @@ rg -n 'subtle\.ConstantTimeCompare|hmac\.Equal' . --type go
 
 ## Configure TLS With Secure Defaults
 
-MinVersion TLS 1.2, secure cipher suites.
+Set minimum TLS version to 1.2 and use secure cipher suites when configuring TLS servers or clients.
 
 ```go
 import "crypto/tls"
@@ -218,7 +218,7 @@ client := &http.Client{
 }
 ```
 
-**Why**: TLS 1.0/1.1 have known vulns (BEAST, POODLE). Go defaults to 1.2 since 1.18, but explicit config prevents regressions.
+**Why this matters**: TLS 1.0 and 1.1 have known vulnerabilities (BEAST, POODLE). Go's default `tls.Config` already uses TLS 1.2 minimum since Go 1.18, but explicit configuration documents the intent and prevents regressions when custom configs are needed.
 
 **Detection**:
 ```bash
@@ -231,7 +231,7 @@ rg -n 'InsecureSkipVerify:\s*true' . --type go
 
 ## Validate Outbound URLs to Prevent SSRF
 
-Resolve hostname to IPs, validate against private ranges. Disable redirects or re-validate each hop.
+When making HTTP requests to user-supplied URLs, resolve the hostname to IP addresses and validate against private/internal ranges. Disable redirect following or re-validate on each hop.
 
 ```go
 import (
@@ -279,7 +279,7 @@ client := &http.Client{
 }
 ```
 
-**Why**: Capital One breach (2019) exploited SSRF for EC2 metadata. String blocklists fail against DNS rebinding and IP encoding tricks.
+**Why this matters**: The Capital One breach (2019) exploited SSRF to steal IAM credentials from the EC2 metadata service. String-based blocklists fail against DNS rebinding, IP encoding tricks (`0xa9fea9fe`, `[::ffff:169.254.169.254]`), and redirects.
 
 **Detection**:
 ```bash
@@ -291,7 +291,7 @@ rg -n 'http\.NewRequest.*r\.' . --type go
 
 ## Return Generic Error Messages in HTTP Responses
 
-Generic messages to clients. Detailed errors logged server-side.
+Return generic error messages to clients. Log detailed error information server-side with structured logging.
 
 ```go
 import "log/slog"
@@ -315,7 +315,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-**Why**: `err.Error()` in responses leaks SQL fragments, file paths, stack traces, schema details.
+**Why this matters**: `http.Error(w, err.Error(), 500)` often leaks SQL query fragments, internal file paths, stack traces, database schema details, and configuration values. These details help attackers map internal architecture and craft targeted attacks.
 
 **Detection**:
 ```bash
@@ -325,9 +325,9 @@ rg -n 'fmt\.Fprintf.*err' . --type go
 
 ---
 
-## Propagate Context for Auth and Authorization
+## Propagate Context for Auth and Authorization Decisions
 
-Carry auth state through `context.Context`. Extract verified user at every decision point.
+Carry authentication and authorization state through `context.Context`. Extract the authenticated user from context at every decision point rather than trusting headers or parameters.
 
 ```go
 type contextKey string
@@ -357,7 +357,7 @@ func getInvoices(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-**Why**: Context auth ensures handlers receive verified identity from middleware, not forgeable headers.
+**Why this matters**: Storing auth state in context ensures every handler receives verified identity from middleware, not from raw request headers an attacker could forge. Context propagation also carries cancellation and deadline signals, preventing orphaned goroutines from outliving their request.
 
 **Detection**:
 ```bash
@@ -369,7 +369,7 @@ rg -n 'context\.WithValue.*user|context\.Value.*user' . --type go
 
 ## Scope HTTP Header Validation
 
-Validate headers before use. Set security headers on all responses.
+Validate and sanitize HTTP headers before use. Set security headers on all responses.
 
 ```go
 // Correct: set security headers via middleware
@@ -392,7 +392,7 @@ func buildCallbackURL(r *http.Request) string {
 }
 ```
 
-**Why**: Trusting `Host` header enables poisoning attacks. Security headers prevent XSS, clickjacking, MIME confusion.
+**Why this matters**: Trusting the `Host` header for URL construction enables Host-header poisoning attacks, where password-reset emails contain attacker-controlled URLs. Security headers prevent XSS, clickjacking, and MIME-type confusion.
 
 **Detection**:
 ```bash

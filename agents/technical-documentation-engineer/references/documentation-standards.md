@@ -8,7 +8,7 @@
 
 ## Overview
 
-Two concerns: structural correctness (tables, headings, links) and semantic correctness (params match source, types verified). This file covers structural. Common failure: documenting the wrong thing with perfect formatting.
+Technical documentation accuracy depends on two orthogonal concerns: structural correctness (tables well-formed, headings consistent, links working) and semantic correctness (params match source, types verified, examples tested). This file covers structural standards. The most common failure mode is documenting the wrong thing correctly — a perfectly formatted table describing a parameter that doesn't exist.
 
 ---
 
@@ -38,7 +38,7 @@ Google style requires Type before Description. Putting Description before Type i
 | tags      | array of strings | No | Labels for filtering. Max 10 items |
 ```
 
-**Why**: Type second for scanning. "Required" as boolean column enables table sorting.
+**Why**: Google Developer Style Guide §parameter-tables — Type comes second so readers can scan the type column without reading Description. "Required" as a boolean column (not embedded in Description) enables table sorting in rendered docs.
 
 ---
 
@@ -64,7 +64,7 @@ Every endpoint needs an error table. "Returns 400 if invalid" is not documentati
 
 ### Authentication Section Placement
 
-Auth before parameters. Readers need auth context before constructing requests.
+Authentication must appear before parameters, not after examples. Readers need auth context before attempting to construct a request.
 
 ```markdown
 ### POST /api/v1/resources
@@ -80,11 +80,13 @@ Creates a new resource.
 ...
 ```
 
-**Why**: Auth after example = copy example -> 401 -> hunt for auth section.
+**Why**: If auth is after the example, readers copy the example, hit 401, and then hunt for the auth section. Front-loaded auth reduces time-to-first-success.
 
 ---
 
 ### Endpoint Description — 30-Word Limit
+
+Each endpoint description must be one sentence under 30 words.
 
 ```markdown
 <!-- Good: 11 words, tells you what the endpoint does -->
@@ -95,7 +97,7 @@ This endpoint processes the incoming request data, validates the fields against 
 and if all validations pass, creates a new resource entry in the database.
 ```
 
-**Why**: Description is the interface, not the implementation.
+**Why**: Google style §method-descriptions — description is the *interface*, not the implementation. The implementation details belong in architecture docs, not API reference.
 
 ---
 
@@ -117,7 +119,9 @@ rg "the \w+ to use|value of the|this is the" --glob "*.md"
 | data   | string | No | The data value |
 ```
 
-**Why this matters**: "The config object to use" tells readers nothing they can't infer from the name. Descriptions must state constraints, ranges, units, and omission effects.
+**Why this matters**: "The config object to use" tells the reader nothing they couldn't infer from the parameter name. It's word-count theater. Readers need to know: what keys does `config` contain? What is the valid range for `data`?
+
+**Preferred action:** Write parameter descriptions that answer what the value means and what constraints apply. Include: the valid range or set of values, the unit (seconds, bytes, count), the effect of omitting an optional field, and any related parameters.
 
 **Preferred action**:
 ```markdown
@@ -143,9 +147,11 @@ rg "\| Parameter \| Type \| Description \|" --glob "*.md"
 | config    | object | Configuration |
 ```
 
-**Why this matters**: Reader can't tell which params are mandatory. Discovers through 400 errors.
+**Why this matters**: Reader cannot tell which parameters are mandatory without making a failed request. A missing `name` returns 400, and the reader discovers this through failure rather than documentation.
 
-**Preferred action**: Four-column format with `Required` as Yes/No boolean:
+**Preferred action:** Always use the four-column format `Parameter | Type | Required | Description`. The `Required` column must be a boolean Yes/No, not embedded prose like "optional if X is set." Readers scan tables; they should not have to read descriptions to determine whether a field is mandatory.
+
+**Preferred action**: Always include a `Required` column as the third column:
 ```markdown
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -169,9 +175,11 @@ The endpoint will return a 400 error if the name is invalid, or a 500 error if t
 is an internal server error. Authentication failures result in a 401.
 ```
 
-**Why this matters**: Prose errors can't be scanned. No resolution guidance.
+**Why this matters**: Prose error documentation cannot be scanned. The reader must parse English sentences to find the error code they care about. No resolution guidance is provided.
 
-**Preferred action**: `Code | Cause | Resolution` table. One row per error code. Resolution = actionable instruction.
+**Preferred action:** Use a `Code | Cause | Resolution` table with one row per error code. Each Resolution cell must be an actionable instruction, not a restatement of the cause. If multiple inputs can produce the same code, add a row for each distinct cause.
+
+**Preferred action**: Use the error table format (see Correct Patterns above). Every error code gets its own row with Cause and Resolution.
 
 ---
 
@@ -188,9 +196,11 @@ rg "(changed|deprecated|removed|added) in" --glob "*.md" | grep -v "v\d|\d\.\d"
 > **Note:** The `legacy_mode` parameter was deprecated in a recent release.
 ```
 
-**Why this matters**: "Recent release" becomes meaningless. Readers can't match to their version.
+**Why this matters**: "Recent release" becomes meaningless after time passes. Readers cannot determine if the deprecation applies to the version they're running.
 
-**Preferred action**: `**Deprecated in vX.Y.Z:**` with removal target and migration path:
+**Preferred action:** Prefix every version note with the exact version using the `**Changed in vX.Y.Z:**` or `**Deprecated in vX.Y.Z:**` pattern. Include the removal target version and the migration path in the same sentence so the reader has everything needed to act.
+
+**Preferred action**:
 ```markdown
 > **Deprecated in v3.2.0:** The `legacy_mode` parameter is deprecated and will be removed in v4.0.0.
 > Use `compatibility_level: "v2"` instead.

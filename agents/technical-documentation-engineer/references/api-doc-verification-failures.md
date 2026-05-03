@@ -10,7 +10,7 @@
 
 ## Overview
 
-Two failure modes: structural (formatting) and semantic (wrong content). Semantic failures look correct — a well-formatted table for a nonexistent parameter is a defect. Every failure here is detectable by comparing docs against source.
+API documentation fails in two modes: structural (bad formatting) and semantic (documenting the wrong thing). Semantic failures are harder to spot because they look correct. A parameter table with beautifully formatted rows for a field that doesn't exist in the source is a documentation defect, not a style issue. Every verification failure here is detectable by comparing the documentation against the source code or a running API.
 
 ---
 
@@ -38,9 +38,11 @@ rg "PARAM_NAME" src/
 ```
 *(where `metadata` doesn't exist in the route handler)*
 
-**Why wrong**: Caller sends `metadata`, API ignores it silently or returns 400. The doc is lying.
+**Why wrong**: Integration failures happen silently. The caller sends `metadata`, the API ignores it, and the caller assumes it was accepted. Edge cases: some frameworks quietly drop unknown fields, others return 400. Either way, the doc is lying.
 
-**Fix**: Grep the source route handler for every parameter name:
+**Do instead:** Before writing any parameter, grep the source route handler for its exact name to confirm it exists. Zero grep results means the parameter is not real — remove it from the doc rather than publishing a lie.
+
+**Fix**: Before writing any parameter, grep the source route handler for its exact name:
 ```bash
 # For Go
 grep -n "metadata\|user_id" handlers/users.go
@@ -71,9 +73,11 @@ grep -n "int\|string\|bool\|float" handlers/*.go | grep "PARAM_NAME"
 ```
 *(where the handler actually validates it as `int`)*
 
-**Why wrong**: Caller sends wrong type, gets 400 or silent coercion. Type contracts are API surface.
+**Why wrong**: The caller sends `"50"` (string) and gets a 400. Or worse: the API coerces it silently and the caller never learns the real type. Type contracts are part of the API surface.
 
-**Fix**: Read the validation struct or Pydantic model, not handler usage:
+**Do instead:** Read the type from the validation struct or Pydantic model declaration, not from how the value is used in the handler. Document the type that the input binding layer enforces, which is the type the caller must send.
+
+**Fix**: Read the validation code, not the handler call site:
 ```bash
 # Find validation or binding in Go
 grep -n "ShouldBindJSON\|ShouldBindQuery\|validate.Struct" handlers/*.go
@@ -101,9 +105,11 @@ curl -X POST https://api.example.com/v1/users \
 ```
 *(where `role` was removed from the API last sprint)*
 
-**Why wrong**: Stale examples include removed fields. API returns 400, user blames docs — correctly.
+**Why wrong**: Copy-pasted examples become stale. If `role` was removed and the example still includes it, the API may return 400 and the new user thinks the docs are wrong — which they are.
 
-**Fix**: Test curl against running service. If unavailable, note "verified against source at commit X":
+**Do instead:** Run every curl example against a staging or test environment before publishing. Capture the actual response and confirm it matches the documented response example. If no live environment is available, add an explicit "verified against source at commit X" note.
+
+**Fix**: Test the curl against a running service before publishing:
 ```bash
 # Test with a real token against staging
 TOKEN=$(cat .env | grep API_TOKEN | cut -d= -f2)
@@ -142,9 +148,11 @@ grep -rn "abort(400)\|abort(401)\|jsonify.*400\|make_response.*400" routes/
 ```
 *(where the handler never returns 418)*
 
-**Why wrong**: Dead error handling code for a status never returned. No resolution for the actual error.
+**Why wrong**: Readers write error handling code for 418. That code path is dead. The actual error they get from the API is 400 with an unhelpful message, and they have no documented path to resolution.
 
-**Fix**: Build error table from source grep results. Every row needs a corresponding handler hit.
+**Do instead:** Build the error table by grepping the handler file first, then documenting only the codes found. Start from source, not from assumption. Every row in the error table must have a corresponding `grep` hit in the handler.
+
+**Fix**: Only document error codes that appear in the source. `grep` the handler for every HTTP status code before including it in the error table.
 
 ---
 
@@ -174,9 +182,11 @@ grep -n "FIELD_NAME.*:" models/resource.py
 ```
 *(where the API removed `owner` and renamed it `created_by_id` in v2)*
 
-**Why wrong**: `response["owner"]` -> KeyError in production.
+**Why wrong**: Callers write code like `response["owner"]` and get a KeyError or undefined in production. The doc is a lie.
 
-**Fix**: Extract field names from serialization layer (`json:` tags in Go, Pydantic model in Python). Document what the serializer emits.
+**Do instead:** Extract response field names directly from the serialization layer — `json:` tags in Go structs, Pydantic model field definitions in Python, or serializer `fields` declarations in Django REST Framework. Document what the serializer actually emits, not what you expect it to emit.
+
+**Fix**: Find the serialization struct/model and use its exact field names. For Go, look for `json:` tags. For Python, look for the Pydantic model or serializer.
 
 ---
 
@@ -193,6 +203,8 @@ grep -n "^### [A-Z]\{2,6\} /" docs/**/*.md | while read line; do
 done
 ```
 
+**Do instead:** Add an `**Authentication:**` line immediately after every endpoint description, before the parameters section. State the credential type and required scope explicitly. Do not rely on a shared "Authentication" section at the top of the page -- endpoint-level auth notes eliminate the 401-then-hunt pattern for new users.
+
 **What it looks like**:
 ```markdown
 ### GET /api/v1/resources
@@ -205,9 +217,11 @@ Returns a list of resources.
 ```
 *(no mention of authentication)*
 
-**Why wrong**: Users hit 401 with no documented credential requirement.
+**Why wrong**: New users hit 401 without any documentation telling them what credential is needed or how to obtain it.
 
-**Fix**: Add `**Authentication:**` after endpoint description, before parameters:
+**Do instead:** Place an `**Authentication:**` line as the first item after the endpoint description, before the parameters section, on every endpoint that requires credentials. Specify the credential type and required scope so the reader knows exactly what to obtain before constructing a request.
+
+**Fix**: Add authentication immediately after the endpoint description, before parameters:
 ```markdown
 ### GET /api/v1/resources
 
