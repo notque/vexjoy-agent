@@ -444,3 +444,42 @@ class TestQueryGraduationCandidates:
         assert results[2]["topic"] == "skill:medium"
         # Fourth: confidence=0.91, observation_count=5
         assert results[3]["topic"] == "agent:low"
+
+
+class TestRecordActivation:
+    """Test record_activation() library function."""
+
+    def test_inserts_activation(self):
+        db.record_activation("routing", "go-agent:go-patterns", "sess-001")
+        with db.get_connection() as conn:
+            row = conn.execute("SELECT * FROM activations WHERE session_id = 'sess-001'").fetchone()
+        assert row is not None
+        assert row["topic"] == "routing"
+        assert row["key"] == "go-agent:go-patterns"
+        assert row["outcome"] == "success"
+
+    def test_multiple_activations_same_session(self):
+        for key in ["key-a", "key-b", "key-c"]:
+            db.record_activation("error", key, "sess-002")
+        with db.get_connection() as conn:
+            count = conn.execute("SELECT COUNT(*) FROM activations WHERE session_id = 'sess-002'").fetchone()[0]
+        assert count == 3
+
+    def test_default_outcome_is_success(self):
+        db.record_activation("test-topic", "test-key", "sess-003")
+        with db.get_connection() as conn:
+            row = conn.execute("SELECT outcome FROM activations WHERE session_id = 'sess-003'").fetchone()
+        assert row["outcome"] == "success"
+
+    def test_custom_outcome(self):
+        db.record_activation("test-topic", "test-key", "sess-004", outcome="failure")
+        with db.get_connection() as conn:
+            row = conn.execute("SELECT outcome FROM activations WHERE session_id = 'sess-004'").fetchone()
+        assert row["outcome"] == "failure"
+
+    def test_none_session_id(self):
+        db.record_activation("test-topic", "test-key")
+        with db.get_connection() as conn:
+            row = conn.execute("SELECT * FROM activations WHERE topic = 'test-topic'").fetchone()
+        assert row is not None
+        assert row["session_id"] is None

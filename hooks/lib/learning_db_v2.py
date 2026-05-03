@@ -714,6 +714,47 @@ def lookup_error_solution(
         return None
 
 
+def record_activations(
+    entries: list[tuple[str, str]],
+    session_id: str | None = None,
+    outcome: str = "success",
+) -> None:
+    """Record that multiple learnings were surfaced during a session.
+
+    Uses a single connection + executemany for efficiency.
+    Called from injection hooks to track which learnings are actually used.
+
+    Args:
+        entries: List of (topic, key) pairs to record.
+        session_id: Session identifier.
+        outcome: Outcome string (default "success").
+    """
+    if not entries:
+        return
+    init_db()
+    now = datetime.now().isoformat()
+    rows = [(topic, key, session_id, now, outcome) for topic, key in entries]
+    with get_connection() as conn:
+        conn.executemany(
+            "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+
+
+def record_activation(
+    topic: str,
+    key: str,
+    session_id: str | None = None,
+    outcome: str = "success",
+) -> None:
+    """Record that a learning was surfaced during a session.
+
+    Thin wrapper around record_activations() for single-entry convenience.
+    """
+    record_activations([(topic, key)], session_id, outcome)
+
+
 def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     """Boost confidence for an entry. Returns new confidence."""
     init_db()

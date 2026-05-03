@@ -358,13 +358,30 @@ When uncertain: **ROUTE ANYWAY** with verification-before-completion as safety n
 
 **Goal**: Capture session insights to `learning.db`.
 
-**Routing outcome** (Simple+, observable facts only):
+**Routing decision** (Simple+, observable facts only):
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{selected_agent}:{selected_skill}" \
     "routing-decision: agent={selected_agent} skill={selected_skill} tool_errors: {0|1} user_rerouted: {0|1}" \
     --category effectiveness
 ```
+
+**Routing outcome** (MANDATORY for Simple+ — records whether the route succeeded):
+After the agent completes, evaluate the outcome based on observable facts:
+- **Success signals**: agent produced commits, tests passed, no tool errors, user accepted result
+- **Failure signals**: agent errored, user re-routed, rework required, `tool_errors=1`
+
+```bash
+# On success:
+python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
+    "{selected_agent}:{selected_skill}" --success
+
+# On failure (include reason):
+python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
+    "{selected_agent}:{selected_skill}" --failure --reason "{brief reason}"
+```
+
+Do not skip this step.
 
 **Auto-capture** (hooks, zero LLM cost): `error-learner.py`, `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
 
@@ -376,7 +393,7 @@ python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "
 
 **Immediate graduation for review findings** (MANDATORY): Issue found + fixed in same PR → (1) Record scoped, (2) Boost to 1.0, (3) Embed into anti-patterns, (4) Graduate, (5) Stage in same PR.
 
-**Gate**: Record at least one learning for Simple+ tasks. Review findings get immediate graduation.
+**Gate**: Record at least one learning AND one routing outcome for Simple+ tasks. Review findings get immediate graduation.
 
 ---
 
