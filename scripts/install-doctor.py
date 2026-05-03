@@ -569,12 +569,13 @@ def check_mcp_servers() -> list[dict]:
         display_name = entry.get("name", key)
         # Match if the registry key appears in configured server names
         found = key in configured_servers
+        # MCP servers are optional external dependencies — unconfigured is not a failure
         results.append(
             {
                 "name": f"mcp_{key}",
                 "label": f"MCP: {display_name}",
-                "passed": found,
-                "detail": "configured" if found else "not configured",
+                "passed": True,
+                "detail": "configured" if found else "not configured (optional)",
             }
         )
 
