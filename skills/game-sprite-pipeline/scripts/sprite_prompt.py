@@ -290,6 +290,44 @@ VFX_CONTAINMENT_RULES = (
     "labels, UI elements, speech bubbles, scenery, floor shadows"
 )
 
+# ---------------------------------------------------------------------------
+# Per-action negative-prompt coaching (road-to-aew pattern)
+# ---------------------------------------------------------------------------
+ACTION_COACHING: dict[str, str] = {
+    # Fighter preset states
+    "idle": "NOT a T-pose or stiff mannequin. Natural weight shift, one foot slightly forward.",
+    "dash-right": "NOT floating or sliding. Feet show running contact with ground. No speed lines.",
+    "dash-left": "NOT floating or sliding. Feet show running contact with ground. No speed lines.",
+    "taunt": "NOT a generic wave. Character-specific flourish — confident, theatrical.",
+    "jump": "NOT a static hovering pose. Show anticipation crouch, launch, and apex arc.",
+    "hit-stun": "NOT a ragdoll. Controlled recoil — head snaps, body bends at impact point.",
+    "charge": "NOT standing still with glowing hands. Body tension, gathering stance, coiled energy.",
+    "rush": "NOT a walk. Full sprint momentum — lean forward, arms pumping, aggressive.",
+    "special": "NOT generic magic. Unique signature move with wind-up and follow-through.",
+    # RPG preset states
+    "walk-down": "NOT marching. Natural stride with arm swing, weight transfer visible.",
+    "walk-up": "NOT marching. Show back of character, cape/hair movement, natural stride.",
+    "walk-left": "NOT a mirror of walk-right with wrong hand. Weapon stays in correct hand.",
+    "walk-right": "NOT a mirror of walk-left with wrong hand. Weapon stays in correct hand.",
+    "attack": "NOT a gentle swing. Full weapon arc with anticipation and follow-through.",
+    "cast": "NOT just raised arms. Magical effects gather, body channels energy.",
+    "hurt": "NOT a T-pose flinch. Directional recoil from the hit.",
+    "death": "NOT instant ragdoll. Progressive collapse — knees buckle, weapon drops, falls.",
+    # Platformer preset states
+    "run": "NOT walking fast. Full run cycle with air time between foot contacts.",
+    "fall": "NOT standing in mid-air. Arms up, legs dangling, looking down.",
+    "climb": "NOT standing on a ladder. Hands grip, alternating reach, body against surface.",
+    "crouch": "NOT just shorter. Knees bent, center of gravity low, ready to spring.",
+    "slide": "NOT lying flat. Dynamic slide with dust kick, body angled, momentum visible.",
+    # Pet preset states
+    "waving": "NOT a stiff arm raise. Enthusiastic full-body wave with personality.",
+    "jumping": "NOT hovering. Squash and stretch — crouch, launch, hang, land.",
+    "failed": "NOT just sad face. Whole body deflates — shoulders drop, head hangs.",
+    "waiting": "NOT frozen. Subtle impatience — foot tap, glance around, small fidgets.",
+    "running": "NOT walking. Bouncy energetic run with personality.",
+    "review": "NOT staring blankly. Leaning in, squinting, focused attention.",
+}
+
 VFX_STATE_RULES: dict[str, str] = {
     "jump": "Body position shows motion. No dust clouds, impact effects, or floor shadows.",
     "jumping": "Body position shows motion. No dust clouds, impact effects, or floor shadows.",
@@ -665,6 +703,11 @@ def compose_row_strip_prompt(
     state_rule = VFX_STATE_RULES.get(state)
     if state_rule:
         parts.append(f"STATE-SPECIFIC VFX ({state}): {state_rule}")
+
+    # Per-action negative-prompt coaching (road-to-aew pattern)
+    coaching_note = ACTION_COACHING.get(state)
+    if coaching_note:
+        parts.append(f"ACTION COACHING: {coaching_note}")
 
     parts.append(UNIVERSAL_NEGATIVE)
     return "\n\n".join(parts)

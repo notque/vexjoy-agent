@@ -38,6 +38,7 @@ spritesheet for Phase D-H validation. Useful for CI smoke tests.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -72,6 +73,7 @@ from sprite_verify import (
     verify_frames_have_content,
     verify_grid_alignment,
     verify_no_magenta,
+    verify_padding,
     verify_pixel_preservation,
     verify_raw_vs_final_cell_parity,
     write_manifest_record,
@@ -90,6 +92,27 @@ VERIFIER_EXIT_CODE = 2
 # --no-verify -> exit 0 because their verifier surface is small enough
 # (verify_no_magenta only) that an explicit skip is plausibly intentional.
 VERIFIER_SKIPPED_EXIT_CODE = 3
+
+
+def _sha256_file(path: Path) -> str:
+    """Compute SHA256 hex digest of a file.
+
+    Args:
+        path: File path to hash.
+
+    Returns:
+        Lowercase hex digest string.
+    """
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _sha256_text(text: str) -> str:
+    """Compute SHA256 hex digest of a text string."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _detect_backends_available() -> dict[str, bool]:
@@ -184,6 +207,21 @@ def _run_spritesheet_verifiers(
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_have_content")
         failures.append({"check": "verify_frames_have_content", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
+        _record_gate(
+            "verify_padding",
+            verify_padding(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                expected_empty_cells=expected_empty_cells,
+            ),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_padding")
+        failures.append({"check": "verify_padding", "file": str(sheet_path), "details": f"error: {e}"})
 
     try:
         dup_pct_max = 100.0 if allow_frame_duplication else 70.0
@@ -518,6 +556,20 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
     phases.append({"phase": "A", "name": "canonical-base", "rc": 0, "dry_run": args.dry_run})
     logger.info("[per-row] Phase A: canonical base at %s", canonical_base_path)
 
+    # Deterministic idle from canonical base (road-to-aew pattern)
+    if getattr(args, "deterministic_idle", False) and canonical_base_path.exists():
+        import deterministic_idle
+
+        idle_dir = work_dir / "idle"
+        idle_frames = deterministic_idle.generate_idle_frames(
+            Image.open(canonical_base_path).convert("RGBA"),
+        )
+        deterministic_idle.write_strip(idle_frames, idle_dir / "idle-strip.png")
+        deterministic_idle.write_animation(idle_frames, idle_dir / "animation.gif", args.fps)
+        deterministic_idle.write_animation(idle_frames, idle_dir / "animation.webp", args.fps)
+        phases.append({"phase": "A-idle", "name": "deterministic-idle", "rc": 0})
+        logger.info("[per-row] deterministic idle written to %s", idle_dir)
+
     # Per-row generation loop
     strip_paths: list[Path] = []
     max_frames = max(r["frames"] for r in row_defs)
@@ -766,6 +818,27 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
             phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
             logger.info("[per-row] QA artifacts written to %s", qa_dir)
 
+    # Provenance tracking (road-to-aew pattern)
+    row_hashes: dict[str, str] = {}
+    for row_idx, row_def in enumerate(row_defs):
+        sp = strip_paths[row_idx]
+        if sp.exists():
+            row_hashes[row_def["state"]] = _sha256_file(sp)
+
+    prompt_hashes: dict[str, str] = {}
+    for row_idx, row_def in enumerate(row_defs):
+        row_prompt_path = work_dir / f"row_{row_idx:02d}_{row_def['state']}" / "row_prompt.txt"
+        if row_prompt_path.exists():
+            prompt_hashes[row_def["state"]] = _sha256_text(row_prompt_path.read_text(encoding="utf-8"))
+
+    pipeline_chain = [
+        "codex-imagegen" if not args.dry_run else "dry-run-fixture",
+        "per-strip-slice",
+        f"bg-removal-{args.bg_mode}",
+        "mass-centroid-anchor",
+        "pillow-assemble",
+    ]
+
     # Metadata
     sidecar = {
         "name": name,
@@ -783,6 +856,10 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
         "phases": phases,
         "output_dir": str(work_dir / "out"),
         "canonical_base": str(canonical_base_path),
+        "canonical_base_hash": _sha256_file(canonical_base_path) if canonical_base_path.exists() else None,
+        "prompt_hashes": prompt_hashes,
+        "row_hashes": row_hashes,
+        "pipeline_chain": pipeline_chain,
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
@@ -1169,6 +1246,19 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
             phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
             logger.info("[spritesheet] QA artifacts written to %s", qa_dir)
 
+    # Provenance tracking (road-to-aew pattern)
+    prompt_hash_val = None
+    if sheet_prompt_path.exists():
+        prompt_hash_val = _sha256_text(sheet_prompt_path.read_text(encoding="utf-8"))
+
+    spritesheet_pipeline_chain = [
+        "codex-imagegen" if not args.dry_run else "dry-run-fixture",
+        "grid-slice",
+        f"bg-removal-{args.bg_mode}",
+        "mass-centroid-anchor",
+        "pillow-assemble",
+    ]
+
     # Metadata
     sidecar = {
         "name": name,
@@ -1183,6 +1273,8 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "phases": phases,
         "output_dir": str(work_dir / "out"),
+        "prompt_hash": prompt_hash_val,
+        "pipeline_chain": spritesheet_pipeline_chain,
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
@@ -1393,6 +1485,15 @@ def build_parser() -> argparse.ArgumentParser:
             "Video source per row: comma-separated 'row_idx:state:path' entries. "
             "Example: '0:idle:/path/to/idle.mp4,4:jump:/path/to/jump.mp4'. "
             "Rows with video sources use the video extraction pipeline."
+        ),
+    )
+    # Deterministic idle (road-to-aew pattern)
+    parser.add_argument(
+        "--deterministic-idle",
+        action="store_true",
+        help=(
+            "After generating the canonical base (portrait mode / per-row Phase A), "
+            "produce a deterministic breathing idle loop. Zero API calls -- pure Pillow."
         ),
     )
     # Phase 7: QA artifacts
