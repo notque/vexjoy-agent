@@ -96,8 +96,8 @@ private-hooks/
 private-voices/
 agents/wrestlejoy-*
 skills/wrestlejoy-*
-skills/voice-amy-*
-skills/voice-andy-*
+skills/voice-*
+skills/voice
 skills/gemini-wrestlejoy-*
 
 # Local-only index targets, not committed
