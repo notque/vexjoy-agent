@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-02T21:04:08Z",
+  "generated": "2026-05-03T01:10:05Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -743,15 +743,26 @@
         "road-to-aew sprite",
         "sprite for road-to-aew",
         "wrestler portrait",
-        "character sheet"
+        "character sheet",
+        "fighter spritesheet",
+        "RPG character spritesheet",
+        "platformer spritesheet",
+        "per-row sprite generation",
+        "video to sprite",
+        "animation preset",
+        "deterministic idle",
+        "breathing loop",
+        "sprite QA",
+        "contact sheet"
       ],
       "category": "game",
       "user_invocable": false,
-      "version": "1.0.0",
+      "version": "2.0.0",
       "pairs_with": [
         "phaser-gamedev",
         "threejs-builder",
-        "python-general-engineer"
+        "python-general-engineer",
+        "motion-pipeline"
       ],
       "agent": "python-general-engineer"
     },

@@ -1,7 +1,7 @@
 ---
 name: game-sprite-pipeline
-version: 1.0.0
-description: "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. Use for generated character art."
+version: 2.0.0
+description: "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. Per-row generation, animation presets, video-to-sprite, identity lock. Use for generated character art."
 agent: python-general-engineer
 user-invocable: false
 allowed-tools:
@@ -28,21 +28,33 @@ routing:
     - sprite for road-to-aew
     - wrestler portrait
     - character sheet
+    - fighter spritesheet
+    - RPG character spritesheet
+    - platformer spritesheet
+    - per-row sprite generation
+    - video to sprite
+    - animation preset
+    - deterministic idle
+    - breathing loop
+    - sprite QA
+    - contact sheet
   complexity: Complex
   category: game
   pairs_with:
     - phaser-gamedev
     - threejs-builder
     - python-general-engineer
+    - motion-pipeline
 ---
 
 # Game Sprite Pipeline
 
-Local-first AI sprite generation. One skill, three modes behind `--mode`:
+Local-first AI sprite generation. One skill, four modes behind `--mode`:
 
 - `portrait` — single full-body character PNG (road-to-aew wrestlers, card-game characters).
 - `portrait-loop` — 2×2 = 4-frame subtle idle (breathing + blink) at 200ms/frame in ONE Codex call. Animated portraits without re-prompting new poses.
 - `spritesheet` — animated multi-frame grid with connected-components detection, ground-line anchor alignment, and Phaser atlas output.
+- `spritesheet --per-row` — row-strip generation: each animation state generated as a separate strip with layout guide grounding and identity lock, then composited into a final sheet. Eliminates cross-row contamination and reduces retry scope from whole-sheet to single-row.
 
 Backend chain (per ADR-198): Codex CLI imagegen is the default when installed and authed. When Codex is unavailable AND `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set, the skill falls back to Nano Banana via `nano-banana-builder`'s scripts. When neither is available, the skill fails loud with `BackendUnavailableError` listing both fix paths. Both paths use keys the user already holds — there is no third-party billing the toolkit hides. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md` (user-owned-key clause).
 
@@ -56,6 +68,9 @@ Backend chain (per ADR-198): Codex CLI imagegen is the default when installed an
 | "make a walk cycle spritesheet" | `spritesheet` | `sprite_pipeline.py` |
 | "4-direction character sheet" | `spritesheet` | `sprite_pipeline.py --grid 4x4` |
 | "Phaser-ready texture atlas" | `spritesheet` | `sprite_pipeline.py` (emits atlas JSON) |
+| "generate a fighter spritesheet" | per-row + preset | `sprite_pipeline.py --preset fighter --per-row` |
+| "RPG character walk cycle" | per-row + preset | `sprite_pipeline.py --preset rpg-character --per-row` |
+| "sprite from video clip" | video | `video_extract_frames.py` + `video_select_frames.py` + `video_process_frames.py` |
 
 Portrait is the road-to-aew immediate need; spritesheet is the forward-looking capability. Both share one backbone (prompt scaffolding, backend dispatch, bg removal, validation).
 
@@ -76,6 +91,8 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" anti-pattern; debug slicer, never raw |
 | asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction. ADR-207 RC-1: on dense grids (`cols * rows >= 16` AND both dims >= 4) `--content-aware-extraction` is silently downgraded to strict-pitch with a warning unless `--effects-asset` is also passed (orchestrator-side) or `effects_asset: True` is set (spec-side). Use `--effects-asset` only for genuine sparse-but-cross-boundary content (fire breath, plasma trails, projectile auras). |
 | `--target road-to-aew` deploy | `references/road-to-aew-integration.md` | snake_case, paths, manifest regen |
+| `--per-row` subagent orchestration | `references/subagent-delegation.md` | subagent boundary rules: who generates, who composes, who finalizes |
+| VFX issues in per-row prompts | `references/vfx-containment.md` | full containment ruleset: allowed/forbidden effects, per-state rules |
 
 Load greedily when a signal matches — references are only read on demand, so the cost is paid once per execution, not once per routing decision.
 
@@ -120,6 +137,88 @@ The loop must be SUBTLE: viewers should barely notice the animation (just feels 
 | H — Final assembly | `sprite_process.py assemble` | PNG sheet, GIF, WebP, per-frame PNGs, Phaser atlas JSON, per-direction strips (4xR / 8xR only). |
 
 End-to-end: `python3 scripts/sprite_pipeline.py --prompt "<desc>" --grid <CxR> --cell-size 256`.
+
+## Per-row generation mode (`--per-row`)
+
+Row-strip generation eliminates the monolithic-sheet failure mode. Instead of one image-generation call for the entire sheet (where frames drift, cross-row contamination occurs, and the slicer misroutes content), each animation row is generated as a separate strip image.
+
+**How it works:**
+
+1. Phase A generates a canonical base character image (identity lock anchor). All subsequent rows receive this base as `--reference` with "match silhouette, face, materials, palette, props exactly" -- prevents cross-row palette shifts, proportion changes, accessory drift.
+2. `sprite_canvas.py make-layout-guide` generates per-row reference PNGs (frame boundaries with numbered cells on transparent background), passed as `--reference` alongside the canonical base to prevent frame drift at generation time.
+3. Each row gets its own prompt with state-specific action/pose + VFX containment rules (see `references/vfx-containment.md`).
+4. Strips are composited into the final sheet after all rows pass QA.
+
+**Retry granularity:** re-generate a single failed row, not the whole sheet. Cost drops from O(sheet) to O(row).
+
+End-to-end: `python3 scripts/sprite_pipeline.py --prompt "<desc>" --preset fighter --per-row`.
+
+## Animation presets (`--preset`)
+
+Named animation presets replace raw `--grid CxR` with semantic state definitions, default frame counts, and per-frame timing.
+
+| Preset | States | Total frames |
+|--------|--------|-------------|
+| `fighter` | idle(6), dash-right(8), dash-left(8), taunt(4), jump(5), hit-stun(8), charge(6), rush(6), special(6) | 57 |
+| `rpg-character` | idle(4), walk-down(4), walk-up(4), walk-left(4), walk-right(4), attack(4), cast(4), hurt(2), death(4) | 34 |
+| `platformer` | idle(4), run(8), jump(3), fall(2), attack(4), hurt(2), climb(4), crouch(2), slide(2) | 31 |
+| `pet` | idle(6), running-right(8), running-left(8), waving(4), jumping(5), failed(8), waiting(6), running(6), review(6) | 57 |
+| `custom` | user-defined via `--states` JSON | variable |
+
+`--preset` expands to `--grid` + per-row metadata + timing arrays. Users say `--preset rpg-character` instead of computing grid dimensions manually.
+
+## Video-to-sprite pipeline
+
+New input modality: extract spritesheet rows from video clips when text prompting fails for complex animations (multi-hit combos, spell effects, motion-captured references).
+
+| Script | What |
+|--------|------|
+| `video_extract_frames.py` | FFmpeg frame extraction from video clips at configurable FPS |
+| `video_select_frames.py` | Select N frames (uniform/manual sampling), assign beat labels (anticipation, contact, follow-through, recovery) |
+| `video_process_frames.py` | Background removal, resize to cell-size, ground-line anchor, composite into strip |
+
+Wire via: `--video-rows "0:idle:/path/to/idle.mp4,4:jump:/path/to/jump.mp4"` — row index, state name, video path.
+
+**Dependencies:** FFmpeg (already available), Pillow (already used). No new dependencies.
+
+## Row job manifest
+
+`row_job_status.py` tracks per-row generation status for subagent orchestration.
+
+| Subcommand | What |
+|------------|------|
+| `init` | Create `row-jobs.json` manifest from preset or `--states` definition |
+| `status` | Print per-row status (pending/in-progress/done/failed) |
+| `mark` | Update a row's status after generation completes or fails |
+| `list-pending` | List rows still needing generation (for subagent dispatch) |
+
+**Subagent boundary rules** (see `references/subagent-delegation.md`):
+- Subagent: generates one row strip image, returns path + QA assessment.
+- Parent: owns manifest, identity verification, compositing, finalization, packaging.
+- Subagents never edit manifests or finalize — single point of control stays with parent.
+
+## QA artifacts (`--qa-artifacts`)
+
+Human-inspectable QA outputs generated alongside verifier JSON when `--qa-artifacts` is passed.
+
+| Artifact | What |
+|----------|------|
+| Contact sheet | All frames labeled with state names and frame numbers, saved as PNG |
+| Preview GIFs | One animated GIF per animation state at intended timing |
+| QA report JSON | Per-row metrics: frame count, identity match, effects compliance |
+
+Script: `qa_artifacts.py` generates all three artifact types after assembly.
+
+## Per-frame variable timing
+
+Presets include per-frame millisecond timing arrays instead of uniform timing.
+
+Example (idle): `[280, 110, 110, 140, 140, 320]` ms — longer hold on first/last frame creates natural breathing rhythm.
+
+**Output integration:**
+- GIF/WebP output uses per-frame durations via Pillow's `duration` parameter.
+- Phaser atlas JSON includes `frameDurations` array and `animationTimings` map.
+- Custom timing override via `--timing-json <path>` for fine-tuning.
 
 ## Backend (Codex default with Nano Banana fallback, per ADR-198)
 
@@ -367,6 +466,8 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 - `references/output-formats.md` — PNG / GIF / WebP / atlas JSON / strips matrix per mode.
 - `references/error-catalog.md` — error message → cause → fix, per phase.
 - `references/road-to-aew-integration.md` — snake_case naming, deploy paths, manifest regen.
+- `references/subagent-delegation.md` — subagent boundary rules: who generates, who composes, who finalizes.
+- `references/vfx-containment.md` — VFX containment ruleset: allowed/forbidden effects, per-state rules.
 
 ## Demo idempotency
 
@@ -390,7 +491,8 @@ Provide `--force` to override (re-run all) and `--force-slug <prefix>` to re-run
 
 ## Related skills
 
-- `phaser-gamedev` — downstream consumer of spritesheet output (atlas JSON).
+- `phaser-gamedev` — downstream consumer of spritesheet output (atlas JSON with `frameDurations` and `animationTimings`).
 - `threejs-builder` — may consume portrait output for 3D card framing.
 - `game-asset-generator` — sibling umbrella for 3D models / textures / matrix-driven pixel art. Its `references/pixel-art-sprites.md` redirects AI-driven sprite work here.
 - `game-pipeline` — parent lifecycle orchestrator; slot this skill under its ASSETS phase when building a new game.
+- `motion-pipeline` — CPU-only motion data processing; can provide BVH-derived reference frames for video-to-sprite extraction.

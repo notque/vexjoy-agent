@@ -168,6 +168,54 @@ def cmd_contact_sheet(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Final assembly (Phase H)
 # ---------------------------------------------------------------------------
+def _resolve_frame_durations(
+    fps: int,
+    timing: dict[str, list[int]] | None,
+    grid_cols: int,
+    grid_rows: int,
+    valid_count: int,
+    state_names: list[str] | None = None,
+) -> list[int]:
+    """Compute per-frame durations in ms for animated output.
+
+    When ``timing`` is provided, durations are extracted per-state (row) and
+    flattened into frame order. Falls back to uniform ``1000/fps`` when
+    timing is absent or incomplete.
+
+    Args:
+        fps: Fallback FPS for uniform timing.
+        timing: Optional mapping of state_name -> list of ms durations.
+        grid_cols: Columns in the grid.
+        grid_rows: Rows in the grid.
+        valid_count: Number of non-None frames.
+        state_names: Optional row state names to index into timing.
+
+    Returns:
+        List of per-frame durations in ms, length == valid_count.
+    """
+    uniform = int(1000 / max(fps, 1))
+
+    if not timing or not state_names:
+        return [uniform] * valid_count
+
+    durations: list[int] = []
+    for r in range(grid_rows):
+        state = state_names[r] if r < len(state_names) else None
+        row_timing = timing.get(state) if state else None
+        for c in range(grid_cols):
+            if row_timing and c < len(row_timing):
+                durations.append(row_timing[c])
+            else:
+                durations.append(uniform)
+
+    # Trim to valid_count (skip None frames)
+    return (
+        durations[:valid_count]
+        if len(durations) >= valid_count
+        else durations + [uniform] * (valid_count - len(durations))
+    )
+
+
 def assemble_outputs(
     frames: list[Image.Image],
     output_dir: Path,
@@ -178,8 +226,18 @@ def assemble_outputs(
     cell_h: int,
     fps: int,
     emit_strips: bool,
+    timing: dict[str, list[int]] | None = None,
+    state_names: list[str] | None = None,
 ) -> dict:
-    """Phase H: PNG sheet, GIF, WebP, atlas JSON, optional per-direction strips."""
+    """Phase H: PNG sheet, GIF, WebP, atlas JSON, optional per-direction strips.
+
+    Args:
+        timing: Optional per-state timing dict (state_name -> list of ms values).
+            When provided, animated GIF/WebP use per-frame durations and the
+            Phaser atlas includes frameDurations.
+        state_names: Optional list of state names for each row, used to index
+            into the timing dict.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # PNG sheet
@@ -192,18 +250,27 @@ def assemble_outputs(
     sheet_path = output_dir / f"{name}_sheet.png"
     sheet.save(sheet_path, format="PNG")
 
+    # Resolve per-frame durations (Phase 8)
+    valid_frames = [f for f in frames if f is not None]
+    durations = _resolve_frame_durations(
+        fps=fps,
+        timing=timing,
+        grid_cols=grid_cols,
+        grid_rows=grid_rows,
+        valid_count=len(valid_frames),
+        state_names=state_names,
+    )
+
     # Animated WebP — preferred output. Full 8-bit alpha, no quantization
     # bleed at silhouette edges. Modern browsers autoplay animated WebP
     # the same way they autoplay GIF.
     webp_path = output_dir / f"{name}.webp"
-    duration = int(1000 / max(fps, 1))
-    valid_frames = [f for f in frames if f is not None]
     if valid_frames:
         valid_frames[0].save(
             webp_path,
             save_all=True,
             append_images=valid_frames[1:],
-            duration=duration,
+            duration=durations,
             loop=0,
             format="WebP",
         )
@@ -225,7 +292,7 @@ def assemble_outputs(
             gif_path,
             save_all=True,
             append_images=gif_imgs[1:],
-            duration=duration,
+            duration=durations,
             loop=0,
             disposal=2,
         )
@@ -263,8 +330,43 @@ def assemble_outputs(
             "sourceSize": {"w": cell_w, "h": cell_h},
             "anchor": {"x": 0.5, "y": round(anchor_y / cell_h, 4) if cell_h else 0},
         }
+    # Phase 8: per-frame timing in atlas
+    if timing and state_names:
+        frame_durations: dict[str, int] = {}
+        animation_timings: dict[str, list[int]] = {}
+        frame_idx = 0
+        for r in range(grid_rows):
+            state = state_names[r] if r < len(state_names) else f"row_{r}"
+            row_timing = timing.get(state)
+            row_durations: list[int] = []
+            for c in range(grid_cols):
+                i = r * grid_cols + c
+                if i < len(frames) and frames[i] is not None:
+                    d = row_timing[c] if row_timing and c < len(row_timing) else int(1000 / max(fps, 1))
+                    frame_durations[f"frame_{i:02d}.png"] = d
+                    row_durations.append(d)
+                    frame_idx += 1
+            if row_durations:
+                animation_timings[state] = row_durations
+        atlas["meta"]["frameDurations"] = frame_durations
+        atlas["meta"]["animationTimings"] = animation_timings
+
     atlas_path = output_dir / f"{name}.json"
     atlas_path.write_text(json.dumps(atlas, indent=2), encoding="utf-8")
+
+    # Metadata JSON with timing (Phase 8)
+    metadata: dict = {
+        "name": name,
+        "grid": [grid_cols, grid_rows],
+        "cell_size": [cell_w, cell_h],
+        "fps": fps,
+    }
+    if timing and state_names:
+        metadata["animationTimings"] = {
+            state: timing.get(state, [int(1000 / max(fps, 1))] * grid_cols) for state in state_names if state in timing
+        }
+    metadata_path = output_dir / f"{name}_timing.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
     # Per-direction strips (4xR or 8xR only)
     strips: dict[str, str] = {}
@@ -296,6 +398,7 @@ def assemble_outputs(
 
 
 def cmd_assemble(args: argparse.Namespace) -> int:
+    """assemble subcommand: Phase H multi-format output."""
     cols, rows = _parse_grid(args.grid)
     frame_paths = sorted(Path(args.frames_dir).glob("*_frame_*.png"))
     expected = cols * rows
@@ -311,6 +414,17 @@ def cmd_assemble(args: argparse.Namespace) -> int:
     for i in range(expected):
         frames.append(by_idx.get(i))
 
+    # Load timing from --timing-json if provided (Phase 8)
+    timing: dict[str, list[int]] | None = None
+    state_names: list[str] | None = None
+    timing_json = getattr(args, "timing_json", None)
+    if timing_json:
+        timing_path = Path(timing_json)
+        if timing_path.exists():
+            timing_data = json.loads(timing_path.read_text(encoding="utf-8"))
+            timing = timing_data.get("timing", timing_data)
+            state_names = list(timing.keys()) if timing else None
+
     name = args.name or Path(args.frames_dir).name
     emit_strips = cols in (4, 8) and not args.no_strips
     result = assemble_outputs(
@@ -323,6 +437,8 @@ def cmd_assemble(args: argparse.Namespace) -> int:
         cell_h=args.cell_size,
         fps=args.fps,
         emit_strips=emit_strips,
+        timing=timing,
+        state_names=state_names,
     )
     logger.info(
         "[assemble] %s: sheet+gif+webp+atlas+frames written to %s",
@@ -341,6 +457,7 @@ __all__ = [
     "DEFAULT_GIF_FPS",
     "VariantStats",
     "_compute_variant_stats",
+    "_resolve_frame_durations",
     "assemble_outputs",
     "cmd_assemble",
     "cmd_auto_curate",
