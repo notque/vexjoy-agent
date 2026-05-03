@@ -1,9 +1,16 @@
 # Ansible Security Reference
 
-> **Scope**: Vault encryption, secret management, privilege escalation, credential hygiene
+> **Scope**: Vault encryption, secret management, privilege escalation, and credential hygiene in Ansible automation
 > **Version range**: Ansible 2.9+ / ansible-core 2.12+
+> **Generated**: 2026-04-04 — verify against current Ansible Vault and Collections documentation
 
-Three failure sources: plaintext secrets, privilege escalation misconfiguration, SSH key management errors. Vault handles encryption at rest -- the challenge is encrypting before anything reaches a file.
+---
+
+## Overview
+
+Ansible security failures typically come from three sources: secrets stored in plaintext (in playbooks, vars files, or git history), privilege escalation misconfiguration, and SSH key management errors. The Ansible Vault subsystem handles encryption at rest; the challenge is ensuring everything sensitive is encrypted before it ever reaches a file.
+
+---
 
 ## Pattern Table
 
@@ -36,7 +43,9 @@ db_name: myapp
 db_password: "{{ vault_db_password }}"
 ```
 
-Whole-file encryption makes diffs unreadable. Per-variable keeps history readable while protecting secrets.
+**Why**: Whole-file encryption makes diffs unreadable and forces decryption to see what changed. Per-variable encryption keeps history readable while protecting secrets.
+
+---
 
 ### Use `no_log` on Tasks That Handle Credentials
 
@@ -60,7 +69,9 @@ Whole-file encryption makes diffs unreadable. Per-variable keeps history readabl
   register: api_token_response
 ```
 
-Without `no_log: true`, Ansible prints full task arguments to stdout, logs, and Tower/AWX.
+**Why**: Without `no_log: true`, Ansible prints full task arguments to stdout, log files, and Tower/AWX. Any observer with log access sees plaintext credentials.
+
+---
 
 ### Scope `become` to Tasks That Need It
 
@@ -88,7 +99,9 @@ Without `no_log: true`, Ansible prints full task arguments to stdout, logs, and 
       become: true  # Only this task runs as root
 ```
 
-Playbook-level `become` runs all tasks as root. Task-level `become` limits blast radius.
+**Why**: Playbook-level `become` runs all tasks — including read operations and non-privileged commands — as root. Task-level `become` limits the blast radius of a privilege escalation misconfiguration.
+
+---
 
 ## Pattern Catalog
 
@@ -112,9 +125,9 @@ aws_access_key: AKIAIOSFODNN7EXAMPLE
 aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
-**Why**: Plaintext secrets reach git history. Git history is permanent -- rotation requires assuming full compromise.
+**Why this matters**: Plaintext secrets in any file will eventually reach git history. Git history is permanent — even after deletion, the secret exists in every clone and every CI artifact that ran during that period. Rotation requires assuming full compromise.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Encrypt inline
 ansible-vault encrypt_string 'MyS3cr3tP@ssword!' --name 'db_password'
@@ -144,9 +157,9 @@ grep -rn "BEGIN.*PRIVATE KEY\|BEGIN RSA" .
 web01 ansible_ssh_private_key_file=keys/deploy_key.pem
 ```
 
-**Why**: Private keys in a repo expose root access to every server. Key persists in git history even after gitignore.
+**Why this matters**: Private keys committed to a repository expose root access to every server in the inventory. Even with a gitignore rule added later, the key exists in git history.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 # Use key file path outside repo, reference via variable
 ansible_ssh_private_key_file: "{{ lookup('env', 'SSH_DEPLOY_KEY_PATH') }}"
@@ -174,9 +187,9 @@ grep -n "vault_password_file" ansible.cfg
 vault_password_file = .vault_pass  # .vault_pass contains plaintext password
 ```
 
-**Why**: Readable `.vault_pass` stored with repo defeats encryption. Anyone with repo access decrypts all vault values.
+**Why this matters**: If `.vault_pass` is readable and stored with the repo, it defeats the purpose of encryption. Anyone with repo access can decrypt all vault values.
 
-**Fix**:
+**Preferred action**:
 ```ini
 # ansible.cfg — use a script that fetches from a secrets manager
 [defaults]
@@ -227,7 +240,9 @@ grep -rn -A10 "password:\|secret:" roles/*/tasks/ playbooks/ \
 find . -name "vault.yml" -o -name "secrets.yml" | xargs grep -L "ANSIBLE_VAULT"
 ```
 
+---
+
 ## See Also
 
-- `testing.md` — Molecule and ansible-lint including secret scanning
-- [Ansible Vault docs](https://docs.ansible.com/ansible/latest/vault_guide/index.html)
+- `testing.md` — Molecule and ansible-lint patterns including secret scanning
+- [Ansible Vault documentation](https://docs.ansible.com/ansible/latest/vault_guide/index.html)
