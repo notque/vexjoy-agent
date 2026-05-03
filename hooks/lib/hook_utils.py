@@ -551,3 +551,35 @@ def is_tool_error(result: dict) -> bool:
     if "is_error" in result:
         return bool(result["is_error"])
     return result.get("exitCode", 0) != 0
+
+
+# =============================================================================
+# Activation Recording
+# =============================================================================
+
+
+def record_activations_safe(
+    results: list[dict],
+    session_id: str | None = None,
+    *,
+    debug: bool = False,
+) -> None:
+    """Record activations for injected learnings. Never blocks.
+
+    Extracts (topic, key) pairs from result dicts and batch-records them.
+    Swallows all exceptions so hook execution is never interrupted.
+
+    Args:
+        results: List of learning dicts with "topic" and "key" keys.
+        session_id: Session identifier for activation tracking.
+        debug: If True, log failures to stderr.
+    """
+    try:
+        from learning_db_v2 import record_activations
+
+        entries = [(r["topic"], r["key"]) for r in results]
+        if entries:
+            record_activations(entries, session_id)
+    except Exception as e:
+        if debug:
+            print(f"[activation] Recording failed: {e}", file=sys.stderr)
