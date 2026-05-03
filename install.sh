@@ -255,6 +255,26 @@ uninstall() {
                 REMOVED+=("voice-${voice_name} from skills/")
             fi
         done
+
+        # Clean voice shared references from skills/shared-patterns/
+        if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
+            echo ""
+            echo -e "${YELLOW}Cleaning voice shared references from skills/shared-patterns/...${NC}"
+            for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
+                [ -f "$ref_file" ] || continue
+                ref_name=$(basename "$ref_file")
+                target="${SCRIPT_DIR}/skills/shared-patterns/${ref_name}"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove: ${target}${NC}"
+                    else
+                        rm -f "$target"
+                        echo -e "${GREEN}  ✓ Removed ${ref_name} from skills/shared-patterns/${NC}"
+                    fi
+                    REMOVED+=("${ref_name} from skills/shared-patterns/")
+                fi
+            done
+        fi
     fi
 
     # Phase 3: Clean hooks from settings.json
@@ -1296,6 +1316,40 @@ if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
     fi
 else
     echo -e "${YELLOW}  ⚠ Gemini hooks allowlist not found at ${GEMINI_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
+fi
+
+# Deploy private-voices shared references into skills/shared-patterns/
+# These files were removed from the public repo and live in private-voices/shared-references/
+# (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
+if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
+    echo ""
+    echo -e "${YELLOW}Installing voice shared references...${NC}"
+    SHARED_REF_COUNT=0
+    for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
+        [ -f "$ref_file" ] || continue
+        ref_name=$(basename "$ref_file")
+        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns"; do
+            # Resolve symlinks so we write into the actual directory
+            resolved_dir="$target_dir"
+            [ -L "$target_dir" ] && resolved_dir="$(readlink -f "$target_dir")"
+            if [ -d "$resolved_dir" ]; then
+                target="${resolved_dir}/${ref_name}"
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would install: ${ref_name} -> ${target_dir}${NC}"
+                else
+                    if [ "$MODE" = "symlink" ]; then
+                        ln -sf "$ref_file" "$target"
+                    else
+                        cp -f "$ref_file" "$target"
+                    fi
+                fi
+            fi
+        done
+        SHARED_REF_COUNT=$((SHARED_REF_COUNT + 1))
+    done
+    if [ "$SHARED_REF_COUNT" -gt 0 ]; then
+        echo -e "${GREEN}  ✓ ${SHARED_REF_COUNT} voice shared references installed${NC}"
+    fi
 fi
 
 # Set up local overlay
