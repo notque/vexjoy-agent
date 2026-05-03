@@ -237,6 +237,46 @@ uninstall() {
         fi
     done
 
+    # Phase 2.5: Clean private-voice entries from repo skills directory
+    if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+        echo ""
+        echo -e "${YELLOW}Cleaning private voice entries from skills/...${NC}"
+        for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+            [ -d "$voice_dir" ] || continue
+            voice_name=$(basename "$voice_dir")
+            target="${SCRIPT_DIR}/skills/voice-${voice_name}"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed voice-${voice_name} from skills/${NC}"
+                fi
+                REMOVED+=("voice-${voice_name} from skills/")
+            fi
+        done
+
+        # Clean voice shared references from skills/shared-patterns/
+        if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
+            echo ""
+            echo -e "${YELLOW}Cleaning voice shared references from skills/shared-patterns/...${NC}"
+            for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
+                [ -f "$ref_file" ] || continue
+                ref_name=$(basename "$ref_file")
+                target="${SCRIPT_DIR}/skills/shared-patterns/${ref_name}"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove: ${target}${NC}"
+                    else
+                        rm -f "$target"
+                        echo -e "${GREEN}  ✓ Removed ${ref_name} from skills/shared-patterns/${NC}"
+                    fi
+                    REMOVED+=("${ref_name} from skills/shared-patterns/")
+                fi
+            done
+        fi
+    fi
+
     # Phase 3: Clean hooks from settings.json
     echo ""
     echo -e "${YELLOW}Cleaning hooks from settings.json...${NC}"
@@ -881,6 +921,31 @@ for private_dir in private-agents private-skills private-hooks; do
     fi
 done
 
+# Install private-voices into Claude skills (goes through symlink into repo/skills/)
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    echo ""
+    echo -e "${YELLOW}Installing private voices (Claude)...${NC}"
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${CLAUDE_DIR}/skills/voice-${voice_name}"
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would link voice: voice-${voice_name}${NC}"
+        else
+            rm -rf "$target" 2>/dev/null
+            if [ "$MODE" = "symlink" ]; then
+                ln -sf "$skill_src" "$target"
+                echo -e "${GREEN}  ✓ Linked voice-${voice_name}${NC}"
+            else
+                cp -r "$skill_src" "$target"
+                echo -e "${GREEN}  ✓ Copied voice-${voice_name}${NC}"
+            fi
+        fi
+    done
+fi
+
 echo ""
 echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
 CODEX_ENTRY_COUNT=0
@@ -1063,6 +1128,31 @@ for private_dir in private-agents private-skills private-hooks; do
     fi
 done
 
+# Install private-voices into Factory skills (goes through symlink into repo/skills/)
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    echo ""
+    echo -e "${YELLOW}Installing Factory private voices...${NC}"
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${FACTORY_DIR}/skills/voice-${voice_name}"
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would install Factory voice: voice-${voice_name}${NC}"
+        else
+            rm -rf "$target" 2>/dev/null
+            if [ "$MODE" = "symlink" ]; then
+                ln -sf "$skill_src" "$target"
+                echo -e "${GREEN}  ✓ Linked Factory voice-${voice_name}${NC}"
+            else
+                cp -r "$skill_src" "$target"
+                echo -e "${GREEN}  ✓ Copied Factory voice-${voice_name}${NC}"
+            fi
+        fi
+    done
+fi
+
 # Component counts for the install summary (count source dirs, not per-entry)
 FACTORY_SKILL_COUNT=$(ls -1 "${SCRIPT_DIR}/skills/"*/SKILL.md 2>/dev/null | wc -l)
 FACTORY_DROID_COUNT=$(ls -1 "${SCRIPT_DIR}/agents/"*.md 2>/dev/null | grep -v README | wc -l)
@@ -1226,6 +1316,40 @@ if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
     fi
 else
     echo -e "${YELLOW}  ⚠ Gemini hooks allowlist not found at ${GEMINI_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
+fi
+
+# Deploy private-voices shared references into skills/shared-patterns/
+# These files were removed from the public repo and live in private-voices/shared-references/
+# (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
+if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
+    echo ""
+    echo -e "${YELLOW}Installing voice shared references...${NC}"
+    SHARED_REF_COUNT=0
+    for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
+        [ -f "$ref_file" ] || continue
+        ref_name=$(basename "$ref_file")
+        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns"; do
+            # Resolve symlinks so we write into the actual directory
+            resolved_dir="$target_dir"
+            [ -L "$target_dir" ] && resolved_dir="$(readlink -f "$target_dir")"
+            if [ -d "$resolved_dir" ]; then
+                target="${resolved_dir}/${ref_name}"
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would install: ${ref_name} -> ${target_dir}${NC}"
+                else
+                    if [ "$MODE" = "symlink" ]; then
+                        ln -sf "$ref_file" "$target"
+                    else
+                        cp -f "$ref_file" "$target"
+                    fi
+                fi
+            fi
+        done
+        SHARED_REF_COUNT=$((SHARED_REF_COUNT + 1))
+    done
+    if [ "$SHARED_REF_COUNT" -gt 0 ]; then
+        echo -e "${GREEN}  ✓ ${SHARED_REF_COUNT} voice shared references installed${NC}"
+    fi
 fi
 
 # Set up local overlay
