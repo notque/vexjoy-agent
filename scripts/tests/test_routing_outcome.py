@@ -130,7 +130,7 @@ class TestRecordRoutingOutcome:
             ).fetchone()
         assert "outcome_reason: user re-routed" in row["value"]
 
-    def test_nonexistent_key_warns(self, isolated_db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_nonexistent_key_exits_with_error(self, isolated_db: Path, capsys: pytest.CaptureFixture[str]) -> None:
         from learning_db_v2 import init_db
 
         init_db()
@@ -140,8 +140,9 @@ class TestRecordRoutingOutcome:
             failure=False,
             reason=None,
         )
-        learning_db.cmd_record_routing_outcome(args)
-        output = capsys.readouterr().out
+        with pytest.raises(SystemExit, match="1"):
+            learning_db.cmd_record_routing_outcome(args)
+        output = capsys.readouterr().err
 
         assert "WARNING" in output
         assert "never recorded" in output
@@ -209,7 +210,26 @@ class TestBackfillRoutingOutcomes:
 
         assert "Boosted:   1" in output
         assert "Decayed:   2" in output
+        assert "Skipped:   0" in output
         assert "Unchanged: 1" in output
+
+    def test_idempotent_skips_already_scored(self, isolated_db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Running backfill twice should skip already-scored entries."""
+        _seed_routing_entry("e1", value="tool_errors=1")
+        _seed_routing_entry("e2", value="outcome=committed_and_pushed")
+
+        args = _ns()
+        # First run
+        learning_db.cmd_backfill_routing_outcomes(args)
+        capsys.readouterr()  # discard first output
+
+        # Second run — should skip both
+        learning_db.cmd_backfill_routing_outcomes(args)
+        output = capsys.readouterr().out
+
+        assert "Skipped:   2" in output
+        assert "Boosted:   0" in output
+        assert "Decayed:   0" in output
 
 
 # ---------------------------------------------------------------------------

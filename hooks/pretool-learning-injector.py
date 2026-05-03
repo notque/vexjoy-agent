@@ -26,7 +26,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, get_session_id, record_activations_safe
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
@@ -179,7 +179,6 @@ def main():
         # Query learning.db for matching patterns via FTS5 full-text search
         # Lazy import to avoid paying cost when early-exiting
         from learning_db_v2 import (
-            record_activation,
             sanitize_for_context,
             search_learnings,
         )
@@ -204,11 +203,7 @@ def main():
 
         # Record activations for injected learnings (ROI tracking)
         session_id = get_session_id()
-        for r in results:
-            try:
-                record_activation(r["topic"], r["key"], session_id)
-            except Exception:
-                pass  # Never block on activation recording
+        record_activations_safe(results, session_id, debug=bool(debug))
 
         if debug:
             print(

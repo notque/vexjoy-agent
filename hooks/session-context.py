@@ -26,11 +26,10 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output, get_session_id
+from hook_utils import context_output, empty_output, get_session_id, record_activations_safe
 from learning_db_v2 import (
     get_stats,
     query_learnings,
-    record_activation,
     sanitize_for_context,
 )
 
@@ -166,20 +165,17 @@ def main():
 
         if learnings:
             # Record activations for ROI tracking
+            debug = bool(os.environ.get("CLAUDE_HOOKS_DEBUG"))
             session_id = get_session_id()
-            for p in learnings:
-                try:
-                    record_activation(p["topic"], p["key"], session_id)
-                except Exception:
-                    pass  # Never block on activation recording
+            record_activations_safe(learnings, session_id, debug=debug)
 
             lines = []
             lines.append(f"[learned-context] Loaded {len(learnings)} high-confidence patterns")
 
             # Group by error type
             by_type = {}
-            for p in learnings:
-                et = p.get("error_type") or p.get("topic", "unknown")
+            for learning in learnings:
+                et = learning.get("error_type") or learning.get("topic", "unknown")
                 by_type[et] = by_type.get(et, 0) + 1
 
             type_summary = ", ".join(f"{et}({count})" for et, count in sorted(by_type.items()))
