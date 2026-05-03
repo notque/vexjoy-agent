@@ -11,6 +11,7 @@ Subcommands:
     build-character     Phase A reference character (spritesheet mode)
     build-spritesheet   Phase C spritesheet generation prompt
     build-portrait      Portrait-mode prompt
+    build-row-strip     Per-row strip prompt (per-row mode, Phase 1)
 
 Usage:
     python3 sprite_prompt.py build-portrait \\
@@ -171,6 +172,179 @@ ACTION_TEMPLATES: dict[str, list[str]] = {
         "returning to neutral",
     ],
 }
+
+# ---------------------------------------------------------------------------
+# Animation presets (Phase 6 partial -- drives --per-row mode)
+# ---------------------------------------------------------------------------
+ANIMATION_PRESETS: dict[str, dict] = {
+    "fighter": {
+        "rows": [
+            {
+                "state": "idle",
+                "frames": 6,
+                "action": "combat stance guard breathing loop",
+                "timing": [280, 110, 110, 140, 140, 320],
+            },
+            {"state": "dash-right", "frames": 8, "action": "rightward dash locomotion", "timing": [120] * 7 + [220]},
+            {"state": "dash-left", "frames": 8, "action": "leftward dash locomotion", "timing": [120] * 7 + [220]},
+            {"state": "taunt", "frames": 4, "action": "taunt or stance flourish greeting", "timing": [140] * 3 + [280]},
+            {
+                "state": "jump",
+                "frames": 5,
+                "action": "jump leap anticipation through descent",
+                "timing": [140] * 4 + [280],
+            },
+            {"state": "hit-stun", "frames": 8, "action": "hit stun or KO defeat reaction", "timing": [140] * 7 + [240]},
+            {
+                "state": "charge",
+                "frames": 6,
+                "action": "charge up power idle gathering energy",
+                "timing": [150] * 5 + [260],
+            },
+            {"state": "rush", "frames": 6, "action": "forward rush attack loop", "timing": [120] * 5 + [220]},
+            {"state": "special", "frames": 6, "action": "special power finisher move", "timing": [150] * 5 + [280]},
+        ],
+    },
+    "rpg-character": {
+        "rows": [
+            {"state": "idle", "frames": 4, "action": "idle standing breathing", "timing": [200] * 3 + [300]},
+            {"state": "walk-down", "frames": 4, "action": "walking downward toward viewer", "timing": [150] * 4},
+            {"state": "walk-up", "frames": 4, "action": "walking upward away from viewer", "timing": [150] * 4},
+            {"state": "walk-left", "frames": 4, "action": "walking leftward", "timing": [150] * 4},
+            {"state": "walk-right", "frames": 4, "action": "walking rightward", "timing": [150] * 4},
+            {"state": "attack", "frames": 4, "action": "melee attack swing", "timing": [100, 80, 120, 200]},
+            {"state": "cast", "frames": 4, "action": "magic spell casting", "timing": [120, 100, 150, 230]},
+            {"state": "hurt", "frames": 2, "action": "taking damage flinch", "timing": [200, 300]},
+            {"state": "death", "frames": 4, "action": "death collapse fall", "timing": [150, 150, 200, 400]},
+        ],
+    },
+    "platformer": {
+        "rows": [
+            {"state": "idle", "frames": 4, "action": "idle standing breathing", "timing": [200] * 3 + [300]},
+            {"state": "run", "frames": 8, "action": "running rightward fast", "timing": [100] * 8},
+            {"state": "jump", "frames": 3, "action": "jump crouch launch apex", "timing": [120, 200, 150]},
+            {"state": "fall", "frames": 2, "action": "falling downward", "timing": [150, 200]},
+            {"state": "attack", "frames": 4, "action": "attack swing slash", "timing": [80, 80, 120, 200]},
+            {"state": "hurt", "frames": 2, "action": "taking damage flinch", "timing": [200, 300]},
+            {"state": "climb", "frames": 4, "action": "climbing ladder or wall", "timing": [150] * 4},
+            {"state": "crouch", "frames": 2, "action": "crouching down", "timing": [150, 250]},
+            {"state": "slide", "frames": 2, "action": "sliding along ground", "timing": [120, 200]},
+        ],
+    },
+    "pet": {
+        "rows": [
+            {
+                "state": "idle",
+                "frames": 6,
+                "action": "neutral breathing blinking loop",
+                "timing": [280, 110, 110, 140, 140, 320],
+            },
+            {"state": "running-right", "frames": 8, "action": "rightward locomotion", "timing": [120] * 7 + [220]},
+            {"state": "running-left", "frames": 8, "action": "leftward locomotion", "timing": [120] * 7 + [220]},
+            {"state": "waving", "frames": 4, "action": "greeting wave gesture", "timing": [140] * 3 + [280]},
+            {
+                "state": "jumping",
+                "frames": 5,
+                "action": "jump anticipation through settle",
+                "timing": [140] * 4 + [280],
+            },
+            {"state": "failed", "frames": 8, "action": "error sad deflated reaction", "timing": [140] * 7 + [240]},
+            {"state": "waiting", "frames": 6, "action": "patient alternative with glance", "timing": [150] * 5 + [260]},
+            {"state": "running", "frames": 6, "action": "generic front-facing run", "timing": [120] * 5 + [220]},
+            {"state": "review", "frames": 6, "action": "focused inspecting thinking loop", "timing": [150] * 5 + [280]},
+        ],
+    },
+}
+
+
+def resolve_preset(preset_name: str) -> dict:
+    """Return the preset dict for a named preset.
+
+    Args:
+        preset_name: One of the keys in ANIMATION_PRESETS, or "custom".
+
+    Returns:
+        The preset dictionary with "rows" list.
+
+    Raises:
+        ValueError: For unknown preset names or "custom" without --states.
+    """
+    if preset_name == "custom":
+        raise ValueError("--preset custom requires --states JSON (not yet implemented)")
+    if preset_name not in ANIMATION_PRESETS:
+        raise ValueError(
+            f"unknown preset {preset_name!r}. Choose from {sorted(list(ANIMATION_PRESETS.keys()) + ['custom'])}"
+        )
+    return ANIMATION_PRESETS[preset_name]
+
+
+# ---------------------------------------------------------------------------
+# VFX containment rules (Phase 9 -- injected into row-strip prompts now)
+# ---------------------------------------------------------------------------
+VFX_CONTAINMENT_RULES = (
+    "EFFECTS RULES:\n"
+    "- ALLOWED: effects that physically attach to or overlap the character silhouette, "
+    "stay within frame boundaries, use opaque hard-edged pixel-style colors\n"
+    "- FORBIDDEN: detached sparkles, floating icons, cast/drop/contact shadows, glows, "
+    "halos, auras, speed lines, motion trails, blur, smears, afterimages, text, "
+    "labels, UI elements, speech bubbles, scenery, floor shadows"
+)
+
+# ---------------------------------------------------------------------------
+# Per-action negative-prompt coaching
+# ---------------------------------------------------------------------------
+ACTION_COACHING: dict[str, str] = {
+    # Fighter preset states
+    "idle": "NOT a T-pose or stiff mannequin. Natural weight shift, one foot slightly forward.",
+    "dash-right": "NOT floating or sliding. Feet show running contact with ground. No speed lines.",
+    "dash-left": "NOT floating or sliding. Feet show running contact with ground. No speed lines.",
+    "taunt": "NOT a generic wave. Character-specific flourish — confident, theatrical.",
+    "jump": "NOT a static hovering pose. Show anticipation crouch, launch, and apex arc.",
+    "hit-stun": "NOT a ragdoll. Controlled recoil — head snaps, body bends at impact point.",
+    "charge": "NOT standing still with glowing hands. Body tension, gathering stance, coiled energy.",
+    "rush": "NOT a walk. Full sprint momentum — lean forward, arms pumping, aggressive.",
+    "special": "NOT generic magic. Unique signature move with wind-up and follow-through.",
+    # RPG preset states
+    "walk-down": "NOT marching. Natural stride with arm swing, weight transfer visible.",
+    "walk-up": "NOT marching. Show back of character, cape/hair movement, natural stride.",
+    "walk-left": "NOT a mirror of walk-right with wrong hand. Weapon stays in correct hand.",
+    "walk-right": "NOT a mirror of walk-left with wrong hand. Weapon stays in correct hand.",
+    "attack": "NOT a gentle swing. Full weapon arc with anticipation and follow-through.",
+    "cast": "NOT just raised arms. Magical effects gather, body channels energy.",
+    "hurt": "NOT a T-pose flinch. Directional recoil from the hit.",
+    "death": "NOT instant ragdoll. Progressive collapse — knees buckle, weapon drops, falls.",
+    # Platformer preset states
+    "run": "NOT walking fast. Full run cycle with air time between foot contacts.",
+    "fall": "NOT standing in mid-air. Arms up, legs dangling, looking down.",
+    "climb": "NOT standing on a ladder. Hands grip, alternating reach, body against surface.",
+    "crouch": "NOT just shorter. Knees bent, center of gravity low, ready to spring.",
+    "slide": "NOT lying flat. Dynamic slide with dust kick, body angled, momentum visible.",
+    # Pet preset states
+    "waving": "NOT a stiff arm raise. Enthusiastic full-body wave with personality.",
+    "jumping": "NOT hovering. Squash and stretch — crouch, launch, hang, land.",
+    "failed": "NOT just sad face. Whole body deflates — shoulders drop, head hangs.",
+    "waiting": "NOT frozen. Subtle impatience — foot tap, glance around, small fidgets.",
+    "running": "NOT walking. Bouncy energetic run with personality.",
+    "review": "NOT staring blankly. Leaning in, squinting, focused attention.",
+}
+
+VFX_STATE_RULES: dict[str, str] = {
+    "jump": "Body position shows motion. No dust clouds, impact effects, or floor shadows.",
+    "jumping": "Body position shows motion. No dust clouds, impact effects, or floor shadows.",
+    "hit-stun": "Attached tears, smoke, or impact stars only. No detached symbols or red X marks.",
+    "failed": "Attached tears, smoke, or impact stars only. No detached symbols or red X marks.",
+    "dash-right": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "dash-left": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "running": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "running-right": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "running-left": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "run": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "rush": "Locomotion through body and limb movement only. No speed lines or dust trails.",
+    "special": "Attached energy effects only. No detached particles or broad transparent glows.",
+    "cast": "Attached energy effects only. No detached particles or broad transparent glows.",
+    "charge": "Attached energy effects only. No detached particles or broad transparent glows.",
+}
+
 
 # ---------------------------------------------------------------------------
 # Universal blocks
@@ -373,7 +547,7 @@ def compose_portrait_loop_prompt(
     Downstream extraction treats this as a 4-frame spritesheet.
 
     The user reported in v8 that pure idle-breath loops show "almost no change
-    between frames — boring." Gestural-movement and action-loop modes were
+    between frames -- boring." Gestural-movement and action-loop modes were
     added for character-loop assets where the motion should be the point.
     """
     art = resolve_style(meta.style_preset, meta.style_string)
@@ -466,6 +640,75 @@ def compose_spritesheet_prompt(meta: PromptMetadata) -> str:
     parts.append("\n".join(grid_block))
 
     parts.append(UNIVERSAL_RULES)
+    parts.append(UNIVERSAL_NEGATIVE)
+    return "\n\n".join(parts)
+
+
+def compose_row_strip_prompt(
+    meta: PromptMetadata,
+    state: str,
+    frames: int,
+    action: str,
+    canonical_base_path: Path | None = None,
+) -> str:
+    """Build a prompt for a single animation row strip.
+
+    Args:
+        meta: PromptMetadata with style/archetype/description.
+        state: Animation state name (e.g., "idle", "dash-right").
+        frames: Number of frames in this row.
+        action: Action description for this row.
+        canonical_base_path: Path to canonical base image (Phase 3 identity lock).
+
+    Returns:
+        Assembled prompt string with VFX containment rules.
+    """
+    art = resolve_style(meta.style_preset, meta.style_string)
+    arch = resolve_archetype(meta.archetype)
+    gim = resolve_gimmick(meta.gimmick)
+
+    parts: list[str] = []
+    parts.append(f"ART_STYLE: {art}")
+    if arch or gim:
+        char_parts = [p for p in (arch, gim) if p]
+        parts.append("CHAR_STYLE: " + ". ".join(char_parts) + ".")
+    if meta.description:
+        parts.append(f"DESCRIPTION: {meta.description}")
+
+    # Identity lock (Phase 3)
+    if canonical_base_path is not None:
+        parts.append(
+            "IDENTITY LOCK:\n"
+            "- Match this canonical base exactly: silhouette, face, materials, palette, props\n"
+            "- The attached reference image IS the canonical character -- do not deviate"
+        )
+
+    # Row-strip layout rules
+    parts.append(
+        f"ROW_STRIP_RULES:\n"
+        f"- Generate a SINGLE HORIZONTAL STRIP image containing {frames} frames\n"
+        f"- Animation state: {state}\n"
+        f"- Action: {action}\n"
+        f"- Each frame is one cell; {frames} cells side by side left to right\n"
+        f"- ONE character per frame, consistent scale and identity across all frames\n"
+        f"- Character fully visible head to feet in each frame\n"
+        f"- Solid magenta background (#FF00FF) filling all space outside characters\n"
+        f"- Frames progress left to right showing the animation sequence"
+    )
+
+    parts.append(UNIVERSAL_RULES)
+
+    # VFX containment (Phase 9)
+    parts.append(VFX_CONTAINMENT_RULES)
+    state_rule = VFX_STATE_RULES.get(state)
+    if state_rule:
+        parts.append(f"STATE-SPECIFIC VFX ({state}): {state_rule}")
+
+    # Per-action negative-prompt coaching
+    coaching_note = ACTION_COACHING.get(state)
+    if coaching_note:
+        parts.append(f"ACTION COACHING: {coaching_note}")
+
     parts.append(UNIVERSAL_NEGATIVE)
     return "\n\n".join(parts)
 
@@ -592,6 +835,37 @@ def cmd_build_spritesheet(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_build_row_strip(args: argparse.Namespace) -> int:
+    """build-row-strip subcommand: generate a per-row prompt."""
+    meta = PromptMetadata(
+        mode="row-strip",
+        style_preset=args.style,
+        style_string=args.style_string,
+        archetype=args.archetype,
+        gimmick=args.gimmick,
+        tier=args.tier,
+        description=args.description,
+        action=args.action,
+        grid_cols=args.frames,
+        grid_rows=1,
+        seed=args.seed,
+    )
+    canonical_base = Path(args.canonical_base) if args.canonical_base else None
+    try:
+        prompt = compose_row_strip_prompt(
+            meta,
+            state=args.state,
+            frames=args.frames,
+            action=args.action,
+            canonical_base_path=canonical_base,
+        )
+    except ValueError as e:
+        logger.error("%s", e)
+        return 2
+    write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
+    return 0
+
+
 def parse_grid(grid: str) -> tuple[int, int]:
     """Parse '4x4' into (cols, rows). Validates format."""
     if "x" not in grid:
@@ -629,6 +903,14 @@ def build_parser() -> argparse.ArgumentParser:
     bs.add_argument("--grid", required=True, help="Grid spec like '4x4' (cols x rows)")
     bs.add_argument("--action", required=True, help="Action label (walking, idle, attack-punch, etc.)")
     bs.set_defaults(func=cmd_build_spritesheet)
+
+    brs = sub.add_parser("build-row-strip", help="Build per-row strip prompt (Phase 1)")
+    _add_common_args(brs)
+    brs.add_argument("--state", required=True, help="Animation state name (e.g., idle, dash-right)")
+    brs.add_argument("--frames", type=int, required=True, help="Number of frames in this row")
+    brs.add_argument("--action", required=True, help="Action description for this row")
+    brs.add_argument("--canonical-base", help="Path to canonical base image (Phase 3 identity lock)")
+    brs.set_defaults(func=cmd_build_row_strip)
 
     return parser
 

@@ -312,6 +312,7 @@ def build_parser() -> argparse.ArgumentParser:
     ab.add_argument("--name")
     ab.add_argument("--fps", type=int, default=DEFAULT_GIF_FPS)
     ab.add_argument("--no-strips", action="store_true", help="Skip per-direction strips")
+    ab.add_argument("--timing-json", help="Path to JSON with per-state timing (Phase 8)")
     ab.set_defaults(func=cmd_assemble)
 
     return parser

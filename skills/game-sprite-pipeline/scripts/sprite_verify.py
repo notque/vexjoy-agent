@@ -373,6 +373,7 @@ def verify_frames_have_content(
     cell_size: int,
     min_alpha_pixel_pct: float = 2.0,
     max_blank_count: int = 0,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> dict:
     """Per-cell alpha-coverage gate. Catches blank-cell failure class.
 
@@ -391,6 +392,11 @@ def verify_frames_have_content(
 
     The default (max_blank_count=0) is strict; relax for assets where one
     blank frame is a deliberate art choice.
+
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (e.g. per-row mode padding). These cells are
+            excluded from the blank-cell check entirely.
     """
     if not HAS_NUMPY:
         return {"passed": True, "blank_cells": [], "error": "numpy required"}
@@ -398,6 +404,11 @@ def verify_frames_have_content(
         img = Image.open(img)
     img = img.convert("RGBA")
     cells = _slice_grid_into_cells(img, grid_cols, grid_rows)
+    # Build a set of linear cell indices to skip (per-row padding cells).
+    skip_indices: set[int] = set()
+    if expected_empty_cells:
+        for row, col in expected_empty_cells:
+            skip_indices.add(row * grid_cols + col)
     blanks: list[dict] = []
     pcts: list[float] = []
     for i, cell in enumerate(cells):
@@ -405,6 +416,8 @@ def verify_frames_have_content(
         alpha = arr[..., 3]
         pct = float((alpha > 16).sum()) / max(alpha.size, 1) * 100.0
         pcts.append(round(pct, 2))
+        if i in skip_indices:
+            continue
         if pct < min_alpha_pixel_pct:
             blanks.append({"cell_index": i, "alpha_pct": round(pct, 2)})
     result: dict = {
@@ -465,6 +478,7 @@ def verify_frames_distinct(
     max_duplicate_pct: float = 10.0,
     skip_blank_cells: bool = True,
     blank_alpha_pct: float = 2.0,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> dict:
     """Perceptual-hash duplicate-frame gate. Catches "two frames merged" failure.
 
@@ -483,6 +497,11 @@ def verify_frames_distinct(
     headroom. Action cycles should hit far higher distances; if dup_pct
     exceeds threshold, the cycle is broken (frames repeated).
 
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (e.g. per-row mode padding). These cells are
+            excluded from duplicate analysis regardless of skip_blank_cells.
+
     Returns the involved cell indices for diagnosis.
     """
     if not HAS_NUMPY:
@@ -491,16 +510,23 @@ def verify_frames_distinct(
         img = Image.open(img)
     img = img.convert("RGBA")
     cells = _slice_grid_into_cells(img, grid_cols, grid_rows)
+    # Build a set of linear cell indices to skip (per-row padding cells).
+    skip_indices: set[int] = set()
+    if expected_empty_cells:
+        for row, col in expected_empty_cells:
+            skip_indices.add(row * grid_cols + col)
     if skip_blank_cells:
         # Pre-filter to cells with content so blank vs blank doesn't pollute.
         valid_cells: list[tuple[int, Image.Image]] = []
         for i, c in enumerate(cells):
+            if i in skip_indices:
+                continue
             arr = np.array(c)
             pct = float((arr[..., 3] > 16).sum()) / max(arr[..., 3].size, 1) * 100.0
             if pct >= blank_alpha_pct:
                 valid_cells.append((i, c))
     else:
-        valid_cells = list(enumerate(cells))
+        valid_cells = [(i, c) for i, c in enumerate(cells) if i not in skip_indices]
     hashes = [(i, _dhash(c)) for i, c in valid_cells]
     duplicates: list[dict] = []
     cells_in_dup: set[int] = set()
@@ -742,6 +768,97 @@ def verify_raw_vs_final_cell_parity(
             "for this dense grid. Codex output is ground truth; do NOT regenerate."
         )
     return result
+
+
+def verify_padding(
+    img: Image.Image | Path | str,
+    grid_cols: int,
+    grid_rows: int,
+    cell_size: int,
+    max_padding_pct: float = 15.0,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
+) -> dict:
+    """Per-cell padding gate: sprite must not have excessive transparent padding.
+
+    For each frame cell, checks that the sprite doesn't have >max_padding_pct%
+    transparent padding on any side. Excessive padding means the sprite is too
+    small relative to its cell -- the generator underutilized the frame.
+
+    Args:
+        img: Final sheet image (PIL Image, Path, or str).
+        grid_cols: Number of columns.
+        grid_rows: Number of rows.
+        cell_size: Cell size in pixels.
+        max_padding_pct: Maximum allowed padding on any side as percentage of
+            cell dimension (default 15.0).
+        expected_empty_cells: List of (row, col) tuples for intentionally empty
+            cells (per-row mode padding). Skipped entirely.
+
+    Returns:
+        Dict with passed, frames_with_excess_padding, max_padding_pct fields.
+    """
+    if not HAS_NUMPY:
+        return {"passed": True, "frames_with_excess_padding": [], "max_padding_pct": 0.0, "error": "numpy required"}
+
+    if isinstance(img, (str, Path)):
+        img = Image.open(img)
+    img = img.convert("RGBA")
+    cells = _slice_grid_into_cells(img, grid_cols, grid_rows)
+
+    skip_indices: set[int] = set()
+    if expected_empty_cells:
+        for row, col in expected_empty_cells:
+            skip_indices.add(row * grid_cols + col)
+
+    excess_frames: list[dict] = []
+    overall_max_pct = 0.0
+
+    for i, cell in enumerate(cells):
+        if i in skip_indices:
+            continue
+
+        arr = np.array(cell)
+        alpha = arr[..., 3]
+        ys, xs = np.where(alpha > 16)
+
+        if len(ys) == 0:
+            # Entirely empty -- skip (verify_frames_have_content handles this)
+            continue
+
+        bbox_top = int(ys.min())
+        bbox_bot = int(ys.max())
+        bbox_left = int(xs.min())
+        bbox_right = int(xs.max())
+
+        h, w = alpha.shape
+        top_pct = (bbox_top / h) * 100.0
+        bottom_pct = ((h - 1 - bbox_bot) / h) * 100.0
+        left_pct = (bbox_left / w) * 100.0
+        right_pct = ((w - 1 - bbox_right) / w) * 100.0
+
+        frame_max = max(top_pct, bottom_pct, left_pct, right_pct)
+        overall_max_pct = max(overall_max_pct, frame_max)
+
+        if frame_max > max_padding_pct:
+            excess_frames.append(
+                {
+                    "cell_index": i,
+                    "row": i // grid_cols,
+                    "col": i % grid_cols,
+                    "top_pct": round(top_pct, 1),
+                    "bottom_pct": round(bottom_pct, 1),
+                    "left_pct": round(left_pct, 1),
+                    "right_pct": round(right_pct, 1),
+                    "max_side_pct": round(frame_max, 1),
+                }
+            )
+
+    return {
+        "passed": len(excess_frames) == 0,
+        "frames_with_excess_padding": excess_frames,
+        "max_padding_pct": round(overall_max_pct, 1),
+        "threshold_pct": max_padding_pct,
+    }
 
 
 def verifier_verdict_from_passed(passed: bool) -> str:

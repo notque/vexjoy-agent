@@ -7,11 +7,15 @@ magenta-background PNG with C x R cells and thin reference borders. Used as
 the structural input for spritesheet-mode generation in Phase C.
 
 Subcommands:
-    make-template   Generate the canvas template
+    make-template       Generate the canvas template
+    make-layout-guide   Generate per-row layout reference PNG (Phase 2)
 
 Usage:
     python3 sprite_canvas.py make-template --rows 4 --cols 4 --cell-size 256 \
         --pattern alternating --output canvas.png
+
+    python3 sprite_canvas.py make-layout-guide --state idle --frames 6 \
+        --cell-size 256 --output guide.png
 
 Allowed cell sizes: 64, 128, 192, 256, 384, 512.
 Total canvas (cell-size * cols, cell-size * rows) <= 2048 x 2048.
@@ -28,7 +32,7 @@ from pathlib import Path
 logger = logging.getLogger("sprite-pipeline.sprite_canvas")
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 except ImportError as e:
     logger.error("Pillow not installed: %s", e)
     logger.error("Install with: pip install pillow")
@@ -76,6 +80,11 @@ MAGENTA = (255, 0, 255, 255)
 BORDER_COLOR = (32, 32, 32, 255)
 BORDER_WIDTH = 2
 CHECKERBOARD_TINT = (240, 0, 240, 255)  # within chroma threshold of magenta
+
+# Layout guide colors (Phase 2)
+GUIDE_BORDER_COLOR = (180, 180, 180, 255)  # light gray
+GUIDE_BORDER_WIDTH = 2
+GUIDE_TEXT_COLOR = (160, 160, 160, 255)  # lighter gray for cell numbers
 
 
 @dataclass
@@ -147,6 +156,71 @@ def render_canvas(spec: CanvasSpec) -> Image.Image:
     return img
 
 
+def render_layout_guide(frames: int, cell_size: int, state: str = "") -> Image.Image:
+    """Generate a per-row layout guide PNG (Phase 2).
+
+    Produces a horizontal strip with frame boundaries drawn as light gray
+    borders on a transparent background. Each cell has a centered frame
+    number. Passed as --reference to the backend to ground frame placement.
+
+    Args:
+        frames: Number of frames (cells) in the strip.
+        cell_size: Width and height of each cell in pixels.
+        state: Optional animation state label drawn at left edge.
+
+    Returns:
+        RGBA Image with transparent background and gray cell guides.
+    """
+    width = frames * cell_size
+    height = cell_size
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    # Try to load a font; fall back to default if unavailable
+    font = None
+    font_small = None
+    try:
+        font_size = max(cell_size // 4, 16)
+        font_small_size = max(cell_size // 8, 10)
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_small_size)
+    except (OSError, IOError):
+        font = ImageFont.load_default()
+        font_small = font
+
+    for i in range(frames):
+        x0 = i * cell_size
+        y0 = 0
+        x1 = x0 + cell_size - 1
+        y1 = cell_size - 1
+
+        # Cell border
+        draw.rectangle((x0, y0, x1, y1), outline=GUIDE_BORDER_COLOR, width=GUIDE_BORDER_WIDTH)
+
+        # Frame number centered in cell
+        label = str(i)
+        bbox = draw.textbbox((0, 0), label, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        tx = x0 + (cell_size - tw) // 2
+        ty = y0 + (cell_size - th) // 2
+        draw.text((tx, ty), label, fill=GUIDE_TEXT_COLOR, font=font)
+
+    # State label at top-left if provided
+    if state and font_small:
+        draw.text((4, 4), state, fill=GUIDE_BORDER_COLOR, font=font_small)
+
+    logger.info(
+        "[canvas] layout guide: %d frames @ %dpx, state=%s, size=%dx%d",
+        frames,
+        cell_size,
+        state or "(none)",
+        width,
+        height,
+    )
+    return img
+
+
 def cmd_make_template(args: argparse.Namespace) -> int:
     """make-template subcommand entry."""
     rows, cols = args.rows, args.cols
@@ -198,6 +272,28 @@ def cmd_make_template(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_make_layout_guide(args: argparse.Namespace) -> int:
+    """make-layout-guide subcommand entry (Phase 2)."""
+    cell_size = args.cell_size
+    if cell_size not in ALLOWED_CELL_SIZES:
+        logger.error("cell-size %d not allowed. Choose from %s.", cell_size, sorted(ALLOWED_CELL_SIZES))
+        return 2
+    if args.frames < 1:
+        logger.error("--frames must be >= 1, got %d", args.frames)
+        return 2
+
+    img = render_layout_guide(
+        frames=args.frames,
+        cell_size=cell_size,
+        state=args.state or "",
+    )
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(output_path, format="PNG")
+    logger.info("[canvas] layout guide written: %s (%dx%d)", output_path, img.width, img.height)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the argparse CLI."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -234,6 +330,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     mk.add_argument("--output", required=True, help="Output PNG path")
     mk.set_defaults(func=cmd_make_template)
+
+    lg = sub.add_parser(
+        "make-layout-guide",
+        help="Generate per-row layout reference PNG (Phase 2)",
+    )
+    lg.add_argument("--state", default="", help="Animation state name (e.g., idle, dash-right)")
+    lg.add_argument("--frames", type=int, required=True, help="Number of frames in the row")
+    lg.add_argument(
+        "--cell-size",
+        type=int,
+        default=256,
+        help="Cell size in px (one of 64,128,192,256,384,512; default 256)",
+    )
+    lg.add_argument("--output", required=True, help="Output PNG path")
+    lg.set_defaults(func=cmd_make_layout_guide)
+
     return parser
 
 

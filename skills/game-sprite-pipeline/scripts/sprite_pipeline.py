@@ -12,11 +12,24 @@ Chains:
     G: deterministic auto-curation (when --variants > 1)
     H: PNG sheet + GIF + WebP + Phaser atlas + per-direction strips
 
+Per-row mode (--per-row, typically with --preset):
+    A: canonical base character generation (identity lock)
+    For each row in preset:
+        B': layout guide generation
+        C': per-row strip generation with identity lock + VFX containment
+        D': per-strip slice (pitch = strip_width / expected_frames)
+        E': per-frame bg removal on individually sliced frames
+    F: normalize all frames together (consistent anchoring)
+    H: assemble into final sheet with correct row/col mapping
+
 Usage:
     python3 sprite_pipeline.py \\
         --prompt "wrestler walk cycle, 4 frames" \\
         --grid 4x1 --cell-size 256 --action walking \\
         --style slay-the-spire-painted
+
+    python3 sprite_pipeline.py \\
+        --preset fighter --per-row --dry-run --output-dir /tmp/test
 
 --dry-run skips Phase A and C backend calls; uses a synthetic fixture
 spritesheet for Phase D-H validation. Useful for CI smoke tests.
@@ -25,6 +38,7 @@ spritesheet for Phase D-H validation. Useful for CI smoke tests.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -46,6 +60,7 @@ except ImportError as e:
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+import qa_artifacts
 import sprite_bg
 import sprite_canvas
 import sprite_generate
@@ -58,6 +73,7 @@ from sprite_verify import (
     verify_frames_have_content,
     verify_grid_alignment,
     verify_no_magenta,
+    verify_padding,
     verify_pixel_preservation,
     verify_raw_vs_final_cell_parity,
     write_manifest_record,
@@ -77,30 +93,30 @@ VERIFIER_EXIT_CODE = 2
 # (verify_no_magenta only) that an explicit skip is plausibly intentional.
 VERIFIER_SKIPPED_EXIT_CODE = 3
 
-# TODO(ADR-207 RC-4 follow-up): audit every consumer of `--no-verify` for
-# spritesheet mode and migrate them to either accept exit code 3 or drop
-# `--no-verify` entirely. The street-fighter-demo orchestrator was the
-# only known consumer at ship time and is updated in this same wave. Other
-# consumers may exist in road-to-aew CI or external scripts; tracked as an
-# RC-4 follow-up.
 
-# TODO(ADR-207 RC-5 follow-up): the reverify-after-reprocess pattern is
-# implemented as a separate helper script in the street-fighter-demo repo
-# (`scripts/reverify_after_reprocess.py`). A toolkit-level helper that any
-# consumer can import would centralize the contract. Tracked as an RC-5
-# follow-up; not in scope for ADR-207.
+def _sha256_file(path: Path) -> str:
+    """Compute SHA256 hex digest of a file.
+
+    Args:
+        path: File path to hash.
+
+    Returns:
+        Lowercase hex digest string.
+    """
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _sha256_text(text: str) -> str:
+    """Compute SHA256 hex digest of a text string."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _detect_backends_available() -> dict[str, bool]:
-    """Best-effort backend availability for the verifier failure JSON.
-
-    ADR-198 governs the Codex -> Nano Banana fallback chain. The verifier
-    surfaces what's available so failure hints can recommend "try the other
-    backend" as an actionable fix path. We avoid invoking ``select_backend``
-    here because that runs ``codex --version`` and we do not want a
-    verifier emission to spawn a subprocess; cheap shutil/env checks are
-    enough for the JSON context field.
-    """
+    """Best-effort backend availability for the verifier failure JSON."""
     nano_script = sprite_generate.find_nano_banana_script()
     return {
         "codex": shutil.which("codex") is not None,
@@ -114,27 +130,7 @@ def _emit_verifier_result(
     failures: list[dict],
     elapsed_seconds: float,
 ) -> int:
-    """Print the structured verifier JSON to stdout and return the exit code.
-
-    Per ADR-199, verifier output goes to stdout (not stderr, not a logger
-    call) so callers can pipe pipeline runs and parse the last JSON block.
-    Schema mirrors the ADR contract:
-
-        {
-          "passed": bool,
-          "gates_run": [gate_name, ...],
-          "failures": [{check, file?, details, ...}, ...],
-          "backends_available": {"codex": bool, "nano_banana": bool},
-          "elapsed_seconds": float,
-        }
-
-    Returns ``VERIFIER_EXIT_CODE`` (2) when any gate fails; 0 otherwise.
-
-    ADR-207 Rule 2: ``verifier_verdict`` ("PASS"|"FAIL") is added as the
-    consumer-facing contract field. Consumers (orchestrators, manifest
-    writers) MUST derive their own status fields from this, not from any
-    other heuristic.
-    """
+    """Print the structured verifier JSON to stdout and return the exit code."""
     passed = len(failures) == 0
     payload = {
         "passed": passed,
@@ -155,20 +151,15 @@ def _run_spritesheet_verifiers(
     rows: int,
     cell_size: int,
     allow_frame_duplication: bool = False,
+    expected_empty_cells: list[tuple[int, int]] | None = None,
 ) -> tuple[list[str], list[dict]]:
     """Run the spritesheet gate suite against a final sheet PNG.
 
-    Gates (per ADR-199 spritesheet contract):
-      - verify_no_magenta
-      - verify_grid_alignment
-      - verify_anchor_consistency
-      - verify_frames_have_content
-      - verify_frames_distinct
-      - verify_pixel_preservation (only if ``raw_path`` is supplied)
-
-    Each gate is best-effort isolated: a single gate raising or returning
-    ``error`` does not prevent the others from running. The caller hard-fails
-    on any non-empty failures list.
+    Args:
+        expected_empty_cells: List of (row, col) tuples for cells that are
+            intentionally empty (per-row mode padding). Forwarded to
+            verify_frames_have_content and verify_frames_distinct so they
+            skip these cells instead of flagging them.
     """
     gates_run: list[str] = []
     failures: list[dict] = []
@@ -205,20 +196,45 @@ def _run_spritesheet_verifiers(
     try:
         _record_gate(
             "verify_frames_have_content",
-            verify_frames_have_content(sheet_path, cols, rows, cell_size),
+            verify_frames_have_content(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                expected_empty_cells=expected_empty_cells,
+            ),
         )
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_have_content")
         failures.append({"check": "verify_frames_have_content", "file": str(sheet_path), "details": f"error: {e}"})
 
     try:
-        # ADR-208 RC-3: dup_pct_max defaults to 70.0 for spritesheets;
-        # opt-out via --allow-frame-duplication relaxes to 100.0 for
-        # legitimate idle loops + 8-frame anims tiled across 64 cells.
+        _record_gate(
+            "verify_padding",
+            verify_padding(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                expected_empty_cells=expected_empty_cells,
+            ),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_padding")
+        failures.append({"check": "verify_padding", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
         dup_pct_max = 100.0 if allow_frame_duplication else 70.0
         _record_gate(
             "verify_frames_distinct",
-            verify_frames_distinct(sheet_path, cols, rows, cell_size, max_duplicate_pct=dup_pct_max),
+            verify_frames_distinct(
+                sheet_path,
+                cols,
+                rows,
+                cell_size,
+                max_duplicate_pct=dup_pct_max,
+                expected_empty_cells=expected_empty_cells,
+            ),
         )
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_distinct")
@@ -234,12 +250,6 @@ def _run_spritesheet_verifiers(
             gates_run.append("verify_pixel_preservation")
             failures.append({"check": "verify_pixel_preservation", "file": str(sheet_path), "details": f"error: {e}"})
 
-        # ADR-207 Rule 3: cell-parity gate. Conservative blank-cell check
-        # that catches RC-1 directly (raw has content, final lost it). Runs
-        # alongside verify_pixel_preservation; both can fire on the same
-        # underlying failure with distinct diagnostics (parity surfaces the
-        # blank-cell symptom; preservation surfaces the silhouette-loss
-        # symptom).
         try:
             _record_gate(
                 "verify_raw_vs_final_cell_parity",
@@ -296,6 +306,620 @@ def _make_fixture_sheet(output: Path, cols: int, rows: int, cell: int) -> None:
             idx += 1
     output.parent.mkdir(parents=True, exist_ok=True)
     img.save(output, format="PNG")
+
+
+def _make_fixture_strip(output: Path, frames: int, cell: int, row_idx: int) -> None:
+    """Synthesize a magenta-bg horizontal strip fixture for dry-run per-row mode.
+
+    Each frame gets a distinct color and slightly varied figure proportions
+    to give downstream verifiers something to differentiate.
+    """
+    img = Image.new("RGBA", (frames * cell, cell), (255, 0, 255, 255))
+    draw = ImageDraw.Draw(img)
+    for f in range(frames):
+        color = FIXTURE_COLORS[(row_idx * frames + f) % len(FIXTURE_COLORS)]
+        cx = f * cell + cell // 2
+        # Vary proportions per frame so verify_frames_distinct sees differences
+        head_r = cell // 8 + (f % 3) * 2
+        cy_top = cell // 5 + (f % 4) * 3
+        cy_bot = (cell * 4) // 5 - (f % 3) * 2
+        draw.ellipse(
+            (cx - head_r, cy_top, cx + head_r, cy_top + 2 * head_r),
+            fill=color,
+            outline=(20, 20, 20, 255),
+            width=3,
+        )
+        body_w = cell // 4 + (f % 3) * 4
+        draw.rectangle(
+            (cx - body_w // 2, cy_top + 2 * head_r, cx + body_w // 2, cy_bot),
+            fill=color,
+            outline=(20, 20, 20, 255),
+            width=3,
+        )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    img.save(output, format="PNG")
+
+
+def _make_fixture_canonical_base(output: Path, cell: int) -> None:
+    """Synthesize a canonical base image fixture for dry-run mode."""
+    img = Image.new("RGBA", (cell * 2, cell * 2), (255, 0, 255, 255))
+    draw = ImageDraw.Draw(img)
+    color = (100, 140, 220, 255)
+    cx, cy_top, cy_bot = cell, cell // 3, cell * 2 - cell // 3
+    head_r = cell // 4
+    draw.ellipse(
+        (cx - head_r, cy_top, cx + head_r, cy_top + 2 * head_r),
+        fill=color,
+        outline=(20, 20, 20, 255),
+        width=4,
+    )
+    body_w = cell // 2
+    draw.rectangle(
+        (cx - body_w // 2, cy_top + 2 * head_r, cx + body_w // 2, cy_bot),
+        fill=color,
+        outline=(20, 20, 20, 255),
+        width=4,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    img.save(output, format="PNG")
+
+
+def _composite_strips(strip_paths: list[Path], output: Path, cell_size: int) -> None:
+    """Composite row strip images into a single spritesheet.
+
+    Each strip is a horizontal image of (frames_in_row * cell_size) x cell_size.
+    The output is the widest strip width x (num_strips * cell_size), with
+    narrower strips left-aligned and remaining space filled with magenta.
+    """
+    strips = [Image.open(p).convert("RGBA") for p in strip_paths]
+    max_width = max(s.width for s in strips)
+    total_height = sum(s.height for s in strips)
+
+    sheet = Image.new("RGBA", (max_width, total_height), (255, 0, 255, 255))
+    y_offset = 0
+    for strip in strips:
+        sheet.paste(strip, (0, y_offset))
+        y_offset += strip.height
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output, format="PNG")
+    logger.info("[composite] %s written (%dx%d, %d strips)", output, max_width, total_height, len(strips))
+
+
+def _process_row_strip(
+    strip_path: Path,
+    row_index: int,
+    state: str,
+    name: str,
+    expected_frames: int,
+    cell_size: int,
+    work_dir: Path,
+    bg_mode: str,
+    chroma_threshold: int,
+) -> list[Path]:
+    """Slice a row strip into frames and remove backgrounds.
+
+    Uses exact pitch (strip_width / expected_frames) instead of
+    connected-components to avoid fragmenting Codex-generated strips.
+
+    Args:
+        strip_path: Path to the row strip PNG.
+        row_index: Zero-based row index (for naming).
+        state: Animation state name (e.g. "idle", "dash-right").
+        name: Sprite name prefix.
+        expected_frames: Number of frames this row should contain.
+        cell_size: Target cell size in pixels.
+        work_dir: Working directory for intermediate files.
+        bg_mode: Background removal mode (chroma, gray-tolerance, etc.).
+        chroma_threshold: Chroma-key threshold for bg removal.
+
+    Returns:
+        List of paths to bg-removed frame PNGs, ordered by frame index.
+    """
+    from sprite_slicing import _pre_despill_raw_for_upscale
+
+    strip_img = Image.open(strip_path).convert("RGBA")
+
+    # Pre-despill magenta before resize (prevents LANCZOS pink fringe)
+    strip_img = _pre_despill_raw_for_upscale(strip_img, chroma_threshold=chroma_threshold)
+
+    target_w = expected_frames * cell_size
+    target_h = cell_size
+
+    # Resize if dimensions don't match expected
+    if strip_img.size != (target_w, target_h):
+        logger.info(
+            "[per-row] row %d (%s): resizing strip %dx%d -> %dx%d",
+            row_index,
+            state,
+            strip_img.width,
+            strip_img.height,
+            target_w,
+            target_h,
+        )
+        strip_img = strip_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+    # Slice at exact pitch — no connected-components needed
+    row_frames_dir = work_dir / f"row_{row_index:02d}_{state}" / "frames"
+    row_frames_dir.mkdir(parents=True, exist_ok=True)
+
+    frame_paths: list[Path] = []
+    for f_idx in range(expected_frames):
+        x0 = f_idx * cell_size
+        frame_img = strip_img.crop((x0, 0, x0 + cell_size, cell_size))
+        frame_path = row_frames_dir / f"{name}_row{row_index:02d}_{state}_frame_{f_idx:02d}.png"
+        frame_img.save(frame_path, format="PNG")
+        frame_paths.append(frame_path)
+
+    # Per-frame background removal
+    nobg_dir = work_dir / f"row_{row_index:02d}_{state}" / "frames_nobg"
+    nobg_dir.mkdir(parents=True, exist_ok=True)
+
+    processed_paths: list[Path] = []
+    for fp in frame_paths:
+        dst = nobg_dir / fp.name
+        if bg_mode == "chroma":
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+        elif bg_mode == "gray-tolerance":
+            sprite_bg.remove_bg_gray_tolerance(fp, dst)
+        elif bg_mode == "rembg":
+            sprite_bg.remove_bg_rembg(fp, dst)
+        elif bg_mode == "auto":
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+            if sprite_bg._alpha_coverage_too_low(dst):
+                logger.warning("[per-row] auto: chroma low-coverage on %s; falling back to rembg", fp.name)
+                sprite_bg.remove_bg_rembg(fp, dst)
+        else:
+            # Fallback to chroma
+            sprite_bg.remove_bg_chroma(fp, dst, chroma_threshold)
+        processed_paths.append(dst)
+
+    logger.info(
+        "[per-row] row %d (%s): sliced %d frames, bg removed",
+        row_index,
+        state,
+        len(processed_paths),
+    )
+    return processed_paths
+
+
+def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -> int:
+    """Per-row pipeline body (Phase 1 + Phase 2 + Phase 3).
+
+    Generates each animation row as a separate strip, then composites into
+    a final sheet and runs the standard D-H pipeline on it.
+    """
+    work_dir.mkdir(parents=True, exist_ok=True)
+    started = datetime.now(timezone.utc)
+    phases: list[dict] = []
+
+    # Resolve preset
+    try:
+        preset = sprite_prompt.resolve_preset(args.preset)
+    except ValueError as e:
+        logger.error("%s", e)
+        return 1
+    row_defs = preset["rows"]
+
+    # Phase A: canonical base generation (Phase 3 identity lock)
+    canonical_base_path = work_dir / f"{name}_canonical_base.png"
+    char_prompt_path = work_dir / f"{name}_char_prompt.txt"
+
+    char_argv = [
+        "build-character",
+        "--style",
+        args.style,
+        "--description",
+        args.description or args.prompt or "",
+        "--seed",
+        str(args.seed),
+        "--output",
+        str(char_prompt_path),
+    ]
+    if args.archetype:
+        char_argv.extend(["--archetype", args.archetype])
+    if args.gimmick:
+        char_argv.extend(["--gimmick", args.gimmick])
+    if args.style_string:
+        char_argv.extend(["--style-string", args.style_string])
+    rc = sprite_prompt.main(char_argv)
+    if rc != 0:
+        return rc
+
+    if args.dry_run:
+        _make_fixture_canonical_base(canonical_base_path, args.cell_size)
+    else:
+        rc = sprite_generate.main(
+            [
+                "generate-character",
+                "--prompt-file",
+                str(char_prompt_path),
+                "--output",
+                str(canonical_base_path),
+                "--seed",
+                str(args.seed),
+            ]
+        )
+        if rc != 0:
+            return rc
+    phases.append({"phase": "A", "name": "canonical-base", "rc": 0, "dry_run": args.dry_run})
+    logger.info("[per-row] Phase A: canonical base at %s", canonical_base_path)
+
+    # Deterministic idle from canonical base
+    if getattr(args, "deterministic_idle", False) and canonical_base_path.exists():
+        import deterministic_idle
+
+        idle_dir = work_dir / "idle"
+        idle_frames = deterministic_idle.generate_idle_frames(
+            Image.open(canonical_base_path).convert("RGBA"),
+        )
+        deterministic_idle.write_strip(idle_frames, idle_dir / "idle-strip.png")
+        deterministic_idle.write_animation(idle_frames, idle_dir / "animation.gif", args.fps)
+        deterministic_idle.write_animation(idle_frames, idle_dir / "animation.webp", args.fps)
+        phases.append({"phase": "A-idle", "name": "deterministic-idle", "rc": 0})
+        logger.info("[per-row] deterministic idle written to %s", idle_dir)
+
+    # Per-row generation loop
+    strip_paths: list[Path] = []
+    max_frames = max(r["frames"] for r in row_defs)
+
+    for row_idx, row_def in enumerate(row_defs):
+        state = row_def["state"]
+        frames = row_def["frames"]
+        action = row_def["action"]
+
+        row_dir = work_dir / f"row_{row_idx:02d}_{state}"
+        row_dir.mkdir(parents=True, exist_ok=True)
+
+        # Phase 2: layout guide
+        guide_path = row_dir / "layout_guide.png"
+        rc = sprite_canvas.main(
+            [
+                "make-layout-guide",
+                "--state",
+                state,
+                "--frames",
+                str(frames),
+                "--cell-size",
+                str(args.cell_size),
+                "--output",
+                str(guide_path),
+            ]
+        )
+        if rc != 0:
+            return rc
+
+        # Row-strip prompt (Phase 1 + Phase 9 VFX containment)
+        row_prompt_path = row_dir / "row_prompt.txt"
+        prompt_argv = [
+            "build-row-strip",
+            "--style",
+            args.style,
+            "--description",
+            args.description or args.prompt or "",
+            "--seed",
+            str(args.seed),
+            "--output",
+            str(row_prompt_path),
+            "--state",
+            state,
+            "--frames",
+            str(frames),
+            "--action",
+            action,
+            "--canonical-base",
+            str(canonical_base_path),
+        ]
+        if args.archetype:
+            prompt_argv.extend(["--archetype", args.archetype])
+        if args.gimmick:
+            prompt_argv.extend(["--gimmick", args.gimmick])
+        if args.style_string:
+            prompt_argv.extend(["--style-string", args.style_string])
+        rc = sprite_prompt.main(prompt_argv)
+        if rc != 0:
+            return rc
+
+        # Generate strip
+        strip_path = row_dir / f"{name}_row_{row_idx:02d}_{state}.png"
+        if args.dry_run:
+            _make_fixture_strip(strip_path, frames, args.cell_size, row_idx)
+        else:
+            # Pass both layout guide and canonical base as references
+            rc = sprite_generate.main(
+                [
+                    "generate-spritesheet",
+                    "--prompt-file",
+                    str(row_prompt_path),
+                    "--output",
+                    str(strip_path),
+                    "--canvas",
+                    str(guide_path),
+                    "--reference",
+                    str(canonical_base_path),
+                    "--seed",
+                    str(args.seed + row_idx),
+                ]
+            )
+            if rc != 0:
+                return rc
+
+        strip_paths.append(strip_path)
+        phases.append(
+            {
+                "phase": f"C-row-{row_idx}",
+                "name": f"row-strip-{state}",
+                "rc": 0,
+                "dry_run": args.dry_run,
+                "frames": frames,
+            }
+        )
+        logger.info("[per-row] row %d/%d (%s, %d frames) done", row_idx + 1, len(row_defs), state, frames)
+
+    # Composite strips into raw sheet (reference only — slicing is per-strip)
+    sheet_raw_path = work_dir / f"{name}_sheet_raw.png"
+    _composite_strips(strip_paths, sheet_raw_path, args.cell_size)
+    phases.append({"phase": "composite", "name": "composite-strips", "rc": 0})
+
+    # Compute effective grid for downstream phases
+    total_rows = len(row_defs)
+    effective_cols = max_frames
+
+    # Per-strip processing: slice each row strip individually and run bg
+    # removal per frame. This avoids the dense-grid slicer which fragments
+    # characters when Codex-generated strips don't align to cell boundaries.
+    frames_nobg_dir = work_dir / "frames_nobg"
+    frames_nobg_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track global frame index so normalize/assemble can map frames to
+    # the correct row/col position in the final sheet.
+    global_frame_idx = 0
+    for row_idx, row_def in enumerate(row_defs):
+        row_frame_paths = _process_row_strip(
+            strip_path=strip_paths[row_idx],
+            row_index=row_idx,
+            state=row_def["state"],
+            name=name,
+            expected_frames=row_def["frames"],
+            cell_size=args.cell_size,
+            work_dir=work_dir,
+            bg_mode=args.bg_mode,
+            chroma_threshold=args.chroma_threshold,
+        )
+        # Copy/rename frames to the shared nobg dir with sequential global
+        # indices so the normalize and assemble phases see them as a flat
+        # list in the correct order (row-major: row0 frames, row1 frames, …).
+        for fp in row_frame_paths:
+            dst = frames_nobg_dir / f"{name}_frame_{global_frame_idx:02d}.png"
+            # Use shutil.copy2 to avoid cross-device link issues
+            shutil.copy2(fp, dst)
+            global_frame_idx += 1
+        # Pad shorter rows with None-sentinel empty cells up to effective_cols
+        for _ in range(row_def["frames"], effective_cols):
+            global_frame_idx += 1
+
+    phases.append({"phase": "D+E", "name": "per-strip-slice-and-bg-removal", "rc": 0, "mode": args.bg_mode})
+
+    # Phase F: normalize
+    frames_norm_dir = work_dir / "frames_normalized"
+    rc = sprite_process.main(
+        [
+            "normalize",
+            "--mode",
+            "spritesheet",
+            "--input-dir",
+            str(frames_nobg_dir),
+            "--output-dir",
+            str(frames_norm_dir),
+            "--cell-size",
+            str(args.cell_size),
+            "--scale-percentile",
+            str(args.scale_percentile),
+            "--anchor-mode",
+            args.anchor_mode,
+        ]
+    )
+    if rc != 0:
+        return rc
+    phases.append({"phase": "F", "name": "normalize", "rc": rc})
+
+    # Phase H: assembly with per-frame timing (Phase 8)
+    # Extract timing from preset for assembly
+    timing_dict: dict[str, list[int]] = {}
+    state_name_list: list[str] = []
+    for rd in row_defs:
+        state_name_list.append(rd["state"])
+        if "timing" in rd:
+            timing_dict[rd["state"]] = rd["timing"]
+
+    # Write timing JSON for assembly to consume
+    timing_json_path: Path | None = None
+    if timing_dict:
+        timing_json_path = work_dir / f"{name}_timing_input.json"
+        timing_json_path.write_text(json.dumps(timing_dict, indent=2), encoding="utf-8")
+
+    # Also accept --timing-json override
+    if getattr(args, "timing_json", None):
+        timing_json_path = Path(args.timing_json)
+
+    # Use direct assembly call instead of CLI to pass timing
+    from sprite_assemble import assemble_outputs
+
+    frame_paths = sorted((frames_norm_dir).glob("*_frame_*.png"))
+    expected = effective_cols * total_rows
+    by_idx: dict[int, Image.Image] = {}
+    for p in frame_paths:
+        idx_str = p.stem.split("_frame_")[-1]
+        try:
+            idx = int(idx_str)
+        except ValueError:
+            continue
+        by_idx[idx] = Image.open(p).convert("RGBA")
+    assembly_frames: list[Image.Image | None] = [by_idx.get(i) for i in range(expected)]
+
+    emit_strips = effective_cols in (4, 8) and not args.no_strips
+    try:
+        assemble_outputs(
+            frames=assembly_frames,
+            output_dir=work_dir / "out",
+            name=name,
+            grid_cols=effective_cols,
+            grid_rows=total_rows,
+            cell_w=args.cell_size,
+            cell_h=args.cell_size,
+            fps=args.fps,
+            emit_strips=emit_strips,
+            timing=timing_dict if timing_dict else None,
+            state_names=state_name_list if state_name_list else None,
+        )
+    finally:
+        for img in by_idx.values():
+            img.close()
+    phases.append({"phase": "H", "name": "assemble", "rc": 0})
+
+    # Phase 7: QA artifacts (when --qa-artifacts is set)
+    if getattr(args, "qa_artifacts", False):
+        sheet_for_qa = work_dir / "out" / f"{name}_sheet.png"
+        if sheet_for_qa.exists():
+            qa_dir = work_dir / "qa"
+            qa_dir.mkdir(parents=True, exist_ok=True)
+            qa_artifacts.make_contact_sheet(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "contact_sheet.png",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+            )
+            qa_artifacts.render_preview_videos(
+                input_path=sheet_for_qa,
+                output_dir=qa_dir / "previews",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+                fps=args.fps,
+            )
+            qa_artifacts.generate_qa_report(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "review.json",
+                cols=effective_cols,
+                rows=total_rows,
+                cell_size=args.cell_size,
+                preset_name=args.preset,
+            )
+            phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
+            logger.info("[per-row] QA artifacts written to %s", qa_dir)
+
+    # Provenance tracking
+    row_hashes: dict[str, str] = {}
+    for row_idx, row_def in enumerate(row_defs):
+        sp = strip_paths[row_idx]
+        if sp.exists():
+            row_hashes[row_def["state"]] = _sha256_file(sp)
+
+    prompt_hashes: dict[str, str] = {}
+    for row_idx, row_def in enumerate(row_defs):
+        row_prompt_path = work_dir / f"row_{row_idx:02d}_{row_def['state']}" / "row_prompt.txt"
+        if row_prompt_path.exists():
+            prompt_hashes[row_def["state"]] = _sha256_text(row_prompt_path.read_text(encoding="utf-8"))
+
+    pipeline_chain = [
+        "codex-imagegen" if not args.dry_run else "dry-run-fixture",
+        "per-strip-slice",
+        f"bg-removal-{args.bg_mode}",
+        "mass-centroid-anchor",
+        "pillow-assemble",
+    ]
+
+    # Metadata
+    sidecar = {
+        "name": name,
+        "mode": "per-row",
+        "preset": args.preset,
+        "grid": [effective_cols, total_rows],
+        "cell_size": args.cell_size,
+        "rows": [{"state": r["state"], "frames": r["frames"], "action": r["action"]} for r in row_defs],
+        "style_preset": args.style,
+        "archetype": args.archetype,
+        "seed": args.seed,
+        "dry_run": args.dry_run,
+        "started_at": started.isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "phases": phases,
+        "output_dir": str(work_dir / "out"),
+        "canonical_base": str(canonical_base_path),
+        "canonical_base_hash": _sha256_file(canonical_base_path) if canonical_base_path.exists() else None,
+        "prompt_hashes": prompt_hashes,
+        "row_hashes": row_hashes,
+        "pipeline_chain": pipeline_chain,
+    }
+    (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
+
+    logger.info(
+        "[per-row] PASS: %s written to %s (%d rows, %d phases)",
+        name,
+        work_dir / "out",
+        len(row_defs),
+        len(phases),
+    )
+
+    # Verifier gates
+    if not getattr(args, "verify", True):
+        logger.warning(
+            "--no-verify opted out; per-row output not validated. Returning exit code %d (ADR-207 Rule 4).",
+            VERIFIER_SKIPPED_EXIT_CODE,
+        )
+        return VERIFIER_SKIPPED_EXIT_CODE
+
+    sheet_path = work_dir / "out" / f"{name}_sheet.png"
+    if not sheet_path.exists():
+        return _emit_verifier_result(
+            gates_run=[],
+            failures=[{"check": "asset_exists", "file": str(sheet_path), "details": "missing"}],
+            elapsed_seconds=0.0,
+        )
+
+    # Compute expected-empty cells: per-row mode pads shorter rows to
+    # max_frames columns. Cells beyond a row's frame count are intentionally
+    # blank and must not trigger verify_frames_have_content or
+    # verify_frames_distinct failures.
+    expected_empty_cells: list[tuple[int, int]] = []
+    for row_idx, row_def in enumerate(row_defs):
+        for col in range(row_def["frames"], effective_cols):
+            expected_empty_cells.append((row_idx, col))
+
+    # Per-row mode: do NOT pass raw_path to the verifier. The composite
+    # raw sheet is a reference artifact, not the slicer input. The
+    # verify_pixel_preservation and verify_raw_vs_final_cell_parity gates
+    # compare raw-vs-final cell content; in per-row mode the final sheet
+    # was assembled from per-strip slicing, so the composite raw has
+    # different cell alignment and the parity check would false-positive.
+    started_verify = time.perf_counter()
+    gates_run, failures = _run_spritesheet_verifiers(
+        sheet_path=sheet_path,
+        raw_path=None,
+        cols=effective_cols,
+        rows=total_rows,
+        cell_size=args.cell_size,
+        allow_frame_duplication=getattr(args, "allow_frame_duplication", False),
+        expected_empty_cells=expected_empty_cells,
+    )
+    elapsed = time.perf_counter() - started_verify
+
+    sidecar_path = work_dir / f"{name}_metadata.json"
+    if sidecar_path.exists():
+        try:
+            sidecar_data = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:  # pragma: no cover - defensive
+            sidecar_data = {}
+        sidecar_data["verifier_verdict"] = verifier_verdict_from_passed(len(failures) == 0)
+        sidecar_data["verifier_failures"] = failures
+        sidecar_data["verifier_gates_run"] = gates_run
+        sidecar_data["verifier_elapsed_seconds"] = round(elapsed, 3)
+        write_manifest_record(sidecar_path, sidecar_data)
+
+    return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
 
 
 def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> int:
@@ -476,19 +1100,12 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     ]
     # ADR-207 Rule 1: dense grids (>= 4x4 with >= 16 cells) ALWAYS use the
     # slicer dispatch path, never the legacy connected-components extractor.
-    # The dispatch routes to strict-pitch by default; --effects-asset opts
-    # into content-aware (correct only for sparse-but-cross-boundary content
-    # like fire breath / plasma trails / auras). The deprecation warning
-    # below fires when the user explicitly passed --content-aware-extraction
-    # for a dense grid -- the flag is silently downgraded to strict-pitch
-    # at the sprite_process layer; this log explains WHY.
     from sprite_slicing import is_dense_grid
 
     grid_is_dense = is_dense_grid(cols, rows)
     use_effects_asset = getattr(args, "effects_asset", False)
     legacy_content_aware = getattr(args, "content_aware_extraction", False)
     if grid_is_dense:
-        # Dispatch through the slicer surface always.
         extract_args.append("--content-aware")
         if use_effects_asset:
             extract_args.append("--effects-asset")
@@ -503,7 +1120,6 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
                 rows,
             )
     elif legacy_content_aware:
-        # Sparse grid: content-aware is fine; pass through.
         extract_args.append("--content-aware")
         if use_effects_asset:
             extract_args.append("--effects-asset")
@@ -518,9 +1134,6 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     if not raw_frames:
         logger.error("no frames extracted in Phase D")
         return 5
-    # ADR-204: pass through pipeline-level --bg-mode to sprite_process's
-    # canonical --bg-mode flag. Both surfaces share BG_MODE_CHOICES so the
-    # value passes through unchanged.
     rb_argv: list[str] = [
         "remove-bg",
         *(str(f) for f in raw_frames),
@@ -563,7 +1176,16 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     if args.variants > 1:
         phases.append({"phase": "G", "name": "auto-curate", "rc": 0, "note": "variants > 1 not yet wired in dry-run"})
 
-    # Phase H: assembly
+    # Phase H: assembly (with timing support from --timing-json)
+    timing_dict: dict[str, list[int]] | None = None
+    state_name_list: list[str] | None = None
+    timing_json_arg = getattr(args, "timing_json", None)
+    if timing_json_arg:
+        tjp = Path(timing_json_arg)
+        if tjp.exists():
+            timing_dict = json.loads(tjp.read_text(encoding="utf-8"))
+            state_name_list = list(timing_dict.keys()) if timing_dict else None
+
     assemble_argv = [
         "assemble",
         "--frames-dir",
@@ -581,10 +1203,56 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     ]
     if args.no_strips:
         assemble_argv.append("--no-strips")
+    if timing_json_arg:
+        assemble_argv.extend(["--timing-json", timing_json_arg])
     rc = sprite_process.main(assemble_argv)
     if rc != 0:
         return rc
     phases.append({"phase": "H", "name": "assemble", "rc": rc})
+
+    # Phase 7: QA artifacts (when --qa-artifacts is set)
+    if getattr(args, "qa_artifacts", False):
+        sheet_for_qa = work_dir / "out" / f"{name}_sheet.png"
+        if sheet_for_qa.exists():
+            qa_dir = work_dir / "qa"
+            qa_dir.mkdir(parents=True, exist_ok=True)
+            qa_artifacts.make_contact_sheet(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "contact_sheet.png",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+            )
+            qa_artifacts.render_preview_videos(
+                input_path=sheet_for_qa,
+                output_dir=qa_dir / "previews",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+                fps=args.fps,
+            )
+            qa_artifacts.generate_qa_report(
+                input_path=sheet_for_qa,
+                output_path=qa_dir / "review.json",
+                cols=cols,
+                rows=rows,
+                cell_size=args.cell_size,
+            )
+            phases.append({"phase": "QA", "name": "qa-artifacts", "rc": 0})
+            logger.info("[spritesheet] QA artifacts written to %s", qa_dir)
+
+    # Provenance tracking
+    prompt_hash_val = None
+    if sheet_prompt_path.exists():
+        prompt_hash_val = _sha256_text(sheet_prompt_path.read_text(encoding="utf-8"))
+
+    spritesheet_pipeline_chain = [
+        "codex-imagegen" if not args.dry_run else "dry-run-fixture",
+        "grid-slice",
+        f"bg-removal-{args.bg_mode}",
+        "mass-centroid-anchor",
+        "pillow-assemble",
+    ]
 
     # Metadata
     sidecar = {
@@ -600,6 +1268,8 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "phases": phases,
         "output_dir": str(work_dir / "out"),
+        "prompt_hash": prompt_hash_val,
+        "pipeline_chain": spritesheet_pipeline_chain,
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
@@ -610,15 +1280,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         len(phases),
     )
 
-    # Phase I: verifier gates (ADR-199). Default-on; opt out with --no-verify.
-    # Gates run on the assembled sheet at work_dir/out/{name}_sheet.png while
-    # the work dir is still in scope (ADR-200 requires gates to fire INSIDE
-    # the TemporaryDirectory context so the asset is still on disk).
-    #
-    # ADR-207 Rule 4: spritesheet --no-verify returns VERIFIER_SKIPPED_EXIT_CODE
-    # (3) instead of 0. Orchestrators that explicitly want to skip verification
-    # must explicitly accept exit code 3 -- no silent masking with the same
-    # exit status as success.
+    # Phase I: verifier gates (ADR-199).
     if not getattr(args, "verify", True):
         logger.warning(
             "--no-verify opted out; spritesheet output not validated. "
@@ -629,17 +1291,12 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
 
     sheet_path = work_dir / "out" / f"{name}_sheet.png"
     if not sheet_path.exists():
-        # Pipeline shipped without a sheet -- treat as a verifier failure so
-        # callers don't silently green-light empty output. (Defensive: Phase H
-        # error path returns nonzero before we get here, but handle it anyway.)
         return _emit_verifier_result(
             gates_run=[],
             failures=[{"check": "asset_exists", "file": str(sheet_path), "details": "missing"}],
             elapsed_seconds=0.0,
         )
 
-    # Pixel-preservation needs the raw alongside the final. Phase C wrote the
-    # raw to {name}_sheet_raw.png; pass it when present so the gate runs.
     raw_path = work_dir / f"{name}_sheet_raw.png"
     started_verify = time.perf_counter()
     gates_run, failures = _run_spritesheet_verifiers(
@@ -652,10 +1309,6 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     )
     elapsed = time.perf_counter() - started_verify
 
-    # ADR-207 Rule 2: rewrite the metadata sidecar to include the
-    # contracted verifier_verdict + verifier_failures. Use the asserting
-    # writer so consumers cannot read a sidecar that claims PASS while
-    # listing failures.
     sidecar_path = work_dir / f"{name}_metadata.json"
     if sidecar_path.exists():
         try:
@@ -666,7 +1319,6 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         sidecar_data["verifier_failures"] = failures
         sidecar_data["verifier_gates_run"] = gates_run
         sidecar_data["verifier_elapsed_seconds"] = round(elapsed, 3)
-        # write_manifest_record raises ValueError if PASS+failures contradict.
         write_manifest_record(sidecar_path, sidecar_data)
 
     return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
@@ -675,11 +1327,22 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
 def run_pipeline(args: argparse.Namespace) -> int:
     """Spritesheet pipeline entry point.
 
-    When ``--output-dir`` is set, the directory is preserved (user owns
-    its lifecycle). When unset, a ``tempfile.TemporaryDirectory`` is
-    created and reaped on exit (ADR-200).
+    Routes to per-row mode when --per-row is set; otherwise classic monolithic.
+    When ``--output-dir`` is set, the directory is preserved. When unset, a
+    ``tempfile.TemporaryDirectory`` is created and reaped on exit (ADR-200).
     """
     name = args.name or "spritesheet"
+
+    # Route to per-row pipeline when --per-row is set
+    if getattr(args, "per_row", False):
+        if not getattr(args, "preset", None):
+            logger.error("--per-row requires --preset (e.g., --preset fighter)")
+            return 1
+        if args.output_dir:
+            return _run_per_row_pipeline(args, Path(args.output_dir), name)
+        with tempfile.TemporaryDirectory(prefix=f"sprite_{name}_") as td:
+            return _run_per_row_pipeline(args, Path(td), name)
+
     if args.output_dir:
         return _run_pipeline_body(args, Path(args.output_dir), name)
     with tempfile.TemporaryDirectory(prefix=f"sprite_{name}_") as td:
@@ -695,7 +1358,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--style-string", help="Free-form style fragment for --style custom")
     parser.add_argument("--archetype", help="Wrestler archetype")
     parser.add_argument("--gimmick", help="Wrestler gimmick")
-    parser.add_argument("--grid", default="4x1", help="Grid CxR (default 4x1; ignored with --max-frames)")
+    parser.add_argument("--grid", default="4x1", help="Grid CxR (default 4x1; ignored with --max-frames or --preset)")
     parser.add_argument("--cell-size", type=int, default=256, choices=[64, 128, 192, 256, 384, 512])
     parser.add_argument(
         "--max-frames",
@@ -769,52 +1432,68 @@ def build_parser() -> argparse.ArgumentParser:
         "--verify",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help=(
-            "Run verifier gates as the last pipeline step (default ON). "
-            "Spritesheet gates: verify_no_magenta, verify_grid_alignment, "
-            "verify_anchor_consistency, verify_frames_have_content, "
-            "verify_frames_distinct, verify_pixel_preservation. "
-            "On failure, prints structured JSON to stdout and exits with "
-            "code 2. Opt out with --no-verify (logs WARNING). "
-            "See ADR-199 for the contract."
-        ),
+        help=("Run verifier gates as the last pipeline step (default ON). See ADR-199 for the contract."),
     )
     parser.add_argument(
         "--content-aware-extraction",
         action="store_true",
         help=(
-            "Use slice_with_content_awareness (connected-components + centroid "
-            "ownership) instead of strict-pitch slicing. ADR-207 Rule 1: on dense "
-            "grids (>= 4x4 with >= 16 cells) this flag is unsafe and is downgraded "
-            "to strict-pitch with a warning unless --effects-asset is also passed. "
-            "Use --effects-asset for legitimate sparse-but-cross-boundary content "
-            "(fire breath, plasma trails, projectile auras). Codex output is "
-            "ground truth; clipping happens in our slicer. See ADR-207 RC-1 and "
-            "references/error-catalog.md 'Anti-pattern: Codex Regeneration as a "
-            "Post-Processing Fix'."
+            "Use slice_with_content_awareness instead of strict-pitch slicing. "
+            "ADR-207 Rule 1: on dense grids this flag is downgraded. "
+            "See ADR-207 RC-1."
         ),
     )
     parser.add_argument(
         "--effects-asset",
         action="store_true",
-        help=(
-            "Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). "
-            "Use ONLY for sparse-but-cross-boundary content: fire breath, plasma "
-            "trails, projectile auras. Do NOT use for character grids — content-aware "
-            "on dense character grids drops cells via centroid drift (ADR-207 RC-1)."
-        ),
+        help=("Opt INTO content-aware routing on a DENSE grid. Use ONLY for sparse-but-cross-boundary content."),
     )
     parser.add_argument(
         "--allow-frame-duplication",
         action="store_true",
         help=(
             "Opt OUT of the frames-distinct gate's tightened threshold (ADR-208 RC-3). "
-            "Use for spec-known sheets with legitimate frame repetition: idle loops "
-            "where 8 frames repeat to fill 64 cells, taunt poses where the character "
-            "holds a stance for most of the cycle, or any animation where >70% "
-            "duplicate-pct is the artist's intent. Without this flag the gate fires "
-            "at 70% to catch the layout-drift signature where centroid mis-routing "
-            "lands most cells on a few near-identical poses (ADR-208 RC-3)."
+            "Use for spec-known sheets with legitimate frame repetition."
+        ),
+    )
+    # Per-row mode flags (Phase 1 + Phase 6)
+    parser.add_argument(
+        "--per-row",
+        action="store_true",
+        help=(
+            "Generate each animation row as a separate strip, then composite. "
+            "Requires --preset. Eliminates cross-row contamination."
+        ),
+    )
+    parser.add_argument(
+        "--preset",
+        choices=["fighter", "rpg-character", "platformer", "pet", "custom"],
+        help=(
+            "Named animation preset defining rows, frame counts, and timing. "
+            "Use with --per-row for row-strip generation mode."
+        ),
+    )
+    # Deterministic idle
+    parser.add_argument(
+        "--deterministic-idle",
+        action="store_true",
+        help=(
+            "After generating the canonical base (portrait mode / per-row Phase A), "
+            "produce a deterministic breathing idle loop. Zero API calls -- pure Pillow."
+        ),
+    )
+    # Phase 7: QA artifacts
+    parser.add_argument(
+        "--qa-artifacts",
+        action="store_true",
+        help=("Generate QA artifacts (contact sheet, preview GIFs, review JSON) after verifier gates. Default OFF."),
+    )
+    # Phase 8: Custom timing
+    parser.add_argument(
+        "--timing-json",
+        help=(
+            "Path to JSON file with per-state timing overrides. Format: "
+            '{"state_name": [ms_per_frame, ...]}. Overrides preset timing.'
         ),
     )
     # Logging level controls (ADR-202). Mutually exclusive; default INFO.
@@ -835,12 +1514,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def configure_logging(quiet: bool, verbose: bool) -> None:
-    """Configure the root logger for sprite-pipeline scripts (ADR-202).
-
-    --quiet → WARNING, --verbose → DEBUG, default → INFO. Records are
-    formatted as ``[<logger-name>] LEVEL: message`` and written to stderr
-    so structured stdout (verifier JSON, generated paths) stays clean.
-    """
+    """Configure the root logger for sprite-pipeline scripts (ADR-202)."""
     level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
     logging.basicConfig(
         level=level,
