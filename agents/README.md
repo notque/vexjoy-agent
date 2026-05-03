@@ -1,6 +1,10 @@
 # Agents
 
-Specialized Claude Code sub-agents. Defined in `agents/*.md` with YAML frontmatter (model, version, routing triggers, paired skills). Invoked by `/do` or the `Agent` tool.
+Agents are domain experts — specialized Claude Code sub-agents with deep knowledge of a specific language, framework, or discipline. They are invoked by the `/do` router or directly via the `Agent` tool.
+
+Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, version, routing triggers, and paired skills.
+
+---
 
 ## Language Engineers
 
@@ -55,6 +59,7 @@ Specialized Claude Code sub-agents. Defined in `agents/*.md` with YAML frontmatt
 
 | Agent | Description |
 |-------|-------------|
+| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core development |
 
 ---
 
@@ -111,9 +116,11 @@ Specialized Claude Code sub-agents. Defined in `agents/*.md` with YAML frontmatt
 |-------|-------------|
 | `testing-automation-engineer` | Testing automation: Vitest, Playwright, React Testing Library, CI/CD pipeline integration |
 
+---
+
 ## Reviewers
 
-Four umbrella agents with reference files loaded on demand per review focus.
+Four umbrella agents covering all review dimensions via reference files loaded on demand. Each umbrella replaces multiple individual reviewer agents from the previous architecture.
 
 | Agent | Description |
 |-------|-------------|
@@ -121,3 +128,5 @@ Four umbrella agents with reference files loaded on demand per review focus.
 | `reviewer-system` | System-level review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs |
 | `reviewer-domain` | Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder |
 | `reviewer-perspectives` | Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process |
+
+Each umbrella agent loads the appropriate reference file based on the review focus. For example, `reviewer-system` loads its security reference when the task involves OWASP or authentication, and its concurrency reference when the task involves race conditions or goroutine leaks.

@@ -111,6 +111,13 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 ---
 
+## Perses (Observability)
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `perses` | no | Perses platform operations: dashboards, plugins, deployment, migration, and quality |
+
+---
 
 ## Security
 
@@ -124,11 +131,16 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
+| `voice-writer` | yes | Unified voice content generation pipeline with mandatory validation and joy-check |
+| `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
+| `create-voice` | no | Create voice profiles from writing samples |
+| `anti-ai-editor` | no | Remove AI-sounding patterns from content |
 | `publish` | no | Content-publishing umbrella: outline, pre-publish check, SEO, batch-edit, link/image/taxonomy audits, WordPress upload |
 | `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
 | `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
 | `content-engine` | no | Repurpose source assets into platform-native social content |
 | `content-calendar` | no | Manage editorial content through 6 pipeline stages |
+| `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
 | `pptx-generator` | no | PPTX presentation generation with visual QA: slides, pitch decks |
 | `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
@@ -168,6 +180,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `retro` | yes | Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5). |
 | `learn` | no | Manually teach error pattern and solution to learning database |
 | `auto-dream` | yes | Background memory consolidation and learning graduation -- overnight knowledge lifecycle |
+| `kairos-lite` | yes | Proactive monitoring -- checks GitHub, CI, and toolkit health, produces briefings |
 | `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
 | `skill-composer` | no | DAG-based multi-skill orchestration with dependency resolution |
