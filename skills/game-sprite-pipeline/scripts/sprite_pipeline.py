@@ -819,10 +819,16 @@ def _run_per_row_pipeline(args: argparse.Namespace, work_dir: Path, name: str) -
         for col in range(row_def["frames"], effective_cols):
             expected_empty_cells.append((row_idx, col))
 
+    # Per-row mode: do NOT pass raw_path to the verifier. The composite
+    # raw sheet is a reference artifact, not the slicer input. The
+    # verify_pixel_preservation and verify_raw_vs_final_cell_parity gates
+    # compare raw-vs-final cell content; in per-row mode the final sheet
+    # was assembled from per-strip slicing, so the composite raw has
+    # different cell alignment and the parity check would false-positive.
     started_verify = time.perf_counter()
     gates_run, failures = _run_spritesheet_verifiers(
         sheet_path=sheet_path,
-        raw_path=sheet_raw_path if sheet_raw_path.exists() else None,
+        raw_path=None,
         cols=effective_cols,
         rows=total_rows,
         cell_size=args.cell_size,
