@@ -178,7 +178,11 @@ def main():
 
         # Query learning.db for matching patterns via FTS5 full-text search
         # Lazy import to avoid paying cost when early-exiting
-        from learning_db_v2 import sanitize_for_context, search_learnings
+        from learning_db_v2 import (
+            record_activation,
+            sanitize_for_context,
+            search_learnings,
+        )
 
         query_str = " OR ".join(tags)
         results = search_learnings(
@@ -197,6 +201,14 @@ def main():
         hint_text = format_hints(results)
         if not hint_text:
             empty_output(EVENT_NAME).print_and_exit()
+
+        # Record activations for injected learnings (ROI tracking)
+        session_id = get_session_id()
+        for r in results:
+            try:
+                record_activation(r["topic"], r["key"], session_id)
+            except Exception:
+                pass  # Never block on activation recording
 
         if debug:
             print(

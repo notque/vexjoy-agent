@@ -26,8 +26,13 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
-from learning_db_v2 import get_stats, query_learnings, sanitize_for_context
+from hook_utils import context_output, empty_output, get_session_id
+from learning_db_v2 import (
+    get_stats,
+    query_learnings,
+    record_activation,
+    sanitize_for_context,
+)
 
 EVENT_NAME = "SessionStart"
 
@@ -160,6 +165,14 @@ def main():
         )
 
         if learnings:
+            # Record activations for ROI tracking
+            session_id = get_session_id()
+            for p in learnings:
+                try:
+                    record_activation(p["topic"], p["key"], session_id)
+                except Exception:
+                    pass  # Never block on activation recording
+
             lines = []
             lines.append(f"[learned-context] Loaded {len(learnings)} high-confidence patterns")
 
