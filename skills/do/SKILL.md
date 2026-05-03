@@ -381,7 +381,7 @@ python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
     "{selected_agent}:{selected_skill}" --failure --reason "{brief reason}"
 ```
 
-This closes the routing feedback loop — confidence scores adjust over time, improving future routing accuracy. Do not skip this step.
+Do not skip this step.
 
 **Auto-capture** (hooks, zero LLM cost): `error-learner.py`, `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
 

@@ -34,6 +34,8 @@ from learning_db_v2 import get_connection, init_db
 # Section: Routing Feedback Loop Health
 # ---------------------------------------------------------------------------
 
+DEAD_WEIGHT_AGE_DAYS = 7
+
 VALID_SECTIONS = {"routing", "confidence", "utilization", "staleness", "category", "score"}
 
 
@@ -60,7 +62,7 @@ def measure_routing_health() -> dict:
         }
 
     with_outcomes = sum(1 for r in rows if (r["success_count"] or 0) + (r["failure_count"] or 0) > 0)
-    confidence_moved = sum(1 for r in rows if r["confidence"] != 0.5)
+    confidence_moved = sum(1 for r in rows if abs(r["confidence"] - 0.5) > 1e-9)
     unique_keys = {r["key"] for r in rows}
 
     return {
@@ -117,11 +119,11 @@ def measure_confidence_distribution() -> dict:
                 histogram[label] += 1
                 break
 
-        if conf == 0.5:
+        if abs(conf - 0.5) <= 1e-9:
             at_baseline += 1
 
         category_total[cat] = category_total.get(cat, 0) + 1
-        if conf != 0.5:
+        if abs(conf - 0.5) > 1e-9:
             category_moved[cat] = category_moved.get(cat, 0) + 1
 
     # Build category movement as pct
@@ -171,8 +173,8 @@ def measure_utilization() -> dict:
             """
         ).fetchall()
 
-        # Dead weight: learnings with 0 activations and age > 7 days
-        cutoff_7d = (datetime.now() - timedelta(days=7)).isoformat()
+        # Dead weight: learnings with 0 activations and age > DEAD_WEIGHT_AGE_DAYS
+        cutoff_7d = (datetime.now() - timedelta(days=DEAD_WEIGHT_AGE_DAYS)).isoformat()
         dead_weight = conn.execute(
             """
             SELECT COUNT(*) FROM learnings l
@@ -361,7 +363,8 @@ def print_routing(data: dict, verbose: bool = False) -> None:
     print(f"  With outcomes (s+f > 0):     {data['pct_with_outcomes']}%")
     print(f"  Confidence moved from 0.5:   {data['pct_confidence_moved']}%")
     print(f"  Unique agent:skill combos:   {data['unique_combos']}")
-    print(f"  Diversity ratio:             {data['diversity_ratio']}")
+    if verbose:
+        print(f"  Diversity ratio:             {data['diversity_ratio']}")
     print()
 
 
@@ -428,7 +431,10 @@ def print_score(data: dict, verbose: bool = False) -> None:
         weight = data["weights"][component]
         weighted = round(score * weight / 100, 1)
         label = component.replace("_", " ").title()
-        print(f"  {label:25s}: {score:>5.1f}/100 (weight {weight:>2}, contributes {weighted:.1f})")
+        if verbose:
+            print(f"  {label:25s}: {score:>5.1f}/100 (weight {weight:>2}, contributes {weighted:.1f})")
+        else:
+            print(f"  {label:25s}: {score:>5.1f}/100 (weight {weight:>2})")
     print(f"  {'':25s}  {'─' * 20}")
     print(f"  {'TOTAL':25s}: {data['total']:>5.1f}/100")
     status = "PASS" if data["total"] >= 50 else "FAIL"
@@ -444,11 +450,15 @@ def print_score(data: dict, verbose: bool = False) -> None:
 def run_all_sections(*, section_filter: str | None = None) -> dict:
     """Run all measurement sections and return collected data.
 
+    When section_filter is set to a non-score section, the score is still
+    computed (for exit-code purposes) but stored under the "_score" key so
+    callers can access it without it appearing in printed output.
+
     Args:
-        section_filter: If set, only run this specific section.
+        section_filter: If set, only run/display this specific section.
 
     Returns:
-        Dict with all section results and the composite score.
+        Dict with section results and the composite score.
     """
     init_db()
 
@@ -467,24 +477,23 @@ def run_all_sections(*, section_filter: str | None = None) -> dict:
     if run_all or section_filter == "category":
         results["category"] = measure_category_health()
 
-    # Score requires all sections
+    # Always compute score for exit code purposes
     if run_all or section_filter == "score":
-        if run_all:
-            results["score"] = compute_effectiveness_score(
-                results["routing"],
-                results["confidence"],
-                results["utilization"],
-                results["staleness"],
-                results["category"],
-            )
-        elif section_filter == "score":
-            # Must compute all sections for the score
-            routing = measure_routing_health()
-            confidence = measure_confidence_distribution()
-            utilization = measure_utilization()
-            staleness = measure_staleness()
-            category = measure_category_health()
-            results["score"] = compute_effectiveness_score(routing, confidence, utilization, staleness, category)
+        # Need all section data for score
+        routing = results.get("routing") or measure_routing_health()
+        confidence = results.get("confidence") or measure_confidence_distribution()
+        utilization = results.get("utilization") or measure_utilization()
+        staleness = results.get("staleness") or measure_staleness()
+        category = results.get("category") or measure_category_health()
+        results["score"] = compute_effectiveness_score(routing, confidence, utilization, staleness, category)
+    elif section_filter is not None:
+        # Non-score section filter: compute score for exit code but don't display
+        routing = results.get("routing") or measure_routing_health()
+        confidence = results.get("confidence") or measure_confidence_distribution()
+        utilization = results.get("utilization") or measure_utilization()
+        staleness = results.get("staleness") or measure_staleness()
+        category = results.get("category") or measure_category_health()
+        results["_score"] = compute_effectiveness_score(routing, confidence, utilization, staleness, category)
 
     return results
 
@@ -522,8 +531,9 @@ def main() -> None:
             if section in printers:
                 printers[section](data, verbose=args.verbose)
 
-    # Exit code based on score
-    score = results.get("score", {}).get("total")
+    # Exit code based on score (use _score if score wasn't displayed)
+    score_data = results.get("score") or results.get("_score", {})
+    score = score_data.get("total")
     if score is not None and score < 50:
         sys.exit(1)
 

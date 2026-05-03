@@ -622,8 +622,8 @@ def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
     )
     entry = next((r for r in results if r["key"] == key), None)
     if entry is None:
-        print(f"WARNING: No routing entry found for key '{key}' — route was never recorded.")
-        return
+        print(f"WARNING: No routing entry found for key '{key}' — route was never recorded.", file=sys.stderr)
+        sys.exit(1)
 
     if args.success:
         new_conf = boost_confidence("routing", key, delta=0.05)
@@ -661,24 +661,31 @@ def cmd_backfill_routing_outcomes(args: argparse.Namespace) -> None:
     )
 
     boosted = 0
-    decayed = 0
+    decayed_count = 0
+    skipped = 0
     unchanged = 0
 
     for r in results:
+        # Idempotency: skip entries already scored
+        if (r["success_count"] or 0) + (r["failure_count"] or 0) > 0:
+            skipped += 1
+            continue
+
         value = r["value"]
         if "tool_errors=1" in value or "user_rerouted=1" in value:
             decay_confidence("routing", r["key"], delta=0.08)
-            decayed += 1
+            decayed_count += 1
         elif "outcome=committed_and_pushed" in value or "outcome=success" in value:
             boost_confidence("routing", r["key"], delta=0.05)
             boosted += 1
         else:
             unchanged += 1
 
-    total = boosted + decayed + unchanged
+    total = boosted + decayed_count + unchanged + skipped
     print(f"Backfill complete: {total} entries processed")
     print(f"  Boosted:   {boosted}")
-    print(f"  Decayed:   {decayed}")
+    print(f"  Decayed:   {decayed_count}")
+    print(f"  Skipped:   {skipped}")
     print(f"  Unchanged: {unchanged}")
 
 
