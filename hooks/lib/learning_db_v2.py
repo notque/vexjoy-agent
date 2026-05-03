@@ -714,6 +714,28 @@ def lookup_error_solution(
         return None
 
 
+def record_activation(
+    topic: str,
+    key: str,
+    session_id: str | None = None,
+    outcome: str = "success",
+) -> None:
+    """Record that a learning was surfaced during a session.
+
+    Lightweight INSERT into the activations table — no upsert, no conflict
+    handling.  Called from injection hooks to track which learnings are
+    actually used.  Designed for <5ms execution.
+    """
+    init_db()
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
+            (topic, key, session_id, now, outcome),
+        )
+        conn.commit()
+
+
 def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
     """Boost confidence for an entry. Returns new confidence."""
     init_db()

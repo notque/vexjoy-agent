@@ -25,6 +25,10 @@ Usage:
     python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
     python3 scripts/learning-db.py roi [--json]
     python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override [--json]
+    python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
+    python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
+    python3 scripts/learning-db.py backfill-routing-outcomes
+    python3 scripts/learning-db.py route-health
 """
 
 import argparse
@@ -603,6 +607,111 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         print(json_mod.dumps(records, indent=2, default=str))
 
 
+def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
+    """Record whether a routing decision succeeded or failed."""
+    init_db()
+    key = args.agent_skill
+
+    # Verify the routing entry exists
+    results = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+    entry = next((r for r in results if r["key"] == key), None)
+    if entry is None:
+        print(f"WARNING: No routing entry found for key '{key}' — route was never recorded.")
+        return
+
+    if args.success:
+        new_conf = boost_confidence("routing", key, delta=0.05)
+    else:
+        new_conf = decay_confidence("routing", key, delta=0.08)
+
+    # Append reason to value if provided
+    if args.reason:
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT value FROM learnings WHERE topic = ? AND key = ?",
+                ("routing", key),
+            ).fetchone()
+            if row:
+                new_value = f"{row['value']} | outcome_reason: {args.reason}"
+                conn.execute(
+                    "UPDATE learnings SET value = ? WHERE topic = ? AND key = ?",
+                    (new_value, "routing", key),
+                )
+                conn.commit()
+
+    outcome = "success" if args.success else "failure"
+    print(f"Recorded {outcome} for routing/{key} — confidence: {new_conf:.4f}")
+
+
+def cmd_backfill_routing_outcomes(args: argparse.Namespace) -> None:
+    """Backfill routing outcomes from existing entry data."""
+    init_db()
+    results = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+
+    boosted = 0
+    decayed = 0
+    unchanged = 0
+
+    for r in results:
+        value = r["value"]
+        if "tool_errors=1" in value or "user_rerouted=1" in value:
+            decay_confidence("routing", r["key"], delta=0.08)
+            decayed += 1
+        elif "outcome=committed_and_pushed" in value or "outcome=success" in value:
+            boost_confidence("routing", r["key"], delta=0.05)
+            boosted += 1
+        else:
+            unchanged += 1
+
+    total = boosted + decayed + unchanged
+    print(f"Backfill complete: {total} entries processed")
+    print(f"  Boosted:   {boosted}")
+    print(f"  Decayed:   {decayed}")
+    print(f"  Unchanged: {unchanged}")
+
+
+def cmd_route_health(args: argparse.Namespace) -> None:
+    """Display a quick health summary of routing entries."""
+    init_db()
+    results = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        min_confidence=0.0,
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+
+    total = len(results)
+    if total == 0:
+        print("No routing entries found.")
+        return
+
+    baseline = sum(1 for r in results if r["success_count"] == 0 and r["failure_count"] == 0)
+    boosted = sum(1 for r in results if r["success_count"] > 0)
+    decayed_count = sum(1 for r in results if r["failure_count"] > 0)
+    has_outcome = total - baseline
+    pct = has_outcome / total * 100
+
+    print(f"Route Health: {has_outcome}/{total} entries have outcomes ({pct:.0f}%)")
+    print(f"Confidence: {baseline} at baseline | {boosted} boosted | {decayed_count} decayed")
+    status = "CLOSED" if pct >= 50 else "OPEN"
+    no_outcome_pct = baseline / total * 100
+    print(f"Feedback loop: {status} ({no_outcome_pct:.0f}% entries have no outcome data)")
+
+
 def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
     """Print a frequency table sorted by count descending."""
     from collections import Counter
@@ -875,6 +984,25 @@ def main():
     )
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
+
+    # record-routing-outcome
+    p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
+    p_rro.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
+    p_rro_group = p_rro.add_mutually_exclusive_group(required=True)
+    p_rro_group.add_argument("--success", action="store_true", help="Route succeeded")
+    p_rro_group.add_argument("--failure", action="store_true", help="Route failed")
+    p_rro.add_argument("--reason", help="Reason for outcome (appended to value)")
+    p_rro.set_defaults(func=cmd_record_routing_outcome)
+
+    # backfill-routing-outcomes
+    p_backfill = subparsers.add_parser(
+        "backfill-routing-outcomes", help="Retroactively score routing entries from existing data"
+    )
+    p_backfill.set_defaults(func=cmd_backfill_routing_outcomes)
+
+    # route-health
+    p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")
+    p_route_health.set_defaults(func=cmd_route_health)
 
     args = parser.parse_args()
     args.func(args)
