@@ -1,18 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic breathing idle loop from a single static portrait.
 
-Splits a character image at a configurable body ratio, applies subtle Y-scale
-and lift transforms to the upper body to simulate breathing, and outputs a
-4-frame idle loop as a strip PNG and animated GIF/WebP.
-
-Zero API calls -- pure Pillow.
-
-Reference: ~/road-to-aew/scripts/create_subtle_idle_sheet.py
-
-Usage:
-    python3 deterministic_idle.py \\
-        --input portrait.png --output-dir idle/ \\
-        --body-ratio 0.74 --frames 4 --fps 5
+Pure Pillow — zero API calls. Splits at body ratio, applies Y-scale + lift.
 """
 
 from __future__ import annotations
@@ -100,10 +89,15 @@ def generate_idle_frames(
 ) -> list[Image.Image]:
     """Generate a breathing idle loop from a single static image.
 
+    The breathing pattern is optimized for 4 frames (neutral-inhale-neutral-
+    exhale). ``num_frames`` truncates this fixed cycle; values other than 4
+    are accepted but produce an incomplete loop. Future versions may
+    interpolate additional keyframes.
+
     Args:
         base: Source RGBA portrait image.
         body_ratio: Head+torso fraction (default 0.74).
-        num_frames: Number of frames (default 4).
+        num_frames: Number of frames (default 4, see note above).
         inhale_scale_y: Y scale for inhale frames.
         exhale_scale_y: Y scale for exhale frames.
         inhale_lift_px: Pixel lift for inhale.

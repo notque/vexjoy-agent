@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for road-to-aew patterns: deterministic idle, action coaching, padding gate, provenance.
+"""Tests for pipeline patterns: deterministic idle, action coaching, padding gate, provenance.
 
 Run:
-    python3 -m pytest skills/game-sprite-pipeline/scripts/test_road_to_aew_patterns.py -x -q
+    python3 -m pytest skills/game-sprite-pipeline/scripts/test_pipeline_patterns.py -x -q
 """
 
 from __future__ import annotations

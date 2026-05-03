@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-02T23:35:15Z",
+  "generated": "2026-05-03T01:10:05Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -749,7 +749,11 @@
         "platformer spritesheet",
         "per-row sprite generation",
         "video to sprite",
-        "animation preset"
+        "animation preset",
+        "deterministic idle",
+        "breathing loop",
+        "sprite QA",
+        "contact sheet"
       ],
       "category": "game",
       "user_invocable": false,

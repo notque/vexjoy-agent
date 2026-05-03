@@ -291,7 +291,7 @@ VFX_CONTAINMENT_RULES = (
 )
 
 # ---------------------------------------------------------------------------
-# Per-action negative-prompt coaching (road-to-aew pattern)
+# Per-action negative-prompt coaching
 # ---------------------------------------------------------------------------
 ACTION_COACHING: dict[str, str] = {
     # Fighter preset states
@@ -704,7 +704,7 @@ def compose_row_strip_prompt(
     if state_rule:
         parts.append(f"STATE-SPECIFIC VFX ({state}): {state_rule}")
 
-    # Per-action negative-prompt coaching (road-to-aew pattern)
+    # Per-action negative-prompt coaching
     coaching_note = ACTION_COACHING.get(state)
     if coaching_note:
         parts.append(f"ACTION COACHING: {coaching_note}")

@@ -784,9 +784,6 @@ def verify_padding(
     transparent padding on any side. Excessive padding means the sprite is too
     small relative to its cell -- the generator underutilized the frame.
 
-    Reference: road-to-aew validate-sprite-padding.py (adapted for spritesheet
-    cells rather than standalone sprite files).
-
     Args:
         img: Final sheet image (PIL Image, Path, or str).
         grid_cols: Number of columns.
