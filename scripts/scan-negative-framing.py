@@ -92,16 +92,44 @@ NEGATIVE_PATTERNS = [
     (r"\bdisappoint", "negative_emotion", "Names a negative emotion. Reframe around what happened next."),
     (r"\bresent", "negative_emotion", "Names a negative emotion. Reframe entirely."),
     # Self-flagellation / mea culpa
-    (r"\bi was wrong\b", "self_flagellation", "Self-flagellation. State the revised position directly without performing recantation."),
-    (r"\bi wince\b", "self_flagellation", "Self-flagellation. Present the argument without dramatizing the correction."),
+    (
+        r"\bi was wrong\b",
+        "self_flagellation",
+        "Self-flagellation. State the revised position directly without performing recantation.",
+    ),
+    (
+        r"\bi wince\b",
+        "self_flagellation",
+        "Self-flagellation. Present the argument without dramatizing the correction.",
+    ),
     (r"\bi shudder\b", "self_flagellation", "Self-flagellation. Lay out the facts without theatrical regret."),
-    (r"\bembarrassing\b", "self_flagellation", "Self-flagellation. If the new position is stronger, state it. The old position doesn't need to be humiliated."),
-    (r"\bmy error\b", "self_flagellation", "Self-flagellation. State what's true now rather than performing contrition for what was true before."),
-    (r"\bshould have (known|saved|seen|realized)\b", "self_flagellation", "Hindsight self-blame. The interesting thing is what you see now, not that you didn't see it then."),
-    (r"\bi forgot\b", "self_flagellation", "Self-blame framing. Reframe around the insight, not the failure to have it sooner."),
+    (
+        r"\bembarrassing\b",
+        "self_flagellation",
+        "Self-flagellation. If the new position is stronger, state it. The old position doesn't need to be humiliated.",
+    ),
+    (
+        r"\bmy error\b",
+        "self_flagellation",
+        "Self-flagellation. State what's true now rather than performing contrition for what was true before.",
+    ),
+    (
+        r"\bshould have (known|saved|seen|realized)\b",
+        "self_flagellation",
+        "Hindsight self-blame. The interesting thing is what you see now, not that you didn't see it then.",
+    ),
+    (
+        r"\bi forgot\b",
+        "self_flagellation",
+        "Self-blame framing. Reframe around the insight, not the failure to have it sooner.",
+    ),
     (r"\bhow could i\b", "self_flagellation", "Performative self-reproach. State the current understanding directly."),
     (r"\bmea culpa\b", "self_flagellation", "Literal self-flagellation. Reframe as forward-looking insight."),
-    (r"\bi should not have\b", "self_flagellation", "Self-blame. State what's true now without flagellating about what was true before."),
+    (
+        r"\bi should not have\b",
+        "self_flagellation",
+        "Self-blame. State what's true now without flagellating about what was true before.",
+    ),
     # Defensive framing
     (
         r"\bi'm not (accusing|attacking|blaming)\b",
