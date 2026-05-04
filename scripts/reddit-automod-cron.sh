@@ -59,7 +59,7 @@ echo "Mode: $MODE | Subreddit: r/$SUBREDDIT | Since: ${SINCE_MINUTES}m | Budget:
 PROMPT="You are running automated Reddit moderation for r/$SUBREDDIT.
 
 Step 1: Run this command to fetch and build classification prompts:
-$PYTHON_BIN scripts/reddit_mod.py queue --auto --since-minutes $SINCE_MINUTES --json | $PYTHON_BIN scripts/reddit_mod.py classify
+$PYTHON_BIN scripts/reddit-mod.py queue --auto --since-minutes $SINCE_MINUTES --json | $PYTHON_BIN scripts/reddit-mod.py classify
 
 Step 2: If the queue is empty (count: 0), output 'Queue empty, no action needed.' and stop.
 
@@ -69,9 +69,9 @@ FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, BAN_RECOMMENDED, NEEDS_HUMA
 Assign confidence 0-100 and one-sentence reasoning.
 
 Step 4: Apply actions for items meeting confidence thresholds:
-- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: $PYTHON_BIN scripts/reddit_mod.py approve --id {id}
-- SPAM >= 90%: $PYTHON_BIN scripts/reddit_mod.py remove --id {id} --reason '{reason}' --spam
-- VALID_REPORT >= 90%: $PYTHON_BIN scripts/reddit_mod.py remove --id {id} --reason '{reason}'
+- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: $PYTHON_BIN scripts/reddit-mod.py approve --id {id}
+- SPAM >= 90%: $PYTHON_BIN scripts/reddit-mod.py remove --id {id} --reason '{reason}' --spam
+- VALID_REPORT >= 90%: $PYTHON_BIN scripts/reddit-mod.py remove --id {id} --reason '{reason}'
 - BAN_RECOMMENDED: ALWAYS skip (never auto-ban)
 - Below threshold: skip (leave for human review)
 
