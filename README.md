@@ -156,7 +156,7 @@ Trade-off: overriding the default strips Claude Code's built-in tool-use instruc
 
 ## What's Inside
 
-### 43 Domain Agents
+### 44 Domain Agents
 
 Agents carry domain-specific expertise. Not thin wrappers that say "you are an expert," but concrete knowledge: version-specific idiom tables, anti-pattern catalogs with detection commands, error-to-fix mappings from real incidents.
 
@@ -180,7 +180,7 @@ Agents carry domain-specific expertise. Not thin wrappers that say "you are an e
 - System upgrades, toolkit governance, technical documentation
 - MCP server development, Perses observability platform
 
-### 110 Workflow Skills
+### 106 Workflow Skills
 
 Skills enforce methodology. They are phased workflows with gates that prevent skipping steps.
 
@@ -194,11 +194,11 @@ Skills enforce methodology. They are phased workflows with gates that prevent sk
 
 **Meta:** skill evaluation, agent comparison, A/B testing, toolkit evolution, reference enrichment, routing table management
 
-### 72 Hooks
+### 71 Hooks
 
 Event-driven automation that fires on session start, before/after tool use, at compaction, and on stop. Error learning, context injection, quality enforcement, and anti-rationalization all run automatically.
 
-### 110 Scripts
+### 93 Scripts
 
 Deterministic Python utilities for mechanical operations: INDEX generation, learning database management, voice validation, routing manifests, reference validation. LLMs orchestrate; programs execute.
 
