@@ -24,6 +24,11 @@ LOG_DIR="$REPO_DIR/reddit-data/$SUBREDDIT/cron-log"
 LOCKFILE="/tmp/reddit-automod-$SUBREDDIT.lock"
 SINCE_MINUTES="${SINCE_MINUTES:-720}"
 MAX_BUDGET="${MAX_BUDGET_USD:-2.00}"
+PYTHON_BIN="${PYTHON_BIN:-$REPO_DIR/.venv/bin/python}"
+if [ ! -x "$PYTHON_BIN" ]; then
+    PYTHON_BIN="python3"
+fi
+CLAUDE_MODEL="${CLAUDE_MODEL:-}"
 EXECUTE=""
 
 # Parse args
@@ -54,7 +59,7 @@ echo "Mode: $MODE | Subreddit: r/$SUBREDDIT | Since: ${SINCE_MINUTES}m | Budget:
 PROMPT="You are running automated Reddit moderation for r/$SUBREDDIT.
 
 Step 1: Run this command to fetch and build classification prompts:
-python3 scripts/reddit_mod.py queue --auto --since-minutes $SINCE_MINUTES --json | python3 scripts/reddit_mod.py classify
+$PYTHON_BIN scripts/reddit_mod.py queue --auto --since-minutes $SINCE_MINUTES --json | $PYTHON_BIN scripts/reddit_mod.py classify
 
 Step 2: If the queue is empty (count: 0), output 'Queue empty, no action needed.' and stop.
 
@@ -64,9 +69,9 @@ FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, BAN_RECOMMENDED, NEEDS_HUMA
 Assign confidence 0-100 and one-sentence reasoning.
 
 Step 4: Apply actions for items meeting confidence thresholds:
-- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: python3 scripts/reddit_mod.py approve --id {id}
-- SPAM >= 90%: python3 scripts/reddit_mod.py remove --id {id} --reason '{reason}' --spam
-- VALID_REPORT >= 90%: python3 scripts/reddit_mod.py remove --id {id} --reason '{reason}'
+- FALSE_REPORT/MASS_REPORT_ABUSE >= 95%: $PYTHON_BIN scripts/reddit_mod.py approve --id {id}
+- SPAM >= 90%: $PYTHON_BIN scripts/reddit_mod.py remove --id {id} --reason '{reason}' --spam
+- VALID_REPORT >= 90%: $PYTHON_BIN scripts/reddit_mod.py remove --id {id} --reason '{reason}'
 - BAN_RECOMMENDED: ALWAYS skip (never auto-ban)
 - Below threshold: skip (leave for human review)
 
@@ -84,12 +89,19 @@ if [ -z "$EXECUTE" ]; then
 DRY RUN MODE: Do NOT execute any approve/remove commands. Instead, show what you WOULD do for each item."
 fi
 
-claude -p "$PROMPT" \
-    --output-format text \
-    --dangerously-skip-permissions \
-    --max-budget-usd "$MAX_BUDGET" \
-    --no-session-persistence \
-    --model claude-sonnet-4-7 \
+CLAUDE_ARGS=(
+    -p "$PROMPT"
+    --output-format text
+    --dangerously-skip-permissions
+    --max-budget-usd "$MAX_BUDGET"
+    --no-session-persistence
+)
+
+if [ -n "$CLAUDE_MODEL" ]; then
+    CLAUDE_ARGS+=(--model "$CLAUDE_MODEL")
+fi
+
+claude "${CLAUDE_ARGS[@]}" \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 
 EXIT_CODE=${PIPESTATUS[0]}
