@@ -2,7 +2,7 @@
 
 <img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
-Agents, skills, hooks, and scripts for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Factory](https://factory.ai). You type what you want. A router picks a specialist, pairs it with a methodology, and runs through the whole thing — plan, execute, test, PR — without you picking agents or learning internals.
+Agents, skills, hooks, and scripts for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Factory](https://factory.ai). You type what you want. A router picks a specialist, pairs it with a methodology, and runs the whole lifecycle (plan, execute, test, PR) without you picking agents or learning internals.
 
 ## How It Works
 
@@ -23,10 +23,10 @@ The router (`/do` in Claude Code/Gemini/Factory, `$do` in Codex) reads your inte
 The agent creates a branch, gathers evidence, diagnoses in phases, fixes, tests, reviews its own work, and opens a PR. The system records what worked so routing improves over time.
 
 Four layers make this go:
-- **Agents** carry domain knowledge (Go idioms, K8s patterns, Python conventions)
-- **Skills** enforce methodology (TDD cycles, debugging phases, review waves)
-- **Hooks** automate gates (fire on lifecycle events, block incomplete work)
-- **Scripts** handle determinism (test runners, linters, validators — no LLM judgment)
+- Agents carry domain knowledge (Go idioms, K8s patterns, Python conventions)
+- Skills enforce methodology (TDD cycles, debugging phases, review waves)
+- Hooks automate gates (fire on lifecycle events, block incomplete work)
+- Scripts handle determinism (test runners, linters, validators, no LLM judgment)
 
 ## Built with the Toolkit
 
