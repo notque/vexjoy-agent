@@ -232,6 +232,20 @@ Deterministic Python utilities for mechanical operations: INDEX generation, lear
 └─────────────────────────────────────────────────┘
 ```
 
+## Why Anti-Rationalization?
+
+AI agents naturally rationalize shortcuts. "The code looks correct" replaces actually running tests. "Trivial change" replaces verification. Every skill in this toolkit includes counter-arguments that block these failure modes structurally:
+
+| Agent Says | System Responds | Enforcement |
+|---|---|---|
+| "Code looks correct, skip tests" | Confidence ≠ correctness | Exit gate requires test output |
+| "Trivial change, no verification needed" | One line can break everything | Hook blocks completion without evidence |
+| "Similar to what I did before" | Similar ≠ same | Skill requires case-specific proof |
+| "User is in a hurry" | Quality > speed | Protocol overrides time pressure |
+| "I'm confident this works" | Prove it | Gate demands exit code, not assertion |
+
+This isn't a prompt trick. It's infrastructure — hooks that fire automatically, gates that block completion, and skills that encode counter-arguments at every skip-worthy step. The result: agents that verify instead of assert.
+
 ## Choose Your Path
 
 **[I just want to use it](docs/start-here.md)** | Install in 2 minutes, learn a few commands. Done.
@@ -259,6 +273,12 @@ Tested principles, not aspirations. The toolkit absorbs complexity so the user d
 - **Everything should be a pipeline.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
 Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+
+## Contributing
+
+Skills should be **specific** (actionable steps), **verifiable** (evidence requirements), **battle-tested** (real workflows), and **minimal** (only what guides the agent).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: skill anatomy, agent format, quality gates, and PR process.
 
 ## License
 
