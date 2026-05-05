@@ -1,10 +1,10 @@
 # Start Here
 
-Claude Code is powerful on its own. This toolkit makes it *much* better -- specialized agents for every domain, workflow skills that enforce methodology, and hooks that automate the boring parts. You install it once and it works everywhere.
+Claude Code is good on its own. This toolkit makes it structurally better. Specialized agents, workflow skills that enforce methodology, hooks that automate the boring parts. Install once, works everywhere.
 
 ## What You Need
 
-One thing: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working. Open a terminal and run:
+One thing: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed.
 
 ```bash
 claude --version
@@ -12,46 +12,41 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: if you also use Codex CLI, Gemini CLI, or Factory, run `codex --version` / `gemini --version` / `factory --version`. The toolkit mirrors its skills into `~/.codex/skills`, `~/.gemini/skills/`, and `~/.factory/skills/`, and its agents into `~/.codex/agents`, `~/.gemini/agents/`, and `~/.factory/droids/` (Factory calls agents "droids"), so all four CLIs can dispatch the same domain expertise. Claude Code is still the full runtime for hooks, commands, and scripts.
+Optional: Codex CLI, Gemini CLI, or Factory. The toolkit mirrors skills and agents into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`), so all four CLIs dispatch the same domain expertise. Claude Code remains the full runtime for hooks, commands, and scripts.
+
+Verify optional tools: `codex --version` / `gemini --version` / `factory --version`.
 
 Command entry points:
-- Claude Code: `/do`
-- Codex: `$do`
-- Gemini CLI: `/do`
-- Factory: `/do`
+
+| CLI | Command |
+|-----|---------|
+| Claude Code | `/do` |
+| Codex | `$do` |
+| Gemini CLI | `/do` |
+| Factory | `/do` |
 
 ## Install
 
-Three commands. Copy-paste them.
-
 ```bash
 git clone https://github.com/notque/vexjoy-agent.git
-```
-
-```bash
 cd vexjoy-agent
-```
-
-```bash
 ./install.sh
 ```
 
-The installer asks one question -- symlink or copy -- then sets everything up. Pick symlink if you want updates via `git pull`, copy if you want a stable snapshot. Either works fine.
+The installer asks one question: symlink or copy. Symlink means updates via `git pull`. Copy means a stable snapshot. Either works.
 
-What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also mirrored skills into `~/.codex/skills` and agents into `~/.codex/agents` for Codex, and configured hooks in your settings so they activate automatically.
+What it does: links agents, skills, hooks, commands, and scripts into `~/.claude/`. Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"). Configures hooks in settings so they activate automatically.
 
-## Verify It
-
-Run:
+## Verify
 
 ```bash
 python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `inventory` lists what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex, Gemini, or Factory to pick up new skills or agents, rerun `./install.sh`.
+`check` verifies the install layout, settings, hook paths, learning DB access, and CLI mirrors. `inventory` lists what each CLI can currently see. If you pull new toolkit changes later and want the mirrors updated, rerun `./install.sh`.
 
-## Your First Commands
+## First Commands
 
 Open any project folder. Start Claude Code.
 
@@ -59,60 +54,52 @@ Open any project folder. Start Claude Code.
 claude
 ```
 
-Now try these.
-
-### See what's available
+Then:
 
 ```
 /do what can you do?
 ```
 
-The router command is the front door. Use `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex. It reads your request, picks the right agent and skill, and runs it. This one shows you the full routing system -- every domain it handles, every workflow it knows.
-
-### Explore a codebase
+The router reads your request, picks the right agent and skill, runs it. This one shows you the full routing system.
 
 ```
 /do give me an overview of this codebase
 ```
 
-Try this in any project you're working on. It'll read the code structure, identify patterns, and explain what the project does. Works with Go, Python, TypeScript, Kubernetes configs, whatever's in the repo.
-
-### Write something
+Works in any repo. Reads structure, identifies patterns, explains what the project does.
 
 ```
-/do write a blog post about [topic you care about]
+/do write a blog post about [topic]
 ```
 
-This kicks off a multi-phase pipeline -- research, outline, draft, voice validation. Replace the topic with something real. The output lands in a file you can edit.
-
-### Debug a problem
+Multi-phase pipeline: research, outline, draft, voice validation. Output lands in a file.
 
 ```
-/do debug why [describe the problem]
+/do debug why [problem]
 ```
 
-Routes to a systematic debugging skill. It'll gather evidence before guessing, which is the whole point.
+Systematic debugging. Gathers evidence before guessing.
 
-## What You Just Installed
+## What Got Installed
 
-Five kinds of things got copied to `~/.claude/`:
+Five kinds of things in `~/.claude/`:
 
-- **Agents** -- domain experts for Go, Python, Kubernetes, data engineering, content, and more
-- **Skills** -- reusable workflows like TDD, debugging, code review, article writing, research pipelines
-- **Hooks** -- automation that fires on session start, after errors, before context compression
-- **Commands** -- slash command definitions that wire up user-facing entry points like `/do`
-- **Scripts** -- Python utilities the agents call for deterministic operations
+- **Agents**: domain experts. Go, Python, Kubernetes, data engineering, content, more.
+- **Skills**: reusable workflows. TDD, debugging, code review, article writing, research pipelines.
+- **Hooks**: automation that fires on session start, after errors, before context compression.
+- **Commands**: slash command definitions that wire up entry points like `/do`.
+- **Scripts**: Python utilities agents call for deterministic operations.
 
-These load automatically when you start Claude Code in any directory. You don't need to configure anything else.
+These load automatically when you start Claude Code in any directory.
 
-## Where Next?
+## Where Next
 
 Depends on what you're here for.
 
-**[For Developers](for-developers.md)** -- Architecture, extension points, how to build your own agents and skills.
+**[For Developers](for-developers.md)** : Architecture, extension points, how to build your own agents and skills.
 
-**[For Knowledge Workers](for-knowledge-workers.md)** -- Content pipelines, research workflows, moderation, data analysis. No code required.
+**[For Knowledge Workers](for-knowledge-workers.md)** : Content pipelines, research workflows, moderation, data analysis. No code required.
 
-**[For AI Power Users](for-ai-wizards.md)** -- Routing internals, hook lifecycle, pipeline architecture. The deep stuff.
+**[For AI Power Users](for-ai-wizards.md)** : Routing internals, hook lifecycle, pipeline architecture.
 
-**[For AI Agents](for-claude-code.md)** -- Machine-dense component inventory. If you're an LLM operating in this repo, start there instead.
+**[For AI Agents](for-claude-code.md)** : Machine-dense component inventory. If you're an LLM operating in this repo, start there.
