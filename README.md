@@ -14,6 +14,14 @@ It starts from the moment you type a request. You don't pick agents, configure w
 
 In Claude Code, the smart router command is `/do`. In Codex, use `$do`. In Gemini CLI, use `/do` (Gemini discovers skills from `~/.gemini/skills/` automatically). In Factory, use `/do` (Factory discovers skills from `~/.factory/skills/` automatically).
 
+```
+  ROUTE          PLAN           EXECUTE        VERIFY         DELIVER
+ ┌──────┐      ┌──────┐      ┌──────┐      ┌──────┐      ┌──────┐
+ │ /do  │ ───▶ │Phase │ ───▶ │Agent │ ───▶ │Gates │ ───▶ │  PR  │
+ │Router│      │ Plan │      │+Skill│      │ Test │      │Branch│
+ └──────┘      └──────┘      └──────┘      └──────┘      └──────┘
+```
+
 A router reads your intent and selects a Go specialist agent paired with a systematic debugging methodology. The agent creates a branch, gathers evidence before guessing, runs through phased diagnosis, applies a fix, executes tests, reviews its own work, and presents a PR. You describe the problem. The system handles everything else.
 
 This works because the toolkit separates *what you know* from *what the system knows*. Agents carry domain expertise (Go idioms, Python conventions, Kubernetes patterns). Skills enforce process methodology (TDD cycles, debugging phases, review waves). Hooks automate quality gates that fire on lifecycle events. Scripts handle deterministic operations where you want predictable output, not LLM judgment. The router ties it all together, classifying requests, selecting the right combination, and dispatching.
@@ -57,7 +65,8 @@ Command entry points:
 
 **Detailed setup:** [docs/start-here.md](docs/start-here.md)
 
-## Codex CLI Parity
+<details>
+<summary><b>Codex CLI Parity</b></summary>
 
 The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.codex/` so they work with the OpenAI Codex CLI alongside Claude Code. The mirror runs automatically on every `install.sh`; no flags required.
 
@@ -81,7 +90,10 @@ There is no opt-out flag. The mirror is harmless when Codex CLI is not installed
 
 Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
 
-## Gemini CLI Support
+</details>
+
+<details>
+<summary><b>Gemini CLI Support</b></summary>
 
 The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.gemini/` so they work with the Google Gemini CLI alongside Claude Code and Codex. The mirror runs automatically on every `install.sh`; no flags required.
 
@@ -110,7 +122,10 @@ Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hoo
 
 The mirror is harmless when Gemini CLI is not installed. To remove hooks after install, delete `~/.gemini/hooks/` and remove the `hooks` key from `~/.gemini/settings.json`.
 
-## Factory CLI Support
+</details>
+
+<details>
+<summary><b>Factory CLI Support</b></summary>
 
 The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.factory/` so they work with the Factory CLI alongside Claude Code, Codex, and Gemini. The mirror runs automatically on every `install.sh`; no flags required.
 
@@ -128,7 +143,10 @@ Hooks can detect which CLI is invoking them via `detect_cli()` in `hooks/lib/hoo
 
 The mirror is harmless when Factory is not installed. To remove hooks after install, delete `~/.factory/hooks/` and remove the `hooks` key from `~/.factory/settings.json`.
 
-## Running Claude Code with the toolkit
+</details>
+
+<details>
+<summary><b>Running Claude Code with the toolkit</b></summary>
 
 The toolkit already supplies routing (`/do`), domain knowledge (agents), methodology (skills), and enforcement (hooks, CLAUDE.md). The shipped Claude Code system prompt, which is several thousand tokens, largely duplicates that structure for toolkit users. Override it to shrink per-request token cost:
 
@@ -140,7 +158,10 @@ The `.` is just a non-empty placeholder (some shells reject an empty string). Th
 
 Trade-off: overriding the default strips Claude Code's built-in tool-use instructions and style guidance. That context comes back through the toolkit's own agents, skills, hooks, and CLAUDE.md, which is why the pattern fits here. On a bare Claude Code install without the toolkit, use `--append-system-prompt "..."` instead so the default guidance stays in place.
 
-## The Core Workflow
+</details>
+
+<details>
+<summary><b>The Core Workflow</b></summary>
 
 1. **Routing.** You type a request. The router entry point is `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
 
@@ -154,53 +175,76 @@ Trade-off: overriding the default strips Claude Code's built-in tool-use instruc
 
 6. **Delivery.** Changes land on a feature branch. PRs include lint checks, test runs, and review gates. Nothing merges without CI passing.
 
+</details>
+
 ## What's Inside
 
-### 44 Domain Agents
+<details>
+<summary><b>44 Domain Agents</b> — domain-specific expertise across software, review, frontend, and infrastructure</summary>
 
 Agents carry domain-specific expertise. Not thin wrappers that say "you are an expert," but concrete knowledge: version-specific idiom tables, anti-pattern catalogs with detection commands, error-to-fix mappings from real incidents.
 
-**Software Engineering**
-- Go, Python, TypeScript, PHP, Kotlin, Swift, Node.js, React Native
-- Database design, data pipelines, SQLite/Peewee ORM
-- Kubernetes, Ansible, Prometheus/Grafana, OpenSearch, RabbitMQ, OpenStack
+| Category | Agents | Covers |
+|---|---|---|
+| Software Engineering | Go, Python, TypeScript, PHP, Kotlin, Swift, Node.js, React Native | Languages, DB design, data pipelines, SQLite/Peewee, K8s, Ansible, Prometheus/Grafana, OpenSearch, RabbitMQ, OpenStack |
+| Code Review | Multi-perspective, domain-specific, playbook-enhanced | Newcomer/senior/pedant/contrarian/user-advocate, ADR compliance, adversarial verification |
+| Frontend & Creative | React, Next.js, UI/UX, PixiJS, Rive, VFX | Portfolios, e-commerce, combat rendering, skeletal animation, performance, TS debugging |
+| Infrastructure | Pipeline, project, research coordination | System upgrades, toolkit governance, tech docs, MCP server dev, Perses observability |
 
-**Code Review**
-- Multi-perspective review (newcomer, senior, pedant, contrarian, user advocate)
-- Domain-specific review (ADR compliance, business logic, structural)
-- Playbook-enhanced review with adversarial verification
+</details>
 
-**Frontend & Creative**
-- React portfolios, Next.js e-commerce, UI/UX design
-- PixiJS combat rendering, Rive skeletal animation, combat visual effects
-- Performance optimization, TypeScript debugging
+<details>
+<summary><b>106 Workflow Skills</b> — phased methodologies with gates that prevent skipping steps</summary>
 
-**Infrastructure**
-- Pipeline orchestration, project coordination, research coordination
-- System upgrades, toolkit governance, technical documentation
-- MCP server development, Perses observability platform
+| Category | Key Skills | Use When |
+|---|---|---|
+| Development | TDD, systematic debugging, feature lifecycle, subagent-driven dev, pair programming | Building features, fixing bugs, writing tests |
+| Code Quality | Parallel review (3 simultaneous), systematic review, cleanup, universal quality gates, linting | Reviewing code, enforcing standards |
+| Content & Research | Voice-validated writing, research pipelines, content calendars, SEO, topic brainstorming, repurposing | Writing posts, researching topics, managing editorial |
+| Operations | PR workflow, git commit flow, GitHub Actions, cron auditing, service health, K8s debugging | Shipping code, monitoring systems |
+| Meta | Skill evaluation, agent comparison, A/B testing, toolkit evolution, reference enrichment, routing management | Improving the toolkit itself |
 
-### 106 Workflow Skills
+</details>
 
-Skills enforce methodology. They are phased workflows with gates that prevent skipping steps.
-
-**Development Workflows:** test-driven development, systematic debugging, feature lifecycle, subagent-driven development, pair programming
-
-**Code Quality:** parallel code review (3 simultaneous reviewers), systematic code review, code cleanup, universal quality gates, linting
-
-**Content & Research:** voice-validated writing, research pipelines, content calendars, SEO optimization, topic brainstorming, content repurposing
-
-**Operations:** PR workflow with quality gates, git commit flow, GitHub Actions checks, cron job auditing, service health checks, Kubernetes debugging
-
-**Meta:** skill evaluation, agent comparison, A/B testing, toolkit evolution, reference enrichment, routing table management
-
-### 71 Hooks
+<details>
+<summary><b>71 Hooks</b> — event-driven automation</summary>
 
 Event-driven automation that fires on session start, before/after tool use, at compaction, and on stop. Error learning, context injection, quality enforcement, and anti-rationalization all run automatically.
 
-### 93 Scripts
+</details>
+
+<details>
+<summary><b>93 Scripts</b> — deterministic Python utilities</summary>
 
 Deterministic Python utilities for mechanical operations: INDEX generation, learning database management, voice validation, routing manifests, reference validation. LLMs orchestrate; programs execute.
+
+</details>
+
+```
+┌─────────────────────────────────────────────────┐
+│  SKILL.md                                       │
+│  ┌─ Frontmatter ─────────────────────────────┐  │
+│  │ triggers, pairs_with, success-criteria     │  │
+│  └────────────────────────────────────────────┘  │
+│  Reference Loading Table (conditional imports)   │
+│  Phased Instructions (numbered, with gates)      │
+│  Verification (evidence requirements)            │
+└─────────────────────────────────────────────────┘
+```
+
+## Why Anti-Rationalization?
+
+AI agents naturally rationalize shortcuts. "The code looks correct" replaces actually running tests. "Trivial change" replaces verification. Every skill in this toolkit includes counter-arguments that block these failure modes structurally:
+
+| Agent Says | System Responds | Enforcement |
+|---|---|---|
+| "Code looks correct, skip tests" | Confidence ≠ correctness | Exit gate requires test output |
+| "Trivial change, no verification needed" | One line can break everything | Hook blocks completion without evidence |
+| "Similar to what I did before" | Similar ≠ same | Skill requires case-specific proof |
+| "User is in a hurry" | Quality > speed | Protocol overrides time pressure |
+| "I'm confident this works" | Prove it | Gate demands exit code, not assertion |
+
+This isn't a prompt trick. It's infrastructure — hooks that fire automatically, gates that block completion, and skills that encode counter-arguments at every skip-worthy step. The result: agents that verify instead of assert.
 
 ## Choose Your Path
 
@@ -229,6 +273,12 @@ Tested principles, not aspirations. The toolkit absorbs complexity so the user d
 - **Everything should be a pipeline.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
 Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+
+## Contributing
+
+Skills should be **specific** (actionable steps), **verifiable** (evidence requirements), **battle-tested** (real workflows), and **minimal** (only what guides the agent).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: skill anatomy, agent format, quality gates, and PR process.
 
 ## License
 
