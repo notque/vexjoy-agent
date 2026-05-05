@@ -2,7 +2,7 @@
 
 ## What This Gives You
 
-This toolkit turns Claude Code into a multi-tool for knowledge work — writing, research, community moderation, data analysis, content publishing. Describe what you want in plain language. 110+ skills behind the scenes, but you just talk to it.
+This toolkit turns Claude Code into a multi-tool for knowledge work: writing, research, community moderation, data analysis, content publishing. Describe what you want in plain language. 110+ skills behind the scenes, but you just talk to it.
 
 ## Getting Started
 
@@ -59,7 +59,7 @@ Most AI writing sounds like AI. This toolkit's voice system fixes that:
 /create-voice
 ```
 
-Provide writing samples. The analyzer extracts quantitative metrics: sentence length, contraction rate, punctuation habits. Not vibes — numbers. Once calibrated, content is written in your voice and validated deterministically, up to 3 revision iterations.
+Provide writing samples. The analyzer extracts quantitative metrics: sentence length, contraction rate, punctuation habits. Not vibes. Numbers. Once calibrated, content is written in your voice and validated deterministically, up to 3 revision iterations.
 
 ### Anti-AI Editing
 
@@ -147,7 +147,7 @@ When you drop a CSV or JSON file and ask a question:
 /do analyze sales_data.csv -- what's driving the Q3 revenue drop?
 ```
 
-Works backward from your question: starts with the decision, determines needed evidence, then touches data. Handles trend analysis, cohort comparison, A/B tests, distribution profiling, anomaly detection. Statistical rigor built in — won't claim significance without running the test. Output: structured report tied to your original question.
+Works backward from your question: starts with the decision, determines needed evidence, then touches data. Handles trend analysis, cohort comparison, A/B tests, distribution profiling, anomaly detection. Statistical rigor built in. Won't claim significance without running the test. Output: structured report tied to your original question.
 
 ## Content Publishing
 
@@ -167,7 +167,7 @@ Validates frontmatter, SEO fields, internal links, image paths, draft status, ta
 /do optimize this post for search
 ```
 
-Analyzes keyword placement, density, generates alternative titles, discovers internal linking opportunities, suggests meta descriptions (150-160 chars). Voice preservation is a hard rule — no keyword-stuffing or clickbait.
+Analyzes keyword placement, density, generates alternative titles, discovers internal linking opportunities, suggests meta descriptions (150-160 chars). Voice preservation is a hard rule. No keyword-stuffing or clickbait.
 
 ### Link Auditing
 
@@ -195,4 +195,4 @@ Condition-based waiting with exponential backoff, timeouts, and error handling. 
 
 ## The Magic Command
 
-`/do` handles everything. Describe work in plain language → router dispatches the right workflow. Research, voice profiles, parallel agents — all automatic. You think about your work, not the tool.
+`/do` handles everything. Describe work in plain language → router dispatches the right workflow. Research, voice profiles, parallel agents. All automatic. You think about your work, not the tool.
