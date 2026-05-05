@@ -2,15 +2,33 @@
 
 <img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
-Agents, skills, hooks, and scripts for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Factory](https://factory.ai). You type what you want. A router picks a specialist, pairs it with a methodology, and runs the whole lifecycle (plan, execute, test, PR) without you picking agents or learning internals.
+AI agents skip steps.
 
-## How It Works
+"Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
+
+This toolkit prevents that. 44 domain agents, 106 workflow skills, 71 hooks, 93 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+
+Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Factory (`/do`).
+
+## What It Looks Like
 
 ```
-/do debug this Go test
+$ claude
+
+> /do debug this Go test
+
+  Routing: go-engineer + systematic-debugging
+  Phase 1/4: Reproduce: running test, capturing failure...
+  Phase 2/4: Hypothesize: 3 candidates from stack trace...
+  Phase 3/4: Verify: isolated root cause in connection pool timeout
+  Phase 4/4: Fix: patch applied, test passing, PR opened
+
+  ✓ Delivered: PR #847, fix connection pool timeout in health check
 ```
 
-The router (`/do` in Claude Code/Gemini/Factory, `$do` in Codex) reads your intent, picks a Go agent + debugging skill, and runs:
+The router reads intent, picks a Go agent paired with a debugging skill, and runs the full lifecycle. You typed one sentence. The system did the rest.
+
+## The Pipeline
 
 ```
   ROUTE        PLAN         EXECUTE      VERIFY       DELIVER      LEARN
@@ -20,21 +38,21 @@ The router (`/do` in Claude Code/Gemini/Factory, `$do` in Codex) reads your inte
  └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
 ```
 
-The agent creates a branch, gathers evidence, diagnoses in phases, fixes, tests, reviews its own work, and opens a PR. The system records what worked so routing improves over time.
+## Anti-Rationalization
 
-Four layers make this go:
-- Agents carry domain knowledge (Go idioms, K8s patterns, Python conventions)
-- Skills enforce methodology (TDD cycles, debugging phases, review waves)
-- Hooks automate gates (fire on lifecycle events, block incomplete work)
-- Scripts handle determinism (test runners, linters, validators, no LLM judgment)
+This is the single thing that separates it from "agent with a system prompt."
 
-## Built with the Toolkit
+| Agent Says | What Happens |
+|---|---|
+| "Code looks correct, skip tests" | Exit gate requires test output. Blocked. |
+| "Trivial change, no verification" | Hook blocks completion without evidence. |
+| "Similar to before" | Skill demands case-specific proof. |
+| "User is in a hurry" | Protocol overrides time pressure. |
+| "I'm confident" | Gate demands exit code, not assertion. |
 
-A game built entirely by Claude Code using these agents, skills, and pipelines:
+Hooks fire automatically. Gates block completion. Skills encode counter-arguments at every skip-worthy step. The agent verifies or it doesn't finish.
 
-<div align="center">
-<video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
-</div>
+For what I do, the difference is enormous. If you're doing simple single-file edits, maybe less so.
 
 ## Installation
 
@@ -44,12 +62,7 @@ cd ~/vexjoy-agent
 ./install.sh --symlink
 ```
 
-Links everything into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`. Use `--symlink` for live updates via `git pull`.
-
-```bash
-python3 ~/.claude/scripts/install-doctor.py check
-python3 ~/.claude/scripts/install-doctor.py inventory
-```
+Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`. Use `--symlink` for live updates via `git pull`.
 
 | CLI | Entry Point |
 |-----|-------------|
@@ -63,112 +76,47 @@ python3 ~/.claude/scripts/install-doctor.py inventory
 <details>
 <summary><b>Codex CLI Parity</b></summary>
 
-Mirrors agents, skills, and 6 allowlisted hooks into `~/.codex/`. Runs on every `install.sh`.
+Mirrors agents, skills, and 6 allowlisted hooks into `~/.codex/`. Requires Codex CLI v0.114.0+.
 
-**Mirrors:** agents, skills, SessionStart injectors, Stop recorder, PostToolUse Bash scanner. Sets `[features] codex_hooks = true` in `~/.codex/config.toml`.
-
-**Blocked upstream:** Edit/Write interceptors waiting on [openai/codex#16732](https://github.com/openai/codex/issues/16732). PreCompact, SubagentStop, Notification, SessionEnd events stay Claude Code only. Windows hook support disabled upstream.
-
-Requires Codex CLI v0.114.0+. Harmless when Codex isn't installed — `~/.codex/` sits unused.
+**Blocked upstream:** Edit/Write interceptors waiting on [openai/codex#16732](https://github.com/openai/codex/issues/16732). PreCompact, SubagentStop, Notification, SessionEnd events stay Claude Code only.
 
 </details>
 
 <details>
 <summary><b>Gemini CLI Support</b></summary>
 
-Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event names:
-
-| Claude/Codex | Gemini |
-|---|---|
-| SessionStart | SessionStart |
-| Stop | SessionEnd |
-| PostToolUse | AfterTool |
-| PreToolUse | BeforeTool |
-
-Tool mapping: `Bash` → `run_shell_command`. Hook config merges into `~/.gemini/settings.json` (only the `hooks` key, other settings preserved).
-
-Harmless when Gemini CLI isn't installed.
+Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event names (`Stop` → `SessionEnd`, `PostToolUse` → `AfterTool`, `PreToolUse` → `BeforeTool`). Tool mapping: `Bash` → `run_shell_command`. Hook config merges into `~/.gemini/settings.json`.
 
 </details>
 
 <details>
 <summary><b>Factory CLI Support</b></summary>
 
-Mirrors agents (as "droids"), skills, and all hooks into `~/.factory/`. Hook config merges into `~/.factory/settings.json` with paths rewritten from `$HOME/.claude/` to `$HOME/.factory/`.
-
-Harmless when Factory isn't installed.
+Mirrors agents (as "droids"), skills, and all hooks into `~/.factory/`. Hook config merges into `~/.factory/settings.json` with paths rewritten.
 
 </details>
 
 <details>
 <summary><b>Token-saving mode</b></summary>
 
-The toolkit supplies its own routing, domain knowledge, methodology, and enforcement. The default Claude Code system prompt duplicates most of that. Override it:
+The toolkit supplies its own routing, domain knowledge, methodology, and enforcement. The default system prompt duplicates most of that.
 
 ```bash
 claude --system-prompt "."
 ```
 
-Trade-off: strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and CLAUDE.md provide equivalent coverage. On a bare install without the toolkit, use `--append-system-prompt` instead.
+Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and CLAUDE.md provide equivalent coverage.
 
 </details>
 
-<details>
-<summary><b>The Core Workflow</b></summary>
+## Four Layers
 
-1. **Route.** `/do` classifies intent, picks agent + skill, dispatches.
-2. **Plan.** Creates task plan with phases and gates before touching code.
-3. **Execute.** Domain agent works using the skill's methodology.
-4. **Verify.** Tests run. Scripts validate. Hooks block incomplete work.
-5. **Deliver.** Feature branch, PR, lint, CI.
-6. **Learn.** Records routing outcome, captures errors, feeds self-improvement.
-
-</details>
-
-## What's Inside
-
-<details>
-<summary><b>44 Domain Agents</b></summary>
-
-Concrete domain knowledge: idiom tables, anti-pattern catalogs with detection commands, error-to-fix mappings from real incidents.
-
-| Category | Agents | Covers |
+| Layer | Count | Does |
 |---|---|---|
-| Software Engineering | Go, Python, TypeScript, PHP, Kotlin, Swift, Node.js, React Native | Languages, DB design, data pipelines, K8s, Ansible, Prometheus/Grafana, OpenSearch, RabbitMQ, OpenStack |
-| Code Review | Multi-perspective, domain-specific, playbook-enhanced | 5 reviewer personas, ADR compliance, adversarial verification |
-| Frontend & Creative | React, Next.js, UI/UX, PixiJS, Rive, VFX | Portfolios, e-commerce, combat rendering, skeletal animation |
-| Infrastructure | Pipeline, project, research coordination | System upgrades, governance, tech docs, MCP servers, Perses |
-
-</details>
-
-<details>
-<summary><b>106 Workflow Skills</b></summary>
-
-Phased methodologies with gates. You can't skip steps — each phase has exit criteria requiring evidence.
-
-| Category | Key Skills | Use When |
-|---|---|---|
-| Development | TDD, systematic debugging, feature lifecycle, subagent-driven dev | Building, fixing, testing |
-| Code Quality | Parallel review (3 simultaneous), systematic review, quality gates | Before any merge |
-| Content & Research | Voice-validated writing, research pipelines, content calendars | Writing, researching |
-| Operations | PR workflow, GitHub Actions, service health, K8s debugging | Shipping, monitoring |
-| Meta | Skill evaluation, A/B testing, toolkit evolution | Improving the toolkit |
-
-</details>
-
-<details>
-<summary><b>71 Hooks</b></summary>
-
-Fire on SessionStart, PreToolUse, PostToolUse, PreCompact, Stop, UserPromptSubmit, SubagentStop. Handle error learning, context injection, quality enforcement, anti-rationalization. Zero LLM cost — pure automation.
-
-</details>
-
-<details>
-<summary><b>93 Scripts</b></summary>
-
-Python utilities for what should never be improvised: INDEX generation, learning DB management, voice validation, routing manifests, reference validation.
-
-</details>
+| Agents | 44 | Domain knowledge: idiom tables, anti-pattern catalogs, error-to-fix mappings |
+| Skills | 106 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Hooks | 71 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
+| Scripts | 93 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -182,43 +130,34 @@ Python utilities for what should never be improvised: INDEX generation, learning
 └─────────────────────────────────────────────────┘
 ```
 
-## Anti-Rationalization
+## Built with the Toolkit
 
-AI agents skip steps. "Looks correct" replaces running tests. "Trivial change" replaces verification. Every skill here has counter-arguments baked in:
+A game built entirely by Claude Code using these agents, skills, and pipelines:
 
-| Agent Says | What Happens |
-|---|---|
-| "Code looks correct, skip tests" | Exit gate requires test output — blocked |
-| "Trivial change, no verification" | Hook blocks completion without evidence |
-| "Similar to before" | Skill demands case-specific proof |
-| "User is in a hurry" | Protocol overrides time pressure |
-| "I'm confident" | Gate demands exit code, not assertion |
-
-Hooks fire automatically. Gates block completion. Skills encode counter-arguments at every skip-worthy step. Agents verify or they don't finish.
+<div align="center">
+<video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
+</div>
 
 ## Choose Your Path
 
-**[I just want to use it](docs/start-here.md)** — Install, learn `/do`, done.
+**[I just want to use it](docs/start-here.md)** Install, learn `/do`, done.
 
-**[I do knowledge work](docs/for-knowledge-workers.md)** — Content pipelines, research, moderation. No code.
+**[I do knowledge work](docs/for-knowledge-workers.md)** Content pipelines, research, moderation. No code.
 
-**[I'm a developer](docs/for-developers.md)** — Architecture, extension points, adding agents and skills.
+**[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding agents and skills.
 
-**[I'm an AI power user](docs/for-ai-wizards.md)** — Routing tables, pipelines, hooks, learning DB.
+**[I'm an AI power user](docs/for-ai-wizards.md)** Routing tables, pipelines, hooks, learning DB.
 
-**[I'm an AI agent](docs/for-claude-code.md)** — Machine-dense inventory. Tables, paths, schemas.
+**[I'm an AI agent](docs/for-claude-code.md)** Machine-dense inventory. Tables, paths, schemas.
 
-**[I'm on LinkedIn](docs/for-linkedin.md)** — 🚀 Thought leadership. Agree? 👇
+**[I'm on LinkedIn](docs/for-linkedin.md)** 🚀 Thought leadership. Agree? 👇
 
 ## Philosophy
 
-Tested principles. The toolkit absorbs complexity so you don't.
-
-- **Zero-expertise operation.** Say what you want. The system classifies, dispatches specialists, enforces quality, delivers.
-- **LLMs orchestrate, programs execute.** Deterministic work belongs to scripts. LLM judgment handles design decisions, diagnosis, and review.
+- **Zero-expertise operation.** Say what you want. The system classifies, dispatches, enforces, delivers.
+- **LLMs orchestrate, programs execute.** Deterministic work belongs to scripts. LLM judgment handles design decisions, diagnosis, review.
 - **Density.** Every word carries instruction, rule, or decision. Cut everything else.
-- **Breadth over depth.** Tokens buy more specialists in parallel, not longer prompts. Right context ensures correctness; unfocused context adds cost.
-- **Knowledge lives in agents.** Agent quality tracks specificity of attached knowledge. Domain expertise and methodology beat motivational preambles — A/B tested.
+- **Breadth over depth.** Right context ensures correctness. Unfocused context adds cost.
 - **Structural enforcement.** Exit codes enforce what instructions can't. Quality gates are automated, not advisory.
 - **Everything pipelines.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
@@ -226,7 +165,7 @@ Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — skill anatomy, agent format, quality gates, PR process.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
