@@ -1,14 +1,14 @@
 # Contributing
 
-## What Makes a Good Contribution
+## Standards
 
 | Criterion | Pass | Fail |
 |-----------|------|------|
-| **Specific** | Actionable steps with exit criteria | Vague advice ("be careful with errors") |
-| **Verifiable** | Evidence requirements, not "seems right" | Trusts LLM confidence |
-| **Battle-tested** | Based on real workflows, A/B tested | Hypothetical "should work" |
-| **Minimal** | Only what's needed to guide the agent | Verbose explanations for humans |
-| **Dense** | High fidelity, minimum words | Prose where a table suffices |
+| **Specific** | Actionable steps, exit criteria | Vague advice ("be careful") |
+| **Verifiable** | Evidence requirements | Trusts LLM confidence |
+| **Battle-tested** | Real workflows, A/B tested | Hypothetical "should work" |
+| **Minimal** | What guides the agent, nothing else | Verbose human explanations |
+| **Dense** | Every word carries instruction | Prose where a table works |
 
 ## Component Types
 
@@ -62,14 +62,14 @@ Before submitting:
 - [ ] New skills/agents appear in INDEX after running generators
 - [ ] No secrets, credentials, or API keys in committed files
 
-## Design Principles
+## Design Constraints
 
-Read [PHILOSOPHY.md](docs/PHILOSOPHY.md) before contributing. Key constraints:
+Read [PHILOSOPHY.md](docs/PHILOSOPHY.md) first.
 
-- **LLMs orchestrate, programs execute.** If it's deterministic, write a script.
-- **Progressive disclosure.** Keep SKILL.md lean. Deep content goes in `references/`.
-- **Anti-rationalization.** Every skip-worthy step needs a counter-argument.
-- **Tokens buy breadth, not depth.** Parallel specialists over verbose single prompts.
+- Deterministic? Write a script. Reserve LLM for judgment calls.
+- Keep SKILL.md lean. Deep content lives in `references/`.
+- Every skip-worthy step needs a counter-argument baked in.
+- Spend tokens on more specialists in parallel, not longer prompts.
 
 ## PR Process
 
