@@ -52,6 +52,12 @@ Not every check applies to every PR. Focus on items relevant to the specific cha
 | No supplier assessment | Third-party libs without security review | Check vendor assessment records |
 | Weak code review | No security-specific review checklist | Check PR templates, review workflows |
 
+## Cross-References
+
+- [german-it-security.md](german-it-security.md) — BSI Grundschutz (referenced by VDA ISA), KRITIS, NIS2 checks
+- [sovereign-cloud-data-residency.md](sovereign-cloud-data-residency.md) — BSI C5, data residency for sovereign cloud deployments
+- [compliance-checklists.md](compliance-checklists.md) — GDPR, SOC 2, PCI-DSS, HIPAA overlay checks
+
 ## [Future] Healthcare (DiGAV / MDR)
 
 German Digital Health Applications regulation + EU Medical Device Regulation.

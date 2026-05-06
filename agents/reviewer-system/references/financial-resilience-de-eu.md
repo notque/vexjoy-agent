@@ -20,8 +20,13 @@ EU regulation for the financial sector. In force **January 17, 2025**. Supersede
 
 ### Penalties
 
-- **Entity**: EUR 10M or 10% of annual turnover (whichever is higher)
-- **Individual manager**: EUR 1M
+DORA Art. 50 delegates penalty-setting to member states. Maximum penalties vary by jurisdiction:
+
+- **Entity (typical member state cap)**: up to EUR 10M or 5% of annual turnover
+- **Critical ICT third-party providers**: periodic penalty up to 1% of average daily worldwide turnover (Art. 35)
+- **Individual manager**: up to EUR 1M (varies by member state)
+
+> **Note**: Verify the specific penalty regime in the applicable member state. The figures above are representative caps, not harmonized EU-wide amounts.
 
 ### Code-Level Checks
 
@@ -73,6 +78,12 @@ Both apply to the financial sector. DORA is **lex specialis** — it takes prece
 4. Check both application code AND infrastructure config
 5. Report violations with specific check IDs and article references
 6. Note: DORA requires source code review as part of formal resilience testing (DO-07)
+
+## Cross-References
+
+- [german-it-security.md](german-it-security.md) — NIS2UmsuCG checks (DORA is lex specialis for financial entities; NIS2 incident reporting still applies in parallel)
+- [sovereign-cloud-data-residency.md](sovereign-cloud-data-residency.md) — BSI C5 and data residency for sovereign cloud deployments
+- [compliance-checklists.md](compliance-checklists.md) — GDPR, SOC 2, PCI-DSS, HIPAA overlay checks
 
 ## Common Violations in Reviews
 

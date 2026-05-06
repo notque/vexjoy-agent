@@ -213,6 +213,18 @@ Exempt from documentation unless systemic risk.
 
 ---
 
+## Cross-References
+
+These reviewer-system references cover adjacent German/EU compliance domains:
+
+- `agents/reviewer-system/references/german-it-security.md` — BSI Grundschutz, KRITIS, NIS2UmsuCG
+- `agents/reviewer-system/references/financial-resilience-de-eu.md` — DORA, KWG/MaRisk (eIDAS<>DORA interaction noted in matrix above)
+- `agents/reviewer-system/references/industry-specific-compliance.md` — TISAX automotive compliance
+- `agents/reviewer-system/references/sovereign-cloud-data-residency.md` — BSI C5, BDSG/DSGVO, data residency
+- `agents/reviewer-system/references/compliance-checklists.md` — GDPR, SOC 2, PCI-DSS, HIPAA
+
+---
+
 ## Compliance Check Output Template
 
 ```
