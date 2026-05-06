@@ -182,13 +182,9 @@ Opening with hype ("Excited to share our game-changing approach to...") reads as
 Cause: Article or transcript exceeds practical working length.
 Solution: Ask user to identify the section to adapt, or extract section headers first and confirm which section(s) to use.
 
-### Error: scan-negative-framing.py --mode hype not recognized
-Cause: Script does not yet support `--mode hype` flag.
-Solution: Manually scan `content_drafts.md` for banned phrases using Grep. Flag each occurrence, rewrite the affected sentence(s), confirm clean before proceeding. Note in delivery that automated gate was not available.
-
-### Error: scan-negative-framing.py --mode cross-platform not recognized
-Cause: Script does not yet support `--mode cross-platform` flag.
-Solution: Manually compare platform drafts sentence by sentence using Grep for repeated sentences across sections. Rewrite any matches. Note in delivery that automated gate was not available.
+### Error: scan-negative-framing.py not found
+Cause: Script lives in private-skills, not in this repo.
+Solution: Run `python3 ~/private-skills/scripts/scan-negative-framing.py content_drafts.md`. If private-skills is not installed, use the manual grep fallback in `error-handling.md`.
 
 ### Error: Platform target not specified and cannot be inferred
 Cause: User said "make social posts" with no platform context.

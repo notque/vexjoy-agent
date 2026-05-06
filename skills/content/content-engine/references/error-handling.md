@@ -82,9 +82,9 @@ grep -v "^#\|^---\|^$\|^Status:\|^Generated:\|^Primary" content_drafts.md | sort
 
 ## Manual Fallback Patterns (When Scripts Are Unavailable)
 
-### Fallback for `--mode hype` Gate
+### Fallback for Hype Phrase Gate
 
-When `scan-negative-framing.py --mode hype` fails or is unavailable:
+When `~/private-skills/scripts/scan-negative-framing.py` is unavailable:
 
 ```bash
 # Run exact-match scan manually against content_drafts.md (case-insensitive)
@@ -103,9 +103,9 @@ grep -in "game-changing\|revolutionary\|transformative\|disruptive\|synergy\|lev
 
 Note in the Phase 5 delivery output that the automated gate was unavailable and manual fallback was used.
 
-### Fallback for `--mode cross-platform` Gate
+### Fallback for Cross-Platform Verbatim Gate
 
-When `scan-negative-framing.py --mode cross-platform` is unavailable:
+When `~/private-skills/scripts/scan-negative-framing.py` is unavailable for cross-platform checks:
 
 ```bash
 # Find lines appearing in two or more platform sections
@@ -121,8 +121,7 @@ Non-empty output means a sentence appears verbatim in multiple platform sections
 
 | Error | Root Cause | Fix |
 |-------|------------|-----|
-| `unrecognized arguments: --mode hype` | Script does not yet support `--mode` flag | Use manual `grep -in` fallback; note in delivery |
-| `unrecognized arguments: --mode cross-platform` | Script does not yet support `--mode` flag | Use `uniq -d` fallback; note in delivery |
+| `scan-negative-framing.py: No such file` | Script lives in `~/private-skills/scripts/` | Run `python3 ~/private-skills/scripts/scan-negative-framing.py content_drafts.md`; if missing use manual `grep -in` fallback |
 | Gate never exits 0 after 3 rewrites | Hype phrase is inside a quoted source block or attribution | Remove or rephrase the quoted material itself |
 | `content_drafts.md: No such file or directory` | Phase 3 artifact was not saved before Phase 4 | Return to Phase 3, save the file, then re-run Phase 4 |
 | Script exits 0 but delivery has hype phrase | Phrase was added in post-gate LLM edits | Re-run script after any edits made after the gate passed |
