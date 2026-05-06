@@ -22,7 +22,7 @@ Federal Ministry of Finance regulation for digital bookkeeping and data retentio
 
 ### 2025 Changes
 
-- **E-invoicing mandate (Jul 14, 2025)**: XML component of ZUGFeRD is legally relevant for archiving
+- **E-invoicing mandate (Jan 1, 2025 receiving; Jan 1, 2027 issuing >EUR 800K)**: XML component of ZUGFeRD is legally relevant for archiving
 - **Retention reduced**: 10 → 8 years for invoices/receipts (Bürokratieentlastungsgesetz IV, Jan 1, 2025)
 - **PDF storage**: If PDF is generatable from XML, separate PDF storage no longer required
 
