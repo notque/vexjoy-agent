@@ -60,6 +60,8 @@ German IT Security Act 2.0 for critical infrastructure and suppliers. Applies to
 | 7 | Backup isolation | Air-gapped or immutable? Ransomware-resistant? |
 | 8 | Minimum privilege | Least privilege service accounts? No shared admin credentials? |
 
+> **Extended coverage**: See [german-it-security.md](german-it-security.md) for expanded KRITIS checks (KR-01 through KR-12), BSI IT-Grundschutz modules, and NIS2UmsuCG requirements.
+
 ## Personnel Security (SÜG)
 
 German security clearance for sovereign and classified systems.

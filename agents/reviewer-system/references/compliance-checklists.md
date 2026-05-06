@@ -70,6 +70,20 @@ Applies to: systems handling Protected Health Information (PHI).
 | 9 | Breach notification | Affected individuals identifiable? |
 | 10 | Disposal | PHI purged when no longer needed? |
 
+## German & EU Frameworks
+
+Extended German and EU compliance frameworks are in dedicated reference files. Load these when the review context involves German entities, EU financial services, or industry-specific requirements.
+
+| Framework | Reference File | Checks |
+|-----------|---------------|:------:|
+| BSI IT-Grundschutz | [german-it-security.md](german-it-security.md) | 12 |
+| KRITIS (expanded) | [german-it-security.md](german-it-security.md) | 12 |
+| NIS2UmsuCG | [german-it-security.md](german-it-security.md) | 9 |
+| DORA | [financial-resilience-de-eu.md](financial-resilience-de-eu.md) | 10 |
+| KWG/MaRisk | [financial-resilience-de-eu.md](financial-resilience-de-eu.md) | 3 |
+| TISAX | [industry-specific-compliance.md](industry-specific-compliance.md) | 8 |
+| GoBD, HGB, TDDDG, eIDAS, AI Act | Legal skill: `german-business-compliance.md` | 35 |
+
 ## How to Use in Reviews
 
 1. Identify which frameworks apply (from project context or ADR)
