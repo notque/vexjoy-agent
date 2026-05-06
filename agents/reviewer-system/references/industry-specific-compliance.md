@@ -17,7 +17,7 @@ Automotive industry information security standard managed by ENX Association, ba
 **VDA ISA 6.0 Labels (Since April 2024):**
 Old "Info High"/"Info Very High" replaced by Confidential, Strictly Confidential, new Availability label. Prototype Protection retained. Main language switched to English.
 
-**Key Standards Referenced:** ISO/IEC 27001:2022, BSI-Grundschutz, NIST CSF, IEC 62443 (for OT)
+**Key Standards Referenced:** ISO/IEC 27001:2022, BSI IT-Grundschutz, NIST CSF, IEC 62443 (for OT)
 
 **Code-Level Checks:**
 
@@ -54,7 +54,7 @@ Not every check applies to every PR. Focus on items relevant to the specific cha
 
 ## Cross-References
 
-- [german-it-security.md](german-it-security.md) — BSI Grundschutz (referenced by VDA ISA), KRITIS, NIS2 checks
+- [german-it-security.md](german-it-security.md) — BSI IT-Grundschutz (referenced by VDA ISA), KRITIS, NIS2UmsuCG checks
 - [sovereign-cloud-data-residency.md](sovereign-cloud-data-residency.md) — BSI C5, data residency for sovereign cloud deployments
 - [compliance-checklists.md](compliance-checklists.md) — GDPR, SOC 2, PCI-DSS, HIPAA overlay checks
 
