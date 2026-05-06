@@ -13,7 +13,7 @@
 adr/
 
 # Retrospective notes (internal development artifacts)
-retro/
+/retro/
 
 # Environment files (NEVER commit credentials)
 .env
