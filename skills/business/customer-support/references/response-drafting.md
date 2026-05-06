@@ -74,6 +74,7 @@ When a customer is angry, frustrated, or escalating. The goal is not to win an a
 | "That's not really a bug" | "I see what you're experiencing. Let me dig into why it behaves that way." | Classification debate alienates; investigation helps |
 | "You need to..." | "Here's how to resolve this: [steps]" | Directive language feels adversarial under stress |
 
+<!-- no-pair-required: anti-patterns are self-explanatory failure modes; positive approach is in surrounding context -->
 ### De-escalation Anti-Patterns
 
 | Anti-Pattern | Why It Fails |

@@ -182,8 +182,17 @@ def check_codex_skills() -> dict:
 
     private_skills_dir = repo_root / "private-skills"
     if private_skills_dir.is_dir():
-        for skill_dir in sorted(private_skills_dir.iterdir()):
-            expected_entries.append(skill_dir.name)
+        for category_dir in sorted(private_skills_dir.iterdir()):
+            if not category_dir.is_dir() or category_dir.name.startswith("."):
+                continue
+            for skill_dir in sorted(category_dir.iterdir()):
+                if not skill_dir.is_dir():
+                    continue
+                # Voice category deploys as voice-{name}
+                if category_dir.name == "voice":
+                    expected_entries.append(f"voice-{skill_dir.name}")
+                else:
+                    expected_entries.append(skill_dir.name)
 
     private_voices_dir = repo_root / "private-voices"
     if private_voices_dir.is_dir():
