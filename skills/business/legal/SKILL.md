@@ -10,6 +10,12 @@ routing:
     - "legal risk"
     - "legal brief"
     - "vendor check"
+    - "german compliance"
+    - "DSGVO"
+    - "GoBD"
+    - "TDDDG"
+    - "AI Act compliance"
+    - "eIDAS"
   category: business
   force_route: false
   pairs_with: []
@@ -31,7 +37,7 @@ Classify the request into one mode before proceeding. If the request spans modes
 | Mode | Signal Phrases | Core Output |
 |------|---------------|-------------|
 | **CONTRACT** | review contract, clause analysis, redline, playbook, negotiate | Clause-by-clause analysis with GREEN/YELLOW/RED flags and redline suggestions |
-| **COMPLIANCE** | compliance check, GDPR, HIPAA, CCPA, SOX, regulation, data protection | Applicable regulations, requirements checklist, risk areas, approvals needed |
+| **COMPLIANCE** | compliance check, GDPR, HIPAA, CCPA, SOX, regulation, data protection, DSGVO, GoBD, TDDDG, eIDAS, AI Act, NIS2, KRITIS, Grundschutz, TISAX, DORA | Applicable regulations, requirements checklist, risk areas, approvals needed |
 | **NDA** | NDA, triage NDA, non-disclosure, confidentiality agreement | GREEN/YELLOW/RED classification with screening checklist |
 | **RISK** | legal risk, risk assessment, exposure, severity, escalation | Severity x Likelihood matrix score with escalation path |
 | **WRITING** | legal brief, memo, legal response, draft response, template | Structured legal document in appropriate format |
@@ -46,7 +52,7 @@ Load only the references required by the detected mode.
 | Mode | References to Load |
 |------|-------------------|
 | CONTRACT | `references/contract-review.md` |
-| COMPLIANCE | `references/compliance-frameworks.md` |
+| COMPLIANCE | `references/compliance-frameworks.md`, `references/german-business-compliance.md` |
 | NDA | `references/nda-triage.md` |
 | RISK | `references/risk-assessment.md` |
 | WRITING | `references/legal-writing.md` |

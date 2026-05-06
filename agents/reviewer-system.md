@@ -59,6 +59,9 @@ Based on the review request, load the appropriate reference(s):
 - [references/stride-threat-model.md](reviewer-system/references/stride-threat-model.md) — STRIDE threat modeling methodology
 - [references/compliance-checklists.md](reviewer-system/references/compliance-checklists.md) — GDPR, SOC2, PCI-DSS, HIPAA code-level checks
 - [references/sovereign-cloud-data-residency.md](reviewer-system/references/sovereign-cloud-data-residency.md) — German/EU data residency requirements
+- [references/german-it-security.md](reviewer-system/references/german-it-security.md) — BSI IT-Grundschutz, KRITIS (expanded), NIS2UmsuCG code-level checks
+- [references/financial-resilience-de-eu.md](reviewer-system/references/financial-resilience-de-eu.md) — DORA, KWG/MaRisk financial resilience checks
+- [references/industry-specific-compliance.md](reviewer-system/references/industry-specific-compliance.md) — TISAX automotive supply chain compliance
 
 ## Workflow
 
