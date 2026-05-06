@@ -84,7 +84,7 @@ echo "Mode: $MODE | Budget: \$${MAX_BUDGET}"
 # Build the prompt
 PROMPT="You are running the nightly toolkit evolution cycle for the vexjoy-agent.
 
-Read and execute the skill at skills/toolkit-evolution/SKILL.md — it defines the full 6-phase pipeline:
+Read and execute the skill at skills/meta/toolkit-evolution/SKILL.md — it defines the full 6-phase pipeline:
 DIAGNOSE → PROPOSE → CRITIQUE → BUILD → VALIDATE → EVOLVE
 
 Key constraints:

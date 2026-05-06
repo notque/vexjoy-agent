@@ -34,7 +34,7 @@ EVENT_NAME = "PostToolUse"
 
 _CONTEXT_PATH_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"/agents/[^/]+\.md$"),
-    re.compile(r"/skills/[^/]+/SKILL\.md$"),
+    re.compile(r"/skills/(?:[^/]+/)?[^/]+/SKILL\.md$"),
     re.compile(r"/hooks/[^/]+\.py$"),
     re.compile(r"/commands/[^/]+/SKILL\.md$"),
     re.compile(r"/adr/[^/]+\.md$"),

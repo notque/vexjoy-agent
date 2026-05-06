@@ -11,7 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCAN_PATTERNS = [
-    "skills/skill-creator/references/agent-template.md",
+    "skills/meta/skill-creator/references/agent-template.md",
     "docs/*.md",
     "agents/**/*.md",
     "agents/**/references/*.md",

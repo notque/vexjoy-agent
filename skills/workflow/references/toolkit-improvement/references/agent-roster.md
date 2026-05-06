@@ -41,7 +41,7 @@ self-contained packages.
 
 **Files to read**:
 - `docs/PHILOSOPHY.md`
-- `skills/do/SKILL.md` — the router
+- `skills/meta/do/SKILL.md` — the router
 - `skills/workflow/references/` — 3-4 representative pipelines
 - `agents/` — 3-4 representative agents
 - `CLAUDE.md`

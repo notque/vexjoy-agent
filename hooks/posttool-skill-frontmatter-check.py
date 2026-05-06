@@ -3,7 +3,7 @@
 """
 PostToolUse Hook: Skill Frontmatter Validation
 
-After Write or Edit operations on skills/*/SKILL.md files, runs the
+After Write or Edit operations on skills/**/SKILL.md files, runs the
 frontmatter validator and injects errors as context if validation fails.
 
 Advisory hook — always exits 0.
@@ -18,8 +18,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from stdin_timeout import read_stdin
 
-# Pattern matching skill SKILL.md files
-SKILL_FILE_RE = re.compile(r"skills/[^/]+/SKILL\.md$")
+# Pattern matching skill SKILL.md files (flat and nested category layouts)
+SKILL_FILE_RE = re.compile(r"skills/(?:[^/]+/)+SKILL\.md$")
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
         if not file_path:
             return
 
-        # Only act on skills/*/SKILL.md files
+        # Only act on skills/**/SKILL.md files
         if not SKILL_FILE_RE.search(file_path):
             return
 

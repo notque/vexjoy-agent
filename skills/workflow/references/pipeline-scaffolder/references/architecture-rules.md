@@ -111,8 +111,8 @@ Every pipeline MUST be routable via `/do`. This means:
 1. Agent has `routing:` metadata in YAML frontmatter with `triggers`, `pairs_with`, `complexity`, `category`
 2. Skill has trigger keywords in its description
 3. `routing-table-updater` is invoked to add entries to:
-   - `skills/do/SKILL.md` (main routing tables)
-   - `skills/do/references/routing-tables.md` (extended tables)
+   - `skills/meta/do/SKILL.md` (main routing tables)
+   - `skills/meta/do/references/routing-tables.md` (extended tables)
    - `agents/INDEX.json` (agent registry)
 
 **BANNED**: Creating a pipeline that requires manual routing table edits.
@@ -339,7 +339,7 @@ The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely i
 | File | Why |
 |------|-----|
 | The pipeline ADR | Context and decisions |
-| `skills/skill-creator/references/agent-template.md` | Required structure |
+| `skills/meta/skill-creator/references/agent-template.md` | Required structure |
 | `architecture-rules.md` | Constraints |
 | Every skill it pairs with | Verify skill references are accurate |
 

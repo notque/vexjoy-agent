@@ -278,4 +278,4 @@ Solution:
 
 - [CLAUDE.md Compliance](../../../CLAUDE.md) - Verification over assumption, artifacts over memory, authentic over polished
 - Pipeline Architecture pattern - Phase-based execution with gates
-- Sequential analysis constraints - Cross-contamination inherent in sequential analysis (see skills/do/references/parallel-analysis.md for zero cross-contamination alternative)
+- Sequential analysis constraints - Cross-contamination inherent in sequential analysis (see skills/meta/do/references/parallel-analysis.md for zero cross-contamination alternative)

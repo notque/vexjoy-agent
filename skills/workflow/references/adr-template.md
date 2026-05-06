@@ -176,7 +176,7 @@ routing:
 
 ### /do Routing (if applicable)
 
-Add to `skills/do/references/routing-tables.md`:
+Add to `skills/meta/do/references/routing-tables.md`:
 
 ```
 | your-skill | trigger phrase, another phrase | domain | description |
@@ -227,7 +227,7 @@ For hook-only ADRs, write "N/A — no routing changes" and skip this section.]
 
 - [ ] Frontmatter triggers added/updated in component YAML
 - [ ] INDEX.json regenerated (`generate-skill-index.py` or `generate-agent-index.py`)
-- [ ] Entry added to `skills/do/references/routing-tables.md`
+- [ ] Entry added to `skills/meta/do/references/routing-tables.md`
 - [ ] Trigger collision check passed (no duplicate triggers across force-routed entries)
 - [ ] Pipeline companion map updated (if component pairs with existing pipelines)
 - [ ] Quick-reference examples added to routing tables

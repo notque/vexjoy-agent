@@ -69,7 +69,7 @@ ls agents/toolkit-governance-engineer.md
 ls agents/toolkit-governance-engineer/
 
 # Verify skill exists
-ls skills/routing-table-updater/SKILL.md
+ls skills/meta/routing-table-updater/SKILL.md
 
 # Verify all pairs_with entries exist
 for name in adr-consultation routing-table-updater docs-sync-checker; do

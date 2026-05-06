@@ -65,7 +65,7 @@ Update the responsible agent or skill file with the graduated pattern:
 |---------------|----------------|-------------------|
 | Agent produced incorrect code | `agents/{name}.md` | Problem signals or missing guidance |
 | Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or missing guidance |
-| Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
+| Router missed a pattern | `skills/meta/do/SKILL.md` | Routing tables or Force-Routes |
 | Hook failed to catch | `hooks/{name}.py` | Detection logic |
 
 Write the pattern at the right abstraction level -- generalize from the specific bug to the class of bug (e.g., "validate all CLI inputs" not "validate subreddit names in _cmd_classify").

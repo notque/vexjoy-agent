@@ -154,14 +154,14 @@ def main() -> int:
                 print(f"Error: File not found: {t}", file=sys.stderr)
                 return 2
     else:
-        # Auto-discover: find all skills/*/SKILL.md
+        # Auto-discover: find all skills/**/SKILL.md (flat and nested)
         script_dir = Path(__file__).resolve().parent
         repo_root = script_dir.parent
         skills_dir = repo_root / "skills"
         if not skills_dir.exists():
             print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
             return 2
-        targets = sorted(skills_dir.glob("*/SKILL.md"))
+        targets = sorted(skills_dir.glob("**/SKILL.md"))
         if not targets:
             print("Error: No SKILL.md files found", file=sys.stderr)
             return 2

@@ -30,7 +30,7 @@ __EVENT_NAME = "PostToolUse"
 
 # Pipeline component files that trigger enforcement (matched against repo-relative paths)
 _PIPELINE_COMPONENT_PATTERNS = [
-    r"^skills/[^/]+/SKILL\.md$",
+    r"^skills/(?:[^/]+/)?[^/]+/SKILL\.md$",
     r"^agents/[^/]+\.md$",
     r"^scripts/[^/]+\.py$",
     r"^hooks/[^/]+\.py$",

@@ -13,7 +13,7 @@ Options:
     --type TYPE             Component type to generate (default: all)
     --check                 Compare generated output vs current files, exit 1 if different
     --coverage              Compare INDEX.json components against routing tables, report gaps
-    --routing-tables PATH   Path to routing-tables.md (default: ~/.claude/skills/do/references/routing-tables.md)
+    --routing-tables PATH   Path to routing-tables.md (default: ~/.claude/skills/meta/do/references/routing-tables.md)
 
 Exit codes:
     0 - Success (or --check with no differences, or --coverage with full coverage)
@@ -503,7 +503,7 @@ def main() -> int:
         "--routing-tables",
         type=Path,
         default=Path.home() / ".claude" / "skills" / "do" / "references" / "routing-tables.md",
-        help="Path to routing-tables.md (default: ~/.claude/skills/do/references/routing-tables.md)",
+        help="Path to routing-tables.md (default: ~/.claude/skills/meta/do/references/routing-tables.md)",
     )
     args = parser.parse_args()
 

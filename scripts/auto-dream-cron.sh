@@ -75,7 +75,7 @@ export DREAM_DATE="$(date +%Y-%m-%d)"
 mkdir -p "$DREAM_STATE_DIR"
 
 # Build the prompt from template using envsubst
-PROMPT_TEMPLATE="$REPO_DIR/skills/auto-dream/dream-prompt.md"
+PROMPT_TEMPLATE="$REPO_DIR/skills/meta/auto-dream/dream-prompt.md"
 if [ ! -f "$PROMPT_TEMPLATE" ]; then
     echo "ERROR: dream-prompt.md not found at $PROMPT_TEMPLATE" >&2
     exit 1

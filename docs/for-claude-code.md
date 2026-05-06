@@ -23,8 +23,7 @@ vexjoy-agent/
   docs/                    # Documentation (you are here)
   evals/                   # Evaluation test suites
   plugins/                 # UI panel plugins (custom-panel, example-panel)
-  private-skills/          # User private skills (gitignored)
-  private-voices/          # User private voice profiles (gitignored)
+  ~/private-skills/        # User private skills repo (separate private repo, discovered by sync hook)
   research/                # Research pipeline artifacts
   retro/                   # Retrospective data
   services/                # Service configurations
@@ -41,7 +40,7 @@ vexjoy-agent/
 | Type | Location | What It Is |
 |------|----------|------------|
 | Agent | `agents/*.md` | Domain expert. Markdown file with YAML frontmatter. Gets loaded as system prompt when routed to. |
-| Skill | `skills/*/SKILL.md` | Workflow methodology. Phased instructions with gates. Paired with an agent at routing time. |
+| Skill | `skills/*/*/SKILL.md` | Workflow methodology. Phased instructions with gates. Paired with an agent at routing time. |
 | Hook | `hooks/*.py` | Python script triggered by Claude Code lifecycle events. Reads JSON from stdin, outputs JSON to stdout. |
 | Script | `scripts/*.py`, `scripts/*.sh` | Deterministic CLI tool. No LLM judgment. Pure computation, file ops, API calls. |
 | Command | `commands/*.md` | Slash-menu entry point. Maps `/command-name` to a skill invocation. |
@@ -646,10 +645,10 @@ Pipeline skills with explicit phases and gates.
 | Component | Type | What It Does |
 |-----------|------|--------------|
 | `scripts/scan-ai-patterns.py` | Script | Regex scan against 105 patterns in 5 categories |
-| `skills/anti-ai-editor/` | Skill | Targeted revision: scan, propose minimal fixes, preserve meaning |
+| `skills/content/anti-ai-editor/` | Skill | Targeted revision: scan, propose minimal fixes, preserve meaning |
 | `skills/workflow/references/de-ai-pipeline.md` | Reference | Full loop: SCAN -> FIX -> VERIFY, max 3 iterations |
-| `skills/create-voice/scripts/voice-analyzer.py` | Script | Extract metrics from writing samples |
-| `skills/voice-validator/scripts/voice-validator.py` | Script | Validate content against voice profiles |
+| `skills/content/create-voice/scripts/voice-analyzer.py` | Script | Extract metrics from writing samples |
+| `skills/content/voice-validator/scripts/voice-validator.py` | Script | Validate content against voice profiles |
 
 **Wabi-Sabi Principle**: Natural imperfections are features. Sterile grammatical perfection is an AI tell.
 

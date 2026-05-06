@@ -1,326 +1,10 @@
 {
   "version": "2.0",
-  "generated": "2026-05-05T02:13:48Z",
+  "generated": "2026-05-06T17:39:22Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
-    "adr-consultation": {
-      "file": "skills/adr-consultation/SKILL.md",
-      "description": "Multi-agent consultation for architecture decisions.",
-      "triggers": [
-        "consult on ADR",
-        "challenge this design",
-        "review before implementing",
-        "multi-agent consultation",
-        "architecture consultation",
-        "should we proceed",
-        "adr consultation"
-      ],
-      "category": "meta",
-      "user_invocable": false,
-      "pairs_with": [
-        "feature-lifecycle"
-      ]
-    },
-    "agent-comparison": {
-      "file": "skills/agent-comparison/SKILL.md",
-      "description": "A/B test agent variants for quality and token cost.",
-      "triggers": [
-        "compare agents",
-        "A/B test agents",
-        "benchmark agents",
-        "optimize skill",
-        "optimize description",
-        "run autoresearch"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
-      "pairs_with": [
-        "agent-evaluation",
-        "skill-eval"
-      ]
-    },
-    "agent-evaluation": {
-      "file": "skills/agent-evaluation/SKILL.md",
-      "description": "Evaluate agents and skills for quality and standards compliance.",
-      "triggers": [
-        "evaluate agent",
-        "audit agent",
-        "score skill",
-        "check quality",
-        "grade agent",
-        "agent quality"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
-      "pairs_with": [
-        "agent-comparison",
-        "skill-eval",
-        "skill-creator"
-      ]
-    },
-    "architecture-deepening": {
-      "file": "skills/architecture-deepening/SKILL.md",
-      "description": "Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation.",
-      "triggers": [
-        "deepen architecture",
-        "find shallow modules",
-        "architecture improvement",
-        "module depth analysis",
-        "deepening opportunities",
-        "improve module interfaces",
-        "reduce complexity",
-        "architecture deepening"
-      ],
-      "category": "analysis",
-      "user_invocable": true,
-      "pairs_with": [
-        "full-repo-review",
-        "adr-consultation",
-        "codebase-overview"
-      ]
-    },
-    "auto-dream": {
-      "file": "skills/auto-dream/SKILL.md",
-      "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
-      "triggers": [
-        "dream",
-        "consolidate memories",
-        "clean up memories",
-        "memory maintenance",
-        "memory consolidation",
-        "deduplicate memories",
-        "graduate learnings",
-        "promote learnings"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "pairs_with": []
-    },
-    "bluesky-reader": {
-      "file": "skills/bluesky-reader/SKILL.md",
-      "description": "Read public Bluesky feeds via AT Protocol API.",
-      "triggers": [
-        "read Bluesky",
-        "fetch Bluesky posts",
-        "AT Protocol",
-        "Bluesky feed",
-        "bsky"
-      ],
-      "category": "research",
-      "user_invocable": false,
-      "pairs_with": [
-        "content-engine"
-      ],
-      "agent": "python-general-engineer"
-    },
-    "cobalt-core": {
-      "file": "skills/cobalt-core/SKILL.md",
-      "description": "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.",
-      "triggers": [
-        "cobalt core",
-        "cobaltcore",
-        "kvm-exporter",
-        "kvm exporter",
-        "hypervisor metrics",
-        "libvirt exporter",
-        "cloud hypervisor"
-      ],
-      "category": "infrastructure",
-      "user_invocable": true,
-      "pairs_with": [
-        "go-patterns",
-        "prometheus-grafana-engineer",
-        "kubernetes-helm-engineer"
-      ],
-      "agent": "kubernetes-helm-engineer"
-    },
-    "code-cleanup": {
-      "file": "skills/code-cleanup/SKILL.md",
-      "description": "Detect stale TODOs, unused imports, and dead code.",
-      "triggers": [
-        "find dead code",
-        "stale TODOs",
-        "unused imports",
-        "clean up",
-        "tidy code",
-        "remove dead code",
-        "find unused"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "pairs_with": [
-        "code-linting",
-        "universal-quality-gate",
-        "comment-quality"
-      ]
-    },
-    "code-linting": {
-      "file": "skills/code-linting/SKILL.md",
-      "description": "Run Python (ruff) and JavaScript (Biome) linting.",
-      "triggers": [
-        "lint code",
-        "run ruff",
-        "run biome",
-        "format code",
-        "lint errors"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "pairs_with": [
-        "code-cleanup",
-        "universal-quality-gate",
-        "python-quality-gate"
-      ]
-    },
-    "codebase-analyzer": {
-      "file": "skills/codebase-analyzer/SKILL.md",
-      "description": "Statistical rule discovery from Go codebase patterns.",
-      "triggers": [
-        "analyze codebase",
-        "discover patterns",
-        "style vector",
-        "code cartographer",
-        "pattern frequency",
-        "structural metrics"
-      ],
-      "category": "analysis",
-      "user_invocable": false,
-      "pairs_with": [
-        "codebase-overview",
-        "go-patterns"
-      ]
-    },
-    "codebase-overview": {
-      "file": "skills/codebase-overview/SKILL.md",
-      "description": "Systematic codebase exploration and architecture mapping.",
-      "triggers": [
-        "onboard to codebase",
-        "codebase structure",
-        "what does this project do",
-        "give me an overview",
-        "summarize this repo",
-        "understand this codebase"
-      ],
-      "category": "analysis",
-      "user_invocable": false,
-      "pairs_with": [
-        "codebase-analyzer",
-        "generate-claudemd"
-      ]
-    },
-    "comment-quality": {
-      "file": "skills/comment-quality/SKILL.md",
-      "description": "Review and fix temporal references in code comments.",
-      "triggers": [
-        "review comments",
-        "fix temporal references",
-        "comment quality",
-        "stale comments",
-        "outdated comment"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "pairs_with": [
-        "code-cleanup",
-        "systematic-code-review"
-      ]
-    },
-    "condense": {
-      "file": "skills/condense/SKILL.md",
-      "description": "Maximize information density: preserve all instructions, remove prose filler.",
-      "triggers": [
-        "condense",
-        "reduce words",
-        "clarity pass",
-        "information density",
-        "remove prose",
-        "tighten",
-        "fewer words"
-      ],
-      "category": "code-quality",
-      "user_invocable": true,
-      "pairs_with": [
-        "skill-creator",
-        "anti-ai-editor"
-      ]
-    },
-    "condition-based-waiting": {
-      "file": "skills/condition-based-waiting/SKILL.md",
-      "description": "Polling, retry, and backoff patterns.",
-      "triggers": [
-        "exponential backoff",
-        "health check polling",
-        "retry pattern",
-        "wait for",
-        "keep trying until",
-        "poll until ready",
-        "retry until success"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "shell-process-patterns",
-        "service-health-check"
-      ]
-    },
-    "content-calendar": {
-      "file": "skills/content-calendar/SKILL.md",
-      "description": "Manage editorial content through 6 pipeline stages.",
-      "triggers": [
-        "content pipeline",
-        "editorial calendar",
-        "publishing schedule",
-        "content schedule",
-        "publication plan"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "topic-brainstormer",
-        "series-planner",
-        "publish"
-      ]
-    },
-    "content-engine": {
-      "file": "skills/content-engine/SKILL.md",
-      "description": "Repurpose source assets into platform-native social content.",
-      "triggers": [
-        "repurpose this",
-        "adapt for social",
-        "turn this into posts",
-        "content from article",
-        "content from demo",
-        "content from doc",
-        "write variants for",
-        "social content from",
-        "platform variants",
-        "repurpose for"
-      ],
-      "category": "content",
-      "user_invocable": false,
-      "pairs_with": [
-        "x-api"
-      ]
-    },
-    "cron-job-auditor": {
-      "file": "skills/cron-job-auditor/SKILL.md",
-      "description": "Audit cron scripts for reliability and safety.",
-      "triggers": [
-        "audit cron jobs",
-        "review scheduled scripts",
-        "cron safety",
-        "cron reliability",
-        "scheduled task safety"
-      ],
-      "category": "infrastructure",
-      "user_invocable": false,
-      "pairs_with": [
-        "shell-process-patterns",
-        "headless-cron-creator"
-      ]
-    },
     "csuite": {
-      "file": "skills/csuite/SKILL.md",
+      "file": "skills/business/csuite/SKILL.md",
       "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
       "triggers": [
         "should I",
@@ -368,406 +52,371 @@
       "user_invocable": false,
       "pairs_with": []
     },
-    "data-analysis": {
-      "file": "skills/data-analysis/SKILL.md",
-      "description": "Decision-first data analysis with statistical rigor gates.",
+    "customer-support": {
+      "file": "skills/business/customer-support/SKILL.md",
+      "description": "Customer support workflows \u2014 ticket triage, response drafting, knowledge base articles, escalation handling, customer research.",
       "triggers": [
-        "analyze data",
-        "data analysis",
-        "CSV",
-        "dataset",
-        "metrics",
-        "trend",
-        "cohort",
-        "A/B test",
-        "statistical",
-        "distribution",
-        "correlation",
-        "KPI",
-        "funnel",
-        "experiment results",
-        "data insights",
-        "statistical analysis",
-        "CSV analysis",
-        "explore dataset"
+        "customer support",
+        "ticket triage",
+        "support response",
+        "knowledge base",
+        "KB article",
+        "escalation",
+        "customer research"
       ],
-      "category": "analysis",
-      "user_invocable": false,
-      "pairs_with": [
-        "workflow",
-        "codebase-analyzer"
-      ]
-    },
-    "decision-helper": {
-      "file": "skills/decision-helper/SKILL.md",
-      "description": "Weighted decision scoring for architectural choices.",
-      "triggers": [
-        "weigh options",
-        "decision matrix",
-        "compare approaches",
-        "help me decide",
-        "pros and cons",
-        "trade-offs",
-        "which is better",
-        "should I use",
-        "evaluate options"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "multi-persona-critique",
-        "adr-consultation",
-        "planning"
-      ]
-    },
-    "distinctive-frontend-design": {
-      "file": "skills/distinctive-frontend-design/SKILL.md",
-      "description": "Context-driven aesthetic exploration with anti-cliche validation.",
-      "triggers": [
-        "frontend design",
-        "typography exploration",
-        "anti-cliche design",
-        "visual identity",
-        "design language"
-      ],
-      "category": "frontend",
-      "user_invocable": false,
-      "pairs_with": [
-        "threejs-builder",
-        "webgl-card-effects",
-        "frontend-slides"
-      ]
-    },
-    "do": {
-      "file": "skills/do/SKILL.md",
-      "description": "Classify user requests and route to the correct agent + skill.",
-      "triggers": [
-        "route task",
-        "classify request",
-        "which agent",
-        "delegate to skill",
-        "smart router"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true
-    },
-    "docs-sync-checker": {
-      "file": "skills/docs-sync-checker/SKILL.md",
-      "description": "Detect documentation drift against filesystem state.",
-      "triggers": [
-        "check doc drift",
-        "sync documentation",
-        "stale docs",
-        "documentation drift",
-        "README outdated"
-      ],
-      "category": "documentation",
-      "user_invocable": false,
-      "pairs_with": [
-        "generate-claudemd",
-        "codebase-overview"
-      ]
-    },
-    "e2e-testing": {
-      "file": "skills/e2e-testing/SKILL.md",
-      "description": "Playwright-based end-to-end testing workflow.",
-      "triggers": [
-        "playwright",
-        "E2E test",
-        "end-to-end",
-        "browser test",
-        "page object model",
-        "POM",
-        "test flakiness"
-      ],
-      "category": "testing",
-      "user_invocable": false,
-      "pairs_with": [
-        "testing-automation-engineer",
-        "typescript-frontend-engineer",
-        "test-driven-development"
-      ],
-      "agent": "testing-automation-engineer"
-    },
-    "endpoint-validator": {
-      "file": "skills/endpoint-validator/SKILL.md",
-      "description": "Deterministic API endpoint validation with pass/fail reporting.",
-      "triggers": [
-        "validate endpoints",
-        "smoke test API",
-        "health check endpoints",
-        "test endpoint",
-        "check API",
-        "smoke test"
-      ],
-      "category": "infrastructure",
-      "user_invocable": false,
-      "pairs_with": [
-        "service-health-check",
-        "e2e-testing"
-      ]
-    },
-    "explanation-traces": {
-      "file": "skills/explanation-traces/SKILL.md",
-      "description": "Query and display structured decision traces from routing, agent selection, and skill execution.",
-      "triggers": [
-        "why did you",
-        "explain routing",
-        "show trace",
-        "decision log",
-        "why that agent",
-        "explain decision",
-        "show decisions",
-        "trace log"
-      ],
-      "category": "analysis",
-      "force_route": true,
+      "category": "business",
       "user_invocable": true,
       "pairs_with": []
     },
-    "feature-lifecycle": {
-      "file": "skills/feature-lifecycle/SKILL.md",
-      "description": "Feature lifecycle: design, plan, implement, validate, release.",
+    "design": {
+      "file": "skills/business/design/SKILL.md",
+      "description": "Design workflows \u2014 UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis.",
       "triggers": [
-        "feature design",
-        "design feature",
-        "think through",
-        "explore approaches",
-        "design first",
-        "feature plan",
-        "plan feature",
-        "break down design",
-        "create tasks",
-        "feature implement",
-        "implement feature",
-        "execute plan",
-        "start building",
-        "feature validate",
-        "validate feature",
-        "run feature quality gates",
-        "check feature",
-        "feature release",
-        "release feature",
-        "merge feature",
-        "ship it",
-        "build feature end to end",
-        "full feature lifecycle",
-        "feature from scratch",
-        "design to release",
-        "complete feature pipeline",
-        "feature pipeline"
+        "design",
+        "UX copy",
+        "design system",
+        "design critique",
+        "accessibility",
+        "WCAG",
+        "design handoff",
+        "user research",
+        "UI copy",
+        "component library",
+        "design review",
+        "typography",
+        "color system"
       ],
-      "category": "process",
-      "force_route": true,
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "finance": {
+      "file": "skills/business/finance/SKILL.md",
+      "description": "Finance and accounting workflows \u2014 journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing.",
+      "triggers": [
+        "finance",
+        "journal entry",
+        "reconciliation",
+        "variance analysis",
+        "financial statements",
+        "audit",
+        "month-end close",
+        "SOX"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "hr": {
+      "file": "skills/business/hr/SKILL.md",
+      "description": "People operations workflows \u2014 recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning.",
+      "triggers": [
+        "HR",
+        "human resources",
+        "recruiting",
+        "performance review",
+        "compensation",
+        "hiring",
+        "onboarding",
+        "org planning"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "legal": {
+      "file": "skills/business/legal/SKILL.md",
+      "description": "Legal workflows \u2014 contract review, compliance checks, NDA triage, risk assessment, legal briefs.",
+      "triggers": [
+        "legal",
+        "contract review",
+        "compliance check",
+        "NDA",
+        "legal risk",
+        "legal brief",
+        "vendor check"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "marketing": {
+      "file": "skills/business/marketing/SKILL.md",
+      "description": "Marketing workflows \u2014 SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting.",
+      "triggers": [
+        "marketing",
+        "SEO",
+        "campaign",
+        "content strategy",
+        "email sequence",
+        "brand review",
+        "competitive analysis",
+        "marketing performance"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "operations": {
+      "file": "skills/business/operations/SKILL.md",
+      "description": "Business operations workflows \u2014 vendor management, runbooks, process documentation, risk assessment, capacity planning, change management, compliance tracking.",
+      "triggers": [
+        "operations",
+        "vendor review",
+        "runbook",
+        "process documentation",
+        "risk assessment",
+        "capacity plan",
+        "change management",
+        "compliance tracking"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "product-management": {
+      "file": "skills/business/product-management/SKILL.md",
+      "description": "Product management workflows \u2014 feature specs, roadmap planning, stakeholder updates, user research synthesis, competitive analysis, metrics review, sprint planning.",
+      "triggers": [
+        "product management",
+        "feature spec",
+        "PRD",
+        "roadmap",
+        "stakeholder update",
+        "user research",
+        "sprint planning",
+        "product metrics"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "productivity": {
+      "file": "skills/business/productivity/SKILL.md",
+      "description": "Productivity workflows \u2014 task management, daily planning, weekly reviews, meeting optimization, focus management, goal setting, status updates.",
+      "triggers": [
+        "productivity",
+        "task management",
+        "daily plan",
+        "weekly review",
+        "meeting agenda",
+        "focus time",
+        "goal setting",
+        "status update",
+        "time management",
+        "prioritize tasks",
+        "standup",
+        "retrospective"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "sales": {
+      "file": "skills/business/sales/SKILL.md",
+      "description": "Sales workflows \u2014 call prep, pipeline analysis, outreach, competitive intelligence, forecasting.",
+      "triggers": [
+        "sales",
+        "call prep",
+        "pipeline review",
+        "forecast",
+        "draft outreach",
+        "prospect research",
+        "competitive intelligence"
+      ],
+      "category": "business",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "code-cleanup": {
+      "file": "skills/code-quality/code-cleanup/SKILL.md",
+      "description": "Detect stale TODOs, unused imports, and dead code.",
+      "triggers": [
+        "find dead code",
+        "stale TODOs",
+        "unused imports",
+        "clean up",
+        "tidy code",
+        "remove dead code",
+        "find unused"
+      ],
+      "category": "code-quality",
       "user_invocable": false,
       "pairs_with": [
-        "workflow",
-        "subagent-driven-development",
-        "pr-workflow",
-        "verification-before-completion",
+        "code-linting",
         "universal-quality-gate",
-        "adr-consultation",
-        "planning"
+        "comment-quality"
       ]
     },
-    "fish-shell-config": {
-      "file": "skills/fish-shell-config/SKILL.md",
-      "description": "Fish shell configuration and PATH management.",
+    "code-linting": {
+      "file": "skills/code-quality/code-linting/SKILL.md",
+      "description": "Run Python (ruff) and JavaScript (Biome) linting.",
       "triggers": [
-        "fish",
-        "fish shell",
-        "config.fish",
-        "abbr",
-        "fish function",
-        "fish_config",
-        "fish_variables",
-        "funced",
-        "funcsave",
-        "~/.config/fish",
-        "conf.d",
-        "fish abbreviation",
-        ".fish file",
-        "#!/usr/bin/env fish"
+        "lint code",
+        "run ruff",
+        "run biome",
+        "format code",
+        "lint errors"
       ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": []
-    },
-    "forensics": {
-      "file": "skills/forensics/SKILL.md",
-      "description": "Post-mortem diagnostic analysis of failed workflows.",
-      "triggers": [
-        "forensics",
-        "what went wrong",
-        "why did this fail",
-        "stuck loop",
-        "diagnose workflow",
-        "post-mortem",
-        "workflow failure",
-        "session crashed",
-        "why is this stuck",
-        "investigate failure",
-        "why did this break",
-        "incident review"
-      ],
-      "category": "process",
+      "category": "code-quality",
       "user_invocable": false,
       "pairs_with": [
-        "workflow",
-        "planning"
+        "code-cleanup",
+        "universal-quality-gate",
+        "python-quality-gate"
       ]
     },
-    "frontend-slides": {
-      "file": "skills/frontend-slides/SKILL.md",
-      "description": "Browser-based HTML presentation generation.",
+    "comment-quality": {
+      "file": "skills/code-quality/comment-quality/SKILL.md",
+      "description": "Review and fix temporal references in code comments.",
       "triggers": [
-        "HTML slides",
-        "browser presentation",
-        "web deck",
-        "reveal-style",
-        "viewport presentation",
-        "convert PPTX to web",
-        "convert PPTX to HTML",
-        "slides for a browser",
-        "kiosk presentation",
-        "interactive presentation keyboard",
-        "projector browser"
+        "review comments",
+        "fix temporal references",
+        "comment quality",
+        "stale comments",
+        "outdated comment"
       ],
-      "category": "frontend",
+      "category": "code-quality",
       "user_invocable": false,
       "pairs_with": [
-        "typescript-frontend-engineer",
-        "pptx-generator"
-      ],
-      "agent": "typescript-frontend-engineer"
+        "code-cleanup",
+        "systematic-code-review"
+      ]
     },
-    "full-repo-review": {
-      "file": "skills/full-repo-review/SKILL.md",
-      "description": "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.",
+    "condense": {
+      "file": "skills/code-quality/condense/SKILL.md",
+      "description": "Maximize information density: preserve all instructions, remove prose filler.",
       "triggers": [
-        "full repo review",
-        "review entire repo",
-        "codebase health check",
-        "review all files",
-        "full codebase review"
+        "condense",
+        "reduce words",
+        "clarity pass",
+        "information density",
+        "remove prose",
+        "tighten",
+        "fewer words"
       ],
-      "category": "analysis",
+      "category": "code-quality",
       "user_invocable": true,
       "pairs_with": [
-        "systematic-code-review",
-        "parallel-code-review"
+        "skill-creator",
+        "anti-ai-editor"
       ]
     },
-    "game-asset-generator": {
-      "file": "skills/game-asset-generator/SKILL.md",
-      "description": "Deterministic palette/matrix pixel art (not AI).",
+    "python-quality-gate": {
+      "file": "skills/code-quality/python-quality-gate/SKILL.md",
+      "description": "Python quality checks: ruff, pytest, mypy, bandit in deterministic order.",
       "triggers": [
-        "pixel art",
-        "tile pattern",
-        "palette quantize",
-        "matrix sprite",
-        "meshy",
-        "meshyai",
-        "generate 3d model",
-        "text to 3d",
-        "image to 3d",
-        "world labs",
-        "gaussian splat",
-        "splat environment",
-        "game asset",
-        "fal ai",
-        "fal.ai",
-        "generate texture",
-        "generate image for game",
-        "3d character",
-        "game model",
-        "rig model",
-        "animate model",
-        "game environment",
-        "sketchfab",
-        "poly pizza",
-        "poly haven"
+        "Python quality",
+        "ruff check",
+        "bandit scan",
+        "mypy check",
+        "python lint",
+        "python quality gate",
+        "check python",
+        "pre-commit check"
       ],
-      "category": "game-development",
+      "category": "code-quality",
+      "force_route": true,
       "user_invocable": false,
       "pairs_with": [
-        "threejs-builder",
-        "typescript-frontend-engineer"
-      ],
-      "agent": "typescript-frontend-engineer"
-    },
-    "game-pipeline": {
-      "file": "skills/game-pipeline/SKILL.md",
-      "description": "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.",
-      "triggers": [
-        "make game",
-        "game pipeline",
-        "game audio",
-        "add audio game",
-        "game testing",
-        "game qa",
-        "playtest",
-        "deploy game",
-        "ship game",
-        "promo video",
-        "record gameplay",
-        "game polish",
-        "add juice",
-        "screen shake",
-        "capacitor ios"
-      ],
-      "category": "game-development",
-      "user_invocable": false,
-      "pairs_with": [
-        "threejs-builder",
-        "phaser-gamedev",
-        "game-asset-generator"
-      ]
-    },
-    "game-sprite-pipeline": {
-      "file": "skills/game-sprite-pipeline/SKILL.md",
-      "description": "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana.",
-      "triggers": [
-        "AI sprite",
-        "AI character art",
-        "generate character",
-        "generate sprite",
-        "generate wrestler",
-        "generate character portrait",
-        "spritesheet pipeline",
-        "animated spritesheet",
-        "animated sprite",
-        "portrait loop",
-        "idle loop",
-        "road-to-aew sprite",
-        "sprite for road-to-aew",
-        "wrestler portrait",
-        "character sheet",
-        "fighter spritesheet",
-        "RPG character spritesheet",
-        "platformer spritesheet",
-        "per-row sprite generation",
-        "video to sprite",
-        "animation preset",
-        "deterministic idle",
-        "breathing loop",
-        "sprite QA",
-        "contact sheet"
-      ],
-      "category": "game",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "phaser-gamedev",
-        "threejs-builder",
-        "python-general-engineer",
-        "motion-pipeline"
+        "code-linting",
+        "test-driven-development"
       ],
       "agent": "python-general-engineer"
     },
+    "typescript-check": {
+      "file": "skills/code-quality/typescript-check/SKILL.md",
+      "description": "TypeScript type checking via tsc --noEmit with actionable error output.",
+      "triggers": [
+        "TypeScript check",
+        "tsc noEmit",
+        "type check TypeScript",
+        "tsc errors",
+        "TypeScript type validation"
+      ],
+      "category": "code-quality",
+      "user_invocable": false,
+      "pairs_with": [
+        "vitest-runner",
+        "code-linting"
+      ],
+      "agent": "typescript-frontend-engineer"
+    },
+    "universal-quality-gate": {
+      "file": "skills/code-quality/universal-quality-gate/SKILL.md",
+      "description": "Multi-language code quality gate with auto-detection and linters.",
+      "triggers": [
+        "quality gate",
+        "lint check",
+        "multi-language lint",
+        "code quality check",
+        "language-agnostic lint"
+      ],
+      "category": "code-quality",
+      "user_invocable": false,
+      "pairs_with": [
+        "code-linting",
+        "verification-before-completion"
+      ]
+    },
+    "bluesky-reader": {
+      "file": "skills/content/bluesky-reader/SKILL.md",
+      "description": "Read public Bluesky feeds via AT Protocol API.",
+      "triggers": [
+        "read Bluesky",
+        "fetch Bluesky posts",
+        "AT Protocol",
+        "Bluesky feed",
+        "bsky"
+      ],
+      "category": "research",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-engine"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "content-calendar": {
+      "file": "skills/content/content-calendar/SKILL.md",
+      "description": "Manage editorial content through 6 pipeline stages.",
+      "triggers": [
+        "content pipeline",
+        "editorial calendar",
+        "publishing schedule",
+        "content schedule",
+        "publication plan"
+      ],
+      "category": "content-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "topic-brainstormer",
+        "series-planner",
+        "publish"
+      ]
+    },
+    "content-engine": {
+      "file": "skills/content/content-engine/SKILL.md",
+      "description": "Repurpose source assets into platform-native social content.",
+      "triggers": [
+        "repurpose this",
+        "adapt for social",
+        "turn this into posts",
+        "content from article",
+        "content from demo",
+        "content from doc",
+        "write variants for",
+        "social content from",
+        "platform variants",
+        "repurpose for"
+      ],
+      "category": "content",
+      "user_invocable": false,
+      "pairs_with": [
+        "x-api"
+      ]
+    },
     "gemini-image-generator": {
-      "file": "skills/gemini-image-generator/SKILL.md",
+      "file": "skills/content/gemini-image-generator/SKILL.md",
       "description": "Generate images from text prompts via Google Gemini.",
       "triggers": [
         "generate image",
@@ -786,39 +435,332 @@
       ],
       "agent": "python-general-engineer"
     },
-    "generate-claudemd": {
-      "file": "skills/generate-claudemd/SKILL.md",
-      "description": "Generate project-specific CLAUDE.md from repo analysis.",
+    "image-to-video": {
+      "file": "skills/content/image-to-video/SKILL.md",
+      "description": "FFmpeg-based video creation from image and audio.",
       "triggers": [
-        "generate claude.md",
-        "create claude.md",
-        "init claude.md",
-        "bootstrap claude.md",
-        "make claude.md"
+        "image to video",
+        "audio visualization",
+        "static video",
+        "mp4 from image",
+        "music video",
+        "podcast video",
+        "video from image",
+        "combine image audio",
+        "album art video",
+        "cover art video"
       ],
-      "category": "documentation",
+      "category": "video-creation",
       "user_invocable": false,
       "pairs_with": [
-        "go-patterns",
-        "codebase-overview"
+        "gemini-image-generator",
+        "workflow"
       ]
     },
-    "github-notification-triage": {
-      "file": "skills/github-notification-triage/SKILL.md",
-      "description": "Triage GitHub notifications and report actions needed.",
+    "nano-banana-builder": {
+      "file": "skills/content/nano-banana-builder/SKILL.md",
+      "description": "Image generation and post-processing via Gemini Nano Banana APIs.",
       "triggers": [
-        "github notifications",
-        "triage notifications",
-        "check notifications",
-        "notification cleanup",
-        "github inbox"
+        "nano banana",
+        "gemini image generation",
+        "AI image generator",
+        "generate image",
+        "gemini-2.5-flash-image",
+        "gemini-3-pro-image-preview",
+        "batch image generation",
+        "image post-processing",
+        "sprite generation",
+        "generate card art"
       ],
-      "category": "github",
+      "category": "image-generation",
       "user_invocable": false,
+      "pairs_with": [
+        "python-general-engineer",
+        "universal-quality-gate"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "pptx-generator": {
+      "file": "skills/content/pptx-generator/SKILL.md",
+      "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
+      "triggers": [
+        "presentation",
+        "powerpoint",
+        "pptx",
+        "slide deck",
+        "pitch deck",
+        "slides",
+        "create slides",
+        "generate presentation",
+        "make a deck",
+        "conference talk slides"
+      ],
+      "category": "content-generation",
+      "user_invocable": false,
+      "pairs_with": [
+        "workflow",
+        "gemini-image-generator"
+      ]
+    },
+    "professional-communication": {
+      "file": "skills/content/professional-communication/SKILL.md",
+      "description": "Transform technical communication into structured business formats.",
+      "triggers": [
+        "business communication",
+        "structured format",
+        "clear writing",
+        "write email",
+        "draft memo",
+        "executive summary",
+        "summarize for management",
+        "status update"
+      ],
+      "category": "content-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-writer",
+        "pptx-generator"
+      ]
+    },
+    "publish": {
+      "file": "skills/content/publish/SKILL.md",
+      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
+      "triggers": [
+        "outline post",
+        "blog structure",
+        "content blueprint",
+        "article outline",
+        "content structure",
+        "pre-publish check",
+        "Hugo validation",
+        "front matter check",
+        "publication check",
+        "frontmatter validation",
+        "check SEO",
+        "optimize SEO",
+        "keyword analysis",
+        "meta description",
+        "keyword optimization",
+        "batch edit posts",
+        "bulk frontmatter update",
+        "find replace across files",
+        "mass edit",
+        "bulk update",
+        "audit links",
+        "find broken links",
+        "link health",
+        "broken links",
+        "dead links",
+        "audit images",
+        "check broken images",
+        "image accessibility",
+        "alt text check",
+        "image optimization",
+        "audit taxonomy",
+        "fix tags",
+        "merge categories",
+        "tag cleanup",
+        "category management",
+        "upload to wordpress",
+        "create wordpress draft",
+        "publish to your-blog",
+        "wordpress draft",
+        "upload article",
+        "post to wordpress",
+        "upload image to wordpress",
+        "edit wordpress post",
+        "update wordpress post",
+        "wordpress media",
+        "create wp categories",
+        "auto-create categories",
+        "create missing categories",
+        "search wp media",
+        "search wordpress media",
+        "search media library",
+        "find existing wordpress image",
+        "find existing image",
+        "reuse existing media"
+      ],
+      "category": "content-publishing",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-calendar",
+        "wordpress-live-validation"
+      ],
+      "agent": "general-purpose"
+    },
+    "reddit-moderate": {
+      "file": "skills/content/reddit-moderate/SKILL.md",
+      "description": "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.",
+      "triggers": [
+        "moderate Reddit",
+        "modqueue",
+        "Reddit reports",
+        "Reddit moderation",
+        "check reports"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-engine"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "series-planner": {
+      "file": "skills/content/series-planner/SKILL.md",
+      "description": "Plan multi-part content series: structure, cross-linking, cadence.",
+      "triggers": [
+        "plan series",
+        "multi-part content",
+        "content series",
+        "article series",
+        "content arc"
+      ],
+      "category": "content-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-calendar",
+        "topic-brainstormer",
+        "publish"
+      ]
+    },
+    "topic-brainstormer": {
+      "file": "skills/content/topic-brainstormer/SKILL.md",
+      "description": "Generate blog topic ideas: problem mining, gap analysis, expansion.",
+      "triggers": [
+        "brainstorm topics",
+        "content ideas",
+        "blog topic ideas",
+        "what to write about"
+      ],
+      "category": "content-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-calendar",
+        "series-planner",
+        "research-pipeline"
+      ]
+    },
+    "video-editing": {
+      "file": "skills/content/video-editing/SKILL.md",
+      "description": "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.",
+      "triggers": [
+        "edit video",
+        "cut footage",
+        "make vlog",
+        "screen recording",
+        "video workflow",
+        "ffmpeg",
+        "remotion",
+        "demo video",
+        "make a clip",
+        "assemble clips",
+        "video editing"
+      ],
+      "category": "video-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "typescript-frontend-engineer"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "wordpress-live-validation": {
+      "file": "skills/content/wordpress-live-validation/SKILL.md",
+      "description": "Validate published WordPress posts in browser via Playwright.",
+      "triggers": [
+        "validate wordpress post",
+        "check live post",
+        "verify published post",
+        "wordpress post looks right",
+        "check og tags live",
+        "responsive check wordpress",
+        "post rendering check",
+        "live site validation"
+      ],
+      "category": "content-publishing",
+      "user_invocable": false,
+      "pairs_with": [
+        "publish",
+        "e2e-testing"
+      ]
+    },
+    "x-api": {
+      "file": "skills/content/x-api/SKILL.md",
+      "description": "Post tweets, build threads, upload media via the X API.",
+      "triggers": [
+        "post to X",
+        "post tweet",
+        "tweet this",
+        "build thread",
+        "post thread",
+        "twitter thread",
+        "x api",
+        "upload media to X",
+        "read timeline",
+        "search X",
+        "search twitter",
+        "publish to X",
+        "publish to twitter"
+      ],
+      "category": "content-publishing",
+      "user_invocable": false,
+      "pairs_with": [
+        "content-engine"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "cobalt-core": {
+      "file": "skills/engineering/cobalt-core/SKILL.md",
+      "description": "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.",
+      "triggers": [
+        "cobalt core",
+        "cobaltcore",
+        "kvm-exporter",
+        "kvm exporter",
+        "hypervisor metrics",
+        "libvirt exporter",
+        "cloud hypervisor"
+      ],
+      "category": "infrastructure",
+      "user_invocable": true,
+      "pairs_with": [
+        "go-patterns",
+        "prometheus-grafana-engineer",
+        "kubernetes-helm-engineer"
+      ],
+      "agent": "kubernetes-helm-engineer"
+    },
+    "enterprise-search": {
+      "file": "skills/engineering/enterprise-search/SKILL.md",
+      "description": "Enterprise search engineering \u2014 relevance tuning, query understanding, index management, search quality measurement, ranking optimization, schema design.",
+      "triggers": [
+        "enterprise search",
+        "search relevance",
+        "ranking",
+        "inverted index",
+        "query understanding",
+        "BM25",
+        "nDCG",
+        "search quality",
+        "OpenSearch",
+        "Elasticsearch",
+        "vector search",
+        "hybrid search",
+        "Solr",
+        "Vespa",
+        "Typesense",
+        "analyzer chain",
+        "search tuning",
+        "learned ranking",
+        "LTR",
+        "query DSL"
+      ],
+      "category": "engineering",
+      "user_invocable": true,
       "pairs_with": []
     },
     "go-patterns": {
-      "file": "skills/go-patterns/SKILL.md",
+      "file": "skills/engineering/go-patterns/SKILL.md",
       "description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
       "triggers": [
         "go test",
@@ -874,82 +816,8 @@
       ],
       "agent": "golang-general-engineer"
     },
-    "headless-cron-creator": {
-      "file": "skills/headless-cron-creator/SKILL.md",
-      "description": "Generate headless Claude Code cron jobs with safety.",
-      "triggers": [
-        "create cron job",
-        "scheduled task",
-        "headless agent",
-        "background automation",
-        "recurring agent"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "cron-job-auditor",
-        "shell-process-patterns"
-      ],
-      "agent": "python-general-engineer"
-    },
-    "image-to-video": {
-      "file": "skills/image-to-video/SKILL.md",
-      "description": "FFmpeg-based video creation from image and audio.",
-      "triggers": [
-        "image to video",
-        "audio visualization",
-        "static video",
-        "mp4 from image",
-        "music video",
-        "podcast video",
-        "video from image",
-        "combine image audio",
-        "album art video",
-        "cover art video"
-      ],
-      "category": "video-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "gemini-image-generator",
-        "workflow"
-      ]
-    },
-    "install": {
-      "file": "skills/install/SKILL.md",
-      "description": "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup.",
-      "triggers": [
-        "install toolkit",
-        "verify installation",
-        "health check toolkit",
-        "setup toolkit",
-        "diagnose setup",
-        "toolkit health"
-      ],
-      "category": "meta-tooling",
-      "force_route": true,
-      "user_invocable": true
-    },
-    "integration-checker": {
-      "file": "skills/integration-checker/SKILL.md",
-      "description": "Verify cross-component wiring and data flow.",
-      "triggers": [
-        "integration check",
-        "check integration",
-        "verify wiring",
-        "are components connected",
-        "check connections",
-        "integration-checker",
-        "wiring check"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "feature-lifecycle",
-        "systematic-code-review"
-      ]
-    },
     "kotlin-coroutines": {
-      "file": "skills/kotlin-coroutines/SKILL.md",
+      "file": "skills/engineering/kotlin-coroutines/SKILL.md",
       "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
       "triggers": [
         "kotlin coroutines",
@@ -967,7 +835,7 @@
       "agent": "kotlin-general-engineer"
     },
     "kotlin-testing": {
-      "file": "skills/kotlin-testing/SKILL.md",
+      "file": "skills/engineering/kotlin-testing/SKILL.md",
       "description": "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.",
       "triggers": [
         "kotlin testing",
@@ -984,62 +852,328 @@
       ],
       "agent": "kotlin-general-engineer"
     },
-    "kubernetes-debugging": {
-      "file": "skills/kubernetes-debugging/SKILL.md",
-      "description": "Kubernetes debugging for pod failures and networking.",
+    "php-quality": {
+      "file": "skills/engineering/php-quality/SKILL.md",
+      "description": "PHP code quality: PSR standards, strict types, framework idioms.",
       "triggers": [
-        "kubernetes debug",
-        "pod failure",
-        "pod crashloop",
-        "kubectl logs",
-        "OOMKilled",
-        "pod pending"
+        "php quality",
+        "php code review",
+        "PSR standards",
+        "phpstan",
+        "php-cs-fixer"
       ],
-      "category": "kubernetes",
+      "category": "php",
       "user_invocable": false,
       "pairs_with": [
-        "kubernetes-security",
-        "service-health-check"
+        "php-testing",
+        "code-linting"
       ],
-      "agent": "kubernetes-helm-engineer"
+      "agent": "php-general-engineer"
     },
-    "kubernetes-security": {
-      "file": "skills/kubernetes-security/SKILL.md",
-      "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
+    "php-testing": {
+      "file": "skills/engineering/php-testing/SKILL.md",
+      "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
       "triggers": [
-        "kubernetes security",
-        "k8s RBAC",
-        "RBAC setup",
-        "pod security policy",
-        "network policy"
+        "php testing",
+        "phpunit",
+        "pest php",
+        "php mock"
       ],
-      "category": "kubernetes",
+      "category": "php",
       "user_invocable": false,
       "pairs_with": [
-        "kubernetes-debugging",
-        "cobalt-core"
+        "php-quality",
+        "test-driven-development"
       ],
-      "agent": "kubernetes-helm-engineer"
+      "agent": "php-general-engineer"
     },
-    "learn": {
-      "file": "skills/learn/SKILL.md",
-      "description": "Manually teach error pattern and solution to learning database.",
+    "sapcc-audit": {
+      "file": "skills/engineering/sapcc-audit/SKILL.md",
+      "description": "Full-repo SAP CC Go compliance audit against review standards.",
       "triggers": [
-        "teach pattern",
-        "record learning",
-        "manual learning entry",
-        "teach error pattern",
-        "save learning"
+        "sapcc audit",
+        "sapcc compliance",
+        "check sapcc rules",
+        "full repo audit",
+        "sapcc secondary review",
+        "sapcc standards check"
       ],
-      "category": "meta-tooling",
+      "category": "language",
       "user_invocable": false,
       "pairs_with": [
-        "retro",
-        "auto-dream"
+        "golang-general-engineer",
+        "golang-general-engineer-compact",
+        "go-patterns"
+      ],
+      "agent": "golang-general-engineer"
+    },
+    "sapcc-review": {
+      "file": "skills/engineering/sapcc-review/SKILL.md",
+      "description": "Gold-standard SAP CC Go code review: 10 parallel domain specialists.",
+      "triggers": [
+        "sapcc review",
+        "sapcc lead review",
+        "sapcc compliance review",
+        "comprehensive sapcc audit",
+        "full sapcc check",
+        "review sapcc standards"
+      ],
+      "category": "language",
+      "user_invocable": false,
+      "pairs_with": [
+        "golang-general-engineer",
+        "go-patterns",
+        "sapcc-audit"
+      ],
+      "agent": "golang-general-engineer"
+    },
+    "swift-concurrency": {
+      "file": "skills/engineering/swift-concurrency/SKILL.md",
+      "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
+      "triggers": [
+        "swift concurrency",
+        "swift async await",
+        "Swift Actor",
+        "Swift Task group"
+      ],
+      "category": "swift",
+      "user_invocable": false,
+      "pairs_with": [
+        "swift-testing"
+      ],
+      "agent": "swift-general-engineer"
+    },
+    "swift-testing": {
+      "file": "skills/engineering/swift-testing/SKILL.md",
+      "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
+      "triggers": [
+        "swift testing",
+        "XCTest",
+        "Swift Testing framework",
+        "async test swift"
+      ],
+      "category": "swift",
+      "user_invocable": false,
+      "pairs_with": [
+        "swift-concurrency",
+        "test-driven-development"
+      ],
+      "agent": "swift-general-engineer"
+    },
+    "distinctive-frontend-design": {
+      "file": "skills/frontend/distinctive-frontend-design/SKILL.md",
+      "description": "Context-driven aesthetic exploration with anti-cliche validation.",
+      "triggers": [
+        "frontend design",
+        "typography exploration",
+        "anti-cliche design",
+        "visual identity",
+        "design language"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "pairs_with": [
+        "threejs-builder",
+        "webgl-card-effects",
+        "frontend-slides"
       ]
     },
+    "frontend-slides": {
+      "file": "skills/frontend/frontend-slides/SKILL.md",
+      "description": "Browser-based HTML presentation generation.",
+      "triggers": [
+        "HTML slides",
+        "browser presentation",
+        "web deck",
+        "reveal-style",
+        "viewport presentation",
+        "convert PPTX to web",
+        "convert PPTX to HTML",
+        "slides for a browser",
+        "kiosk presentation",
+        "interactive presentation keyboard",
+        "projector browser"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "pptx-generator"
+      ],
+      "agent": "typescript-frontend-engineer"
+    },
+    "threejs-builder": {
+      "file": "skills/frontend/threejs-builder/SKILL.md",
+      "description": "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.",
+      "triggers": [
+        "threejs",
+        "three.js",
+        "3D web",
+        "3D scene",
+        "WebGL",
+        "WebGPU",
+        "3D animation",
+        "3D graphics",
+        "react three fiber",
+        "r3f",
+        "drei",
+        "react-three",
+        "@react-three/fiber",
+        "postprocessing 3D",
+        "TSL shader",
+        "three shading language",
+        "compute shader three",
+        "WebGPURenderer",
+        "node material three",
+        "game architecture three",
+        "gltf loading",
+        "glb model",
+        "animation state machine three",
+        "eventbus game",
+        "game state management three",
+        "three.js game"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "react-native-engineer",
+        "distinctive-frontend-design"
+      ],
+      "agent": "typescript-frontend-engineer"
+    },
+    "webgl-card-effects": {
+      "file": "skills/frontend/webgl-card-effects/SKILL.md",
+      "description": "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.",
+      "triggers": [
+        "card effects",
+        "holographic",
+        "foil effect",
+        "card shimmer",
+        "card glow",
+        "shader card",
+        "WebGL card",
+        "rarity effects",
+        "Balatro effect",
+        "card visual effects"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "ui-design-engineer"
+      ],
+      "agent": "typescript-frontend-engineer"
+    },
+    "game-asset-generator": {
+      "file": "skills/game/game-asset-generator/SKILL.md",
+      "description": "Deterministic palette/matrix pixel art (not AI).",
+      "triggers": [
+        "pixel art",
+        "tile pattern",
+        "palette quantize",
+        "matrix sprite",
+        "meshy",
+        "meshyai",
+        "generate 3d model",
+        "text to 3d",
+        "image to 3d",
+        "world labs",
+        "gaussian splat",
+        "splat environment",
+        "game asset",
+        "fal ai",
+        "fal.ai",
+        "generate texture",
+        "generate image for game",
+        "3d character",
+        "game model",
+        "rig model",
+        "animate model",
+        "game environment",
+        "sketchfab",
+        "poly pizza",
+        "poly haven"
+      ],
+      "category": "game-development",
+      "user_invocable": false,
+      "pairs_with": [
+        "threejs-builder",
+        "typescript-frontend-engineer"
+      ],
+      "agent": "typescript-frontend-engineer"
+    },
+    "game-pipeline": {
+      "file": "skills/game/game-pipeline/SKILL.md",
+      "description": "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.",
+      "triggers": [
+        "make game",
+        "game pipeline",
+        "game audio",
+        "add audio game",
+        "game testing",
+        "game qa",
+        "playtest",
+        "deploy game",
+        "ship game",
+        "promo video",
+        "record gameplay",
+        "game polish",
+        "add juice",
+        "screen shake",
+        "capacitor ios"
+      ],
+      "category": "game-development",
+      "user_invocable": false,
+      "pairs_with": [
+        "threejs-builder",
+        "phaser-gamedev",
+        "game-asset-generator"
+      ]
+    },
+    "game-sprite-pipeline": {
+      "file": "skills/game/game-sprite-pipeline/SKILL.md",
+      "description": "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana.",
+      "triggers": [
+        "AI sprite",
+        "AI character art",
+        "generate character",
+        "generate sprite",
+        "generate wrestler",
+        "generate character portrait",
+        "spritesheet pipeline",
+        "animated spritesheet",
+        "animated sprite",
+        "portrait loop",
+        "idle loop",
+        "road-to-aew sprite",
+        "sprite for road-to-aew",
+        "wrestler portrait",
+        "character sheet",
+        "fighter spritesheet",
+        "RPG character spritesheet",
+        "platformer spritesheet",
+        "per-row sprite generation",
+        "video to sprite",
+        "animation preset",
+        "deterministic idle",
+        "breathing loop",
+        "sprite QA",
+        "contact sheet"
+      ],
+      "category": "game",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "pairs_with": [
+        "phaser-gamedev",
+        "threejs-builder",
+        "python-general-engineer",
+        "motion-pipeline"
+      ],
+      "agent": "python-general-engineer"
+    },
     "motion-pipeline": {
-      "file": "skills/motion-pipeline/SKILL.md",
+      "file": "skills/game/motion-pipeline/SKILL.md",
       "description": "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK.",
       "triggers": [
         "mocap",
@@ -1061,88 +1195,8 @@
         "phaser-gamedev"
       ]
     },
-    "multi-persona-critique": {
-      "file": "skills/multi-persona-critique/SKILL.md",
-      "description": "Parallel critique of proposals via 5 philosophical personas with consensus synthesis.",
-      "triggers": [
-        "critique these ideas",
-        "multi-persona review",
-        "philosophical critique",
-        "devil's advocate on ideas",
-        "stress test proposals",
-        "evaluate from multiple perspectives",
-        "get different viewpoints",
-        "critique proposals"
-      ],
-      "category": "analysis",
-      "user_invocable": true,
-      "pairs_with": [
-        "roast",
-        "decision-helper"
-      ]
-    },
-    "nano-banana-builder": {
-      "file": "skills/nano-banana-builder/SKILL.md",
-      "description": "Image generation and post-processing via Gemini Nano Banana APIs.",
-      "triggers": [
-        "nano banana",
-        "gemini image generation",
-        "AI image generator",
-        "generate image",
-        "gemini-2.5-flash-image",
-        "gemini-3-pro-image-preview",
-        "batch image generation",
-        "image post-processing",
-        "sprite generation",
-        "generate card art"
-      ],
-      "category": "image-generation",
-      "user_invocable": false,
-      "pairs_with": [
-        "python-general-engineer",
-        "universal-quality-gate"
-      ],
-      "agent": "python-general-engineer"
-    },
-    "pair-programming": {
-      "file": "skills/pair-programming/SKILL.md",
-      "description": "Collaborative coding with enforced micro-steps and user-paced control.",
-      "triggers": [
-        "pair program",
-        "collaborative coding",
-        "micro-steps",
-        "step by step coding",
-        "one change at a time",
-        "show each change",
-        "walk me through",
-        "interactive coding"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "test-driven-development",
-        "subagent-driven-development"
-      ]
-    },
-    "parallel-code-review": {
-      "file": "skills/parallel-code-review/SKILL.md",
-      "description": "Parallel 3-reviewer code review: Security, Business-Logic, Architecture.",
-      "triggers": [
-        "parallel review",
-        "3-reviewer review",
-        "security review",
-        "multi-reviewer",
-        "concurrent review"
-      ],
-      "category": "code-review",
-      "user_invocable": false,
-      "pairs_with": [
-        "systematic-code-review",
-        "verification-before-completion"
-      ]
-    },
     "phaser-gamedev": {
-      "file": "skills/phaser-gamedev/SKILL.md",
+      "file": "skills/game/phaser-gamedev/SKILL.md",
       "description": "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish.",
       "triggers": [
         "phaser",
@@ -1161,43 +1215,612 @@
       ],
       "agent": "typescript-frontend-engineer"
     },
-    "php-quality": {
-      "file": "skills/php-quality/SKILL.md",
-      "description": "PHP code quality: PSR standards, strict types, framework idioms.",
+    "cron-job-auditor": {
+      "file": "skills/infrastructure/cron-job-auditor/SKILL.md",
+      "description": "Audit cron scripts for reliability and safety.",
       "triggers": [
-        "php quality",
-        "php code review",
-        "PSR standards",
-        "phpstan",
-        "php-cs-fixer"
+        "audit cron jobs",
+        "review scheduled scripts",
+        "cron safety",
+        "cron reliability",
+        "scheduled task safety"
       ],
-      "category": "php",
+      "category": "infrastructure",
       "user_invocable": false,
       "pairs_with": [
-        "php-testing",
-        "code-linting"
-      ],
-      "agent": "php-general-engineer"
+        "shell-process-patterns",
+        "headless-cron-creator"
+      ]
     },
-    "php-testing": {
-      "file": "skills/php-testing/SKILL.md",
-      "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
+    "endpoint-validator": {
+      "file": "skills/infrastructure/endpoint-validator/SKILL.md",
+      "description": "Deterministic API endpoint validation with pass/fail reporting.",
       "triggers": [
-        "php testing",
-        "phpunit",
-        "pest php",
-        "php mock"
+        "validate endpoints",
+        "smoke test API",
+        "health check endpoints",
+        "test endpoint",
+        "check API",
+        "smoke test"
       ],
-      "category": "php",
+      "category": "infrastructure",
       "user_invocable": false,
       "pairs_with": [
-        "php-quality",
-        "test-driven-development"
+        "service-health-check",
+        "e2e-testing"
+      ]
+    },
+    "fish-shell-config": {
+      "file": "skills/infrastructure/fish-shell-config/SKILL.md",
+      "description": "Fish shell configuration and PATH management.",
+      "triggers": [
+        "fish",
+        "fish shell",
+        "config.fish",
+        "abbr",
+        "fish function",
+        "fish_config",
+        "fish_variables",
+        "funced",
+        "funcsave",
+        "~/.config/fish",
+        "conf.d",
+        "fish abbreviation",
+        ".fish file",
+        "#!/usr/bin/env fish"
       ],
-      "agent": "php-general-engineer"
+      "category": "process",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": []
+    },
+    "headless-cron-creator": {
+      "file": "skills/infrastructure/headless-cron-creator/SKILL.md",
+      "description": "Generate headless Claude Code cron jobs with safety.",
+      "triggers": [
+        "create cron job",
+        "scheduled task",
+        "headless agent",
+        "background automation",
+        "recurring agent"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "cron-job-auditor",
+        "shell-process-patterns"
+      ],
+      "agent": "python-general-engineer"
+    },
+    "kubernetes-debugging": {
+      "file": "skills/infrastructure/kubernetes-debugging/SKILL.md",
+      "description": "Kubernetes debugging for pod failures and networking.",
+      "triggers": [
+        "kubernetes debug",
+        "pod failure",
+        "pod crashloop",
+        "kubectl logs",
+        "OOMKilled",
+        "pod pending"
+      ],
+      "category": "kubernetes",
+      "user_invocable": false,
+      "pairs_with": [
+        "kubernetes-security",
+        "service-health-check"
+      ],
+      "agent": "kubernetes-helm-engineer"
+    },
+    "kubernetes-security": {
+      "file": "skills/infrastructure/kubernetes-security/SKILL.md",
+      "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
+      "triggers": [
+        "kubernetes security",
+        "k8s RBAC",
+        "RBAC setup",
+        "pod security policy",
+        "network policy"
+      ],
+      "category": "kubernetes",
+      "user_invocable": false,
+      "pairs_with": [
+        "kubernetes-debugging",
+        "cobalt-core"
+      ],
+      "agent": "kubernetes-helm-engineer"
+    },
+    "service-health-check": {
+      "file": "skills/infrastructure/service-health-check/SKILL.md",
+      "description": "Service health monitoring: Discover, Check, Report in 3 phases.",
+      "triggers": [
+        "service status",
+        "process health",
+        "uptime check",
+        "is service running",
+        "check health"
+      ],
+      "category": "infrastructure",
+      "user_invocable": false,
+      "pairs_with": [
+        "kubernetes-debugging",
+        "endpoint-validator",
+        "condition-based-waiting"
+      ]
+    },
+    "shell-process-patterns": {
+      "file": "skills/infrastructure/shell-process-patterns/SKILL.md",
+      "description": "Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.",
+      "triggers": [
+        "background process",
+        "nohup",
+        "kill process",
+        "pid lookup",
+        "shell cleanup",
+        "trap handler",
+        "signal handling",
+        "set -e",
+        "bash process"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "condition-based-waiting",
+        "service-health-check",
+        "cron-job-auditor"
+      ]
+    },
+    "agent-comparison": {
+      "file": "skills/meta/agent-comparison/SKILL.md",
+      "description": "A/B test agent variants for quality and token cost.",
+      "triggers": [
+        "compare agents",
+        "A/B test agents",
+        "benchmark agents",
+        "optimize skill",
+        "optimize description",
+        "run autoresearch"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "agent-evaluation",
+        "skill-eval"
+      ]
+    },
+    "agent-evaluation": {
+      "file": "skills/meta/agent-evaluation/SKILL.md",
+      "description": "Evaluate agents and skills for quality and standards compliance.",
+      "triggers": [
+        "evaluate agent",
+        "audit agent",
+        "score skill",
+        "check quality",
+        "grade agent",
+        "agent quality"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "agent-comparison",
+        "skill-eval",
+        "skill-creator"
+      ]
+    },
+    "auto-dream": {
+      "file": "skills/meta/auto-dream/SKILL.md",
+      "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
+      "triggers": [
+        "dream",
+        "consolidate memories",
+        "clean up memories",
+        "memory maintenance",
+        "memory consolidation",
+        "deduplicate memories",
+        "graduate learnings",
+        "promote learnings"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "do": {
+      "file": "skills/meta/do/SKILL.md",
+      "description": "Classify user requests and route to the correct agent + skill.",
+      "triggers": [
+        "route task",
+        "classify request",
+        "which agent",
+        "delegate to skill",
+        "smart router"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true
+    },
+    "docs-sync-checker": {
+      "file": "skills/meta/docs-sync-checker/SKILL.md",
+      "description": "Detect documentation drift against filesystem state.",
+      "triggers": [
+        "check doc drift",
+        "sync documentation",
+        "stale docs",
+        "documentation drift",
+        "README outdated"
+      ],
+      "category": "documentation",
+      "user_invocable": false,
+      "pairs_with": [
+        "generate-claudemd",
+        "codebase-overview"
+      ]
+    },
+    "explanation-traces": {
+      "file": "skills/meta/explanation-traces/SKILL.md",
+      "description": "Query and display structured decision traces from routing, agent selection, and skill execution.",
+      "triggers": [
+        "why did you",
+        "explain routing",
+        "show trace",
+        "decision log",
+        "why that agent",
+        "explain decision",
+        "show decisions",
+        "trace log"
+      ],
+      "category": "analysis",
+      "force_route": true,
+      "user_invocable": true,
+      "pairs_with": []
+    },
+    "generate-claudemd": {
+      "file": "skills/meta/generate-claudemd/SKILL.md",
+      "description": "Generate project-specific CLAUDE.md from repo analysis.",
+      "triggers": [
+        "generate claude.md",
+        "create claude.md",
+        "init claude.md",
+        "bootstrap claude.md",
+        "make claude.md"
+      ],
+      "category": "documentation",
+      "user_invocable": false,
+      "pairs_with": [
+        "go-patterns",
+        "codebase-overview"
+      ]
+    },
+    "install": {
+      "file": "skills/meta/install/SKILL.md",
+      "description": "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup.",
+      "triggers": [
+        "install toolkit",
+        "verify installation",
+        "health check toolkit",
+        "setup toolkit",
+        "diagnose setup",
+        "toolkit health"
+      ],
+      "category": "meta-tooling",
+      "force_route": true,
+      "user_invocable": true
+    },
+    "learn": {
+      "file": "skills/meta/learn/SKILL.md",
+      "description": "Manually teach error pattern and solution to learning database.",
+      "triggers": [
+        "teach pattern",
+        "record learning",
+        "manual learning entry",
+        "teach error pattern",
+        "save learning"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "retro",
+        "auto-dream"
+      ]
+    },
+    "reference-enrichment": {
+      "file": "skills/meta/reference-enrichment/SKILL.md",
+      "description": "Analyze agent/skill reference depth and generate missing domain-specific reference files.",
+      "triggers": [
+        "enrich references",
+        "improve reference depth",
+        "generate references",
+        "add reference files",
+        "reference enrichment",
+        "decompose skill",
+        "extract references",
+        "slim down skill",
+        "skill too long",
+        "move content to references"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "pairs_with": [
+        "verification-before-completion"
+      ]
+    },
+    "retro": {
+      "file": "skills/meta/retro/SKILL.md",
+      "description": "Learning system interface: stats, search, graduate learnings.",
+      "triggers": [
+        "retro stats",
+        "list learnings",
+        "graduate knowledge",
+        "learning stats",
+        "search learnings"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "pairs_with": [
+        "learn",
+        "auto-dream"
+      ]
+    },
+    "routing-table-updater": {
+      "file": "skills/meta/routing-table-updater/SKILL.md",
+      "description": "Maintain /do routing tables when skills or agents change.",
+      "triggers": [
+        "update routing",
+        "sync routing tables",
+        "routing maintenance",
+        "rebuild routing index",
+        "routing drift"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "toolkit-evolution",
+        "generate-claudemd"
+      ]
+    },
+    "skill-composer": {
+      "file": "skills/meta/skill-composer/SKILL.md",
+      "description": "DAG-based multi-skill orchestration with dependency resolution.",
+      "triggers": [
+        "compose skills",
+        "DAG orchestration",
+        "multi-skill chain",
+        "skill pipeline",
+        "combine skills"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "workflow",
+        "feature-lifecycle"
+      ]
+    },
+    "skill-creator": {
+      "file": "skills/meta/skill-creator/SKILL.md",
+      "description": "Create and iteratively improve skills through eval-driven validation.",
+      "triggers": [
+        "create skill",
+        "new skill",
+        "skill template",
+        "skill design",
+        "test skill",
+        "improve skill",
+        "optimize description",
+        "skill eval"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "pairs_with": [
+        "agent-evaluation",
+        "verification-before-completion"
+      ]
+    },
+    "skill-eval": {
+      "file": "skills/meta/skill-eval/SKILL.md",
+      "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs.",
+      "triggers": [
+        "improve skill",
+        "test skill",
+        "eval skill",
+        "benchmark skill",
+        "skill triggers",
+        "skill quality",
+        "self-improve skill",
+        "skill self-improvement",
+        "improve skill with variants",
+        "bake-off",
+        "bake off",
+        "head-to-head",
+        "head to head",
+        "compare implementations",
+        "grade two versions",
+        "which skill is better"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "pairs_with": [
+        "agent-evaluation",
+        "verification-before-completion"
+      ]
+    },
+    "toolkit-evolution": {
+      "file": "skills/meta/toolkit-evolution/SKILL.md",
+      "description": "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.",
+      "triggers": [
+        "evolve toolkit",
+        "improve the system",
+        "self-improve",
+        "toolkit evolution",
+        "what should we improve",
+        "find improvement opportunities",
+        "discover skill gaps",
+        "what skills are missing",
+        "systematic improvement"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "pairs_with": [
+        "multi-persona-critique",
+        "skill-eval"
+      ]
+    },
+    "workflow-help": {
+      "file": "skills/meta/workflow-help/SKILL.md",
+      "description": "Interactive guide to workflow system: agents, skills, routing, execution patterns.",
+      "triggers": [
+        "how does routing work",
+        "what skills exist",
+        "system help",
+        "explain workflow",
+        "I am stuck",
+        "toolkit help"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "pairs_with": [
+        "workflow",
+        "do"
+      ]
+    },
+    "adr-consultation": {
+      "file": "skills/process/adr-consultation/SKILL.md",
+      "description": "Multi-agent consultation for architecture decisions.",
+      "triggers": [
+        "consult on ADR",
+        "challenge this design",
+        "review before implementing",
+        "multi-agent consultation",
+        "architecture consultation",
+        "should we proceed",
+        "adr consultation"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "pairs_with": [
+        "feature-lifecycle"
+      ]
+    },
+    "condition-based-waiting": {
+      "file": "skills/process/condition-based-waiting/SKILL.md",
+      "description": "Polling, retry, and backoff patterns.",
+      "triggers": [
+        "exponential backoff",
+        "health check polling",
+        "retry pattern",
+        "wait for",
+        "keep trying until",
+        "poll until ready",
+        "retry until success"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "shell-process-patterns",
+        "service-health-check"
+      ]
+    },
+    "feature-lifecycle": {
+      "file": "skills/process/feature-lifecycle/SKILL.md",
+      "description": "Feature lifecycle: design, plan, implement, validate, release.",
+      "triggers": [
+        "feature design",
+        "design feature",
+        "think through",
+        "explore approaches",
+        "design first",
+        "feature plan",
+        "plan feature",
+        "break down design",
+        "create tasks",
+        "feature implement",
+        "implement feature",
+        "execute plan",
+        "start building",
+        "feature validate",
+        "validate feature",
+        "run feature quality gates",
+        "check feature",
+        "feature release",
+        "release feature",
+        "merge feature",
+        "ship it",
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
+      ],
+      "category": "process",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": [
+        "workflow",
+        "subagent-driven-development",
+        "pr-workflow",
+        "verification-before-completion",
+        "universal-quality-gate",
+        "adr-consultation",
+        "planning"
+      ]
+    },
+    "forensics": {
+      "file": "skills/process/forensics/SKILL.md",
+      "description": "Post-mortem diagnostic analysis of failed workflows.",
+      "triggers": [
+        "forensics",
+        "what went wrong",
+        "why did this fail",
+        "stuck loop",
+        "diagnose workflow",
+        "post-mortem",
+        "workflow failure",
+        "session crashed",
+        "why is this stuck",
+        "investigate failure",
+        "why did this break",
+        "incident review"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "workflow",
+        "planning"
+      ]
+    },
+    "github-notification-triage": {
+      "file": "skills/process/github-notification-triage/SKILL.md",
+      "description": "Triage GitHub notifications and report actions needed.",
+      "triggers": [
+        "github notifications",
+        "triage notifications",
+        "check notifications",
+        "notification cleanup",
+        "github inbox"
+      ],
+      "category": "github",
+      "user_invocable": false,
+      "pairs_with": []
+    },
+    "pair-programming": {
+      "file": "skills/process/pair-programming/SKILL.md",
+      "description": "Collaborative coding with enforced micro-steps and user-paced control.",
+      "triggers": [
+        "pair program",
+        "collaborative coding",
+        "micro-steps",
+        "step by step coding",
+        "one change at a time",
+        "show each change",
+        "walk me through",
+        "interactive coding"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "test-driven-development",
+        "subagent-driven-development"
+      ]
     },
     "planning": {
-      "file": "skills/planning/SKILL.md",
+      "file": "skills/process/planning/SKILL.md",
       "description": "Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed planning, plan validation, plan-lifecycle management, and session pause/resume.",
       "triggers": [
         "write spec",
@@ -1277,7 +1900,7 @@
       "agent": "general-purpose"
     },
     "plant-seed": {
-      "file": "skills/plant-seed/SKILL.md",
+      "file": "skills/process/plant-seed/SKILL.md",
       "description": "Capture forward-looking idea as a seed for future feature design.",
       "triggers": [
         "plant seed",
@@ -1293,30 +1916,8 @@
         "feature-lifecycle"
       ]
     },
-    "pptx-generator": {
-      "file": "skills/pptx-generator/SKILL.md",
-      "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
-      "triggers": [
-        "presentation",
-        "powerpoint",
-        "pptx",
-        "slide deck",
-        "pitch deck",
-        "slides",
-        "create slides",
-        "generate presentation",
-        "make a deck",
-        "conference talk slides"
-      ],
-      "category": "content-generation",
-      "user_invocable": false,
-      "pairs_with": [
-        "workflow",
-        "gemini-image-generator"
-      ]
-    },
     "pr-workflow": {
-      "file": "skills/pr-workflow/SKILL.md",
+      "file": "skills/process/pr-workflow/SKILL.md",
       "description": "Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining.",
       "triggers": [
         "push changes",
@@ -1376,117 +1977,8 @@
         "systematic-code-review"
       ]
     },
-    "professional-communication": {
-      "file": "skills/professional-communication/SKILL.md",
-      "description": "Transform technical communication into structured business formats.",
-      "triggers": [
-        "business communication",
-        "structured format",
-        "clear writing",
-        "write email",
-        "draft memo",
-        "executive summary",
-        "summarize for management",
-        "status update"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "pptx-generator"
-      ]
-    },
-    "publish": {
-      "file": "skills/publish/SKILL.md",
-      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
-      "triggers": [
-        "outline post",
-        "blog structure",
-        "content blueprint",
-        "article outline",
-        "content structure",
-        "pre-publish check",
-        "Hugo validation",
-        "front matter check",
-        "publication check",
-        "frontmatter validation",
-        "check SEO",
-        "optimize SEO",
-        "keyword analysis",
-        "meta description",
-        "keyword optimization",
-        "batch edit posts",
-        "bulk frontmatter update",
-        "find replace across files",
-        "mass edit",
-        "bulk update",
-        "audit links",
-        "find broken links",
-        "link health",
-        "broken links",
-        "dead links",
-        "audit images",
-        "check broken images",
-        "image accessibility",
-        "alt text check",
-        "image optimization",
-        "audit taxonomy",
-        "fix tags",
-        "merge categories",
-        "tag cleanup",
-        "category management",
-        "upload to wordpress",
-        "create wordpress draft",
-        "publish to your-blog",
-        "wordpress draft",
-        "upload article",
-        "post to wordpress",
-        "upload image to wordpress",
-        "edit wordpress post",
-        "update wordpress post",
-        "wordpress media",
-        "create wp categories",
-        "auto-create categories",
-        "create missing categories",
-        "search wp media",
-        "search wordpress media",
-        "search media library",
-        "find existing wordpress image",
-        "find existing image",
-        "reuse existing media"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false,
-      "pairs_with": [
-        "content-calendar",
-        "wordpress-live-validation"
-      ],
-      "agent": "general-purpose"
-    },
-    "python-quality-gate": {
-      "file": "skills/python-quality-gate/SKILL.md",
-      "description": "Python quality checks: ruff, pytest, mypy, bandit in deterministic order.",
-      "triggers": [
-        "Python quality",
-        "ruff check",
-        "bandit scan",
-        "mypy check",
-        "python lint",
-        "python quality gate",
-        "check python",
-        "pre-commit check"
-      ],
-      "category": "code-quality",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "code-linting",
-        "test-driven-development"
-      ],
-      "agent": "python-general-engineer"
-    },
     "quick": {
-      "file": "skills/quick/SKILL.md",
+      "file": "skills/process/quick/SKILL.md",
       "description": "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full.",
       "triggers": [
         "quick task",
@@ -1512,7 +2004,7 @@
       "pairs_with": []
     },
     "read-only-ops": {
-      "file": "skills/read-only-ops/SKILL.md",
+      "file": "skills/process/read-only-ops/SKILL.md",
       "description": "Read-only exploration, inspection, and reporting without modifications.",
       "triggers": [
         "check status",
@@ -1527,46 +2019,236 @@
         "codebase-overview"
       ]
     },
-    "reddit-moderate": {
-      "file": "skills/reddit-moderate/SKILL.md",
-      "description": "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.",
+    "socratic-debugging": {
+      "file": "skills/process/socratic-debugging/SKILL.md",
+      "description": "Question-only debugging: guide users to find root causes themselves.",
       "triggers": [
-        "moderate Reddit",
-        "modqueue",
-        "Reddit reports",
-        "Reddit moderation",
-        "check reports"
+        "guide debugging",
+        "question-based",
+        "teach debugging",
+        "ask me questions",
+        "help me think through",
+        "guide me",
+        "coaching mode",
+        "teach me to find it"
       ],
       "category": "process",
       "user_invocable": false,
       "pairs_with": [
-        "content-engine"
-      ],
-      "agent": "python-general-engineer"
+        "forensics",
+        "systematic-code-review"
+      ]
     },
-    "reference-enrichment": {
-      "file": "skills/reference-enrichment/SKILL.md",
-      "description": "Analyze agent/skill reference depth and generate missing domain-specific reference files.",
+    "subagent-driven-development": {
+      "file": "skills/process/subagent-driven-development/SKILL.md",
+      "description": "Fresh-subagent-per-task execution with two-stage review gates.",
       "triggers": [
-        "enrich references",
-        "improve reference depth",
-        "generate references",
-        "add reference files",
-        "reference enrichment",
-        "decompose skill",
-        "extract references",
-        "slim down skill",
-        "skill too long",
-        "move content to references"
+        "subagent per task",
+        "fresh context execution",
+        "plan execution",
+        "execute plan with agents",
+        "fresh context per task"
       ],
-      "category": "meta-tooling",
-      "user_invocable": true,
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "pair-programming",
+        "testing-agents-with-subagents"
+      ]
+    },
+    "verification-before-completion": {
+      "file": "skills/process/verification-before-completion/SKILL.md",
+      "description": "Defense-in-depth verification before declaring any task complete.",
+      "triggers": [
+        "verify completion",
+        "run tests",
+        "check build",
+        "defense in depth",
+        "final verification"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "systematic-code-review",
+        "with-anti-rationalization"
+      ]
+    },
+    "with-anti-rationalization": {
+      "file": "skills/process/with-anti-rationalization/SKILL.md",
+      "description": "Anti-rationalization enforcement for maximum-rigor task execution.",
+      "triggers": [
+        "maximum rigor",
+        "anti-rationalization",
+        "strict verification",
+        "strict mode",
+        "no shortcuts"
+      ],
+      "category": "process",
+      "user_invocable": false,
       "pairs_with": [
         "verification-before-completion"
       ]
     },
+    "worktree-agent": {
+      "file": "skills/process/worktree-agent/SKILL.md",
+      "description": "Mandatory rules for agents in git worktree isolation.",
+      "triggers": [
+        "worktree agent",
+        "git worktree",
+        "git worktree rules",
+        "isolated agent"
+      ],
+      "category": "git-workflow",
+      "user_invocable": false
+    },
+    "architecture-deepening": {
+      "file": "skills/research/architecture-deepening/SKILL.md",
+      "description": "Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation.",
+      "triggers": [
+        "deepen architecture",
+        "find shallow modules",
+        "architecture improvement",
+        "module depth analysis",
+        "deepening opportunities",
+        "improve module interfaces",
+        "reduce complexity",
+        "architecture deepening"
+      ],
+      "category": "analysis",
+      "user_invocable": true,
+      "pairs_with": [
+        "full-repo-review",
+        "adr-consultation",
+        "codebase-overview"
+      ]
+    },
+    "codebase-analyzer": {
+      "file": "skills/research/codebase-analyzer/SKILL.md",
+      "description": "Statistical rule discovery from Go codebase patterns.",
+      "triggers": [
+        "analyze codebase",
+        "discover patterns",
+        "style vector",
+        "code cartographer",
+        "pattern frequency",
+        "structural metrics"
+      ],
+      "category": "analysis",
+      "user_invocable": false,
+      "pairs_with": [
+        "codebase-overview",
+        "go-patterns"
+      ]
+    },
+    "codebase-overview": {
+      "file": "skills/research/codebase-overview/SKILL.md",
+      "description": "Systematic codebase exploration and architecture mapping.",
+      "triggers": [
+        "onboard to codebase",
+        "codebase structure",
+        "what does this project do",
+        "give me an overview",
+        "summarize this repo",
+        "understand this codebase"
+      ],
+      "category": "analysis",
+      "user_invocable": false,
+      "pairs_with": [
+        "codebase-analyzer",
+        "generate-claudemd"
+      ]
+    },
+    "data-analysis": {
+      "file": "skills/research/data-analysis/SKILL.md",
+      "description": "Decision-first data analysis with statistical rigor gates.",
+      "triggers": [
+        "analyze data",
+        "data analysis",
+        "CSV",
+        "dataset",
+        "metrics",
+        "trend",
+        "cohort",
+        "A/B test",
+        "statistical",
+        "distribution",
+        "correlation",
+        "KPI",
+        "funnel",
+        "experiment results",
+        "data insights",
+        "statistical analysis",
+        "CSV analysis",
+        "explore dataset"
+      ],
+      "category": "analysis",
+      "user_invocable": false,
+      "pairs_with": [
+        "workflow",
+        "codebase-analyzer"
+      ]
+    },
+    "decision-helper": {
+      "file": "skills/research/decision-helper/SKILL.md",
+      "description": "Weighted decision scoring for architectural choices.",
+      "triggers": [
+        "weigh options",
+        "decision matrix",
+        "compare approaches",
+        "help me decide",
+        "pros and cons",
+        "trade-offs",
+        "which is better",
+        "should I use",
+        "evaluate options"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "multi-persona-critique",
+        "adr-consultation",
+        "planning"
+      ]
+    },
+    "full-repo-review": {
+      "file": "skills/research/full-repo-review/SKILL.md",
+      "description": "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.",
+      "triggers": [
+        "full repo review",
+        "review entire repo",
+        "codebase health check",
+        "review all files",
+        "full codebase review"
+      ],
+      "category": "analysis",
+      "user_invocable": true,
+      "pairs_with": [
+        "systematic-code-review",
+        "parallel-code-review"
+      ]
+    },
+    "multi-persona-critique": {
+      "file": "skills/research/multi-persona-critique/SKILL.md",
+      "description": "Parallel critique of proposals via 5 philosophical personas with consensus synthesis.",
+      "triggers": [
+        "critique these ideas",
+        "multi-persona review",
+        "philosophical critique",
+        "devil's advocate on ideas",
+        "stress test proposals",
+        "evaluate from multiple perspectives",
+        "get different viewpoints",
+        "critique proposals"
+      ],
+      "category": "analysis",
+      "user_invocable": true,
+      "pairs_with": [
+        "roast",
+        "decision-helper"
+      ]
+    },
     "repo-value-analysis": {
-      "file": "skills/repo-value-analysis/SKILL.md",
+      "file": "skills/research/repo-value-analysis/SKILL.md",
       "description": "Analyze external repositories for adoptable ideas and patterns.",
       "triggers": [
         "repo value analysis",
@@ -1584,7 +2266,7 @@
       "agent": "research-coordinator-engineer"
     },
     "research-pipeline": {
-      "file": "skills/research-pipeline/SKILL.md",
+      "file": "skills/research/research-pipeline/SKILL.md",
       "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER.",
       "triggers": [
         "research-pipeline",
@@ -1603,25 +2285,8 @@
       ],
       "agent": "research-coordinator-engineer"
     },
-    "retro": {
-      "file": "skills/retro/SKILL.md",
-      "description": "Learning system interface: stats, search, graduate learnings.",
-      "triggers": [
-        "retro stats",
-        "list learnings",
-        "graduate knowledge",
-        "learning stats",
-        "search learnings"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "pairs_with": [
-        "learn",
-        "auto-dream"
-      ]
-    },
     "roast": {
-      "file": "skills/roast/SKILL.md",
+      "file": "skills/research/roast/SKILL.md",
       "description": "Constructive critique via 5 HackerNews personas with claim validation.",
       "triggers": [
         "roast code",
@@ -1638,65 +2303,8 @@
         "systematic-code-review"
       ]
     },
-    "routing-table-updater": {
-      "file": "skills/routing-table-updater/SKILL.md",
-      "description": "Maintain /do routing tables when skills or agents change.",
-      "triggers": [
-        "update routing",
-        "sync routing tables",
-        "routing maintenance",
-        "rebuild routing index",
-        "routing drift"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
-      "pairs_with": [
-        "toolkit-evolution",
-        "generate-claudemd"
-      ]
-    },
-    "sapcc-audit": {
-      "file": "skills/sapcc-audit/SKILL.md",
-      "description": "Full-repo SAP CC Go compliance audit against review standards.",
-      "triggers": [
-        "sapcc audit",
-        "sapcc compliance",
-        "check sapcc rules",
-        "full repo audit",
-        "sapcc secondary review",
-        "sapcc standards check"
-      ],
-      "category": "language",
-      "user_invocable": false,
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "go-patterns"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "sapcc-review": {
-      "file": "skills/sapcc-review/SKILL.md",
-      "description": "Gold-standard SAP CC Go code review: 10 parallel domain specialists.",
-      "triggers": [
-        "sapcc review",
-        "sapcc lead review",
-        "sapcc compliance review",
-        "comprehensive sapcc audit",
-        "full sapcc check",
-        "review sapcc standards"
-      ],
-      "category": "language",
-      "user_invocable": false,
-      "pairs_with": [
-        "golang-general-engineer",
-        "go-patterns",
-        "sapcc-audit"
-      ],
-      "agent": "golang-general-engineer"
-    },
     "security-threat-model": {
-      "file": "skills/security-threat-model/SKILL.md",
+      "file": "skills/research/security-threat-model/SKILL.md",
       "description": "Security threat model: scan toolkit for attack surface, supply-chain risks.",
       "triggers": [
         "threat model",
@@ -1717,201 +2325,44 @@
       ],
       "agent": "python-general-engineer"
     },
-    "series-planner": {
-      "file": "skills/series-planner/SKILL.md",
-      "description": "Plan multi-part content series: structure, cross-linking, cadence.",
+    "integration-checker": {
+      "file": "skills/review/integration-checker/SKILL.md",
+      "description": "Verify cross-component wiring and data flow.",
       "triggers": [
-        "plan series",
-        "multi-part content",
-        "content series",
-        "article series",
-        "content arc"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "content-calendar",
-        "topic-brainstormer",
-        "publish"
-      ]
-    },
-    "service-health-check": {
-      "file": "skills/service-health-check/SKILL.md",
-      "description": "Service health monitoring: Discover, Check, Report in 3 phases.",
-      "triggers": [
-        "service status",
-        "process health",
-        "uptime check",
-        "is service running",
-        "check health"
-      ],
-      "category": "infrastructure",
-      "user_invocable": false,
-      "pairs_with": [
-        "kubernetes-debugging",
-        "endpoint-validator",
-        "condition-based-waiting"
-      ]
-    },
-    "shell-process-patterns": {
-      "file": "skills/shell-process-patterns/SKILL.md",
-      "description": "Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.",
-      "triggers": [
-        "background process",
-        "nohup",
-        "kill process",
-        "pid lookup",
-        "shell cleanup",
-        "trap handler",
-        "signal handling",
-        "set -e",
-        "bash process"
+        "integration check",
+        "check integration",
+        "verify wiring",
+        "are components connected",
+        "check connections",
+        "integration-checker",
+        "wiring check"
       ],
       "category": "process",
       "user_invocable": false,
       "pairs_with": [
-        "condition-based-waiting",
-        "service-health-check",
-        "cron-job-auditor"
-      ]
-    },
-    "skill-composer": {
-      "file": "skills/skill-composer/SKILL.md",
-      "description": "DAG-based multi-skill orchestration with dependency resolution.",
-      "triggers": [
-        "compose skills",
-        "DAG orchestration",
-        "multi-skill chain",
-        "skill pipeline",
-        "combine skills"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
-      "pairs_with": [
-        "workflow",
-        "feature-lifecycle"
-      ]
-    },
-    "skill-creator": {
-      "file": "skills/skill-creator/SKILL.md",
-      "description": "Create and iteratively improve skills through eval-driven validation.",
-      "triggers": [
-        "create skill",
-        "new skill",
-        "skill template",
-        "skill design",
-        "test skill",
-        "improve skill",
-        "optimize description",
-        "skill eval"
-      ],
-      "category": "meta",
-      "user_invocable": false,
-      "pairs_with": [
-        "agent-evaluation",
-        "verification-before-completion"
-      ]
-    },
-    "skill-eval": {
-      "file": "skills/skill-eval/SKILL.md",
-      "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs.",
-      "triggers": [
-        "improve skill",
-        "test skill",
-        "eval skill",
-        "benchmark skill",
-        "skill triggers",
-        "skill quality",
-        "self-improve skill",
-        "skill self-improvement",
-        "improve skill with variants",
-        "bake-off",
-        "bake off",
-        "head-to-head",
-        "head to head",
-        "compare implementations",
-        "grade two versions",
-        "which skill is better"
-      ],
-      "category": "meta",
-      "user_invocable": false,
-      "pairs_with": [
-        "agent-evaluation",
-        "verification-before-completion"
-      ]
-    },
-    "socratic-debugging": {
-      "file": "skills/socratic-debugging/SKILL.md",
-      "description": "Question-only debugging: guide users to find root causes themselves.",
-      "triggers": [
-        "guide debugging",
-        "question-based",
-        "teach debugging",
-        "ask me questions",
-        "help me think through",
-        "guide me",
-        "coaching mode",
-        "teach me to find it"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "forensics",
+        "feature-lifecycle",
         "systematic-code-review"
       ]
     },
-    "subagent-driven-development": {
-      "file": "skills/subagent-driven-development/SKILL.md",
-      "description": "Fresh-subagent-per-task execution with two-stage review gates.",
+    "parallel-code-review": {
+      "file": "skills/review/parallel-code-review/SKILL.md",
+      "description": "Parallel 3-reviewer code review: Security, Business-Logic, Architecture.",
       "triggers": [
-        "subagent per task",
-        "fresh context execution",
-        "plan execution",
-        "execute plan with agents",
-        "fresh context per task"
+        "parallel review",
+        "3-reviewer review",
+        "security review",
+        "multi-reviewer",
+        "concurrent review"
       ],
-      "category": "process",
+      "category": "code-review",
       "user_invocable": false,
       "pairs_with": [
-        "pair-programming",
-        "testing-agents-with-subagents"
+        "systematic-code-review",
+        "verification-before-completion"
       ]
     },
-    "swift-concurrency": {
-      "file": "skills/swift-concurrency/SKILL.md",
-      "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
-      "triggers": [
-        "swift concurrency",
-        "swift async await",
-        "Swift Actor",
-        "Swift Task group"
-      ],
-      "category": "swift",
-      "user_invocable": false,
-      "pairs_with": [
-        "swift-testing"
-      ],
-      "agent": "swift-general-engineer"
-    },
-    "swift-testing": {
-      "file": "skills/swift-testing/SKILL.md",
-      "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
-      "triggers": [
-        "swift testing",
-        "XCTest",
-        "Swift Testing framework",
-        "async test swift"
-      ],
-      "category": "swift",
-      "user_invocable": false,
-      "pairs_with": [
-        "swift-concurrency",
-        "test-driven-development"
-      ],
-      "agent": "swift-general-engineer"
-    },
     "systematic-code-review": {
-      "file": "skills/systematic-code-review/SKILL.md",
+      "file": "skills/review/systematic-code-review/SKILL.md",
       "description": "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings.",
       "triggers": [
         "review code",
@@ -1929,8 +2380,29 @@
         "parallel-code-review"
       ]
     },
+    "e2e-testing": {
+      "file": "skills/testing/e2e-testing/SKILL.md",
+      "description": "Playwright-based end-to-end testing workflow.",
+      "triggers": [
+        "playwright",
+        "E2E test",
+        "end-to-end",
+        "browser test",
+        "page object model",
+        "POM",
+        "test flakiness"
+      ],
+      "category": "testing",
+      "user_invocable": false,
+      "pairs_with": [
+        "testing-automation-engineer",
+        "typescript-frontend-engineer",
+        "test-driven-development"
+      ],
+      "agent": "testing-automation-engineer"
+    },
     "test-driven-development": {
-      "file": "skills/test-driven-development/SKILL.md",
+      "file": "skills/testing/test-driven-development/SKILL.md",
       "description": "RED-GREEN-REFACTOR cycle with strict phase gates for TDD.",
       "triggers": [
         "TDD",
@@ -1950,7 +2422,7 @@
       ]
     },
     "testing-agents-with-subagents": {
-      "file": "skills/testing-agents-with-subagents/SKILL.md",
+      "file": "skills/testing/testing-agents-with-subagents/SKILL.md",
       "description": "Test agents via subagents: known inputs, captured outputs, verification.",
       "triggers": [
         "test agents",
@@ -1967,7 +2439,7 @@
       ]
     },
     "testing-preferred-patterns": {
-      "file": "skills/testing-preferred-patterns/SKILL.md",
+      "file": "skills/testing/testing-preferred-patterns/SKILL.md",
       "description": "Identify and fix testing mistakes: flaky, brittle, over-mocked tests.",
       "triggers": [
         "flaky test",
@@ -1989,161 +2461,8 @@
         "vitest-runner"
       ]
     },
-    "threejs-builder": {
-      "file": "skills/threejs-builder/SKILL.md",
-      "description": "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.",
-      "triggers": [
-        "threejs",
-        "three.js",
-        "3D web",
-        "3D scene",
-        "WebGL",
-        "WebGPU",
-        "3D animation",
-        "3D graphics",
-        "react three fiber",
-        "r3f",
-        "drei",
-        "react-three",
-        "@react-three/fiber",
-        "postprocessing 3D",
-        "TSL shader",
-        "three shading language",
-        "compute shader three",
-        "WebGPURenderer",
-        "node material three",
-        "game architecture three",
-        "gltf loading",
-        "glb model",
-        "animation state machine three",
-        "eventbus game",
-        "game state management three",
-        "three.js game"
-      ],
-      "category": "frontend",
-      "user_invocable": false,
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "react-native-engineer",
-        "distinctive-frontend-design"
-      ],
-      "agent": "typescript-frontend-engineer"
-    },
-    "toolkit-evolution": {
-      "file": "skills/toolkit-evolution/SKILL.md",
-      "description": "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.",
-      "triggers": [
-        "evolve toolkit",
-        "improve the system",
-        "self-improve",
-        "toolkit evolution",
-        "what should we improve",
-        "find improvement opportunities",
-        "discover skill gaps",
-        "what skills are missing",
-        "systematic improvement"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "pairs_with": [
-        "multi-persona-critique",
-        "skill-eval"
-      ]
-    },
-    "topic-brainstormer": {
-      "file": "skills/topic-brainstormer/SKILL.md",
-      "description": "Generate blog topic ideas: problem mining, gap analysis, expansion.",
-      "triggers": [
-        "brainstorm topics",
-        "content ideas",
-        "blog topic ideas",
-        "what to write about"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "content-calendar",
-        "series-planner",
-        "research-pipeline"
-      ]
-    },
-    "typescript-check": {
-      "file": "skills/typescript-check/SKILL.md",
-      "description": "TypeScript type checking via tsc --noEmit with actionable error output.",
-      "triggers": [
-        "TypeScript check",
-        "tsc noEmit",
-        "type check TypeScript",
-        "tsc errors",
-        "TypeScript type validation"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "pairs_with": [
-        "vitest-runner",
-        "code-linting"
-      ],
-      "agent": "typescript-frontend-engineer"
-    },
-    "universal-quality-gate": {
-      "file": "skills/universal-quality-gate/SKILL.md",
-      "description": "Multi-language code quality gate with auto-detection and linters.",
-      "triggers": [
-        "quality gate",
-        "lint check",
-        "multi-language lint",
-        "code quality check",
-        "language-agnostic lint"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "pairs_with": [
-        "code-linting",
-        "verification-before-completion"
-      ]
-    },
-    "verification-before-completion": {
-      "file": "skills/verification-before-completion/SKILL.md",
-      "description": "Defense-in-depth verification before declaring any task complete.",
-      "triggers": [
-        "verify completion",
-        "run tests",
-        "check build",
-        "defense in depth",
-        "final verification"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "systematic-code-review",
-        "with-anti-rationalization"
-      ]
-    },
-    "video-editing": {
-      "file": "skills/video-editing/SKILL.md",
-      "description": "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.",
-      "triggers": [
-        "edit video",
-        "cut footage",
-        "make vlog",
-        "screen recording",
-        "video workflow",
-        "ffmpeg",
-        "remotion",
-        "demo video",
-        "make a clip",
-        "assemble clips",
-        "video editing"
-      ],
-      "category": "video-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "typescript-frontend-engineer"
-      ],
-      "agent": "python-general-engineer"
-    },
     "vitest-runner": {
-      "file": "skills/vitest-runner/SKILL.md",
+      "file": "skills/testing/vitest-runner/SKILL.md",
       "description": "Run Vitest tests and parse results into actionable output.",
       "triggers": [
         "run vitest",
@@ -2157,65 +2476,6 @@
       "pairs_with": [
         "test-driven-development",
         "typescript-check",
-        "e2e-testing"
-      ]
-    },
-    "webgl-card-effects": {
-      "file": "skills/webgl-card-effects/SKILL.md",
-      "description": "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.",
-      "triggers": [
-        "card effects",
-        "holographic",
-        "foil effect",
-        "card shimmer",
-        "card glow",
-        "shader card",
-        "WebGL card",
-        "rarity effects",
-        "Balatro effect",
-        "card visual effects"
-      ],
-      "category": "frontend",
-      "user_invocable": false,
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "ui-design-engineer"
-      ],
-      "agent": "typescript-frontend-engineer"
-    },
-    "with-anti-rationalization": {
-      "file": "skills/with-anti-rationalization/SKILL.md",
-      "description": "Anti-rationalization enforcement for maximum-rigor task execution.",
-      "triggers": [
-        "maximum rigor",
-        "anti-rationalization",
-        "strict verification",
-        "strict mode",
-        "no shortcuts"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "verification-before-completion"
-      ]
-    },
-    "wordpress-live-validation": {
-      "file": "skills/wordpress-live-validation/SKILL.md",
-      "description": "Validate published WordPress posts in browser via Playwright.",
-      "triggers": [
-        "validate wordpress post",
-        "check live post",
-        "verify published post",
-        "wordpress post looks right",
-        "check og tags live",
-        "responsive check wordpress",
-        "post rendering check",
-        "live site validation"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false,
-      "pairs_with": [
-        "publish",
         "e2e-testing"
       ]
     },
@@ -2236,61 +2496,6 @@
         "feature-lifecycle",
         "verification-before-completion"
       ]
-    },
-    "workflow-help": {
-      "file": "skills/workflow-help/SKILL.md",
-      "description": "Interactive guide to workflow system: agents, skills, routing, execution patterns.",
-      "triggers": [
-        "how does routing work",
-        "what skills exist",
-        "system help",
-        "explain workflow",
-        "I am stuck",
-        "toolkit help"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "pairs_with": [
-        "workflow",
-        "do"
-      ]
-    },
-    "worktree-agent": {
-      "file": "skills/worktree-agent/SKILL.md",
-      "description": "Mandatory rules for agents in git worktree isolation.",
-      "triggers": [
-        "worktree agent",
-        "git worktree",
-        "git worktree rules",
-        "isolated agent"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false
-    },
-    "x-api": {
-      "file": "skills/x-api/SKILL.md",
-      "description": "Post tweets, build threads, upload media via the X API.",
-      "triggers": [
-        "post to X",
-        "post tweet",
-        "tweet this",
-        "build thread",
-        "post thread",
-        "twitter thread",
-        "x api",
-        "upload media to X",
-        "read timeline",
-        "search X",
-        "search twitter",
-        "publish to X",
-        "publish to twitter"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false,
-      "pairs_with": [
-        "content-engine"
-      ],
-      "agent": "python-general-engineer"
     }
   }
 }

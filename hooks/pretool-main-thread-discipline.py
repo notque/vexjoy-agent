@@ -46,7 +46,7 @@ from stdin_timeout import read_stdin
 __EVENT_NAME = "PreToolUse"
 
 # Bash command patterns that are safe for the main thread during /do sessions.
-# These cover the routing bookkeeping calls described in skills/do/SKILL.md.
+# These cover the routing bookkeeping calls described in skills/meta/do/SKILL.md.
 _ROUTING_SAFE_PATTERNS = [
     r"python3\s+scripts/routing-manifest\.py",
     r"python3\s+~?[^\s]*/scripts/learning-db\.py",
