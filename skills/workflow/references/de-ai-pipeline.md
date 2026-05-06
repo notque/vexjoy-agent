@@ -28,7 +28,7 @@ routing:
 
 # De-AI Pipeline
 
-Automated scan-fix-verify loop that removes AI writing patterns from documentation files. Uses `scripts/scan-ai-patterns.py` for deterministic detection against `scripts/data/banned-patterns.json` (323 patterns, 24 categories), then dispatches fix agents per file, then re-scans to verify fixes. Repeats until zero errors or max 3 iterations.
+Automated scan-fix-verify loop that removes AI writing patterns from documentation files. Uses `~/private-skills/scripts/scan-ai-patterns.py` for deterministic detection against `~/private-skills/scripts/data/banned-patterns.json` (323 patterns, 24 categories), then dispatches fix agents per file, then re-scans to verify fixes. Repeats until zero errors or max 3 iterations.
 
 ## Instructions
 
@@ -41,7 +41,7 @@ Automated scan-fix-verify loop that removes AI writing patterns from documentati
 Always use the scanner script for detection — never self-assess a file as "clean" without running the tool. The scanner catches patterns humans miss.
 
 ```bash
-python3 ~/.claude/scripts/scan-ai-patterns.py --errors-only --json
+python3 ~/private-skills/scripts/scan-ai-patterns.py --errors-only --json
 ```
 
 Parse the JSON output. Group hits by file.
@@ -112,7 +112,7 @@ When 2 or more files have errors, dispatch one Agent per file to fix them simult
 **Step 1: Re-run the scanner**
 
 ```bash
-python3 ~/.claude/scripts/scan-ai-patterns.py --errors-only
+python3 ~/private-skills/scripts/scan-ai-patterns.py --errors-only
 ```
 
 **Step 2: Check results**
@@ -156,7 +156,7 @@ Report staged files. Do not run `git commit` — the user owns the final commit 
 
 ### Error: "scan-ai-patterns.py not found"
 **Cause**: Script not in expected location
-**Solution**: Check `scripts/scan-ai-patterns.py` exists. If not, the toolkit may need re-installation.
+**Solution**: Check `~/private-skills/scripts/scan-ai-patterns.py` exists. If not, the private-skills repo may need re-installation.
 
 ### Error: "Pattern match is a false positive"
 **Cause**: Technical term, skill name, or schema value matches a banned pattern
@@ -170,5 +170,5 @@ Report staged files. Do not run `git commit` — the user owns the final commit 
 
 ## References
 
-- `scripts/scan-ai-patterns.py` — Deterministic pattern scanner with 323 banned patterns across 24 categories
-- `scripts/data/banned-patterns.json` — Pattern database with regex rules and categories
+- `~/private-skills/scripts/scan-ai-patterns.py` — Deterministic pattern scanner with 323 banned patterns across 24 categories
+- `~/private-skills/scripts/data/banned-patterns.json` — Pattern database with regex rules and categories
