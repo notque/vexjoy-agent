@@ -321,7 +321,7 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
 def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
     """Check: Has reference files directory (10 pts)."""
     # Agents: refs live in {agent-name}/references/ (e.g., golang-general-engineer/references/)
-    # Skills: refs live in the skill directory (e.g., skills/do/references/)
+    # Skills: refs live in the skill directory (e.g., skills/meta/do/references/)
     if component_type == "agent":
         refs_dir = file_path.parent / file_path.stem / "references"
     else:
@@ -592,12 +592,12 @@ def find_all_agents() -> list[Path]:
 
 
 def find_all_skills() -> list[Path]:
-    """Find all skill SKILL.md files (from skills/)."""
+    """Find all skill SKILL.md files (from skills/, flat and nested)."""
     results = []
     for dirname in ("skills", "pipelines"):
         d = REPO_ROOT / dirname
         if d.is_dir():
-            results.extend(d.glob("*/SKILL.md"))
+            results.extend(d.glob("**/SKILL.md"))
     return sorted(results)
 
 
@@ -622,7 +622,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "files",
         nargs="*",
-        help="Component file(s) to score (agents/*.md or skills/*/SKILL.md)",
+        help="Component file(s) to score (agents/*.md or skills/**/SKILL.md)",
     )
     parser.add_argument(
         "--all-agents",
@@ -632,7 +632,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--all-skills",
         action="store_true",
-        help="Score all skills in skills/*/SKILL.md",
+        help="Score all skills in skills/**/SKILL.md",
     )
     parser.add_argument(
         "--check-secrets",
@@ -665,7 +665,7 @@ def main() -> int:
             return 2
         if detect_component_type(p) is None:
             print(f"Error: Cannot detect component type for {f}", file=sys.stderr)
-            print("  Expected: agents/*.md or skills/*/SKILL.md", file=sys.stderr)
+            print("  Expected: agents/*.md or skills/**/SKILL.md", file=sys.stderr)
             return 2
         targets.append(p)
 

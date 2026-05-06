@@ -62,7 +62,7 @@ def _resolve_component_root(file_path: str, base_dir: Path) -> Path | None:
     For agents: the component root is the agents/ directory itself (agents are
     flat .md files, not subdirectories).
     For skills: the component root is the immediate subdirectory, e.g.
-    skills/go-patterns/ for skills/go-patterns/SKILL.md.
+    skills/engineering/go-patterns/ for skills/engineering/go-patterns/SKILL.md.
 
     Returns None if the path is not inside a component directory or if the
     path is itself inside a references/ subdirectory (editing references is fine).
@@ -94,7 +94,9 @@ def _resolve_component_root(file_path: str, base_dir: Path) -> Path | None:
             pass
         return None
 
-    # Skills: subdirectory components under skills/<name>/.
+    # Skills: subdirectory components under skills/<category>/<name>/.
+    # The skill root is the directory containing SKILL.md (or the innermost
+    # component being edited), NOT the category directory.
     if "/skills/" in normalised:
         try:
             resolved = Path(file_path) if Path(file_path).is_absolute() else (base_dir / file_path)
@@ -102,6 +104,22 @@ def _resolve_component_root(file_path: str, base_dir: Path) -> Path | None:
             candidate = resolved if resolved.is_dir() else resolved.parent
             for _ in range(5):  # Limit depth to avoid runaway traversal
                 if candidate.parent.name == "skills":
+                    # candidate is an immediate child of skills/ — could be a
+                    # category dir (meta/, process/) or a flat skill.  If it
+                    # doesn't contain SKILL.md, it's a category dir and the
+                    # actual skill is one level deeper.  Re-derive from the
+                    # resolved file path instead.
+                    if not (candidate / "SKILL.md").exists():
+                        # Nested: skills/category/skill-name/...
+                        # The skill dir is the child of the category that is
+                        # an ancestor of (or equal to) the resolved file.
+                        skill_candidate = resolved if resolved.is_dir() else resolved.parent
+                        for _ in range(5):
+                            if skill_candidate.parent == candidate:
+                                return skill_candidate
+                            if skill_candidate == candidate or skill_candidate.parent == skill_candidate:
+                                break
+                            skill_candidate = skill_candidate.parent
                     return candidate
                 if candidate.parent == candidate:
                     break

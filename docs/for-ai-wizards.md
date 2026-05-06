@@ -4,7 +4,7 @@ You know Claude Code. You've written agents, maybe built a skill or two. This do
 
 ## The Router
 
-Every `/do` request runs through the `/do` skill itself (`skills/do/SKILL.md`). Phase 1 classifies complexity. Phase 2 runs `scripts/index-router.py` for deterministic trigger matching and candidate scoring. Then Claude selects the agent + skill combination.
+Every `/do` request runs through the `/do` skill itself (`skills/meta/do/SKILL.md`). Phase 1 classifies complexity. Phase 2 runs `scripts/index-router.py` for deterministic trigger matching and candidate scoring. Then Claude selects the agent + skill combination.
 
 A `skill-evaluator` hook exists but is disabled. Its routing cheat sheet became redundant once the `/do` skill got its own routing tables.
 
@@ -96,7 +96,7 @@ Reviewer agents: `reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewe
 
 ## Skill System
 
-A skill is `skills/{name}/SKILL.md`. A workflow methodology, not a domain expert. Where agents know *what*, skills know *how*.
+A skill is `skills/{category}/{name}/SKILL.md`. A workflow methodology, not a domain expert. Where agents know *what*, skills know *how*.
 
 ```yaml
 ---

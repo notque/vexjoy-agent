@@ -86,7 +86,7 @@ Focus on non-obvious, specific insights — not generic best practices.
 | `hooks/error-learner.py` | Auto-capture tool errors and solutions |
 | `hooks/review-capture.py` | Capture review findings from subagents |
 | `hooks/confidence-decay.py` | Prune stale low-confidence entries |
-| `skills/retro/SKILL.md` | User-facing `/retro` commands (status, list, search, graduate) |
+| `skills/meta/retro/SKILL.md` | User-facing `/retro` commands (status, list, search, graduate) |
 
 ## Patterns to Detect and Fix
 

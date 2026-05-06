@@ -119,7 +119,7 @@ setup_hooks() {
     fi
 
     info "  Quality gate available via: /quality-gate skill"
-    info "  See skills/universal-quality-gate/SKILL.md for usage"
+    info "  See skills/code-quality/universal-quality-gate/SKILL.md for usage"
 }
 
 # Show summary
@@ -143,7 +143,7 @@ show_summary() {
 
     echo ""
     info "Run quality gate with:"
-    echo "  python3 \"$REPO_ROOT/skills/universal-quality-gate/scripts/run_quality_gate.py\""
+    echo "  python3 \"$REPO_ROOT/skills/code-quality/universal-quality-gate/scripts/run_quality_gate.py\""
     echo ""
 }
 

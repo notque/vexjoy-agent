@@ -5,7 +5,7 @@ Records file state before upgrades, enables rollback via manifests,
 and verifies post-upgrade integrity with optional score-component integration.
 
 Usage:
-    python3 scripts/manifest.py snapshot agents/golang-general-engineer.md skills/do/SKILL.md
+    python3 scripts/manifest.py snapshot agents/golang-general-engineer.md skills/meta/do/SKILL.md
     python3 scripts/manifest.py snapshot --all
     python3 scripts/manifest.py undo .claude/manifests/upgrade-2026-03-22T143000.json
     python3 scripts/manifest.py verify .claude/manifests/upgrade-2026-03-22T143000.json

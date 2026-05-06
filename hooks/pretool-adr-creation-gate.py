@@ -37,8 +37,8 @@ _BYPASS_ENV = "ADR_CREATION_GATE_BYPASS"
 
 # Match agents/foo-bar.md → "foo-bar"
 _AGENT_RE = re.compile(r"/agents/([^/]+)\.md$")
-# Match skills/foo-bar/SKILL.md → "foo-bar"
-_SKILL_RE = re.compile(r"/skills/([^/]+)/SKILL\.md$")
+# Match skills/foo-bar/SKILL.md or skills/category/foo-bar/SKILL.md → "foo-bar"
+_SKILL_RE = re.compile(r"/skills/(?:[^/]+/)?([^/]+)/SKILL\.md$")
 # Match pipelines/foo-bar/SKILL.md → "foo-bar"
 _PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 
@@ -52,10 +52,10 @@ _PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 # path shape produced by exactly one well-known upstream skill. If a new
 # component type wants in, write the producer skill first, then add the entry.
 _ADR_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
-    # voice-* skills are produced by `create-voice` (skills/create-voice/
+    # voice-* skills are produced by `create-voice` (skills/content/create-voice/
     # SKILL.md Step 5: GENERATE). The create-voice skill itself documents the
     # voice-creation methodology; a per-voice ADR would be redundant.
-    (re.compile(r"/skills/voice-[^/]+/SKILL\.md$"), "create-voice"),
+    (re.compile(r"/skills/(?:[^/]+/)?voice-[^/]+/SKILL\.md$"), "create-voice"),
 ]
 
 

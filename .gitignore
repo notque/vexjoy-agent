@@ -13,7 +13,7 @@
 adr/
 
 # Retrospective notes (internal development artifacts)
-retro/
+/retro/
 
 # Environment files (NEVER commit credentials)
 .env
@@ -67,8 +67,8 @@ plan/
 MIGRATION_CHECKLIST_V2.md
 
 # Development artifacts (generated content, research outputs)
-content/
-research/
+/content/
+/research/
 
 # AB test output directories (raw trial outputs, not committed)
 ab-test-results/

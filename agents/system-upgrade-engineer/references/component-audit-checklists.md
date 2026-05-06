@@ -131,13 +131,13 @@ syntax errors silently return non-zero. Always verify with `python3 -c "import a
 
 ## Routing Table Audit Checklist
 
-Routing tables live in `skills/do/references/routing-tables.md` and companion files.
+Routing tables live in `skills/meta/do/references/routing-tables.md` and companion files.
 
 ```bash
 # 1. Find agents referenced in routing table that no longer exist
 python3 -c "
 import re
-table = open('skills/do/references/routing-tables.md').read()
+table = open('skills/meta/do/references/routing-tables.md').read()
 agents = re.findall(r'\|\s*([a-z][a-z-]+engineer|[a-z][a-z-]+agent)\s*\|', table)
 import os
 for a in set(agents):
@@ -147,11 +147,11 @@ for a in set(agents):
 
 # 2. Find agents in repo not present in routing table
 grep -rh "^name:" agents/*.md | awk '{print $2}' | while read name; do
-  grep -q "$name" skills/do/references/routing-tables.md || echo "NOT IN TABLE: $name"
+  grep -q "$name" skills/meta/do/references/routing-tables.md || echo "NOT IN TABLE: $name"
 done
 
 # 3. Find routing table entries with no trigger keywords
-grep -B 1 "No trigger\|no keywords\|\[\]" skills/do/references/routing-tables.md
+grep -B 1 "No trigger\|no keywords\|\[\]" skills/meta/do/references/routing-tables.md
 ```
 
 ---

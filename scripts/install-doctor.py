@@ -163,12 +163,36 @@ def check_codex_skills() -> dict:
             else "Codex skills mirror not found. Run install.sh from the toolkit repo.",
         }
 
-    expected_entries = [item.name for item in sorted((repo_root / "skills").iterdir())]
+    # Build expected entries by walking the nested skill structure.
+    # The Codex mirror is flat (same as ~/.claude/skills deployment), so we
+    # need to list individual skills, not category folders.
+    repo_skills = repo_root / "skills"
+    expected_entries = []
+    root_utility = {"shared-patterns", "workflow", "kb"}
+    for item in sorted(repo_skills.iterdir()):
+        if item.is_file():
+            expected_entries.append(item.name)  # INDEX.json, README.md, etc.
+        elif item.is_dir() and item.name in root_utility:
+            expected_entries.append(item.name)  # Utility dirs kept at root
+        elif item.is_dir():
+            # Category folder: list individual skills inside
+            for skill_dir in sorted(item.iterdir()):
+                if skill_dir.is_dir():
+                    expected_entries.append(skill_dir.name)
 
     private_skills_dir = repo_root / "private-skills"
     if private_skills_dir.is_dir():
-        for skill_dir in sorted(private_skills_dir.iterdir()):
-            expected_entries.append(skill_dir.name)
+        for category_dir in sorted(private_skills_dir.iterdir()):
+            if not category_dir.is_dir() or category_dir.name.startswith("."):
+                continue
+            for skill_dir in sorted(category_dir.iterdir()):
+                if not skill_dir.is_dir():
+                    continue
+                # Voice category deploys as voice-{name}
+                if category_dir.name == "voice":
+                    expected_entries.append(f"voice-{skill_dir.name}")
+                else:
+                    expected_entries.append(skill_dir.name)
 
     private_voices_dir = repo_root / "private-voices"
     if private_voices_dir.is_dir():
@@ -452,6 +476,123 @@ def check_learning_db() -> dict:
         }
 
 
+def check_skill_structure() -> list[dict]:
+    """Verify skill folder reorganization integrity.
+
+    Checks that INDEX.json paths resolve from the repo root, and that
+    the repo skills directory uses nested category folders (not flat).
+    The deployed ~/.claude/skills/ is intentionally flat (per-skill symlinks)
+    for Claude Code compatibility — this check validates the SOURCE repo.
+    """
+    results = []
+
+    # Find the SOURCE repo skills directory, not the deployed ~/.claude/skills/.
+    # The deployed dir is intentionally flat (symlinks). We validate the repo.
+    repo_root = get_toolkit_repo_root()
+    if repo_root is None:
+        results.append(
+            {
+                "name": "skill_structure",
+                "label": "Skill folder structure",
+                "passed": True,
+                "detail": "Repo root not found (running outside repo — skipping structure check)",
+            }
+        )
+        return results
+
+    repo_skills = repo_root / "skills"
+    if not repo_skills.is_dir():
+        results.append(
+            {
+                "name": "skill_structure",
+                "label": "Skill folder structure",
+                "passed": False,
+                "detail": "skills/ directory not found in repo",
+            }
+        )
+        return results
+
+    # Check 1: INDEX.json exists and all paths resolve from repo root
+    index_file = repo_skills / "INDEX.json"
+    if not index_file.exists():
+        results.append(
+            {
+                "name": "skill_index",
+                "label": "Skill INDEX.json valid",
+                "passed": False,
+                "detail": "INDEX.json not found",
+            }
+        )
+        return results
+
+    try:
+        index_data = json.loads(index_file.read_text())
+        skills = index_data.get("skills", {})
+        missing = []
+        for name, info in skills.items():
+            fpath = repo_root / info.get("file", "")
+            if not fpath.exists():
+                missing.append(name)
+
+        if missing:
+            results.append(
+                {
+                    "name": "skill_index_paths",
+                    "label": "Skill INDEX.json paths valid",
+                    "passed": False,
+                    "detail": f"{len(missing)} broken paths: {', '.join(missing[:5])}{'...' if len(missing) > 5 else ''}",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "name": "skill_index_paths",
+                    "label": "Skill INDEX.json paths valid",
+                    "passed": True,
+                    "detail": f"All {len(skills)} skill paths verified",
+                }
+            )
+    except (json.JSONDecodeError, OSError) as e:
+        results.append(
+            {
+                "name": "skill_index_paths",
+                "label": "Skill INDEX.json readable",
+                "passed": False,
+                "detail": f"Parse error: {e}",
+            }
+        )
+
+    # Check 2: No flat-root skills in the REPO (SKILL.md directly under skills/)
+    # Allowed at root: shared-patterns, workflow, kb (utility dirs)
+    # The deployed ~/.claude/skills/ IS flat by design — this checks the repo source.
+    allowed_root = {"shared-patterns", "workflow", "kb"}
+    flat_skills = []
+    for child in repo_skills.iterdir():
+        if child.is_dir() and child.name not in allowed_root and (child / "SKILL.md").exists():
+            flat_skills.append(child.name)
+
+    if flat_skills:
+        results.append(
+            {
+                "name": "skill_no_flat_root",
+                "label": "No flat-root skills",
+                "passed": False,
+                "detail": f"{len(flat_skills)} skills at root (should be in category folders): {', '.join(flat_skills[:5])}",
+            }
+        )
+    else:
+        results.append(
+            {
+                "name": "skill_no_flat_root",
+                "label": "No flat-root skills",
+                "passed": True,
+                "detail": "All skills properly categorized in folders",
+            }
+        )
+
+    return results
+
+
 def check_permissions() -> list[dict]:
     """Check that hook and script files are executable."""
     results = []
@@ -647,6 +788,7 @@ def run_all_checks() -> list[dict]:
     results.append(check_python_version())
     results.extend(check_python_deps())
     results.append(check_learning_db())
+    results.extend(check_skill_structure())
     results.extend(check_permissions())
     results.extend(check_mcp_servers())
     return results

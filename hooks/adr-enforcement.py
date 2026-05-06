@@ -30,7 +30,7 @@ __EVENT_NAME = "PostToolUse"
 
 # Pipeline component files that trigger enforcement (matched against repo-relative paths)
 _PIPELINE_COMPONENT_PATTERNS = [
-    r"^skills/[^/]+/SKILL\.md$",
+    r"^skills/(?:[^/]+/)?[^/]+/SKILL\.md$",
     r"^agents/[^/]+\.md$",
     r"^scripts/[^/]+\.py$",
     r"^hooks/[^/]+\.py$",
@@ -46,8 +46,8 @@ _EXCLUDE_PATTERNS = [
 ]
 
 # Reference files used by adr-compliance.py
-__STEP_MENU = "~/.claude/skills/pipeline-scaffolder/references/step-menu.md"
-__SPEC_FORMAT = "~/.claude/skills/pipeline-scaffolder/references/pipeline-spec-format.md"
+_STEP_MENU = "skills/workflow/references/pipeline-scaffolder/references/step-menu.md"
+_SPEC_FORMAT = "skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md"
 
 
 def is_pipeline_component(file_path: str) -> bool:

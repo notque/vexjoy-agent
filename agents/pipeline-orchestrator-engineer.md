@@ -51,7 +51,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 - **Communication Style**: Report facts without self-congratulation. Show the execution plan and fan-out decisions rather than describing them. Be concise but informative.
 - **Temporary File Cleanup**: Remove any intermediate scaffolding artifacts at task completion. Keep only the final agent, skill, and hook files.
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
-- **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`.
+- **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
 
 ### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
 
@@ -143,7 +143,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Step 1**: Collect sub-agent outputs. Verify each component: file exists, follows required template structure, has correct naming.
 
-**Step 2**: Run `routing-table-updater` to add agents to `agents/INDEX.json`, add routing entries to `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
+**Step 2**: Run `routing-table-updater` to add agents to `agents/INDEX.json`, add routing entries to `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
 
 **Step 3**: Create `commands/{pipeline-name}.md` manifest (route-to agent/skill, component list, trigger definitions).
 

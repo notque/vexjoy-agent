@@ -44,6 +44,17 @@ _DO_INSTEAD = re.compile(
 
 _EXCEPTION_ANNOTATION = re.compile(r"<!--\s*no-pair-required\s*:", re.IGNORECASE)
 
+# Table column headers that serve as an inline positive counterpart, making a
+# separate "Do instead" section redundant.  Case-insensitive match against the
+# header row of any Markdown table found inside the anti-pattern block.
+_TABLE_POSITIVE_COLUMNS = re.compile(
+    r"\b(?:Fix|Solution|Alternative|Better|Correct|Instead|Do\s+Instead"
+    r"|Mitigation|Defense|What\s+to\s+Do|Prevention)\b",
+    re.IGNORECASE,
+)
+
+_TABLE_HEADER_ROW = re.compile(r"^\|(.+)\|", re.MULTILINE)
+
 _SKIP_FILENAMES = {"INDEX.json", "README.md"}
 
 
@@ -124,6 +135,12 @@ def check_do_framing_in_file(path: Path) -> list[DoFramingIssue]:
         if not _ANTIPATTERN_HEADING.search(heading_line):
             continue
         if _DO_INSTEAD.search(block):
+            continue
+        # Check if the block contains a table whose header row includes a
+        # positive-counterpart column (Fix, Solution, Alternative, etc.).
+        # Such tables are self-paired — no separate "Do instead" section needed.
+        table_headers = _TABLE_HEADER_ROW.findall(block)
+        if any(_TABLE_POSITIVE_COLUMNS.search(hdr) for hdr in table_headers):
             continue
         if _EXCEPTION_ANNOTATION.search(block):
             continue

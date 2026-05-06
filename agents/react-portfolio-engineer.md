@@ -77,7 +77,7 @@ Portfolios are the highest-risk surface for generic output. Without specific dir
 - **Two typefaces maximum.** Display face for titles, body face for statements. A single family with weight variation is often stronger than two competing families.
 - **One accent color.** Portfolios already carry strong color from the artwork itself. Additional decorative color from the UI fights the work. Let the artwork be the color story.
 - **Motion discipline (2-3 slots).** (1) One hero entrance on load. (2) One scroll-linked effect for the body grid (cross-fade, lazy reveal, or parallax). (3) One interaction effect on image hover or lightbox open. Ambient decorative motion buries the work.
-- **Anti-cliche check.** Before implementing, check against `${CLAUDE_SKILL_DIR}/../../skills/distinctive-frontend-design/references/preferred-patterns.json`. Avoid three-column feature grids, rounded cards with drop shadows, centered hero with single CTA, purple gradient on white, Inter + generic blue.
+- **Anti-cliche check.** Before implementing, check against `${CLAUDE_SKILL_DIR}/../../skills/frontend/distinctive-frontend-design/references/preferred-patterns.json`. Avoid three-column feature grids, rounded cards with drop shadows, centered hero with single CTA, purple gradient on white, Inter + generic blue.
 - **Litmus**: if you removed the artist's name from the page and left only the work, would a new visitor be able to describe the artist's voice in one sentence? If not, the portfolio is not communicating yet.
 
 ### Default Behaviors (ON unless disabled)

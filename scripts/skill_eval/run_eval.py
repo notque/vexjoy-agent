@@ -334,7 +334,7 @@ def run_eval(
             raise ValueError("registered eval mode requires skill_path")
         relpath = resolve_registered_skill_relpath(skill_path, project_root)
         if relpath is None:
-            raise ValueError("registered eval mode requires skill_path under project_root/skills/*/SKILL.md")
+            raise ValueError("registered eval mode requires skill_path under project_root/skills/**/SKILL.md")
         _name, original_description, original_content = parse_skill_md(skill_path)
         if candidate_content is None:
             if description != original_description:

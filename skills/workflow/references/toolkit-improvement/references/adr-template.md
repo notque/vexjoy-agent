@@ -152,7 +152,7 @@ worktree branches afterward.
 4. Orchestrator verifies convergence after all agents complete
 
 **Worktree agent rules** (from ADR-126): When dispatching worktree agents, include the
-`worktree-agent` skill rules in each prompt. See `skills/worktree-agent/SKILL.md`. Key
+`worktree-agent` skill rules in each prompt. See `skills/process/worktree-agent/SKILL.md`. Key
 rules: verify CWD contains `.claude/worktrees/`, create branch before edits, ignore
 auto-plan hooks, stage specific files only, never touch the main worktree.
 
@@ -162,7 +162,7 @@ _Required for any ADR that creates or modifies a skill, pipeline, or agent._
 
 - [ ] Frontmatter triggers added/updated in component YAML
 - [ ] INDEX.json regenerated (`generate-skill-index.py` or `generate-agent-index.py`)
-- [ ] Entry added to `skills/do/references/routing-tables.md`
+- [ ] Entry added to `skills/meta/do/references/routing-tables.md`
 - [ ] Trigger collision check passed (no duplicate triggers across force-routed entries)
 - [ ] Pipeline companion map updated (if component pairs with existing pipelines)
 - [ ] Quick-reference examples added to routing tables
@@ -263,7 +263,7 @@ routing integration steps:
    - Skills: `python3 scripts/generate-skill-index.py`
    - Pipelines: `python3 scripts/generate-skill-index.py` (handles both)
    - Agents: `python3 scripts/generate-agent-index.py`
-3. **Routing table entry**: Add entry to `skills/do/references/routing-tables.md`
+3. **Routing table entry**: Add entry to `skills/meta/do/references/routing-tables.md`
 4. **Trigger collision check**: Verify no trigger phrases overlap with existing entries
 5. **Pipeline companion map**: If the new component pairs with existing pipelines, add to the companion map
 6. **Quick-reference examples**: Add representative "user says X → routes to Y" examples
