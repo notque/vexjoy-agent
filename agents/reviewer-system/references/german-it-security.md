@@ -186,6 +186,7 @@ BSI registration required within 3 months. Portal opened January 6, 2026.
 | Grundschutz <> C5 | C5 built on Grundschutz; Grundschutz is broader foundation (C5 in `sovereign-cloud-data-residency.md`) |
 | NIS2 <> KRITIS | NIS2 expands scope; KRITIS retained for critical facilities with additional obligations |
 | All three <> ISO 27001 | Grundschutz certification path to ISO 27001; NIS2 recognizes ISO 27001 as implementation evidence |
+| NIS2 <> DORA | DORA is lex specialis for financial entities; see [financial-resilience-de-eu.md](financial-resilience-de-eu.md) |
 
 ---
 

@@ -134,7 +134,13 @@
         "NDA",
         "legal risk",
         "legal brief",
-        "vendor check"
+        "vendor check",
+        "german compliance",
+        "DSGVO",
+        "GoBD",
+        "TDDDG",
+        "AI Act compliance",
+        "eIDAS"
       ],
       "category": "business",
       "user_invocable": true,

@@ -193,6 +193,9 @@ Each finding must follow this structure:
 | Migration Safety | `migration-safety.md` | Database migrations, rollback safety, schema evolution, feature flags, deprecation |
 | Dependency Audit | `dependency-audit.md` | CVEs, licenses, deprecated packages, supply chain, unused dependencies |
 | Docs Validator | `docs-validator.md` | README, CLAUDE.md, CI/CD, build system, project metadata |
+| Grundschutz, KRITIS, NIS2, German IT security | `german-it-security.md` | BSI IT-Grundschutz, KRITIS expanded checks, NIS2UmsuCG code-level checks |
+| DORA, MaRisk, German banking, financial resilience | `financial-resilience-de-eu.md` | DORA five pillars, KWG/MaRisk residual checks, financial sector compliance |
+| TISAX, automotive, VDA ISA | `industry-specific-compliance.md` | TISAX assessment levels, prototype protection, automotive supply chain |
 
 ## References
 

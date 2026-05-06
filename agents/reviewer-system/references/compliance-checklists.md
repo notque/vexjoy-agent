@@ -84,6 +84,8 @@ Extended German and EU compliance frameworks are in dedicated reference files. L
 | TISAX | [industry-specific-compliance.md](industry-specific-compliance.md) | 8 |
 | GoBD, HGB, TDDDG, eIDAS, AI Act | Legal skill: `german-business-compliance.md` | 35 |
 
+Also see [sovereign-cloud-data-residency.md](sovereign-cloud-data-residency.md) for BSI C5, BDSG/DSGVO, and EU data residency checks.
+
 ## How to Use in Reviews
 
 1. Identify which frameworks apply (from project context or ADR)
