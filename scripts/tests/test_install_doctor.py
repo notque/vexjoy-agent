@@ -16,8 +16,11 @@ def _make_repo(repo_root: Path) -> None:
     skills_dir = repo_root / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     (skills_dir / "INDEX.json").write_text("{}\n", encoding="utf-8")
+    # Nested category structure: skills/meta/install/, skills/meta/do/
+    meta_dir = skills_dir / "meta"
+    meta_dir.mkdir()
     for name in ("install", "do"):
-        skill_dir = skills_dir / name
+        skill_dir = meta_dir / name
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(f"# {name}\n", encoding="utf-8")
 

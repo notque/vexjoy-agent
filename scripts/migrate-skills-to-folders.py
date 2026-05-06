@@ -2,7 +2,7 @@
 """Migrate flat skills/ directory to category-folder structure.
 
 Moves skills/foo/ → skills/category/foo/ based on a predefined mapping.
-Updates INDEX.json file paths after the move. Supports --dry-run.
+Supports --dry-run.
 
 Usage:
     python3 scripts/migrate-skills-to-folders.py --dry-run   # preview
@@ -10,7 +10,6 @@ Usage:
 """
 
 import argparse
-import json
 import shutil
 import sys
 from pathlib import Path

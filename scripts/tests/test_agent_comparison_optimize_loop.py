@@ -750,7 +750,7 @@ def test_run_blind_compare_zeroes_untriggered_or_contaminated_runs(tmp_path, mon
         "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
-    target = tmp_path / "skills" / "socratic-debugging" / "SKILL.md"
+    target = tmp_path / "skills" / "process" / "socratic-debugging" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("---\nname: socratic-debugging\ndescription: test\n---\n")
 
@@ -1225,7 +1225,7 @@ def test_tiny_end_to_end_autoresearch_improves_real_weak_skill_copy(tmp_path, mo
         "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
-    source_skill = REPO_ROOT / "skills" / "socratic-debugging" / "SKILL.md"
+    source_skill = REPO_ROOT / "skills" / "process" / "socratic-debugging" / "SKILL.md"
     target = tmp_path / "SKILL.md"
     target.write_text(source_skill.read_text())
 
