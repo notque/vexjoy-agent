@@ -25,7 +25,7 @@ SAMPLE_SKILLS_INDEX = {
     "version": "2.0",
     "skills": {
         "go-patterns": {
-            "file": "skills/go-patterns/SKILL.md",
+            "file": "skills/engineering/go-patterns/SKILL.md",
             "description": "Go patterns: testing, concurrency, error handling, code review, conventions.",
             "triggers": [
                 "Go test",
@@ -49,7 +49,7 @@ SAMPLE_SKILLS_INDEX = {
             "category": "process",
         },
         "code-linting": {
-            "file": "skills/code-linting/SKILL.md",
+            "file": "skills/code-quality/code-linting/SKILL.md",
             "description": "Lint and format code.",
             "triggers": ["lint code", "run ruff", "format code"],
             "category": "code-quality",
@@ -75,7 +75,7 @@ SAMPLE_PIPELINES_INDEX = {
     "version": "2.0",
     "pipelines": {
         "pr-pipeline": {
-            "file": "skills/pr-workflow/references/pipeline.md",
+            "file": "skills/process/pr-workflow/references/pipeline.md",
             "description": "Submit PR.",
             "triggers": ["submit PR", "create pull request", "push and PR"],
             "force_route": True,

@@ -360,5 +360,5 @@ for ev, groups in s.get('hooks', {}).items():
 
 - `frontmatter-compliance.md` — agent/skill YAML field standards
 - `routing-table-patterns.md` — routing entry validation
-- `skills/do/references/hooks-guide.md` — hook event types overview
+- `skills/meta/do/references/hooks-guide.md` — hook event types overview
 - `~/.claude/hooks/` — deployed hook files

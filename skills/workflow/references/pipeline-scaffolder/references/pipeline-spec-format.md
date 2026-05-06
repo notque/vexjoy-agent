@@ -469,7 +469,7 @@ FROM spec:
 | Script | `subdomains[i].scripts_needed` | `scripts/{filename}` | `{domain}-{function}.py` |
 | Agent | `new_agent.name` | `agents/{name}.md` | `{domain}-{function}-engineer` |
 | Agent references | (created if `new_agent.complexity` is Medium+) | `agents/{name}/references/` | Per architecture-rules.md |
-| Routing entries | `subdomains[i].routing_triggers` | `skills/do/references/routing-tables.md`, `agents/INDEX.json` | N/A (data, not files) |
+| Routing entries | `subdomains[i].routing_triggers` | `skills/meta/do/references/routing-tables.md`, `agents/INDEX.json` | N/A (data, not files) |
 
 ### Component Dependency Graph
 

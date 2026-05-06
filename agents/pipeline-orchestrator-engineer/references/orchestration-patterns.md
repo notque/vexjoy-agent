@@ -51,7 +51,7 @@ Agent(
   {relationships}
 
   ### Template Reference
-  Follow skills/skill-creator/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
+  Follow skills/meta/skill-creator/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
 
   ### Architecture Rules
   See skills/workflow/references/architecture-rules.md.
@@ -158,7 +158,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 ## Phase 4 — Integration Verification Checklist
 
 - All agents in `agents/INDEX.json`
-- Routing entries match triggers in `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`
+- Routing entries match triggers in `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`
 - All hooks syntactically valid Python
 - All skills follow frontmatter + operator context pattern
 - No orphaned components
@@ -169,7 +169,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 
 | Creator | Components | Template |
 |---------|-----------|----------|
-| `skill-creator` | Agent manifests + skill SKILL.md + references | `skills/skill-creator/references/agent-template.md` / standard skill format |
+| `skill-creator` | Agent manifests + skill SKILL.md + references | `skills/meta/skill-creator/references/agent-template.md` / standard skill format |
 | `hook-development-engineer` | Python hooks | `hooks/lib/hook_utils.py` conventions |
 | Direct (orchestrator) | Python scripts | `scripts/` conventions |
 

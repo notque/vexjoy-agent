@@ -108,7 +108,7 @@ Three modes:
 Setup bootstraps subreddit data: rules files, mod log summaries, repeat offender list.
 
 ```bash
-python3 skills/reddit-moderate/scripts/reddit-mod.py setup
+python3 skills/content/reddit-moderate/scripts/reddit-mod.py setup
 ```
 
 Proactive scanning checks posts beyond what's reported:

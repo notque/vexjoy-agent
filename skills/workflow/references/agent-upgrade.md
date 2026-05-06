@@ -47,7 +47,7 @@ multi-component changes driven by external events.
 # Common target patterns:
 agents/golang-general-engineer.md
 agents/python-general-engineer.md
-skills/go-patterns/SKILL.md
+skills/engineering/go-patterns/SKILL.md
 ```
 
 If the user names an agent without a path, resolve it:
@@ -96,7 +96,7 @@ Retro candidates: [N found | none]
 **Step 1**: Compare target against the agent template structure. Read the template:
 ```bash
 # Read the agent template
-cat skills/skill-creator/references/agent-template.md | head -50
+cat skills/meta/skill-creator/references/agent-template.md | head -50
 ```
 
 Check for required sections. For agents:
@@ -301,7 +301,7 @@ Cause: No relevant learnings in the database for this agent's domain.
 Solution: Skip retro graduation step and note it in the diff report. Learnings accumulate naturally during work.
 
 ### Error: "Agent template not found in repository"
-Cause: Template file not at expected path (`skills/skill-creator/references/agent-template.md`).
+Cause: Template file not at expected path (`skills/meta/skill-creator/references/agent-template.md`).
 Solution: Use the highest-scoring agent (from recent agent-evaluation runs or MEMORY.md) as the de facto template for structural comparison. Note the substitution in the diff report.
 
 ### Error: "Regression detected in Phase 5 (delta is negative)"
@@ -316,7 +316,7 @@ Solution: Re-read the file before editing. If the baseline state has changed mat
 
 ## References
 
-- [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 1 (baseline) and Phase 5 (re-evaluate)
+- [agent-evaluation](../../skills/meta/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 1 (baseline) and Phase 5 (re-evaluate)
 - [system-upgrade](../system-upgrade/SKILL.md) - Top-down multi-component upgrade pipeline (complements this bottom-up single-agent pipeline)
 - [agent-template](../../skill-creator/references/agent-template.md) - Structural template used for gap analysis in Phase 2
 - [learning-db.py](../../scripts/learning-db.py) - Script for querying retro graduation candidates

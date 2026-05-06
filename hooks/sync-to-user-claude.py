@@ -305,6 +305,82 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     return True
 
 
+def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
+    """Create flat per-skill symlinks from nested category structure.
+
+    The repo organizes skills into category folders:
+        skills/meta/do/SKILL.md
+        skills/process/planning/SKILL.md
+
+    But Claude Code only discovers flat ~/.claude/skills/*/SKILL.md.
+    This function creates individual symlinks to flatten the structure:
+        ~/.claude/skills/do → repo/skills/meta/do
+        ~/.claude/skills/planning → repo/skills/process/planning
+
+    Root-level items (INDEX.json, shared-patterns/, workflow/, kb/) are
+    also symlinked directly.
+    """
+    # If dst is a single symlink to the repo (old-style), replace with a real dir
+    if dst.is_symlink():
+        dst.unlink()
+
+    dst.mkdir(parents=True, exist_ok=True)
+
+    # Track what we create so we can clean stale entries
+    expected_names: set[str] = set()
+
+    # Symlink root-level files (INDEX.json, INDEX.local.json, README.md)
+    for item in src.iterdir():
+        if item.is_file():
+            expected_names.add(item.name)
+            target = dst / item.name
+            if target.is_symlink() or target.exists():
+                if target.is_symlink() and target.resolve() == item.resolve():
+                    continue
+                target.unlink()
+            target.symlink_to(item)
+
+    # Symlink root-level utility directories (shared-patterns, workflow, kb)
+    # These contain no SKILL.md at the category level — they're utility refs.
+    root_dirs = {"shared-patterns", "workflow", "kb"}
+    for item in src.iterdir():
+        if item.is_dir() and item.name in root_dirs:
+            expected_names.add(item.name)
+            _ensure_symlink(item, dst / item.name)
+
+    # Create per-skill symlinks from nested category folders.
+    # Each category folder (meta/, process/, etc.) contains skill subdirectories.
+    for category_dir in sorted(src.iterdir()):
+        if not category_dir.is_dir():
+            continue
+        if category_dir.name in root_dirs:
+            continue  # Already handled above
+        if category_dir.name.startswith("."):
+            continue
+
+        # Check if this is a category folder (contains subdirectories with SKILL.md)
+        # vs a flat skill (contains SKILL.md directly — shouldn't exist but handle it)
+        if (category_dir / "SKILL.md").exists():
+            # Flat skill at root level (legacy or special case)
+            expected_names.add(category_dir.name)
+            _ensure_symlink(category_dir, dst / category_dir.name)
+        else:
+            # Category folder: create symlinks for each skill inside
+            for skill_dir in sorted(category_dir.iterdir()):
+                if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
+                    expected_names.add(skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+                elif skill_dir.is_dir() and (skill_dir / "profile.json").exists():
+                    # Voice profile directories (data-only, no SKILL.md)
+                    expected_names.add(skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+
+    # Clean stale entries: remove symlinks in dst that no longer map to a source
+    for item in dst.iterdir():
+        if item.name not in expected_names and item.is_symlink():
+            item.unlink()
+
+
 def main():
     # Only run when in the agents repo
     cwd = Path.cwd()
@@ -373,8 +449,17 @@ def main():
             # This preserves the symlinks created by install.sh --symlink instead of
             # destroying them and replacing with file copies.
             if install_mode == "symlink" and src_name in symlinkable_components:
-                _ensure_symlink(src, dst)
-                synced.append(f"{dst_name}(symlink)")
+                # Skills use per-skill symlinks because the repo organizes skills
+                # into category folders (skills/meta/do/, skills/process/planning/)
+                # but Claude Code only discovers flat ~/.claude/skills/*/SKILL.md.
+                # Create individual symlinks to flatten the nested structure.
+                if src_name == "skills":
+                    _sync_skills_flat_symlinks(src, dst)
+                    count = sum(1 for d in dst.iterdir() if d.is_dir() and not d.name.startswith("."))
+                    synced.append(f"{dst_name}(symlink, {count} skills)")
+                else:
+                    _ensure_symlink(src, dst)
+                    synced.append(f"{dst_name}(symlink)")
                 continue
 
             # Copy mode: resolve any existing symlinks to a real directory before
@@ -555,91 +640,130 @@ def main():
         except Exception as e:
             errors.append(f".mcp.json: {e}")
 
-    # Sync private voices: private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
-    # Private voices are gitignored — they contain personal writing patterns.
-    # Each voice dir may contain: samples/, profile.json, config.json, skill/SKILL.md
-    # Only the skill/ subdirectory is synced to ~/.claude/skills/ for orchestrator access.
-    private_voices_dir = repo_root / "private-voices"
-    if private_voices_dir.is_dir():
-        voice_count = 0
-        # Resolve the skills target directory. In symlink mode, ~/.claude/skills
-        # is a symlink to repo/skills/, so we create voice symlinks inside it.
+    # Sync private skills: ~/private-skills/{category}/{name}/ -> ~/.claude/skills/{deploy-name}/
+    # Private skills live in a sibling directory to the repo (~/private-skills),
+    # organized the same way as skills/ — nested category/skill/SKILL.md.
+    # Voice category skills deploy as voice-{name}; other categories deploy as {name}.
+    # Voice data profiles (profile.json + samples, no SKILL.md) are also deployed
+    # because create-voice and voice-writer read them at runtime by path.
+    private_skills_dir = repo_root.parent / "private-skills"
+    if private_skills_dir.is_dir():
+        private_count = 0
         skills_base = user_claude / "skills"
-        for voice_dir in sorted(private_voices_dir.iterdir()):
-            if not voice_dir.is_dir():
+        for category_dir in sorted(private_skills_dir.iterdir()):
+            if not category_dir.is_dir() or category_dir.name.startswith("."):
                 continue
-            skill_src = voice_dir / "skill"
-            if not skill_src.is_dir():
-                continue
-            voice_name = voice_dir.name
-            skill_dst = skills_base / f"voice-{voice_name}"
-            try:
-                if install_mode == "symlink":
-                    # In symlink mode, create individual symlinks for private
-                    # voice skills, matching install.sh --symlink behavior.
-                    _ensure_symlink(skill_src, skill_dst)
+            category = category_dir.name
+            for skill_dir in sorted(category_dir.iterdir()):
+                if not skill_dir.is_dir():
+                    continue
+                # Voice category: deploy all dirs (skills + data profiles)
+                # Other categories: require SKILL.md
+                if category != "voice" and not (skill_dir / "SKILL.md").exists():
+                    continue
+                # Determine deployed name: voice category gets voice- prefix
+                if category == "voice":
+                    deploy_name = f"voice-{skill_dir.name}"
                 else:
-                    skill_dst.mkdir(parents=True, exist_ok=True)
-                    for item in skill_src.rglob("*"):
-                        if item.is_file():
-                            rel = item.relative_to(skill_src)
-                            target = skill_dst / rel
-                            target.parent.mkdir(parents=True, exist_ok=True)
-                            if target.exists() and filecmp.cmp(item, target, shallow=False):
-                                continue
-                            shutil.copy2(item, target)
-                voice_count += 1
-            except Exception as e:
-                errors.append(f"voice-{voice_name}: {e}")
-        if voice_count > 0:
-            synced.append(f"private-voices({voice_count})")
+                    deploy_name = skill_dir.name
+                skill_dst = skills_base / deploy_name
+                try:
+                    if install_mode == "symlink":
+                        _ensure_symlink(skill_dir, skill_dst)
+                    else:
+                        skill_dst.mkdir(parents=True, exist_ok=True)
+                        for item in skill_dir.rglob("*"):
+                            if item.is_file():
+                                rel = item.relative_to(skill_dir)
+                                target = skill_dst / rel
+                                target.parent.mkdir(parents=True, exist_ok=True)
+                                if target.exists() and filecmp.cmp(item, target, shallow=False):
+                                    continue
+                                shutil.copy2(item, target)
+                    private_count += 1
+                except Exception as e:
+                    errors.append(f"private-{deploy_name}: {e}")
+        if private_count > 0:
+            synced.append(f"private-skills({private_count})")
 
     # Sync skills and agents to ~/.codex/ for OpenAI Codex CLI.
     # Codex natively supports skills; agents are mirrored as reference
     # material so Codex sessions can Read the same domain expertise that
     # Claude Code sessions dispatch via subagent_type.
     codex_skills_dst = Path.home() / ".codex" / "skills"
-    codex_sources = [("skills", repo_root / "skills")]
     codex_count = 0
-    for label, src in codex_sources:
-        if not src.is_dir():
-            continue
+    repo_skills = repo_root / "skills"
+    if repo_skills.is_dir():
         try:
             codex_skills_dst.mkdir(parents=True, exist_ok=True)
-            for item in src.rglob("*"):
-                if item.is_file():
-                    rel = item.relative_to(src)
-                    target = codex_skills_dst / rel
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    if target.exists() and filecmp.cmp(item, target, shallow=False):
+            # Copy skills flat (same as ~/.claude/skills deployment).
+            # The repo uses nested category folders but Codex needs flat.
+            _codex_root_utility = {"shared-patterns", "workflow", "kb"}
+            for child in sorted(repo_skills.iterdir()):
+                if child.is_file():
+                    # Root files: INDEX.json, README.md, etc.
+                    target = codex_skills_dst / child.name
+                    if target.exists() and filecmp.cmp(child, target, shallow=False):
                         continue
-                    shutil.copy2(item, target)
+                    shutil.copy2(child, target)
                     codex_count += 1
-        except Exception as e:
-            errors.append(f"codex-{label}: {e}")
-    # Also sync private voices to Codex
-    if private_voices_dir.is_dir():
-        for voice_dir in sorted(private_voices_dir.iterdir()):
-            if not voice_dir.is_dir():
-                continue
-            skill_src = voice_dir / "skill"
-            if not skill_src.is_dir():
-                continue
-            voice_name = voice_dir.name
-            codex_voice_dst = codex_skills_dst / f"voice-{voice_name}"
-            try:
-                codex_voice_dst.mkdir(parents=True, exist_ok=True)
-                for item in skill_src.rglob("*"):
-                    if item.is_file():
-                        rel = item.relative_to(skill_src)
-                        target = codex_voice_dst / rel
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        if target.exists() and filecmp.cmp(item, target, shallow=False):
+                elif child.is_dir() and child.name in _codex_root_utility:
+                    # Utility dirs: copy directly
+                    for item in child.rglob("*"):
+                        if item.is_file():
+                            rel = item.relative_to(repo_skills)
+                            target = codex_skills_dst / rel
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            if target.exists() and filecmp.cmp(item, target, shallow=False):
+                                continue
+                            shutil.copy2(item, target)
+                            codex_count += 1
+                elif child.is_dir() and not child.name.startswith("."):
+                    # Category folder: copy each skill inside as a flat entry
+                    for skill_dir in sorted(child.iterdir()):
+                        if not skill_dir.is_dir():
                             continue
-                        shutil.copy2(item, target)
-                        codex_count += 1
-            except Exception as e:
-                errors.append(f"codex-voice-{voice_name}: {e}")
+                        for item in skill_dir.rglob("*"):
+                            if item.is_file():
+                                # Flatten: category/skill-name/SKILL.md → ~/.codex/skills/skill-name/SKILL.md
+                                rel = item.relative_to(skill_dir)
+                                target = codex_skills_dst / skill_dir.name / rel
+                                target.parent.mkdir(parents=True, exist_ok=True)
+                                if target.exists() and filecmp.cmp(item, target, shallow=False):
+                                    continue
+                                shutil.copy2(item, target)
+                                codex_count += 1
+        except Exception as e:
+            errors.append(f"codex-skills: {e}")
+    # Also sync private skills to Codex (same category pattern as ~/.claude/skills)
+    if private_skills_dir.is_dir():
+        for category_dir in sorted(private_skills_dir.iterdir()):
+            if not category_dir.is_dir() or category_dir.name.startswith("."):
+                continue
+            category = category_dir.name
+            for skill_dir in sorted(category_dir.iterdir()):
+                if not skill_dir.is_dir():
+                    continue
+                if not (skill_dir / "SKILL.md").exists():
+                    continue
+                if category == "voice":
+                    deploy_name = f"voice-{skill_dir.name}"
+                else:
+                    deploy_name = skill_dir.name
+                codex_skill_dst = codex_skills_dst / deploy_name
+                try:
+                    codex_skill_dst.mkdir(parents=True, exist_ok=True)
+                    for item in skill_dir.rglob("*"):
+                        if item.is_file():
+                            rel = item.relative_to(skill_dir)
+                            target = codex_skill_dst / rel
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            if target.exists() and filecmp.cmp(item, target, shallow=False):
+                                continue
+                            shutil.copy2(item, target)
+                            codex_count += 1
+                except Exception as e:
+                    errors.append(f"codex-private-{deploy_name}: {e}")
     # No stale cleanup for Codex — additive only. Users or Codex itself may
     # create skills in ~/.codex/skills/ that we don't own. We only copy ours in;
     # we never delete theirs.

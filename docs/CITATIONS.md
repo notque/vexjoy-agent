@@ -35,7 +35,7 @@ https://github.com/alchaincyf/nuwa-skill
 Single-skill Claude Code repository that distills public figures into runnable voice/cognition skills. Studied during the voice-cloner upgrade for its extraction discipline and deterministic phase gating.
 
 **Patterns adopted:**
-- Triple-validation extraction rubric (recurrence + generative power + exclusivity). A pattern is kept only if it appears across ≥2 distinct sources, predicts new behavior the source has not yet produced, and distinguishes the subject from peers in the same category. Wired into our `create-voice` Step 3 (PATTERN) and Step 4 (RULE) gates via `skills/create-voice/references/extraction-validation.md`. Codified at the philosophy layer in the "Triple-Validation Extraction Gate" section of `docs/PHILOSOPHY.md`.
+- Triple-validation extraction rubric (recurrence + generative power + exclusivity). A pattern is kept only if it appears across ≥2 distinct sources, predicts new behavior the source has not yet produced, and distinguishes the subject from peers in the same category. Wired into our `create-voice` Step 3 (PATTERN) and Step 4 (RULE) gates via `skills/content/create-voice/references/extraction-validation.md`. Codified at the philosophy layer in the "Triple-Validation Extraction Gate" section of `docs/PHILOSOPHY.md`.
 - Deterministic phase checkpoints. Their Phase-1.5 stats-table-as-gate pattern between research-gathering and synthesis became `scripts/research-stats-checkpoint.py`, wired into `voice-writer` Phase 2.5. Codified as the "Deterministic Phase Checkpoints" section of `docs/PHILOSOPHY.md`.
 
 **Patterns noted but not adopted:**
@@ -53,8 +53,8 @@ Design-oriented system prompt with 14 procedural design skills for Claude Code. 
 - AI slop detection checklist (8 concrete anti-patterns for AI-generated UI). Rebuilt as `agents/ui-design-engineer/references/ai-slop-detection.md` with positive-instruction-first format and detection commands.
 - Interaction state coverage matrix (6-state exhaustive check per interactive element). Rebuilt as `agents/ui-design-engineer/references/interaction-state-coverage.md` with CSS specifics and timing bounds.
 - Spacing/type scale enforcement (flag any px value not on a 4px/8px grid). Rebuilt as `scripts/design-scale-check.py` — fully deterministic, zero LLM involvement.
-- oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/distinctive-frontend-design/references/oklch-color-harmony.md`.
-- Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/distinctive-frontend-design/references/honest-placeholders.md`.
+- oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/frontend/distinctive-frontend-design/references/oklch-color-harmony.md`.
+- Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/frontend/distinctive-frontend-design/references/honest-placeholders.md`.
 
 **Patterns noted but not adopted:**
 - Discovery questions anti-pattern #4 ("don't ask about info you already have"). Valuable general principle but already partially encoded in our blocker tables' "skip-if-answered" rules.
@@ -69,7 +69,7 @@ https://github.com/mattpocock/skills
 Focused collection of 12 active Claude Code skills centered on DDD-inspired domain modeling, grilling-based requirement clarification, and "deep module" architecture improvement. Small repo (57 files) with high-quality, opinionated patterns. Studied 2026-05-01.
 
 **Patterns adopted:**
-- Architecture deepening vocabulary and methodology. Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. Rebuilt as `skills/architecture-deepening/` skill with 3-phase workflow (EXPLORE, PRESENT CANDIDATES, DESIGN CONVERSATION) and reference files for vocabulary, interface design, and deepening strategies.
+- Architecture deepening vocabulary and methodology. Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. Rebuilt as `skills/research/architecture-deepening/` skill with 3-phase workflow (EXPLORE, PRESENT CANDIDATES, DESIGN CONVERSATION) and reference files for vocabulary, interface design, and deepening strategies.
 - Feedback-loop-first debugging methodology. Their `/diagnose` skill's 10 loop construction methods and "the loop IS the skill" philosophy. Rebuilt as `skills/workflow/references/feedback-loop-construction.md`, integrated into the OBSERVE phase of systematic-debugging.
 
 **Patterns noted but not adopted:**

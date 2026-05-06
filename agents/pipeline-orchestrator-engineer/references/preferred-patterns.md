@@ -62,7 +62,7 @@ Phase 4 is not optional. Run `routing-table-updater` in same session as Phase 3.
 ```bash
 comm -23 \
   <(ls agents/*.md | xargs -I{} basename {} .md | sort) \
-  <(grep -o '`[a-z-]*-engineer\|[a-z-]*-agent`' skills/do/references/routing-tables.md | tr -d '`' | sort)
+  <(grep -o '`[a-z-]*-engineer\|[a-z-]*-agent`' skills/meta/do/references/routing-tables.md | tr -d '`' | sort)
 ```
 
 ---
@@ -119,7 +119,7 @@ grep -rL 'allowed-tools' agents/*.md
 # Unregistered agents in routing
 comm -23 \
   <(ls agents/*.md | xargs -I{} basename {} .md | sort) \
-  <(grep -oP '[a-z-]+-engineer|[a-z-]+-agent' skills/do/references/routing-tables.md | sort -u)
+  <(grep -oP '[a-z-]+-engineer|[a-z-]+-agent' skills/meta/do/references/routing-tables.md | sort -u)
 
 # Multi-subdomain skills (should be split)
 grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & '

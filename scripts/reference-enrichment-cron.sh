@@ -157,7 +157,7 @@ if [ -n "$DECOMPOSE" ]; then
     echo "Worktree created at $DECOMP_WORKTREE (based on origin/main)"
 
     # Build the prompt from template using envsubst
-    DECOMP_PROMPT_TEMPLATE="$REPO_DIR/skills/reference-enrichment/decomposition-prompt.md"
+    DECOMP_PROMPT_TEMPLATE="$REPO_DIR/skills/meta/reference-enrichment/decomposition-prompt.md"
     if [ ! -f "$DECOMP_PROMPT_TEMPLATE" ]; then
         echo "ERROR: decomposition-prompt.md not found at $DECOMP_PROMPT_TEMPLATE" >&2
         exit 1
@@ -272,7 +272,7 @@ else
     echo "Worktree created at $ENRICH_WORKTREE (based on origin/main)"
 
     # Build the prompt from template using envsubst
-    PROMPT_TEMPLATE="$REPO_DIR/skills/reference-enrichment/enrichment-prompt.md"
+    PROMPT_TEMPLATE="$REPO_DIR/skills/meta/reference-enrichment/enrichment-prompt.md"
     if [ ! -f "$PROMPT_TEMPLATE" ]; then
         echo "ERROR: enrichment-prompt.md not found at $PROMPT_TEMPLATE" >&2
         exit 1

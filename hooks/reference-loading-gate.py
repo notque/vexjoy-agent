@@ -62,7 +62,7 @@ def _resolve_component_root(file_path: str, base_dir: Path) -> Path | None:
     For agents: the component root is the agents/ directory itself (agents are
     flat .md files, not subdirectories).
     For skills: the component root is the immediate subdirectory, e.g.
-    skills/go-patterns/ for skills/go-patterns/SKILL.md.
+    skills/engineering/go-patterns/ for skills/engineering/go-patterns/SKILL.md.
 
     Returns None if the path is not inside a component directory or if the
     path is itself inside a references/ subdirectory (editing references is fine).

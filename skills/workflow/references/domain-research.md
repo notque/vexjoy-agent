@@ -78,7 +78,7 @@ Launch **all 4 agents simultaneously** using the Task tool. Each agent receives 
 
 **Agent 2: Existing Inventory**
 - Investigate: What agents, skills, hooks, and scripts already exist in this repository for this domain or closely related domains?
-- Method: Search `agents/INDEX.json` for matching agent names and triggers. Search `skills/do/references/routing-tables.md` for matching skill routes. Glob for file patterns matching the domain name. Grep agent descriptions for domain keywords.
+- Method: Search `agents/INDEX.json` for matching agent names and triggers. Search `skills/meta/do/references/routing-tables.md` for matching skill routes. Glob for file patterns matching the domain name. Grep agent descriptions for domain keywords.
 - Output: Inventory of existing components with relevance assessment (full match, partial match, tangential)
 - Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-2-existing-inventory.md`
 
