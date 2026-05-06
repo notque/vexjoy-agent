@@ -59,6 +59,9 @@ Based on the review request, load the appropriate reference(s):
 - [references/stride-threat-model.md](reviewer-system/references/stride-threat-model.md) — STRIDE threat modeling methodology
 - [references/compliance-checklists.md](reviewer-system/references/compliance-checklists.md) — GDPR, SOC2, PCI-DSS, HIPAA code-level checks
 - [references/sovereign-cloud-data-residency.md](reviewer-system/references/sovereign-cloud-data-residency.md) — German/EU data residency requirements
+- [references/german-it-security.md](reviewer-system/references/german-it-security.md) — BSI IT-Grundschutz, KRITIS (expanded), NIS2UmsuCG code-level checks
+- [references/financial-resilience-de-eu.md](reviewer-system/references/financial-resilience-de-eu.md) — DORA, KWG/MaRisk financial resilience checks
+- [references/industry-specific-compliance.md](reviewer-system/references/industry-specific-compliance.md) — TISAX automotive supply chain compliance
 
 ## Workflow
 
@@ -190,6 +193,9 @@ Each finding must follow this structure:
 | Migration Safety | `migration-safety.md` | Database migrations, rollback safety, schema evolution, feature flags, deprecation |
 | Dependency Audit | `dependency-audit.md` | CVEs, licenses, deprecated packages, supply chain, unused dependencies |
 | Docs Validator | `docs-validator.md` | README, CLAUDE.md, CI/CD, build system, project metadata |
+| Grundschutz, KRITIS, NIS2, German IT security | `german-it-security.md` | BSI IT-Grundschutz, KRITIS expanded checks, NIS2UmsuCG code-level checks |
+| DORA, MaRisk, German banking, financial resilience | `financial-resilience-de-eu.md` | DORA five pillars, KWG/MaRisk residual checks, financial sector compliance |
+| TISAX, automotive, VDA ISA | `industry-specific-compliance.md` | TISAX assessment levels, prototype protection, automotive supply chain |
 
 ## References
 

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-06T17:39:22Z",
+  "generated": "2026-05-06T18:04:11Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -134,7 +134,13 @@
         "NDA",
         "legal risk",
         "legal brief",
-        "vendor check"
+        "vendor check",
+        "german compliance",
+        "DSGVO",
+        "GoBD",
+        "TDDDG",
+        "AI Act compliance",
+        "eIDAS"
       ],
       "category": "business",
       "user_invocable": true,
