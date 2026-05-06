@@ -213,7 +213,7 @@ or user-confirmed). Proceed to Phase 3.
 **Step 1**: Read the saved design brief from `skills/{name}/design-brief.md`.
 
 **Step 2**: Generate the SKILL.md following the structural patterns from
-the agent template (`skills/skill-creator/references/agent-template.md`). Include these sections in this order:
+the agent template (`skills/meta/skill-creator/references/agent-template.md`). Include these sections in this order:
 
 1. **Frontmatter** with `name`, `description`, `version`, `user-invocable`,
    `agent`, `allowed-tools` (required fields)
@@ -432,5 +432,5 @@ Handling). Returns to Phase 3 with specific fixes. Second scaffold scores 82/100
 ## References
 
 - [agent-template.md](../../skill-creator/references/agent-template.md) - Template for agent and skill structural patterns
-- [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Rubric-based scoring used in Phase 4 VALIDATE
-- [routing-table-updater](../../skills/routing-table-updater/SKILL.md) - Routing integration used in Phase 5 INTEGRATE
+- [agent-evaluation](../../skills/meta/agent-evaluation/SKILL.md) - Rubric-based scoring used in Phase 4 VALIDATE
+- [routing-table-updater](../../skills/meta/routing-table-updater/SKILL.md) - Routing integration used in Phase 5 INTEGRATE

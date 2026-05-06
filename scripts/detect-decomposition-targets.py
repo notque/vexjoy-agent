@@ -2,7 +2,7 @@
 """
 Decomposition Target Detector — find skills/agents with bloated body files.
 
-Scans all skills/*/SKILL.md and agents/*.md files for content that belongs in
+Scans all skills/**/SKILL.md and agents/*.md files for content that belongs in
 references/ files but has not yet been extracted. Reports extractable blocks
 with suggested reference file names and confidence levels.
 
@@ -462,17 +462,12 @@ def _analyze_file(path: Path, component: str, kind: str, min_lines: int) -> Deco
 
 
 def _scan_skills(base_dir: Path, min_lines: int) -> list[DecompositionTarget]:
-    """Scan skills/*/SKILL.md files."""
+    """Scan skills/**/SKILL.md files (flat and nested category layouts)."""
     if not base_dir.is_dir():
         return []
     results: list[DecompositionTarget] = []
-    for item in sorted(base_dir.iterdir()):
-        if not item.is_dir():
-            continue
-        skill_md = item / "SKILL.md"
-        if not skill_md.is_file():
-            continue
-        target = _analyze_file(skill_md, item.name, "skill", min_lines)
+    for skill_md in sorted(base_dir.glob("**/SKILL.md")):
+        target = _analyze_file(skill_md, skill_md.parent.name, "skill", min_lines)
         if target:
             results.append(target)
     return results

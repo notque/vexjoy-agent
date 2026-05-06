@@ -83,7 +83,7 @@ Action: Apply SAP CC Go conventions for the session. The `go-patterns` and `sapc
 
 ### `[CREATION REQUEST DETECTED]`
 
-Source: `skills/do/SKILL.md` Phase 1 (CLASSIFY gate, emitted by the main thread, not a hook).
+Source: `skills/meta/do/SKILL.md` Phase 1 (CLASSIFY gate, emitted by the main thread, not a hook).
 Meaning: The `/do` router classified the request as a creation task. The `create-pipeline` skill will be invoked.
 Action: No additional action; the routing is already in progress. Do not double-dispatch.
 

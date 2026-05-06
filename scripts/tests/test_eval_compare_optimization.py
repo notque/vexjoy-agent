@@ -16,7 +16,7 @@ def load_module(name: str, relative_path: str):
 def test_load_optimization_data_ignores_unrelated_results_json(tmp_path):
     eval_compare = load_module(
         "skill_creator_eval_compare",
-        "skills/skill-creator/scripts/eval_compare.py",
+        "skills/meta/skill-creator/scripts/eval_compare.py",
     )
     (tmp_path / "results.json").write_text(json.dumps({"status": "not-optimization"}))
     (tmp_path / "evals" / "iterations").mkdir(parents=True)

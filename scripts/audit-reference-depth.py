@@ -227,7 +227,7 @@ def _collect_ref_files(ref_dir: Path) -> list[RefFileMetrics]:
 
 def _scan_component(md_path: Path, kind: str) -> ComponentResult:
     """Scan a single agent or skill .md file and its optional references/ dir."""
-    # For SKILL.md, the component name is the parent directory (e.g., skills/go-patterns/SKILL.md → "go-patterns")
+    # For SKILL.md, the component name is the parent directory (e.g., skills/engineering/go-patterns/SKILL.md → "go-patterns")
     name = md_path.parent.name if md_path.stem == "SKILL" else md_path.stem
     # References can live in several locations depending on the component layout:
     # 1. agents/name.md with agents/name/references/  (flat agent)

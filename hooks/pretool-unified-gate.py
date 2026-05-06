@@ -146,7 +146,7 @@ _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
-_SKILL_PATTERN = re.compile(r"/(skills|pipelines)/[^/]+/SKILL\.md$")
+_SKILL_PATTERN = re.compile(r"/(skills|pipelines)/(?:[^/]+/)?[^/]+/SKILL\.md$")
 _WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
 
 # Path-shape allowlist for components produced by non-skill-creator paths.
@@ -168,11 +168,11 @@ _WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
 # documented output is this path shape?" If not, route through skill-creator.
 _CREATION_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
     # voice-* skills are produced by the `create-voice` skill (Step 5: GENERATE
-    # in skills/create-voice/SKILL.md and skills/create-voice/references/
+    # in skills/content/create-voice/SKILL.md and skills/content/create-voice/references/
     # skill-generation.md). create-voice is the canonical SOP for voice
     # profiles; it scaffolds skills/voice-{name}/SKILL.md, config.json, and
     # profile.json directly via Write.
-    (re.compile(r"/skills/voice-[^/]+/SKILL\.md$"), "create-voice"),
+    (re.compile(r"/skills/(?:content/)?voice-[^/]+/SKILL\.md$"), "create-voice"),
 ]
 
 # ═══════════════════════════════════════════════════════════════

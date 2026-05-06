@@ -76,12 +76,12 @@ Do not guess voice profiles. Wrong profile produces meaningless scores and inval
 
 ### Phase 2: VALIDATE
 
-**Goal**: Run deterministic validation against voice profile and banned patterns using `skills/voice-validator/scripts/voice-validator.py`.
+**Goal**: Run deterministic validation against voice profile and banned patterns using `skills/content/voice-validator/scripts/voice-validator.py`.
 
 **Step 1: Voice pattern validation**
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/voice-validator/scripts/voice-validator.py validate \
+python3 $HOME/vexjoy-agent/skills/content/voice-validator/scripts/voice-validator.py validate \
   --content /tmp/article-evaluation.md \
   --voice [voice-name] \
   --format json
@@ -92,7 +92,7 @@ Pass criteria: Score >= 60, zero hard errors.
 **Step 2: Banned pattern check**
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/voice-validator/scripts/voice-validator.py check-banned \
+python3 $HOME/vexjoy-agent/skills/content/voice-validator/scripts/voice-validator.py check-banned \
   --content /tmp/article-evaluation.md
 ```
 
@@ -183,10 +183,10 @@ Result: Fast pass/fail with scores, no wabi-sabi breakdown
 ## Error Handling
 
 ### Error: "Voice validator script not found"
-Cause: `skills/voice-validator/scripts/voice-validator.py` not at expected path or not executable
+Cause: `skills/content/voice-validator/scripts/voice-validator.py` not at expected path or not executable
 
 Solution:
-1. Verify path: `ls $HOME/vexjoy-agent/skills/voice-validator/scripts/voice-validator.py`
+1. Verify path: `ls $HOME/vexjoy-agent/skills/content/voice-validator/scripts/voice-validator.py`
 2. Check permissions: `chmod +x` if needed
 3. If missing, cannot proceed — deterministic validation via the script is a non-negotiable requirement
 

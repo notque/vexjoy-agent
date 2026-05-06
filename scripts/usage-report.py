@@ -26,12 +26,12 @@ sys.path.insert(0, str(REPO_ROOT / "hooks" / "lib"))
 
 
 def discover_skills() -> list[str]:
-    """Discover all skill names by globbing skills/*/SKILL.md and skills/workflow/references/*.md."""
+    """Discover all skill names by globbing skills/**/SKILL.md (flat and nested)."""
     names = []
     for dirname in ("skills", "pipelines"):
         d = REPO_ROOT / dirname
         if d.is_dir():
-            for skill_md in d.glob("*/SKILL.md"):
+            for skill_md in d.glob("**/SKILL.md"):
                 names.append(skill_md.parent.name)
     return sorted(names)
 

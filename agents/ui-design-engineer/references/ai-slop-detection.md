@@ -79,7 +79,7 @@ Cross-reference hits with `border-radius` in the same rule or component. The com
 
 ## Use Professional Illustration or Photography
 
-AI defaults to hand-drawn, sketchy SVG illustrations — wobbly lines, friendly blob shapes, stick-figure-adjacent characters. These look like placeholder art that shipped by accident. Use real photography, professional vector illustration from a licensed set (unDraw with customization, Storyset), or honest placeholders (see `honest-placeholders.md` in `skills/distinctive-frontend-design/references/`). An honest "image needed" placeholder is better than a bad illustration that looks intentional.
+AI defaults to hand-drawn, sketchy SVG illustrations — wobbly lines, friendly blob shapes, stick-figure-adjacent characters. These look like placeholder art that shipped by accident. Use real photography, professional vector illustration from a licensed set (unDraw with customization, Storyset), or honest placeholders (see `honest-placeholders.md` in `skills/frontend/distinctive-frontend-design/references/`). An honest "image needed" placeholder is better than a bad illustration that looks intentional.
 
 ```html
 <!-- Correct: real photography with proper alt text -->
@@ -158,7 +158,7 @@ Random hex values with no relationship to each other — `#4f46e5` next to `#10b
 
 **Keep if:** The colors come from an established design system (Tailwind's palette, Material Design) where the relationships are already defined.
 
-**Detection:** Check whether color values appear in the project's design specification, brand guide, or a documented palette source. Colors that cannot be traced to a source need justification. See `oklch-color-harmony.md` (in `skills/distinctive-frontend-design/references/`) for the technique to build harmonious palettes from context.
+**Detection:** Check whether color values appear in the project's design specification, brand guide, or a documented palette source. Colors that cannot be traced to a source need justification. See `oklch-color-harmony.md` (in `skills/frontend/distinctive-frontend-design/references/`) for the technique to build harmonious palettes from context.
 
 ---
 

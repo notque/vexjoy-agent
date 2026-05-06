@@ -2,7 +2,7 @@
 """Routing-table drift check.
 
 Verifies that every skill present in skills/INDEX.json is also mentioned
-in skills/do/references/routing-tables.md. A skill absent from the routing
+in skills/meta/do/references/routing-tables.md. A skill absent from the routing
 table is invisible to any process that consults the reference docs, which
 means users and the router's documentation are silently out of sync.
 
@@ -24,7 +24,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-ROUTING_TABLES = REPO_ROOT / "skills" / "do" / "references" / "routing-tables.md"
+ROUTING_TABLES = REPO_ROOT / "skills" / "meta" / "do" / "references" / "routing-tables.md"
 
 
 def main() -> int:
@@ -58,7 +58,7 @@ def main() -> int:
         print(f"\nFAIL: {len(missing)} skill(s) in INDEX.json absent from routing-tables.md:")
         for skill in missing:
             print(f"  {skill}")
-        print("\nAdd each missing skill to skills/do/references/routing-tables.md before merging.")
+        print("\nAdd each missing skill to skills/meta/do/references/routing-tables.md before merging.")
         return 1
 
     if args.verbose:

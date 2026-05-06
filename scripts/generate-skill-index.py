@@ -2,7 +2,7 @@
 """
 Generate skill routing index from YAML frontmatter.
 
-Reads skills/*/SKILL.md, extracts routing metadata
+Reads skills/**/SKILL.md, extracts routing metadata
 from YAML frontmatter, and generates a dict-keyed index file:
   - skills/INDEX.json   (skills only, v2.0)
 
@@ -198,6 +198,7 @@ def build_entry(
     frontmatter: dict,
     skill_dir: Path,
     dir_prefix: str,
+    source_dir: Path | None = None,
     content: str | None = None,
     is_pipeline: bool = False,
 ) -> dict:
@@ -207,6 +208,7 @@ def build_entry(
         frontmatter: Parsed YAML frontmatter dict.
         skill_dir: Directory containing the SKILL.md file.
         dir_prefix: Path prefix for file field (e.g., "skills" or "pipelines").
+        source_dir: Root scan directory; used to compute relative paths for nested skills.
         content: Full SKILL.md content (needed for pipeline phase extraction).
         is_pipeline: Whether this entry is a pipeline (enables phase extraction).
 
@@ -215,8 +217,17 @@ def build_entry(
     """
     name = frontmatter.get("name", skill_dir.name)
 
+    # Compute file path relative to source_dir for nested category folders.
+    # Flat: skills/foo/SKILL.md → "skills/foo/SKILL.md"
+    # Nested: skills/meta/foo/SKILL.md → "skills/meta/foo/SKILL.md"
+    if source_dir:
+        rel = skill_dir.relative_to(source_dir)
+        file_path = f"{dir_prefix}/{rel}/SKILL.md"
+    else:
+        file_path = f"{dir_prefix}/{skill_dir.name}/SKILL.md"
+
     entry: dict = {
-        "file": f"{dir_prefix}/{skill_dir.name}/SKILL.md",
+        "file": file_path,
         "description": extract_short_description(frontmatter.get("description", "")),
     }
 
@@ -299,57 +310,72 @@ def generate_index(
     }
     warnings: list[str] = []
 
-    for skill_dir in sorted(source_dir.iterdir()):
-        if not skill_dir.is_dir():
-            continue
-
-        # Skip symlinked directories unless --include-private was passed.
-        # The public index reflects directly-tracked files only.
-        if skill_dir.is_symlink() and not include_private:
-            continue
-
+    def _process_skill_dir(skill_dir: Path) -> None:
+        """Process a single skill directory: extract frontmatter and add to index."""
         skill_file = skill_dir / "SKILL.md"
         if not skill_file.exists():
-            continue
+            return
 
         try:
-            content = skill_file.read_text(encoding="utf-8")
+            content_ = skill_file.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
             warnings.append(f"  - {skill_dir.name}: Failed to read: {e}")
-            continue
+            return
 
         try:
-            frontmatter, used_fallback = extract_frontmatter(content)
+            fm, used_fallback = extract_frontmatter(content_)
             if used_fallback:
                 if strict:
                     warnings.append(
                         f"  - {skill_dir.name}: YAML parsing failed (strict mode: skipping, no regex fallback)"
                     )
-                    continue
+                    return
                 warnings.append(f"  - {skill_dir.name}: Used regex fallback (YAML parsing failed)")
         except re.error as e:
             warnings.append(f"  - {skill_dir.name}: Regex error in frontmatter: {e}")
-            frontmatter = None
+            fm = None
 
-        if not frontmatter:
+        if not fm:
             warnings.append(f"  - {skill_dir.name}: No valid frontmatter found")
-            continue
+            return
 
-        name = frontmatter.get("name", skill_dir.name)
+        name = fm.get("name", skill_dir.name)
 
-        promoted_to = frontmatter.get("promoted_to")
+        promoted_to = fm.get("promoted_to")
         if promoted_to:
             print(f"  [skip] {name} promoted to {promoted_to}")
-            continue
+            return
 
         entry = build_entry(
-            frontmatter=frontmatter,
+            frontmatter=fm,
             skill_dir=skill_dir,
             dir_prefix=dir_prefix,
-            content=content if is_pipeline else None,
+            source_dir=source_dir,
+            content=content_ if is_pipeline else None,
             is_pipeline=is_pipeline,
         )
         index[collection_key][name] = entry
+
+    for child in sorted(source_dir.iterdir()):
+        if not child.is_dir():
+            continue
+
+        # Skip symlinked directories unless --include-private was passed.
+        if child.is_symlink() and not include_private:
+            continue
+
+        # Check if this directory directly contains a SKILL.md (flat layout)
+        if (child / "SKILL.md").exists():
+            _process_skill_dir(child)
+        else:
+            # Category folder: recurse one level into subdirectories
+            for nested in sorted(child.iterdir()):
+                if not nested.is_dir():
+                    continue
+                if nested.is_symlink() and not include_private:
+                    continue
+                if (nested / "SKILL.md").exists():
+                    _process_skill_dir(nested)
 
     return index, warnings
 
@@ -517,7 +543,7 @@ def main() -> int:
                 )
                 print(drift_result.stdout.strip(), file=sys.stderr)
                 print(
-                    "Update skills/do/references/routing-tables.md before committing.",
+                    "Update skills/meta/do/references/routing-tables.md before committing.",
                     file=sys.stderr,
                 )
 

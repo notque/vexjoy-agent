@@ -20,7 +20,7 @@ def load_module(name: str, relative_path: str):
 def test_assess_target_rejects_missing_frontmatter(tmp_path):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
     target = tmp_path / "SKILL.md"
     target.write_text("# no frontmatter\nbody\n")
@@ -39,7 +39,7 @@ def test_assess_target_rejects_missing_frontmatter(tmp_path):
 def test_check_protected_sections_rejects_missing_blocks():
     optimize_loop = load_module(
         "agent_comparison_optimize_loop",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
     original = "alpha\n<!-- DO NOT OPTIMIZE -->\nkeep me\n<!-- END DO NOT OPTIMIZE -->\nomega\n"
     relocated = "alpha\nomega\n"
@@ -50,7 +50,7 @@ def test_check_protected_sections_rejects_missing_blocks():
 def test_restore_protected_does_not_silently_reinsert_missing_blocks():
     generate_variant = load_module(
         "agent_comparison_generate_variant",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
     original = "alpha\n<!-- DO NOT OPTIMIZE -->\nkeep me\n<!-- END DO NOT OPTIMIZE -->\nomega\n"
     variant = "alpha\nomega\n"
@@ -63,7 +63,7 @@ def test_restore_protected_does_not_silently_reinsert_missing_blocks():
 def test_generate_variant_main_reads_current_content_from_file(tmp_path, monkeypatch, capsys):
     generate_variant = load_module(
         "agent_comparison_generate_variant",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
     content_file = tmp_path / "current.md"
@@ -120,7 +120,7 @@ def test_generate_variant_main_reads_current_content_from_file(tmp_path, monkeyp
 def test_generate_variant_only_changes_description_field(monkeypatch):
     generate_variant = load_module(
         "agent_comparison_generate_variant_description_only",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
     current_content = """---
@@ -165,7 +165,7 @@ Body stays the same.
 def test_generate_variant_legacy_full_file_output_is_reduced_to_description_only(monkeypatch):
     generate_variant = load_module(
         "agent_comparison_generate_variant_legacy_variant",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
     current_content = """---
@@ -222,7 +222,7 @@ Changed body.
 def test_generate_variant_body_only_changes_body_not_frontmatter(monkeypatch):
     generate_variant = load_module(
         "agent_comparison_generate_variant_body_only",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
     current_content = """---
@@ -264,7 +264,7 @@ Original body.
 def test_generate_variant_prompt_includes_full_failed_query_and_expectation(monkeypatch):
     generate_variant = load_module(
         "agent_comparison_generate_variant_failure_context",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
     current_content = """---
@@ -312,7 +312,7 @@ description: old description
 def test_optimize_loop_omits_model_flag_when_not_provided(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_nomodel",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -370,7 +370,7 @@ def test_optimize_loop_omits_model_flag_when_not_provided(tmp_path, monkeypatch)
 def test_optimize_loop_respects_revert_streak_limit(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_revert_limit",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -431,7 +431,7 @@ def test_optimize_loop_respects_revert_streak_limit(tmp_path, monkeypatch):
 def test_optimize_loop_beam_search_retains_top_k_candidates(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_beam",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -514,7 +514,7 @@ def test_optimize_loop_beam_search_retains_top_k_candidates(tmp_path, monkeypatc
 def test_composite_score_uses_weighted_dimensions_only_when_hard_gates_pass():
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_scoring",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     scores = {
@@ -535,7 +535,7 @@ def test_composite_score_uses_weighted_dimensions_only_when_hard_gates_pass():
 def test_composite_score_returns_zero_when_hard_gate_fails():
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_hard_gate",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     scores = {
@@ -556,7 +556,7 @@ def test_composite_score_returns_zero_when_hard_gate_fails():
 def test_assess_target_scores_trigger_rate_results(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_trigger_score",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -601,7 +601,7 @@ def test_assess_target_scores_trigger_rate_results(tmp_path, monkeypatch):
 def test_assess_target_forwards_parallel_workers_for_behavioral_eval(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_behavioral_parallel",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -635,7 +635,7 @@ def test_assess_target_forwards_parallel_workers_for_behavioral_eval(tmp_path, m
 def test_assess_target_scores_blind_compare_results(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_blind_compare",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -677,7 +677,7 @@ def test_assess_target_scores_blind_compare_results(tmp_path, monkeypatch):
 def test_assess_target_trigger_eval_uses_multiple_runs(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_trigger_runs",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -718,7 +718,7 @@ def test_assess_target_trigger_eval_uses_multiple_runs(tmp_path, monkeypatch):
 def test_socratic_question_only_heuristic_penalizes_preamble():
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_socratic_heuristic",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     clean_score, _ = optimize_loop._score_socratic_question_only_output("What did you expect the test to do?")
@@ -732,7 +732,7 @@ def test_socratic_question_only_heuristic_penalizes_preamble():
 def test_contains_fallback_contamination_detects_tool_blocked_text():
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_contamination",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     contaminated, reasons = optimize_loop._contains_fallback_contamination(
@@ -747,10 +747,10 @@ def test_contains_fallback_contamination_detects_tool_blocked_text():
 def test_run_blind_compare_zeroes_untriggered_or_contaminated_runs(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_blind_compare_guardrails",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
-    target = tmp_path / "skills" / "socratic-debugging" / "SKILL.md"
+    target = tmp_path / "skills" / "process" / "socratic-debugging" / "SKILL.md"
     target.parent.mkdir(parents=True)
     target.write_text("---\nname: socratic-debugging\ndescription: test\n---\n")
 
@@ -800,7 +800,7 @@ def test_run_blind_compare_zeroes_untriggered_or_contaminated_runs(tmp_path, mon
 def test_behavioral_eval_sequential_path_uses_isolated_worktrees(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_behavioral_isolation",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     project_root = tmp_path / "repo"
@@ -838,7 +838,7 @@ def test_behavioral_eval_sequential_path_uses_isolated_worktrees(tmp_path, monke
 def test_holdout_score_attaches_to_best_iteration_not_last(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_holdout_attachment",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -934,7 +934,7 @@ def test_holdout_score_attaches_to_best_iteration_not_last(tmp_path, monkeypatch
 def test_best_by_test_can_switch_from_later_train_best_to_earlier_candidate(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_best_by_test",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -1028,7 +1028,7 @@ def test_best_by_test_can_switch_from_later_train_best_to_earlier_candidate(tmp_
 def test_final_report_uses_post_selection_test_scores(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_final_report",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -1123,7 +1123,7 @@ def test_final_report_uses_post_selection_test_scores(tmp_path, monkeypatch):
 def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_parallel_forwarding",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
 
     target = tmp_path / "SKILL.md"
@@ -1218,14 +1218,14 @@ def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, m
 def test_tiny_end_to_end_autoresearch_improves_real_weak_skill_copy(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_e2e",
-        "skills/agent-comparison/scripts/optimize_loop.py",
+        "skills/meta/agent-comparison/scripts/optimize_loop.py",
     )
     generate_variant = load_module(
         "agent_comparison_generate_variant_e2e",
-        "skills/agent-comparison/scripts/generate_variant.py",
+        "skills/meta/agent-comparison/scripts/generate_variant.py",
     )
 
-    source_skill = REPO_ROOT / "skills" / "socratic-debugging" / "SKILL.md"
+    source_skill = REPO_ROOT / "skills" / "process" / "socratic-debugging" / "SKILL.md"
     target = tmp_path / "SKILL.md"
     target.write_text(source_skill.read_text())
 

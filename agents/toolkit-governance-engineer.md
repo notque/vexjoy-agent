@@ -204,7 +204,7 @@ Standards enforced:
 - Framing is joy-checked (no grievance-mode prose in reference bodies).
 - The agent body must contain a loading table that maps signals to reference files.
 
-The full spec lives in `skills/do/references/repo-architecture.md`.
+The full spec lives in `skills/meta/do/references/repo-architecture.md`.
 
 ## Error Handling
 
