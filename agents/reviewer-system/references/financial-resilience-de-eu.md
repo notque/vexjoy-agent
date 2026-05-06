@@ -6,7 +6,7 @@ Requirements for systems in financial services, banking, insurance, and payment 
 
 EU regulation for the financial sector. In force **January 17, 2025**. Supersedes German BAIT. Applies to 21 entity categories including banks, insurers, payment providers, crypto-asset service providers, and ICT third-party providers.
 
-**Five Pillars**: ICT Risk Management (board accountability) → Incident Reporting (4h major) → Resilience Testing (annual + TLPT/3y) → Third-Party Risk (provider register + SLAs) → Information Sharing (threat intelligence)
+**Five Pillars**: ICT Risk Management (board accountability) → Incident Reporting (4h after major classification) → Resilience Testing (annual + TLPT/3y) → Third-Party Risk (provider register + SLAs) → Information Sharing (threat intelligence)
 
 ### Testing Requirements
 
@@ -22,7 +22,7 @@ EU regulation for the financial sector. In force **January 17, 2025**. Supersede
 
 DORA Art. 50 delegates penalty-setting to member states. Maximum penalties vary by jurisdiction:
 
-- **Entity (typical member state cap)**: up to EUR 10M or 5% of annual turnover
+- **Entity (typical member state cap)**: up to EUR 10M or 2% of annual turnover (varies by member state; verify applicable jurisdiction)
 - **Critical ICT third-party providers**: periodic penalty up to 1% of average daily worldwide turnover (Art. 35)
 - **Individual manager**: up to EUR 1M (varies by member state)
 
@@ -34,7 +34,7 @@ DORA Art. 50 delegates penalty-setting to member states. Maximum penalties vary 
 |---|-------|-------------|
 | DO-01 | ICT risk management framework with board-level accountability | Art. 5-6 |
 | DO-02 | ICT asset inventory maintained and classified | Art. 8 |
-| DO-03 | ICT incident detection, classification within 4 hours (major) | Art. 17-19 |
+| DO-03 | ICT incident detection and classification; initial notification within 4 hours of classifying as major (or 24h from detection, whichever earlier) | Art. 17-19 |
 | DO-04 | Vulnerability scanning at minimum annually | Art. 24-25 |
 | DO-05 | Penetration testing at minimum annually | Art. 24-25 |
 | DO-06 | TLPT on live production every 3 years (significant entities) | Art. 26 |

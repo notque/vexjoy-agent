@@ -174,7 +174,7 @@ BSI registration required within 3 months. Portal opened January 6, 2026.
 | N2-06 | Cybersecurity hygiene training documented | SS30(2) |
 | N2-07 | Encryption and cryptography policies implemented | SS30(2) |
 | N2-08 | Multi-factor authentication and secure communications | SS30(2) |
-| N2-09 | Attack detection system deployed (KRITIS operators only) | BSI Act |
+| N2-09 | Attack detection system deployed (mandatory for critical facilities; recommended for all NIS2 entities) | SS30(2) / BSI Act |
 
 ---
 
