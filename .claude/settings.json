@@ -101,6 +101,12 @@
             "command": "python3 \"$HOME/.claude/hooks/codex-auto-review.py\"",
             "description": "Auto-inject Codex cross-model review for PR review operations",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/voice-output-gate.py\"",
+            "description": "Inject voice output gate for external text actions",
+            "timeout": 2000
           }
         ]
       }
