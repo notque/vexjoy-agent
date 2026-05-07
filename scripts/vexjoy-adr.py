@@ -5,8 +5,11 @@ vexjoy-adr — Create and manage ADRs in the centralized ~/.vexjoy-agent/ direct
 Keeps governance artifacts out of individual repositories by writing ADRs to
 ~/.vexjoy-agent/{repo_name}/adrs/{component_name}.md
 
+The pretool-adr-creation-gate hook blocks new component creation without an ADR.
+Run this script to create one, then retry your Write.
+
 Usage:
-    python3 scripts/vexjoy-adr.py create <component-name> [--repo <name>]
+    python3 scripts/vexjoy-adr.py create <component-name> [--repo <name>] [--type <type>]
     python3 scripts/vexjoy-adr.py list [--repo <name>]
     python3 scripts/vexjoy-adr.py show <component-name> [--repo <name>]
 
@@ -15,18 +18,24 @@ of the current directory, or the directory basename as fallback.
 
 Exit codes:
     0 = success
-    1 = error (file exists, missing args, etc.)
+    1 = error (file exists, missing args, invalid name, etc.)
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 _VEXJOY_STATE_DIR = Path.home() / ".vexjoy-agent"
+
+# Valid component/repo names: alphanumeric, hyphens, dots, underscores only.
+_SAFE_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
+
+_COMPONENT_TYPES = ("agent", "skill", "pipeline", "hook", "script")
 
 _ADR_TEMPLATE = """\
 # ADR: {component_name}
@@ -55,8 +64,36 @@ Proposed
 """
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _validate_name(name: str, label: str) -> bool:
+    """Validate that a name is safe for filesystem use (no path traversal).
+
+    Args:
+        name: The name to validate.
+        label: Human label for error messages (e.g., "component name", "repo name").
+
+    Returns:
+        True if valid, False otherwise (prints error to stderr).
+    """
+    if not _SAFE_NAME_RE.match(name):
+        print(
+            f"Invalid {label}: '{name}'. Must be alphanumeric with hyphens/dots/underscores only (no slashes or '..').",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def _derive_repo_name(cwd: Path) -> str:
-    """Derive repo name from git remote or directory basename."""
+    """Derive repo name from git remote or directory basename.
+
+    NOTE: This logic is duplicated in ~/.claude/hooks/pretool-adr-creation-gate.py
+    (_derive_repo_name). Keep both in sync when modifying.
+    """
     try:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
@@ -80,18 +117,43 @@ def _guess_component_type(name: str) -> str:
     """Guess component type from naming conventions."""
     if name.endswith("-engineer") or name.endswith("-agent"):
         return "agent"
+    if name.endswith("-pipeline"):
+        return "pipeline"
     if name.startswith("voice-"):
         return "skill (voice)"
-    return "skill/agent"
+    return "skill"
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
 
 
 def cmd_create(args: argparse.Namespace) -> int:
-    """Create a new ADR file at the centralized location."""
+    """Create a new ADR file at the centralized location.
+
+    Args:
+        args: Parsed arguments with component_name, repo, and type fields.
+
+    Returns:
+        0 on success, 1 on error.
+    """
     repo_name = args.repo or _derive_repo_name(Path.cwd())
     component_name = args.component_name
 
+    # Validate inputs to prevent path traversal.
+    if not _validate_name(component_name, "component name"):
+        return 1
+    if args.repo and not _validate_name(args.repo, "repo name"):
+        return 1
+
     adr_dir = _VEXJOY_STATE_DIR / repo_name / "adrs"
     adr_path = adr_dir / f"{component_name}.md"
+
+    # Belt-and-suspenders: verify resolved path stays within state dir.
+    if not adr_path.resolve().is_relative_to(_VEXJOY_STATE_DIR):
+        print(f"Path escapes state directory: {adr_path.resolve()}", file=sys.stderr)
+        return 1
 
     if adr_path.exists():
         print(f"ADR already exists: {adr_path}", file=sys.stderr)
@@ -99,19 +161,31 @@ def cmd_create(args: argparse.Namespace) -> int:
 
     adr_dir.mkdir(parents=True, exist_ok=True)
 
+    component_type = args.type or _guess_component_type(component_name)
     content = _ADR_TEMPLATE.format(
         component_name=component_name,
         date=date.today().isoformat(),
-        component_type=_guess_component_type(component_name),
+        component_type=component_type,
     )
-    adr_path.write_text(content)
+    adr_path.write_text(content, encoding="utf-8")
     print(f"Created: {adr_path}")
+    print("Next: edit the file above to fill in Context/Decision/Consequences, then retry creating your component.")
     return 0
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    """List ADRs for a repo."""
+    """List ADRs for a repo.
+
+    Args:
+        args: Parsed arguments with optional repo field.
+
+    Returns:
+        0 on success.
+    """
     repo_name = args.repo or _derive_repo_name(Path.cwd())
+    if args.repo and not _validate_name(args.repo, "repo name"):
+        return 1
+
     adr_dir = _VEXJOY_STATE_DIR / repo_name / "adrs"
 
     if not adr_dir.is_dir():
@@ -130,15 +204,29 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_show(args: argparse.Namespace) -> int:
-    """Show contents of a specific ADR."""
+    """Show contents of a specific ADR.
+
+    Args:
+        args: Parsed arguments with component_name and optional repo.
+
+    Returns:
+        0 on success, 1 if ADR not found.
+    """
     repo_name = args.repo or _derive_repo_name(Path.cwd())
-    adr_path = _VEXJOY_STATE_DIR / repo_name / "adrs" / f"{args.component_name}.md"
+    component_name = args.component_name
+
+    if not _validate_name(component_name, "component name"):
+        return 1
+    if args.repo and not _validate_name(args.repo, "repo name"):
+        return 1
+
+    adr_path = _VEXJOY_STATE_DIR / repo_name / "adrs" / f"{component_name}.md"
 
     if not adr_path.is_file():
         print(f"ADR not found: {adr_path}", file=sys.stderr)
         return 1
 
-    print(adr_path.read_text())
+    print(adr_path.read_text(encoding="utf-8"))
     return 0
 
 
@@ -153,6 +241,11 @@ def main() -> int:
     p_create = sub.add_parser("create", help="Create a new ADR")
     p_create.add_argument("component_name", help="Component name (e.g., sapcc-dns)")
     p_create.add_argument("--repo", help="Override repo name (default: auto-detect)")
+    p_create.add_argument(
+        "--type",
+        choices=_COMPONENT_TYPES,
+        help="Component type (default: auto-detect from name)",
+    )
 
     # list
     p_list = sub.add_parser("list", help="List ADRs for a repo")
@@ -165,15 +258,12 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    if args.command == "create":
-        return cmd_create(args)
-    elif args.command == "list":
-        return cmd_list(args)
-    elif args.command == "show":
-        return cmd_show(args)
-    else:
-        parser.print_help()
-        return 1
+    dispatch = {"create": cmd_create, "list": cmd_list, "show": cmd_show}
+    handler = dispatch.get(args.command)
+    if handler:
+        return handler(args)
+    parser.print_help()
+    return 0
 
 
 if __name__ == "__main__":

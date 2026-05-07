@@ -1,31 +1,39 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PreToolUse:Write Hook: ADR Creation Gate
 
 Blocks creation of new agent/skill/pipeline component files when no ADR
-exists for that component in the adr/ directory.
+exists for that component.
 
 This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Write tool.
+
+ADR lookup order (first match wins):
+1. ~/.vexjoy-agent/{repo_name}/adrs/{component_name}.md  (centralized, preferred)
+2. {project_root}/adr/{component_name}.md                (legacy, backwards-compat)
+
+repo_name is derived from: git remote origin URL → repo basename, or failing
+that, the directory basename of the project root.
 
 Detection logic:
 - Tool is Write (edits to existing files pass through)
 - Target path matches /agents/<name>.md, /skills/<name>/SKILL.md,
 - The target file does not already exist on disk (new creation only)
-- adr/{name}.md does not exist in the project root
+- ADR not found in either lookup path
 
 Allow-through conditions:
 - Tool is not Write
 - Target file does not match a component path pattern
 - Target file already exists on disk (update, not creation)
 - Target path matches _ADR_PATH_ALLOWLIST (producer-allowlisted skills like create-voice)
-- adr/{name}.md exists in the project root
+- ADR exists in centralized or project-root location
 - ADR_CREATION_GATE_BYPASS=1 env var
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 import traceback
 from pathlib import Path
@@ -57,6 +65,85 @@ _ADR_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
     # voice-creation methodology; a per-voice ADR would be redundant.
     (re.compile(r"/skills/(?:[^/]+/)?voice-[^/]+/SKILL\.md$"), "create-voice"),
 ]
+
+
+def _derive_repo_name(base_dir: Path) -> str:
+    """Derive the repository name from git remote or directory basename.
+
+    Tries `git remote get-url origin` first; falls back to the directory
+    basename if git is unavailable or no remote is configured.
+
+    NOTE: This logic is duplicated in scripts/vexjoy-adr.py (_derive_repo_name).
+    Keep both in sync when modifying.
+
+    Args:
+        base_dir: The resolved project root directory.
+
+    Returns:
+        Repository name string (e.g., "vexjoy-agent", "openstack-mcp-server").
+    """
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            cwd=str(base_dir),
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            url = result.stdout.strip()
+            # Handle both HTTPS and SSH URLs:
+            # https://github.com/user/repo.git → repo
+            # git@github.com:user/repo.git → repo
+            name = url.rstrip("/").rsplit("/", 1)[-1]
+            if name.endswith(".git"):
+                name = name[:-4]
+            return name
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        pass
+    return base_dir.name
+
+
+_VEXJOY_STATE_DIR = Path.home() / ".vexjoy-agent"
+
+
+def _find_adr(component_name: str, base_dir: Path, debug: bool = False) -> Path | None:
+    """Look up an ADR in centralized then project-root locations.
+
+    Lookup order:
+    1. ~/.vexjoy-agent/{repo_name}/adrs/{component_name}.md
+    2. {base_dir}/adr/{component_name}.md
+
+    Args:
+        component_name: The component to look up.
+        base_dir: Resolved project root directory.
+        debug: Whether to emit debug output.
+
+    Returns:
+        Path to the ADR if found, None otherwise.
+    """
+    repo_name = _derive_repo_name(base_dir)
+
+    # Preferred: centralized location
+    centralized = _VEXJOY_STATE_DIR / repo_name / "adrs" / f"{component_name}.md"
+    if centralized.is_file():
+        if debug:
+            print(f"[adr-creation-gate] ADR found (centralized): {centralized}", file=sys.stderr)
+        return centralized
+
+    # Fallback: project-root adr/ directory
+    project_local = base_dir / "adr" / f"{component_name}.md"
+    if project_local.is_file():
+        if debug:
+            print(f"[adr-creation-gate] ADR found (project-root): {project_local}", file=sys.stderr)
+        return project_local
+
+    if debug:
+        print(
+            f"[adr-creation-gate] ADR not found in:\n  - {centralized}\n  - {project_local}",
+            file=sys.stderr,
+        )
+    return None
 
 
 def _extract_component_name(file_path: str) -> str | None:
@@ -129,15 +216,17 @@ def main() -> None:
     cwd_str = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR", ".")
     base_dir = Path(cwd_str).resolve()
 
-    adr_path = base_dir / "adr" / f"{component_name}.md"
-    if adr_path.is_file():
-        if debug:
-            print(f"[adr-creation-gate] ADR found at {adr_path} — allowing through", file=sys.stderr)
+    adr_path = _find_adr(component_name, base_dir, debug=bool(debug))
+    if adr_path:
         sys.exit(0)
 
     # ADR is missing — block.
+    repo_name = _derive_repo_name(base_dir)
+    centralized_hint = f"~/.vexjoy-agent/{repo_name}/adrs/{component_name}.md"
     print(
-        f"[adr-creation-gate] BLOCKED: Create adr/{component_name}.md before creating new component.",
+        f"[adr-creation-gate] BLOCKED: Create ADR before creating new component.\n"
+        f"  Preferred: {centralized_hint}\n"
+        f"  Alternative: adr/{component_name}.md (project root)",
         file=sys.stderr,
     )
     print("[fix-with-skill] plans", file=sys.stderr)
@@ -148,8 +237,8 @@ def main() -> None:
                     "hookEventName": "PreToolUse",
                     "permissionDecision": "deny",
                     "permissionDecisionReason": (
-                        f"Create adr/{component_name}.md before creating this new component. "
-                        "Use the plans skill to draft the ADR first."
+                        f"Create ADR at {centralized_hint} (or adr/{component_name}.md in project root) "
+                        "before creating this new component. Use the plans skill to draft the ADR first."
                     ),
                 }
             }
