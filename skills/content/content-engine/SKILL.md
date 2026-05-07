@@ -108,7 +108,7 @@ Mechanically verify drafts before delivery. Both script checks must exit 0. The 
 #### Check 1: Hype Phrase Scan
 
 ```bash
-python3 scripts/scan-negative-framing.py --mode hype --drafts content_drafts.md
+python3 ~/private-skills/scripts/scan-negative-framing.py content_drafts.md
 ```
 
 See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for the full list of banned hype phrases and replacement guidance.
@@ -118,7 +118,7 @@ See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for the full list of bann
 #### Check 2: Cross-Platform Verbatim Check
 
 ```bash
-python3 scripts/scan-negative-framing.py --mode cross-platform --drafts content_drafts.md
+python3 ~/private-skills/scripts/scan-negative-framing.py content_drafts.md
 ```
 
 This check identifies any sentence appearing verbatim in two or more platform sections of `content_drafts.md`.
@@ -162,4 +162,4 @@ See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for error cases: source t
 - `${CLAUDE_SKILL_DIR}/references/platform-specs.md` — Character limits, format rules, and posting norms per platform
 - `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` — Full platform rules for Phase 3, banned hype phrases for Phase 4, error handling
 - `${CLAUDE_SKILL_DIR}/references/error-handling.md` — Gate failure recovery, script fallbacks, error-fix mappings, detection commands
-- `scripts/scan-negative-framing.py` — Negative framing and hype phrase detection
+- `~/private-skills/scripts/scan-negative-framing.py` — Negative framing and hype phrase detection
