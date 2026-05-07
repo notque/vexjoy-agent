@@ -622,6 +622,33 @@
       "notes": "AI connects every section like a museum audio guide. Real technical docs let sections stand alone — readers jump between sections.",
       "message": "Tour guide transition. Technical docs should let sections stand independently.",
       "suggestion_template": "Delete the transition. Start the section with its own content."
+    },
+    "announcing_honesty": {
+      "severity": "error",
+      "patterns": [
+        "that's the honest assessment",
+        "that's the real assessment",
+        "that's the actual assessment",
+        "that's the honest truth",
+        "that's the real truth",
+        "that's the actual truth",
+        "that's the honest take",
+        "that's the real take",
+        "that's the actual take"
+      ],
+      "notes": "If the content were honestly delivered, you wouldn't need to label it as honest. The label signals manufactured authenticity.",
+      "message": "Announcing honesty. If it were honest, you wouldn't need to say so.",
+      "suggestion_template": "Delete the announcement. The facts should speak for themselves."
+    },
+    "thesis_statement_cadence": {
+      "severity": "warning",
+      "patterns": [
+        "entirely dependent on",
+        "fundamentally different"
+      ],
+      "notes": "Overweighted qualifiers that AI uses to sound authoritative. Usually the sentence works without the qualifier.",
+      "message": "Thesis-statement cadence. The qualifier is doing the work instead of the evidence.",
+      "suggestion_template": "Remove the qualifier and let the claim stand on specifics."
     }
   },
   "voice_specific": {

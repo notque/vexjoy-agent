@@ -201,6 +201,7 @@ def build_entry(
     source_dir: Path | None = None,
     content: str | None = None,
     is_pipeline: bool = False,
+    flatten: bool = False,
 ) -> dict:
     """Build a single index entry from frontmatter and optional content.
 
@@ -211,6 +212,8 @@ def build_entry(
         source_dir: Root scan directory; used to compute relative paths for nested skills.
         content: Full SKILL.md content (needed for pipeline phase extraction).
         is_pipeline: Whether this entry is a pipeline (enables phase extraction).
+        flatten: When True, use leaf directory name only (matches deployed layout).
+            Used for INDEX.local.json where sync hook flattens nested paths.
 
     Returns:
         Dict representing the index entry for this skill/pipeline.
@@ -220,7 +223,10 @@ def build_entry(
     # Compute file path relative to source_dir for nested category folders.
     # Flat: skills/foo/SKILL.md → "skills/foo/SKILL.md"
     # Nested: skills/meta/foo/SKILL.md → "skills/meta/foo/SKILL.md"
-    if source_dir:
+    # Flatten: skills/meta/foo/SKILL.md → "skills/foo/SKILL.md" (matches deployed layout)
+    if flatten:
+        file_path = f"{dir_prefix}/{skill_dir.name}/SKILL.md"
+    elif source_dir:
         rel = skill_dir.relative_to(source_dir)
         file_path = f"{dir_prefix}/{rel}/SKILL.md"
     else:
@@ -286,6 +292,7 @@ def generate_index(
     is_pipeline: bool = False,
     include_private: bool = False,
     strict: bool = False,
+    flatten: bool = False,
 ) -> tuple[dict, list[str]]:
     """Generate a dict-keyed routing index from all SKILL.md files in a directory.
 
@@ -297,6 +304,7 @@ def generate_index(
         include_private: When True, include symlinked directories. When False (default),
             only directly-tracked directories are indexed.
         strict: When True, YAML parse failure skips the skill (no regex fallback).
+        flatten: When True, use leaf directory name for paths (matches deployed layout).
 
     Returns:
         tuple: (index dict with version/generated/generated_by/collection,
@@ -353,6 +361,7 @@ def generate_index(
             source_dir=source_dir,
             content=content_ if is_pipeline else None,
             is_pipeline=is_pipeline,
+            flatten=flatten,
         )
         index[collection_key][name] = entry
 
@@ -471,6 +480,8 @@ def main() -> int:
     output_path: Path = args.output if args.output is not None else skills_dir / "INDEX.json"
 
     # Generate skills index
+    # When --include-private is used (for INDEX.local.json), flatten nested paths
+    # to match the deployed layout where sync hook flattens skills to ~/.claude/skills/{name}/
     skills_index, skills_warnings = generate_index(
         source_dir=skills_dir,
         dir_prefix="skills",
@@ -478,7 +489,61 @@ def main() -> int:
         is_pipeline=False,
         include_private=args.include_private,
         strict=args.strict,
+        flatten=args.include_private,
     )
+
+    # When --include-private, also scan ~/private-skills/ for skills deployed
+    # by the sync hook. These live outside the repo but get symlinked into
+    # ~/.claude/skills/ at session start. Mirror the sync hook's naming:
+    # voice category → voice-{name}, others → {name}.
+    if args.include_private:
+        private_skills_dir = Path.home() / "private-skills"
+        if private_skills_dir.is_dir():
+            for category_dir in sorted(private_skills_dir.iterdir()):
+                if not category_dir.is_dir() or category_dir.name.startswith("."):
+                    continue
+                category = category_dir.name
+                for skill_dir in sorted(category_dir.iterdir()):
+                    if not skill_dir.is_dir():
+                        continue
+                    if not (skill_dir / "SKILL.md").exists():
+                        continue
+                    # Mirror sync hook naming convention
+                    if category == "voice":
+                        deploy_name = f"voice-{skill_dir.name}"
+                    else:
+                        deploy_name = skill_dir.name
+
+                    # Skip if already indexed from repo skills/
+                    if deploy_name in skills_index["skills"]:
+                        continue
+
+                    try:
+                        content_ = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+                    except (OSError, UnicodeDecodeError):
+                        continue
+
+                    fm, used_fallback = extract_frontmatter(content_)
+                    if not fm:
+                        continue
+                    if used_fallback and args.strict:
+                        continue
+
+                    # Override name to match deployed name
+                    fm["name"] = deploy_name
+                    entry = build_entry(
+                        frontmatter=fm,
+                        skill_dir=skill_dir,
+                        dir_prefix="skills",
+                        source_dir=None,
+                        content=None,
+                        is_pipeline=False,
+                        flatten=True,  # Always flat for private skills
+                    )
+                    # Fix: build_entry with source_dir=None uses skill_dir.name,
+                    # but we need deploy_name for the path
+                    entry["file"] = f"skills/{deploy_name}/SKILL.md"
+                    skills_index["skills"][deploy_name] = entry
 
     # Report warnings if any
     if skills_warnings:
