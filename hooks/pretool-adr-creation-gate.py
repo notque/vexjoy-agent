@@ -98,7 +98,8 @@ def _derive_repo_name(base_dir: Path) -> str:
             name = url.rstrip("/").rsplit("/", 1)[-1]
             if name.endswith(".git"):
                 name = name[:-4]
-            return name
+            if name:  # Guard against malformed URLs yielding empty name
+                return name
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
     return base_dir.name
