@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, get_session_id, get_tool_output, get_tool_result
-from learning_db_v2 import record_instruction_compliance
+from learning_db_v2 import record_instruction_compliance_batch
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PostToolUse"
@@ -41,8 +41,8 @@ INSTRUCTIONS: dict[str, dict[str, str | list[re.Pattern[str]]]] = {
     "M03": {
         "name": "Routing Decision",
         "patterns": [
-            re.compile(r"={3,}"),
-            re.compile(r"ROUTING\s*:", re.IGNORECASE),
+            re.compile(r"^={3,}\s*$", re.MULTILINE),
+            re.compile(r"(?:^|\s)ROUTING\s*:", re.IGNORECASE | re.MULTILINE),
             re.compile(r"Selected\s*:", re.IGNORECASE),
         ],
     },
@@ -51,6 +51,8 @@ INSTRUCTIONS: dict[str, dict[str, str | list[re.Pattern[str]]]] = {
         "patterns": [
             re.compile(r"Reference\s+Loading", re.IGNORECASE),
             re.compile(r"reference.*table", re.IGNORECASE),
+            re.compile(r"Before\s+starting\s+work", re.IGNORECASE),
+            re.compile(r"Load\s+EVERY\s+reference\s+file", re.IGNORECASE),
         ],
     },
     "M05": {
@@ -58,6 +60,8 @@ INSTRUCTIONS: dict[str, dict[str, str | list[re.Pattern[str]]]] = {
         "patterns": [
             re.compile(r"deliver\s+the\s+finished\s+product", re.IGNORECASE),
             re.compile(r"ship\s+the\s+complete\s+thing", re.IGNORECASE),
+            re.compile(r"Ship\s+the\s+complete", re.IGNORECASE),
+            re.compile(r"Deliver\s+the\s+finished", re.IGNORECASE),
         ],
     },
     "M06": {
@@ -87,28 +91,18 @@ def check_compliance(text: str) -> dict[str, bool]:
     return results
 
 
-def record_compliance(
-    instr_id: str,
-    instr_name: str,
-    compliant: bool,
+def record_compliance_batch(
+    results: dict[str, bool],
     session_id: str,
 ) -> None:
-    """Record a single instruction compliance observation to learning.db.
-
-    Each call INSERTs a new row into the instruction_compliance table.
-    Observations accumulate — they never overwrite previous entries.
+    """Record all instruction compliance observations in one transaction.
 
     Args:
-        instr_id: Instruction identifier (e.g. "M01").
-        instr_name: Human-readable instruction name (unused, kept for API compat).
-        compliant: Whether the instruction was followed.
+        results: Dict mapping instruction ID to compliance boolean.
         session_id: Current session identifier.
     """
-    record_instruction_compliance(
-        instruction_id=instr_id,
-        compliant=compliant,
-        session_id=session_id,
-    )
+    records = [(instr_id, compliant, session_id) for instr_id, compliant in results.items()]
+    record_instruction_compliance_batch(records)
 
 
 def main() -> None:
@@ -150,11 +144,9 @@ def main() -> None:
         if not combined_text.strip():
             empty_output(EVENT_NAME).print_and_exit()
 
-        # Check and record compliance for each instruction
+        # Check and record compliance for all instructions in one transaction
         results = check_compliance(combined_text)
-        for instr_id, compliant in results.items():
-            instr_name: str = INSTRUCTIONS[instr_id]["name"]  # type: ignore[assignment]
-            record_compliance(instr_id, instr_name, compliant, session_id)
+        record_compliance_batch(results, session_id)
 
         empty_output(EVENT_NAME).print_and_exit()
 

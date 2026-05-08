@@ -32,8 +32,16 @@ _module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_module)
 
 check_compliance = _module.check_compliance
-record_compliance = _module.record_compliance
+record_compliance_batch = _module.record_compliance_batch
 INSTRUCTIONS = _module.INSTRUCTIONS
+
+
+def record_compliance(instr_id: str, instr_name: str, compliant: bool, session_id: str) -> None:
+    """Thin wrapper for tests: single-observation convenience using batch API."""
+    from learning_db_v2 import record_instruction_compliance
+
+    record_instruction_compliance(instruction_id=instr_id, compliant=compliant, session_id=session_id)
+
 
 # ─── check_compliance unit tests ──────────────────────────────────
 
@@ -60,10 +68,22 @@ class TestCheckCompliance:
         assert results["M01"] is False
 
     def test_m03_routing_decision_compliant_equals(self) -> None:
-        """Triple equals separator signals routing table."""
+        """Triple equals on standalone line signals routing table."""
         text = "===\nAgent: golang-general-engineer\nSkill: go-patterns\n==="
         results = check_compliance(text)
         assert results["M03"] is True
+
+    def test_m03_no_false_positive_js_strict_equals(self) -> None:
+        """JS === operator must NOT trigger M03 (false positive guard)."""
+        text = "if (value === 'test') { return true; }"
+        results = check_compliance(text)
+        assert results["M03"] is False
+
+    def test_m03_no_false_positive_markdown_separator(self) -> None:
+        """Inline markdown === must NOT trigger M03 when not standalone."""
+        text = "Some heading\n===continued text"
+        results = check_compliance(text)
+        assert results["M03"] is False
 
     def test_m03_routing_decision_compliant_keyword(self) -> None:
         """ROUTING: keyword signals routing decision."""
@@ -92,6 +112,18 @@ class TestCheckCompliance:
     def test_m04_reference_loading_table_variant(self) -> None:
         """Reference table variant also detected."""
         text = "Loaded reference table entries for error patterns."
+        results = check_compliance(text)
+        assert results["M04"] is True
+
+    def test_m04_before_starting_work_variant(self) -> None:
+        """'Before starting work' prompt injection marker -> M04 compliant."""
+        text = "Before starting work, read your agent .md file to find the Reference Loading Table."
+        results = check_compliance(text)
+        assert results["M04"] is True
+
+    def test_m04_load_every_reference_variant(self) -> None:
+        """'Load EVERY reference file' prompt marker -> M04 compliant."""
+        text = "Load EVERY reference file whose signal matches this task."
         results = check_compliance(text)
         assert results["M04"] is True
 
@@ -141,7 +173,9 @@ class TestCheckCompliance:
         """Multiple instructions detected in single output."""
         text = (
             "## Phase 1: Analysis\n"
-            "===\nROUTING: python-general-engineer\n===\n"
+            "===\n"
+            "ROUTING: python-general-engineer\n"
+            "===\n"
             "Reference Loading Table checked.\n"
             "Deliver the finished product.\n"
             "Write dense.\n"
@@ -220,6 +254,24 @@ class TestRecordCompliance:
             with get_connection() as conn:
                 rows = conn.execute("SELECT * FROM instruction_compliance WHERE instruction_id = 'M01'").fetchall()
                 assert len(rows) == 3
+
+    def test_batch_recording(self, tmp_path: Path) -> None:
+        """Batch recording inserts all results in one transaction."""
+        with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": str(tmp_path)}):
+            import learning_db_v2
+
+            learning_db_v2._initialized = False
+
+            results = {"M01": True, "M03": False, "M04": True, "M05": False, "M06": True}
+            record_compliance_batch(results, "batch-session")
+
+            from learning_db_v2 import get_connection
+
+            with get_connection() as conn:
+                rows = conn.execute("SELECT * FROM instruction_compliance").fetchall()
+                assert len(rows) == 5
+                ids = {r["instruction_id"] for r in rows}
+                assert ids == {"M01", "M03", "M04", "M05", "M06"}
 
 
 # ─── Hook stdin integration tests ────────────────────────────────

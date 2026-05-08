@@ -795,18 +795,33 @@ def record_instruction_compliance(
     """Record a single instruction compliance observation.
 
     Each call INSERTs a new row — observations accumulate, never overwrite.
+    For multiple observations, prefer record_instruction_compliance_batch().
 
     Args:
         instruction_id: Instruction identifier (e.g. "M01").
         compliant: Whether the instruction was followed.
         session_id: Current session identifier.
     """
+    record_instruction_compliance_batch([(instruction_id, compliant, session_id)])
+
+
+def record_instruction_compliance_batch(
+    records: list[tuple[str, bool, str | None]],
+) -> None:
+    """Record multiple instruction compliance observations in one transaction.
+
+    Args:
+        records: List of (instruction_id, compliant, session_id) tuples.
+    """
+    if not records:
+        return
     init_db()
     now = datetime.now().isoformat()
+    rows = [(instr_id, compliant, sid, now) for instr_id, compliant, sid in records]
     with get_connection() as conn:
-        conn.execute(
+        conn.executemany(
             "INSERT INTO instruction_compliance (instruction_id, compliant, session_id, timestamp) VALUES (?, ?, ?, ?)",
-            (instruction_id, compliant, session_id, now),
+            rows,
         )
         conn.commit()
 
