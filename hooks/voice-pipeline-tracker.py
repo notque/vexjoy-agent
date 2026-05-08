@@ -20,9 +20,19 @@ import tempfile
 from pathlib import Path
 
 REQUIRED_PHASES = [
-    "LOAD", "GROUND", "STATS-CHECKPOINT", "GENERATE", "HOOK-GATE",
-    "VALIDATE", "REFINE", "VARIETY-GATE", "JOY-CHECK", "ANTI-AI",
-    "CLOSE-GATE", "OUTPUT", "CLEANUP",
+    "LOAD",
+    "GROUND",
+    "STATS-CHECKPOINT",
+    "GENERATE",
+    "HOOK-GATE",
+    "VALIDATE",
+    "REFINE",
+    "VARIETY-GATE",
+    "JOY-CHECK",
+    "ANTI-AI",
+    "CLOSE-GATE",
+    "OUTPUT",
+    "CLEANUP",
 ]
 
 STATE_FILE = Path.home() / ".claude" / "state" / "voice-pipeline-state.json"

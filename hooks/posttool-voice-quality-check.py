@@ -102,6 +102,7 @@ def main():
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
+
             print(f"[voice-quality] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
     finally:

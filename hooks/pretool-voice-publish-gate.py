@@ -62,7 +62,9 @@ def _check_pipeline(slug: str) -> dict:
     try:
         result = subprocess.run(
             [sys.executable, _TRACKER, "status", slug],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             return json.loads(result.stdout)

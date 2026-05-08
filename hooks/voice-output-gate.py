@@ -29,6 +29,7 @@ except ImportError:
     def _noop():
         print(json.dumps({}))
         sys.exit(0)
+
     _noop()
 
 # Patterns that indicate external text production
@@ -97,11 +98,13 @@ def build_gate_instruction(voice_mode: bool) -> str:
     ]
 
     if voice_mode:
-        lines.extend([
-            "",
-            "Voice mode active: also load the requested voice skill and validate",
-            "the draft matches the voice profile before posting.",
-        ])
+        lines.extend(
+            [
+                "",
+                "Voice mode active: also load the requested voice skill and validate",
+                "the draft matches the voice profile before posting.",
+            ]
+        )
 
     lines.append("[/voice-output-gate]")
     return "\n".join(lines)
@@ -143,6 +146,7 @@ if __name__ == "__main__":
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
+
             print(f"[voice-output-gate] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
     finally:
