@@ -147,7 +147,7 @@ grep -l "goroutine\|concurrency" agents/*.md skills/*/SKILL.md
 SYSTEM UPGRADE PLAN
 ===================
 
-Trigger: [claude-release v4.7 | goal-change | retro-driven]
+Trigger: [claude-release | goal-change | retro-driven]
 Change: [brief description]
 
 Proposed Changes (Ranked):
