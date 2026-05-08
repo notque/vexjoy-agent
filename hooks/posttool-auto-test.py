@@ -117,7 +117,7 @@ def _get_test_command(file_path: str) -> list[list[str]] | None:
         ruff_cmd = ["ruff", "check", file_path]
         if has_pyproject:
             ruff_cmd.extend(["--config", "pyproject.toml"])
-        pytest_cmd = ["python", "-m", "pytest", "--lf", "-x", "-q", "--tb=short"]
+        pytest_cmd = ["python3", "-m", "pytest", "--lf", "-x", "-q", "--tb=short"]
         return [ruff_cmd, pytest_cmd]
     if ext == ".go":
         pkg_dir = str(Path(file_path).parent)
