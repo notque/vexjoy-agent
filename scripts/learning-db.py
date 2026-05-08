@@ -29,6 +29,7 @@ Usage:
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
     python3 scripts/learning-db.py route-health
+    python3 scripts/learning-db.py skip-rate [--json] [--include-test]
 """
 
 import argparse
@@ -59,6 +60,7 @@ from learning_db_v2 import (
     init_db,
     mark_graduated,
     prune,
+    query_instruction_skip_rate,
     query_learnings,
     record_learning,
     search_learnings,
@@ -689,6 +691,73 @@ def cmd_backfill_routing_outcomes(args: argparse.Namespace) -> None:
     print(f"  Unchanged: {unchanged}")
 
 
+def cmd_skip_rate(args: argparse.Namespace) -> None:
+    """Display instruction skip-rate report from the instruction_compliance table.
+
+    Queries the dedicated instruction_compliance table for per-observation
+    data and computes skip rate per instruction. Flags instructions with
+    >20% skip rate over 30+ observations for conversion to programmatic gates.
+    """
+    init_db()
+
+    # Instruction ID -> human-readable name mapping
+    instr_names: dict[str, str] = {
+        "M01": "Phase Banners",
+        "M03": "Routing Decision",
+        "M04": "Reference Loading",
+        "M05": "Completeness",
+        "M06": "Density Standard",
+    }
+
+    results = query_instruction_skip_rate(days=30)
+
+    if not results:
+        print("No instruction compliance data found. Run sessions to collect data.")
+        return
+
+    if args.json:
+        report = []
+        for r in results:
+            instr_id = r["instruction_id"]
+            report.append(
+                {
+                    "id": instr_id,
+                    "name": instr_names.get(instr_id, instr_id),
+                    "observations": r["observations"],
+                    "non_compliant": r["non_compliant"],
+                    "skip_rate": r["skip_rate"],
+                    "status": "CONVERT_TO_GATE" if r["skip_rate"] > 20 and r["observations"] >= 30 else "OK",
+                }
+            )
+        print(json.dumps(report, indent=2))
+        return
+
+    # Human-readable output
+    print("Instruction Skip Rate Report")
+    print("=" * 72)
+    print(f"{'ID':<6}{'Instruction':<22}{'Observations':>14}{'Skip Rate':>12}{'Status':>18}")
+    print("-" * 72)
+
+    for r in results:
+        instr_id = r["instruction_id"]
+        name = instr_names.get(instr_id, instr_id)
+        skip_rate = r["skip_rate"]
+
+        if skip_rate > 20 and r["observations"] >= 30:
+            status = "CONVERT TO GATE"
+        else:
+            status = "OK"
+
+        print(f"{instr_id:<6}{name:<22}{r['observations']:>14}{skip_rate:>11.1f}%{status:>17}")
+
+    print("-" * 72)
+    flagged = sum(1 for r in results if r["skip_rate"] > 20 and r["observations"] >= 30)
+    if flagged:
+        print(f"{flagged} instruction(s) flagged for conversion to programmatic gates (>20% skip, 30+ obs)")
+    else:
+        print("No instructions flagged. Threshold: >20% skip rate over 30+ observations.")
+
+
 def cmd_route_health(args: argparse.Namespace) -> None:
     """Display a quick health summary of routing entries."""
     init_db()
@@ -1006,6 +1075,12 @@ def main():
         "backfill-routing-outcomes", help="Retroactively score routing entries from existing data"
     )
     p_backfill.set_defaults(func=cmd_backfill_routing_outcomes)
+
+    # skip-rate
+    p_skip_rate = subparsers.add_parser("skip-rate", help="Show instruction skip-rate report")
+    p_skip_rate.add_argument("--json", action="store_true", help="Output as JSON")
+    p_skip_rate.add_argument("--include-test", action="store_true", help="Ignored (kept for backward compat)")
+    p_skip_rate.set_defaults(func=cmd_skip_rate)
 
     # route-health
     p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")

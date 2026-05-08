@@ -28,7 +28,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 3
+_CURRENT_SCHEMA_VERSION = 4
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -150,6 +150,27 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations (version, description) "
             "VALUES (3, 'add timestamp and cohort indexes for query performance')"
+        )
+
+    if current < 4:
+        # v3 -> v4: Add instruction_compliance table for per-observation tracking
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS instruction_compliance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                instruction_id TEXT NOT NULL,
+                compliant BOOLEAN NOT NULL,
+                session_id TEXT,
+                timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ic_instruction_id ON instruction_compliance(instruction_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ic_timestamp ON instruction_compliance(timestamp)")
+        conn.execute("PRAGMA user_version = 4")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (4, 'add instruction_compliance table for per-observation tracking')"
         )
 
     conn.commit()
@@ -330,6 +351,17 @@ CREATE INDEX IF NOT EXISTS idx_gov_session   ON governance_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_gov_type      ON governance_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_gov_severity  ON governance_events(severity);
 CREATE INDEX IF NOT EXISTS idx_gov_created   ON governance_events(created_at);
+
+CREATE TABLE IF NOT EXISTS instruction_compliance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    instruction_id TEXT NOT NULL,
+    compliant BOOLEAN NOT NULL,
+    session_id TEXT,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ic_instruction_id ON instruction_compliance(instruction_id);
+CREATE INDEX IF NOT EXISTS idx_ic_timestamp ON instruction_compliance(timestamp);
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY,
@@ -753,6 +785,84 @@ def record_activation(
     Thin wrapper around record_activations() for single-entry convenience.
     """
     record_activations([(topic, key)], session_id, outcome)
+
+
+def record_instruction_compliance(
+    instruction_id: str,
+    compliant: bool,
+    session_id: str | None = None,
+) -> None:
+    """Record a single instruction compliance observation.
+
+    Each call INSERTs a new row — observations accumulate, never overwrite.
+    For multiple observations, prefer record_instruction_compliance_batch().
+
+    Args:
+        instruction_id: Instruction identifier (e.g. "M01").
+        compliant: Whether the instruction was followed.
+        session_id: Current session identifier.
+    """
+    record_instruction_compliance_batch([(instruction_id, compliant, session_id)])
+
+
+def record_instruction_compliance_batch(
+    records: list[tuple[str, bool, str | None]],
+) -> None:
+    """Record multiple instruction compliance observations in one transaction.
+
+    Args:
+        records: List of (instruction_id, compliant, session_id) tuples.
+    """
+    if not records:
+        return
+    init_db()
+    now = datetime.now().isoformat()
+    rows = [(instr_id, compliant, sid, now) for instr_id, compliant, sid in records]
+    with get_connection() as conn:
+        conn.executemany(
+            "INSERT INTO instruction_compliance (instruction_id, compliant, session_id, timestamp) VALUES (?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+
+
+def query_instruction_skip_rate(days: int = 30) -> list[dict]:
+    """Query instruction compliance skip rates from the dedicated table.
+
+    Args:
+        days: Look back window in days (default 30).
+
+    Returns:
+        List of dicts with instruction_id, observations, non_compliant, skip_rate.
+    """
+    init_db()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT instruction_id,
+                   COUNT(*) as observations,
+                   SUM(CASE WHEN NOT compliant THEN 1 ELSE 0 END) as non_compliant
+            FROM instruction_compliance
+            WHERE timestamp > datetime('now', ?)
+            GROUP BY instruction_id
+            ORDER BY instruction_id
+            """,
+            (f"-{days} days",),
+        ).fetchall()
+        results = []
+        for row in rows:
+            obs = row["observations"]
+            nc = row["non_compliant"]
+            skip_rate = (nc / obs * 100) if obs > 0 else 0.0
+            results.append(
+                {
+                    "instruction_id": row["instruction_id"],
+                    "observations": obs,
+                    "non_compliant": nc,
+                    "skip_rate": round(skip_rate, 1),
+                }
+            )
+        return results
 
 
 def boost_confidence(topic: str, key: str, delta: float = 0.10) -> float:
