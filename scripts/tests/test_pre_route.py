@@ -1,0 +1,380 @@
+"""Tests for scripts/pre-route.py deterministic pre-router."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import ClassVar
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SCRIPT = REPO_ROOT / "scripts" / "pre-route.py"
+
+# ---------------------------------------------------------------------------
+# Import the module for unit testing
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def pre_route(monkeypatch: pytest.MonkeyPatch):
+    """Import pre_route module with real INDEX files."""
+    monkeypatch.syspath_prepend(str(REPO_ROOT / "scripts"))
+    # Use importlib to avoid name collision with hyphenated filename
+    import importlib
+
+    mod = importlib.import_module("pre-route")
+    return mod
+
+
+@pytest.fixture
+def real_entries(pre_route):
+    """Load real entries from INDEX.json files."""
+    return pre_route.load_entries()
+
+
+# ---------------------------------------------------------------------------
+# Core routing tests (from spec)
+# ---------------------------------------------------------------------------
+
+
+class TestSpecifiedRoutes:
+    """Test cases from the task specification."""
+
+    def test_go_tests_matches_go_patterns(self, pre_route, real_entries) -> None:
+        """'run the go tests' should match go-patterns or golang-general-engineer."""
+        result = pre_route.route("run the go tests", entries=real_entries)
+        assert result["matched"] is True
+        # Should match go-patterns (force-route skill with "go test" trigger)
+        assert result["skill"] == "go-patterns" or result["agent"] == "golang-general-engineer"
+
+    def test_create_pr_matches_pr_workflow(self, pre_route, real_entries) -> None:
+        """'create a PR' should match pr-workflow (force-route)."""
+        result = pre_route.route("create a PR", entries=real_entries)
+        assert result["matched"] is True
+        assert result["skill"] == "pr-workflow"
+        assert result["match_type"] == "force_route"
+
+    def test_push_changes_matches_pr_workflow(self, pre_route, real_entries) -> None:
+        """'push my changes' should match pr-workflow (force-route)."""
+        result = pre_route.route("push my changes", entries=real_entries)
+        assert result["matched"] is True
+        assert result["skill"] == "pr-workflow"
+        assert result["match_type"] == "force_route"
+
+    def test_quantum_physics_falls_through(self, pre_route, real_entries) -> None:
+        """'tell me about quantum physics' should fall through."""
+        result = pre_route.route("tell me about quantum physics", entries=real_entries)
+        assert result["matched"] is False
+        assert result["match_type"] == "fallthrough"
+
+    def test_quick_fix_matches_quick(self, pre_route, real_entries) -> None:
+        """'quick fix the login page' should match quick (force-route)."""
+        result = pre_route.route("quick fix the login page", entries=real_entries)
+        assert result["matched"] is True
+        assert result["skill"] == "quick"
+        assert result["match_type"] == "force_route"
+
+    def test_fish_shell_matches_fish_config(self, pre_route, real_entries) -> None:
+        """'configure my fish shell' should match fish-shell-config (force-route)."""
+        result = pre_route.route("configure my fish shell", entries=real_entries)
+        assert result["matched"] is True
+        assert result["skill"] == "fish-shell-config"
+        assert result["match_type"] == "force_route"
+
+    def test_review_code_ambiguous_falls_through(self, pre_route, real_entries) -> None:
+        """'review this code' is ambiguous (1 non-force trigger) -- correctly falls through."""
+        result = pre_route.route("review this code", entries=real_entries)
+        # Single non-force trigger match -> low confidence -> fallthrough
+        assert result["matched"] is False
+        assert result["confidence"] == "low"
+
+    def test_structured_code_review_matches(self, pre_route, real_entries) -> None:
+        """'do a structured code review and code audit' has 3+ triggers -> matches."""
+        result = pre_route.route("do a structured code review and code audit", entries=real_entries)
+        assert result["matched"] is True
+        assert "review" in (result["skill"] or "")
+
+    def test_weather_falls_through(self, pre_route, real_entries) -> None:
+        """'what's the weather like' should fall through."""
+        result = pre_route.route("what's the weather like", entries=real_entries)
+        assert result["matched"] is False
+        assert result["match_type"] == "fallthrough"
+
+
+# ---------------------------------------------------------------------------
+# Semantic safety tests (false positive prevention)
+# ---------------------------------------------------------------------------
+
+
+class TestSemanticSafety:
+    """Test that common English idioms don't trigger false positives."""
+
+    def test_push_back_does_not_match_pr_workflow(self, pre_route, real_entries) -> None:
+        """'push back on this design' should NOT match pr-workflow."""
+        result = pre_route.route("push back on this design", entries=real_entries)
+        if result["matched"]:
+            assert result["skill"] != "pr-workflow", f"'push back on this design' falsely matched pr-workflow: {result}"
+
+    def test_fish_for_bugs_does_not_match_fish_config(self, pre_route, real_entries) -> None:
+        """'fish for bugs' should NOT match fish-shell-config."""
+        result = pre_route.route("fish for bugs", entries=real_entries)
+        if result["matched"]:
+            assert result["skill"] != "fish-shell-config", (
+                f"'fish for bugs' falsely matched fish-shell-config: {result}"
+            )
+
+    def test_semantic_guard_works_with_multi_word_triggers(self, pre_route) -> None:
+        """Semantic guard must work when multi-word trigger matches with intervening words.
+
+        E.g. trigger 'push changes' matching 'push back on changes' should be guarded
+        because 'back' is a guard word for pr-workflow.
+        """
+        entries = [
+            {
+                "name": "pr-workflow",
+                "type": "skill",
+                "triggers": ["push changes"],
+                "agent": None,
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "push back on changes")
+        # "back" is a guard word for pr-workflow, so this should be filtered out
+        assert "skill:pr-workflow" not in candidates
+
+    def test_semantic_guard_allows_legitimate_multi_word_match(self, pre_route) -> None:
+        """Multi-word trigger without guard words should match normally."""
+        entries = [
+            {
+                "name": "pr-workflow",
+                "type": "skill",
+                "triggers": ["push changes"],
+                "agent": None,
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "push my changes now")
+        assert "skill:pr-workflow" in candidates
+
+
+# ---------------------------------------------------------------------------
+# Output schema tests
+# ---------------------------------------------------------------------------
+
+
+class TestOutputSchema:
+    """Verify the output JSON schema is correct."""
+
+    REQUIRED_KEYS: ClassVar[set[str]] = {"matched", "agent", "skill", "confidence", "match_type", "reasoning"}
+
+    def test_matched_output_has_all_keys(self, pre_route, real_entries) -> None:
+        """Matched result contains all required keys."""
+        result = pre_route.route("create a PR", entries=real_entries)
+        assert set(result.keys()) >= self.REQUIRED_KEYS
+
+    def test_fallthrough_output_has_all_keys(self, pre_route, real_entries) -> None:
+        """Fallthrough result contains all required keys."""
+        result = pre_route.route("tell me about quantum physics", entries=real_entries)
+        assert set(result.keys()) >= self.REQUIRED_KEYS
+
+    def test_confidence_values(self, pre_route, real_entries) -> None:
+        """Confidence is one of high/medium/low."""
+        for req in ["create a PR", "push my changes", "quantum physics"]:
+            result = pre_route.route(req, entries=real_entries)
+            assert result["confidence"] in {"high", "medium", "low"}
+
+    def test_match_type_values(self, pre_route, real_entries) -> None:
+        """match_type is one of force_route/trigger_keyword/fallthrough."""
+        for req in ["create a PR", "review this code", "quantum physics"]:
+            result = pre_route.route(req, entries=real_entries)
+            assert result["match_type"] in {"force_route", "trigger_keyword", "fallthrough"}
+
+
+# ---------------------------------------------------------------------------
+# Confidence threshold tests
+# ---------------------------------------------------------------------------
+
+
+class TestConfidence:
+    """Test confidence determination logic."""
+
+    def test_force_route_high_confidence(self, pre_route) -> None:
+        """Force-route with 2+ triggers -> high."""
+        from dataclasses import field as _field
+
+        match = pre_route.ScoredMatch(
+            name="test",
+            entry_type="skill",
+            agent=None,
+            force_route=True,
+            matched_triggers=["a", "b"],
+        )
+        assert pre_route.determine_confidence(match) == "high"
+
+    def test_force_route_medium_confidence(self, pre_route) -> None:
+        """Force-route with 1 trigger -> medium."""
+        match = pre_route.ScoredMatch(
+            name="test",
+            entry_type="skill",
+            agent=None,
+            force_route=True,
+            matched_triggers=["a"],
+        )
+        assert pre_route.determine_confidence(match) == "medium"
+
+    def test_non_force_medium_confidence(self, pre_route) -> None:
+        """Non-force with 3+ triggers -> medium."""
+        match = pre_route.ScoredMatch(
+            name="test",
+            entry_type="skill",
+            agent=None,
+            force_route=False,
+            matched_triggers=["a", "b", "c"],
+        )
+        assert pre_route.determine_confidence(match) == "medium"
+
+    def test_non_force_low_confidence(self, pre_route) -> None:
+        """Non-force with <3 triggers -> low."""
+        match = pre_route.ScoredMatch(
+            name="test",
+            entry_type="skill",
+            agent=None,
+            force_route=False,
+            matched_triggers=["a", "b"],
+        )
+        assert pre_route.determine_confidence(match) == "low"
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for internal functions
+# ---------------------------------------------------------------------------
+
+
+class TestBuildMatchTable:
+    """Test match table construction."""
+
+    def test_builds_from_entries(self, pre_route) -> None:
+        """Match table is built from entries with patterns."""
+        entries = [
+            {
+                "name": "test-skill",
+                "type": "skill",
+                "triggers": ["go test", "run tests"],
+                "agent": "golang-general-engineer",
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(entries)
+        assert len(table) == 2
+        assert table[0].trigger == "go test"
+        assert table[0].force_route is True
+        assert table[0].pattern.search("let's run go test now") is not None
+
+    def test_empty_triggers(self, pre_route) -> None:
+        """Entry with no triggers produces no match entries."""
+        entries = [{"name": "empty", "type": "skill", "triggers": [], "agent": None, "force_route": False}]
+        table = pre_route.build_match_table(entries)
+        assert len(table) == 0
+
+
+class TestScoreMatches:
+    """Test the scoring logic."""
+
+    def test_force_route_bonus(self, pre_route) -> None:
+        """Force-route entries get a 2.0 bonus."""
+        entries = [
+            {"name": "forced", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": True},
+            {"name": "normal", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": False},
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "deploy now")
+        forced = candidates["skill:forced"]
+        normal = candidates["skill:normal"]
+        assert forced.score > normal.score
+
+    def test_more_triggers_higher_score(self, pre_route) -> None:
+        """More matched triggers = higher score."""
+        entries = [
+            {"name": "multi", "type": "skill", "triggers": ["run", "test", "go"], "agent": None, "force_route": False},
+            {"name": "single", "type": "skill", "triggers": ["run"], "agent": None, "force_route": False},
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "run go test")
+        assert candidates["skill:multi"].score > candidates["skill:single"].score
+
+    def test_deterministic_tie_breaking(self, pre_route) -> None:
+        """Equal-score candidates are ordered deterministically by name."""
+        entries = [
+            {"name": "zebra", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": True},
+            {"name": "alpha", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": True},
+        ]
+        # Run multiple times to verify determinism
+        for _ in range(5):
+            result = pre_route.route("deploy now", entries=entries)
+            # Both have identical scores; alpha should win deterministically
+            assert result["skill"] == "alpha", f"Expected 'alpha' but got {result['skill']}"
+
+
+# ---------------------------------------------------------------------------
+# CLI integration tests
+# ---------------------------------------------------------------------------
+
+
+class TestCLI:
+    """Test the script as a subprocess."""
+
+    @pytest.mark.slow
+    def test_cli_matched(self) -> None:
+        """CLI returns valid JSON for a matched request."""
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--request", "create a PR"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        assert data["matched"] is True
+        assert data["skill"] == "pr-workflow"
+
+    @pytest.mark.slow
+    def test_cli_fallthrough(self) -> None:
+        """CLI returns valid JSON for a fallthrough request."""
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--request", "what is the meaning of life"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        assert data["matched"] is False
+
+    @pytest.mark.slow
+    def test_cli_compact_json(self) -> None:
+        """--json-compact outputs single-line JSON."""
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--request", "create a PR", "--json-compact"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        assert result.returncode == 0
+        lines = result.stdout.strip().split("\n")
+        assert len(lines) == 1
+
+    @pytest.mark.slow
+    def test_cli_missing_request_fails(self) -> None:
+        """Missing --request arg fails."""
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT)],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        assert result.returncode != 0
