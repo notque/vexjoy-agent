@@ -125,6 +125,22 @@ If ANY creation signal found AND complexity Simple+: set `is_creation = true`, P
 
 **Goal**: Select the correct agent + skill via a single Haiku routing agent. FORCE-labeled entries are preferred when intent matches semantically (not keyword-based).
 
+**Step 0: Deterministic pre-routing**
+
+Run the deterministic pre-router first:
+```bash
+python3 scripts/pre-route.py --request "{user_request}" --json-compact
+```
+
+If the result has `"matched": true` and `"confidence": "high"`:
+- Use the returned `agent` and `skill` directly
+- Skip the Haiku routing agent entirely
+- Record `match_type` in routing decision tags
+
+If `"matched": false` or `"confidence"` is "low"/"medium":
+- Proceed to Step 1 (Haiku routing) as normal
+- The pre-router result is informational only
+
 **Step 1: Dispatch Haiku routing agent**
 
 Generate the manifest, then dispatch:
