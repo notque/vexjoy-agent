@@ -6,13 +6,17 @@ Fires after successful Write/Edit on source files. Detects language from
 file extension, runs the matching test command, and returns truncated
 results as additionalContext so the agent sees failures immediately.
 
-Non-blocking (informational only). Debounced at 10s. 30s timeout.
+Non-blocking (informational only). Debounced at 10s. 15s timeout.
+Sanitizes output to strip potential secrets before returning context.
 
 ADR: adr/auto-test-after-edit-hook.md
 """
 
+import fcntl
 import json
 import os
+import re
+import signal
 import subprocess
 import sys
 import time
@@ -36,9 +40,31 @@ _SKIP_EXTENSIONS: set[str] = {
 }
 
 _DEBOUNCE_FILE = Path("/tmp/auto-test-last-run")
+_DEBOUNCE_LOCK = Path("/tmp/auto-test-last-run.lock")
 _DEBOUNCE_SECONDS = 10
-_TIMEOUT_SECONDS = 30
+_TIMEOUT_SECONDS = 15
 _MAX_OUTPUT_LINES = 20
+
+# Patterns for lines that may contain secrets (matched case-insensitively)
+_SECRET_LINE_RE = re.compile(
+    r"^[A-Z][A-Z0-9_]*=",  # ANY_CAPS_KEY=value
+)
+_SECRET_KEY_WORDS = frozenset(
+    {
+        "PASSWORD",
+        "TOKEN",
+        "SECRET",
+        "SECRET_KEY",
+        "API_KEY",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "DATABASE_URL",
+        "PRIVATE_KEY",
+        "CREDENTIAL",
+    }
+)
 
 
 def _should_skip_extension(file_path: str) -> bool:
@@ -47,61 +73,115 @@ def _should_skip_extension(file_path: str) -> bool:
     return ext in _SKIP_EXTENSIONS or ext == ""
 
 
-def _is_debounced() -> bool:
-    """Return True if last test run was less than _DEBOUNCE_SECONDS ago."""
-    try:
-        if _DEBOUNCE_FILE.exists():
-            last_run = float(_DEBOUNCE_FILE.read_text().strip())
-            return (time.time() - last_run) < _DEBOUNCE_SECONDS
-    except (ValueError, OSError):
-        pass
-    return False
+def _debounce_check_and_update() -> bool:
+    """Atomically check debounce and update if not debounced.
 
-
-def _update_debounce() -> None:
-    """Write current timestamp to debounce file."""
+    Uses fcntl.flock so two concurrent hooks cannot both pass the check.
+    Returns True if this invocation should proceed (not debounced).
+    Returns False if debounced (caller should skip).
+    """
     try:
-        _DEBOUNCE_FILE.write_text(str(time.time()))
+        fd = os.open(str(_DEBOUNCE_LOCK), os.O_CREAT | os.O_RDWR, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            # Read existing timestamp
+            now = time.time()
+            try:
+                if _DEBOUNCE_FILE.exists():
+                    last_run = float(_DEBOUNCE_FILE.read_text().strip())
+                    if (now - last_run) < _DEBOUNCE_SECONDS:
+                        return False
+            except (ValueError, OSError):
+                pass
+            # Not debounced — claim the slot
+            _DEBOUNCE_FILE.write_text(str(now))
+            return True
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
     except OSError:
-        pass
+        # If locking fails, proceed anyway (fail-open for hooks)
+        return True
 
 
-def _get_test_command(file_path: str) -> str | None:
-    """Map file extension to a test command. Returns None for unsupported languages."""
+def _get_test_command(file_path: str) -> list[list[str]] | None:
+    """Map file extension to test commands as argument lists.
+
+    Returns a list of command arg-lists, or None for unsupported languages.
+    Each inner list is passed to subprocess with shell=False.
+    """
     ext = Path(file_path).suffix.lower()
 
     if ext == ".py":
-        # Check if pyproject.toml exists for ruff config
         has_pyproject = Path("pyproject.toml").exists()
-        ruff_config = " --config pyproject.toml" if has_pyproject else ""
-        return (
-            f"ruff check {file_path}{ruff_config} 2>&1 | tail -20; "
-            f"python -m pytest --lf -x -q --tb=short 2>&1 | tail -20"
-        )
+        ruff_cmd = ["ruff", "check", file_path]
+        if has_pyproject:
+            ruff_cmd.extend(["--config", "pyproject.toml"])
+        pytest_cmd = ["python", "-m", "pytest", "--lf", "-x", "-q", "--tb=short"]
+        return [ruff_cmd, pytest_cmd]
     if ext == ".go":
         pkg_dir = str(Path(file_path).parent)
-        return f"go test ./{pkg_dir}/... 2>&1 | tail -20"
+        return [["go", "test", f"./{pkg_dir}/..."]]
 
     return None
 
 
-def _run_tests(command: str) -> tuple[bool, str]:
-    """Run test command with timeout. Returns (success, truncated_output)."""
+def _sanitize_output(text: str) -> str:
+    """Strip lines that may contain secrets or env-var assignments."""
+    safe_lines: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        # Skip lines matching ALL_CAPS_KEY=value pattern
+        if _SECRET_LINE_RE.match(stripped):
+            # Check if the key portion contains a known secret keyword
+            key = stripped.split("=", 1)[0]
+            if any(word in key.upper() for word in _SECRET_KEY_WORDS):
+                safe_lines.append(f"{key}=<REDACTED>")
+                continue
+        safe_lines.append(line)
+    return "\n".join(safe_lines)
+
+
+def _run_single_command(cmd: list[str], cwd: str) -> tuple[int, str]:
+    """Run a single command with timeout, killing the process group on timeout."""
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=cwd,
+        start_new_session=True,
+    )
     try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=_TIMEOUT_SECONDS,
-            cwd=os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()),
-        )
-        output = result.stdout + result.stderr
-        lines = output.strip().splitlines()
-        truncated = "\n".join(lines[-_MAX_OUTPUT_LINES:])
-        return result.returncode == 0, truncated
+        stdout, _ = proc.communicate(timeout=_TIMEOUT_SECONDS)
+        return proc.returncode, stdout or ""
     except subprocess.TimeoutExpired:
-        return False, f"Tests timed out (>{_TIMEOUT_SECONDS}s), skipping auto-test"
+        # Kill the entire process group to avoid orphans
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except OSError:
+            pass
+        proc.wait(timeout=5)
+        return -1, f"Command timed out (>{_TIMEOUT_SECONDS}s)"
+
+
+def _run_tests(commands: list[list[str]]) -> tuple[bool, str]:
+    """Run test commands sequentially. Returns (all_passed, truncated_output)."""
+    cwd = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
+    all_output: list[str] = []
+    all_passed = True
+
+    for cmd in commands:
+        returncode, output = _run_single_command(cmd, cwd)
+        all_output.append(output)
+        if returncode != 0:
+            all_passed = False
+
+    combined = "\n".join(all_output)
+    sanitized = _sanitize_output(combined)
+    lines = sanitized.strip().splitlines()
+    truncated = "\n".join(lines[-_MAX_OUTPUT_LINES:])
+    return all_passed, truncated
 
 
 def _format_result(file_path: str, success: bool, output: str) -> dict:
@@ -134,18 +214,17 @@ def main() -> None:
     if _should_skip_extension(file_path):
         return
 
-    # Debounce
-    if _is_debounced():
+    # Language detection (before debounce to avoid claiming the slot for unsupported files)
+    commands = _get_test_command(file_path)
+    if commands is None:
         return
 
-    # Language detection
-    command = _get_test_command(file_path)
-    if command is None:
+    # Atomic debounce check-and-update
+    if not _debounce_check_and_update():
         return
 
     # Run tests
-    _update_debounce()
-    success, output = _run_tests(command)
+    success, output = _run_tests(commands)
 
     # Emit results
     result = _format_result(file_path, success, output)
