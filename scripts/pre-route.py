@@ -162,8 +162,14 @@ def build_match_table(entries: list[dict]) -> list[MatchEntry]:
     return table
 
 
-def _is_semantically_guarded(skill_name: str, request_lower: str, matched_trigger: str) -> bool:
+def _is_semantically_guarded(
+    skill_name: str, request_lower: str, matched_trigger: str, trigger_pattern: re.Pattern[str]
+) -> bool:
     """Check if the match is a false positive due to common English idioms.
+
+    Uses the trigger's compiled regex pattern to locate the match position,
+    which correctly handles multi-word triggers with intervening words
+    (e.g. "create a PR" matching trigger "create pr").
 
     Returns True if the match should be discarded.
     """
@@ -171,15 +177,18 @@ def _is_semantically_guarded(skill_name: str, request_lower: str, matched_trigge
     if not guards:
         return False
 
-    # Check if any guard word appears near the matched trigger in the request.
-    # "near" = within 3 words before or after the trigger phrase.
-    trigger_pos = request_lower.find(matched_trigger)
-    if trigger_pos == -1:
+    # Use the regex pattern to find the trigger match position, not str.find().
+    # str.find() fails for multi-word triggers with intervening words.
+    m = trigger_pattern.search(request_lower)
+    if m is None:
         return False
 
-    # Extract context window: 60 chars before and after the trigger
+    trigger_pos = m.start()
+    match_len = m.end() - m.start()
+
+    # Extract context window: 60 chars before and after the trigger match
     ctx_start = max(0, trigger_pos - 60)
-    ctx_end = min(len(request_lower), trigger_pos + len(matched_trigger) + 60)
+    ctx_end = min(len(request_lower), trigger_pos + match_len + 60)
     context = request_lower[ctx_start:ctx_end]
 
     words_in_context = set(re.findall(r"\b\w+\b", context))
@@ -202,7 +211,7 @@ def score_matches(table: list[MatchEntry], request: str) -> dict[str, ScoredMatc
             continue
 
         # Semantic guard check
-        if _is_semantically_guarded(entry.name, request_lower, entry.trigger):
+        if _is_semantically_guarded(entry.name, request_lower, entry.trigger, entry.pattern):
             continue
 
         key = f"{entry.entry_type}:{entry.name}"
@@ -275,8 +284,8 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
             "reasoning": "no trigger keywords matched",
         }
 
-    # Sort by score descending
-    ranked = sorted(candidates.values(), key=lambda m: m.score, reverse=True)
+    # Sort by score descending, then by name ascending for deterministic tie-breaking
+    ranked = sorted(candidates.values(), key=lambda m: (-m.score, m.name))
     top = ranked[0]
     confidence = determine_confidence(top)
 

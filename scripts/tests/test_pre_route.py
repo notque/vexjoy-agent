@@ -126,6 +126,41 @@ class TestSemanticSafety:
                 f"'fish for bugs' falsely matched fish-shell-config: {result}"
             )
 
+    def test_semantic_guard_works_with_multi_word_triggers(self, pre_route) -> None:
+        """Semantic guard must work when multi-word trigger matches with intervening words.
+
+        E.g. trigger 'push changes' matching 'push back on changes' should be guarded
+        because 'back' is a guard word for pr-workflow.
+        """
+        entries = [
+            {
+                "name": "pr-workflow",
+                "type": "skill",
+                "triggers": ["push changes"],
+                "agent": None,
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "push back on changes")
+        # "back" is a guard word for pr-workflow, so this should be filtered out
+        assert "skill:pr-workflow" not in candidates
+
+    def test_semantic_guard_allows_legitimate_multi_word_match(self, pre_route) -> None:
+        """Multi-word trigger without guard words should match normally."""
+        entries = [
+            {
+                "name": "pr-workflow",
+                "type": "skill",
+                "triggers": ["push changes"],
+                "agent": None,
+                "force_route": True,
+            }
+        ]
+        table = pre_route.build_match_table(entries)
+        candidates = pre_route.score_matches(table, "push my changes now")
+        assert "skill:pr-workflow" in candidates
+
 
 # ---------------------------------------------------------------------------
 # Output schema tests
@@ -271,6 +306,18 @@ class TestScoreMatches:
         table = pre_route.build_match_table(entries)
         candidates = pre_route.score_matches(table, "run go test")
         assert candidates["skill:multi"].score > candidates["skill:single"].score
+
+    def test_deterministic_tie_breaking(self, pre_route) -> None:
+        """Equal-score candidates are ordered deterministically by name."""
+        entries = [
+            {"name": "zebra", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": True},
+            {"name": "alpha", "type": "skill", "triggers": ["deploy"], "agent": None, "force_route": True},
+        ]
+        # Run multiple times to verify determinism
+        for _ in range(5):
+            result = pre_route.route("deploy now", entries=entries)
+            # Both have identical scores; alpha should win deterministically
+            assert result["skill"] == "alpha", f"Expected 'alpha' but got {result['skill']}"
 
 
 # ---------------------------------------------------------------------------
