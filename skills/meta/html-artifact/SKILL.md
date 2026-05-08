@@ -1,0 +1,258 @@
+---
+name: html-artifact
+description: |
+  Generate rich self-contained HTML artifacts instead of markdown. Auto-detects
+  artifact shape (spec, code-review, prototype, report, editor, data-viz) and
+  loads shape-specific patterns. Bundles Birchline design system with 4 theme
+  presets. Use for "make HTML", "as HTML", "HTML artifact", or auto-injected
+  by router when output benefits from rich visualization.
+user_invocable: true  # justification: users type "/html" directly for explicit
+                      # HTML output; also auto-injected by /do router enhancement
+command: /html
+argument-hint: "[description of what to generate]"
+routing:
+  triggers:
+    - HTML artifact
+    - make HTML
+    - as HTML
+    - rich visualization
+    - interactive document
+    - HTML file
+    - self-contained HTML
+  pairs_with:
+    - pr-workflow
+    - research-pipeline
+    - planning
+  complexity: Medium
+  category: meta
+---
+
+# /html - Self-Contained HTML Artifacts
+
+Generate single self-contained `.html` files that replace markdown when the output needs color, interactivity, layout, or visualization. Auto-detect artifact shape from the request, load shape-specific patterns, generate, validate, deliver.
+
+**Core constraint:** Every artifact is ONE `.html` file. All CSS in `<style>`, all JS in `<script>`. No CDN links, no frameworks, no build steps, no external dependencies. Works offline, opens in any browser.
+
+---
+
+## Instructions
+
+### Overview
+
+5-phase pipeline: DETECT SHAPE, LOAD CONTEXT, GENERATE, VALIDATE, DELIVER. Phase 1 classifies the request into one of 6 shapes via deterministic script. Phase 2 loads the Birchline design system plus shape-specific reference. Phase 3 dispatches a subagent to generate the HTML. Phase 4 validates structure. Phase 5 delivers the file path and offers browser preview.
+
+---
+
+### Phase 1: DETECT SHAPE
+
+Classify the user's request into one of 6 artifact shapes.
+
+Run: `python3 skills/meta/html-artifact/scripts/detect-shape.py --request "{user_request}"`
+
+The script outputs a shape name and confidence score.
+
+| Shape | Trigger Signals | What It Produces |
+|---|---|---|
+| spec | plan, explore options, compare N approaches, brainstorm | Side-by-side grids, Pro/Con badges, SVG data-flow diagrams, risk tables |
+| code-review | review PR, explain diff, annotate code, understand module | Diff rendering, severity colors, margin annotations, jump links |
+| prototype | prototype, animation, tune, try options, component variants | Sliders, CSS var live update, animation sandbox, contact sheets |
+| report | report, summarize, status update, explain how X works, incident | TL;DR box, collapsible sections, timeline, metric callouts, SVG diagrams |
+| editor | reorder, triage, edit config, tune prompt, pick values | Drag-drop, kanban, toggle switches, split-pane, export buttons |
+| data-viz | visualize, chart, dashboard, show data, trends | SVG charts, canvas, interactive tooltips, filter controls |
+
+Gate: Shape detected with medium+ confidence.
+-- because low-confidence classification produces artifacts that mix concerns and satisfy no shape well. Fallback to "report" (safest general-purpose shape) if confidence is low or ambiguous.
+
+---
+
+### Phase 2: LOAD CONTEXT
+
+Load the design system and shape-specific reference files.
+
+**Always load (every invocation):**
+1. `references/design-system.md` -- Birchline CSS tokens, 4 theme presets, typography scale, color system
+2. `references/interaction-patterns.md` -- Shared JS patterns: tabs, collapsibles, drag-drop, copy buttons, keyboard nav
+
+**Load per detected shape:**
+
+| Shape | Reference File | Key Content |
+|---|---|---|
+| spec | `references/shape-spec-exploration.md` | Grid layouts, comparison cards, SVG flow diagrams |
+| code-review | `references/shape-code-review.md` | Diff rendering, severity system, annotations |
+| prototype | `references/shape-design-prototype.md` | Sliders, live preview, animation sandbox |
+| report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
+| editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
+| data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
+
+Gate: All required references loaded (design-system + interaction-patterns + shape-specific).
+-- because generating without the design system produces inconsistent visual output, and generating without shape patterns produces generic HTML that defeats the purpose.
+
+---
+
+### Phase 3: GENERATE
+
+Dispatch the html-builder subagent to produce the artifact.
+
+1. Read `agents/html-builder.md` for the subagent prompt
+2. Dispatch with: detected shape, design system tokens, interaction patterns, shape-specific patterns, user request
+3. Agent writes a single `.html` file to the project directory (or `/tmp/html-artifacts/` if no project context)
+
+**Self-contained file constraints (inline here because they govern generation):**
+
+| Constraint | Reason |
+|---|---|
+| All CSS in `<style>` tag | No external stylesheets -- file must work offline |
+| All JS in `<script>` tag | No CDN imports -- no React, Vue, Tailwind CDN, Bootstrap CDN |
+| Vanilla JS only | Single file, no build step, no transpilation |
+| Must include `<title>` | Browser tab identification, validation requirement |
+| Must include `<meta charset="utf-8">` | Consistent rendering across platforms |
+| Must include `<meta name="viewport">` | Responsive on mobile/tablet |
+| Semantic HTML sections | `<header>`, `<main>`, `<section>`, `<footer>` for structure |
+| SVG inline, not `<img src>` | No external file references |
+| Max 500KB file size | Keeps generation time reasonable, prevents bloated inline assets |
+
+Constraint: No framework boilerplate.
+-- because React/Vue/Svelte require build steps and external imports that violate the single-file self-contained requirement. Vanilla JS handles all 6 shapes adequately.
+
+Constraint: Generate HTML directly, never generate markdown then convert.
+-- because markdown-to-HTML conversion loses the shape-specific layout, interactivity, and visual structure that justifies using HTML in the first place.
+
+Gate: `.html` file exists on disk.
+-- because Phase 4 validation reads the file; a missing file means generation failed silently.
+
+---
+
+### Phase 4: VALIDATE
+
+Run deterministic validation on the generated file.
+
+Run: `python3 skills/meta/html-artifact/scripts/validate-artifact.py {html_file_path}`
+
+The script checks:
+
+| Check | Fails When |
+|---|---|
+| Valid HTML structure | Missing `<html>`, `<head>`, or `<body>` |
+| No external dependencies | Any `src=` or `href=` pointing to external URLs |
+| Has `<title>` | Missing or empty `<title>` tag |
+| Has charset meta | Missing `<meta charset>` |
+| Has viewport meta | Missing viewport meta tag |
+| File size under 500KB | Excessive inline assets or animation keyframes |
+| No broken internal refs | `href="#id"` pointing to nonexistent `id` attributes |
+
+Gate: All validation checks pass.
+-- because an HTML file with external dependencies fails offline, missing meta tags render inconsistently across browsers, and missing structure breaks accessibility.
+
+**If validation fails:** Read the specific failures from script output, fix the identified issues in the HTML file, re-run validation. Maximum 3 fix attempts before showing the user the remaining issues and asking for guidance.
+
+---
+
+### Phase 5: DELIVER
+
+1. Print the absolute file path
+2. Print a 1-line summary of what was generated (shape + key features)
+3. Ask user: "Open in browser?"
+4. If yes: run `open {file}` (macOS) or `xdg-open {file}` (Linux)
+
+Constraint: Detect headless/SSH environments before offering browser open.
+-- because `xdg-open` fails without a display server, producing confusing errors. Check `$DISPLAY` on Linux or `$SSH_TTY` presence. If headless, print path only and skip the open offer.
+
+---
+
+## Error Handling
+
+| Error | Cause | Solution |
+|---|---|---|
+| detect-shape.py returns low confidence | Ambiguous request mapping to multiple shapes | Fall back to "report" shape -- safest general-purpose format |
+| Generated HTML has external dependencies | Builder included CDN links or external `src` refs | Regenerate with explicit constraint: "no external deps, all CSS/JS inline" |
+| File exceeds 500KB | Excessive inline SVGs or animation keyframes | Simplify SVG paths, reduce keyframe count, compress data |
+| Browser won't open | No display server (headless, SSH, WSL without WSLg) | Print path only, suggest `scp` or `python3 -m http.server` |
+| Validation fails repeatedly (3+ attempts) | Structural issue the builder cannot self-correct | Show validation output to user, ask for guidance |
+| Shape misclassified | Auto-detection picked wrong shape for request | User overrides with `/html --shape=<name> <request>` |
+
+---
+
+## Preferred Patterns
+
+### Pattern 1: CDN and Framework Imports
+
+**What it looks like:** `<link href="https://cdn.jsdelivr.net/...">` or `<script src="https://unpkg.com/react@18/...">` in the generated HTML.
+
+**Why wrong:** Breaks the self-contained contract. File fails offline, introduces version drift, adds weight the user didn't ask for.
+
+**Do instead:** Inline all CSS in `<style>`. Write vanilla JS in `<script>`. The Birchline design system in `references/design-system.md` provides the full token set.
+
+### Pattern 2: Markdown-to-HTML Conversion
+
+**What it looks like:** Generating a markdown document first, then running it through a converter or wrapping it in `<pre>` tags.
+
+**Why wrong:** Loses shape-specific layout, interactivity, SVG diagrams, and responsive grid structures. Produces "markdown in a browser" instead of a native HTML artifact.
+
+**Do instead:** Generate HTML directly using shape-specific patterns from references. The HTML structure IS the output format, not a rendering layer on top of text.
+
+### Pattern 3: Monolithic Unstructured HTML
+
+**What it looks like:** One giant `<div>` with inline styles on every element, no semantic structure, no comments.
+
+**Why wrong:** Unreadable source, hard to debug, impossible for the user to modify. Accessibility tools cannot navigate it.
+
+**Do instead:** Use semantic HTML (`<header>`, `<main>`, `<section>`, `<footer>`). Define CSS classes in `<style>`. Add section comments. Group related elements logically.
+
+### Pattern 4: Over-Engineering Simple Requests
+
+**What it looks like:** Generating a full interactive dashboard when the user asked for a simple comparison table.
+
+**Why wrong:** 2-4x generation time for features the user didn't request. Complexity without value.
+
+**Do instead:** Match artifact complexity to request complexity. A comparison of 3 options needs a grid with cards, not a filterable dashboard with animations.
+
+---
+
+## Anti-Rationalization
+
+| Rationalization | Why Wrong | Required Action |
+|---|---|---|
+| "Markdown is fine for this" | If shape detection triggered, the request has visual/interactive needs markdown can't serve | Generate HTML; user opts out with "as markdown" |
+| "I'll add Tailwind CDN for faster styling" | Breaks self-contained requirement, fails offline | Use Birchline tokens from design-system.md |
+| "The HTML looks right, skip validation" | Visual inspection misses missing meta tags, broken internal links, external deps | Run validate-artifact.py every time |
+| "Report shape works for everything" | Each shape has distinct layout and interaction patterns; report is a fallback, not a default | Use the detected shape; report only when confidence is genuinely low |
+
+---
+
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| Any html-artifact invocation | `references/design-system.md` | CSS tokens, themes, typography, color system |
+| Any html-artifact invocation | `references/interaction-patterns.md` | Shared JS: tabs, drag-drop, copy buttons, keyboard nav |
+| Shape = spec | `references/shape-spec-exploration.md` | Grid layouts, comparison patterns, SVG flows |
+| Shape = code-review | `references/shape-code-review.md` | Diff rendering, severity system, annotations |
+| Shape = prototype | `references/shape-design-prototype.md` | Sliders, live preview, animation sandbox |
+| Shape = report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
+| Shape = editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
+| Shape = data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
+
+---
+
+## Shared Patterns
+
+This skill uses:
+- [Anti-Rationalization](../../shared-patterns/anti-rationalization-core.md) -- Prevents shortcut rationalizations
+- [Verification Checklist](../../shared-patterns/verification-checklist.md) -- Pre-completion checks
+- [Gate Enforcement](../../shared-patterns/gate-enforcement.md) -- Phase transitions
+
+---
+
+## Reference Files
+
+- `references/design-system.md`: Birchline CSS tokens, 4 theme presets, typography scale, color palette
+- `references/interaction-patterns.md`: Shared JS patterns across all shapes (tabs, collapsibles, drag-drop, copy, keyboard)
+- `references/shape-spec-exploration.md`: Spec shape -- grids, comparison cards, SVG flow diagrams, risk tables
+- `references/shape-code-review.md`: Code review shape -- diff rendering, severity colors, annotations, jump links
+- `references/shape-design-prototype.md`: Prototype shape -- sliders, CSS var live update, animation sandbox
+- `references/shape-report-research.md`: Report shape -- TL;DR boxes, collapsible sections, timelines, metric callouts
+- `references/shape-custom-editor.md`: Editor shape -- drag-drop, kanban, toggle switches, export buttons
+- `references/shape-data-visualization.md`: Data viz shape -- SVG charts, canvas rendering, tooltips, filter controls
+- `agents/html-builder.md`: Subagent prompt for HTML generation
+- `scripts/detect-shape.py`: Deterministic shape classification from user request
+- `scripts/validate-artifact.py`: HTML structure and self-containment validation

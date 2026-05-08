@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-06T18:04:11Z",
+  "generated": "2026-05-08T22:32:26Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -1492,6 +1492,26 @@
       "pairs_with": [
         "go-patterns",
         "codebase-overview"
+      ]
+    },
+    "html-artifact": {
+      "file": "skills/meta/html-artifact/SKILL.md",
+      "description": "Generate rich self-contained HTML artifacts instead of markdown.",
+      "triggers": [
+        "HTML artifact",
+        "make HTML",
+        "as HTML",
+        "rich visualization",
+        "interactive document",
+        "HTML file",
+        "self-contained HTML"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "pairs_with": [
+        "pr-workflow",
+        "research-pipeline",
+        "planning"
       ]
     },
     "install": {
