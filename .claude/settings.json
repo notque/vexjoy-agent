@@ -165,6 +165,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-prompt-injection-scanner.py\"",
             "description": "Advisory scan for prompt injection patterns in agent context files (ADR-070)",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 hooks/pipeline-phase-gate.py",
+            "description": "Pipeline phase gate: blocks edits that skip required pipeline phases",
+            "timeout": 3000
           }
         ]
       },
@@ -304,6 +310,12 @@
             "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
             "description": "Capture CRITICAL/HIGH review findings to learning DB",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 hooks/instruction-compliance.py",
+            "description": "Instruction compliance measurement after agent dispatch",
+            "timeout": 5000
           }
         ]
       },
@@ -340,6 +352,12 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/sql-injection-detector.py\"",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 hooks/posttool-auto-test.py",
+            "description": "Auto-test after source edits",
+            "timeout": 20000
           }
         ]
       }
