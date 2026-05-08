@@ -83,7 +83,7 @@ GET /_nodes/stats?filter_path=nodes.*.jvm.gc.collectors.*.collection_time_in_mil
 # GC time > 25% of wall clock = heap pressure
 ```
 
-**Why**: JVM uses compressed ordinary object pointers (compressed OOPs) below 32GB heap. Above 32GB (specifically above ~31GB to leave OS headroom), JVM switches to 64-bit pointers — pointer size doubles, effective heap capacity drops by 30%. Set to exactly 31g maximum; verify with `GET /_nodes` that it took effect.
+**Why**: JVM uses compressed ordinary object pointers (compressed OOPs) when heap is at or below ~31GB. Above this threshold, the JVM switches to 64-bit pointers — pointer size doubles, effective heap capacity drops by ~30%. Set heap to exactly 31g maximum; verify with `GET /_nodes` that compressed OOPs is active.
 
 ---
 
@@ -197,7 +197,7 @@ for nid, n in data['nodes'].items():
 
 **Why this matters**: Above ~31GB, JVM object pointers are 64-bit instead of 32-bit compressed. Memory per object increases significantly. The JVM now needs a larger heap to hold the same amount of data. A 64GB heap may hold less effective data than a properly configured 31GB heap. GC pauses also increase with heap size.
 
-**Preferred action**: Split heap across two nodes rather than increase past 31GB. Two nodes with 15GB heap each outperform one node with 31GB.
+**Preferred action**: Split heap across two nodes rather than increase past 31GB. For search-heavy workloads, two nodes with 15GB heap each generally outperform one node with 31GB because queries parallelize across shards on different nodes.
 
 ---
 

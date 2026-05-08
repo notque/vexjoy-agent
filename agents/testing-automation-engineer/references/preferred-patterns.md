@@ -316,16 +316,16 @@ describe('Payment processing', () => {
 
 Before implementing tests, verify:
 
-1. ✅ Testing user-visible behavior, not implementation details
-2. ✅ Each test completely isolated and independent
-3. ✅ Mocking only external dependencies (APIs, databases, third-party services)
-4. ✅ Strong, specific assertions that validate actual behavior
-5. ✅ Proper async waiting strategies (no arbitrary timeouts)
-6. ✅ Coverage of happy path, error cases, and edge cases
-7. ✅ Tests can run in any order and in parallel
-8. ✅ Test names clearly describe what they verify
-9. ✅ Setup/teardown in beforeEach/afterEach, not shared variables
-10. ✅ Fast execution (<1s per test for unit tests)
+1. Testing user-visible behavior, not implementation details
+2. Each test completely isolated and independent
+3. Mocking only external dependencies (APIs, databases, third-party services)
+4. Strong, specific assertions that validate actual behavior
+5. Proper async waiting strategies (no arbitrary timeouts)
+6. Coverage of happy path, error cases, and edge cases
+7. Tests can run in any order and in parallel
+8. Test names clearly describe what they verify
+9. Setup/teardown in beforeEach/afterEach, not shared variables
+10. Fast execution (<1s per test for unit tests)
 
 ## Common Test Smells
 

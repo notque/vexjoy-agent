@@ -8,7 +8,7 @@ Evaluate type quality, invariant expression, encapsulation patterns, and compile
 - **Invariant Expression**: How well types encode business rules, constraint expression, validity guarantees
 - **Invariant Usefulness**: Whether expressed invariants prevent real bugs vs theoretical concerns
 - **Invariant Enforcement**: Constructor validation, factory methods, builder patterns, type-state patterns
-- **Language-Specific Type Systems**: Go (struct embedding, interfaces), TypeScript (discriminated unions, branded types), Python (dataclasses, pydantic), Rust (ownership, enums)
+- **Language-Specific Type Systems**: Go (struct embedding, interfaces), TypeScript (discriminated unions, branded types), Python (dataclasses, pydantic)
 
 ## 4-Dimension Rating System
 

@@ -189,7 +189,7 @@ grep -rn 'increase(' --include="*.yml" --include="*.yaml" | grep -v 'record:'
 increase(http_requests_total[1h]) > increase(http_requests_total[24h]) * 0.1
 ```
 
-**Why this matters**: `increase()` results are not comparable across different window sizes without normalization. This expression always evaluates false since 1h increase is always < 24h × 0.1 for any reasonable traffic. Use `rate()` for comparisons.
+**Why this matters**: `increase()` results are not comparable across different window sizes without normalization. Under steady traffic, this expression typically evaluates false since 1h increase is usually < 24h × 0.1. Use `rate()` for cross-window comparisons — it normalizes to per-second values.
 
 **Preferred action**:
 ```promql

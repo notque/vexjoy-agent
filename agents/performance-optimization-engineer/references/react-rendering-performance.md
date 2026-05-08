@@ -327,6 +327,8 @@ function SearchResults() {
 
 New transitions automatically cancel pending ones, so rapid input changes cancel earlier in-flight fetches.
 
+**Version note**: Async functions inside `startTransition` require React 19+. In React 18, `startTransition` only tracks synchronous state updates — use `startTransition(() => { setResults(data) })` after awaiting outside the callback.
+
 Reference: [useTransition](https://react.dev/reference/react/useTransition)
 
 ---

@@ -268,7 +268,7 @@ route:
 |---------|--------|--------|
 | Alertmanager 0.20 | `inhibit_rules.source_matchers` / `target_matchers` syntax | Old `source_match` / `target_match` deprecated in 0.22 |
 | Alertmanager 0.22 | `matchers` field for routes (replaces `match` + `match_re`) | `match:` still works but `matchers:` is preferred |
-| Alertmanager 0.25 | `time_intervals` replaces `time_intervals` in mute_time_intervals | Check config if upgrading — key rename causes silent ignore |
+| Alertmanager 0.25 | `time_intervals` replaces `mute_time_intervals` | Check config if upgrading — key rename causes silent ignore |
 | Prometheus 2.28 | `for` clause resets on alert state change | Alerts that briefly resolve then re-fire restart the `for:` timer |
 
 ---
