@@ -181,6 +181,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **wordpress-live-validation** | User wants to validate WordPress posts live after upload: check rendering, canonical URLs, or publication status. |
 | **pptx-generator** | User wants to generate a PowerPoint presentation, slide deck, or pitch deck from content or research. |
 | **frontend-slides** | User wants browser-based HTML presentations: reveal-style slide decks, kiosk presentations, or converting PPTX to web format. |
+| **html-artifact** | User wants rich self-contained HTML output instead of markdown — specs, code reviews, reports, prototypes, editors, data viz. Auto-detected by router or invoked via `/html`. NOT: web applications, React/Vue projects, multi-page sites (use typescript-frontend-engineer). NOT: slide decks (use frontend-slides). NOT: interactive essays (use interactive-essay). |
 | **gemini-image-generator** | User wants to generate images from text prompts via Google Gemini: sprites, character art, or AI-generated visuals. |
 | **bluesky-reader** | User wants to read public Bluesky feeds, fetch posts, or interact with the AT Protocol API. |
 | **image-to-video** | User wants to combine a static image with audio to create a video file (album art video, podcast video, music visualization). |
