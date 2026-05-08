@@ -258,9 +258,14 @@ class TestRecordCompliance:
     def test_batch_recording(self, tmp_path: Path) -> None:
         """Batch recording inserts all results in one transaction."""
         with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": str(tmp_path)}):
+            # Reset _initialized on ALL module references (hook's import + test's import)
             import learning_db_v2
 
             learning_db_v2._initialized = False
+            # Also reset via sys.modules to catch any aliased imports
+            for mod in sys.modules.values():
+                if hasattr(mod, "_initialized") and hasattr(mod, "record_instruction_compliance_batch"):
+                    mod._initialized = False
 
             results = {"M01": True, "M03": False, "M04": True, "M05": False, "M06": True}
             record_compliance_batch(results, "batch-session")
