@@ -58,7 +58,7 @@ def _check_content(content: str) -> list:
             issues.append(f"Em-dash density: {em_dashes} dashes ({density:.1f}/1k words)")
 
     # Curly quotes (AI models tend to produce these)
-    curly_quotes = len(re.findall(r"[“”‘’]", content))
+    curly_quotes = len(re.findall(r"[\u201c\u201d\u2018\u2019]", content))
     if curly_quotes > 0:
         issues.append(f"Curly quotes found: {curly_quotes} instances")
 
