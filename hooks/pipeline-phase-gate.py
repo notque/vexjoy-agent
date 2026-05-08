@@ -77,10 +77,32 @@ PREREQUISITE_REGISTRY: dict[str, dict[str, str]] = {
 
 # Phase-sentinel-based registry: maps pipeline_id -> { phase_number -> required_artifact }
 # Used when a .pipeline-phase sentinel file exists in the cwd.
+# Extend this dict to gate new multi-phase skills — core logic never changes.
 PHASE_SENTINEL_REGISTRY: dict[str, dict[int, str]] = {
     "do-perspectives": {
         3: "perspectives-analysis.md",  # Phase 3 (SYNTHESIZE) requires Phase 2 artifact
         4: "synthesis.md",  # Phase 4 (APPLY) requires Phase 3 artifact
+    },
+    # quality-loop (14 phases per quality-loop.md)
+    "quality-loop": {
+        2: "task_plan.md",  # Phase 2 (IMPLEMENT) requires Phase 1 (PLAN) artifact
+        3: "quality-loop-state.md",  # Phase 3 (TEST) requires Phase 2 (IMPLEMENT) state artifact
+        4: "quality-loop-state.md",  # Phase 4 (REVIEW) requires IMPLEMENT state (tests run in-memory)
+        7: "quality-loop-state.md",  # Phase 7 (FIX) requires implementation state for agent selection
+        9: "quality-loop-state.md",  # Phase 9 (PR) requires implementation state for PR body
+    },
+    # feature-lifecycle (6 phases: DESIGN=1, PLAN=2, IMPLEMENT=3, VALIDATE=4, RELEASE=5, RECORD=6)
+    "feature-lifecycle": {
+        2: ".feature/",  # Phase 2 (PLAN) requires Phase 1 (DESIGN) — .feature/ dir with design doc
+        3: ".feature/",  # Phase 3 (IMPLEMENT) requires Phase 2 (PLAN) — plan artifact in .feature/
+        4: ".feature/",  # Phase 4 (VALIDATE) requires Phase 3 (IMPLEMENT) — code committed
+        5: ".feature/",  # Phase 5 (RELEASE) requires Phase 4 (VALIDATE) — validation report
+    },
+    # pr-workflow (commit -> push -> PR)
+    "pr-workflow": {
+        # Phase 2 (push) requires local commits ahead of remote — checked via git, not file artifact
+        # Phase 3 (PR creation) requires committed changes on branch — checked via git, not file artifact
+        # These are git-state gates, not file-artifact gates. Handled by _check_git_prerequisite.
     },
 }
 
@@ -89,6 +111,8 @@ PHASE_SENTINEL_REGISTRY: dict[str, dict[int, str]] = {
 ARTIFACT_TO_PIPELINE: dict[str, str] = {
     "perspectives-analysis.md": "do-perspectives",
     "synthesis.md": "do-perspectives",
+    "task_plan.md": "quality-loop",
+    "quality-loop-state.md": "quality-loop",
 }
 
 
@@ -104,15 +128,40 @@ def _block(reason: str, expected_path: str) -> None:
     sys.exit(2)
 
 
-def _read_phase_sentinel(cwd: Path) -> int | None:
-    """Read .pipeline-phase sentinel file. Returns phase int or None."""
+def _read_phase_sentinel(cwd: Path) -> tuple[str | None, int | None]:
+    """Read .pipeline-phase sentinel file.
+
+    Supports two formats:
+      - Plain integer: "3" (legacy, pipeline inferred from context)
+      - JSON: {"pipeline": "quality-loop", "phase": 3}
+
+    Returns:
+        (pipeline_id_or_None, phase_int_or_None)
+    """
     sentinel = cwd / ".pipeline-phase"
     if not sentinel.is_file():
-        return None
+        return None, None
     try:
-        return int(sentinel.read_text(encoding="utf-8").strip())
-    except (ValueError, OSError):
-        return None
+        text = sentinel.read_text(encoding="utf-8").strip()
+        if not text:
+            return None, None
+        # Try JSON first
+        if text.startswith("{"):
+            data = json.loads(text)
+            pipeline = data.get("pipeline")
+            phase = data.get("phase")
+            if isinstance(phase, int):
+                return pipeline, phase
+            return pipeline, None
+        # Fall back to plain integer (legacy)
+        return None, int(text)
+    except (ValueError, OSError, json.JSONDecodeError):
+        return None, None
+
+
+def _artifact_exists(path: Path) -> bool:
+    """Check if a required artifact exists (file or directory)."""
+    return path.is_file() or path.is_dir()
 
 
 def _detect_pipeline_from_path(file_path: str) -> str | None:
@@ -163,7 +212,7 @@ def main() -> None:
             required = prereq_map[target_basename]
             required_path = target_dir / required
             _debug(f"Pipeline={pipeline_id}: writing {target_basename} requires {required_path}")
-            if not required_path.is_file():
+            if not _artifact_exists(required_path):
                 _block(
                     f"Phase prerequisite missing for pipeline '{pipeline_id}'. "
                     f"Writing '{target_basename}' requires '{required}' to exist first.",
@@ -184,20 +233,21 @@ def main() -> None:
         except ValueError:
             pass
 
+    sentinel_pipeline: str | None = None
     if current_phase is None:
-        current_phase = _read_phase_sentinel(cwd)
+        sentinel_pipeline, current_phase = _read_phase_sentinel(cwd)
 
     if current_phase is not None:
         _debug(f"Detected phase={current_phase} from sentinel/env")
-        # Determine active pipeline: from env or from target basename
-        active_pipeline = os.environ.get("PIPELINE_ID") or _detect_pipeline_from_path(file_path)
+        # Determine active pipeline: env > sentinel JSON > target basename inference
+        active_pipeline = os.environ.get("PIPELINE_ID") or sentinel_pipeline or _detect_pipeline_from_path(file_path)
         if active_pipeline and active_pipeline in PHASE_SENTINEL_REGISTRY:
             phase_map = PHASE_SENTINEL_REGISTRY[active_pipeline]
             if current_phase in phase_map:
                 required = phase_map[current_phase]
                 required_path = cwd / required
                 _debug(f"Phase {current_phase} of {active_pipeline} requires {required_path}")
-                if not required_path.is_file():
+                if not _artifact_exists(required_path):
                     _block(
                         f"Phase {current_phase} prerequisite missing for pipeline '{active_pipeline}'. "
                         f"Phase {current_phase - 1} artifact '{required}' must exist before advancing.",
