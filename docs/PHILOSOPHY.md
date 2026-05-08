@@ -328,6 +328,16 @@ Model choice is a routing policy, not an ego signal.
 
 Do not treat `opus` as the default upgrade path. If a component can only perform adequately on `opus`, inspect its prompt shape, references, and task decomposition before raising model cost.
 
+**Token costs are not fungible.** One Opus token costs ~30x one Haiku token. Saving 1,000 Haiku tokens while causing one Opus rework loop (10,000+ tokens) is a net loss. Optimization targets the expensive model, not the cheap one.
+
+This means:
+- "Saves Haiku calls" is not a valid justification for any change. Haiku is the cheapest operation in the system.
+- Pre-routing's value is **determinism and reliability** (regex can't misroute), not token savings.
+- Phase gates' value is **preventing Opus rework** (catching missing artifacts before the expensive agent runs), not reducing hook overhead.
+- Skip-rate measurement's value is **identifying which instructions fail** so they can become gates, not counting compliance events.
+
+The test: does this optimization reduce Opus/Sonnet token waste from rework, misroutes, or hallucination? If it only saves Haiku tokens, it is not worth the complexity.
+
 ### Prompt Phrasing Does Not Replace Domain Knowledge
 
 Four A/B experiments tested ego-boosting prompts ("IQ 200+"), urgency framing ("production is down"), and emotional prompt engineering.
