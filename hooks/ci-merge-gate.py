@@ -8,6 +8,7 @@ failing or still pending.
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -29,9 +30,46 @@ def main() -> None:
     if "gh pr merge" not in command and "gh pr merge" not in command.replace("  ", " "):
         return
 
+    parts = command.split()
+
+    # --- Block --admin before any CI check ---
+    if "--admin" in parts:
+        if os.environ.get("ALLOW_ADMIN_MERGE") == "1":
+            print("[ci-merge-gate] WARNING: --admin override allowed via ALLOW_ADMIN_MERGE=1", file=sys.stderr)
+        else:
+            print("[ci-merge-gate] BLOCKED: --admin bypasses branch protection", file=sys.stderr)
+            deny_output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": (
+                        "Use of --admin bypasses CI checks. Remove --admin and wait for CI to pass."
+                    ),
+                }
+            }
+            print(json.dumps(deny_output))
+            sys.exit(0)
+
+    # --- Block --force before any CI check ---
+    if "--force" in parts:
+        if os.environ.get("ALLOW_FORCE_MERGE") == "1":
+            print("[ci-merge-gate] WARNING: --force override allowed via ALLOW_FORCE_MERGE=1", file=sys.stderr)
+        else:
+            print("[ci-merge-gate] BLOCKED: --force bypasses merge safeguards", file=sys.stderr)
+            deny_output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": (
+                        "Use of --force bypasses merge safeguards. Remove --force and merge normally."
+                    ),
+                }
+            }
+            print(json.dumps(deny_output))
+            sys.exit(0)
+
     # Extract PR number from command
     # Patterns: gh pr merge 55, gh pr merge #55, gh pr merge --squash 55
-    parts = command.split()
     pr_number = None
     for i, part in enumerate(parts):
         if part.lstrip("#").isdigit() and i > 0 and parts[i - 1] != "--count":

@@ -102,6 +102,7 @@ SKILL_MAPPING: dict[str, str] = {
     "workflow-help": "meta",
     "reference-enrichment": "meta",
     "generate-claudemd": "meta",
+    "html-artifact": "meta",
     "docs-sync-checker": "meta",
     "explanation-traces": "meta",
     # process/ — methodologies, git, debugging

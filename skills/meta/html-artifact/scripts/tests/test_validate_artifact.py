@@ -31,6 +31,21 @@ VALID_HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
+VALID_HTML_WITH_COPY = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor</title>
+    <style>body { margin: 0; }</style>
+</head>
+<body>
+    <h1>Editor</h1>
+    <script>
+    function copyToClipboard(text) { navigator.clipboard.writeText(text); }
+    </script>
+</body>
+</html>"""
+
 MINIMAL_VALID = """<!DOCTYPE html>
 <html>
 <head><title>X</title><style>*{}</style></head>
@@ -199,6 +214,60 @@ class TestValidateArtifactDirect:
         finally:
             path.unlink()
 
+    def test_export_button_check_skipped_without_shape(self) -> None:
+        path = _write_tmp(VALID_HTML)
+        try:
+            result = validate_artifact(path)
+            assert "has_export_button" not in result.checks
+        finally:
+            path.unlink()
+
+    def test_export_button_check_skipped_for_non_export_shape(self) -> None:
+        path = _write_tmp(VALID_HTML)
+        try:
+            result = validate_artifact(path, shape="spec")
+            assert "has_export_button" not in result.checks
+        finally:
+            path.unlink()
+
+    def test_export_button_warning_for_editor_without_copy(self) -> None:
+        path = _write_tmp(VALID_HTML)
+        try:
+            result = validate_artifact(path, shape="editor")
+            assert not result.checks["has_export_button"]
+            assert any("copy/export" in w for w in result.warnings)
+            # Warning, not error — still valid
+            assert result.valid
+        finally:
+            path.unlink()
+
+    def test_export_button_warning_for_prototype_without_copy(self) -> None:
+        path = _write_tmp(VALID_HTML)
+        try:
+            result = validate_artifact(path, shape="prototype")
+            assert not result.checks["has_export_button"]
+            assert any("copy/export" in w for w in result.warnings)
+        finally:
+            path.unlink()
+
+    def test_export_button_passes_with_clipboard(self) -> None:
+        path = _write_tmp(VALID_HTML_WITH_COPY)
+        try:
+            result = validate_artifact(path, shape="editor")
+            assert result.checks["has_export_button"]
+            assert not any("copy/export" in w for w in result.warnings)
+        finally:
+            path.unlink()
+
+    def test_export_button_passes_with_copy_word(self) -> None:
+        html = VALID_HTML.replace("</body>", "<script>function copy() {}</script></body>")
+        path = _write_tmp(html)
+        try:
+            result = validate_artifact(path, shape="prototype")
+            assert result.checks["has_export_button"]
+        finally:
+            path.unlink()
+
 
 @pytest.mark.slow
 class TestCLIInterface:
@@ -237,5 +306,31 @@ class TestCLIInterface:
             assert "\n" not in output.rstrip("\n")
             parsed = json.loads(output)
             assert parsed["valid"] is True
+        finally:
+            path.unlink()
+
+    def test_cli_shape_flag_editor(self) -> None:
+        path = _write_tmp(VALID_HTML)
+        try:
+            result, code = run_validate(str(path))
+            assert "has_export_button" not in result["checks"]
+
+            # Now with --shape editor
+            cmd = [sys.executable, SCRIPT, str(path), "--shape", "editor"]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            shaped_result = json.loads(proc.stdout)
+            assert "has_export_button" in shaped_result["checks"]
+            assert shaped_result["checks"]["has_export_button"] is False
+        finally:
+            path.unlink()
+
+    def test_cli_shape_flag_with_copy(self) -> None:
+        path = _write_tmp(VALID_HTML_WITH_COPY)
+        try:
+            cmd = [sys.executable, SCRIPT, str(path), "--shape", "editor"]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            assert proc.returncode == 0
+            result = json.loads(proc.stdout)
+            assert result["checks"]["has_export_button"] is True
         finally:
             path.unlink()

@@ -12,6 +12,7 @@ Exit codes:
 Usage:
     python3 skills/meta/html-artifact/scripts/validate-artifact.py path/to/artifact.html
     python3 skills/meta/html-artifact/scripts/validate-artifact.py artifact.html --json-compact
+    python3 skills/meta/html-artifact/scripts/validate-artifact.py artifact.html --shape editor
 """
 
 from __future__ import annotations
@@ -141,11 +142,40 @@ def _check_valid_structure(content: str, result: ValidationResult) -> None:
         result.errors.append(f"Missing structural tags: {', '.join(missing)}.")
 
 
-def validate_artifact(file_path: Path) -> ValidationResult:
+EXPORT_SHAPES = frozenset({"editor", "prototype"})
+
+
+def _check_export_button(content: str, shape: str, result: ValidationResult) -> None:
+    """For editor/prototype shapes, check for copy/export functionality in scripts.
+
+    This is a warning, not an error — the shape context isn't always available.
+    """
+    if shape not in EXPORT_SHAPES:
+        return
+
+    # Look for export/copy patterns in <script> blocks
+    script_blocks = re.findall(r"<script[^>]*>(.*?)</script>", content, re.IGNORECASE | re.DOTALL)
+    script_content = " ".join(script_blocks)
+
+    has_clipboard = "navigator.clipboard" in script_content
+    has_copy_func = "copyToClipboard" in script_content
+    has_copy = bool(re.search(r"\bcopy\b", script_content, re.IGNORECASE))
+
+    passed = has_clipboard or has_copy_func or has_copy
+    result.checks["has_export_button"] = passed
+    if not passed:
+        result.warnings.append(
+            f"Shape '{shape}' should include copy/export functionality "
+            "(navigator.clipboard, copyToClipboard, or copy function)."
+        )
+
+
+def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationResult:
     """Run all validation checks on an HTML artifact file.
 
     Args:
         file_path: Path to the .html file to validate.
+        shape: Optional artifact shape. When provided, enables shape-specific checks.
 
     Returns:
         ValidationResult with all check outcomes.
@@ -162,6 +192,9 @@ def validate_artifact(file_path: Path) -> ValidationResult:
     _check_no_empty_body(content, result)
     _check_valid_structure(content, result)
 
+    if shape is not None:
+        _check_export_button(content, shape, result)
+
     return result
 
 
@@ -170,6 +203,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate a generated HTML artifact.")
     parser.add_argument("file", help="Path to the .html file to validate.")
     parser.add_argument("--json-compact", action="store_true", help="Output compact JSON (no indentation).")
+    parser.add_argument(
+        "--shape", default=None, help="Artifact shape for shape-specific checks (e.g., editor, prototype)."
+    )
     args = parser.parse_args()
 
     file_path = Path(args.file)
@@ -182,7 +218,7 @@ def main() -> None:
         sys.exit(2)
 
     try:
-        result = validate_artifact(file_path)
+        result = validate_artifact(file_path, shape=args.shape)
     except (OSError, UnicodeDecodeError) as e:
         error_result = {"valid": False, "checks": {}, "warnings": [], "errors": [f"Cannot read file: {e}"]}
         indent = None if args.json_compact else 2
