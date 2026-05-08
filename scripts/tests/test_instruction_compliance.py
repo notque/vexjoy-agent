@@ -9,6 +9,7 @@ Covers:
 - Multiple instructions in single output
 - Empty/malformed input graceful handling
 - skip-rate command formatted output
+- Accurate skip-rate calculation across multiple observations
 """
 
 import importlib.util
@@ -168,30 +169,24 @@ class TestCheckCompliance:
 
 
 class TestRecordCompliance:
-    """Test compliance recording to learning.db."""
+    """Test compliance recording to instruction_compliance table."""
 
     def test_record_compliant(self, tmp_path: Path) -> None:
-        """Recording a compliant observation calls record_learning correctly."""
+        """Recording a compliant observation inserts into instruction_compliance."""
         with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": str(tmp_path)}):
-            # Reset init state
             import learning_db_v2
 
             learning_db_v2._initialized = False
 
             record_compliance("M01", "Phase Banners", True, "test-session-123")
 
-            # Verify it was recorded
-            from learning_db_v2 import query_learnings
+            from learning_db_v2 import get_connection
 
-            results = query_learnings(
-                topic="instruction-compliance",
-                min_confidence=0.0,
-                exclude_test_sources=False,
-            )
-            assert len(results) >= 1
-            entry = results[0]
-            assert entry["key"] == "M01:phase-banners"
-            assert "compliant=True" in entry["value"]
+            with get_connection() as conn:
+                rows = conn.execute("SELECT * FROM instruction_compliance WHERE instruction_id = 'M01'").fetchall()
+                assert len(rows) == 1
+                assert rows[0]["compliant"] == 1  # SQLite stores True as 1
+                assert rows[0]["session_id"] == "test-session-123"
 
     def test_record_non_compliant(self, tmp_path: Path) -> None:
         """Recording a non-compliant observation."""
@@ -202,16 +197,29 @@ class TestRecordCompliance:
 
             record_compliance("M01", "Phase Banners", False, "test-session-456")
 
-            from learning_db_v2 import query_learnings
+            from learning_db_v2 import get_connection
 
-            results = query_learnings(
-                topic="instruction-compliance",
-                min_confidence=0.0,
-                exclude_test_sources=False,
-            )
-            assert len(results) >= 1
-            entry = results[0]
-            assert "compliant=False" in entry["value"]
+            with get_connection() as conn:
+                rows = conn.execute("SELECT * FROM instruction_compliance WHERE instruction_id = 'M01'").fetchall()
+                assert len(rows) == 1
+                assert rows[0]["compliant"] == 0  # SQLite stores False as 0
+
+    def test_observations_accumulate(self, tmp_path: Path) -> None:
+        """Multiple calls INSERT separate rows — never overwrite."""
+        with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": str(tmp_path)}):
+            import learning_db_v2
+
+            learning_db_v2._initialized = False
+
+            record_compliance("M01", "Phase Banners", True, "s1")
+            record_compliance("M01", "Phase Banners", False, "s2")
+            record_compliance("M01", "Phase Banners", True, "s3")
+
+            from learning_db_v2 import get_connection
+
+            with get_connection() as conn:
+                rows = conn.execute("SELECT * FROM instruction_compliance WHERE instruction_id = 'M01'").fetchall()
+                assert len(rows) == 3
 
 
 # ─── Hook stdin integration tests ────────────────────────────────
@@ -284,7 +292,7 @@ class TestSkipRateCommand:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=10, env=env)
 
     def _seed_compliance_data(self, tmp_dir: str) -> None:
-        """Seed learning.db with test compliance records."""
+        """Seed instruction_compliance table with test observations."""
         with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": tmp_dir}):
             import learning_db_v2
 
@@ -299,14 +307,14 @@ class TestSkipRateCommand:
 
     def test_no_data_message(self, tmp_path: Path) -> None:
         """No compliance data -> informative message."""
-        result = self._run_skip_rate(str(tmp_path), ["--include-test"])
+        result = self._run_skip_rate(str(tmp_path))
         assert result.returncode == 0
         assert "No instruction compliance data found" in result.stdout
 
     def test_formatted_output(self, tmp_path: Path) -> None:
         """With data, produces formatted table."""
         self._seed_compliance_data(str(tmp_path))
-        result = self._run_skip_rate(str(tmp_path), ["--include-test"])
+        result = self._run_skip_rate(str(tmp_path))
         assert result.returncode == 0
         assert "Instruction Skip Rate Report" in result.stdout
         assert "M01" in result.stdout
@@ -314,10 +322,33 @@ class TestSkipRateCommand:
     def test_json_output(self, tmp_path: Path) -> None:
         """--json flag produces valid JSON."""
         self._seed_compliance_data(str(tmp_path))
-        result = self._run_skip_rate(str(tmp_path), ["--json", "--include-test"])
+        result = self._run_skip_rate(str(tmp_path), ["--json"])
         assert result.returncode == 0
         data = json.loads(result.stdout)
         assert isinstance(data, list)
         assert len(data) > 0
         assert "id" in data[0]
         assert "skip_rate" in data[0]
+
+    def test_skip_rate_40_percent(self, tmp_path: Path) -> None:
+        """3 compliant + 2 non-compliant for M01 -> 40% skip rate."""
+        with patch.dict(os.environ, {"CLAUDE_LEARNING_DIR": str(tmp_path)}):
+            import learning_db_v2
+
+            learning_db_v2._initialized = False
+
+            # 3 compliant
+            record_compliance("M01", "Phase Banners", True, "s1")
+            record_compliance("M01", "Phase Banners", True, "s2")
+            record_compliance("M01", "Phase Banners", True, "s3")
+            # 2 non-compliant
+            record_compliance("M01", "Phase Banners", False, "s4")
+            record_compliance("M01", "Phase Banners", False, "s5")
+
+        result = self._run_skip_rate(str(tmp_path), ["--json"])
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        m01 = next(r for r in data if r["id"] == "M01")
+        assert m01["observations"] == 5
+        assert m01["non_compliant"] == 2
+        assert m01["skip_rate"] == 40.0

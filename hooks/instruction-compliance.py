@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, get_session_id, get_tool_output, get_tool_result
-from learning_db_v2 import record_learning
+from learning_db_v2 import record_instruction_compliance
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PostToolUse"
@@ -95,23 +95,18 @@ def record_compliance(
 ) -> None:
     """Record a single instruction compliance observation to learning.db.
 
+    Each call INSERTs a new row into the instruction_compliance table.
+    Observations accumulate — they never overwrite previous entries.
+
     Args:
         instr_id: Instruction identifier (e.g. "M01").
-        instr_name: Human-readable instruction name.
+        instr_name: Human-readable instruction name (unused, kept for API compat).
         compliant: Whether the instruction was followed.
         session_id: Current session identifier.
     """
-    key = f"{instr_id}:{instr_name.lower().replace(' ', '-')}"
-    value = f"compliant={compliant} session={session_id}"
-
-    record_learning(
-        topic="instruction-compliance",
-        key=key,
-        value=value,
-        category="effectiveness",
-        tags=[f"instruction:{instr_id}"],
-        source="hook:instruction-compliance",
-        source_detail=f"{'compliant' if compliant else 'non-compliant'}",
+    record_instruction_compliance(
+        instruction_id=instr_id,
+        compliant=compliant,
         session_id=session_id,
     )
 
