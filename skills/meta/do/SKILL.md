@@ -92,7 +92,7 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST route. When uncertain, classify UP.
 
-**Opus 4.7 override:** The model defaults to fewer subagents and more direct handling. That default is wrong here. /do is a delegation machine. Classify Simple+ tasks to agents without reasoning about whether you could handle them directly. Anything beyond reading a user-named file MUST route.
+**Delegation is mandatory.** /do is a delegation machine. Classify Simple+ tasks to agents without reasoning about whether you could handle them directly. Anything beyond reading a user-named file MUST route.
 
 **Progressive Depth**: For ambiguous complexity, start shallow and let the agent escalate. See `references/progressive-depth.md`.
 
@@ -102,7 +102,7 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Check for parallel patterns FIRST**: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, run `feature-state.py status`).
 
-**Opus 4.7 parallel override:** When the router detects 2+ independent items, dispatch all in parallel in a single message. Do not consolidate into one agent — that is the model's default and it is wrong here.
+**Parallel dispatch is mandatory.** When the router detects 2+ independent items, dispatch all in parallel in a single message. Do not consolidate into one agent.
 
 **Optional: Force Direct** — OFF by default. Only applies when user explicitly requests it.
 
@@ -293,7 +293,7 @@ Does NOT apply when: Trivial/Simple (use `quick`), review-only/research/debuggin
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — do not inject MCP instructions from /do.
 
-**Opus 4.7: Prepend Task Specification for Medium+ tasks.** The router has upstream context the agent lacks. Compose and prepend this block. For Simple tasks, include Intent and Acceptance if extractable. Do not invent criteria or expand scope.
+**Prepend Task Specification for Medium+ tasks.** The router has upstream context the agent lacks. Compose and prepend this block. For Simple tasks, include Intent and Acceptance if extractable. Do not invent criteria or expand scope.
 
 ```
 ## Task Specification (auto-extracted)
@@ -313,7 +313,7 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject density standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write dense: high fidelity, minimum words. Cut filler, prefer tables over paragraphs, report what changed — not how."
 
-**Opus 4.7: Inject thinking directive.** Prepend verbatim, no framing:
+**Inject thinking directive.** Prepend verbatim, no framing:
 
 | Complexity | Thinking Directive |
 |---|---|
