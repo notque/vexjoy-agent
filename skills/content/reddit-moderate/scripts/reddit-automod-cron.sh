@@ -14,7 +14,7 @@
 
 # Ensure claude CLI and venv python are in PATH (cron doesn't inherit user PATH)
 # Venv python first so `python3` resolves to the venv with praw installed
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 export PATH="$REPO_ROOT/venv/bin:$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
 
 set -euo pipefail
