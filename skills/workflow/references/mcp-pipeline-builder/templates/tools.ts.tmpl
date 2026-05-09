@@ -1,0 +1,93 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { ServiceClient } from "../services/client.js";
+
+interface ToolConfig {
+  apiKey: string;
+}
+
+export function register{{tool_group_pascal}}Tools(server: McpServer, config: ToolConfig): void {
+  const client = new ServiceClient(config.apiKey);
+
+  // Read-only tool example
+  server.tool(
+    "{{service}}_get_{{entity}}",
+    "Get a single {{entity}} by its identifier. Returns the {{entity}} title, description, state, labels, and assignees.",
+    {
+      // Zod schema for parameters
+      owner: z.string().describe("Repository owner or organization name"),
+      repo: z.string().describe("Repository name"),
+      {{entity}}_number: z.string().describe("{{entity_pascal}} number as a string (e.g., '42')"),
+    },
+    {
+      // Tool annotations — set these accurately
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    async ({ owner, repo, {{entity}}_number }) => {
+      // Always wrap in try/catch; always return text content on error
+      try {
+        const item = await client.get{{entity_pascal}}(owner, repo, parseInt({{entity}}_number));
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(item, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        // Return error as text content — do NOT throw
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching {{entity}}: ${message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // List tool example with optional parameters
+  server.tool(
+    "{{service}}_list_{{entity}}s",
+    "List {{entity}}s with optional filters. Returns a JSON array of {{entity}}s matching the criteria.",
+    {
+      owner: z.string().describe("Repository owner or organization name"),
+      repo: z.string().describe("Repository name"),
+      state: z.enum(["open", "closed", "all"]).optional().describe("Filter by state. Default: open"),
+      limit: z.number().min(1).max(100).optional().describe("Maximum results to return. Default: 20"),
+    },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    async ({ owner, repo, state = "open", limit = 20 }) => {
+      try {
+        const items = await client.list{{entity_pascal}}s(owner, repo, { state, limit });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(items, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Error listing {{entity}}s: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+}

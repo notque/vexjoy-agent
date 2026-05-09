@@ -1,0 +1,41 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_PROBE}}
+**Goal**: Run active health or connectivity checks against the target.
+
+**Step 1**: Execute probe commands against the target system.
+**Step 2**: Record health status, response times, error rates.
+**Step 3**: Save observations as research artifact.
+
+**Gate**: Probe data collected. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_MONITOR}}
+**Goal**: Observe runtime behavior or metrics over a defined time window.
+
+**Step 1**: Define observation window and metrics to collect.
+**Step 2**: Collect metrics over the window.
+**Step 3**: Save as research artifact with baseline annotations.
+
+**Gate**: Monitoring data collected. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_TRACE}}
+**Goal**: Follow a request or data flow through the system.
+
+**Step 1**: Identify the entry point and trace target.
+**Step 2**: Follow the flow through each component.
+**Step 3**: Document the complete trace path with timings.
+
+**Gate**: Trace complete. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_SAMPLE}}
+**Goal**: Collect representative examples from the target.
+
+**Step 1**: Define sampling criteria and target count.
+**Step 2**: Collect samples meeting criteria.
+**Step 3**: Save as research artifact.
+
+**Gate**: Samples collected. Proceed to Phase {{i+1}}.
+{{/if}}

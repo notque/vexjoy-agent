@@ -1,0 +1,33 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+// Import tool registration functions
+import { register{{tool_group_pascal}}Tools } from "./tools/{{tool_group}}.js";
+// Add more imports as needed
+
+// Validate required environment variables at startup
+const API_KEY = process.env.{{env_var_prefix}}_API_KEY;
+if (!API_KEY) {
+  throw new Error(
+    "{{env_var_prefix}}_API_KEY environment variable is required. " +
+    "Set it before starting the server."
+  );
+}
+
+// Initialize the MCP server
+const server = new McpServer({
+  name: "{{service}}-mcp-server",
+  version: "0.1.0",
+});
+
+// Register all tools
+register{{tool_group_pascal}}Tools(server, { apiKey: API_KEY });
+// Call additional registration functions here
+
+// Connect transport and start
+const transport = new StdioServerTransport();
+await server.connect(transport);
+
+// Note: do NOT log to stdout when using stdio transport.
+// Use stderr for any debug output: console.error("debug message")

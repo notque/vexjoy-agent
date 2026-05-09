@@ -1,0 +1,72 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_OUTPUT}}
+**Goal**: Format and deliver final artifacts with validation report.
+
+**Step 1**: Clean up temporary files:
+- `/tmp/research-*.md`
+- `/tmp/outline-*.md`
+- Any other `/tmp/` artifacts from prior phases
+
+**Step 2**: Verify final artifacts exist at expected paths.
+
+**Step 3**: Update the ADR status to IMPLEMENTED.
+
+**Step 4**: Report results:
+
+```
+## Pipeline Complete: {{skill_name}}
+
+**Task**: {task-id}
+**ADR**: adr/{{domain}}-{{subdomain_slug}}-{task-id}.md
+**Output**: {output_path}
+
+### Phase Summary
+- Phase 0: ADR -- complete
+{{#for_each_completed_phase}}
+- Phase {{number}}: {{name}} -- {{status}}
+{{/for_each_completed_phase}}
+
+### Validation
+- Score: {score}
+- Issues: {count}
+
+### Artifacts Produced
+{{#for_each_artifact}}
+- {{path}} ({{type}})
+{{/for_each_artifact}}
+```
+
+**Gate**: Final artifacts delivered. ADR updated. Pipeline complete.
+{{/if}}
+
+{{#if step_is_REPORT}}
+**Goal**: Generate a structured summary with metrics and verdicts.
+
+**Step 1**: Compile metrics from all phase artifacts.
+**Step 2**: Format the report with phase-by-phase summary.
+**Step 3**: Save as pipeline-summary artifact.
+
+**Gate**: Report produced. Pipeline complete.
+{{/if}}
+
+{{#if step_is_SYNTHESIZE}}
+**Goal**: Unify findings from all prior phases into ranked recommendations.
+
+**Step 1**: Read all phase artifacts.
+**Step 2**: Cross-reference findings. Identify themes and conflicts.
+**Step 3**: Rank recommendations by impact and confidence.
+**Step 4**: Save synthesis as pipeline-summary artifact.
+
+**Gate**: Synthesis complete. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_CLEANUP}}
+**Goal**: Remove temporary files and verify final artifacts.
+
+**Step 1**: Delete all `/tmp/` pipeline artifacts.
+**Step 2**: Verify final output exists and is non-empty.
+**Step 3**: Update ADR status.
+
+**Gate**: Cleanup complete. Pipeline finished.
+{{/if}}

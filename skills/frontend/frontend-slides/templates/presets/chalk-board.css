@@ -1,0 +1,12 @@
+:root {
+  --bg: #2B4A3B;
+  --surface: #3A5C4A;
+  --accent: #FFB830;
+  --text-primary: #F0F0E8;
+  --text-secondary: #B8CCC0;
+  --heading-font: 'Kalam', cursive, sans-serif;
+  --body-font: 'Open Sans', system-ui, sans-serif;
+  --heading-size: clamp(1.9rem, 4vw, 3.4rem);
+  --body-size: clamp(1rem, 1.9vw, 1.35rem);
+  --letter-spacing-heading: 0.01em;
+}

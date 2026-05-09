@@ -1,0 +1,12 @@
+:root {
+  --bg: #0F0F0F;
+  --surface: #1A1A1A;
+  --accent: #C97B84;
+  --text-primary: #FAF0E6;
+  --text-secondary: #9E8E88;
+  --heading-font: 'Cormorant Garamond', 'Palatino Linotype', serif;
+  --body-font: 'Raleway', system-ui, sans-serif;
+  --heading-size: clamp(2rem, 4.5vw, 4rem);
+  --body-size: clamp(0.95rem, 1.8vw, 1.3rem);
+  --letter-spacing-heading: 0.08em;
+}

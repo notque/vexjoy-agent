@@ -1,0 +1,12 @@
+:root {
+  --bg: #FAF7F2;
+  --surface: #F0EBE1;
+  --accent: #4A7C59;
+  --text-primary: #2C2416;
+  --text-secondary: #6B5E4A;
+  --heading-font: 'Lora', Georgia, serif;
+  --body-font: 'Source Sans 3', system-ui, sans-serif;
+  --heading-size: clamp(1.8rem, 4vw, 3.2rem);
+  --body-size: clamp(1rem, 1.9vw, 1.35rem);
+  --letter-spacing-heading: 0em;
+}

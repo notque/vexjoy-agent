@@ -1,0 +1,12 @@
+:root {
+  --bg: #0D0D0D;
+  --surface: #1A1A1A;
+  --accent: #C9A84C;
+  --text-primary: #F5F0E8;
+  --text-secondary: #A89880;
+  --heading-font: 'Playfair Display', Georgia, serif;
+  --body-font: 'Inter', system-ui, sans-serif;
+  --heading-size: clamp(2rem, 5vw, 4rem);
+  --body-size: clamp(1rem, 2vw, 1.4rem);
+  --letter-spacing-heading: 0.05em;
+}

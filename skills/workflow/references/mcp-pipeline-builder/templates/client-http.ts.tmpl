@@ -1,0 +1,45 @@
+export interface {{entity_pascal}}Data {
+  number: number;
+  title: string;
+  state: string;
+  body: string;
+  labels: string[];
+}
+
+export class ServiceClient {
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
+
+  constructor(apiKey: string, baseUrl = "https://api.{{service}}.com") {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(path: string, params?: Record<string, string>): Promise<T> {
+    const url = new URL(`${this.baseUrl}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    }
+    const response = await fetch(url.toString(), {
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Accept": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`API error ${response.status}: ${await response.text()}`);
+    }
+    return response.json() as Promise<T>;
+  }
+
+  async get{{entity_pascal}}(owner: string, repo: string, number: number): Promise<{{entity_pascal}}Data> {
+    return this.request<{{entity_pascal}}Data>(`/repos/${owner}/${repo}/{{entity}}s/${number}`);
+  }
+
+  async list{{entity_pascal}}s(owner: string, repo: string, opts: { state: string; limit: number }): Promise<{{entity_pascal}}Data[]> {
+    return this.request<{{entity_pascal}}Data[]>(`/repos/${owner}/${repo}/{{entity}}s`, {
+      state: opts.state,
+      per_page: String(opts.limit),
+    });
+  }
+}

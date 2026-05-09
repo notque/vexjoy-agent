@@ -1,0 +1,29 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_APPROVE}}
+**Goal**: Gate on explicit human approval before proceeding.
+
+**Step 1**: Present the current state and proposed action to the user.
+**Step 2**: Wait for explicit approval before proceeding.
+**Step 3**: Record approval in interaction record artifact.
+
+**Gate**: User approval received. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_NOTIFY}}
+**Goal**: Send pipeline status and results to external systems.
+
+**Step 1**: Format notification with: pipeline status, key metrics, artifact locations.
+**Step 2**: Send to configured target (PR comment, console, etc.).
+
+**Gate**: Notification sent. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_PRESENT}}
+**Goal**: Format intermediate results for human review without blocking.
+
+**Step 1**: Format current state summary for readability.
+**Step 2**: Display to user, then proceed immediately.
+
+**Gate**: Presentation displayed. Proceed to Phase {{i+1}}.
+{{/if}}

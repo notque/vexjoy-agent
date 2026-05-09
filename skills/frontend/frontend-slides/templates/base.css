@@ -1,0 +1,46 @@
+/* === MANDATORY BASE — copy verbatim, theme on top === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.deck {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-type: x mandatory;
+  display: flex;
+}
+
+.slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  padding-top: max(clamp(1.5rem, 5vw, 4rem), env(safe-area-inset-top, 0px));
+  padding-bottom: max(clamp(1.5rem, 5vw, 4rem), env(safe-area-inset-bottom, 0px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* === END MANDATORY BASE === */

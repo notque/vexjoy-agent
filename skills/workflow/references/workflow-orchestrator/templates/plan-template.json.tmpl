@@ -1,0 +1,32 @@
+{
+  "plan_id": "PLAN_{{category}}_{{number}}",
+  "description": "{{description}}",
+  "approach": "{{approach}}",
+  "estimated_total_time": "{{estimated_time}}",
+  "tasks": [
+    {{#tasks}}
+    {
+      "task_id": "{{task_id}}",
+      "title": "{{title}}",
+      "estimated_duration": "{{duration}}",
+      "dependencies": [{{dependencies}}],
+      "files": [{{files}}],
+      "operations": [{{operations}}],
+      "verification": {
+        "command": "{{verify_command}}",
+        "expected_output": "{{verify_expected}}",
+        "success_criteria": "{{verify_criteria}}"
+      },
+      "rollback": {
+        "description": "{{rollback_desc}}",
+        "commands": [{{rollback_commands}}]
+      }
+    }{{#unless_last}},{{/unless_last}}
+    {{/tasks}}
+  ],
+  "dependencies": {
+    {{#dependency_map}}
+    "{{dependent}}": [{{prerequisites}}]{{#unless_last}},{{/unless_last}}
+    {{/dependency_map}}
+  }
+}

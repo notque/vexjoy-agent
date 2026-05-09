@@ -1,0 +1,12 @@
+:root {
+  --bg: #F3F0FA;
+  --surface: #E8E2F5;
+  --accent: #7B5EA7;
+  --text-primary: #3A3550;
+  --text-secondary: #7A7090;
+  --heading-font: 'Quicksand', system-ui, sans-serif;
+  --body-font: 'Nunito', system-ui, sans-serif;
+  --heading-size: clamp(1.8rem, 4vw, 3.2rem);
+  --body-size: clamp(1rem, 1.9vw, 1.35rem);
+  --letter-spacing-heading: 0.02em;
+}

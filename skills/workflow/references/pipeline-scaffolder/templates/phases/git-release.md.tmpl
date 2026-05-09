@@ -1,0 +1,38 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_STAGE}}
+**Goal**: Analyze and stage changes for commit, blocking sensitive files.
+
+**Step 1**: Run `git status` to identify changes.
+**Step 2**: Review changed files. Block `.env`, credentials, secrets.
+**Step 3**: Stage appropriate files.
+
+**Gate**: Changes staged. No sensitive files included. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_COMMIT}}
+**Goal**: Create a commit with conventional format.
+
+**Step 1**: Draft commit message summarizing the pipeline's output.
+**Step 2**: Create commit.
+
+**Gate**: Commit created. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_PUSH}}
+**Goal**: Push to remote with branch setup.
+
+**Step 1**: Ensure branch exists and tracks remote.
+**Step 2**: Push with `-u` flag.
+
+**Gate**: Push successful. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_CREATE_PR}}
+**Goal**: Create a pull request with accumulated pipeline context.
+
+**Step 1**: Gather context from all phase artifacts.
+**Step 2**: Create PR with summary and test plan.
+
+**Gate**: PR created. Proceed to Phase {{i+1}}.
+{{/if}}
