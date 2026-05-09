@@ -61,13 +61,6 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/retro-knowledge-injector.py\"",
-            "description": "Inject top accumulated retro knowledge once at session start for cache-stable context",
-            "timeout": 2000,
-            "once": true
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/session-github-briefing.py\"",
             "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 2000,
@@ -79,11 +72,6 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/instruction-reminder.py\"",
-            "description": "Re-inject instruction files to combat context drift"
-          },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
@@ -243,7 +231,7 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
-            "description": "Advisory scan for credentials and SQL injection in Write/Edit output",
+            "description": "Advisory scan for credentials, SQL injection, and command injection in Write/Edit output",
             "timeout": 3000
           },
           {
@@ -320,6 +308,7 @@
         ]
       },
       {
+        "matcher": "Bash|Write|Edit|Agent",
         "hooks": [
           {
             "type": "command",
@@ -348,11 +337,6 @@
       {
         "matcher": "Write|Edit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/sql-injection-detector.py\"",
-            "timeout": 5000
-          },
           {
             "type": "command",
             "command": "python3 hooks/posttool-auto-test.py",

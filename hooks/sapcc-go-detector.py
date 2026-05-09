@@ -105,23 +105,12 @@ def detect_sapcc_project(go_mod_path: Path) -> tuple[bool, str]:
 
 
 def get_sapcc_injection(module_name: str) -> str:
-    """Get the context injection for SAP CC Go projects."""
-    return f"""
-[sapcc-go] Detected SAP CC Go project: {module_name}
-[auto-skill] go-patterns
+    """Get the context injection for SAP CC Go projects.
 
-This project uses SAP Converged Cloud Go conventions. Key rules:
-- Use sapcc/go-bits (assert, must, logg, easypg, respondwith, errext)
-- FORBIDDEN: testify, zap/zerolog/slog, gin/echo, gorm/sqlx, viper, gomock
-- Anti-over-engineering: no throwaway struct types for simple JSON
-- Error messages must be actionable (not just "internal server error")
-- Table-driven tests with assert.HTTPRequest for HTTP endpoints
-- go-makefile-maker generates Makefile, .golangci.yaml, CI config
-- Pluggable driver pattern via go-bits/pluggable for extensibility
-- Lead review rejects unnecessary abstractions; secondary review catches config safety gaps
-
-Load the go-patterns skill for comprehensive rules.
-"""
+    Emits only tags. The go-patterns skill carries its own conventions.
+    ADR hook-injection-condensation: removed conventions summary.
+    """
+    return f"[sapcc-go] Detected SAP CC Go project: {module_name}\n[auto-skill] go-patterns"
 
 
 def main():

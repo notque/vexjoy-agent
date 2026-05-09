@@ -14,7 +14,7 @@ Design Principles:
 - Non-blocking (always exits 0)
 - Sub-50ms execution (file reads only, no subprocess)
 - Graceful degradation on missing files
-- Caps output at ~8000 chars (~2000 tokens)
+- Caps output at ~4000 chars (~1000 tokens)
 """
 
 import json
@@ -34,8 +34,8 @@ TASK_PLAN_FILE = "task_plan.md"
 ADR_SESSION_FILE = ".adr-session.json"
 DISCOVERIES_DIR = ".planning/discoveries"
 
-MAX_OUTPUT_CHARS = 8000
-MAX_FILES_SHOWN = 20
+MAX_OUTPUT_CHARS = 4000
+MAX_FILES_SHOWN = 10
 
 
 def load_recent_reads(reads_path: Path, max_count: int = MAX_FILES_SHOWN) -> list[str]:
