@@ -1,0 +1,17 @@
+/* === Collapsible Component === */
+details { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: var(--sp-3); }
+summary {
+  padding: var(--sp-3) var(--sp-4); font: var(--type-small); font-weight: 500; cursor: pointer;
+  list-style: none; display: flex; align-items: center; justify-content: space-between;
+}
+summary::after { content: '+'; font-size: 18px; color: var(--text-muted); transition: transform 0.2s ease; }
+details[open] summary::after { content: '\2212'; }
+.details-content { padding: 0 var(--sp-4) var(--sp-4); }
+.accordion-trigger {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: var(--bg-muted); border: none; padding: var(--sp-3) var(--sp-4);
+  font: var(--type-small); font-weight: 500; cursor: pointer; text-align: left; border-radius: var(--radius-sm);
+}
+.accordion-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.accordion-panel { max-height: 0; overflow: hidden; transition: max-height 0.25s cubic-bezier(.16, 1, .3, 1); }
+.accordion-inner { padding: var(--sp-3) var(--sp-4); }

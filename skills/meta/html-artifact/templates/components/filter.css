@@ -1,0 +1,14 @@
+/* === Filter Component === */
+.filter-input {
+  width: 100%; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm); font: var(--type-body); margin-bottom: var(--sp-3);
+}
+.filter-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+.tag-filters { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.tag-btn {
+  background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: 999px;
+  padding: var(--sp-1) var(--sp-3); font: var(--type-caption); cursor: pointer; transition: all 0.15s ease;
+}
+.tag-btn:hover { border-color: var(--accent); }
+.tag-btn.active { background: var(--accent); color: var(--bg-surface); border-color: var(--accent); }
+.tag-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

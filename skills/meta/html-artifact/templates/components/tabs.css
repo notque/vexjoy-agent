@@ -1,0 +1,14 @@
+/* === Tabs Component === */
+.tab-bar {
+  display: flex; gap: var(--sp-1); border-bottom: 2px solid var(--border-subtle); padding: 0 var(--sp-2);
+}
+.tab {
+  background: none; border: none; padding: var(--sp-2) var(--sp-4); font: var(--type-small); font-weight: 500;
+  color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-xs); }
+.tab-panel { display: none; padding: var(--sp-4) 0; }
+.tab-panel.active { display: block; }

@@ -1,0 +1,17 @@
+/* === Theme Toggle Component === */
+[data-theme="dark"] {
+  --color-primary: #64B5F6; --bg-page: #1A1A2E; --bg-surface: #232340; --bg-muted: #2C2C4A;
+  --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8; --text-muted: #6E6E8A;
+  --border-default: #3A3A5C; --border-subtle: #2E2E4E; --accent: #64B5F6;
+  --shadow-sm: inset 0 1px 2px rgba(0,0,0,0.3); --shadow-md: inset 0 2px 6px rgba(0,0,0,0.4);
+}
+.theme-toggle {
+  position: fixed; top: var(--sp-3); right: var(--sp-3);
+  background: var(--bg-muted); border: 1px solid var(--border-default); border-radius: 50%;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px; z-index: 100;
+}
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-icon-dark { display: none; }
+[data-theme="dark"] .theme-icon-light { display: none; }
+[data-theme="dark"] .theme-icon-dark { display: inline; }

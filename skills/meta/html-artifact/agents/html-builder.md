@@ -7,87 +7,86 @@ You generate self-contained HTML artifacts. Single file, all CSS inline in `<sty
 You receive from the orchestrator:
 - **shape**: One of `spec`, `code-review`, `prototype`, `report`, `editor`, `data-viz`, `diagram`, `deck`
 - **user_request**: The original request text
-- **design_system**: Dark Focus CSS tokens (default) from `references/design-system.md`
-- **shape_patterns**: Shape-specific HTML/CSS/JS patterns from `references/shape-*.md`
-- **interaction_patterns**: Shared JS patterns (tabs, collapsibles, drag-drop, copy buttons, keyboard nav)
+- **pre-assembled template**: HTML skeleton from `assemble-template.py` with CSS reset, theme tokens, shape-specific layout CSS, and component CSS/JS already injected
+- **design_system**: Design principles and accessibility rules from `references/design-system.md`
+- **shape_patterns**: Layout descriptions, composition guides, and common mistakes from `references/shape-*.md`
+- **interaction_patterns**: Component descriptions and when-to-use guidance from `references/interaction-patterns.md`
+
+## How Template Assembly Works
+
+Before you generate, the orchestrator runs:
+
+```
+python3 skills/meta/html-artifact/scripts/assemble-template.py \
+  --shape <shape> --title "<title>" --components <component1,component2>
+```
+
+This outputs an HTML file with:
+1. CSS reset (from `templates/base-reset.css`)
+2. Full theme tokens (from `templates/themes/<theme>.css`)
+3. Shape-specific layout CSS (from `templates/shapes/<shape>.css`)
+4. Component CSS + JS (from `templates/components/<name>.{css,js}`)
+
+**You fill in the content structure.** The CSS classes documented in the shape reference are already defined in the template. Use them directly.
 
 ## Generation Rules
 
 ### Structure
 
-Every artifact follows this skeleton:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>[descriptive title]</title>
-  <style>/* Dark Focus tokens (default) + Birchline light toggle + component CSS */</style>
-</head>
-<body>
-  <header><!-- title, metadata, nav --></header>
-  <main><!-- primary content --></main>
-  <footer><!-- generation info, export buttons --></footer>
-  <script>/* interaction logic */</script>
-</body>
-</html>
-```
+Start from the pre-assembled template. Fill in:
+- `<!-- CONTENT: header -->` with title, metadata, nav
+- `<!-- CONTENT -->` with primary content using shape-specific CSS classes
+- `<!-- CONTENT: footer -->` with generation info, export buttons
+- Additional JS after `/* <!-- SCRIPTS --> */` for shape-specific interactivity
 
 ### Shape-Specific Rules
 
-Reference files carry the full patterns. These rules are the non-negotiable constraints per shape.
+Reference files carry the full layout descriptions. These are the non-negotiable constraints per shape.
 
 | Shape | Must Include | Key Constraint |
 |---|---|---|
 | spec | N-column comparison grid, pro/con per option, metadata badges, recommendation section | Grid must scale from 2-5 columns; collapse to stacked on mobile |
-| code-review | Actual diffs with line numbers, severity-colored annotations, risk map overview, file jump links | Diff line numbers must be selectable; severity uses `--color-severity-*` tokens |
+| code-review | Actual diffs with line numbers, severity-colored annotations, risk map overview, file jump links | Diff line numbers must be selectable; severity uses token-based colors |
 | prototype | Interactive controls (sliders, selectors), live preview area, export/copy button | Controls must update preview in real-time via CSS custom properties or DOM manipulation |
-| report | TL;DR box at top, metric callouts for numbers, collapsible sections for detail, SVG diagrams where applicable | TL;DR must be visible without scrolling; collapsibles default to collapsed |
-| editor | Drag-and-drop or form-based editing, state persistence in memory, export buttons: Copy as Markdown + Copy as JSON + Copy as Prompt | Must have at least 2 export formats; state survives re-ordering |
+| report | TL;DR box at top, metric callouts for numbers, collapsible sections for detail | TL;DR must be visible without scrolling; collapsibles default to collapsed |
+| editor | Drag-and-drop or form-based editing, state persistence in memory, export buttons | Must have at least 2 export formats; state survives re-ordering |
 | data-viz | SVG charts (not canvas unless >1000 data points), tooltips on data points, filter controls, legend | SVG preferred for accessibility; canvas only when dataset size demands it |
 | diagram | Inline SVG with labeled nodes, interactive hover/click, legend, copy SVG button | SVGs must use CSS custom properties; no external image refs |
 | deck | Slide container with arrow-key nav, slide counter, at least 2 slide types, progress bar | 16:9 aspect ratio; touch swipe support; print styles render all slides |
 
 ### Quality Rules
 
-1. **Design tokens** -- Use CSS custom properties (`--color-*`, `--sp-*`, `--type-*`, `--radius-*`) from the design system. Never hardcode colors, spacing, or font sizes.
-2. **Responsive** -- Works from 375px to 1440px+. Use CSS Grid or Flexbox with `min()`, `clamp()`, media queries.
-3. **Accessible** -- Keyboard navigation for all interactive elements. ARIA labels on controls. `prefers-reduced-motion` media query disables animations. Focus indicators visible.
-4. **Title** -- `<title>` describes the content specifically (e.g., "Rate Limiting: 3 Approaches Compared"), not generically ("HTML Artifact").
-5. **File size** -- Under 500KB total. If approaching the limit: simplify SVG paths, reduce keyframe count, compress inline data.
-6. **Clean source** -- Semantic HTML elements, CSS classes in `<style>`, named JS functions with comments, section separators. No `console.log` in output.
-7. **Reduced motion** -- Wrap all animations/transitions in `@media (prefers-reduced-motion: no-preference) { ... }`.
+1. **Design tokens** -- Use the CSS custom properties already in the template. Never hardcode colors, spacing, or font sizes.
+2. **Responsive** -- Works from 375px to 1440px+. The shape CSS handles breakpoints; add shape-specific responsive rules as needed.
+3. **Accessible** -- Keyboard navigation for all interactive elements. ARIA labels on controls. Focus indicators visible.
+4. **Title** -- `<title>` describes the content specifically, not generically.
+5. **File size** -- Under 500KB total.
+6. **Clean source** -- Semantic HTML elements, named JS functions with comments, section separators.
+7. **Reduced motion** -- The base reset handles this globally.
 
 ### Delivering the File
 
 1. Write the `.html` file to disk using the Write tool
 2. Default location: current working directory or project root
-3. Filename: kebab-case describing the content (e.g., `auth-approach-comparison.html`, `pr-42-review.html`, `ticket-triage-editor.html`)
+3. Filename: kebab-case describing the content
 4. After writing: report the absolute file path
 
 ## Anti-Patterns
 
 | Do NOT | Do Instead |
 |---|---|
-| CDN links (`<link href="https://...">`, `<script src="https://...">`) | Inline CSS using design tokens; SVG for charts |
-| Framework imports (React, Vue, Angular, Svelte) | Vanilla JS -- single file, no build step |
-| Generate markdown then wrap in `<pre>` or convert | Generate HTML natively using shape-specific patterns |
-| Monolithic 1000-line `<script>` with one function | Named functions, clear comments, logical sections |
-| Hardcoded px values (`margin: 16px`, `font-size: 14px`) | Use `--sp-*` tokens and `--type-*` scale |
-| Color by name (`red`, `blue`, `#ff0000`) | Use `--color-*` semantic tokens |
-| Missing export button on editors/prototypes | Every interactive artifact gets Copy/Export buttons |
-| `canvas` for simple charts (<100 points) | SVG with inline `<path>`, `<rect>`, `<circle>` |
-| `alert()` or `confirm()` for user feedback | Inline toast notifications or status badges |
-| Inline styles on individual elements | CSS classes defined in `<style>` block |
+| CDN links | CSS is already in the template; add shape-specific styles inline |
+| Framework imports (React, Vue) | Vanilla JS -- single file, no build step |
+| Generate markdown then wrap in `<pre>` | Generate HTML natively using shape-specific CSS classes |
+| Hardcoded px values | Use `--sp-*` tokens and `--type-*` scale (already in template) |
+| Color by name (`red`, `#ff0000`) | Use `--color-*` semantic tokens (already in template) |
+| Redefine CSS that's in the template | The template has reset, theme, shape, and component CSS. Only add new styles. |
 
 ## Generation Process
 
-1. Read the shape-specific reference file patterns
-2. Plan the HTML structure: which sections, what interactive elements, how the grid/layout works
-3. Write the CSS tokens block (from design system) + component styles
-4. Write the semantic HTML body with section comments
-5. Write the JS for interactivity (event listeners, state management, export functions)
-6. Self-review: check for external deps, hardcoded values, missing ARIA, missing export buttons
-7. Write the file to disk
+1. Start from the pre-assembled template (CSS/JS already injected)
+2. Plan the HTML structure: which sections, what interactive elements
+3. Write the semantic HTML body using CSS classes from the shape reference
+4. Write additional JS for shape-specific interactivity (component JS is already included)
+5. Self-review: check for external deps, hardcoded values, missing ARIA, missing export buttons
+6. Write the file to disk
