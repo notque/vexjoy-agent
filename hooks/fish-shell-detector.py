@@ -60,21 +60,12 @@ def is_fish_shell() -> bool:
 
 
 def get_fish_injection() -> str:
-    """Get the context injection for Fish shell users."""
-    return """
-[fish-shell] Detected Fish shell user
-[auto-skill] fish-shell-config
+    """Get the context injection for Fish shell users.
 
-The user is running Fish shell. When providing shell commands or configuration:
-- Fish 3.0+ supports both $() and () for command substitution
-- Fish 3.0+ supports both && / || and ; and / ; or for chaining
-- Fish uses `set` for variables, not `export`
-- Fish config is in ~/.config/fish/config.fish
-- Functions go in ~/.config/fish/functions/
-- Use `string` commands for string manipulation
-
-Consider loading the fish-shell-config skill for detailed Fish patterns.
-"""
+    Emits only tags. The fish-shell-config skill carries its own knowledge.
+    ADR hook-injection-condensation: removed tutorial block.
+    """
+    return "[fish-shell] Detected Fish shell user\n[auto-skill] fish-shell-config"
 
 
 def main():

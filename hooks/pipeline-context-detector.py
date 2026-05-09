@@ -333,9 +333,6 @@ def build_environmental_state(prompt: str, base_dir: Path) -> dict:
         "request": prompt,
         "related_agents": related["related_agents"],
         "related_skills": related["related_skills"],
-        "all_agents": [a["name"] for a in agents],
-        "all_skills": [s["name"] for s in skills],
-        "all_hooks": [h["name"] for h in hooks],
         "agent_count": len(agents),
         "skill_count": len(skills),
         "hook_count": len(hooks),
@@ -367,29 +364,18 @@ def main():
                 file=sys.stderr,
             )
 
-        # Build context injection
-        state_json = json.dumps(state, indent=2)
-        injection = f"""[pipeline-creator] Detected pipeline creation request
-[auto-skill] pipeline-scaffolder
-
-## Environmental State
-
-The following JSON describes the current repository state. Use this to
-identify existing components that can be reused and to prevent duplication.
-
-```json
-{state_json}
-```
-
-### Related Components
-- Related agents: {", ".join(state["related_agents"]) or "none found"}
-- Related skills: {", ".join(state["related_skills"]) or "none found"}
-
-### Inventory
-- Total agents: {state["agent_count"]}
-- Total skills: {state["skill_count"]}
-- Total hooks: {state["hook_count"]}
-"""
+        # Build context injection — counts only, not full name arrays
+        # ADR hook-injection-condensation: emit counts to save ~4,700 chars
+        related_agents = ", ".join(state["related_agents"]) or "none"
+        related_skills = ", ".join(state["related_skills"]) or "none"
+        injection = (
+            f"[pipeline-creator] Detected pipeline creation request\n"
+            f"[auto-skill] pipeline-scaffolder\n"
+            f"[pipeline-creator] Inventory: {state['agent_count']} agents, "
+            f"{state['skill_count']} skills, {state['hook_count']} hooks\n"
+            f"[pipeline-creator] Related agents: {related_agents}\n"
+            f"[pipeline-creator] Related skills: {related_skills}"
+        )
 
         context_output(EVENT_NAME, injection).print_and_exit()
 
