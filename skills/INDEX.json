@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-08T22:32:26Z",
+  "generated": "2026-05-09T14:30:55Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -591,7 +591,8 @@
       "user_invocable": false,
       "pairs_with": [
         "content-calendar",
-        "wordpress-live-validation"
+        "wordpress-live-validation",
+        "html-artifact"
       ],
       "agent": "general-purpose"
     },
@@ -1504,14 +1505,16 @@
         "rich visualization",
         "interactive document",
         "HTML file",
-        "self-contained HTML"
+        "self-contained HTML",
+        "visual companion"
       ],
       "category": "meta",
       "user_invocable": false,
       "pairs_with": [
         "pr-workflow",
         "research-pipeline",
-        "planning"
+        "planning",
+        "publish"
       ]
     },
     "install": {
