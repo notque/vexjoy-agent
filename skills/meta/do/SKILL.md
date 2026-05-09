@@ -329,6 +329,8 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject density standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write dense: high fidelity, minimum words. Cut filler, prefer tables over paragraphs, report what changed — not how."
 
+**MANDATORY: Inject base instructions for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
+
 **Inject thinking directive.** Prepend verbatim, no framing:
 
 | Complexity | Thinking Directive |

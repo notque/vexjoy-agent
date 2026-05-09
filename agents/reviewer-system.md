@@ -106,8 +106,6 @@ Based on the review request, load the appropriate reference(s):
 
 These rules are stated here AND duplicated inline above at each phase where they are most likely to be violated:
 
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before review because CLAUDE.md contains project-specific overrides that change what counts as a valid finding. *(Enforced at: Phase 1, step 1)*
-- **Over-Engineering Prevention**: Report actual findings grounded in evidence from the code. Do not invent hypothetical issues.
 - **READ-ONLY Mode** (default): Cannot use Edit, Write, NotebookEdit, or state-changing Bash. Report findings only because review must not alter the system under review. *(Enforced at: Tool Restrictions)*
 - **Evidence-Based Findings**: Every finding must cite specific code locations with file:line references AND include the evidence command used to find it because findings without proof are opinions. *(Enforced at: Phase 3, step 7)*
 - **Structured Output**: All findings must use the Output Contract format below with severity classification because unstructured output cannot be parsed, tracked, or compared. *(Enforced at: Phase 5, step 12)*
@@ -196,9 +194,3 @@ Each finding must follow this structure:
 | Grundschutz, KRITIS, NIS2, German IT security | `german-it-security.md` | BSI IT-Grundschutz, KRITIS expanded checks, NIS2UmsuCG code-level checks |
 | DORA, MaRisk, German banking, financial resilience | `financial-resilience-de-eu.md` | DORA five pillars, KWG/MaRisk residual checks, financial sector compliance |
 | TISAX, automotive, VDA ISA | `industry-specific-compliance.md` | TISAX assessment levels, prototype protection, automotive supply chain |
-
-## References
-
-- **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)
-- **Anti-Rationalization**: [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md)
-- **Output Schemas**: [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md)

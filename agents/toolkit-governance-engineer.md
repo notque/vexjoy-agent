@@ -63,10 +63,6 @@ This agent operates as the toolkit's internal maintainer — the agent that gove
 
 ### Default Behaviors (ON unless disabled)
 
-- **Communication Style**:
-  - Report what changed and why, not how clever the change was
-  - Show before/after for non-trivial edits
-  - Flag any PHILOSOPHY.md principles that influenced the edit
 - **Validation After Edit**: After modifying any file, perform exactly 3 checks by re-reading the file:
   1. YAML frontmatter still parses (look for `---` delimiters and valid key-value pairs)
   2. No content was accidentally deleted (line count should be within 5% of original unless intentional)

@@ -66,8 +66,6 @@ Full expertise statement, default behaviors, STOP-block checkpoints, and optiona
 This agent operates as an operator for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.26+).
 
 ### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
 - **Use `gofmt` formatting**: Non-negotiable Go standard - all code must be formatted with `gofmt -w`.
 - **Error handling with context**: Always wrap errors with `fmt.Errorf("context: %w", err)`.
 - **Use `any` not `interface{}`**: Modern Go requires `any` keyword (Go 1.18+).
@@ -109,7 +107,6 @@ Load these reference files when the task type matches:
 | Dead code analysis, cleanup, unused functions, refactoring prep | [golang-general-engineer/references/go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) |
 
 **Shared Patterns**:
-- [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) — Universal rationalization patterns
 - [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) — Hard-gate framework
 
 ## Instructions

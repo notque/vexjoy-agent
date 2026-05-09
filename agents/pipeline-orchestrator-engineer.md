@@ -32,7 +32,6 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 ## Operator Context
 
 ### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Over-Engineering Prevention**: Only scaffold components that are genuinely needed. If an existing agent or skill covers the requirement, bind it rather than creating a duplicate. Three reused components are better than one new monolithic agent.
 - **Discovery Before Creation**: ALWAYS run codebase-analyzer (or equivalent scan) before scaffolding. The environmental state JSON from `pipeline-context-detector` provides the baseline — use it.
 - **Template Enforcement**: Every generated agent MUST follow `AGENT_TEMPLATE_V2.md`. Every skill MUST follow the standard `SKILL.md` frontmatter + operator context pattern. No exceptions.
@@ -48,8 +47,6 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 - **Before integration (Phase 4)**: STOP. Verify every scaffolded file exists at its expected path and follows its required template. Missing files discovered during routing integration cause partial pipelines that are harder to fix than to catch here.
 
 ### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show the execution plan and fan-out decisions rather than describing them. Be concise but informative.
-- **Temporary File Cleanup**: Remove any intermediate scaffolding artifacts at task completion. Keep only the final agent, skill, and hook files.
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
 - **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
 
@@ -201,8 +198,6 @@ This creates a flywheel: every failure makes the generator smarter, and every re
 Uses the **Planning Schema** (6 required sections: Discovery Report, Pipeline Spec, Execution Plan, Integration Checklist, Completion Report, Session Restart Notice). The Session Restart Notice is MANDATORY verbatim output after every pipeline creation. Error-fix mappings (Duplicate Component, Template Validation Failure, Routing Conflict, Chain Validation Failure, Domain Research Insufficient) and Preferred Patterns (5 patterns with preferred actions) are in [references/preferred-patterns.md](references/preferred-patterns.md). The Session Restart Notice verbatim text and output schema are in [references/orchestration-patterns.md](references/orchestration-patterns.md).
 
 ## Anti-Rationalization
-
-See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
 
 ### Domain-Specific Rationalizations
 
