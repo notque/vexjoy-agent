@@ -1,0 +1,37 @@
+### Phase {{i}}: {{step.step}}
+
+**Goal**: {{goal_by_step_name}}
+
+{{#if step.params.script}}
+**Step 1**: Run the validation script:
+```bash
+python3 scripts/{{step.params.script}} validate --input {artifact_path}
+```
+
+**Step 2**: Evaluate results:
+- Pass: proceed to Phase {{i+1}}
+- Fail: identify specific failures
+{{/if}}
+
+{{#if step_is_REFINE}}
+**Step 1**: Read the verdict from the previous validation phase.
+
+**Step 2**: For each failure:
+1. Identify the failing element
+2. Trace back to the generation artifact
+3. Apply the correction
+
+**Step 3**: Re-run validation. Maximum {{step.params.max_refine_cycles | default: 3}} cycles.
+
+**Step 4**: If all cycles exhausted, deliver best-scoring output with validation report. Note failures in ADR.
+{{/if}}
+
+{{#if step_is_CHARACTERIZE}}
+**Step 1**: Analyze the current state of the target.
+
+**Step 2**: Write characterization tests or capture behavioral snapshots.
+
+**Step 3**: Save the baseline as a dual-layer artifact for comparison after changes.
+{{/if}}
+
+**Gate**: Validation passes OR max refine cycles exhausted (report final score). Proceed to Phase {{i+1}}.

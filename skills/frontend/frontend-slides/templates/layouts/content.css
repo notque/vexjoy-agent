@@ -1,0 +1,30 @@
+.slide-content {
+  align-items: flex-start;
+}
+.slide-content h2 {
+  font-family: var(--heading-font);
+  font-size: clamp(1.4rem, 3vw, 2.5rem);
+  color: var(--accent);
+  margin-bottom: clamp(1rem, 3vh, 2rem);
+  width: 100%;
+}
+.slide-content ul {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vh, 1rem);
+}
+.slide-content li {
+  font-family: var(--body-font);
+  font-size: var(--body-size);
+  color: var(--text-primary);
+  padding-left: 1.2em;
+  position: relative;
+}
+.slide-content li::before {
+  content: '\25B8';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}

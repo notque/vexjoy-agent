@@ -1,0 +1,17 @@
+.slide-quote blockquote {
+  max-width: 70%;
+  text-align: center;
+}
+.slide-quote p {
+  font-family: var(--heading-font);
+  font-size: clamp(1.2rem, 2.5vw, 2rem);
+  color: var(--text-primary);
+  font-style: italic;
+  line-height: 1.5;
+}
+.slide-quote footer {
+  font-family: var(--body-font);
+  font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+  color: var(--accent);
+  margin-top: 1.5rem;
+}

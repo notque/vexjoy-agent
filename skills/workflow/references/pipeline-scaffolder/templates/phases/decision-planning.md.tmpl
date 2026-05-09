@@ -1,0 +1,36 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_PLAN}}
+**Goal**: Define execution steps with dependencies, risks, and rollback procedures.
+
+**Step 1**: Read all available artifacts from prior phases.
+**Step 2**: For each planned action, document:
+  - What it does
+  - What it depends on
+  - What can go wrong
+  - How to roll back
+**Step 3**: Order actions by dependency. Save as decision record.
+
+**Gate**: Plan produced with dependencies and rollback procedures. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_DECIDE}}
+**Goal**: Evaluate options, filter by criteria, select the best approach.
+
+**Step 1**: List all viable options.
+**Step 2**: Define evaluation criteria with weights.
+**Step 3**: Score each option. Select highest-scoring.
+**Step 4**: Save decision with rationale. Update ADR.
+
+**Gate**: Decision recorded with rationale. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_PRIME}}
+**Goal**: Load prior artifacts, verify state, and capture context.
+
+**Step 1**: Verify all required prior artifacts exist.
+**Step 2**: Load context from ADR and prior phases.
+**Step 3**: Capture current system state as baseline.
+
+**Gate**: Context loaded. Baseline captured. Proceed to Phase {{i+1}}.
+{{/if}}

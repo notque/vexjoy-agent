@@ -1,0 +1,12 @@
+:root {
+  --bg: #FFFFFF;
+  --surface: #F4F4F5;
+  --accent: #0057FF;
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --heading-font: 'DM Sans', system-ui, sans-serif;
+  --body-font: 'DM Sans', system-ui, sans-serif;
+  --heading-size: clamp(1.8rem, 4vw, 3.5rem);
+  --body-size: clamp(0.95rem, 1.8vw, 1.3rem);
+  --letter-spacing-heading: -0.02em;
+}

@@ -1,0 +1,41 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_CHECKPOINT}}
+**Goal**: Save phase artifact, invoke retro, and advance pipeline state.
+
+**Step 1**: Save current phase artifacts to persistent storage.
+**Step 2**: Invoke the retro system to extract learnings from this phase.
+**Step 3**: Advance the pipeline state marker.
+
+**Gate**: Checkpoint saved. Retro invoked. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_WALK}}
+**Goal**: Launch parallel walkers to extract learnings from pipeline execution.
+
+**Step 1**: Dispatch context walker and meta walker in parallel.
+**Step 2**: Each walker analyzes the pipeline artifacts for patterns and improvements.
+**Step 3**: Collect walker outputs.
+
+**Gate**: Walker outputs collected. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_MERGE}}
+**Goal**: Combine walker outputs and classify by hierarchy (L3/L2/L1).
+
+**Step 1**: Read all walker outputs.
+**Step 2**: Classify each learning: L3 (raw), L2 (per-feature), L1 (compact summary).
+**Step 3**: Save merged learnings.
+
+**Gate**: Learnings classified. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_APPLY}}
+**Goal**: Write approved learnings to persistent storage.
+
+**Step 1**: Read gated learnings from previous phase.
+**Step 2**: Write to retro files (L1, L2 as appropriate).
+**Step 3**: Confirm persistence.
+
+**Gate**: Learnings persisted. Proceed to Phase {{i+1}}.
+{{/if}}

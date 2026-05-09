@@ -1,0 +1,48 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step.profile_gate}}
+> **Profile Gate**: This phase runs when operator profile is `{{step.profile_gate}}` or more restrictive.
+{{/if}}
+
+{{#if step_is_GUARD}}
+**Goal**: Verify all pre-conditions before proceeding with potentially dangerous operations.
+
+**Step 1**: Run pre-condition checks:
+{{#for_each step.params.checks}}
+- [ ] {{check}}
+{{/for_each}}
+
+**Step 2**: {{#if step.params.block_on_failure}}If any check fails, stop and report which check failed and what remediation is needed.{{else}}Log failures as warnings. Continue with caution.{{/if}}
+
+**Gate**: All checks pass (or warnings logged). Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_SNAPSHOT}}
+**Goal**: Capture current state as a named restore point.
+
+**Step 1**: Identify state to capture.
+**Step 2**: Create snapshot: `snapshot-{{skill_name}}-{task-id}-{timestamp}`.
+**Step 3**: Record snapshot reference in safety record artifact.
+
+**Gate**: Snapshot created and recorded. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_SIMULATE}}
+**Goal**: Dry-run the planned actions without committing changes.
+
+**Step 1**: Execute the plan from the decision record in simulation mode.
+**Step 2**: Record what would change, what would break, what side effects would occur.
+**Step 3**: Save simulation results as safety record artifact.
+
+**Gate**: Simulation complete. No blocking issues found (or issues reported for approval). Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_ROLLBACK}}
+**Goal**: Revert to the nearest snapshot.
+
+**Step 1**: Identify the nearest SNAPSHOT artifact.
+**Step 2**: Execute the rollback plan.
+**Step 3**: Verify the rollback restored the expected state.
+
+**Gate**: State restored to snapshot. Proceed to Phase {{i+1}}.
+{{/if}}

@@ -1,0 +1,12 @@
+:root {
+  --bg: #FFFFFF;
+  --surface: #E8F4FD;
+  --accent: #0077B6;
+  --text-primary: #03045E;
+  --text-secondary: #48607A;
+  --heading-font: 'Libre Baskerville', Georgia, serif;
+  --body-font: 'Roboto', system-ui, sans-serif;
+  --heading-size: clamp(1.7rem, 3.8vw, 3.2rem);
+  --body-size: clamp(0.95rem, 1.8vw, 1.3rem);
+  --letter-spacing-heading: 0.01em;
+}

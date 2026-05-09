@@ -1,0 +1,28 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_REVIEW}}
+**Goal**: Evaluate the artifact through {{step.params.reviewers | default: 3}} specialized lenses in parallel.
+
+**Step 1**: Dispatch {{step.params.reviewers | default: 3}} parallel reviewer agents:
+{{#for_each_lens}}
+- **Reviewer {{index}}: {{lens_name}}** -- Evaluates {{lens_focus}}
+{{/for_each_lens}}
+
+**Step 2**: Each reviewer produces a verdict with findings by severity.
+
+**Step 3**: Collect all verdicts.
+
+**Gate**: At least {{ceil(reviewers * 0.75)}} reviewers completed. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_AGGREGATE}}
+**Goal**: Merge reviewer findings, deduplicate, and classify by severity.
+
+**Step 1**: Read all reviewer verdicts.
+
+**Step 2**: Deduplicate identical findings. Classify: critical, major, minor, nit.
+
+**Step 3**: Produce unified verdict as dual-layer artifact.
+
+**Gate**: Aggregated verdict produced. Proceed to Phase {{i+1}}.
+{{/if}}

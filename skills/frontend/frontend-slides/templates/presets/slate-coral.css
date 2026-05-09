@@ -1,0 +1,12 @@
+:root {
+  --bg: #2D3561;
+  --surface: #3A4475;
+  --accent: #F07057;
+  --text-primary: #EEF2FF;
+  --text-secondary: #A8B4D8;
+  --heading-font: 'Nunito Sans', system-ui, sans-serif;
+  --body-font: 'Nunito Sans', system-ui, sans-serif;
+  --heading-size: clamp(1.9rem, 4.2vw, 3.5rem);
+  --body-size: clamp(1rem, 1.9vw, 1.35rem);
+  --letter-spacing-heading: -0.01em;
+}
