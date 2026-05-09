@@ -360,3 +360,94 @@ func (opts AuditorOpts) buildConnectionURL() (string, error) {
 | Logical complexity | Distinct operation | Obvious step |
 | Testing need | Needs independent tests | Tested via caller |
 | Name value | Name adds understanding | Name restates code |
+
+---
+
+## AP-8: Shotgun Surgery / Wrong Abstraction Boundary (Extended)
+
+When a helper must be called at every call site of another function, the helper belongs inside the original function. An INVARIANT comment documenting this coupling is a code smell, not a safety measure.
+
+### Full Bad Example
+
+```go
+func scopeToLabelConstraint(req *http.Request, ks keystone.Driver) (string, []string) {
+    if projectID := req.Header.Get("X-Project-Id"); projectID != "" {
+        children, err := ks.ChildProjects(ctx, projectID)
+        if err != nil { panic(err) }
+        return "project_id", append([]string{projectID}, children...)
+    }
+    return "domain_id", []string{req.Header.Get("X-Domain-Id")}
+}
+
+// INVARIANT: This function must be called after every scopeToLabelConstraint() call.
+func appendSentinelValue(labelValues []string) []string {
+    if sentinelValue != "" {
+        result := make([]string, len(labelValues)+1)
+        copy(result, labelValues)
+        result[len(result)-1] = sentinelValue
+        return result
+    }
+    return labelValues
+}
+
+// Every caller must remember the two-step dance:
+func (p *v1Provider) Query(w http.ResponseWriter, req *http.Request) {
+    labelKey, labelValue := scopeToLabelConstraint(req, ks)
+    labelValue = appendSentinelValue(labelValue) // forget this = silent bug
+    // ...
+}
+```
+
+**Three compounding problems:**
+
+| Problem | Detail |
+|---------|--------|
+| Shotgun surgery | A 5th caller that forgets `appendSentinelValue` silently breaks global metrics |
+| Defensive copy on fresh slice | `make`+`copy` protects against mutation of a slice that was just allocated — no shared backing array exists |
+| Over-testing trivial code | 74-line test for a 3-line `append` wrapper with cyclomatic complexity 2 |
+
+### Full Good Example
+
+```go
+func scopeToLabelConstraint(req *http.Request, ks keystone.Driver) (string, []string) {
+    if projectID := req.Header.Get("X-Project-Id"); projectID != "" {
+        children, err := ks.ChildProjects(ctx, projectID)
+        if err != nil { panic(err) }
+        return "project_id", appendSentinelValue(append([]string{projectID}, children...))
+    }
+    return "domain_id", appendSentinelValue([]string{req.Header.Get("X-Domain-Id")})
+}
+
+func appendSentinelValue(labelValues []string) []string {
+    if sentinelValue != "" {
+        return append(labelValues, sentinelValue)
+    }
+    return labelValues
+}
+
+// Callers just use scopeToLabelConstraint — sentinel is always included:
+func (p *v1Provider) Query(w http.ResponseWriter, req *http.Request) {
+    labelKey, labelValue := scopeToLabelConstraint(req, ks)
+    // no second step needed — impossible to forget
+    // ...
+}
+```
+
+### Detection Signals
+
+| Signal | Detection | Fix |
+|--------|-----------|-----|
+| Coupling comment | `grep -rn "must be called after\|must always follow\|INVARIANT.*call" --include="*.go"` | Merge the "always follows" logic into the prerequisite function |
+| Same-pair call pattern | `helperB(result)` after every `result := functionA()` | Move `helperB` inside `functionA` |
+| Defensive copy on fresh slice | `make([]T, len(x)+N)` + `copy(result, x)` where x is freshly allocated | Replace with `append(x, elements...)` |
+| Over-tested trivial code | Test LOC > 10x function LOC, cyclomatic complexity <= 2 | Integration tests likely cover it; delete or reduce |
+
+### Triple-Validation
+
+| Check | Evidence |
+|-------|----------|
+| Recurrence | Appears in SAP CC PRs (maia, limes, keppel) and general Go codebases — any function pair with always-follows coupling |
+| Generative power | Predicts new bugs: any future caller of `functionA` that omits `helperB` |
+| Exclusivity | Distinguishes from generic "extract function" advice — specifically targets the case where extraction creates mandatory call-site coupling |
+
+**Origin**: [PR #220](https://github.com/SAP-cloud-infrastructure/maia/pull/220) — Stefan Majewsky. `appendSentinelValue` called at 4 sites after `scopeToLabelConstraint`; refactor moved sentinel inside `scopeToLabelConstraint`.

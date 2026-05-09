@@ -272,3 +272,48 @@ if apiKey == storedKey { ... }
 import "crypto/subtle"
 if subtle.ConstantTimeCompare([]byte(apiKey), []byte(storedKey)) == 1 { ... }
 ```
+
+---
+
+## Abstraction Boundaries
+
+### Shotgun Surgery / Always-Follows Pattern
+
+```go
+// Bad: Helper must be called at every call site of another function
+labelKey, vals := scopeToLabelConstraint(req, ks)
+vals = appendSentinelValue(vals) // forget this = silent bug
+
+// Good: Helper merged into the producing function
+labelKey, vals := scopeToLabelConstraint(req, ks)
+// sentinel is always included — impossible to forget
+```
+
+**Review comment**: "If `appendSentinelValue` must follow every `scopeToLabelConstraint` call, it belongs inside `scopeToLabelConstraint`. The coupling comment is a code smell, not a safety measure."
+
+### Defensive Copy of Fresh Slices
+
+```go
+// Bad: make+copy on a slice that was just allocated
+result := make([]string, len(vals)+1)
+copy(result, vals)
+result[len(result)-1] = sentinel
+
+// Good: append — no shared backing array on fresh slices
+return append(vals, sentinel)
+```
+
+**Review comment**: "This slice was just allocated — no other reference exists. The `make`+`copy` protects against a problem that cannot occur. Use `append`."
+
+### Coupling Comment Smell
+
+**Detect**: `grep -rn "must be called after\|must always follow\|INVARIANT.*call" --include="*.go"`
+
+```go
+// Bad: Comment documents what code structure should enforce
+// INVARIANT: This function must be called after every scopeToLabelConstraint() call.
+
+// Good: No comment needed — coupling is inside the function
+```
+
+**Review comment**: "INVARIANT comments that document call ordering are a signal the abstraction boundary is wrong. Move the dependent logic into the prerequisite function."

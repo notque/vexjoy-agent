@@ -97,3 +97,30 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 - Complex business logic encoding
 - Multiple valid simplification approaches (ask user)
 - Simplification changes public API
+
+## Abstraction Boundary Patterns
+
+Patterns where unnecessary complexity can be removed while preserving behavior. See `skills/engineering/go-patterns/references/preferred-patterns/code-examples.md` AP-8 for full before/after examples.
+
+### Detection Signals
+
+| Signal | Grep / Structural Check | Simplification |
+|--------|------------------------|----------------|
+| Defensive copy on fresh slice | `make([]T, len(x)+N)` + `copy(result, x)` where x is freshly allocated | Replace with `append(x, element)` |
+| Coupling comment | `grep -rn "must be called after\|must always follow\|INVARIANT.*call" --include="*.go"` | Merge the "always follows" logic into the prerequisite function |
+| Same-pair call pattern | `helperB(result)` appears after every `result := functionA()` call site | Move `helperB` logic inside `functionA` |
+
+### Coupling Comment Fix
+
+When a comment says "must be called after X", the fix is to move that logic inside X. The comment documents a coupling that code structure should eliminate.
+
+```go
+// Before: Comment documents what code should enforce
+labelKey, vals := scopeToLabel(req, ks)
+vals = appendSentinel(vals) // forget this = silent bug
+
+// After: Coupling eliminated — impossible to forget
+labelKey, vals := scopeToLabel(req, ks) // sentinel included automatically
+```
+
+**Origin**: PR #220 — Stefan Majewsky.
