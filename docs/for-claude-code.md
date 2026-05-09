@@ -351,7 +351,6 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 | afk-mode.py | SessionStart | AFK mode detection and handling |
 | skill-evaluator.py | UserPromptSubmit | Inject agent/skill routing hints |
 | instruction-reminder.py | UserPromptSubmit | Re-inject CLAUDE.md instructions periodically |
-| capability-catalog-injector.py | UserPromptSubmit | Inject available capabilities list |
 | pipeline-context-detector.py | UserPromptSubmit | Detect pipeline state |
 | creation-request-enforcer-userprompt.py | UserPromptSubmit | Enforce creation protocol rules |
 | userprompt-datetime-inject.py | UserPromptSubmit | Inject current date/time |
