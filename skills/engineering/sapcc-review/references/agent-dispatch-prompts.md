@@ -236,3 +236,18 @@ Write ALL findings to: [output file path]
 - Test setup in `TestMain` instead of per-test
 - Verbose error checking instead of `assert.ErrEqual` / `must.SucceedT`
 - **Extraction without guard transfer**: When inline code is extracted into a named helper, ALL defensive checks that relied on "the caller handles it" must be re-evaluated. A missing guard rated LOW as inline code becomes MEDIUM as a reusable function. Flag extracted helpers that lack self-contained validation.
+
+---
+
+## Cross-Agent Rule: Abstraction Boundary Violations (All Agents)
+
+Flag these patterns regardless of which domain agent encounters them. Full examples: `go-patterns/references/preferred-patterns/code-examples.md` AP-8.
+
+| Pattern | Detection | Severity | Fix |
+|---------|-----------|----------|-----|
+| Shotgun surgery / always-follows | `grep -rn "must be called after\|must always follow\|INVARIANT.*call" --include="*.go"` | MEDIUM (new) / LOW (existing) | Merge helper into prerequisite function |
+| Same-pair call pattern | `helperB(result)` after every `result := functionA()` | MEDIUM (new) / LOW (existing) | Move `helperB` inside `functionA` |
+| Defensive copy on fresh slice | `make([]T, len(x)+N)` + `copy` where x is freshly allocated | LOW | Replace with `append(x, element)` |
+| Over-tested trivial function | Test LOC > 10x function LOC, complexity <= 2 | LOW | Integration tests likely suffice |
+
+**Origin**: PR #220 — Stefan Majewsky.
