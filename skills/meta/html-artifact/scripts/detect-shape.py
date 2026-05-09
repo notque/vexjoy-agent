@@ -240,7 +240,17 @@ def classify_request(request: str) -> dict[str, object]:
     else:
         confidence = "low"
 
-    return {"shape": best.shape, "confidence": confidence, "signals": best.matched_signals}
+    # Find secondary shape (second-highest scorer with meaningful signal match)
+    remaining = [r for r in results if r.shape != best.shape and r.score >= 2]
+    secondary = max(remaining, key=lambda r: r.score) if remaining else None
+
+    return {
+        "shape": best.shape,
+        "confidence": confidence,
+        "signals": best.matched_signals,
+        "secondary_shape": secondary.shape if secondary else None,
+        "secondary_signals": secondary.matched_signals if secondary else [],
+    }
 
 
 def main() -> None:

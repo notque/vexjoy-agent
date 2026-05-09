@@ -83,6 +83,7 @@ routing:
   pairs_with:
     - content-calendar
     - wordpress-live-validation
+    - html-artifact
 ---
 
 # Publish Skill

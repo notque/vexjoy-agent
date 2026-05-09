@@ -203,7 +203,6 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 | series-planner | No | Multi-part content series: structure, cross-linking |
 | topic-brainstormer | No | Blog topic ideas: problem mining, gap analysis |
 | professional-communication | No | Technical communication into business formats |
-| interactive-essay | No | Scrollytelling React SPAs from markdown articles |
 
 ### Research & Analysis
 
@@ -620,7 +619,6 @@ Mandatory. When triggers match, skill fires before any other routing.
 | quick | quick task, small change, ad hoc task, add a flag, small refactor |
 | perses | perses, perses dashboard, perses plugin, perses lint, perses deploy, Grafana to Perses |
 | install | install toolkit, verify installation, health check toolkit |
-| interactive-essay | interactive essay, scrollytelling, interactive article, make this article interactive, scrolling SPA |
 
 ---
 
@@ -635,7 +633,6 @@ Pipeline skills with explicit phases and gates.
 | voice-writer | LOAD -> GROUND -> STATS-CHECKPOINT -> GENERATE -> VALIDATE -> REFINE -> JOY-CHECK -> ANTI-AI -> OUTPUT -> CLEANUP |
 | workflow | Multi-phase with type-specific references (review, debug, refactor, deploy, create, research) |
 | github-profile-rules | PROFILE-SCAN -> CODE-ANALYSIS -> REVIEW-MINING -> PATTERN-SYNTHESIS -> RULES-GENERATION -> VALIDATION -> OUTPUT |
-| interactive-essay | CONTENT -> STRUCTURE -> SCAFFOLD -> BUILD -> VOICE -> VALIDATE -> DEPLOY |
 | feature-lifecycle | DESIGN -> PLAN -> IMPLEMENT -> VALIDATE -> RELEASE |
 
 ---

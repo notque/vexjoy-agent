@@ -19,10 +19,12 @@ routing:
     - interactive document
     - HTML file
     - self-contained HTML
+    - visual companion
   pairs_with:
     - pr-workflow
     - research-pipeline
     - planning
+    - publish
   complexity: Medium
   category: meta
 ---
@@ -64,6 +66,26 @@ The script outputs a shape name and confidence score.
 
 Gate: Shape detected with medium+ confidence.
 -- because low-confidence classification produces artifacts that mix concerns and satisfy no shape well. Fallback to "report" (safest general-purpose shape) if confidence is low or ambiguous.
+
+---
+
+### Hybrid Shapes
+
+Real content often combines two shapes — a report with embedded diagrams, a spec with data-viz charts. When `detect-shape.py` returns a primary shape with medium/high confidence but the request also contains signals for a secondary shape, use the hybrid pattern:
+
+| Primary Shape | + Secondary | Result |
+|---|---|---|
+| report | + diagram | Report layout (TL;DR, collapsibles, TOC) with inline SVG diagrams between sections |
+| report | + data-viz | Report layout with embedded SVG charts illustrating key metrics |
+| spec | + diagram | Comparison grid with SVG flow diagrams showing each option's architecture |
+| spec | + data-viz | Comparison grid with charts showing performance/cost per option |
+| diagram | + report | Figure sheet with explanatory text sections between diagram groups |
+
+**Detection:** After running `detect-shape.py`, check if the `secondary_shape` field is non-null. If so, load BOTH shape references in Phase 2.
+
+**Generation rule:** Primary shape controls page layout (outer structure). Secondary shape provides embedded components (inner elements). The html-builder agent receives both shape patterns and uses primary for structure, secondary for visual elements within sections.
+
+**Example:** "create a visual companion for my pipelines article with diagrams and explanations" → primary: `report` (explain, article), secondary: `diagram` (visual, diagrams). Load `shape-report-research.md` AND `shape-diagram-illustration.md`.
 
 ---
 
@@ -237,6 +259,7 @@ Constraint: Detect headless/SSH environments before offering browser open.
 | Shape = data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
 | Shape = diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
 | Shape = deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
+| Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
 
 ---
 
@@ -262,5 +285,6 @@ This skill uses:
 - `references/shape-diagram-illustration.md`: Diagram shape -- inline SVG flowcharts, architecture diagrams, sequence diagrams, figure sheets
 - `references/shape-slide-deck.md`: Deck shape -- arrow-key navigable slide decks, 16:9 aspect ratio, slide types, presenter notes
 - `agents/html-builder.md`: Subagent prompt for HTML generation
+- `references/scrollytelling-patterns.md`: Vanilla JS IntersectionObserver patterns -- scroll-triggered reveals, stagger animations, animated counters, progress bars
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
