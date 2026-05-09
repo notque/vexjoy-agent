@@ -171,7 +171,11 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
-    """Validate all registered hooks have backing files."""
+    """Validate all registered hooks have backing files.
+
+    Emits one [PASS]/[FAIL] line per hook so CI and cron wrappers can
+    detect problems by grepping for '[FAIL]'.
+    """
     settings = load_settings()
     hooks = settings.get("hooks", {})
     issues = []
@@ -187,21 +191,21 @@ def cmd_validate(args: argparse.Namespace) -> None:
                     if "python3 hooks/" in cmd or 'python3 "hooks/' in cmd:
                         hook_file = cmd.split("hooks/")[-1].rstrip('"').rstrip("'")
                         issues.append((event, hook_file, "RELATIVE PATH"))
-                        print(f"  FAIL: {event} -> {hook_file} — uses relative path (breaks outside toolkit repo)")
+                        print(f"[FAIL] {event}/{hook_file}: uses relative path (breaks outside toolkit repo)")
                     continue
                 # Extract filename
                 name = cmd.split("$HOME/.claude/hooks/")[-1].rstrip('"')
                 target = HOOKS_DIR / name
                 if not target.exists():
                     issues.append((event, name, "FILE MISSING"))
-                    print(f"  FAIL: {event} -> {name} — file does not exist at {target}")
+                    print(f"[FAIL] {event}/{name}: file does not exist at {target}")
                 else:
-                    print(f"  OK:   {event} -> {name}")
+                    print(f"[PASS] {event}/{name}")
 
     if issues:
-        print(f"\n{len(issues)} hook(s) registered without backing files!")
-        print("This WILL deadlock Claude Code (Python exit 2 = BLOCK).")
-        print("Fix: create the missing files or unregister the hooks.")
+        print(f"\n{len(issues)} hook(s) registered without backing files!", file=sys.stderr)
+        print("This WILL deadlock Claude Code (Python exit 2 = BLOCK).", file=sys.stderr)
+        print("Fix: create the missing files or unregister the hooks.", file=sys.stderr)
         sys.exit(2)
     else:
         print("\nAll registered hooks have backing files.")
