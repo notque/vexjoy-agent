@@ -544,7 +544,7 @@ These scripts only apply to sapcc repos (detected by `github.com/sapcc/go-bits` 
 
 Two complementary review styles govern sapcc code review.
 
-**Lead review** is directive -- statements, not suggestions. Top concerns: simplicity, API design, error handling. See [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md) for all 21 PR comments with full context.
+**Lead review** is directive -- statements, not suggestions. Top concerns: simplicity, API design, error handling. See [references/review-standards.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards.md) for all review comments with full context.
 
 | Rule | Summary |
 |------|---------|
@@ -569,7 +569,7 @@ How lead review works:
 - Corrects misconceptions directly -- states correct behavior without softening
 - Pushes fixes directly -- sometimes pushes commits to address review concerns directly
 
-**Secondary review** is inquisitive -- questions where lead review makes statements. Top concerns: configuration safety, migration paths, test completeness. See [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md) for full details.
+**Secondary review** is inquisitive -- questions where lead review makes statements. Top concerns: configuration safety, migration paths, test completeness. See [references/review-standards.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards.md) for full details.
 
 | Rule | Summary |
 |------|---------|
