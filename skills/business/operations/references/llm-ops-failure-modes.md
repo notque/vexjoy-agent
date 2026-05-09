@@ -10,6 +10,8 @@ skill: operations
 > **Scope**: Catalog of predictable LLM failure modes when generating operational content — runbooks, risk assessments, process documentation, change requests, vendor evaluations, and capacity plans. Each failure mode includes detection criteria and countermeasures. Load this reference for ALL operations modes. It is the quality guard for everything this skill produces.
 > **Generated**: 2026-05-05 — LLM capabilities evolve. Re-validate failure modes when underlying models change.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers operations-specific failures only.
+
 ---
 
 ## Overview

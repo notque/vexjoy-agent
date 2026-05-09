@@ -2,6 +2,8 @@
 
 Where LLMs fail in HR contexts. Every mode in the HR skill must account for these failure modes. This reference loads with every HR task.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers HR-specific failures only.
+
 ---
 
 ## Failure Mode Categories

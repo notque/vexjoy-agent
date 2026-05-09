@@ -241,18 +241,7 @@ This mode is fundamentally different. The PM does not get a deliverable. They ge
 
 ## LLM Failure Modes in PM Work
 
-**Load `references/llm-pm-failure-modes.md` for all modes.** These are the specific ways LLMs fail at PM tasks:
-
-| Failure Mode | What Happens | Defense |
-|-------------|-------------|---------|
-| Vague specs | Requirements that sound complete but lack testable acceptance criteria | Every requirement gets Given/When/Then or a checklist. Ban "intuitive", "fast", "user-friendly" without definitions. |
-| Fabricated research | LLM invents plausible-sounding user quotes, statistics, or persona details | Cite a user-provided source for every finding. Flag confidence levels. |
-| Generic competitive analysis | Surface-level comparison that reads like a marketing brochure mashup | Require evidence source for each claim. Rate based on real product experience, not feature list comparison. |
-| Metrics without context | Numbers presented without comparison, baseline, or statistical awareness | Always show vs previous period, vs target, vs benchmark. Note sample size. Flag statistical pitfalls. |
-| Roadmaps disconnected from strategy | Feature lists masquerading as roadmaps with no strategic thread | Every item ties to a goal or OKR. Explain WHY, not just WHAT. Challenge items with no clear "so what." |
-| Happy-path-only specs | Edge cases, error states, and failure modes omitted | Explicitly prompt for error cases, empty states, boundary conditions, concurrent access, permission failures. |
-| Framework regurgitation | Dumping RICE/MoSCoW/JTBD as templates without applying them to the actual problem | Frameworks are thinking tools. Apply them to the specific situation or do not mention them. |
-| Scope creep enablement | Accepting every addition without surfacing tradeoffs | Every scope addition asks "what comes off?" Maintain non-goals section. Time-box investigations. |
+See `references/llm-pm-failure-modes.md` for the complete failure mode catalog (vague specs, fabricated research, generic competitive analysis, metrics without context, happy-path-only specs, framework regurgitation, scope creep enablement). Universal failure modes in `skills/shared-patterns/llm-domain-failure-modes-base.md`.
 
 ---
 

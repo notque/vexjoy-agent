@@ -221,16 +221,7 @@ If the request spans modes, pick the primary mode and note the secondary.
 
 ## LLM Failure Modes in Productivity Work
 
-**Load `references/llm-productivity-failure-modes.md` for all modes.** Summary of key failures:
-
-| Failure Mode | What Happens | Defense |
-|-------------|-------------|---------|
-| Aspirational planning | Plans ignore real calendar constraints and energy levels | Build plans against actual calendar. Flag when planned work exceeds available time minus 20% buffer. |
-| Unestimated task lists | Task lists without time estimates or priorities | Every task gets a time estimate (1/2/4h buckets) and priority. Lists without estimates are incomplete. |
-| Generic advice | "Use the Pomodoro technique" without adapting to context | Adapt recommendations to the person's actual schedule, energy patterns, and work type. |
-| Agendaless meetings | Meeting agendas without decision outcomes | Every agenda item has a type (Decision/Discussion/Info/Brainstorm) and a defined outcome. |
-| Task-list reviews | Weekly reviews that list tasks without reflection | Reviews must surface patterns, compare planned vs actual, and produce testable adjustments. |
-| Activity-based status | "Worked on X" instead of "Shipped X, which enables Y" | Frame progress as outcomes and results. Activities only appear as context for outcomes. |
+See `references/llm-productivity-failure-modes.md` for the complete failure mode catalog (aspirational planning, unestimated tasks, generic advice, agendaless meetings, shallow reviews, activity-based status). Universal failure modes in `skills/shared-patterns/llm-domain-failure-modes-base.md`.
 
 ---
 

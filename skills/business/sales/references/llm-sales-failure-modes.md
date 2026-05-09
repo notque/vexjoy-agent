@@ -2,6 +2,8 @@
 
 Where LLMs fail in sales work. This reference catalogs specific failure patterns, their causes, and the guardrails that prevent them. Load this reference for every sales mode.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers sales-specific failures only.
+
 ---
 
 ## Why Sales Is Especially Dangerous for LLMs

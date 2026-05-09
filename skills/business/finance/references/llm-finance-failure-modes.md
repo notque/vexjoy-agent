@@ -2,6 +2,8 @@
 
 Where LLMs fail in finance work. Load this reference for every finance task as a guard rail. Each failure mode includes the pattern, why it happens, and the mitigation.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers finance-specific failures only.
+
 ---
 
 ## Category 1: Arithmetic Errors

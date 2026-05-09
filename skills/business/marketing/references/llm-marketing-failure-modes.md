@@ -10,6 +10,8 @@ skill: marketing
 > **Scope**: Comprehensive taxonomy of how LLMs fail at marketing tasks, with detection heuristics, concrete examples, and mitigation strategies. Load selectively when any marketing mode needs quality enforcement.
 > **Generated**: 2026-05-05 — failure modes evolve with model capabilities. Some modes that fail today may improve; new failure modes may emerge.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers marketing-specific failures only.
+
 ---
 
 ## Overview
