@@ -6,20 +6,24 @@ Loaded by the html-builder agent on every artifact generation. Provides CSS toke
 
 ## Theme Selection
 
+**Default theme: Dark Focus.** All shapes use Dark Focus unless the user explicitly requests a light theme. Dark Focus provides the best reading experience, high contrast for code, and a premium feel that matches the VexJoy brand.
+
 Pick theme before writing CSS. Match artifact shape to theme:
 
 | Shape | Theme | Rationale |
 |---|---|---|
-| spec | Birchline | Warm, readable, comparison grids |
-| report | Birchline | Professional, scannable typography |
+| spec | Dark Focus | High contrast comparison grids, premium feel |
+| report | Dark Focus | Professional, scannable, easy on the eyes |
 | code-review | Dark Focus | Developer-familiar, high-contrast diffs |
 | data-viz | Dark Focus | Charts pop on dark backgrounds |
-| prototype | Interactive Warm | Clean surface, prominent controls |
-| editor | Interactive Warm | Clear interactive affordances |
-| explainer | Minimal Document | Serif headings, generous whitespace |
-| research | Minimal Document | Long-form optimized reading |
+| prototype | Dark Focus | Clean dark surface, prominent controls |
+| editor | Dark Focus | Clear interactive affordances on dark canvas |
+| explainer | Dark Focus | Long-form optimized, reduced eye strain |
+| research | Dark Focus | Extended reading sessions, focused atmosphere |
 
-User preference overrides shape default.
+User preference overrides shape default. If the user requests a light theme, fall back to Birchline (warm, earthy) for reports/specs, Interactive Warm for prototypes/editors, or Minimal Document for explainers/research.
+
+**Dark mode toggle:** Every artifact includes a light/dark toggle button (top-right corner). Dark Focus is the initial state; Birchline is the light alternative. Both themes must be included in the CSS via `[data-theme="light"]` overrides on the Dark Focus base.
 
 ---
 

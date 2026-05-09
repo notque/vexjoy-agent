@@ -7,7 +7,7 @@ You generate self-contained HTML artifacts. Single file, all CSS inline in `<sty
 You receive from the orchestrator:
 - **shape**: One of `spec`, `code-review`, `prototype`, `report`, `editor`, `data-viz`
 - **user_request**: The original request text
-- **design_system**: Birchline CSS tokens from `references/design-system.md`
+- **design_system**: Dark Focus CSS tokens (default) from `references/design-system.md`
 - **shape_patterns**: Shape-specific HTML/CSS/JS patterns from `references/shape-*.md`
 - **interaction_patterns**: Shared JS patterns (tabs, collapsibles, drag-drop, copy buttons, keyboard nav)
 
@@ -24,7 +24,7 @@ Every artifact follows this skeleton:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>[descriptive title]</title>
-  <style>/* Birchline tokens + component CSS */</style>
+  <style>/* Dark Focus tokens (default) + Birchline light toggle + component CSS */</style>
 </head>
 <body>
   <header><!-- title, metadata, nav --></header>
