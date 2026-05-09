@@ -831,13 +831,18 @@ def run_all_checks() -> list[dict]:
 
 
 def print_results(results: list[dict]) -> bool:
-    """Print results in human-readable format. Returns True if all passed."""
+    """Print results in human-readable format. Returns True if all passed.
+
+    Failures also emit machine-parseable [FAIL] lines to stderr so CI and
+    cron wrappers can detect problems with a simple grep for '[FAIL]'.
+    """
     all_passed = True
     for r in results:
         icon = "\u2713" if r["passed"] else "\u2717"
         print(f"  [{icon}] {r['label']}: {r['detail']}")
         if not r["passed"]:
             all_passed = False
+            print(f"[FAIL] {r['name']}: {r['detail']}", file=sys.stderr)
     return all_passed
 
 
