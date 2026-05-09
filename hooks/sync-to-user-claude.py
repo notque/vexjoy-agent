@@ -586,7 +586,14 @@ def main():
                     f"but missing from ~/.claude/hooks/: {', '.join(missing_hooks)}",
                     file=sys.stderr,
                 )
-                # Attempt emergency copy from repo hooks/ for any missing files
+                # Attempt emergency copy from repo hooks/ for any missing files.
+                # First, ensure hooks_dir is a usable directory — it may be a
+                # broken symlink (target repo was renamed/moved) which causes
+                # mkdir(exist_ok=True) to raise FileExistsError.
+                if hooks_dir.is_symlink() and not hooks_dir.exists():
+                    hooks_dir.unlink()  # Remove broken symlink
+                    print("[sync] Removed broken hooks symlink", file=sys.stderr)
+                hooks_dir.mkdir(parents=True, exist_ok=True)
                 for py_file in missing_hooks:
                     repo_hook = repo_root / "hooks" / py_file
                     if repo_hook.exists():

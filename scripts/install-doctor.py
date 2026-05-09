@@ -71,7 +71,24 @@ def check_components_installed() -> list[dict]:
         target = CLAUDE_DIR / comp
         is_symlink = target.is_symlink()
         is_dir = target.is_dir()
+        is_file = target.is_file() and not is_symlink  # Regular file (not a symlink)
         exists = is_symlink or is_dir
+
+        if is_file:
+            # A regular file where a directory/symlink is expected — broken state.
+            # This can happen from interrupted installs or shell misuse.
+            results.append(
+                {
+                    "name": f"component_{comp}",
+                    "label": f"~/.claude/{comp}",
+                    "passed": False,
+                    "detail": (
+                        f"EXISTS AS REGULAR FILE (expected directory or symlink). "
+                        f"Fix: rm ~/.claude/{comp} && install.sh --symlink"
+                    ),
+                }
+            )
+            continue
 
         if is_symlink:
             try:
