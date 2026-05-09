@@ -75,7 +75,7 @@ After making changes to CRDs, Helm values, or operator configuration, STOP and a
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `core.md` | Loads detailed guidance from `core.md`. |
-| tasks related to this reference | `dashboard.md` | Loads detailed guidance from `dashboard.md`. |
-| tasks related to this reference | `operator.md` | Loads detailed guidance from `operator.md`. |
-| tasks related to this reference | `plugin.md` | Loads detailed guidance from `plugin.md`. |
+| Go backend, React frontend, CUE schemas, auth, build, contribution, architecture, API handlers, storage | `references/core.md` | Core Perses development patterns |
+| dashboard, DaC, Dashboard-as-Code, percli, variable, query, datasource, PromQL, panel, timeseries, migrate Grafana | `references/dashboard.md` | Dashboard creation and DaC SDK patterns |
+| Kubernetes, CRD, operator, Helm, k8s, PersesDashboard, PersesProject, RBAC, cert-manager, manifest | `references/operator.md` | Kubernetes operator CRDs and deployment |
+| plugin, Module Federation, CUE schema, scaffold, panel plugin, datasource plugin, percli plugin, webpack | `references/plugin.md` | Plugin development, CUE schemas, and React components |
