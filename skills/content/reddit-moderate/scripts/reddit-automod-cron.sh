@@ -12,8 +12,10 @@
 # Cron example (twice daily at 8am and 8pm):
 #   0 8,20 * * * /home/feedgen/vexjoy-agent/skills/content/reddit-moderate/scripts/reddit-automod-cron.sh --execute >> /home/feedgen/vexjoy-agent/reddit-data/sap/cron-log/cron.log 2>&1
 
-# Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
-export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
+# Ensure claude CLI and venv python are in PATH (cron doesn't inherit user PATH)
+# Venv python first so `python3` resolves to the venv with praw installed
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+export PATH="$REPO_ROOT/venv/bin:$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
 
 set -euo pipefail
 
@@ -89,7 +91,7 @@ claude -p "$PROMPT" \
     --permission-mode auto \
     --max-budget-usd "$MAX_BUDGET" \
     --no-session-persistence \
-    --model claude-sonnet-4-7 \
+    --model sonnet \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 
 EXIT_CODE=${PIPESTATUS[0]}
