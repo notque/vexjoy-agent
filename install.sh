@@ -55,7 +55,7 @@ echo ""
 # Parse arguments
 MODE=""
 DRY_RUN=false
-FORCE=false
+FORCE=true  # Default to force — never prompt about existing directories
 while [[ $# -gt 0 ]]; do
     case $1 in
         --symlink)
@@ -79,7 +79,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --force|-f)
-            FORCE=true
+            FORCE=true  # Already default, accepted for backward compat
+            shift
+            ;;
+        --no-force)
+            FORCE=false  # Opt in to interactive prompts
             shift
             ;;
         --help|-h)
@@ -91,7 +95,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --uninstall  Remove the installation"
             echo "  --rollback   Restore settings.json from the most recent backup"
             echo "  --dry-run    Show what would happen without making changes"
-            echo "  --force      Replace existing directories without prompting"
+            echo "  --force      Replace existing directories without prompting (default)"
+            echo "  --no-force   Prompt before replacing existing directories"
             echo ""
             echo "If no option provided, will prompt interactively."
             exit 0
