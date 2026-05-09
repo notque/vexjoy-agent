@@ -107,7 +107,7 @@ PHASE_SENTINEL_REGISTRY: dict[str, dict[int, str]] = {
     # voice-writer (13 phases: LOAD, GROUND, STATS-CHECKPOINT, GENERATE, HOOK-GATE,
     #   VALIDATE, REFINE, VARIETY-GATE, JOY-CHECK, ANTI-AI, CLOSE-GATE, OUTPUT, CLEANUP)
     "voice-writer": {
-        4: ".voice-grounding.md",       # Phase 4 (GENERATE) requires Phase 2 (GROUND) artifact
+        4: ".voice-grounding.md",  # Phase 4 (GENERATE) requires Phase 2 (GROUND) artifact
         6: ".voice-stats-baseline.md",  # Phase 6 (VALIDATE) requires Phase 3 (STATS-CHECKPOINT)
         10: ".voice-validation-report.md",  # Phase 10 (ANTI-AI) requires Phase 6 (VALIDATE) report
     },
@@ -306,9 +306,19 @@ def main() -> None:
 
         # Check all 13 phases passed
         required_phases = {
-            "LOAD", "GROUND", "STATS-CHECKPOINT", "GENERATE", "HOOK-GATE",
-            "VALIDATE", "REFINE", "VARIETY-GATE", "JOY-CHECK", "ANTI-AI",
-            "CLOSE-GATE", "OUTPUT", "CLEANUP",
+            "LOAD",
+            "GROUND",
+            "STATS-CHECKPOINT",
+            "GENERATE",
+            "HOOK-GATE",
+            "VALIDATE",
+            "REFINE",
+            "VARIETY-GATE",
+            "JOY-CHECK",
+            "ANTI-AI",
+            "CLOSE-GATE",
+            "OUTPUT",
+            "CLEANUP",
         }
         passed = set(marker.get("phases_passed", []))
         missing = required_phases - passed
