@@ -2,8 +2,8 @@
 name: html-artifact
 description: |
   Generate rich self-contained HTML artifacts instead of markdown. Auto-detects
-  artifact shape (spec, code-review, prototype, report, editor, data-viz) and
-  loads shape-specific patterns. Bundles Birchline design system with 4 theme
+  artifact shape (spec, code-review, prototype, report, editor, data-viz,
+  diagram, deck) and loads shape-specific patterns. Bundles Birchline design system with 4 theme
   presets. Use for "make HTML", "as HTML", "HTML artifact", or auto-injected
   by router when output benefits from rich visualization.
 user_invocable: true  # justification: users type "/html" directly for explicit
@@ -39,13 +39,13 @@ Generate single self-contained `.html` files that replace markdown when the outp
 
 ### Overview
 
-5-phase pipeline: DETECT SHAPE, LOAD CONTEXT, GENERATE, VALIDATE, DELIVER. Phase 1 classifies the request into one of 6 shapes via deterministic script. Phase 2 loads the Birchline design system plus shape-specific reference. Phase 3 dispatches a subagent to generate the HTML. Phase 4 validates structure. Phase 5 delivers the file path and offers browser preview.
+5-phase pipeline: DETECT SHAPE, LOAD CONTEXT, GENERATE, VALIDATE, DELIVER. Phase 1 classifies the request into one of 8 shapes via deterministic script. Phase 2 loads the Birchline design system plus shape-specific reference. Phase 3 dispatches a subagent to generate the HTML. Phase 4 validates structure. Phase 5 delivers the file path and offers browser preview.
 
 ---
 
 ### Phase 1: DETECT SHAPE
 
-Classify the user's request into one of 6 artifact shapes.
+Classify the user's request into one of 8 artifact shapes.
 
 Run: `python3 skills/meta/html-artifact/scripts/detect-shape.py --request "{user_request}"`
 
@@ -59,6 +59,8 @@ The script outputs a shape name and confidence score.
 | report | report, summarize, status update, explain how X works, incident | TL;DR box, collapsible sections, timeline, metric callouts, SVG diagrams |
 | editor | reorder, triage, edit config, tune prompt, pick values | Drag-drop, kanban, toggle switches, split-pane, export buttons |
 | data-viz | visualize, chart, dashboard, show data, trends | SVG charts, canvas, interactive tooltips, filter controls |
+| diagram | diagram, flowchart, architecture, sequence, SVG, illustrate, figure | Inline SVG diagrams, annotated flowcharts, figure sheets, interactive node details |
+| deck | slides, presentation, deck, talk, pitch | Arrow-key navigable slide deck, 16:9 aspect ratio, slide types, progress bar |
 
 Gate: Shape detected with medium+ confidence.
 -- because low-confidence classification produces artifacts that mix concerns and satisfy no shape well. Fallback to "report" (safest general-purpose shape) if confidence is low or ambiguous.
@@ -83,6 +85,8 @@ Load the design system and shape-specific reference files.
 | report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
 | editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
 | data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
+| diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
+| deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
 
 Gate: All required references loaded (design-system + interaction-patterns + shape-specific).
 -- because generating without the design system produces inconsistent visual output, and generating without shape patterns produces generic HTML that defeats the purpose.
@@ -112,7 +116,7 @@ Dispatch the html-builder subagent to produce the artifact.
 | Max 500KB file size | Keeps generation time reasonable, prevents bloated inline assets |
 
 Constraint: No framework boilerplate.
--- because React/Vue/Svelte require build steps and external imports that violate the single-file self-contained requirement. Vanilla JS handles all 6 shapes adequately.
+-- because React/Vue/Svelte require build steps and external imports that violate the single-file self-contained requirement. Vanilla JS handles all 8 shapes adequately.
 
 Constraint: Generate HTML directly, never generate markdown then convert.
 -- because markdown-to-HTML conversion loses the shape-specific layout, interactivity, and visual structure that justifies using HTML in the first place.
@@ -231,6 +235,8 @@ Constraint: Detect headless/SSH environments before offering browser open.
 | Shape = report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
 | Shape = editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
 | Shape = data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
+| Shape = diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
+| Shape = deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
 
 ---
 
@@ -253,6 +259,8 @@ This skill uses:
 - `references/shape-report-research.md`: Report shape -- TL;DR boxes, collapsible sections, timelines, metric callouts
 - `references/shape-custom-editor.md`: Editor shape -- drag-drop, kanban, toggle switches, export buttons
 - `references/shape-data-visualization.md`: Data viz shape -- SVG charts, canvas rendering, tooltips, filter controls
+- `references/shape-diagram-illustration.md`: Diagram shape -- inline SVG flowcharts, architecture diagrams, sequence diagrams, figure sheets
+- `references/shape-slide-deck.md`: Deck shape -- arrow-key navigable slide decks, 16:9 aspect ratio, slide types, presenter notes
 - `agents/html-builder.md`: Subagent prompt for HTML generation
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
