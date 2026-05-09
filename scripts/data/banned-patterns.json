@@ -649,6 +649,19 @@
       "notes": "Overweighted qualifiers that AI uses to sound authoritative. Usually the sentence works without the qualifier.",
       "message": "Thesis-statement cadence. The qualifier is doing the work instead of the evidence.",
       "suggestion_template": "Remove the qualifier and let the claim stand on specifics."
+    },
+    "ai_structural_repetition": {
+      "severity": "warning",
+      "patterns": [
+        "Not \\w+[.]\\s*(?:Because|Just|Simply|Only) ",
+        "[Ww]hich is \\w+, but also \\w+",
+        "I keep (?:thinking|wondering|coming back|finding)",
+        "[Tt]his is fine (?:if|when|because)",
+        "[Tt]he \\w+ (?:is|was) (?:predictable|telling|interesting|instructive|revealing|notable)"
+      ],
+      "message": "Structural Claude tell: this rhetorical pattern is a recognizable AI signature when repeated (ai_structural_repetition)",
+      "suggestion_template": "Use a different construction. For pivots: state the reason directly. For 'which is X but also Y': pick the stronger point. For 'I keep thinking': state the thought directly. For 'this is fine if': name the condition first. See section-shape-variety.md for alternatives.",
+      "notes": "Individual instances are fine in human writing. The flag fires to prevent DENSITY of the same structural pattern. One per article is natural; three is a fingerprint."
     }
   },
   "voice_specific": {
