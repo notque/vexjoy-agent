@@ -33,7 +33,6 @@ routing:
     - perses cue schema
     - plugin schema
   pairs_with:
-    - perses
     - golang-general-engineer
     - typescript-frontend-engineer
     - kubernetes-helm-engineer

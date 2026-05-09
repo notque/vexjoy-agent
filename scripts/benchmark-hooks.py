@@ -67,7 +67,6 @@ INPUTS: dict[str, str] = {
 # Map hooks to their expected event types based on common patterns
 HOOK_EVENT_MAP: dict[str, str] = {
     "skill-evaluator": "UserPromptSubmit",
-    "capability-catalog-injector": "UserPromptSubmit",
     "retro-knowledge-injector": "UserPromptSubmit",
     "instruction-reminder": "UserPromptSubmit",
     "operator-context-detector": "UserPromptSubmit",

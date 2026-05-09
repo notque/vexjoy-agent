@@ -163,6 +163,4 @@ Every repair action MUST be logged in the execution summary. This creates an aud
 ## Related Patterns
 
 - [Gate Enforcement](./gate-enforcement.md) — repair happens within the IMPLEMENT-to-VERIFY gate loop
-- [Blocker Criteria](./blocker-criteria.md) — ESCALATE aligns with blocker handling (stop and ask)
 - [Anti-Rationalization Core](./anti-rationalization-core.md) — prevents rationalizing past budget limits
-- [Analysis Paralysis Guard](./analysis-paralysis-guard.md) — prevents unbounded exploration during RETRY/DECOMPOSE
