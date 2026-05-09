@@ -23,6 +23,7 @@ routing:
   force_route: true
   triggers:
     - "push changes"
+    - "push my changes"
     - "push to GitHub"
     - "create PR"
     - "sync to GitHub"
@@ -44,6 +45,7 @@ routing:
     - "did CI pass"
     - "stage and commit"
     - "commit changes"
+    - "commit these files"
     - "codex review"
     - "second opinion"
     - "cross-model review"
