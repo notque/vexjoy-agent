@@ -2,7 +2,8 @@
 """Deterministic shape classifier for html-artifact skill.
 
 Analyzes a user request string and returns the best artifact shape
-from six categories: spec, code-review, prototype, report, editor, data-viz.
+from eight categories: spec, code-review, prototype, report, editor, data-viz,
+diagram, deck.
 
 Classification is purely signal-word based — same input always produces same output.
 
@@ -139,10 +140,47 @@ SHAPES: dict[str, dict[str, list[str]]] = {
             "distribution",
         ],
     },
+    "diagram": {
+        "primary": [
+            "diagram",
+            "flowchart",
+            "architecture",
+            "sequence",
+            "svg",
+            "illustrate",
+            "figure",
+            "data flow",
+            "dependency map",
+            "node graph",
+        ],
+        "secondary": [
+            "draw a diagram",
+            "system diagram",
+            "service mesh",
+            "topology",
+        ],
+    },
+    "deck": {
+        "primary": [
+            "slides",
+            "presentation",
+            "deck",
+            "talk",
+            "pitch",
+            "keynote",
+            "slideshow",
+        ],
+        "secondary": [
+            "slide deck",
+            "lightning talk",
+            "conference talk",
+            "pitch deck",
+        ],
+    },
 }
 
 # Priority order for tie-breaking (index 0 = highest priority)
-PRIORITY_ORDER: list[str] = ["editor", "spec", "code-review", "prototype", "report", "data-viz"]
+PRIORITY_ORDER: list[str] = ["editor", "spec", "code-review", "diagram", "deck", "prototype", "report", "data-viz"]
 
 DEFAULT_SHAPE = "report"
 

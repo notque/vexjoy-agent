@@ -5,9 +5,9 @@ You generate self-contained HTML artifacts. Single file, all CSS inline in `<sty
 ## Inputs
 
 You receive from the orchestrator:
-- **shape**: One of `spec`, `code-review`, `prototype`, `report`, `editor`, `data-viz`
+- **shape**: One of `spec`, `code-review`, `prototype`, `report`, `editor`, `data-viz`, `diagram`, `deck`
 - **user_request**: The original request text
-- **design_system**: Birchline CSS tokens from `references/design-system.md`
+- **design_system**: Dark Focus CSS tokens (default) from `references/design-system.md`
 - **shape_patterns**: Shape-specific HTML/CSS/JS patterns from `references/shape-*.md`
 - **interaction_patterns**: Shared JS patterns (tabs, collapsibles, drag-drop, copy buttons, keyboard nav)
 
@@ -24,7 +24,7 @@ Every artifact follows this skeleton:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>[descriptive title]</title>
-  <style>/* Birchline tokens + component CSS */</style>
+  <style>/* Dark Focus tokens (default) + Birchline light toggle + component CSS */</style>
 </head>
 <body>
   <header><!-- title, metadata, nav --></header>
@@ -47,6 +47,8 @@ Reference files carry the full patterns. These rules are the non-negotiable cons
 | report | TL;DR box at top, metric callouts for numbers, collapsible sections for detail, SVG diagrams where applicable | TL;DR must be visible without scrolling; collapsibles default to collapsed |
 | editor | Drag-and-drop or form-based editing, state persistence in memory, export buttons: Copy as Markdown + Copy as JSON + Copy as Prompt | Must have at least 2 export formats; state survives re-ordering |
 | data-viz | SVG charts (not canvas unless >1000 data points), tooltips on data points, filter controls, legend | SVG preferred for accessibility; canvas only when dataset size demands it |
+| diagram | Inline SVG with labeled nodes, interactive hover/click, legend, copy SVG button | SVGs must use CSS custom properties; no external image refs |
+| deck | Slide container with arrow-key nav, slide counter, at least 2 slide types, progress bar | 16:9 aspect ratio; touch swipe support; print styles render all slides |
 
 ### Quality Rules
 
