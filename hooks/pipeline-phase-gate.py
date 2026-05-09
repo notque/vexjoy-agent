@@ -104,6 +104,13 @@ PHASE_SENTINEL_REGISTRY: dict[str, dict[int, str]] = {
         # Phase 3 (PR creation) requires committed changes on branch — checked via git, not file artifact
         # These are git-state gates, not file-artifact gates. Handled by _check_git_prerequisite.
     },
+    # voice-writer (13 phases: LOAD, GROUND, STATS-CHECKPOINT, GENERATE, HOOK-GATE,
+    #   VALIDATE, REFINE, VARIETY-GATE, JOY-CHECK, ANTI-AI, CLOSE-GATE, OUTPUT, CLEANUP)
+    "voice-writer": {
+        4: ".voice-grounding.md",       # Phase 4 (GENERATE) requires Phase 2 (GROUND) artifact
+        6: ".voice-stats-baseline.md",  # Phase 6 (VALIDATE) requires Phase 3 (STATS-CHECKPOINT)
+        10: ".voice-validation-report.md",  # Phase 10 (ANTI-AI) requires Phase 6 (VALIDATE) report
+    },
 }
 
 # Artifact basenames that are themselves phase outputs — used to detect which
@@ -256,6 +263,65 @@ def main() -> None:
                 else:
                     _debug(f"Phase artifact {required_path} exists — allowing")
                     sys.exit(0)
+
+    # --- Strategy 3: Blog post voice-writer gate ---
+    # Any write to content/posts/*.md requires the voice-writer pipeline to
+    # have completed. Checked via a .voice-pipeline-complete marker file.
+    if "content/posts/" in file_path and file_path.endswith(".md"):
+        # Allow the voice-writer itself to write during pipeline execution
+        if os.environ.get("VOICE_WRITER_ACTIVE") == "1":
+            _debug("VOICE_WRITER_ACTIVE=1 — allowing blog post write during pipeline")
+            sys.exit(0)
+
+        marker_path = cwd / ".voice-pipeline-complete"
+        if not marker_path.is_file():
+            print(
+                "[pipeline-phase-gate] BLOCKED: Blog post writes require the voice-writer pipeline. "
+                "Run /voice-writer first. The voice pipeline creates .voice-pipeline-complete "
+                "when all 13 phases pass.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        # Validate marker contents
+        try:
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            print(
+                "[pipeline-phase-gate] BLOCKED: .voice-pipeline-complete exists but is unreadable or invalid JSON.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        # Check target_file basename match
+        marker_target = marker.get("target_file", "")
+        if Path(marker_target).name != target_basename:
+            print(
+                f"[pipeline-phase-gate] BLOCKED: .voice-pipeline-complete target_file "
+                f"'{marker_target}' does not match write target '{target_basename}'. "
+                f"Run /voice-writer for this specific post.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        # Check all 13 phases passed
+        required_phases = {
+            "LOAD", "GROUND", "STATS-CHECKPOINT", "GENERATE", "HOOK-GATE",
+            "VALIDATE", "REFINE", "VARIETY-GATE", "JOY-CHECK", "ANTI-AI",
+            "CLOSE-GATE", "OUTPUT", "CLEANUP",
+        }
+        passed = set(marker.get("phases_passed", []))
+        missing = required_phases - passed
+        if missing:
+            print(
+                f"[pipeline-phase-gate] BLOCKED: .voice-pipeline-complete is missing phases: "
+                f"{', '.join(sorted(missing))}. Pipeline incomplete.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        _debug(f"Voice-writer pipeline complete for {target_basename} — allowing")
+        sys.exit(0)
 
     _debug(f"No gate matched for {file_path} — allowing through")
     sys.exit(0)

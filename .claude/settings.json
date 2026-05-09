@@ -156,7 +156,7 @@
           },
           {
             "type": "command",
-            "command": "python3 hooks/pipeline-phase-gate.py",
+            "command": "python3 \"$HOME/.claude/hooks/pipeline-phase-gate.py\"",
             "description": "Pipeline phase gate: blocks edits that skip required pipeline phases",
             "timeout": 3000
           }
@@ -301,7 +301,7 @@
           },
           {
             "type": "command",
-            "command": "python3 hooks/instruction-compliance.py",
+            "command": "python3 \"$HOME/.claude/hooks/instruction-compliance.py\"",
             "description": "Instruction compliance measurement after agent dispatch",
             "timeout": 5000
           }
@@ -339,7 +339,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/posttool-auto-test.py",
+            "command": "python3 \"$HOME/.claude/hooks/sql-injection-detector.py\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-auto-test.py\"",
             "description": "Auto-test after source edits",
             "timeout": 20000
           }
