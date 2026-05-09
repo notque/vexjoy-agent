@@ -262,6 +262,8 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     renamed from claude-code-toolkit to vexjoy-agent). The manifest records
     the old path, which breaks symlink validation. Update it to the current
     repo root so future runs and install-doctor can find the source.
+
+    Safety: never record an ephemeral path (/tmp/) as the toolkit location.
     """
     manifest_path = user_claude / ".install-manifest.json"
     try:
@@ -269,8 +271,13 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     except (json.JSONDecodeError, OSError):
         return
 
-    recorded_path = manifest.get("toolkit_path", "")
     current_path = str(repo_root)
+
+    # Never point the manifest at an ephemeral path
+    if current_path.startswith("/tmp/"):
+        return
+
+    recorded_path = manifest.get("toolkit_path", "")
     if recorded_path != current_path:
         manifest["toolkit_path"] = current_path
         _atomic_json_write(manifest_path, manifest)
@@ -282,7 +289,18 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     If dst is already the correct symlink, returns True (no change needed).
     If dst is a broken symlink, stale symlink, or regular directory, removes
     it and creates the correct symlink. Returns True on success.
+
+    Safety: refuses to create symlinks pointing into /tmp/ since those
+    targets are ephemeral and will break after cleanup.
     """
+    # Never create a symlink to an ephemeral path
+    if str(src).startswith("/tmp/"):
+        print(
+            f"[sync] BLOCKED: refusing to symlink {dst} -> {src} (ephemeral /tmp/ target)",
+            file=sys.stderr,
+        )
+        return False
+
     if dst.is_symlink():
         try:
             current_target = dst.resolve()
@@ -381,6 +399,52 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
             item.unlink()
 
 
+def _is_git_worktree(path: Path) -> bool:
+    """Detect if path is inside a git worktree (not the main working tree).
+
+    Git worktrees have a .git *file* (not directory) that points to the main
+    repo's .git/worktrees/<name>/ directory. The main working tree always has
+    a .git directory. We also check git rev-parse as a fallback.
+
+    This prevents the sync hook from re-pointing ~/.claude/ symlinks at
+    ephemeral worktree paths (e.g. /tmp/...-worktree-...) that get cleaned up,
+    which breaks every hook until manual reinstall.
+    """
+    import subprocess
+
+    # Fast check: /tmp/ paths are always ephemeral — never a real repo root
+    if str(path).startswith("/tmp/"):
+        return True
+
+    # .git file (not directory) is the canonical worktree marker
+    dot_git = path / ".git"
+    if dot_git.is_file():
+        return True
+
+    # Belt-and-suspenders: ask git directly
+    try:
+        git_dir = subprocess.check_output(
+            ["git", "rev-parse", "--git-dir"],
+            cwd=str(path),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        git_common = subprocess.check_output(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=str(path),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        # In worktrees, --git-dir returns .git/worktrees/<name> while
+        # --git-common-dir returns the main repo's .git/. They differ.
+        if os.path.realpath(git_dir) != os.path.realpath(git_common):
+            return True
+    except (subprocess.CalledProcessError, OSError):
+        pass
+
+    return False
+
+
 def main():
     # Only run when in the agents repo
     cwd = Path.cwd()
@@ -388,6 +452,14 @@ def main():
     # Check if CWD is the agents repo (has skills/, agents/, and hooks/ dirs)
     is_agents_repo = (cwd / "skills").is_dir() and (cwd / "agents").is_dir() and (cwd / "hooks").is_dir()
     if not is_agents_repo:
+        return
+
+    # CRITICAL: Never sync from a git worktree. Worktrees are ephemeral copies
+    # (often in /tmp/) that get deleted after the agent finishes. Syncing from
+    # one re-points ~/.claude/ symlinks at paths that will vanish, breaking
+    # every hook until manual reinstall. See: repeated hooks breakage incidents.
+    if _is_git_worktree(cwd):
+        print("[sync] Skipping: running inside a git worktree (ephemeral path)", file=sys.stderr)
         return
 
     # Paths - use CWD as repo root (not script location, since script may be in ~/.claude/hooks/)
