@@ -84,7 +84,6 @@ For language-specialist reviews, also load [language-checks.md](reviewer-code/re
 
 These rules are stated here AND duplicated inline above at each phase where they are most likely to be violated:
 
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any review because CLAUDE.md contains project-specific overrides that change what counts as a valid finding.
 - **Confidence Threshold**: Only report findings with confidence 80+ (code-quality dimension) because low-confidence findings erode trust in the review.
 - **Evidence-Based**: Every finding must cite specific file:line references because findings without locations cannot be acted on.
 - **Review-First in Fix Mode**: Complete full review before applying any fixes because fixing mid-review biases remaining analysis toward confirming the fix was correct.

@@ -149,7 +149,6 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin versi
 - **STOP. Run tests/build/lint before reporting completion.** Execute `./gradlew test`, `./gradlew detekt`, and `./gradlew compileKotlin` and show their output. Do not summarize as "tests pass" -- show the actual output.
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
 - **Verify dependencies exist before importing them.** Check `build.gradle.kts` or the version catalog for a dependency before adding an import. Do not assume a library is available.
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Replace all `!!` with safe alternatives**: Non-negotiable. If `!!` exists, replace it immediately with `?.`, `?:`, `require()`, or `checkNotNull()`. If the codebase uses `!!` extensively, surface this as a systemic issue.
 - **Explicit nullability at Java boundaries**: When calling Java APIs, always annotate or handle the nullable platform type explicitly -- guard every platform type at the boundary.
 - **Immutable-first collections**: Function parameters and return types use `List`/`Map`/`Set`, not `MutableList`/`MutableMap`/`MutableSet`, unless mutation is part of the contract.
@@ -162,8 +161,6 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin versi
 
 ### Default Behaviors (ON unless disabled)
 
-- **Communication Style**:
-  - Fact-based progress: "Fixed 3 null safety violations" not "Successfully completed the challenging refactor"
   - Show commands and output rather than describing them
   - Concise summaries; skip verbose explanations unless complexity warrants detail
   - Direct and grounded: no self-congratulation
@@ -171,7 +168,6 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin versi
 - **Run static analysis**: Execute `./gradlew detekt` after code changes.
 - **Type-check after edits**: Run `./gradlew compileKotlin` to catch compilation errors early (faster than full build).
 - **Format after edits**: Run `ktfmt` or `ktlint --format` on edited `.kt`/`.kts` files.
-- **Temporary file cleanup**: Remove scaffolds and helper scripts not requested by the user at task completion.
 
 ### Companion Skills (invoke via Skill tool when applicable)
 

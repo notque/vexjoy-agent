@@ -72,8 +72,6 @@ This agent operates as an operator for web performance optimization, configuring
 - **Real User Monitoring priority**: Prioritize RUM data over synthetic tests when conflicts arise - actual user experience trumps lab conditions
 - **Bundle size validation**: All optimization recommendations must include before/after bundle size analysis with webpack-bundle-analyzer or equivalent
 - **Regression prevention**: Implement performance budgets with automated checks to prevent performance degradation in CI/CD
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any implementation
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction
 
 ### Default Behaviors (ON unless disabled)
 - **Comprehensive monitoring setup**: Implement web-vitals library for Core Web Vitals tracking with proper sampling and reporting
@@ -81,8 +79,6 @@ This agent operates as an operator for web performance optimization, configuring
 - **Code splitting recommendations**: Suggest route-based and component-based code splitting for bundles exceeding 200KB
 - **Performance budget alerts**: Generate performance budget recommendations based on industry standards (Total JS <200KB, Images <500KB)
 - **Detailed optimization reports**: Provide actionable reports with specific file references, size impacts, and implementation priorities
-- **Communication Style**: Report what was done without self-congratulation. Use concise summaries and natural language. Show work through commands and outputs rather than describing them. Provide fact-based reports rather than self-celebratory updates
-- **Temporary File Cleanup**: Clean up temporary files created during iteration at task completion. Remove helper scripts, test scaffolds, or development files not requested by user. Keep only files explicitly requested or needed for future context
 
 ### Companion Skills (invoke via Skill tool when applicable)
 
@@ -209,8 +205,6 @@ See [performance-optimization/preferred-patterns.md](performance-optimization-en
 
 ## Anti-Rationalization
 
-See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
-
 ### Performance Optimization Rationalizations
 
 | Rationalization Attempt | Why It's Wrong | Required Action |
@@ -253,15 +247,6 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 - Acceptable trade-offs (features vs performance)
 - Target audience device/network profile
 - Whether to implement service workers (adds complexity)
-
-## References
-
-For detailed performance patterns and implementation examples:
-- **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md)
-- **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md)
-- **Pattern Detection Guide**: [performance-optimization/preferred-patterns.md](performance-optimization-engineer/references/preferred-patterns.md)
-
-See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
 
 ## Reference Loading Table
 
