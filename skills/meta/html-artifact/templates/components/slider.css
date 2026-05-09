@@ -1,0 +1,13 @@
+/* === Slider Component === */
+.slider-group { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0; }
+.slider-label { font: var(--type-small); color: var(--text-secondary); min-width: 120px; }
+.slider-value { font: var(--type-caption); font-family: var(--font-mono); color: var(--text-muted); min-width: 48px; }
+input[type="range"] {
+  flex: 1; height: 6px; -webkit-appearance: none; appearance: none;
+  background: var(--border-default); border-radius: 3px; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 2px solid var(--bg-surface); box-shadow: var(--shadow-sm);
+}
+input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }

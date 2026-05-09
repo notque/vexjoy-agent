@@ -89,39 +89,65 @@ Real content often combines two shapes — a report with embedded diagrams, a sp
 
 ---
 
-### Phase 2: LOAD CONTEXT
+### Phase 2: ASSEMBLE TEMPLATE + LOAD CONTEXT
 
-Load the design system and shape-specific reference files.
+Two parallel steps: (A) run the template assembler to produce a pre-filled HTML skeleton, and (B) load principle-focused reference files for the builder agent.
 
-**Always load (every invocation):**
-1. `references/design-system.md` -- Birchline CSS tokens, 4 theme presets, typography scale, color system
-2. `references/interaction-patterns.md` -- Shared JS patterns: tabs, collapsibles, drag-drop, copy buttons, keyboard nav
+**Step A -- Assemble template (deterministic):**
+
+Run: `python3 skills/meta/html-artifact/scripts/assemble-template.py --shape {shape} --title "{title}" --components {components}`
+
+The script reads CSS/JS from `templates/` and injects:
+1. CSS reset (`templates/base-reset.css`)
+2. Full theme tokens (`templates/themes/{theme}.css`)
+3. Shape-specific layout CSS (`templates/shapes/{shape}.css`)
+4. Component CSS + JS (`templates/components/{name}.{css,js}`)
+
+Select components based on shape needs:
+
+| Shape | Typical Components |
+|---|---|
+| spec | `tabs,copy-button,theme-toggle` |
+| code-review | `collapsible,filter,keyboard-nav,theme-toggle` |
+| prototype | `slider,copy-button,theme-toggle` |
+| report | `collapsible,theme-toggle,copy-button` |
+| editor | `drag-drop,filter,copy-button` |
+| data-viz | `filter,theme-toggle` |
+| diagram | `copy-button,theme-toggle` |
+| deck | `keyboard-nav,theme-toggle` |
+
+**Step B -- Load reference files (principles + guidance):**
+
+**Always load:**
+1. `references/design-system.md` -- Theme selection, token architecture, accessibility checklist, SVG conventions, anti-patterns
+2. `references/interaction-patterns.md` -- Component descriptions, when-to-use guidance, accessibility rules, composition guide
 
 **Load per detected shape:**
 
 | Shape | Reference File | Key Content |
 |---|---|---|
-| spec | `references/shape-spec-exploration.md` | Grid layouts, comparison cards, SVG flow diagrams |
-| code-review | `references/shape-code-review.md` | Diff rendering, severity system, annotations |
-| prototype | `references/shape-design-prototype.md` | Sliders, live preview, animation sandbox |
-| report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
-| editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
-| data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
-| diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
-| deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
+| spec | `references/shape-spec-exploration.md` | Layout descriptions, composition guide, common mistakes |
+| code-review | `references/shape-code-review.md` | Severity system, interaction patterns, section ordering |
+| prototype | `references/shape-design-prototype.md` | Control types, export requirements, layout patterns |
+| report | `references/shape-report-research.md` | Section ordering, TL;DR placement, metric patterns |
+| editor | `references/shape-custom-editor.md` | Editor types, export bar rules, anti-patterns |
+| data-viz | `references/shape-data-visualization.md` | Chart types, coordinate system, color scales |
+| diagram | `references/shape-diagram-illustration.md` | SVG construction rules, diagram types, interaction patterns |
+| deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
 
-Gate: All required references loaded (design-system + interaction-patterns + shape-specific).
--- because generating without the design system produces inconsistent visual output, and generating without shape patterns produces generic HTML that defeats the purpose.
+Gate: Template assembled + required references loaded.
+-- because the template provides deterministic CSS/JS injection, and references provide the judgment guidance the builder needs.
 
 ---
 
 ### Phase 3: GENERATE
 
-Dispatch the html-builder subagent to produce the artifact.
+Dispatch the html-builder subagent with the pre-assembled template.
 
 1. Read `agents/html-builder.md` for the subagent prompt
-2. Dispatch with: detected shape, design system tokens, interaction patterns, shape-specific patterns, user request
-3. Agent writes a single `.html` file to the project directory (or `/tmp/html-artifacts/` if no project context)
+2. Dispatch with: pre-assembled template (from Step A), design system principles, interaction pattern guidance, shape-specific reference, user request
+3. Agent fills in the content structure using CSS classes already defined in the template
+4. Agent writes a single `.html` file to the project directory (or `/tmp/html-artifacts/` if no project context)
 
 **Self-contained file constraints (inline here because they govern generation):**
 
@@ -249,16 +275,16 @@ Constraint: Detect headless/SSH environments before offering browser open.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Any html-artifact invocation | `references/design-system.md` | CSS tokens, themes, typography, color system |
-| Any html-artifact invocation | `references/interaction-patterns.md` | Shared JS: tabs, drag-drop, copy buttons, keyboard nav |
-| Shape = spec | `references/shape-spec-exploration.md` | Grid layouts, comparison patterns, SVG flows |
-| Shape = code-review | `references/shape-code-review.md` | Diff rendering, severity system, annotations |
-| Shape = prototype | `references/shape-design-prototype.md` | Sliders, live preview, animation sandbox |
-| Shape = report | `references/shape-report-research.md` | TL;DR boxes, collapsibles, timelines, metrics |
-| Shape = editor | `references/shape-custom-editor.md` | Drag-drop, forms, export buttons, live re-render |
-| Shape = data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
-| Shape = diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
-| Shape = deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
+| Any html-artifact invocation | `references/design-system.md` | Theme selection, token architecture, accessibility, anti-patterns |
+| Any html-artifact invocation | `references/interaction-patterns.md` | Component descriptions, when-to-use, accessibility rules |
+| Shape = spec | `references/shape-spec-exploration.md` | Layout descriptions, composition guide, common mistakes |
+| Shape = code-review | `references/shape-code-review.md` | Severity system, interaction patterns, section ordering |
+| Shape = prototype | `references/shape-design-prototype.md` | Control types, export requirements, layout patterns |
+| Shape = report | `references/shape-report-research.md` | Section ordering, TL;DR placement, metric patterns |
+| Shape = editor | `references/shape-custom-editor.md` | Editor types, export bar rules, anti-patterns |
+| Shape = data-viz | `references/shape-data-visualization.md` | Chart types, coordinate system, color scales |
+| Shape = diagram | `references/shape-diagram-illustration.md` | SVG construction rules, diagram types, interaction patterns |
+| Shape = deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
 | Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
 
 ---
@@ -274,17 +300,19 @@ This skill uses:
 
 ## Reference Files
 
-- `references/design-system.md`: Birchline CSS tokens, 4 theme presets, typography scale, color palette
-- `references/interaction-patterns.md`: Shared JS patterns across all shapes (tabs, collapsibles, drag-drop, copy, keyboard)
-- `references/shape-spec-exploration.md`: Spec shape -- grids, comparison cards, SVG flow diagrams, risk tables
-- `references/shape-code-review.md`: Code review shape -- diff rendering, severity colors, annotations, jump links
-- `references/shape-design-prototype.md`: Prototype shape -- sliders, CSS var live update, animation sandbox
-- `references/shape-report-research.md`: Report shape -- TL;DR boxes, collapsible sections, timelines, metric callouts
-- `references/shape-custom-editor.md`: Editor shape -- drag-drop, kanban, toggle switches, export buttons
-- `references/shape-data-visualization.md`: Data viz shape -- SVG charts, canvas rendering, tooltips, filter controls
-- `references/shape-diagram-illustration.md`: Diagram shape -- inline SVG flowcharts, architecture diagrams, sequence diagrams, figure sheets
-- `references/shape-slide-deck.md`: Deck shape -- arrow-key navigable slide decks, 16:9 aspect ratio, slide types, presenter notes
+- `references/design-system.md`: Theme selection, token architecture, accessibility checklist, SVG conventions, anti-patterns
+- `references/interaction-patterns.md`: Component descriptions, when-to-use guidance, accessibility rules, composition guide
+- `references/shape-spec-exploration.md`: Spec shape -- layout, composition guide, common mistakes
+- `references/shape-code-review.md`: Code review shape -- severity system, interaction patterns, section ordering
+- `references/shape-design-prototype.md`: Prototype shape -- control types, export requirements, layout patterns
+- `references/shape-report-research.md`: Report shape -- section ordering, TL;DR placement, metric patterns
+- `references/shape-custom-editor.md`: Editor shape -- editor types, export bar rules, anti-patterns
+- `references/shape-data-visualization.md`: Data viz shape -- chart types, coordinate system, color scales
+- `references/shape-diagram-illustration.md`: Diagram shape -- SVG construction rules, diagram types, interaction patterns
+- `references/shape-slide-deck.md`: Deck shape -- slide types, navigation, print styles
 - `agents/html-builder.md`: Subagent prompt for HTML generation
-- `references/scrollytelling-patterns.md`: Vanilla JS IntersectionObserver patterns -- scroll-triggered reveals, stagger animations, animated counters, progress bars
+- `references/scrollytelling-patterns.md`: IntersectionObserver scroll animation patterns
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
+- `scripts/assemble-template.py`: Template assembly with theme, shape, and component CSS/JS injection
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
+- `templates/`: CSS/JS template files organized by themes/, shapes/, components/

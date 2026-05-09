@@ -1,0 +1,5 @@
+/* === Keyboard Navigation Component === */
+.key-nav-counter {
+  font: var(--type-caption); font-family: var(--font-mono); color: var(--text-muted);
+  padding: var(--sp-1) var(--sp-2); background: var(--bg-muted); border-radius: var(--radius-xs);
+}
