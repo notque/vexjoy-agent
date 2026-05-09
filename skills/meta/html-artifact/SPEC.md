@@ -16,14 +16,13 @@ Generate rich self-contained HTML artifacts instead of markdown when output bene
 **OUT:**
 - Multi-page sites, framework apps, deployment artifacts
 - Anything requiring npm, build steps, or external dependencies
-- Full Vite+React projects (use `interactive-essay` skill)
 - Presentation decks (use `frontend-slides` skill)
 - Application UIs with backend integration
 
 ## Non-Goals
 
 - Not a web app builder — no npm, no build steps, no server-side logic
-- Not a replacement for `interactive-essay` (full Vite+React projects with scroll animations)
+- For scroll-triggered animations, use the `scrollytelling-patterns.md` reference instead of full Vite+React projects
 - Not a replacement for `frontend-slides` (presentation decks)
 - Not forced — user opts out with "as markdown" or "in markdown"
 - Not a charting library — SVG generation is inline, not a reusable API

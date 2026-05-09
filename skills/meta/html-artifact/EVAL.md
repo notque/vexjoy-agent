@@ -30,7 +30,7 @@ Requests that must NOT activate html-artifact.
 | 1 | "Fix the bug in auth.ts" | Code fix, not visualization | typescript-frontend-engineer |
 | 2 | "Run the tests" | Test execution, not output generation | test runner / quick |
 | 3 | "Write this as markdown" | Explicit markdown request | Standard markdown output |
-| 4 | "Create an interactive essay about caching" | Full Vite+React project | interactive-essay skill |
+| 4 | "Create an interactive essay about caching" | Self-contained HTML with scroll animations | html-artifact skill with scrollytelling-patterns.md |
 | 5 | "Make a slide deck for the conference" | Presentation deck | frontend-slides skill |
 | 6 | "Build a React component for the login page" | Framework component | typescript-frontend-engineer |
 

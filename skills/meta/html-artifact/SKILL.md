@@ -259,6 +259,7 @@ Constraint: Detect headless/SSH environments before offering browser open.
 | Shape = data-viz | `references/shape-data-visualization.md` | SVG charts, canvas, tooltips, filters |
 | Shape = diagram | `references/shape-diagram-illustration.md` | SVG flowcharts, architecture diagrams, figure sheets |
 | Shape = deck | `references/shape-slide-deck.md` | Slide container, navigation, slide types, transitions |
+| Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
 
 ---
 
@@ -284,5 +285,6 @@ This skill uses:
 - `references/shape-diagram-illustration.md`: Diagram shape -- inline SVG flowcharts, architecture diagrams, sequence diagrams, figure sheets
 - `references/shape-slide-deck.md`: Deck shape -- arrow-key navigable slide decks, 16:9 aspect ratio, slide types, presenter notes
 - `agents/html-builder.md`: Subagent prompt for HTML generation
+- `references/scrollytelling-patterns.md`: Vanilla JS IntersectionObserver patterns -- scroll-triggered reveals, stagger animations, animated counters, progress bars
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
