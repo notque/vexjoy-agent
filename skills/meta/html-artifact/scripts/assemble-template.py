@@ -32,6 +32,7 @@ VALID_COMPONENTS = (
     "theme-toggle",
     "filter",
     "slider",
+    "scrollytelling",
 )
 
 SHAPE_DEFAULT_THEME: dict[str, str] = {

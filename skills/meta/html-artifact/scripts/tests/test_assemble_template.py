@@ -169,6 +169,12 @@ class TestAssembleTemplateDirect:
         assert "Keyboard Navigation Component" in html
         assert "setupKeyNav" in html
 
+    def test_components_scrollytelling(self) -> None:
+        html = assemble_template("report", "Test", components=["scrollytelling"])
+        assert "Scrollytelling Component" in html
+        assert ".reveal" in html
+        assert "IntersectionObserver" in html  # JS injected
+
     # --- Shape CSS injection tests ---
 
     def test_shape_css_spec(self) -> None:

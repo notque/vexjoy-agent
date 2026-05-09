@@ -6,20 +6,20 @@ Design principles, theme selection, and quality rules for html-builder. CSS impl
 
 ## Theme Selection
 
-**Default: Dark Focus** for all shapes unless user requests light.
+**Default themes vary by shape** — see table below.
 
 | Shape | Default Theme | Rationale |
 |---|---|---|
-| spec | Dark Focus | High contrast grids, premium feel |
-| report | Dark Focus | Professional, scannable |
+| spec | Birchline | Warm professional tone for comparison grids |
 | code-review | Dark Focus | Developer-familiar, high-contrast diffs |
+| prototype | Interactive Warm | Clean surface, prominent interactive controls |
+| report | Birchline | Professional, scannable long-form |
+| editor | Interactive Warm | Clear affordances, prominent shadows |
 | data-viz | Dark Focus | Charts pop on dark backgrounds |
-| prototype | Dark Focus | Clean dark surface, prominent controls |
-| editor | Dark Focus | Clear affordances on dark canvas |
 | diagram | Dark Focus | SVG elements pop, technical aesthetic |
 | deck | Dark Focus | Slide contrast, presentation-ready |
 
-**Light fallbacks:** Birchline for reports/specs, Interactive Warm for prototypes/editors, Minimal Document for long-form.
+**Fallback:** Minimal Document for long-form reading. Override any default with `--theme`.
 
 **Dark mode toggle:** Every artifact includes light/dark toggle (top-right). Request `theme-toggle` component via `assemble-template.py --components theme-toggle`.
 
