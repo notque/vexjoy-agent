@@ -240,25 +240,24 @@ def detect_profile() -> tuple[str, str]:
         return "work", org_reason
 
     # 6. Default
-    return "personal", "default (no signals detected)"
+    return "personal", "default"
 
 
 def get_profile_injection(profile: str, detection: str) -> str:
-    """Build the context injection string for the detected profile."""
-    guidance = PROFILE_GUIDANCE.get(profile, PROFILE_GUIDANCE["personal"])
+    """Build the context injection string for the detected profile.
 
-    return f"""[operator-context] Profile: {profile}
-[operator-context] Detection: {detection}
+    Injects only the active profile's one-line summary (not all 4 profiles).
+    ADR hook-injection-condensation: ~130 chars instead of ~616 chars.
+    """
+    summaries = {
+        "personal": "Full autonomy. No approval gates. Branch safety only.",
+        "work": "Convention-enforced. APPROVE for production changes.",
+        "ci": "Fully autonomous, disposable environment. Database ungated.",
+        "production": "Maximum gates. APPROVE mandatory. SNAPSHOT before changes.",
+    }
+    summary = summaries.get(profile, summaries["personal"])
 
-Operator Profile: {profile}
-- personal: Full autonomy. No approval gates. Branch safety only.
-- work: Convention-enforced. APPROVE for production changes.
-- ci: Fully autonomous, disposable environment. Database ungated.
-- production: Maximum gates. APPROVE mandatory. SNAPSHOT before changes.
-
-Current profile ({profile}) means:
-{guidance}
-"""
+    return f"[operator-context] Profile: {profile} — {summary}\n[operator-context] Detection: {detection}"
 
 
 def main():

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 # hook-version: 1.0.0
 """
-PostToolUse:Write,Edit Hook: Lightweight Security Pattern Scanner
+PostToolUse:Write,Edit Hook: Unified Security Pattern Scanner
 
 Scans edited/written code files for common security vulnerability patterns
 after each modification. Outputs informational warnings — never blocks.
 
 Categories scanned:
 1. Hardcoded credentials (credential-named variables with string literals)
-2. Injection risks (string interpolation in queries, unsanitized shell calls)
-3. Path traversal (unvalidated relative path components)
-4. Unsafe deserialization (loading without safe loaders)
+2. SQL injection (f-strings, format(), concatenation, sprintf in SQL context)
+3. Command injection (shell=True, os.system)
+4. Path traversal (unvalidated relative path components)
+5. Unsafe deserialization (loading without safe loaders)
+
+Merged from posttool-security-scan.py + sql-injection-detector.py per
+ADR hook-injection-condensation.
 
 Design:
 - PostToolUse (informational only, never blocks)
@@ -19,7 +23,7 @@ Design:
 - Reads file content from disk (tool_result may be truncated)
 - Skips files >10,000 lines
 
-ADR: adr/018-post-edit-security-scan.md
+ADR: adr/018-post-edit-security-scan.md, adr/134-sql-injection-detector-hook.md
 """
 
 import json
@@ -75,6 +79,22 @@ def _build_patterns() -> list[tuple[re.Pattern[str], str, str]]:
         ]
     )
 
+    # Extended SQL keywords for broader coverage (merged from sql-injection-detector.py)
+    sql_kw = "|".join(
+        [
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "WHERE",
+            "FROM",
+            "JOIN",
+            "SET",
+            "VALUES",
+        ]
+    )
+
     return [
         # Hardcoded credentials — variable assignment with string literal
         (
@@ -101,6 +121,78 @@ def _build_patterns() -> list[tuple[re.Pattern[str], str, str]]:
             ),
             "sql-injection",
             "Use parameterized queries instead of % formatting in SQL",
+        ),
+        # SQL injection — string concatenation: "...SQL..." + variable
+        (
+            re.compile(
+                rf"""['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*)['"]\s*\+""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use parameterized queries (e.g., cursor.execute(sql, params))",
+        ),
+        # SQL injection — variable + "...SQL..."
+        (
+            re.compile(
+                rf"""\+\s*['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*)['"]\s*(?:\+|$|;|\)|,)""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use parameterized queries (e.g., cursor.execute(sql, params))",
+        ),
+        # SQL injection — .format() call on a SQL string
+        (
+            re.compile(
+                rf"""['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*\{{[^'"]*)['"]\s*\.format\s*\(""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use parameterized queries instead of .format() in SQL strings",
+        ),
+        # SQL injection — Go fmt.Sprintf with SQL percent placeholders
+        (
+            re.compile(
+                rf"""fmt\.Sprintf\s*\(\s*['"`](?:[^'"`]*\b(?:{sql_kw})\b[^'"`]*%[sdvfq][^'"`]*)[`'"]\s*,""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use db.Query with ? or $N placeholders and pass values as arguments",
+        ),
+        # SQL injection — Java String.format with SQL percent placeholders
+        (
+            re.compile(
+                rf"""String\.format\s*\(\s*["'](?:[^"']*\b(?:{sql_kw})\b[^"']*%[sdnf][^"']*)['"]\s*,""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use PreparedStatement with ? placeholders instead of String.format",
+        ),
+        # SQL injection — PHP sprintf with SQL percent placeholders
+        (
+            re.compile(
+                rf"""(?<!\w)sprintf\s*\(\s*["'](?:[^"']*\b(?:{sql_kw})\b[^"']*%[sduf][^"']*)['"]\s*,""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use PDO prepared statements with ? placeholders instead of sprintf",
+        ),
+        # SQL injection — f-string with extended SQL keywords (WHERE, FROM, JOIN, SET, VALUES)
+        (
+            re.compile(
+                r"""f['"]{1,3}(?:[^'"]*\b(?:WHERE|FROM|JOIN|SET|VALUES)\b[^'"]*)\{""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Use parameterized queries instead of f-string interpolation in SQL",
+        ),
+        # SQL injection — multi-line SQL building via += concatenation
+        (
+            re.compile(
+                rf"""\b\w+\s*\+=\s*(?:f?['"][^'"]*\b(?:{sql_kw})\b)""",
+                re.IGNORECASE,
+            ),
+            "sql-injection",
+            "Build SQL with parameterized placeholders; collect params in a list",
         ),
         # Command injection — shell=True with variable input
         (
@@ -183,11 +275,11 @@ def main() -> None:
                     break  # One finding per line max
 
         if findings:
-            # Limit output to first 3 findings to avoid noise
-            for finding in findings[:3]:
+            # Limit output to first 5 findings to avoid noise
+            for finding in findings[:5]:
                 print(finding)
-            if len(findings) > 3:
-                print(f"  ... and {len(findings) - 3} more security hints")
+            if len(findings) > 5:
+                print(f"  ... and {len(findings) - 5} more security hints")
 
     except (json.JSONDecodeError, Exception) as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
