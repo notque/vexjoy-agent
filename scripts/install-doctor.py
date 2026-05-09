@@ -354,32 +354,45 @@ def check_hook_files() -> list[dict]:
                 commands.extend(extract_hook_commands(item))
         return commands
 
+    relative_path_hooks = []
     for event, hook_list in hooks.items():
         for cmd in extract_hook_commands(hook_list):
+            # Flag hooks using relative paths — they break outside the toolkit repo
+            if ("python3 hooks/" in cmd or 'python3 "hooks/' in cmd) and "$HOME" not in cmd:
+                hook_file = cmd.split("hooks/")[-1].rstrip('"').rstrip("'")
+                relative_path_hooks.append(f"{event}: {hook_file}")
             for path in extract_python_paths(cmd):
                 if path.exists():
                     found += 1
                 else:
                     missing.append(f"{event}: {path.name}")
 
-    if missing:
-        return [
-            {
-                "name": "hook_files",
-                "label": "Hook script files exist",
-                "passed": False,
-                "detail": f"{found} found, {len(missing)} missing: {', '.join(missing[:5])}",
-            }
-        ]
+    results = []
 
-    return [
-        {
+    if relative_path_hooks:
+        results.append({
+            "name": "hook_relative_paths",
+            "label": "No hooks use relative paths",
+            "passed": False,
+            "detail": f"{len(relative_path_hooks)} hook(s) use relative paths (break outside toolkit repo): {', '.join(relative_path_hooks[:5])}. Fix: use $HOME/.claude/hooks/ prefix.",
+        })
+
+    if missing:
+        results.append({
+            "name": "hook_files",
+            "label": "Hook script files exist",
+            "passed": False,
+            "detail": f"{found} found, {len(missing)} missing: {', '.join(missing[:5])}",
+        })
+    else:
+        results.append({
             "name": "hook_files",
             "label": "Hook script files exist",
             "passed": True,
             "detail": f"All {found} hook scripts found",
-        }
-    ]
+        })
+
+    return results
 
 
 def check_python_version() -> dict:
