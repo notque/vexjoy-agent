@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -271,7 +272,7 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     except (json.JSONDecodeError, OSError):
         return
 
-    current_path = str(repo_root)
+    current_path = str(repo_root.resolve())
 
     # Never point the manifest at an ephemeral path
     if current_path.startswith("/tmp/"):
@@ -294,7 +295,7 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     targets are ephemeral and will break after cleanup.
     """
     # Never create a symlink to an ephemeral path
-    if str(src).startswith("/tmp/"):
+    if str(src.resolve()).startswith("/tmp/"):
         print(
             f"[sync] BLOCKED: refusing to symlink {dst} -> {src} (ephemeral /tmp/ target)",
             file=sys.stderr,
@@ -403,23 +404,39 @@ def _is_git_worktree(path: Path) -> bool:
     """Detect if path is inside a git worktree (not the main working tree).
 
     Git worktrees have a .git *file* (not directory) that points to the main
-    repo's .git/worktrees/<name>/ directory. The main working tree always has
-    a .git directory. We also check git rev-parse as a fallback.
+    repo's .git/worktrees/<name>/ directory. Submodules also have a .git file
+    but point to .git/modules/<name>/ — we distinguish by checking for
+    "worktrees/" in the gitdir path. The git rev-parse check handles both
+    cases correctly as a fallback.
 
     This prevents the sync hook from re-pointing ~/.claude/ symlinks at
     ephemeral worktree paths (e.g. /tmp/...-worktree-...) that get cleaned up,
     which breaks every hook until manual reinstall.
-    """
-    import subprocess
 
-    # Fast check: /tmp/ paths are always ephemeral — never a real repo root
-    if str(path).startswith("/tmp/"):
+    Known limitation: if .git is missing/corrupted AND git is not on PATH AND
+    the path is not under /tmp/, the function returns False (allows sync).
+    The /tmp/ guards in _ensure_symlink and _update_manifest_toolkit_path
+    provide secondary protection for the most common failure case.
+    """
+    # Fast check: resolve symlinks, then reject /tmp/ paths (always ephemeral)
+    resolved = str(path.resolve())
+    if resolved.startswith("/tmp/"):
         return True
 
-    # .git file (not directory) is the canonical worktree marker
+    # .git file (not directory) is a worktree OR submodule marker.
+    # Distinguish by reading the file: worktrees point to .git/worktrees/<name>,
+    # submodules point to .git/modules/<name>. Only reject worktrees.
     dot_git = path / ".git"
     if dot_git.is_file():
-        return True
+        try:
+            content = dot_git.read_text().strip()
+            # Format: "gitdir: <path>"
+            if "worktrees/" in content:
+                return True
+            # Submodule (.git/modules/) — not a worktree, allow sync
+        except OSError:
+            # Can't read .git file — fall through to git rev-parse check
+            pass
 
     # Belt-and-suspenders: ask git directly
     try:
