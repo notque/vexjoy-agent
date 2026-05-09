@@ -125,16 +125,14 @@ Some references point to their own sub-reference files for extended patterns:
 **Code review** sub-references:
 - `${CLAUDE_SKILL_DIR}/references/code-review/common-review-comments.md` -- Go code patterns with good/bad examples
 
-**SAP CC conventions** sub-references (extensive):
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md` -- Primary reference: actual code patterns
+**SAP CC conventions** sub-references:
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md` -- Primary reference: code patterns, testing patterns, anti-patterns (merged from testing-patterns-detailed.md and preferred-patterns.md)
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md` -- Complete approved/restricted library table
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md` -- Full 102-rule architecture spec
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md` -- 21 lead review comments
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md` -- 15 secondary review comments
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/preferred-patterns.md` -- 20+ quality issues with BAD/GOOD examples
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards.md` -- Lead + secondary review standards (merged)
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/extended-patterns.md` -- Security, K8s, PR hygiene patterns
 - Plus: `api-design-detailed.md`, `build-ci-detailed.md`, `error-handling-detailed.md`,
-  `go-bits-philosophy-detailed.md`, `pr-mining-insights.md`, `testing-patterns-detailed.md`
+  `go-bits-philosophy-detailed.md`, `pr-mining-insights.md`
 
 **Quality gate** sub-references:
 - `${CLAUDE_SKILL_DIR}/references/quality-gate/common-lint-errors.json` -- Linter descriptions and fix suggestions

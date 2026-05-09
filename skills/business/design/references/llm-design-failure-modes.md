@@ -2,6 +2,8 @@
 
 Specific ways LLMs fail at design tasks. Each failure mode includes detection signals and concrete defenses. Load this reference for every design mode.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers design-specific failures only.
+
 ---
 
 ## 1. Generic Copy Without Product Context

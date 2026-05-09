@@ -120,52 +120,7 @@ Present output in the format specified by the reference file for the mode. Inclu
 
 ## LLM Failure Modes in Finance
 
-These are the ways LLMs most commonly fail in finance work. Internalize these before executing any mode.
-
-### Calculation Errors
-
-LLMs perform arithmetic unreliably. Every number in the output must be verified.
-
-| Failure | Example | Mitigation |
-|---------|---------|------------|
-| Wrong sums | Three line items of $127K, $89K, $214K totaled as $420K (actual: $430K) | Re-derive every total from components |
-| Percentage errors | $28K variance on $500K base reported as "4.6%" (actual: 5.6%) | Recompute: variance / base x 100 |
-| Sign errors | Favorable variance presented as unfavorable | Confirm: actual > budget for revenue = favorable; actual > budget for expense = unfavorable |
-| Rounding cascade | Individual items rounded then summed, producing different total than sum-then-round | Round at the final step, not intermediate steps |
-| Debit/credit imbalance | Entry with $150K debit and $145K credit presented as "balanced" | Verify sum(debits) == sum(credits) explicitly |
-
-### Fabricated Standards and Rules
-
-LLMs confidently cite nonexistent GAAP/IFRS standards.
-
-| Failure | Example | Mitigation |
-|---------|---------|------------|
-| Invented ASC numbers | "Per ASC 842-30-55-12" when no such paragraph exists | Only cite ASC/IFRS at topic level. When uncertain: "Consult the relevant ASC guidance" |
-| Misapplied rules | Applying lease accounting rules to a service contract | State the standard being applied and let the professional verify applicability |
-| Conflated GAAP/IFRS | Mixing US GAAP and IFRS rules without distinguishing | Default to US GAAP. State which framework. Never blend silently |
-| Outdated standards | Referencing superseded guidance (e.g., pre-ASC 606 revenue rules) | Flag when a standard has been superseded and note the replacement |
-
-### Misapplied Materiality
-
-| Failure | Example | Mitigation |
-|---------|---------|------------|
-| No threshold applied | Investigating a $500 variance on a $50M revenue line | Apply materiality thresholds before investigating |
-| Wrong benchmark | Using net income as materiality base for a balance sheet item | Match benchmark to the financial statement element |
-| Inconsistent application | Investigating 3% variance on one line, ignoring 8% on another | Apply thresholds uniformly across all line items |
-
-### Period and Cut-off Errors
-
-| Failure | Example | Mitigation |
-|---------|---------|------------|
-| Wrong period allocation | Booking December expense in January | Expense belongs in the period the service was received or goods delivered |
-| Ignoring accrual basis | Recording expense only when cash is paid | Accrue when the obligation is incurred, not when cash moves |
-| Partial period errors | Full month depreciation on asset placed in service mid-month | Apply the entity's convention (half-month, mid-quarter, exact days) |
-
-### Account Code Fabrication
-
-LLMs will generate plausible-looking account codes (e.g., "4100 — Revenue") when none are provided.
-
-**Rule**: Use codes from the user's chart of accounts. Use descriptive placeholders when codes are unavailable: `[Revenue Account]`, `[Accrued Liabilities Account]`.
+See `references/llm-finance-failure-modes.md` for the complete failure mode catalog (calculation errors, fabricated standards, materiality misapplication, period errors, account code fabrication). Universal failure modes (hallucination, overconfidence, generic output) are in `skills/shared-patterns/llm-domain-failure-modes-base.md`.
 
 ---
 

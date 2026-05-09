@@ -2,6 +2,8 @@
 
 Where LLMs fail in legal analysis. Specific failure patterns, detection methods, and mitigation guards. Load this reference for every legal workflow mode.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers legal-specific failures only.
+
 ---
 
 ## Why Legal Is a High-Risk Domain for LLMs

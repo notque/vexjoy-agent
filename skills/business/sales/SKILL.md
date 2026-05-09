@@ -335,22 +335,7 @@ Sections: Quick Take, Company Profile (table), Recent News, Hiring Signals, Key 
 
 ## LLM Failure Modes
 
-LLM-specific failure modes in sales work. These are the things that go wrong when an LLM does sales work without guardrails.
-
-| Anti-Pattern | What Happens | Prevention |
-|-------------|-------------|-----------|
-| **Fabricated company details** | LLM invents revenue, employee count, funding round, or product features that don't exist | Every company fact must come from a search result. State "not found" for missing data. |
-| **Invented deal history** | LLM creates fictional prior interactions, meeting notes, or relationship context | Only reference history the user explicitly provided. Reference only history the user provided. |
-| **Generic outreach** | "I hope this email finds you well" / "I noticed you work at Company" / feature dumps | Every email opening must reference a specific research finding. Test: could this opening apply to any prospect? If yes, rewrite. |
-| **Hallucinated financial data** | LLM guesses quarterly revenue, ARR, growth rate, or valuation | Financial figures only from verified sources (SEC filings, press releases, Crunchbase). Mark estimates explicitly. |
-| **Optimistic forecasting** | LLM inflates probabilities or includes unlikely deals to make numbers look better | Use standard stage probabilities with risk adjustments. Use standard stage probabilities without rounding. |
-| **Template-shaped personalization** | Email has a personalization slot but the content is interchangeable across prospects | Personalization must reference something only true of this specific person/company. |
-| **Markdown in emails** | Bold text and headers in customer-facing emails | All customer-facing email output must be plain text. No asterisks, no headers, no bullet formatting. |
-| **Fake competitor claims** | LLM invents competitor pricing, features, or weaknesses | Every competitive claim must link to a source (product page, review, pricing page). |
-| **Over-promising in follow-ups** | LLM commits to deliverables or timelines the seller didn't authorize | Follow-up emails only include commitments the user explicitly stated were made. |
-| **Ignoring disqualification signals** | LLM always finds reasons to pursue, never recommends walking away | Pipeline analysis must flag deals for removal when evidence warrants it. |
-
-Full failure mode reference: `references/llm-sales-failure-modes.md`.
+See `references/llm-sales-failure-modes.md` for the complete failure mode catalog (fabricated company details, invented history, generic outreach, hallucinated financials, optimistic forecasting, template personalization, fake competitor claims, over-promising, ignoring disqualification signals). Universal failure modes in `skills/shared-patterns/llm-domain-failure-modes-base.md`.
 
 ---
 

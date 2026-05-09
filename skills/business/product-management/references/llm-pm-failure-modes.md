@@ -2,6 +2,8 @@
 
 Where LLMs systematically fail at PM tasks. Loaded across all modes as a guardrail reference.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers product management-specific failures only.
+
 ---
 
 ## Why This File Exists

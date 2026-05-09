@@ -45,18 +45,7 @@ Load the reference(s) required by the detected mode. **Always load `references/l
 
 ## LLM Failure Modes
 
-These are the specific ways LLMs fail at marketing tasks. Every phase must guard against them.
-
-| Failure Mode | What Happens | Guard |
-|---|---|---|
-| **Generic copy** | Output reads like every SaaS homepage: "streamline your workflow", "unlock the power of", "take your X to the next level" | Reject any draft containing cliche marketing phrases. Rewrite with specifics: what, for whom, measurable outcome. |
-| **Keyword stuffing** | SEO advice degenerates into cramming the target keyword into every sentence | Cap keyword density at 1-2%. Flag any paragraph with 3+ instances of the same keyword. Natural language first. |
-| **Fabricated metrics** | "Companies using X see 340% improvement" with no source | Cite a source for every statistic. Use qualitative framing when no source exists ("teams report significant improvement") or state the metric is illustrative. |
-| **Hallucinated competitor data** | Invents competitor pricing, features, or market share | Source all competitor claims from search results or user-provided data. State "as of [date]" and "based on publicly available information." |
-| **Tone-deaf messaging** | Applies the same voice to incident response and product launch; ignores audience context | Match tone to situation and audience. A B2B enterprise email is not a DTC Instagram caption. Load voice context before generating. |
-| **Vanity metric optimization** | Recommends optimizing impressions/followers instead of pipeline/revenue | Always tie metrics to business outcomes. If recommending a metric, state what business decision it informs. |
-| **Template regurgitation** | Produces content that matches training-data templates instead of the user's actual situation | Require user context (audience, product, constraint) before generating. Reject requests to "write a blog post about X" without knowing who reads it and why. |
-| **Unsubstantiated claims** | Superlatives ("best", "fastest", "only", "#1") without evidence or qualification | Flag every superlative. Either substantiate with data or rewrite as a qualified claim ("one of the fastest" or remove). |
+See `references/llm-marketing-failure-modes.md` for the complete failure mode catalog (generic copy, keyword stuffing, fabricated metrics, hallucinated competitor data, tone mismatch, vanity metrics, template regurgitation, unsubstantiated claims, channel-agnostic recommendations, recency bias). Universal failure modes in `skills/shared-patterns/llm-domain-failure-modes-base.md`.
 
 ---
 

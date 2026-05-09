@@ -4,6 +4,8 @@ Where LLMs fail in customer support contexts. These are not theoretical risks --
 
 This file exists because LLM failures in support are categorically different from LLM failures in code or analysis. A wrong code suggestion gets caught by a compiler. A wrong support response gets sent to a customer and damages trust. The feedback loop is slower and the cost is higher.
 
+> **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers support-specific failures only.
+
 ---
 
 ## Failure Mode 1: Hallucinated Product Features
