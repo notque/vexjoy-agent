@@ -25,14 +25,11 @@ routing:
     # concurrency triggers
     - goroutine
     - channel
-    - chan
     - sync.Mutex
     - sync.WaitGroup
     - worker pool
     - fan-in
     - context.Context
-    - "goroutine parallel"
-    - "Go parallel"
     - "goroutine fan-out"
     # error handling triggers
     - fmt.Errorf
@@ -41,17 +38,11 @@ routing:
     - "%w"
     - sentinel error
     # review pattern triggers
-    - Go mistake
-    - bad Go
-    - Go smell
     - "Go anti-pattern"
     - "Go code smell"
     # code review triggers
-    - review Go
-    - Go PR
     - Go code review
-    - review .go
-    - check Go code
+    - Go PR
     - Go quality
     # sapcc conventions triggers
     - sapcc
@@ -60,8 +51,6 @@ routing:
     - keppel
     - go-api-declarations
     - go-makefile-maker
-    - sapcc/go-bits
-    - sap-cloud-infrastructure/go-bits
     # quality gate triggers
     - make check
     - Go lint

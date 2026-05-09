@@ -132,6 +132,10 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
             val = force_route_match.group(1).strip().lower()
             routing["force_route"] = val == "true"
 
+        not_for_match = re.search(r'not_for:\s*["\'](.+?)["\']', routing_content)
+        if not_for_match:
+            routing["not_for"] = not_for_match.group(1).strip()
+
         pairs_match = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", routing_content)
         if pairs_match:
             pairs = re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pairs_match.group(1))
@@ -247,6 +251,10 @@ def build_entry(
         stop_words = {"skill", "pipeline", "the", "and", "for", "with"}
         triggers = [p for p in name_parts if len(p) > 2 and p.lower() not in stop_words]
         entry["triggers"] = [name] + triggers
+
+    # Not-for disambiguation: from routing.not_for, omit if not present
+    if isinstance(routing, dict) and "not_for" in routing:
+        entry["not_for"] = routing["not_for"]
 
     # Category: from routing.category, omit if not present
     if isinstance(routing, dict) and "category" in routing:
@@ -591,7 +599,7 @@ def main() -> int:
     print(f"\nWith explicit triggers: {with_explicit}")
     print(f"Force-routed: {force_routed}")
 
-    # Post-generation drift gate: warn when routing-tables.md falls out of sync.
+    # Post-generation drift gate: warn when routing manifest falls out of sync.
     # Only runs for the default output (skills/INDEX.json); skips local override indexes.
     if args.output is None:
         drift_script = Path(__file__).parent / "check-routing-drift.py"
@@ -603,14 +611,10 @@ def main() -> int:
             )
             if drift_result.returncode != 0:
                 print(
-                    "\nWARNING: routing-tables.md is out of sync with the new INDEX.json.",
+                    "\nWARNING: routing manifest is out of sync with INDEX.json.",
                     file=sys.stderr,
                 )
                 print(drift_result.stdout.strip(), file=sys.stderr)
-                print(
-                    "Update skills/meta/do/references/routing-tables.md before committing.",
-                    file=sys.stderr,
-                )
 
     if collisions:
         print(f"\nCompleted with {len(collisions)} trigger collision(s)", file=sys.stderr)

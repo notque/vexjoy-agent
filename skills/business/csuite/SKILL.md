@@ -12,51 +12,37 @@ allowed-tools:
 routing:
   triggers:
     # Strategy/CEO
-    - "should I"
     - "should we"
     - "evaluate opportunity"
-    - "decision"
     - "trade-off"
     - "worth it"
     - "invest in"
     - "strategy"
-    - "strategic"
     # Technology/CTO
-    - "build or buy"
     - "build vs buy"
     - "vendor evaluation"
     - "adopt"
-    - "SaaS vs"
     - "technology choice"
     - "tech stack"
-    - "architecture decision"
-    - "should we use"
     # Growth/CMO
     - "grow audience"
-    - "content strategy"
-    - "marketing"
-    - "SEO strategy"
     - "growth"
     - "brand"
     - "positioning"
     - "community building"
     # Competitive
-    - "competitor"
-    - "competition"
-    - "market landscape"
     - "competitive analysis"
+    - "market landscape"
     - "differentiation"
     # Evaluation
     - "feasibility"
-    - "is it worth"
     - "effort estimate"
     - "ROI"
     - "priority"
-    - "should we start"
     - "project evaluation"
     - "go no go"
     - "viability"
-  pairs_with: []
+  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts"
   complexity: Medium
   category: decision-support
 ---
