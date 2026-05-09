@@ -645,6 +645,11 @@ def build_parser() -> argparse.ArgumentParser:
         dest="json_output",
         help="Output results as JSON for CI integration",
     )
+    parser.add_argument(
+        "--failures-only",
+        action="store_true",
+        help="Only output components grading below B (compact mode for LLM context)",
+    )
     return parser
 
 
@@ -693,26 +698,52 @@ def main() -> int:
     for target in unique_targets:
         scores.append(score_component(target, do_check_secrets=args.check_secrets))
 
+    # Filter for --failures-only: only components grading below B
+    passing_count = sum(1 for s in scores if s.grade in ("A", "B"))
+    total_count = len(scores)
+    display_scores = [s for s in scores if s.grade not in ("A", "B")] if args.failures_only else scores
+
     # Output
     if args.json_output:
-        output = {
-            "results": [score_to_dict(s) for s in scores],
-            "summary": {
-                "total_components": len(scores),
-                "average_score": round(sum(s.total for s in scores) / len(scores), 1) if scores else 0,
-                "passing": sum(1 for s in scores if s.grade in ("A", "B")),
-                "failing": sum(1 for s in scores if s.grade not in ("A", "B")),
-            },
-        }
+        if args.failures_only:
+            output = {
+                "results": [score_to_dict(s) for s in display_scores],
+                "summary": {
+                    "total_components": total_count,
+                    "passing": passing_count,
+                    "failing": total_count - passing_count,
+                    "message": f"{passing_count} of {total_count} components passed (grade B+)",
+                },
+            }
+        else:
+            output = {
+                "results": [score_to_dict(s) for s in display_scores],
+                "summary": {
+                    "total_components": total_count,
+                    "average_score": round(sum(s.total for s in scores) / len(scores), 1) if scores else 0,
+                    "passing": passing_count,
+                    "failing": total_count - passing_count,
+                },
+            }
         print(json.dumps(output, indent=2))
     else:
-        for i, score in enumerate(scores):
-            if i > 0:
-                print()
-            print(format_score(score))
+        if args.failures_only:
+            if display_scores:
+                for i, score in enumerate(display_scores):
+                    if i > 0:
+                        print()
+                    print(format_score(score))
+                if len(display_scores) > 1:
+                    print(format_summary_table(display_scores))
+            print(f"\n{passing_count} of {total_count} components passed (grade B+)")
+        else:
+            for i, score in enumerate(display_scores):
+                if i > 0:
+                    print()
+                print(format_score(score))
 
-        if len(scores) > 1:
-            print(format_summary_table(scores))
+            if len(display_scores) > 1:
+                print(format_summary_table(display_scores))
 
     # Exit code: 0 if all pass (B+), 1 if any fail
     has_failures = any(s.grade not in ("A", "B") for s in scores)
