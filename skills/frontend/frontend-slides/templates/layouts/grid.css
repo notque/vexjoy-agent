@@ -1,0 +1,28 @@
+.slide-grid .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 40%), 1fr));
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  width: 100%;
+}
+.slide-grid .card {
+  background: var(--surface);
+  border-radius: 0.5rem;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.slide-grid .icon {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  line-height: 1;
+}
+.slide-grid strong {
+  font-family: var(--heading-font);
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+  color: var(--text-primary);
+}
+.slide-grid span:last-child {
+  font-family: var(--body-font);
+  font-size: clamp(0.75rem, 1.3vw, 0.95rem);
+  color: var(--text-secondary);
+}

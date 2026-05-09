@@ -1,0 +1,14 @@
+:root {
+  --bg: #000000;
+  --surface: #0A0A0A;
+  --accent: #00FFD1;
+  --accent-2: #9B59FF;
+  --text-primary: #CCCCCC;
+  --text-secondary: #666666;
+  --heading-font: 'Orbitron', 'Courier New', monospace;
+  --body-font: 'Share Tech Mono', 'Courier New', monospace;
+  --heading-size: clamp(1.6rem, 3.5vw, 3rem);
+  --body-size: clamp(0.9rem, 1.7vw, 1.2rem);
+  --letter-spacing-heading: 0.1em;
+  --heading-glow: 0 0 20px var(--accent);
+}

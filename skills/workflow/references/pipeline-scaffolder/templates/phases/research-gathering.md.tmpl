@@ -1,0 +1,26 @@
+### Phase {{i}}: {{step.step}} (Parallel Multi-Agent)
+
+**Goal**: Investigate {{subdomain_name}} to build comprehensive understanding. Research breadth directly determines output quality.
+
+**Default N = {{step.params.agents | default: 4}} agents.** Override with `--research-agents N` (minimum 2, maximum 6).
+
+**Step 1: Prepare research context**
+Assemble a shared context block from the ADR and prior phase artifacts.
+
+**Step 2: Dispatch parallel research agents**
+Launch all {{step.params.agents | default: 4}} agents simultaneously using the Task tool. Each agent:
+- Receives the shared context block
+- Investigates one specific aspect
+- Saves findings to `/tmp/research-{aspect}.md`
+- Has a {{step.params.timeout_minutes | default: 5}}-minute timeout
+
+{{#for_each_aspect}}
+**Agent {{index}}: {{aspect_name}}** -- {{aspect_description}}
+- {{investigation_instructions}}
+- Save to `/tmp/research-{{aspect_slug}}.md`
+{{/for_each_aspect}}
+
+**Step 3: Collect and merge research artifacts**
+After all agents complete, merge findings into `/tmp/research-compilation-{task-id}.md`.
+
+**Gate**: At least {{ceil(agents * 0.75)}} of {{agents}} research agents completed. Research compilation saved. Proceed to Phase {{i+1}}.

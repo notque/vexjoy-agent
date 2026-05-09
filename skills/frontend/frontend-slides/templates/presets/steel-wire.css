@@ -1,0 +1,13 @@
+:root {
+  --bg: #1E2329;
+  --surface: #2C3340;
+  --accent: #F0E130;
+  --text-primary: #E8EAF0;
+  --text-secondary: #8892A4;
+  --heading-font: 'IBM Plex Sans', system-ui, sans-serif;
+  --body-font: 'IBM Plex Sans', system-ui, sans-serif;
+  --code-font: 'IBM Plex Mono', 'Courier New', monospace;
+  --heading-size: clamp(1.7rem, 3.8vw, 3rem);
+  --body-size: clamp(0.9rem, 1.7vw, 1.25rem);
+  --letter-spacing-heading: 0em;
+}

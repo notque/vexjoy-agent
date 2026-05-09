@@ -1,0 +1,55 @@
+# {{service_name}} MCP Server
+
+MCP server for {{service_name}}. Provides Claude Code with tools to {{purpose}}.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `{{service}}_get_{{entity}}` | Get a single {{entity}} by ID |
+| `{{service}}_list_{{entity}}s` | List {{entity}}s with optional filters |
+
+## Setup
+
+### Prerequisites
+- Node.js >= 18
+- {{service_name}} API key
+
+### Install
+
+```bash
+npm install
+npm run build
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `{{env_var_prefix}}_API_KEY` | Yes | {{service_name}} API key |
+
+### Register with Claude Code
+
+```bash
+python3 skills/workflow/references/mcp-pipeline-builder/scripts/register_mcp.py \
+  --name {{service}}-mcp-server \
+  --command node \
+  --args $(pwd)/dist/index.js \
+  --env {{env_var_prefix}}_API_KEY=your_key_here
+```
+
+Or add manually to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "{{service}}-mcp-server": {
+      "command": "node",
+      "args": ["/absolute/path/to/dist/index.js"],
+      "env": {
+        "{{env_var_prefix}}_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```

@@ -1,0 +1,218 @@
+---
+name: {{skill_name}}
+description: |
+  {{description}} -- {{task_type}} pipeline for the {{domain}} domain.
+  Use for {{trigger_keywords}} inside the {{subdomain_name}} subdomain.
+user-invocable: true
+agent: {{agent_name}}
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - Edit
+  - Task
+routing:
+  triggers: [{{trigger_keywords}}]
+  pairs_with: [{{agent_name}}]
+  complexity: {{complexity}}
+  category: domain
+---
+
+# {{skill_name_title}}
+
+## Operator Context
+
+This skill operates as an operator for {{subdomain_name}} within the {{domain}} domain, configuring Claude's behavior for {{task_type}} workflows. It implements a **Pipeline** pattern with {{phase_count}} phases, deterministic validation gates, and dual-layer artifact output.
+
+### Hardcoded Behaviors (Always Apply)
+- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default skill behaviors.
+- **Over-Engineering Prevention**: Produce only what the task requires. Do not add speculative features, optional enhancements, or content not grounded in research findings or source analysis.
+- **Source-Grounded Output**: Every claim, example, or recommendation in the output must trace to research findings or direct source analysis. Hallucinated content undermines trust and misleads users.
+- **ADR Mandate**: Phase 0 creates an ADR before any work begins. The ADR is re-read before every major decision to prevent context drift (Architecture Rule 10). WHY: Without a persistent reference, decisions made in Phase 1 are forgotten by Phase 5.
+{{#if_has_research_step}}
+- **Parallel Research Mandate**: The research phase MUST dispatch parallel agents. Sequential grep-based research is banned (Architecture Rule 12). WHY: A/B testing proved sequential research creates a 1.40-point quality gap vs parallel dispatch.
+{{/if_has_research_step}}
+{{#if_has_validation_script}}
+- **Deterministic Validation**: Phase validation uses `scripts/{{validation_script}}` for machine verification. Output must pass validation before delivery. WHY: Self-assessment is unreliable; deterministic scripts catch what eyes miss.
+{{/if_has_validation_script}}
+{{#if operator_profile == "personal"}}
+- **Operator Profile (Personal)**: Full autonomy. APPROVE and PROMPT steps are skipped. GUARD is limited to branch-check only. SIMULATE and SNAPSHOT are available but not mandatory.
+{{/if}}
+{{#if operator_profile == "work"}}
+- **Operator Profile (Work)**: Convention-enforced. APPROVE gates for production-affecting changes. CONFORM added for organizational conventions. Full GUARD -> SNAPSHOT -> EXECUTE -> VALIDATE for state changes.
+{{/if}}
+{{#if operator_profile == "ci"}}
+- **Operator Profile (CI)**: Fully autonomous, disposable environment. All interaction steps skipped. NOTIFY sends results to PR/Slack. GUARD checks dependencies exist, not permissions.
+{{/if}}
+{{#if operator_profile == "production"}}
+- **Operator Profile (Production)**: Maximum gates. Full GUARD + SNAPSHOT + SIMULATE mandatory. APPROVE required before all state changes. PRESENT status before and after.
+{{/if}}
+
+### Default Behaviors (ON unless disabled)
+- **Communication Style**: Report facts without self-congratulation. Show file paths, validation scores, and artifact locations.
+- **Temporary File Cleanup**: Remove `/tmp/` artifacts after pipeline completion. Keep only the final output and ADR.
+- **Dual-Layer Artifacts**: Every phase produces artifacts in dual-layer format: manifest.json for machine consumption, content.md for human reading.
+
+### Optional Behaviors (OFF unless enabled)
+- **Deep Mode** (`--deep`): Include extended analysis and internal architecture details
+- **Quick Mode** (`--quick`): Skip research phase for draft-quality output
+
+## What This Skill CAN Do
+- Execute the full {{subdomain_name}} {{task_type}} pipeline from ADR through final output
+{{#for_each_unique_family}}
+- {{capability_description}}
+{{/for_each_unique_family}}
+- Produce dual-layer artifacts (manifest.json + content.md) at each phase
+- Track progress via ADR updates at phase transitions
+
+## What This Skill CANNOT Do
+- **Handle other {{domain}} subdomains**: This skill covers {{subdomain_name}} only. Other subdomains have their own pipeline skills.
+- **Replace domain expertise**: Produces structured output grounded in research, not expert judgment
+- **Modify routing tables**: Use `routing-table-updater` for routing changes
+- **Execute without ADR**: Phase 0 is mandatory; skipping it violates Architecture Rule 10
+
+## Instructions
+
+### Phase 0: ADR
+
+**Goal**: Create a persistent reference document before work begins. WHY: The ADR prevents context drift across {{phase_count}} phases and provides a grading artifact for retrospectives.
+
+**Step 1**: Create `adr/{{domain}}-{{subdomain_slug}}-{task-id}.md` with:
+- **Context**: What task is being executed and why
+- **Decision**: Which approach was chosen (include the pipeline chain: {{chain_step_names_csv}})
+- **Constraints**: Operator profile is `{{operator_profile}}`. Domain rules from references apply.
+- **Artifact Format**: Dual-layer (manifest.json + content.md) per phase
+- **Test Plan**: How success will be verified
+
+**Step 2**: Re-read the ADR before every major decision to prevent context drift.
+
+**Gate**: ADR file exists at `adr/{{domain}}-{{subdomain_slug}}-{task-id}.md`. Proceed to Phase 1.
+
+{{generated_phases}}
+
+## Artifact Format
+
+Every phase produces a dual-layer artifact in the pipeline working directory.
+
+### manifest.json (Machine Layer)
+
+```json
+{
+  "phase": "{{phase_name}}",
+  "phase_number": {{N}},
+  "skill": "{{skill_name}}",
+  "domain": "{{domain}}",
+  "subdomain": "{{subdomain_name}}",
+  "timestamp": "ISO-8601",
+  "input_schema": "{{step.consumes}}",
+  "output_schema": "{{step.output_schema}}",
+  "status": "complete | failed | skipped",
+  "artifacts": [
+    {"path": "/path/to/content.md", "type": "content", "size_bytes": 0}
+  ],
+  "metrics": {}
+}
+```
+
+### content.md (Human Layer)
+
+Structure varies by step family:
+
+| Step Family | Content Structure |
+|-------------|-------------------|
+| research-gathering | Per-agent sections with findings and source quality notes |
+| structuring | Organized hierarchy with cross-references and priorities |
+| generation | Produced content with template attribution and grounding notes |
+| validation | Pass/fail verdict, findings by severity, evidence citations |
+| safety-guarding | Pre-conditions checked, snapshot references, simulation results |
+| synthesis-reporting | Phases completed, artifacts produced, metrics, final verdict |
+
+## Error Handling
+
+### Error: Phase Failure
+**Cause**: A phase fails to produce its expected output artifact
+**Solution**: Check the phase gate criteria. If partial output exists, assess whether downstream phases can proceed with reduced input. Update the ADR with the failure and resolution. Maximum 2 retry attempts per phase before escalating to the user.
+
+### Error: Validation Failure
+**Cause**: The VALIDATE or REFINE phase produces a failing verdict
+**Solution**: Enter a REFINE cycle (maximum {{max_refine_cycles}} iterations). Each cycle: (1) read the verdict to identify specific failures, (2) fix the generation artifact, (3) re-run validation. If all cycles exhausted, deliver the best-scoring output with the validation report attached. Note failures in the ADR.
+
+### Error: Dependency Missing
+**Cause**: A reference file (`references/*.md`) or script (`scripts/*.py`) does not exist
+**Solution**: Check `skills/{{skill_name}}/references/` for reference files and `scripts/` for validation scripts. If a reference stub was not populated during domain research, report the gap and proceed without the missing resource. Skip validation steps that depend on a missing script.
+
+{{#if_has_research_step}}
+### Error: Research Agent Timeout
+**Cause**: One or more parallel research agents exceed the {{research_timeout}}-minute timeout
+**Solution**: The gate requires at least {{min_research_agents}} of {{total_research_agents}} agents to complete. If fewer finish, fall back to single-agent sequential research for the missing aspects. Note reduced coverage in the output report and ADR.
+{{/if_has_research_step}}
+
+{{#if_has_safety_steps}}
+### Error: Safety Gate Failure
+**Cause**: A GUARD pre-condition check fails
+**Solution**: Stop at the safety gate. Report the specific check that failed, the current state, and what remediation is needed. The user must resolve the safety concern before the pipeline continues. This is non-negotiable.
+{{/if_has_safety_steps}}
+
+{{#for_each_task_type_error}}
+### Error: {{error_name}}
+**Cause**: {{error_cause}}
+**Solution**: {{error_solution}}
+{{/for_each_task_type_error}}
+
+## Patterns to Detect and Fix
+
+### Pattern 1: Start with the ADR
+**Signal**: Jumping directly to Phase 1 without creating the ADR
+**Why it matters**: The ADR creates a persistent reference. Without it, context drifts across phases, decisions become inconsistent, and retrospectives have no grading artifact. This violates Architecture Rule 10.
+**Preferred action**: Always execute Phase 0 first. The ADR is mandatory.
+
+### Pattern 2: Validate Before Delivery
+**Signal**: Producing output and delivering it without running the validation phase
+**Why it matters**: Unvalidated output may contain errors, missing elements, or structural problems that a deterministic validation script would catch.
+**Preferred action**: Always run the validation phase. Fix issues found. Report the final score.
+
+### Pattern 3: Ground Output in Source Artifacts
+**Signal**: Output contains claims, examples, or recommendations not grounded in research findings or source analysis
+**Why it matters**: Hallucinated content misleads users and undermines trust in the pipeline
+**Preferred action**: Ground every output element in a specific research finding or source artifact. If information is unavailable, say so rather than fabricating.
+
+{{#if_has_research_step}}
+### Pattern 4: Parallel Research
+**Signal**: Running grep commands one at a time instead of dispatching parallel research agents
+**Why it matters**: Sequential search produces tunnel vision. A/B testing proved parallel research eliminates a 1.40-point quality gap (Architecture Rule 12).
+**Preferred action**: Dispatch parallel research agents per the research phase instructions.
+{{/if_has_research_step}}
+
+{{#for_each_task_type_anti_pattern}}
+### Pattern {{next_number}}: {{anti_pattern_name}}
+**Signal**: {{anti_pattern_description}}
+**Why it matters**: {{anti_pattern_reason}}
+**Preferred action**: {{anti_pattern_alternative}}
+{{/for_each_task_type_anti_pattern}}
+
+## Anti-Rationalization
+
+These rationalizations are especially dangerous for {{task_type}} pipelines in the {{domain}} domain.
+
+| Rationalization Attempt | Why It's Wrong | Required Action |
+|------------------------|----------------|-----------------|
+| "The ADR is boilerplate, I'll skip it" | ADRs prevent context drift across {{phase_count}} phases; skipping violates Rule 10 | Create the ADR. Re-read before every major decision. |
+| "The output looks correct, skip validation" | Looking correct is not being correct; scripts catch what eyes miss | Run validation. Fix issues. Report the score. |
+| "This is obvious, no need to research" | Obvious to whom? Research breadth determines quality | Run the research phase fully. |
+| "One retry is enough" | Retry limits prevent loops, not effort | Use all allowed retries before escalating. |
+| "The user wants it fast, skip the safety gate" | Safety gates exist because consequences of skipping > delay | Honor the gate. Report why it blocks. |
+| "I'll fix manually instead of re-running" | Manual fixes bypass validation and artifact tracking | Re-run the phase with upstream corrections. |
+
+## References
+
+- **Architecture Rules**: `skills/workflow/references/pipeline-scaffolder/references/architecture-rules.md`
+- **Step Menu**: `skills/workflow/references/pipeline-scaffolder/references/step-menu.md`
+- **Anti-Rationalization Patterns**: `skills/shared-patterns/anti-rationalization-core.md`
+{{#for_each_reference}}
+- **{{reference_title}}**: `skills/{{skill_name}}/references/{{reference_file}}`
+{{/for_each_reference}}
+{{#for_each_script}}
+- **{{script_title}}**: `scripts/{{script_file}}`
+{{/for_each_script}}

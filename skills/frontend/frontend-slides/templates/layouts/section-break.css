@@ -1,0 +1,10 @@
+.slide-break {
+  background: var(--accent);
+}
+.slide-break h2 {
+  font-family: var(--heading-font);
+  font-size: clamp(2rem, 6vw, 5rem);
+  color: var(--bg);             /* inverted -- accent bg, bg-colored text */
+  letter-spacing: var(--letter-spacing-heading, 0);
+  text-align: center;
+}

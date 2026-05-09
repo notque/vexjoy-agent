@@ -1,0 +1,14 @@
+### Phase {{i}}: {{step.step}}
+
+**Goal**: {{goal_by_step_name}}
+
+**Step 1**: Read the structured corpus or decision record from Phase {{i-1}}.
+{{#if step.params.template}}
+**Step 2**: Read the output template from `{{step.params.template}}`.
+{{/if}}
+
+**Step {{next}}**: {{action_by_step_name}}
+
+**Step {{next}}**: Save output as dual-layer artifact.
+
+**Gate**: Output artifact produced and non-empty. Proceed to Phase {{i+1}}.

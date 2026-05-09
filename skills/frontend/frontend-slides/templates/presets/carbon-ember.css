@@ -1,0 +1,12 @@
+:root {
+  --bg: #1C1C1E;
+  --surface: #2C2C2E;
+  --accent: #FF5F1F;
+  --text-primary: #FFFFFF;
+  --text-secondary: #AEAEB2;
+  --heading-font: 'Space Grotesk', system-ui, sans-serif;
+  --body-font: 'Inter', system-ui, sans-serif;
+  --heading-size: clamp(2rem, 4.5vw, 3.8rem);
+  --body-size: clamp(1rem, 2vw, 1.4rem);
+  --letter-spacing-heading: -0.03em;
+}

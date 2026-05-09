@@ -1,0 +1,46 @@
+### Phase {{i}}: {{step.step}}
+
+{{#if step_is_LINT}}
+**Goal**: Run domain-specific linting rules against the generated output.
+
+**Step 1**: Run the linter:
+```bash
+{{step.params.linter}} {artifact_path}
+```
+{{#if step.params.rules}}
+**Step 2**: Cross-check against rules in `references/{{step.params.rules | basename}}`.
+{{/if}}
+**Step {{next}}**: Record findings in a verdict artifact.
+
+**Gate**: Lint passes or findings recorded. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_CONFORM}}
+**Goal**: Verify output against domain schema, spec, or contract.
+
+**Step 1**: Load the conformance spec.
+**Step 2**: Validate each output element against the spec.
+**Step 3**: Record conformance verdict.
+
+**Gate**: Conformance passes or violations documented. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_TEMPLATE}}
+**Goal**: Apply domain-specific templates with variable substitution.
+
+**Step 1**: Load template from `{{step.params.template | default: "references/output-template.md"}}`.
+**Step 2**: Substitute variables from the structured corpus or decision record.
+**Step 3**: Save generation artifact.
+
+**Gate**: Template applied. Output artifact saved. Proceed to Phase {{i+1}}.
+{{/if}}
+
+{{#if step_is_ADAPT}}
+**Goal**: Modify generic output to fit domain-specific conventions.
+
+**Step 1**: Read the generation artifact.
+**Step 2**: Apply domain conventions (naming, formatting, idioms).
+**Step 3**: Save adapted artifact.
+
+**Gate**: Output conforms to domain conventions. Proceed to Phase {{i+1}}.
+{{/if}}

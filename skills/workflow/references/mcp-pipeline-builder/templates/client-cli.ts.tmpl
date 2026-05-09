@@ -1,0 +1,25 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
+export class CliClient {
+  private readonly executable: string;
+  private readonly env: Record<string, string>;
+
+  constructor(executable: string, env: Record<string, string> = {}) {
+    this.executable = executable;
+    this.env = env;
+  }
+
+  async run(args: string[]): Promise<string> {
+    const { stdout, stderr } = await execFileAsync(this.executable, args, {
+      env: { ...process.env, ...this.env },
+      maxBuffer: 10 * 1024 * 1024, // 10MB
+    });
+    if (stderr && !stdout) {
+      throw new Error(stderr);
+    }
+    return stdout;
+  }
+}

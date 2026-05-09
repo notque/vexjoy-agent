@@ -1,0 +1,15 @@
+.slide-code pre {
+  background: var(--surface);
+  border-radius: 0.5rem;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  width: 100%;
+  overflow: hidden;          /* never scroll -- split slide if needed */
+  max-height: min(55vh, 500px);
+}
+.slide-code code {
+  font-family: var(--code-font, 'JetBrains Mono', 'Courier New', monospace);
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre;
+}

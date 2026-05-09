@@ -1,0 +1,14 @@
+.slide-indicator {
+  position: fixed;
+  bottom: clamp(0.75rem, 2vw, 1.5rem);
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  padding: 0.25em 0.6em;
+  border-radius: 0.25em;
+  font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+  font-family: var(--body-font, system-ui, sans-serif);
+  z-index: 100;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}

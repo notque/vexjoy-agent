@@ -1,0 +1,12 @@
+:root {
+  --bg: #F5E6C8;
+  --surface: #EDD9A3;
+  --accent: #C1440E;
+  --text-primary: #2C1810;
+  --text-secondary: #7A5C4A;
+  --heading-font: 'Merriweather', Georgia, serif;
+  --body-font: 'Lato', system-ui, sans-serif;
+  --heading-size: clamp(1.8rem, 4vw, 3.2rem);
+  --body-size: clamp(1rem, 1.9vw, 1.35rem);
+  --letter-spacing-heading: 0.02em;
+}
