@@ -107,7 +107,7 @@ Patterns where unnecessary complexity can be removed while preserving behavior. 
 | Signal | Grep / Structural Check | Simplification |
 |--------|------------------------|----------------|
 | Defensive copy on fresh slice | `make([]T, len(x)+N)` + `copy(result, x)` where x is freshly allocated | Replace with `append(x, element)` |
-| Coupling comment | `grep -rn "must be called after\|must always follow\|INVARIANT.*call.*after" --include="*.go"` | Merge the "always follows" logic into the prerequisite function |
+| Coupling comment | `grep -rn "must be called after\|must always follow\|INVARIANT.*call" --include="*.go"` | Merge the "always follows" logic into the prerequisite function |
 | Same-pair call pattern | `helperB(result)` appears after every `result := functionA()` call site | Move `helperB` logic inside `functionA` |
 
 ### Coupling Comment Fix
