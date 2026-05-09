@@ -111,15 +111,77 @@ def format_compact(entries: list[dict]) -> str:
     return "\n\n".join(sections)
 
 
+def truncate_desc(desc: str, max_len: int = 60) -> str:
+    """Truncate description to max_len chars, adding '...' if truncated."""
+    if len(desc) <= max_len:
+        return desc
+    return desc[: max_len - 3] + "..."
+
+
+def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
+    """Format entries in compact mode: truncated descriptions, conditional PIPELINES.
+
+    PIPELINES section is omitted unless request_text contains 'pipeline'.
+    """
+    show_pipelines = "pipeline" in request_text.lower()
+
+    agents = []
+    skills = []
+    pipelines = []
+
+    for e in entries:
+        name = e["name"]
+        desc = truncate_desc(e["description"])
+        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
+
+        not_for = e.get("not_for", "")
+        not_for_str = f" NOT: {truncate_desc(not_for, 40)}" if not_for else ""
+
+        if e["type"] == "agent":
+            pairs_str = f" [{pairs}]" if pairs else ""
+            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}")
+        elif e["type"] == "pipeline":
+            if show_pipelines:
+                pipelines.append(f"  {name} — {desc}")
+        else:
+            force_str = " FORCE" if e.get("force_route") else ""
+            agent_str = f" agent={e['agent']}" if e.get("agent") else ""
+            cat_str = f" ({e['category']})" if e.get("category") else ""
+            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}")
+
+    sections = []
+    if agents:
+        sections.append("AGENTS:\n" + "\n".join(sorted(agents)))
+    if skills:
+        sections.append("SKILLS:\n" + "\n".join(sorted(skills)))
+    if pipelines:
+        sections.append("PIPELINES:\n" + "\n".join(sorted(pipelines)))
+
+    return "\n\n".join(sections)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate routing manifest for Haiku agent.")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Compact mode: truncated descriptions, omit PIPELINES unless --request mentions pipeline",
+    )
+    parser.add_argument(
+        "--request",
+        type=str,
+        default="",
+        help="Request text (used with --compact to decide whether to include PIPELINES)",
+    )
     args = parser.parse_args()
 
     entries = load_entries()
 
     if args.json:
         print(json.dumps(entries, indent=2))
+    elif args.compact:
+        print(format_compact_mode(entries, request_text=args.request))
     else:
         print(format_compact(entries))
 

@@ -449,6 +449,11 @@ def main() -> None:
         help="Backlog JSON to skip known violations (default: artifacts/joy-check-sweep-backlog.json)",
     )
     parser.add_argument("--json", dest="json_output", action="store_true", help="JSON output for CI")
+    parser.add_argument(
+        "--failures-only",
+        action="store_true",
+        help="Only output agents with issues (compact mode for LLM context)",
+    )
     args = parser.parse_args()
 
     if args.check_do_framing:
@@ -485,12 +490,22 @@ def main() -> None:
         all_agent_results = [validate_agent(f, check_structure=False) for f in sorted(AGENTS_DIR.glob("*.md"))]
         orphans = find_orphan_references(all_agent_results)
 
+    # Filter for --failures-only: only agents with issues
+    total_agents = len(results)
+    passing_agents = sum(1 for r in results if r.ok)
+    display_results = [r for r in results if not r.ok] if args.failures_only else results
+    display_orphans = orphans  # always show orphans (they are issues)
+
     if args.json_output:
-        output = build_json_results(results, orphans)
+        output = build_json_results(display_results, display_orphans)
+        if args.failures_only:
+            output["summary"]["message"] = f"{passing_agents} of {total_agents} agents passed validation"
         print(json.dumps(output, indent=2))
-        sys.exit(output["exit_code"])
+        sys.exit(1 if any(not r.ok for r in results) or bool(orphans) else 0)
     else:
-        print_text_results(results, orphans)
+        print_text_results(display_results, display_orphans)
+        if args.failures_only:
+            print(f"\n{passing_agents} of {total_agents} agents passed validation")
         has_failures = any(not r.ok for r in results) or bool(orphans)
         sys.exit(1 if has_failures else 0)
 
