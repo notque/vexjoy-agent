@@ -370,27 +370,33 @@ def check_hook_files() -> list[dict]:
     results = []
 
     if relative_path_hooks:
-        results.append({
-            "name": "hook_relative_paths",
-            "label": "No hooks use relative paths",
-            "passed": False,
-            "detail": f"{len(relative_path_hooks)} hook(s) use relative paths (break outside toolkit repo): {', '.join(relative_path_hooks[:5])}. Fix: use $HOME/.claude/hooks/ prefix.",
-        })
+        results.append(
+            {
+                "name": "hook_relative_paths",
+                "label": "No hooks use relative paths",
+                "passed": False,
+                "detail": f"{len(relative_path_hooks)} hook(s) use relative paths (break outside toolkit repo): {', '.join(relative_path_hooks[:5])}. Fix: use $HOME/.claude/hooks/ prefix.",
+            }
+        )
 
     if missing:
-        results.append({
-            "name": "hook_files",
-            "label": "Hook script files exist",
-            "passed": False,
-            "detail": f"{found} found, {len(missing)} missing: {', '.join(missing[:5])}",
-        })
+        results.append(
+            {
+                "name": "hook_files",
+                "label": "Hook script files exist",
+                "passed": False,
+                "detail": f"{found} found, {len(missing)} missing: {', '.join(missing[:5])}",
+            }
+        )
     else:
-        results.append({
-            "name": "hook_files",
-            "label": "Hook script files exist",
-            "passed": True,
-            "detail": f"All {found} hook scripts found",
-        })
+        results.append(
+            {
+                "name": "hook_files",
+                "label": "Hook script files exist",
+                "passed": True,
+                "detail": f"All {found} hook scripts found",
+            }
+        )
 
     return results
 

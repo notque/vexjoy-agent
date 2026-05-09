@@ -184,7 +184,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
                 cmd = h.get("command", "")
                 if "$HOME/.claude/hooks/" not in cmd:
                     # Flag hooks using relative paths — they break in non-toolkit repos
-                    if "python3 hooks/" in cmd or "python3 \"hooks/" in cmd:
+                    if "python3 hooks/" in cmd or 'python3 "hooks/' in cmd:
                         hook_file = cmd.split("hooks/")[-1].rstrip('"').rstrip("'")
                         issues.append((event, hook_file, "RELATIVE PATH"))
                         print(f"  FAIL: {event} -> {hook_file} — uses relative path (breaks outside toolkit repo)")
