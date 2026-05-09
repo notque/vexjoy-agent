@@ -256,6 +256,15 @@ def _read_install_mode(user_claude: Path) -> str:
         return "copy"
 
 
+def _is_ephemeral_path(path: Path) -> bool:
+    """Check if a path is ephemeral (will be cleaned up automatically).
+
+    Currently checks for /tmp/ prefixed paths. Resolves symlinks first
+    to prevent bypass via symlinked paths.
+    """
+    return str(path.resolve()).startswith("/tmp/")
+
+
 def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     """Update the toolkit_path in the install manifest when the repo has moved.
 
@@ -272,12 +281,11 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     except (json.JSONDecodeError, OSError):
         return
 
-    current_path = str(repo_root.resolve())
-
     # Never point the manifest at an ephemeral path
-    if current_path.startswith("/tmp/"):
+    if _is_ephemeral_path(repo_root):
         return
 
+    current_path = str(repo_root)
     recorded_path = manifest.get("toolkit_path", "")
     if recorded_path != current_path:
         manifest["toolkit_path"] = current_path
@@ -295,7 +303,7 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     targets are ephemeral and will break after cleanup.
     """
     # Never create a symlink to an ephemeral path
-    if str(src.resolve()).startswith("/tmp/"):
+    if _is_ephemeral_path(src):
         print(
             f"[sync] BLOCKED: refusing to symlink {dst} -> {src} (ephemeral /tmp/ target)",
             file=sys.stderr,
@@ -418,9 +426,8 @@ def _is_git_worktree(path: Path) -> bool:
     The /tmp/ guards in _ensure_symlink and _update_manifest_toolkit_path
     provide secondary protection for the most common failure case.
     """
-    # Fast check: resolve symlinks, then reject /tmp/ paths (always ephemeral)
-    resolved = str(path.resolve())
-    if resolved.startswith("/tmp/"):
+    # Fast check: reject ephemeral paths (e.g. /tmp/)
+    if _is_ephemeral_path(path):
         return True
 
     # .git file (not directory) is a worktree OR submodule marker.

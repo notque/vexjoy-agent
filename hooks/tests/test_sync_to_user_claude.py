@@ -60,7 +60,9 @@ class TestUpdateManifestToolkitPath:
 
         new_repo = tmp_path / "new-repo"
         new_repo.mkdir()
-        sync_mod._update_manifest_toolkit_path(tmp_path, new_repo)
+        # Patch _is_ephemeral_path since test fixtures live in /tmp/
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._update_manifest_toolkit_path(tmp_path, new_repo)
 
         updated = json.loads(manifest_path.read_text())
         assert updated["toolkit_path"] == str(new_repo)
@@ -74,7 +76,8 @@ class TestUpdateManifestToolkitPath:
         manifest_path.write_text(json.dumps(manifest))
 
         mtime_before = manifest_path.stat().st_mtime
-        sync_mod._update_manifest_toolkit_path(tmp_path, repo)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._update_manifest_toolkit_path(tmp_path, repo)
 
         # File should not have been rewritten
         mtime_after = manifest_path.stat().st_mtime
@@ -84,7 +87,23 @@ class TestUpdateManifestToolkitPath:
         repo = tmp_path / "repo"
         repo.mkdir()
         # Should not raise
-        sync_mod._update_manifest_toolkit_path(tmp_path, repo)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._update_manifest_toolkit_path(tmp_path, repo)
+
+    def test_rejects_tmp_path(self, tmp_path: Path) -> None:
+        """Verify /tmp/ paths are rejected (worktree poisoning guard)."""
+        manifest = {"mode": "symlink", "toolkit_path": "/real/repo"}
+        manifest_path = tmp_path / ".install-manifest.json"
+        manifest_path.write_text(json.dumps(manifest))
+
+        tmp_repo = tmp_path / "worktree"
+        tmp_repo.mkdir()
+        # Don't patch — let the real guard run
+        sync_mod._update_manifest_toolkit_path(tmp_path, tmp_repo)
+
+        # Manifest should NOT be updated (still has original path)
+        updated = json.loads(manifest_path.read_text())
+        assert updated["toolkit_path"] == "/real/repo"
 
 
 class TestEnsureSymlink:
@@ -96,7 +115,9 @@ class TestEnsureSymlink:
         (src / "test.txt").write_text("hello")
 
         dst = tmp_path / "target"
-        result = sync_mod._ensure_symlink(src, dst)
+        # Patch _is_ephemeral_path since test fixtures live in /tmp/
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._ensure_symlink(src, dst)
 
         assert result is True
         assert dst.is_symlink()
@@ -109,7 +130,8 @@ class TestEnsureSymlink:
         dst = tmp_path / "target"
         dst.symlink_to(src)
 
-        result = sync_mod._ensure_symlink(src, dst)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._ensure_symlink(src, dst)
 
         assert result is True
         assert dst.is_symlink()
@@ -122,7 +144,8 @@ class TestEnsureSymlink:
         dst = tmp_path / "target"
         dst.symlink_to(wrong_src)
 
-        result = sync_mod._ensure_symlink(src, dst)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._ensure_symlink(src, dst)
 
         assert result is True
         assert dst.is_symlink()
@@ -137,7 +160,8 @@ class TestEnsureSymlink:
         dst.mkdir()
         (dst / "copied.txt").write_text("copy")
 
-        result = sync_mod._ensure_symlink(src, dst)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._ensure_symlink(src, dst)
 
         assert result is True
         assert dst.is_symlink()
@@ -152,11 +176,24 @@ class TestEnsureSymlink:
         dst = tmp_path / "target"
         dst.symlink_to(tmp_path / "nonexistent")
 
-        result = sync_mod._ensure_symlink(src, dst)
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._ensure_symlink(src, dst)
 
         assert result is True
         assert dst.is_symlink()
         assert dst.resolve() == src.resolve()
+
+    def test_blocks_tmp_source(self, tmp_path: Path) -> None:
+        """Verify /tmp/ sources are blocked (worktree poisoning guard)."""
+        src = tmp_path / "source"
+        src.mkdir()
+        dst = tmp_path / "target"
+
+        # Don't patch — let the real guard run
+        result = sync_mod._ensure_symlink(src, dst)
+
+        assert result is False
+        assert not dst.exists()
 
 
 class TestMainSymlinkMode:
@@ -207,6 +244,8 @@ class TestMainSymlinkMode:
         with (
             patch.object(Path, "home", return_value=tmp_path / "home"),
             patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
         ):
             sync_mod.main()
 
@@ -233,6 +272,8 @@ class TestMainSymlinkMode:
         with (
             patch.object(Path, "home", return_value=tmp_path / "home"),
             patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
         ):
             sync_mod.main()
 
@@ -253,6 +294,8 @@ class TestMainSymlinkMode:
         with (
             patch.object(Path, "home", return_value=tmp_path / "home"),
             patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
         ):
             sync_mod.main()
 
@@ -280,6 +323,8 @@ class TestMainSymlinkMode:
         with (
             patch.object(Path, "home", return_value=tmp_path / "home"),
             patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
         ):
             sync_mod.main()
 
@@ -300,3 +345,19 @@ class TestMainSymlinkMode:
         # (which only targets stale symlinks). This is acceptable — the important
         # thing is that the directory structure is correct and skill symlinks work.
         assert (skills_target / "sample").is_symlink()
+
+    def test_worktree_skips_sync(self, tmp_path: Path) -> None:
+        """Verify main() bails out when running inside a git worktree."""
+        repo = self._setup_repo(tmp_path)
+        user_claude = self._setup_user_claude(tmp_path, "symlink", repo)
+
+        with (
+            patch.object(Path, "home", return_value=tmp_path / "home"),
+            patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=True),
+        ):
+            sync_mod.main()
+
+        # Nothing should have been created
+        assert not (user_claude / "agents").exists()
+        assert not (user_claude / "hooks").exists()
