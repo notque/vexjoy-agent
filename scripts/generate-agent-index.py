@@ -81,6 +81,11 @@ def extract_frontmatter(content: str) -> dict | None:
             pairs = re.findall(r"-\s+[\"']?([^\"'\n]+)[\"']?", pairs_match.group(1))
             routing["pairs_with"] = [p.strip() for p in pairs]
 
+        # Extract not_for disambiguation
+        not_for_match = re.search(r'not_for:\s*["\'](.+?)["\']', routing_content)
+        if not_for_match:
+            routing["not_for"] = not_for_match.group(1).strip()
+
         # Extract complexity
         complexity_match = re.search(r"complexity:\s*(.+)$", routing_content, re.MULTILINE)
         if complexity_match:
@@ -172,6 +177,8 @@ def generate_index(
             routing = frontmatter["routing"]
             if "triggers" in routing:
                 agent_entry["triggers"] = routing["triggers"]
+            if "not_for" in routing:
+                agent_entry["not_for"] = routing["not_for"]
             if "pairs_with" in routing:
                 agent_entry["pairs_with"] = routing["pairs_with"]
             if "complexity" in routing:

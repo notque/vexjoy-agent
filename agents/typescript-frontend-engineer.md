@@ -12,6 +12,7 @@ routing:
     - ".tsx"
     - ".ts"
     - zod
+  not_for: "React Native mobile apps (use react-native-engineer)"
   retro-topics:
     - typescript-patterns
     - debugging

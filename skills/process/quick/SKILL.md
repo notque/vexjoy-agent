@@ -31,7 +31,7 @@ routing:
     - rename this variable
     - update value
     - fix import
-  pairs_with: []
+  not_for: "'quick' as speed preference, general bug diagnosis requiring investigation"
   complexity: Simple
   category: process
 ---

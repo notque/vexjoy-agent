@@ -149,6 +149,7 @@
         "channel",
         "gopls"
       ],
+      "not_for": "tasks using 'go' as a verb (go ahead, go fix this)",
       "pairs_with": [
         "go-patterns"
       ],
@@ -528,6 +529,7 @@
         "gesture handler",
         "native stack"
       ],
+      "not_for": "React web apps (use typescript-frontend-engineer)",
       "pairs_with": [
         "universal-quality-gate"
       ],
@@ -906,6 +908,7 @@
         ".ts",
         "zod"
       ],
+      "not_for": "React Native mobile apps (use react-native-engineer)",
       "pairs_with": [
         "universal-quality-gate",
         "go-patterns"

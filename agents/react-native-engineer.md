@@ -16,6 +16,7 @@ routing:
     - react-native-patterns
     - mobile-performance
     - animations
+  not_for: "React web apps (use typescript-frontend-engineer)"
   pairs_with:
     - universal-quality-gate
   complexity: Medium-Complex

@@ -188,7 +188,7 @@ Rules:
 
 **Step 1b: Apply the Haiku agent's recommendation**
 
-Use `agent` and `skill` fields directly. If `confidence` is "low", verify against INDEX files and `references/routing-tables.md`. Haiku response is internal — never print to user.
+Use `agent` and `skill` fields directly. If `confidence` is "low", verify against INDEX files and `INDEX files`. Haiku response is internal — never print to user.
 
 **Critical**: "push", "commit", "create PR", "merge" MUST route through skills with quality gates (lint, tests, CI verification).
 
@@ -196,7 +196,7 @@ Route to the simplest agent+skill that satisfies the request. When `[cross-repo]
 
 **Step 2: Apply skill override** (task verb overrides default skill)
 
-When the request verb implies a specific methodology, override the agent's default skill. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
+When the request verb implies a specific methodology, override the agent's default skill. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `INDEX files`.
 
 **Step 3: Display routing decision** (MANDATORY — FIRST visible output, before any work)
 
@@ -418,7 +418,7 @@ python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "
 
 ### Error: "No Agent Matches Request"
 Cause: Request domain not covered by any agent
-Solution: Check INDEX files and `references/routing-tables.md` for near-matches. Route to closest agent with verification-before-completion. Report the gap.
+Solution: Check INDEX files and `INDEX files` for near-matches. Route to closest agent with verification-before-completion. Report the gap.
 
 ### Error: "Force-Route Conflict"
 Cause: Multiple force-route triggers match the same request
@@ -433,9 +433,9 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation protocol
-- `agents/INDEX.json`: Agent triggers and metadata
-- `skills/INDEX.json`: Skill triggers, force-route flags, and pairs_with agent/skill pairings
+- `agents/INDEX.json`: Agent triggers, metadata, and `not_for` disambiguation
+- `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with, and `not_for` disambiguation
 - `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
 - `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases
+- `scripts/routing-manifest.py`: Generates compact routing manifest from INDEX files (single source of truth)

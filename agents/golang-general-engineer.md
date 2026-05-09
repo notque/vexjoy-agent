@@ -39,6 +39,7 @@ routing:
     - goroutine
     - channel
     - gopls
+  not_for: "tasks using 'go' as a verb (go ahead, go fix this)"
   retro-topics:
     - go-patterns
     - concurrency

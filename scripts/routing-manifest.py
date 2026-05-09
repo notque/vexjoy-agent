@@ -57,19 +57,21 @@ def load_entries() -> list[dict]:
         for name, data in items.items():
             if not isinstance(data, dict):
                 continue
-            entries.append(
-                {
-                    "name": name,
-                    "type": "skill" if index_type == "skills" else index_type.rstrip("s"),
-                    "description": data.get("description") or data.get("short_description", ""),
-                    "triggers": data.get("triggers", []),
-                    "category": data.get("category", ""),
-                    "agent": data.get("agent"),
-                    "model": data.get("model"),
-                    "pairs_with": data.get("pairs_with", []),
-                    "force_route": bool(data.get("force_route", False)),
-                }
-            )
+            entry: dict = {
+                "name": name,
+                "type": "skill" if index_type == "skills" else index_type.rstrip("s"),
+                "description": data.get("description") or data.get("short_description", ""),
+                "triggers": data.get("triggers", []),
+                "category": data.get("category", ""),
+                "agent": data.get("agent"),
+                "model": data.get("model"),
+                "pairs_with": data.get("pairs_with", []),
+                "force_route": bool(data.get("force_route", False)),
+            }
+            not_for = data.get("not_for")
+            if not_for:
+                entry["not_for"] = not_for
+            entries.append(entry)
 
     return entries
 
@@ -89,16 +91,19 @@ def format_compact(entries: list[dict]) -> str:
         desc = e["description"]
         pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
 
+        not_for = e.get("not_for", "")
+        not_for_str = f" NOT: {not_for}" if not_for else ""
+
         if e["type"] == "agent":
             pairs_str = f" [{pairs}]" if pairs else ""
-            agents.append(f"  {name}{pairs_str} — {desc}")
+            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}")
         elif e["type"] == "pipeline":
             pipelines.append(f"  {name} — {desc}")
         else:
             force_str = " FORCE" if e.get("force_route") else ""
             agent_str = f" agent={e['agent']}" if e.get("agent") else ""
             cat_str = f" ({e['category']})" if e.get("category") else ""
-            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}")
+            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}")
 
     sections = []
     if agents:
