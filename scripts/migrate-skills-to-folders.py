@@ -33,6 +33,7 @@ SKILL_MAPPING: dict[str, str] = {
     "code-linting": "code-quality",
     "comment-quality": "code-quality",
     "condense": "code-quality",
+    "joy-check": "code-quality",
     "python-quality-gate": "code-quality",
     "typescript-check": "code-quality",
     "universal-quality-gate": "code-quality",

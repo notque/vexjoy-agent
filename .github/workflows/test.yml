@@ -50,3 +50,14 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/check-routing-drift.py --verbose
+
+  joy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - name: Joy-check golden fixtures and fleet scan (agents + SKILL.md)
+        run: python -m pytest scripts/tests/test_joy_check_instruction_mode.py -v --tb=short
