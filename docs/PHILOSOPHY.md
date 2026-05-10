@@ -175,6 +175,30 @@ Everything a skill needs lives inside its directory: scripts, viewer templates, 
 
 Skill documents place the workflow immediately after frontmatter. Constraints appear inline within the phases they govern, with reasoning ("because X"). A/B/C testing: workflow-first swept constraints-first 3-0 across all complexity levels.
 
+### Positive Framing as CI Gate
+
+Instructions tell the reader what to do, not what to avoid. An LLM reading "NEVER edit code directly" has learned a boundary but not a target action. "Route all code modifications to domain agents" gives the same boundary and the action.
+
+**The 100% requirement.** Every agent and skill in the fleet must pass instruction-mode joy-check with zero primary negative patterns. 60% pass was the prototype threshold. 100% is the CI gate. Below 100%, the framing debt accumulates — each `FORBIDDEN` or `Don't` added to a skill reduces the signal quality for every downstream invocation.
+
+**What the CI gate catches:**
+
+| Pattern | Example | Positive rewrite |
+|---------|---------|-----------------|
+| `NEVER` (caps) | "NEVER edit code directly" | "Route all code modifications to domain agents" |
+| `do NOT` / `Do NOT` | "Do NOT use git add -A" | "Stage files by name: `git add specific-file.py`" |
+| `must NOT` | "Hooks must NOT block tools" | "exit 0 on errors to keep tools available" |
+| `FORBIDDEN` | "FORBIDDEN Patterns" | "Hard Gate Patterns" |
+| `Don't` at instruction start | "Don't skip validation" | "Run validation before marking complete" |
+| `Avoid` heading/bullet | "### Patterns to Avoid" | "### Preferred Patterns" |
+| `Anti-Pattern` heading | "## Anti-Patterns" | "## Preferred Patterns" |
+
+**Contextual exceptions** (not flagged): subordinate negatives after a positive instruction ("Credentials stay in .env files, never in code"), negatives in fenced code blocks, blockquoted lines, technical terms.
+
+**Implementation:** `scripts/validate_positive_instruction_docs.py` is the deterministic engine. `scripts/tests/test_joy_check_instruction_mode.py` runs golden fixtures (each pattern, each exception) and a parametrized fleet scan. The `joy-check` CI job in `.github/workflows/test.yml` gates all PRs.
+
+**Test:** Run `python3 scripts/validate_positive_instruction_docs.py` — exit code 1 means violations exist. Fix them before merging.
+
 ### Both Deterministic AND LLM Evaluation
 
 **Tier 1 (fast, free, CI-friendly):** Frontmatter parses? Files exist? Required sections present?
