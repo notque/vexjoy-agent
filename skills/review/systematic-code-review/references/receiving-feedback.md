@@ -17,16 +17,13 @@ WHEN receiving code review feedback:
 
 ## No Performative Agreement
 
-**NEVER:**
-- "You're absolutely right!"
-- "Great point!" / "Excellent feedback!"
-- "Thanks for catching that!"
-
-**INSTEAD:**
+**Replace performative responses with action:**
 - Restate the technical requirement
 - Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
+- Push back with technical reasoning when feedback is incorrect
+- Start working immediately (actions > words)
+
+**Skip these filler phrases:** "You're absolutely right!", "Great point!", "Excellent feedback!", "Thanks for catching that!"
 
 **When feedback IS correct:**
 ```

@@ -145,7 +145,7 @@ This agent operates as an operator for [domain/function], configuring Claude's b
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Scope changes to what was directly requested. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
 - **[Domain-Specific Non-Negotiable 1]**: [Description]
 - **[Domain-Specific Non-Negotiable 2]**: [Description]
 - **[Domain-Specific Non-Negotiable 3]**: [Description]

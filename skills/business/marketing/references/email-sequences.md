@@ -128,7 +128,7 @@ Map each email to a specific stage:
 - Under 50 characters (35-40 optimal for mobile)
 - No ALL CAPS words
 - No excessive punctuation (!!!, ???)
-- Avoid spam triggers: free, act now, limited time, congratulations, click here
+- Replace spam-trigger words (free, act now, limited time, congratulations, click here) with specific value statements
 - Preview text complements -- never repeats -- the subject line
 - Always provide 2-3 options per email for A/B testing
 

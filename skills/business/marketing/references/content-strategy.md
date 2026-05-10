@@ -282,14 +282,14 @@ The voice stays constant. Tone adjusts to context.
 #### Inclusive Language Rules
 
 - Gender-neutral: they/them for unknown individuals
-- Avoid ableist language ("crazy", "blind spot", "lame")
+- Use inclusive alternatives for ableist terms ("unexpected" for "crazy", "oversight" for "blind spot", "weak" for "lame")
 - "Simple" or "straightforward" instead of "easy" (easy varies by person)
-- Avoid culturally specific idioms that don't translate
+- Use universally understood phrasing over culturally specific idioms
 
 #### Competitor and Category Terms
 
 - Use your preferred category framing, not the competitor's
-- Avoid terms competitors coined (reinforces their positioning)
+- Use original terminology over competitor-coined terms (which reinforce their positioning)
 - Refer to competitors generically unless direct comparison is the point
 - Define your differentiation language and use it consistently
 

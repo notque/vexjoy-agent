@@ -37,7 +37,7 @@ for line in f:
         # Stops reading after finding the match -- O(1) best case
 ```
 
-Avoid loading the entire file into memory and iterating through it. Parse only what is needed, and exit as soon as the relevant data is found.
+Parse only what is needed and exit as soon as the relevant data is found. Read files incrementally rather than loading entire contents into memory.
 
 **Why this matters**: Hooks fire on every tool call. A hook that takes 200ms adds 200ms to every Read, Edit, Write, and Bash invocation. At 50+ tool calls per session, that is 10+ seconds of pure overhead.
 

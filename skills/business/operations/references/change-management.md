@@ -327,7 +327,7 @@ Rollback procedures must be tested before the change. An untested rollback is a 
 
 ---
 
-## Change Management Anti-Patterns
+## Change Management Failure Modes
 
 | Anti-Pattern | Symptom | Fix |
 |-------------|---------|-----|

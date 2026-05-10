@@ -280,7 +280,7 @@ find skills/ -name 'SKILL.md' -exec dirname {} \; | xargs -I{} basename {} | gre
 
 ## Pair Mandates With Rationale
 
-Attach a "because X" reason to every instruction. Bare imperatives (ALWAYS, NEVER, MUST) cannot generalize to edge cases the author did not anticipate. Reasoned constraints let the model make the right call in ambiguous situations.
+Attach a "because X" reason to every instruction. Bare imperatives without reasoning cannot generalize to edge cases the author did not anticipate. Reasoned constraints let the model make the right call in ambiguous situations.
 
 ```markdown
 ## Instructions
@@ -303,7 +303,7 @@ grep -n 'ALWAYS\|NEVER\|MUST' skills/*/SKILL.md | grep -v 'because\|since\|so th
 
 ## Add Negative Triggers for Exclusions
 
-When a skill has a broad domain that overlaps with specialized skills, add explicit "Do NOT use for" clauses. This prevents overtriggering on requests that belong to a more specialized skill.
+When a skill has a broad domain that overlaps with specialized skills, add explicit exclusion clauses (e.g. "Use X skill instead for Y"). This prevents overtriggering on requests that belong to a more specialized skill.
 
 ```yaml
 description: |

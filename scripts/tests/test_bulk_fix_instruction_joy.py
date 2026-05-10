@@ -17,7 +17,7 @@ def test_scan_file_marks_safe_heading_rewrite(tmp_path: Path) -> None:
     path.write_text("## Anti-Patterns\n\nBody\n", encoding="utf-8")
     findings = _mod.scan_file(path)
     assert len(findings) == 1
-    assert findings[0].safe_fix == "## Patterns to Detect and Fix"
+    assert findings[0].safe_fix == "## Common Failure Modes"
 
 
 def test_apply_safe_rewrites_rewrites_heading_only(tmp_path: Path) -> None:
@@ -26,7 +26,7 @@ def test_apply_safe_rewrites_rewrites_heading_only(tmp_path: Path) -> None:
     changed = _mod.apply_safe_rewrites(path)
     assert changed == 2
     text = path.read_text(encoding="utf-8")
-    assert "## Patterns to Detect and Fix" in text
+    assert "## Common Failure Modes" in text
     assert "### Hard Gate Patterns" in text
 
 

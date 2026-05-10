@@ -299,7 +299,7 @@ git commit --no-verify -m "message"
 - Repository doesn't use pr-workflow commit intent
 - Testing/experimentation (non-production)
 
-**NEVER bypass for**:
+**Enforce strictly for**:
 - Production commits
 - Public repositories
 - Team collaboration

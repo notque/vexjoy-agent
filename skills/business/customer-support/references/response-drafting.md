@@ -75,7 +75,7 @@ When a customer is angry, frustrated, or escalating. The goal is not to win an a
 | "You need to..." | "Here's how to resolve this: [steps]" | Directive language feels adversarial under stress |
 
 <!-- no-pair-required: anti-patterns are self-explanatory failure modes; positive approach is in surrounding context -->
-### De-escalation Anti-Patterns
+### De-escalation Failure Modes
 
 | Anti-Pattern | Why It Fails |
 |-------------|-------------|

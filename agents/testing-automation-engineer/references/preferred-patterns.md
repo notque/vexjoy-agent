@@ -158,7 +158,7 @@ it('calculates discount', () => {
 
 **Why it's wrong:**
 - Tests give false confidence - they pass even when code broken
-- Don't actually verify correct behavior
+- Fail to verify correct behavior
 - Waste CI/CD time without providing value
 - Can mask regressions and bugs
 

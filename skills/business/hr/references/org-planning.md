@@ -35,7 +35,7 @@ Headcount modeling, org design principles, capacity planning, and people analyti
 | Single points of failure | 0 critical | 1-2 | >3 (bus factor risk) |
 | Skip-level ratio | Every IC has skip-level access | Some don't | No skip-levels happening |
 
-### Org Design Anti-Patterns
+### Org Design Failure Modes
 
 | Anti-Pattern | Symptom | Root Cause | Fix |
 |-------------|---------|-----------|-----|
@@ -230,7 +230,7 @@ Composite risk score based on multiple factors:
 | **Team kickoff** | Week 1 | New teams | Mission, priorities, working agreements |
 | **30-day check-in** | Day 30 | All affected | How's it going, what needs adjustment |
 
-### Reorg Anti-Patterns
+### Reorg Failure Modes
 
 | Anti-Pattern | Risk | Prevention |
 |-------------|------|-----------|

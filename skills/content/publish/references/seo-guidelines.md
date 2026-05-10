@@ -77,7 +77,7 @@ Keyword Density = (Number of keyword occurrences / Total word count) * 100
 
 ### Keyword in Headers
 - Primary keyword should appear in 1-2 H2s naturally
-- Don't force keywords into every header
+- Place keywords in headers where they fit naturally
 - Variations are fine: "Debugging Hugo" vs "Hugo Debugging"
 
 ---

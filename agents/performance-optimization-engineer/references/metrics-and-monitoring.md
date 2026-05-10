@@ -63,7 +63,7 @@ onINP(sendToAnalytics, { reportAllChanges: true }) // INP updates on each intera
 
 ### Sampling Strategy for High-Traffic Sites
 
-Don't send 100% of metric events — use sampling to reduce costs without losing statistical significance.
+Sample metric events (1-10%) to reduce costs while maintaining statistical significance.
 
 ```typescript
 const SAMPLE_RATE = 0.1 // 10% sample

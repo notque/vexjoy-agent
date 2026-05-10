@@ -12,7 +12,7 @@ Patterns related to error creation, checking, wrapping, and propagation.
 - Use `errors.As()` for error type checking
 - Wrap errors with context using `fmt.Errorf("context: %w", err)`
 - Check errors immediately after function calls
-- Don't ignore errors (no `_ = func()` without comment)
+- Handle every error explicitly (annotate `_ = func()` with a comment explaining why)
 
 **Example Pattern**:
 ```markdown

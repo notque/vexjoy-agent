@@ -364,7 +364,7 @@ Annual value: 3hr × 48 weeks × $75/hr loaded cost = $10,800
 
 ---
 
-## Process Documentation Anti-Patterns
+## Process Documentation Failure Modes
 
 | Anti-Pattern | Symptom | Fix |
 |-------------|---------|-----|

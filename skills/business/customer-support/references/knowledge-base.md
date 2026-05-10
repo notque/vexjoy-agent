@@ -313,7 +313,7 @@ Billing & Account
 | FAQ | Detailed article | "For a full walkthrough, see [Guide]" |
 | Known issue | Workaround | Keep problem-to-solution chain short |
 
-Avoid circular links unless both articles are genuinely useful entry points. Use relative links within the KB -- they survive restructuring.
+Link articles in one direction unless both are genuinely useful entry points. Use relative links within the KB — they survive restructuring.
 
 ---
 
@@ -397,7 +397,7 @@ Transform the ticket-specific resolution into a general guide:
 
 ---
 
-## KB Quality Anti-Patterns
+## KB Quality Failure Modes
 
 | Anti-Pattern | Problem | Fix |
 |-------------|---------|-----|

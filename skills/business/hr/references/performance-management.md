@@ -97,7 +97,7 @@ Purpose: Document performance assessment, provide development guidance, justify 
 | Gap identification | "You're strong at execution. The gap I see is in proactive communication — stakeholders are sometimes surprised by delays." | Names the specific gap between current and expected. |
 | Frequency + evidence | "In the last quarter, 3 of 5 project updates were late by more than a day. Let's discuss what's causing this." | Data-driven. Not "you're always late." |
 
-#### Feedback Anti-Patterns
+#### Feedback Failure Modes
 
 | Anti-Pattern | Problem | Better |
 |-------------|---------|--------|

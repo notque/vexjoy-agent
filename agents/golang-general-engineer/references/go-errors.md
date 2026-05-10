@@ -381,7 +381,7 @@ if errors.As(err, &validationErr) {
 - Add context to wrapped errors
 - Use `errors.Is()` to check for specific errors
 - Use `errors.As()` to extract error details
-- Don't wrap errors you want to hide
+- Return errors unwrapped when callers should not match them with errors.Is
 
 ---
 

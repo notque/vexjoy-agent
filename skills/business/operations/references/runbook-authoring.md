@@ -349,7 +349,7 @@ Review the runbook when any of these occur:
 
 ---
 
-## Anti-Patterns in Runbook Authoring
+## Runbook Authoring Failure Modes
 
 | Anti-Pattern | Example | Fix |
 |-------------|---------|-----|

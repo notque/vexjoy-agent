@@ -40,6 +40,10 @@ ALLOWLIST = (
     # not toolkit operator instructions. Contextual exception per instruction-rubric.md.
     "voice-andy-nemmity",
     "voice-vexjoy",
+    # PHILOSOPHY.md uses negative patterns as quoted examples in a teaching table
+    # (e.g. "NEVER edit code directly" → "Route all code modifications...").
+    # The patterns are the subject, not instructions.
+    "PHILOSOPHY.md",
 )
 
 

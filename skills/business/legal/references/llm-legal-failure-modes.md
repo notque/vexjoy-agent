@@ -31,7 +31,7 @@ Legal analysis has properties that amplify LLM weaknesses:
 - LLM provides citation with unusual confidence (no hedging language)
 
 **Mitigation:**
-- NEVER present a case citation, statute number, or regulatory reference as authoritative without instructing the user to verify
+- Mark every case citation, statute number, and regulatory reference as "requires verification" and instruct the user to confirm with primary sources
 - Use hedging: "regulations such as..." or "provisions similar to..." rather than citing specific sections
 - For well-known, foundational statutes (GDPR, CCPA, HIPAA), cite the act name and general provision (e.g., "GDPR Article 28") but avoid citing specific subsections unless highly confident
 - When the user needs specific citations, recommend legal research tools (Westlaw, Lexis, regulatory authority websites)

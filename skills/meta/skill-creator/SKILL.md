@@ -93,7 +93,7 @@ sub-concern of the existing skill. Sub-concerns MUST be added as reference files
 on the existing skill, not created as separate skills.
 
 Pattern (correct): `skills/perses/references/plugins.md`
-Anti-pattern (wrong): `skills/perses-plugin-creator/SKILL.md`
+Incorrect (creates domain overlap): `skills/perses-plugin-creator/SKILL.md`
 
 **Step 3**: If no domain skill exists and the domain has multiple sub-concerns,
 create the skill with a `references/` directory from the start.
@@ -198,11 +198,11 @@ The description is the primary triggering mechanism. Claude tends to undertrigge
 
 Constraints belong inline within the workflow step where they apply. Explain the reasoning behind constraints -- "Run with `-race` because race conditions are silent until production" generalizes; "ALWAYS run with -race" does not.
 
-**Do-pair validation** -- After writing any anti-pattern blocks, run:
+**Do-pair validation** -- After writing any failure-mode blocks, run:
 ```bash
 python3 scripts/validate-references.py --check-do-framing
 ```
-Every anti-pattern block must have a paired "Do instead" counterpart. Blocks
+Every failure-mode block must have a paired "Do instead" counterpart. Blocks
 without one fail the check. If a prohibition genuinely has no correct alternative,
 annotate it with `<!-- no-pair-required: reason -->` to pass validation without
 a "Do instead" block. Ship the skill only after this check exits 0.
@@ -369,7 +369,7 @@ staging to confirm exactly one new entry was added.
 
 Before declaring the skill shippable, run both checks. They catch different
 failure modes: joy-check catches grievance-mode framing that drags the model
-toward pessimism; do-pair validation catches anti-patterns with no paired
+toward pessimism; do-pair validation catches failure modes with no paired
 "Do instead" counterpart.
 
 **Joy-check** (framing). Invoke the `joy-check` skill on the SKILL.md and each
@@ -380,7 +380,7 @@ python3 scripts/validate-references.py --check-do-framing
 ```
 
 This script enforces the positive-pairing rule that joy-check encodes
-structurally: every anti-pattern gets a constructive counterpart. Use it when
+structurally: every failure mode gets a constructive counterpart. Use it when
 dispatching the full `joy-check` skill is disproportionate (small edits,
 CI contexts, or when only structural pairing matters). For any new skill that
 ships prose-heavy references, prefer the full `joy-check` skill -- tone drift

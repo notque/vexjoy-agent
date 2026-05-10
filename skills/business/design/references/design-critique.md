@@ -194,7 +194,7 @@ Simulate a new user attempting a specific task. For each step:
 
 ---
 
-## Critique Anti-Patterns to Avoid
+## Critique Failure Modes
 
 | Anti-pattern | Do instead |
 |-------------|-----------|
