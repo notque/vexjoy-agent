@@ -27,3 +27,13 @@ Read and follow repository CLAUDE.md files before any implementation. Project in
 ## Anti-Rationalization
 
 See `skills/shared-patterns/anti-rationalization-core.md` for universal rationalization patterns. /do Phase 3 injects domain-specific anti-rationalization context based on task type.
+
+## Reference Loading
+
+Load these references when task signals match:
+
+| Signal | Reference File |
+|--------|----------------|
+| Reviewing or drafting agent output text; output sounds verbose, hedged, or self-congratulatory | `references/communication-anti-patterns.md` |
+| Scope of changes seems wider than requested; abstractions, flags, or compat shims added | `references/scope-management.md` |
+| Diff contains helpers with one call site, nil-guards on non-nil returns, or unrequested test files | `references/scope-management.md` |
