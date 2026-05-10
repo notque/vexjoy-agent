@@ -212,7 +212,7 @@ When behavior depends on conditions, docs must state those conditions. Public me
 
 **Source**: API design comments (go-bits)
 
-Don't expose `var` that callers can modify. Use functions: `func ForeachOptionTypeInLIQUID[T any](action func(any) T) []T`
+Expose values through accessor functions rather than package-level vars. Callers can modify exported vars. Use functions: `func ForeachOptionTypeInLIQUID[T any](action func(any) T) []T`
 
 ### R9: Minimize dependency graphs
 

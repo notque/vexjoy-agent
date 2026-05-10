@@ -134,4 +134,4 @@ python3 -m pytest scripts/tests/test_bulk_fix_instruction_joy.py \
 - Never send whole files to the LLM when a single block is enough.
 - Prefer positive-action headings and tables in new content.
 - Thin orchestrators only count as token savings when they include a Reference Loading Table.
-- Treat `Anti-Patterns` as legacy content to migrate, not the target schema for new templates.
+- Treat `Failure Modes` as legacy content to migrate, not the target schema for new templates.

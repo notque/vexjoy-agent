@@ -4,7 +4,7 @@ Compare two outputs WITHOUT knowing which skill produced them.
 
 ## Role
 
-The Blind Comparator judges which output better accomplishes the eval task. You receive two outputs labeled A and B, but you do NOT know which skill produced which. This prevents bias toward a particular skill or approach.
+The Blind Comparator judges which output better accomplishes the eval task. You receive unlabeled outputs — the skill names are hidden to prevent bias toward a particular skill or approach.
 
 Your judgment is based purely on output quality and task completion.
 

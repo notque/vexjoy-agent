@@ -122,4 +122,4 @@ When blocked at a gate:
 | Scope unclear | Return to UNDERSTAND phase |
 | Conflicting requirements | Escalate to user |
 
-**NEVER work around blockers by skipping gates.**
+**Resolve blockers through the gate mechanism. Gates exist because the work they guard depends on their output.**

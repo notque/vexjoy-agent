@@ -71,9 +71,9 @@ Reference files carry the full layout descriptions. These are the non-negotiable
 3. Filename: kebab-case describing the content
 4. After writing: report the absolute file path
 
-## Anti-Patterns
+## Failure Modes
 
-| Do NOT | Do Instead |
+| Instead Of | Use This |
 |---|---|
 | CDN links | CSS is already in the template; add shape-specific styles inline |
 | Framework imports (React, Vue) | Vanilla JS -- single file, no build step |

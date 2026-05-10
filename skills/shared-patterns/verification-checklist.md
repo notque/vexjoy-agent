@@ -78,7 +78,7 @@ If you cannot complete verification:
 1. Document what IS complete
 2. Document what IS NOT complete
 3. List specific blockers
-4. Do NOT mark as complete
+4. Keep status as in-progress until all checks pass
 5. Ask user how to proceed
 
 Example:

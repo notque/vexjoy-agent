@@ -19,7 +19,7 @@ Only perform the audit analysis. For each target:
 1. Run `python3 scripts/audit-reference-depth.py --agent {name} --verbose` (or `--skill {name}`)
 2. Run `python3 skills/meta/reference-enrichment/scripts/gap-analyzer.py --agent {name}` (or `--skill {name}`)
 3. Report what WOULD be enriched: domains, gaps, recommended reference files
-4. Do NOT create any files, branches, or PRs
+4. Report findings only — file creation happens in a later phase
 
 Print a summary and exit.
 
@@ -48,7 +48,7 @@ For each target name in the targets list:
 5. **Read the template:** Read `skills/meta/reference-enrichment/references/reference-file-template.md` for the standard structure
 6. **Generate reference files:** For the top 2-3 gaps identified, create reference files that include:
    - Concrete pattern tables with version ranges (e.g., "Python 3.10+: use match/case")
-   - Anti-pattern catalog with detection commands (grep/rg patterns)
+   - Failure mode catalog with detection commands (grep/rg patterns)
    - Code examples in fenced blocks
    - Error-fix mappings from common issues
    - Maximum 500 lines per file
@@ -66,7 +66,7 @@ For each enriched target, run a quick validation before committing:
    - Queries should specifically exercise the domains covered by the NEW reference files
 
 2. **Score the agent's knowledge** by checking if the agent would produce output that uses patterns from the new references:
-   - Read each new reference file and identify 3-5 key patterns it teaches (specific function calls, specific parameter values, specific anti-patterns to avoid)
+   - Read each new reference file and identify 3-5 key patterns it teaches (specific function calls, specific parameter values, specific failure modes to detect)
    - For each test query, check: would the reference loading table's signal detection correctly trigger loading this reference?
    - Verify the loading table entry exists and has correct file path
 
@@ -89,7 +89,7 @@ This gate prevents reference bloat — only references that add concrete, signal
    - PR title should describe WHAT was enriched, not just the date
    - PR body should include: targets processed, level before/after for each, list of new reference files
    - The `--auto` flag merges once CI passes — no human review needed for reference-only changes
-5. Do NOT run `git checkout main` — you are in a worktree and the primary checkout owns the main branch.
+5. Stay in the worktree — the primary checkout owns the main branch.
 
 ## Safety Constraints
 

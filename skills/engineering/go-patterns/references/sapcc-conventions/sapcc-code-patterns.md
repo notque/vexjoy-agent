@@ -27,8 +27,8 @@ func NewAPI(cfg keppel.Configuration, ad keppel.AuthDriver, fd keppel.Federation
 ### context.Context Usage
 
 - Pass as first param **only** for external calls (DB, federation, storage)
-- HTTP handlers read from `r.Context()` — do NOT take `ctx` parameter
-- Many internal methods do NOT take context at all
+- HTTP handlers read context from `r.Context()` instead of taking a `ctx` parameter
+- Many internal methods omit context parameter when the method has no context-dependent behavior
 
 ### Return Patterns
 
@@ -130,7 +130,7 @@ If there's one implementation, it's a concrete struct. No exceptions.
 
 - Defined in the **consumer package** (`internal/keppel/`), never in implementation packages
 - Sizes: 2-3 methods (5 interfaces), 6-8 methods (3), 16 methods (1 — `StorageDriver`)
-- Do NOT split large interfaces for ISP purity when all implementations need all methods
+- Keep large interfaces intact when all implementations need all methods — ISP splitting adds abstraction without value here
 
 ### The Pluggable Driver Pattern
 
@@ -703,9 +703,9 @@ Minimal surfaces: `must` = 4 functions, `logg` = 5, `respondwith` = ~6.
 
 ---
 
-## 24. Anti-Patterns That Fail Review
+## 24. Failure Modes That Fail Review
 
-Each entry: CORRECT pattern + anti-pattern description. Ordered by LLM likelihood.
+Each entry: CORRECT pattern + failure mode description. Ordered by LLM likelihood.
 
 ### AP-1: Types for One-Off JSON
 ```go

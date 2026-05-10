@@ -124,7 +124,7 @@ v := opt.UnwrapOr("default")
 
 ---
 
-## FORBIDDEN Libraries
+## Replaced Libraries
 
 ### By golangci-lint forbidigo
 

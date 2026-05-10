@@ -1,10 +1,10 @@
-# FORBIDDEN Patterns Template
+# Hard Gate Patterns Template
 
 Template for adding domain-specific forbidden patterns to agents. These are hard gates that cause automatic rejection.
 
 ## Purpose
 
-FORBIDDEN patterns are anti-patterns so problematic that code containing them should be rejected during review. They represent:
+Hard gate patterns are failure modes so problematic that code containing them should be rejected during review. They represent:
 - Security vulnerabilities
 - Reliability risks
 - Maintainability nightmares
@@ -97,16 +97,16 @@ grep -rn "fmt.Print\|log.Fatal\|panic(" --include="*.go" | grep -v "_test.go"
 
 When creating agents, include:
 
-1. **Domain-specific FORBIDDEN patterns** (3-10 patterns)
+1. **Domain-specific hard gate patterns** (3-10 patterns)
 2. **Detection commands** (grep patterns to find violations)
 3. **Clear exceptions** (when pattern is acceptable)
 4. **Hard gate enforcement** (STOP, REPORT, FIX workflow)
 
 ## Relationship to Anti-Rationalization
 
-FORBIDDEN patterns complement anti-rationalization:
+Hard gate patterns complement anti-rationalization:
 
 - **Anti-rationalization**: Prevents skipping verification steps
-- **FORBIDDEN patterns**: Prevents specific code patterns
+- **Hard gate patterns**: Rejects specific code patterns
 
 Both are hard gates. Neither can be rationalized away.
