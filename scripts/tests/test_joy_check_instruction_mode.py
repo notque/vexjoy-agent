@@ -74,25 +74,19 @@ class TestPrimaryPatterns:
         """FORBIDDEN in instruction context is flagged."""
         p = _write(tmp_path, "- FORBIDDEN: Do not commit credentials.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "FORBIDDEN" for v in violations), (
-            f"Expected FORBIDDEN violation, got: {violations}"
-        )
+        assert any(v.pattern == "FORBIDDEN" for v in violations), f"Expected FORBIDDEN violation, got: {violations}"
 
     def test_never_caps_fails(self, tmp_path: Path) -> None:
         """NEVER in instruction context is flagged."""
         p = _write(tmp_path, "NEVER edit code directly.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "NEVER" for v in violations), (
-            f"Expected NEVER violation, got: {violations}"
-        )
+        assert any(v.pattern == "NEVER" for v in violations), f"Expected NEVER violation, got: {violations}"
 
     def test_do_not_fails(self, tmp_path: Path) -> None:
         """'do NOT' (case-insensitive start) is flagged."""
         p = _write(tmp_path, "do NOT use git add -A.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "do NOT" for v in violations), (
-            f"Expected 'do NOT' violation, got: {violations}"
-        )
+        assert any(v.pattern == "do NOT" for v in violations), f"Expected 'do NOT' violation, got: {violations}"
 
     def test_do_not_caps_fails(self, tmp_path: Path) -> None:
         """'Do NOT' (capital D) is flagged."""
@@ -106,33 +100,25 @@ class TestPrimaryPatterns:
         """'must NOT' is flagged."""
         p = _write(tmp_path, "Hooks must NOT block tools.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "must NOT" for v in violations), (
-            f"Expected 'must NOT' violation, got: {violations}"
-        )
+        assert any(v.pattern == "must NOT" for v in violations), f"Expected 'must NOT' violation, got: {violations}"
 
     def test_dont_instruction_start_fails(self, tmp_path: Path) -> None:
         """Line starting with Don't is flagged."""
         p = _write(tmp_path, "- Don't mock the database.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "Don't" for v in violations), (
-            f"Expected Don't violation, got: {violations}"
-        )
+        assert any(v.pattern == "Don't" for v in violations), f"Expected Don't violation, got: {violations}"
 
     def test_avoid_heading_fails(self, tmp_path: Path) -> None:
         """Heading containing 'Avoid' is flagged."""
         p = _write(tmp_path, "### Patterns to Avoid\n\nSome content.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "Avoid" for v in violations), (
-            f"Expected Avoid violation, got: {violations}"
-        )
+        assert any(v.pattern == "Avoid" for v in violations), f"Expected Avoid violation, got: {violations}"
 
     def test_avoid_as_bullet_start_fails(self, tmp_path: Path) -> None:
         """Bullet starting with 'Avoid' is flagged."""
         p = _write(tmp_path, "- Avoid using global state.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "Avoid" for v in violations), (
-            f"Expected Avoid violation for bullet, got: {violations}"
-        )
+        assert any(v.pattern == "Avoid" for v in violations), f"Expected Avoid violation for bullet, got: {violations}"
 
 
 # ---------------------------------------------------------------------------
@@ -187,9 +173,7 @@ class TestContextualExceptions:
         content = "Credentials stay in .env files, never in code or logs.\n"
         p = _write(tmp_path, content)
         violations = scan_file(p)
-        assert violations == [], (
-            f"Expected no violations for subordinate lowercase 'never', got: {violations}"
-        )
+        assert violations == [], f"Expected no violations for subordinate lowercase 'never', got: {violations}"
 
     def test_blockquote_line_passes(self, tmp_path: Path) -> None:
         """Lines starting with > (blockquote) are skipped."""
