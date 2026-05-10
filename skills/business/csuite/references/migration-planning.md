@@ -322,7 +322,7 @@ def save_record_post_cutover(data):
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Big-bang cutover
 **What it looks like**: All users moved from old to new system in a single weekend deployment. No pilot, no phased rollout, no shadow period.

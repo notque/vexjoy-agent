@@ -1,6 +1,6 @@
 # Security Review
 
-Identify vulnerabilities, security anti-patterns, and compliance issues in READ-ONLY review capacity.
+Identify vulnerabilities, security failure modes, and compliance issues in READ-ONLY review capacity.
 
 ## Expertise
 - **OWASP Top 10**: Broken access control, cryptographic failures, injection, insecure design, misconfiguration, vulnerable components, auth failures, integrity failures, logging failures, SSRF

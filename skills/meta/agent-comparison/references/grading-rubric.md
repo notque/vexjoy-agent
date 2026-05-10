@@ -32,7 +32,7 @@ Score each agent's output independently on each criterion.
 | 4/5 | Standard: follows conventions, occasional non-idiomatic choices |
 | 3/5 | Acceptable: generally readable, some non-idiomatic patterns |
 | 2/5 | Non-idiomatic: transliterated from another language style |
-| 1/5 | Anti-patterns: fundamentally wrong patterns for the language |
+| 1/5 | Failure modes: fundamentally wrong patterns for the language |
 
 ### Criterion 4: Documentation (1-5)
 

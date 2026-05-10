@@ -88,7 +88,7 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | any bg removal phase | `references/bg-removal-local.md` | magenta chroma + rembg |
 | Phase H assembly / output shape | `references/output-formats.md` | PNG / GIF / WebP / atlas JSON |
 | any phase errors | `references/error-catalog.md` | failure mode → fix mapping |
-| user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" anti-pattern; debug slicer, never raw |
+| user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" failure mode; debug slicer, never raw |
 | asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction. ADR-207 RC-1: on dense grids (`cols * rows >= 16` AND both dims >= 4) `--content-aware-extraction` is silently downgraded to strict-pitch with a warning unless `--effects-asset` is also passed (orchestrator-side) or `effects_asset: True` is set (spec-side). Use `--effects-asset` only for genuine sparse-but-cross-boundary content (fire breath, plasma trails, projectile auras). |
 | `--target road-to-aew` deploy | `references/road-to-aew-integration.md` | snake_case, paths, manifest regen |
 | `--per-row` subagent orchestration | `references/subagent-delegation.md` | subagent boundary rules: who generates, who composes, who finalizes |
@@ -462,7 +462,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 - `references/backend-chain.md` — Codex CLI invocation pattern, auth checks, failure modes.
 - `references/frame-detection.md` — connected-components algorithm, minimum-separation gap, component filter.
 - `references/anchor-alignment.md` — shared-scale percentile, bottom-anchor math, horizontal centering.
-- `references/bg-removal-local.md` — two-pass chroma, rembg opt-in, anti-patterns.
+- `references/bg-removal-local.md` — two-pass chroma, rembg opt-in, failure modes.
 - `references/output-formats.md` — PNG / GIF / WebP / atlas JSON / strips matrix per mode.
 - `references/error-catalog.md` — error message → cause → fix, per phase.
 - `references/road-to-aew-integration.md` — snake_case naming, deploy paths, manifest regen.

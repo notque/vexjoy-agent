@@ -35,7 +35,7 @@ Complete check catalogs for Go, Python, and TypeScript. Load after detecting the
 - `http.DefaultClient` reuse vs creating new clients
 - File descriptor limits awareness
 
-**Anti-patterns**:
+**Failure modes**:
 - Premature interface abstraction (interface with one implementation)
 - Over-engineered error types (custom error types for simple errors)
 - Unnecessary channels when a mutex suffices
@@ -87,7 +87,7 @@ Complete check catalogs for Go, Python, and TypeScript. Load after detecting the
 - Signal handling for graceful shutdown
 - `contextlib.suppress` over empty except blocks
 
-**Anti-patterns**:
+**Failure modes**:
 - Mutable default arguments (`def foo(items=[])`)
 - Bare `except:` or `except Exception:` without re-raise
 - `import *` polluting namespace
@@ -126,7 +126,7 @@ Complete check catalogs for Go, Python, and TypeScript. Load after detecting the
 - Server Components vs Client Components distinction
 - Use framework data loading instead of `useEffect` for data fetching
 
-**Anti-patterns**:
+**Failure modes**:
 - `any` overuse instead of proper types or `unknown`
 - Type assertions (`as`) over type narrowing with guards
 - Barrel file bloat causing circular dependencies

@@ -7,7 +7,7 @@
 
 ## Why Replace DOM Particles
 
-The `effects.ts` anti-pattern — `document.createElement` + `setTimeout` removal — causes reflow per particle. GPU particles via `ParticleContainer`: 1000 particles = 1 draw call, zero reflow.
+The `effects.ts` failure mode — `document.createElement` + `setTimeout` removal — causes reflow per particle. GPU particles via `ParticleContainer`: 1000 particles = 1 draw call, zero reflow.
 
 ---
 

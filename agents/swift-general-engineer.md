@@ -164,7 +164,7 @@ See [references/swift-patterns.md](swift-general-engineer/references/swift-patte
 
 ## Security & Testing
 
-See [references/swift-security-testing.md](swift-general-engineer/references/swift-security-testing.md) for security patterns, testing methodology, and anti-pattern detection.
+See [references/swift-security-testing.md](swift-general-engineer/references/swift-security-testing.md) for security patterns, testing methodology, and failure mode detection.
 
 ---
 
@@ -173,7 +173,7 @@ See [references/swift-security-testing.md](swift-general-engineer/references/swi
 | File | Contents |
 |------|----------|
 | [`swift-general-engineer/references/swift-patterns.md`](swift-general-engineer/references/swift-patterns.md) | Immutability (`let`/`var`, `struct`/`class`), concurrency (actors, Sendable, structured), protocol-oriented design, state modeling |
-| [`swift-general-engineer/references/swift-security-testing.md`](swift-general-engineer/references/swift-security-testing.md) | Security patterns (Keychain, ATS, cert pinning), testing methodology, anti-pattern detection table |
+| [`swift-general-engineer/references/swift-security-testing.md`](swift-general-engineer/references/swift-security-testing.md) | Security patterns (Keychain, ATS, cert pinning), testing methodology, failure mode detection table |
 
 ## Reference Loading Table
 

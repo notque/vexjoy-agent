@@ -38,7 +38,7 @@ routing:
     - "%w"
     - sentinel error
     # review pattern triggers
-    - "Go anti-pattern"
+    - "Go failure mode"
     - "Go code smell"
     # code review triggers
     - Go code review
@@ -62,7 +62,7 @@ routing:
 
 # Go Patterns Skill
 
-Umbrella skill for Go development: testing, concurrency, error handling, anti-patterns,
+Umbrella skill for Go development: testing, concurrency, error handling, failure modes,
 code review, SAP CC conventions, and quality gates. Routes to the correct reference
 based on the Go task at hand.
 
@@ -120,13 +120,13 @@ Some references point to their own sub-reference files for extended patterns:
 - `${CLAUDE_SKILL_DIR}/references/error-handling/patterns.md` -- gopls tracing, HTTP handler patterns, error wrapping in middleware
 
 **Review-pattern** sub-references:
-- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` -- Extended before/after for all 7 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` -- Extended before/after for all 7 failure modes
 
 **Code review** sub-references:
 - `${CLAUDE_SKILL_DIR}/references/code-review/common-review-comments.md` -- Go code patterns with good/bad examples
 
 **SAP CC conventions** sub-references:
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md` -- Primary reference: code patterns, testing patterns, anti-patterns (merged from testing-patterns-detailed.md and preferred-patterns.md)
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md` -- Primary reference: code patterns, testing patterns, failure modes (merged from testing-patterns-detailed.md and preferred-patterns.md)
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md` -- Complete approved/restricted library table
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md` -- Full 102-rule architecture spec
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards.md` -- Lead + secondary review standards (merged)

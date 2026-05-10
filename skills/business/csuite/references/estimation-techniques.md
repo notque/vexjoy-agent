@@ -336,7 +336,7 @@ Team ratio (greenfield): ___×
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Point estimate at concept stage
 **What it looks like**: "We'll budget 200 hours for this project." — said before requirements exist.

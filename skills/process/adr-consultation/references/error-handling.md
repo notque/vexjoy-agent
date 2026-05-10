@@ -212,7 +212,7 @@ grep "## Verdict:" adr/{name}/synthesis.md 2>/dev/null
 3. Re-run consultation from Phase 2
 
 Do not edit synthesis.md to say PROCEED while concerns.md still has unresolved blocking
-entries — that is the rationalization anti-pattern and defeats the gate.
+entries — that is the rationalization failure mode and defeats the gate.
 
 ---
 
@@ -253,5 +253,5 @@ concerns.md, add it to concerns.md with proper severity, then re-verify the verd
 
 ## See Also
 
-- `consultation-preferred-patterns.md` — Structural anti-patterns (sequential dispatch, context-only synthesis, rationalization)
+- `consultation-preferred-patterns.md` — Structural failure modes (sequential dispatch, context-only synthesis, rationalization)
 - `consultation-patterns.md` — Correct dispatch, synthesis, and verdict aggregation patterns

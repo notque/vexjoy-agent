@@ -149,4 +149,4 @@ Without `set -m`, non-interactive bash puts background jobs in the script's own 
 - For PID capture after start: `pid-resolution.md`
 - For signal handling of started children: `signals-and-traps.md`
 - For cleanup after start: `cleanup-verification.md`
-- For anti-patterns in starting (AP-1, AP-6): `preferred-patterns.md`
+- For failure modes in starting (AP-1, AP-6): `preferred-patterns.md`

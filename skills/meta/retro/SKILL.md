@@ -145,7 +145,7 @@ python3 ~/.claude/scripts/learning-db.py query --category design --category gotc
 For each candidate, the LLM:
 - Reads the learning value
 - Searches the repo for the target file (grep for related keywords)
-- Determines edit type: add anti-pattern, add to operator context, add warning, or "not ready / keep injecting"
+- Determines edit type: add failure mode, add to operator context, add warning, or "not ready / keep injecting"
 - Checks if the target already contains equivalent guidance (use Grep to verify before proposing)
 
 | Question | Pass | Fail |

@@ -329,7 +329,7 @@ Rollback procedures must be tested before the change. An untested rollback is a 
 
 ## Change Management Failure Modes
 
-| Anti-Pattern | Symptom | Fix |
+| Failure Mode | Symptom | Fix |
 |-------------|---------|-----|
 | Classification avoidance | Everything is "Standard" to skip approval | Audit classification decisions. Auto-escalate when impact assessment contradicts classification. |
 | Communication as afterthought | Users discover changes by encountering them | Communication plan is a required section. No approval without it. |

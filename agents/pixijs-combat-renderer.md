@@ -58,7 +58,7 @@ grep -rl "CombatArena\|PlayerCharacter\|EnemyCharacter\|effects" src/ --include=
 grep -rn "document.createElement\|setTimeout.*remove\|classList.add.*particle" src/ --include="*.ts" --include="*.tsx"
 ```
 
-Flag the DOM particle anti-pattern immediately if found — `document.createElement` + `setTimeout` removal is the primary replacement target. Each DOM particle adds reflow cost; GPU particles are free by comparison.
+Flag the DOM particle failure mode immediately if found — `document.createElement` + `setTimeout` removal is the primary replacement target. Each DOM particle adds reflow cost; GPU particles are free by comparison.
 
 Identify what Zustand stores drive combat state. Read the store file before writing any PixiJS component — display object updates must subscribe to the same state atoms as React UI components.
 

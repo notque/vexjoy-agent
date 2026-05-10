@@ -127,7 +127,7 @@ report and stop — over-generating creates noise, not signal.
 For each identified gap:
 1. Read existing Level 3 reference files in this repo as exemplars — golang-general-engineer's
    references/ is the benchmark: version-specific patterns, grep commands, error-fix mappings
-2. Identify: version-specific patterns (what changed in version X.Y), common anti-patterns with
+2. Identify: version-specific patterns (what changed in version X.Y), common failure modes with
    detection commands (`grep -rn "pattern" --include="*.ext"`), error-fix mappings
    (error message → root cause → fix), project-specific conventions visible in the codebase
 
@@ -148,13 +148,13 @@ For each gap, create one reference file following `references/reference-file-tem
 - One file per major sub-domain (not one monolithic file) because focused files are faster to
   load and easier to update as language versions change
 - Max 500 lines per file (CLAUDE.md standard) — split into sub-topics if content exceeds this
-- Include: overview paragraph, pattern table with version ranges, anti-pattern table with
+- Include: overview paragraph, pattern table with version ranges, failure mode table with
   detection commands, error-fix mappings where applicable
 - Match the tone of existing Level 3 references: direct, concrete, no hedging
 
-**Do-pairing rule (mandatory):** Every anti-pattern block written during this phase must include
+**Do-pairing rule (mandatory):** Every failure mode block written during this phase must include
 a "Do instead" counterpart. If the retro learning or research does not carry enough information
-to write a concrete positive counterpart, omit the anti-pattern entirely rather than shipping it
+to write a concrete positive counterpart, omit the failure mode entirely rather than shipping it
 without the paired "Do instead". A bare negative block encodes no actionable knowledge and will
 fail structural validation. If a prohibition is a genuine absolute with no correct alternative,
 annotate it with `<!-- no-pair-required: reason -->` inline before the block.
@@ -187,7 +187,7 @@ generic — return to Phase 2 for the weak sub-domain.
 **Tier 2 (LLM self-assessment):**
 Read each generated file and apply the rubric from `references/quality-rubric.md`. Ask: would
 a reviewer using only this file produce Level 3 quality output? Concrete test: pick one
-anti-pattern from the file — does it include a grep command to detect it?
+failure mode from the file — does it include a grep command to detect it?
 
 **Gate**: Both tiers pass. If Tier 2 fails for a specific sub-domain, loop back to Phase 2 for
 that gap only (not all gaps). Maximum 2 loops per gap before flagging for manual enrichment.

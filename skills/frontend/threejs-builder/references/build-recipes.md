@@ -4,7 +4,7 @@
 
 **Visual quality signal**: If the user's request implies high visual quality (portfolio, game, showcase, "make it look good", "impressive", "polished"), also load `references/visual-polish.md` alongside the paradigm reference. It contains specific material recipes, lighting setups, and post-processing configurations that bridge the gap between technically correct and visually impressive.
 
-**Custom shader signal**: If the user mentions custom shaders, GLSL, ShaderMaterial, vertex displacement, postprocessing effects (bloom, chromatic aberration, dissolve), or custom visual effects, load `references/shader-patterns.md`. It contains complete GLSL patterns with working code, anti-patterns with detection commands, and the postprocessing pipeline setup.
+**Custom shader signal**: If the user mentions custom shaders, GLSL, ShaderMaterial, vertex displacement, postprocessing effects (bloom, chromatic aberration, dissolve), or custom visual effects, load `references/shader-patterns.md`. It contains complete GLSL patterns with working code, failure modes with detection commands, and the postprocessing pipeline setup.
 
 **Performance signal**: If the user mentions many objects (particles, foliage, crowds), InstancedMesh, performance profiling, draw call reduction, texture compression, or memory issues, load `references/performance-patterns.md`.
 

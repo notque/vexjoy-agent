@@ -214,7 +214,7 @@ These reference files contain the curated domain knowledge that drives design de
 - `${CLAUDE_SKILL_DIR}/references/app-vs-landing-rules.md`: Full rule sets for landing vs app surface types
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Worked examples for new landing page and design audit
 - `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Recovery for banned fonts, cliche palettes, low distinctiveness scores
-- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules for AAA/Steam/roguelike surfaces, including anti-patterns learned from Road to AEW
+- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules for AAA/Steam/roguelike surfaces, including failure modes learned from Road to AEW
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`: grep/rg detection commands for banned fonts, hardcoded colors, over-animation, and flat backgrounds in implementation code — load when auditing CSS/SCSS/TSX files or verifying a generated spec was implemented correctly
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`: CSS property render costs, compositor-thread promotion rules, layout thrashing detection commands, frame budget reference — load when animation performance is in scope or "animation performance profiling" optional capability is enabled
 

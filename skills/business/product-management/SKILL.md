@@ -219,7 +219,7 @@ This mode is fundamentally different. The PM does not get a deliverable. They ge
 
 **Frameworks as thinking tools** (use when they help, not as templates):
 
-| Framework | Structure | Anti-pattern |
+| Framework | Structure | Failure Mode |
 |-----------|-----------|-------------|
 | **HMW** | "How might we [outcome] for [user] without [constraint]?" | Too broad ("improve onboarding") or too narrow ("add tooltip to step 3") |
 | **JTBD** | "When [situation], I want to [motivation] so I can [outcome]." | Functional jobs are easy; emotional and social jobs are often more powerful. Ask "what did they fire?" |
@@ -256,7 +256,7 @@ Used in SPEC, ROADMAP, and SPRINT modes.
 | **MoSCoW** | Must / Should / Could / Won't | Scoping a release, forcing prioritization conversations |
 | **Value vs Effort** | 2x2 matrix: Quick Wins, Big Bets, Fill-ins, Money Pits | Visual prioritization in team sessions |
 
-**Anti-pattern**: Using a framework as a rubber stamp for a decision already made. If the RICE score does not match intuition, investigate why — do not just adjust the inputs until it does.
+**Failure modes**: Using a framework as a rubber stamp for a decision already made. If the RICE score does not match intuition, investigate why — do not just adjust the inputs until it does.
 
 ---
 

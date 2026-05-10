@@ -1,14 +1,14 @@
 # Comment Quality Signals and Fixes
 
-<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
+<!-- no-pair-required: document introduction, not an individual failure mode block -->
 
 This document catalogs common problematic patterns found in code comments and documentation, with explanations of why they're problematic and how to fix them.
 
-For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) anti-patterns, see `preferred-patterns-language-specific.md`.
+For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) failure modes, see `preferred-patterns-language-specific.md`.
 
 ## High Priority Signals to Detect and Fix
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### Signal 1: "X now does Y"
 **Signal**: The word "now" implies a temporal change - something used to work differently
@@ -102,7 +102,7 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 
 ## Medium Priority Signals to Detect and Fix
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### Signal 6: "Updated/Refactored/Optimized X"
 **Signal**: Past tense development activity
@@ -193,7 +193,7 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 
 ## Subtle Signals to Detect and Fix
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### Signal 11: "More/Less efficient/effective"
 **Signal**: Relative comparison without a baseline

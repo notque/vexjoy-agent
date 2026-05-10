@@ -285,7 +285,7 @@ Every triage produces this structured output:
 
 ## Triage Failure Modes
 
-| Anti-Pattern | Problem | Correct Approach |
+| Failure Mode | Problem | Correct Approach |
 |-------------|---------|-----------------|
 | Categorizing by symptom instead of root cause | Misroutes ticket, delays resolution | Investigate root cause before categorizing |
 | Defaulting everything to P3 | Under-serves critical issues, over-serves low ones | Apply priority criteria honestly, err high when uncertain |

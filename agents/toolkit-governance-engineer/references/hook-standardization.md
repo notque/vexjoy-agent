@@ -1,6 +1,6 @@
 # Hook Standardization Reference
 
-> **Scope**: Hook event types, settings.json registration format, exit code conventions, output protocols, timeout configuration, and common hook anti-patterns. Does not cover frontmatter compliance (see frontmatter-compliance.md).
+> **Scope**: Hook event types, settings.json registration format, exit code conventions, output protocols, timeout configuration, and common hook failure modes. Does not cover frontmatter compliance (see frontmatter-compliance.md).
 > **Version range**: Claude Code hooks system (all current versions)
 > **Generated**: 2026-04-15
 

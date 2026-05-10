@@ -146,7 +146,7 @@ grep -rn 'flock' scripts/ | grep -v '\-n\b'
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 # Blocking flock — waits indefinitely for the lock
 flock /tmp/auto-dream.lock claude -p "..."
@@ -209,7 +209,7 @@ grep -n 'git stash' skills/meta/auto-dream/dream-prompt.md
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 # Switches branch without checking for dirty working tree
 git checkout -b "dream/graduate-2026-04-16" main
@@ -235,7 +235,7 @@ grep -rn 'sqlite3.connect' hooks/lib/ | head -20
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 # No timeout — fails immediately on contention
 sqlite3 "${DREAM_LEARNING_DB}" "SELECT count(*) FROM sessions;"

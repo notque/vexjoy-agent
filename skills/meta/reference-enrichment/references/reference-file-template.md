@@ -151,9 +151,9 @@ rg '{{pattern2}}' --type {{lang}}
 
 ## Template Usage Notes
 
-**Minimum for Level 2**: Overview + one correct pattern with code block + one anti-pattern entry.
+**Minimum for Level 2**: Overview + one correct pattern with code block + one failure mode entry.
 
-**Minimum for Level 3**: All of the above + at least one detection command per anti-pattern +
+**Minimum for Level 3**: All of the above + at least one detection command per failure mode +
 error-fix mappings table (if the domain has common errors) + version notes (if API changed).
 
 **Line count target**: 80-200 lines for a focused sub-domain. If you need more than 300 lines,

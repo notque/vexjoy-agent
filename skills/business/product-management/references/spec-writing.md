@@ -16,7 +16,7 @@ The foundation. Everything else flows from this.
 - What is the cost of not solving it? (user pain, business impact, competitive risk)
 - What evidence grounds this? (research, support data, metrics, customer feedback)
 
-**Anti-patterns**:
+**Failure modes**:
 
 | Bad | Why | Better |
 |-----|-----|--------|

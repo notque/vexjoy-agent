@@ -258,7 +258,7 @@ Maintain evidence that risk management is active, not just documented.
 
 ## Risk Assessment Failure Modes
 
-| Anti-Pattern | Symptom | Fix |
+| Failure Mode | Symptom | Fix |
 |-------------|---------|-----|
 | Everything is High | No prioritization possible | Force-rank: at most 20% of risks can be High/Critical. The rest need differentiation. |
 | Optimism bias | Probability consistently underestimated | For each "Low" probability: name the evidence. "Has not happened" requires "and here is why it cannot." |

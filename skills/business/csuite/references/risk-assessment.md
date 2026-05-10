@@ -253,7 +253,7 @@ After pre-mortem, scenario planning, and black swan identification, consolidate 
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Pre-mortem as validation exercise
 **What it looks like**: Team runs pre-mortem but all proposed failure modes are minor and easily dismissed. The session feels like box-checking.

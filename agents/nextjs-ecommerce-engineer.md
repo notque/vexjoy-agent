@@ -59,11 +59,11 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 | Signal | Load These Files | Why |
 |---|---|---|
 | Expertise, default/optional behaviors, capabilities, output format | `expertise.md` | Routes to the matching deep reference |
-| Cart/Stripe implementation snippets, error catalog summary, anti-patterns, blockers | `patterns-and-errors.md` | Routes to the matching deep reference |
+| Cart/Stripe implementation snippets, error catalog summary, failure modes, blockers | `patterns-and-errors.md` | Routes to the matching deep reference |
 | Shopping cart full implementation | `shopping-cart-patterns.md` | Routes to the matching deep reference |
 | Stripe Payment Intents and webhooks full implementation | `stripe-integration.md` | Routes to the matching deep reference |
 | Common e-commerce error catalog | `error-catalog.md` | Routes to the matching deep reference |
-| Full anti-pattern catalog (What/Why/Instead) | `preferred-patterns.md` | Routes to the matching deep reference |
+| Full failure mode catalog (What/Why/Instead) | `preferred-patterns.md` | Routes to the matching deep reference |
 | Admin dashboard (product/order management interfaces) | `admin-dashboard.md` | Routes to the matching deep reference |
 
 ## References
@@ -73,13 +73,13 @@ Load these reference files when the task type matches:
 | Task Type | Reference File |
 |-----------|---------------|
 | Expertise, default/optional behaviors, capabilities, output format | [nextjs-ecommerce-engineer/references/expertise.md](nextjs-ecommerce-engineer/references/expertise.md) |
-| Cart/Stripe implementation snippets, error catalog summary, anti-patterns, blockers | [nextjs-ecommerce-engineer/references/patterns-and-errors.md](nextjs-ecommerce-engineer/references/patterns-and-errors.md) |
+| Cart/Stripe implementation snippets, error catalog summary, failure modes, blockers | [nextjs-ecommerce-engineer/references/patterns-and-errors.md](nextjs-ecommerce-engineer/references/patterns-and-errors.md) |
 | Shopping cart full implementation | [nextjs-ecommerce-engineer/references/shopping-cart-patterns.md](nextjs-ecommerce-engineer/references/shopping-cart-patterns.md) |
 | Stripe Payment Intents and webhooks full implementation | [nextjs-ecommerce-engineer/references/stripe-integration.md](nextjs-ecommerce-engineer/references/stripe-integration.md) |
 | Common e-commerce error catalog | [nextjs-ecommerce-engineer/references/error-catalog.md](nextjs-ecommerce-engineer/references/error-catalog.md) |
-| Full anti-pattern catalog (What/Why/Instead) | [nextjs-ecommerce-engineer/references/preferred-patterns.md](nextjs-ecommerce-engineer/references/preferred-patterns.md) |
+| Full failure mode catalog (What/Why/Instead) | [nextjs-ecommerce-engineer/references/preferred-patterns.md](nextjs-ecommerce-engineer/references/preferred-patterns.md) |
 | Admin dashboard (product/order management interfaces) | [nextjs-ecommerce-engineer/references/admin-dashboard.md](nextjs-ecommerce-engineer/references/admin-dashboard.md) |
 
 **Shared Patterns**:
 - [shared-patterns/verification-checklist.md](../skills/shared-patterns/verification-checklist.md) — Pre-completion checks
-- [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) — Security anti-patterns
+- [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) — Security failure modes

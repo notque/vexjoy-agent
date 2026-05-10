@@ -219,7 +219,7 @@ const ProductCard = dynamic(() => import('./ProductCard'))
 import { ProductCard } from './ProductCard' // Server Component
 ```
 
-**Version note**: This anti-pattern is App Router (Next.js 13.4+) specific. In Pages Router, `dynamic()` is the correct way to code-split.
+**Version note**: This failure mode is App Router (Next.js 13.4+) specific. In Pages Router, `dynamic()` is the correct way to code-split.
 
 ---
 

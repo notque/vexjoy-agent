@@ -268,7 +268,7 @@ threshold relaxes 30x so plasma/fire/aura content is not misread as fringe.
 **Cause:** Per-cell alignment check finds character silhouettes touching cell
 boundaries (within `edge_margin_px=2`). Threshold is **5% of cells violating**,
 NOT 50%. A 50% tolerance is permissive enough to admit the failure it exists
-to catch — see the `Rubber-stamp verifier thresholds` anti-pattern below. For
+to catch — see the `Rubber-stamp verifier thresholds` failure mode below. For
 a 4x4 sheet this is 1 violation; for an 8x8 it is 3.
 
 **Fix:** When the gate fires, the slicer placed a cell boundary inside another

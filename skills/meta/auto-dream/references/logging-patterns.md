@@ -131,7 +131,7 @@ ls -t cron-logs/auto-dream/run-*.log | head -1
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 head -1 ~/.claude/state/last-dream.md
 # Dream Report: 2026-04-15   ← yesterday's date, today's cron supposedly ran
@@ -159,7 +159,7 @@ grep 'success\|complete\|done' "$(ls -t cron-logs/auto-dream/run-*.log | head -1
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 # Cron log says "SCAN complete" but CONSOLIDATE crashed halfway through
 grep 'complete' run-2026-04-16-020712.log
@@ -194,7 +194,7 @@ ls cron-logs/auto-dream/run-*.log | wc -l
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 # Wrapper script creates new log each run but never deletes old ones
 RUN_LOG="${LOG_DIR}/run-$(date +%Y-%m-%d-%H%M%S).log"

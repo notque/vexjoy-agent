@@ -11,7 +11,7 @@ For each recommendation:
 - If audit found PARTIAL: adjust description to focus on what's actually missing, cite the partial files
 - If audit found MISSING: keep as-is, add the affected files from audit
 
-This adjustment step catches the false positive anti-pattern: "we should adopt X" when we already have X.
+This adjustment step catches the false positive failure mode: "we should adopt X" when we already have X.
 
 **Step 3: Build final report**
 

@@ -22,7 +22,7 @@ routing:
 
 Apply PHPUnit testing patterns for PHP projects: unit tests with data providers, test doubles (stubs, mocks, Prophecy), database testing (Laravel/Symfony), HTTP testing, and coverage configuration.
 
-> See `references/patterns.md` for full code examples, the anti-patterns table, and the commands reference.
+> See `references/patterns.md` for full code examples, the failure modes table, and the commands reference.
 
 ## Reference Loading Table
 
@@ -68,4 +68,4 @@ For coverage enforcement:
 XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text --coverage-min=80
 ```
 
-**GATE**: All tests pass. Coverage threshold met if configured. No anti-patterns from `references/patterns.md` introduced.
+**GATE**: All tests pass. Coverage threshold met if configured. No failure modes from `references/patterns.md` introduced.

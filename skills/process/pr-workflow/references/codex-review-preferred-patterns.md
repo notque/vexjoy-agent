@@ -1,7 +1,7 @@
 # Code Review Patterns for Verification
-<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
+<!-- no-pair-required: document introduction, not an individual failure mode block -->
 
-> **Scope**: Common code anti-patterns to detect during review, with grep commands for codebase verification.
+> **Scope**: Common code failure modes to detect during review, with grep commands for codebase verification.
 > **Version range**: Language-specific version notes inline
 > **Generated**: 2026-04-16
 
@@ -10,7 +10,7 @@
 ## Overview
 
 Code review — whether by Codex, Claude, or a human — needs concrete patterns to look for.
-This file catalogs high-signal anti-patterns across Go, TypeScript/JavaScript, and Python.
+This file catalogs high-signal failure modes across Go, TypeScript/JavaScript, and Python.
 Detection commands let you verify findings in the actual codebase rather than relying on
 model interpretation alone.
 

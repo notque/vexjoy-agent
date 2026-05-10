@@ -165,7 +165,7 @@ If selected channel hours > 80% of available hours: remove a channel.
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Platform-native metrics as success metrics
 **What it looks like**: "We got 50 retweets!" — but zero new email subscribers, zero traffic, zero revenue.

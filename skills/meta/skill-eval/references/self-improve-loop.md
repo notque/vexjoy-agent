@@ -90,7 +90,7 @@ Read the target skill's SKILL.md end-to-end. For each of these dimensions, note 
 |-----------|-----------------|
 | Phase ordering | Would reordering phases improve logical flow? Does a later phase depend on context established too late? |
 | Constraint placement | Are constraints inline at the point of failure, or buried in a preamble 200 lines away? |
-| Anti-pattern specificity | Are anti-patterns concrete with before/after examples, or vague warnings? |
+| Failure mode specificity | Are failure modes concrete with before/after examples, or vague warnings? |
 | Gate strictness | Are gates too loose (letting bad work through) or too strict (blocking valid work)? |
 | Description accuracy | Does the frontmatter description trigger for the right queries and reject the wrong ones? |
 | Reference loading | Are references loaded at the right phase, or too early (wasting routing-time tokens) or too late (missing context when needed)? |
@@ -305,7 +305,7 @@ python3 ~/.claude/scripts/learning-db.py learn \
 
 ## Patterns to Detect and Fix
 
-| Anti-Pattern | Why it's wrong | What to do instead |
+| Failure Mode | Why it's wrong | What to do instead |
 |-------------|---------------|-------------------|
 | Changing multiple things per variant | Can't attribute improvement to any single change | One hypothesis, one change, one variant |
 | Testing without baseline | No basis for comparison; can't calculate win rate | Always run Phase 1 first |

@@ -139,7 +139,7 @@ Output a numbered list of 5-10 improvement opportunities. Each entry must includ
 **Step 1: Generate proposals**
 
 For each opportunity from Phase 1, propose 1-2 concrete solutions. Each proposal must be actionable:
-- "Add anti-pattern X to agent Y's prompt" (not "improve agent Y")
+- "Add failure mode X to agent Y's prompt" (not "improve agent Y")
 - "Create a reference file for Z in skill W" (not "enhance skill W")
 - "Modify Phase 3 of skill V to include check for Q" (not "make skill V better")
 
@@ -285,7 +285,7 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 | Running Phase 1 DIAGNOSE (Steps 1-4c commands needed) | `references/diagnose-scripts.md` |
 | Phase 0 perspective agent table, proposal format | `references/evolve-preferred-patterns.md` |
 | Phase 3 inline critique fallback (multi-persona not available) | `references/evolve-preferred-patterns.md` |
-| Anti-patterns, error handling, cost estimate, cron scheduling | `references/evolve-preferred-patterns.md` |
+| Failure modes, error handling, cost estimate, cron scheduling | `references/evolve-preferred-patterns.md` |
 | Running Phase 6 EVOLVE (PR template, merge, cleanup, learning DB commands) | `references/evolve-scripts.md` |
 | Writing or reading the evolution report | `references/evolution-report-template.md` |
 
@@ -296,7 +296,7 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `references/evolution-report-template.md` -- Template for the evolution report
 - `references/diagnose-scripts.md` -- Phase 0 and Phase 1 bash/Python commands
 - `references/evolve-scripts.md` -- Phase 6 PR, merge, cleanup, and learning DB commands
-- `references/evolve-preferred-patterns.md` -- Anti-patterns, error handling, cost, critique fallback, scheduling
+- `references/evolve-preferred-patterns.md` -- Failure modes, error handling, cost, critique fallback, scheduling
 - `skills/meta/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
 - `skills/meta/skill-eval/SKILL.md` -- Skill testing and benchmarking
 - `skills/research/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)

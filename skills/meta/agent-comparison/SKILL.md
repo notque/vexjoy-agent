@@ -162,7 +162,7 @@ Define criteria before seeing results to prevent bias — inventing criteria aft
 |-----------|-----|-----|-----|
 | Correctness | All tests pass, no race conditions | Some failures | Broken |
 | Error Handling | Comprehensive, production-ready | Adequate | None |
-| Idioms | Exemplary for the language | Acceptable | Anti-patterns |
+| Idioms | Exemplary for the language | Acceptable | Failure modes |
 | Documentation | Thorough | Adequate | None |
 | Testing | Comprehensive coverage | Basic | Minimal |
 

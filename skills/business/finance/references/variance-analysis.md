@@ -159,7 +159,7 @@ Every narrative must be:
 
 ### Failure Modes (detect and fix these)
 
-| Anti-Pattern | Why It Fails | Fix |
+| Failure Mode | Why It Fails | Fix |
 |-------------|-------------|-----|
 | "Revenue was higher due to higher revenue" | Circular — no explanation | Name the driver: volume, pricing, customer, product |
 | "Expenses were elevated" | Vague — which expenses? Why? | Specify line item, amount, and cause |

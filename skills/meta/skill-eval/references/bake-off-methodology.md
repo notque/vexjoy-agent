@@ -51,7 +51,7 @@ Criteria depend on the artifact type. For voice profiles, the canonical 11-crite
 3. Mental-model exclusivity
 4. Phrase fingerprint authenticity
 5. Calibration examples
-6. Anti-pattern coverage
+6. Failure mode coverage
 7. Joy-check axis
 8. Operational utility (cold pickup)
 9. Ethical / source discipline
@@ -171,7 +171,7 @@ The output is a short, concrete fold-list. Each fold names the file to change, t
 | 3 | Mental-model exclusivity | 8 | 6 | A |
 | 4 | Phrase fingerprint authenticity | 9 | 5 | A |
 | 5 | Calibration examples | 9 | 6 | A |
-| 6 | Anti-pattern coverage | 9 | 5 | A |
+| 6 | Failure mode coverage | 9 | 5 | A |
 | 7 | Joy-check axis | 8 | 8 | tie |
 | 8 | Operational utility (cold pickup) | 9 | 7 | A |
 | 9 | Ethical / source discipline | 5 | 9 | B |

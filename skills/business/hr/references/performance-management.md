@@ -61,7 +61,7 @@ Purpose: Document performance assessment, provide development guidance, justify 
 | **Meets Expectations** | Solid performance at expected level. Delivers reliably. Growing in role. | On track. Standard comp progression. |
 | **Below Expectations** | Not meeting expectations for current level. Specific improvement needed. | Requires development plan. May lead to PIP if sustained. |
 
-**Rating anti-patterns:**
+**Rating failure modes:**
 - Rating inflation: everyone gets "Exceeds." Loses meaning. Undermines calibration.
 - Recency bias: rating based on last 4 weeks, not full period. Keep running notes.
 - Halo/horns effect: one strong/weak area colors the entire review. Score dimensions independently.
@@ -99,7 +99,7 @@ Purpose: Document performance assessment, provide development guidance, justify 
 
 #### Feedback Failure Modes
 
-| Anti-Pattern | Problem | Better |
+| Failure Mode | Problem | Better |
 |-------------|---------|--------|
 | "Great job!" | No signal. The person learns nothing about what to repeat. | Name the specific behavior and its impact. |
 | "You need to communicate better." | Vague. Communicate what, to whom, when, how? | "Send project status updates to stakeholders every Friday by EOD." |
@@ -153,7 +153,7 @@ Ensure rating consistency across managers, teams, and the organization. Prevent 
 | Independence | Operates with decreasing guidance over time |
 | Peer recognition | Respected by peers as operating at a higher level |
 
-**Promotion anti-patterns:**
+**Promotion failure modes:**
 - Tenure-based promotion: "They've been here 3 years, they deserve it." Time is not evidence.
 - Promise-based promotion: "Promote them and they'll step up." Evidence first, promotion second.
 - Retention promotion: "If we don't promote them, they'll leave." Solves the wrong problem — likely a comp issue.

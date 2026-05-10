@@ -113,7 +113,7 @@ Detailed scoring criteria for evaluating Claude Code agents and skills against v
 - Patterns lack the required 3-part structure
 
 **No Credit (0 points)**:
-- No anti-patterns section
+- No failure modes section
 
 ## Integration (10 points)
 

@@ -1,6 +1,6 @@
 ---
-name: anti-patterns
-description: Concrete shell-process anti-patterns with detection commands and paired fixes.
+name: failure modes
+description: Concrete shell-process failure modes with detection commands and paired fixes.
 ---
 
 <!-- no-pair-required: this H1 is the file title; each AP-N section below contains its own "Do instead" block. -->

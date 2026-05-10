@@ -22,7 +22,7 @@ component type* is affected.
 |-------------|-------------|--------------------|--------------------|
 | Claude Code release note | `feat:` / `fix:` / `BREAKING:` prefix | Hooks (new events), agents (new capabilities), routing tables | BREAKING = Critical; new tool = Important; fix = Minor |
 | User goal change | "from now on", "whenever X", "always Y" | Hooks (behavioral automation), agents (routing triggers) | User-stated = Critical |
-| Retro graduation | `learning.db` candidates with `status=candidate` | Agent anti-patterns, skill instructions | Recurrence count drives priority |
+| Retro graduation | `learning.db` candidates with `status=candidate` | Agent failure modes, skill instructions | Recurrence count drives priority |
 
 ---
 
@@ -98,7 +98,7 @@ Map recurrence count to tier:
 
 ---
 
-<!-- no-pair-required: section header, not a standalone anti-pattern block -->
+<!-- no-pair-required: section header, not a standalone failure mode block -->
 ## Pattern Catalog
 
 ### Require At Least One Signal Before Proceeding

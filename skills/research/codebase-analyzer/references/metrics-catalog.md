@@ -33,7 +33,7 @@ Complete reference for the Omni-Cartographer's 25 categories and 100 individual 
 - cmp package usage
 - min/max builtins
 
-**6. Anti-patterns**
+**6. Failure modes**
 - Manual contains loops
 - Manual deduplication
 - Float conversions
@@ -149,7 +149,7 @@ Complete reference for the Omni-Cartographer's 25 categories and 100 individual 
 
 **29. Architecture Score**: Layering, interface design, separation of concerns
 
-**30. Performance Score**: Efficient pattern usage (prealloc, Builder, anti-patterns)
+**30. Performance Score**: Efficient pattern usage (prealloc, Builder, failure modes)
 
 **31. Observability Score**: Logging, metrics, structured telemetry
 

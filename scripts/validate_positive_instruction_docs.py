@@ -19,7 +19,7 @@ SCAN_PATTERNS = [
     "skills/**/references/*.md",
 ]
 NEGATIVE_PATTERNS = [
-    ("Anti-Pattern", re.compile(r"^\s*#{1,6}.*[Aa]nti-[Pp]attern")),
+    ("Anti-Pattern", re.compile(r"[Aa]nti-[Pp]atterns?")),
     ("FORBIDDEN", re.compile(r"\bFORBIDDEN\b")),
     ("NEVER", re.compile(r"\bNEVER\b")),
     ("do NOT", re.compile(r"\b[Dd]o NOT\b")),

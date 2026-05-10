@@ -50,14 +50,14 @@ https://github.com/Trystan-SA/claude-design-system-prompt
 Design-oriented system prompt with 14 procedural design skills for Claude Code. Studied for its design-specific quality patterns and UI review methodologies.
 
 **Patterns adopted:**
-- AI slop detection checklist (8 concrete anti-patterns for AI-generated UI). Rebuilt as `agents/ui-design-engineer/references/ai-slop-detection.md` with positive-instruction-first format and detection commands.
+- AI slop detection checklist (8 concrete failure modes for AI-generated UI). Rebuilt as `agents/ui-design-engineer/references/ai-slop-detection.md` with positive-instruction-first format and detection commands.
 - Interaction state coverage matrix (6-state exhaustive check per interactive element). Rebuilt as `agents/ui-design-engineer/references/interaction-state-coverage.md` with CSS specifics and timing bounds.
 - Spacing/type scale enforcement (flag any px value not on a 4px/8px grid). Rebuilt as `scripts/design-scale-check.py` — fully deterministic, zero LLM involvement.
 - oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/frontend/distinctive-frontend-design/references/oklch-color-harmony.md`.
 - Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/frontend/distinctive-frontend-design/references/honest-placeholders.md`.
 
 **Patterns noted but not adopted:**
-- Discovery questions anti-pattern #4 ("don't ask about info you already have"). Valuable general principle but already partially encoded in our blocker tables' "skip-if-answered" rules.
+- Discovery questions failure mode #4 ("ask only what you lack"). Valuable general principle but already partially encoded in our blocker tables' "skip-if-answered" rules.
 - Polish pass umbrella skill (parallel 4-agent design review). Architecturally interesting but we already have the multi-wave review pattern; adding a design-specific umbrella is future work.
 - Wireframe discipline conventions (greyscale-only exploration). Valuable if we build design artifact generation workflows; filed for future reference.
 - Component gap analysis (near-duplicates, missing states, implied-but-undefined variants). Useful but only relevant when we build component extraction workflows.

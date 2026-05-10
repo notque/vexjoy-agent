@@ -8,7 +8,7 @@
 
 ## Overview
 
-The most common Ansible anti-pattern is using `command` or `shell` when an idempotent module exists. Module selection determines whether playbooks are idempotent, properly report changes, and work across environments. The hierarchy is: builtin module > collection module > command/shell with explicit `changed_when`.
+The most common Ansible failure mode is using `command` or `shell` when an idempotent module exists. Module selection determines whether playbooks are idempotent, properly report changes, and work across environments. The hierarchy is: builtin module > collection module > command/shell with explicit `changed_when`.
 
 ---
 

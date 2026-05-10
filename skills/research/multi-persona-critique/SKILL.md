@@ -180,7 +180,7 @@ Load the synthesis template and populate all 7 sections (Consensus Matrix; Featu
 
 ---
 
-<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section-header-only; individual failure modes below carry Do-instead blocks -->
 ## Examples, Error Handling, and Detection
 
 See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
@@ -196,7 +196,7 @@ See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/personas.md`: Full persona specifications, identity, evaluation criteria, prompt templates
 - `${CLAUDE_SKILL_DIR}/references/synthesis-template.md`: Consensus matrix format and synthesis report structure
-- `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples, anti-patterns, error handling
+- `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples, failure modes, error handling
 
 ### Related Skills
 - `roast`: Code critique with evidence-based validation (complementary — roast critiques code, this critiques ideas)

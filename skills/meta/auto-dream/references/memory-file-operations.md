@@ -166,7 +166,7 @@ rg 'write.*MEMORY\.md(?!\.tmp)' --type py
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```python
 with open("memory/MEMORY.md", "w") as f:
     f.write(new_index_content)
@@ -196,7 +196,7 @@ rg 'os\.remove|os\.unlink|Path.*unlink' --type py | grep -i 'memory'
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 rm memory/stale-project-memory.md  # Unrecoverable if assessment was wrong
 ```
@@ -223,7 +223,7 @@ grep -rn 'conflict\|contradict' scripts/ | grep -v 'flag\|report\|human'
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```
 Memory A: "Use ruff for Python linting"
 Memory B: "Use flake8 for Python linting"
@@ -247,7 +247,7 @@ wc -l memory/MEMORY.md
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 An index that grows unbounded as new memories are added without old ones being consolidated or archived, eventually exceeding the 200-line truncation limit.
 
 **Why this matters**: The session-start hook injects MEMORY.md contents. Context injection is truncated at 200 lines — memories after that line are silently excluded from session context, defeating the purpose of writing them.

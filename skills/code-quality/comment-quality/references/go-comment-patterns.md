@@ -1,8 +1,8 @@
 # Go Comment Patterns
 
-<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+<!-- no-pair-required: document header and scope block, not an individual failure mode -->
 
-> **Scope**: Temporal and activity-based comment anti-patterns specific to Go source files.
+> **Scope**: Temporal and activity-based comment failure modes specific to Go source files.
 > **Version range**: Go 1.13+ (error wrapping), Go 1.18+ (generics)
 > **Generated**: 2026-04-16
 
@@ -20,7 +20,7 @@ of the API contract.
 
 ## Pattern Catalog
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### Describe What the Context Controls
 
@@ -241,5 +241,5 @@ grep -rn '^// Package.*\b(new|old|recently|updated|improved|fixed)\b' --include=
 
 ## See Also
 
-- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal failure mode catalog across all languages
 - `examples.md` — before/after rewrite examples

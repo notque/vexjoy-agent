@@ -216,5 +216,5 @@ The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`
 - [reviewer-perspectives](../../agents/reviewer-perspectives.md) -- Perspectives agent (contrarian, user-advocate, meta-process lenses)
 - `references/agent-prompts.md` -- Full prompt templates for all 3 standard agents + complex mode
 - `references/consultation-patterns.md` -- Correct patterns, artifact templates, verdict display formats
-- `references/consultation-preferred-patterns.md` -- Anti-patterns with detection commands
+- `references/consultation-preferred-patterns.md` -- Failure modes with detection commands
 - `references/error-handling.md` -- Error recovery by phase

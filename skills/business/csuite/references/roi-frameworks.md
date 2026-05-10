@@ -227,7 +227,7 @@ Converted to hours: ___ points × ___ hours/point = ___ hours
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Planning fallacy (systematic underestimation)
 **What it looks like**: "This will take 2 weeks." Team has never shipped a project of this complexity in under 6 weeks.

@@ -100,9 +100,9 @@ Each meeting type has a different optimal structure. The meeting type determines
 | Q&A | 10 min | Address questions. Surface objections. |
 | Next steps | 5 min | Propose evaluation plan, POC, or proposal. |
 
-**Demo anti-patterns** (things that kill demos):
+**Demo failure modes** (things that kill demos):
 
-| Anti-Pattern | Why It Fails | Instead |
+| Failure Mode | Why It Fails | Instead |
 |-------------|-------------|---------|
 | Feature tour | Prospect doesn't care about features they didn't ask for | Show only what maps to their stated needs |
 | Happy path only | Feels rehearsed, doesn't build confidence | Show edge cases they will encounter |

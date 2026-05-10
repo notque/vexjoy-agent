@@ -58,7 +58,7 @@ Match task difficulty to energy state. Most knowledge workers have predictable e
 
 ### Planning Failure Modes with Corrections
 
-| Anti-Pattern | What Goes Wrong | Do Instead |
+| Failure Mode | What Goes Wrong | Do Instead |
 |-------------|----------------|------------|
 | Planning 8 productive hours | Unplanned work, energy dips, and transition costs consume 20-40% | Plan for 5-6 hours of focused output. Leave the rest as buffer. |
 | No deep work blocks | Day becomes entirely reactive — lots of activity, few outcomes | Schedule at least one 90-min uninterrupted block before checking email or Slack |

@@ -228,7 +228,7 @@ Common research coordination errors. See [references/error-catalog.md](reference
 
 ## Preferred Patterns
 
-Research coordination patterns to follow. See [references/delegation-patterns.md](references/delegation-patterns.md) for the anti-pattern catalog with detection commands.
+Research coordination patterns to follow. See [references/delegation-patterns.md](references/delegation-patterns.md) for the failure mode catalog with detection commands.
 
 ### Give Subagents Specific Instructions
 **Preferred action**: "Research AI compute trends 2025-2030: GPU availability, chip production forecasts, supply constraints. 300-500 words. Sources: Cloud providers, semiconductor analysts."

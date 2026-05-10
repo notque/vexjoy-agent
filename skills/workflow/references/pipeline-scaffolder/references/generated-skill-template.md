@@ -39,5 +39,5 @@ git-release, learning-retro.
 ## Task Type Defaults
 
 Task types (generation, review, debugging, operations, configuration, analysis, migration,
-testing) have default error tables and anti-pattern tables embedded in the main template.
+testing) have default error tables and failure mode tables embedded in the main template.
 The scaffolder selects applicable rows based on `subdomain.task_type`.

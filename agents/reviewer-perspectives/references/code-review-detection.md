@@ -1,6 +1,6 @@
 # Code Review Detection Patterns
 
-> **Scope**: Detection commands for common anti-patterns across languages. Load during any perspective review on a real codebase.
+> **Scope**: Detection commands for common failure modes across languages. Load during any perspective review on a real codebase.
 > **Generated**: 2026-04-13
 
 ---

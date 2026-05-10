@@ -253,7 +253,7 @@ trap - SIGTERM
 
 ## Cross-references
 
-- For the trap-clobbers-exit-code anti-pattern: `preferred-patterns.md` AP-3
-- For SIGKILL-first anti-pattern: `preferred-patterns.md` AP-7
+- For the trap-clobbers-exit-code failure mode: `preferred-patterns.md` AP-3
+- For SIGKILL-first failure mode: `preferred-patterns.md` AP-7
 - For starting process groups: `starting-processes.md`
 - For cleanup verification after signaling: `cleanup-verification.md`

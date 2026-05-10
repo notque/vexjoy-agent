@@ -1,6 +1,6 @@
 # Async Patterns Reference
 
-> **Scope**: Async coordination patterns for Playwright tests — parallel execution, race conditions, and timing anti-patterns. Does not cover basic `await` usage or condition-based waiting (see `playwright-patterns.md`).
+> **Scope**: Async coordination patterns for Playwright tests — parallel execution, race conditions, and timing failure modes. Does not cover basic `await` usage or condition-based waiting (see `playwright-patterns.md`).
 > **Version range**: Playwright 1.20+ (Node 18+)
 > **Generated**: 2026-04-17
 

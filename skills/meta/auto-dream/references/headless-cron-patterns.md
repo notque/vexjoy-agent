@@ -180,7 +180,7 @@ rg 'claude' scripts/ --type sh -l | xargs grep -L 'max-budget-usd'
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```bash
 claude --permission-mode auto --no-session-persistence -p "${LARGE_PROMPT}"
 # No --max-budget-usd: a prompt bug or unexpectedly large context can cost $50+

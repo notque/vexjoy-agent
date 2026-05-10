@@ -636,7 +636,7 @@ These are reasoning patterns that sound correct but lead to rejected PRs in sapc
 | "Tests pass, the error wrapping is fine" | Lead review checks error message quality, not just pass/fail | Verify error context matches project standards |
 | "Copilot suggested this approach" | Lead review frequently rejects Copilot suggestions | Evaluate on merit, simplify where possible |
 | "I need a struct for this JSON" | One-off JSON can use `fmt.Sprintf` + `json.Marshal` | Only create types if reused or complex |
-| "Better safe than sorry" (re: error handling) | "Irrelevant contrivance" — over-handling is an anti-pattern | Ask "concrete scenario where this fails?" |
+| "Better safe than sorry" (re: error handling) | "Irrelevant contrivance" — over-handling is an failure mode | Ask "concrete scenario where this fails?" |
 | "Standard library X works fine here" | SAP CC has go-bits equivalents that are expected | Use go-bits equivalents |
 | "testify is the Go standard" | SAP CC uses go-bits/assert exclusively | Use go-bits/assert exclusively in sapcc repos |
 | "I'll add comprehensive error wrapping" | Trust well-designed functions' error messages | Check if called function already provides context |

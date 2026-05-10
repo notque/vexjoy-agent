@@ -119,7 +119,7 @@ Select components based on shape needs:
 **Step B -- Load reference files (principles + guidance):**
 
 **Always load:**
-1. `references/design-system.md` -- Theme selection, token architecture, accessibility checklist, SVG conventions, anti-patterns
+1. `references/design-system.md` -- Theme selection, token architecture, accessibility checklist, SVG conventions, failure modes
 2. `references/interaction-patterns.md` -- Component descriptions, when-to-use guidance, accessibility rules, composition guide
 
 **Load per detected shape:**
@@ -130,7 +130,7 @@ Select components based on shape needs:
 | code-review | `references/shape-code-review.md` | Severity system, interaction patterns, section ordering |
 | prototype | `references/shape-design-prototype.md` | Control types, export requirements, layout patterns |
 | report | `references/shape-report-research.md` | Section ordering, TL;DR placement, metric patterns |
-| editor | `references/shape-custom-editor.md` | Editor types, export bar rules, anti-patterns |
+| editor | `references/shape-custom-editor.md` | Editor types, export bar rules, failure modes |
 | data-viz | `references/shape-data-visualization.md` | Chart types, coordinate system, color scales |
 | diagram | `references/shape-diagram-illustration.md` | SVG construction rules, diagram types, interaction patterns |
 | deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
@@ -275,13 +275,13 @@ Constraint: Detect headless/SSH environments before offering browser open.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Any html-artifact invocation | `references/design-system.md` | Theme selection, token architecture, accessibility, anti-patterns |
+| Any html-artifact invocation | `references/design-system.md` | Theme selection, token architecture, accessibility, failure modes |
 | Any html-artifact invocation | `references/interaction-patterns.md` | Component descriptions, when-to-use, accessibility rules |
 | Shape = spec | `references/shape-spec-exploration.md` | Layout descriptions, composition guide, common mistakes |
 | Shape = code-review | `references/shape-code-review.md` | Severity system, interaction patterns, section ordering |
 | Shape = prototype | `references/shape-design-prototype.md` | Control types, export requirements, layout patterns |
 | Shape = report | `references/shape-report-research.md` | Section ordering, TL;DR placement, metric patterns |
-| Shape = editor | `references/shape-custom-editor.md` | Editor types, export bar rules, anti-patterns |
+| Shape = editor | `references/shape-custom-editor.md` | Editor types, export bar rules, failure modes |
 | Shape = data-viz | `references/shape-data-visualization.md` | Chart types, coordinate system, color scales |
 | Shape = diagram | `references/shape-diagram-illustration.md` | SVG construction rules, diagram types, interaction patterns |
 | Shape = deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
@@ -300,13 +300,13 @@ This skill uses:
 
 ## Reference Files
 
-- `references/design-system.md`: Theme selection, token architecture, accessibility checklist, SVG conventions, anti-patterns
+- `references/design-system.md`: Theme selection, token architecture, accessibility checklist, SVG conventions, failure modes
 - `references/interaction-patterns.md`: Component descriptions, when-to-use guidance, accessibility rules, composition guide
 - `references/shape-spec-exploration.md`: Spec shape -- layout, composition guide, common mistakes
 - `references/shape-code-review.md`: Code review shape -- severity system, interaction patterns, section ordering
 - `references/shape-design-prototype.md`: Prototype shape -- control types, export requirements, layout patterns
 - `references/shape-report-research.md`: Report shape -- section ordering, TL;DR placement, metric patterns
-- `references/shape-custom-editor.md`: Editor shape -- editor types, export bar rules, anti-patterns
+- `references/shape-custom-editor.md`: Editor shape -- editor types, export bar rules, failure modes
 - `references/shape-data-visualization.md`: Data viz shape -- chart types, coordinate system, color scales
 - `references/shape-diagram-illustration.md`: Diagram shape -- SVG construction rules, diagram types, interaction patterns
 - `references/shape-slide-deck.md`: Deck shape -- slide types, navigation, print styles

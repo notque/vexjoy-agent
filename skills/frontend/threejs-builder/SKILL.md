@@ -108,7 +108,7 @@ If ambiguous (e.g., user says "3D scene" with no project context), ask which par
 
 Game and GLTF references load **alongside** the paradigm reference — they are complementary, not alternative. A game project using R3F loads both `react-three-fiber.md` and the relevant game references.
 
-**After detecting paradigm**: Read the corresponding reference file. The reference contains paradigm-specific patterns, anti-patterns, and component selection guidance that override the generic steps below.
+**After detecting paradigm**: Read the corresponding reference file. The reference contains paradigm-specific patterns, failure modes, and component selection guidance that override the generic steps below.
 
 Additional reference loading signals (visual-polish, shader-patterns, performance-patterns, advanced-animation) are listed in `${CLAUDE_SKILL_DIR}/references/build-recipes.md` (Phase 1: Additional Reference Loading Signals).
 

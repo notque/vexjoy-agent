@@ -253,5 +253,5 @@ rg '\b(better than|faster than|more reliable than|superior to)\b' --type md -i
 
 ## See Also
 
-- `voice-patterns.md` — banned phrases and tone anti-patterns
+- `voice-patterns.md` — banned phrases and tone failure modes
 - `article-structure-patterns.md` — structural patterns for explainer/opinion/analysis

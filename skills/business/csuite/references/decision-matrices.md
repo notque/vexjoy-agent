@@ -140,7 +140,7 @@ Apply before scoring. Changes how much analysis is warranted.
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Criteria added after scoring
 **What it looks like**: Team scores options, then someone says "shouldn't we also consider X?" and adds it — but only because option they preferred scored low.

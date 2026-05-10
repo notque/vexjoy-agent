@@ -131,7 +131,7 @@ Document orchestrator-level concerns in `concerns.md` under a separate section:
 | `ls adr/{name}/ → No such file` | Consultation directory not created before dispatch | Run `mkdir -p adr/{name}` before dispatching agents |
 | Agent file missing after dispatch | Agent timed out or failed to write | Re-run failed agent individually; check for path typos in prompt |
 | `cat .adr-session.json → No such file` | No active ADR session; user invoked without specifying ADR | Run `ls adr/*.md` and ask user to specify which ADR |
-| Synthesis shows PROCEED but concerns.md has `blocking` | Rationalization anti-pattern | Override to BLOCKED; address concern in ADR; re-run |
+| Synthesis shows PROCEED but concerns.md has `blocking` | Rationalization failure mode | Override to BLOCKED; address concern in ADR; re-run |
 | Two agents raised identical concern under different names | Cross-cutting concern missed by individual agents | Consolidate in concerns.md as orchestrator-level; elevate severity |
 
 ---
@@ -275,6 +275,6 @@ Resolution states (update as concerns are addressed):
 
 ## See Also
 
-- `consultation-preferred-patterns.md` — ADR quality anti-patterns that reviewers should catch
+- `consultation-preferred-patterns.md` — ADR quality failure modes that reviewers should catch
 - `skills/review/parallel-code-review/SKILL.md` — Fan-out/fan-in pattern this skill adapts
 - `agents/reviewer-perspectives.md` — Perspectives agent (contrarian, user-advocate, meta-process lenses)

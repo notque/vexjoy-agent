@@ -1,12 +1,12 @@
 # Go Patterns, Gates, and Rationalizations
 
-Modern idiom replacement table, anti-patterns, rationalizations, hard gate patterns, and death loop prevention. Loaded when reviewing or writing Go code.
+Modern idiom replacement table, failure modes, rationalizations, hard gate patterns, and death loop prevention. Loaded when reviewing or writing Go code.
 
 ## Preferred Patterns
 
 ### Modern Idiom Patterns
 
-These are the most common AI-generated Go anti-patterns — using old patterns when modern alternatives exist:
+These are the most common AI-generated Go failure modes — using old patterns when modern alternatives exist:
 
 | Outdated Pattern | Modern Replacement | Since |
 |-----------------|-------------------|-------|

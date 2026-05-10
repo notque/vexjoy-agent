@@ -122,4 +122,4 @@ See `python-openstack-engineer/references/error-handling.md` for Bare Except (H2
 
 ## Preferred Patterns, Anti-Rationalization & Blocker Criteria
 
-See `python-openstack-engineer/references/preferred-patterns.md` for the OpenStack anti-pattern list (Reinventing Oslo, Bare Except, Missing RPC Versioning), domain-specific rationalization table, and blocker criteria (new Oslo library, API breaking change, database schema, RPC signature).
+See `python-openstack-engineer/references/preferred-patterns.md` for the OpenStack failure mode list (Reinventing Oslo, Bare Except, Missing RPC Versioning), domain-specific rationalization table, and blocker criteria (new Oslo library, API breaking change, database schema, RPC signature).

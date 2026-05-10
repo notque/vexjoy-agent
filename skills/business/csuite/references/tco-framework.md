@@ -185,7 +185,7 @@ Before finalizing TCO, confirm you have accounted for:
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Comparing development cost to license cost
 **What it looks like**: "Auth0 costs $2,880/year. We can build it for free."

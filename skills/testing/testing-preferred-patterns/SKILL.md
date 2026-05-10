@@ -114,7 +114,7 @@ For each test file, scan for these 10 categories (detailed examples in `referenc
 
 **Constraint: Preserve test intent.** When fixing quality issues, maintain what the test was originally trying to verify. Preserve the original test coverage scope.
 
-**Constraint: Prevent over-engineering.** Fix the specific quality issue identified; make targeted fixes to the specific anti-pattern or delete tests and write new ones from scratch. Institutional knowledge lives in the existing tests.
+**Constraint: Prevent over-engineering.** Fix the specific quality issue identified; make targeted fixes to the specific failure mode or delete tests and write new ones from scratch. Institutional knowledge lives in the existing tests.
 
 **Gate**: Findings ranked. User agrees on scope of fixes. Proceed only when gate passes.
 
@@ -148,7 +148,7 @@ Priority: [HIGH/MEDIUM/LOW]
 - ISSUE: Test spies on `_getUser()` → FIX: Test what happens when a user exists or doesn't exist
 - ISSUE: Test checks exact regex → FIX: Test that validation succeeds/fails for representative inputs
 
-Change only what is needed to fix the anti-pattern. Consult `references/fix-strategies.md` for language-specific patterns.
+Change only what is needed to fix the failure mode. Consult `references/fix-strategies.md` for language-specific patterns.
 
 **Step 3: Run tests after each fix**
 
@@ -190,7 +190,7 @@ Remaining issues: [any deferred items]
 
 ## Pattern Quality Catalog
 
-See `references/quality-catalog.md` for detailed descriptions of all 10 anti-patterns (signals, why each is problematic, and fixes).
+See `references/quality-catalog.md` for detailed descriptions of all 10 failure modes (signals, why each is problematic, and fixes).
 
 ---
 
@@ -206,10 +206,10 @@ See `references/quick-reference.md` for the quick reference table, red flags dur
 
 ### Reference Files
 
-- `${CLAUDE_SKILL_DIR}/references/quality-catalog.md`: Detailed descriptions of all 10 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/quality-catalog.md`: Detailed descriptions of all 10 failure modes
 - `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Ambiguous patterns and large-scale cleanup guidance
 - `${CLAUDE_SKILL_DIR}/references/quick-reference.md`: Quick reference table, red flags, TDD relationship
-- `${CLAUDE_SKILL_DIR}/references/preferred-pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
+- `${CLAUDE_SKILL_DIR}/references/preferred-pattern-catalog.md`: Detailed code examples for all 10 failure modes (Go, Python, JavaScript)
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Language-specific fix patterns and tooling
 - `${CLAUDE_SKILL_DIR}/references/blind-spot-taxonomy.md`: 6-category taxonomy of what high-coverage test suites commonly miss (concurrency, state, boundaries, security, integration, resilience)
 - `${CLAUDE_SKILL_DIR}/references/load-test-scenarios.md`: 6 load test scenario types (smoke, load, stress, spike, soak, breakpoint) with configurations and critical endpoint priorities

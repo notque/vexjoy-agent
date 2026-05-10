@@ -1,6 +1,6 @@
 # PHP Testing Patterns Reference
 
-Full code examples, anti-patterns, and commands reference for the PHP Testing skill.
+Full code examples, failure modes, and commands reference for the PHP Testing skill.
 
 ---
 
@@ -263,7 +263,7 @@ php artisan test --coverage          # Laravel
 
 ---
 
-<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section-header-only; individual failure modes below carry Do-instead blocks -->
 ## Common Testing Patterns to Fix
 
 | Signal | Problem | Fix |

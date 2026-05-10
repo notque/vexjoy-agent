@@ -154,7 +154,7 @@ Before signing any vendor contract over $10K/year:
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Buying based on demo, not hands-on trial
 **What it looks like**: Sales demo shows everything working perfectly, contract signed, integration begins, and a different reality emerges.

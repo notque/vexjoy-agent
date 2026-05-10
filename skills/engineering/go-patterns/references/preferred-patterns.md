@@ -1,7 +1,7 @@
 
 # Go Patterns to Detect and Fix
 
-Detect and remediate the 7 core Go anti-patterns: premature interface abstraction, goroutine overkill, error wrapping without context, channel misuse, generic abuse, context soup, and unnecessary function extraction. Every detection is evidence-based with code location and concrete harm explanation, and every recommendation aligns with Go proverbs and standard library conventions.
+Detect and remediate the 7 core Go failure modes: premature interface abstraction, goroutine overkill, error wrapping without context, channel misuse, generic abuse, context soup, and unnecessary function extraction. Every detection is evidence-based with code location and concrete harm explanation, and every recommendation aligns with Go proverbs and standard library conventions.
 
 ## Instructions
 
@@ -11,7 +11,7 @@ Read and follow the repository's CLAUDE.md before reviewing any code. Identify w
 
 If the user requests a full codebase scan or historical git analysis, enable those modes explicitly. Otherwise, stay within the files presented.
 
-<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section-header-only; individual failure modes below carry Do-instead blocks -->
 ### Phase 2: Scan for Patterns to Fix
 
 Use the Quick Detection Guide to systematically check each file under review. Work through the table row by row against the code.
@@ -30,7 +30,7 @@ Flag complexity only when a simpler idiomatic Go alternative exists. Do not sugg
 
 ### Phase 3: Classify and Report
 
-For each detected anti-pattern, produce a structured report entry. Every flagged pattern must cite a specific code location and explain the concrete harm it causes -- never flag without evidence.
+For each detected failure mode, produce a structured report entry. Every flagged pattern must cite a specific code location and explain the concrete harm it causes -- never flag without evidence.
 
 ```
 ANTI-PATTERN DETECTED:
@@ -42,17 +42,17 @@ ANTI-PATTERN DETECTED:
 - Recommendation: [Simpler Go alternative]
 ```
 
-Rate severity based on the actual codebase context: a single-implementation interface in a small CLI is Low; in a hot path of a shared library it may be High. Address anti-patterns one at a time rather than proposing bulk rewrites.
+Rate severity based on the actual codebase context: a single-implementation interface in a small CLI is Low; in a hot path of a shared library it may be High. Address failure modes one at a time rather than proposing bulk rewrites.
 
 ### Phase 4: Provide Remediation
 
 For each flagged pattern, show the current code alongside the recommended alternative so the reader can compare directly. Explain WHY the current pattern is harmful, not just that it is -- root cause understanding prevents recurrence.
 
-Reference `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
+Reference `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` for extended before/after examples covering all 7 failure modes.
 
 Do not rewrite working code without an explicit request from the user. Flag patterns for awareness and let the user decide whether to act. When the user does request changes, apply them one pattern at a time to keep diffs reviewable.
 
-If metrics collection is requested, count anti-pattern occurrences by type to identify systemic issues.
+If metrics collection is requested, count failure mode occurrences by type to identify systemic issues.
 
 ---
 
@@ -236,11 +236,11 @@ func (opts AuditorOpts) buildConnectionURL() (string, error) {
 ## Error Handling
 
 ### Error: "False Positive -- Pattern Is Intentional"
-**Cause**: Detected anti-pattern is actually justified by context (e.g., interface for testing boundary, generic for library API).
+**Cause**: Detected failure mode is actually justified by context (e.g., interface for testing boundary, generic for library API).
 **Solution**: Check for 2+ implementations or concrete future need. If justified, note as acceptable trade-off and move on.
 
 ### Error: "Refactoring Breaks Tests"
-**Cause**: Tests depended on the anti-pattern structure (e.g., mocking an interface that gets removed).
+**Cause**: Tests depended on the failure mode structure (e.g., mocking an interface that gets removed).
 **Solution**: Update tests to use the concrete type. If removal would require major test rewrite, flag as tech debt rather than fixing immediately.
 
 ### Error: "Team Disagrees on Pattern"
@@ -252,13 +252,13 @@ func (opts AuditorOpts) buildConnectionURL() (string, error) {
 ## Examples
 
 ### Example 1: Code Review Detection
-User says: "Review this Go service for anti-patterns"
+User says: "Review this Go service for failure modes"
 Actions:
 1. Scan using Quick Detection Guide table
 2. Flag each detected pattern with location and severity
 3. Provide before/after for highest-severity items
 4. Document findings in structured report format
-Result: Prioritized list of anti-patterns with remediation guidance
+Result: Prioritized list of failure modes with remediation guidance
 
 ### Example 2: Specific Pattern Question
 User says: "Should I add an interface for this repository?"
@@ -273,4 +273,4 @@ Result: Evidence-based recommendation with Go idiom context
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md`: Extended before/after examples for all 7 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md`: Extended before/after examples for all 7 failure modes

@@ -130,7 +130,7 @@ Present all assumptions organized by confidence level (Confident first, Unclear 
 
 > Here's what I believe about this codebase based on reading [N] files. Please correct anything that's wrong. You only need to respond to items that are incorrect — silence means agreement.
 
-Make assumptions explicit so the user CAN correct you. The anti-pattern is assuming "the user will correct me if I'm wrong" while keeping assumptions silent — users cannot correct what they do not see.
+Make assumptions explicit so the user CAN correct you. The failure mode is assuming "the user will correct me if I'm wrong" while keeping assumptions silent — users cannot correct what they do not see.
 
 **Step 4: Process Corrections**
 

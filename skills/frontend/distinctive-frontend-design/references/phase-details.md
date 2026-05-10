@@ -59,7 +59,7 @@ Select an inspiration source that resonates with the project context from Phase 
 
 ### Phase 3: Palette Checks
 
-Check against anti-patterns in `references/preferred-patterns.json`:
+Check against failure modes in `references/preferred-patterns.json`:
 - No purple (#8B5CF6, #A855F7) as accent on white background -- the most cliched color scheme in modern web design, signaling generic SaaS template
 - No evenly distributed colors without clear dominance
 - No generic blue (#3B82F6) as primary on white

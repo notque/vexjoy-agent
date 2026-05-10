@@ -97,7 +97,7 @@ The key change: **Simple and Medium tasks start at Level 1 when the scope is amb
 
 ## Patterns to Detect and Fix
 
-| Anti-pattern | Why it fails | Correct behavior |
+| Failure Mode | Why it fails | Correct behavior |
 |--------------|-------------|------------------|
 | Starting at Level 2 "just to be safe" | Defeats the purpose; burns tokens on methodology the task doesn't need | Start at Level 1, let evidence drive escalation |
 | Escalating without evidence | Phantom complexity; the agent imagines problems that don't exist | Must cite a concrete escalation signal |

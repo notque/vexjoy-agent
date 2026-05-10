@@ -21,7 +21,7 @@ Biome is a fast JavaScript/TypeScript linter and formatter replacing ESLint and 
 | `style` | Idiomatic code improvements | Yes (most) |
 | `complexity` | Unnecessary complexity | Some |
 | `a11y` | Accessibility violations in JSX | No |
-| `security` | Security anti-patterns | No |
+| `security` | Security failure modes | No |
 
 **Common rules by category**:
 

@@ -18,7 +18,7 @@ The simplest and most effective format for most teams.
 
 **When to use**: Most teams, most of the time. Avoids false precision on dates. Good for leadership and external communication.
 
-**Anti-pattern**: Treating "Later" as a dumping ground. Items in Later should still tie to strategy — they are directional bets, not a wish list.
+**Failure modes**: Treating "Later" as a dumping ground. Items in Later should still tie to strategy — they are directional bets, not a wish list.
 
 ### Quarterly Themes
 
@@ -41,7 +41,7 @@ Q3 2026 Themes:
 
 **When to use**: When you need strategic alignment visibility. Good for planning meetings and executive communication.
 
-**Anti-pattern**: Themes that are too broad ("Make product better") or too narrow (a single feature disguised as a theme).
+**Failure modes**: Themes that are too broad ("Make product better") or too narrow (a single feature disguised as a theme).
 
 ### OKR-Aligned Roadmap
 
@@ -54,7 +54,7 @@ Map items directly to Objectives and Key Results.
 
 **When to use**: Organizations that run on OKRs. Creates clear accountability between what you build and what you measure.
 
-**Anti-pattern**: Initiatives without expected impact estimates. If you cannot estimate impact, the link to the KR is speculative.
+**Failure modes**: Initiatives without expected impact estimates. If you cannot estimate impact, the link to the KR is speculative.
 
 ### Timeline / Gantt
 
@@ -81,7 +81,7 @@ Calendar-based view showing start dates, end dates, durations, parallelism, and 
 
 **When to use**: Large backlog, need quantitative defensibility.
 
-**Anti-pattern**: Gaming confidence scores to make preferred initiatives win. If RICE does not match intuition, investigate why — do not adjust inputs until it does.
+**Failure modes**: Gaming confidence scores to make preferred initiatives win. If RICE does not match intuition, investigate why — do not adjust inputs until it does.
 
 ### ICE Score
 
@@ -129,7 +129,7 @@ Simpler than RICE. Ease is inverse of effort (higher = easier to build).
 
 **Scoring**: 0.0-0.3 = missed, 0.4-0.6 = progress, 0.7-1.0 = achieved. 70% completion is the target for stretch OKRs.
 
-**Anti-patterns**:
+**Failure modes**:
 - Too many OKRs (2-3 objectives max)
 - KRs that are sandbagged (100% confidence = not ambitious enough)
 - KRs that measure effort instead of results

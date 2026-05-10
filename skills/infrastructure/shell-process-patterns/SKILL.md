@@ -218,7 +218,7 @@ trap cleanup EXIT
 trap 'echo "ERROR: line $LINENO exit $?" >&2' ERR
 ```
 
-Constraint: a command followed by `|| something` has its exit code masked -- `set -e` does not fire, and neither does the ERR trap. Use `|| true` only where failure is genuinely harmless, and prefer `if ! cmd; then handle; fi` when you want to act on the failure -- because silent-swallow `|| true` is the top anti-pattern in this domain (see `references/preferred-patterns.md`).
+Constraint: a command followed by `|| something` has its exit code masked -- `set -e` does not fire, and neither does the ERR trap. Use `|| true` only where failure is genuinely harmless, and prefer `if ! cmd; then handle; fi` when you want to act on the failure -- because silent-swallow `|| true` is the top failure mode in this domain (see `references/preferred-patterns.md`).
 
 ### Step 8: Verify
 
@@ -265,7 +265,7 @@ Solution: remove `|| true` unless you genuinely do not care. Add `set -o pipefai
 | Killing or finding a process | "kill the process", "find the pid", "port still bound", "$!", "pgrep", "ss", "lsof" | `pid-resolution.md` |
 | Writing signal handlers / traps | "trap", "SIGTERM", "SIGKILL", "cleanup handler", "EXIT trap", "exec" | `signals-and-traps.md` |
 | Verifying a kill actually worked | "verify kill", "still running", "lock file", "stale pid", "port in use" | `cleanup-verification.md` |
-| Reviewing a script for gotchas | "audit bash", "shell anti-pattern", "set -e", "|| true", "code review bash" | `preferred-patterns.md` |
+| Reviewing a script for gotchas | "audit bash", "shell failure mode", "set -e", "|| true", "code review bash" | `preferred-patterns.md` |
 
 ### Reference Files
 

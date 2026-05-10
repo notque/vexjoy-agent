@@ -278,7 +278,7 @@ Overall funnel rate: ___% (benchmark: 0.1-0.5% of total visitors)
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Awareness content without subscribe CTA
 **What it looks like**: SEO articles driving 5,000 unique visitors/month with no email subscribe prompt, no content upgrade, no follow CTA.

@@ -242,7 +242,7 @@ Save `analysis-report.md` using the template from `references/output-templates.m
 | Any phase -- saving an artifact file | `references/output-templates.md` |
 | Working examples of the full 5-phase flow | `references/worked-examples.md` |
 | Data parse failure, segment size issue, definition revision | `references/error-handling.md` |
-| Anti-pattern recognition (p-hacking, survivorship bias, etc.) | `references/preferred-patterns.md` |
+| Failure mode recognition (p-hacking, survivorship bias, etc.) | `references/preferred-patterns.md` |
 
 ---
 
@@ -253,4 +253,4 @@ Save `analysis-report.md` using the template from `references/output-templates.m
 - **Compute Examples**: `references/compute-examples.md` - Python computation patterns for extraction and analysis
 - **Worked Examples**: `references/worked-examples.md` - Three end-to-end examples (A/B test, trend, distribution)
 - **Error Handling**: `references/error-handling.md` - Error recovery procedures and blocker criteria
-- **Anti-Patterns**: `references/preferred-patterns.md` - Extended pattern catalog with code examples
+- **Failure modes**: `references/preferred-patterns.md` - Extended pattern catalog with code examples

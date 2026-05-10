@@ -66,7 +66,7 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 2. **ANALYZE** — Identify stale, duplicate, conflicting memories and cross-session patterns. Write analysis to `~/.claude/state/dream-analysis-{date}.md`.
 3. **CONSOLIDATE** — Apply consolidation actions (max 5 changes). Archive stale/merged files, update MEMORY.md atomically.
 4. **SYNTHESIZE** — Create insight memories from cross-session patterns (max 2 new memories per cycle).
-5. **GRADUATE** — Promote mature learning DB entries (confidence >= 0.9, 3+ observations) into agent/skill files as permanent anti-patterns. Commits on `dream/graduate-YYYY-MM-DD` branch for human review. Max 3 per cycle. (ADR-159)
+5. **GRADUATE** — Promote mature learning DB entries (confidence >= 0.9, 3+ observations) into agent/skill files as permanent failure modes. Commits on `dream/graduate-YYYY-MM-DD` branch for human review. Max 3 per cycle. (ADR-159)
 6. **SELECT** — Build injection-ready payload for session start. Write to `~/.claude/state/dream-injection-{project-hash}.md`.
 7. **REPORT** — Write dream summary to `~/.claude/state/last-dream.md`.
 

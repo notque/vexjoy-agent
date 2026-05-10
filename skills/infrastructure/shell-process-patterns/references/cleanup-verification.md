@@ -237,7 +237,7 @@ ss -tln | grep -q ':8080\b' && { echo "FATAL: teardown incomplete"; exit 1; }
 start_server
 ```
 
-<!-- no-pair-required: This section is a pointer index into preferred-patterns.md; each referenced AP has its own paired "Do instead" block in that file. The body of THIS reference file (kill-and-check loop, resource verification, cleanup-on-exit) IS the "do instead" content for the referenced anti-patterns. -->
+<!-- no-pair-required: This section is a pointer index into preferred-patterns.md; each referenced AP has its own paired "Do instead" block in that file. The body of THIS reference file (kill-and-check loop, resource verification, cleanup-on-exit) IS the "do instead" content for the referenced failure modes. -->
 
 ## Failure patterns
 
@@ -249,5 +249,5 @@ start_server
 
 - For PID capture before kill: `pid-resolution.md`
 - For signals and traps: `signals-and-traps.md`
-- For anti-patterns: `preferred-patterns.md` AP-4, AP-7
+- For failure modes: `preferred-patterns.md` AP-4, AP-7
 - For polling/backoff generalities: `skills/process/condition-based-waiting/SKILL.md`

@@ -1,6 +1,6 @@
 # Animation Performance Budgets Reference
 
-> **Scope**: Concrete frame budgets, CSS property render costs, layout thrashing detection, and performance anti-patterns for CSS animations and transitions.
+> **Scope**: Concrete frame budgets, CSS property render costs, layout thrashing detection, and performance failure modes for CSS animations and transitions.
 > **Version range**: CSS3+, Chrome/Safari/Firefox (2022+), applies to all animation strategies
 > **Generated**: 2026-04-16 — compositor-thread promotion behavior is stable across modern browsers
 

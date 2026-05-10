@@ -167,7 +167,7 @@ grep -i 'sqlite\|database\|learning.db\|failed' ~/.claude/state/last-dream.md | 
 ```
 
 **Signal**:
-<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing failure mode entry -->
 ```
 ## Dream Report: 2026-04-16
 

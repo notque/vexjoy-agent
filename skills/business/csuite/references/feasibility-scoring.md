@@ -200,7 +200,7 @@ Use these anchors to score confidence consistently:
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Feasibility conflated with desirability
 **What it looks like**: "We can build it, so it's feasible." Team with strong engineering capability scores technical feasibility 9 for everything, ignoring whether the market wants it.

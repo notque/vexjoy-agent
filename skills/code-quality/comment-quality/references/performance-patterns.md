@@ -1,8 +1,8 @@
 # Performance Comment Patterns to Detect and Fix
 
-<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+<!-- no-pair-required: document header and scope block, not an individual failure mode -->
 
-> **Scope**: Temporal and relative-comparison comment anti-patterns in performance-sensitive
+> **Scope**: Temporal and relative-comparison comment failure modes in performance-sensitive
 > code: caching, batching, concurrency limits, and algorithmic complexity notes.
 > **Version range**: All languages; Go goroutine pool patterns, Python asyncio, JS Promise.all
 > **Generated**: 2026-04-16
@@ -21,7 +21,7 @@ measurable, specific descriptions of what the optimization does.
 
 ## Pattern Catalog
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### State the Specific Mechanism and Tuning Knobs
 
@@ -339,6 +339,6 @@ grep -rn '//.*\b(reduced|less|lower|minimal)\b.*\bmemory\b' \
 
 ## See Also
 
-- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal failure mode catalog across all languages
 - `error-handling-patterns.md` — temporal patterns in error handling code
 - `go-comment-patterns.md` — Go-specific temporal patterns (goroutines, context, generics)

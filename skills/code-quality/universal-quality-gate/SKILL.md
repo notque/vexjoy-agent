@@ -260,7 +260,7 @@ The quality gate script automatically detects and uses new registry entries on n
 
 ### Pattern Match Warnings (not failures)
 **Pattern Matches** like "Silent exception handler" or "Debug print" are informational warnings. They do not fail the gate. Review them and decide whether to fix:
-- `[WARNING]` entries identify anti-patterns but don't block commits
+- `[WARNING]` entries identify failure modes but don't block commits
 - Use `--no-patterns` to skip pattern scanning if these are not relevant
 - Manually fix patterns that represent actual problems in your code
 

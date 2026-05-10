@@ -351,7 +351,7 @@ Review the runbook when any of these occur:
 
 ## Runbook Authoring Failure Modes
 
-| Anti-Pattern | Example | Fix |
+| Failure Mode | Example | Fix |
 |-------------|---------|-----|
 | The "just" step | "Just restart the service" | Specify exactly which service, how, and verify it came back. |
 | Assumed knowledge | "SSH to the usual box" | Name the host, document the SSH command, specify which key. |

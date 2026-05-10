@@ -1,5 +1,5 @@
 ---
-description: Mapping design, ILM policies, index templates, and reindexing strategies with anti-pattern detection
+description: Mapping design, ILM policies, index templates, and reindexing strategies with failure mode detection
 ---
 
 # OpenSearch/Elasticsearch Index Management

@@ -87,7 +87,7 @@ exec >> "$LOG" 2>> "$ERR"
 
 ---
 
-<!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section heading; individual failure modes below carry Do-instead blocks -->
 ## Pattern Catalog
 
 ### Redirect Output to Log Files

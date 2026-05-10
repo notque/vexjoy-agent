@@ -178,7 +178,7 @@ For decisions that span multiple time horizons, use McKinsey's Three Horizons ad
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Five Forces as a one-time exercise
 **What it looks like**: Five Forces analysis done at company founding, cited 3 years later.

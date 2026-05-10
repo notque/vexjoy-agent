@@ -106,9 +106,9 @@ Remove any topic that fails the filter. Document why each rejection failed:
 |----------------|-----------------|--------|
 | [topic] | [1, 2, or 3] | [why] |
 
-**Anti-Pattern Warning — Do Not Generate Tutorial-Only Topics**: "How to Set Up X" with vex listed as "learning a new tool" is not genuine frustration. Find the specific friction point. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex (version mismatch between local and CI).
+**Failure Mode Warning — Do Not Generate Tutorial-Only Topics**: "How to Set Up X" with vex listed as "learning a new tool" is not genuine frustration. Find the specific friction point. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex (version mismatch between local and CI).
 
-**Anti-Pattern Warning — Do Not Accept Opinion Without Experience**: "Why Go Is Better Than Python for CLI Tools" is debate, not experience. This lacks a specific problem solved, no measurable outcome. Ground in measurement instead.
+**Failure Mode Warning — Do Not Accept Opinion Without Experience**: "Why Go Is Better Than Python for CLI Tools" is debate, not experience. This lacks a specific problem solved, no measurable outcome. Ground in measurement instead.
 
 **Gate**: At least 3 candidates pass the content quality filter. If fewer than 3 pass, return to Step 1 with different sources. Proceed only when gate passes.
 
@@ -143,7 +143,7 @@ Replace vague category titles with failure-mode titles:
 - Bad: "Kubernetes Networking Issues"
 - Good: "Pod-to-Pod Traffic Works But Service Discovery Fails"
 
-**Anti-Pattern Warning — Do Not Use Vague Topic Titles**: "Kubernetes Networking Issues" is too broad to act on. Which issues? What specifically failed? Use failure-mode titles instead: "CoreDNS Returns NXDOMAIN for Internal Services" signals real vex and specificity.
+**Failure Mode Warning — Do Not Use Vague Topic Titles**: "Kubernetes Networking Issues" is too broad to act on. Which issues? What specifically failed? Use failure-mode titles instead: "CoreDNS Returns NXDOMAIN for Internal Services" signals real vex and specificity.
 
 **Step 3: Present prioritized output**
 

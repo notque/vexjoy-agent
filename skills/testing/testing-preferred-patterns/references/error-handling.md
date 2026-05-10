@@ -12,7 +12,7 @@ Solution:
 
 ### Error: "Fix Changes Test Behavior"
 
-Cause: Anti-pattern was masking an actual test gap or testing wrong thing
+Cause: Failure mode was masking an actual test gap or testing wrong thing
 
 Solution:
 1. Identify what the test was originally trying to verify

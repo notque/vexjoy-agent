@@ -131,6 +131,6 @@ Load these references when the task signal matches:
 | "loop", "retry", "3 attempts", "stuck", "same error", death loop | [references/death-loop-prevention.md](project-coordinator-engineer/references/death-loop-prevention.md) |
 | "STATUS.md", "HANDOFF.md", "PROGRESS.md", "BLOCKERS.md", handoff | [references/communication-protocols.md](project-coordinator-engineer/references/communication-protocols.md) |
 | error, failure, spawn failed, timeout, conflict | [references/error-catalog.md](project-coordinator-engineer/references/error-catalog.md) |
-| anti-pattern, wrong approach, incorrect coordination | [references/preferred-patterns.md](project-coordinator-engineer/references/preferred-patterns.md) |
+| failure mode, wrong approach, incorrect coordination | [references/preferred-patterns.md](project-coordinator-engineer/references/preferred-patterns.md) |
 | TodoWrite, task assignment, dependency, blockedBy, completion | [references/todowrite-integration.md](project-coordinator-engineer/references/todowrite-integration.md) |
 | output format, phases, death-loop, errors, anti-rationalization, blocker criteria | [references/coordination-playbook.md](project-coordinator-engineer/references/coordination-playbook.md) |

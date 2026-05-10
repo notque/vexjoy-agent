@@ -1,6 +1,6 @@
 # Next.js E-commerce Patterns and Errors
 
-Inline cart/Stripe/checkout snippets, error summary, anti-patterns, and rationalizations. Deeper patterns in sibling references.
+Inline cart/Stripe/checkout snippets, error summary, failure modes, and rationalizations. Deeper patterns in sibling references.
 
 ## Shopping Cart Implementation
 

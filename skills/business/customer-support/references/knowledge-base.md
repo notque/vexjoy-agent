@@ -399,7 +399,7 @@ Transform the ticket-specific resolution into a general guide:
 
 ## KB Quality Failure Modes
 
-| Anti-Pattern | Problem | Fix |
+| Failure Mode | Problem | Fix |
 |-------------|---------|-----|
 | Internal jargon in title | Customers can't find it via search | Rewrite in customer language |
 | Steps that skip prerequisites | Customer gets stuck at step 1 | Add explicit prerequisites section |

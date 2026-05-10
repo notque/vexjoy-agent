@@ -124,5 +124,5 @@ Load `rive-animation-library.md` when building or debugging animations, state ma
 - [rive-character-pipeline.md](rive-skeletal-animator/references/rive-character-pipeline.md) — Sprite decomposition, bone hierarchy for wrestlers, vertex weighting, Rive Editor workflow, .riv export
 - [rive-animation-library.md](rive-skeletal-animator/references/rive-animation-library.md) — Standard wrestling animation set, state machine design, clip durations, timing sync
 - [rive-vs-spine-decision.md](rive-skeletal-animator/references/rive-vs-spine-decision.md) — Decision matrix: Rive vs Spine2D for web/React projects
-- [rive-performance.md](rive-skeletal-animator/references/rive-performance.md) — Canvas sizing, WebGL context limits, 60fps budgets, lazy loading, Framer Motion anti-patterns
+- [rive-performance.md](rive-skeletal-animator/references/rive-performance.md) — Canvas sizing, WebGL context limits, 60fps budgets, lazy loading, Framer Motion failure modes
 - [rive-async-patterns.md](rive-skeletal-animator/references/rive-async-patterns.md) — Async instance lifecycle, null guards, onLoad vs useEffect, onStateChange, Zustand bridging

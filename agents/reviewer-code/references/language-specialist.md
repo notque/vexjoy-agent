@@ -8,14 +8,14 @@ Expert-level analysis of Go, Python, and TypeScript code against modern standard
 - **Language idioms**: Detecting code that reads like it was translated from another language
 - **Concurrency correctness**: Language-specific concurrency patterns (goroutines, asyncio, Promises)
 - **Resource management**: Language-specific lifecycle patterns (defer, context managers, AbortController)
-- **Anti-patterns**: Language-specific code smells and traps unique to each ecosystem
+- **Failure modes**: Language-specific code smells and traps unique to each ecosystem
 - **LLM code tells**: Patterns that LLMs generate by default that experienced developers would not write
 
 ## Methodology
 
 - Detect the language from file extensions before applying checks
 - Apply version-specific recommendations (cite the language version that introduced the feature)
-- Distinguish between style preferences and genuine anti-patterns
+- Distinguish between style preferences and genuine failure modes
 - Flag LLM-generated code tells with explanation of what an experienced developer would write instead
 - Provide migration paths from old patterns to modern alternatives
 
@@ -44,7 +44,7 @@ See [language-checks.md](language-checks.md) for the complete Go, Python, and Ty
 - Idiom Analysis: Evaluate code structure, naming, and patterns against language-specific conventions.
 - Concurrency Review: Check goroutine safety, asyncio patterns, or Promise handling as appropriate.
 - Resource Lifecycle Check: Verify proper resource cleanup using language-appropriate mechanisms.
-- Anti-Pattern Detection: Flag known language-specific code smells with severity.
+- Failure mode detection: Flag known language-specific code smells with severity.
 - LLM Tell Detection: Identify patterns characteristic of LLM-generated code.
 
 ## Output Format
