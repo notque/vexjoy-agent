@@ -189,7 +189,7 @@ sandbox; the bypass flag disables it entirely. Combining them errors.
 ---
 
 ## Detection Commands Reference
-<!-- no-pair-required: reference block of detection commands, not an anti-pattern description -->
+<!-- no-pair-required: reference block of detection commands, not an failure mode description -->
 
 ```bash
 # Verify codex is installed

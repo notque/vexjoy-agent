@@ -43,7 +43,7 @@ Use the specific action for both confirm and cancel. "OK / Cancel" forces the us
 
 **Structure**: What happened + Why it happened + How to fix it.
 
-| Context | Example | Anti-pattern |
+| Context | Example | Failure Mode |
 |---------|---------|-------------|
 | Form validation | "Email address needs an @ symbol" | "Invalid email" |
 | Payment failure | "Payment declined. Your bank declined this charge. Try a different card or contact your bank." | "Transaction failed" |

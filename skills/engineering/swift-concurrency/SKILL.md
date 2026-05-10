@@ -26,7 +26,7 @@ Pattern catalog for Swift's structured concurrency model: async/await, Actors, T
 | async/await, Task, Sendable | references/fundamentals.md | async/await patterns, Task/Task.detached, Sendable/@Sendable |
 | Actor, @MainActor, nonisolated | references/actor-isolation.md | Actor isolation, MainActor UI confinement, nonisolated opt-out |
 | TaskGroup, AsyncSequence, AsyncStream, cancellation | references/task-patterns.md | Structured concurrency, rate-limited groups, streams, cancellation |
-| Anti-patterns, common mistakes | references/preferred-patterns.md | Blocking MainActor, task leaking, actor reentrancy hazard |
+| Failure modes, common mistakes | references/preferred-patterns.md | Blocking MainActor, task leaking, actor reentrancy hazard |
 
 ## Key Conventions
 

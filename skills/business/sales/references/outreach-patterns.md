@@ -100,7 +100,7 @@ Total email: under 150 words. 5 sentences is ideal. 7 sentences is the hard max.
 | Mutual connection | "[Name] suggested I reach out" | Warm intro available |
 | Specific + short | "Re: your [conference] talk" | Content-based hook |
 
-**Subject line anti-patterns** (cause low open rates):
+**Subject line failure modes** (cause low open rates):
 
 | Bad Subject | Why It Fails |
 |------------|-------------|

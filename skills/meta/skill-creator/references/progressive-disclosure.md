@@ -72,7 +72,7 @@ example collections) and move them to `references/`.
   agent prompts in `comprehensive-review`)
 - Report and output templates (e.g., the structured markdown template for
   `sapcc-review` findings)
-- Domain-specific pattern catalogs (e.g., Go anti-patterns with before/after
+- Domain-specific pattern catalogs (e.g., Go failure modes with before/after
   examples, common error patterns)
 - Validation criteria and scoring systems
 - Example collections (realistic input/output pairs, prompt examples)

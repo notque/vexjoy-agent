@@ -174,7 +174,7 @@ The simplest effective retro format.
 
 ### Retro Failure Modes with Corrections
 
-| Anti-Pattern | What Goes Wrong | Do Instead |
+| Failure Mode | What Goes Wrong | Do Instead |
 |-------------|----------------|------------|
 | Blame-oriented discussion | People defend instead of improving | Frame as system problems: "What about our process allowed this?" not "Who caused this?" |
 | Action items without owners | Nothing happens between retros | Every action item has a named owner and a specific deadline |

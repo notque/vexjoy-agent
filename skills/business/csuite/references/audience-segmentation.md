@@ -147,7 +147,7 @@ Different segments become important at different audience sizes.
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Demographic persona without a problem
 **What it looks like**: "Our audience is software engineers, 28-40, living in urban areas, interested in career growth."

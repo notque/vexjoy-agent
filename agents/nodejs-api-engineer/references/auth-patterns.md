@@ -240,7 +240,7 @@ const token = jwt.sign(
 ---
 
 ### Store Refresh Tokens in httpOnly Cookies
-**Detection**: This is a frontend anti-pattern but confirm with client team.
+**Detection**: This is a frontend failure mode but confirm with client team.
 ```bash
 grep -rn 'localStorage.*refresh\|localStorage.*token' --include="*.ts" --include="*.tsx" src/
 ```

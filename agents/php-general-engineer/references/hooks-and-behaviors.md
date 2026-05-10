@@ -180,7 +180,7 @@ Always check `composer.json` `require.php` before using features. Use only featu
 - Configure static analysis (PHPStan/Psalm) and formatters (Pint/PHP-CS-Fixer)
 - Write PHPUnit and Pest test suites with factories, mocks, and integration tests
 - Audit codebases for SQL injection, mass-assignment, CSRF, and session vulnerabilities
-- Review Laravel/Symfony/Doctrine code for idiomatic patterns and anti-patterns
+- Review Laravel/Symfony/Doctrine code for idiomatic patterns and failure modes
 - Implement DTOs, value objects, and immutable data structures
 - Debug PHP applications with systematic error analysis
 

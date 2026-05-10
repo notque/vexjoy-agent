@@ -9,7 +9,7 @@ Actions:
 4. Build palette: warm concrete dominant, charcoal secondary, high-voltage yellow accent (PHASE 3)
 5. Plan hero staggered reveal animation (PHASE 4)
 6. Create layered gradient + grid background (PHASE 5)
-7. Validate: score >= 80, no anti-patterns (PHASE 6)
+7. Validate: score >= 80, no failure modes (PHASE 6)
 8. Output design specification with CSS tokens (PHASE 7)
 Result: Contextual, validated design specification ready for implementation
 

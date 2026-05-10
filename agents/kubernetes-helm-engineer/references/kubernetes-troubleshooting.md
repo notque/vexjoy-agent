@@ -259,5 +259,5 @@ kubectl get deployments --all-namespaces -o json | \
 
 ## See Also
 
-- `helm-patterns.md` — chart development, values hierarchy, template anti-patterns
+- `helm-patterns.md` — chart development, values hierarchy, template failure modes
 - `security.md` — RBAC patterns, pod security standards, network policy templates

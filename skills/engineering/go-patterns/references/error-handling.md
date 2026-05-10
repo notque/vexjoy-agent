@@ -5,7 +5,7 @@ Idiomatic Go error handling through context-rich wrapping, sentinel errors, cust
 
 ## Available Scripts
 
-- **`scripts/check-errors.sh`** -- Detect bare `return err` and log-and-return anti-patterns. Run `bash scripts/check-errors.sh --help` for options.
+- **`scripts/check-errors.sh`** -- Detect bare `return err` and log-and-return failure modes. Run `bash scripts/check-errors.sh --help` for options.
 
 ## Instructions
 

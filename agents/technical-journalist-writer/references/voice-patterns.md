@@ -1,6 +1,6 @@
 # Technical Journalist Voice Patterns
 
-> **Scope**: Banned phrases, tone anti-patterns, and structural violations for the matter-of-fact journalism voice. Covers detection commands for auditing generated article content.
+> **Scope**: Banned phrases, tone failure modes, and structural violations for the matter-of-fact journalism voice. Covers detection commands for auditing generated article content.
 > **Version range**: All versions — applies to any technical article output in markdown.
 > **Generated**: 2026-04-15
 

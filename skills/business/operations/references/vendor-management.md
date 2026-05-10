@@ -260,7 +260,7 @@ Every vendor relationship should have an exit plan. Not because you plan to leav
 
 ## Vendor Management Failure Modes
 
-| Anti-Pattern | Symptom | Fix |
+| Failure Mode | Symptom | Fix |
 |-------------|---------|-----|
 | Feature-list comparison | Choosing the vendor with the longest feature list | Score on fitness for your specific use case, not feature count |
 | Ignoring exit costs | No exit plan until you need to leave | Build exit plan during evaluation. Test data export before signing. |

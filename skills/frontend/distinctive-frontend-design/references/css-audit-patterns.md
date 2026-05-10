@@ -1,6 +1,6 @@
 # CSS Audit Patterns Reference
 
-> **Scope**: grep/rg detection commands for banned fonts, hardcoded colors, anti-pattern CSS structures, and over-animation in frontend source files.
+> **Scope**: grep/rg detection commands for banned fonts, hardcoded colors, failure mode CSS structures, and over-animation in frontend source files.
 > **Version range**: CSS3+, all frameworks (Tailwind, CSS Modules, plain CSS/SCSS)
 > **Generated**: 2026-04-16 — patterns apply to .css, .scss, .module.css, .tsx, .jsx, .html files
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This file provides runnable detection commands to audit a frontend codebase for design anti-patterns. Run these after generating a design specification to verify the implementation matches the intent. The most common failure mode is banned fonts slipping in through fallback stacks or Google Fonts imports, and hardcoded hex values bypassing the CSS custom property system.
+This file provides runnable detection commands to audit a frontend codebase for design failure modes. Run these after generating a design specification to verify the implementation matches the intent. The most common failure mode is banned fonts slipping in through fallback stacks or Google Fonts imports, and hardcoded hex values bypassing the CSS custom property system.
 
 ---
 

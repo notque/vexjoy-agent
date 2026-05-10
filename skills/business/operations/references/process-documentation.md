@@ -366,7 +366,7 @@ Annual value: 3hr × 48 weeks × $75/hr loaded cost = $10,800
 
 ## Process Documentation Failure Modes
 
-| Anti-Pattern | Symptom | Fix |
+| Failure Mode | Symptom | Fix |
 |-------------|---------|-----|
 | Aspirational documentation | SOP describes how it should work, not how it does | Interview practitioners. Document current state first. Optimize second. |
 | RACI with multiple As | Two people "accountable" per step | Enforce one A per step. Resolve ownership disputes before documenting. |

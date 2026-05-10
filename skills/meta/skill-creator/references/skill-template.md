@@ -333,11 +333,11 @@ Additional for this skill:
 
 ## Preferred Patterns Section (Medium+)
 
-For skills with significant complexity, include 3-6 anti-patterns.
+For skills with significant complexity, include 3-6 failure modes.
 
 **Pairing rule (mandatory):** Every pattern block must include a "Do instead" counterpart that shows the correct approach. A bare negative ("don't do X") encodes no actionable knowledge. The positive counterpart is the actual learning. If a genuine absolute prohibition has no correct alternative (e.g., "never commit secrets"), annotate it with `<!-- no-pair-required: absolute prohibition, no safe alternative -->` to pass structural validation.
 
-Validation gate: `python3 scripts/validate-references.py --check-do-framing` rejects anti-pattern blocks without a paired "Do instead" or `<!-- no-pair-required: ... -->` annotation.
+Validation gate: `python3 scripts/validate-references.py --check-do-framing` rejects failure mode blocks without a paired "Do instead" or `<!-- no-pair-required: ... -->` annotation.
 
 ```markdown
 ### Pattern 1: [Pattern Name]

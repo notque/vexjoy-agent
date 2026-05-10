@@ -37,7 +37,7 @@ Headcount modeling, org design principles, capacity planning, and people analyti
 
 ### Org Design Failure Modes
 
-| Anti-Pattern | Symptom | Root Cause | Fix |
+| Failure Mode | Symptom | Root Cause | Fix |
 |-------------|---------|-----------|-----|
 | **Empire building** | Managers optimizing headcount over outcome | Headcount = status in org culture | Measure outcomes per person, not team size |
 | **Reporting line as reward** | Star performer gets direct reports as "promotion" | No IC growth track | Build a staff/principal IC ladder with real scope |
@@ -232,7 +232,7 @@ Composite risk score based on multiple factors:
 
 ### Reorg Failure Modes
 
-| Anti-Pattern | Risk | Prevention |
+| Failure Mode | Risk | Prevention |
 |-------------|------|-----------|
 | Announcing before 1:1s | People learn about their new manager in an all-hands | Individual conversations first, then group announcement |
 | Reorg without clear "why" | Perceived as political, creates cynicism | State the problem the reorg solves. If you can't, don't reorg. |

@@ -1,6 +1,6 @@
 # API Documentation Verification Failures
 
-<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
+<!-- no-pair-required: document introduction, not an individual failure mode block -->
 
 > **Scope**: Detectable verification failures in API documentation — hallucinated params, untested examples, missing source verification. Does NOT cover style/structure standards (see `documentation-standards.md`).
 > **Version range**: REST APIs, OpenAPI 3.x, curl 7.x+

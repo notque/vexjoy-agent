@@ -134,7 +134,7 @@ function ForwardMessageDialog() {
 }
 ```
 
-**Instead of (anti-patterns for accessing trapped state):**
+**Instead of (failure modes for accessing trapped state):**
 ```tsx
 // Effect sync — fires on every change, risks tearing
 function ForwardMessageComposer({ onInputChange }: { onInputChange: (v: string) => void }) {

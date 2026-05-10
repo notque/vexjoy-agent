@@ -131,9 +131,9 @@ KR3: 3 core workflows with >80% task completion rate
 
 **Scoring**: 0.0-0.3 = missed, 0.4-0.6 = progress, 0.7-1.0 = achieved.
 
-**Anti-patterns**:
+**Failure modes**:
 
-| Anti-Pattern | Problem |
+| Failure Mode | Problem |
 |-------------|---------|
 | Too many OKRs (>3 objectives) | Focus diluted, nothing gets done well |
 | Output KRs ("ship X features") | Measures activity not impact |
@@ -143,7 +143,7 @@ KR3: 3 core workflows with >80% task completion rate
 
 ### Target-Setting Process
 
-| Step | Action | Anti-Pattern |
+| Step | Action | Failure Mode |
 |------|--------|-------------|
 | 1. Baseline | Establish current reliable value | Setting targets without knowing where you start |
 | 2. Benchmark | Check comparable products / industry | Ignoring context (B2B vs B2C retention norms differ 3x) |
@@ -179,7 +179,7 @@ KR3: 3 core workflows with >80% task completion rate
 
 ### Common Funnel Failure Modes
 
-| Anti-Pattern | Problem | Fix |
+| Failure Mode | Problem | Fix |
 |-------------|---------|-----|
 | Too many steps | Overwhelms analysis | Focus on 5-7 key decision points |
 | Undefined "active" | Different queries give different answers | Document the definition precisely |
@@ -329,7 +329,7 @@ Possible explanations:
 
 ### Dashboard Failure Modes
 
-| Anti-Pattern | Why It Fails |
+| Failure Mode | Why It Fails |
 |-------------|-------------|
 | Vanity metrics | Total signups ever, total page views — always go up, indicate nothing |
 | Too many metrics | If it requires scrolling, cut metrics |

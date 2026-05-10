@@ -102,7 +102,7 @@ For each role, define 4-6 competencies. Each competency gets dedicated interview
 
 ### Question Design Failure Modes
 
-| Anti-Pattern | Problem | Better Approach |
+| Failure Mode | Problem | Better Approach |
 |-------------|---------|-----------------|
 | "What's your greatest weakness?" | Rehearsed answers. Zero signal. | "Tell me about a project that didn't go well and what you learned." |
 | Brain teasers | Test puzzle familiarity, not job skills | Use role-relevant problem-solving scenarios |
@@ -184,7 +184,7 @@ Date: [Date] | Panel: [Names]
 
 ### Onboarding Failure Modes
 
-| Anti-Pattern | Problem | Fix |
+| Failure Mode | Problem | Fix |
 |-------------|---------|-----|
 | Information firehose Day 1 | Overwhelming, nothing retained | Spread learning over 2 weeks. Day 1 = setup + relationships. |
 | No buddy assigned | New hire bothers manager for everything or stays silent | Assign a peer buddy. Not the manager. Someone approachable. |

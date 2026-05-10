@@ -142,7 +142,7 @@ For every issue Codex raised, evaluate:
 |----------|--------|
 | Is this actually correct? | Read the relevant code yourself. Codex may have misread the logic, missed context from other files, or misunderstood the intent. |
 | Is this already handled elsewhere? | Check if the concern is addressed in code Codex didn't examine (e.g., middleware, error handling upstream). |
-| Does this apply to this project's conventions? | Check the project's CLAUDE.md or style guides. What's an anti-pattern generally may be the accepted convention here. |
+| Does this apply to this project's conventions? | Check the project's CLAUDE.md or style guides. What's an failure mode generally may be the accepted convention here. |
 | Is the severity right? | Codex may flag a style preference as critical, or miss that a "minor" issue is actually a data-loss risk in this context. |
 
 **Step 3: Classify each finding.**

@@ -1,6 +1,6 @@
 # Helm Chart Patterns Reference
 
-> **Scope**: Helm 3.x chart structure, values hierarchy, template anti-patterns, and deployment safety. Does NOT cover Helm plugin development.
+> **Scope**: Helm 3.x chart structure, values hierarchy, template failure modes, and deployment safety. Does NOT cover Helm plugin development.
 > **Version range**: Helm 3.x (Helm 2 is EOL — all patterns assume Helm 3)
 > **Generated**: 2026-04-08
 

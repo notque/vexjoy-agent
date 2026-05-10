@@ -1,8 +1,8 @@
 # Error Handling Comment Signals and Fixes
 
-<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+<!-- no-pair-required: document header and scope block, not an individual failure mode -->
 
-> **Scope**: Temporal and activity-based comment anti-patterns in error handling code, across
+> **Scope**: Temporal and activity-based comment failure modes in error handling code, across
 > Go, Python, JavaScript, and TypeScript.
 > **Version range**: Go 1.13+ (error wrapping), Python 3.11+ (exception groups)
 > **Generated**: 2026-04-16
@@ -20,7 +20,7 @@ them to explain what the error handling actually does today.
 
 ## Pattern Catalog
 
-<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+<!-- no-pair-required: section heading organizing multiple failure mode blocks -->
 
 ### Describe the Guard, Not the Bug History
 
@@ -322,4 +322,4 @@ grep -rn '//.*\b(better|improved)\b.*\bfmt\.Errorf\|//.*fmt\.Errorf.*\b(better|i
 ## See Also
 
 - `go-comment-patterns.md` — Go-specific temporal patterns with goroutine and context focus
-- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal failure mode catalog across all languages

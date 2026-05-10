@@ -139,7 +139,7 @@ Safety Checks: [Dry-run, context verification]
 | Signal | Load These Files | Why |
 |---|---|---|
 | Pod failures, CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff | `kubernetes-troubleshooting.md` | Diagnostic commands, pod state table, error-fix mappings |
-| Helm chart development, values hierarchy, template errors, deploy safety | `helm-patterns.md` | Chart validation pipeline, anti-patterns, deprecated API detection |
+| Helm chart development, values hierarchy, template errors, deploy safety | `helm-patterns.md` | Chart validation pipeline, failure modes, deprecated API detection |
 
 ## Error Handling
 
@@ -259,6 +259,6 @@ Load the relevant reference file based on the task type:
 | Task Type | Reference File | What It Covers |
 |-----------|---------------|----------------|
 | Pod failures, CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff | [references/kubernetes-troubleshooting.md](references/kubernetes-troubleshooting.md) | Diagnostic commands, pod state table, error-fix mappings |
-| Helm chart development, values hierarchy, template errors, deploy safety | [references/helm-patterns.md](references/helm-patterns.md) | Chart validation pipeline, anti-patterns, deprecated API detection |
+| Helm chart development, values hierarchy, template errors, deploy safety | [references/helm-patterns.md](references/helm-patterns.md) | Chart validation pipeline, failure modes, deprecated API detection |
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.

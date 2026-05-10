@@ -1,7 +1,7 @@
 # CSS Particle Migration Reference
 <!-- Loaded by combat-effects-upgrade when task involves DOM particle replacement, element pooling, or CSS @keyframes for effects.ts -->
 
-Current anti-pattern in `effects.ts`:
+Current failure mode in `effects.ts`:
 
 ```typescript
 // ANTI-PATTERN — runs on every effect call

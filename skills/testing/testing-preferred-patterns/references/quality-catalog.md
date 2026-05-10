@@ -1,6 +1,6 @@
 ## Pattern Quality Catalog
 
-This section documents the domain-specific anti-patterns this skill detects and fixes.
+This section documents the domain-specific failure modes this skill detects and fixes.
 
 ### Pattern 1: Test Observable Behavior
 

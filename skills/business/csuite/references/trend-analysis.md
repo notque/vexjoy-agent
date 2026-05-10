@@ -235,7 +235,7 @@ Assessment: [Growing / Maturing / Plateau / Early Decay / Late Decay]
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Treating Hype Cycle peak as confirmation of sustained growth
 **What it looks like**: "Gartner put us at the Peak of Inflated Expectations — that means we're mainstream."

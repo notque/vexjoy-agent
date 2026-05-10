@@ -164,7 +164,7 @@ Deduplicate where both sources flag the same issue. Keep the higher severity.
 Look for patterns that appear in 3+ files:
 - Repeated naming violations
 - Consistent missing error handling
-- Common anti-patterns across components
+- Common failure modes across components
 - Documentation gaps that follow a pattern
 
 These go into a dedicated "Systemic Patterns" section -- they represent the

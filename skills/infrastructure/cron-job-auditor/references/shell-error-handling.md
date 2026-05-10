@@ -82,7 +82,7 @@ rsync -avz source/ dest/ && echo "sync OK" || { echo "sync FAILED" >&2; exit 1; 
 
 ---
 
-<!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section heading; individual failure modes below carry Do-instead blocks -->
 ## Pattern Catalog
 
 ### Enable set -euo pipefail in Every Script

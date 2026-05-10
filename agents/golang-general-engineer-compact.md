@@ -285,7 +285,7 @@ STOP and ask when:
 | Signal | Load These Files | Why |
 |---|---|---|
 | Idiom upgrade, version compatibility, `any` vs `interface{}` | `go-patterns.md` | Version table Go 1.18–1.26, error wrapping, functional options |
-| Goroutines, channels, WaitGroup, worker pools | `concurrency-patterns.md` | `wg.Go()`, context cancellation, anti-patterns with detection commands |
+| Goroutines, channels, WaitGroup, worker pools | `concurrency-patterns.md` | `wg.Go()`, context cancellation, failure modes with detection commands |
 | Table-driven tests, benchmarks, fuzzing, goroutine leaks | `testing-patterns.md` | `t.Context()`, `b.Loop()`, `t.TempDir()`, goleak patterns |
 
 ## References
@@ -295,7 +295,7 @@ Load the relevant reference file based on the task type:
 | Task Type | Reference File | What It Covers |
 |-----------|---------------|----------------|
 | Idiom upgrade, version compatibility, `any` vs `interface{}` | [references/go-patterns.md](references/go-patterns.md) | Version table Go 1.18–1.26, error wrapping, functional options |
-| Goroutines, channels, WaitGroup, worker pools | [references/concurrency-patterns.md](references/concurrency-patterns.md) | `wg.Go()`, context cancellation, anti-patterns with detection commands |
+| Goroutines, channels, WaitGroup, worker pools | [references/concurrency-patterns.md](references/concurrency-patterns.md) | `wg.Go()`, context cancellation, failure modes with detection commands |
 | Table-driven tests, benchmarks, fuzzing, goroutine leaks | [references/testing-patterns.md](references/testing-patterns.md) | `t.Context()`, `b.Loop()`, `t.TempDir()`, goleak patterns |
 
 **Shared**:

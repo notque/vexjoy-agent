@@ -96,7 +96,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 **Production crashes, Error Boundaries, Sentry, unhandled rejections**: Load `error-handling.md` — error boundary setup, crash reporting patterns, fetch error handling.
 
-**Test setup, RNTL queries, native module mocks, async assertions**: Load `testing.md` — RNTL patterns, jest config, native mock setup, anti-patterns.
+**Test setup, RNTL queries, native module mocks, async assertions**: Load `testing.md` — RNTL patterns, jest config, native mock setup, failure modes.
 
 ## References
 
@@ -107,5 +107,5 @@ Do not load references for domains not relevant to the task — context is a sca
 - [state-management.md](react-native-engineer/references/state-management.md) — Minimal state, dispatch updaters, fallback patterns, ground truth
 - [rendering-patterns.md](react-native-engineer/references/rendering-patterns.md) — Falsy && crash prevention, Text components, React Compiler
 - [monorepo-config.md](react-native-engineer/references/monorepo-config.md) — Fonts, imports, native dep autolinking, dependency versions
-- [testing.md](react-native-engineer/references/testing.md) — RNTL patterns, jest config, native module mocking, async assertions, anti-patterns
+- [testing.md](react-native-engineer/references/testing.md) — RNTL patterns, jest config, native module mocking, async assertions, failure modes
 - [error-handling.md](react-native-engineer/references/error-handling.md) — Error boundaries, Sentry init, unhandled rejections, fetch error handling, crash recovery

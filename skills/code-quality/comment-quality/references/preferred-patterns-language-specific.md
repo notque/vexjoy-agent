@@ -1,8 +1,8 @@
 # Language-Specific and Documentation Comment Patterns
 
-<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
+<!-- no-pair-required: document introduction, not an individual failure mode block -->
 
-Companion file to `preferred-patterns.md`. Covers language-specific and documentation-targeted comment anti-patterns. Load alongside `preferred-patterns.md` when reviewing code or documentation in Go, Python, JavaScript/TypeScript, or when auditing README/API documentation for temporal references.
+Companion file to `preferred-patterns.md`. Covers language-specific and documentation-targeted comment failure modes. Load alongside `preferred-patterns.md` when reviewing code or documentation in Go, Python, JavaScript/TypeScript, or when auditing README/API documentation for temporal references.
 
 ## Language-Specific Patterns
 
@@ -83,7 +83,7 @@ Companion file to `preferred-patterns.md`. Covers language-specific and document
 
 ## Documentation-Specific Patterns
 
-<!-- no-pair-required: subsection heading grouping documentation anti-patterns -->
+<!-- no-pair-required: subsection heading grouping documentation failure modes -->
 
 ### README Files
 

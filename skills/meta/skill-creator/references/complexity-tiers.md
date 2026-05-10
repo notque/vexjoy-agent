@@ -36,7 +36,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 **Why Medium**:
 - Multi-phase workflow with gates
 - Moderate error handling (7 cases)
-- Some anti-patterns (4)
+- Some failure modes (4)
 - No references/ needed yet
 
 **Structure**:

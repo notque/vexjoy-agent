@@ -70,7 +70,7 @@ For each source in the domain table:
 
 *Official docs*: Read methodology sections, not API reference. Extract:
 - Named patterns with rationale
-- Anti-patterns the docs explicitly warn against
+- Failure modes the docs explicitly warn against
 - Decision trees or "when to use X vs Y" guidance
 
 *Secondary sources* (blogs, talks, books): Extract:
@@ -269,7 +269,7 @@ Focus: what the domain's authoritative sources say to do. Patterns and guideline
 from official documentation, language specs, or framework guides. This catches the
 most common gap: missing canonical patterns.
 
-**Iteration 2 — common mistakes + anti-patterns**
+**Iteration 2 — common mistakes + failure modes**
 Focus: what practitioners actually get wrong. PR review comments, SO questions,
 post-mortems, "gotchas" sections in docs. This adds the flip side: what NOT to do
 and why. Models often produce safer output when they know the failure modes.

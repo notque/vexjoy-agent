@@ -14,7 +14,7 @@ Runbooks fail when they describe how the system works instead of what to do when
 
 ## Pattern Table
 
-| Section | Required | Placement | Anti-Pattern |
+| Section | Required | Placement | Failure Mode |
 |---------|----------|-----------|--------------|
 | Symptoms | Yes | First | "Service may be unhealthy" (too vague) |
 | Verification command | Yes | Immediately after symptom | Describing what to look for without the command |

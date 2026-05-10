@@ -1,5 +1,5 @@
 ---
-description: "Kotlin coroutine anti-patterns: GlobalScope, unstructured launch, CancellationException swallowing."
+description: "Kotlin coroutine failure modes: GlobalScope, unstructured launch, CancellationException swallowing."
 level: 2
 ---
 

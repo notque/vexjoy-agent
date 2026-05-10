@@ -136,7 +136,7 @@ test('submits form and shows confirmation', async ({ page }) => {
 })
 ```
 
-**Why**: Playwright's `expect(locator).toBeVisible()` auto-waits. Using `page.waitForSelector()` manually or `page.waitForTimeout(2000)` is an anti-pattern — fixed delays are slow on fast machines and flaky on slow ones.
+**Why**: Playwright's `expect(locator).toBeVisible()` auto-waits. Using `page.waitForSelector()` manually or `page.waitForTimeout(2000)` is an failure mode — fixed delays are slow on fast machines and flaky on slow ones.
 
 ---
 

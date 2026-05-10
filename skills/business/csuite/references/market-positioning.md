@@ -208,7 +208,7 @@ Before finalizing positioning:
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Positioning by negation only
 **What it looks like**: "We're not like those enterprise tools. We're different."

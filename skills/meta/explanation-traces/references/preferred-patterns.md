@@ -1,6 +1,6 @@
 # Explanation Traces — Patterns to Fix
 
-Anti-patterns for both trace producers (hooks that write session-trace.json) and trace
+Failure modes for both trace producers (hooks that write session-trace.json) and trace
 consumers (this skill reading it). Organized by who makes the mistake.
 
 ---

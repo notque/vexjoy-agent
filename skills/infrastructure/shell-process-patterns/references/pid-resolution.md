@@ -187,7 +187,7 @@ Or install `procps`/`iproute2` at image build time.
 
 ## Patterns to Detect and Fix
 
-These come from the anti-patterns reference:
+These come from the failure modes reference:
 - `$!` after `nohup` or any wrapper binary — see AP-1 in `preferred-patterns.md`
 - `kill $!` without verification that the port/resource is actually freed — see AP-4
 - `sleep N; kill $!` with a fixed sleep in hopes the wrapper has forked by then — races, use `pgrep -P` or poll

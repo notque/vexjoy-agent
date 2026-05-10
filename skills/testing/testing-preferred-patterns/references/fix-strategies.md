@@ -1,6 +1,6 @@
 # Fix Strategies by Language
 
-Practical tooling and patterns for resolving testing anti-patterns in Go, Python, and JavaScript/TypeScript.
+Practical tooling and patterns for resolving testing failure modes in Go, Python, and JavaScript/TypeScript.
 
 ---
 

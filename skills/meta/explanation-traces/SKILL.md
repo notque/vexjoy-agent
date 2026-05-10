@@ -253,5 +253,5 @@ Result: Specific gate failure reason from the trace, with what was expected vs. 
 
 ### Reference Files
 - `references/trace-schema.md`: JSON schema for session-trace.json with field descriptions and example entries
-- `references/preferred-patterns.md`: Anti-pattern catalog for trace producers (hooks) and consumers (skill behavior) with detection commands
+- `references/preferred-patterns.md`: Failure mode catalog for trace producers (hooks) and consumers (skill behavior) with detection commands
 - `references/error-handling.md`: Error-fix mappings for all error states — missing file, malformed JSON, empty decisions, invalid fields

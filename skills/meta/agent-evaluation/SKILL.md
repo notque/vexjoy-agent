@@ -64,7 +64,7 @@ ls -la skills/{name}/
 
 Score every rubric category — never skip a category even if it "looks fine." Parse each required field explicitly rather than eyeballing YAML. Record PASS/FAIL with the line number for each check.
 
-Run `score-component.py` to get deterministic PASS/FAIL for all structural checks. The script implements the full ADR-031 rubric (frontmatter, operator context, error handling, referenced files, anti-patterns) and outputs per-check results with line references. Do not re-implement these checks inline — read the JSON output and move directly to scoring.
+Run `score-component.py` to get deterministic PASS/FAIL for all structural checks. The script implements the full ADR-031 rubric (frontmatter, operator context, error handling, referenced files, failure modes) and outputs per-check results with line references. Do not re-implement these checks inline — read the JSON output and move directly to scoring.
 
 ```bash
 # Deterministic structural checks via score-component.py
@@ -79,7 +79,7 @@ The JSON output includes `results[0].checks` (per-check status, earned_points, m
 - YAML frontmatter fields
 - Operator Context section presence
 - Error Handling section presence
-- Anti-Patterns section presence
+- Failure modes section presence
 - Referenced file existence
 - Inline constraint presence
 
@@ -101,7 +101,7 @@ The JSON output includes `results[0].checks` (per-check status, earned_points, m
 | Error Handling | 10 | Section present with documented errors |
 | Examples (agents) / References (skills) | 10 | 3+ examples or 2+ reference files |
 | CAN/CANNOT | 5 | Both sections present with concrete items |
-| Anti-Patterns | 5 | 3-5 domain-specific patterns with 3-part structure |
+| Failure Modes | 5 | 3-5 domain-specific patterns with 3-part structure |
 
 **Integration Scoring** (10 points):
 

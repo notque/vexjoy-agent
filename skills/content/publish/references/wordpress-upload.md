@@ -56,7 +56,7 @@ python3 ~/.claude/skills/content/publish/scripts/wordpress-upload.py \
   --human
 ```
 
-The `--title` flag is optional. If omitted, the script extracts the title from markdown H1. If both `--title` AND H1 exist, this creates a duplicate title rendering in WordPress (anti-pattern). Use one or the other, not both.
+The `--title` flag is optional. If omitted, the script extracts the title from markdown H1. If both `--title` AND H1 exist, this creates a duplicate title rendering in WordPress (failure mode). Use one or the other, not both.
 
 **Auto-create missing categories (opt-in):**
 

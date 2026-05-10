@@ -137,7 +137,7 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 **Step 0: Load the template**. Read `references/generated-skill-template.md` once. This contains:
 - The SKILL.md template with `{{variable}}` placeholders
 - The chain-to-phase mapping (how each step family becomes a phase section)
-- Task type default errors and anti-patterns
+- Task type default errors and failure modes
 
 **Fan-out strategy**:
 - For simple chains (3-4 steps): batch 2-3 subdomain skills per sub-agent

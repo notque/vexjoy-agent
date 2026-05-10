@@ -128,7 +128,7 @@ If the user specifies a palette preference, use it. When in doubt, use **Minimal
 
 **Step 2: Plan layout rhythm**
 
-Select layout types for each slide. Use at least 2-3 distinct layout types to avoid the "AI-generated sameness" anti-pattern. See `references/slide-layouts.md` for all layout types.
+Select layout types for each slide. Use at least 2-3 distinct layout types to avoid the "AI-generated sameness" failure mode. See `references/slide-layouts.md` for all layout types.
 
 Available layouts: `title`, `section` (divider), `content` (bullets), `two_column`, `image_text`, `quote` (callout), `table`, `closing`
 

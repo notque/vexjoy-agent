@@ -9,7 +9,7 @@ Evaluate test quality, identify coverage gaps, and assess test resilience with a
 - **Test Resilience Assessment**: Evaluating whether tests survive refactoring without false failures
 - **Negative Case Coverage**: Verifying error paths, boundary conditions, and invalid inputs are tested
 - **Test Quality Patterns**: Table-driven tests (Go), parameterized tests (Python/pytest), test factories, fixtures
-- **Anti-Pattern Detection**: Brittle tests, implementation coupling, test interdependencies
+- **Failure mode detection**: Brittle tests, implementation coupling, test interdependencies
 
 ## Methodology
 

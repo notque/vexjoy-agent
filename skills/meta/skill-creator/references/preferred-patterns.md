@@ -110,7 +110,7 @@ Size the skill's structure to its actual complexity. A simple cleanup workflow n
 Simple skill (pr-workflow cleanup) should have:
 - 4 phases with basic gates
 - 3-5 common errors inline
-- 2-3 anti-patterns inline
+- 2-3 failure modes inline
 - No references/ directory
 - 300-600 lines total
 

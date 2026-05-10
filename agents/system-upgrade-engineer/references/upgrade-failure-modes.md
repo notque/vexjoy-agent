@@ -15,7 +15,7 @@ produce either unauthorized bulk edits or subtly incorrect results that bypass d
 
 ---
 
-<!-- no-pair-required: section header, not a standalone anti-pattern block -->
+<!-- no-pair-required: section header, not a standalone failure mode block -->
 ## Failure Mode Catalog
 
 ### Implementing Without Phase 3 Approval

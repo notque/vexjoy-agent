@@ -59,7 +59,7 @@ Score each item 1-10 on three dimensions:
 
 **ICE Score** = Impact x Confidence x Ease. Sort descending. Do the high-score items first.
 
-**Anti-pattern defense**: If you find yourself adjusting scores to justify a preferred item, stop. The score is showing you something. Investigate the mismatch between your intuition and the numbers — that gap contains information.
+**Failure mode defense**: If you find yourself adjusting scores to justify a preferred item, stop. The score is showing you something. Investigate the mismatch between your intuition and the numbers — that gap contains information.
 
 ### Weighted Scoring (Team Decisions)
 

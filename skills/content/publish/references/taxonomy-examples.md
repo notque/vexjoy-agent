@@ -1,6 +1,6 @@
 # Taxonomy Examples: Good vs Bad
 
-Real-world examples illustrating taxonomy best practices and anti-patterns.
+Real-world examples illustrating taxonomy best practices and failure modes.
 
 ---
 

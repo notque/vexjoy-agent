@@ -117,7 +117,7 @@ Example prompts:
 
 The constraint that governs all component design: each type has exactly one job.
 
-- **Agents** (`agents/*.md`) know *what* to do. Domain expertise, patterns, anti-patterns.
+- **Agents** (`agents/*.md`) know *what* to do. Domain expertise, patterns, failure modes.
 - **Skills** (`skills/*/*/SKILL.md`) know *how* to structure work. Phases, gates, methodology.
 - **Hooks** (`hooks/*.py`) respond to *events*. JSON in, JSON out, 50ms budget.
 - **Scripts** (`scripts/*.py`) perform *deterministic* operations. Indexing, validation, linting.

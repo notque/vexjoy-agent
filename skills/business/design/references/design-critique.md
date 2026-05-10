@@ -196,7 +196,7 @@ Simulate a new user attempting a specific task. For each step:
 
 ## Critique Failure Modes
 
-| Anti-pattern | Do instead |
+| Failure Mode | Do instead |
 |-------------|-----------|
 | Vague praise: "Looks good" | Specific observation: "The card grid creates a consistent scanning pattern and the hover states clearly indicate interactivity" |
 | Vague criticism: "This is confusing" | Specific finding: "The filter controls and sort controls use the same visual style, making it unclear which is which. Differentiate with distinct grouping or labels." |

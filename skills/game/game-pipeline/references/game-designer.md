@@ -218,7 +218,7 @@ The first 3 seconds must hook the player. Start with immediate visual spectacle.
 - [ ] Camera or environment establishes the world immediately
 - [ ] No loading spinner visible (preload assets ahead of scene transition)
 
-**Anti-patterns**:
+**Failure modes**:
 - Starting on a static title screen with no animation
 - Requiring a button click before anything appears
 - Empty black screen while assets load (show progress bar or instant placeholder)

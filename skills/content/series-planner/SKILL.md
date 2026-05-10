@@ -125,7 +125,7 @@ Red flags that fail standalone test — reject any part showing these:
 - Core concepts explained only in earlier parts
 - "Part 2 will explain why this works" — Part 1 reader is stranded
 
-This is the anti-pattern prevention layer. Standalone value is non-negotiable because:
+This is the failure mode prevention layer. Standalone value is non-negotiable because:
 1. Search traffic lands on any part randomly, not always on Part 1
 2. Readers expect complete value from the part they're reading
 3. Multi-part cliff-hangers frustrate readers and hurt SEO

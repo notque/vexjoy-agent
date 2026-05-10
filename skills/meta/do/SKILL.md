@@ -410,7 +410,7 @@ python3 ~/.claude/scripts/learning-db.py learn --skill go-patterns "insight"
 python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "insight"
 ```
 
-**Immediate graduation for review findings** (MANDATORY): Issue found + fixed in same PR → (1) Record scoped, (2) Boost to 1.0, (3) Embed into anti-patterns, (4) Graduate, (5) Stage in same PR.
+**Immediate graduation for review findings** (MANDATORY): Issue found + fixed in same PR → (1) Record scoped, (2) Boost to 1.0, (3) Embed into failure modes, (4) Graduate, (5) Stage in same PR.
 
 **Gate**: Record at least one learning AND one routing outcome for Simple+ tasks. Review findings get immediate graduation.
 

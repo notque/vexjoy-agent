@@ -25,7 +25,7 @@ Format per entry:
 - [Go wiki: CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments) —
   community-maintained list of Go code review feedback; extract as checklist
 - [Go wiki: CommonMistakes](https://github.com/golang/go/wiki/CommonMistakes) —
-  extract directly as anti-pattern catalog
+  extract directly as failure mode catalog
 
 **Secondary sources**
 - [Go Proverbs](https://go-proverbs.github.io) (Rob Pike) — memorable heuristics;
@@ -40,7 +40,7 @@ Format per entry:
 - Checklist: idiomatic Go review (interface size, error wrapping, goroutine hygiene)
 - Before/after: common rewrites (bare error returns → wrapped; goroutine leak → context cancel)
 - Decision tree: when to use channels vs mutexes, when to define an interface vs use concrete type
-- Anti-pattern catalog: goroutine leaks, error shadowing, interface pollution, unnecessary abstractions
+- Failure mode catalog: goroutine leaks, error shadowing, interface pollution, unnecessary abstractions
 
 ---
 
@@ -82,9 +82,9 @@ existing sapcc references
 
 **Extract**
 - Checklist: pre-commit quality gate (ruff, mypy, bandit checks that matter most)
-- Before/after: common Python anti-patterns with idiomatic rewrites
+- Before/after: common Python failure modes with idiomatic rewrites
 - Decision tree: when to use dataclass vs TypedDict vs NamedTuple vs attrs
-- Anti-pattern catalog: mutable default arguments, broad except, type: ignore abuse
+- Failure mode catalog: mutable default arguments, broad except, type: ignore abuse
 
 ---
 
@@ -109,7 +109,7 @@ existing sapcc references
 - Checklist: security hardening (RBAC, network policies, pod security, secret management)
 - Decision tree: debugging pod failures (CrashLoopBackOff → ImagePullBackOff → OOMKilled flow)
 - Before/after: insecure manifest → hardened manifest examples
-- Anti-pattern catalog: over-privileged service accounts, missing resource limits, secret in env vars
+- Failure mode catalog: over-privileged service accounts, missing resource limits, secret in env vars
 
 ---
 
@@ -125,13 +125,13 @@ existing sapcc references
 **Secondary sources**
 - Matt Pocock (total-typescript.com) — extract: advanced type patterns with before/after,
   common TS mistakes with fixes
-- [TypeScript Deep Dive](https://basarat.gitbook.io/typescript/) — extract anti-patterns section
+- [TypeScript Deep Dive](https://basarat.gitbook.io/typescript/) — extract failure modes section
 
 **Extract**
 - Checklist: strict mode implications and what each flag catches
 - Before/after: `any` abuse → proper generics, type assertion abuse → type guards
 - Decision tree: when to use `interface` vs `type`, `unknown` vs `any`, generics vs overloads
-- Anti-pattern catalog: type assertions without guards, overly broad union types, enum misuse
+- Failure mode catalog: type assertions without guards, overly broad union types, enum misuse
 
 ---
 
@@ -151,7 +151,7 @@ existing sapcc references
 
 **Extract**
 - Decision tree: server component vs client component selection criteria
-- Before/after: common React anti-patterns (prop drilling → context, useEffect abuse → derived state)
+- Before/after: common React failure modes (prop drilling → context, useEffect abuse → derived state)
 - Checklist: performance review (unnecessary re-renders, missing keys, large bundle items)
 - Pattern catalog: compound components, render props, custom hooks with clear interfaces
 
@@ -175,7 +175,7 @@ existing sapcc references
 
 **Extract**
 - Checklist: test quality review (one assertion focus, arrange-act-assert, test isolation)
-- Anti-pattern catalog with names: Mystery Guest, Eager Test, Fragile Test, Slow Test
+- Failure mode catalog with names: Mystery Guest, Eager Test, Fragile Test, Slow Test
 - Decision tree: unit vs integration vs E2E for a given scenario
 - Before/after: brittle selector → resilient locator, over-mocked test → integrated test
 
@@ -199,7 +199,7 @@ existing sapcc references
 - Checklist: threat modeling prompts (per STRIDE category)
 - Before/after: vulnerable code → remediated code for each OWASP Top 10 item
 - Decision tree: severity classification (Critical/High/Medium/Low with criteria)
-- Anti-pattern catalog: hard-coded secrets, overly permissive CORS, missing auth checks
+- Failure mode catalog: hard-coded secrets, overly permissive CORS, missing auth checks
 
 ---
 
@@ -220,7 +220,7 @@ existing sapcc references
 - Checklist: dashboard quality (variable usage, panel alignment, datasource scoping)
 - Before/after: raw PromQL → optimized PromQL with recording rules
 - Decision tree: when to use global vs project vs dashboard scope for variables
-- Anti-pattern catalog: hardcoded datasource names, missing variable fallbacks, over-complex queries
+- Failure mode catalog: hardcoded datasource names, missing variable fallbacks, over-complex queries
 
 ---
 
@@ -245,7 +245,7 @@ Mine the validator's false-positive/false-negative log if one exists.
 
 **Secondary sources**
 - Michaela Greiler (michaelagreiler.com) — extract: research-backed review effectiveness
-  checklist, anti-patterns in reviewer behavior
+  checklist, failure modes in reviewer behavior
 - SmartBear Code Review research papers — extract: optimal review size, defect density
   findings as concrete thresholds
 
@@ -253,7 +253,7 @@ Mine the validator's false-positive/false-negative log if one exists.
 - Checklist: what to check at each review tier (security, logic, style, naming)
 - Before/after: vague review comment → actionable comment with label
 - Decision tree: block vs request-changes vs comment vs approve criteria
-- Anti-pattern catalog: rubber-stamping, nitpick overload, missing context in comments
+- Failure mode catalog: rubber-stamping, nitpick overload, missing context in comments
 
 ---
 
@@ -277,5 +277,5 @@ Mine the validator's false-positive/false-negative log if one exists.
 - Checklist: pre-PR commit hygiene (message format, squash policy, branch naming)
 - Before/after: bad commit message → conventional commit message
 - Decision tree: squash vs merge vs rebase for different PR types
-- Anti-pattern catalog: fixup commits left in history, force-push to shared branch,
+- Failure mode catalog: fixup commits left in history, force-push to shared branch,
   PR too large to review

@@ -128,7 +128,7 @@ See `references/llm-finance-failure-modes.md` for the complete failure mode cata
 
 ### Journal Entry Failure Modes
 
-| Anti-Pattern | Why It Fails |
+| Failure Mode | Why It Fails |
 |-------------|-------------|
 | Unbalanced entry presented as complete | Violates fundamental accounting equation |
 | Missing reversal flag on accruals | Creates double-counting in the next period |
@@ -138,7 +138,7 @@ See `references/llm-finance-failure-modes.md` for the complete failure mode cata
 
 ### Reconciliation Failure Modes
 
-| Anti-Pattern | Why It Fails |
+| Failure Mode | Why It Fails |
 |-------------|-------------|
 | Forcing the rec to balance by plugging a number | Hides real differences that may indicate errors or fraud |
 | Carrying items forward indefinitely without investigation | Stale items may represent losses or control failures |
@@ -147,7 +147,7 @@ See `references/llm-finance-failure-modes.md` for the complete failure mode cata
 
 ### Variance Analysis Failure Modes
 
-| Anti-Pattern | Why It Fails |
+| Failure Mode | Why It Fails |
 |-------------|-------------|
 | Circular narrative ("revenue is higher because revenue increased") | No causal explanation |
 | "Timing" without specifying what shifted and when it normalizes | Uninvestigable claim |
@@ -157,7 +157,7 @@ See `references/llm-finance-failure-modes.md` for the complete failure mode cata
 
 ### Financial Statement Failure Modes
 
-| Anti-Pattern | Why It Fails |
+| Failure Mode | Why It Fails |
 |-------------|-------------|
 | Assets not equal to liabilities + equity | Balance sheet does not balance |
 | Mixing functional and nature expense classification | GAAP requires consistency within a statement |

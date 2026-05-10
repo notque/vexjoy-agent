@@ -1,6 +1,6 @@
 # Article Structure Patterns
 
-> **Scope**: Structure templates and anti-patterns for the three article types this agent produces: explainer, opinion, and analysis. Covers header patterns, topic sentences, and structural detection commands.
+> **Scope**: Structure templates and failure modes for the three article types this agent produces: explainer, opinion, and analysis. Covers header patterns, topic sentences, and structural detection commands.
 > **Version range**: All versions — applies to markdown article output.
 > **Generated**: 2026-04-15
 
@@ -223,5 +223,5 @@ rg '^(How can|What if|Why do|Can we)' --type md -m 5
 
 ## See Also
 
-- `voice-patterns.md` — banned phrases and tone anti-patterns with detection
+- `voice-patterns.md` — banned phrases and tone failure modes with detection
 - `sourcing-and-claims.md` — claim verification and citation patterns

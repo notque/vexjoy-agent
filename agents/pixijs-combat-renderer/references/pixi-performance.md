@@ -1,5 +1,5 @@
 ---
-description: Sprite batching, texture atlases, RenderTexture caching, off-screen culling, object pooling, ParticleContainer vs Container, and anti-patterns that break GPU batching in PixiJS v8+
+description: Sprite batching, texture atlases, RenderTexture caching, off-screen culling, object pooling, ParticleContainer vs Container, and failure modes that break GPU batching in PixiJS v8+
 agent: pixijs-combat-renderer
 category: performance
 version_range: "PixiJS v8+"

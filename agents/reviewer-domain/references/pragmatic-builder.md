@@ -99,7 +99,7 @@ Bottlenecks, caching and invalidation, database query patterns, rate limiting.
 ## Detailed References
 
 - [production-gaps.md](production-gaps.md) — Full gap catalog with solutions
-- [operational-preferred-patterns.md](operational-preferred-patterns.md) — Anti-pattern catalog with corrected code
+- [operational-preferred-patterns.md](operational-preferred-patterns.md) — Failure mode catalog with corrected code
 
 ## Questions Always Asked
 - What breaks first under load?

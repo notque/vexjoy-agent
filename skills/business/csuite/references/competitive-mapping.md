@@ -165,7 +165,7 @@ Classify your market structure before setting positioning strategy.
 ---
 
 ## Patterns to Detect and Fix
-<!-- no-pair-required: section header, not an individual anti-pattern -->
+<!-- no-pair-required: section header, not an individual failure mode -->
 
 ### Analyzing features, ignoring momentum
 **What it looks like**: Competitor B has fewer features than us today. No further analysis.

@@ -156,7 +156,7 @@ grep -B 1 "No trigger\|no keywords\|\[\]" skills/meta/do/references/routing-tabl
 
 ---
 
-<!-- no-pair-required: section header, not a standalone anti-pattern block -->
+<!-- no-pair-required: section header, not a standalone failure mode block -->
 ## Pattern Catalog
 
 ### Open and Read Component Frontmatter During Audit

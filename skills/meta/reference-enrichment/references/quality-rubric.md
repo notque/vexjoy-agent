@@ -161,13 +161,13 @@ at least 3 of 5:
 
 To check if a reference file is Level 3, answer these three questions:
 
-1. **Can you detect it?** Pick the most important anti-pattern in the file. Is there a grep
+1. **Can you detect it?** Pick the most important failure mode in the file. Is there a grep
    command that would find it in a real codebase? If no: Level 1.
 
 2. **Is it version-aware?** Does the file mention at least one specific version number where
    behavior changed? If no: likely Level 1-2.
 
-3. **Does it fix, not just flag?** For each anti-pattern, is the correct replacement shown
+3. **Does it fix, not just flag?** For each failure mode, is the correct replacement shown
    in a code block? If no: Level 2 at best.
 
 All three "yes": Level 3. Two "yes": Level 2. Fewer: Level 1.

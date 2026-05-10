@@ -108,7 +108,7 @@ Select the domain matching the review focus, then load its reference file.
 
 ### CAN Do:
 - Review code against ADR decisions, business requirements, structural patterns, or production readiness
-- Detect contradictions, scope creep, edge cases, failure modes, and structural anti-patterns
+- Detect contradictions, scope creep, edge cases, failure modes, and structural failure modes
 - Provide VERDICT with structured findings, severity classification, and constructive recommendations
 - Cross-reference domains when multiple are requested
 - Load domain-specific reference files including edge case tables, structural categories, and production gap catalogs
