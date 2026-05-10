@@ -34,4 +34,4 @@ These skills **MUST** be invoked when their triggers appear:
 | Improve toolkit, evaluate repo, audit system, self-improvement | `toolkit-improvement` |
 | Perses dashboards, plugins, deployment, migration | `perses` |
 
-> For full routing tables with all agents and skills, see `skills/meta/do/references/routing-tables.md`.
+> Routing triggers are embedded in `skills/INDEX.json` (via the `triggers` key per skill) and verified by `python3 scripts/check-routing-drift.py`.

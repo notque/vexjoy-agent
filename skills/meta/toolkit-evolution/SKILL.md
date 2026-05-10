@@ -107,7 +107,7 @@ Mark an insight as STALE if: (a) it names a file that no longer exists, OR (b) i
 
 **Step 4: Check routing-table drift**
 
-Skills present in `skills/INDEX.json` but absent from `skills/meta/do/references/routing-tables.md` represent a documentation gap. Run the routing-drift check from `references/diagnose-scripts.md` § DIAGNOSE Step 4.
+Skills present in `skills/INDEX.json` but absent from the routing manifest represent a documentation gap. Run the routing-drift check from `references/diagnose-scripts.md` § DIAGNOSE Step 4.
 
 **Step 4b: Check for orphaned ADR session files**
 

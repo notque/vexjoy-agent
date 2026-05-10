@@ -116,24 +116,10 @@ Only forward dream insights where at least one current-state check passes.
 ## DIAGNOSE Step 4: Routing-Table Drift Check
 
 ```bash
-python3 -c "
-import json, re
-with open('skills/INDEX.json') as f:
-    idx = json.load(f)
-index_skills = set(idx.get('skills', {}).keys())
-
-with open('skills/meta/do/references/routing-tables.md') as f:
-    table_text = f.read()
-
-missing = [s for s in sorted(index_skills) if s not in table_text]
-if missing:
-    print(f'{len(missing)} skill(s) in INDEX.json absent from routing-tables.md:')
-    for s in missing:
-        print(f'  {s}')
-else:
-    print('routing-tables.md is in sync with INDEX.json')
-"
+python3 scripts/check-routing-drift.py --verbose
 ```
+
+The `--verbose` flag prints each skill checked plus the final PASS/FAIL. Exit code 1 means skills are missing from the routing manifest.
 
 ## DIAGNOSE Step 4b: Orphaned ADR Session Check
 
