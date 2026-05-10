@@ -2,7 +2,7 @@
 
 Two scopes:
 1. Golden fixture tests -- small .md snippets that exercise each of the 7
-   primary patterns from skills/voice/skills/joy-check/references/
+   primary patterns from skills/code-quality/joy-check/references/
    instruction-rubric.md, plus contextual exceptions that must pass.
 2. Fleet scan -- parametrized test across all agents/*.md and
    skills/**/SKILL.md.  Known violations in voice-corpus files are covered
