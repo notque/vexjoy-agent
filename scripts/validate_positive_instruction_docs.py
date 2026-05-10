@@ -21,9 +21,13 @@ SCAN_PATTERNS = [
 NEGATIVE_PATTERNS = [
     ("Anti-Pattern", re.compile(r"^\s*#{1,6}.*[Aa]nti-[Pp]attern")),
     ("FORBIDDEN", re.compile(r"\bFORBIDDEN\b")),
+    ("NEVER", re.compile(r"\bNEVER\b")),
     ("do NOT", re.compile(r"\b[Dd]o NOT\b")),
     ("must NOT", re.compile(r"\bmust NOT\b")),
-    ("Avoid", re.compile(r"^\s*#{1,6}.*Avoid|^\s*[-*]?\s*Avoid\b", re.IGNORECASE)),
+    ("Don't", re.compile(r"^-?\s*Don't\b")),
+    # Heading: "Avoid" as leading verb ("### Avoid X") or terminal verb ("### X to Avoid").
+    # Not matched: "### Prefetch Data to Avoid N+1" — "Avoid" embedded in technical phrase.
+    ("Avoid", re.compile(r"^\s*#{1,6}\s+Avoid\b|^\s*#{1,6}.*\bAvoid\s*$|^\s*[-*]?\s*Avoid\b", re.IGNORECASE)),
 ]
 ALLOWLIST = (
     "anti-ai-editor",
@@ -32,6 +36,10 @@ ALLOWLIST = (
     "extract_negative_instruction_blocks.py",
     "validate_positive_instruction_docs.py",
     "bulk_fix_instruction_joy.py",
+    # Voice corpus files: NEVER/Don't document voice rules (what the voice itself avoids),
+    # not toolkit operator instructions. Contextual exception per instruction-rubric.md.
+    "voice-andy-nemmity",
+    "voice-vexjoy",
 )
 
 
