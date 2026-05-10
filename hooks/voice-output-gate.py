@@ -62,7 +62,7 @@ VOICE_PATTERNS = [
 ]
 
 SCAN_SCRIPT = Path.home() / "pgh/vexjoy-agent/scripts/scan-ai-patterns.py"
-JOY_CHECK_RUBRIC = Path.home() / ".claude/skills/joy-check/references/writing-rubric.md"
+JOY_CHECK_RUBRIC = Path(__file__).resolve().parent.parent / "skills/code-quality/joy-check/references/writing-rubric.md"
 
 
 def detect_external_text(prompt: str) -> bool:
