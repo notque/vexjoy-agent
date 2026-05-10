@@ -239,6 +239,12 @@
             "command": "python3 \"$HOME/.claude/hooks/posttool-skill-frontmatter-check.py\"",
             "description": "Validate skill YAML frontmatter after Write/Edit on SKILL.md files",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
+            "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
+            "timeout": 15000
           }
         ]
       },
