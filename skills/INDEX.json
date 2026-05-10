@@ -1,10 +1,10 @@
 {
   "version": "2.0",
-  "generated": "2026-05-09T21:30:03Z",
+  "generated": "2026-05-10T17:02:51Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
-      "file": "skills/business/csuite/SKILL.md",
+      "file": "skills/csuite/SKILL.md",
       "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
       "triggers": [
         "should we",
@@ -39,7 +39,7 @@
       "user_invocable": false
     },
     "customer-support": {
-      "file": "skills/business/customer-support/SKILL.md",
+      "file": "skills/customer-support/SKILL.md",
       "description": "Customer support workflows \u2014 ticket triage, response drafting, knowledge base articles, escalation handling, customer research.",
       "triggers": [
         "customer support",
@@ -55,7 +55,7 @@
       "pairs_with": []
     },
     "design": {
-      "file": "skills/business/design/SKILL.md",
+      "file": "skills/design/SKILL.md",
       "description": "Design workflows \u2014 UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis.",
       "triggers": [
         "design",
@@ -77,7 +77,7 @@
       "pairs_with": []
     },
     "finance": {
-      "file": "skills/business/finance/SKILL.md",
+      "file": "skills/finance/SKILL.md",
       "description": "Finance and accounting workflows \u2014 journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing.",
       "triggers": [
         "finance",
@@ -94,7 +94,7 @@
       "pairs_with": []
     },
     "hr": {
-      "file": "skills/business/hr/SKILL.md",
+      "file": "skills/hr/SKILL.md",
       "description": "People operations workflows \u2014 recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning.",
       "triggers": [
         "HR",
@@ -111,7 +111,7 @@
       "pairs_with": []
     },
     "legal": {
-      "file": "skills/business/legal/SKILL.md",
+      "file": "skills/legal/SKILL.md",
       "description": "Legal workflows \u2014 contract review, compliance checks, NDA triage, risk assessment, legal briefs.",
       "triggers": [
         "legal",
@@ -133,7 +133,7 @@
       "pairs_with": []
     },
     "marketing": {
-      "file": "skills/business/marketing/SKILL.md",
+      "file": "skills/marketing/SKILL.md",
       "description": "Marketing workflows \u2014 SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting.",
       "triggers": [
         "marketing",
@@ -150,7 +150,7 @@
       "pairs_with": []
     },
     "operations": {
-      "file": "skills/business/operations/SKILL.md",
+      "file": "skills/operations/SKILL.md",
       "description": "Business operations workflows \u2014 vendor management, runbooks, process documentation, risk assessment, capacity planning, change management, compliance tracking.",
       "triggers": [
         "operations",
@@ -167,7 +167,7 @@
       "pairs_with": []
     },
     "product-management": {
-      "file": "skills/business/product-management/SKILL.md",
+      "file": "skills/product-management/SKILL.md",
       "description": "Product management workflows \u2014 feature specs, roadmap planning, stakeholder updates, user research synthesis, competitive analysis, metrics review, sprint planning.",
       "triggers": [
         "product management",
@@ -184,7 +184,7 @@
       "pairs_with": []
     },
     "productivity": {
-      "file": "skills/business/productivity/SKILL.md",
+      "file": "skills/productivity/SKILL.md",
       "description": "Productivity workflows \u2014 task management, daily planning, weekly reviews, meeting optimization, focus management, goal setting, status updates.",
       "triggers": [
         "productivity",
@@ -205,7 +205,7 @@
       "pairs_with": []
     },
     "sales": {
-      "file": "skills/business/sales/SKILL.md",
+      "file": "skills/sales/SKILL.md",
       "description": "Sales workflows \u2014 call prep, pipeline analysis, outreach, competitive intelligence, forecasting.",
       "triggers": [
         "sales",
@@ -221,7 +221,7 @@
       "pairs_with": []
     },
     "code-cleanup": {
-      "file": "skills/code-quality/code-cleanup/SKILL.md",
+      "file": "skills/code-cleanup/SKILL.md",
       "description": "Detect stale TODOs, unused imports, and dead code.",
       "triggers": [
         "find dead code",
@@ -241,7 +241,7 @@
       ]
     },
     "code-linting": {
-      "file": "skills/code-quality/code-linting/SKILL.md",
+      "file": "skills/code-linting/SKILL.md",
       "description": "Run Python (ruff) and JavaScript (Biome) linting.",
       "triggers": [
         "lint code",
@@ -259,7 +259,7 @@
       ]
     },
     "comment-quality": {
-      "file": "skills/code-quality/comment-quality/SKILL.md",
+      "file": "skills/comment-quality/SKILL.md",
       "description": "Review and fix temporal references in code comments.",
       "triggers": [
         "review comments",
@@ -276,7 +276,7 @@
       ]
     },
     "condense": {
-      "file": "skills/code-quality/condense/SKILL.md",
+      "file": "skills/condense/SKILL.md",
       "description": "Maximize information density: preserve all instructions, remove prose filler.",
       "triggers": [
         "condense",
@@ -295,7 +295,7 @@
       ]
     },
     "python-quality-gate": {
-      "file": "skills/code-quality/python-quality-gate/SKILL.md",
+      "file": "skills/python-quality-gate/SKILL.md",
       "description": "Python quality checks: ruff, pytest, mypy, bandit in deterministic order.",
       "triggers": [
         "Python quality",
@@ -317,7 +317,7 @@
       "agent": "python-general-engineer"
     },
     "typescript-check": {
-      "file": "skills/code-quality/typescript-check/SKILL.md",
+      "file": "skills/typescript-check/SKILL.md",
       "description": "TypeScript type checking via tsc --noEmit with actionable error output.",
       "triggers": [
         "TypeScript check",
@@ -335,7 +335,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "universal-quality-gate": {
-      "file": "skills/code-quality/universal-quality-gate/SKILL.md",
+      "file": "skills/universal-quality-gate/SKILL.md",
       "description": "Multi-language code quality gate with auto-detection and linters.",
       "triggers": [
         "quality gate",
@@ -352,7 +352,7 @@
       ]
     },
     "bluesky-reader": {
-      "file": "skills/content/bluesky-reader/SKILL.md",
+      "file": "skills/bluesky-reader/SKILL.md",
       "description": "Read public Bluesky feeds via AT Protocol API.",
       "triggers": [
         "read Bluesky",
@@ -369,7 +369,7 @@
       "agent": "python-general-engineer"
     },
     "content-calendar": {
-      "file": "skills/content/content-calendar/SKILL.md",
+      "file": "skills/content-calendar/SKILL.md",
       "description": "Manage editorial content through 6 pipeline stages.",
       "triggers": [
         "content pipeline",
@@ -387,7 +387,7 @@
       ]
     },
     "content-engine": {
-      "file": "skills/content/content-engine/SKILL.md",
+      "file": "skills/content-engine/SKILL.md",
       "description": "Repurpose source assets into platform-native social content.",
       "triggers": [
         "repurpose this",
@@ -408,7 +408,7 @@
       ]
     },
     "gemini-image-generator": {
-      "file": "skills/content/gemini-image-generator/SKILL.md",
+      "file": "skills/gemini-image-generator/SKILL.md",
       "description": "Generate images from text prompts via Google Gemini.",
       "triggers": [
         "generate image",
@@ -428,7 +428,7 @@
       "agent": "python-general-engineer"
     },
     "image-to-video": {
-      "file": "skills/content/image-to-video/SKILL.md",
+      "file": "skills/image-to-video/SKILL.md",
       "description": "FFmpeg-based video creation from image and audio.",
       "triggers": [
         "image to video",
@@ -450,7 +450,7 @@
       ]
     },
     "nano-banana-builder": {
-      "file": "skills/content/nano-banana-builder/SKILL.md",
+      "file": "skills/nano-banana-builder/SKILL.md",
       "description": "Image generation and post-processing via Gemini Nano Banana APIs.",
       "triggers": [
         "nano banana",
@@ -473,7 +473,7 @@
       "agent": "python-general-engineer"
     },
     "pptx-generator": {
-      "file": "skills/content/pptx-generator/SKILL.md",
+      "file": "skills/pptx-generator/SKILL.md",
       "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
       "triggers": [
         "presentation",
@@ -495,7 +495,7 @@
       ]
     },
     "professional-communication": {
-      "file": "skills/content/professional-communication/SKILL.md",
+      "file": "skills/professional-communication/SKILL.md",
       "description": "Transform technical communication into structured business formats.",
       "triggers": [
         "business communication",
@@ -515,7 +515,7 @@
       ]
     },
     "publish": {
-      "file": "skills/content/publish/SKILL.md",
+      "file": "skills/publish/SKILL.md",
       "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
       "triggers": [
         "outline post",
@@ -569,7 +569,7 @@
       "agent": "general-purpose"
     },
     "reddit-moderate": {
-      "file": "skills/content/reddit-moderate/SKILL.md",
+      "file": "skills/reddit-moderate/SKILL.md",
       "description": "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.",
       "triggers": [
         "moderate Reddit",
@@ -586,7 +586,7 @@
       "agent": "python-general-engineer"
     },
     "series-planner": {
-      "file": "skills/content/series-planner/SKILL.md",
+      "file": "skills/series-planner/SKILL.md",
       "description": "Plan multi-part content series: structure, cross-linking, cadence.",
       "triggers": [
         "plan series",
@@ -604,7 +604,7 @@
       ]
     },
     "topic-brainstormer": {
-      "file": "skills/content/topic-brainstormer/SKILL.md",
+      "file": "skills/topic-brainstormer/SKILL.md",
       "description": "Generate blog topic ideas: problem mining, gap analysis, expansion.",
       "triggers": [
         "brainstorm topics",
@@ -621,7 +621,7 @@
       ]
     },
     "video-editing": {
-      "file": "skills/content/video-editing/SKILL.md",
+      "file": "skills/video-editing/SKILL.md",
       "description": "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.",
       "triggers": [
         "edit video",
@@ -644,7 +644,7 @@
       "agent": "python-general-engineer"
     },
     "wordpress-live-validation": {
-      "file": "skills/content/wordpress-live-validation/SKILL.md",
+      "file": "skills/wordpress-live-validation/SKILL.md",
       "description": "Validate published WordPress posts in browser via Playwright.",
       "triggers": [
         "validate wordpress post",
@@ -664,7 +664,7 @@
       ]
     },
     "x-api": {
-      "file": "skills/content/x-api/SKILL.md",
+      "file": "skills/x-api/SKILL.md",
       "description": "Post tweets, build threads, upload media via the X API.",
       "triggers": [
         "post to X",
@@ -689,7 +689,7 @@
       "agent": "python-general-engineer"
     },
     "cobalt-core": {
-      "file": "skills/engineering/cobalt-core/SKILL.md",
+      "file": "skills/cobalt-core/SKILL.md",
       "description": "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.",
       "triggers": [
         "cobalt core",
@@ -710,7 +710,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "enterprise-search": {
-      "file": "skills/engineering/enterprise-search/SKILL.md",
+      "file": "skills/enterprise-search/SKILL.md",
       "description": "Enterprise search engineering \u2014 relevance tuning, query understanding, index management, search quality measurement, ranking optimization, schema design.",
       "triggers": [
         "enterprise search",
@@ -739,7 +739,7 @@
       "pairs_with": []
     },
     "go-patterns": {
-      "file": "skills/engineering/go-patterns/SKILL.md",
+      "file": "skills/go-patterns/SKILL.md",
       "description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
       "triggers": [
         "go test",
@@ -785,7 +785,7 @@
       "agent": "golang-general-engineer"
     },
     "kotlin-coroutines": {
-      "file": "skills/engineering/kotlin-coroutines/SKILL.md",
+      "file": "skills/kotlin-coroutines/SKILL.md",
       "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
       "triggers": [
         "kotlin coroutines",
@@ -803,7 +803,7 @@
       "agent": "kotlin-general-engineer"
     },
     "kotlin-testing": {
-      "file": "skills/engineering/kotlin-testing/SKILL.md",
+      "file": "skills/kotlin-testing/SKILL.md",
       "description": "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.",
       "triggers": [
         "kotlin testing",
@@ -821,7 +821,7 @@
       "agent": "kotlin-general-engineer"
     },
     "php-quality": {
-      "file": "skills/engineering/php-quality/SKILL.md",
+      "file": "skills/php-quality/SKILL.md",
       "description": "PHP code quality: PSR standards, strict types, framework idioms.",
       "triggers": [
         "php quality",
@@ -839,7 +839,7 @@
       "agent": "php-general-engineer"
     },
     "php-testing": {
-      "file": "skills/engineering/php-testing/SKILL.md",
+      "file": "skills/php-testing/SKILL.md",
       "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
       "triggers": [
         "php testing",
@@ -856,7 +856,7 @@
       "agent": "php-general-engineer"
     },
     "sapcc-audit": {
-      "file": "skills/engineering/sapcc-audit/SKILL.md",
+      "file": "skills/sapcc-audit/SKILL.md",
       "description": "Full-repo SAP CC Go compliance audit against review standards.",
       "triggers": [
         "sapcc audit",
@@ -876,7 +876,7 @@
       "agent": "golang-general-engineer"
     },
     "sapcc-review": {
-      "file": "skills/engineering/sapcc-review/SKILL.md",
+      "file": "skills/sapcc-review/SKILL.md",
       "description": "Gold-standard SAP CC Go code review: 10 parallel domain specialists.",
       "triggers": [
         "sapcc review",
@@ -896,7 +896,7 @@
       "agent": "golang-general-engineer"
     },
     "swift-concurrency": {
-      "file": "skills/engineering/swift-concurrency/SKILL.md",
+      "file": "skills/swift-concurrency/SKILL.md",
       "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
       "triggers": [
         "swift concurrency",
@@ -912,7 +912,7 @@
       "agent": "swift-general-engineer"
     },
     "swift-testing": {
-      "file": "skills/engineering/swift-testing/SKILL.md",
+      "file": "skills/swift-testing/SKILL.md",
       "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
       "triggers": [
         "swift testing",
@@ -929,7 +929,7 @@
       "agent": "swift-general-engineer"
     },
     "distinctive-frontend-design": {
-      "file": "skills/frontend/distinctive-frontend-design/SKILL.md",
+      "file": "skills/distinctive-frontend-design/SKILL.md",
       "description": "Context-driven aesthetic exploration with anti-cliche validation.",
       "triggers": [
         "frontend design",
@@ -947,7 +947,7 @@
       ]
     },
     "frontend-slides": {
-      "file": "skills/frontend/frontend-slides/SKILL.md",
+      "file": "skills/frontend-slides/SKILL.md",
       "description": "Browser-based HTML presentation generation.",
       "triggers": [
         "HTML slides",
@@ -971,7 +971,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "threejs-builder": {
-      "file": "skills/frontend/threejs-builder/SKILL.md",
+      "file": "skills/threejs-builder/SKILL.md",
       "description": "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.",
       "triggers": [
         "threejs",
@@ -1011,7 +1011,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "webgl-card-effects": {
-      "file": "skills/frontend/webgl-card-effects/SKILL.md",
+      "file": "skills/webgl-card-effects/SKILL.md",
       "description": "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.",
       "triggers": [
         "card effects",
@@ -1034,7 +1034,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "game-asset-generator": {
-      "file": "skills/game/game-asset-generator/SKILL.md",
+      "file": "skills/game-asset-generator/SKILL.md",
       "description": "Deterministic palette/matrix pixel art (not AI).",
       "triggers": [
         "pixel art",
@@ -1072,7 +1072,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "game-pipeline": {
-      "file": "skills/game/game-pipeline/SKILL.md",
+      "file": "skills/game-pipeline/SKILL.md",
       "description": "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.",
       "triggers": [
         "make game",
@@ -1100,7 +1100,7 @@
       ]
     },
     "game-sprite-pipeline": {
-      "file": "skills/game/game-sprite-pipeline/SKILL.md",
+      "file": "skills/game-sprite-pipeline/SKILL.md",
       "description": "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana.",
       "triggers": [
         "AI sprite",
@@ -1141,7 +1141,7 @@
       "agent": "python-general-engineer"
     },
     "motion-pipeline": {
-      "file": "skills/game/motion-pipeline/SKILL.md",
+      "file": "skills/motion-pipeline/SKILL.md",
       "description": "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK.",
       "triggers": [
         "mocap",
@@ -1164,7 +1164,7 @@
       ]
     },
     "phaser-gamedev": {
-      "file": "skills/game/phaser-gamedev/SKILL.md",
+      "file": "skills/phaser-gamedev/SKILL.md",
       "description": "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish.",
       "triggers": [
         "phaser",
@@ -1184,7 +1184,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "cron-job-auditor": {
-      "file": "skills/infrastructure/cron-job-auditor/SKILL.md",
+      "file": "skills/cron-job-auditor/SKILL.md",
       "description": "Audit cron scripts for reliability and safety.",
       "triggers": [
         "audit cron jobs",
@@ -1201,7 +1201,7 @@
       ]
     },
     "endpoint-validator": {
-      "file": "skills/infrastructure/endpoint-validator/SKILL.md",
+      "file": "skills/endpoint-validator/SKILL.md",
       "description": "Deterministic API endpoint validation with pass/fail reporting.",
       "triggers": [
         "validate endpoints",
@@ -1219,7 +1219,7 @@
       ]
     },
     "fish-shell-config": {
-      "file": "skills/infrastructure/fish-shell-config/SKILL.md",
+      "file": "skills/fish-shell-config/SKILL.md",
       "description": "Fish shell configuration and PATH management.",
       "triggers": [
         "fish",
@@ -1243,7 +1243,7 @@
       "pairs_with": []
     },
     "headless-cron-creator": {
-      "file": "skills/infrastructure/headless-cron-creator/SKILL.md",
+      "file": "skills/headless-cron-creator/SKILL.md",
       "description": "Generate headless Claude Code cron jobs with safety.",
       "triggers": [
         "create cron job",
@@ -1261,7 +1261,7 @@
       "agent": "python-general-engineer"
     },
     "kubernetes-debugging": {
-      "file": "skills/infrastructure/kubernetes-debugging/SKILL.md",
+      "file": "skills/kubernetes-debugging/SKILL.md",
       "description": "Kubernetes debugging for pod failures and networking.",
       "triggers": [
         "kubernetes debug",
@@ -1280,7 +1280,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "kubernetes-security": {
-      "file": "skills/infrastructure/kubernetes-security/SKILL.md",
+      "file": "skills/kubernetes-security/SKILL.md",
       "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
       "triggers": [
         "kubernetes security",
@@ -1298,7 +1298,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "service-health-check": {
-      "file": "skills/infrastructure/service-health-check/SKILL.md",
+      "file": "skills/service-health-check/SKILL.md",
       "description": "Service health monitoring: Discover, Check, Report in 3 phases.",
       "triggers": [
         "service status",
@@ -1316,7 +1316,7 @@
       ]
     },
     "shell-process-patterns": {
-      "file": "skills/infrastructure/shell-process-patterns/SKILL.md",
+      "file": "skills/shell-process-patterns/SKILL.md",
       "description": "Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.",
       "triggers": [
         "background process",
@@ -1338,7 +1338,7 @@
       ]
     },
     "agent-comparison": {
-      "file": "skills/meta/agent-comparison/SKILL.md",
+      "file": "skills/agent-comparison/SKILL.md",
       "description": "A/B test agent variants for quality and token cost.",
       "triggers": [
         "compare agents",
@@ -1356,7 +1356,7 @@
       ]
     },
     "agent-evaluation": {
-      "file": "skills/meta/agent-evaluation/SKILL.md",
+      "file": "skills/agent-evaluation/SKILL.md",
       "description": "Evaluate agents and skills for quality and standards compliance.",
       "triggers": [
         "evaluate agent",
@@ -1375,7 +1375,7 @@
       ]
     },
     "auto-dream": {
-      "file": "skills/meta/auto-dream/SKILL.md",
+      "file": "skills/auto-dream/SKILL.md",
       "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
       "triggers": [
         "dream",
@@ -1392,7 +1392,7 @@
       "pairs_with": []
     },
     "do": {
-      "file": "skills/meta/do/SKILL.md",
+      "file": "skills/do/SKILL.md",
       "description": "Classify user requests and route to the correct agent + skill.",
       "triggers": [
         "route task",
@@ -1404,8 +1404,17 @@
       "category": "meta-tooling",
       "user_invocable": true
     },
+    "do_b": {
+      "file": "skills/do_b/SKILL.md",
+      "description": "Haiku-first router.",
+      "triggers": [
+        "do_b"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true
+    },
     "docs-sync-checker": {
-      "file": "skills/meta/docs-sync-checker/SKILL.md",
+      "file": "skills/docs-sync-checker/SKILL.md",
       "description": "Detect documentation drift against filesystem state.",
       "triggers": [
         "check doc drift",
@@ -1422,7 +1431,7 @@
       ]
     },
     "explanation-traces": {
-      "file": "skills/meta/explanation-traces/SKILL.md",
+      "file": "skills/explanation-traces/SKILL.md",
       "description": "Query and display structured decision traces from routing, agent selection, and skill execution.",
       "triggers": [
         "why did you",
@@ -1440,7 +1449,7 @@
       "pairs_with": []
     },
     "generate-claudemd": {
-      "file": "skills/meta/generate-claudemd/SKILL.md",
+      "file": "skills/generate-claudemd/SKILL.md",
       "description": "Generate project-specific CLAUDE.md from repo analysis.",
       "triggers": [
         "generate claude.md",
@@ -1457,7 +1466,7 @@
       ]
     },
     "html-artifact": {
-      "file": "skills/meta/html-artifact/SKILL.md",
+      "file": "skills/html-artifact/SKILL.md",
       "description": "Generate rich self-contained HTML artifacts instead of markdown.",
       "triggers": [
         "HTML artifact",
@@ -1479,7 +1488,7 @@
       ]
     },
     "install": {
-      "file": "skills/meta/install/SKILL.md",
+      "file": "skills/install/SKILL.md",
       "description": "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup.",
       "triggers": [
         "install toolkit",
@@ -1494,7 +1503,7 @@
       "user_invocable": true
     },
     "learn": {
-      "file": "skills/meta/learn/SKILL.md",
+      "file": "skills/learn/SKILL.md",
       "description": "Manually teach error pattern and solution to learning database.",
       "triggers": [
         "teach pattern",
@@ -1511,7 +1520,7 @@
       ]
     },
     "reference-enrichment": {
-      "file": "skills/meta/reference-enrichment/SKILL.md",
+      "file": "skills/reference-enrichment/SKILL.md",
       "description": "Analyze agent/skill reference depth and generate missing domain-specific reference files.",
       "triggers": [
         "enrich references",
@@ -1532,7 +1541,7 @@
       ]
     },
     "retro": {
-      "file": "skills/meta/retro/SKILL.md",
+      "file": "skills/retro/SKILL.md",
       "description": "Learning system interface: stats, search, graduate learnings.",
       "triggers": [
         "retro stats",
@@ -1549,7 +1558,7 @@
       ]
     },
     "routing-table-updater": {
-      "file": "skills/meta/routing-table-updater/SKILL.md",
+      "file": "skills/routing-table-updater/SKILL.md",
       "description": "Maintain /do routing tables when skills or agents change.",
       "triggers": [
         "update routing",
@@ -1566,7 +1575,7 @@
       ]
     },
     "skill-composer": {
-      "file": "skills/meta/skill-composer/SKILL.md",
+      "file": "skills/skill-composer/SKILL.md",
       "description": "DAG-based multi-skill orchestration with dependency resolution.",
       "triggers": [
         "compose skills",
@@ -1583,7 +1592,7 @@
       ]
     },
     "skill-creator": {
-      "file": "skills/meta/skill-creator/SKILL.md",
+      "file": "skills/skill-creator/SKILL.md",
       "description": "Create and iteratively improve skills through eval-driven validation.",
       "triggers": [
         "create skill",
@@ -1603,7 +1612,7 @@
       ]
     },
     "skill-eval": {
-      "file": "skills/meta/skill-eval/SKILL.md",
+      "file": "skills/skill-eval/SKILL.md",
       "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs.",
       "triggers": [
         "improve skill",
@@ -1631,7 +1640,7 @@
       ]
     },
     "toolkit-evolution": {
-      "file": "skills/meta/toolkit-evolution/SKILL.md",
+      "file": "skills/toolkit-evolution/SKILL.md",
       "description": "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.",
       "triggers": [
         "evolve toolkit",
@@ -1652,7 +1661,7 @@
       ]
     },
     "workflow-help": {
-      "file": "skills/meta/workflow-help/SKILL.md",
+      "file": "skills/workflow-help/SKILL.md",
       "description": "Interactive guide to workflow system: agents, skills, routing, execution patterns.",
       "triggers": [
         "how does routing work",
@@ -1670,7 +1679,7 @@
       ]
     },
     "adr-consultation": {
-      "file": "skills/process/adr-consultation/SKILL.md",
+      "file": "skills/adr-consultation/SKILL.md",
       "description": "Multi-agent consultation for architecture decisions.",
       "triggers": [
         "consult on ADR",
@@ -1688,7 +1697,7 @@
       ]
     },
     "condition-based-waiting": {
-      "file": "skills/process/condition-based-waiting/SKILL.md",
+      "file": "skills/condition-based-waiting/SKILL.md",
       "description": "Polling, retry, and backoff patterns.",
       "triggers": [
         "exponential backoff",
@@ -1707,7 +1716,7 @@
       ]
     },
     "feature-lifecycle": {
-      "file": "skills/process/feature-lifecycle/SKILL.md",
+      "file": "skills/feature-lifecycle/SKILL.md",
       "description": "Feature lifecycle: design, plan, implement, validate, release.",
       "triggers": [
         "feature design",
@@ -1752,7 +1761,7 @@
       ]
     },
     "forensics": {
-      "file": "skills/process/forensics/SKILL.md",
+      "file": "skills/forensics/SKILL.md",
       "description": "Post-mortem diagnostic analysis of failed workflows.",
       "triggers": [
         "forensics",
@@ -1776,7 +1785,7 @@
       ]
     },
     "github-notification-triage": {
-      "file": "skills/process/github-notification-triage/SKILL.md",
+      "file": "skills/github-notification-triage/SKILL.md",
       "description": "Triage GitHub notifications and report actions needed.",
       "triggers": [
         "github notifications",
@@ -1790,7 +1799,7 @@
       "pairs_with": []
     },
     "pair-programming": {
-      "file": "skills/process/pair-programming/SKILL.md",
+      "file": "skills/pair-programming/SKILL.md",
       "description": "Collaborative coding with enforced micro-steps and user-paced control.",
       "triggers": [
         "pair program",
@@ -1810,7 +1819,7 @@
       ]
     },
     "planning": {
-      "file": "skills/process/planning/SKILL.md",
+      "file": "skills/planning/SKILL.md",
       "description": "Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed planning, plan validation, plan-lifecycle management, and session pause/resume.",
       "triggers": [
         "write spec",
@@ -1819,40 +1828,63 @@
         "scope this",
         "what should this do",
         "acceptance criteria",
+        "define scope",
+        "spec out",
         "discuss ambiguities",
+        "resolve gray areas",
         "clarify before planning",
         "assumptions mode",
+        "what are the gray areas",
         "before we plan",
+        "pre-planning discussion",
         "interview me",
         "grill me",
+        "depth-first review",
         "depth-first interview",
         "not sure",
+        "i'm not sure",
+        "not exactly sure",
         "unsure",
         "where do i start",
+        "where do i even start",
+        "want clarity on",
         "need clarity on",
         "what am i missing",
         "poke holes in",
         "challenge my assumptions",
         "think this through with me",
         "lots of moving parts",
+        "many decisions",
         "create plan",
         "task plan",
         "working memory",
         "persistent plan",
+        "file-backed planning",
         "check plan",
         "validate plan",
+        "plan checker",
+        "review plan",
+        "is this plan ready",
+        "plan-checker",
+        "pre-execution check",
         "list plans",
         "show plan",
         "complete plan",
         "plan status",
+        "manage plans",
         "pause",
         "save progress",
         "handoff",
-        "session handoff",
+        "stopping for now",
         "end session",
         "pick this up later",
+        "session handoff",
+        "wrap up session",
         "resume",
         "continue",
+        "pick up where I left off",
+        "what was I doing",
+        "continue work",
         "where did I leave off",
         "what's next"
       ],
@@ -1867,7 +1899,7 @@
       "agent": "general-purpose"
     },
     "plant-seed": {
-      "file": "skills/process/plant-seed/SKILL.md",
+      "file": "skills/plant-seed/SKILL.md",
       "description": "Capture forward-looking idea as a seed for future feature design.",
       "triggers": [
         "plant seed",
@@ -1884,36 +1916,57 @@
       ]
     },
     "pr-workflow": {
-      "file": "skills/process/pr-workflow/SKILL.md",
+      "file": "skills/pr-workflow/SKILL.md",
       "description": "Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining.",
       "triggers": [
         "push changes",
+        "push my changes",
         "push to GitHub",
+        "push to remote",
         "create PR",
         "sync to GitHub",
         "PR status",
         "branch status",
         "merge readiness",
         "fix PR comments",
+        "resolve PR feedback",
         "pr-fix",
         "cleanup branches",
+        "clean up branches",
         "merged branches",
+        "delete merged branch",
+        "prune branches",
         "mine PRs",
         "extract review comments",
         "tribal knowledge",
+        "process PR feedback",
+        "address review comments",
+        "submit PR",
+        "create pull request",
+        "send for review",
         "open PR",
         "generate branch name",
+        "validate branch name",
+        "name branch",
         "branch convention",
+        "git branch name",
         "check CI",
         "CI status",
+        "actions status",
         "did CI pass",
+        "build status",
+        "CI passed",
         "stage and commit",
         "commit changes",
+        "commit these",
+        "commit my changes",
+        "commit my files",
         "codex review",
         "second opinion",
+        "code review codex",
+        "gpt review",
         "cross-model review"
       ],
-      "not_for": "'push back' (disagree), 'commit to approach' (deciding), non-git operations",
       "category": "git-workflow",
       "force_route": true,
       "user_invocable": true,
@@ -1924,7 +1977,7 @@
       ]
     },
     "quick": {
-      "file": "skills/process/quick/SKILL.md",
+      "file": "skills/quick/SKILL.md",
       "description": "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full.",
       "triggers": [
         "quick task",
@@ -1950,7 +2003,7 @@
       "user_invocable": true
     },
     "read-only-ops": {
-      "file": "skills/process/read-only-ops/SKILL.md",
+      "file": "skills/read-only-ops/SKILL.md",
       "description": "Read-only exploration, inspection, and reporting without modifications.",
       "triggers": [
         "check status",
@@ -1966,7 +2019,7 @@
       ]
     },
     "socratic-debugging": {
-      "file": "skills/process/socratic-debugging/SKILL.md",
+      "file": "skills/socratic-debugging/SKILL.md",
       "description": "Question-only debugging: guide users to find root causes themselves.",
       "triggers": [
         "guide debugging",
@@ -1986,7 +2039,7 @@
       ]
     },
     "subagent-driven-development": {
-      "file": "skills/process/subagent-driven-development/SKILL.md",
+      "file": "skills/subagent-driven-development/SKILL.md",
       "description": "Fresh-subagent-per-task execution with two-stage review gates.",
       "triggers": [
         "subagent per task",
@@ -2003,7 +2056,7 @@
       ]
     },
     "verification-before-completion": {
-      "file": "skills/process/verification-before-completion/SKILL.md",
+      "file": "skills/verification-before-completion/SKILL.md",
       "description": "Defense-in-depth verification before declaring any task complete.",
       "triggers": [
         "verify completion",
@@ -2020,7 +2073,7 @@
       ]
     },
     "with-anti-rationalization": {
-      "file": "skills/process/with-anti-rationalization/SKILL.md",
+      "file": "skills/with-anti-rationalization/SKILL.md",
       "description": "Anti-rationalization enforcement for maximum-rigor task execution.",
       "triggers": [
         "maximum rigor",
@@ -2036,7 +2089,7 @@
       ]
     },
     "worktree-agent": {
-      "file": "skills/process/worktree-agent/SKILL.md",
+      "file": "skills/worktree-agent/SKILL.md",
       "description": "Mandatory rules for agents in git worktree isolation.",
       "triggers": [
         "worktree agent",
@@ -2048,7 +2101,7 @@
       "user_invocable": false
     },
     "architecture-deepening": {
-      "file": "skills/research/architecture-deepening/SKILL.md",
+      "file": "skills/architecture-deepening/SKILL.md",
       "description": "Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation.",
       "triggers": [
         "deepen architecture",
@@ -2069,7 +2122,7 @@
       ]
     },
     "codebase-analyzer": {
-      "file": "skills/research/codebase-analyzer/SKILL.md",
+      "file": "skills/codebase-analyzer/SKILL.md",
       "description": "Statistical rule discovery from Go codebase patterns.",
       "triggers": [
         "analyze codebase",
@@ -2087,7 +2140,7 @@
       ]
     },
     "codebase-overview": {
-      "file": "skills/research/codebase-overview/SKILL.md",
+      "file": "skills/codebase-overview/SKILL.md",
       "description": "Systematic codebase exploration and architecture mapping.",
       "triggers": [
         "onboard to codebase",
@@ -2105,7 +2158,7 @@
       ]
     },
     "data-analysis": {
-      "file": "skills/research/data-analysis/SKILL.md",
+      "file": "skills/data-analysis/SKILL.md",
       "description": "Decision-first data analysis with statistical rigor gates.",
       "triggers": [
         "analyze data",
@@ -2135,7 +2188,7 @@
       ]
     },
     "decision-helper": {
-      "file": "skills/research/decision-helper/SKILL.md",
+      "file": "skills/decision-helper/SKILL.md",
       "description": "Weighted decision scoring for architectural choices.",
       "triggers": [
         "weigh options",
@@ -2157,7 +2210,7 @@
       ]
     },
     "full-repo-review": {
-      "file": "skills/research/full-repo-review/SKILL.md",
+      "file": "skills/full-repo-review/SKILL.md",
       "description": "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.",
       "triggers": [
         "full repo review",
@@ -2174,7 +2227,7 @@
       ]
     },
     "multi-persona-critique": {
-      "file": "skills/research/multi-persona-critique/SKILL.md",
+      "file": "skills/multi-persona-critique/SKILL.md",
       "description": "Parallel critique of proposals via 5 philosophical personas with consensus synthesis.",
       "triggers": [
         "critique these ideas",
@@ -2194,7 +2247,7 @@
       ]
     },
     "repo-value-analysis": {
-      "file": "skills/research/repo-value-analysis/SKILL.md",
+      "file": "skills/repo-value-analysis/SKILL.md",
       "description": "Analyze external repositories for adoptable ideas and patterns.",
       "triggers": [
         "repo value analysis",
@@ -2212,7 +2265,7 @@
       "agent": "research-coordinator-engineer"
     },
     "research-pipeline": {
-      "file": "skills/research/research-pipeline/SKILL.md",
+      "file": "skills/research-pipeline/SKILL.md",
       "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER.",
       "triggers": [
         "research-pipeline",
@@ -2232,7 +2285,7 @@
       "agent": "research-coordinator-engineer"
     },
     "roast": {
-      "file": "skills/research/roast/SKILL.md",
+      "file": "skills/roast/SKILL.md",
       "description": "Constructive critique via 5 HackerNews personas with claim validation.",
       "triggers": [
         "roast code",
@@ -2250,7 +2303,7 @@
       ]
     },
     "security-threat-model": {
-      "file": "skills/research/security-threat-model/SKILL.md",
+      "file": "skills/security-threat-model/SKILL.md",
       "description": "Security threat model: scan toolkit for attack surface, supply-chain risks.",
       "triggers": [
         "threat model",
@@ -2272,7 +2325,7 @@
       "agent": "python-general-engineer"
     },
     "integration-checker": {
-      "file": "skills/review/integration-checker/SKILL.md",
+      "file": "skills/integration-checker/SKILL.md",
       "description": "Verify cross-component wiring and data flow.",
       "triggers": [
         "integration check",
@@ -2291,7 +2344,7 @@
       ]
     },
     "parallel-code-review": {
-      "file": "skills/review/parallel-code-review/SKILL.md",
+      "file": "skills/parallel-code-review/SKILL.md",
       "description": "Parallel 3-reviewer code review: Security, Business-Logic, Architecture.",
       "triggers": [
         "parallel review",
@@ -2308,7 +2361,7 @@
       ]
     },
     "systematic-code-review": {
-      "file": "skills/review/systematic-code-review/SKILL.md",
+      "file": "skills/systematic-code-review/SKILL.md",
       "description": "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings.",
       "triggers": [
         "review code",
@@ -2327,7 +2380,7 @@
       ]
     },
     "e2e-testing": {
-      "file": "skills/testing/e2e-testing/SKILL.md",
+      "file": "skills/e2e-testing/SKILL.md",
       "description": "Playwright-based end-to-end testing workflow.",
       "triggers": [
         "playwright",
@@ -2348,7 +2401,7 @@
       "agent": "testing-automation-engineer"
     },
     "test-driven-development": {
-      "file": "skills/testing/test-driven-development/SKILL.md",
+      "file": "skills/test-driven-development/SKILL.md",
       "description": "RED-GREEN-REFACTOR cycle with strict phase gates for TDD.",
       "triggers": [
         "TDD",
@@ -2368,7 +2421,7 @@
       ]
     },
     "testing-agents-with-subagents": {
-      "file": "skills/testing/testing-agents-with-subagents/SKILL.md",
+      "file": "skills/testing-agents-with-subagents/SKILL.md",
       "description": "Test agents via subagents: known inputs, captured outputs, verification.",
       "triggers": [
         "test agents",
@@ -2385,7 +2438,7 @@
       ]
     },
     "testing-preferred-patterns": {
-      "file": "skills/testing/testing-preferred-patterns/SKILL.md",
+      "file": "skills/testing-preferred-patterns/SKILL.md",
       "description": "Identify and fix testing mistakes: flaky, brittle, over-mocked tests.",
       "triggers": [
         "flaky test",
@@ -2408,7 +2461,7 @@
       ]
     },
     "vitest-runner": {
-      "file": "skills/testing/vitest-runner/SKILL.md",
+      "file": "skills/vitest-runner/SKILL.md",
       "description": "Run Vitest tests and parse results into actionable output.",
       "triggers": [
         "run vitest",
@@ -2441,6 +2494,86 @@
         "planning",
         "feature-lifecycle",
         "verification-before-completion"
+      ]
+    },
+    "anti-ai-editor": {
+      "file": "skills/anti-ai-editor/SKILL.md",
+      "description": "Remove AI-sounding patterns from content.",
+      "triggers": [
+        "remove AI patterns",
+        "de-AI content",
+        "make it sound human",
+        "remove AI voice",
+        "humanize text"
+      ],
+      "category": "content-creation",
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-writer",
+        "voice-validator",
+        "joy-check"
+      ]
+    },
+    "create-voice": {
+      "file": "skills/create-voice/SKILL.md",
+      "description": "Create voice profiles from writing samples.",
+      "triggers": [
+        "create voice",
+        "new voice",
+        "build voice",
+        "voice from samples",
+        "calibrate voice",
+        "voice profile from scratch",
+        "make a voice"
+      ],
+      "category": "content",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-validator",
+        "voice-writer"
+      ]
+    },
+    "interactive-essay": {
+      "file": "skills/interactive-essay/SKILL.md",
+      "description": "Transform markdown articles into scrollytelling interactive React SPAs.",
+      "triggers": [
+        "interactive essay",
+        "scrollytelling",
+        "interactive article",
+        "scroll-based article",
+        "make this interactive"
+      ],
+      "category": "content-creation",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "voice-vexjoy",
+        "anti-ai-editor",
+        "joy-check"
+      ]
+    },
+    "joy-check": {
+      "file": "skills/joy-check/SKILL.md",
+      "description": "Validate content framing on joy-grievance spectrum.",
+      "triggers": [
+        "joy check",
+        "check framing",
+        "tone check",
+        "negative framing",
+        "joy validation",
+        "too negative",
+        "reframe positively",
+        "positive framing check",
+        "instruction framing"
+      ],
+      "category": "content",
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-writer",
+        "anti-ai-editor",
+        "voice-validator",
+        "skill-creator"
       ]
     }
   }
