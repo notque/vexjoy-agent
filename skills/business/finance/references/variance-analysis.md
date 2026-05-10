@@ -157,7 +157,7 @@ Every narrative must be:
 | Actionable | Identifies required follow-up or decision |
 | Concise | 2-4 sentences. No filler |
 
-### Anti-Patterns (never produce these)
+### Failure Modes (detect and fix these)
 
 | Anti-Pattern | Why It Fails | Fix |
 |-------------|-------------|-----|

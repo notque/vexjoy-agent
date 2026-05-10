@@ -172,7 +172,7 @@ The simplest effective retro format.
    - What can we change? (specific action, not aspiration)
 5. **Decide** (5 min): Pick 1-2 action items. Each has an owner and a deadline. More than 2 actions from a single retro dilutes focus.
 
-### Retro Anti-Patterns with Corrections
+### Retro Failure Modes with Corrections
 
 | Anti-Pattern | What Goes Wrong | Do Instead |
 |-------------|----------------|------------|

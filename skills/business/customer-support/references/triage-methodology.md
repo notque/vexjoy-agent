@@ -283,7 +283,7 @@ Every triage produces this structured output:
 
 ---
 
-## Triage Anti-Patterns
+## Triage Failure Modes
 
 | Anti-Pattern | Problem | Correct Approach |
 |-------------|---------|-----------------|

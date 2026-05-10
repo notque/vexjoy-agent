@@ -16,7 +16,7 @@ AI-generated slides have a distinctive "template pack" aesthetic that audiences 
 
 **Why it screams AI**: Every AI slide generator and cheap template pack does this. It's the single most recognizable AI-slide tell. Real designers either skip it entirely or use more sophisticated visual hierarchy.
 
-**Rule**: NEVER add a decorative line, rule, or separator below a title. Use font size, weight, and spacing to create hierarchy instead.
+**Rule**: Create visual hierarchy with font size, weight, and spacing. Titles stand alone without decorative lines, rules, or separators beneath them.
 
 **Detection**: Any `Shape` of type `LINE` or thin `RECTANGLE` (height < 5pt) positioned within 20pt below a title text box.
 

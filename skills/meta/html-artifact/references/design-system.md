@@ -115,7 +115,7 @@ Use `min-width` media queries (mobile-first). Container max-width: 1200px.
 
 ---
 
-## Anti-Patterns
+## Common Failure Modes
 
 | Pattern | Do Instead |
 |---|---|

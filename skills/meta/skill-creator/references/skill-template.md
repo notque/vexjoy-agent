@@ -283,11 +283,11 @@ Constraint: [Domain-specific rule that applies HERE]
 
 LLMs follow instructions better when they understand the reasoning behind them. For every constraint or rule in a skill, prefer explaining **why** it matters alongside the directive.
 
-**Yellow flag**: If you find yourself writing `ALWAYS` or `NEVER` in all caps without explanation, reframe it. Add the reasoning so the model understands the importance and can generalize correctly to edge cases.
+**Yellow flag**: Pair every capitalized imperative (ALWAYS, MUST) with reasoning. The model generalizes better to edge cases when it understands the "because" behind a rule.
 
 | Pattern | Less Effective | More Effective |
 |---------|---------------|----------------|
-| Constraint | `NEVER use console.log in production code` | `Avoid console.log in production — it blocks the event loop on high-throughput paths and leaks internal state to browser devtools` |
+| Constraint | `Remove console.log before shipping` | `Remove console.log before shipping — it blocks the event loop on high-throughput paths and leaks internal state to browser devtools` |
 | Requirement | `ALWAYS validate inputs before processing` | `Validate inputs before processing because malformed data at this boundary propagates silently through 3 downstream services` |
 | Gate | `MUST pass lint before committing` | `Pass lint before committing — the CI will reject it anyway, and fixing lint after commit creates noisy fix-lint commits in the PR` |
 

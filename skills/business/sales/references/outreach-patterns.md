@@ -166,7 +166,7 @@ Total email: under 150 words. 5 sentences is ideal. 7 sentences is the hard max.
 | Follow-up 3 | Day 14 | Break-up email (creates urgency through scarcity) |
 | LinkedIn touch | Day 5-10 | Parallel channel. Connection request or engage with their content. |
 
-### Follow-Up Anti-Patterns
+### Follow-Up Failure Modes
 
 | Bad Follow-Up | Why It Fails | Instead |
 |--------------|-------------|---------|

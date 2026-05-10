@@ -100,7 +100,7 @@ For each role, define 4-6 competencies. Each competency gets dedicated interview
 | Trained interviewers | Everyone on the panel has completed structured interviewing training. |
 | Consistent questions | Same question set per competency across all candidates for the same role. |
 
-### Question Design Anti-Patterns
+### Question Design Failure Modes
 
 | Anti-Pattern | Problem | Better Approach |
 |-------------|---------|-----------------|
@@ -182,7 +182,7 @@ Date: [Date] | Panel: [Names]
 | **Days 31-60** | Contribute | Delivers independently on scoped work. Participates in reviews. Identifies one improvement. |
 | **Days 61-90** | Own | Owns a workstream. Contributes to planning. Can onboard the next new hire. |
 
-### Onboarding Anti-Patterns
+### Onboarding Failure Modes
 
 | Anti-Pattern | Problem | Fix |
 |-------------|---------|-----|

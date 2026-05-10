@@ -232,7 +232,7 @@ user = session.query(User).filter(User.id == user_id).first()
 
 ---
 
-### Avoid Functions on Indexed Columns in WHERE
+### Use Raw Columns in WHERE Clauses for Index Hits
 **Detection**:
 ```bash
 # Find function calls wrapping column names in WHERE clauses

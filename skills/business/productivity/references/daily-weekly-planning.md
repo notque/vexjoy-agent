@@ -56,7 +56,7 @@ Match task difficulty to energy state. Most knowledge workers have predictable e
 - If more than 3 hours of meetings, only 2 Top 3 items are realistic. Acknowledge this explicitly.
 - Buffer time is not optional — unplanned work always appears. Plans without buffers fail by noon.
 
-### Planning Anti-Patterns with Corrections
+### Planning Failure Modes with Corrections
 
 | Anti-Pattern | What Goes Wrong | Do Instead |
 |-------------|----------------|------------|

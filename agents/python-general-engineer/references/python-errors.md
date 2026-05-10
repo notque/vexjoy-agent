@@ -85,7 +85,7 @@ if __name__ == "__main__":
 **Prevention**:
 - Only use `asyncio.run()` at the top level of scripts
 - In notebooks, use `await` directly
-- Don't nest `asyncio.run()` calls
+- Use a single top-level `asyncio.run()` and await coroutines within it
 
 ---
 

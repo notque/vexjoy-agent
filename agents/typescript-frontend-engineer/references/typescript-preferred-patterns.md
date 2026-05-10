@@ -61,8 +61,7 @@ interface ApiResponse<T> {
 ```
 
 **When to use**:
-- NEVER use `any` without explicit justification
-- If absolutely necessary, add a comment explaining why
+- Use specific types; when `any` is unavoidable, add a comment explaining why
 - Consider `unknown` instead - forces type checking before use
 
 ---
@@ -299,10 +298,8 @@ const edgeCase = complexTypeFunction(input)
 ```
 
 **When to use**:
-- NEVER use `@ts-ignore` or `@ts-nocheck` without thorough justification
-- If used, add detailed comment explaining WHY and what's being ignored
+- Replace `@ts-ignore` with `@ts-expect-error` (provides compile-time checking); add a comment when suppression is necessary
 - Link to GitHub issue if it's a TypeScript bug
-- Prefer `@ts-expect-error` over `@ts-ignore` (fails if error is fixed)
 
 ---
 

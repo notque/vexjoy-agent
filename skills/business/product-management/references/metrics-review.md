@@ -177,7 +177,7 @@ KR3: 3 core workflows with >80% task completion rate
 - **Beware averages**: Mean time-to-activate can be misleading if the distribution is bimodal. Use median or percentiles.
 - **Attribution**: If you changed multiple things, you cannot attribute funnel changes to one change. Run A/B tests for causal claims.
 
-### Common Funnel Anti-Patterns
+### Common Funnel Failure Modes
 
 | Anti-Pattern | Problem | Fix |
 |-------------|---------|-----|
@@ -327,7 +327,7 @@ Possible explanations:
 └────────────────────────────────────────┘
 ```
 
-### Dashboard Anti-Patterns
+### Dashboard Failure Modes
 
 | Anti-Pattern | Why It Fails |
 |-------------|-------------|

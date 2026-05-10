@@ -113,7 +113,7 @@ if not items:
 
 ---
 
-### Avoid Mutable Default Arguments (B006)
+### Use Immutable Default Arguments (B006)
 
 **Detection**:
 ```bash

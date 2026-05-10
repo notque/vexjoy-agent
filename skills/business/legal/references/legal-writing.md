@@ -223,7 +223,7 @@ to any other legal holds, those obligations remain in effect.
 
 ## Escalation Triggers
 
-Before generating ANY templated legal response, check these triggers. If any fire, do NOT generate a templated response -- recommend escalation instead.
+Before generating ANY templated legal response, check these triggers. If any fire, recommend escalation to qualified counsel instead of generating a template.
 
 ### Universal Triggers (All Categories)
 

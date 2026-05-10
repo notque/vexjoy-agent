@@ -77,7 +77,7 @@ Non-Goals:
 | **S**mall | Completable in one sprint |
 | **T**estable | Clear verification path |
 
-### Anti-Patterns
+### Common Failure Modes
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|

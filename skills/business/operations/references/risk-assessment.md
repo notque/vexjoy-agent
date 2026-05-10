@@ -256,7 +256,7 @@ Maintain evidence that risk management is active, not just documented.
 
 ---
 
-## Risk Assessment Anti-Patterns
+## Risk Assessment Failure Modes
 
 | Anti-Pattern | Symptom | Fix |
 |-------------|---------|-----|

@@ -258,7 +258,7 @@ Every vendor relationship should have an exit plan. Not because you plan to leav
 
 ---
 
-## Vendor Management Anti-Patterns
+## Vendor Management Failure Modes
 
 | Anti-Pattern | Symptom | Fix |
 |-------------|---------|-----|

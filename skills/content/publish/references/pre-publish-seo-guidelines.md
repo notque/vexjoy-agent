@@ -34,7 +34,7 @@
 - Include primary keyword naturally
 - Add a call to action when appropriate
 - Make it unique per page
-- Don't just repeat the title
+- Write a unique description distinct from the title
 
 **Examples:**
 - Good: "Learn how to diagnose and fix common Kubernetes networking issues including DNS failures, service discovery problems, and network policies. Practical debugging steps included." (169 chars - slightly over but okay)
@@ -55,7 +55,7 @@
 - Use hyphens, not underscores
 - Remove stop words (a, the, and, etc.)
 - Keep it readable and memorable
-- Don't change after publication (breaks links)
+- Keep stable after publication (changes break links)
 
 **YourBlog Convention:**
 - Format: `YYYY-MM-descriptive-slug.md`
@@ -92,7 +92,7 @@
 - One H1 only (title)
 - Use H2 for major sections
 - Use H3 for subsections within H2
-- Don't skip levels (H2 -> H4)
+- Use sequential heading levels (H2 → H3 → H4)
 - Include keywords in headers naturally
 - Make headers scannable
 
@@ -126,7 +126,7 @@ Wrap up...
 - Describe the image content
 - Include keywords naturally
 - Keep under 125 characters
-- Don't start with "Image of..."
+- Describe the content directly ("Dashboard showing monthly revenue" over "Image of a dashboard")
 
 **File Names:**
 - Use descriptive names: `kubernetes-network-diagram.png`
