@@ -11,13 +11,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCAN_PATTERNS = [
-    "skills/meta/skill-creator/references/agent-template.md",
-    "docs/*.md",
-    "agents/**/*.md",
-    "agents/**/references/*.md",
-    "skills/**/SKILL.md",
-    "skills/**/references/*.md",
+    "**/*.md",
 ]
+# Directories excluded from scanning: generated/temp content, virtualenvs,
+# git internals, worktree copies, caches. Only .md files are scanned.
+EXCLUDED_DIRS = (
+    ".git",
+    ".claude/worktrees",
+    ".pytest_cache",
+    "node_modules",
+    "venv",
+    "venv.312.bak",
+    "tmp",
+)
 NEGATIVE_PATTERNS = [
     ("Anti-Pattern", re.compile(r"[Aa]nti-[Pp]atterns?")),
     ("FORBIDDEN", re.compile(r"\bFORBIDDEN\b")),
@@ -29,22 +35,9 @@ NEGATIVE_PATTERNS = [
     # Not matched: "### Prefetch Data to Avoid N+1" — "Avoid" embedded in technical phrase.
     ("Avoid", re.compile(r"^\s*#{1,6}\s+Avoid\b|^\s*#{1,6}.*\bAvoid\s*$|^\s*[-*]?\s*Avoid\b", re.IGNORECASE)),
 ]
-ALLOWLIST = (
-    "anti-ai-editor",
-    "instruction-rubric.md",
-    "detect_negative_instruction_blocks.py",
-    "extract_negative_instruction_blocks.py",
-    "validate_positive_instruction_docs.py",
-    "bulk_fix_instruction_joy.py",
-    # Voice corpus files: NEVER/Don't document voice rules (what the voice itself avoids),
-    # not toolkit operator instructions. Contextual exception per instruction-rubric.md.
-    "voice-andy-nemmity",
-    "voice-vexjoy",
-    # PHILOSOPHY.md uses negative patterns as quoted examples in a teaching table
-    # (e.g. "NEVER edit code directly" → "Route all code modifications...").
-    # The patterns are the subject, not instructions.
-    "PHILOSOPHY.md",
-)
+# Only .py scripts that contain patterns as source code are exempt.
+# Every .md file must pass — no exceptions.
+ALLOWLIST: tuple[str, ...] = ()
 
 
 @dataclass
@@ -56,19 +49,31 @@ class Violation:
 
 
 def collect_targets() -> list[Path]:
-    seen: set[Path] = set()
+    """Collect all git-tracked .md files, excluding generated/temp directories."""
+    import subprocess
+
+    # Use git ls-files to get only tracked .md files
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "*.md", "**/*.md"],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
     targets: list[Path] = []
-    for pattern in SCAN_PATTERNS:
-        for path in sorted(REPO_ROOT.glob(pattern)):
-            if path.is_file() and path not in seen:
-                seen.add(path)
-                targets.append(path)
-    return targets
+    for line in result.stdout.strip().splitlines():
+        if not line:
+            continue
+        if any(line.startswith(d + "/") for d in EXCLUDED_DIRS):
+            continue
+        path = REPO_ROOT / line
+        if path.is_file():
+            targets.append(path)
+    return sorted(targets)
 
 
-def should_skip(path: Path) -> bool:
-    rel = str(path.relative_to(REPO_ROOT))
-    return any(token in rel for token in ALLOWLIST)
+def should_skip(_path: Path) -> bool:
+    # No allowlist — every .md file must pass.
+    return False
 
 
 def scan_file(path: Path) -> list[Violation]:

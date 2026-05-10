@@ -71,7 +71,7 @@ Lines of forward slashes are used as horizontal rules to divide major logical se
 func nextSection() {
 ```
 
-Use these when a file has 2+ logically distinct groups of functions that would be clearer separated visually. Do NOT use for every function boundary -- reserve for major sections.
+Use these when a file has 2+ logically distinct groups of functions that would be clearer separated visually. Reserve section markers for major logical groups (2+ distinct concerns), not individual function boundaries.
 
 ---
 

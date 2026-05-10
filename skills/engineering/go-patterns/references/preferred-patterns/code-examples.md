@@ -1,6 +1,6 @@
-# Go Anti-Patterns: Extended Code Examples
+# Go Failure Modes: Extended Code Examples
 
-Detailed before/after examples for each anti-pattern. Referenced from `SKILL.md` for progressive disclosure.
+Detailed before/after examples for each failure mode. Referenced from `SKILL.md` for progressive disclosure.
 
 ---
 

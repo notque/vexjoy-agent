@@ -29,8 +29,8 @@ Before completing ANY task, verify you haven't rationalized:
 | "Tests are slow" | Slow tests > broken code | **Run them anyway** |
 | "I'm confident" | Confidence ≠ Correctness | **Verify regardless** |
 | "Edge case won't happen" | Edge cases always happen | **Handle it** |
-| "Need to un-ignore this path" | `.gitignore` defines safety boundaries | **NEVER modify `.gitignore` to un-ignore paths** |
-| "Just force-add this one file" | `git add -f` bypasses safety boundaries | **NEVER use `git add --force`; if git refuses, that's correct** |
+| "Need to un-ignore this path" | `.gitignore` defines safety boundaries | **Keep `.gitignore` entries intact — they define safety boundaries** |
+| "Just force-add this one file" | `git add -f` bypasses safety boundaries | **Respect git add refusals — if git refuses a file, the `.gitignore` rule is correct** |
 
 ## Assertive Language Reference
 
@@ -39,9 +39,9 @@ Use strong language for non-negotiable requirements:
 | Category | Words to Use | When |
 |----------|--------------|------|
 | **Requirements** | MUST, REQUIRED, MANDATORY, SHALL, ALWAYS | Non-negotiable actions |
-| **Prohibitions** | CANNOT, NEVER, FORBIDDEN, MUST NOT, PROHIBITED | Actions that would break invariants |
+| **Hard Gates** | STOP, REJECT, BLOCK, HALT | Actions that would break invariants |
 | **Enforcement** | HARD GATE, NON-NEGOTIABLE, NO EXCEPTIONS | Phase transitions |
-| **Anti-patterns** | "Assumption ≠ Verification", "Looking ≠ Being" | Counter rationalizations |
+| **Counterexamples** | "Assumption ≠ Verification", "Looking ≠ Being" | Counter rationalizations |
 
 ## Self-Check Protocol
 

@@ -25,7 +25,7 @@ Try again with a targeted fix that addresses the specific error.
 **Rules:**
 - The retry MUST include error context from the failed attempt. A retry without error context repeats the same mistake.
 - Each RETRY consumes 1 repair attempt from the budget.
-- If the same error recurs after retry, do NOT retry again with the same fix. Move to DECOMPOSE or ESCALATE.
+- If the same error recurs after retry, move to DECOMPOSE or ESCALATE instead of retrying with the same fix.
 
 **Example:**
 ```
@@ -42,7 +42,7 @@ Break the failed task into smaller sub-tasks and execute them individually.
 **When to use:** Task was too large or had hidden dependencies that surfaced during execution. A RETRY already failed, and the task has independently separable parts.
 
 **Rules:**
-- Decomposed sub-tasks are **in-memory only**. NEVER modify the original plan file on disk. The plan file represents user-approved scope; decomposition is an execution-level adaptation.
+- Keep decomposed sub-tasks in memory only. The plan file on disk represents user-approved scope; treat it as read-only during execution. Decomposition is an execution-level adaptation.
 - DECOMPOSE consumes 1 repair attempt for the decomposition itself.
 - Each sub-task gets its own budget of 1 attempt. If a sub-task fails, it escalates — no recursive decomposition.
 - Log every decomposition as a deviation in the execution summary.

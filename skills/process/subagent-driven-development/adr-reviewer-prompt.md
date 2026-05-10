@@ -257,4 +257,4 @@ All requirements implemented, no extras added.
 - ADR compliance reviewer reviews again
 - Repeat until compliant
 
-Do NOT proceed to code quality review until ADR compliance passes.
+Complete ADR compliance before advancing to code quality review.

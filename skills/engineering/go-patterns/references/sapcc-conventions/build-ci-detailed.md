@@ -10,7 +10,7 @@ Complete build tooling, linter configuration, CI workflows, and code quality enf
 
 [github.com/sapcc/go-makefile-maker](https://github.com/sapcc/go-makefile-maker) is an SAP-internal tool that auto-generates the `Makefile`, `.golangci.yaml`, GitHub Actions workflows, `REUSE.toml`, `.typos.toml`, Dockerfile, `.dockerignore`, and Renovate config from a single declarative YAML file (`Makefile.maker.yaml`).
 
-**Key principle**: You do NOT edit generated files directly. You edit `Makefile.maker.yaml` and re-run go-makefile-maker. Every generated file carries this banner:
+**Key principle**: Edit Makefile.maker.yaml and re-run go-makefile-maker. Generated files are outputs, not inputs. Every generated file carries this banner:
 
 ```
 ################################################################################
@@ -158,7 +158,7 @@ All defaults are disabled (`default: none`), then these are explicitly enabled:
 | # | Linter | What It Checks |
 |---|--------|---------------|
 | 1 | `bodyclose` | HTTP response bodies are closed |
-| 2 | `containedctx` | Structs containing `context.Context` (anti-pattern) |
+| 2 | `containedctx` | Structs containing `context.Context` (failure mode) |
 | 3 | `copyloopvar` | Loop variable copies |
 | 4 | `dupword` | Duplicate words in comments/strings (ignores `TRUE`, `FALSE`, `NULL` for SQL) |
 | 5 | `durationcheck` | Incorrect `time.Duration` arithmetic |

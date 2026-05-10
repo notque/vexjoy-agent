@@ -122,7 +122,7 @@ This determines which retro topics are relevant in Phase 8.
 4. **Trace security-sensitive parameters**: For parameters that control authorization, filtering, data access, or resource scoping:
    - Classify each value source: **user-controlled** (query params, form values, request body, headers) vs **server-controlled** (auth tokens, UUIDs, constants, config)
    - For user-controlled sources: verify validation exists BEFORE the value reaches the changed function
-   - Do NOT conclude a sentinel value (e.g., `"*"` meaning "unfiltered") is unreachable because no Go code constructs it — if the source is user input, the user constructs it
+   - Verify sentinel value reachability by checking all input sources, including user input — a value like `"*"` meaning "unfiltered" may be constructed by users even if no Go code constructs it
 
 5. **Document results** in structured format:
    ```

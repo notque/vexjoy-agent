@@ -23,7 +23,7 @@ Requests that MUST activate html-artifact and produce the expected shape.
 
 ## Should-NOT-Trigger Prompts
 
-Requests that must NOT activate html-artifact.
+Requests that stay outside html-artifact scope.
 
 | # | Prompt | Why Not | Correct Route |
 |---|---|---|---|

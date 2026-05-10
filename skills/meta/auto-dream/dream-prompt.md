@@ -4,7 +4,7 @@ All instructions are contained in this prompt.
 
 ## Execution order — READ THIS FIRST
 
-Do NOT execute phases in numbered order. The correct execution sequence is:
+Execute phases in the sequence below (this differs from numbered order):
 
 **SCAN (1) → ANALYZE (2) → REPORT (7, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → GRADUATE (5) → SELECT (6) → REPORT (7, second write: actual results)**
 
@@ -111,7 +111,7 @@ a reader could replace one with the other without losing information.
 
 **Conflicting memories**: Two memories that give contradictory guidance.
 Example: one says "always use absolute paths", another says "relative paths are fine for scripts".
-Do NOT auto-resolve. Flag for human review.
+Flag for human review instead of auto-resolving.
 
 **Cross-session patterns**: Behaviors that recur in 3 or more sessions in the scan window.
 Examples: same error type appears repeatedly, same file modified in most sessions,
@@ -250,7 +250,7 @@ Steps:
    - If topic starts with `skill:` → target is `${DREAM_REPO_DIR}/skills/{skill_name}/SKILL.md`
    - If topic starts with `agent:` → target is the agent's markdown file (search `${DREAM_REPO_DIR}/agents/` for it, or check `~/.claude/agents/`)
    - Read the target file. Find an appropriate insertion point:
-     - If an "Anti-Patterns" or "Common Mistakes" section exists, add there
+     - If an "Failure Modes" or "Common Mistakes" section exists, add there
      - If an "Error Handling" section exists, add there
      - Otherwise, add a new "## Learned Patterns" section before the last section
    - Format the learning as a bullet point with context:
@@ -294,7 +294,7 @@ Steps:
    git push origin "$GRAD_BRANCH"
    ```
 
-   If `git push` fails, do NOT proceed to step 5 (mark_graduated). Record the push failure in the report, leave entries ungraduated so they can be retried next cycle, and skip to `git checkout main`.
+   If `git push` fails, skip step 5 (mark_graduated). Record the push failure in the report, leave entries ungraduated for the next cycle, and continue to `git checkout main`.
 
    ```bash
    # Return to original branch/detached state for remaining phases

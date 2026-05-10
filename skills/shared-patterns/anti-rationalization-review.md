@@ -38,7 +38,7 @@ Before approving, verify you reviewed:
 
 ## Severity Classification Honesty
 
-Don't downgrade severity to avoid conflict:
+Report severity honestly regardless of social pressure:
 
 | You Might Think | Actual Severity | Why |
 |-----------------|-----------------|-----|

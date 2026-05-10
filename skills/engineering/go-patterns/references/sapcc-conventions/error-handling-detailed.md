@@ -127,7 +127,7 @@ var celEnv = must.Return(cel.NewEnv(...))
 must.Return(cadf.NewJSONAttachment("payload", a.Policy))
 ```
 
-**RULE: `must.Return`/`must.Succeed` is NEVER used in request handlers or business logic.** It is reserved for startup code and values that are guaranteed to succeed under correct configuration.
+**RULE: Reserve `must.Return`/`must.Succeed` for startup code and guaranteed-success values only.** Use explicit error handling in request handlers and business logic.
 
 ### 2.3 Test Usage
 
@@ -158,7 +158,7 @@ count := must.ReturnT(db.SelectInt(`SELECT COUNT(*) FROM blobs`))(t)
 Used ONLY in:
 - **CLI commands**: `cmd/test/storage.go`, `cmd/healthmonitor/main.go`, `cmd/validate/main.go`
 - **Configuration parsing**: `internal/keppel/config.go`
-- **NEVER in HTTP handlers or background tasks**
+- **Use explicit error handling in HTTP handlers and background tasks**
 
 ```go
 // cmd/healthmonitor/main.go

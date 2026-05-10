@@ -100,13 +100,13 @@ Tokens buy more value as specialists in parallel than as longer prompts to a sin
 
 The base LLM is a generalist. An agent's job is to close the gap with actual expert knowledge, not by declaring "I am an expert in X."
 
-**High-context (carries information):** Version-specific idiom tables, concrete anti-pattern catalogs with detection commands, error-to-fix mappings from real incidents, project-specific conventions from PR history.
+**High-context (carries information):** Version-specific idiom tables, concrete failure mode catalogs with detection commands, error-to-fix mappings from real incidents, project-specific conventions from PR history.
 
 **Thin wrappers (carries nothing):** "You are an expert Go developer," general best practices the model already knows, padding to fill sections.
 
 Progressive disclosure: main agent file stays navigable (<10k words). Deep reference material in `references/`, loaded on demand.
 
-**Test:** Remove the motivational preamble. Does quality change? (No.) Remove a domain-specific anti-pattern table. Does quality change? (Yes.)
+**Test:** Remove the motivational preamble. Does quality change? (No.) Remove a domain-specific failure mode table. Does quality change? (Yes.)
 
 ---
 
@@ -177,21 +177,28 @@ Skill documents place the workflow immediately after frontmatter. Constraints ap
 
 ### Positive Framing as CI Gate
 
-Instructions tell the reader what to do, not what to avoid. An LLM reading "NEVER edit code directly" has learned a boundary but not a target action. "Route all code modifications to domain agents" gives the same boundary and the action.
+Instructions tell the reader what to do, not what to avoid. Compare these two framings:
 
-**The 100% requirement.** Every agent and skill in the fleet must pass instruction-mode joy-check with zero primary negative patterns. 60% pass was the prototype threshold. 100% is the CI gate. Below 100%, the framing debt accumulates — each `FORBIDDEN` or `Don't` added to a skill reduces the signal quality for every downstream invocation.
+```
+"NEVER edit code directly"        → boundary learned, no target action
+"Route all code modifications to domain agents" → same boundary + clear action
+```
+
+**The 100% requirement.** Every agent and skill in the fleet must pass instruction-mode joy-check with zero primary negative patterns. 60% pass was the prototype threshold. 100% is the CI gate. Below 100%, the framing debt accumulates — each prohibition or negative lead added to a skill reduces the signal quality for every downstream invocation.
 
 **What the CI gate catches:**
 
-| Pattern | Example | Positive rewrite |
-|---------|---------|-----------------|
-| `NEVER` (caps) | "NEVER edit code directly" | "Route all code modifications to domain agents" |
-| `do NOT` / `Do NOT` | "Do NOT use git add -A" | "Stage files by name: `git add specific-file.py`" |
-| `must NOT` | "Hooks must NOT block tools" | "exit 0 on errors to keep tools available" |
-| `FORBIDDEN` | "FORBIDDEN Patterns" | "Hard Gate Patterns" |
-| `Don't` at instruction start | "Don't skip validation" | "Run validation before marking complete" |
-| `Avoid` heading/bullet | "### Patterns to Avoid" | "### Preferred Patterns" |
-| `Anti-Pattern` heading | "## Anti-Patterns" | "## Preferred Patterns" |
+```
+| Pattern                  | Example                        | Positive rewrite                                   |
+|--------------------------|--------------------------------|----------------------------------------------------|
+| NEVER (caps)             | "NEVER edit code directly"     | "Route all code modifications to domain agents"    |
+| do NOT / Do NOT          | "Do NOT use git add -A"        | "Stage files by name: git add specific-file.py"    |
+| must NOT                 | "Hooks must NOT block tools"   | "exit 0 on errors to keep tools available"          |
+| FORBIDDEN                | "FORBIDDEN Patterns"           | "Hard Gate Patterns"                                |
+| Don't at instruction start | "Don't skip validation"      | "Run validation before marking complete"            |
+| Avoid heading/bullet     | "### Patterns to Avoid"        | "### Preferred Patterns"                            |
+| Anti-Pattern heading     | "## Anti-Patterns"             | "## Preferred Patterns"                             |
+```
 
 **Contextual exceptions** (not flagged): subordinate negatives after a positive instruction ("Credentials stay in .env files, never in code"), negatives in fenced code blocks, blockquoted lines, technical terms.
 
@@ -202,7 +209,7 @@ Instructions tell the reader what to do, not what to avoid. An LLM reading "NEVE
 ### Both Deterministic AND LLM Evaluation
 
 **Tier 1 (fast, free, CI-friendly):** Frontmatter parses? Files exist? Required sections present?
-**Tier 2 (deep, nuanced, expensive):** Content useful? Anti-patterns domain-specific or filler?
+**Tier 2 (deep, nuanced, expensive):** Content useful? Failure modes domain-specific or filler?
 
 Neither tier replaces the other. Pipeline: deterministic first, fix, LLM evaluation, fix, final score.
 

@@ -6,36 +6,40 @@ This rubric applies to agent, skill, and pipeline markdown files — instruction
 
 Every instruction should tell the reader what action to take. Prohibitions define a boundary without specifying where to go; positive framing gives a clear action target.
 
-| Dimension | Positive (PASS) | Negative (FAIL) |
-|-----------|----------------|----------------|
-| **Action framing** | "Route all code modifications to domain agents" | "NEVER edit code directly" |
-| **Specific instruction** | "Stage files by name: `git add specific-file.py`" | "do NOT use git add -A" |
-| **Table headings** | "Preferred Patterns", "Hard Gate Patterns" | "Anti-Patterns", "FORBIDDEN Patterns" |
-| **Safety boundaries** | "Create feature branches for all changes" | "Never commit to main" |
-| **Error handling** | "exit 0 on errors to keep tools available" | "must NEVER block tools" |
-| **Double negatives** | "Run validation before marking complete" | "Don't skip validation" |
-| **Section organization** | "What to do" tables showing correct approach | "What NOT to do" tables showing prohibited approach |
+```
+| Dimension              | Positive (PASS)                                   | Negative (FAIL)                                        |
+|------------------------|----------------------------------------------------|--------------------------------------------------------|
+| Action framing         | "Route all code modifications to domain agents"    | "NEVER edit code directly"                             |
+| Specific instruction   | "Stage files by name: git add specific-file.py"    | "do NOT use git add -A"                                |
+| Table headings         | "Preferred Patterns", "Hard Gate Patterns"          | "Failure Modes", "FORBIDDEN Patterns"                  |
+| Safety boundaries      | "Create feature branches for all changes"           | "Never commit to main"                                 |
+| Error handling         | "exit 0 on errors to keep tools available"          | "must NEVER block tools"                               |
+| Double negatives       | "Run validation before marking complete"            | "Don't skip validation"                                |
+| Section organization   | "What to do" tables showing correct approach        | "What NOT to do" tables showing prohibited approach    |
+```
 
 ## Patterns to Flag
 
 ### Primary patterns (always flag when used as instructions)
 
-| Pattern | Regex | Example |
-|---------|-------|---------|
-| NEVER (caps) | `\bNEVER\b` | "NEVER edit code directly" |
-| do NOT / Do NOT | `\b[Dd]o NOT\b` | "Do NOT use git add -A" |
-| must NOT | `\bmust NOT\b` | "must NOT block tools" |
-| FORBIDDEN | `\bFORBIDDEN\b` | "FORBIDDEN Patterns" |
-| Don't (instruction start) | `^-?\s*Don't\b` | "Don't mock the database" |
-| Avoid (as heading/instruction) | `^\s*#{1,6}.*Avoid|^-?\s*Avoid\b` | "### Patterns to Avoid" |
-| Anti-Pattern (in headings) | `^\s*#{1,6}.*[Aa]nti-[Pp]attern` | "### Common Anti-Patterns" |
+```
+| Pattern                       | Regex                                      | Example                       |
+|-------------------------------|--------------------------------------------|-------------------------------|
+| NEVER (caps)                  | \bNEVER\b                                  | "NEVER edit code directly"    |
+| do NOT / Do NOT               | \b[Dd]o NOT\b                              | "Do NOT use git add -A"       |
+| must NOT                      | \bmust NOT\b                               | "must NOT block tools"        |
+| FORBIDDEN                     | \bFORBIDDEN\b                              | "FORBIDDEN Patterns"          |
+| Don't (instruction start)     | ^-?\s*Don't\b                              | "Don't mock the database"     |
+| Avoid (as heading/instruction)| ^\s*#{1,6}.*Avoid|^-?\s*Avoid\b            | "### Patterns to Avoid"       |
+| Anti-Pattern (in headings)    | ^\s*#{1,6}.*[Aa]nti-[Pp]attern             | "### Common Anti-Patterns"    |
+```
 
 ### Contextual exceptions (allow these)
 
 These are PASS even though they contain negative words:
 
 - **Subordinate negatives attached to positive instructions**: "Credentials stay in .env files, never in code" — the primary instruction is positive ("stay in .env files"), the "never" is a subordinate boundary clarification
-- **Code examples showing bad patterns**: `// NEVER` in a code comment demonstrating what SQL injection looks like — this is illustrative, not instructional
+- **Code examples showing bad patterns**: a prohibition keyword in a code comment demonstrating what SQL injection looks like — illustrative, not instructional
 - **Writing samples and user dialogue**: "Don't do this!" in an example of how users speak — this is quoted content
 - **Technical terms**: "Copula Avoidance" is a proper term for an AI writing pattern — the word "Avoidance" is part of the term, not a prohibition
 - **File path references**: `references/preferred-patterns.md` — this is a filename, not an instruction
@@ -45,15 +49,17 @@ These are PASS even though they contain negative words:
 
 When flagging a negative pattern, suggest a specific positive rewrite:
 
-| Negative Pattern | Positive Rewrite Strategy |
-|-----------------|--------------------------|
-| Prohibition ("NEVER X") | State the action: "Do Y instead" |
-| Warning ("do NOT use X") | Give the specific alternative: "Use Y: `example`" |
-| Anti-pattern table | Invert to pattern table: show what to do, not what to avoid |
-| Fear-based ("must NEVER block") | State the outcome: "exit 0 to keep available" |
-| Double negative ("Don't skip") | Direct instruction: "Run before marking complete" |
-| "Avoid" heading | Replace with "Preferred" or "Recommended" |
-| "Anti-Pattern" heading | Replace with "Preferred Patterns" or "Patterns to Detect and Fix" |
+```
+| Negative Pattern              | Positive Rewrite Strategy                                        |
+|-------------------------------|------------------------------------------------------------------|
+| Prohibition ("NEVER X")      | State the action: "Do Y instead"                                 |
+| Warning ("do NOT use X")     | Give the specific alternative: "Use Y: example"                  |
+| Failure mode table           | Invert to pattern table: show what to do, not what to avoid      |
+| Fear-based ("must NEVER block") | State the outcome: "exit 0 to keep available"                 |
+| Double negative ("Don't skip") | Direct instruction: "Run before marking complete"              |
+| "Avoid" heading              | Replace with "Preferred" or "Recommended"                        |
+| "Anti-Pattern" heading       | Replace with "Preferred Patterns" or "Patterns to Detect and Fix"|
+```
 
 ## Scoring
 
@@ -70,7 +76,7 @@ When flagging a negative pattern, suggest a specific positive rewrite:
 
 1. **State the desired action, not the forbidden one** — The LLM needs to know what TO DO
 2. **Preserve safety intent** — "Never commit to main" becomes "Create feature branches for all changes" — same protection, positive framing
-3. **Replace anti-pattern tables with pattern tables** — Show "What to do instead", not "What NOT to do"
+3. **Replace prohibition tables with pattern tables** — Show "What to do instead", not "What to avoid"
 4. **Keep the WHY** — "because X" explanations stay unchanged; only the framing changes
 5. **Subordinate negatives are fine** — "Credentials stay in .env files, never in code" is PASS because the positive instruction leads
 

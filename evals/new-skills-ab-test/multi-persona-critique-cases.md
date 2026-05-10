@@ -143,7 +143,7 @@ Each case presents a set of proposals. All three variants evaluate the same prop
 **What good critique looks like**:
 - At least one persona identifies the cache staleness problem
 - Recognizes the premature optimization (50ms vs 3-5s LLM time)
-- Connects to the toolkit's own anti-patterns: YAGNI, phantom problem detection
+- Connects to the toolkit's own failure modes: YAGNI, phantom problem detection
 - Notes that cache invalidation is a known hard problem
 - Proposal B wins despite being "do nothing" because the optimization is unnecessary
 
