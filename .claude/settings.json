@@ -17,6 +17,7 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
             "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "timeout": 20000,
             "once": true
           },
           {
@@ -30,12 +31,14 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
             "description": "Load learned patterns from previous sessions",
+            "timeout": 5000,
             "once": true
           },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/cross-repo-agents.py\"",
             "description": "Discover custom agents in working directory",
+            "timeout": 3000,
             "once": true
           },
           {
@@ -215,12 +218,14 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-lint-hint.py\"",
-            "description": "Gentle lint reminder after file modifications"
+            "description": "Gentle lint reminder after file modifications",
+            "timeout": 3000
           },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/agent-grade-on-change.py\"",
-            "description": "Grade agents when modified - warns if quality drops below B"
+            "description": "Grade agents when modified - warns if quality drops below B",
+            "timeout": 5000
           },
           {
             "type": "command",
@@ -271,7 +276,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/record-activation.py\"",
-            "description": "Record session activation stats for ROI tracking (ADR-032)"
+            "description": "Record session activation stats for ROI tracking (ADR-032)",
+            "timeout": 2000
           }
         ]
       },
@@ -281,7 +287,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-session-reads.py\"",
-            "description": "Track files read this session for subagent warmstart (ADR-088)"
+            "description": "Track files read this session for subagent warmstart (ADR-088)",
+            "timeout": 2000
           }
         ]
       },
@@ -319,7 +326,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
-            "description": "Learn from tool errors and suggest solutions"
+            "description": "Learn from tool errors and suggest solutions",
+            "timeout": 3000
           },
           {
             "type": "command",
@@ -330,7 +338,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/record-waste.py\"",
-            "description": "Record wasted tokens from tool failures for ROI tracking (ADR-032)"
+            "description": "Record wasted tokens from tool failures for ROI tracking (ADR-032)",
+            "timeout": 2000
           },
           {
             "type": "command",
@@ -363,7 +372,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/precompact-archive.py\"",
-            "description": "Archive session learnings before context compression"
+            "description": "Archive session learnings before context compression",
+            "timeout": 5000
           }
         ]
       }
@@ -422,7 +432,8 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/session-summary.py\"",
-            "description": "Generate session summary and save metrics"
+            "description": "Generate session summary and save metrics",
+            "timeout": 10000
           },
           {
             "type": "command",
