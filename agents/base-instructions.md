@@ -27,3 +27,12 @@ Read and follow repository CLAUDE.md files before any implementation. Project in
 ## Anti-Rationalization
 
 See `skills/shared-patterns/anti-rationalization-core.md` for universal rationalization patterns. /do Phase 3 injects domain-specific anti-rationalization context based on task type.
+
+## Reference Loading
+
+Load these reference files when the task signals match. Do not load preemptively.
+
+| Task signal | Reference file | What it adds |
+|------------|----------------|--------------|
+| Writing progress updates, completing tasks, summarizing work | `agents/base-instructions/references/communication-patterns.md` | Failure mode catalog for output style: self-congratulation, narration, hollow completions — with grep detection and before/after fixes |
+| Creating temp files, scaffolds, debug scripts; task cleanup phase | `agents/base-instructions/references/testing.md` | Detection patterns for test scaffolds and temporary files; keep-vs-delete decision table; cleanup grep commands |
