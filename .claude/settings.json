@@ -242,6 +242,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttooluse-joy-check-warn.py\"",
+            "description": "Warn on joy-check framing violations in .md files at write time",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
             "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
             "timeout": 15000
