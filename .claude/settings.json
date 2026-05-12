@@ -306,6 +306,12 @@
             "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
             "description": "Record Skill and Agent invocation analytics",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
+            "description": "Record /do routing gaps to learning DB for pattern tracking",
+            "timeout": 2000
           }
         ]
       },
@@ -334,13 +340,12 @@
             "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
             "description": "Learn from tool errors and suggest solutions",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
-            "description": "Record /do routing gaps to learning DB for pattern tracking",
-            "timeout": 2000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Agent",
+        "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/record-waste.py\"",
