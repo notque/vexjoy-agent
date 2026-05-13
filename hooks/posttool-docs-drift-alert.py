@@ -32,7 +32,6 @@ def _is_watched_file(file_path: str) -> bool:
 
     Matches:
     - Any file named INDEX.json
-    - Any file named routing-tables.md
     - Any *.md file inside an agents/ directory segment
     - skills/INDEX.json
     - agents/INDEX.json
