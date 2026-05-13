@@ -3,12 +3,12 @@
 """
 Claude Code hook: Alert when documentation may be out of sync after file writes.
 
-Fires after Write/Edit operations on INDEX.json, routing-tables.md, or agents/*.md
-files. Runs the docs-sync-checker scanner when available, or falls back to a simple
-file-count comparison between agents/INDEX.json and the agents/ directory on disk.
+Fires after Write/Edit operations on INDEX.json or agents/*.md files. Runs the
+docs-sync-checker scanner when available, or falls back to a simple file-count
+comparison between agents/INDEX.json and the agents/ directory on disk.
 
 Event: PostToolUse (Write, Edit)
-Filters: INDEX.json, routing-tables.md, agents/*.md, skills/INDEX.json, agents/INDEX.json
+Filters: INDEX.json, agents/*.md, skills/INDEX.json, agents/INDEX.json
 """
 
 import json
@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from stdin_timeout import read_stdin
 
 # Files that trigger a drift check when modified
-_TRIGGER_NAMES = frozenset({"INDEX.json", "routing-tables.md"})
+_TRIGGER_NAMES = frozenset({"INDEX.json"})
 
 # Repo root — derived relative to this hook's location (hooks/ → repo root)
 _REPO_ROOT = Path(__file__).parent.parent

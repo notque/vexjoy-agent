@@ -68,6 +68,13 @@
             "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-adr-health-check.py\"",
+            "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -256,6 +263,12 @@
             "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
             "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
             "timeout": 15000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
+            "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
+            "timeout": 3000
           }
         ]
       },
@@ -273,6 +286,12 @@
             "command": "python3 \"$HOME/.claude/hooks/adr-lifecycle-on-merge.py\"",
             "description": "Check ADR implementation status after merge operations",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-rename-sweep.py\"",
+            "description": "After git mv, scan for stale references to the old filename stem (ADR-129)",
+            "timeout": 3000
           }
         ]
       },
