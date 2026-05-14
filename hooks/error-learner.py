@@ -250,7 +250,7 @@ def main():
             fix_info = DEFAULT_FIX_ACTIONS.get(error_type, {"fix_type": "manual", "fix_action": "investigate"})
             fix_type = fix_info["fix_type"]
             fix_action = fix_info["fix_action"]
-            solution = f"Fix {error_type} error in {tool_name}"
+            solution = f"Fix {error_type} error in {tool_name}: {error_message[:80].strip()}"
 
             print(f"[new-error] {error_type}: {error_message[:100]}")
             if fix_type == "auto":
