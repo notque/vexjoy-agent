@@ -248,6 +248,7 @@ Tags: `thinking:slow` or `thinking:fast` (from Step 2 directive). Advisory — c
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend to agent prompt: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
+| Voice profile skill selected (voice-vexjoy, voice-dragonball-z, voice-andy-nemmity, etc.) | Stack `voice-writer` as the execution pipeline. Voice-writer's 13-phase pipeline is required for all voice content generation. The selected voice-* skill loads as the voice profile in Phase 1 (LOAD). |
 | Vague verb + ambiguous object + no concrete file/symbol named + multiple plausible interpretations | `planning` (interview mode) — load `depth-first-interview.md` |
 
 **Interview-mode heuristic.** Fires when: short request (<15 words), verb in `{build, design, make, fix, figure out, set up}`, object has no file/symbol/path qualifier, no acceptance criteria.
