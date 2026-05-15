@@ -80,6 +80,26 @@ def is_code_noise(text: str) -> bool:
     return (noise_count / len(tokens)) > 0.4
 
 
+def is_xml_or_structured(text: str) -> bool:
+    """True if the prompt is XML, JSON, or internal system payload."""
+    stripped = text.strip()
+    return stripped.startswith("<") or stripped.startswith("{")
+
+
+def is_in_git_repo(cwd: str) -> bool:
+    """True if the CWD is inside a git repository.
+
+    Walks up from cwd looking for a .git directory. This naturally filters
+    out non-repo usage (e.g., kids using Claude Code in home directory or
+    scratch folders) while capturing prompts from actual development work.
+    """
+    path = Path(cwd)
+    for parent in [path, *path.parents]:
+        if (parent / ".git").exists():
+            return True
+    return False
+
+
 def is_natural_language(text: str) -> bool:
     """Composite guard: True if the prompt is worth capturing as a voice sample."""
     stripped = text.strip()
@@ -88,6 +108,9 @@ def is_natural_language(text: str) -> bool:
         return False
 
     if is_mostly_path(stripped):
+        return False
+
+    if is_xml_or_structured(stripped):
         return False
 
     wc = word_count(stripped)
@@ -122,6 +145,12 @@ def main():
         _SEEN_THIS_PROCESS.add(key)
 
         cwd = hook_input.get("cwd") or str(Path.cwd())
+
+        # Only capture prompts from git repos — filters out non-dev usage
+        # (kids, scratch directories) without requiring a named allowlist.
+        if not is_in_git_repo(cwd):
+            empty_output(EVENT_NAME).print_and_exit()
+
         session_id = hook_input.get("session_id") or get_session_id()
 
         record_learning(
