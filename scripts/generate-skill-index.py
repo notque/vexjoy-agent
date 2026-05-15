@@ -514,7 +514,11 @@ def main() -> int:
                 for skill_dir in sorted(category_dir.iterdir()):
                     if not skill_dir.is_dir():
                         continue
-                    if not (skill_dir / "SKILL.md").exists():
+                    # Check both flat (SKILL.md) and nested (skill/SKILL.md) layouts
+                    skill_md_path = skill_dir / "SKILL.md"
+                    if not skill_md_path.exists():
+                        skill_md_path = skill_dir / "skill" / "SKILL.md"
+                    if not skill_md_path.exists():
                         continue
                     # Mirror sync hook naming convention
                     if category == "voice":
@@ -527,7 +531,7 @@ def main() -> int:
                         continue
 
                     try:
-                        content_ = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+                        content_ = skill_md_path.read_text(encoding="utf-8")
                     except (OSError, UnicodeDecodeError):
                         continue
 
