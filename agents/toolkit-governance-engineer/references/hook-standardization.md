@@ -73,6 +73,21 @@ Hooks are shell commands registered in `settings.json` that execute in response 
 
 ---
 
+## Two-File Architecture (settings.json)
+
+Hook registrations exist in **two** settings.json files. Editing the wrong one is the most common hook registration failure.
+
+| File | Role | Persistence |
+|------|------|-------------|
+| `.claude/settings.json` (repo) | **Source of truth.** Version-controlled. All hook registrations go here. | Permanent — survives sessions, commits, deploys |
+| `~/.claude/settings.json` (user home) | **Runtime copy.** Rebuilt by `sync-to-user-claude.py` at every SessionStart. | Ephemeral — overwritten on next session start |
+
+**Rule:** Register hooks in the repo file only. Edits to `~/.claude/settings.json` are overwritten by the sync hook within seconds of the next session starting.
+
+**Sync mechanism:** `hooks/sync-to-user-claude.py` runs as the first SessionStart hook. It copies `agents/`, `skills/`, `hooks/`, and merges `.claude/settings.json` into `~/.claude/settings.json`. This enables hooks to work from any working directory, not just the toolkit repo.
+
+---
+
 ## Correct Patterns
 
 ### Always Exit 0
@@ -158,6 +173,54 @@ print("[hook-name] Action suggested: fix the broken reference")
 ```
 
 **Why**: `UserPromptSubmit` and `PreToolUse` hooks are on the critical path — they block user interaction. Slow hooks here cause noticeable latency. `Stop` and `SessionStart` hooks can afford longer timeouts since they don't block active work.
+
+---
+
+## Gate vs Advisory Classification
+
+PreToolUse hooks split into **gates** (can block tool execution) and **advisory** (context injection only). This distinction matters for exit code behavior and testing.
+
+### Gates (8 hooks — block on violation)
+
+| Hook | Matcher | Blocking Mechanism |
+|------|---------|-------------------|
+| `pretool-unified-gate.py` | Bash\|Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-branch-safety.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
+| `ci-merge-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) — **non-functional**: uses `gh pr checks --json conclusion` but `conclusion` is invalid; use `bucket` |
+| `pretool-ruff-format-gate.py` | Bash | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-synthesis-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-plan-gate.py` | Write\|Edit | JSON `permissionDecision: deny` (exit 0) |
+| `pretool-adr-creation-gate.py` | Write | JSON `permissionDecision: deny` (exit 0) |
+| `pipeline-phase-gate.py` | Write\|Edit | **exit(2)** — inconsistent with other gates; should migrate to JSON `permissionDecision: deny` |
+
+### Advisory (7 hooks — context injection only)
+
+| Hook | Matcher | Purpose |
+|------|---------|---------|
+| `suggest-compact.py` | (all) | Suggest `/compact` at edit threshold |
+| `pretool-learning-injector.py` | Bash\|Edit | Inject known error patterns |
+| `pretool-prompt-injection-scanner.py` | Write\|Edit | Warn about prompt injection |
+| `pretool-file-backup.py` | Edit | Backup files before modification |
+| `reference-loading-enforcer.py` | Agent | Inject reference loading requirements |
+| `pretool-subagent-warmstart.py` | Agent | Inject parent session context |
+| `creation-protocol-enforcer.py` | Agent | Soft-warn on creation without ADR |
+
+---
+
+## Hook Output Conventions
+
+Hooks use three stdout output patterns. All work, but new hooks should prefer JSON with `additionalContext` for advisory output and JSON with `permissionDecision` for gates.
+
+| Pattern | When to Use | Example |
+|---------|-------------|---------|
+| JSON `additionalContext` | Advisory context injection — Claude sees it as system context | `{"additionalContext": "[hook-name] Warning: ..."}` |
+| JSON `permissionDecision` | Gates that block tool execution | `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` |
+| Plain text to stdout | Simple informational output | `print("[hook-name] 3 patterns loaded")` |
+
+**Preferred pattern for new hooks:** Use `hooks/lib/hook_utils.py` helpers:
+- `context_output(event, content)` — advisory context injection
+- `user_message_output(event, msg)` — critical notifications that must reach the user verbatim
+- `empty_output(event)` — silent exit when nothing to report
 
 ---
 
@@ -305,6 +368,39 @@ Deploy the hook Python file to `~/.claude/hooks/` first, verify it exists with `
 | Hook registered but errors on startup | Hook file not deployed to `~/.claude/hooks/` | Deploy file first, then register in settings.json |
 | Hook runs multiple times per session | Missing `"once": true` on SessionStart hook | Add `"once": true` for one-time session initialization hooks |
 | Hook output appears as noise every turn | Hook prints even when no signal | Add early-return guard: only print when there's something to report |
+| Hook registration disappears after restart | Registered in `~/.claude/settings.json` (runtime copy) | Register in `.claude/settings.json` (repo) — see Two-File Architecture above |
+| Hook depends on nonexistent file | Script imports or shells to a file that was removed/never created | Verify all dependencies exist before registering; known case: `agent-grade-on-change.py` depends on `evals/harness.py` which does not exist |
+| Gate uses wrong `gh` API field | `gh pr checks --json conclusion` — `conclusion` is not a valid field | Use `bucket` field instead of `conclusion`; known case: `ci-merge-gate.py` |
+| Duplicate detection across hooks | Multiple hooks scan for the same vulnerability class | `posttool-security-scan.py` and `sql-injection-detector.py` both detect SQL injection; consolidate or scope non-overlapping |
+| Gate uses exit(2) instead of JSON deny | Inconsistent blocking mechanism across gate hooks | Migrate to `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` pattern; known case: `pipeline-phase-gate.py` |
+| error-learner captures non-error output | Hook stdout parsed as "error" by error-learner | Ensure non-error hooks output structured JSON (not plain text that matches error patterns), or scope error-learner's detection |
+
+## Hook Health Status (as of 2026-05-15)
+
+**58/60 registered hooks functional.** 2 non-functional:
+
+| Hook | Event | Issue | Status |
+|------|-------|-------|--------|
+| `ci-merge-gate.py` | PreToolUse (Bash) | Uses `gh pr checks --json conclusion` — `conclusion` is not a valid field name; should use `bucket` | Fix pending |
+| `agent-grade-on-change.py` | PostToolUse (Write\|Edit) | Depends on `evals/harness.py` which does not exist in the repo | Fix pending |
+
+### Registered Hook Inventory by Event
+
+| Event | Count | Gate | Advisory | Notes |
+|-------|-------|------|----------|-------|
+| SessionStart | 9 | 0 | 9 | sync, context loading, environment detection |
+| UserPromptSubmit | 4 | 0 | 4 | pipeline detection, correction capture, prompt capture |
+| PreToolUse | 15 | 8 | 7 | branch safety, format gates, plan gates, context injection |
+| PostToolUse | 22 | 0 | 22 | lint, security scan, learning, analytics, testing |
+| PreCompact | 1 | 0 | 1 | archive learnings |
+| PostCompact | 1 | 0 | 1 | re-inject plan context |
+| TaskCompleted | 1 | 0 | 1 | completion metadata |
+| SubagentStop | 1 | 0 | 1 | branch safety enforcement |
+| StopFailure | 1 | 0 | 1 | failure recording |
+| Stop | 5 | 0 | 5 | summary, decay, learning, graduation |
+| **Total** | **60** | **8** | **52** | |
+
+18 additional hook files exist in `hooks/` but are not registered in settings.json (retired, superseded by unified-gate, or feature-flagged).
 
 ---
 
