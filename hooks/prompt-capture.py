@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+# hook-version: 1.0.0
+# Voice sample capture — records authentic user prompts to learning.db as voice corpus.
+"""
+UserPromptSubmit Hook: Capture user prompts as voice samples.
+
+User prompts in Claude Code are genuine human writing — never AI-generated.
+This hook builds a growing corpus of authentic voice samples that voice
+profile skills can reference.
+
+Filter logic:
+- Skip < 20 words (too little signal)
+- Skip slash commands (/do, /quick, etc.)
+- Skip prompts that are mostly file paths or shell commands
+- Skip if this exact prompt was already captured this session (dedup)
+
+Records to learning.db category=voice, topic=voice-sample.
+Silent on skip. Advisory (non-blocking).
+"""
+
+import hashlib
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+
+from hook_utils import empty_output, get_session_id
+from learning_db_v2 import record_learning
+from stdin_timeout import read_stdin
+
+EVENT_NAME = "UserPromptSubmit"
+
+# Session-level dedup: keyed by session_id, values are sets of prompt hashes.
+# This is in-process only — different hook processes don't share state, so we
+# use a hash-based check against the DB instead (see is_duplicate()).
+_SEEN_THIS_PROCESS: set[str] = set()
+
+# Patterns that indicate the prompt is mostly technical noise, not natural prose.
+_SLASH_CMD_RE = re.compile(r"^\s*/[a-z]", re.IGNORECASE)
+_MOSTLY_PATH_RE = re.compile(r"^[\s/~\.\w\-]+(\.py|\.go|\.ts|\.js|\.json|\.yaml|\.yml|\.sh|\.md)\s*$", re.IGNORECASE)
+
+# Heuristic: a prompt is "code-noise" if more than 40% of its tokens look like
+# paths, flags, or identifiers rather than natural language words.
+_TOKEN_NOISE_RE = re.compile(r"^(/[\w./-]+|--?[\w-]+=?\S*|[\w]+[=:][\S]+|\d+\.?\d*)$")
+
+
+def prompt_hash(text: str) -> str:
+    """Stable 16-char hash for dedup."""
+    return hashlib.md5(text[:500].lower().strip().encode()).hexdigest()[:16]
+
+
+def word_count(text: str) -> int:
+    return len(text.split())
+
+
+def is_slash_command(text: str) -> bool:
+    """True if the prompt starts with a slash command."""
+    return bool(_SLASH_CMD_RE.match(text))
+
+
+def is_mostly_path(text: str) -> bool:
+    """True if the prompt is just a single file path."""
+    return bool(_MOSTLY_PATH_RE.match(text.strip()))
+
+
+def is_code_noise(text: str) -> bool:
+    """True if the prompt reads more like a shell command than natural language.
+
+    Heuristic: split on whitespace; if >40% of tokens look like flags/paths/
+    identifiers, treat as code noise. Also catches things like
+    'python3 ~/.claude/scripts/foo.py --arg value'.
+    """
+    tokens = text.split()
+    if not tokens:
+        return True
+    noise_count = sum(1 for t in tokens if _TOKEN_NOISE_RE.match(t))
+    return (noise_count / len(tokens)) > 0.4
+
+
+def is_natural_language(text: str) -> bool:
+    """Composite guard: True if the prompt is worth capturing as a voice sample."""
+    stripped = text.strip()
+
+    if is_slash_command(stripped):
+        return False
+
+    if is_mostly_path(stripped):
+        return False
+
+    wc = word_count(stripped)
+    if wc < 20:
+        return False
+
+    if is_code_noise(stripped):
+        return False
+
+    return True
+
+
+def main():
+    try:
+        raw = read_stdin(timeout=5)
+        if not raw:
+            empty_output(EVENT_NAME).print_and_exit()
+
+        hook_input = json.loads(raw)
+        prompt = (hook_input.get("prompt") or "").strip()
+
+        if not prompt:
+            empty_output(EVENT_NAME).print_and_exit()
+
+        if not is_natural_language(prompt):
+            empty_output(EVENT_NAME).print_and_exit()
+
+        # Session-level dedup (in-process)
+        key = prompt_hash(prompt)
+        if key in _SEEN_THIS_PROCESS:
+            empty_output(EVENT_NAME).print_and_exit()
+        _SEEN_THIS_PROCESS.add(key)
+
+        cwd = hook_input.get("cwd") or str(Path.cwd())
+        session_id = hook_input.get("session_id") or get_session_id()
+
+        record_learning(
+            topic="voice-sample",
+            key=key,
+            value=prompt[:500],
+            category="voice",
+            confidence=0.80,
+            tags=["source:user-prompt", "authentic"],
+            source="hook:prompt-capture",
+            source_detail="UserPromptSubmit",
+            project_path=cwd,
+            session_id=session_id,
+        )
+
+        # Silent capture — no output to avoid cluttering the conversation.
+        empty_output(EVENT_NAME).print_and_exit()
+
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[prompt-capture] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+    finally:
+        sys.exit(0)  # Never block
+
+
+if __name__ == "__main__":
+    main()
