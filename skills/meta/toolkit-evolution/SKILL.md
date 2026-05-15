@@ -117,11 +117,15 @@ Run the orphaned session check from `references/diagnose-scripts.md` § DIAGNOSE
 
 Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4c. Flag any stub hook as a cleanup opportunity.
 
-**Step 5: Narrow by focus area (if provided)**
+**Step 5: Dedup against prior proposals**
+
+Load `references/evolution-history.md`. Check each opportunity against: (a) Rejected Proposals -- do not re-propose unless the reopen condition is met, (b) Shelved Proposals -- re-propose only if the reactivation condition is now satisfied, (c) Distilled Lessons -- apply the learned criteria to filter weak proposals early.
+
+**Step 6: Narrow by focus area (if provided)**
 
 If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain.
 
-**Step 6: Compile opportunity list**
+**Step 7: Compile opportunity list**
 
 Output a numbered list of 5-10 improvement opportunities. Each entry must include:
 - **What**: One-sentence description of the problem or gap
@@ -288,6 +292,7 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 | Failure modes, error handling, cost estimate, cron scheduling | `references/evolve-preferred-patterns.md` |
 | Running Phase 6 EVOLVE (PR template, merge, cleanup, learning DB commands) | `references/evolve-scripts.md` |
 | Writing or reading the evolution report | `references/evolution-report-template.md` |
+| Running Phase 1 DIAGNOSE (dedup against prior proposals) or Phase 2 PROPOSE | `references/evolution-history.md` |
 
 ---
 
@@ -297,6 +302,7 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `references/diagnose-scripts.md` -- Phase 0 and Phase 1 bash/Python commands
 - `references/evolve-scripts.md` -- Phase 6 PR, merge, cleanup, and learning DB commands
 - `references/evolve-preferred-patterns.md` -- Failure modes, error handling, cost, critique fallback, scheduling
+- `references/evolution-history.md` -- Graduated proposal ledger, shelved conditions, rejected proposals, cycle summaries
 - `skills/meta/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
 - `skills/meta/skill-eval/SKILL.md` -- Skill testing and benchmarking
 - `skills/research/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)
