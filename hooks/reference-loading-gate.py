@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
-PreToolUse:Write,Edit Hook: Reference Loading Gate (Advisory V1)
+PreToolUse:Write,Edit Hook: Reference Loading Gate (Advisory V1.1)
 
 Fires on Write and Edit tool calls. Checks whether the target file belongs
 to an agent or skill component that has a references/ subdirectory, and if
 so emits a reminder to load the relevant reference file before making changes.
+
+Session dedup (V1.1): warns at most once per component subtree per session.
+Dedup state stored at /tmp/claude-ref-gate-{session_id}.json. Prevents alert
+fatigue when making multiple edits to the same component in one session.
 
 This is ADVISORY (exit 0 always) — V1 design. See TODO below for V2 enforcing design.
 
@@ -54,6 +58,40 @@ _BYPASS_ENV = "REF_GATE_BYPASS"
 # Normalised path fragments that indicate a component root worth checking.
 # Both agents/ (flat .md files) and skills/<name>/ (subdirectory components).
 _COMPONENT_PREFIXES = ("/agents/", "/skills/")
+
+
+def _get_session_id(event: dict) -> str:
+    """Return session ID from event or environment, falling back to parent PID."""
+    sid = event.get("session_id") or os.environ.get("CLAUDE_SESSION_ID", "")
+    return sid if sid else str(os.getppid())
+
+
+def _state_path(session_id: str) -> Path:
+    return Path(f"/tmp/claude-ref-gate-{session_id}.json")
+
+
+def _already_warned(component_name: str, session_id: str) -> bool:
+    """Return True if this component has already been warned this session."""
+    state_file = _state_path(session_id)
+    if not state_file.exists():
+        return False
+    try:
+        warned = json.loads(state_file.read_text())
+        return component_name in warned
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
+def _mark_warned(component_name: str, session_id: str) -> None:
+    """Record that this component has been warned this session."""
+    state_file = _state_path(session_id)
+    try:
+        warned = json.loads(state_file.read_text()) if state_file.exists() else []
+        if component_name not in warned:
+            warned.append(component_name)
+            state_file.write_text(json.dumps(warned))
+    except (json.JSONDecodeError, OSError):
+        pass
 
 
 def _resolve_component_root(file_path: str, base_dir: Path) -> Path | None:
@@ -193,6 +231,14 @@ def main() -> None:
             )
         sys.exit(0)
 
+    # Session dedup: warn at most once per component subtree per session.
+    component_name = component_root.name
+    session_id = _get_session_id(event)
+    if _already_warned(component_name, session_id):
+        if debug:
+            print(f"[ref-gate] Already warned for {component_name!r} this session — skipping", file=sys.stderr)
+        sys.exit(0)
+
     # Component has reference files — emit advisory reminder.
     references_dir = component_root / "references"
     print(
@@ -205,6 +251,7 @@ def main() -> None:
         f"{references_dir} before making changes.",
         file=sys.stderr,
     )
+    _mark_warned(component_name, session_id)
 
     # V1: advisory only — always exit 0.
     sys.exit(0)
