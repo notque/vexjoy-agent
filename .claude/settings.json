@@ -99,6 +99,12 @@
             "command": "python3 \"$HOME/.claude/hooks/codex-auto-review.py\"",
             "description": "Auto-inject Codex cross-model review for PR review operations",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/prompt-capture.py\"",
+            "description": "Capture user prompts as voice samples (git repos only)",
+            "timeout": 5000
           }
         ]
       }
