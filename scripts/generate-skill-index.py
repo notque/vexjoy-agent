@@ -326,9 +326,15 @@ def generate_index(
     }
     warnings: list[str] = []
 
-    def _process_skill_dir(skill_dir: Path) -> None:
-        """Process a single skill directory: extract frontmatter and add to index."""
-        skill_file = skill_dir / "SKILL.md"
+    def _process_skill_dir(skill_dir: Path, skill_file_override: Path | None = None) -> None:
+        """Process a single skill directory: extract frontmatter and add to index.
+
+        Args:
+            skill_dir: The skill's directory (used for naming and path computation).
+            skill_file_override: If set, read SKILL.md from this path instead of
+                skill_dir / "SKILL.md". Used for nested layouts (skill/SKILL.md).
+        """
+        skill_file = skill_file_override or (skill_dir / "SKILL.md")
         if not skill_file.exists():
             return
 
@@ -384,8 +390,11 @@ def generate_index(
         # Check if this directory directly contains a SKILL.md (flat layout)
         if (child / "SKILL.md").exists():
             _process_skill_dir(child)
+        # Check for nested skill/SKILL.md layout (e.g., voice-dragonball-z/skill/SKILL.md)
+        elif (child / "skill" / "SKILL.md").exists():
+            _process_skill_dir(child, skill_file_override=child / "skill" / "SKILL.md")
         else:
-            # Category folder: recurse one level into subdirectories
+            # Category folder: recurse into subdirectories
             for nested in sorted(child.iterdir()):
                 if not nested.is_dir():
                     continue
@@ -393,6 +402,20 @@ def generate_index(
                     continue
                 if (nested / "SKILL.md").exists():
                     _process_skill_dir(nested)
+                elif (nested / "skill" / "SKILL.md").exists():
+                    # Nested skill/SKILL.md layout within category
+                    _process_skill_dir(nested, skill_file_override=nested / "skill" / "SKILL.md")
+                else:
+                    # Third level: e.g., skills/voice/skills/{name}/SKILL.md
+                    for deep in sorted(nested.iterdir()):
+                        if not deep.is_dir():
+                            continue
+                        if deep.is_symlink() and not include_private:
+                            continue
+                        if (deep / "SKILL.md").exists():
+                            _process_skill_dir(deep)
+                        elif (deep / "skill" / "SKILL.md").exists():
+                            _process_skill_dir(deep, skill_file_override=deep / "skill" / "SKILL.md")
 
     return index, warnings
 
@@ -499,6 +522,49 @@ def main() -> int:
         strict=args.strict,
         flatten=args.include_private,
     )
+
+    # Always scan ~/.claude/skills/ for deployed skills not already indexed.
+    # The repo skills/ scan skips symlinked directories (private/voice skills),
+    # so this picks up voice-*, create-voice, anti-ai-editor, and any other
+    # skills deployed by the sync hook. Handles both flat (SKILL.md) and nested
+    # (skill/SKILL.md) layouts.
+    user_skills_dir = Path.home() / ".claude" / "skills"
+    if user_skills_dir.is_dir():
+        for skill_dir in sorted(user_skills_dir.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            deploy_name = skill_dir.name
+            # Skip if already indexed from repo skills/
+            if deploy_name in skills_index["skills"]:
+                continue
+            # Check both flat (SKILL.md) and nested (skill/SKILL.md) layouts
+            skill_md_path = skill_dir / "SKILL.md"
+            if not skill_md_path.exists():
+                skill_md_path = skill_dir / "skill" / "SKILL.md"
+            if not skill_md_path.exists():
+                continue
+            try:
+                content_ = skill_md_path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            fm, used_fallback = extract_frontmatter(content_)
+            if not fm:
+                continue
+            if used_fallback and args.strict:
+                continue
+            # Override name to match deployed name
+            fm["name"] = deploy_name
+            entry = build_entry(
+                frontmatter=fm,
+                skill_dir=skill_dir,
+                dir_prefix="skills",
+                source_dir=None,
+                content=None,
+                is_pipeline=False,
+                flatten=True,
+            )
+            entry["file"] = f"skills/{deploy_name}/SKILL.md"
+            skills_index["skills"][deploy_name] = entry
 
     # When --include-private, also scan ~/private-skills/ for skills deployed
     # by the sync hook. These live outside the repo but get symlinked into
