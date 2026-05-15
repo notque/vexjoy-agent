@@ -40,11 +40,18 @@ def grade_agent(agent_path: str) -> tuple[dict | None, str | None]:
 
     Returns:
         Tuple of (result_dict, error_message). If grading succeeds, error is None.
+
+    Dependency: Requires evals/harness.py to be deployed. Without it, grading
+    is skipped silently. Deploy the harness to enable automatic agent grading.
+    See: https://github.com/notque/vexjoy-agent/issues/TBD
     """
     harness_path = Path(__file__).parent.parent / "evals" / "harness.py"
 
     if not harness_path.exists():
-        return None, f"Harness not found at {harness_path}"
+        # Harness not deployed — skip silently. Printing a warning every
+        # invocation creates noise without value. The dependency comment
+        # above documents how to enable grading.
+        return None, None
 
     try:
         result = subprocess.run(
