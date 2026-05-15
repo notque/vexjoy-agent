@@ -523,13 +523,14 @@ def main() -> int:
         flatten=args.include_private,
     )
 
-    # Always scan ~/.claude/skills/ for deployed skills not already indexed.
-    # The repo skills/ scan skips symlinked directories (private/voice skills),
-    # so this picks up voice-*, create-voice, anti-ai-editor, and any other
-    # skills deployed by the sync hook. Handles both flat (SKILL.md) and nested
-    # (skill/SKILL.md) layouts.
+    # Scan ~/.claude/skills/ for deployed skills not already indexed.
+    # Only when --include-private: the repo skills/ scan skips symlinked
+    # directories (private/voice skills), so this picks up voice-*,
+    # create-voice, anti-ai-editor, and any other skills deployed by the
+    # sync hook. Without --include-private, these entries would reference
+    # files that don't exist in the repo and break CI.
     user_skills_dir = Path.home() / ".claude" / "skills"
-    if user_skills_dir.is_dir():
+    if args.include_private and user_skills_dir.is_dir():
         for skill_dir in sorted(user_skills_dir.iterdir()):
             if not skill_dir.is_dir():
                 continue
