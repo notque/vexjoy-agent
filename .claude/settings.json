@@ -151,6 +151,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-ruff-format-gate.py\"",
             "description": "Ruff format gate: blocks git push when ruff format --check finds violations (Python projects with pyproject.toml only)",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-index-sync-check.py\"",
+            "description": "INDEX.json sync gate: blocks git commit/push when SKILL.md staged without INDEX.json",
+            "timeout": 5000
           }
         ]
       },

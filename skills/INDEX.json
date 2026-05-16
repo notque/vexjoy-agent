@@ -1,10 +1,10 @@
 {
   "version": "2.0",
-  "generated": "2026-05-15T17:22:34Z",
+  "generated": "2026-05-15T21:56:18Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
-      "file": "skills/csuite/SKILL.md",
+      "file": "skills/business/csuite/SKILL.md",
       "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
       "triggers": [
         "should we",
@@ -39,7 +39,7 @@
       "user_invocable": false
     },
     "customer-support": {
-      "file": "skills/customer-support/SKILL.md",
+      "file": "skills/business/customer-support/SKILL.md",
       "description": "Customer support workflows \u2014 ticket triage, response drafting, knowledge base articles, escalation handling, customer research.",
       "triggers": [
         "customer support",
@@ -55,7 +55,7 @@
       "pairs_with": []
     },
     "design": {
-      "file": "skills/design/SKILL.md",
+      "file": "skills/business/design/SKILL.md",
       "description": "Design workflows \u2014 UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis.",
       "triggers": [
         "design",
@@ -77,7 +77,7 @@
       "pairs_with": []
     },
     "finance": {
-      "file": "skills/finance/SKILL.md",
+      "file": "skills/business/finance/SKILL.md",
       "description": "Finance and accounting workflows \u2014 journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing.",
       "triggers": [
         "finance",
@@ -94,7 +94,7 @@
       "pairs_with": []
     },
     "hr": {
-      "file": "skills/hr/SKILL.md",
+      "file": "skills/business/hr/SKILL.md",
       "description": "People operations workflows \u2014 recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning.",
       "triggers": [
         "HR",
@@ -111,7 +111,7 @@
       "pairs_with": []
     },
     "legal": {
-      "file": "skills/legal/SKILL.md",
+      "file": "skills/business/legal/SKILL.md",
       "description": "Legal workflows \u2014 contract review, compliance checks, NDA triage, risk assessment, legal briefs.",
       "triggers": [
         "legal",
@@ -133,7 +133,7 @@
       "pairs_with": []
     },
     "marketing": {
-      "file": "skills/marketing/SKILL.md",
+      "file": "skills/business/marketing/SKILL.md",
       "description": "Marketing workflows \u2014 SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting.",
       "triggers": [
         "marketing",
@@ -150,7 +150,7 @@
       "pairs_with": []
     },
     "operations": {
-      "file": "skills/operations/SKILL.md",
+      "file": "skills/business/operations/SKILL.md",
       "description": "Business operations workflows \u2014 vendor management, runbooks, process documentation, risk assessment, capacity planning, change management, compliance tracking.",
       "triggers": [
         "operations",
@@ -167,7 +167,7 @@
       "pairs_with": []
     },
     "product-management": {
-      "file": "skills/product-management/SKILL.md",
+      "file": "skills/business/product-management/SKILL.md",
       "description": "Product management workflows \u2014 feature specs, roadmap planning, stakeholder updates, user research synthesis, competitive analysis, metrics review, sprint planning.",
       "triggers": [
         "product management",
@@ -184,7 +184,7 @@
       "pairs_with": []
     },
     "productivity": {
-      "file": "skills/productivity/SKILL.md",
+      "file": "skills/business/productivity/SKILL.md",
       "description": "Productivity workflows \u2014 task management, daily planning, weekly reviews, meeting optimization, focus management, goal setting, status updates.",
       "triggers": [
         "productivity",
@@ -205,7 +205,7 @@
       "pairs_with": []
     },
     "sales": {
-      "file": "skills/sales/SKILL.md",
+      "file": "skills/business/sales/SKILL.md",
       "description": "Sales workflows \u2014 call prep, pipeline analysis, outreach, competitive intelligence, forecasting.",
       "triggers": [
         "sales",
@@ -221,7 +221,7 @@
       "pairs_with": []
     },
     "code-cleanup": {
-      "file": "skills/code-cleanup/SKILL.md",
+      "file": "skills/code-quality/code-cleanup/SKILL.md",
       "description": "Detect stale TODOs, unused imports, and dead code.",
       "triggers": [
         "find dead code",
@@ -241,7 +241,7 @@
       ]
     },
     "code-linting": {
-      "file": "skills/code-linting/SKILL.md",
+      "file": "skills/code-quality/code-linting/SKILL.md",
       "description": "Run Python (ruff) and JavaScript (Biome) linting.",
       "triggers": [
         "lint code",
@@ -259,7 +259,7 @@
       ]
     },
     "comment-quality": {
-      "file": "skills/comment-quality/SKILL.md",
+      "file": "skills/code-quality/comment-quality/SKILL.md",
       "description": "Review and fix temporal references in code comments.",
       "triggers": [
         "review comments",
@@ -276,7 +276,7 @@
       ]
     },
     "condense": {
-      "file": "skills/condense/SKILL.md",
+      "file": "skills/code-quality/condense/SKILL.md",
       "description": "Maximize information density: preserve all instructions, remove prose filler.",
       "triggers": [
         "condense",
@@ -295,7 +295,7 @@
       ]
     },
     "joy-check": {
-      "file": "skills/joy-check/SKILL.md",
+      "file": "skills/code-quality/joy-check/SKILL.md",
       "description": "Validate content framing on joy-grievance spectrum.",
       "triggers": [
         "joy check",
@@ -318,7 +318,7 @@
       ]
     },
     "python-quality-gate": {
-      "file": "skills/python-quality-gate/SKILL.md",
+      "file": "skills/code-quality/python-quality-gate/SKILL.md",
       "description": "Python quality checks: ruff, pytest, mypy, bandit in deterministic order.",
       "triggers": [
         "Python quality",
@@ -340,7 +340,7 @@
       "agent": "python-general-engineer"
     },
     "typescript-check": {
-      "file": "skills/typescript-check/SKILL.md",
+      "file": "skills/code-quality/typescript-check/SKILL.md",
       "description": "TypeScript type checking via tsc --noEmit with actionable error output.",
       "triggers": [
         "TypeScript check",
@@ -358,7 +358,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "universal-quality-gate": {
-      "file": "skills/universal-quality-gate/SKILL.md",
+      "file": "skills/code-quality/universal-quality-gate/SKILL.md",
       "description": "Multi-language code quality gate with auto-detection and linters.",
       "triggers": [
         "quality gate",
@@ -375,7 +375,7 @@
       ]
     },
     "bluesky-reader": {
-      "file": "skills/bluesky-reader/SKILL.md",
+      "file": "skills/content/bluesky-reader/SKILL.md",
       "description": "Read public Bluesky feeds via AT Protocol API.",
       "triggers": [
         "read Bluesky",
@@ -392,7 +392,7 @@
       "agent": "python-general-engineer"
     },
     "content-calendar": {
-      "file": "skills/content-calendar/SKILL.md",
+      "file": "skills/content/content-calendar/SKILL.md",
       "description": "Manage editorial content through 6 pipeline stages.",
       "triggers": [
         "content pipeline",
@@ -410,7 +410,7 @@
       ]
     },
     "content-engine": {
-      "file": "skills/content-engine/SKILL.md",
+      "file": "skills/content/content-engine/SKILL.md",
       "description": "Repurpose source assets into platform-native social content.",
       "triggers": [
         "repurpose this",
@@ -431,7 +431,7 @@
       ]
     },
     "gemini-image-generator": {
-      "file": "skills/gemini-image-generator/SKILL.md",
+      "file": "skills/content/gemini-image-generator/SKILL.md",
       "description": "Generate images from text prompts via Google Gemini.",
       "triggers": [
         "generate image",
@@ -451,7 +451,7 @@
       "agent": "python-general-engineer"
     },
     "image-to-video": {
-      "file": "skills/image-to-video/SKILL.md",
+      "file": "skills/content/image-to-video/SKILL.md",
       "description": "FFmpeg-based video creation from image and audio.",
       "triggers": [
         "image to video",
@@ -473,7 +473,7 @@
       ]
     },
     "nano-banana-builder": {
-      "file": "skills/nano-banana-builder/SKILL.md",
+      "file": "skills/content/nano-banana-builder/SKILL.md",
       "description": "Image generation and post-processing via Gemini Nano Banana APIs.",
       "triggers": [
         "nano banana",
@@ -496,7 +496,7 @@
       "agent": "python-general-engineer"
     },
     "pptx-generator": {
-      "file": "skills/pptx-generator/SKILL.md",
+      "file": "skills/content/pptx-generator/SKILL.md",
       "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
       "triggers": [
         "presentation",
@@ -518,7 +518,7 @@
       ]
     },
     "professional-communication": {
-      "file": "skills/professional-communication/SKILL.md",
+      "file": "skills/content/professional-communication/SKILL.md",
       "description": "Transform technical communication into structured business formats.",
       "triggers": [
         "business communication",
@@ -538,7 +538,7 @@
       ]
     },
     "publish": {
-      "file": "skills/publish/SKILL.md",
+      "file": "skills/content/publish/SKILL.md",
       "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
       "triggers": [
         "outline post",
@@ -592,7 +592,7 @@
       "agent": "general-purpose"
     },
     "reddit-moderate": {
-      "file": "skills/reddit-moderate/SKILL.md",
+      "file": "skills/content/reddit-moderate/SKILL.md",
       "description": "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.",
       "triggers": [
         "moderate Reddit",
@@ -609,7 +609,7 @@
       "agent": "python-general-engineer"
     },
     "series-planner": {
-      "file": "skills/series-planner/SKILL.md",
+      "file": "skills/content/series-planner/SKILL.md",
       "description": "Plan multi-part content series: structure, cross-linking, cadence.",
       "triggers": [
         "plan series",
@@ -627,7 +627,7 @@
       ]
     },
     "topic-brainstormer": {
-      "file": "skills/topic-brainstormer/SKILL.md",
+      "file": "skills/content/topic-brainstormer/SKILL.md",
       "description": "Generate blog topic ideas: problem mining, gap analysis, expansion.",
       "triggers": [
         "brainstorm topics",
@@ -644,7 +644,7 @@
       ]
     },
     "video-editing": {
-      "file": "skills/video-editing/SKILL.md",
+      "file": "skills/content/video-editing/SKILL.md",
       "description": "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.",
       "triggers": [
         "edit video",
@@ -667,7 +667,7 @@
       "agent": "python-general-engineer"
     },
     "wordpress-live-validation": {
-      "file": "skills/wordpress-live-validation/SKILL.md",
+      "file": "skills/content/wordpress-live-validation/SKILL.md",
       "description": "Validate published WordPress posts in browser via Playwright.",
       "triggers": [
         "validate wordpress post",
@@ -687,7 +687,7 @@
       ]
     },
     "x-api": {
-      "file": "skills/x-api/SKILL.md",
+      "file": "skills/content/x-api/SKILL.md",
       "description": "Post tweets, build threads, upload media via the X API.",
       "triggers": [
         "post to X",
@@ -712,7 +712,7 @@
       "agent": "python-general-engineer"
     },
     "cobalt-core": {
-      "file": "skills/cobalt-core/SKILL.md",
+      "file": "skills/engineering/cobalt-core/SKILL.md",
       "description": "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.",
       "triggers": [
         "cobalt core",
@@ -733,7 +733,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "enterprise-search": {
-      "file": "skills/enterprise-search/SKILL.md",
+      "file": "skills/engineering/enterprise-search/SKILL.md",
       "description": "Enterprise search engineering \u2014 relevance tuning, query understanding, index management, search quality measurement, ranking optimization, schema design.",
       "triggers": [
         "enterprise search",
@@ -762,7 +762,7 @@
       "pairs_with": []
     },
     "go-patterns": {
-      "file": "skills/go-patterns/SKILL.md",
+      "file": "skills/engineering/go-patterns/SKILL.md",
       "description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
       "triggers": [
         "go test",
@@ -808,7 +808,7 @@
       "agent": "golang-general-engineer"
     },
     "kotlin-coroutines": {
-      "file": "skills/kotlin-coroutines/SKILL.md",
+      "file": "skills/engineering/kotlin-coroutines/SKILL.md",
       "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
       "triggers": [
         "kotlin coroutines",
@@ -826,7 +826,7 @@
       "agent": "kotlin-general-engineer"
     },
     "kotlin-testing": {
-      "file": "skills/kotlin-testing/SKILL.md",
+      "file": "skills/engineering/kotlin-testing/SKILL.md",
       "description": "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.",
       "triggers": [
         "kotlin testing",
@@ -844,7 +844,7 @@
       "agent": "kotlin-general-engineer"
     },
     "php-quality": {
-      "file": "skills/php-quality/SKILL.md",
+      "file": "skills/engineering/php-quality/SKILL.md",
       "description": "PHP code quality: PSR standards, strict types, framework idioms.",
       "triggers": [
         "php quality",
@@ -862,7 +862,7 @@
       "agent": "php-general-engineer"
     },
     "php-testing": {
-      "file": "skills/php-testing/SKILL.md",
+      "file": "skills/engineering/php-testing/SKILL.md",
       "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
       "triggers": [
         "php testing",
@@ -879,7 +879,7 @@
       "agent": "php-general-engineer"
     },
     "sapcc-audit": {
-      "file": "skills/sapcc-audit/SKILL.md",
+      "file": "skills/engineering/sapcc-audit/SKILL.md",
       "description": "Full-repo SAP CC Go compliance audit against review standards.",
       "triggers": [
         "sapcc audit",
@@ -899,7 +899,7 @@
       "agent": "golang-general-engineer"
     },
     "sapcc-review": {
-      "file": "skills/sapcc-review/SKILL.md",
+      "file": "skills/engineering/sapcc-review/SKILL.md",
       "description": "Gold-standard SAP CC Go code review: 10 parallel domain specialists.",
       "triggers": [
         "sapcc review",
@@ -919,7 +919,7 @@
       "agent": "golang-general-engineer"
     },
     "swift-concurrency": {
-      "file": "skills/swift-concurrency/SKILL.md",
+      "file": "skills/engineering/swift-concurrency/SKILL.md",
       "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
       "triggers": [
         "swift concurrency",
@@ -935,7 +935,7 @@
       "agent": "swift-general-engineer"
     },
     "swift-testing": {
-      "file": "skills/swift-testing/SKILL.md",
+      "file": "skills/engineering/swift-testing/SKILL.md",
       "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
       "triggers": [
         "swift testing",
@@ -952,7 +952,7 @@
       "agent": "swift-general-engineer"
     },
     "distinctive-frontend-design": {
-      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "file": "skills/frontend/distinctive-frontend-design/SKILL.md",
       "description": "Context-driven aesthetic exploration with anti-cliche validation.",
       "triggers": [
         "frontend design",
@@ -970,7 +970,7 @@
       ]
     },
     "frontend-slides": {
-      "file": "skills/frontend-slides/SKILL.md",
+      "file": "skills/frontend/frontend-slides/SKILL.md",
       "description": "Browser-based HTML presentation generation.",
       "triggers": [
         "HTML slides",
@@ -994,7 +994,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "threejs-builder": {
-      "file": "skills/threejs-builder/SKILL.md",
+      "file": "skills/frontend/threejs-builder/SKILL.md",
       "description": "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.",
       "triggers": [
         "threejs",
@@ -1034,7 +1034,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "webgl-card-effects": {
-      "file": "skills/webgl-card-effects/SKILL.md",
+      "file": "skills/frontend/webgl-card-effects/SKILL.md",
       "description": "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.",
       "triggers": [
         "card effects",
@@ -1057,7 +1057,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "game-asset-generator": {
-      "file": "skills/game-asset-generator/SKILL.md",
+      "file": "skills/game/game-asset-generator/SKILL.md",
       "description": "Deterministic palette/matrix pixel art (not AI).",
       "triggers": [
         "pixel art",
@@ -1095,7 +1095,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "game-pipeline": {
-      "file": "skills/game-pipeline/SKILL.md",
+      "file": "skills/game/game-pipeline/SKILL.md",
       "description": "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.",
       "triggers": [
         "make game",
@@ -1123,7 +1123,7 @@
       ]
     },
     "game-sprite-pipeline": {
-      "file": "skills/game-sprite-pipeline/SKILL.md",
+      "file": "skills/game/game-sprite-pipeline/SKILL.md",
       "description": "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana.",
       "triggers": [
         "AI sprite",
@@ -1164,7 +1164,7 @@
       "agent": "python-general-engineer"
     },
     "motion-pipeline": {
-      "file": "skills/motion-pipeline/SKILL.md",
+      "file": "skills/game/motion-pipeline/SKILL.md",
       "description": "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK.",
       "triggers": [
         "mocap",
@@ -1187,7 +1187,7 @@
       ]
     },
     "phaser-gamedev": {
-      "file": "skills/phaser-gamedev/SKILL.md",
+      "file": "skills/game/phaser-gamedev/SKILL.md",
       "description": "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish.",
       "triggers": [
         "phaser",
@@ -1207,7 +1207,7 @@
       "agent": "typescript-frontend-engineer"
     },
     "cron-job-auditor": {
-      "file": "skills/cron-job-auditor/SKILL.md",
+      "file": "skills/infrastructure/cron-job-auditor/SKILL.md",
       "description": "Audit cron scripts for reliability and safety.",
       "triggers": [
         "audit cron jobs",
@@ -1224,7 +1224,7 @@
       ]
     },
     "endpoint-validator": {
-      "file": "skills/endpoint-validator/SKILL.md",
+      "file": "skills/infrastructure/endpoint-validator/SKILL.md",
       "description": "Deterministic API endpoint validation with pass/fail reporting.",
       "triggers": [
         "validate endpoints",
@@ -1242,7 +1242,7 @@
       ]
     },
     "fish-shell-config": {
-      "file": "skills/fish-shell-config/SKILL.md",
+      "file": "skills/infrastructure/fish-shell-config/SKILL.md",
       "description": "Fish shell configuration and PATH management.",
       "triggers": [
         "fish",
@@ -1266,7 +1266,7 @@
       "pairs_with": []
     },
     "headless-cron-creator": {
-      "file": "skills/headless-cron-creator/SKILL.md",
+      "file": "skills/infrastructure/headless-cron-creator/SKILL.md",
       "description": "Generate headless Claude Code cron jobs with safety.",
       "triggers": [
         "create cron job",
@@ -1284,7 +1284,7 @@
       "agent": "python-general-engineer"
     },
     "kubernetes-debugging": {
-      "file": "skills/kubernetes-debugging/SKILL.md",
+      "file": "skills/infrastructure/kubernetes-debugging/SKILL.md",
       "description": "Kubernetes debugging for pod failures and networking.",
       "triggers": [
         "kubernetes debug",
@@ -1303,7 +1303,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "kubernetes-security": {
-      "file": "skills/kubernetes-security/SKILL.md",
+      "file": "skills/infrastructure/kubernetes-security/SKILL.md",
       "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
       "triggers": [
         "kubernetes security",
@@ -1321,7 +1321,7 @@
       "agent": "kubernetes-helm-engineer"
     },
     "service-health-check": {
-      "file": "skills/service-health-check/SKILL.md",
+      "file": "skills/infrastructure/service-health-check/SKILL.md",
       "description": "Service health monitoring: Discover, Check, Report in 3 phases.",
       "triggers": [
         "service status",
@@ -1339,7 +1339,7 @@
       ]
     },
     "shell-process-patterns": {
-      "file": "skills/shell-process-patterns/SKILL.md",
+      "file": "skills/infrastructure/shell-process-patterns/SKILL.md",
       "description": "Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.",
       "triggers": [
         "background process",
@@ -1361,7 +1361,7 @@
       ]
     },
     "agent-comparison": {
-      "file": "skills/agent-comparison/SKILL.md",
+      "file": "skills/meta/agent-comparison/SKILL.md",
       "description": "A/B test agent variants for quality and token cost.",
       "triggers": [
         "compare agents",
@@ -1379,7 +1379,7 @@
       ]
     },
     "agent-evaluation": {
-      "file": "skills/agent-evaluation/SKILL.md",
+      "file": "skills/meta/agent-evaluation/SKILL.md",
       "description": "Evaluate agents and skills for quality and standards compliance.",
       "triggers": [
         "evaluate agent",
@@ -1398,7 +1398,7 @@
       ]
     },
     "auto-dream": {
-      "file": "skills/auto-dream/SKILL.md",
+      "file": "skills/meta/auto-dream/SKILL.md",
       "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
       "triggers": [
         "dream",
@@ -1415,7 +1415,7 @@
       "pairs_with": []
     },
     "do": {
-      "file": "skills/do/SKILL.md",
+      "file": "skills/meta/do/SKILL.md",
       "description": "Classify user requests and route to the correct agent + skill.",
       "triggers": [
         "route task",
@@ -1428,7 +1428,7 @@
       "user_invocable": true
     },
     "docs-sync-checker": {
-      "file": "skills/docs-sync-checker/SKILL.md",
+      "file": "skills/meta/docs-sync-checker/SKILL.md",
       "description": "Detect documentation drift against filesystem state.",
       "triggers": [
         "check doc drift",
@@ -1445,7 +1445,7 @@
       ]
     },
     "explanation-traces": {
-      "file": "skills/explanation-traces/SKILL.md",
+      "file": "skills/meta/explanation-traces/SKILL.md",
       "description": "Query and display structured decision traces from routing, agent selection, and skill execution.",
       "triggers": [
         "why did you",
@@ -1463,7 +1463,7 @@
       "pairs_with": []
     },
     "generate-claudemd": {
-      "file": "skills/generate-claudemd/SKILL.md",
+      "file": "skills/meta/generate-claudemd/SKILL.md",
       "description": "Generate project-specific CLAUDE.md from repo analysis.",
       "triggers": [
         "generate claude.md",
@@ -1480,7 +1480,7 @@
       ]
     },
     "html-artifact": {
-      "file": "skills/html-artifact/SKILL.md",
+      "file": "skills/meta/html-artifact/SKILL.md",
       "description": "Generate rich self-contained HTML artifacts instead of markdown.",
       "triggers": [
         "HTML artifact",
@@ -1502,7 +1502,7 @@
       ]
     },
     "install": {
-      "file": "skills/install/SKILL.md",
+      "file": "skills/meta/install/SKILL.md",
       "description": "Verify VexJoy Agent installation, diagnose issues, and guide first-time setup.",
       "triggers": [
         "install toolkit",
@@ -1517,7 +1517,7 @@
       "user_invocable": true
     },
     "learn": {
-      "file": "skills/learn/SKILL.md",
+      "file": "skills/meta/learn/SKILL.md",
       "description": "Manually teach error pattern and solution to learning database.",
       "triggers": [
         "teach pattern",
@@ -1534,7 +1534,7 @@
       ]
     },
     "reference-enrichment": {
-      "file": "skills/reference-enrichment/SKILL.md",
+      "file": "skills/meta/reference-enrichment/SKILL.md",
       "description": "Analyze agent/skill reference depth and generate missing domain-specific reference files.",
       "triggers": [
         "enrich references",
@@ -1555,7 +1555,7 @@
       ]
     },
     "retro": {
-      "file": "skills/retro/SKILL.md",
+      "file": "skills/meta/retro/SKILL.md",
       "description": "Learning system interface: stats, search, graduate learnings.",
       "triggers": [
         "retro stats",
@@ -1572,7 +1572,7 @@
       ]
     },
     "routing-table-updater": {
-      "file": "skills/routing-table-updater/SKILL.md",
+      "file": "skills/meta/routing-table-updater/SKILL.md",
       "description": "Maintain /do routing tables when skills or agents change.",
       "triggers": [
         "update routing",
@@ -1589,7 +1589,7 @@
       ]
     },
     "skill-composer": {
-      "file": "skills/skill-composer/SKILL.md",
+      "file": "skills/meta/skill-composer/SKILL.md",
       "description": "DAG-based multi-skill orchestration with dependency resolution.",
       "triggers": [
         "compose skills",
@@ -1606,7 +1606,7 @@
       ]
     },
     "skill-creator": {
-      "file": "skills/skill-creator/SKILL.md",
+      "file": "skills/meta/skill-creator/SKILL.md",
       "description": "Create and iteratively improve skills through eval-driven validation.",
       "triggers": [
         "create skill",
@@ -1626,7 +1626,7 @@
       ]
     },
     "skill-eval": {
-      "file": "skills/skill-eval/SKILL.md",
+      "file": "skills/meta/skill-eval/SKILL.md",
       "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs.",
       "triggers": [
         "improve skill",
@@ -1654,7 +1654,7 @@
       ]
     },
     "toolkit-evolution": {
-      "file": "skills/toolkit-evolution/SKILL.md",
+      "file": "skills/meta/toolkit-evolution/SKILL.md",
       "description": "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.",
       "triggers": [
         "evolve toolkit",
@@ -1675,7 +1675,7 @@
       ]
     },
     "workflow-help": {
-      "file": "skills/workflow-help/SKILL.md",
+      "file": "skills/meta/workflow-help/SKILL.md",
       "description": "Interactive guide to workflow system: agents, skills, routing, execution patterns.",
       "triggers": [
         "how does routing work",
@@ -1693,7 +1693,7 @@
       ]
     },
     "adr-consultation": {
-      "file": "skills/adr-consultation/SKILL.md",
+      "file": "skills/process/adr-consultation/SKILL.md",
       "description": "Multi-agent consultation for architecture decisions.",
       "triggers": [
         "consult on ADR",
@@ -1711,7 +1711,7 @@
       ]
     },
     "condition-based-waiting": {
-      "file": "skills/condition-based-waiting/SKILL.md",
+      "file": "skills/process/condition-based-waiting/SKILL.md",
       "description": "Polling, retry, and backoff patterns.",
       "triggers": [
         "exponential backoff",
@@ -1730,7 +1730,7 @@
       ]
     },
     "feature-lifecycle": {
-      "file": "skills/feature-lifecycle/SKILL.md",
+      "file": "skills/process/feature-lifecycle/SKILL.md",
       "description": "Feature lifecycle: design, plan, implement, validate, release.",
       "triggers": [
         "feature design",
@@ -1775,7 +1775,7 @@
       ]
     },
     "forensics": {
-      "file": "skills/forensics/SKILL.md",
+      "file": "skills/process/forensics/SKILL.md",
       "description": "Post-mortem diagnostic analysis of failed workflows.",
       "triggers": [
         "forensics",
@@ -1799,7 +1799,7 @@
       ]
     },
     "github-notification-triage": {
-      "file": "skills/github-notification-triage/SKILL.md",
+      "file": "skills/process/github-notification-triage/SKILL.md",
       "description": "Triage GitHub notifications and report actions needed.",
       "triggers": [
         "github notifications",
@@ -1813,7 +1813,7 @@
       "pairs_with": []
     },
     "pair-programming": {
-      "file": "skills/pair-programming/SKILL.md",
+      "file": "skills/process/pair-programming/SKILL.md",
       "description": "Collaborative coding with enforced micro-steps and user-paced control.",
       "triggers": [
         "pair program",
@@ -1833,7 +1833,7 @@
       ]
     },
     "planning": {
-      "file": "skills/planning/SKILL.md",
+      "file": "skills/process/planning/SKILL.md",
       "description": "Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed planning, plan validation, plan-lifecycle management, and session pause/resume.",
       "triggers": [
         "write spec",
@@ -1913,7 +1913,7 @@
       "agent": "general-purpose"
     },
     "plant-seed": {
-      "file": "skills/plant-seed/SKILL.md",
+      "file": "skills/process/plant-seed/SKILL.md",
       "description": "Capture forward-looking idea as a seed for future feature design.",
       "triggers": [
         "plant seed",
@@ -1930,7 +1930,7 @@
       ]
     },
     "pr-workflow": {
-      "file": "skills/pr-workflow/SKILL.md",
+      "file": "skills/process/pr-workflow/SKILL.md",
       "description": "Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining.",
       "triggers": [
         "push changes",
@@ -1991,7 +1991,7 @@
       ]
     },
     "quick": {
-      "file": "skills/quick/SKILL.md",
+      "file": "skills/process/quick/SKILL.md",
       "description": "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full.",
       "triggers": [
         "quick task",
@@ -2017,7 +2017,7 @@
       "user_invocable": true
     },
     "read-only-ops": {
-      "file": "skills/read-only-ops/SKILL.md",
+      "file": "skills/process/read-only-ops/SKILL.md",
       "description": "Read-only exploration, inspection, and reporting without modifications.",
       "triggers": [
         "check status",
@@ -2033,7 +2033,7 @@
       ]
     },
     "socratic-debugging": {
-      "file": "skills/socratic-debugging/SKILL.md",
+      "file": "skills/process/socratic-debugging/SKILL.md",
       "description": "Question-only debugging: guide users to find root causes themselves.",
       "triggers": [
         "guide debugging",
@@ -2053,7 +2053,7 @@
       ]
     },
     "subagent-driven-development": {
-      "file": "skills/subagent-driven-development/SKILL.md",
+      "file": "skills/process/subagent-driven-development/SKILL.md",
       "description": "Fresh-subagent-per-task execution with two-stage review gates.",
       "triggers": [
         "subagent per task",
@@ -2070,7 +2070,7 @@
       ]
     },
     "verification-before-completion": {
-      "file": "skills/verification-before-completion/SKILL.md",
+      "file": "skills/process/verification-before-completion/SKILL.md",
       "description": "Defense-in-depth verification before declaring any task complete.",
       "triggers": [
         "verify completion",
@@ -2087,7 +2087,7 @@
       ]
     },
     "with-anti-rationalization": {
-      "file": "skills/with-anti-rationalization/SKILL.md",
+      "file": "skills/process/with-anti-rationalization/SKILL.md",
       "description": "Anti-rationalization enforcement for maximum-rigor task execution.",
       "triggers": [
         "maximum rigor",
@@ -2103,7 +2103,7 @@
       ]
     },
     "worktree-agent": {
-      "file": "skills/worktree-agent/SKILL.md",
+      "file": "skills/process/worktree-agent/SKILL.md",
       "description": "Mandatory rules for agents in git worktree isolation.",
       "triggers": [
         "worktree agent",
@@ -2115,7 +2115,7 @@
       "user_invocable": false
     },
     "architecture-deepening": {
-      "file": "skills/architecture-deepening/SKILL.md",
+      "file": "skills/research/architecture-deepening/SKILL.md",
       "description": "Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation.",
       "triggers": [
         "deepen architecture",
@@ -2136,7 +2136,7 @@
       ]
     },
     "codebase-analyzer": {
-      "file": "skills/codebase-analyzer/SKILL.md",
+      "file": "skills/research/codebase-analyzer/SKILL.md",
       "description": "Statistical rule discovery from Go codebase patterns.",
       "triggers": [
         "analyze codebase",
@@ -2154,7 +2154,7 @@
       ]
     },
     "codebase-overview": {
-      "file": "skills/codebase-overview/SKILL.md",
+      "file": "skills/research/codebase-overview/SKILL.md",
       "description": "Systematic codebase exploration and architecture mapping.",
       "triggers": [
         "onboard to codebase",
@@ -2172,7 +2172,7 @@
       ]
     },
     "data-analysis": {
-      "file": "skills/data-analysis/SKILL.md",
+      "file": "skills/research/data-analysis/SKILL.md",
       "description": "Decision-first data analysis with statistical rigor gates.",
       "triggers": [
         "analyze data",
@@ -2202,7 +2202,7 @@
       ]
     },
     "decision-helper": {
-      "file": "skills/decision-helper/SKILL.md",
+      "file": "skills/research/decision-helper/SKILL.md",
       "description": "Weighted decision scoring for architectural choices.",
       "triggers": [
         "weigh options",
@@ -2224,7 +2224,7 @@
       ]
     },
     "full-repo-review": {
-      "file": "skills/full-repo-review/SKILL.md",
+      "file": "skills/research/full-repo-review/SKILL.md",
       "description": "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.",
       "triggers": [
         "full repo review",
@@ -2241,7 +2241,7 @@
       ]
     },
     "multi-persona-critique": {
-      "file": "skills/multi-persona-critique/SKILL.md",
+      "file": "skills/research/multi-persona-critique/SKILL.md",
       "description": "Parallel critique of proposals via 5 philosophical personas with consensus synthesis.",
       "triggers": [
         "critique these ideas",
@@ -2261,7 +2261,7 @@
       ]
     },
     "repo-value-analysis": {
-      "file": "skills/repo-value-analysis/SKILL.md",
+      "file": "skills/research/repo-value-analysis/SKILL.md",
       "description": "Analyze external repositories for adoptable ideas and patterns.",
       "triggers": [
         "repo value analysis",
@@ -2279,7 +2279,7 @@
       "agent": "research-coordinator-engineer"
     },
     "research-pipeline": {
-      "file": "skills/research-pipeline/SKILL.md",
+      "file": "skills/research/research-pipeline/SKILL.md",
       "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER.",
       "triggers": [
         "research-pipeline",
@@ -2299,7 +2299,7 @@
       "agent": "research-coordinator-engineer"
     },
     "roast": {
-      "file": "skills/roast/SKILL.md",
+      "file": "skills/research/roast/SKILL.md",
       "description": "Constructive critique via 5 HackerNews personas with claim validation.",
       "triggers": [
         "roast code",
@@ -2317,7 +2317,7 @@
       ]
     },
     "security-threat-model": {
-      "file": "skills/security-threat-model/SKILL.md",
+      "file": "skills/research/security-threat-model/SKILL.md",
       "description": "Security threat model: scan toolkit for attack surface, supply-chain risks.",
       "triggers": [
         "threat model",
@@ -2339,7 +2339,7 @@
       "agent": "python-general-engineer"
     },
     "integration-checker": {
-      "file": "skills/integration-checker/SKILL.md",
+      "file": "skills/review/integration-checker/SKILL.md",
       "description": "Verify cross-component wiring and data flow.",
       "triggers": [
         "integration check",
@@ -2358,7 +2358,7 @@
       ]
     },
     "parallel-code-review": {
-      "file": "skills/parallel-code-review/SKILL.md",
+      "file": "skills/review/parallel-code-review/SKILL.md",
       "description": "Parallel 3-reviewer code review: Security, Business-Logic, Architecture.",
       "triggers": [
         "parallel review",
@@ -2375,7 +2375,7 @@
       ]
     },
     "systematic-code-review": {
-      "file": "skills/systematic-code-review/SKILL.md",
+      "file": "skills/review/systematic-code-review/SKILL.md",
       "description": "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings.",
       "triggers": [
         "review code",
@@ -2394,7 +2394,7 @@
       ]
     },
     "e2e-testing": {
-      "file": "skills/e2e-testing/SKILL.md",
+      "file": "skills/testing/e2e-testing/SKILL.md",
       "description": "Playwright-based end-to-end testing workflow.",
       "triggers": [
         "playwright",
@@ -2415,7 +2415,7 @@
       "agent": "testing-automation-engineer"
     },
     "test-driven-development": {
-      "file": "skills/test-driven-development/SKILL.md",
+      "file": "skills/testing/test-driven-development/SKILL.md",
       "description": "RED-GREEN-REFACTOR cycle with strict phase gates for TDD.",
       "triggers": [
         "TDD",
@@ -2435,7 +2435,7 @@
       ]
     },
     "testing-agents-with-subagents": {
-      "file": "skills/testing-agents-with-subagents/SKILL.md",
+      "file": "skills/testing/testing-agents-with-subagents/SKILL.md",
       "description": "Test agents via subagents: known inputs, captured outputs, verification.",
       "triggers": [
         "test agents",
@@ -2452,7 +2452,7 @@
       ]
     },
     "testing-preferred-patterns": {
-      "file": "skills/testing-preferred-patterns/SKILL.md",
+      "file": "skills/testing/testing-preferred-patterns/SKILL.md",
       "description": "Identify and fix testing mistakes: flaky, brittle, over-mocked tests.",
       "triggers": [
         "flaky test",
@@ -2475,7 +2475,7 @@
       ]
     },
     "vitest-runner": {
-      "file": "skills/vitest-runner/SKILL.md",
+      "file": "skills/testing/vitest-runner/SKILL.md",
       "description": "Run Vitest tests and parse results into actionable output.",
       "triggers": [
         "run vitest",
@@ -2490,144 +2490,6 @@
         "test-driven-development",
         "typescript-check",
         "e2e-testing"
-      ]
-    },
-    "anti-ai-editor": {
-      "file": "skills/anti-ai-editor/SKILL.md",
-      "description": "Remove AI-sounding patterns from content.",
-      "triggers": [
-        "remove AI patterns",
-        "de-AI content",
-        "make it sound human",
-        "remove AI voice",
-        "humanize text"
-      ],
-      "category": "content-creation",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "voice-validator",
-        "joy-check"
-      ]
-    },
-    "create-voice": {
-      "file": "skills/create-voice/SKILL.md",
-      "description": "Create voice profiles from writing samples.",
-      "triggers": [
-        "create voice",
-        "new voice",
-        "build voice",
-        "voice from samples",
-        "calibrate voice",
-        "voice profile from scratch",
-        "make a voice"
-      ],
-      "category": "content",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-validator",
-        "voice-writer"
-      ]
-    },
-    "interactive-essay": {
-      "file": "skills/interactive-essay/SKILL.md",
-      "description": "Transform markdown articles into scrollytelling interactive React SPAs.",
-      "triggers": [
-        "interactive essay",
-        "scrollytelling",
-        "interactive article",
-        "scroll-based article",
-        "make this interactive"
-      ],
-      "category": "content-creation",
-      "user_invocable": true,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-vexjoy",
-        "anti-ai-editor",
-        "joy-check"
-      ]
-    },
-    "voice-feynman": {
-      "file": "skills/voice-feynman/SKILL.md",
-      "description": "Apply Richard Feynman's voice profile for content generation: mechanism-first thinking, refusal of jargon, plain English when truth is embarrassing...",
-      "triggers": [
-        "voice-feynman",
-        "feynman voice",
-        "richard feynman voice",
-        "feynman writing style",
-        "feynman explanation"
-      ],
-      "category": "voice",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-writer",
-        "voice-validator",
-        "anti-ai-editor"
-      ]
-    },
-    "voice-validator": {
-      "file": "skills/voice-validator/SKILL.md",
-      "description": "Critique-and-rewrite loop for voice fidelity validation.",
-      "triggers": [
-        "validate voice",
-        "check voice fidelity",
-        "voice critique",
-        "voice fidelity",
-        "writing style check"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor",
-        "joy-check"
-      ]
-    },
-    "voice-writer": {
-      "file": "skills/voice-writer/SKILL.md",
-      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
-      "triggers": [
-        "write article",
-        "blog post",
-        "write in voice",
-        "blog post voice",
-        "content pipeline",
-        "publish article",
-        "draft post",
-        "write about",
-        "voice pipeline",
-        "voice-writer",
-        "voice writer",
-        "use voice-writer",
-        "use voice writer",
-        "rewrite article",
-        "rewrite this article",
-        "write blog post",
-        "full voice pipeline",
-        "run voice pipeline",
-        "use voice pipeline",
-        "write post",
-        "draft article",
-        "generate content",
-        "article about",
-        "write for blog",
-        "write for website",
-        "write essay",
-        "write piece",
-        "ghost write"
-      ],
-      "category": "voice",
-      "force_route": true,
-      "user_invocable": true,
-      "pairs_with": [
-        "voice-validator",
-        "anti-ai-editor",
-        "joy-check",
-        "voice-feynman"
       ]
     },
     "workflow": {
@@ -2647,198 +2509,6 @@
         "feature-lifecycle",
         "verification-before-completion"
       ]
-    },
-    "gemini-wrestlejoy-comparison": {
-      "file": "skills/gemini-wrestlejoy-comparison/SKILL.md",
-      "description": "A/B test Gemini Pro vs Claude for WrestleJoy voice replication: Prepare inputs, generate with both models, validate outputs, compare results.",
-      "triggers": [
-        "gemini-wrestlejoy-comparison",
-        "gemini",
-        "wrestlejoy",
-        "comparison"
-      ],
-      "category": "analysis",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "voice-amy-nemmity": {
-      "file": "skills/voice-amy-nemmity/SKILL.md",
-      "description": "Amy Nemmity's writing voice: warmth, celebration, poetic fragments, community focus, character arc narratives.",
-      "triggers": [
-        "voice-amy-nemmity",
-        "voice",
-        "amy",
-        "nemmity"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "voice-andy-disagreement": {
-      "file": "skills/voice-andy-disagreement/SKILL.md",
-      "description": "Andy Nemmity's disagreement and forum voice with reasoning ladder, claims-over-people discipline, and anti-escalation harshness control.",
-      "triggers": [
-        "disagree",
-        "counter-argument",
-        "critique",
-        "rebuttal",
-        "pushback",
-        "that's wrong",
-        "I disagree",
-        "Hacker News",
-        "HN comment",
-        "Reddit",
-        "forum",
-        "community"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "voice-andy-nemmity"
-      ]
-    },
-    "voice-andy-nemmity": {
-      "file": "skills/voice-andy-nemmity/SKILL.md",
-      "description": "Apply Andy Nemmity's voice profile for content generation: precision-driven improvisation, constraint accumulation, systems framing, calibration qu...",
-      "triggers": [
-        "voice-andy-nemmity",
-        "voice",
-        "andy",
-        "nemmity"
-      ],
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "voice-dragonball-z": {
-      "file": "skills/voice-dragonball-z/SKILL.md",
-      "description": "Apply the Dragon Ball Z narrative voice for content generation: epic battle narration, villain monologues, hero declarations, power-up sequences, n...",
-      "triggers": [
-        "dbz voice",
-        "dragon ball z voice",
-        "dragonball z",
-        "write in dbz",
-        "dbz style",
-        "voice-dragonball-z"
-      ],
-      "category": "voice",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-writer"
-      ]
-    },
-    "voice-test": {
-      "file": "skills/voice-test/SKILL.md",
-      "description": "Test voice profile for validating voice system",
-      "triggers": [
-        "voice-test",
-        "voice",
-        "test"
-      ],
-      "user_invocable": false,
-      "version": "0.1.0"
-    },
-    "voice-vexjoy": {
-      "file": "skills/voice-vexjoy/SKILL.md",
-      "description": "Apply Andy Nemmity's VexJoy tech writing voice for content generation.",
-      "triggers": [
-        "voice-vexjoy",
-        "voice",
-        "vexjoy"
-      ],
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "wrestlejoy-aew-images": {
-      "file": "skills/wrestlejoy-aew-images/SKILL.md",
-      "description": "Fetch official promotional images from allelitewrestling.com for WrestleJoy articles.",
-      "triggers": [
-        "aew image",
-        "aew photo",
-        "wrestler photo",
-        "official aew image",
-        "roster image",
-        "roster photo",
-        "aew event poster",
-        "get aew image"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": true,
-      "version": "1.0.0",
-      "pairs_with": [
-        "wrestlejoy-news-pipeline",
-        "voice-andy-nemmity",
-        "wrestlejoy-external-research"
-      ],
-      "agent": "wrestlejoy-news-producer",
-      "model": "sonnet"
-    },
-    "wrestlejoy-external-research": {
-      "file": "skills/wrestlejoy-external-research/SKILL.md",
-      "description": "Evidence-sourced 4-phase external research: Identify, Search, Extract, Validate.",
-      "triggers": [
-        "wrestlejoy-external-research",
-        "wrestlejoy",
-        "external",
-        "research"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "wrestlejoy-mmr-research": {
-      "file": "skills/wrestlejoy-mmr-research/SKILL.md",
-      "description": "Evidence-based wrestler research from MMR database: Assess, Query, Synthesize, Output.",
-      "triggers": [
-        "wrestlejoy-mmr-research",
-        "wrestlejoy",
-        "mmr",
-        "research"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "wrestlejoy-news-pipeline": {
-      "file": "skills/wrestlejoy-news-pipeline/SKILL.md",
-      "description": "Automated AEW wrestling news production pipeline for WrestleJoy.com.",
-      "triggers": [
-        "run news pipeline",
-        "wrestlejoy news",
-        "scan wrestling news",
-        "generate news articles",
-        "wrestling news automation",
-        "aew news pipeline",
-        "news production pipeline"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-andy-nemmity",
-        "voice-writer",
-        "anti-ai-editor",
-        "wordpress-uploader",
-        "seo-optimizer",
-        "wrestlejoy-external-research"
-      ],
-      "agent": "wrestlejoy-news-producer",
-      "model": "opus"
-    },
-    "wrestlejoy-research-transform": {
-      "file": "skills/wrestlejoy-research-transform/SKILL.md",
-      "description": "Transform MMR research data into narrative language: convert ratings to superlatives, trajectories to journey language, peaks to memorable moments.",
-      "triggers": [
-        "wrestlejoy-research-transform",
-        "wrestlejoy",
-        "research",
-        "transform"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
     }
   }
 }

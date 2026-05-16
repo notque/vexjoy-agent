@@ -6,9 +6,12 @@ Checks:
   1. All skill entries in skills/INDEX.json have a corresponding SKILL.md on disk.
   2. All agent ``file`` fields in agents/INDEX.json point to existing files
      (paths resolved relative to the repo root).
-  3. All names referenced in routing-tables.md exist in agents/ or skills/ INDEX.json.
-  4. No skill or agent has fewer than 5 triggers (warn) or 0 triggers (error).
-  5. No triggers are duplicated within a single entry.
+  3. No skill or agent has fewer than 5 triggers (warn) or 0 triggers (error).
+  4. No triggers are duplicated within a single entry.
+  5. No triggers are duplicated across entries (cross-entry overlap warning).
+
+Note: routing-tables.md coverage check was removed in PR #653 — routing-tables.md was
+absorbed into INDEX.json (PR #626) and check-routing-drift.py now covers this in CI.
 
 Exit codes:
   0 — all checks pass (errors = 0)
@@ -19,7 +22,6 @@ Usage:
 """
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -38,23 +40,6 @@ def load_json(path: Path) -> dict:
     except json.JSONDecodeError as exc:
         print(f"ERROR: cannot parse {path}: {exc}")
         sys.exit(1)
-
-
-def extract_routing_table_names(routing_tables_path: Path) -> set[str]:
-    """Return the set of agent/skill names found in routing-tables.md.
-
-    Matches bold-formatted names like ``**reviewer-code-playbook**`` or
-    ``**go-patterns (FORCE)**``, stripping the bold markers and any
-    parenthetical suffix (e.g. ``(FORCE)``, ``(code-cartographer)``).
-    """
-    if not routing_tables_path.exists():
-        print(f"WARNING: routing-tables.md not found at {routing_tables_path}")
-        return set()
-
-    content = routing_tables_path.read_text(encoding="utf-8")
-    # Match **name** or **name (qualifier)** — case-insensitive, normalize to lowercase
-    raw_names = re.findall(r"\*\*([a-zA-Z][a-zA-Z0-9-]*)(?:\s+\([^)]*\))?\*\*", content)
-    return {name.lower() for name in raw_names}
 
 
 # ---------------------------------------------------------------------------
@@ -98,63 +83,6 @@ def check_agent_files(agents_index: dict, repo_root: Path) -> tuple[list[str], l
         agent_path = repo_root / file_field
         if not agent_path.is_file():
             errors.append(f"  [agent missing file] '{name}': INDEX says '{file_field}' but file does not exist")
-
-    return errors, warnings
-
-
-def check_routing_table_coverage(
-    routing_names: set[str],
-    agents_index: dict,
-    skills_index: dict,
-    repo_root: Path,
-) -> tuple[list[str], list[str]]:
-    """Check 3: all names in routing-tables.md exist in agents, skills, or workflow refs."""
-    errors: list[str] = []
-    warnings: list[str] = []
-
-    agent_names = set(agents_index.get("agents", {}).keys())
-    skill_names = set(skills_index.get("skills", {}).keys())
-
-    # Workflow references are sub-workflows accessed via the umbrella workflow skill.
-    # They live in skills/workflow/references/ and are valid routing targets.
-    workflow_refs_dir = repo_root / "skills" / "workflow" / "references"
-    workflow_ref_names: set[str] = set()
-    if workflow_refs_dir.exists():
-        for ref_file in workflow_refs_dir.iterdir():
-            if ref_file.suffix == ".md":
-                workflow_ref_names.add(ref_file.stem)
-            elif ref_file.is_dir():
-                workflow_ref_names.add(ref_file.name)
-
-    # Pipeline names from pipeline-index.json
-    pipeline_names: set[str] = set()
-    pipeline_index_path = workflow_refs_dir / "pipeline-index.json"
-    if pipeline_index_path.exists():
-        try:
-            pipeline_data = json.loads(pipeline_index_path.read_text(encoding="utf-8"))
-            pipeline_names = set(pipeline_data.get("pipelines", {}).keys())
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Non-component names that appear as bold entries in policy/workflow tables
-    table_values = {
-        "personal",
-        "protected-org",
-        "human-gated",
-        "never",
-        "auto-detection",
-        "documentation",
-        "content",
-    }
-
-    all_known = agent_names | skill_names | workflow_ref_names | pipeline_names | table_values
-
-    for name in sorted(routing_names):
-        if name not in all_known:
-            errors.append(
-                f"  [routing orphan] '{name}' in routing-tables.md "
-                "but not found in agents/, skills/, or workflow references"
-            )
 
     return errors, warnings
 
@@ -239,26 +167,20 @@ def main() -> int:
 
     skills_index_path = repo_root / "skills" / "INDEX.json"
     agents_index_path = repo_root / "agents" / "INDEX.json"
-    routing_tables_path = repo_root / "skills" / "do" / "references" / "routing-tables.md"
 
     print("Loading index files...")
     skills_index = load_json(skills_index_path)
     agents_index = load_json(agents_index_path)
 
-    print("Extracting routing table names...")
-    routing_names = extract_routing_table_names(routing_tables_path)
-
     all_errors: list[str] = []
     all_warnings: list[str] = []
 
     # Run checks
+    # Note: routing-tables.md coverage check removed — routing-tables.md was absorbed
+    # into INDEX.json (PR #626) and check-routing-drift.py now covers this in CI.
     checks = [
         ("Check 1: skill files on disk", check_skill_files(skills_index, repo_root)),
         ("Check 2: agent files on disk", check_agent_files(agents_index, repo_root)),
-        (
-            "Check 3: routing-tables.md coverage",
-            check_routing_table_coverage(routing_names, agents_index, skills_index, repo_root),
-        ),
         ("Check 4a: skill trigger counts", check_trigger_counts(skills_index, "skills")),
         ("Check 4b: agent trigger counts", check_trigger_counts(agents_index, "agents")),
         (
