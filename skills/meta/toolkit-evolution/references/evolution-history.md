@@ -18,6 +18,8 @@ These are the reusable decision criteria extracted from proposal evaluations. Ea
 | Investigate hook logic before proposing cleanup; stale by date is not stale by reference | cleanup-adr-session-json (WEAK 1.0) |
 | Premature documentation of unimplemented systems is derivative, not authoritative; defer until implementation exists | sprite-pipeline-phase1-reference (WEAK 1.33) |
 | Improving an existing mechanism beats adding new ones; one-line quality fixes can be the unanimous outlier | error-learner-solution-field (STRONG 9/9) |
+| Advisory hooks must not mutate git state; sync enforcement belongs at the commit/push boundary (PreToolUse gate) not the write boundary (PostToolUse side-effect) | hook-auto-stage-index (WEAK 1.33) |
+| Before padding triggers to pass a threshold, check whether the threshold itself is wrong for narrow-scope agent helpers | boost-undertriggered-entries (MODERATE 1.67) |
 
 ---
 
@@ -29,6 +31,7 @@ Proposals shelved with explicit conditions for re-proposal. Check these before r
 |----------|-------|---------------------------|
 | voice-gate-registration | MODERATE 2.0 | Fix hardcoded path `~/pgh/vexjoy-agent/scripts/scan-ai-patterns.py` to use relative or env-based resolution, validate with smoke-test harness |
 | mcp-health-check-registration | WEAK 2/9 | Staging test showing clean backoff/unblock cycles before production registration |
+| boost-undertriggered-entries | MODERATE 1.67 | Determine whether trigger minimum threshold should differ for narrow-scope agent helpers (e.g. threshold 3) vs user-facing skills (threshold 5) before adding triggers to avoid routing collisions |
 | reference-loading-gate-registration | MODERATE 5/9 | **RESOLVED**: session dedup added, promoted to STRONG 3.0, shipped PR #647 |
 | stale-stub-hook-cleanup | WEAK 4/9 | **RESOLVED**: grep confirmed no settings.json refs, stubs deleted, shipped PR #647 |
 
@@ -51,8 +54,9 @@ Proposals shelved with explicit conditions for re-proposal. Check these before r
 | 2026-05-11 | 5 | 2 | 2 | 3 | hook system + joy-check | #638, #639 |
 | 2026-05-14 | 5 | 1 | 1 | 4 | general | #644 |
 | 2026-05-15 | 5 | 3 | 3 | 2 | hook harness + cleanup | #646, #647 |
+| 2026-05-16 | 3 | 1 | 1 | 2 | infrastructure integrity (INDEX.json sync) | #653 |
 
-**Win rate**: 10 winners / 25 proposals = 40%. Average winning score: 2.83/3.0.
+**Win rate**: 11 winners / 28 proposals = 39.3%. Average winning score: 2.83/3.0.
 
 ---
 
@@ -70,3 +74,4 @@ Proposals shelved with explicit conditions for re-proposal. Check these before r
 | smoke-test-hooks.py harness | 2026-05-15 | STRONG 3.0 | #646 | Reads hooks from settings.json, fires with mock stdin, asserts exit codes |
 | reference-loading-gate session dedup | 2026-05-15 | STRONG 3.0 | #647 | Warns once per component subtree per session |
 | stale stub hook deletion | 2026-05-15 | STRONG 2.67 | #647 | 3 stub hooks removed after settings.json verification |
+| INDEX.json sync gate + CI wire | 2026-05-16 | STRONG 3.0 (reasoned) | #653 | pretool-index-sync-check.py blocks commit when SKILL.md staged without INDEX.json; validate-index-integrity.py added to CI lint |
