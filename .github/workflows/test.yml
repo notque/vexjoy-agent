@@ -19,6 +19,7 @@ jobs:
       - run: ruff format --check . --config pyproject.toml
       - run: python scripts/validate-references.py --check-do-framing
       - run: python scripts/validate-skill-frontmatter.py
+      - run: python scripts/validate-index-integrity.py
 
   test:
     runs-on: ubuntu-latest

@@ -29,10 +29,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
+def _resolve_index(tracked: Path, local_name: str) -> Path:
+    """Return the local override path when it exists, otherwise the tracked path."""
+    local = tracked.parent / local_name
+    return local if local.exists() else tracked
+
+
 INDEX_PATHS: dict[str, Path] = {
-    "skills": REPO_ROOT / "skills" / "INDEX.json",
+    "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
     "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
-    "agents": REPO_ROOT / "agents" / "INDEX.json",
+    "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
 }
 
 # Composition chains encode common multi-skill workflows.
@@ -52,6 +59,15 @@ COMPOSITION_CHAINS: dict[str, list[str]] = {
 
 MAX_CANDIDATES = 10
 MIN_SCORE_THRESHOLD = 0.1
+
+# Phrases that look like trigger matches but are common English idioms
+# unrelated to the skill. Keyed by entry name -> set of disqualifying context words.
+# When any guard word appears in the request, the match is discarded.
+SEMANTIC_GUARDS: dict[str, set[str]] = {
+    "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
+    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
+}
 
 
 # ---------------------------------------------------------------------------
@@ -228,12 +244,17 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
         The most specific matching force-route entry, or None.
     """
     lowered = request.lower()
+    request_words = set(re.findall(r"\b\w+\b", lowered))
 
     best_match: IndexEntry | None = None
     best_specificity = -1
 
     for entry in entries:
         if not entry.force_route:
+            continue
+        # Semantic guard: skip if request contains disqualifying context words
+        guards = SEMANTIC_GUARDS.get(entry.name)
+        if guards and (request_words & guards):
             continue
         for trigger in entry.triggers:
             if _trigger_matches(trigger, lowered):

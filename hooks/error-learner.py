@@ -114,6 +114,13 @@ def detect_error(event: dict) -> tuple[bool, str]:
                     "failed over",
                     "failover",
                     "not found in cache",
+                    # Timeout false positives: "timeout" appears in config output,
+                    # import lines, and success messages — not as an actual error.
+                    "timeout=",  # e.g. timeout=2000 in hook config output
+                    "stdin_timeout",  # e.g. from stdin_timeout import ...
+                    "timeout caps",  # e.g. "PASS: all hooks now have timeout caps"
+                    "timeout/",  # e.g. "Graduated: timeout/abc123 → ..."
+                    "read_stdin(timeout",  # e.g. raw = read_stdin(timeout=2)
                 ]
                 if any(phrase in output_lower for phrase in false_positive_phrases):
                     return False, ""
@@ -243,7 +250,7 @@ def main():
             fix_info = DEFAULT_FIX_ACTIONS.get(error_type, {"fix_type": "manual", "fix_action": "investigate"})
             fix_type = fix_info["fix_type"]
             fix_action = fix_info["fix_action"]
-            solution = f"Fix {error_type} error in {tool_name}"
+            solution = f"Fix {error_type} error in {tool_name}: {error_message[:80].strip()}"
 
             print(f"[new-error] {error_type}: {error_message[:100]}")
             if fix_type == "auto":

@@ -22,6 +22,13 @@ Design:
 - Limits output to first 5 findings to avoid noise
 
 ADR: adr/134-sql-injection-detector-hook.md
+
+TODO: This hook is redundant with posttool-security-scan.py, which merged all
+patterns from this file (see its docstring: "Merged from posttool-security-scan.py
++ sql-injection-detector.py per ADR hook-injection-condensation"). The primary
+scanner is posttool-security-scan.py. This file can be removed once confirmed
+that posttool-security-scan.py covers all patterns here. Do not remove without
+verifying settings.json no longer references this hook.
 """
 
 import json

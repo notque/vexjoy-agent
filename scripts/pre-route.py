@@ -41,6 +41,7 @@ INDEX_PATHS = {
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
     "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 
 

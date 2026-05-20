@@ -68,6 +68,13 @@
             "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-adr-health-check.py\"",
+            "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -92,11 +99,27 @@
             "command": "python3 \"$HOME/.claude/hooks/codex-auto-review.py\"",
             "description": "Auto-inject Codex cross-model review for PR review operations",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/prompt-capture.py\"",
+            "description": "Capture user prompts as voice samples (git repos only)",
+            "timeout": 5000
           }
         ]
       }
     ],
     "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/suggest-compact.py\"",
+            "description": "Advisory: suggests /compact when Edit/Write call count reaches threshold (ADR-103)",
+            "timeout": 2000
+          }
+        ]
+      },
       {
         "matcher": "Bash|Write|Edit",
         "hooks": [
@@ -122,6 +145,18 @@
             "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
             "description": "Gate: block merge to main/master when CI checks are red",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-ruff-format-gate.py\"",
+            "description": "Ruff format gate: blocks git push when ruff format --check finds violations (Python projects with pyproject.toml only)",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-index-sync-check.py\"",
+            "description": "INDEX.json sync gate: blocks git commit/push when SKILL.md staged without INDEX.json",
+            "timeout": 5000
           }
         ]
       },
@@ -256,6 +291,12 @@
             "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-skill-index.py\"",
             "description": "Auto-regenerate INDEX.json when SKILL.md is written or edited",
             "timeout": 15000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
+            "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
+            "timeout": 3000
           }
         ]
       },
@@ -273,6 +314,12 @@
             "command": "python3 \"$HOME/.claude/hooks/adr-lifecycle-on-merge.py\"",
             "description": "Check ADR implementation status after merge operations",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-rename-sweep.py\"",
+            "description": "After git mv, scan for stale references to the old filename stem (ADR-129)",
+            "timeout": 3000
           }
         ]
       },
@@ -306,6 +353,12 @@
             "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
             "description": "Record Skill and Agent invocation analytics",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
+            "description": "Record /do routing gaps to learning DB for pattern tracking",
+            "timeout": 2000
           }
         ]
       },
@@ -334,13 +387,12 @@
             "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
             "description": "Learn from tool errors and suggest solutions",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
-            "description": "Record /do routing gaps to learning DB for pattern tracking",
-            "timeout": 2000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Agent",
+        "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/record-waste.py\"",

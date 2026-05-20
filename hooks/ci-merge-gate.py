@@ -99,7 +99,7 @@ def main() -> None:
     # Check CI status
     try:
         result = subprocess.run(
-            ["gh", "pr", "checks", pr_number, "--json", "name,state,conclusion"],
+            ["gh", "pr", "checks", pr_number, "--json", "name,state,bucket"],
             capture_output=True,
             text=True,
             timeout=15,
@@ -121,8 +121,9 @@ def main() -> None:
         print("[ci-merge-gate] WARNING: Could not parse CI check results.")
         return
 
-    failing = [c for c in checks if c.get("conclusion") == "failure"]
-    pending = [c for c in checks if c.get("state") in ("pending", "queued", "in_progress")]
+    # bucket field values: pass, fail, pending, skipping, cancel
+    failing = [c for c in checks if c.get("bucket") == "fail"]
+    pending = [c for c in checks if c.get("bucket") == "pending"]
 
     if failing:
         names = ", ".join(c["name"] for c in failing)
