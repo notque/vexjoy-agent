@@ -180,7 +180,9 @@ Gate: Template assembled + required references loaded.
 
 ### Phase 3: GENERATE
 
-DISCIPLINE GATE: The validator requires the assembler marker comment. Always run `assemble-template.py` to produce the HTML — past Phase 2, hand-authored HTML lacks the marker and gets rejected. The marker `<!-- assembled by html-artifact v1.1 -->` is your proof the assembler ran. Skipping the assembler means: no theme tokens, no shape CSS, no print stylesheet, no theme-toggle, no data-shape attribute — every downstream step breaks.
+DISCIPLINE GATE: The validator requires the assembler marker comment. Always run `assemble-template.py` to produce the HTML — past Phase 2, hand-authored HTML lacks the marker and gets rejected. The marker `<!-- assembled by html-artifact v1.1 -->` is your proof the assembler ran. Skipping the assembler means: no theme tokens, no shape CSS, no print stylesheet, no theme-toggle, no data-shape attribute, no dark-default — every downstream step breaks.
+
+DARK-DEFAULT GATE: Every assembled artifact ships with `<html data-theme="dark">` and a pre-paint init script in `<head>` that honors `localStorage['html-artifact-theme-v2']`. Never hand-author HTML or post-edit the assembler output to flip this to light — the dark default is enforced by the base template. If the user wants light, they click the toggle (preference persists). Past failure (2026-05-20): three artifacts shipped light because the rule lived only in design-system.md prose, not in the assembler. See `references/design-system.md` § Dark-by-default.
 
 If you find yourself writing `<!DOCTYPE html>` directly in a Write tool call, STOP. Run assemble-template.py first.
 
