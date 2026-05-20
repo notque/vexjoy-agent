@@ -144,3 +144,32 @@ Every artifact ships print-ready. The assembler injects `templates/print/{shape}
 | (other) | 8.5in × 11in portrait | default-print.css with banner |
 
 Dark themes preserved via `print-color-adjust: exact` (all vendor variants). Full details in `references/pdf-export.md`.
+
+### Print CSS rules (lessons learned)
+
+These are graduated from real regressions. Read before editing any `templates/print/*.css`.
+
+| Rule | Why |
+|---|---|
+| **Never replace `display: flex` with `display: block` in `@media print`.** Override only what print actually needs: page size, page-break, color-adjust, sticky→static. | Replacing flex with block kills `justify-content: center` and flushes title slides to the top-left at ~45% offset. Keep `display: flex; flex-direction: column; justify-content: center`; add `align-items: center` and `max-width: 720px` on children for readable column width. |
+| **Don't print three CSS-grid columns + `page-break-inside: avoid` on letter-portrait.** | The constraints fight: Chrome resolves by orphaning column headers from cards. For kanban-style print, `display: block` the grid container so columns stack vertically (this is shape-specific, not a general flex rule — see above). |
+| **Sticky elements un-stick in print.** | `.export-bar { position: static; box-shadow: none; }` so a Reset/Copy bar renders as a normal block at document end, not floating over content. |
+
+### Theme tokens + runtime toggle
+
+| Rule | Why |
+|---|---|
+| **Never declare runtime-switchable theme tokens on `:root`.** | `:root` rules block lower-specificity `[data-theme]` overrides. The toggle becomes visually dead. Declare tokens on `html[data-theme="dark"]` and `html[data-theme="light"]` at matching specificity to the toggle target. |
+| **Seed `<html data-theme>` from `<body>` on init.** | The toggle flips `<html>`'s attribute, but pages typically declare initial theme on `<body>`. Without the seed, the first toggle click reads `undefined` → no flip. The toggle JS in `templates/components/theme-toggle.js` does this on `DOMContentLoaded`. |
+
+### Reference-file taxonomy (graduated from a refactor regression)
+
+When splitting or condensing references, sort each chunk into one of three buckets:
+
+| Category | Lives in | Example |
+|---|---|---|
+| Deterministic code | `templates/` | CSS, JS components, print stylesheets |
+| Design principles | `references/` (full prose) | Token architecture, contrast ratios, accessibility |
+| Judgment scaffolds | `references/` (full prose) **AND** mirrored as one-liners in `SKILL.md` | Worked examples, markup-ordering rules, ARIA tables |
+
+The mirror to SKILL.md is non-negotiable for load-bearing rules. A prior 86%-cut refactor dropped scaffolds from references and shipped — the next deck regressed (chrome moved from below to above the deck) because the rule lived nowhere SKILL.md could see it. Mirror the rule, then refactors can't silently lose it.
