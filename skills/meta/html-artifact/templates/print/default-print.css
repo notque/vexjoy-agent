@@ -1,0 +1,90 @@
+/* === Print: default fallback ===
+ * Page: 8.5in x 11in portrait.
+ * Used by shapes without a paper analog (editor, prototype, code-review).
+ * These are interaction-first artifacts; printing loses fidelity by
+ * definition, so we surface a banner advising the reader to use the
+ * live HTML version. Content still flows so the printout is usable as
+ * a reference snapshot.
+ */
+@page { size: 8.5in 11in; margin: 0.5in 0.6in; }
+
+@media print {
+  html, body {
+    background: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Banner injected as a ::before on body, top of first page only */
+  body::before {
+    content: "Live HTML version recommended — printed view may lose interactivity.";
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: var(--sp-3) var(--sp-4) !important;
+    margin: 0 0 var(--sp-5) 0 !important;
+    background: var(--bg-muted) !important;
+    color: var(--text-secondary) !important;
+    border-left: 3px solid var(--accent) !important;
+    border-radius: var(--radius-xs) !important;
+    font: var(--type-caption) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Hide interactive chrome */
+  .no-print,
+  .theme-toggle,
+  [data-theme-toggle],
+  .filter,
+  .filter-bar,
+  .tabs-nav,
+  .copy-button,
+  .collapsible-toggle,
+  .btn-primary,
+  .btn-secondary,
+  nav.site-nav { display: none !important; }
+
+  /* Force <details> open so collapsed sections print */
+  details { display: block !important; }
+  details > summary { list-style: none !important; cursor: default !important; }
+  details > summary::-webkit-details-marker { display: none !important; }
+  details:not([open]) > *:not(summary) { display: revert !important; }
+
+  /* Generic card protection */
+  .card-flat,
+  .card-outlined,
+  .card-elevated,
+  .card-accent,
+  .metric-card,
+  .chart-card,
+  .approach-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+  }
+
+  /* Code blocks print with visible borders, no shadows */
+  pre, code {
+    background: var(--color-code-bg, var(--bg-muted)) !important;
+    border: 1px solid var(--border-subtle) !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  a { color: var(--accent) !important; text-decoration: none !important; }
+}

@@ -22,6 +22,7 @@ validate_artifact = validate_mod.validate_artifact
 VALID_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- assembled by html-artifact v1.1 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Artifact</title>
     <style>body { margin: 0; }</style>
@@ -34,6 +35,7 @@ VALID_HTML = """<!DOCTYPE html>
 VALID_HTML_WITH_COPY = """<!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- assembled by html-artifact v1.1 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor</title>
     <style>body { margin: 0; }</style>
@@ -48,7 +50,7 @@ VALID_HTML_WITH_COPY = """<!DOCTYPE html>
 
 MINIMAL_VALID = """<!DOCTYPE html>
 <html>
-<head><title>X</title><style>*{}</style></head>
+<head><!-- assembled by html-artifact v1.1 --><title>X</title><style>*{}</style></head>
 <body><p>content</p></body>
 </html>"""
 

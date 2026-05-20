@@ -1,65 +1,194 @@
 # Shape: Spec / Exploration
 
-> **Shape**: spec | **Signal words**: plan, explore, compare, brainstorm, approach, option, tradeoff
+> **Shape**: spec | **Signal words**: plan, explore, compare, brainstorm, approach, option, tradeoff, design directions
 > CSS layout classes: `templates/shapes/spec.css` (injected by assemble-template.py)
+> Components: `tabs`, `copy-button`, `theme-toggle`
+
+Spec artifacts present N options side-by-side and end with a recommendation. The reader's question is "which one?" — answer it. Comparison without conclusion wastes the reader's time.
 
 ---
 
 ## Layout Description
 
-Spec artifacts present N options side-by-side with structured evaluation. Core element: a responsive comparison grid that scales from 2-5 columns, collapsing to stacked on mobile.
+A responsive comparison grid that scales from 2 to 5 columns, collapsing to a single stacked column on mobile (`repeat(auto-fit, minmax(320px, 1fr))`). Each `.approach-card` is a self-contained evaluation: numbered header, one-sentence summary, pros/cons split, optional code or metadata badges. The recommended option carries `.approach-tag` which adds an accent border so the eye finds it immediately.
 
-Each approach card contains: numbered header, one-sentence summary, pros/cons split grid, optional code example, metadata badges (complexity, testability, migration effort).
+A `.recommendation` block always follows the grid with the chosen option and the reasoning. Optional `.tradeoff-matrix` precedes the recommendation when the comparison has 3+ dimensions worth a table.
 
-A recommendation section always follows the grid -- makes the artifact actionable.
+---
+
+## Canonical Markup Order (load-bearing rule)
+
+| Order | Region | Purpose |
+|---|---|---|
+| 1 | `<header>` with title + subtitle | Frames the question |
+| 2 | TL;DR (optional) | One-paragraph summary if the spec is also a plan |
+| 3 | SVG architecture diagram (optional) | When approaches differ structurally |
+| 4 | `.comparison-grid` of `.approach-card`s | The N options, recommended one tagged |
+| 5 | `.tradeoff-matrix` (optional) | Cross-cutting dimensions × options |
+| 6 | `.recommendation` | **Always last before footer.** Names the choice and why |
+| 7 | `<footer>` | Author, date, related links |
+
+Why this order: the reader scans the cards, the recommendation tells them where to look first, and the matrix is the auditable backup. Putting the recommendation before the cards undercuts the comparison; putting the matrix before the cards makes it abstract.
+
+### Skeleton
+
+```html
+<body data-shape="spec" data-theme="birchline">
+  <header>
+    <h1>Rate Limiter — Three Approaches</h1>
+    <p class="subtitle">Comparing token bucket, sliding window, and Redis-backed.</p>
+  </header>
+  <main>
+    <section class="comparison-grid">
+      <article class="approach-card"><!-- option 1 --></article>
+      <article class="approach-card"><!-- option 2, recommended --></article>
+      <article class="approach-card"><!-- option 3 --></article>
+    </section>
+    <section><table class="tradeoff-matrix"><!-- optional --></table></section>
+    <section class="recommendation"><!-- always present --></section>
+  </main>
+  <footer>Authored 2026-05-05 · @platform</footer>
+</body>
+```
+
+CSS lives in `templates/shapes/spec.css` — do not redefine `.comparison-grid`, `.approach-card`, `.pros-cons`, `.tradeoff-matrix`, `.badge`, `.recommendation` inline.
+
+---
+
+## Section Types (worked examples)
+
+### Approach card
+
+```html
+<article class="approach-card">
+  <header class="approach-header">
+    <span class="approach-number">02</span>
+    <h3>Token bucket (in-process)</h3>
+    <span class="approach-tag">Recommended</span>
+  </header>
+  <p>Per-instance bucket refills at a steady rate; bursts allowed up to capacity.</p>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li>No network hop per request</li>
+        <li>Survives Redis outage</li>
+        <li>~2k LOC, no new infra</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li>No cross-instance coordination</li>
+        <li>Burst is per-instance, not global</li>
+      </ul>
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge">Complexity: Low</span>
+    <span class="badge">Migration: 1 sprint</span>
+    <span class="badge">Testability: High</span>
+  </div>
+</article>
+```
+
+Use for: every option being compared. The recommended option carries `.approach-tag` — that drives the accent border. Numbered headers (01, 02, 03) help reviewers reference "approach 2" in discussion.
+
+### Tradeoff matrix
+
+```html
+<table class="tradeoff-matrix">
+  <thead>
+    <tr><th>Dimension</th><th>Token Bucket</th><th>Sliding Window</th><th>Redis-backed</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Cross-instance accuracy</th>
+      <td><span class="cell-warning">Approximate</span></td>
+      <td><span class="cell-warning">Approximate</span></td>
+      <td><span class="cell-success">Exact</span></td>
+    </tr>
+    <tr>
+      <th scope="row">Latency impact</th>
+      <td><span class="cell-success">~0ms</span></td>
+      <td><span class="cell-success">~0ms</span></td>
+      <td><span class="cell-danger">+2-5ms</span></td>
+    </tr>
+    <tr>
+      <th scope="row">Operational cost</th>
+      <td><span class="cell-success">None</span></td>
+      <td><span class="cell-success">None</span></td>
+      <td><span class="cell-warning">Redis cluster</span></td>
+    </tr>
+  </tbody>
+</table>
+```
+
+Use for: comparisons with 3+ orthogonal dimensions. Cells use `.cell-success` / `.cell-warning` / `.cell-danger` — text + color, never color alone.
+
+### Recommendation block
+
+```html
+<section class="recommendation" aria-label="Recommendation">
+  <h2>Recommended: Token bucket</h2>
+  <p>Adopts in 1 sprint, adds zero infrastructure, survives Redis outages.
+     The cross-instance approximation is acceptable for our 12-instance fleet
+     because the global error stays under 8%. Revisit if the fleet grows past 50.</p>
+</section>
+```
+
+Use for: every spec, every time. Name the choice in the heading. State the reason in one paragraph. Include the condition under which the decision should be revisited.
+
+### Architecture SVG (when approaches differ structurally)
+
+```html
+<figure>
+  <svg viewBox="0 0 720 200" role="img" aria-label="Token bucket data flow">
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6" fill="var(--text-muted)"/>
+      </marker>
+    </defs>
+    <rect x="20" y="70" width="120" height="60" rx="10"
+          fill="color-mix(in srgb, var(--color-info) 10%, transparent)"
+          stroke="var(--color-info)" stroke-width="1.5"/>
+    <text x="80" y="105" text-anchor="middle" font-size="13">Client</text>
+    <line x1="140" y1="100" x2="200" y2="100"
+          stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <!-- continue with rate-limiter, API, DB nodes -->
+  </svg>
+  <figcaption>Figure 1 · Token bucket request flow</figcaption>
+</figure>
+```
+
+Use for: when "approach A puts the limiter in-process, approach B puts it in Redis" is structural and prose alone is insufficient. Inline SVG only — no external images. Layer-color convention: Frontend = info, API = primary, DB = success, External = warning.
 
 ---
 
 ## Composition Guide
 
-| Request Shape | Sections to Include |
+| Request | Sections |
 |---|---|
 | "Compare N approaches" | Header + Comparison Grid + Recommendation |
-| "Design directions" | Header + Comparison Grid + Light/Dark Toggle + Recommendation |
-| "Implementation plan" | Header + TL;DR + Timeline + Code Snippets + Risk Table + SVG Diagram |
-| "Explore tradeoffs" | Header + Comparison Grid (2 approaches) + Recommendation |
-| "Architecture options" | Header + Comparison Grid + SVG Diagram + Recommendation |
-
-### Section Ordering
-
-1. Page header with title + subtitle
-2. TL;DR block (if implementation plan)
-3. SVG diagram (if architecture / data flow)
-4. Comparison grid OR timeline
-5. Code snippets (if implementation detail needed)
-6. Risk table (if plan or migration)
-7. Recommendation (always last before footer)
-8. Footer with timestamp
+| "Design directions" | Header + Comparison Grid + Theme Toggle + Recommendation |
+| "Implementation plan" | Header + TL;DR + SVG diagram + Comparison Grid + Risk table + Recommendation |
+| "Architecture options" | Header + SVG diagram per option + Comparison Grid + Recommendation |
+| "Explore tradeoffs" | Header + Comparison Grid (2 cards) + Tradeoff Matrix + Recommendation |
 
 ---
 
-## Key CSS Classes (from templates/shapes/spec.css)
+## ARIA / Accessibility
 
-| Class | Purpose |
-|---|---|
-| `.comparison-grid` | Auto-fit grid for approach cards |
-| `.approach-card` | Outlined card with hover state; `.approach-tag` adds accent border |
-| `.approach-number` | Monospace large number (01, 02, 03) |
-| `.pros-cons` | 2-column grid for strengths/tradeoffs |
-| `.recommendation` | Accent left-border section |
-| `.tradeoff-matrix` | Comparison table with colored cells |
-| `.badge` | Inline metadata label |
-
----
-
-## SVG Data-Flow Diagrams
-
-Use within spec artifacts for architecture visualization. Follow the conventions in design-system.md:
-
-- Nodes: `<rect rx="10">` with color-mix tinted fill and semantic-color stroke
-- Arrows: solid for sync, dashed for async; use `<marker>` arrowheads
-- Legend: always present at bottom mapping line styles to meaning
-- Layer colors: Frontend=info, API=primary, Database=success, External=warning
+| Element | Required attributes | Why |
+|---|---|---|
+| `.approach-card` | Use `<article>` | Self-contained chunk; AT can list articles on the page |
+| `.approach-tag` | Text content "Recommended" | Don't rely on the accent border alone |
+| `.tradeoff-matrix` | `<th scope="col">` for column headers, `<th scope="row">` for row labels | AT announces the matrix correctly |
+| `.cell-success` / `.cell-warning` / `.cell-danger` | Real text inside ("Exact", "Approximate") | Color alone fails WCAG |
+| `<svg>` diagrams | `role="img"`, `aria-label="<description>"` | Otherwise the SVG is invisible to AT |
+| `.recommendation` | `<section aria-label="Recommendation">` | Landmark — readers can jump straight to it |
+| `.badge` | Text content; not color-coded | Treat as neutral metadata, not a status indicator |
+| Theme toggle | Provided by `theme-toggle` component | Don't hand-author — use the assembler |
 
 ---
 
@@ -67,22 +196,28 @@ Use within spec artifacts for architecture visualization. Follow the conventions
 
 | Mistake | Fix |
 |---|---|
-| Grid doesn't collapse on mobile | Use `repeat(auto-fit, minmax(320px, 1fr))` |
-| No recommendation section | Always include -- actionable > informational |
-| Pros/cons without structure | Use the `.pros-cons` 2-column grid with +/- markers |
-| Hardcoded approach count in CSS | Grid auto-fits; works for 2-5 approaches without changes |
-| Missing metadata badges | Include at least complexity + one other dimension |
-| Color-only cell indicators | Use `.cell-success`, `.cell-warning`, `.cell-danger` (text + color) |
+| Comparison grid without a recommendation section | Always end with a recommendation; spec without a choice is just a list |
+| Recommended option not visually distinct | Add `.approach-tag` so the accent border applies |
+| Pros/cons as flat bullets, mixed | Use `.pros-cons` 2-column grid; `.pros` and `.cons` get their own +/− markers via CSS |
+| Hardcoded grid columns (`grid-template-columns: 1fr 1fr 1fr`) | Use `repeat(auto-fit, minmax(320px, 1fr))` from the template — works for 2-5 cards |
+| Missing badges (no complexity / migration / testability indicator) | Include 2-3 badges per card; otherwise the cards feel like marketing |
+| Color-only matrix cells | Use `.cell-success/.cell-warning/.cell-danger` — text + color |
+| `<table>` without `<th scope>` | Screen readers cannot navigate the matrix |
+| SVG diagram with `<image href=...>` | All inline — no external image refs in a self-contained artifact |
+| Recommendation buried mid-document | Always last before footer |
+| Inline `<style>` redefining `.approach-card` / `.tradeoff-matrix` | Lives in `templates/shapes/spec.css` — touching it creates drift |
 
 ---
 
-## Accessibility Checklist
+## Shape Selection
 
-- [ ] All `<svg>` elements have `role="img"` and `aria-label`
-- [ ] Toggle buttons use `aria-pressed` state
-- [ ] Focus-visible outlines on all interactive elements
-- [ ] Color is never the sole indicator (badges have text labels, risk levels have text + color)
-- [ ] `prefers-reduced-motion` disables transitions
-- [ ] Table headers use `<th>`
-- [ ] Semantic elements: `<article>`, `<section>`, `<header>`, `<footer>`, `<main>`
-- [ ] Font sizes use relative units; respect user zoom
+Use **spec** when the request matches: plan, explore options, compare N approaches, brainstorm, design directions, tradeoffs, architecture options, RFC.
+
+Do **not** use spec when:
+
+- The user wants a single recommended approach without comparison (use **report**)
+- The user wants to tune one design interactively (use **prototype**)
+- The user wants charts comparing performance numerically (use **data-viz**)
+- The user wants a slide deck pitching one option (use **deck**)
+
+Hybrid OK: `spec + diagram` (architecture options with per-option SVG); `spec + data-viz` (comparison with per-option charts).

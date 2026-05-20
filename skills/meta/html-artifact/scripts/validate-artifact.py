@@ -26,6 +26,12 @@ from pathlib import Path
 
 MAX_FILE_SIZE_BYTES = 500 * 1024  # 500KB
 
+HTML_ARTIFACT_VERSION = "1.1"
+ASSEMBLER_MARKER_RE = re.compile(r"<!--\s*assembled by html-artifact v[\w.\-]+\s*-->", re.IGNORECASE)
+
+# Shapes that require a theme toggle in the rendered HTML.
+THEME_TOGGLE_REQUIRED_SHAPES = frozenset({"deck", "spec", "code-review", "prototype", "report", "diagram"})
+
 
 @dataclass
 class ValidationResult:
@@ -145,6 +151,52 @@ def _check_valid_structure(content: str, result: ValidationResult) -> None:
 EXPORT_SHAPES = frozenset({"editor", "prototype"})
 
 
+def _check_assembler_marker(content: str, result: ValidationResult) -> None:
+    """HTML must contain the assembler marker comment.
+
+    Hand-authored HTML that bypasses assemble-template.py is rejected.
+    """
+    passed = bool(ASSEMBLER_MARKER_RE.search(content))
+    result.checks["has_assembler_marker"] = passed
+    if not passed:
+        result.errors.append("Hand-authored HTML rejected. Run assemble-template.py first.")
+
+
+def _detect_shape_attribute(content: str) -> str | None:
+    """Return the value of <body data-shape="..."> if present, else None."""
+    match = re.search(
+        r"<body\b[^>]*\bdata-shape\s*=\s*[\"']([^\"']+)[\"']",
+        content,
+        re.IGNORECASE,
+    )
+    return match.group(1) if match else None
+
+
+def _check_theme_toggle(content: str, shape: str | None, result: ValidationResult) -> None:
+    """Shapes in THEME_TOGGLE_REQUIRED_SHAPES must contain a theme toggle.
+
+    Acceptable forms:
+      - any element with attribute [data-theme-toggle]
+      - <button class="theme-toggle"> (class may include other tokens)
+    """
+    detected_shape = _detect_shape_attribute(content) or shape
+    if detected_shape is None or detected_shape not in THEME_TOGGLE_REQUIRED_SHAPES:
+        return
+
+    has_data_attr = bool(re.search(r"\bdata-theme-toggle\b", content, re.IGNORECASE))
+    has_button_class = bool(
+        re.search(
+            r"<button\b[^>]*\bclass\s*=\s*[\"'][^\"']*\btheme-toggle\b",
+            content,
+            re.IGNORECASE,
+        )
+    )
+    passed = has_data_attr or has_button_class
+    result.checks["has_theme_toggle"] = passed
+    if not passed:
+        result.errors.append(f"Theme toggle missing — required for shape {detected_shape}.")
+
+
 def _check_export_button(content: str, shape: str, result: ValidationResult) -> None:
     """For editor/prototype shapes, check for copy/export functionality in scripts.
 
@@ -191,6 +243,8 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_reasonable_size(file_path, result)
     _check_no_empty_body(content, result)
     _check_valid_structure(content, result)
+    _check_assembler_marker(content, result)
+    _check_theme_toggle(content, shape, result)
 
     if shape is not None:
         _check_export_button(content, shape, result)

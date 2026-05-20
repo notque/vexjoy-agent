@@ -1,17 +1,42 @@
-/* === Theme Toggle Component === */
-[data-theme="dark"] {
-  --color-primary: #64B5F6; --bg-page: #1A1A2E; --bg-surface: #232340; --bg-muted: #2C2C4A;
-  --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8; --text-muted: #6E6E8A;
-  --border-default: #3A3A5C; --border-subtle: #2E2E4E; --accent: #64B5F6;
-  --shadow-sm: inset 0 1px 2px rgba(0,0,0,0.3); --shadow-md: inset 0 2px 6px rgba(0,0,0,0.4);
+/* === Theme Toggle Component ===
+ * Toggle flips <html data-theme> between "light" and "dark".
+ * These selectors override theme :root tokens at higher specificity
+ * (html[data-theme="X"] beats :root) so the toggle works regardless
+ * of which named theme (dark-focus, birchline, etc.) is loaded.
+ */
+html[data-theme="dark"] {
+  --color-primary: #64B5F6; --color-bg: #1A1A2E; --color-surface: #232340;
+  --color-surface-raised: #2C2C4A; --color-code-bg: #16162A;
+  --bg-page: #1A1A2E; --bg-surface: #232340; --bg-muted: #2C2C4A;
+  --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8;
+  --text-muted: #6E6E8A; --border-default: #3A3A5C; --border-subtle: #2E2E4E;
+  --accent: #64B5F6;
+  --shadow-sm: inset 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: inset 0 2px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 0 24px rgba(100,181,246,0.06);
+  color-scheme: dark;
+}
+html[data-theme="light"] {
+  --color-primary: #D97757; --color-bg: #FAF9F5; --color-surface: #FFFFFF;
+  --color-surface-raised: #F0EEE6; --color-code-bg: #F0EEE6;
+  --bg-page: #FAF9F5; --bg-surface: #FFFFFF; --bg-muted: #F0EEE6;
+  --bg-card: #E3DACC; --text-primary: #141413; --text-secondary: #3D3D3A;
+  --text-muted: #87867F; --border-default: #D1CFC5; --border-subtle: #F0EEE6;
+  --accent: #D97757;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 10px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 28px rgba(0,0,0,0.12);
+  color-scheme: light;
 }
 .theme-toggle {
   position: fixed; top: var(--sp-3); right: var(--sp-3);
   background: var(--bg-muted); border: 1px solid var(--border-default); border-radius: 50%;
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 18px; z-index: 100;
+  cursor: pointer; font-size: 18px; z-index: 100; color: var(--text-primary);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
+.theme-toggle:hover { border-color: var(--accent); }
 .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .theme-icon-dark { display: none; }
-[data-theme="dark"] .theme-icon-light { display: none; }
-[data-theme="dark"] .theme-icon-dark { display: inline; }
+html[data-theme="dark"] .theme-icon-light { display: none; }
+html[data-theme="dark"] .theme-icon-dark { display: inline; }
