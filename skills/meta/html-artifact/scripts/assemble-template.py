@@ -148,13 +148,15 @@ def assemble_template(
             if comp_css:
                 css_parts.append(comp_css)
 
-    # 5. Print CSS — per-shape, fall back to default-print.css. If neither exists,
-    # leave a marker comment but continue (Phase B is creating these in parallel).
+    # 5. Print CSS — per-shape, fall back to default-print.css. Print stylesheets
+    # are full stylesheets (each declares its own @page and @media print), not
+    # rule fragments — inject as-is rather than wrapping. Double-wrapping was a
+    # bug: it nested @page inside @media print and stacked @media print twice.
     print_css = _read_template(f"print/{shape}-print.css")
     if not print_css:
         print_css = _read_template("print/default-print.css")
     if print_css:
-        css_parts.append(f"/* print: {shape} */\n@media print {{\n{print_css}\n}}")
+        css_parts.append(f"/* print: {shape} */\n{print_css}")
     else:
         css_parts.append(f"/* print: {shape} — no print stylesheet found */")
 

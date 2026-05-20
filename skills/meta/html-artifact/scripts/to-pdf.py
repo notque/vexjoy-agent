@@ -132,8 +132,13 @@ def count_slides(html: str) -> int:
     return len(re.findall(pattern, html, re.IGNORECASE))
 
 
-def count_pdf_pages(pdf_path: Path) -> int:
-    """Best-effort PDF page count. Prefer pypdfium2; fall back to byte scan."""
+def count_pdf_pages(pdf_path: Path, warnings: list[str] | None = None) -> int:
+    """Best-effort PDF page count. Prefer pypdfium2; fall back to byte scan.
+
+    If `warnings` is provided, any unexpected probe exception is appended so
+    the caller can surface the underlying cause instead of seeing only a
+    generic 'could not determine page count' message.
+    """
     try:
         import pypdfium2  # type: ignore[import-not-found]
 
@@ -144,8 +149,9 @@ def count_pdf_pages(pdf_path: Path) -> int:
             pdf.close()
     except ImportError:
         pass
-    except Exception:
-        pass
+    except Exception as e:
+        if warnings is not None:
+            warnings.append(f"page count probe failed: {e}")
 
     # Fallback: scan raw bytes for `/Type /Page` markers (not /Pages).
     try:
@@ -280,7 +286,7 @@ def generate_pdf(
             f"PDF size {result.size_bytes} bytes is below {MIN_PDF_SIZE_BYTES} threshold (may be blank or error page)."
         )
 
-    result.pages = count_pdf_pages(output_path)
+    result.pages = count_pdf_pages(output_path, warnings=result.warnings)
     if result.pages == 0:
         result.warnings.append("Could not determine page count (or PDF has 0 pages).")
 

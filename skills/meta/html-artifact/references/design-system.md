@@ -141,7 +141,8 @@ Every artifact ships print-ready. The assembler injects `templates/print/{shape}
 | report | 8.5in × 11in portrait | Content flows; cards page-break-inside: avoid |
 | spec | 11in × 8.5in landscape | Side-by-side grids preserved |
 | data-viz | 8.5in × 11in portrait | SVGs vector; controls hidden |
-| (other) | 8.5in × 11in portrait | default-print.css with banner |
+| editor | 8.5in × 11in portrait | Kanban columns stack vertically; sticky export bar un-sticks; banner |
+| (other: code-review, prototype, diagram) | 8.5in × 11in portrait | default-print.css with banner |
 
 Dark themes preserved via `print-color-adjust: exact` (all vendor variants). Full details in `references/pdf-export.md`.
 
