@@ -52,11 +52,15 @@ def _chrome_available() -> bool:
 
 
 def _chrome_runs() -> bool:
-    """Return True if Chrome actually launches (binary exists AND can render).
+    """Return True if Chrome actually launches headless AND can render.
 
-    Some CI runners install chromium but it aborts with SIGABRT (-6) at startup
-    due to missing sandbox configuration. `_chrome_available()` only confirms
-    the binary is present; this helper does a fast smoke test.
+    Some CI runners install chromium but it aborts with SIGABRT (-6) when
+    invoked headless due to missing sandbox/GPU dependencies.
+    `_chrome_available()` only confirms the binary is present;
+    `chromium --version` exits 0 even when headless rendering would crash.
+    This helper matches the real workload more closely: it asks Chrome
+    to dump the DOM of a trivial about:blank page and only returns True
+    if that succeeds.
     """
     if not _chrome_available():
         return False
@@ -71,9 +75,17 @@ def _chrome_runs() -> bool:
         return False
     try:
         proc = subprocess.run(
-            [chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--version"],
+            [
+                chrome,
+                "--headless=new",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--dump-dom",
+                "about:blank",
+            ],
             capture_output=True,
-            timeout=10,
+            timeout=15,
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
