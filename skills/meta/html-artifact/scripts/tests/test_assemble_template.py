@@ -84,7 +84,7 @@ class TestAssembleTemplateDirect:
         assert "<!DOCTYPE html>" in html
         assert "<html" in html
         assert "<head>" in html
-        assert "<body>" in html
+        assert "<body" in html
 
     def test_html_entities_in_title(self) -> None:
         html = assemble_template("spec", "A & B <comparison>")

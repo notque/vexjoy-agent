@@ -1,0 +1,72 @@
+/* === Print: spec / exploration shape ===
+ * Page: 11in x 8.5in landscape (US Letter rotated).
+ * Spec docs lean on side-by-side comparison grids (.comparison-grid,
+ * .pros-cons), so landscape preserves the two- or three-column reading
+ * order. Otherwise behaves like report-print.
+ */
+@page { size: 11in 8.5in; margin: 0.5in 0.6in; }
+
+@media print {
+  html, body {
+    background: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .no-print,
+  .theme-toggle,
+  [data-theme-toggle],
+  .filter,
+  .filter-bar,
+  .tabs-nav,
+  .copy-button,
+  .collapsible-toggle,
+  nav.site-nav { display: none !important; }
+
+  /* Force <details> open */
+  details { display: block !important; }
+  details > summary { list-style: none !important; cursor: default !important; }
+  details > summary::-webkit-details-marker { display: none !important; }
+  details:not([open]) > *:not(summary) { display: revert !important; }
+
+  /* Cards stay whole */
+  .card-flat,
+  .card-outlined,
+  .card-elevated,
+  .card-accent,
+  .approach-card,
+  .recommendation,
+  .metric-card,
+  .chart-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+  }
+
+  /* Comparison grid: keep its row intact when possible */
+  .comparison-grid,
+  .pros-cons {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Tradeoff matrix: keep headers + rows together */
+  .tradeoff-matrix { page-break-inside: auto !important; }
+  .tradeoff-matrix thead { display: table-header-group !important; }
+  .tradeoff-matrix tr,
+  .tradeoff-matrix td,
+  .tradeoff-matrix th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  a { color: var(--accent) !important; text-decoration: none !important; }
+}

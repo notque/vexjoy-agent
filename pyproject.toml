@@ -113,6 +113,7 @@ line-ending = "lf"
 pythonpath = ["."]
 markers = [
     "slow: marks tests as slow (subprocess calls)",
+    "integration: marks tests requiring external tools (e.g., Chrome headless)",
 ]
 
 [tool.mypy]

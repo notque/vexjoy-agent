@@ -21,7 +21,7 @@ Design principles, theme selection, and quality rules for html-builder. CSS impl
 
 **Fallback:** Minimal Document for long-form reading. Override any default with `--theme`.
 
-**Dark mode toggle:** Every artifact includes light/dark toggle (top-right). Request `theme-toggle` component via `assemble-template.py --components theme-toggle`.
+**Dark mode toggle (ENFORCED):** Every artifact in shapes {deck, spec, code-review, prototype, report, diagram} MUST include a light/dark toggle. The assembler now adds it automatically — `assemble-template.py` injects `theme-toggle` for these shapes by default. Validator rejects HTML missing `[data-theme-toggle]` or `<button class="theme-toggle">`. Override with `--no-theme-toggle` only when genuinely not needed (rare).
 
 ---
 
@@ -128,3 +128,19 @@ Use `min-width` media queries (mobile-first). Container max-width: 1200px.
 | Heading level skipping (h1 to h3) | Sequential heading levels |
 | Text as images | Real text with CSS styling |
 | `color-mix()` without fallback | Provide fallback hex for critical paths |
+
+---
+
+## Print / PDF Export
+
+Every artifact ships print-ready. The assembler injects `templates/print/{shape}-print.css` into the artifact's `<style>` block. PDF generation is `python3 scripts/to-pdf.py --input <file>`.
+
+| Shape | Page size | Strategy |
+|---|---|---|
+| deck | 13.333in × 7.5in landscape | 1:1 with live viewport (1280×720), no scale |
+| report | 8.5in × 11in portrait | Content flows; cards page-break-inside: avoid |
+| spec | 11in × 8.5in landscape | Side-by-side grids preserved |
+| data-viz | 8.5in × 11in portrait | SVGs vector; controls hidden |
+| (other) | 8.5in × 11in portrait | default-print.css with banner |
+
+Dark themes preserved via `print-color-adjust: exact` (all vendor variants). Full details in `references/pdf-export.md`.
