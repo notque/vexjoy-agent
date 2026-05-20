@@ -51,6 +51,36 @@ def _chrome_available() -> bool:
     return any(shutil.which(name) for name in ("chromium", "google-chrome", "chrome"))
 
 
+def _chrome_runs() -> bool:
+    """Return True if Chrome actually launches (binary exists AND can render).
+
+    Some CI runners install chromium but it aborts with SIGABRT (-6) at startup
+    due to missing sandbox configuration. `_chrome_available()` only confirms
+    the binary is present; this helper does a fast smoke test.
+    """
+    if not _chrome_available():
+        return False
+    chrome = (
+        os.environ.get("CHROME_PATH")
+        or (CHROME_MAC if Path(CHROME_MAC).is_file() else None)
+        or shutil.which("chromium")
+        or shutil.which("google-chrome")
+        or shutil.which("chrome")
+    )
+    if not chrome:
+        return False
+    try:
+        proc = subprocess.run(
+            [chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--version"],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
 # --- Tier 1: fast unit tests ---------------------------------------------------
 
 
@@ -214,7 +244,7 @@ DECK_TWO_SLIDES = (
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not _chrome_available(), reason="Chrome/Chromium not installed")
+@pytest.mark.skipif(not _chrome_runs(), reason="Chrome/Chromium not installed or not runnable in this environment")
 class TestPdfIntegration:
     """End-to-end: generate a PDF via Chrome headless."""
 

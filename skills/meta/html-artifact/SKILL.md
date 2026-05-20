@@ -180,7 +180,7 @@ Gate: Template assembled + required references loaded.
 
 ### Phase 3: GENERATE
 
-DISCIPLINE GATE: The validator REJECTS HTML lacking the assembler marker comment. NEVER hand-author HTML past Phase 2. The marker `<!-- assembled by html-artifact v1.1 -->` is your proof that the assembler ran. Skipping the assembler means: no theme tokens, no shape CSS, no print stylesheet, no theme-toggle, no data-shape attribute -- every downstream step breaks.
+DISCIPLINE GATE: The validator requires the assembler marker comment. Always run `assemble-template.py` to produce the HTML — past Phase 2, hand-authored HTML lacks the marker and gets rejected. The marker `<!-- assembled by html-artifact v1.1 -->` is your proof the assembler ran. Skipping the assembler means: no theme tokens, no shape CSS, no print stylesheet, no theme-toggle, no data-shape attribute — every downstream step breaks.
 
 If you find yourself writing `<!DOCTYPE html>` directly in a Write tool call, STOP. Run assemble-template.py first.
 
