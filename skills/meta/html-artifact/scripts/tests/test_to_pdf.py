@@ -252,6 +252,56 @@ class TestJsonOutputContract:
         assert to_pdf.DEFAULT_PAGE["format"] == "Letter"
 
 
+class TestInstallHintRouting:
+    """Regression: missing chromium binary must surface install hint, not opaque error."""
+
+    def test_missing_browser_exits_2_with_hint(self, tmp_path: Path, monkeypatch) -> None:
+        # Simulate the "Executable doesn't exist" error Playwright raises when
+        # the python package is installed but `playwright install chromium` was skipped.
+        src = tmp_path / "x.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+
+        def _raise_missing_binary(*_a: object, **_kw: object) -> None:
+            raise RuntimeError(
+                "Executable doesn't exist at /tmp/fake/chrome\n"
+                "Looks like Playwright was just installed or updated.\n"
+                "Please run the following command to download new browsers:\n"
+                "    playwright install"
+            )
+
+        monkeypatch.setattr(to_pdf, "render_pdf", _raise_missing_binary)
+        rc = to_pdf.main(["--input", str(src), "--output", str(out)])
+        assert rc == 2
+
+    def test_other_runtime_errors_still_exit_3(self, tmp_path: Path, monkeypatch) -> None:
+        src = tmp_path / "x.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+
+        def _raise_other(*_a: object, **_kw: object) -> None:
+            raise RuntimeError("Page navigation timed out after 30000ms")
+
+        monkeypatch.setattr(to_pdf, "render_pdf", _raise_other)
+        rc = to_pdf.main(["--input", str(src), "--output", str(out)])
+        assert rc == 3
+
+
+class TestPathHandling:
+    """Regression: file:// URLs must escape spaces and unicode per RFC 8089."""
+
+    def test_path_with_spaces_uses_as_uri(self, tmp_path: Path) -> None:
+        # pathlib.as_uri() encodes spaces as %20; raw f-string concat doesn't.
+        spaced = tmp_path / "with spaces"
+        spaced.mkdir()
+        src = spaced / "art.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        # Confirm the URI form Playwright will receive is properly encoded.
+        uri = src.resolve().as_uri()
+        assert "%20" in uri
+        assert "file://" in uri
+
+
 # --- Integration tests (browser-required) ---
 
 

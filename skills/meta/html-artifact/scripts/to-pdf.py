@@ -249,7 +249,8 @@ def render_pdf(input_path: Path, output_path: Path, shape: str | None) -> dict[s
             temp_path.write_text(augmented, encoding="utf-8")
             load_path = temp_path
 
-    file_url = f"file://{load_path.resolve()}"
+    # pathlib.as_uri() handles spaces, unicode, and Windows drives per RFC 8089.
+    file_url = load_path.resolve().as_uri()
 
     try:
         with sync_playwright() as p:
@@ -258,7 +259,6 @@ def render_pdf(input_path: Path, output_path: Path, shape: str | None) -> dict[s
                 context = browser.new_context()
                 page = context.new_page()
                 page.goto(file_url, wait_until="networkidle")
-                page.wait_for_load_state("networkidle")
                 page.pdf(**options)
             finally:
                 browser.close()
@@ -337,6 +337,12 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.write(f"Error: {e}\n")
         return 1
     except Exception as e:
+        # Playwright launch fails with a non-ImportError when chromium isn't installed.
+        # The error message contains "Executable doesn't exist" — surface install hint.
+        msg = str(e)
+        if "Executable doesn't exist" in msg or "playwright install" in msg:
+            sys.stderr.write(f"Error: Playwright browser binary missing.\nInstall with: {INSTALL_HINT}\n")
+            return 2
         sys.stderr.write(f"Error: PDF generation failed: {type(e).__name__}: {e}\n")
         return 3
 
