@@ -6,10 +6,11 @@
 }
 
 @media print {
+  /* Inherit theme palette — see default-print.css for rationale. */
   html,
   body {
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--bg-page, #fff) !important;
+    color: var(--text-primary, #000) !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

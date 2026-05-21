@@ -6,10 +6,14 @@
 }
 
 @media print {
+  /* Inherit theme palette so dark-themed artifacts print dark and light-themed
+     artifacts print on white paper. `--bg-page` and `--text-primary` are
+     declared by every shipped theme; the literal fallbacks keep ad-hoc HTML
+     printable when no theme is loaded. */
   html,
   body {
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--bg-page, #fff) !important;
+    color: var(--text-primary, #000) !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
