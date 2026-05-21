@@ -35,6 +35,7 @@ ROOT_MARKDOWN = ["README.md", "CONTRIBUTING.md", "CLAUDE.md"]
 ALLOWLIST = {
     "adr/completed",  # Created at runtime by adr-lifecycle-on-merge.py when an ADR is marked COMPLETE
     "hooks/auto-plan-detector.py",  # Deleted stub, documented as removed in injected-context-contracts.md
+    ".claude/settings.local.json",  # Gitignored repo-local override file, documented as such
 }
 
 # Markdown link: [text](target)
