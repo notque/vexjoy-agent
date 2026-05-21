@@ -186,6 +186,8 @@ DARK-DEFAULT GATE: Every assembled artifact ships with `<html data-theme="dark">
 
 MIRRORING GATE: Every load-bearing rule in this skill must live in **at least one** enforcement layer (assembler / validator / test) AND be mirrored as a one-liner in this SKILL.md. Prose alone in `references/` is not enough — past refactors have silently dropped scaffolds and shipped regressions (2026-05-20 dark-default; deck chrome above-vs-below). When adding a rule: (1) write it in the relevant `references/` file with full rationale, (2) mirror a one-line GATE or table row in this file, (3) enforce it in code (assembler default, validator check, or regression test). Three layers: prose (judgment), code (mechanism), test (proof). The taxonomy is in `references/design-system.md` § Reference-file taxonomy.
 
+NO-IMPORTANT-DISPLAY GATE: NEVER use `!important` on `display` properties in artifact `<style>` blocks. Base shape CSS uses `:not(.active)` selectors and similar primitives to enforce layout invariants like single-slide-visible. An artifact-authored `display: grid !important` (or `display: block !important`, etc.) silently defeats those rules — the canonical regression is a deck where every `.slide-split` rendered simultaneously because the artifact inlined `.slide-split { display: grid !important; }`. The validator rejects this pattern; allowlisted base primitives only (`.no-print`, `.hidden`, `[hidden]`, the deck `:not(.active)` rule). Past failure (2026-05-20). See `references/shape-slide-deck.md` § Layout rules and `scripts/validate-artifact.py` `_check_no_important_display_override`.
+
 If you find yourself writing `<!DOCTYPE html>` directly in a Write tool call, STOP. Run assemble-template.py first.
 
 Dispatch the html-builder subagent with the pre-assembled template.
@@ -239,6 +241,7 @@ The script checks:
 | No broken internal refs | `href="#id"` pointing to nonexistent `id` attributes (excluding `#top`) |
 | SVG accessibility | `<svg>` outside `<button>` lacking `role="img"` + `aria-label` (or explicit `role="presentation"` / `aria-hidden="true"`) |
 | Theme toggle present | Required-toggle shape (deck, spec, code-review, prototype, report, diagram) missing `[data-theme-toggle]` or `<button class="theme-toggle">` |
+| No `!important` display override | Artifact `<style>` declares `display: <x> !important` on a non-allowlisted selector (regression: `.slide-split { display: grid !important }` stacked all split slides) |
 | Assembler marker present | Hand-authored HTML missing `<!-- assembled by html-artifact v* -->` marker |
 
 Gate: All validation checks pass.

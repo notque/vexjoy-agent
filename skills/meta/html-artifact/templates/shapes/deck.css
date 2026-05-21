@@ -1,8 +1,73 @@
-/* === Slide Deck Shape === */
+/* === Slide Deck Shape ===
+ *
+ * Show/hide contract (load-bearing): exactly ONE `.slide` is visible at a time —
+ * the one with `.active`. Non-active slides MUST be `display: none`.
+ *
+ * Why the `:not(.active)` selector with `!important` lives at the top:
+ * historically, artifact authors have inlined `<style>` blocks like
+ * `.slide-split { display: grid !important; }` to style a split layout —
+ * which silently overrode `.slide { display: none }` and rendered EVERY
+ * split slide simultaneously, producing a broken stacked-pages deck. By
+ * pinning hidden state with the same specificity weapon, the variant
+ * helpers below (.slide-split etc.) cannot accidentally promote inactive
+ * slides to visible. validate-artifact.py also rejects artifact-authored
+ * `display: <x> !important` overrides as a defense in depth.
+ */
 .slide-deck { position: relative; width: 100%; max-width: 960px; margin: 0 auto; aspect-ratio: 16/9; overflow: hidden; }
-.slide { display: none; position: absolute; inset: 0; padding: var(--sp-7); }
-.slide.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.slide > * { width: 100%; max-width: 720px; }
+
+/* Hidden state — pinned with !important so variant helpers cannot defeat it. */
+.slide-deck > .slide:not(.active) { display: none !important; }
+
+/* Base slide — applies to every slide variant. The `.active` rule below
+ * promotes it to `flex` so the variant CSS can override `display` to grid
+ * (split slides) without accidentally affecting hidden slides, because the
+ * :not(.active) rule above already set those to none !important. */
+.slide { position: absolute; inset: 0; padding: var(--sp-7); box-sizing: border-box; }
+.slide.active { display: flex; flex-direction: column; justify-content: center; align-items: stretch; }
+.slide > * { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
+
+/* === Slide variants (use on the .slide element: <section class="slide slide-split active">) === */
+
+/* Title slide — large hero text, centered both axes. */
+.slide.slide-title.active { justify-content: center; align-items: center; text-align: center; }
+.slide-title h1 { font: var(--type-display, 500 56px/1.05 var(--font-sans)); margin-bottom: var(--sp-5); }
+.slide-title .slide-subtitle { font-size: 22px; color: var(--text-secondary); margin-bottom: var(--sp-6); max-width: 720px; }
+.slide-title .slide-meta { font: var(--type-small); color: var(--text-muted); font-family: var(--font-mono); }
+
+/* Section divider — like title but smaller, with eyebrow label. */
+.slide.slide-section.active { justify-content: center; align-items: center; text-align: center; }
+.slide-section .eyebrow { font: var(--type-caption); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: var(--sp-3); }
+.slide-section h1, .slide-section h2 { font: var(--type-h1, 500 40px/1.15 var(--font-sans)); }
+
+/* Split slide — text left, visual right. Two children: .split-text and .split-visual.
+ * Override the active flex layout to a grid only when this slide variant is active.
+ * The hidden-state guard above prevents this from leaking to inactive slides. */
+.slide.slide-split.active { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-6); align-items: center; justify-content: stretch; }
+.slide-split > * { max-width: none; width: 100%; }
+.slide-split .split-text h2 { font: var(--type-h1, 500 32px/1.2 var(--font-sans)); margin-bottom: var(--sp-4); }
+.slide-split .split-visual { display: flex; align-items: center; justify-content: center; }
+.slide-split .split-visual svg, .slide-split .split-visual img { width: 100%; height: auto; max-height: 420px; }
+
+/* Quote slide — large blockquote with attribution. */
+.slide.slide-quote.active { justify-content: center; align-items: center; text-align: center; }
+.slide-quote blockquote { font: 400 32px/1.35 var(--font-sans); max-width: 760px; margin: 0 auto; }
+.slide-quote blockquote p { margin-bottom: var(--sp-5); }
+.slide-quote blockquote cite { font: var(--type-small); color: var(--text-muted); font-style: normal; font-family: var(--font-mono); }
+
+/* Code slide — heading on top, full-width pre below. */
+.slide.slide-code.active { justify-content: flex-start; }
+.slide-code h2 { font: var(--type-h1, 500 28px/1.2 var(--font-sans)); margin-bottom: var(--sp-4); }
+.slide-code pre { background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--sp-4) var(--sp-5); overflow: auto; max-width: 900px; margin: 0 auto; }
+.slide-code pre code { font-family: var(--font-mono); font-size: 16px; line-height: 1.55; color: var(--text-primary); white-space: pre; }
+
+/* Table slide — heading + data table. */
+.slide.slide-table.active { justify-content: flex-start; }
+.slide-table h2 { font: var(--type-h1, 500 28px/1.2 var(--font-sans)); margin-bottom: var(--sp-4); }
+.slide-table table { width: 100%; max-width: 900px; margin: 0 auto; border-collapse: collapse; font-size: var(--type-body); }
+.slide-table th, .slide-table td { padding: var(--sp-3) var(--sp-4); text-align: left; border-bottom: 1px solid var(--border-subtle); }
+.slide-table th { font-weight: 600; font-size: var(--type-small); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+
+/* === Chrome === */
 .slide-nav { display: flex; justify-content: center; align-items: center; gap: var(--sp-4); padding: var(--sp-4); }
 .slide-nav button { background: var(--bg-muted); border: 1px solid var(--border-default); border-radius: var(--radius-sm); width: 44px; height: 44px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .slide-nav button:hover { background: var(--bg-surface); border-color: var(--accent); }
@@ -10,9 +75,17 @@
 .slide-counter { font: var(--type-caption); font-family: var(--font-mono); color: var(--text-muted); }
 .progress-bar { height: 3px; background: var(--border-subtle); width: 100%; max-width: 960px; margin: 0 auto; border-radius: 2px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+/* === Default typography (applies to plain `.slide` content without a variant) === */
 .slide h1 { font: var(--type-display, 500 48px/1.1 var(--font-sans)); margin-bottom: var(--sp-5); }
 .slide h2 { font: var(--type-h1, 500 32px/1.2 var(--font-sans)); margin-bottom: var(--sp-4); }
-.slide p { font: var(--type-body); max-width: 720px; }
-.slide ul, .slide ol { font: var(--type-body); padding-left: var(--sp-6); max-width: 720px; }
+.slide p { font: var(--type-body); }
+.slide ul, .slide ol { font: var(--type-body); padding-left: var(--sp-6); }
 .slide li { margin-bottom: var(--sp-2); }
-@media (max-width: 640px) { .slide { padding: var(--sp-4); } .slide h1 { font-size: 28px; } }
+
+/* === Responsive collapse === */
+@media (max-width: 640px) {
+  .slide { padding: var(--sp-4); }
+  .slide-title h1 { font-size: 32px; }
+  .slide.slide-split.active { grid-template-columns: 1fr; gap: var(--sp-4); }
+}

@@ -554,3 +554,134 @@ class TestExternalSvgRefs:
             assert result.checks["self_contained"] is True
         finally:
             path.unlink()
+
+
+class TestNoImportantDisplayOverride:
+    """REGRESSION GUARD: artifact `<style>` must not override `display` with !important.
+
+    Captured 2026-05-20: deck artifact inlined `.slide-split { display: grid !important; }`
+    which silently defeated `.slide { display: none }` and rendered every split slide
+    simultaneously, producing a stacked-pages broken deck.
+    """
+
+    def _wrap_with_style(self, style_body: str, body: str = "<p>x</p>") -> str:
+        return f"""<!DOCTYPE html>
+<html><head><!-- assembled by html-artifact v1.1 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T</title><style>{style_body}</style></head>
+<body>{body}</body></html>"""
+
+    def test_clean_style_passes(self) -> None:
+        css = ".foo { color: red; } .bar { display: grid; gap: 8px; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+            assert result.valid
+        finally:
+            path.unlink()
+
+    def test_no_style_block_passes_trivially(self) -> None:
+        # Build a minimal HTML with no <style> block at all.
+        html = """<!DOCTYPE html>
+<html><head><!-- assembled by html-artifact v1.1 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T</title></head><body><p>content</p></body></html>"""
+        path = _write_tmp(html)
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_display_grid_important_fails(self) -> None:
+        css = ".slide-split { display: grid !important; grid-template-columns: 1fr 1fr; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is False
+            assert any("slide-split" in e for e in result.errors)
+            assert not result.valid
+        finally:
+            path.unlink()
+
+    def test_display_block_important_fails(self) -> None:
+        css = ".my-thing { display: block !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is False
+            assert any("my-thing" in e for e in result.errors)
+        finally:
+            path.unlink()
+
+    def test_no_print_allowlisted(self) -> None:
+        """`.no-print { display: none !important; }` is base CSS — must NOT fire."""
+        css = ".no-print { display: none !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_hidden_class_allowlisted(self) -> None:
+        css = ".hidden { display: none !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_deck_not_active_defense_allowlisted(self) -> None:
+        """`.slide-deck > .slide:not(.active) { display: none !important; }` is the
+        deck shape's defense-in-depth rule — must NOT fire."""
+        css = ".slide-deck > .slide:not(.active) { display: none !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_at_media_print_exempt(self) -> None:
+        """!important inside `@media print` is structurally required — must NOT fire."""
+        css = "@media print { .slide { display: flex !important; } .slide-nav { display: none !important; } }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_at_media_print_then_offender_outside(self) -> None:
+        """An @media print block must not provide cover for a top-level offender."""
+        css = "@media print { .slide { display: flex !important; } } .rogue { display: grid !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is False
+            assert any("rogue" in e for e in result.errors)
+        finally:
+            path.unlink()
+
+    def test_other_important_declarations_ok(self) -> None:
+        """Only `display: <x> !important` is policed. `color: red !important` is allowed."""
+        css = ".thing { color: red !important; background: blue !important; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()
+
+    def test_commented_out_example_does_not_fire(self) -> None:
+        """A CSS-commented example inside a docs-style artifact must not fire."""
+        css = "/* example: .foo { display: grid !important; } */ .real { color: red; }"
+        path = _write_tmp(self._wrap_with_style(css))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["no_important_display_override"] is True
+        finally:
+            path.unlink()

@@ -210,6 +210,29 @@ Do not hand-author keyboard handlers — the component already exists.
 
 ## Composition Guide
 
+### Slide variants — pick one per slide
+
+Every slide MUST carry one of these variant classes (or no variant for plain heading + bullets). The base CSS in `templates/shapes/deck.css` styles each variant; the artifact never authors layout for these.
+
+| Variant Class | Use for | Required children |
+|---|---|---|
+| `slide-title` | Opener, section dividers, closing slide | `<h1>`, optional `.slide-subtitle`, `.slide-meta` |
+| `slide-section` | Mid-deck section break | `.eyebrow` + `<h1>` or `<h2>` |
+| `slide-split` | Text-left, visual-right | `.split-text`, `.split-visual` (each direct child of the slide) |
+| `slide-quote` | Pull quote, principle | `<blockquote>` with `<p>` and `<cite>` |
+| `slide-code` | Code walkthrough | `<h2>` + `<pre><code>` |
+| `slide-table` | Data comparison | `<h2>` + `<table>` |
+| (no variant) | Plain heading + bullets | `<h2>` + `<ul>` or `<ol>` |
+
+### Layout rules — load-bearing
+
+1. **Show/hide is owned by base CSS.** `.slide-deck > .slide:not(.active) { display: none !important; }` is pinned in `templates/shapes/deck.css`. The artifact never authors `display` rules on `.slide` or any `.slide-*` variant.
+2. **NEVER add `display: <x> !important` in the artifact `<style>` block.** Past failure (2026-05-20): a deck inlined `.slide-split { display: grid !important; }` to style its split layout. That declaration silently defeated `.slide { display: none }` for every `.slide-split` element, rendering all split slides simultaneously and producing a stacked-pages broken deck. The base CSS now uses `:not(.active)` to defend against this, AND `validate-artifact.py` rejects the pattern. If you find yourself wanting to write `display: grid !important` on a slide variant, that's the bug — use the variant class (`slide-split`) and let base CSS handle it.
+3. **Variant CSS is already shipped.** `slide-split` already grids text + visual. `slide-quote` already centers the blockquote. `slide-code` already pads the `<pre>`. The artifact authors content; the template owns layout.
+4. **Slide count matches duration.** Lightning (5 min) = 4-6 slides. Standard (15 min) = 8-12. Deep dive (30+ min) = 15-30. Don't pad with filler.
+
+### Slide sequence patterns (keep)
+
 | Deck Type | Slide Sequence |
 |---|---|
 | Technical talk (15 min) | Title, Content (overview), Code x2-3, Split (results), Content (takeaways), Title (closing) |
@@ -224,6 +247,12 @@ Do not hand-author keyboard handlers — the component already exists.
 | 30 min | 15-20 | ~90s/slide |
 | 45 min | 20-30 | ~90s/slide |
 
+### When NOT to author shape CSS in the artifact
+
+The base `templates/shapes/deck.css` ships every layout primitive listed above. Do not redefine `.slide`, `.slide-deck`, `.slide-nav`, `.progress-bar`, or any `slide-<variant>` class in the artifact `<style>`. If a slide needs a custom layout the variants don't cover, add a content-class (e.g., `.metrics-row` inside the slide body) and style THAT — never the slide itself.
+
+`!important` on `display` is validator-rejected. `!important` on color/background/font properties is fine in moderation but rarely needed (the theme tokens cascade correctly).
+
 ---
 
 ## Common Mistakes
@@ -236,6 +265,7 @@ Do not hand-author keyboard handlers — the component already exists.
 | Missing `aria-roledescription` | Required on both deck container ("carousel") and each slide ("slide") |
 | Hand-authored keyboard handlers | Request `keyboard-nav` component; the assembler injects it |
 | Inline `<style>` redefining `.slide-*` classes | All slide CSS lives in `templates/shapes/deck.css`; touching it in the artifact creates drift |
+| `display: <x> !important` on `.slide-*` (especially `.slide-split`) | Validator rejects it. Use the variant class; base CSS handles `display` via `:not(.active)` |
 | Content overflows slide | Cut bullets; split across two slides; use shorter prose |
 | Counter not updating | The component listens for navigation events; ensure `.slide-counter` exists in the markup |
 

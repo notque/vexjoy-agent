@@ -261,6 +261,31 @@ def _check_no_broken_internal_refs(content: str, result: ValidationResult) -> No
 _SVG_OPEN_RE = re.compile(r"<svg\b([^>]*)>", re.IGNORECASE)
 _BUTTON_BLOCK_RE = re.compile(r"<button\b[^>]*>.*?</button>", re.IGNORECASE | re.DOTALL)
 
+# CSS comment stripper for use inside <style> blocks.
+_CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+# `@media print { ... }` and other print contexts where !important is structurally
+# required to defeat live-mode styles. Top-level @page blocks too.
+_AT_MEDIA_PRINT_RE = re.compile(r"@media\s+print\s*\{", re.IGNORECASE)
+_AT_PAGE_RE = re.compile(r"@page\b[^{]*\{", re.IGNORECASE)
+# Match a CSS rule: selector { decls }. Captures selector and declaration body.
+# Non-greedy on `{ }` and skips matched braces by anchoring on the closing `}`
+# at the same nesting level — we strip nested `@media print` blocks first so a
+# flat single-level scan is safe.
+_CSS_RULE_RE = re.compile(r"([^{}@]+?)\{([^{}]*)\}", re.DOTALL)
+# `display: <value> !important` declaration, case-insensitive on `display` and
+# `!important`. Matches `display:none!important`, `display: grid !important`, etc.
+_DISPLAY_IMPORTANT_RE = re.compile(r"display\s*:\s*([a-z\-]+)\s*!\s*important", re.IGNORECASE)
+# Selectors where `display: <x> !important` is part of the base contract and
+# legitimately needs the cascade weapon. The deck shape's `:not(.active)` rule
+# uses it to defend against artifact-injected variant CSS, and `.no-print` /
+# `.hidden` / `[hidden]` use it as a generic visibility primitive.
+_ALLOWLIST_DISPLAY_IMPORTANT = (
+    re.compile(r"\.no-print\b"),
+    re.compile(r"\.hidden\b"),
+    re.compile(r"\[hidden\]"),
+    re.compile(r"\.slide-deck\s*>\s*\.slide:not\(\.active\)"),
+)
+
 
 def _check_svg_accessibility(content: str, result: ValidationResult) -> None:
     """Every visible <svg> needs role="img" + aria-label OR explicit role="presentation".
@@ -303,6 +328,91 @@ def _check_svg_accessibility(content: str, result: ValidationResult) -> None:
         )
 
 
+def _check_no_important_display_override(content: str, result: ValidationResult) -> None:
+    """Reject artifact-authored `display: <x> !important` overrides.
+
+    Past failure (2026-05-20): an artifact's inline `<style>` declared
+    `.slide-split { display: grid !important; ... }` which silently overrode
+    the base shape rule `.slide { display: none }` and rendered every split
+    slide simultaneously, producing a stacked-pages deck.
+
+    Strategy: scan all `<style>` block contents, strip `@media print { ... }`
+    (legitimately needs !important to defeat live-mode CSS) and `@page` blocks,
+    then walk top-level CSS rules. For each rule whose declaration contains
+    `display: <value> !important`, check the selector against the allowlist of
+    base-shape primitives (`.no-print`, `.hidden`, `[hidden]`, the deck
+    `:not(.active)` defense rule). Any other selector with this pattern is the
+    bug that motivated this check.
+    """
+    style_blocks = re.findall(r"<style[^>]*>(.*?)</style>", content, re.IGNORECASE | re.DOTALL)
+    if not style_blocks:
+        result.checks["no_important_display_override"] = True
+        return
+
+    offenders: list[str] = []
+    for block in style_blocks:
+        # Strip CSS comments first so commented-out examples inside docs don't fire.
+        scrubbed = _CSS_COMMENT_RE.sub("", block)
+        # Strip @media print { ... } blocks. Track brace depth manually because
+        # those blocks contain nested rules.
+        scrubbed = _strip_at_block(scrubbed, _AT_MEDIA_PRINT_RE)
+        # Strip @page { ... } blocks (print page-size rules).
+        scrubbed = _strip_at_block(scrubbed, _AT_PAGE_RE)
+
+        # Walk remaining CSS rules.
+        for m in _CSS_RULE_RE.finditer(scrubbed):
+            selector = m.group(1).strip()
+            decls = m.group(2)
+            if not _DISPLAY_IMPORTANT_RE.search(decls):
+                continue
+            # Allowlist check.
+            if any(rx.search(selector) for rx in _ALLOWLIST_DISPLAY_IMPORTANT):
+                continue
+            # Trim long selectors for the error message.
+            sel_short = selector if len(selector) <= 80 else selector[:77] + "..."
+            offenders.append(sel_short)
+
+    passed = not offenders
+    result.checks["no_important_display_override"] = passed
+    if not passed:
+        shown = "; ".join(offenders[:3])
+        suffix = f" (+{len(offenders) - 3} more)" if len(offenders) > 3 else ""
+        result.errors.append(
+            "Artifact `<style>` blocks must not override `display` with !important "
+            "(base shape CSS uses `:not(.active)` and similar primitives — "
+            f"overriding them stacks slides / breaks layout): {shown}{suffix}."
+        )
+
+
+def _strip_at_block(css: str, opener_re: re.Pattern[str]) -> str:
+    """Remove `@<at-rule> ... { ...balanced... }` regions matched by `opener_re`.
+
+    The opener_re must match the opening line up to and including the first `{`.
+    Used to drop `@media print` and `@page` blocks before scanning the remaining
+    CSS for offending declarations.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(css):
+        m = opener_re.search(css, i)
+        if m is None:
+            out.append(css[i:])
+            break
+        out.append(css[i : m.start()])
+        # Walk braces from the opener's `{` to find the matching `}`.
+        depth = 1
+        j = m.end()
+        while j < len(css) and depth > 0:
+            ch = css[j]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+            j += 1
+        i = j
+    return "".join(out)
+
+
 def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationResult:
     """Run all validation checks on an HTML artifact file.
 
@@ -328,6 +438,7 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_theme_toggle(content, shape, result)
     _check_no_broken_internal_refs(content, result)
     _check_svg_accessibility(content, result)
+    _check_no_important_display_override(content, result)
 
     if shape is not None:
         _check_export_button(content, shape, result)

@@ -162,6 +162,48 @@ Visual feedback: button text → "Copied!", `.copied` class adds `.export-btn` s
 
 ---
 
+## Composition Guide
+
+### Layout rules — keep the controls panel disciplined
+
+The base `templates/shapes/prototype.css` styles the controls panel as a flex column with natural overflow. **Do not** layer artifact CSS that re-introduces these long-disabled patterns:
+
+| Pattern (NEVER do) | Why it breaks |
+|---|---|
+| `overflow-y: auto; max-height: 100vh` on `.controls-panel` | Reserves a viewport-height empty rectangle when the control list is short — the empty-rectangle bug |
+| `position: sticky; top: 0` on `.controls-panel` | Pins controls during page scroll but interacts poorly with the empty-rectangle reservation; not needed because the layout is already a two-pane split |
+| `min-width: 120px` (or any min-width) on `.control-row label` | Starves the slider track on narrow panels — labels should size to content |
+| Hard-coded slider widths or label widths | Use the template's grid (`max-content | 1fr | auto`) which flexes correctly |
+
+If your prototype has more than ~6 control rows, **group with `.control-group-label` headings** rather than reaching for `overflow-y` to hide them. Trust normal page scroll.
+
+If a label is unusually long and needs more breathing room, add `.control-row.wide` and override only the row that needs it — never the global rule.
+
+### Sizing
+
+- Default panel width: 340px (see `.prototype-layout`'s `grid-template-columns: 340px 1fr`). Don't override.
+- Slider tracks: minimum effective track width is ~180px on the narrowest viewport; the template guarantees this when label min-widths aren't pinned.
+- `<select>` and `<input type="text">` controls fill the available column (template provides `width: 100%`).
+
+### Composition by prototype kind
+
+| Prototype Kind | Layout | Components |
+|---|---|---|
+| Single-design tuner | `.prototype-layout` (split) | `slider`, `copy-button` |
+| Component variants | `.variant-grid` of `.variant-cell`s | `copy-button` per cell |
+| Animation sandbox | `.prototype-layout` + reduced-motion toggle | `slider`, `copy-button` |
+| Color picker | `.prototype-layout` + swatch grid | `copy-button` |
+
+### When NOT to author shape CSS in the artifact
+
+The artifact `<style>` block is for content-specific tweaks (the demo's own styled element under `.preview-surface`, e.g., a `.demo-card` with custom colors). It is NOT for layout primitives. In particular:
+
+- **Never override `display` with `!important`** in artifact `<style>`. The validator rejects it. Base CSS uses cascade defenses that artifact `!important` rules silently defeat.
+- Never redefine `.controls-panel`, `.preview-surface`, `.control-row`, `.export-btn`, `.variant-grid`, `.variant-cell` — they live in the template.
+- Demo content classes (`.demo-card`, `.btn-variant`, etc.) are fine to author inline because they're the artifact's specific subject.
+
+---
+
 ## Common Mistakes
 
 | Mistake | Fix |
@@ -175,7 +217,10 @@ Visual feedback: button text → "Copied!", `.copied` class adds `.export-btn` s
 | Animation prototype with no reduced-motion path | Offer an explicit toggle |
 | Preview surface not a single, fixed card target | Keep `.preview-surface` shape stable; controls change content, not the frame |
 | Copy feedback via `alert()` | Use the `copy-button` component's `.copied` state |
+| `overflow-y` / `max-height: 100vh` on `.controls-panel` | The empty-rectangle bug — remove it; trust normal page scroll |
+| `min-width: 120px` on `.control-row label` | Starves the slider track — let labels size to content |
 | Inline `<style>` redefining `.controls-panel` / `.preview-surface` | Lives in `templates/shapes/prototype.css` — touching it creates drift |
+| `display: <x> !important` in artifact `<style>` | Validator-rejected; base CSS owns layout primitives |
 
 ---
 

@@ -175,6 +175,62 @@ Use for: when "approach A puts the limiter in-process, approach B puts it in Red
 | "Architecture options" | Header + SVG diagram per option + Comparison Grid + Recommendation |
 | "Explore tradeoffs" | Header + Comparison Grid (2 cards) + Tradeoff Matrix + Recommendation |
 
+### Layout rules — choose by approach count
+
+The base shape CSS handles density automatically when you set `data-count` on `.comparison-grid`:
+
+| Approach Count | Grid Recipe | Why |
+|---|---|---|
+| 2 | `<section class="comparison-grid" data-count="2">` | 2 columns, ample width per card |
+| 3 | `<section class="comparison-grid" data-count="3">` | 3 columns, default sweet spot |
+| 4 | `<section class="comparison-grid" data-count="4">` (2x2) **OR** demote 1-2 to `.alternatives-grid` | 4 columns in one row crams content past readability — see "demote pattern" below |
+| 5-6 | Demote weakest 2-3 to `.alternatives-grid`; keep top 3 in main grid | Reader cannot hold more than ~3 full comparisons in working memory |
+
+### Demote pattern (4+ approaches)
+
+When the request is "compare 4 approaches" — keep the top 2-3 as full `.approach-card`s in the main `.comparison-grid` and put the rest in a compact `.alternatives-grid`:
+
+```html
+<section class="comparison-grid" data-count="3">
+  <article class="approach-card">...</article>  <!-- top 1 (recommended) -->
+  <article class="approach-card">...</article>  <!-- top 2 -->
+  <article class="approach-card">...</article>  <!-- top 3 -->
+</section>
+
+<section class="alternatives">
+  <h2>Other approaches considered</h2>
+  <div class="alternatives-grid">
+    <article class="approach-card">...</article>  <!-- demoted 4 -->
+    <article class="approach-card">...</article>  <!-- demoted 5 -->
+  </div>
+</section>
+```
+
+Why: the main grid carries the cards the reader actually weighs against the recommendation. The alternatives grid signals "we considered these and ruled them out" without burning equal visual real estate.
+
+### Architecture diagram slot
+
+For "architecture options" requests where each approach has a different structure, use the `.architecture-diagram` slot — a centered figure that wraps an inline SVG:
+
+```html
+<figure class="architecture-diagram">
+  <svg viewBox="0 0 720 280" role="img" aria-label="Token bucket data flow">
+    <!-- inline SVG, layer-color convention from references/design-system.md -->
+  </svg>
+  <figcaption>Figure 1 · Token bucket request flow</figcaption>
+</figure>
+```
+
+Place ONE diagram per approach (between the comparison grid and the recommendation), or a single shared diagram above the grid if approaches differ on a single dimension. Inline SVG only — no `<image href>` or external references.
+
+### When NOT to author shape CSS in the artifact
+
+The base `templates/shapes/spec.css` already provides every layout primitive listed above. The artifact `<style>` block should be reserved for **content-specific** tweaks (e.g., a per-artifact accent color), never for layout primitives. In particular:
+
+- **Never override `display` with `!important`** in artifact `<style>`. The validator rejects it. Base CSS uses cascade defenses (e.g., `:not(.active)`) that artifact `!important` rules silently defeat — past failure: a deck artifact's `.slide-split { display: grid !important }` made every split slide visible at once.
+- Never redefine `.comparison-grid`, `.approach-card`, `.pros-cons`, `.tradeoff-matrix`, `.alternatives-grid`, `.architecture-diagram` — they live in the template.
+- If you find yourself needing a layout primitive the template doesn't ship, that's a template bug; file an issue rather than papering over with inline CSS.
+
 ---
 
 ## ARIA / Accessibility
