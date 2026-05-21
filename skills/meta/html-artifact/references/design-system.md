@@ -23,6 +23,8 @@ Design principles, theme selection, and quality rules for html-builder. CSS impl
 
 **Dark mode toggle (ENFORCED):** Every artifact in shapes {deck, spec, code-review, prototype, report, diagram} MUST include a light/dark toggle. The assembler now adds it automatically — `assemble-template.py` injects `theme-toggle` for these shapes by default. Validator rejects HTML missing `[data-theme-toggle]` or `<button class="theme-toggle">`. Override with `--no-theme-toggle` only when genuinely not needed (rare).
 
+**Dark-by-default (ENFORCED):** Every assembled artifact ships with `<html data-theme="dark">` hardcoded on the root element. A pre-paint script in `<head>` reads `localStorage['html-artifact-theme-v2']` and only overrides when a saved value exists. Rationale: artifacts are technical/working documents that read better dark; setting `data-theme` on `<html>` directly (not via end-of-body JS) prevents flash-of-light-content. The storage key suffix is versioned so a future default change can invalidate stale user prefs by bumping `-v2` → `-v3`. Never hardcode `data-theme="light"` in the base template — the assembler enforcement is the source of truth, prose alone is not enough (see retro 2026-05-20).
+
 ---
 
 ## Theme Files (in templates/themes/)
@@ -161,7 +163,7 @@ These are graduated from real regressions. Read before editing any `templates/pr
 | Rule | Why |
 |---|---|
 | **Never declare runtime-switchable theme tokens on `:root`.** | `:root` rules block lower-specificity `[data-theme]` overrides. The toggle becomes visually dead. Declare tokens on `html[data-theme="dark"]` and `html[data-theme="light"]` at matching specificity to the toggle target. |
-| **Seed `<html data-theme>` from `<body>` on init.** | The toggle flips `<html>`'s attribute, but pages typically declare initial theme on `<body>`. Without the seed, the first toggle click reads `undefined` → no flip. The toggle JS in `templates/components/theme-toggle.js` does this on `DOMContentLoaded`. |
+| **Seed `<html data-theme>` from `localStorage` *before* `<body>` paints.** | The toggle flips `<html>`'s `data-theme` attribute. If the seed runs at `DOMContentLoaded` (end of `<body>`), the page paints once with the wrong theme then re-paints — flash of incorrect content. The pre-paint script in `templates/base-template.html`'s `<head>` sets `data-theme` directly from `localStorage['html-artifact-theme-v2']` before `<body>` renders. `templates/components/theme-toggle.js` only handles click-to-flip and persistence, never init. |
 
 ### Reference-file taxonomy (graduated from a refactor regression)
 

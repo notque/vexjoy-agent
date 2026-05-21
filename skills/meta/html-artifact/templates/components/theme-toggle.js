@@ -1,20 +1,13 @@
 /* === Theme Toggle Component ===
- * Initialize <html data-theme> based on body's loaded theme name on first run,
- * then toggle between "light" and "dark" on click. The CSS in
- * theme-toggle.css overrides :root tokens at higher specificity so the
- * toggle works regardless of which named theme is loaded on body.
+ * Pre-paint init in <head> already set <html data-theme> from localStorage
+ * (or to the "dark" default). This file only handles click-to-flip and
+ * persistence. Storage key 'html-artifact-theme-v2' is versioned: bumping
+ * the suffix invalidates stale prefs when the default theme changes.
  */
-(function initThemeToggle() {
-  var html = document.documentElement;
-  var body = document.body;
-  if (!html.dataset.theme || html.dataset.theme === '' || html.dataset.theme === 'light' || html.dataset.theme === 'dark') {
-    var bodyTheme = body && body.dataset ? body.dataset.theme || '' : '';
-    var darkThemes = ['dark-focus'];
-    var startsDark = darkThemes.indexOf(bodyTheme) !== -1;
-    html.dataset.theme = startsDark ? 'dark' : 'light';
-  }
-})();
+var THEME_STORAGE_KEY = 'html-artifact-theme-v2';
 function toggleTheme() {
   var html = document.documentElement;
-  html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  var next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch (e) { /* storage blocked: in-memory only */ }
 }
