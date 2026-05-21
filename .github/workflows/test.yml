@@ -20,6 +20,9 @@ jobs:
       - run: python scripts/validate-references.py --check-do-framing
       - run: python scripts/validate-skill-frontmatter.py
       - run: python scripts/validate-index-integrity.py
+      - run: python scripts/validate-doc-links.py
+      - run: python scripts/validate-doc-counts.py
+      - run: python scripts/validate-doc-commands.py
 
   test:
     runs-on: ubuntu-latest

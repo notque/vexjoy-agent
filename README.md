@@ -6,7 +6,7 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-This toolkit prevents that. 44 domain agents, 106 workflow skills, 71 hooks, 93 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+This toolkit prevents that. 44 domain agents, 117 workflow skills, 77 hooks, 101 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Factory (`/do`).
 
@@ -59,10 +59,10 @@ For what I do, the difference is enormous. If you're doing simple single-file ed
 ```bash
 git clone https://github.com/notque/vexjoy-agent.git ~/vexjoy-agent
 cd ~/vexjoy-agent
-./install.sh --symlink
+./install.sh
 ```
 
-Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`. Use `--symlink` for live updates via `git pull`.
+Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
 
 | CLI | Entry Point |
 |-----|-------------|
@@ -114,9 +114,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 44 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 106 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
-| Hooks | 71 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 93 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Skills | 117 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Hooks | 77 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
+| Scripts | 101 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 ```
 ┌─────────────────────────────────────────────────┐

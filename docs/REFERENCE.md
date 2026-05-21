@@ -24,7 +24,6 @@ The primary entry point is `/do`, which routes your request to the appropriate a
 | `/github-notifications` | Triage GitHub notifications: fetch, classify, report |
 | `/create-pipeline` | Create a new pipeline from a task description |
 | `/system-upgrade` | Systematic upgrade of agents, skills, hooks |
-| `/perses-onboard` | First-time Perses setup: server, MCP, project |
 | `/github-profile-rules` | Extract coding conventions from GitHub profiles |
 
 ### Available via `/do` Routing
@@ -117,6 +116,14 @@ Request deep expertise: *"Use the [name] agent"*
 | `react-portfolio-engineer` | React portfolio/gallery sites for creatives: React 18+, Next.js App Router |
 | `nextjs-ecommerce-engineer` | Next.js e-commerce: shopping cart, Stripe payments, checkout flows |
 | `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations |
+| `react-native-engineer` | React Native and Expo: performance, animations, navigation, native UI patterns |
+
+### Game & Animation
+| Agent | Domain |
+|-------|--------|
+| `pixijs-combat-renderer` | PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, GPU particles |
+| `rive-skeletal-animator` | Rive skeletal animation: state machines, character pipelines, combat integration |
+| `combat-effects-upgrade` | Zero-dependency combat visual upgrades: CSS particles, Framer Motion, 3D card transforms |
 
 ### Quality & Testing
 | Agent | Domain |
@@ -150,16 +157,17 @@ Request deep expertise: *"Use the [name] agent"*
 ### Voice Writers
 | Agent | Domain |
 |-------|--------|
-| Custom voice writers | Create with `/create-voice` for your own voice profiles |
+| `voice-vexjoy`, `voice-feynman`, `voice-andy-nemmity` | Pre-calibrated voice profile skills |
 
 ### Reviewer Personas (via `reviewer-perspectives`)
 | Persona | Perspective |
 |---------|-------------|
-| contrarian | Challenge assumptions |
-| newcomer | Accessibility critique |
-| pragmatic-builder | Operational reality |
-| skeptical-senior | Sustainability |
-| pedant | Precision/terminology |
+| newcomer | Accessibility critique, fresh eyes |
+| skeptical-senior | Production readiness, sustainability |
+| pedant | Precision, terminology, spec compliance |
+| contrarian | Challenge assumptions, alternatives |
+| user-advocate | User impact, complexity vs benefit |
+| meta-process | System design health, single points of failure |
 
 These personas are loaded on demand as reference files within the `reviewer-perspectives` umbrella agent.
 
@@ -172,7 +180,6 @@ Loaded automatically or via `Skill("name")`.
 ### Workflow Automation
 | Skill | Purpose |
 |-------|---------|
-| `workflow` | Structured multi-phase workflows (review, debug, refactor, deploy, create, research) |
 | `test-driven-development` | RED-GREEN-REFACTOR enforcement |
 | `verification-before-completion` | Never done without verification |
 | `planning` | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume |
@@ -198,8 +205,6 @@ Loaded automatically or via `Skill("name")`.
 | Skill | Purpose |
 |-------|---------|
 | `voice-writer` | Unified voice content generation with validation |
-| `create-voice` | Create voice profiles from samples |
-| `anti-ai-editor` | Remove AI-sounding patterns |
 
 ### Knowledge Extraction
 | Skill | Purpose |
@@ -211,7 +216,6 @@ Loaded automatically or via `Skill("name")`.
 | Skill | Purpose |
 |-------|---------|
 | `professional-communication` | Tech → Business transformation |
-| `pr-workflow` | PR lifecycle umbrella: push, PR status, CI check, branch naming, cleanup, feedback |
 | `read-only-ops` | Exploration without modification |
 | `agent-evaluation` | Evaluate agents/skills |
 | `condition-based-waiting` | Retry patterns, backoff, polling |

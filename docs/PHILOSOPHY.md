@@ -104,7 +104,7 @@ The base LLM is a generalist. An agent's job is to close the gap with actual exp
 
 **Thin wrappers (carries nothing):** "You are an expert Go developer," general best practices the model already knows, padding to fill sections.
 
-Progressive disclosure: main agent file stays navigable (<10k words). Deep reference material in `references/`, loaded on demand.
+Progressive disclosure: main agent file stays navigable (≤600 lines, ~10k words). Reference files cap at ≤500 lines so each loads cleanly without crowding context. Deep reference material lives in `references/`, loaded on demand.
 
 **Test:** Remove the motivational preamble. Does quality change? (No.) Remove a domain-specific failure mode table. Does quality change? (Yes.)
 

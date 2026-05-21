@@ -2,7 +2,7 @@
 
 ## What This Gives You
 
-Writing, research, community moderation, data analysis, content publishing. 110+ skills behind a single command. You describe work. The system routes it.
+Writing, research, community moderation, data analysis, content publishing. 117 skills behind a single command. You describe work. The system routes it.
 
 ## Interface
 
@@ -42,10 +42,10 @@ Defines 6 research dimensions, launches 5 parallel agents, compiles findings, wr
 ### Voice System
 
 ```
-/create-voice
+/do write a blog post about [topic] in the [voice-name] voice
 ```
 
-Provide writing samples. The analyzer extracts quantitative metrics: sentence length distribution, contraction rate, punctuation density. Numbers, not vibes. Once calibrated, content gets written in your voice and validated deterministically. Up to 3 revision iterations.
+Voice profiles ship as skills (`voice-vexjoy`, `voice-feynman`, `voice-andy-nemmity`). The `voice-writer` pipeline drafts in the calibrated voice and validates deterministically against the profile's metrics — sentence length distribution, contraction rate, punctuation density. Numbers, not vibes. Up to 3 revision iterations.
 
 ### Anti-AI Editing
 
@@ -53,7 +53,7 @@ Provide writing samples. The analyzer extracts quantitative metrics: sentence le
 /do make this article sound more human
 ```
 
-Scans for 381 AI patterns across 30 categories. Makes minimal targeted fixes. Shows every edit with reasoning. Pipeline version loops scan-fix-verify up to 3 iterations.
+Scans for 397 AI patterns across 33 categories. Makes minimal targeted fixes. Shows every edit with reasoning.
 
 ### Content Planning
 

@@ -4,7 +4,7 @@ Claude Code is good on its own. This toolkit makes it structurally better. Speci
 
 ## What You Need
 
-One thing: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed.
+One thing: [Claude Code](https://docs.claude.com/en/docs/claude-code) installed.
 
 ```bash
 claude --version
@@ -35,7 +35,7 @@ cd vexjoy-agent
 
 The installer asks one question: symlink or copy. Symlink means updates via `git pull`. Copy means a stable snapshot. Either works.
 
-What it does: links agents, skills, hooks, commands, and scripts into `~/.claude/`. Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"). Configures hooks in settings so they activate automatically.
+What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"). Configures hooks in settings so they activate automatically.
 
 ## Verify
 
