@@ -98,6 +98,7 @@ SKILL_MAPPING: dict[str, str] = {
     "skill-creator": "meta",
     "skill-eval": "meta",
     "agent-comparison": "meta",
+    "agent-creator": "meta",
     "agent-evaluation": "meta",
     "toolkit-evolution": "meta",
     "workflow-help": "meta",
