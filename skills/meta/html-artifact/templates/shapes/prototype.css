@@ -1,63 +1,15 @@
-/* === Prototype Shape ===
- *
- * Layout: two-pane split (controls left, preview right). The preview surface is
- * the user's reference; controls feed it. Both panes flow naturally — do NOT
- * wrap `.controls-panel` in `overflow-y:auto; max-height:100vh` (a long-disabled
- * pattern) — that reserves a viewport-height empty rectangle when the control
- * list is short. If the control set grows past ~8 rows, group them with
- * `.control-group-label` headings and trust normal page scroll.
- *
- * Slider geometry: labels are NOT min-width pinned. Pinning to 120px starves
- * the range track on narrow panels and produces clipped sliders. Labels size
- * to content; the track flexes.
- */
-.prototype-layout {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: var(--sp-5);
-  min-height: 80vh;
-}
-@media (max-width: 768px) { .prototype-layout { grid-template-columns: 1fr; } }
-
-.controls-panel {
-  padding: var(--sp-5);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
+/* === Prototype Shape === */
+.prototype-layout { display: grid; grid-template-columns: 300px 1fr; gap: var(--sp-5); min-height: 80vh; }
+@media (max-width: 640px) { .prototype-layout { grid-template-columns: 1fr; } }
+.controls-panel { padding: var(--sp-5); background: var(--bg-surface); border-right: 1px solid var(--border-subtle); overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
 .controls-panel h2 { font: var(--type-caption); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: var(--sp-4); }
-
 .preview-panel { padding: var(--sp-6); display: flex; align-items: center; justify-content: center; }
 .preview-surface { width: 100%; min-height: 300px; background: var(--bg-muted); border-radius: var(--radius-md); padding: var(--sp-6); transition: all 0.2s ease; }
-
-/* Control row: label | input (flex) | value display.
- * Label sizes to content (NO min-width) so the slider track has room.
- * Use `.control-row.wide` if a label genuinely needs more horizontal real estate. */
-.control-row {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) 0;
-}
-.control-row label { font: var(--type-small); color: var(--text-secondary); }
-.control-row input[type="range"] { width: 100%; min-width: 0; accent-color: var(--accent); }
-.control-row select, .control-row input[type="text"], .control-row input[type="number"] {
-  width: 100%;
-  min-width: 0;
-  padding: var(--sp-1) var(--sp-2);
-  background: var(--bg-page);
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xs);
-  font: var(--type-small);
-}
+.control-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0; }
+.control-row label { min-width: 120px; font: var(--type-small); color: var(--text-secondary); }
+.control-row input[type="range"] { flex: 1; accent-color: var(--accent); }
 .value-display { min-width: 60px; text-align: right; font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); user-select: all; }
-
 .control-group-label { font: var(--type-caption); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: var(--sp-3) 0 var(--sp-2); margin-top: var(--sp-3); border-top: 1px solid var(--border-subtle); }
-
 .export-btn {
   width: 100%; margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
   background: var(--accent); color: #FFFFFF; border: none; border-radius: var(--radius-sm);
@@ -67,8 +19,6 @@
 .export-btn:hover { filter: brightness(0.9); }
 .export-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .export-btn.copied { background: var(--color-success); }
-
-/* Variant grid (contact sheet) */
 .variant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-4); }
 .variant-cell { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; }
 .variant-preview { padding: var(--sp-5); display: flex; align-items: center; justify-content: center; background: var(--bg-muted); min-height: 80px; }

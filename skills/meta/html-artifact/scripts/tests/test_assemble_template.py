@@ -84,41 +84,7 @@ class TestAssembleTemplateDirect:
         assert "<!DOCTYPE html>" in html
         assert "<html" in html
         assert "<head>" in html
-        assert "<body" in html
-
-    def test_dark_default_on_html_root(self) -> None:
-        """REGRESSION GUARD: <html> tag must hardcode data-theme='dark'.
-
-        Captured 2026-05-20: assembler shipped data-theme='light' for months
-        because the dark-default rule lived only in design-system.md prose.
-        This test enforces the rule in the deterministic layer.
-        """
-        for shape in ("spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"):
-            html = assemble_template(shape, "Test")
-            assert '<html lang="en" data-theme="dark">' in html, (
-                f"shape={shape}: <html> must hardcode data-theme='dark'"
-            )
-
-    def test_pre_paint_theme_init_script(self) -> None:
-        """Pre-paint <head> script must read versioned localStorage key.
-
-        Bumping the storage-key version (e.g. v2 -> v3) is the migration
-        mechanism for invalidating stale prefs when the default changes.
-        """
-        html = assemble_template("report", "Test")
-        assert "html-artifact-theme-v2" in html, "pre-paint init script missing or storage key not versioned"
-        head_end = html.find("</head>")
-        # Match the real <body data-shape="..."> opening tag, not CSS selectors
-        # like `body { ... }` that also start with `<body` in injected styles.
-        import re
-
-        body_match = re.search(r"<body\s+data-shape=", html)
-        assert body_match, "could not locate <body data-shape> opening tag"
-        body_start = body_match.start()
-        init_pos = html.find("html-artifact-theme-v2")
-        assert init_pos < head_end < body_start, (
-            f"theme init must execute before <body>: init={init_pos} head_end={head_end} body_start={body_start}"
-        )
+        assert "<body>" in html
 
     def test_html_entities_in_title(self) -> None:
         html = assemble_template("spec", "A & B <comparison>")

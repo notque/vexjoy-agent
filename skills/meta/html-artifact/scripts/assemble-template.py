@@ -21,14 +21,8 @@ import argparse
 import sys
 from pathlib import Path
 
-HTML_ARTIFACT_VERSION = "1.1"
-ASSEMBLER_MARKER = f"<!-- assembled by html-artifact v{HTML_ARTIFACT_VERSION} -->"
-
 VALID_SHAPES = ("spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck")
 VALID_THEMES = ("birchline", "dark-focus", "interactive-warm", "minimal-document")
-
-# Shapes that require a theme-toggle by default (auto-injected unless --no-theme-toggle).
-THEME_TOGGLE_REQUIRED_SHAPES = frozenset({"deck", "spec", "code-review", "prototype", "report", "diagram"})
 VALID_COMPONENTS = (
     "tabs",
     "collapsible",
@@ -69,7 +63,6 @@ def assemble_template(
     title: str,
     theme: str | None = None,
     components: list[str] | None = None,
-    no_theme_toggle: bool = False,
 ) -> str:
     """Assemble an HTML template with theme, shape, and component CSS/JS.
 
@@ -78,8 +71,6 @@ def assemble_template(
         title: The title to inject into the template.
         theme: Optional theme override. Defaults to shape-specific theme.
         components: Optional list of component names to inject.
-        no_theme_toggle: If True, skip auto-injection of theme-toggle for
-            shapes in THEME_TOGGLE_REQUIRED_SHAPES.
 
     Returns:
         The assembled HTML string.
@@ -95,13 +86,8 @@ def assemble_template(
     if resolved_theme not in VALID_THEMES:
         raise ValueError(f"Invalid theme '{resolved_theme}'. Valid themes: {', '.join(VALID_THEMES)}")
 
-    # Normalize components list and auto-inject theme-toggle for required shapes.
-    comps: list[str] = list(components) if components else []
-    if not no_theme_toggle and shape in THEME_TOGGLE_REQUIRED_SHAPES and "theme-toggle" not in comps:
-        comps.append("theme-toggle")
-
-    if comps:
-        invalid = [c for c in comps if c not in VALID_COMPONENTS]
+    if components:
+        invalid = [c for c in components if c not in VALID_COMPONENTS]
         if invalid:
             raise ValueError(
                 f"Invalid component(s): {', '.join(invalid)}. Valid components: {', '.join(VALID_COMPONENTS)}"
@@ -112,18 +98,7 @@ def assemble_template(
     # Inject title
     html = template.replace("<!-- TITLE -->", title)
 
-    # Inject assembler marker comment immediately after <head> open tag.
-    html = html.replace("<head>", f"<head>\n  {ASSEMBLER_MARKER}", 1)
-
-    # Inject data-shape and data-theme attributes on <body> for downstream tooling
-    # (validators, to-pdf.py). The base template's <body> tag has no attributes.
-    html = html.replace(
-        "<body>",
-        f'<body data-shape="{shape}" data-theme="{resolved_theme}">',
-        1,
-    )
-
-    # Build CSS injection: reset + theme + shape + components + print
+    # Build CSS injection: reset + theme + shape + components
     css_parts: list[str] = []
 
     # 1. Base reset
@@ -142,28 +117,16 @@ def assemble_template(
         css_parts.append(shape_css)
 
     # 4. Component CSS
-    if comps:
-        for comp in comps:
+    if components:
+        for comp in components:
             comp_css = _read_template(f"components/{comp}.css")
             if comp_css:
                 css_parts.append(comp_css)
 
-    # 5. Print CSS — per-shape, fall back to default-print.css. Print stylesheets
-    # are full stylesheets (each declares its own @page and @media print), not
-    # rule fragments — inject as-is rather than wrapping. Double-wrapping was a
-    # bug: it nested @page inside @media print and stacked @media print twice.
-    print_css = _read_template(f"print/{shape}-print.css")
-    if not print_css:
-        print_css = _read_template("print/default-print.css")
-    if print_css:
-        css_parts.append(f"/* print: {shape} */\n{print_css}")
-    else:
-        css_parts.append(f"/* print: {shape} — no print stylesheet found */")
-
     # Build JS injection: components only
     js_parts: list[str] = []
-    if comps:
-        for comp in comps:
+    if components:
+        for comp in components:
             comp_js = _read_template(f"components/{comp}.js")
             if comp_js:
                 js_parts.append(comp_js)
@@ -202,11 +165,6 @@ def main() -> None:
         default=None,
         help="Comma-separated component names to inject (tabs, collapsible, drag-drop, etc.).",
     )
-    parser.add_argument(
-        "--no-theme-toggle",
-        action="store_true",
-        help="Opt out of auto-injected theme-toggle for shapes that require it by default.",
-    )
     args = parser.parse_args()
 
     if args.shape not in VALID_SHAPES:
@@ -228,7 +186,7 @@ def main() -> None:
             sys.exit(1)
 
     try:
-        html = assemble_template(args.shape, args.title, args.theme, comp_list, args.no_theme_toggle)
+        html = assemble_template(args.shape, args.title, args.theme, comp_list)
     except FileNotFoundError:
         sys.stderr.write(f"Error: Base template not found at {BASE_TEMPLATE_PATH}\n")
         sys.exit(2)

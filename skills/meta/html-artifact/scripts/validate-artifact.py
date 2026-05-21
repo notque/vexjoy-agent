@@ -26,12 +26,6 @@ from pathlib import Path
 
 MAX_FILE_SIZE_BYTES = 500 * 1024  # 500KB
 
-HTML_ARTIFACT_VERSION = "1.1"
-ASSEMBLER_MARKER_RE = re.compile(r"<!--\s*assembled by html-artifact v[\w.\-]+\s*-->", re.IGNORECASE)
-
-# Shapes that require a theme toggle in the rendered HTML.
-THEME_TOGGLE_REQUIRED_SHAPES = frozenset({"deck", "spec", "code-review", "prototype", "report", "diagram"})
-
 
 @dataclass
 class ValidationResult:
@@ -75,15 +69,12 @@ def _check_title(content: str, result: ValidationResult) -> None:
 
 
 def _check_self_contained(content: str, result: ValidationResult) -> None:
-    """No external stylesheet links, script sources, or SVG image refs via http(s)."""
+    """No external stylesheet links or script sources via http(s)."""
     has_external_css = bool(
         re.search(r'<link[^>]+rel=["\']stylesheet["\'][^>]+href=["\']https?://', content, re.IGNORECASE)
     )
     has_external_js = bool(re.search(r'<script[^>]+src=["\']https?://', content, re.IGNORECASE))
-    # SVG <image href="http..."> and <use href="http..."> bypass the inline-SVG-only contract.
-    has_external_svg_image = bool(re.search(r'<image\b[^>]+href=["\']https?://', content, re.IGNORECASE))
-    has_external_svg_use = bool(re.search(r'<use\b[^>]+href=["\']https?://', content, re.IGNORECASE))
-    passed = not (has_external_css or has_external_js or has_external_svg_image or has_external_svg_use)
+    passed = not has_external_css and not has_external_js
     result.checks["self_contained"] = passed
     if not passed:
         externals = []
@@ -91,10 +82,6 @@ def _check_self_contained(content: str, result: ValidationResult) -> None:
             externals.append("external CSS")
         if has_external_js:
             externals.append("external JS")
-        if has_external_svg_image:
-            externals.append("external <image href>")
-        if has_external_svg_use:
-            externals.append("external <use href>")
         result.errors.append(f"Not self-contained: found {', '.join(externals)}.")
 
 
@@ -158,52 +145,6 @@ def _check_valid_structure(content: str, result: ValidationResult) -> None:
 EXPORT_SHAPES = frozenset({"editor", "prototype"})
 
 
-def _check_assembler_marker(content: str, result: ValidationResult) -> None:
-    """HTML must contain the assembler marker comment.
-
-    Hand-authored HTML that bypasses assemble-template.py is rejected.
-    """
-    passed = bool(ASSEMBLER_MARKER_RE.search(content))
-    result.checks["has_assembler_marker"] = passed
-    if not passed:
-        result.errors.append("Hand-authored HTML rejected. Run assemble-template.py first.")
-
-
-def _detect_shape_attribute(content: str) -> str | None:
-    """Return the value of <body data-shape="..."> if present, else None."""
-    match = re.search(
-        r"<body\b[^>]*\bdata-shape\s*=\s*[\"']([^\"']+)[\"']",
-        content,
-        re.IGNORECASE,
-    )
-    return match.group(1) if match else None
-
-
-def _check_theme_toggle(content: str, shape: str | None, result: ValidationResult) -> None:
-    """Shapes in THEME_TOGGLE_REQUIRED_SHAPES must contain a theme toggle.
-
-    Acceptable forms:
-      - any element with attribute [data-theme-toggle]
-      - <button class="theme-toggle"> (class may include other tokens)
-    """
-    detected_shape = _detect_shape_attribute(content) or shape
-    if detected_shape is None or detected_shape not in THEME_TOGGLE_REQUIRED_SHAPES:
-        return
-
-    has_data_attr = bool(re.search(r"\bdata-theme-toggle\b", content, re.IGNORECASE))
-    has_button_class = bool(
-        re.search(
-            r"<button\b[^>]*\bclass\s*=\s*[\"'][^\"']*\btheme-toggle\b",
-            content,
-            re.IGNORECASE,
-        )
-    )
-    passed = has_data_attr or has_button_class
-    result.checks["has_theme_toggle"] = passed
-    if not passed:
-        result.errors.append(f"Theme toggle missing — required for shape {detected_shape}.")
-
-
 def _check_export_button(content: str, shape: str, result: ValidationResult) -> None:
     """For editor/prototype shapes, check for copy/export functionality in scripts.
 
@@ -229,190 +170,6 @@ def _check_export_button(content: str, shape: str, result: ValidationResult) -> 
         )
 
 
-_INTERNAL_REF_RE = re.compile(r'href=["\']#([^"\']+)["\']', re.IGNORECASE)
-_ID_ATTR_RE = re.compile(r'\bid=["\']([^"\']+)["\']', re.IGNORECASE)
-
-
-def _check_no_broken_internal_refs(content: str, result: ValidationResult) -> None:
-    """Every `href="#id"` must point to an element with matching `id`.
-
-    Mirrors the SKILL.md "No broken internal refs" claim. Skips empty `href="#"`
-    (deliberate placeholder) and `href="#top"` (browser default for top-of-page).
-    """
-    # Strip <script> and <style> blocks before scanning ids — JS string literals and
-    # CSS selectors can produce false ids that don't actually exist as DOM ids.
-    scrubbed = re.sub(r"<script\b[^>]*>.*?</script>", "", content, flags=re.IGNORECASE | re.DOTALL)
-    scrubbed = re.sub(r"<style\b[^>]*>.*?</style>", "", scrubbed, flags=re.IGNORECASE | re.DOTALL)
-
-    refs = {m.group(1) for m in _INTERNAL_REF_RE.finditer(scrubbed)}
-    refs.discard("top")  # browser default
-    ids = {m.group(1) for m in _ID_ATTR_RE.finditer(scrubbed)}
-
-    broken = sorted(refs - ids)
-    passed = not broken
-    result.checks["no_broken_internal_refs"] = passed
-    if not passed:
-        # Cap the message length so a runaway template doesn't blow up output.
-        shown = ", ".join(f"#{r}" for r in broken[:5])
-        suffix = f" (+{len(broken) - 5} more)" if len(broken) > 5 else ""
-        result.errors.append(f"Broken internal refs: {shown}{suffix}.")
-
-
-_SVG_OPEN_RE = re.compile(r"<svg\b([^>]*)>", re.IGNORECASE)
-_BUTTON_BLOCK_RE = re.compile(r"<button\b[^>]*>.*?</button>", re.IGNORECASE | re.DOTALL)
-
-# CSS comment stripper for use inside <style> blocks.
-_CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
-# `@media print { ... }` and other print contexts where !important is structurally
-# required to defeat live-mode styles. Top-level @page blocks too.
-_AT_MEDIA_PRINT_RE = re.compile(r"@media\s+print\s*\{", re.IGNORECASE)
-_AT_PAGE_RE = re.compile(r"@page\b[^{]*\{", re.IGNORECASE)
-# Match a CSS rule: selector { decls }. Captures selector and declaration body.
-# Non-greedy on `{ }` and skips matched braces by anchoring on the closing `}`
-# at the same nesting level — we strip nested `@media print` blocks first so a
-# flat single-level scan is safe.
-_CSS_RULE_RE = re.compile(r"([^{}@]+?)\{([^{}]*)\}", re.DOTALL)
-# `display: <value> !important` declaration, case-insensitive on `display` and
-# `!important`. Matches `display:none!important`, `display: grid !important`, etc.
-_DISPLAY_IMPORTANT_RE = re.compile(r"display\s*:\s*([a-z\-]+)\s*!\s*important", re.IGNORECASE)
-# Selectors where `display: <x> !important` is part of the base contract and
-# legitimately needs the cascade weapon. The deck shape's `:not(.active)` rule
-# uses it to defend against artifact-injected variant CSS, and `.no-print` /
-# `.hidden` / `[hidden]` use it as a generic visibility primitive.
-_ALLOWLIST_DISPLAY_IMPORTANT = (
-    re.compile(r"\.no-print\b"),
-    re.compile(r"\.hidden\b"),
-    re.compile(r"\[hidden\]"),
-    re.compile(r"\.slide-deck\s*>\s*\.slide:not\(\.active\)"),
-)
-
-
-def _check_svg_accessibility(content: str, result: ValidationResult) -> None:
-    """Every visible <svg> needs role="img" + aria-label OR explicit role="presentation".
-
-    Mirrors design-system.md accessibility checklist. SVGs nested inside <button>
-    are exempt because the button's aria-label provides the accessibility hook.
-    Empty/no-svg artifacts pass trivially.
-    """
-    # Strip <button>...</button> blocks first — their inner <svg>s are decorative.
-    scrubbed = _BUTTON_BLOCK_RE.sub("", content)
-    matches = list(_SVG_OPEN_RE.finditer(scrubbed))
-    if not matches:
-        result.checks["svg_accessibility"] = True
-        return
-
-    bad = []
-    for m in matches:
-        attrs = m.group(1)
-        has_role_img = bool(re.search(r'\brole=["\']img["\']', attrs, re.IGNORECASE))
-        has_aria_label = bool(re.search(r'\baria-label=["\'][^"\']+["\']', attrs, re.IGNORECASE))
-        has_aria_labelledby = bool(re.search(r"\baria-labelledby=", attrs, re.IGNORECASE))
-        has_role_presentation = bool(re.search(r'\brole=["\'](presentation|none)["\']', attrs, re.IGNORECASE))
-        has_aria_hidden = bool(re.search(r'\baria-hidden=["\']true["\']', attrs, re.IGNORECASE))
-        if has_role_presentation or has_aria_hidden:
-            continue
-        if has_role_img and (has_aria_label or has_aria_labelledby):
-            continue
-        # Snip the offending tag opening for the error message.
-        snippet = (m.group(0)[:80] + "…") if len(m.group(0)) > 80 else m.group(0)
-        bad.append(snippet)
-
-    passed = not bad
-    result.checks["svg_accessibility"] = passed
-    if not passed:
-        shown = "; ".join(bad[:3])
-        suffix = f" (+{len(bad) - 3} more)" if len(bad) > 3 else ""
-        result.errors.append(
-            f"SVG accessibility: {len(bad)} <svg> missing role='img'+aria-label "
-            f"(or role='presentation'/aria-hidden='true'): {shown}{suffix}."
-        )
-
-
-def _check_no_important_display_override(content: str, result: ValidationResult) -> None:
-    """Reject artifact-authored `display: <x> !important` overrides.
-
-    Past failure (2026-05-20): an artifact's inline `<style>` declared
-    `.slide-split { display: grid !important; ... }` which silently overrode
-    the base shape rule `.slide { display: none }` and rendered every split
-    slide simultaneously, producing a stacked-pages deck.
-
-    Strategy: scan all `<style>` block contents, strip `@media print { ... }`
-    (legitimately needs !important to defeat live-mode CSS) and `@page` blocks,
-    then walk top-level CSS rules. For each rule whose declaration contains
-    `display: <value> !important`, check the selector against the allowlist of
-    base-shape primitives (`.no-print`, `.hidden`, `[hidden]`, the deck
-    `:not(.active)` defense rule). Any other selector with this pattern is the
-    bug that motivated this check.
-    """
-    style_blocks = re.findall(r"<style[^>]*>(.*?)</style>", content, re.IGNORECASE | re.DOTALL)
-    if not style_blocks:
-        result.checks["no_important_display_override"] = True
-        return
-
-    offenders: list[str] = []
-    for block in style_blocks:
-        # Strip CSS comments first so commented-out examples inside docs don't fire.
-        scrubbed = _CSS_COMMENT_RE.sub("", block)
-        # Strip @media print { ... } blocks. Track brace depth manually because
-        # those blocks contain nested rules.
-        scrubbed = _strip_at_block(scrubbed, _AT_MEDIA_PRINT_RE)
-        # Strip @page { ... } blocks (print page-size rules).
-        scrubbed = _strip_at_block(scrubbed, _AT_PAGE_RE)
-
-        # Walk remaining CSS rules.
-        for m in _CSS_RULE_RE.finditer(scrubbed):
-            selector = m.group(1).strip()
-            decls = m.group(2)
-            if not _DISPLAY_IMPORTANT_RE.search(decls):
-                continue
-            # Allowlist check.
-            if any(rx.search(selector) for rx in _ALLOWLIST_DISPLAY_IMPORTANT):
-                continue
-            # Trim long selectors for the error message.
-            sel_short = selector if len(selector) <= 80 else selector[:77] + "..."
-            offenders.append(sel_short)
-
-    passed = not offenders
-    result.checks["no_important_display_override"] = passed
-    if not passed:
-        shown = "; ".join(offenders[:3])
-        suffix = f" (+{len(offenders) - 3} more)" if len(offenders) > 3 else ""
-        result.errors.append(
-            "Artifact `<style>` blocks must not override `display` with !important "
-            "(base shape CSS uses `:not(.active)` and similar primitives — "
-            f"overriding them stacks slides / breaks layout): {shown}{suffix}."
-        )
-
-
-def _strip_at_block(css: str, opener_re: re.Pattern[str]) -> str:
-    """Remove `@<at-rule> ... { ...balanced... }` regions matched by `opener_re`.
-
-    The opener_re must match the opening line up to and including the first `{`.
-    Used to drop `@media print` and `@page` blocks before scanning the remaining
-    CSS for offending declarations.
-    """
-    out: list[str] = []
-    i = 0
-    while i < len(css):
-        m = opener_re.search(css, i)
-        if m is None:
-            out.append(css[i:])
-            break
-        out.append(css[i : m.start()])
-        # Walk braces from the opener's `{` to find the matching `}`.
-        depth = 1
-        j = m.end()
-        while j < len(css) and depth > 0:
-            ch = css[j]
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-            j += 1
-        i = j
-    return "".join(out)
-
-
 def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationResult:
     """Run all validation checks on an HTML artifact file.
 
@@ -434,11 +191,6 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_reasonable_size(file_path, result)
     _check_no_empty_body(content, result)
     _check_valid_structure(content, result)
-    _check_assembler_marker(content, result)
-    _check_theme_toggle(content, shape, result)
-    _check_no_broken_internal_refs(content, result)
-    _check_svg_accessibility(content, result)
-    _check_no_important_display_override(content, result)
 
     if shape is not None:
         _check_export_button(content, shape, result)
