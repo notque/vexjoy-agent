@@ -164,7 +164,7 @@ python3 scripts/generate-skill-index.py
 After writing an agent `.md` file, run these in order:
 
 1. YAML parse: `python3 -c "import yaml; yaml.safe_load(open('agents/{name}.md').read().split('---')[1])"`
-2. Positive framing: `python3 scripts/validate_positive_instruction_docs.py agents/{name}.md`
+2. Positive framing: `python3 scripts/validate_positive_instruction_docs.py` (scans all tracked .md files)
 3. Reference structure: `python3 scripts/validate-references.py --agent {name}` (if references/ exists)
 4. pairs_with existence: verify each listed agent/skill exists on disk
 5. INDEX registration: `python3 scripts/generate-agent-index.py`

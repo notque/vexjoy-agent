@@ -101,7 +101,7 @@ agents/
 **Positive framing (CI gate):** Every instruction tells the reader what to do. Run the check after writing:
 
 ```bash
-python3 scripts/validate_positive_instruction_docs.py agents/{agent-name}.md
+python3 scripts/validate_positive_instruction_docs.py
 ```
 
 Exit code 1 means violations. Rewrite flagged instructions in action form before proceeding.
@@ -146,8 +146,8 @@ Run all validation checks before declaring the agent shippable.
 # Structural checks: filenames, frontmatter, line counts, loading tables
 python3 scripts/validate-references.py --agent {agent-name}
 
-# Positive framing gate
-python3 scripts/validate_positive_instruction_docs.py agents/{agent-name}.md
+# Positive framing gate (scans all tracked .md files)
+python3 scripts/validate_positive_instruction_docs.py
 
 # YAML parse
 python3 -c "import yaml; yaml.safe_load(open('agents/{agent-name}.md').read().split('---')[1]); print('YAML OK')"
