@@ -1,184 +1,166 @@
-# PDF Export
+# PDF Export Reference
 
-How `to-pdf.py` turns an HTML artifact into a paper-ready PDF, what page sizes each shape gets, and how to debug when output looks wrong.
-
----
-
-## When To Export
-
-Export PDF when the user signals paper or share intent. Skip otherwise — most artifacts live as HTML.
-
-| Signal in user request | Export? |
-|---|---|
-| "PDF", "print", "printout", "paper" | Yes |
-| "share", "send to colleague", "Slack this", "email" | Yes |
-| "review on phone", "show in browser" | No |
-| "save", "drop in repo" | No (HTML is the deliverable) |
-| (nothing) | No |
+Phase 6 EXPORT renders an html-artifact to PDF via Playwright. Optional, opt-in, additive — HTML stays the default deliverable.
 
 ---
 
-## One Command
+## When Phase 6 fires
+
+Trigger conditions (any of these in the current turn's user message):
+
+- "PDF"
+- "export PDF"
+- "make a PDF"
+- "as PDF"
+- "send as PDF"
+- "save as PDF"
+- "PDF version"
+- "PDF export"
+
+If none of these signals are present, Phase 6 stays dormant. The HTML artifact is the deliverable; no follow-up nag.
+
+---
+
+## Invocation
 
 ```bash
-python3 scripts/to-pdf.py --input file.html --json
+python3 skills/meta/html-artifact/scripts/to-pdf.py \
+    --input <generated.html> \
+    --output <generated.pdf> \
+    --json
 ```
+
+Flags:
 
 | Flag | Purpose |
 |---|---|
-| `--input` | Path to assembled HTML artifact (required) |
-| `--output` | Output PDF path (defaults to `<input>.pdf`) |
-| `--json` | Emit JSON report — for pipeline consumption. Humans omit this. |
-| `--chrome-path` | Force a specific Chrome binary (rare; use when auto-detect picks the wrong one) |
-| `--shape` | Override shape detection (rare; the artifact's `data-shape` attribute is the source of truth) |
-
-Pipeline phase 6 EXPORT calls this. Manual users run it without `--json` for human-readable output.
+| `--input` | Path to the source `.html` file (required) |
+| `--output` | Path for the generated `.pdf` file (required) |
+| `--shape` | Override shape detection (one of the 8 shapes). Optional; `data-shape` attribute drives detection otherwise. |
+| `--json` | Emit machine-readable JSON: `{"output", "page_count", "shape", "bytes"}`. Without it, prints a friendly one-line summary. |
 
 ---
 
-## Shape -> Page Size
+## Page-size map
 
-| Shape | Page size | Orientation | Driver |
+| Shape | Page size | Orientation | Margin |
 |---|---|---|---|
-| deck | 13.333in x 7.5in | landscape | `templates/print/deck-print.css` |
-| report | 8.5in x 11in | portrait | `templates/print/report-print.css` |
-| spec | 11in x 8.5in | landscape | `templates/print/spec-print.css` |
-| data-viz | 8.5in x 11in | portrait | `templates/print/data-viz-print.css` |
-| code-review, prototype, diagram, editor, (other) | 8.5in x 11in | portrait | `templates/print/default-print.css` |
+| deck | 13.333in × 7.5in | landscape | 0 |
+| spec | Letter | landscape | 0.5in |
+| code-review | Letter | landscape | 0.5in |
+| prototype | Letter | landscape | 0.5in |
+| data-viz | Letter | landscape | 0.5in |
+| diagram | Letter | landscape | 0.5in |
+| report | Letter | portrait | 0.75in |
+| editor | Letter | portrait | 0.5in |
+| (fallback) | Letter | portrait | 0.5in |
 
-The shape comes from the artifact's `<html data-shape="deck">` attribute. `to-pdf.py` reads it and lets the print CSS drive Chrome.
-
----
-
-## How Sizing Works
-
-| Layer | Behavior |
-|---|---|
-| Print CSS | `templates/print/{shape}-print.css` declares `@page { size: <dim> <orientation>; }` |
-| Assembler | Injects the matching print CSS into the artifact's `<style>` block at generation time |
-| Chrome headless | Reads `@page` and renders at that size. No `--print-to-pdf-paper-width` flag passed. |
-| `to-pdf.py` | Invokes Chrome with `--print-to-pdf=<output>` and lets CSS drive |
-
-**Rule:** Do not pass `--print-to-pdf-paper-width` / `-paper-height` to Chrome from `to-pdf.py`. CSS `@page` is authoritative. Forcing dimensions on the command line overrides the shape-specific CSS and reintroduces the clipping bug.
+Deck dimensions match Google Slides / PowerPoint widescreen (16:9). One slide per page, no margin, full-bleed.
 
 ---
 
-## Why Decks Don't Clip Anymore
+## Shape detection
 
-The previous bug:
+The script reads `<body data-shape="...">` to pick page settings.
 
-| Before | After |
-|---|---|
-| Print CSS used `height: 7.5in; overflow: hidden;` on a slide box | Print CSS uses `width: 13.333in; height: 7.5in;` — 1:1 with live viewport |
-| Live viewport was 1280px x 720px (16:9) | Live viewport is 1280px x 720px (16:9) — same |
-| 1280px @ 96dpi = 13.333in, but the print box was 8.5in x 11in scaled wrong | 1280px @ 96dpi = 13.333in. Print box matches exactly. |
-| Content authored against `100vh` overflowed the smaller print box -> clipped | Content authored against `100vh` fits — no scale, no clip. |
+`assemble-template.py` adds the attribute automatically. For artifacts hand-crafted outside the assembler, pass `--shape <name>` explicitly. If neither is present, exit code 1 with a hint to re-assemble or supply the flag.
 
-If a deck PDF clips again, suspect: print CSS got overridden, or someone added `overflow: hidden` on a parent. Check `templates/print/deck-print.css` first. The 1:1 mapping is the design — don't compromise it.
+`--shape` overrides the attribute when both are present. Useful for re-rendering a draft as a different shape.
 
 ---
 
-## Dark Theme In PDF
+## Page-count contract
 
-```css
-* {
-  -webkit-print-color-adjust: exact !important;
-  print-color-adjust: exact !important;
-  color-adjust: exact !important;
-}
-```
-
-| Vendor variant | Why all three |
-|---|---|
-| `-webkit-print-color-adjust` | Chrome <97 |
-| `print-color-adjust` | Standard |
-| `color-adjust` | Legacy spec name; some embedded browsers |
-
-This block is in every `templates/print/*-print.css`. If a dark-themed PDF prints white-on-white:
-
-| Diagnosis | Fix |
-|---|---|
-| Theme CSS overrides the rule with later specificity | Add the rule to `<style>` last, or raise specificity with `html *` |
-| User passed `--no-print-backgrounds` to Chrome | Don't. `to-pdf.py` should never pass that flag. |
-| Print CSS got stripped from the artifact (assembler bug) | Confirm `@page` block is in the rendered HTML; if absent, the assembler skipped print injection. Re-run with verbose. |
-
----
-
-## Chrome Detection
-
-`to-pdf.py` resolves Chrome in this order:
-
-| Priority | Source |
-|---|---|
-| 1 | `--chrome-path` CLI flag |
-| 2 | `CHROME_PATH` environment variable |
-| 3 | `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` (macOS) |
-| 4 | `chromium` on `$PATH` |
-| 5 | `google-chrome` on `$PATH` |
-| 6 | `chrome` on `$PATH` |
-
-First match wins. If none resolve, the script fails with `Chrome not found` and lists what it tried.
-
----
-
-## Validation After Generation
-
-`to-pdf.py` checks every output before declaring success.
-
-| Check | What it confirms |
-|---|---|
-| File exists | Chrome wrote something |
-| Size > 10KB | Not a blank page (sub-10KB usually means Chrome rendered nothing) |
-| Magic bytes `%PDF-` | File is a real PDF, not an error page |
-| Page count = expected | For decks: matches slide count. For reports: > 0. |
-
-JSON output reports each check. Pipeline phase 6 EXPORT halts if any fail.
+For deck shape, `page_count` in the JSON output equals the count of `class="slide"` occurrences in the HTML. Example:
 
 ```json
-{
-  "ok": true,
-  "input": "siem-deck.html",
-  "output": "siem-deck.pdf",
-  "shape": "deck",
-  "pages": 9,
-  "expected_pages": 9,
-  "size_bytes": 487231
-}
+{"output": "/abs/path.pdf", "page_count": 12, "shape": "deck", "bytes": 482104}
 ```
+
+For non-deck shapes, `page_count` is 0 (the PDF renderer doesn't expose page count without re-parsing the PDF; deck is the documented case where slide count drives expectations).
 
 ---
 
-## Common Errors
+## Print stylesheets
 
-| Error | Cause | Fix |
-|---|---|---|
-| `Chrome not found` | None of the resolution paths matched | Install Chrome or set `CHROME_PATH=/path/to/chrome` |
-| `PDF too small (4231 bytes)` | Chrome rendered blank — usually a JS error or missing CSS | Open the HTML in a real browser, check console for errors |
-| `Wrong page count: expected 9 got 1` | Print CSS missing or shape attr wrong | Confirm `data-shape` set; confirm print CSS block in HTML; re-assemble if absent |
-| `PDF magic bytes missing` | Chrome wrote an HTML error page instead of a PDF | Run `to-pdf.py` without `--json` to see Chrome's stderr |
-| `Decks clip in PDF` | `overflow: hidden` ancestor or scale transform | Search `templates/print/deck-print.css` and the artifact for stray `overflow: hidden` / `transform: scale()` |
-| `Dark theme prints white` | `print-color-adjust: exact` got overridden | See "Dark Theme In PDF" above |
+Each shape pairs with a print stylesheet under `templates/print/`:
 
----
-
-## Visual Validation
-
-Eyeball every page after generation when debugging. Pipeline tests use this for snapshot diffs.
-
-```python
-import pypdfium2 as pdfium
-
-pdf = pdfium.PdfDocument("siem-deck.pdf")
-for i, page in enumerate(pdf):
-    bitmap = page.render(scale=2.0)
-    bitmap.to_pil().save(f"siem-deck-page-{i+1}.png")
-print(f"Rendered {len(pdf)} pages")
-```
-
-| Use case | Action |
+| File | Page setup |
 |---|---|
-| Confirm no clipping | Check each PNG fills the expected aspect ratio with no cut content |
-| Confirm dark theme survived | First pixel of background should match theme bg color, not white |
-| Confirm fonts embedded | Text should be sharp at 2x; if blurry, fonts didn't subset |
+| `default-print.css` | Letter portrait fallback |
+| `deck-print.css` | One slide per page, no margin, un-stick controls |
+| `spec-print.css` | Tabs collapse to stacked panels, code-block break-inside avoid |
+| `report-print.css` | Heading break-after avoid, table thead repeats |
+| `editor-print.css` | Kanban stacks, export bar un-sticks |
+| `code-review-print.css` | Diff lines no break, line numbers un-stick |
+| `prototype-print.css` | Controls hidden, preview full-width |
+| `data-viz-print.css` | Charts full-width, dashboard grid relaxes |
+| `diagram-print.css` | SVGs centered, captions stay with figures |
 
-`pypdfium2` is the dependency (`pip install pypdfium2`). It does not require Chrome — pure Python rendering.
+Print CSS files self-declare `@page` and `@media print`. The assembler injects them as full stylesheets — no double-wrapping. (This was the May 9 bug fixed in commit `6b3e830d`.)
+
+---
+
+## Failure paths
+
+### Playwright not installed
+
+Exit code 2. Stderr surfaces:
+
+```
+Error: Playwright is not installed.
+Install with: pip install -e ".[pdf]" && playwright install chromium
+```
+
+Two-step install is required: the Python package (`playwright`) and the browser binary (`chromium`). Skipping `playwright install chromium` produces a different runtime error from a launching browser missing executable.
+
+### Missing `data-shape` attribute, no `--shape` flag
+
+Exit code 1. Stderr:
+
+```
+Error: HTML artifact missing data-shape attribute. Re-assemble with assemble-template.py or pass --shape explicitly.
+```
+
+### Malformed HTML
+
+Exit code 1 if input lacks `<html>` or `<body>` tags, or is empty.
+
+### Browser launch / page-load / page.pdf failure
+
+Exit code 3 with the exception type and message. Most common causes:
+
+- File URL escaping issue (paths with spaces — Playwright handles it, but a relative path without `file://` prefix won't load).
+- `networkidle` never fires (rare — happens if page has long-polling JS; HTML artifacts are static so this is unusual).
+- Disk full / output directory not writable.
+
+---
+
+## Troubleshooting
+
+### Fonts render as system default instead of design tokens
+
+Birchline tokens use a system font stack (`-apple-system`, `Inter`, `Segoe UI`, …). Whatever's available locally renders. Embedded `@font-face` with a `data:` URL works in Playwright PDF; CDN font URLs do not (and would violate the self-contained constraint anyway).
+
+### Images timing — blank rectangles in the PDF
+
+The script waits for `networkidle` (no in-flight requests for 500ms). If an artifact pulls a resource that races the load event, it won't appear. Fix: inline the resource as a data URL or `<svg>` rather than an external `<img src>`.
+
+### Large file size
+
+Default PDFs are ~50–500KB. If a generated PDF exceeds 5MB, suspect inlined raster images that should be SVG or CSS, or runaway keyframe animations rendered as discrete frames.
+
+### Color rendering — backgrounds missing
+
+Print CSS sets `print-color-adjust: exact` and `-webkit-print-color-adjust: exact`. If a generated artifact omits these, the browser strips background colors per print convention. Use `templates/print/{shape}-print.css` as the canonical pattern.
+
+---
+
+## What this feature does NOT do
+
+- Email the PDF.
+- Auto-trigger on every artifact (HTML stays default).
+- Open the PDF in a viewer.
+- Embed the PDF in another document.
+
+These are deliberately out of scope. Phase 6 produces a `.pdf` next to the `.html` and reports the path. Whatever ships it onward is the user's call.

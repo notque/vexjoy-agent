@@ -1,4 +1,4 @@
-/* Data-Viz Print Stylesheet — Letter landscape, charts full width, legend rules. */
+/* Prototype Print Stylesheet — Letter landscape, hide controls, full-width preview. */
 
 @page {
   size: letter landscape;
@@ -22,51 +22,47 @@
     print-color-adjust: exact;
   }
 
-  /* Filter bars and tooltips — hide. */
-  .filter-bar,
-  .tooltip,
-  .chart-controls,
+  /* Controls panel has no print equivalent — hide it. */
+  .controls-panel,
+  .slider-control,
+  .toggle-control,
   .theme-toggle,
-  [data-print-hide] {
+  .copy-button,
+  input[type="range"],
+  button {
     display: none !important;
   }
 
-  /* Charts go full width and stay together. */
-  .chart,
-  .chart-container,
-  svg.chart {
+  /* Preview surface takes full width. */
+  .preview-surface,
+  .prototype-preview {
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* Legend stays adjacent to its chart. */
-  .legend {
-    page-break-before: avoid;
-    break-before: avoid;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Dashboard grids: relax columns so each chart gets full width on print. */
-  .dashboard,
-  .chart-grid {
+  /* Prototype layout collapses to single column. */
+  .prototype-layout {
     display: block !important;
     grid-template-columns: none !important;
   }
 
-  .dashboard > *,
-  .chart-grid > * {
+  .prototype-layout > * {
+    width: 100% !important;
     margin-bottom: 0.25in;
   }
 
-  /* Data tables: header repeats. */
-  table thead {
-    display: table-header-group;
+  /* Contact sheets keep their grid. */
+  .contact-sheet,
+  .variant-grid {
+    page-break-inside: auto;
+    break-inside: auto;
   }
 
-  table tr {
+  .contact-sheet > *,
+  .variant-grid > * {
     page-break-inside: avoid;
     break-inside: avoid;
   }

@@ -1,72 +1,72 @@
-/* === Print: spec / exploration shape ===
- * Page: 11in x 8.5in landscape (US Letter rotated).
- * Spec docs lean on side-by-side comparison grids (.comparison-grid,
- * .pros-cons), so landscape preserves the two- or three-column reading
- * order. Otherwise behaves like report-print.
- */
-@page { size: 11in 8.5in; margin: 0.5in 0.6in; }
+/* Spec Print Stylesheet — Letter landscape, comparison-grid friendly, code-block break rules. */
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
 
 @media print {
-  html, body {
-    background: var(--bg-page) !important;
-    color: var(--text-primary) !important;
-    margin: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
+  /* Inherit theme palette — see default-print.css for rationale. */
+  html,
+  body {
+    background: var(--bg-page, #fff) !important;
+    color: var(--text-primary, #000) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .no-print,
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .theme-toggle,
-  [data-theme-toggle],
-  .filter,
-  .filter-bar,
-  .tabs-nav,
   .copy-button,
-  .collapsible-toggle,
-  nav.site-nav { display: none !important; }
+  .tab-bar {
+    display: none !important;
+  }
 
-  /* Force <details> open */
-  details { display: block !important; }
-  details > summary { list-style: none !important; cursor: default !important; }
-  details > summary::-webkit-details-marker { display: none !important; }
-  details:not([open]) > *:not(summary) { display: revert !important; }
+  /* Major section headings start a fresh page when they fall mid-page. */
+  h2 {
+    page-break-before: auto;
+    break-before: auto;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
 
-  /* Cards stay whole */
-  .card-flat,
-  .card-outlined,
-  .card-elevated,
-  .card-accent,
+  /* Code blocks should not split across pages. */
+  pre,
+  .code-block,
+  code {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Comparison cards keep their content together. */
   .approach-card,
-  .recommendation,
-  .metric-card,
-  .chart-card {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    box-shadow: none !important;
+  .comparison-grid > * {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  /* Comparison grid: keep its row intact when possible */
-  .comparison-grid,
-  .pros-cons {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+  /* Pro/Con badges keep their pairing. */
+  .pro-badge,
+  .con-badge {
+    display: inline-block;
   }
 
-  /* Tradeoff matrix: keep headers + rows together */
-  .tradeoff-matrix { page-break-inside: auto !important; }
-  .tradeoff-matrix thead { display: table-header-group !important; }
-  .tradeoff-matrix tr,
-  .tradeoff-matrix td,
-  .tradeoff-matrix th {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+  /* SVG diagrams kept whole. */
+  svg,
+  figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    max-width: 100%;
   }
 
-  h1, h2, h3 {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+  /* Tabs collapse — show all panels stacked for print. */
+  .tab-panel {
+    display: block !important;
   }
-
-  a { color: var(--accent) !important; text-decoration: none !important; }
 }

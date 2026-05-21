@@ -1,90 +1,73 @@
-/* === Print: default fallback ===
- * Page: 8.5in x 11in portrait.
- * Used by shapes without a paper analog (editor, prototype, code-review).
- * These are interaction-first artifacts; printing loses fidelity by
- * definition, so we surface a banner advising the reader to use the
- * live HTML version. Content still flows so the printout is usable as
- * a reference snapshot.
- */
-@page { size: 8.5in 11in; margin: 0.5in 0.6in; }
+/* Default Print Stylesheet — Letter portrait fallback for any shape without a specific print stylesheet. */
+
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
 
 @media print {
-  html, body {
-    background: var(--bg-page) !important;
-    color: var(--text-primary) !important;
-    margin: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
+  /* Inherit theme palette so dark-themed artifacts print dark and light-themed
+     artifacts print on white paper. `--bg-page` and `--text-primary` are
+     declared by every shipped theme; the literal fallbacks keep ad-hoc HTML
+     printable when no theme is loaded. */
+  html,
+  body {
+    background: var(--bg-page, #fff) !important;
+    color: var(--text-primary, #000) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* Banner injected as a ::before on body, top of first page only */
-  body::before {
-    content: "Live HTML version recommended — printed view may lose interactivity.";
-    display: block !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: var(--sp-3) var(--sp-4) !important;
-    margin: 0 0 var(--sp-5) 0 !important;
-    background: var(--bg-muted) !important;
-    color: var(--text-secondary) !important;
-    border-left: 3px solid var(--accent) !important;
-    border-radius: var(--radius-xs) !important;
-    font: var(--type-caption) !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* Hide interactive chrome */
-  .no-print,
+  /* Hide screen-only chrome (theme toggles, copy buttons, nav controls). */
   .theme-toggle,
-  [data-theme-toggle],
-  .filter,
-  .filter-bar,
-  .tabs-nav,
   .copy-button,
-  .collapsible-toggle,
-  .btn-primary,
-  .btn-secondary,
-  nav.site-nav { display: none !important; }
-
-  /* Force <details> open so collapsed sections print */
-  details { display: block !important; }
-  details > summary { list-style: none !important; cursor: default !important; }
-  details > summary::-webkit-details-marker { display: none !important; }
-  details:not([open]) > *:not(summary) { display: revert !important; }
-
-  /* Generic card protection */
-  .card-flat,
-  .card-outlined,
-  .card-elevated,
-  .card-accent,
-  .metric-card,
-  .chart-card,
-  .approach-card {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    box-shadow: none !important;
+  [data-print-hide],
+  nav[role="navigation"] button {
+    display: none !important;
   }
 
-  /* Code blocks print with visible borders, no shadows */
-  pre, code {
-    background: var(--color-code-bg, var(--bg-muted)) !important;
-    border: 1px solid var(--border-subtle) !important;
-    box-shadow: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
+  /* Page-break friendliness for common structures. */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+    break-after: avoid;
   }
 
-  h1, h2, h3 {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+  pre,
+  table,
+  figure,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  a { color: var(--accent) !important; text-decoration: none !important; }
+  img,
+  svg {
+    max-width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Surface link URLs after anchor text for offline reading. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+  }
+
+  /* Avoid orphaned headings at page bottom. */
+  h1 + p,
+  h2 + p,
+  h3 + p {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
 }

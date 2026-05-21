@@ -1,74 +1,97 @@
-/* === Print: report shape ===
- * Page: 8.5in x 11in portrait (US Letter).
- * Strategy: flow content top-to-bottom, expand all <details>, keep cards
- * intact across page breaks. Hide nav, filters, collapsible toggles,
- * .no-print, .theme-toggle. Force-paint colors so dark themes survive.
- */
-@page { size: 8.5in 11in; margin: 0.5in 0.6in; }
+/* Report Print Stylesheet — Letter portrait, heading break rules, table break rules. */
+
+@page {
+  size: letter portrait;
+  margin: 0.75in;
+}
 
 @media print {
-  html, body {
-    background: var(--bg-page) !important;
-    color: var(--text-primary) !important;
-    margin: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
+  /* Inherit theme palette — see default-print.css for rationale. */
+  html,
+  body {
+    background: var(--bg-page, #fff) !important;
+    color: var(--text-primary, #000) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* Hide chrome and interactive-only widgets */
-  .no-print,
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .theme-toggle,
-  [data-theme-toggle],
-  .filter,
-  .filter-bar,
-  .tabs-nav,
   .copy-button,
-  .collapsible-toggle,
-  nav.site-nav { display: none !important; }
+  [data-print-hide] {
+    display: none !important;
+  }
 
-  /* Force every <details> open so collapsed content prints */
-  details { display: block !important; }
-  details > summary { list-style: none !important; cursor: default !important; }
-  details > summary::-webkit-details-marker { display: none !important; }
-  details > *:not(summary) { display: revert !important; }
-  /* Workaround: contents are hidden when [open] absent — show regardless */
-  details:not([open]) > *:not(summary) { display: revert !important; }
+  /* H1 starts a new page (cover-style). H2 may break-before when needed. */
+  h1 {
+    page-break-before: avoid;
+    break-before: avoid;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
 
-  /* Cards must not split across pages */
-  .card-flat,
-  .card-outlined,
-  .card-elevated,
-  .card-accent,
+  h2 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* TL;DR box stays together at top. */
+  .tldr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* Collapsibles: expand all for print. */
+  details {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  details > summary {
+    list-style: none;
+  }
+
+  details[open] > *,
+  details > * {
+    display: block !important;
+  }
+
+  /* Tables: header repeats, rows do not split. */
+  table {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Metric callouts kept whole. */
+  .metric-row,
   .metric-card,
-  .chart-card,
-  .approach-card,
-  .tldr,
-  .milestone {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    box-shadow: none !important;
+  figure,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  /* Keep the metric row from being cut mid-grid */
-  .metric-row {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+  /* Surface link URLs after anchor text for offline reading. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
   }
-
-  /* Tables: repeat headers, avoid mid-row splits */
-  table { page-break-inside: auto !important; }
-  thead { display: table-header-group !important; }
-  tr, td, th {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* Headings should not be orphaned at page bottom */
-  h1, h2, h3 {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-  }
-
-  a { color: var(--accent) !important; text-decoration: none !important; }
 }

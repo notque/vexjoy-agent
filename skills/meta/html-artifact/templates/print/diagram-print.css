@@ -1,4 +1,4 @@
-/* Data-Viz Print Stylesheet — Letter landscape, charts full width, legend rules. */
+/* Diagram Print Stylesheet — Letter landscape, SVGs centered, captions stay with diagrams. */
 
 @page {
   size: letter landscape;
@@ -22,51 +22,58 @@
     print-color-adjust: exact;
   }
 
-  /* Filter bars and tooltips — hide. */
-  .filter-bar,
-  .tooltip,
-  .chart-controls,
   .theme-toggle,
+  .copy-button,
+  .diagram-controls,
   [data-print-hide] {
     display: none !important;
   }
 
-  /* Charts go full width and stay together. */
-  .chart,
-  .chart-container,
-  svg.chart {
-    width: 100% !important;
-    max-width: 100% !important;
+  /* SVGs centered, sized to fit. */
+  svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 6.5in;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* Legend stays adjacent to its chart. */
-  .legend {
+  /* Diagram containers stay whole. */
+  .diagram-container,
+  figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 0.25in;
+  }
+
+  /* Captions stay with their diagram. */
+  figcaption,
+  .diagram-caption {
     page-break-before: avoid;
     break-before: avoid;
     page-break-inside: avoid;
     break-inside: avoid;
+    text-align: center;
+    font-style: italic;
+    margin-top: 0.1in;
   }
 
-  /* Dashboard grids: relax columns so each chart gets full width on print. */
-  .dashboard,
-  .chart-grid {
+  /* Figure grids: each figure gets its own page when needed. */
+  .figure-grid {
     display: block !important;
     grid-template-columns: none !important;
   }
 
-  .dashboard > *,
-  .chart-grid > * {
+  .figure-grid > * {
+    page-break-inside: avoid;
+    break-inside: avoid;
     margin-bottom: 0.25in;
   }
 
-  /* Data tables: header repeats. */
-  table thead {
-    display: table-header-group;
-  }
-
-  table tr {
+  /* Annotated nodes: keep label with shape. */
+  .node-label,
+  .annotation {
     page-break-inside: avoid;
     break-inside: avoid;
   }

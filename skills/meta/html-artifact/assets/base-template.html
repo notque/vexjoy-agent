@@ -1,23 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light dark">
   <title><!-- TITLE --></title>
-  <script>
-    // Pre-paint theme init. Runs before the body element renders to prevent
-    // flash of incorrect theme. Honors saved preference over the dark default;
-    // storage key is versioned so future default changes can invalidate stale prefs.
-    (function () {
-      try {
-        var saved = localStorage.getItem('html-artifact-theme-v2');
-        if (saved === 'light' || saved === 'dark') {
-          document.documentElement.dataset.theme = saved;
-        }
-      } catch (e) { /* storage blocked: keep hardcoded default */ }
-    })();
-  </script>
   <style>
     /* <!-- STYLES --> */
   </style>

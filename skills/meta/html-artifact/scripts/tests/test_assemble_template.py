@@ -85,40 +85,7 @@ class TestAssembleTemplateDirect:
         assert "<html" in html
         assert "<head>" in html
         assert "<body" in html
-
-    def test_dark_default_on_html_root(self) -> None:
-        """REGRESSION GUARD: <html> tag must hardcode data-theme='dark'.
-
-        Captured 2026-05-20: assembler shipped data-theme='light' for months
-        because the dark-default rule lived only in design-system.md prose.
-        This test enforces the rule in the deterministic layer.
-        """
-        for shape in ("spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"):
-            html = assemble_template(shape, "Test")
-            assert '<html lang="en" data-theme="dark">' in html, (
-                f"shape={shape}: <html> must hardcode data-theme='dark'"
-            )
-
-    def test_pre_paint_theme_init_script(self) -> None:
-        """Pre-paint <head> script must read versioned localStorage key.
-
-        Bumping the storage-key version (e.g. v2 -> v3) is the migration
-        mechanism for invalidating stale prefs when the default changes.
-        """
-        html = assemble_template("report", "Test")
-        assert "html-artifact-theme-v2" in html, "pre-paint init script missing or storage key not versioned"
-        head_end = html.find("</head>")
-        # Match the real <body data-shape="..."> opening tag, not CSS selectors
-        # like `body { ... }` that also start with `<body` in injected styles.
-        import re
-
-        body_match = re.search(r"<body\s+data-shape=", html)
-        assert body_match, "could not locate <body data-shape> opening tag"
-        body_start = body_match.start()
-        init_pos = html.find("html-artifact-theme-v2")
-        assert init_pos < head_end < body_start, (
-            f"theme init must execute before <body>: init={init_pos} head_end={head_end} body_start={body_start}"
-        )
+        assert "</body>" in html
 
     def test_html_entities_in_title(self) -> None:
         html = assemble_template("spec", "A & B <comparison>")
@@ -257,6 +224,65 @@ class TestAssembleTemplateDirect:
         html = assemble_template("spec", "Test")
         assert "box-sizing: border-box" in html
         assert "prefers-reduced-motion" in html
+
+    # --- data-shape attribute tests ---
+
+    @pytest.mark.parametrize(
+        "shape",
+        ["spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"],
+    )
+    def test_body_has_data_shape_attribute(self, shape: str) -> None:
+        html = assemble_template(shape, "Test")
+        assert f'<body data-shape="{shape}">' in html
+
+    def test_data_shape_appears_exactly_once(self) -> None:
+        html = assemble_template("report", "Test")
+        # The literal <body> tag should be replaced; <body data-shape=...> appears once.
+        assert html.count('<body data-shape="report">') == 1
+        # Nothing should leave a bare <body> in place.
+        assert "<body>" not in html
+
+    # --- Per-shape print CSS injection tests ---
+
+    @pytest.mark.parametrize(
+        ("shape", "marker"),
+        [
+            ("deck", "Deck Print Stylesheet"),
+            ("spec", "Spec Print Stylesheet"),
+            ("report", "Report Print Stylesheet"),
+            ("editor", "Editor Print Stylesheet"),
+            ("code-review", "Code Review Print Stylesheet"),
+            ("prototype", "Prototype Print Stylesheet"),
+            ("data-viz", "Data-Viz Print Stylesheet"),
+            ("diagram", "Diagram Print Stylesheet"),
+        ],
+    )
+    def test_shape_print_css_injected(self, shape: str, marker: str) -> None:
+        html = assemble_template(shape, "Test")
+        assert marker in html
+        assert "@media print" in html
+
+    def test_print_css_fallback_to_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When no shape-specific print CSS exists, fall back to default-print.css.
+
+        Implementation detail: simulate by pointing _read_template at a fake
+        shape that is otherwise valid. We accept a real shape but stub out
+        the per-shape print read so the assembler must fall back.
+        """
+        # Save the real reader and stub it so the per-shape print read returns
+        # nothing while every other read passes through.
+        real_reader = assemble_mod._read_template
+
+        def fake_reader(relpath: str) -> str:
+            if relpath.startswith("print/") and relpath != "print/default-print.css":
+                return ""  # force fallback
+            return real_reader(relpath)
+
+        monkeypatch.setattr(assemble_mod, "_read_template", fake_reader)
+        html = assemble_template("spec", "Test")
+        assert "Default Print Stylesheet" in html
+        # Sanity: the spec-print marker should NOT be present because we suppressed it.
+        assert "Spec Print Stylesheet" not in html
 
 
 @pytest.mark.slow

@@ -1,386 +1,362 @@
 #!/usr/bin/env python3
-"""Chrome-headless PDF generator for html-artifact outputs.
+"""Render an html-artifact to PDF via Playwright (sync API).
 
-Auto-detects shape from `<body data-shape="...">`, drives Chrome headless,
-and validates the result. Page sizing is controlled by the HTML's `@page`
-CSS rule; this script does not pass paper dimensions to Chrome.
-
-Phase 6 EXPORT of the html-artifact pipeline.
-
-Exit codes:
-    0: PDF generated and validated successfully.
-    1: PDF generated but validation flagged issues (see `warnings`).
-    2: Chrome not found.
-    3: Input file missing or unreadable.
-    4: Generation failed (Chrome error or no output file).
+Auto-detects shape from `<body data-shape="...">` and selects per-shape page size,
+landscape/portrait, and margins. Waits for `networkidle` before snapshotting.
 
 Usage:
-    python3 to-pdf.py --input artifact.html
-    python3 to-pdf.py --input deck.html --output deck.pdf --shape deck
-    python3 to-pdf.py --input report.html --json
+    python3 to-pdf.py --input artifact.html --output artifact.pdf
+    python3 to-pdf.py --input artifact.html --output artifact.pdf --shape deck
+    python3 to-pdf.py --input artifact.html --output artifact.pdf --json
+
+Exit codes:
+    0: PDF generated successfully
+    1: input/output validation error, missing data-shape, or malformed HTML
+    2: Playwright unavailable (install instructions printed to stderr)
+    3: PDF generation failed (browser launch, page load, or page.pdf failure)
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import json
-import os
 import re
-import shutil
-import subprocess
 import sys
-import tempfile
-from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
-CHROME_FALLBACKS: tuple[str, ...] = (
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "chromium",
-    "google-chrome",
-    "chrome",
-)
+VALID_SHAPES = ("spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck")
 
-# Map shape -> page-size token. Only used when --page-size is not "auto".
-# Note: actual paper size is driven by HTML `@page` CSS; these labels are
-# advisory and reported in JSON output for downstream tooling.
-SHAPE_PAGE_SIZE: dict[str, str] = {
-    "deck": "deck-16x9",
-    "report": "letter-portrait",
-    "spec": "letter-landscape",
-    "data-viz": "letter-portrait",
+PAGE_SIZE_MAP: dict[str, dict[str, Any]] = {
+    "deck": {
+        "width": "13.333in",
+        "height": "7.5in",
+        "landscape": True,
+        "margin": {"top": "0", "right": "0", "bottom": "0", "left": "0"},
+    },
+    "spec": {
+        "format": "Letter",
+        "landscape": True,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
+    "code-review": {
+        "format": "Letter",
+        "landscape": True,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
+    "prototype": {
+        "format": "Letter",
+        "landscape": True,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
+    "data-viz": {
+        "format": "Letter",
+        "landscape": True,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
+    "diagram": {
+        "format": "Letter",
+        "landscape": True,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
+    "report": {
+        "format": "Letter",
+        "landscape": False,
+        "margin": {"top": "0.75in", "right": "0.75in", "bottom": "0.75in", "left": "0.75in"},
+    },
+    "editor": {
+        "format": "Letter",
+        "landscape": False,
+        "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+    },
 }
-DEFAULT_PAGE_SIZE = "letter-portrait"
 
-CHROME_TIMEOUT_SECONDS = 90
-MIN_PDF_SIZE_BYTES = 10 * 1024  # 10KB
+DEFAULT_PAGE: dict[str, Any] = {
+    "format": "Letter",
+    "landscape": False,
+    "margin": {"top": "0.5in", "right": "0.5in", "bottom": "0.5in", "left": "0.5in"},
+}
+
+INSTALL_HINT = 'pip install -e ".[pdf]" && playwright install chromium'
+
+_DATA_SHAPE_RE = re.compile(r"<body[^>]*\bdata-shape\s*=\s*\"([^\"]+)\"", re.IGNORECASE)
+# Match a complete class attribute so we can split into tokens for exact-match counting.
+_CLASS_ATTR_RE = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
+_HEAD_CLOSE_RE = re.compile(r"</head>", re.IGNORECASE)
+_BODY_OPEN_RE = re.compile(r"<body([^>]*)>", re.IGNORECASE)
+
+# Defensive deck print stylesheet injected at render time when shape=deck.
+# Guarantees one slide per printed page even when source HTML omits the bundled
+# deck-print.css (minimal fixtures, ad-hoc decks, or assembler regressions).
+# Uses !important to override any screen `display: none` applied to non-active
+# slides by the deck shape stylesheet.
+_DECK_PRINT_STYLESHEET = """
+<style id="to-pdf-deck-print">
+@page { size: 13.333in 7.5in; margin: 0; }
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #0a0a0a !important;
+    color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .deck-nav, .progress-bar, .slide-counter, .deck-controls, .theme-toggle,
+  .slide-nav {
+    display: none !important;
+  }
+  /* Un-clip the deck wrapper so child slides can flow into separate pages. */
+  .slide-deck {
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .slide, .slide:not(.active) {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 13.333in !important;
+    height: 7.5in !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden;
+    background: #0a0a0a !important;
+    color: #f5f5f5 !important;
+  }
+  .slide:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+</style>
+"""
 
 
-@dataclass
-class PdfResult:
-    """Aggregate result of a PDF generation + validation run."""
+def inject_deck_print_css(html: str) -> str:
+    """Inject defensive deck print CSS just before </head> for shape=deck.
 
-    ok: bool = False
-    input: str = ""
-    output: str = ""
-    shape: str = ""
-    page_size: str = ""
-    size_bytes: int = 0
-    pages: int = 0
-    expected_pages: int | None = None
-    chrome_path: str = ""
-    warnings: list[str] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "ok": self.ok,
-            "input": self.input,
-            "output": self.output,
-            "shape": self.shape,
-            "page_size": self.page_size,
-            "size_bytes": self.size_bytes,
-            "pages": self.pages,
-            "expected_pages": self.expected_pages,
-            "chrome_path": self.chrome_path,
-            "warnings": self.warnings,
-            "errors": self.errors,
-        }
-
-
-def find_chrome(override: str | None = None) -> str | None:
-    """Locate a Chrome/Chromium binary.
-
-    Resolution order:
-        1. Explicit `--chrome-path` (override).
-        2. `CHROME_PATH` environment variable.
-        3. macOS Google Chrome bundle path.
-        4. `chromium`, `google-chrome`, `chrome` on PATH.
-
-    Returns the absolute path or None if no executable was found.
+    Idempotent: source HTML already containing `id="to-pdf-deck-print"` is
+    returned unchanged. Falls back to inserting after `<body ...>` if no
+    `</head>` exists; falls back to prepending if no `<body>` exists either.
     """
-    candidates: list[str] = []
-    if override:
-        candidates.append(override)
-    env_path = os.environ.get("CHROME_PATH")
-    if env_path:
-        candidates.append(env_path)
-    candidates.extend(CHROME_FALLBACKS)
-
-    for cand in candidates:
-        if "/" in cand or "\\" in cand:
-            p = Path(cand)
-            if p.is_file() and os.access(p, os.X_OK):
-                return str(p)
-        else:
-            found = shutil.which(cand)
-            if found:
-                return found
-    return None
+    if 'id="to-pdf-deck-print"' in html:
+        return html
+    if _HEAD_CLOSE_RE.search(html):
+        return _HEAD_CLOSE_RE.sub(_DECK_PRINT_STYLESHEET + "</head>", html, count=1)
+    if _BODY_OPEN_RE.search(html):
+        return _BODY_OPEN_RE.sub(lambda m: f"<body{m.group(1)}>{_DECK_PRINT_STYLESHEET}", html, count=1)
+    return _DECK_PRINT_STYLESHEET + html
 
 
 def detect_shape(html: str) -> str | None:
-    """Extract `data-shape="..."` attribute from the `<body>` tag."""
-    match = re.search(r"<body\b[^>]*\bdata-shape=[\"']([^\"']+)[\"']", html, re.IGNORECASE)
+    """Extract the shape from `<body data-shape="...">`. Returns None if absent."""
+    match = _DATA_SHAPE_RE.search(html)
     if match:
-        return match.group(1).strip().lower()
+        return match.group(1).strip()
     return None
 
 
+def page_options_for_shape(shape: str | None) -> dict[str, Any]:
+    """Look up Playwright `page.pdf()` options for a given shape, falling back to default.
+
+    Returns a deep copy so callers can mutate freely without affecting the source map.
+    """
+    if shape is None:
+        return copy.deepcopy(DEFAULT_PAGE)
+    return copy.deepcopy(PAGE_SIZE_MAP.get(shape, DEFAULT_PAGE))
+
+
 def count_slides(html: str) -> int:
-    """Count `<section class="slide">` and `<div class="slide">` elements."""
-    pattern = r"<(?:section|div)\b[^>]*\bclass=[\"'][^\"']*\bslide\b[^\"']*[\"'][^>]*>"
-    return len(re.findall(pattern, html, re.IGNORECASE))
+    """Count elements whose class attribute contains the exact token `slide`.
 
-
-def count_pdf_pages(pdf_path: Path, warnings: list[str] | None = None) -> int:
-    """Best-effort PDF page count. Prefer pypdfium2; fall back to byte scan.
-
-    If `warnings` is provided, any unexpected probe exception is appended so
-    the caller can surface the underlying cause instead of seeing only a
-    generic 'could not determine page count' message.
+    Scans every `class="..."` attribute and tokenizes on whitespace, counting
+    only attributes that have the literal token `slide` (e.g. `class="slide"`,
+    `class="slide active"`). Attributes containing only related tokens such as
+    `slide-deck`, `slide-nav`, or `slideshow` do not increment the count.
     """
-    try:
-        import pypdfium2  # type: ignore[import-not-found]
-
-        pdf = pypdfium2.PdfDocument(str(pdf_path))
-        try:
-            return len(pdf)
-        finally:
-            pdf.close()
-    except ImportError:
-        pass
-    except Exception as e:
-        if warnings is not None:
-            warnings.append(f"page count probe failed: {e}")
-
-    # Fallback: scan raw bytes for `/Type /Page` markers (not /Pages).
-    try:
-        data = pdf_path.read_bytes()
-    except OSError:
-        return 0
-    # Match "/Type" + whitespace + "/Page" not followed by 's' (which would be /Pages).
-    matches = re.findall(rb"/Type\s*/Page(?![a-zA-Z])", data)
-    return len(matches)
+    count = 0
+    for match in _CLASS_ATTR_RE.finditer(html):
+        tokens = match.group(1).split()
+        if "slide" in tokens:
+            count += 1
+    return count
 
 
-def resolve_page_size(shape: str, override: str) -> str:
-    """Resolve the advisory page-size token."""
-    if override != "auto":
-        return override
-    return SHAPE_PAGE_SIZE.get(shape, DEFAULT_PAGE_SIZE)
+def validate_html(html: str) -> str | None:
+    """Cheap structural sanity check on the HTML. Returns error message or None."""
+    if not html.strip():
+        return "Input HTML is empty."
+    lower = html.lower()
+    if "<html" not in lower:
+        return "Input does not look like HTML (no <html> tag found)."
+    if "<body" not in lower:
+        return "Input does not look like HTML (no <body> tag found)."
+    return None
 
 
-def run_chrome(
-    chrome_path: str,
-    input_url: str,
-    output_path: Path,
-    verbose: bool,
-    timeout_seconds: int = CHROME_TIMEOUT_SECONDS,
-) -> tuple[int, str]:
-    """Invoke Chrome headless to render `input_url` to `output_path`.
+def render_pdf(input_path: Path, output_path: Path, shape: str | None) -> dict[str, Any]:
+    """Launch Playwright, load the HTML file, and write a PDF.
 
-    Uses an ephemeral `--user-data-dir` so the user's Chrome profile is
-    untouched.
+    Returns a dict with keys: output, page_count, shape, bytes.
 
-    Returns (return_code, stderr_text). On timeout, return_code = 124 and
-    stderr contains a synthetic message.
+    Raises RuntimeError on browser launch / page.goto / page.pdf failures.
+    ImportError if Playwright is unavailable.
     """
-    with tempfile.TemporaryDirectory(prefix="to-pdf-chrome-") as user_data_dir:
-        cmd = [
-            chrome_path,
-            "--headless=new",
-            "--disable-gpu",
-            "--no-pdf-header-footer",
-            "--virtual-time-budget=10000",
-            "--hide-scrollbars",
-            f"--user-data-dir={user_data_dir}",
-            f"--print-to-pdf={output_path}",
-            input_url,
-        ]
-        # Chrome on macOS can spawn helper processes that inherit our pipes
-        # and keep them open after the parent exits, deadlocking
-        # subprocess.run's capture machinery. When not verbose, send stderr
-        # to DEVNULL so helpers can't hold us open.
-        stderr_target: int = subprocess.PIPE if verbose else subprocess.DEVNULL
-        try:
-            proc = subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=stderr_target,
-                text=True,
-                timeout=timeout_seconds,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            return 124, f"Chrome timed out after {timeout_seconds}s: {exc}"
+    from playwright.sync_api import sync_playwright
 
-        if verbose and proc.stderr:
-            sys.stderr.write(proc.stderr)
-        return proc.returncode, proc.stderr or ""
+    html = input_path.read_text(encoding="utf-8")
+    err = validate_html(html)
+    if err:
+        raise ValueError(err)
 
+    resolved_shape = shape if shape is not None else detect_shape(html)
+    options = page_options_for_shape(resolved_shape)
+    options["path"] = str(output_path)
+    options["print_background"] = True
 
-def generate_pdf(
-    input_path: Path,
-    output_path: Path,
-    shape_override: str | None,
-    page_size_override: str,
-    chrome_override: str | None,
-    verbose: bool,
-    timeout_seconds: int = CHROME_TIMEOUT_SECONDS,
-) -> PdfResult:
-    """Drive the full generate + validate flow. Caller handles exit codes."""
-    result = PdfResult(input=str(input_path), output=str(output_path))
+    # For decks, inject defensive print CSS so each .slide reliably becomes one
+    # printed page even when the source HTML omits the bundled deck-print.css
+    # (e.g. minimal fixtures). Write the augmented HTML to a sibling temp file
+    # so that file:// loading still resolves any relative resources from the
+    # original artifact's directory.
+    load_path = input_path
+    temp_path: Path | None = None
+    if resolved_shape == "deck":
+        augmented = inject_deck_print_css(html)
+        if augmented != html:
+            temp_path = input_path.with_name(f".{input_path.stem}.to-pdf.tmp.html")
+            temp_path.write_text(augmented, encoding="utf-8")
+            load_path = temp_path
 
-    chrome_path = find_chrome(chrome_override)
-    if chrome_path is None:
-        result.errors.append("Chrome not found. Install Google Chrome or set CHROME_PATH env var.")
-        return result
-    result.chrome_path = chrome_path
+    # pathlib.as_uri() handles spaces, unicode, and Windows drives per RFC 8089.
+    file_url = load_path.resolve().as_uri()
 
     try:
-        html = input_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as e:
-        result.errors.append(f"Cannot read input file: {e}")
-        return result
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            try:
+                context = browser.new_context()
+                page = context.new_page()
+                page.goto(file_url, wait_until="networkidle")
+                page.pdf(**options)
+            finally:
+                browser.close()
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
-    detected = detect_shape(html)
-    shape = (shape_override or detected or "report").lower()
-    if shape_override is None and detected is None:
-        result.warnings.append("No data-shape attribute found on <body>; defaulting to 'report'.")
-    result.shape = shape
-    result.page_size = resolve_page_size(shape, page_size_override)
+    pdf_bytes = output_path.stat().st_size
+    if resolved_shape == "deck":
+        page_count = count_slides(html)
+    else:
+        page_count = 0  # unknown without parsing the PDF; deck is the documented case
 
-    if shape == "deck":
-        slides = count_slides(html)
-        if slides > 0:
-            result.expected_pages = slides
-
-    input_url = f"file://{input_path.resolve()}"
-    rc, stderr_text = run_chrome(chrome_path, input_url, output_path, verbose, timeout_seconds)
-
-    if rc != 0:
-        # Chrome on macOS sometimes hangs on subprocess shutdown after the
-        # PDF is already on disk (helper processes hold pipes open). Recover:
-        # if the output file exists and exceeds the minimum size, treat the
-        # generation as successful and record a warning.
-        if rc == 124 and output_path.is_file() and output_path.stat().st_size >= MIN_PDF_SIZE_BYTES:
-            result.warnings.append(
-                f"Chrome did not exit within {timeout_seconds}s, but PDF was written. "
-                "Recovered output; helper-process shutdown stalled."
-            )
-        else:
-            snippet = stderr_text.strip().splitlines()[-1] if stderr_text.strip() else ""
-            msg = f"Chrome exited with code {rc}."
-            if snippet:
-                msg += f" Last stderr: {snippet}"
-            result.errors.append(msg)
-            return result
-
-    if not output_path.is_file():
-        result.errors.append(f"Chrome reported success but no output file at {output_path}.")
-        return result
-
-    result.size_bytes = output_path.stat().st_size
-    if result.size_bytes < MIN_PDF_SIZE_BYTES:
-        result.warnings.append(
-            f"PDF size {result.size_bytes} bytes is below {MIN_PDF_SIZE_BYTES} threshold (may be blank or error page)."
-        )
-
-    result.pages = count_pdf_pages(output_path, warnings=result.warnings)
-    if result.pages == 0:
-        result.warnings.append("Could not determine page count (or PDF has 0 pages).")
-
-    if result.expected_pages is not None and result.pages != result.expected_pages:
-        result.warnings.append(f"Page count mismatch: expected {result.expected_pages} (slides), got {result.pages}.")
-
-    result.ok = not result.warnings and not result.errors
-    return result
+    return {
+        "output": str(output_path.resolve()),
+        "page_count": page_count,
+        "shape": resolved_shape or "default",
+        "bytes": pdf_bytes,
+    }
 
 
-def emit_human(result: PdfResult) -> None:
-    """Human-readable stdout summary."""
-    status = "OK" if result.ok else ("WARN" if not result.errors else "FAIL")
-    sys.stdout.write(f"[{status}] {result.input} -> {result.output}\n")
-    sys.stdout.write(
-        f"  shape={result.shape}  page_size={result.page_size}  size={result.size_bytes}B  pages={result.pages}"
-    )
-    if result.expected_pages is not None:
-        sys.stdout.write(f"  expected={result.expected_pages}")
-    sys.stdout.write(f"\n  chrome={result.chrome_path}\n")
-    for w in result.warnings:
-        sys.stdout.write(f"  warning: {w}\n")
-    for e in result.errors:
-        sys.stdout.write(f"  error: {e}\n")
-
-
-def emit_json(result: PdfResult) -> None:
-    """JSON-only stdout for pipeline consumption."""
-    json.dump(result.to_dict(), sys.stdout, indent=2)
-    sys.stdout.write("\n")
-
-
-def main() -> None:
-    """CLI entry point."""
-    parser = argparse.ArgumentParser(description="Render an html-artifact to PDF via headless Chrome.")
-    parser.add_argument("--input", required=True, help="Path to the input .html file.")
-    parser.add_argument("--output", default=None, help="Output .pdf path. Defaults to input with .pdf extension.")
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Render an html-artifact to PDF via Playwright.")
+    parser.add_argument("--input", required=True, help="Path to the source .html file.")
+    parser.add_argument("--output", required=True, help="Path for the generated .pdf file.")
     parser.add_argument(
         "--shape",
         default=None,
-        help="Override shape detection (deck, report, spec, data-viz, ...). If omitted, parsed from <body data-shape>.",
+        choices=VALID_SHAPES,
+        help="Override shape detection (otherwise read from <body data-shape>).",
     )
     parser.add_argument(
-        "--page-size",
-        default="auto",
-        help="Advisory page-size token (auto|letter-portrait|letter-landscape|deck-16x9). "
-        "Actual paper size is driven by HTML @page CSS; this is reported only.",
+        "--json",
+        dest="json_out",
+        action="store_true",
+        help="Emit machine-readable JSON to stdout on success.",
     )
-    parser.add_argument("--chrome-path", default=None, help="Override Chrome binary path.")
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=CHROME_TIMEOUT_SECONDS,
-        help=f"Chrome subprocess timeout in seconds (default: {CHROME_TIMEOUT_SECONDS}).",
-    )
-    parser.add_argument("--json", action="store_true", help="Emit JSON to stdout instead of human-readable summary.")
-    parser.add_argument("--verbose", action="store_true", help="Forward Chrome stderr to this process's stderr.")
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     input_path = Path(args.input)
-    if not input_path.is_file():
-        result = PdfResult(input=args.input, errors=[f"Input file not found: {args.input}"])
-        emit_json(result) if args.json else emit_human(result)
-        sys.exit(3)
+    output_path = Path(args.output)
 
-    if args.output:
-        output_path = Path(args.output)
+    if not input_path.is_file():
+        sys.stderr.write(f"Error: input file not found: {input_path}\n")
+        return 1
+
+    # Resolve shape: --shape wins, else parse <body data-shape>.
+    if args.shape is None:
+        html = input_path.read_text(encoding="utf-8")
+        err = validate_html(html)
+        if err:
+            sys.stderr.write(f"Error: {err}\n")
+            return 1
+        detected = detect_shape(html)
+        if detected is None:
+            sys.stderr.write(
+                "Error: HTML artifact missing data-shape attribute. "
+                "Re-assemble with assemble-template.py or pass --shape explicitly.\n"
+            )
+            return 1
+        shape = detected
     else:
-        output_path = input_path.with_suffix(".pdf")
-    output_path = output_path.resolve()
+        shape = args.shape
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    result = generate_pdf(
-        input_path=input_path,
-        output_path=output_path,
-        shape_override=args.shape,
-        page_size_override=args.page_size,
-        chrome_override=args.chrome_path,
-        verbose=args.verbose,
-        timeout_seconds=args.timeout,
-    )
+    try:
+        result = render_pdf(input_path, output_path, shape)
+    except ImportError:
+        sys.stderr.write(f"Error: Playwright is not installed.\nInstall with: {INSTALL_HINT}\n")
+        return 2
+    except ValueError as e:
+        sys.stderr.write(f"Error: {e}\n")
+        return 1
+    except Exception as e:
+        # Playwright launch fails with a non-ImportError when chromium isn't installed.
+        # The error message contains "Executable doesn't exist" — surface install hint.
+        msg = str(e)
+        if "Executable doesn't exist" in msg or "playwright install" in msg:
+            sys.stderr.write(f"Error: Playwright browser binary missing.\nInstall with: {INSTALL_HINT}\n")
+            return 2
+        sys.stderr.write(f"Error: PDF generation failed: {type(e).__name__}: {e}\n")
+        return 3
 
-    emit_json(result) if args.json else emit_human(result)
-
-    if result.errors:
-        if any("Chrome not found" in e for e in result.errors):
-            sys.exit(2)
-        if any("Cannot read input" in e for e in result.errors):
-            sys.exit(3)
-        sys.exit(4)
-    if result.warnings:
-        sys.exit(1)
-    sys.exit(0)
+    if args.json_out:
+        sys.stdout.write(json.dumps(result) + "\n")
+    else:
+        sys.stdout.write(
+            f"PDF written to {result['output']} "
+            f"(shape={result['shape']}, {result['bytes']} bytes"
+            + (f", {result['page_count']} slides" if result["page_count"] else "")
+            + ")\n"
+        )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

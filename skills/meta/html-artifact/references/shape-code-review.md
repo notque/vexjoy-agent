@@ -1,175 +1,70 @@
 # Shape: Code Review
 
-> **Shape**: code-review | **Signal words**: review PR, diff, annotate, code review, explain code, understand module
+> **Shape**: code-review | **Signal words**: review PR, diff, annotate, code review, explain code
 > CSS layout classes: `templates/shapes/code-review.css` (injected by assemble-template.py)
-> Components: `collapsible`, `filter`, `keyboard-nav`, `theme-toggle`
-
-Code-review artifacts annotate diffs, not source files. The reader is scanning for what to look at — severity ordering, jump links, and inline review notes are non-negotiable. Hide nothing in expanding panels that the reader needs to read first.
 
 ---
 
 ## Layout Description
 
-Two columns on desktop: 220px sticky `.file-nav` (left) + scrollable `.review-main` (right). Below 768px the nav becomes a horizontal scrollable bar above the main content.
+Two-column layout: sticky file navigation sidebar (220px) + scrollable main content area. On mobile, sidebar becomes a horizontal scrollable bar above content.
 
-Main content order: PR summary header → risk map (severity distribution) → optional module map (SVG) → file diffs in **severity order** (blocking first, safe last) → keyboard-shortcut reference at the bottom.
-
----
-
-## Canonical Markup Order (load-bearing rule)
-
-| Order | Region | Purpose |
-|---|---|---|
-| 1 | `<nav class="file-nav">` | Jump links to each file, with severity badges |
-| 2 | `<header class="pr-summary">` inside `<main>` | Title, author, branch, +/− stats, description |
-| 3 | `.risk-map` section | Severity totals: how many blocking, attention, safe |
-| 4 | `.diff-file` blocks, **severity-sorted** | Blocking first, attention second, look third, safe last |
-| 5 | Keyboard shortcut footer | `j/k` between files, `x` to expand, `?` for help |
-
-Why severity order: a reviewer with 10 minutes should hit the must-fix items first. Alphabetical or path order buries blockers under safe refactors.
-
-### Skeleton
-
-```html
-<body data-shape="code-review" data-theme="birchline">
-  <div class="review-layout">
-    <nav class="file-nav" aria-label="File navigation">
-      <a href="#file-auth-js"><span class="severity-badge blocking">Blocking</span> auth.js</a>
-      <a href="#file-cookie-js"><span class="severity-badge attention">Attention</span> cookie.js</a>
-      <a href="#file-readme-md"><span class="severity-badge safe">Safe</span> README.md</a>
-    </nav>
-    <main class="review-main">
-      <header class="pr-summary"><!-- title, meta, stats, description --></header>
-      <section class="risk-map" aria-label="Severity distribution"><!-- counts --></section>
-      <article class="diff-file" id="file-auth-js"><!-- highest severity first --></article>
-      <article class="diff-file" id="file-cookie-js"></article>
-      <article class="diff-file" id="file-readme-md"></article>
-    </main>
-  </div>
-</body>
-```
-
-CSS lives in `templates/shapes/code-review.css` — do not redefine `.review-layout`, `.diff-*`, `.severity-badge`, `.line-num`, `.line-code`, `.annotation` inline.
+Main content flows: PR summary header, risk map (severity distribution bars), then file diff blocks in severity order (blocking first, safe last).
 
 ---
 
 ## Severity System
 
-| Level | Class | Meaning | Reviewer Action |
+| Level | Color Var | Badge Class | Use For |
 |---|---|---|---|
-| Blocking | `.severity-badge.blocking`, `.annotation.blocking` | Bug, security, data loss | Must fix before merge |
-| Needs Attention | `.severity-badge.attention`, `.annotation.attention` | Concern worth discussing | Comment, may merge |
-| Worth a Look | `.severity-badge.look` | Minor style or naming | Optional |
-| Safe | `.severity-badge.safe` | No issue, often praise | None |
-
-Severity is the **organizing axis** of the entire artifact: file nav order, file order in main, annotation styling. A file with one blocking comment ranks above a file with ten attention comments.
+| Blocking | `--color-danger` | `.severity-badge.blocking` | Must fix before merge |
+| Needs Attention | `--color-warning` | `.severity-badge.attention` | Important, non-blocking |
+| Worth a Look | `--color-look` (define as `#C4A742`) | `.severity-badge.look` | Minor improvement |
+| Safe | `--color-success` | `.severity-badge.safe` | No concerns |
 
 ---
 
-## Section Types (worked examples)
+## Key CSS Classes (from templates/shapes/code-review.css)
 
-### PR summary header
+| Class | Purpose |
+|---|---|
+| `.review-layout` | 2-column grid (sidebar + main) |
+| `.file-nav` | Sticky sidebar with file links |
+| `.diff-file` | Container per changed file |
+| `.diff-header` | File name + severity badge + stats |
+| `.diff-line` | Single diff line (`.addition`, `.deletion`, `.context`) |
+| `.line-num`, `.line-code` | Line number gutter + code content |
+| `.annotation` | Inline review comment between diff lines |
+| `.severity-badge` | Colored label (blocking/attention/safe) |
+| `.stat-add`, `.stat-del` | Green/red +N/-N stats |
 
-```html
-<header class="pr-summary">
-  <div class="pr-title-row">
-    <h1>Refactor auth flow to httpOnly cookies</h1>
-    <span class="pr-number">#42</span>
-  </div>
-  <div class="pr-meta">
-    <span class="pr-meta-item"><strong>Author</strong> @alice</span>
-    <span class="pr-meta-item"><strong>Branch</strong> feat/auth-cookies → main</span>
-    <span class="pr-meta-item"><strong>Files</strong> 12 changed</span>
-    <span class="pr-meta-item pr-stats">
-      <span class="stat-add">+580</span>
-      <span class="stat-del">−220</span>
-    </span>
-  </div>
-  <p class="pr-description">Migrates token storage from localStorage to httpOnly cookies. Adds CSRF middleware and dual-read for backward compat.</p>
-</header>
-```
+---
 
-Use for: every code-review artifact. PR title is `<h1>`, number is decorative — author, branch, file count and +/− stats are the orienting facts.
+## Composition Guide
 
-### Diff block with annotation
+| Request | Sections |
+|---|---|
+| "Review this PR" | PR Summary + Risk Map + File Nav + Diff Blocks + Annotations + Keyboard Nav |
+| "Annotate this diff" | Diff Blocks + Annotations (no side nav) |
+| "Module architecture" | Module Map SVG + Brief annotations per module |
+| "What changed in this commit" | Diff Blocks with context-heavy, fewer annotations |
 
-```html
-<article class="diff-file" id="file-auth-js" aria-label="auth.js review">
-  <header class="diff-header">
-    <span class="severity-badge blocking">Blocking</span>
-    <code class="diff-path">src/auth/login.js</code>
-    <span class="stat-add">+42</span>
-    <span class="stat-del">−18</span>
-  </header>
-  <div class="diff-body">
-    <div class="diff-line context">
-      <span class="line-num">12</span>
-      <span class="line-code">async function login(email, password) {</span>
-    </div>
-    <div class="diff-line deletion">
-      <span class="line-num">13</span>
-      <span class="line-code">  localStorage.setItem('token', token);</span>
-    </div>
-    <div class="diff-line addition">
-      <span class="line-num">14</span>
-      <span class="line-code">  document.cookie = `token=${token}; HttpOnly`;</span>
-    </div>
-    <aside class="annotation blocking" role="note" aria-label="Blocking comment on line 14">
-      <strong>Blocking · @reviewer</strong>
-      <p>HttpOnly cookies cannot be set from JavaScript. This must be set
-         server-side via <code>Set-Cookie</code> header, otherwise the
-         flag is silently ignored and the token is XSS-readable.</p>
-    </aside>
-  </div>
-</article>
-```
-
-Use for: every reviewed file. The `.severity-badge` in the header is what drives ordering. Annotations sit **inline between diff lines**, not in a separate section — this preserves the line-of-sight from issue to code.
-
-### Risk map
-
-```html
-<section class="risk-map" aria-label="Severity distribution">
-  <h2>Risk Map</h2>
-  <ul>
-    <li><span class="severity-badge blocking">Blocking</span> 1 issue · auth.js</li>
-    <li><span class="severity-badge attention">Attention</span> 3 issues · cookie.js, csrf.js, middleware.js</li>
-    <li><span class="severity-badge safe">Safe</span> 8 files · no concerns</li>
-  </ul>
-</section>
-```
-
-Use for: any review with 5+ files. A reviewer with limited time reads this first to allocate attention.
+### Section Ordering
+1. PR summary (title, author, branch, stats)
+2. Risk map (severity distribution)
+3. Module map (if architecture visualization needed)
+4. File diffs in severity order
+5. Keyboard shortcut reference at bottom
 
 ---
 
 ## Interaction Patterns
 
-| Pattern | Component | Behavior |
-|---|---|---|
-| Expand / collapse a `.diff-file` | `collapsible` | `aria-expanded` on a button; default open for blocking, collapsed for safe |
-| Severity filter | `filter` | Pill buttons with `aria-pressed`; toggling hides matching files AND nav links |
-| File jump | Anchor links | `<a href="#file-id">`; sidebar links scroll to and auto-expand the diff |
-| Keyboard nav | `keyboard-nav` | `j` / `k` between files, `x` to toggle expand, `?` for shortcut overlay; ignore when focus is in `<input>` or `<textarea>` |
-| Module map | Inline SVG | Module nodes are `<a xlink:href="#file-id">`, navigate to corresponding diff |
-
-Do not hand-author keyboard handlers — request the `keyboard-nav` and `filter` components and let the assembler inject them.
-
----
-
-## ARIA / Accessibility
-
-| Element | Required attributes | Why |
-|---|---|---|
-| `.file-nav` | `aria-label="File navigation"` | Landmark distinct from main nav |
-| `.diff-file` | `aria-label="<filename> review"` or `id` matching the nav link | Discoverable by AT |
-| `.annotation` | `role="note"`, `aria-label="<severity> comment on line N"` | Announces what kind of comment and where |
-| `.severity-badge` | Text inside ("Blocking") | Color is supplementary; text is the source of truth |
-| `.line-num` | `user-select: none` (CSS) | Prevents copying line numbers with the code |
-| `.diff-line` `.addition` / `.deletion` | Text marker (`+ ` / `- `) via `::before` | Color alone fails for color-blind reviewers |
-| Filter buttons | `<button aria-pressed="true|false">` | Conveys toggle state |
-| Keyboard shortcuts | Skip when `e.target.tagName` is `INPUT`, `TEXTAREA`, or `[contenteditable]` | Don't hijack typing in comment fields |
-| Reduced motion | Disable smooth-scroll; use `scrollTo({ behavior: 'auto' })` | Respect `prefers-reduced-motion` |
+- **Expand/collapse diffs:** Button with `aria-expanded` + animated `max-height`
+- **Filter by severity:** Buttons filter both sidebar links and diff blocks
+- **Keyboard nav:** `j`/`k` between files, `x` to toggle expand (don't fire in text inputs)
+- **Jump-to-file:** Sidebar links scroll to and auto-expand the target diff
+- **Module map clicks:** SVG module nodes link to their file diff section
 
 ---
 
@@ -177,26 +72,21 @@ Do not hand-author keyboard handlers — request the `keyboard-nav` and `filter`
 
 | Mistake | Fix |
 |---|---|
-| Files ordered alphabetically or by path | Order by severity descending; blocking first, safe last |
-| Annotations grouped in a separate "Comments" section at the bottom | Place inline between diff lines so issue and code are co-visible |
-| Line numbers selectable when copying the code | Apply `user-select: none` to `.line-num` (already in template CSS) |
-| Diff lines distinguished by color only | Use `+ ` / `− ` glyph via `::before`, not just background color |
-| Keyboard shortcuts (`j` / `k`) firing inside textareas | Guard with `e.target.tagName` check; the `keyboard-nav` component does this |
-| Sidebar not scrollable independently of main | Sidebar has `position: sticky; top: 0; height: 100vh; overflow-y: auto` (already in template) |
-| Severity conveyed by border color only on `.annotation` | Always include `<strong>Blocking · @reviewer</strong>` text label |
-| Hand-authored expand/collapse with `display: none` | Use the `collapsible` component for animated, accessible behavior |
-| Module map without anchor links | SVG nodes wrap in `<a xlink:href="#file-id">`, otherwise the map is decorative |
-| Inline `<style>` redefining `.diff-line` / `.severity-badge` | All shape CSS in `templates/shapes/code-review.css` — touching it creates drift |
+| Line numbers selectable during copy | Use `user-select: none` on `.line-num` |
+| Missing +/- prefix on diff lines | Use `::before` pseudo-elements |
+| Annotations not connected to lines | Place annotations inline between diff lines, not in a separate section |
+| Sidebar not scrollable independently | Use `overflow-y: auto` with `height: 100vh` |
+| Keyboard shortcuts fire in text inputs | Check `e.target.tagName !== 'INPUT'` |
 
 ---
 
-## Shape Selection
+## Accessibility Checklist
 
-Use **code-review** when the request matches: review PR, annotate diff, code review, explain code change, understand module, PR writeup.
-
-Do **not** use code-review when:
-
-- The user wants to compare design approaches without diffs (use **spec**)
-- The user wants to explain how code works without line-level annotation (use **report + diagram**)
-- The user wants a tutorial walking through code (use **report**)
-- The user wants an interactive editor for code (use **editor**)
+- [ ] Expand/collapse buttons have `aria-expanded` and `aria-controls`
+- [ ] Filter buttons use `aria-pressed` state
+- [ ] File nav has `aria-label="File navigation"`
+- [ ] Annotations have `role="note"` and descriptive `aria-label`
+- [ ] Color is never the sole indicator (severity uses text labels + color)
+- [ ] Keyboard shortcuts don't fire inside text inputs
+- [ ] `prefers-reduced-motion` disables transitions and smooth scrolling
+- [ ] Diff line numbers use `user-select: none`

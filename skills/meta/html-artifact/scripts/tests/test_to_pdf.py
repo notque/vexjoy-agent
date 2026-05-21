@@ -1,336 +1,360 @@
-"""Tests for to-pdf.py — Chrome-headless PDF generator.
-
-Tier 1 (always run): unit tests on pure functions imported via importlib.
-Tier 2 (gated): integration tests that actually invoke Chrome.
-"""
+"""Tests for to-pdf.py — Playwright-based PDF export for html-artifact."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import os
-import shutil
 import subprocess
 import sys
+from importlib import import_module
 from pathlib import Path
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).parent.parent
-SCRIPT_PATH = SCRIPTS_DIR / "to-pdf.py"
-ASSEMBLE_SCRIPT = SCRIPTS_DIR / "assemble-template.py"
+SCRIPT = str(Path(__file__).parent.parent / "to-pdf.py")
+
+# --- Import module directly for unit tests ---
+sys.path.insert(0, str(Path(__file__).parent.parent))
+to_pdf = import_module("to-pdf")
 
 
-def _load_to_pdf():
-    """Import the hyphenated to-pdf.py via importlib."""
-    spec = importlib.util.spec_from_file_location("to_pdf", SCRIPT_PATH)
-    assert spec is not None and spec.loader is not None
-    mod = importlib.util.module_from_spec(spec)
-    # Register in sys.modules BEFORE executing so dataclasses can resolve
-    # forward-referenced type names against the module namespace.
-    sys.modules["to_pdf"] = mod
-    spec.loader.exec_module(mod)
-    return mod
+def _playwright_runs() -> bool:
+    """Returns True only if Playwright imports AND chromium can launch.
 
-
-to_pdf = _load_to_pdf()
-
-
-# Marker for the assembler (validator gate dependency).
-MARKER = "<!-- assembled by html-artifact v1.1 -->"
-
-
-CHROME_MAC = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-
-
-def _chrome_available() -> bool:
-    if os.environ.get("CHROME_PATH"):
-        return Path(os.environ["CHROME_PATH"]).is_file()
-    if Path(CHROME_MAC).is_file():
-        return True
-    return any(shutil.which(name) for name in ("chromium", "google-chrome", "chrome"))
-
-
-def _chrome_runs() -> bool:
-    """Return True if Chrome actually launches headless AND can render.
-
-    Some CI runners install chromium but it aborts with SIGABRT (-6) when
-    invoked headless due to missing sandbox/GPU dependencies.
-    `_chrome_available()` only confirms the binary is present;
-    `chromium --version` exits 0 even when headless rendering would crash.
-    This helper matches the real workload more closely: it asks Chrome
-    to dump the DOM of a trivial about:blank page and only returns True
-    if that succeeds.
+    Avoids the May 9 mistake of skipping based on Chrome binary existence
+    (which lied) — actually launches a browser to confirm.
     """
-    if not _chrome_available():
-        return False
-    chrome = (
-        os.environ.get("CHROME_PATH")
-        or (CHROME_MAC if Path(CHROME_MAC).is_file() else None)
-        or shutil.which("chromium")
-        or shutil.which("google-chrome")
-        or shutil.which("chrome")
-    )
-    if not chrome:
-        return False
     try:
-        proc = subprocess.run(
-            [
-                chrome,
-                "--headless=new",
-                "--no-sandbox",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--dump-dom",
-                "about:blank",
-            ],
-            capture_output=True,
-            timeout=15,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            browser.close()
+        return True
+    except Exception:
         return False
-    return proc.returncode == 0
 
 
-# --- Tier 1: fast unit tests ---------------------------------------------------
+# --- Sample HTML fragments for unit tests ---
+
+_HTML_DECK = """<!DOCTYPE html>
+<html><head><title>T</title>
+<style>
+.slide { width: 13.333in; height: 7.5in; padding: 0.5in; box-sizing: border-box;
+  background: #0a0a0a; color: #f5f5f5; display: flex; align-items: center;
+  justify-content: center; font: 96px/1.1 system-ui, sans-serif; }
+.slide h1 { margin: 0; }
+</style></head>
+<body data-shape="deck">
+<div class="slide"><h1>Slide One: Introduction</h1></div>
+<div class="slide"><h1>Slide Two: Body</h1></div>
+<div class="slide"><h1>Slide Three: Conclusion</h1></div>
+</body></html>
+"""
+
+_HTML_SPEC = """<!DOCTYPE html>
+<html><head><title>T</title></head>
+<body data-shape="spec">
+<main><h1>Spec</h1><p>Body</p></main>
+</body></html>
+"""
+
+_HTML_REPORT = """<!DOCTYPE html>
+<html><head><title>T</title></head>
+<body data-shape="report">
+<main><h1>Report</h1><p>Body</p></main>
+</body></html>
+"""
+
+_HTML_NO_SHAPE = """<!DOCTYPE html>
+<html><head><title>T</title></head>
+<body><main><p>No shape</p></main></body></html>
+"""
+
+_HTML_MALFORMED = "this is not html"
 
 
 class TestShapeDetection:
-    """detect_shape() parses <body data-shape="...">."""
+    """Unit: detect_shape() pulls the data-shape attribute from <body>."""
 
-    def test_shape_detection_from_html(self) -> None:
-        html = '<!DOCTYPE html><html><body data-shape="deck"><h1>x</h1></body></html>'
-        assert to_pdf.detect_shape(html) == "deck"
+    def test_detect_deck(self) -> None:
+        assert to_pdf.detect_shape(_HTML_DECK) == "deck"
 
-    def test_shape_detection_fallback(self) -> None:
-        """No data-shape -> detect_shape returns None; generate_pdf adds warning + defaults to 'report'."""
-        html = "<!DOCTYPE html><html><body><h1>x</h1></body></html>"
-        assert to_pdf.detect_shape(html) is None
+    def test_detect_spec(self) -> None:
+        assert to_pdf.detect_shape(_HTML_SPEC) == "spec"
 
-    def test_shape_detection_case_insensitive(self) -> None:
-        html = '<BODY data-shape="Spec"><p>x</p></BODY>'
-        assert to_pdf.detect_shape(html) == "spec"
+    def test_detect_missing_returns_none(self) -> None:
+        assert to_pdf.detect_shape(_HTML_NO_SHAPE) is None
 
+    def test_detect_with_extra_attributes(self) -> None:
+        html = '<body class="foo" data-shape="report" data-theme="light">'
+        assert to_pdf.detect_shape(html) == "report"
 
-class TestPageSizeMapping:
-    """resolve_page_size() maps shape -> token, honors override."""
+    def test_detect_data_shape_first_attribute(self) -> None:
+        html = '<body data-shape="diagram" class="x">'
+        assert to_pdf.detect_shape(html) == "diagram"
 
-    def test_deck_maps_to_deck_16x9(self) -> None:
-        assert to_pdf.resolve_page_size("deck", "auto") == "deck-16x9"
-
-    def test_report_maps_to_letter_portrait(self) -> None:
-        assert to_pdf.resolve_page_size("report", "auto") == "letter-portrait"
-
-    def test_spec_maps_to_letter_landscape(self) -> None:
-        assert to_pdf.resolve_page_size("spec", "auto") == "letter-landscape"
-
-    def test_unknown_shape_defaults_to_letter_portrait(self) -> None:
-        assert to_pdf.resolve_page_size("nonsense", "auto") == "letter-portrait"
-
-    def test_explicit_override_wins(self) -> None:
-        assert to_pdf.resolve_page_size("deck", "letter-portrait") == "letter-portrait"
+    def test_detect_case_insensitive_tag(self) -> None:
+        html = '<BODY data-shape="editor">'
+        assert to_pdf.detect_shape(html) == "editor"
 
 
-class TestChromePathResolution:
-    """find_chrome() resolution order: override -> CHROME_PATH -> macOS bundle -> PATH."""
+class TestPageOptionsForShape:
+    """Unit: shape → page-size mapping."""
 
-    def test_chrome_path_resolution_env_var(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Setting CHROME_PATH points find_chrome() at that file."""
-        fake_chrome = tmp_path / "fake-chrome"
-        fake_chrome.write_text("#!/bin/sh\necho fake\n")
-        fake_chrome.chmod(0o755)
-        monkeypatch.setenv("CHROME_PATH", str(fake_chrome))
-        # No override: env var should be honored ahead of the bundled fallbacks.
-        # (On macOS the bundle path may also exist; env var is checked first per code order.)
-        result = to_pdf.find_chrome(None)
-        assert result == str(fake_chrome)
+    def test_deck_widescreen_landscape_no_margin(self) -> None:
+        opts = to_pdf.page_options_for_shape("deck")
+        assert opts["width"] == "13.333in"
+        assert opts["height"] == "7.5in"
+        assert opts["landscape"] is True
+        assert opts["margin"]["top"] == "0"
+        assert "format" not in opts
 
-    def test_chrome_path_override_wins_over_env(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Explicit override beats CHROME_PATH env var."""
-        env_chrome = tmp_path / "env-chrome"
-        env_chrome.write_text("#!/bin/sh\n")
-        env_chrome.chmod(0o755)
-        override_chrome = tmp_path / "override-chrome"
-        override_chrome.write_text("#!/bin/sh\n")
-        override_chrome.chmod(0o755)
-        monkeypatch.setenv("CHROME_PATH", str(env_chrome))
-        assert to_pdf.find_chrome(str(override_chrome)) == str(override_chrome)
+    def test_spec_letter_landscape(self) -> None:
+        opts = to_pdf.page_options_for_shape("spec")
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is True
+        assert opts["margin"]["top"] == "0.5in"
 
-    def test_chrome_path_resolution_missing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """When no Chrome candidates exist, find_chrome() returns None.
+    def test_report_letter_portrait(self) -> None:
+        opts = to_pdf.page_options_for_shape("report")
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is False
+        assert opts["margin"]["top"] == "0.75in"
 
-        Note: a CLI-level test is intentionally omitted because CHROME_FALLBACKS
-        contains an absolute path to the macOS Google Chrome bundle that cannot
-        be hidden via env vars; it would resolve and trigger a real Chrome run.
-        """
-        bogus = tmp_path / "does-not-exist"
-        monkeypatch.setenv("CHROME_PATH", str(bogus))
-        # Empty PATH so bare-name fallbacks (chromium, google-chrome, chrome) cannot resolve.
-        monkeypatch.setenv("PATH", str(tmp_path))
-        # Replace fallback list with a single non-existent absolute path.
-        monkeypatch.setattr(to_pdf, "CHROME_FALLBACKS", (str(bogus),))
-        assert to_pdf.find_chrome(None) is None
+    def test_editor_letter_portrait(self) -> None:
+        opts = to_pdf.page_options_for_shape("editor")
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is False
 
-    def test_chrome_path_explicit_bogus_returns_none(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Explicit override pointing at a non-existent file is rejected; falls through."""
-        bogus = tmp_path / "no-such-binary"
-        monkeypatch.delenv("CHROME_PATH", raising=False)
-        monkeypatch.setenv("PATH", str(tmp_path))
-        monkeypatch.setattr(to_pdf, "CHROME_FALLBACKS", (str(tmp_path / "also-missing"),))
-        assert to_pdf.find_chrome(str(bogus)) is None
+    @pytest.mark.parametrize("shape", ["spec", "code-review", "prototype", "data-viz", "diagram"])
+    def test_letter_landscape_shapes(self, shape: str) -> None:
+        opts = to_pdf.page_options_for_shape(shape)
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is True
+
+    def test_unknown_shape_falls_back_to_default(self) -> None:
+        opts = to_pdf.page_options_for_shape("not-a-shape")
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is False
+
+    def test_none_falls_back_to_default(self) -> None:
+        opts = to_pdf.page_options_for_shape(None)
+        assert opts["format"] == "Letter"
+        assert opts["landscape"] is False
+
+    def test_returned_dict_is_independent_copy(self) -> None:
+        a = to_pdf.page_options_for_shape("deck")
+        b = to_pdf.page_options_for_shape("deck")
+        a["margin"]["top"] = "2in"
+        # b's margin should still be the documented default
+        assert b["margin"]["top"] == "0"
 
 
-class TestSlideCounting:
-    """count_slides() counts <section class='slide'> and <div class='slide'>."""
+class TestSlideCount:
+    """Unit: deck page_count derives from .slide elements."""
 
-    def test_counts_section_slides(self) -> None:
-        html = '<section class="slide">A</section><section class="slide">B</section><section class="slide">C</section>'
-        assert to_pdf.count_slides(html) == 3
+    def test_three_slides(self) -> None:
+        assert to_pdf.count_slides(_HTML_DECK) == 3
 
-    def test_counts_div_slides(self) -> None:
-        html = '<div class="slide">A</div><div class="slide">B</div>'
+    def test_zero_slides(self) -> None:
+        assert to_pdf.count_slides(_HTML_REPORT) == 0
+
+    def test_slide_among_other_classes(self) -> None:
+        html = '<div class="slide active dark">A</div><div class="card slide">B</div>'
         assert to_pdf.count_slides(html) == 2
 
-    def test_counts_mixed_sections_and_divs(self) -> None:
-        html = '<section class="slide">A</section><div class="slide">B</div><section class="slide">C</section>'
-        assert to_pdf.count_slides(html) == 3
+    def test_slide_substring_does_not_match(self) -> None:
+        html = '<div class="slideshow">A</div>'
+        assert to_pdf.count_slides(html) == 0
 
-    def test_counts_with_extra_classes(self) -> None:
-        html = '<section class="slide active">A</section><section class="slide  large">B</section>'
+    def test_slide_deck_wrapper_does_not_count(self) -> None:
+        # `.slide-deck` is the wrapper element; only its `.slide` children should count.
+        html = (
+            '<div class="slide-deck">'
+            '<div class="slide active">A</div>'
+            '<div class="slide">B</div>'
+            '<div class="slide-nav">x</div>'
+            "</div>"
+        )
         assert to_pdf.count_slides(html) == 2
 
-    def test_returns_zero_when_no_slides(self) -> None:
-        assert to_pdf.count_slides("<p>no slides here</p>") == 0
+
+class TestValidateHtml:
+    """Unit: structural sanity check before launching browser."""
+
+    def test_valid_html_returns_none(self) -> None:
+        assert to_pdf.validate_html(_HTML_SPEC) is None
+
+    def test_empty_string_errors(self) -> None:
+        assert to_pdf.validate_html("") is not None
+        assert to_pdf.validate_html("   \n  ") is not None
+
+    def test_no_html_tag_errors(self) -> None:
+        assert to_pdf.validate_html(_HTML_MALFORMED) is not None
+
+    def test_no_body_tag_errors(self) -> None:
+        assert to_pdf.validate_html("<html><head><title>T</title></head></html>") is not None
 
 
-class TestPdfResultDict:
-    """PdfResult.to_dict() emits the documented schema."""
+class TestCLIBehavior:
+    """Subprocess tests for the CLI surface (no browser interaction)."""
 
-    def test_to_dict_contains_required_keys(self) -> None:
-        r = to_pdf.PdfResult(input="a.html", output="a.pdf")
-        d = r.to_dict()
-        for k in (
-            "ok",
-            "input",
-            "output",
-            "shape",
-            "page_size",
-            "size_bytes",
-            "pages",
-            "expected_pages",
-            "chrome_path",
-            "warnings",
-            "errors",
-        ):
-            assert k in d, f"missing key {k}"
+    def test_missing_input_exits_1(self, tmp_path: Path) -> None:
+        out = tmp_path / "out.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(tmp_path / "missing.html"), "--output", str(out)]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 1
+        assert "input file not found" in proc.stderr
+
+    def test_malformed_html_exits_1(self, tmp_path: Path) -> None:
+        bad = tmp_path / "bad.html"
+        bad.write_text("not valid html", encoding="utf-8")
+        out = tmp_path / "out.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(bad), "--output", str(out)]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 1
+        assert "Error" in proc.stderr
+
+    def test_missing_data_shape_with_no_flag_exits_1(self, tmp_path: Path) -> None:
+        src = tmp_path / "noshape.html"
+        src.write_text(_HTML_NO_SHAPE, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out)]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 1
+        assert "data-shape" in proc.stderr
+
+    def test_invalid_shape_arg_exits_2(self, tmp_path: Path) -> None:
+        src = tmp_path / "x.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out), "--shape", "banana"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        # argparse choices rejection exits 2
+        assert proc.returncode == 2
+
+    def test_help_exits_0(self) -> None:
+        cmd = [sys.executable, SCRIPT, "--help"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 0
+        assert "--input" in proc.stdout
+        assert "--output" in proc.stdout
 
 
-# --- Tier 2: integration tests (need Chrome) -----------------------------------
+class TestJsonOutputContract:
+    """JSON output schema tests — verified through unit-level helpers."""
+
+    def test_default_page_returned_for_unknown_shape(self) -> None:
+        opts = to_pdf.page_options_for_shape("phantom-shape")
+        assert opts == to_pdf.DEFAULT_PAGE
+        # Defensive: returned dict is a copy
+        opts["format"] = "A4"
+        assert to_pdf.DEFAULT_PAGE["format"] == "Letter"
 
 
-DECK_TWO_SLIDES = (
-    "<!DOCTYPE html>\n"
-    '<html lang="en">\n'
-    "<head>\n"
-    f"    {MARKER}\n"
-    '    <meta charset="utf-8">\n'
-    '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-    "    <title>Deck</title>\n"
-    "    <style>\n"
-    "      @page { size: 13.333in 7.5in; margin: 0; }\n"
-    "      html, body { margin: 0; padding: 0; background: #0b0b0b; color: #fff; }\n"
-    "      .slide { width: 13.333in; height: 7.5in; page-break-after: always; "
-    "display: flex; align-items: center; justify-content: center; "
-    "background: #0b0b0b; color: #fff; font-size: 64px; }\n"
-    "      .slide:last-child { page-break-after: auto; }\n"
-    "    </style>\n"
-    "</head>\n"
-    '<body data-shape="deck">\n'
-    '    <button data-theme-toggle aria-label="toggle theme">T</button>\n'
-    '    <section class="slide">One</section>\n'
-    '    <section class="slide">Two</section>\n'
-    "</body>\n"
-    "</html>\n"
+class TestInstallHintRouting:
+    """Regression: missing chromium binary must surface install hint, not opaque error."""
+
+    def test_missing_browser_exits_2_with_hint(self, tmp_path: Path, monkeypatch) -> None:
+        # Simulate the "Executable doesn't exist" error Playwright raises when
+        # the python package is installed but `playwright install chromium` was skipped.
+        src = tmp_path / "x.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+
+        def _raise_missing_binary(*_a: object, **_kw: object) -> None:
+            raise RuntimeError(
+                "Executable doesn't exist at /tmp/fake/chrome\n"
+                "Looks like Playwright was just installed or updated.\n"
+                "Please run the following command to download new browsers:\n"
+                "    playwright install"
+            )
+
+        monkeypatch.setattr(to_pdf, "render_pdf", _raise_missing_binary)
+        rc = to_pdf.main(["--input", str(src), "--output", str(out)])
+        assert rc == 2
+
+    def test_other_runtime_errors_still_exit_3(self, tmp_path: Path, monkeypatch) -> None:
+        src = tmp_path / "x.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        out = tmp_path / "out.pdf"
+
+        def _raise_other(*_a: object, **_kw: object) -> None:
+            raise RuntimeError("Page navigation timed out after 30000ms")
+
+        monkeypatch.setattr(to_pdf, "render_pdf", _raise_other)
+        rc = to_pdf.main(["--input", str(src), "--output", str(out)])
+        assert rc == 3
+
+
+class TestPathHandling:
+    """Regression: file:// URLs must escape spaces and unicode per RFC 8089."""
+
+    def test_path_with_spaces_uses_as_uri(self, tmp_path: Path) -> None:
+        # pathlib.as_uri() encodes spaces as %20; raw f-string concat doesn't.
+        spaced = tmp_path / "with spaces"
+        spaced.mkdir()
+        src = spaced / "art.html"
+        src.write_text(_HTML_SPEC, encoding="utf-8")
+        # Confirm the URI form Playwright will receive is properly encoded.
+        uri = src.resolve().as_uri()
+        assert "%20" in uri
+        assert "file://" in uri
+
+
+# --- Integration tests (browser-required) ---
+
+
+@pytest.mark.skipif(
+    not _playwright_runs(),
+    reason="Playwright not installed or chromium unavailable",
 )
-
-
-@pytest.mark.integration
-@pytest.mark.skipif(not _chrome_runs(), reason="Chrome/Chromium not installed or not runnable in this environment")
 class TestPdfIntegration:
-    """End-to-end: generate a PDF via Chrome headless."""
+    """Generate real PDFs for each documented page-size class."""
 
-    def test_minimal_deck_pdf(self, tmp_path: Path) -> None:
-        """2-slide deck -> 2-page PDF, > 10KB, exit 0 (or 1 with only warnings).
+    def _write_html(self, tmp_path: Path, html: str, name: str) -> Path:
+        p = tmp_path / name
+        p.write_text(html, encoding="utf-8")
+        return p
 
-        If Chrome aborts mid-render with SIGABRT (rc=4 + "Chrome exited" error),
-        skip — this is an environmental failure, not a defect in to-pdf.py.
-        """
-        in_path = tmp_path / "deck.html"
-        in_path.write_text(DECK_TWO_SLIDES)
-        out_path = tmp_path / "deck.pdf"
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPT_PATH),
-                "--input",
-                str(in_path),
-                "--output",
-                str(out_path),
-                "--json",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-        # Chrome may abort mid-render in restricted CI environments (sandbox,
-        # missing libs). Skip rather than fail when that happens.
-        if proc.returncode == 4 and proc.stdout:
-            try:
-                payload = json.loads(proc.stdout)
-                if any("Chrome exited" in e for e in payload.get("errors", [])):
-                    pytest.skip(f"Chrome aborted in this environment: {payload['errors']}")
-            except json.JSONDecodeError:
-                pass
-        # Exit 0 means clean; exit 1 means warnings (still produced PDF). Either is acceptable here.
-        assert proc.returncode in (0, 1), f"unexpected rc={proc.returncode}; stdout={proc.stdout}"
-        assert out_path.is_file(), "PDF was not written"
-        assert out_path.stat().st_size > 10 * 1024, f"PDF too small: {out_path.stat().st_size} bytes"
-        payload = json.loads(proc.stdout)
-        assert payload["shape"] == "deck"
-        # Page count detection is best-effort; assert at least 1.
-        assert payload["pages"] >= 1
+    def test_generate_deck_pdf_with_slide_count(self, tmp_path: Path) -> None:
+        src = self._write_html(tmp_path, _HTML_DECK, "deck.html")
+        out = tmp_path / "deck.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out), "--json"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["shape"] == "deck"
+        assert result["page_count"] == 3
+        assert out.is_file()
+        assert out.stat().st_size > 10_000
 
-    def test_pdf_dark_theme_preserved(self, tmp_path: Path) -> None:
-        """Render page 1 of the dark-theme PDF; assert mean luminance < 0.4. Skip if PIL/pypdfium2 unavailable."""
-        try:
-            import PIL  # type: ignore[import-not-found]
-            import pypdfium2 as pdfium  # type: ignore[import-not-found]
-        except ImportError:
-            pytest.skip("pypdfium2 + PIL not available")
-        _ = PIL  # required transitively by pdfium.to_pil(); silence linters
+    def test_generate_spec_pdf(self, tmp_path: Path) -> None:
+        src = self._write_html(tmp_path, _HTML_SPEC, "spec.html")
+        out = tmp_path / "spec.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out), "--json"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["shape"] == "spec"
+        assert out.stat().st_size > 10_000
 
-        in_path = tmp_path / "deck.html"
-        in_path.write_text(DECK_TWO_SLIDES)
-        out_path = tmp_path / "deck.pdf"
-        proc = subprocess.run(
-            [sys.executable, str(SCRIPT_PATH), "--input", str(in_path), "--output", str(out_path), "--json"],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-        assert proc.returncode in (0, 1)
-        assert out_path.is_file()
+    def test_generate_report_pdf(self, tmp_path: Path) -> None:
+        src = self._write_html(tmp_path, _HTML_REPORT, "report.html")
+        out = tmp_path / "report.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out), "--json"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["shape"] == "report"
+        assert out.stat().st_size > 10_000
 
-        pdf = pdfium.PdfDocument(str(out_path))
-        try:
-            page = pdf[0]
-            pil_image = page.render(scale=1.0).to_pil().convert("L")
-        finally:
-            pdf.close()
-        # Mean luminance in [0,255]; dark theme expected well below mid-grey.
-        pixels = list(pil_image.getdata())
-        mean_lum = sum(pixels) / len(pixels) / 255.0
-        assert mean_lum < 0.4, f"expected dark page, got mean luminance {mean_lum:.3f}"
+    def test_shape_flag_override(self, tmp_path: Path) -> None:
+        # data-shape says "report"; CLI flag says "spec" — flag wins.
+        src = self._write_html(tmp_path, _HTML_REPORT, "src.html")
+        out = tmp_path / "out.pdf"
+        cmd = [sys.executable, SCRIPT, "--input", str(src), "--output", str(out), "--shape", "spec", "--json"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["shape"] == "spec"
