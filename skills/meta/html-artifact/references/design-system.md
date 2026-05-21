@@ -163,7 +163,7 @@ These are graduated from real regressions. Read before editing any `templates/pr
 | Rule | Why |
 |---|---|
 | **Never declare runtime-switchable theme tokens on `:root`.** | `:root` rules block lower-specificity `[data-theme]` overrides. The toggle becomes visually dead. Declare tokens on `html[data-theme="dark"]` and `html[data-theme="light"]` at matching specificity to the toggle target. |
-| **Seed `<html data-theme>` from `<body>` on init.** | The toggle flips `<html>`'s attribute, but pages typically declare initial theme on `<body>`. Without the seed, the first toggle click reads `undefined` → no flip. The toggle JS in `templates/components/theme-toggle.js` does this on `DOMContentLoaded`. |
+| **Seed `<html data-theme>` from `localStorage` *before* `<body>` paints.** | The toggle flips `<html>`'s `data-theme` attribute. If the seed runs at `DOMContentLoaded` (end of `<body>`), the page paints once with the wrong theme then re-paints — flash of incorrect content. The pre-paint script in `templates/base-template.html`'s `<head>` sets `data-theme` directly from `localStorage['html-artifact-theme-v2']` before `<body>` renders. `templates/components/theme-toggle.js` only handles click-to-flip and persistence, never init. |
 
 ### Reference-file taxonomy (graduated from a refactor regression)
 

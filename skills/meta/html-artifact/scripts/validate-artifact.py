@@ -75,12 +75,15 @@ def _check_title(content: str, result: ValidationResult) -> None:
 
 
 def _check_self_contained(content: str, result: ValidationResult) -> None:
-    """No external stylesheet links or script sources via http(s)."""
+    """No external stylesheet links, script sources, or SVG image refs via http(s)."""
     has_external_css = bool(
         re.search(r'<link[^>]+rel=["\']stylesheet["\'][^>]+href=["\']https?://', content, re.IGNORECASE)
     )
     has_external_js = bool(re.search(r'<script[^>]+src=["\']https?://', content, re.IGNORECASE))
-    passed = not has_external_css and not has_external_js
+    # SVG <image href="http..."> and <use href="http..."> bypass the inline-SVG-only contract.
+    has_external_svg_image = bool(re.search(r'<image\b[^>]+href=["\']https?://', content, re.IGNORECASE))
+    has_external_svg_use = bool(re.search(r'<use\b[^>]+href=["\']https?://', content, re.IGNORECASE))
+    passed = not (has_external_css or has_external_js or has_external_svg_image or has_external_svg_use)
     result.checks["self_contained"] = passed
     if not passed:
         externals = []
@@ -88,6 +91,10 @@ def _check_self_contained(content: str, result: ValidationResult) -> None:
             externals.append("external CSS")
         if has_external_js:
             externals.append("external JS")
+        if has_external_svg_image:
+            externals.append("external <image href>")
+        if has_external_svg_use:
+            externals.append("external <use href>")
         result.errors.append(f"Not self-contained: found {', '.join(externals)}.")
 
 
@@ -222,6 +229,80 @@ def _check_export_button(content: str, shape: str, result: ValidationResult) -> 
         )
 
 
+_INTERNAL_REF_RE = re.compile(r'href=["\']#([^"\']+)["\']', re.IGNORECASE)
+_ID_ATTR_RE = re.compile(r'\bid=["\']([^"\']+)["\']', re.IGNORECASE)
+
+
+def _check_no_broken_internal_refs(content: str, result: ValidationResult) -> None:
+    """Every `href="#id"` must point to an element with matching `id`.
+
+    Mirrors the SKILL.md "No broken internal refs" claim. Skips empty `href="#"`
+    (deliberate placeholder) and `href="#top"` (browser default for top-of-page).
+    """
+    # Strip <script> and <style> blocks before scanning ids — JS string literals and
+    # CSS selectors can produce false ids that don't actually exist as DOM ids.
+    scrubbed = re.sub(r"<script\b[^>]*>.*?</script>", "", content, flags=re.IGNORECASE | re.DOTALL)
+    scrubbed = re.sub(r"<style\b[^>]*>.*?</style>", "", scrubbed, flags=re.IGNORECASE | re.DOTALL)
+
+    refs = {m.group(1) for m in _INTERNAL_REF_RE.finditer(scrubbed)}
+    refs.discard("top")  # browser default
+    ids = {m.group(1) for m in _ID_ATTR_RE.finditer(scrubbed)}
+
+    broken = sorted(refs - ids)
+    passed = not broken
+    result.checks["no_broken_internal_refs"] = passed
+    if not passed:
+        # Cap the message length so a runaway template doesn't blow up output.
+        shown = ", ".join(f"#{r}" for r in broken[:5])
+        suffix = f" (+{len(broken) - 5} more)" if len(broken) > 5 else ""
+        result.errors.append(f"Broken internal refs: {shown}{suffix}.")
+
+
+_SVG_OPEN_RE = re.compile(r"<svg\b([^>]*)>", re.IGNORECASE)
+_BUTTON_BLOCK_RE = re.compile(r"<button\b[^>]*>.*?</button>", re.IGNORECASE | re.DOTALL)
+
+
+def _check_svg_accessibility(content: str, result: ValidationResult) -> None:
+    """Every visible <svg> needs role="img" + aria-label OR explicit role="presentation".
+
+    Mirrors design-system.md accessibility checklist. SVGs nested inside <button>
+    are exempt because the button's aria-label provides the accessibility hook.
+    Empty/no-svg artifacts pass trivially.
+    """
+    # Strip <button>...</button> blocks first — their inner <svg>s are decorative.
+    scrubbed = _BUTTON_BLOCK_RE.sub("", content)
+    matches = list(_SVG_OPEN_RE.finditer(scrubbed))
+    if not matches:
+        result.checks["svg_accessibility"] = True
+        return
+
+    bad = []
+    for m in matches:
+        attrs = m.group(1)
+        has_role_img = bool(re.search(r'\brole=["\']img["\']', attrs, re.IGNORECASE))
+        has_aria_label = bool(re.search(r'\baria-label=["\'][^"\']+["\']', attrs, re.IGNORECASE))
+        has_aria_labelledby = bool(re.search(r"\baria-labelledby=", attrs, re.IGNORECASE))
+        has_role_presentation = bool(re.search(r'\brole=["\'](presentation|none)["\']', attrs, re.IGNORECASE))
+        has_aria_hidden = bool(re.search(r'\baria-hidden=["\']true["\']', attrs, re.IGNORECASE))
+        if has_role_presentation or has_aria_hidden:
+            continue
+        if has_role_img and (has_aria_label or has_aria_labelledby):
+            continue
+        # Snip the offending tag opening for the error message.
+        snippet = (m.group(0)[:80] + "…") if len(m.group(0)) > 80 else m.group(0)
+        bad.append(snippet)
+
+    passed = not bad
+    result.checks["svg_accessibility"] = passed
+    if not passed:
+        shown = "; ".join(bad[:3])
+        suffix = f" (+{len(bad) - 3} more)" if len(bad) > 3 else ""
+        result.errors.append(
+            f"SVG accessibility: {len(bad)} <svg> missing role='img'+aria-label "
+            f"(or role='presentation'/aria-hidden='true'): {shown}{suffix}."
+        )
+
+
 def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationResult:
     """Run all validation checks on an HTML artifact file.
 
@@ -245,6 +326,8 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_valid_structure(content, result)
     _check_assembler_marker(content, result)
     _check_theme_toggle(content, shape, result)
+    _check_no_broken_internal_refs(content, result)
+    _check_svg_accessibility(content, result)
 
     if shape is not None:
         _check_export_button(content, shape, result)

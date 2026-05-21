@@ -184,6 +184,8 @@ DISCIPLINE GATE: The validator requires the assembler marker comment. Always run
 
 DARK-DEFAULT GATE: Every assembled artifact ships with `<html data-theme="dark">` and a pre-paint init script in `<head>` that honors `localStorage['html-artifact-theme-v2']`. Never hand-author HTML or post-edit the assembler output to flip this to light — the dark default is enforced by the base template. If the user wants light, they click the toggle (preference persists). Past failure (2026-05-20): three artifacts shipped light because the rule lived only in design-system.md prose, not in the assembler. See `references/design-system.md` § Dark-by-default.
 
+MIRRORING GATE: Every load-bearing rule in this skill must live in **at least one** enforcement layer (assembler / validator / test) AND be mirrored as a one-liner in this SKILL.md. Prose alone in `references/` is not enough — past refactors have silently dropped scaffolds and shipped regressions (2026-05-20 dark-default; deck chrome above-vs-below). When adding a rule: (1) write it in the relevant `references/` file with full rationale, (2) mirror a one-line GATE or table row in this file, (3) enforce it in code (assembler default, validator check, or regression test). Three layers: prose (judgment), code (mechanism), test (proof). The taxonomy is in `references/design-system.md` § Reference-file taxonomy.
+
 If you find yourself writing `<!DOCTYPE html>` directly in a Write tool call, STOP. Run assemble-template.py first.
 
 Dispatch the html-builder subagent with the pre-assembled template.
@@ -229,12 +231,15 @@ The script checks:
 | Check | Fails When |
 |---|---|
 | Valid HTML structure | Missing `<html>`, `<head>`, or `<body>` |
-| No external dependencies | Any `src=` or `href=` pointing to external URLs |
+| No external dependencies | Any `src=` or `href=` pointing to external URLs (incl. `<image href>` and `<use href>` in SVG) |
 | Has `<title>` | Missing or empty `<title>` tag |
 | Has charset meta | Missing `<meta charset>` |
 | Has viewport meta | Missing viewport meta tag |
 | File size under 500KB | Excessive inline assets or animation keyframes |
-| No broken internal refs | `href="#id"` pointing to nonexistent `id` attributes |
+| No broken internal refs | `href="#id"` pointing to nonexistent `id` attributes (excluding `#top`) |
+| SVG accessibility | `<svg>` outside `<button>` lacking `role="img"` + `aria-label` (or explicit `role="presentation"` / `aria-hidden="true"`) |
+| Theme toggle present | Required-toggle shape (deck, spec, code-review, prototype, report, diagram) missing `[data-theme-toggle]` or `<button class="theme-toggle">` |
+| Assembler marker present | Hand-authored HTML missing `<!-- assembled by html-artifact v* -->` marker |
 
 Gate: All validation checks pass.
 -- because an HTML file with external dependencies fails offline, missing meta tags render inconsistently across browsers, and missing structure breaks accessibility.
