@@ -60,10 +60,14 @@ Decide the agent's identity and routing contract before writing a single line.
 | Triggers | 3–6 specific phrases a user would naturally say — not generic verbs |
 | pairs_with | 2–3 agents commonly co-dispatched; verify each exists on disk before listing |
 | Reference files | Domains needing depth — each goes in `agents/{name}/references/` loaded on demand |
+| Description craft | Intent verb + domain object, 2–3 adjacent terms, one false-positive boundary clause with redirect |
+| Activation cases | 3 should-trigger / 2 should-not-trigger / 2 near-miss phrases drafted now, saved at scaffold time |
 
-Load `references/agent-design-patterns.md` for operator context structure, hook design, and routing design guidance.
+Load `references/agent-design-patterns.md` for operator context structure, hook design, routing design, authority/trust framing, and smells-to-rewrite guidance.
 
-Gate 2: All six decisions answered before writing agent file content.
+Load `references/agent-eval-design.md` when drafting the description and activation cases — the case classes and worked example live there.
+
+Gate 2: All eight decisions answered before writing agent file content.
 
 ---
 
@@ -164,6 +168,11 @@ for p in fm.get('routing', {}).get('pairs_with', []):
 
 Gate 5: All scripts exit 0. No phantom `pairs_with` entries. No positive-framing violations.
 
+**Manual review** (the scripts cannot check these):
+
+- **Description craft**: read the description aloud. Does it state intent, name 2–3 adjacent terms, mark one false-positive boundary? See `references/agent-frontmatter-template.md` Description Craft.
+- **Activation cases recorded**: confirm `agents/{name}/references/activation-cases.md` (or equivalent notes section) lists 3 should-trigger / 2 should-not-trigger / 2 near-miss phrases. Mental-pass each phrase against the description. See `references/agent-eval-design.md`.
+
 ---
 
 ## Error Handling
@@ -206,5 +215,6 @@ List concrete capabilities the agent has: version-specific idiom tables, failure
 
 | Signal | Load These Files | Why |
 |--------|-----------------|-----|
-| operator context structure, reference loading table format, phase/gate pattern, hook design, routing design | `references/agent-design-patterns.md` | Vexjoy-specific architecture patterns distilled from harness architecture literature |
-| frontmatter fields, YAML template, complexity tiers, INDEX.json registration | `references/agent-frontmatter-template.md` | Complete annotated template with all required fields and valid values |
+| operator context structure, reference loading table format, phase/gate pattern, hook design, routing design, authority/trust framing, smells to rewrite | `references/agent-design-patterns.md` | Vexjoy-specific architecture patterns, instruction hierarchy, and rewrite catalog for vague framing |
+| frontmatter fields, YAML template, complexity tiers, INDEX.json registration, description craft | `references/agent-frontmatter-template.md` | Complete annotated template with all required fields, valid values, and description-writing guide |
+| activation eval, output eval, should-trigger / should-not-trigger / near-miss, routing failure, description tuning | `references/agent-eval-design.md` | How to design activation and output evals at scaffold time so the right agent gets picked and produces correct work |

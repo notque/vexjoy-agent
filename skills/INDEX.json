@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-21T11:19:49Z",
+  "generated": "2026-05-21T20:03:46Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -1378,6 +1378,25 @@
         "skill-eval"
       ]
     },
+    "agent-creator": {
+      "file": "skills/meta/agent-creator/SKILL.md",
+      "description": "Scaffold vexjoy-agent operator .md files: frontmatter, routing block, operator context, reference loading table, phase/gate workflow.",
+      "triggers": [
+        "create agent",
+        "new agent",
+        "scaffold agent",
+        "agent template",
+        "build agent",
+        "agent design",
+        "make agent"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "pairs_with": [
+        "skill-creator",
+        "agent-evaluation"
+      ]
+    },
     "agent-evaluation": {
       "file": "skills/meta/agent-evaluation/SKILL.md",
       "description": "Evaluate agents and skills for quality and standards compliance.",
@@ -1622,8 +1641,7 @@
       "user_invocable": false,
       "pairs_with": [
         "agent-evaluation",
-        "verification-before-completion",
-        "agent-creator"
+        "verification-before-completion"
       ]
     },
     "skill-eval": {
@@ -2509,25 +2527,6 @@
         "planning",
         "feature-lifecycle",
         "verification-before-completion"
-      ]
-    },
-    "agent-creator": {
-      "file": "skills/meta/agent-creator/SKILL.md",
-      "description": "Scaffold vexjoy-agent operator .md files: frontmatter, routing block, operator context, reference loading table, phase/gate workflow.",
-      "triggers": [
-        "create agent",
-        "new agent",
-        "scaffold agent",
-        "agent template",
-        "build agent",
-        "agent design",
-        "make agent"
-      ],
-      "category": "meta",
-      "user_invocable": false,
-      "pairs_with": [
-        "skill-creator",
-        "agent-evaluation"
       ]
     }
   }
