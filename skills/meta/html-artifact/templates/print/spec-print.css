@@ -1,0 +1,71 @@
+/* Spec Print Stylesheet — Letter landscape, comparison-grid friendly, code-block break rules. */
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .theme-toggle,
+  .copy-button,
+  .tab-bar {
+    display: none !important;
+  }
+
+  /* Major section headings start a fresh page when they fall mid-page. */
+  h2 {
+    page-break-before: auto;
+    break-before: auto;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Code blocks should not split across pages. */
+  pre,
+  .code-block,
+  code {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Comparison cards keep their content together. */
+  .approach-card,
+  .comparison-grid > * {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Pro/Con badges keep their pairing. */
+  .pro-badge,
+  .con-badge {
+    display: inline-block;
+  }
+
+  /* SVG diagrams kept whole. */
+  svg,
+  figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    max-width: 100%;
+  }
+
+  /* Tabs collapse — show all panels stacked for print. */
+  .tab-panel {
+    display: block !important;
+  }
+}

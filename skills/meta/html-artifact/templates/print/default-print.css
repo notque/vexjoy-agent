@@ -1,0 +1,69 @@
+/* Default Print Stylesheet — Letter portrait fallback for any shape without a specific print stylesheet. */
+
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide screen-only chrome (theme toggles, copy buttons, nav controls). */
+  .theme-toggle,
+  .copy-button,
+  [data-print-hide],
+  nav[role="navigation"] button {
+    display: none !important;
+  }
+
+  /* Page-break friendliness for common structures. */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  pre,
+  table,
+  figure,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  img,
+  svg {
+    max-width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Surface link URLs after anchor text for offline reading. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+  }
+
+  /* Avoid orphaned headings at page bottom. */
+  h1 + p,
+  h2 + p,
+  h3 + p {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+}

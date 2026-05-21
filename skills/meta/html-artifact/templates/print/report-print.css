@@ -1,0 +1,96 @@
+/* Report Print Stylesheet — Letter portrait, heading break rules, table break rules. */
+
+@page {
+  size: letter portrait;
+  margin: 0.75in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .theme-toggle,
+  .copy-button,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* H1 starts a new page (cover-style). H2 may break-before when needed. */
+  h1 {
+    page-break-before: avoid;
+    break-before: avoid;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  h2 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* TL;DR box stays together at top. */
+  .tldr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* Collapsibles: expand all for print. */
+  details {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  details > summary {
+    list-style: none;
+  }
+
+  details[open] > *,
+  details > * {
+    display: block !important;
+  }
+
+  /* Tables: header repeats, rows do not split. */
+  table {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Metric callouts kept whole. */
+  .metric-row,
+  .metric-card,
+  figure,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Surface link URLs after anchor text for offline reading. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+  }
+}

@@ -84,7 +84,8 @@ class TestAssembleTemplateDirect:
         assert "<!DOCTYPE html>" in html
         assert "<html" in html
         assert "<head>" in html
-        assert "<body>" in html
+        assert "<body" in html
+        assert "</body>" in html
 
     def test_html_entities_in_title(self) -> None:
         html = assemble_template("spec", "A & B <comparison>")
@@ -223,6 +224,65 @@ class TestAssembleTemplateDirect:
         html = assemble_template("spec", "Test")
         assert "box-sizing: border-box" in html
         assert "prefers-reduced-motion" in html
+
+    # --- data-shape attribute tests ---
+
+    @pytest.mark.parametrize(
+        "shape",
+        ["spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"],
+    )
+    def test_body_has_data_shape_attribute(self, shape: str) -> None:
+        html = assemble_template(shape, "Test")
+        assert f'<body data-shape="{shape}">' in html
+
+    def test_data_shape_appears_exactly_once(self) -> None:
+        html = assemble_template("report", "Test")
+        # The literal <body> tag should be replaced; <body data-shape=...> appears once.
+        assert html.count('<body data-shape="report">') == 1
+        # Nothing should leave a bare <body> in place.
+        assert "<body>" not in html
+
+    # --- Per-shape print CSS injection tests ---
+
+    @pytest.mark.parametrize(
+        ("shape", "marker"),
+        [
+            ("deck", "Deck Print Stylesheet"),
+            ("spec", "Spec Print Stylesheet"),
+            ("report", "Report Print Stylesheet"),
+            ("editor", "Editor Print Stylesheet"),
+            ("code-review", "Code Review Print Stylesheet"),
+            ("prototype", "Prototype Print Stylesheet"),
+            ("data-viz", "Data-Viz Print Stylesheet"),
+            ("diagram", "Diagram Print Stylesheet"),
+        ],
+    )
+    def test_shape_print_css_injected(self, shape: str, marker: str) -> None:
+        html = assemble_template(shape, "Test")
+        assert marker in html
+        assert "@media print" in html
+
+    def test_print_css_fallback_to_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When no shape-specific print CSS exists, fall back to default-print.css.
+
+        Implementation detail: simulate by pointing _read_template at a fake
+        shape that is otherwise valid. We accept a real shape but stub out
+        the per-shape print read so the assembler must fall back.
+        """
+        # Save the real reader and stub it so the per-shape print read returns
+        # nothing while every other read passes through.
+        real_reader = assemble_mod._read_template
+
+        def fake_reader(relpath: str) -> str:
+            if relpath.startswith("print/") and relpath != "print/default-print.css":
+                return ""  # force fallback
+            return real_reader(relpath)
+
+        monkeypatch.setattr(assemble_mod, "_read_template", fake_reader)
+        html = assemble_template("spec", "Test")
+        assert "Default Print Stylesheet" in html
+        # Sanity: the spec-print marker should NOT be present because we suppressed it.
+        assert "Spec Print Stylesheet" not in html
 
 
 @pytest.mark.slow

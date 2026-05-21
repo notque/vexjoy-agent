@@ -1,0 +1,90 @@
+/* Editor Print Stylesheet — Letter portrait, kanban columns stack, un-stick export bar. */
+
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Editors heavily rely on `position: sticky` for export bars and column headers.
+     Un-stick everything in print scope so layout flows naturally onto pages. */
+  *,
+  *::before,
+  *::after {
+    position: static !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide editor controls that have no print equivalent. */
+  .export-bar button,
+  .toolbar,
+  .theme-toggle,
+  .copy-button,
+  .filter-bar,
+  [contenteditable] [data-print-hide] {
+    display: none !important;
+  }
+
+  /* The export bar itself can show as a static title row when content matters. */
+  .export-bar {
+    display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 0 0.25in 0;
+  }
+
+  /* Kanban: stack columns vertically — landscape doesn't fit 4 wide. */
+  .kanban {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .kanban-column {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 0.25in;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .kanban-card,
+  .drag-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 0.1in;
+  }
+
+  /* Split-pane editors collapse to single column. */
+  .split-pane {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .split-pane > * {
+    width: 100% !important;
+    margin-bottom: 0.25in;
+  }
+
+  /* Toggle switches render as filled or hollow circles. */
+  .toggle-switch {
+    border: 1px solid #000;
+  }
+
+  /* Form inputs print as plain text where possible. */
+  input,
+  textarea,
+  select {
+    border: 1px solid #ccc;
+    background: transparent !important;
+  }
+}

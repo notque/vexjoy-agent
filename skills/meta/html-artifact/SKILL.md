@@ -41,7 +41,7 @@ Generate single self-contained `.html` files that replace markdown when the outp
 
 ### Overview
 
-5-phase pipeline: DETECT SHAPE, LOAD CONTEXT, GENERATE, VALIDATE, DELIVER. Phase 1 classifies the request into one of 8 shapes via deterministic script. Phase 2 loads the Birchline design system plus shape-specific reference. Phase 3 dispatches a subagent to generate the HTML. Phase 4 validates structure. Phase 5 delivers the file path and offers browser preview.
+5-phase pipeline: DETECT SHAPE, LOAD CONTEXT, GENERATE, VALIDATE, DELIVER. Phase 1 classifies the request into one of 8 shapes via deterministic script. Phase 2 loads the Birchline design system plus shape-specific reference. Phase 3 dispatches a subagent to generate the HTML. Phase 4 validates structure. Phase 5 delivers the file path and offers browser preview. Phase 6 EXPORT (optional) renders to PDF when the user asks for one.
 
 ---
 
@@ -211,6 +211,31 @@ Constraint: Detect headless/SSH environments before offering browser open.
 
 ---
 
+### Phase 6: EXPORT (optional)
+
+Render the generated HTML to PDF. Opt-in only — HTML stays the default deliverable.
+
+Fires when the user message contains any of: `"PDF"`, `"export PDF"`, `"make a PDF"`, `"as PDF"`, `"send as PDF"`, `"save as PDF"`, `"PDF version"`, `"PDF export"`. Without one of those signals, this phase stays dormant.
+
+Runs:
+
+```bash
+python3 skills/meta/html-artifact/scripts/to-pdf.py \
+    --input <generated.html> \
+    --output <generated.pdf> \
+    --json
+```
+
+The script auto-detects shape from `<body data-shape="...">` (the assembler adds it in Phase 2). Page size, orientation, and margins come from a per-shape map: deck renders 13.333in × 7.5in landscape with no margin; spec, code-review, prototype, data-viz, and diagram render Letter landscape; report and editor render Letter portrait. Falls back to Letter portrait when shape is unknown.
+
+Delivers both file paths to the user. The JSON output reports `{"output", "page_count", "shape", "bytes"}` — `page_count` reflects slide count for decks, 0 otherwise.
+
+If Playwright is unavailable, exit code 2 surfaces install instructions: `pip install -e ".[pdf]" && playwright install chromium`. Pass that hint along to the user instead of failing silently.
+
+See `references/pdf-export.md` for the full page-size table, troubleshooting (font fallback, image timing, install failures), and per-shape print stylesheet inventory.
+
+---
+
 ## Error Handling
 
 | Error | Cause | Solution |
@@ -286,6 +311,7 @@ Constraint: Detect headless/SSH environments before offering browser open.
 | Shape = diagram | `references/shape-diagram-illustration.md` | SVG construction rules, diagram types, interaction patterns |
 | Shape = deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
 | Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
+| Request mentions PDF, export PDF, as PDF, PDF version | `references/pdf-export.md` | Phase 6 trigger conditions, page-size table, troubleshooting, install instructions |
 
 ---
 
@@ -312,7 +338,9 @@ This skill uses:
 - `references/shape-slide-deck.md`: Deck shape -- slide types, navigation, print styles
 - `agents/html-builder.md`: Subagent prompt for HTML generation
 - `references/scrollytelling-patterns.md`: IntersectionObserver scroll animation patterns
+- `references/pdf-export.md`: Phase 6 EXPORT — trigger conditions, page-size table, print stylesheet inventory, troubleshooting
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/assemble-template.py`: Template assembly with theme, shape, and component CSS/JS injection
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
-- `templates/`: CSS/JS template files organized by themes/, shapes/, components/
+- `scripts/to-pdf.py`: Playwright-based PDF rendering with per-shape page sizing
+- `templates/`: CSS/JS template files organized by themes/, shapes/, components/, print/

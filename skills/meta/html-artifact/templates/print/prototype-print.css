@@ -1,0 +1,68 @@
+/* Prototype Print Stylesheet — Letter landscape, hide controls, full-width preview. */
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Controls panel has no print equivalent — hide it. */
+  .controls-panel,
+  .slider-control,
+  .toggle-control,
+  .theme-toggle,
+  .copy-button,
+  input[type="range"],
+  button {
+    display: none !important;
+  }
+
+  /* Preview surface takes full width. */
+  .preview-surface,
+  .prototype-preview {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Prototype layout collapses to single column. */
+  .prototype-layout {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .prototype-layout > * {
+    width: 100% !important;
+    margin-bottom: 0.25in;
+  }
+
+  /* Contact sheets keep their grid. */
+  .contact-sheet,
+  .variant-grid {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  .contact-sheet > *,
+  .variant-grid > * {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

@@ -98,6 +98,10 @@ def assemble_template(
     # Inject title
     html = template.replace("<!-- TITLE -->", title)
 
+    # Tag the body with the shape so downstream tools (e.g. to-pdf.py) can
+    # detect it without re-running shape classification.
+    html = html.replace("<body>", f'<body data-shape="{shape}">', 1)
+
     # Build CSS injection: reset + theme + shape + components
     css_parts: list[str] = []
 
@@ -116,7 +120,15 @@ def assemble_template(
     if shape_css:
         css_parts.append(shape_css)
 
-    # 4. Component CSS
+    # 4. Print CSS — per-shape, with default-print.css fallback. Files self-declare
+    #    @page and @media print rules; injected as-is (no double-wrapping).
+    print_css = _read_template(f"print/{shape}-print.css")
+    if not print_css:
+        print_css = _read_template("print/default-print.css")
+    if print_css:
+        css_parts.append(print_css)
+
+    # 5. Component CSS
     if components:
         for comp in components:
             comp_css = _read_template(f"components/{comp}.css")

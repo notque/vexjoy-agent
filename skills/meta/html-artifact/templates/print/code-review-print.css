@@ -1,0 +1,90 @@
+/* Code Review Print Stylesheet — Letter landscape, diff lines no break, un-stick line numbers. */
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Un-stick line numbers and diff headers — sticky positioning leaves phantom rows. */
+  *,
+  *::before,
+  *::after {
+    position: static !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .theme-toggle,
+  .copy-button,
+  .filter-bar,
+  .review-controls {
+    display: none !important;
+  }
+
+  /* Diff lines stay together — splitting a diff line across pages is unreadable. */
+  .diff-line,
+  .diff-row,
+  tr.diff {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Each diff file starts on a fresh page when it would otherwise split awkwardly. */
+  .diff-file {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 0.25in;
+  }
+
+  .diff-file-header {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Margin annotations: keep with their anchor line. */
+  .margin-annotation,
+  .review-comment {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Severity badges remain visible. */
+  .severity-high,
+  .severity-medium,
+  .severity-low {
+    border: 1px solid currentColor;
+  }
+
+  /* Collapsible diff sections expand for print. */
+  details {
+    display: block !important;
+  }
+
+  details > * {
+    display: block !important;
+  }
+
+  /* Code blocks. */
+  pre,
+  code,
+  .diff-code {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    font-size: 9pt;
+  }
+
+  /* Show all line numbers (line-number cells often hide in narrow viewports). */
+  .line-number {
+    display: table-cell !important;
+    color: #666;
+  }
+}

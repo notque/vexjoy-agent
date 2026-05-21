@@ -1,0 +1,72 @@
+/* Data-Viz Print Stylesheet — Letter landscape, charts full width, legend rules. */
+
+@page {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Filter bars and tooltips — hide. */
+  .filter-bar,
+  .tooltip,
+  .chart-controls,
+  .theme-toggle,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Charts go full width and stay together. */
+  .chart,
+  .chart-container,
+  svg.chart {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Legend stays adjacent to its chart. */
+  .legend {
+    page-break-before: avoid;
+    break-before: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Dashboard grids: relax columns so each chart gets full width on print. */
+  .dashboard,
+  .chart-grid {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .dashboard > *,
+  .chart-grid > * {
+    margin-bottom: 0.25in;
+  }
+
+  /* Data tables: header repeats. */
+  table thead {
+    display: table-header-group;
+  }
+
+  table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
