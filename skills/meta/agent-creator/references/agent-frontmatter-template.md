@@ -100,6 +100,45 @@ user_invocable: false
 
 ---
 
+## Description Craft
+
+The router and Haiku selector see `name` and `description` first — often the only fields they consult before short-listing. A weak description fails to route reliably even when the body is correct.
+
+A strong description does three jobs in 60–120 characters:
+
+| Job | What to include | Example |
+|-----|-----------------|---------|
+| State the **intent** | The user goal, not internals | "Diagnose canary deployment health" |
+| Name **adjacent terms** | 2–3 phrases the user might actually say | "canary, rollout, traffic split" |
+| Mark a **false-positive boundary** | One thing this agent is NOT for, with a redirect | "Not for: editing manifests — see kubernetes-helm-engineer" |
+
+### Pattern
+
+```yaml
+description: "<intent verb + domain object>: <2–3 adjacent terms>. Not for <off-domain task> — see <other-agent>."
+```
+
+### Examples
+
+| Bad | Why it fails | Better |
+|-----|--------------|--------|
+| `"Helps with Kubernetes"` | No intent, no adjacent terms, no boundary | `"Diagnose canary rollouts: traffic-split health, baseline comparison, rollback signals. Not for manifest edits — see kubernetes-helm-engineer."` |
+| `"Use this skill when you need to write Go code"` | Banned "Use this skill when" prefix; no adjacent terms | `"Go feature work: idiomatic patterns, table-driven tests, error wrapping, race-free concurrency."` |
+| `"Reviews stuff"` | No domain, no intent, no adjacent terms | `"Code review: convention checks, dead-code detection, performance regressions. Not for security audits — see reviewer-system."` |
+
+### Test the description against routing
+
+After writing, run a mental should-trigger / should-not-trigger pass:
+
+| Phrase | Should this agent route? | Does the description signal that? |
+|--------|--------------------------|------------------------------------|
+| 3 phrases a user would naturally say | Yes | Adjacent terms cover at least 2 of the 3 |
+| 2 near-misses (similar wording, off-domain) | No | Boundary clause excludes them |
+
+Record these phrases in the SCAFFOLD phase notes — they become the activation-eval cases. See `references/agent-eval-design.md` for the full activation-vs-output-eval pattern.
+
+---
+
 ## Validation Commands
 
 ```bash
@@ -169,5 +208,7 @@ After writing an agent `.md` file, run these in order:
 4. pairs_with existence: verify each listed agent/skill exists on disk
 5. INDEX registration: `python3 scripts/generate-agent-index.py`
 6. Trigger conflicts: run duplicate trigger detection from `agents/toolkit-governance-engineer/references/routing-table-patterns.md`
+7. Description triggers on adjacent terms: confirm 3 should-trigger phrases route to this agent and 2 near-miss phrases route elsewhere (mental pass at minimum; record both lists in the SCAFFOLD notes)
+8. Activation + output eval cases recorded: the should-trigger / should-not-trigger / near-miss phrases from step 7 are saved as eval seeds per `references/agent-eval-design.md`
 
-All six steps must pass before the agent is committed.
+All eight steps must pass before the agent is committed.
