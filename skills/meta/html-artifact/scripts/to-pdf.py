@@ -81,7 +81,92 @@ DEFAULT_PAGE: dict[str, Any] = {
 INSTALL_HINT = 'pip install -e ".[pdf]" && playwright install chromium'
 
 _DATA_SHAPE_RE = re.compile(r"<body[^>]*\bdata-shape\s*=\s*\"([^\"]+)\"", re.IGNORECASE)
-_SLIDE_CLASS_RE = re.compile(r'class\s*=\s*"[^"]*\bslide\b[^"]*"', re.IGNORECASE)
+# Match a complete class attribute so we can split into tokens for exact-match counting.
+_CLASS_ATTR_RE = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
+_HEAD_CLOSE_RE = re.compile(r"</head>", re.IGNORECASE)
+_BODY_OPEN_RE = re.compile(r"<body([^>]*)>", re.IGNORECASE)
+
+# Defensive deck print stylesheet injected at render time when shape=deck.
+# Guarantees one slide per printed page even when source HTML omits the bundled
+# deck-print.css (minimal fixtures, ad-hoc decks, or assembler regressions).
+# Uses !important to override any screen `display: none` applied to non-active
+# slides by the deck shape stylesheet.
+_DECK_PRINT_STYLESHEET = """
+<style id="to-pdf-deck-print">
+@page { size: 13.333in 7.5in; margin: 0; }
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #0a0a0a !important;
+    color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .deck-nav, .progress-bar, .slide-counter, .deck-controls, .theme-toggle,
+  .slide-nav {
+    display: none !important;
+  }
+  /* Un-clip the deck wrapper so child slides can flow into separate pages. */
+  .slide-deck {
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .slide, .slide:not(.active) {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 13.333in !important;
+    height: 7.5in !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden;
+    background: #0a0a0a !important;
+    color: #f5f5f5 !important;
+  }
+  .slide:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+</style>
+"""
+
+
+def inject_deck_print_css(html: str) -> str:
+    """Inject defensive deck print CSS just before </head> for shape=deck.
+
+    Idempotent: source HTML already containing `id="to-pdf-deck-print"` is
+    returned unchanged. Falls back to inserting after `<body ...>` if no
+    `</head>` exists; falls back to prepending if no `<body>` exists either.
+    """
+    if 'id="to-pdf-deck-print"' in html:
+        return html
+    if _HEAD_CLOSE_RE.search(html):
+        return _HEAD_CLOSE_RE.sub(_DECK_PRINT_STYLESHEET + "</head>", html, count=1)
+    if _BODY_OPEN_RE.search(html):
+        return _BODY_OPEN_RE.sub(lambda m: f"<body{m.group(1)}>{_DECK_PRINT_STYLESHEET}", html, count=1)
+    return _DECK_PRINT_STYLESHEET + html
 
 
 def detect_shape(html: str) -> str | None:
@@ -103,8 +188,19 @@ def page_options_for_shape(shape: str | None) -> dict[str, Any]:
 
 
 def count_slides(html: str) -> int:
-    """Count occurrences of `class="...slide..."` in the HTML."""
-    return len(_SLIDE_CLASS_RE.findall(html))
+    """Count elements whose class attribute contains the exact token `slide`.
+
+    Scans every `class="..."` attribute and tokenizes on whitespace, counting
+    only attributes that have the literal token `slide` (e.g. `class="slide"`,
+    `class="slide active"`). Attributes containing only related tokens such as
+    `slide-deck`, `slide-nav`, or `slideshow` do not increment the count.
+    """
+    count = 0
+    for match in _CLASS_ATTR_RE.finditer(html):
+        tokens = match.group(1).split()
+        if "slide" in tokens:
+            count += 1
+    return count
 
 
 def validate_html(html: str) -> str | None:
@@ -139,18 +235,36 @@ def render_pdf(input_path: Path, output_path: Path, shape: str | None) -> dict[s
     options["path"] = str(output_path)
     options["print_background"] = True
 
-    file_url = f"file://{input_path.resolve()}"
+    # For decks, inject defensive print CSS so each .slide reliably becomes one
+    # printed page even when the source HTML omits the bundled deck-print.css
+    # (e.g. minimal fixtures). Write the augmented HTML to a sibling temp file
+    # so that file:// loading still resolves any relative resources from the
+    # original artifact's directory.
+    load_path = input_path
+    temp_path: Path | None = None
+    if resolved_shape == "deck":
+        augmented = inject_deck_print_css(html)
+        if augmented != html:
+            temp_path = input_path.with_name(f".{input_path.stem}.to-pdf.tmp.html")
+            temp_path.write_text(augmented, encoding="utf-8")
+            load_path = temp_path
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        try:
-            context = browser.new_context()
-            page = context.new_page()
-            page.goto(file_url, wait_until="networkidle")
-            page.wait_for_load_state("networkidle")
-            page.pdf(**options)
-        finally:
-            browser.close()
+    file_url = f"file://{load_path.resolve()}"
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            try:
+                context = browser.new_context()
+                page = context.new_page()
+                page.goto(file_url, wait_until="networkidle")
+                page.wait_for_load_state("networkidle")
+                page.pdf(**options)
+            finally:
+                browser.close()
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
     pdf_bytes = output_path.stat().st_size
     if resolved_shape == "deck":

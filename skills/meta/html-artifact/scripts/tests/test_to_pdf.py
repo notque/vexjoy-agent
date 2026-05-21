@@ -37,11 +37,17 @@ def _playwright_runs() -> bool:
 # --- Sample HTML fragments for unit tests ---
 
 _HTML_DECK = """<!DOCTYPE html>
-<html><head><title>T</title></head>
+<html><head><title>T</title>
+<style>
+.slide { width: 13.333in; height: 7.5in; padding: 0.5in; box-sizing: border-box;
+  background: #0a0a0a; color: #f5f5f5; display: flex; align-items: center;
+  justify-content: center; font: 96px/1.1 system-ui, sans-serif; }
+.slide h1 { margin: 0; }
+</style></head>
 <body data-shape="deck">
-<div class="slide">One</div>
-<div class="slide">Two</div>
-<div class="slide">Three</div>
+<div class="slide"><h1>Slide One: Introduction</h1></div>
+<div class="slide"><h1>Slide Two: Body</h1></div>
+<div class="slide"><h1>Slide Three: Conclusion</h1></div>
 </body></html>
 """
 
@@ -160,6 +166,17 @@ class TestSlideCount:
     def test_slide_substring_does_not_match(self) -> None:
         html = '<div class="slideshow">A</div>'
         assert to_pdf.count_slides(html) == 0
+
+    def test_slide_deck_wrapper_does_not_count(self) -> None:
+        # `.slide-deck` is the wrapper element; only its `.slide` children should count.
+        html = (
+            '<div class="slide-deck">'
+            '<div class="slide active">A</div>'
+            '<div class="slide">B</div>'
+            '<div class="slide-nav">x</div>'
+            "</div>"
+        )
+        assert to_pdf.count_slides(html) == 2
 
 
 class TestValidateHtml:
