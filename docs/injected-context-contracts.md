@@ -8,10 +8,10 @@ The compact per-tag summary lives in the project `CLAUDE.md`. This file holds th
 
 These appear mid-conversation after tool calls. The model must act on each one in the same turn it appears.
 
-### `[auto-fix] action=X`
+### `[auto-fix] type=X action=Y` (and `[auto-fix] solution: ...`)
 
-Source: Various hooks (lint, formatter, config validators).
-Meaning: A deterministic hook has detected a fixable problem and is proposing the fix.
+Source: Various hooks (lint, formatter, config validators, error-learner).
+Meaning: A deterministic hook has detected a fixable problem and is proposing the fix. `type` is the error class, `action` is the suggested remediation. The `solution: ...` form carries a free-text fix description.
 Action: Execute the suggested fix immediately. Do not re-validate manually; the hook already did that.
 
 ### `[fix-with-skill] name`
@@ -32,14 +32,38 @@ Source: `hooks/cross-repo-agents.py`.
 Meaning: Local (project-scoped) agents are available in addition to the global fleet.
 Action: Treat the local agents as available for routing decisions in this session.
 
+### `[strategic-compact] {N} tool calls reached`
+
+Source: `hooks/suggest-compact.py` (PreToolUse).
+Meaning: The session has reached a context-budget checkpoint. Threshold and per-25-call advisories per ADR-103.
+Action: When transitioning between phases, consider `/compact` to preserve context. Mid-phase work may continue. Treat the message as a checkpoint, not a hard stop.
+
+### `[retro-gate] Found N ungraduated retro entries`
+
+Source: `hooks/retro-graduation-gate.py` (PostToolUse, fires after `gh pr create`).
+Meaning: The session produced high-confidence learnings that have not yet been graduated into agent or skill files.
+Action: Run `/retro graduate` to embed mature entries into target files before the PR merges. Advisory, not blocking.
+
+### `[adr-lifecycle] {message}`
+
+Source: `hooks/adr-lifecycle-on-merge.py` (PostToolUse, fires on merge).
+Meaning: Merge detected; the hook checked ADR references in the branch/commits and reports implementation step status (`COMPLETE`, `PARTIAL`, completed-and-moved).
+Action: When status is `COMPLETE`, the hook moves the ADR to `adr/completed/` automatically. When `PARTIAL`, follow up to finish remaining steps. No retry on advisory output.
+
+### `[learning-archive] Preserving session learnings`
+
+Source: `hooks/precompact-archive.py` (PreCompact).
+Meaning: The hook is archiving session learnings to learning.db before context compression.
+Action: None required from the model — archival is automatic. Treat the message as confirmation that error patterns, applied solutions, and confidence stats from the session were preserved.
+
 ## Session-State Tags (injected at session start, shape behavior for the session)
 
 These fire once at SessionStart. They condition the entire session.
 
-### `[operator-context] Profile: {profile}`
+### `[operator-context] Profile: {profile}` plus `[operator-context] Detection: {trigger}`
 
 Source: `hooks/operator-context-detector.py`.
-Meaning: The detected operator environment.
+Meaning: The detected operator environment, emitted on two consecutive lines. The first line names the profile and its summary; the second names the detection trigger that picked it.
 
 Profiles:
 - `personal`: local dev, full autonomy
@@ -67,19 +91,31 @@ Source: `hooks/session-context.py` (reads `~/.claude/state/dream-injection-*.md`
 Meaning: Nightly consolidation output summarizing patterns learned overnight.
 Action: Incorporate the dream content as background context for the session. It informs skill selection and approach, not individual task decisions. Do not cite it verbatim back to the user; it is for the model's orientation.
 
-### `[pipeline-creator]` plus `[auto-skill] pipeline-scaffolder` (plus JSON snapshot)
-
-Source: `hooks/pipeline-context-detector.py`.
-Meaning: A pipeline creation request was detected.
-Action: Treat this as a scaffold request. The `create-pipeline` skill handles the fan-out. Do not attempt to build pipeline components manually.
-
 ### `[sapcc-go]` plus `[auto-skill] go-patterns`
 
 Source: `hooks/sapcc-go-detector.py`.
 Meaning: A SAP Commerce Cloud Go project was detected in the current directory.
 Action: Apply SAP CC Go conventions for the session. The `go-patterns` and `sapcc-review` skills are in scope.
 
+### `[fish-shell] Detected Fish shell user` plus `[auto-skill] fish-shell-config`
+
+Source: `hooks/fish-shell-detector.py`.
+Meaning: The user runs Fish as their interactive shell.
+Action: When the user asks for shell config edits, prefer Fish syntax (`set -gx`, `function`, `~/.config/fish/config.fish`) over Bash/Zsh idioms. The `fish-shell-config` skill carries the full reference.
+
+### `[adr-health-check] Active ADR session` plus `domain` and `adr` path
+
+Source: `hooks/session-adr-health-check.py`.
+Meaning: An `.adr-session.json` was detected; the listed ADR governs creation work this session.
+Action: Treat the named ADR as binding for any creation request. Read it via `adr-query.py context` before writing new agents, skills, pipelines, or hooks. The `adr-enforcement` PostToolUse hook will flag drift.
+
 ## Prompt-Signal Tags (emitted mid-conversation, require routing action)
+
+### `[pipeline-creator]` plus `[auto-skill] pipeline-scaffolder` (plus JSON snapshot)
+
+Source: `hooks/pipeline-context-detector.py`.
+Meaning: A pipeline creation request was detected.
+Action: Treat this as a scaffold request. The `create-pipeline` skill handles the fan-out. Build pipeline components through the skill rather than manually.
 
 ### `[CREATION REQUEST DETECTED]`
 

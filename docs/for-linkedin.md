@@ -68,9 +68,9 @@ A year of daily use on real work. Finding gaps, filling them, watching the syste
 
 The result:
 
-- 43 domain specialist agents across languages, infrastructure, review, research, content
-- 119 workflow skills covering everything from TDD to article writing to Reddit moderation
-- 71 lifecycle hooks that fire at session boundaries to inject context, capture learnings, enforce gates
+- 44 domain specialist agents across languages, infrastructure, review, research, content
+- 117 workflow skills covering everything from TDD to article writing to Reddit moderation
+- 77 lifecycle hooks that fire at session boundaries to inject context, capture learnings, enforce gates
 - A learning database that tracks patterns and graduates them into agent behavior
 - Parallel review pipelines that catch issues before they reach production
 - Content pipelines that handle research, drafting, voice validation end to end

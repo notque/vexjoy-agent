@@ -78,7 +78,7 @@ routing:
 ---
 ```
 
-Key fields. `name` identifies it in routing. `hooks` lets agents register their own PostToolUse handlers. The Go agent reminds you to run `gofmt` after editing `.go` files. `routing.triggers` feeds the evaluator. `routing.retro-topics` tells the dream system which learning DB topics are relevant when this agent runs (used during nightly auto-dream curation, ADR-147). `memory: project` scopes learned context to the current project.
+Key fields. `name` identifies it in routing. `hooks` lets agents register their own PostToolUse handlers. The Go agent reminds you to run `gofmt` after editing `.go` files. `routing.triggers` feeds the evaluator. `routing.retro-topics` tells the dream system which learning DB topics are relevant when this agent runs (used during nightly auto-dream curation). `memory: project` scopes learned context to the current project.
 
 ### The Operator Context Pattern
 
@@ -145,10 +145,10 @@ Ten event types, registered in settings.json:
 
 | Event | When | Hooks Registered |
 |-------|------|-----------------|
-| `SessionStart` | Session begins | sync-to-user-claude, afk-mode, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector, retro-knowledge-injector |
-| `UserPromptSubmit` | Before processing each prompt | instruction-reminder, adr-context-injector, pipeline-context-detector, user-correction-capture |
-| `PreToolUse` | Before tool execution | pretool-unified-gate, pretool-branch-safety, ci-merge-gate, pretool-learning-injector, pretool-synthesis-gate, pretool-plan-gate, pretool-prompt-injection-scanner, pretool-adr-creation-gate, pretool-file-backup, pretool-subagent-warmstart |
-| `PostToolUse` | After tool execution | posttool-lint-hint, agent-grade-on-change, adr-enforcement, posttool-security-scan, retro-graduation-gate, record-activation, posttool-session-reads, usage-tracker, review-capture, error-learner, routing-gap-recorder, record-waste, completion-evidence-check, sql-injection-detector |
+| `SessionStart` | Session begins | sync-to-user-claude, afk-mode, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector, session-github-briefing, session-adr-health-check |
+| `UserPromptSubmit` | Before processing each prompt | pipeline-context-detector, user-correction-capture, codex-auto-review, prompt-capture |
+| `PreToolUse` | Before tool execution | suggest-compact, pretool-unified-gate, pretool-branch-safety, ci-merge-gate, pretool-ruff-format-gate, pretool-index-sync-check, pretool-learning-injector, pretool-synthesis-gate, pretool-plan-gate, pretool-prompt-injection-scanner, pipeline-phase-gate, reference-loading-gate, pretool-adr-creation-gate, pretool-file-backup, reference-loading-enforcer, pretool-subagent-warmstart, creation-protocol-enforcer |
+| `PostToolUse` | After tool execution | posttool-lint-hint, agent-grade-on-change, adr-enforcement, posttool-security-scan, posttool-skill-frontmatter-check, posttooluse-joy-check-warn, posttooluse-sync-skill-index, posttool-docs-drift-alert, retro-graduation-gate, adr-lifecycle-on-merge, posttool-rename-sweep, record-activation, posttool-session-reads, usage-tracker, routing-gap-recorder, review-capture, instruction-compliance, error-learner, record-waste, completion-evidence-check, sql-injection-detector, posttool-auto-test |
 | `PreCompact` | Before context compression | precompact-archive |
 | `PostCompact` | After context compression | postcompact-handler |
 | `TaskCompleted` | After a Task tool finishes | task-completed-learner |
@@ -189,7 +189,7 @@ All hooks target sub-50ms execution. `once: true` in settings means the hook fir
 
 **error-learner** (PostToolUse): Detects errors in tool output by scanning for indicators like "permission denied", "not found", "traceback". Classifies the error type, generates a signature, checks learning.db for known solutions. If found, emits `[auto-fix]`, `[fix-with-skill]`, or `[fix-with-agent]` directives. Sets pending feedback so the next PostToolUse can check whether the fix worked. Automatic reinforcement learning without human intervention.
 
-**session-context** (SessionStart, ADR-147): At session start, reads the pre-built dream payload from `~/.claude/state/dream-injection-{project-hash}.md` and injects it as a `<retro-knowledge>` block. The payload was LLM-curated during the nightly auto-dream cycle. Top memories selected by relevance, ~2000 token budget. Also loads high-confidence patterns directly from learning.db as fallback. Win rate: 67% in A/B testing when retro knowledge is relevant.
+**session-context** (SessionStart): At session start, reads the pre-built dream payload from `~/.claude/state/dream-injection-{project-hash}.md` and injects it as a `<retro-knowledge>` block. The payload was LLM-curated during the nightly auto-dream cycle. Top memories selected by relevance, ~2000 token budget. Also loads high-confidence patterns directly from learning.db as fallback. Win rate: 67% in A/B testing when retro knowledge is relevant.
 
 **pretool-unified-gate** (PreToolUse): Consolidates five blocking checks into one hook. Gitignore-bypass detection, raw git submission blocking (push, PR create/merge), dangerous command guard, creation gate (new agent/skill without ADR), sensitive file guard (.env, credentials, SSH keys). Exits 2 to block when violations are detected. AI attribution blocking was removed from hooks and is now handled declaratively via `settings.json` `attribution` config.
 
@@ -240,7 +240,7 @@ Manually taught patterns (via `/learn`) enter at 0.9 confidence. The dream syste
 
 1. **Capture**: Hooks record learnings automatically. `error-learner` captures error patterns. `review-capture` captures PR review findings. `task-completed-learner` records effectiveness data. `user-correction-capture` records when you correct Claude.
 2. **Accumulate**: Entries gain confidence through repeated observation and successful fixes.
-3. **Inject**: `session-context` injects the pre-built dream payload at session start (ADR-147). Falls back to direct learning.db queries for high-confidence patterns.
+3. **Inject**: `session-context` injects the pre-built dream payload at session start. Falls back to direct learning.db queries for high-confidence patterns.
 4. **Graduate**: When an entry is mature (high confidence, multiple observations), the `/retro graduate` command embeds it directly into an agent or skill file. The `graduated_to` column records where it went.
 5. **Decay**: Unused knowledge fades. The confidence-decay hook ensures the DB doesn't fill with stale advice.
 
@@ -290,7 +290,7 @@ Pipeline skills differ from standard skills:
 
 Architectural Decision Records live in `adr/`. Numbered markdown files tracking major design decisions. Why the learning system uses SQLite instead of markdown files. Why hooks replace L1/L2 retro files. How graduation works.
 
-### The adr-context-injector Hook
+### The session-adr-health-check Hook
 
 When you start a pipeline session, you create `.adr-session.json` in the project root:
 
@@ -302,13 +302,13 @@ When you start a pipeline session, you create `.adr-session.json` in the project
 }
 ```
 
-The `adr-context-injector` hook (UserPromptSubmit) detects this file and injects ADR compliance context into every prompt. It checks for relevance keywords ("pipeline", "skill", "agent", "create", "build") and only injects when the prompt looks like pipeline work. The injection includes:
+The `session-adr-health-check` hook (SessionStart) detects this file and surfaces the active ADR as context at session start. The `adr-enforcement` hook (PostToolUse) then verifies written files comply with the active ADR after every Write/Edit, including:
 
 - Mandatory `adr-query.py context` command before creating components
 - Compliance check command after writing files
 - ADR integrity verification via hash
 
-Every subagent in a pipeline session knows about the governing ADR, even if the orchestrator forgot to mention it.
+Every subagent in a pipeline session knows about the governing ADR, because the active session context propagates from the orchestrator.
 
 ### ADR Enforcement
 
@@ -328,7 +328,7 @@ Four MCP servers are configured:
 The catch: MCP tools are **deferred** in subagent contexts. When a pipeline dispatches a subagent via `Task`, that subagent cannot call `mcp__gopls__go_diagnostics` directly. It has to use `ToolSearch` first to fetch the schema:
 
 ```
-ToolSearch(query: "select:mcp__gopls__go_diagnostics")
+ToolSearch("gopls")
 ```
 
 Only after ToolSearch returns the full schema definition can the subagent invoke the tool. Easy to miss. Causes silent failures when subagents try MCP tools without the fetch step.
@@ -353,7 +353,7 @@ The quality feedback loop that makes the toolkit self-improving:
 
 ### Anti-AI Validation
 
-The `de-ai-pipeline` skill runs a scan-fix-verify loop on documentation. `scripts/scan-ai-patterns.py` checks against 323 banned patterns across 24 categories (pulled from `scripts/data/banned-patterns.json`). The `anti-ai-editor` skill fixes flagged patterns. Loop repeats until clean, max 3 iterations.
+`scripts/scan-ai-patterns.py` checks documentation against 397 banned patterns across 33 categories (pulled from `scripts/data/banned-patterns.json`). Run it as a CI gate or invoke it from a content workflow to catch flagged phrasing before publishing.
 
 Banned words include the usual suspects: "delve", "leverage", "streamline", "foster", "spearheaded". Also structural patterns. The list-of-three. The "In conclusion" wrapper. The "It's important to note" throat-clearing.
 
@@ -365,7 +365,7 @@ Three layers:
 
 **CLAUDE.md table**: A hardcoded lookup of common rationalizations mapped to required actions. "Already done" -> "Actually verify." "I'm confident" -> "Verify regardless." These are in the global CLAUDE.md that every session reads.
 
-**Auto-injection via hooks**: The `instruction-reminder` hook (UserPromptSubmit) re-injects CLAUDE.md snippets to combat context drift. As conversations get long, early instructions fade from attention. The hook brings them back.
+**Auto-injection via hooks**: The `instruction-compliance` hook (PostToolUse) flags drift from CLAUDE.md rules after each tool call, and SessionStart hooks reload the operator context every session. As conversations get long, early instructions fade from attention. Posttool reinforcement brings them back.
 
 **Skill-level embedding**: Every agent and skill embeds anti-rationalization in its operator context. The `with-anti-rationalization` skill can be composed with other skills to add an extra verification layer. Gate enforcement in skills is itself an anti-rationalization mechanism. You cannot skip Phase 3 by claiming Phase 2 "probably" passed.
 

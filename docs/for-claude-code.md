@@ -129,7 +129,7 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 
 1. **Record**: hooks capture errors, review findings, session patterns automatically
 2. **Boost/Decay**: confidence adjusts (success boosts, failure decays, inactivity decays)
-3. **Inject**: `session-context.py` injects pre-built dream payload at SessionStart (nightly auto-dream, ADR-147). Falls back to direct learning.db queries if no fresh payload.
+3. **Inject**: `session-context.py` injects a pre-built dream payload at SessionStart, curated during the nightly auto-dream cycle. Falls back to direct learning.db queries if no fresh payload.
 4. **Graduate**: high-confidence entries promoted into agent/skill files via `learning-db.py graduate`
 
 ### CLI Quick Reference

@@ -49,7 +49,7 @@ Request via `--components` flag. Multiple: `--components tabs,collapsible,copy-b
 ### Keyboard Navigation
 - Arrow keys navigate sequential content (slides, cards, items)
 - Track current index, wrap around at boundaries
-- Don't intercept when user is typing in input/textarea
+- Skip arrow-key handling when the user is typing in input/textarea
 - Update counter display (`1/N`) on navigation
 
 ### Theme Toggle

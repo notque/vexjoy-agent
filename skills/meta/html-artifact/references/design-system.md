@@ -115,9 +115,9 @@ Use `min-width` media queries (mobile-first). Container max-width: 1200px.
 
 ---
 
-## Anti-Patterns
+## Patterns to Replace
 
-| Pattern | Do Instead |
+| Common Mistake | Preferred Approach |
 |---|---|
 | CSS frameworks (Bootstrap, Tailwind CDN) | Use the token system via templates |
 | Random colors per artifact | Use theme tokens |

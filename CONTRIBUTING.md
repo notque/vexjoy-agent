@@ -88,7 +88,7 @@ pytest hooks/tests/ -v             # hooks only
 pytest scripts/tests/ -v           # scripts only
 ```
 
-Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the eval harness in `skills/skill-eval/`.
+Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the eval harness in `skills/meta/skill-eval/`.
 
 ## Conventions
 

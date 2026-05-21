@@ -37,7 +37,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-If Codex should pick up newly added skills or agents after a `git pull`, rerun `./install.sh --symlink`.
+If Codex should pick up newly added skills or agents after a `git pull`, rerun `./install.sh`.
 
 ---
 
