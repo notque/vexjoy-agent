@@ -293,6 +293,35 @@
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
+    "opensearch-siem-engineer": {
+      "file": "agents/opensearch-siem-engineer.md",
+      "short_description": "OpenSearch SIEM: Security Analytics detection, anomaly detection, correlation, alerting, and incident escalation for cloud SOC environments",
+      "triggers": [
+        "opensearch siem",
+        "security analytics",
+        "anomaly detection opensearch",
+        "siem detection",
+        "mitre opensearch",
+        "sigma opensearch",
+        "incident escalation soc",
+        "correlation engine",
+        "chained findings",
+        "siem alert",
+        "soc triage",
+        "detector creation",
+        "security analytics detector",
+        "field alias bootstrap",
+        "siem mapping"
+      ],
+      "not_for": "General OpenSearch cluster ops unrelated to security (use opensearch-elasticsearch-engineer), Terraform resource management, log pipeline infrastructure not tied to SIEM detection coverage",
+      "pairs_with": [
+        "verification-before-completion",
+        "sapcc-review",
+        "opensearch-elasticsearch-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "security"
+    },
     "performance-optimization-engineer": {
       "file": "agents/performance-optimization-engineer.md",
       "short_description": "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring",
