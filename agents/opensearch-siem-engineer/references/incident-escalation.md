@@ -14,12 +14,12 @@ description: Severity tier table, escalation criteria, required escalation conte
 
 | Severity | Description | Initial Response | Max Processing |
 |----------|-------------|------------------|----------------|
-| Very High | Catastrophic/immediate/long-term damage. Suspected TP — report to global IR immediately. | **15 minutes** | 1 hour |
+| Very High | Catastrophic/immediate/long-term damage. Suspected TP. Report to global IR immediately. | **15 minutes** | 1 hour |
 | High | High-profile, immediate + mid-term damage to multiple services. Coordinate with SCI security manager. | **30 minutes** | 2 hours |
 | Medium | Immediate damage to single service; potential to spread. Managed by supplier + service owner. No SCI SM notification required. | **1 hour** | 8 hours |
 | Low | Lower risk/impact. Follow runbooks at analyst discretion. | **2 hours** | 24 hours |
 
-**SLA breach is an escalation trigger** — delayed triage time or high FP rate both trigger escalation criteria.
+**SLA breach is an escalation trigger**: delayed triage time or high FP rate both trigger escalation criteria.
 
 ---
 
@@ -80,7 +80,7 @@ Once escalation is accepted by internal stakeholders:
 1. Internal incident manager **assumes ownership**
 2. Supplier **continues supporting investigation** unless explicitly released by incident manager
 3. All updates documented in agreed system (ServiceNow or Jira)
-4. Closure requires **formal confirmation from internal cybersecurity teams** — supplier does not self-close
+4. Closure requires **formal confirmation from internal cybersecurity teams**. Supplier does not self-close
 
 **Support groups**: Defined in SNOW. Slack channel `#cc-user-sync-notifications` syncs current on-call person.
 
@@ -101,7 +101,7 @@ For escalations outside standard hours (09:00-17:00 CET):
 
 1. Escalate via designated on-call channel (phone, ticketing system, Slack)
 2. Log the escalation attempt with timestamp
-3. If no acknowledgement: retry until confirmation received — do not stop retrying
+3. If no acknowledgement: retry until confirmation received. Keep retrying until acknowledged
 4. SAP is responsible for keeping on-call contact lists current
 
 **After-hours channels**: `#cc-security-event-alerts`, on-call defined in `#cc-user-sync-notifications`
@@ -116,7 +116,7 @@ Produce use case documentation in this structure for every new detection.
 
 | Field | Value |
 |-------|-------|
-| Title | `{Attack Category} – {Specific Scenario}` |
+| Title | `{Attack Category} - {Specific Scenario}` |
 | Unique ID | `{CATEGORY}-{SUBCATEGORY}-{TARGET}-{NNN}` (e.g., BRUTE-PWD-KEYSTONE-001) |
 | Version | Semver (1.0, 1.1, etc.) |
 | Owner | Name + team |
@@ -208,5 +208,5 @@ POST /siem-cases-*/_search
 
 ## See Also
 
-- `detection-engineering.md` — SIGMA authoring, detector creation, MITRE mapping
-- `mapping-troubleshooting.md` — Mapping errors that block detector creation
+- `detection-engineering.md`: SIGMA authoring, detector creation, MITRE mapping
+- `mapping-troubleshooting.md`: Mapping errors that block detector creation

@@ -1,5 +1,5 @@
 ---
-description: Field alias bootstrap behavior, chained findings index flood pattern and fix, alias-vs-text conflict diagnosis, type coercion errors, missing path errors — with concrete API commands
+description: Field alias bootstrap behavior, chained findings index flood pattern and fix, alias-vs-text conflict diagnosis, type coercion errors, missing path errors, with concrete API commands
 ---
 
 # OpenSearch SIEM Mapping Troubleshooting
@@ -37,7 +37,7 @@ for m in data.get('monitors', []):
 
 ### Fix: Static Query Indices
 
-Replace dynamic query index creation with a static, reused index.
+Replace per-run query index creation with a static, reused index.
 
 ```bash
 # 1. Create static query index with explicit mapping
@@ -48,14 +48,15 @@ PUT /siem-chained-findings-queries
     "number_of_replicas": 1
   },
   "mappings": {
-    "dynamic": false,
     "properties": {
       "@timestamp": { "type": "date" },
       "finding_id": { "type": "keyword" },
       "detector_id": { "type": "keyword" },
-      "queries": { "type": "object", "dynamic": false }
+      "queries": { "type": "object" }
     }
   }
+# Note: set {"mappings": {"auto-map-new-fields": false}} in production
+# (OpenSearch mapping control parameter: prevents unintended field creation)
 }
 
 # 2. Update chained findings monitor to use static index
@@ -74,7 +75,7 @@ PUT /_plugins/_alerting/monitors/{monitor_id}
 GET /_cat/count/siem-chained-findings-queries?v
 ```
 
-**Root cause**: The Security Analytics plugin's chained findings implementation creates a new backing index for each evaluation to hold intermediate query results. With no TTL or reuse, each run adds a new index permanently (or until manual cleanup). Static indices are not the default — they must be configured explicitly.
+**Root cause**: The Security Analytics plugin's chained findings implementation creates a new backing index for each evaluation to hold intermediate query results. With no TTL or reuse, each run adds a new index permanently (or until manual cleanup). Static indices are not the default. they must be configured explicitly.
 
 ---
 
@@ -99,7 +100,7 @@ for idx, mapping in data.items():
 # Check for alias conflicts
 GET /keystone-logs-*/_mapping/field/source.ip
 
-# Attempt to add alias — will fail if conflict exists
+# Attempt to add alias (will fail if conflict exists)
 PUT /keystone-logs-*/_mapping
 {
   "properties": {
@@ -127,7 +128,6 @@ PUT /siem-detection-keystone
     "index.lifecycle.name": "siem-short-retention"
   },
   "mappings": {
-    "dynamic": false,
     "properties": {
       "@timestamp": { "type": "date" },
       "source.ip": { "type": "ip" },
@@ -137,6 +137,7 @@ PUT /siem-detection-keystone
       "http.response.status_code": { "type": "integer" }
     }
   }
+# Note: set {"mappings": {"auto-map-new-fields": false}} in production
 }
 
 # 2. Create reindex pipeline to copy relevant fields from ingestion index
@@ -187,7 +188,7 @@ POST _aliases
 }
 ```
 
-**Why `PUT _mapping` cannot fix this**: The field alias bootstrap writes a mapping entry of type `alias`. Once an index has a field mapped as `alias`, it cannot be changed to any other type — not even to another `alias` pointing to a different path. The only resolution is reindex.
+**Why `PUT _mapping` cannot fix this**: The field alias bootstrap writes a mapping entry of type `alias`. Once an index has a field mapped as `alias`, it cannot be changed to any other type. not even to another `alias` pointing to a different path. The only resolution is reindex.
 
 ---
 
@@ -290,7 +291,7 @@ PUT /keystone-logs-*/_mapping
 }
 ```
 
-Note: This only works on indices without existing conflicting mappings at `attributes`. If `attributes` is already mapped as `flattened` or `object` with `dynamic: false`, the PUT will fail.
+Note: This only works on indices without existing conflicting mappings at `attributes`. If `attributes` is already mapped as `flattened` or `object` with auto-mapping disabled, the PUT will fail.
 
 ---
 
@@ -344,5 +345,5 @@ GET _tasks/{task_id}
 
 ## See Also
 
-- `detection-engineering.md` — Detector creation API, SIGMA translation, field normalization
-- `incident-escalation.md` — Escalation content requirements, KPIs
+- `detection-engineering.md`: Detector creation API, SIGMA translation, field normalization
+- `incident-escalation.md`: Escalation content requirements, KPIs

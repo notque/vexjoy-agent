@@ -327,5 +327,5 @@ POST /_plugins/_security_analytics/correlation/rules
 
 ## See Also
 
-- `mapping-troubleshooting.md` — Field alias bootstrap conflicts, chained findings index flood
-- `incident-escalation.md` — Severity tiers, escalation packages, KPIs
+- `mapping-troubleshooting.md`: Field alias bootstrap conflicts, chained findings index flood
+- `incident-escalation.md`: Severity tiers, escalation packages, KPIs
