@@ -15,7 +15,7 @@
 #   1. Verifies Python 3.10+ is available
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
-#   4. Mirrors skills, agents, and hooks to ~/.codex and ~/.gemini
+#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex and ~/.gemini
 #   5. Sets up local overlay directory
 #   6. Configures hooks in settings.json
 #
@@ -36,10 +36,12 @@ CODEX_DIR="${HOME}/.codex"
 CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
 CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
 CODEX_HOOKS_DIR="${CODEX_DIR}/hooks"
+CODEX_SCRIPTS_DIR="${CODEX_DIR}/scripts"
 GEMINI_DIR="${HOME}/.gemini"
 GEMINI_SKILLS_DIR="${GEMINI_DIR}/skills"
 GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
 GEMINI_HOOKS_DIR="${GEMINI_DIR}/hooks"
+GEMINI_SCRIPTS_DIR="${GEMINI_DIR}/scripts"
 FACTORY_DIR="${HOME}/.factory"
 FACTORY_SKILLS_DIR="${FACTORY_DIR}/skills"
 FACTORY_DROIDS_DIR="${FACTORY_DIR}/droids"
@@ -429,6 +431,20 @@ os.rename(tmp, dst)
         echo "  No ~/.codex/hooks mirror found. Nothing to clean."
     fi
 
+    echo ""
+    echo -e "${YELLOW}Cleaning Codex scripts mirror...${NC}"
+    if [ -d "$CODEX_SCRIPTS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${CODEX_SCRIPTS_DIR}${NC}"
+        else
+            rm -rf "$CODEX_SCRIPTS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${CODEX_SCRIPTS_DIR}${NC}"
+        fi
+        REMOVED+=("Codex scripts mirror directory")
+    else
+        echo "  No ~/.codex/scripts mirror found. Nothing to clean."
+    fi
+
     if [ -f "${CODEX_DIR}/hooks.json" ]; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would archive: ${CODEX_DIR}/hooks.json${NC}"
@@ -552,6 +568,20 @@ os.rename(tmp, dst)
         REMOVED+=("Gemini hooks mirror directory")
     else
         echo "  No ~/.gemini/hooks mirror found. Nothing to clean."
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Cleaning Gemini scripts mirror...${NC}"
+    if [ -d "$GEMINI_SCRIPTS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${GEMINI_SCRIPTS_DIR}${NC}"
+        else
+            rm -rf "$GEMINI_SCRIPTS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${GEMINI_SCRIPTS_DIR}${NC}"
+        fi
+        REMOVED+=("Gemini scripts mirror directory")
+    else
+        echo "  No ~/.gemini/scripts mirror found. Nothing to clean."
     fi
 
     if [ -f "${GEMINI_DIR}/settings.json" ]; then
@@ -1095,6 +1125,21 @@ else
 fi
 
 echo ""
+echo -e "${YELLOW}Syncing Codex scripts mirror...${NC}"
+if [ -d "${SCRIPT_DIR}/scripts" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would mirror scripts to: ${CODEX_SCRIPTS_DIR}${NC}"
+    else
+        mkdir -p "$CODEX_SCRIPTS_DIR"
+    fi
+    sync_codex_entry "${SCRIPT_DIR}/scripts" "$CODEX_SCRIPTS_DIR"
+    CODEX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+    echo -e "${GREEN}  ✓ Scripts mirrored to ${CODEX_SCRIPTS_DIR}${NC}"
+else
+    CODEX_SCRIPT_COUNT=0
+fi
+
+echo ""
 echo -e "${YELLOW}Installing Factory components (mode: ${MODE})...${NC}"
 # Factory uses the same top-level symlink/copy pattern as Claude.
 # Only difference: 'agents' is named 'droids' under ~/.factory.
@@ -1323,6 +1368,21 @@ else
     echo -e "${YELLOW}  ⚠ Gemini hooks allowlist not found at ${GEMINI_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
 fi
 
+echo ""
+echo -e "${YELLOW}Syncing Gemini scripts mirror...${NC}"
+if [ -d "${SCRIPT_DIR}/scripts" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would mirror scripts to: ${GEMINI_SCRIPTS_DIR}${NC}"
+    else
+        mkdir -p "$GEMINI_SCRIPTS_DIR"
+    fi
+    sync_mirror_entry "${SCRIPT_DIR}/scripts" "$GEMINI_SCRIPTS_DIR" "Gemini"
+    GEMINI_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+    echo -e "${GREEN}  ✓ Scripts mirrored to ${GEMINI_SCRIPTS_DIR}${NC}"
+else
+    GEMINI_SCRIPT_COUNT=0
+fi
+
 # Deploy private-voices shared references into skills/shared-patterns/
 # These files were removed from the public repo and live in private-voices/shared-references/
 # (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
@@ -1518,8 +1578,8 @@ manifest = {
     'toolkit_path': '${SCRIPT_DIR}',
     'mode': '${MODE}',
     'components': ['agents', 'skills', 'hooks', 'commands', 'scripts'],
-    'codex_components': ['skills', 'agents', 'hooks'],
-    'gemini_components': ['skills', 'agents', 'hooks'],
+    'codex_components': ['skills', 'agents', 'hooks', 'scripts'],
+    'gemini_components': ['skills', 'agents', 'hooks', 'scripts'],
     'factory_components': ['skills', 'droids', 'hooks'],
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
@@ -1552,9 +1612,11 @@ echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} us
 echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
 echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
 echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
+echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
 echo "  • Gemini skills: ${GEMINI_ENTRY_COUNT} mirrored entries in ~/.gemini/skills"
 echo "  • Gemini agents: ${GEMINI_AGENT_COUNT} mirrored entries in ~/.gemini/agents"
 echo "  • Gemini hooks: ${GEMINI_HOOK_COUNT} mirrored entries in ~/.gemini/hooks"
+echo "  • Gemini scripts: ${GEMINI_SCRIPT_COUNT} mirrored scripts in ~/.gemini/scripts"
 echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
 echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"

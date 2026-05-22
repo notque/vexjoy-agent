@@ -129,7 +129,8 @@ If ANY creation signal found AND complexity Simple+: set `is_creation = true`, P
 
 Run the deterministic pre-router first:
 ```bash
-python3 scripts/pre-route.py --request "{user_request}" --json-compact
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
+python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
 ```
 
 If the result has `"matched": true` and `"confidence": "high"`:
@@ -146,7 +147,8 @@ If `"matched": false` or `"confidence"` is "low"/"medium":
 Generate the manifest, then dispatch:
 
 ```bash
-python3 scripts/routing-manifest.py
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
+python3 "$SDIR/routing-manifest.py"
 ```
 
 Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
