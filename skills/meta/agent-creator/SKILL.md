@@ -10,6 +10,7 @@ routing:
     - build agent
     - agent design
     - make agent
+  force_route: true
   pairs_with:
     - skill-creator
     - agent-evaluation
