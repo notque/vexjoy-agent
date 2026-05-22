@@ -173,6 +173,35 @@ user_invocable: true  # justification: users type "/pr-workflow" directly as
 No justification = leave it `false`. User-invocable expands the system-prompt
 surface and the slash-command namespace; both are scarce.
 
+**`force_route` -- when to set `true`.** Adds `force_bonus = 2.0` to the router
+match score (`scripts/pre-route.py:235`). Without it, single-trigger skills cap
+at "low" confidence and may not route at all -- the bug PR #663 fixed for
+`agent-creator`. Confidence ladder: `force_route + 2+ triggers` = high;
+`force_route + 1 trigger` = medium; `3+ triggers without force` = medium;
+otherwise low.
+
+Set `force_route: true` when the skill matches one of these patterns:
+
+| Pattern | Examples |
+|---------|----------|
+| Umbrella / lifecycle (one trigger phrase = one phase) | `planning`, `feature-lifecycle`, `pr-workflow` |
+| Setup or installation (user states explicit intent) | `install`, `fish-shell-config` |
+| Framework scaffolding (no semantic ambiguity) | `agent-creator` |
+| Deterministic methodology tools (user names the tool) | `quick`, `python-quality-gate`, `go-patterns` |
+| Trace/diagnostic queries (verb + noun is unambiguous) | `explanation-traces` |
+
+Leave `force_route` off when the skill matches one of these anti-patterns:
+
+| Anti-pattern | Risk |
+|--------------|------|
+| Domain task skills with overlapping triggers ("review", "debug", "refactor") | Generic verbs misroute across domains |
+| Single trigger that could mean different things ("fix") | Needs disambiguation via additional triggers |
+| Skills sharing trigger phrases with siblings | Multiple force-routes compete; earn confidence via trigger count |
+
+Rule of thumb: if a future contributor reading the trigger list could reasonably
+ask "did the user mean *this* or *that*?", leave `force_route` off and rely on
+multiple triggers for confidence.
+
 > See `references/skill-template.md` for the complete frontmatter template with all fields and valid values.
 
 **Frontmatter validation (mandatory post-write gate):** After writing SKILL.md,

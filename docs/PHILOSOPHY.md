@@ -53,6 +53,19 @@ For large mechanical sweeps: if the change can be expressed as detector + rewrit
 
 **Test:** Is this operation deterministic? Same input, same output? If yes, it belongs in a script.
 
+### Routing confidence and force_route
+
+Skills route at four confidence tiers driven by trigger-match count and the `force_route` flag (`scripts/pre-route.py:235`). Single-trigger skills without `force_route` cap at "low" and may fall through to fallback routing.
+
+| State | Confidence |
+|---|---|
+| `force_route: true` + 2+ triggers matched | high |
+| `force_route: true` + 1 trigger matched | medium |
+| 3+ triggers matched (no force) | medium |
+| 1-2 triggers matched (no force) | low |
+
+`force_route: true` belongs on umbrella, setup, and methodology skills where a single high-specificity trigger phrase carries unambiguous intent (`pr-workflow`, `install`, `quick`). Domain task skills earn confidence through multiple trigger matches — preventing misroute when phrases like "fix" or "review" overlap.
+
 ---
 
 ## Triple-Validation Extraction Gate
