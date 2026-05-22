@@ -2,7 +2,7 @@
 
 ## What This Gives You
 
-Writing, research, community moderation, data analysis, content publishing. 117 skills behind a single command. You describe work. The system routes it.
+Writing, research, community moderation, data analysis, content publishing. 118 skills behind a single command. You describe work. The system routes it.
 
 ## Interface
 
