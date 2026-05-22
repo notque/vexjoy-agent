@@ -55,7 +55,7 @@ For large mechanical sweeps: if the change can be expressed as detector + rewrit
 
 ### Routing confidence and force_route
 
-Skills route at four confidence tiers driven by trigger-match count and the `force_route` flag (`scripts/pre-route.py:235`). Single-trigger skills without `force_route` cap at "low" and may fall through to fallback routing.
+Skills route at four confidence tiers driven by trigger-match count and the `force_route` flag (see `force_bonus` in [`scripts/pre-route.py`](../scripts/pre-route.py)). Single-trigger skills without `force_route` cap at "low" and may fall through to fallback routing.
 
 | State | Confidence |
 |---|---|
