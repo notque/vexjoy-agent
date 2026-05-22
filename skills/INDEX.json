@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-22T04:08:58Z",
+  "generated": "2026-05-22T04:41:35Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -842,6 +842,28 @@
         "test-driven-development"
       ],
       "agent": "kotlin-general-engineer"
+    },
+    "opensearch-detection-engineer": {
+      "file": "skills/engineering/opensearch-detection-engineer/SKILL.md",
+      "description": "OpenSearch detection engineering: SIGMA authoring, query DSL translation, MITRE ATT&CK mapping, anomaly detection, correlation rules, SOC incident escalation.",
+      "triggers": [
+        "siem detection",
+        "sigma rule",
+        "mitre att&ck mapping",
+        "detection engineering",
+        "opensearch detection",
+        "anomaly detection rule",
+        "soc escalation",
+        "detection validation",
+        "threat correlation rule",
+        "security analytics"
+      ],
+      "category": "engineering",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "opensearch-elasticsearch-engineer"
+      ]
     },
     "php-quality": {
       "file": "skills/engineering/php-quality/SKILL.md",

@@ -67,6 +67,7 @@ SKILL_MAPPING: dict[str, str] = {
     "sapcc-audit": "engineering",
     "sapcc-review": "engineering",
     "cobalt-core": "engineering",
+    "opensearch-detection-engineer": "engineering",
     # frontend/
     "distinctive-frontend-design": "frontend",
     "frontend-slides": "frontend",

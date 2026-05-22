@@ -173,6 +173,35 @@ user_invocable: true  # justification: users type "/pr-workflow" directly as
 No justification = leave it `false`. User-invocable expands the system-prompt
 surface and the slash-command namespace; both are scarce.
 
+**`force_route` -- when to set `true`.** Adds `force_bonus = 2.0` to the router
+match score (see `force_bonus` in `scripts/pre-route.py`). Without it, single-trigger skills cap
+at "low" confidence and may not route at all -- the bug PR #663 fixed for
+`agent-creator`. Confidence ladder: `force_route + 2+ triggers` = high;
+`force_route + 1 trigger` = medium; `3+ triggers without force` = medium;
+otherwise low.
+
+Set `force_route: true` when the skill matches one of these patterns:
+
+| Pattern | Examples |
+|---------|----------|
+| Umbrella / lifecycle (one trigger phrase = one phase) | `planning`, `feature-lifecycle`, `pr-workflow` |
+| Setup or installation (user states explicit intent) | `install`, `fish-shell-config` |
+| Framework scaffolding (no semantic ambiguity) | `agent-creator` |
+| Deterministic methodology tools (user names the tool) | `quick`, `python-quality-gate`, `go-patterns` |
+| Trace/diagnostic queries (verb + noun is unambiguous) | `explanation-traces` |
+
+Leave `force_route` off and earn confidence through trigger count when the skill matches one of these patterns:
+
+| Pattern | Why earn confidence via trigger count |
+|---------|----------------------------------------|
+| Domain task skills with overlapping triggers ("review", "debug", "refactor") | Generic verbs route accurately across domains when paired with domain-specific siblings |
+| Single trigger that could mean different things ("fix") | Adding companion triggers disambiguates intent |
+| Skills sharing trigger phrases with siblings | Trigger-count tiebreak picks the best match cleanly |
+
+Rule of thumb: if a future contributor reading the trigger list could reasonably
+ask "did the user mean *this* or *that*?", leave `force_route` off and rely on
+multiple triggers for confidence.
+
 > See `references/skill-template.md` for the complete frontmatter template with all fields and valid values.
 
 **Frontmatter validation (mandatory post-write gate):** After writing SKILL.md,
