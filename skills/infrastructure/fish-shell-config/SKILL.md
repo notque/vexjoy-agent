@@ -11,6 +11,7 @@ allowed-tools:
   - Edit
 routing:
   category: process
+  not_for: "fishing for bugs (debugging), fishing for feedback (asking for input), 'fish out' as 'extract/find', fish (the animal) — only fires for the Fish shell config"
   triggers:
     - fish
     - fish shell

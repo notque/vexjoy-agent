@@ -12,6 +12,7 @@ allowed-tools:
   - Agent
 routing:
   force_route: true
+  not_for: "installing npm packages, pip packages, OS packages, hardware, third-party tools — only for VexJoy Agent toolkit setup verification"
   triggers:
     - "install toolkit"
     - "verify installation"
