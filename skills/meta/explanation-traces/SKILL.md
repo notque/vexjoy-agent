@@ -19,6 +19,7 @@ routing:
     - "show decisions"
     - "trace log"
   force_route: true
+  not_for: "general 'why did the test fail' debugging, explaining concepts to a user, code documentation, stack traces — only for querying recorded routing/agent decisions"
   pairs_with: []
   complexity: Simple
   category: analysis

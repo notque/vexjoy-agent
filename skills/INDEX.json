@@ -330,6 +330,7 @@
         "check python",
         "pre-commit check"
       ],
+      "not_for": "general Python coding (use python-general-engineer), data analysis scripts, or tutorials \u2014 fires when the user wants ruff/mypy/pytest/bandit quality checks run on existing code",
       "category": "code-quality",
       "force_route": true,
       "user_invocable": false,
@@ -797,6 +798,7 @@
         "make check",
         "Go lint"
       ],
+      "not_for": "'go' as a verb (go ahead, here we go, go-live, let's go), Go (the board game), pidgin/cargo english 'go do X' \u2014 only fires for the Go programming language",
       "category": "language",
       "force_route": true,
       "user_invocable": false,
@@ -1282,6 +1284,7 @@
         ".fish file",
         "#!/usr/bin/env fish"
       ],
+      "not_for": "fishing for bugs (debugging), fishing for feedback (asking for input), 'fish out' as 'extract/find', fish (the animal) \u2014 only fires for the Fish shell config",
       "category": "process",
       "force_route": true,
       "user_invocable": false,
@@ -1412,6 +1415,7 @@
         "agent design",
         "make agent"
       ],
+      "not_for": "creating real estate agents, ML agents, OS agents (e.g. SNMP), travel agents, customer service agents \u2014 only for vexjoy-agent .md operator files",
       "category": "meta",
       "force_route": true,
       "user_invocable": false,
@@ -1499,6 +1503,7 @@
         "show decisions",
         "trace log"
       ],
+      "not_for": "general 'why did the test fail' debugging, explaining concepts to a user, code documentation, stack traces \u2014 only for querying recorded routing/agent decisions",
       "category": "analysis",
       "force_route": true,
       "user_invocable": true,
@@ -1554,6 +1559,7 @@
         "diagnose setup",
         "toolkit health"
       ],
+      "not_for": "installing npm packages, pip packages, OS packages, hardware, third-party tools \u2014 only for VexJoy Agent toolkit setup verification",
       "category": "meta-tooling",
       "force_route": true,
       "user_invocable": true
@@ -1803,6 +1809,7 @@
         "complete feature pipeline",
         "feature pipeline"
       ],
+      "not_for": "small bug fixes (use quick), code reviews, refactoring single files, content writing \u2014 only for new feature work spanning design \u2192 plan \u2192 implement \u2192 validate \u2192 release",
       "category": "process",
       "force_route": true,
       "user_invocable": false,
@@ -1944,6 +1951,7 @@
         "where did I leave off",
         "what's next"
       ],
+      "not_for": "city planning, financial planning, meeting planning, travel itineraries, casual 'planning meeting notes' \u2014 only for software task planning, specs, and plan-lifecycle management",
       "category": "process",
       "force_route": true,
       "user_invocable": true,
@@ -2023,6 +2031,7 @@
         "gpt review",
         "cross-model review"
       ],
+      "not_for": "general disagreement ('push back on a design'), committing to an idea ('commit to this approach'), pushing out the door, push notifications, social media reviews \u2014 only for git push/commit/PR operations",
       "category": "git-workflow",
       "force_route": true,
       "user_invocable": true,

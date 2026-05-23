@@ -11,6 +11,7 @@ routing:
     - agent design
     - make agent
   force_route: true
+  not_for: "creating real estate agents, ML agents, OS agents (e.g. SNMP), travel agents, customer service agents — only for vexjoy-agent .md operator files"
   pairs_with:
     - skill-creator
     - agent-evaluation

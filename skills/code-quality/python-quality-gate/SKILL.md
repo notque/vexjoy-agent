@@ -14,6 +14,7 @@ allowed-tools:
 agent: python-general-engineer
 routing:
   force_route: true
+  not_for: "general Python coding (use python-general-engineer), data analysis scripts, or tutorials — fires when the user wants ruff/mypy/pytest/bandit quality checks run on existing code"
   triggers:
     - "Python quality"
     - "ruff check"

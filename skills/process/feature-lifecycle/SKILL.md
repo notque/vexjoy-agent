@@ -15,6 +15,7 @@ allowed-tools:
   - Task
 routing:
   force_route: true
+  not_for: "small bug fixes (use quick), code reviews, refactoring single files, content writing — only for new feature work spanning design → plan → implement → validate → release"
   triggers:
     - feature design
     - design feature
