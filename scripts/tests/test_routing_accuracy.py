@@ -218,3 +218,73 @@ class TestLLMOnly:
                     f"Script force-routed to {routed!r} but expected {expected_skill!r} "
                     f"(or None) for LLM-only case: {case['request']!r}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# pre-route.py tier — exercises the FAST pre-router used by /do Phase 2 Step 0
+# ---------------------------------------------------------------------------
+
+PRE_ROUTE_SCRIPT = REPO_ROOT / "scripts" / "pre-route.py"
+
+
+def run_pre_route(request: str) -> dict:
+    """Invoke pre-route.py for a request and return parsed JSON output.
+
+    pre-route.py is the FAST pre-router that /do Phase 2 Step 0 calls before
+    dispatching the Haiku routing agent. It returns matched/agent/skill/confidence,
+    not scored candidates.
+
+    Args:
+        request: The user request string to route.
+
+    Returns:
+        Parsed JSON dict from pre-route.py stdout.
+    """
+    result = subprocess.run(
+        ["python3", str(PRE_ROUTE_SCRIPT), "--request", request, "--json-compact"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, f"pre-route.py exited with {result.returncode}: {result.stderr}"
+    return json.loads(result.stdout)
+
+
+class TestPreRoute:
+    """Tests for the pre-route.py fast pre-router (used by /do Phase 2 Step 0).
+
+    pre-route.py is invoked first by /do; if it returns matched=True with high
+    confidence, /do skips the Haiku routing agent. These tests verify the
+    pre-route layer routes correctly for cases where it's the authoritative
+    decision-maker.
+    """
+
+    @pytest.mark.parametrize(
+        "case",
+        _tier_cases("pre_route_only"),
+        ids=_case_id,
+    )
+    def test_pre_route_matches(self, case: dict) -> None:
+        """Assert pre-route.py returns the expected skill or agent for the request.
+
+        Args:
+            case: Test case dict from routing-benchmark.json.
+        """
+        result = run_pre_route(case["request"])
+        expected_skill = case.get("expected_skill")
+        expected_agent = case.get("expected_agent")
+
+        assert result.get("matched") is True, (
+            f"Expected pre-route.py to match {case['request']!r} but got matched=False. "
+            f"Reasoning: {result.get('reasoning')}"
+        )
+
+        if expected_skill is not None:
+            assert result.get("skill") == expected_skill, (
+                f"Expected skill={expected_skill!r}, got {result.get('skill')!r}. Reasoning: {result.get('reasoning')}"
+            )
+
+        if expected_agent is not None:
+            assert result.get("agent") == expected_agent, (
+                f"Expected agent={expected_agent!r}, got {result.get('agent')!r}. Reasoning: {result.get('reasoning')}"
+            )

@@ -40,7 +40,7 @@ INDEX_PATHS = {
 # unrelated to the skill. Keyed by skill name -> set of disqualifying context words.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
-    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "fish-shell-config": {"for", "bug", "bugs", "compliments", "information", "ideas", "answers", "out", "feedback"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change. routing_tier classifies how strictly the router is expected to match: force_route (script must fire correct force_route), candidate (correct answer in top-3), llm_only (no false-positive force-route expected).",
   "test_cases": [
     {
@@ -365,6 +365,172 @@
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
       "notes": "Security threat model \u2014 agent resolved via pairs_with=['python-general-engineer']. Single agent in pairs_with, no agent field on skill."
+    },
+    {
+      "request": "commit to this design and move forward",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Decision/dedication, not git commit \u2014 must NOT route to pr-workflow"
+    },
+    {
+      "request": "fish out the root cause of this bug",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Search/investigate, not Fish shell \u2014 must NOT route to fish-shell-config"
+    },
+    {
+      "request": "give me a quick read on the architecture",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Brief overview, not a quick edit \u2014 must NOT route to quick"
+    },
+    {
+      "request": "go ahead and merge the branches in your head",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Cognitive merge, not git merge \u2014 must NOT route to pr-workflow"
+    },
+    {
+      "request": "review the planning meeting notes",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Reading notes, not code review or planning skill \u2014 must NOT force-route"
+    },
+    {
+      "request": "install the new ergonomic keyboard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Hardware install, not toolkit install skill \u2014 must NOT route to install"
+    },
+    {
+      "request": "we need to scan and remove voice samples from the corpus",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Data cleaning, not voice-writer generation \u2014 must NOT force-route to voice-writer (semantic guard exists)"
+    },
+    {
+      "request": "audit our explanation traces for accuracy",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Audit/review intent, not generating new explanation \u2014 must NOT auto-force to explanation-traces"
+    },
+    {
+      "request": "what's my current branch?",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "trivial-operations",
+      "routing_tier": "llm_only",
+      "notes": "Trivial git status check \u2014 router handles directly, no force-route"
+    },
+    {
+      "request": "compare this approach to the alternative",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "trivial-operations",
+      "routing_tier": "llm_only",
+      "notes": "Opinion/comparison \u2014 NOT trivial, but should not force-route either; LLM judgment needed"
+    },
+    {
+      "request": "evaluate https://example.com/some-blog-post",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "trivial-operations",
+      "routing_tier": "llm_only",
+      "notes": "URL evaluation \u2014 NOT trivial despite looking like a single read; needs Simple+ routing"
+    },
+    {
+      "request": "give me your opinion on this design",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "trivial-operations",
+      "routing_tier": "llm_only",
+      "notes": "Opinion/recommendation \u2014 NOT trivial, must not force-route"
+    },
+    {
+      "request": "create a new hook for the SessionStart event",
+      "expected_agent": "hook-development-engineer",
+      "expected_skill": null,
+      "category": "meta-tooling",
+      "routing_tier": "candidate",
+      "candidate_depth": 5,
+      "notes": "Hook creation \u2014 specialist agent should appear in top-5 candidates (lesson #7 preferred-routes)"
+    },
+    {
+      "request": "scaffold a new agent for Rust development",
+      "expected_agent": null,
+      "expected_skill": "agent-creator",
+      "category": "meta-tooling",
+      "routing_tier": "force_route",
+      "notes": "Agent creation \u2014 force-route to agent-creator skill"
+    },
+    {
+      "request": "I need a new pipeline for video processing",
+      "expected_agent": "pipeline-orchestrator-engineer",
+      "expected_skill": null,
+      "category": "meta-tooling",
+      "routing_tier": "candidate",
+      "candidate_depth": 5,
+      "notes": "Pipeline creation \u2014 pipeline-orchestrator-engineer must be in top-5 (currently top-1, so pass)"
+    },
+    {
+      "request": "go test ./internal/... to check the changes",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "category": "pre-route-confidence",
+      "routing_tier": "force_route",
+      "notes": "Multiple go-patterns triggers (go test, ./...) \u2014 high confidence force-route, lesson #7 hard-gate target"
+    },
+    {
+      "request": "run the goroutine leak check",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "category": "pre-route-confidence",
+      "routing_tier": "force_route",
+      "candidate_depth": 5,
+      "notes": "'goroutine' is a go-patterns trigger \u2014 force-route fires correctly, this exercises Go domain force-routing"
+    },
+    {
+      "request": "create a PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-confidence",
+      "routing_tier": "pre_route_only",
+      "notes": "PR creation \u2014 pre-route.py force-routes via 'create PR' trigger (multi-word). index-router.py candidate scoring normalization makes this hard there.",
+      "candidate_depth": 5
+    },
+    {
+      "request": "push the work to GitHub for review",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-confidence",
+      "routing_tier": "pre_route_only",
+      "notes": "PR push intent \u2014 pre-route.py multi-word trigger 'push changes' or 'push to' should fire. index-router.py candidate normalization disadvantages high-trigger skills.",
+      "candidate_depth": 5
+    },
+    {
+      "request": "do a structured code review on the diff",
+      "expected_agent": null,
+      "expected_skill": "systematic-code-review",
+      "category": "pre-route-confidence",
+      "routing_tier": "candidate",
+      "candidate_depth": 5,
+      "notes": "Code review intent \u2014 systematic-code-review should be in top-5 candidates"
     }
   ]
 }

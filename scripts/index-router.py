@@ -65,7 +65,7 @@ MIN_SCORE_THRESHOLD = 0.1
 # When any guard word appears in the request, the match is discarded.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
-    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "fish-shell-config": {"for", "bug", "bugs", "compliments", "information", "ideas", "answers", "out", "feedback"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 
