@@ -15,6 +15,7 @@ agent: golang-general-engineer
 routing:
   category: language
   force_route: true
+  not_for: "'go' as a verb (go ahead, here we go, go-live, let's go), Go (the board game), pidgin/cargo english 'go do X' — only fires for the Go programming language"
   triggers:
     # testing triggers
     - go test

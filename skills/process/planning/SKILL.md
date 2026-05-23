@@ -20,6 +20,7 @@ allowed-tools:
   - Skill
 routing:
   force_route: true
+  not_for: "city planning, financial planning, meeting planning, travel itineraries, casual 'planning meeting notes' — only for software task planning, specs, and plan-lifecycle management"
   triggers:
     - "write spec"
     - "user stories"
