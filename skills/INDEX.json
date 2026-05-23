@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-23T21:08:58Z",
+  "generated": "2026-05-23T21:14:24Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -431,6 +431,26 @@
         "x-api"
       ]
     },
+    "create-voice": {
+      "file": "skills/content/create-voice/SKILL.md",
+      "description": "Create voice profiles from writing samples.",
+      "triggers": [
+        "create voice",
+        "new voice",
+        "build voice",
+        "voice from samples",
+        "calibrate voice",
+        "voice profile from scratch",
+        "make a voice"
+      ],
+      "category": "content",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-validator",
+        "voice-writer"
+      ]
+    },
     "gemini-image-generator": {
       "file": "skills/content/gemini-image-generator/SKILL.md",
       "description": "Generate images from text prompts via Google Gemini.",
@@ -667,6 +687,68 @@
       ],
       "agent": "python-general-engineer"
     },
+    "voice-validator": {
+      "file": "skills/content/voice-validator/SKILL.md",
+      "description": "Critique-and-rewrite loop for voice fidelity validation.",
+      "triggers": [
+        "validate voice",
+        "check voice fidelity",
+        "voice critique",
+        "voice fidelity",
+        "writing style check"
+      ],
+      "category": "voice",
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-writer",
+        "anti-ai-editor",
+        "joy-check"
+      ]
+    },
+    "voice-writer": {
+      "file": "skills/content/voice-writer/SKILL.md",
+      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
+      "triggers": [
+        "write article",
+        "blog post",
+        "write in voice",
+        "blog post voice",
+        "content pipeline",
+        "publish article",
+        "draft post",
+        "write about",
+        "blog post writer",
+        "/write",
+        "voice pipeline",
+        "voice-writer",
+        "voice writer",
+        "use voice-writer",
+        "use voice writer",
+        "rewrite article",
+        "rewrite this article",
+        "write blog post",
+        "full voice pipeline",
+        "run voice pipeline",
+        "use voice pipeline",
+        "write post",
+        "draft article",
+        "generate content",
+        "article about",
+        "write for blog",
+        "write for website",
+        "write essay",
+        "write piece",
+        "ghost write"
+      ],
+      "category": "voice",
+      "force_route": true,
+      "user_invocable": true,
+      "pairs_with": [
+        "voice-validator",
+        "anti-ai-editor",
+        "joy-check"
+      ]
+    },
     "wordpress-live-validation": {
       "file": "skills/content/wordpress-live-validation/SKILL.md",
       "description": "Validate published WordPress posts in browser via Playwright.",
@@ -711,26 +793,6 @@
         "content-engine"
       ],
       "agent": "python-general-engineer"
-    },
-    "create-voice": {
-      "file": "skills/create-voice/SKILL.md",
-      "description": "Create voice profiles from writing samples.",
-      "triggers": [
-        "create voice",
-        "new voice",
-        "build voice",
-        "voice from samples",
-        "calibrate voice",
-        "voice profile from scratch",
-        "make a voice"
-      ],
-      "category": "content",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-validator",
-        "voice-writer"
-      ]
     },
     "cobalt-core": {
       "file": "skills/engineering/cobalt-core/SKILL.md",
@@ -2561,68 +2623,6 @@
         "test-driven-development",
         "typescript-check",
         "e2e-testing"
-      ]
-    },
-    "voice-validator": {
-      "file": "skills/voice-validator/SKILL.md",
-      "description": "Critique-and-rewrite loop for voice fidelity validation.",
-      "triggers": [
-        "validate voice",
-        "check voice fidelity",
-        "voice critique",
-        "voice fidelity",
-        "writing style check"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor",
-        "joy-check"
-      ]
-    },
-    "voice-writer": {
-      "file": "skills/voice-writer/SKILL.md",
-      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
-      "triggers": [
-        "write article",
-        "blog post",
-        "write in voice",
-        "blog post voice",
-        "content pipeline",
-        "publish article",
-        "draft post",
-        "write about",
-        "blog post writer",
-        "/write",
-        "voice pipeline",
-        "voice-writer",
-        "voice writer",
-        "use voice-writer",
-        "use voice writer",
-        "rewrite article",
-        "rewrite this article",
-        "write blog post",
-        "full voice pipeline",
-        "run voice pipeline",
-        "use voice pipeline",
-        "write post",
-        "draft article",
-        "generate content",
-        "article about",
-        "write for blog",
-        "write for website",
-        "write essay",
-        "write piece",
-        "ghost write"
-      ],
-      "category": "voice",
-      "force_route": true,
-      "user_invocable": true,
-      "pairs_with": [
-        "voice-validator",
-        "anti-ai-editor",
-        "joy-check"
       ]
     },
     "workflow": {

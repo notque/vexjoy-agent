@@ -250,7 +250,7 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
 4. Check paragraph length variation:
    - At least 1 single-sentence paragraph per 500 words
    - At least 1 paragraph of 4+ sentences per 1000 words
-   - Consecutive paragraphs must NOT all be the same length (2-3 sentences each)
+   - Consecutive paragraphs should vary in length (avoid runs of all 2-3 sentence paragraphs)
 5. Calculate variety score: standard deviation of sentence word counts
 6. If variety score < 8.0 words:
    - Inject longer exploratory sentences (complex thoughts, compound structures)
@@ -266,7 +266,7 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
 **Goal**: Verify the article frames its content on the joy side, not the grievance side.
 
 **Steps**:
-1. Invoke `joy-check` skill (`/home/feedgen/.claude/skills/joy-check/SKILL.md`)
+1. Invoke `joy-check` skill
 2. Score the article on the joy-grievance spectrum
 3. Ensure the article:
    - Celebrates problem-solving, not complaining about problems
@@ -300,7 +300,7 @@ or signature patterns), the voice profile wins. The anti-AI editor removes gener
 AI patterns. It does NOT remove patterns that are documented in the voice profile
 as authentic human writing, even if those patterns overlap with common AI tells.
 
-Examples of voice-authentic patterns the anti-AI editor must NOT remove:
+Examples of voice-authentic patterns the anti-AI editor should preserve (do not remove):
 - Repetition-for-emphasis ("X is Y. Z is Y. W is Y." — documented in voice profile samples)
 - "This isn't X" flat dismissals (documented under "Direct Assessment" pattern)
 - Short-then-long sentence pairs (documented structural pattern)
