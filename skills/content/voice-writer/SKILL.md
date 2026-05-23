@@ -205,7 +205,7 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
 **Goal**: Verify the draft matches the voice profile's statistical fingerprint.
 
 **Steps**:
-1. Invoke `voice-validator` skill (`/home/feedgen/.claude/skills/voice-validator/SKILL.md`)
+1. Invoke `voice-validator` skill
 2. Measure actual metrics against Phase 3 targets:
    - Sentence length distribution
    - First-person pronoun density
