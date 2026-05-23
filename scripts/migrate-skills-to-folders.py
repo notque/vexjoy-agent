@@ -53,8 +53,11 @@ SKILL_MAPPING: dict[str, str] = {
     "video-editing": "content",
     "gemini-image-generator": "content",
     "nano-banana-builder": "content",
-    # Private skills (anti-ai-editor, create-voice, interactive-essay, joy-check,
-    # voice-*) live in ~/private-skills, not in this repo. Not mapped here.
+    "create-voice": "content",
+    "voice-writer": "content",
+    "voice-validator": "content",
+    # Private skills (anti-ai-editor, interactive-essay, voice-* persona clones)
+    # live in ~/private-skills, not in this repo. Not mapped here.
     # engineering/ — language-specific patterns + domain engineering
     "enterprise-search": "engineering",
     "go-patterns": "engineering",
