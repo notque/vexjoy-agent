@@ -100,6 +100,10 @@ skills/shared-patterns/voice-first-writing.md
 agents/wrestlejoy-*
 skills/wrestlejoy-*
 skills/voice-*
+!skills/voice-writer/
+!skills/voice-validator/
+!skills/voice-shared/
+!skills/voice-shared-references/
 skills/voice
 skills/gemini-wrestlejoy-*
 
