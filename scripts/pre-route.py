@@ -44,6 +44,14 @@ SEMANTIC_GUARDS: dict[str, set[str]] = {
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 
+# Multi-word disqualifying phrases (substring match in lowered request).
+# Use this when a unigram guard would over-suppress legitimate requests
+# (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
+# reliably means search/extract, not the Fish shell).
+SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
+    "fish-shell-config": {"fish out", "fish for"},
+}
+
 
 @dataclass
 class MatchEntry:
@@ -168,12 +176,27 @@ def _is_semantically_guarded(
 ) -> bool:
     """Check if the match is a false positive due to common English idioms.
 
+    Two layers of suppression:
+    1. SEMANTIC_GUARD_PHRASES (multi-word substring match anywhere in request) —
+       used when a single guard word would over-suppress (e.g. "fish out").
+    2. SEMANTIC_GUARDS (unigram word match in 60-char context window around
+       the trigger) — used for words that are unambiguous in context.
+
     Uses the trigger's compiled regex pattern to locate the match position,
     which correctly handles multi-word triggers with intervening words
     (e.g. "create a PR" matching trigger "create pr").
 
     Returns True if the match should be discarded.
     """
+    # Phrase-level guard: if any disqualifying phrase appears as a whole-word
+    # match anywhere in the request, this is not a domain match. Word-boundary
+    # match prevents "fish for" suppressing "selfish forum" etc.
+    phrase_guards = SEMANTIC_GUARD_PHRASES.get(skill_name)
+    if phrase_guards:
+        for phrase in phrase_guards:
+            if re.search(rf"\b{re.escape(phrase)}\b", request_lower):
+                return True
+
     guards = SEMANTIC_GUARDS.get(skill_name)
     if not guards:
         return False
