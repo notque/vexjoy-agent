@@ -260,11 +260,11 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
     for entry in entries:
         if not entry.force_route:
             continue
-        # Phrase-level guard: skip if request contains a disqualifying phrase
-        # (e.g. "fish out" suppresses fish-shell-config without over-blocking
-        # legitimate "log out" or "check out").
+        # Phrase-level guard: skip if a disqualifying phrase appears as a
+        # whole-word match (e.g. "fish out" suppresses fish-shell-config
+        # without blocking "log out" or substring-matching "selfish forum").
         phrase_guards = SEMANTIC_GUARD_PHRASES.get(entry.name)
-        if phrase_guards and any(phrase in lowered for phrase in phrase_guards):
+        if phrase_guards and any(re.search(rf"\b{re.escape(phrase)}\b", lowered) for phrase in phrase_guards):
             continue
         # Unigram guard: skip if request contains disqualifying context words
         guards = SEMANTIC_GUARDS.get(entry.name)

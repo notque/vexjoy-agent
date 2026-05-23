@@ -188,12 +188,13 @@ def _is_semantically_guarded(
 
     Returns True if the match should be discarded.
     """
-    # Phrase-level guard: if any disqualifying phrase appears anywhere in the
-    # request, this is not a domain match.
+    # Phrase-level guard: if any disqualifying phrase appears as a whole-word
+    # match anywhere in the request, this is not a domain match. Word-boundary
+    # match prevents "fish for" suppressing "selfish forum" etc.
     phrase_guards = SEMANTIC_GUARD_PHRASES.get(skill_name)
     if phrase_guards:
         for phrase in phrase_guards:
-            if phrase in request_lower:
+            if re.search(rf"\b{re.escape(phrase)}\b", request_lower):
                 return True
 
     guards = SEMANTIC_GUARDS.get(skill_name)
