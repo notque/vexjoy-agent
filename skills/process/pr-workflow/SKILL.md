@@ -21,6 +21,7 @@ allowed-tools:
   - AskUserQuestion
 routing:
   force_route: true
+  not_for: "general disagreement ('push back on a design'), committing to an idea ('commit to this approach'), pushing out the door, push notifications, social media reviews — only for git push/commit/PR operations"
   triggers:
     - "push changes"
     - "push my changes"
