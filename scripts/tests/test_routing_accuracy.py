@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -241,7 +242,7 @@ def run_pre_route(request: str) -> dict:
         Parsed JSON dict from pre-route.py stdout.
     """
     result = subprocess.run(
-        ["python3", str(PRE_ROUTE_SCRIPT), "--request", request, "--json-compact"],
+        [sys.executable, str(PRE_ROUTE_SCRIPT), "--request", request, "--json-compact"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -273,6 +274,14 @@ class TestPreRoute:
         result = run_pre_route(case["request"])
         expected_skill = case.get("expected_skill")
         expected_agent = case.get("expected_agent")
+
+        # Every pre_route_only case must declare at least one expectation.
+        # Without this assertion, a fixture with neither expected_skill nor
+        # expected_agent would silently pass on the matched-only check below.
+        assert expected_skill is not None or expected_agent is not None, (
+            f"pre_route_only case {case['request']!r} has neither expected_skill nor expected_agent. "
+            f"Add an expectation or move the case to llm_only tier."
+        )
 
         assert result.get("matched") is True, (
             f"Expected pre-route.py to match {case['request']!r} but got matched=False. "

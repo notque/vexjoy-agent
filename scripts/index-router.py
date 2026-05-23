@@ -65,8 +65,16 @@ MIN_SCORE_THRESHOLD = 0.1
 # When any guard word appears in the request, the match is discarded.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
-    "fish-shell-config": {"for", "bug", "bugs", "compliments", "information", "ideas", "answers", "out", "feedback"},
+    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
+}
+
+# Multi-word disqualifying phrases (substring match in lowered request).
+# Use this when a unigram guard would over-suppress legitimate requests
+# (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
+# reliably means search/extract, not the Fish shell).
+SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
+    "fish-shell-config": {"fish out", "fish for"},
 }
 
 
@@ -252,7 +260,13 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
     for entry in entries:
         if not entry.force_route:
             continue
-        # Semantic guard: skip if request contains disqualifying context words
+        # Phrase-level guard: skip if request contains a disqualifying phrase
+        # (e.g. "fish out" suppresses fish-shell-config without over-blocking
+        # legitimate "log out" or "check out").
+        phrase_guards = SEMANTIC_GUARD_PHRASES.get(entry.name)
+        if phrase_guards and any(phrase in lowered for phrase in phrase_guards):
+            continue
+        # Unigram guard: skip if request contains disqualifying context words
         guards = SEMANTIC_GUARDS.get(entry.name)
         if guards and (request_words & guards):
             continue
