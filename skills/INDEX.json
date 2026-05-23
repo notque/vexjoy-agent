@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-23T20:51:53Z",
+  "generated": "2026-05-23T21:08:58Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -711,6 +711,26 @@
         "content-engine"
       ],
       "agent": "python-general-engineer"
+    },
+    "create-voice": {
+      "file": "skills/create-voice/SKILL.md",
+      "description": "Create voice profiles from writing samples.",
+      "triggers": [
+        "create voice",
+        "new voice",
+        "build voice",
+        "voice from samples",
+        "calibrate voice",
+        "voice profile from scratch",
+        "make a voice"
+      ],
+      "category": "content",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": [
+        "voice-validator",
+        "voice-writer"
+      ]
     },
     "cobalt-core": {
       "file": "skills/engineering/cobalt-core/SKILL.md",
@@ -2543,44 +2563,6 @@
         "e2e-testing"
       ]
     },
-    "workflow": {
-      "file": "skills/workflow/SKILL.md",
-      "description": "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more.",
-      "triggers": [
-        "workflow",
-        "multi-phase task",
-        "structured pipeline",
-        "phased execution",
-        "orchestrated workflow"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
-      "pairs_with": [
-        "planning",
-        "feature-lifecycle",
-        "verification-before-completion"
-      ]
-    },
-    "create-voice": {
-      "file": "skills/create-voice/SKILL.md",
-      "description": "Create voice profiles from writing samples.",
-      "triggers": [
-        "create voice",
-        "new voice",
-        "build voice",
-        "voice from samples",
-        "calibrate voice",
-        "voice profile from scratch",
-        "make a voice"
-      ],
-      "category": "content",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-validator",
-        "voice-writer"
-      ]
-    },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
       "description": "Critique-and-rewrite loop for voice fidelity validation.",
@@ -2611,6 +2593,8 @@
         "publish article",
         "draft post",
         "write about",
+        "blog post writer",
+        "/write",
         "voice pipeline",
         "voice-writer",
         "voice writer",
@@ -2639,6 +2623,24 @@
         "voice-validator",
         "anti-ai-editor",
         "joy-check"
+      ]
+    },
+    "workflow": {
+      "file": "skills/workflow/SKILL.md",
+      "description": "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more.",
+      "triggers": [
+        "workflow",
+        "multi-phase task",
+        "structured pipeline",
+        "phased execution",
+        "orchestrated workflow"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": [
+        "planning",
+        "feature-lifecycle",
+        "verification-before-completion"
       ]
     }
   }
