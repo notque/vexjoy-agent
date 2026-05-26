@@ -531,6 +531,30 @@
       "routing_tier": "candidate",
       "candidate_depth": 5,
       "notes": "Code review intent \u2014 systematic-code-review should be in top-5 candidates"
+    },
+    {
+      "request": "create a skill that does X",
+      "expected_agent": "toolkit-governance-engineer",
+      "expected_skill": "skill-creator",
+      "category": "meta-tooling",
+      "routing_tier": "force_route",
+      "notes": "Skill creation intent \u2014 force-route to skill-creator with toolkit-governance-engineer as executor agent (declared via skill-creator's top-level `agent` field)"
+    },
+    {
+      "request": "scaffold a new skill",
+      "expected_agent": "toolkit-governance-engineer",
+      "expected_skill": "skill-creator",
+      "category": "meta-tooling",
+      "routing_tier": "force_route",
+      "notes": "Scaffold intent \u2014 multiple triggers ('new skill', 'scaffold skill', 'scaffold a skill') yield high-confidence force-route"
+    },
+    {
+      "request": "build a skill for Y",
+      "expected_agent": "toolkit-governance-engineer",
+      "expected_skill": "skill-creator",
+      "category": "meta-tooling",
+      "routing_tier": "force_route",
+      "notes": "Build-a-skill intent \u2014 force-route fires on single trigger 'build a skill' (medium confidence)"
     }
   ]
 }
