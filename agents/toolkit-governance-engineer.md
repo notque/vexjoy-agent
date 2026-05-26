@@ -13,10 +13,16 @@ routing:
     - skill compliance
     - hook standardization
     - cross-component consistency
+    - create skill
+    - new skill
+    - scaffold skill
+    - build a skill
+    - create a skill
   pairs_with:
     - adr-consultation
     - routing-table-updater
     - docs-sync-checker
+    - skill-creator
   complexity: Medium
   category: meta
 allowed-tools:
