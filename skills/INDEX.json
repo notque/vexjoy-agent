@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-23T21:14:24Z",
+  "generated": "2026-05-26T14:30:07Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -1327,6 +1327,23 @@
       "pairs_with": [
         "shell-process-patterns",
         "headless-cron-creator"
+      ]
+    },
+    "cve-source-check": {
+      "file": "skills/infrastructure/cve-source-check/SKILL.md",
+      "description": "Audit CVE/vulnerability source coverage for a technology stack.",
+      "triggers": [
+        "check cve sources",
+        "cve source coverage",
+        "audit cve feeds",
+        "vulnerability source audit",
+        "verify cve sources",
+        "security feed audit"
+      ],
+      "category": "infrastructure",
+      "user_invocable": true,
+      "pairs_with": [
+        "service-health-check"
       ]
     },
     "endpoint-validator": {
