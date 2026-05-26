@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-26T14:30:07Z",
+  "generated": "2026-05-26T14:40:23Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -1757,7 +1757,12 @@
       "description": "Create and iteratively improve skills through eval-driven validation.",
       "triggers": [
         "create skill",
+        "create a skill",
+        "create new skill",
         "new skill",
+        "scaffold skill",
+        "scaffold a skill",
+        "build a skill",
         "skill template",
         "skill design",
         "test skill",
@@ -1766,11 +1771,13 @@
         "skill eval"
       ],
       "category": "meta",
+      "force_route": true,
       "user_invocable": false,
       "pairs_with": [
         "agent-evaluation",
         "verification-before-completion"
-      ]
+      ],
+      "agent": "toolkit-governance-engineer"
     },
     "skill-eval": {
       "file": "skills/meta/skill-eval/SKILL.md",
