@@ -41,6 +41,16 @@ subscription that loaded this skill. There is no separate model call, no
 `ANTHROPIC_API_KEY`, no Agent SDK, and no network request. The "reviewer" is the
 session agent executing the steps below, exactly like every other skill here.
 
+Detection reaches parity with Anthropic's `security-guidance` plugin: the scanner
+ports its 25 deterministic patterns, and the LLM pass applies its full review
+taxonomy (loaded on demand from `references/coverage.md`).
+
+## Reference Loading Table
+
+| Signal | Load | Why |
+|--------|------|-----|
+| Running Phase 3 (LLM-depth review); classifying a finding; needing the vuln taxonomy, severity rubric, FP exclusions, or per-language guidance | `references/coverage.md` | 40 vulnerability classes + 4-tier severity + false-positive exclusions + per-language guidance + the 12 high-miss reviewer classes + the finding output schema. |
+
 ---
 
 ## Instructions
@@ -93,12 +103,21 @@ flow, missing input validation, secrets in non-obvious forms. This is the
 session agent's review of the diff; compose the existing `parallel-code-review`
 **Security** reviewer over the changed files.
 
-**Step 1: Dispatch the Security reviewer** (the Reviewer 1 — Security role from
-`parallel-code-review`) over the changed files via the Task tool. Focus: OWASP
-Top 10, authentication, authorization, input validation, secrets exposure.
-Output: severity-classified findings with `file:line` references.
+**Step 1: Load `references/coverage.md`** — the full review taxonomy (40
+vulnerability classes, the 4-tier severity rubric, the false-positive exclusion
+list, per-language guidance, and the 12 high-miss reviewer classes). Review to
+this taxonomy so the session-agent pass reaches parity with the plugin's reviewer.
+If `claude-security-guidance.md` exists (precedence: `~/.claude/` →
+`<cwd>/.claude/` → `<cwd>/.claude/*.local.md`), read it as ADDITIVE context — it
+may add checks or raise a class's severity, and must not suppress findings.
 
-**Step 2: Merge** the LLM findings with the Phase 2 scanner findings.
+**Step 2: Dispatch the Security reviewer** (the Reviewer 1 — Security role from
+`parallel-code-review`) over the changed files via the Task tool, applying the
+coverage.md taxonomy. Surface medium and above. Output: findings in the
+coverage.md schema (`filePath, category, vulnerableCode, explanation, fix,
+severity`) with `file:line` references.
+
+**Step 3: Merge** the LLM findings with the Phase 2 scanner findings.
 Deduplicate — when both flag the same `file:line`, keep one entry at the higher
 severity. Independent confirmation by both layers raises confidence.
 
@@ -169,6 +188,20 @@ The hook fails open on any internal error — a hook crash never blocks a commit
 
 ---
 
+## Extensibility (custom rules + project guidance)
+
+Both extension points are **additive** and discovered in this precedence order:
+`~/.claude/<name>` → `<cwd>/.claude/<name>` → `<cwd>/.claude/<name>.local.<ext>`.
+
+| File | Effect |
+|------|--------|
+| `security-patterns.{yaml,json}` | Custom regex/substring rules merged into the scanner's built-ins. Shape: `{"patterns": [{"rule_name", "regex"\|"substrings", "severity"?, "paths"?, "exclude_paths"?}]}`. Capped at 50. ReDoS-prone or invalid rules are skipped with a stderr warning (non-fatal). PyYAML is used only if importable — JSON always works (stdlib-only). |
+| `claude-security-guidance.md` | Markdown surfaced to the Phase 3 review as ADDITIVE context. It may add checks or raise a class's severity; it must not suppress findings — if it says to ignore a class, flag the vulnerability anyway and note the conflict. |
+
+Built-in scanner rules always run and cannot be disabled by a config file.
+
+---
+
 ## Error Handling
 
 ### Scanner reports findings but the code is intentional
@@ -194,6 +227,7 @@ the deterministic layer did not run.
 ## References
 
 - Detection rules: `scripts/security-review-scan.py` (single source of truth)
+- Review taxonomy (40 classes + severity + FP filters + language guidance): `references/coverage.md`
 - Security reviewer role: `skills/review/parallel-code-review/SKILL.md` (Reviewer 1)
 - Auto-run hook: `hooks/security-review-hook.py`
 - Design contract: `adr/local-security-review.md`
