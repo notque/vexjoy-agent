@@ -50,6 +50,13 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
+            "description": "Auto-detect Zsh shell users and inject zsh-shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
             "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
             "timeout": 1000,

@@ -86,6 +86,7 @@ SKILL_MAPPING: dict[str, str] = {
     "kubernetes-debugging": "infrastructure",
     "kubernetes-security": "infrastructure",
     "fish-shell-config": "infrastructure",
+    "zsh-shell-config": "infrastructure",
     "shell-process-patterns": "infrastructure",
     "headless-cron-creator": "infrastructure",
     "cron-job-auditor": "infrastructure",

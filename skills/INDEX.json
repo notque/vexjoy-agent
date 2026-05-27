@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-26T14:40:23Z",
+  "generated": "2026-05-26T19:59:45Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -1483,6 +1483,42 @@
         "service-health-check",
         "cron-job-auditor"
       ]
+    },
+    "zsh-shell-config": {
+      "file": "skills/infrastructure/zsh-shell-config/SKILL.md",
+      "description": "Zsh shell configuration, PATH management, completions, and framework setup.",
+      "triggers": [
+        "zsh",
+        "zsh shell",
+        ".zshrc",
+        "zshrc",
+        ".zshenv",
+        "zshenv",
+        ".zprofile",
+        "zprofile",
+        "compinit",
+        "fpath",
+        "autoload -Uz",
+        "oh-my-zsh",
+        "prezto",
+        "zinit",
+        "antigen",
+        "p10k",
+        "powerlevel10k",
+        "setopt",
+        "zsh completion",
+        "zsh function",
+        "zsh plugin",
+        "typeset -U",
+        "zplug",
+        "configure zsh",
+        "zsh config"
+      ],
+      "not_for": "not for non-zsh shells \u2014 only fires for Zsh configuration",
+      "category": "process",
+      "force_route": true,
+      "user_invocable": false,
+      "pairs_with": []
     },
     "agent-comparison": {
       "file": "skills/meta/agent-comparison/SKILL.md",

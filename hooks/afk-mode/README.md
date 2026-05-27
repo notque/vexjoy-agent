@@ -15,7 +15,9 @@ Set the `CLAUDE_AFK_MODE` environment variable:
 CLAUDE_AFK_MODE=never claude
 
 # Disable permanently (add to your shell profile)
-echo 'export CLAUDE_AFK_MODE=never' >> ~/.bashrc
+echo 'export CLAUDE_AFK_MODE=never' >> ~/.zshrc  # zsh
+# Note: zsh users should use ~/.zshrc or ~/.zshenv, not ~/.bashrc
+# bash users: echo 'export CLAUDE_AFK_MODE=never' >> ~/.bashrc
 
 # Auto-detect mode: active on SSH/tmux, inactive on local terminal
 CLAUDE_AFK_MODE=auto claude

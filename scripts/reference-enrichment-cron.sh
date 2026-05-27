@@ -19,7 +19,7 @@
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
 
-# Ensure GitHub CLI auth for PR creation (cron doesn't source .bashrc)
+# Ensure GitHub CLI auth for PR creation (cron doesn't source .bashrc/.zshrc)
 if [ -z "${GH_TOKEN:-}" ]; then
     export GH_TOKEN=$(python3 -c "
 import subprocess
