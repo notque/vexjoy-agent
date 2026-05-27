@@ -123,28 +123,13 @@ If ANY creation signal found AND complexity Simple+: set `is_creation = true`, P
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill via a single Haiku routing agent. FORCE-labeled entries are preferred when intent matches semantically (not keyword-based).
+**Goal**: Select the correct agent + skill. Semantic intent routing (Haiku) is primary; the deterministic pre-router is a safety-net, not a short-circuit. FORCE-labeled entries are preferred when intent matches semantically (not keyword-based).
 
-**Step 0: Deterministic pre-routing**
+**Contract: read for INTENT first.** A model reads what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing must route as well as jargon ("send my commits to the server" routes like "git push"). Cost: ~+0.1 Haiku calls/request vs the old keyword short-circuit — measured, deliberately accepted (see `references/semantic-first-ab-results.md`).
 
-Run the deterministic pre-router first:
-```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
-python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
-```
+**Step 0: Semantic intent routing (PRIMARY)**
 
-If the result has `"matched": true` and `"confidence": "high"`:
-- Use the returned `agent` and `skill` directly
-- Skip the Haiku routing agent entirely
-- Record `match_type` in routing decision tags
-
-If `"matched": false` or `"confidence"` is "low"/"medium":
-- Proceed to Step 1 (Haiku routing) as normal
-- The pre-router result is informational only
-
-**Step 1: Dispatch Haiku routing agent**
-
-Generate the manifest, then dispatch:
+Generate the manifest, then dispatch the Haiku routing agent. Its decision is the primary route.
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
@@ -184,17 +169,30 @@ Rules:
 - If the request implies a task verb (review, debug, refactor, test), prefer skills that match that verb.
 - If nothing matches well, return all nulls with reasoning.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
-- For git operations (push, commit, PR, merge), ALWAYS select pr-workflow skill — these need quality gates.
+- For GENUINE git / version-control operations — actually pushing code, committing files to a repository, or opening/merging a pull request — ALWAYS select pr-workflow. Do NOT route metaphorical or non-version-control uses of these words (e.g. 'commit to a decision/plan', 'merge ideas in your head', 'push back on a proposal') to pr-workflow.
 - Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
 
-**Step 1b: Apply the Haiku agent's recommendation**
+**Step 0b: Apply the Haiku agent's recommendation**
 
 Use `agent` and `skill` fields directly. If `confidence` is "low", verify against INDEX files and `INDEX files`. Haiku response is internal — never print to user.
 
-**Critical**: "push", "commit", "create PR", "merge" MUST route through skills with quality gates (lint, tests, CI verification).
-
 Route to the simplest agent+skill that satisfies the request. When `[cross-repo]` output is present, route to `.claude/agents/` local agents. Route all code modifications to domain agents.
+
+**Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
+
+Run the pre-router and use its result ONLY as a guardrail over the semantic pick:
+
+```bash
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
+python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
+```
+
+- **(a) Safety-critical force-route override.** If pre-route returns `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill, and the semantic pick disagrees, override to the force-route. Git and security work MUST hit quality gates. Record `match_type` in routing decision tags.
+- **(b) Guards stay active.** Its phrase/unigram guards continue to suppress false matches (e.g. "fish out", metaphorical commit/merge). A guarded request stays with the semantic decision.
+- Otherwise the semantic decision from Step 0 stands. The pre-router no longer overrides a good semantic pick on the long tail.
+
+**Critical**: genuine "push", "commit", "create PR", "merge" MUST route through skills with quality gates (lint, tests, CI verification) — enforced by the safety-net override above.
 
 **Step 2: Apply skill override** (task verb overrides default skill)
 

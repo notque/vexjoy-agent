@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User asks about PR CI status; pr-workflow is FORCE-routed for all git operations including PR checks and has explicit 'pr status' trigger phrase.", "confidence": "high"}

@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User intent is to push commits to remote; FORCE-ROUTE rule mandates pr-workflow for git operations including push", "confidence": "high"}

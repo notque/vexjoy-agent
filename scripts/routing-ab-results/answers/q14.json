@@ -1,0 +1,1 @@
+{"agent": "testing-automation-engineer", "skill": "test-driven-development", "pipeline": null, "reasoning": "User wants to write tests for a Python parser to prove correctness; test-driven-development is the FORCE-marked skill for RED-GREEN-REFACTOR test writing cycles.", "confidence": "high"}
