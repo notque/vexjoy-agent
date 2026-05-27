@@ -30,6 +30,7 @@ Output schema (extended from pptx-generator's slide-map):
 Usage:
     python3 extract_slides.py --input deck.html --output slides.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -38,7 +39,7 @@ import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
-
+from typing import ClassVar
 
 # ---------------------------------------------------------------------------
 # Stdlib HTML walker -> tree of dicts
@@ -48,7 +49,7 @@ from pathlib import Path
 class _DOMBuilder(HTMLParser):
     """Build a lightweight tree of {tag, attrs, children, text} dicts."""
 
-    VOID = {"br", "hr", "img", "meta", "link", "input"}
+    VOID: ClassVar[set[str]] = {"br", "hr", "img", "meta", "link", "input"}
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -216,7 +217,7 @@ def _extract_bullets(section: dict) -> list[dict]:
             bold_prefix = _text(strong)
             full = _text(li)
             # Tail = everything after the strong text.
-            tail = full[len(bold_prefix):].lstrip(" -—:")
+            tail = full[len(bold_prefix) :].lstrip(" -—:")
             out.append({"text": tail, "bold_prefix": bold_prefix})
         else:
             out.append({"text": _text(li), "bold_prefix": ""})
@@ -229,32 +230,38 @@ def _extract_metrics(section: dict) -> list[dict]:
         return []
     out = []
     for m in _find_all(grid, cls="metric"):
-        out.append({
-            "value": _text(_find(m, cls="metric-value")),
-            "label": _text(_find(m, cls="metric-label")),
-            "desc":  _text(_find(m, cls="metric-desc")),
-        })
+        out.append(
+            {
+                "value": _text(_find(m, cls="metric-value")),
+                "label": _text(_find(m, cls="metric-label")),
+                "desc": _text(_find(m, cls="metric-desc")),
+            }
+        )
     return out
 
 
 def _extract_layers(section: dict) -> list[dict]:
     out = []
     for row in _find_all(section, cls="layer-row"):
-        out.append({
-            "name":  _text(_find(row, cls="layer-name")),
-            "count": _text(_find(row, cls="layer-count")),
-            "desc":  _text(_find(row, cls="layer-desc")),
-        })
+        out.append(
+            {
+                "name": _text(_find(row, cls="layer-name")),
+                "count": _text(_find(row, cls="layer-count")),
+                "desc": _text(_find(row, cls="layer-desc")),
+            }
+        )
     return out
 
 
 def _extract_pipeline(section: dict) -> list[dict]:
     out = []
     for step in _find_all(section, cls="pipeline-step"):
-        out.append({
-            "label": _text(_find(step, cls="step-label")),
-            "name":  _text(_find(step, cls="step-name")),
-        })
+        out.append(
+            {
+                "label": _text(_find(step, cls="step-label")),
+                "name": _text(_find(step, cls="step-name")),
+            }
+        )
     return out
 
 
@@ -303,10 +310,12 @@ def _extract_outcomes(section: dict) -> list[dict]:
         return []
     out = []
     for card in _find_all(grid, cls="outcome"):
-        out.append({
-            "heading": _text(_find(card, tag="h3")),
-            "body":    _text(_find(card, tag="p")),
-        })
+        out.append(
+            {
+                "heading": _text(_find(card, tag="h3")),
+                "body": _text(_find(card, tag="p")),
+            }
+        )
     return out
 
 
@@ -320,16 +329,18 @@ def _extract_split(section: dict) -> dict:
     rows = []
     if right:
         for r in _find_all(right, cls="cli-row"):
-            rows.append({
-                "name":    _text(_find(r, cls="cli-name")),
-                "trigger": _text(_find(r, cls="cli-trigger")),
-            })
+            rows.append(
+                {
+                    "name": _text(_find(r, cls="cli-name")),
+                    "trigger": _text(_find(r, cls="cli-trigger")),
+                }
+            )
     return {
         "left": {
-            "eyebrow":  _text(_find(left, cls="eyebrow-h2")) if left else "",
-            "title":    _text(_find(left, tag="h2"))      if left else "",
-            "lead":     _text(_find(left, tag="p"))       if left else "",
-            "callout":  _text(_find(left, cls="callout")) if left else "",
+            "eyebrow": _text(_find(left, cls="eyebrow-h2")) if left else "",
+            "title": _text(_find(left, tag="h2")) if left else "",
+            "lead": _text(_find(left, tag="p")) if left else "",
+            "callout": _text(_find(left, cls="callout")) if left else "",
         },
         "rows": rows,
     }
@@ -349,11 +360,11 @@ def extract_slides(html: str) -> list[dict]:
         layout = detect_layout(section)
         slide: dict = {
             "type": layout,
-            "eyebrow":  _extract_eyebrow(section),
-            "title":    _extract_title(section),
+            "eyebrow": _extract_eyebrow(section),
+            "title": _extract_title(section),
             "subtitle": _extract_subtitle(section),
-            "lead":     _extract_lead(section),
-            "callout":  _extract_callout(section),
+            "lead": _extract_lead(section),
+            "callout": _extract_callout(section),
         }
         if layout == "content":
             slide["bullets"] = _extract_bullets(section)
@@ -387,7 +398,7 @@ def extract_slides(html: str) -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser(description="Extract slide map from html-artifact deck HTML.")
-    ap.add_argument("--input",  required=True, help="Input HTML deck file")
+    ap.add_argument("--input", required=True, help="Input HTML deck file")
     ap.add_argument("--output", required=True, help="Output JSON slide-map path")
     args = ap.parse_args()
 

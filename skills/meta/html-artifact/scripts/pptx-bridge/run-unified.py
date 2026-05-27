@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
-"""Unified deck pipeline entry point (Phase 1 prototype).
+"""Unified deck pipeline entry point.
 
 Single-command CLI that runs:
     HTML deck  ->  slide-map JSON  ->  .pptx (and optional QA PNGs)
 
 Usage:
     python3 run-unified.py --input deck.html --format pptx --out ./out/
+    python3 run-unified.py --input deck.html --format pptx --out deck.pptx
 
-Format support in Phase 1:
+`--out` accepts either a directory (sibling artifacts written next to the
+.pptx) or a `.pptx` file path (single-file mode; no sibling JSON/report).
+
+Format support:
     pptx  -> implemented (this script)
-    pdf   -> NOT WIRED (would require LibreOffice headless conversion)
+    pdf   -> NOT WIRED here; use scripts/to-pdf.py for HTML->PDF.
 
 Exit codes:
     0  ok
     2  bad input / missing tool
     3  conversion failure
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,13 +31,11 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LIB = HERE / "lib"
-sys.path.insert(0, str(LIB))
+sys.path.insert(0, str(HERE))
 
-# Local imports from lib/
-import extract_slides  # noqa: E402
-import _pptx_engine as pptx_engine  # noqa: E402
-
+# Local imports from this directory
+import _pptx_engine as pptx_engine
+import extract_slides
 
 # ---------------------------------------------------------------------------
 # Steps
@@ -153,9 +156,11 @@ def step_report(
     supported = set(getattr(pptx_engine, "SUPPORTED_LAYOUTS", set()))
     if not supported:  # pragma: no cover - belt-and-suspenders
         supported = {"title", "content", "closing"}
+
     # Normalize extractor types the same way the engine does before lookup.
     def _norm(t: str) -> str:
         return str(t).lower().strip().replace("-", "_").replace(" ", "_")
+
     fallback_types = [t for t in type_counts if _norm(t) not in supported]
     fallback_slides = sum(type_counts[t] for t in fallback_types)
     add_axis(
@@ -250,15 +255,15 @@ def step_report(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Unified deck pipeline (Phase 1 prototype)")
+    parser = argparse.ArgumentParser(description="Unified deck pipeline (HTML -> PPTX)")
     parser.add_argument("--input", required=True, help="HTML deck file")
     parser.add_argument(
         "--format",
         choices=["pptx", "pdf"],
         default="pptx",
-        help="Output format (pdf NOT wired in V1)",
+        help="Output format (pdf NOT wired here; use to-pdf.py)",
     )
-    parser.add_argument("--out", required=True, help="Output directory")
+    parser.add_argument("--out", required=True, help="Output directory or .pptx file path")
     parser.add_argument(
         "--no-render",
         action="store_true",
@@ -267,7 +272,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.format == "pdf":
-        print("FAIL: --format pdf is not wired in Phase 1 prototype", file=sys.stderr)
+        print("FAIL: --format pdf is not wired here; use scripts/to-pdf.py", file=sys.stderr)
         return 2
 
     html_path = Path(args.input).resolve()
@@ -275,12 +280,21 @@ def main() -> int:
         print(f"FAIL: input HTML not found: {html_path}", file=sys.stderr)
         return 2
 
-    out_dir = Path(args.out).resolve()
+    out_arg = Path(args.out).resolve()
+    # Single-file mode: --out points at a .pptx (parent dir is the working dir).
+    # Directory mode: --out is (or will become) a directory; sibling artifacts
+    # land next to the .pptx.
+    if out_arg.suffix.lower() == ".pptx":
+        out_dir = out_arg.parent
+        pptx_path = out_arg
+        single_file_mode = True
+    else:
+        out_dir = out_arg
+        pptx_path = out_dir / (html_path.stem + ".pptx")
+        single_file_mode = False
     out_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = out_dir / "slides.json"
-    pptx_name = html_path.stem + ".pptx"
-    pptx_path = out_dir / pptx_name
     report_path = out_dir / "report.md"
     render_dir = out_dir / "render"
 
@@ -312,8 +326,9 @@ def main() -> int:
         f"({result['slide_count']} slides, {result['text_frames']} text frames, "
         f"fidelity ~{result['fidelity_10']}/10)"
     )
-    print(f"  report: {report_path}")
-    print(f"  json:   {json_path}")
+    if not single_file_mode:
+        print(f"  report: {report_path}")
+        print(f"  json:   {json_path}")
     return 0
 
 

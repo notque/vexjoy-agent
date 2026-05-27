@@ -38,21 +38,18 @@ except ImportError:
 # ---------------------------------------------------------------------------
 THEME = {
     # Backgrounds
-    "bg":        RGBColor(0x1A, 0x1A, 0x2E),  # slide background
-    "card_bg":   RGBColor(0x23, 0x23, 0x40),  # surface / card
-    "code_bg":   RGBColor(0x16, 0x16, 0x2A),  # code panel
-    "border":    RGBColor(0x3A, 0x3A, 0x5C),
-
+    "bg": RGBColor(0x1A, 0x1A, 0x2E),  # slide background
+    "card_bg": RGBColor(0x23, 0x23, 0x40),  # surface / card
+    "code_bg": RGBColor(0x16, 0x16, 0x2A),  # code panel
+    "border": RGBColor(0x3A, 0x3A, 0x5C),
     # Text
-    "fg":        RGBColor(0xE8, 0xE8, 0xF0),  # primary text (off-white)
-    "fg_sec":    RGBColor(0xA0, 0xA0, 0xB8),  # secondary
-    "muted":     RGBColor(0x6E, 0x6E, 0x8A),  # muted / eyebrow
-
+    "fg": RGBColor(0xE8, 0xE8, 0xF0),  # primary text (off-white)
+    "fg_sec": RGBColor(0xA0, 0xA0, 0xB8),  # secondary
+    "muted": RGBColor(0x6E, 0x6E, 0x8A),  # muted / eyebrow
     # Accents
-    "accent":    RGBColor(0x64, 0xB5, 0xF6),  # sky blue (brand)
-    "success":   RGBColor(0x81, 0xC7, 0x84),  # softer green for dark bg
-    "danger":    RGBColor(0xEF, 0x53, 0x50),  # red
-
+    "accent": RGBColor(0x64, 0xB5, 0xF6),  # sky blue (brand)
+    "success": RGBColor(0x81, 0xC7, 0x84),  # softer green for dark bg
+    "danger": RGBColor(0xEF, 0x53, 0x50),  # red
     # Fonts (chained fallbacks aren't supported by python-pptx in a single
     # field; PowerPoint 2023+ ships Aptos and Cascadia Code by default. If
     # absent, PowerPoint falls back to its own substitution table — which
@@ -157,13 +154,27 @@ def add_eyebrow_and_title(slide, eyebrow: str, title: str, *, title_size: int = 
     """Standard top-of-slide pattern: eyebrow label + bold title."""
     if eyebrow:
         add_text(
-            slide, Inches(0.6), Inches(0.5), Inches(12), Inches(0.4),
-            eyebrow.upper(), size=12, bold=True, color=THEME["accent"],
+            slide,
+            Inches(0.6),
+            Inches(0.5),
+            Inches(12),
+            Inches(0.4),
+            eyebrow.upper(),
+            size=12,
+            bold=True,
+            color=THEME["accent"],
         )
     if title:
         add_text(
-            slide, Inches(0.6), Inches(1.0), Inches(12), Inches(1.0),
-            title, size=title_size, bold=True, color=THEME["fg"],
+            slide,
+            Inches(0.6),
+            Inches(1.0),
+            Inches(12),
+            Inches(1.0),
+            title,
+            size=title_size,
+            bold=True,
+            color=THEME["fg"],
         )
 
 
@@ -186,18 +197,40 @@ def build_title(prs, slide_data, _palette=None):
 
     if eyebrow:
         add_text(
-            s, Inches(0.5), Inches(0.5), Inches(12.3), Inches(0.5),
-            eyebrow.upper(), size=14, bold=True, color=THEME["accent"],
+            s,
+            Inches(0.5),
+            Inches(0.5),
+            Inches(12.3),
+            Inches(0.5),
+            eyebrow.upper(),
+            size=14,
+            bold=True,
+            color=THEME["accent"],
             align=PP_ALIGN.CENTER,
         )
     add_text(
-        s, Inches(0.5), Inches(2.8), Inches(12.3), Inches(1.5),
-        title, size=56, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER,
+        s,
+        Inches(0.5),
+        Inches(2.8),
+        Inches(12.3),
+        Inches(1.5),
+        title,
+        size=56,
+        bold=True,
+        color=THEME["fg"],
+        align=PP_ALIGN.CENTER,
     )
     if subtitle:
         add_text(
-            s, Inches(0.5), Inches(4.6), Inches(12.3), Inches(2.0),
-            subtitle, size=22, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+            s,
+            Inches(0.5),
+            Inches(4.6),
+            Inches(12.3),
+            Inches(2.0),
+            subtitle,
+            size=22,
+            color=THEME["fg_sec"],
+            align=PP_ALIGN.CENTER,
         )
     return s
 
@@ -216,8 +249,14 @@ def build_content(prs, slide_data, _palette=None):
     y = 2.3
     if lead:
         add_text(
-            s, Inches(0.6), Inches(y), Inches(12.0), Inches(2.5),
-            lead, size=18, color=THEME["fg_sec"],
+            s,
+            Inches(0.6),
+            Inches(y),
+            Inches(12.0),
+            Inches(2.5),
+            lead,
+            size=18,
+            color=THEME["fg_sec"],
         )
         # Approx height per ~110 chars ≈ 0.45in
         y += max(1.0, 0.45 * (len(lead) // 110 + 1))
@@ -258,12 +297,24 @@ def build_content(prs, slide_data, _palette=None):
     if callout:
         cy = max(y + 0.2, 5.6)
         add_rect(
-            s, Inches(0.6), Inches(cy), Inches(12.2), Inches(1.4),
-            fill_color=THEME["card_bg"], line_color=THEME["accent"],
+            s,
+            Inches(0.6),
+            Inches(cy),
+            Inches(12.2),
+            Inches(1.4),
+            fill_color=THEME["card_bg"],
+            line_color=THEME["accent"],
         )
         add_text(
-            s, Inches(0.85), Inches(cy + 0.2), Inches(11.7), Inches(1.0),
-            callout, size=14, italic=True, color=THEME["fg"],
+            s,
+            Inches(0.85),
+            Inches(cy + 0.2),
+            Inches(11.7),
+            Inches(1.0),
+            callout,
+            size=14,
+            italic=True,
+            color=THEME["fg"],
         )
     return s
 
@@ -271,19 +322,38 @@ def build_content(prs, slide_data, _palette=None):
 def build_section_divider(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_text(
-        s, Inches(0.6), Inches(0.5), Inches(12), Inches(0.5),
+        s,
+        Inches(0.6),
+        Inches(0.5),
+        Inches(12),
+        Inches(0.5),
         slide_data.get("eyebrow", "SECTION").upper(),
-        size=14, bold=True, color=THEME["accent"],
+        size=14,
+        bold=True,
+        color=THEME["accent"],
     )
     add_text(
-        s, Inches(1.0), Inches(2.8), Inches(11.3), Inches(2.0),
-        slide_data.get("title", ""), size=44, bold=True,
-        color=THEME["fg"], align=PP_ALIGN.LEFT,
+        s,
+        Inches(1.0),
+        Inches(2.8),
+        Inches(11.3),
+        Inches(2.0),
+        slide_data.get("title", ""),
+        size=44,
+        bold=True,
+        color=THEME["fg"],
+        align=PP_ALIGN.LEFT,
     )
     if slide_data.get("subtitle"):
         add_text(
-            s, Inches(1.0), Inches(4.8), Inches(11.3), Inches(1.5),
-            slide_data.get("subtitle", ""), size=20, color=THEME["fg_sec"],
+            s,
+            Inches(1.0),
+            Inches(4.8),
+            Inches(11.3),
+            Inches(1.5),
+            slide_data.get("subtitle", ""),
+            size=20,
+            color=THEME["fg_sec"],
         )
     return s
 
@@ -291,7 +361,9 @@ def build_section_divider(prs, slide_data, _palette=None):
 def build_metric_grid(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
 
     metrics = slide_data.get("metrics", [])
@@ -310,24 +382,54 @@ def build_metric_grid(prs, slide_data, _palette=None):
         x = left0 + i * (card_w + gap)
         add_rect(s, x, top0, card_w, card_h)
         add_text(
-            s, x, top0 + Inches(0.4), card_w, Inches(1.0), val,
-            size=48, bold=True, color=THEME["accent"], align=PP_ALIGN.CENTER,
+            s,
+            x,
+            top0 + Inches(0.4),
+            card_w,
+            Inches(1.0),
+            val,
+            size=48,
+            bold=True,
+            color=THEME["accent"],
+            align=PP_ALIGN.CENTER,
         )
         add_text(
-            s, x, top0 + Inches(1.4), card_w, Inches(0.4), lab,
-            size=14, bold=True, color=THEME["muted"], align=PP_ALIGN.CENTER,
+            s,
+            x,
+            top0 + Inches(1.4),
+            card_w,
+            Inches(0.4),
+            lab,
+            size=14,
+            bold=True,
+            color=THEME["muted"],
+            align=PP_ALIGN.CENTER,
         )
         if desc:
             add_text(
-                s, x, top0 + Inches(1.85), card_w, Inches(0.5), desc,
-                size=12, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+                s,
+                x,
+                top0 + Inches(1.85),
+                card_w,
+                Inches(0.5),
+                desc,
+                size=12,
+                color=THEME["fg_sec"],
+                align=PP_ALIGN.CENTER,
             )
 
     callout = slide_data.get("callout", "")
     if callout:
         add_text(
-            s, Inches(0.6), Inches(5.6), Inches(12), Inches(1.5),
-            callout, size=14, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+            s,
+            Inches(0.6),
+            Inches(5.6),
+            Inches(12),
+            Inches(1.5),
+            callout,
+            size=14,
+            color=THEME["fg_sec"],
+            align=PP_ALIGN.CENTER,
         )
     return s
 
@@ -335,7 +437,9 @@ def build_metric_grid(prs, slide_data, _palette=None):
 def build_layer_rows(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
     layers = slide_data.get("layers", [])
     y = Inches(2.4)
@@ -344,12 +448,19 @@ def build_layer_rows(prs, slide_data, _palette=None):
         count = layer.get("count", "")
         desc = layer.get("desc", "")
         add_rect(s, Inches(0.6), y, Inches(12.2), Inches(0.95))
-        add_text(s, Inches(0.9), y + Inches(0.25), Inches(2), Inches(0.5),
-                 name, size=22, bold=True, color=THEME["fg"])
-        add_text(s, Inches(3.0), y + Inches(0.25), Inches(1.2), Inches(0.5),
-                 str(count), size=22, bold=True, color=THEME["accent"])
-        add_text(s, Inches(4.5), y + Inches(0.3), Inches(8.2), Inches(0.5),
-                 desc, size=14, color=THEME["fg_sec"])
+        add_text(s, Inches(0.9), y + Inches(0.25), Inches(2), Inches(0.5), name, size=22, bold=True, color=THEME["fg"])
+        add_text(
+            s,
+            Inches(3.0),
+            y + Inches(0.25),
+            Inches(1.2),
+            Inches(0.5),
+            str(count),
+            size=22,
+            bold=True,
+            color=THEME["accent"],
+        )
+        add_text(s, Inches(4.5), y + Inches(0.3), Inches(8.2), Inches(0.5), desc, size=14, color=THEME["fg_sec"])
         y += Inches(1.05)
     return s
 
@@ -357,7 +468,9 @@ def build_layer_rows(prs, slide_data, _palette=None):
 def build_pipeline(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
     steps = slide_data.get("pipeline_steps", [])
     n = max(1, len(steps))
@@ -372,27 +485,44 @@ def build_pipeline(prs, slide_data, _palette=None):
         name = step.get("name", "")
         x = sl + i * (sw + sgap)
         add_rect(s, x, sy, sw, sh, line_color=THEME["accent"])
-        add_text(s, x, sy + Inches(0.15), sw, Inches(0.4),
-                 label, size=12, bold=True, color=THEME["muted"], align=PP_ALIGN.CENTER)
-        add_text(s, x, sy + Inches(0.55), sw, Inches(0.5),
-                 name, size=18, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER)
+        add_text(
+            s,
+            x,
+            sy + Inches(0.15),
+            sw,
+            Inches(0.4),
+            label,
+            size=12,
+            bold=True,
+            color=THEME["muted"],
+            align=PP_ALIGN.CENTER,
+        )
+        add_text(
+            s, x, sy + Inches(0.55), sw, Inches(0.5), name, size=18, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER
+        )
 
     caption = slide_data.get("pipeline_caption", "") or slide_data.get("callout", "")
     if caption:
-        add_text(s, Inches(0.6), Inches(5.0), Inches(12), Inches(1.8),
-                 caption, size=16, color=THEME["fg_sec"])
+        add_text(s, Inches(0.6), Inches(5.0), Inches(12), Inches(1.8), caption, size=16, color=THEME["fg_sec"])
     return s
 
 
 def build_code_block(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
     code = slide_data.get("code", "")
     add_rect(
-        s, Inches(0.8), Inches(2.3), Inches(11.7), Inches(4.6),
-        fill_color=THEME["code_bg"], line_color=THEME["border"],
+        s,
+        Inches(0.8),
+        Inches(2.3),
+        Inches(11.7),
+        Inches(4.6),
+        fill_color=THEME["code_bg"],
+        line_color=THEME["border"],
     )
     tb = s.shapes.add_textbox(Inches(1.0), Inches(2.5), Inches(11.3), Inches(4.2))
     tf = tb.text_frame
@@ -440,13 +570,14 @@ def _cell_role(cell) -> str:
 def build_compare_table_2col(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
 
     intro = slide_data.get("intro", "")
     if intro:
-        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6),
-                 intro, size=16, color=THEME["fg_sec"])
+        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6), intro, size=16, color=THEME["fg_sec"])
 
     tbl = slide_data.get("table", {})
     headers = tbl.get("headers", [])
@@ -456,10 +587,8 @@ def build_compare_table_2col(prs, slide_data, _palette=None):
 
     # Header row
     if len(headers) >= 2:
-        add_text(s, Inches(0.7), ty, Inches(5.5), rh,
-                 headers[0], size=14, bold=True, color=THEME["muted"])
-        add_text(s, Inches(6.5), ty, Inches(6.3), rh,
-                 headers[1], size=14, bold=True, color=THEME["muted"])
+        add_text(s, Inches(0.7), ty, Inches(5.5), rh, headers[0], size=14, bold=True, color=THEME["muted"])
+        add_text(s, Inches(6.5), ty, Inches(6.3), rh, headers[1], size=14, bold=True, color=THEME["muted"])
         ty += Inches(0.65)
 
     for row in rows:
@@ -469,10 +598,8 @@ def build_compare_table_2col(prs, slide_data, _palette=None):
         r_text = _cell_text(row[1])
         l_color = _row_color(_cell_role(row[0]))
         r_color = _row_color(_cell_role(row[1]))
-        add_text(s, Inches(0.7), ty, Inches(5.5), rh,
-                 l_text, size=14, color=l_color)
-        add_text(s, Inches(6.5), ty, Inches(6.3), rh,
-                 r_text, size=14, color=r_color)
+        add_text(s, Inches(0.7), ty, Inches(5.5), rh, l_text, size=14, color=l_color)
+        add_text(s, Inches(6.5), ty, Inches(6.3), rh, r_text, size=14, color=r_color)
         ty += Inches(0.65)
     return s
 
@@ -480,13 +607,15 @@ def build_compare_table_2col(prs, slide_data, _palette=None):
 def build_compare_table_3col(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""), title_size=26,
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
+        title_size=26,
     )
 
     intro = slide_data.get("intro", "")
     if intro:
-        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6),
-                 intro, size=14, color=THEME["fg_sec"])
+        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6), intro, size=14, color=THEME["fg_sec"])
 
     tbl = slide_data.get("table", {})
     headers = tbl.get("headers", [])
@@ -494,26 +623,44 @@ def build_compare_table_3col(prs, slide_data, _palette=None):
     ty = Inches(2.4) if not intro else Inches(2.7)
 
     if len(headers) >= 3:
-        add_text(s, Inches(0.7), ty, Inches(4.0), Inches(0.5),
-                 headers[0], size=13, bold=True, color=THEME["muted"])
-        add_text(s, Inches(4.9), ty, Inches(4.0), Inches(0.5),
-                 headers[1], size=13, bold=True, color=THEME["muted"])
-        add_text(s, Inches(9.1), ty, Inches(4.0), Inches(0.5),
-                 headers[2], size=13, bold=True, color=THEME["muted"])
+        add_text(s, Inches(0.7), ty, Inches(4.0), Inches(0.5), headers[0], size=13, bold=True, color=THEME["muted"])
+        add_text(s, Inches(4.9), ty, Inches(4.0), Inches(0.5), headers[1], size=13, bold=True, color=THEME["muted"])
+        add_text(s, Inches(9.1), ty, Inches(4.0), Inches(0.5), headers[2], size=13, bold=True, color=THEME["muted"])
         ty += Inches(0.7)
 
     for row in rows:
         if len(row) < 3:
             continue
-        add_text(s, Inches(0.7), ty, Inches(4.0), Inches(0.5),
-                 _cell_text(row[0]), size=13,
-                 color=_row_color(_cell_role(row[0]) or "label"))
-        add_text(s, Inches(4.9), ty, Inches(4.0), Inches(0.5),
-                 _cell_text(row[1]), size=13,
-                 color=_row_color(_cell_role(row[1]) or "danger"))
-        add_text(s, Inches(9.1), ty, Inches(4.0), Inches(0.5),
-                 _cell_text(row[2]), size=13,
-                 color=_row_color(_cell_role(row[2]) or "success"))
+        add_text(
+            s,
+            Inches(0.7),
+            ty,
+            Inches(4.0),
+            Inches(0.5),
+            _cell_text(row[0]),
+            size=13,
+            color=_row_color(_cell_role(row[0]) or "label"),
+        )
+        add_text(
+            s,
+            Inches(4.9),
+            ty,
+            Inches(4.0),
+            Inches(0.5),
+            _cell_text(row[1]),
+            size=13,
+            color=_row_color(_cell_role(row[1]) or "danger"),
+        )
+        add_text(
+            s,
+            Inches(9.1),
+            ty,
+            Inches(4.0),
+            Inches(0.5),
+            _cell_text(row[2]),
+            size=13,
+            color=_row_color(_cell_role(row[2]) or "success"),
+        )
         ty += Inches(0.7)
     return s
 
@@ -521,7 +668,9 @@ def build_compare_table_3col(prs, slide_data, _palette=None):
 def build_outcome_grid(prs, slide_data, _palette=None):
     s = _new_slide(prs)
     add_eyebrow_and_title(
-        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+        s,
+        slide_data.get("eyebrow", ""),
+        slide_data.get("title", ""),
     )
     outcomes = slide_data.get("outcomes", [])
     ow = Inches(4.0)
@@ -535,10 +684,27 @@ def build_outcome_grid(prs, slide_data, _palette=None):
         x = ox0 + col * (ow + ogap)
         y = oy0 + row * (oh + ogap)
         add_rect(s, x, y, ow, oh)
-        add_text(s, x + Inches(0.2), y + Inches(0.2), ow - Inches(0.4), Inches(0.6),
-                 o.get("heading", ""), size=16, bold=True, color=THEME["fg"])
-        add_text(s, x + Inches(0.2), y + Inches(0.85), ow - Inches(0.4), Inches(1.0),
-                 o.get("body", ""), size=12, color=THEME["fg_sec"])
+        add_text(
+            s,
+            x + Inches(0.2),
+            y + Inches(0.2),
+            ow - Inches(0.4),
+            Inches(0.6),
+            o.get("heading", ""),
+            size=16,
+            bold=True,
+            color=THEME["fg"],
+        )
+        add_text(
+            s,
+            x + Inches(0.2),
+            y + Inches(0.85),
+            ow - Inches(0.4),
+            Inches(1.0),
+            o.get("body", ""),
+            size=12,
+            color=THEME["fg_sec"],
+        )
     return s
 
 
@@ -554,19 +720,24 @@ def build_split_narrow(prs, slide_data, _palette=None):
     callout = left.get("callout", slide_data.get("callout", ""))
 
     if eyebrow:
-        add_text(s, Inches(0.6), Inches(0.5), Inches(8), Inches(0.4),
-                 eyebrow.upper(), size=12, bold=True, color=THEME["accent"])
+        add_text(
+            s,
+            Inches(0.6),
+            Inches(0.5),
+            Inches(8),
+            Inches(0.4),
+            eyebrow.upper(),
+            size=12,
+            bold=True,
+            color=THEME["accent"],
+        )
     if title:
-        add_text(s, Inches(0.6), Inches(1.0), Inches(7.5), Inches(1.2),
-                 title, size=32, bold=True, color=THEME["fg"])
+        add_text(s, Inches(0.6), Inches(1.0), Inches(7.5), Inches(1.2), title, size=32, bold=True, color=THEME["fg"])
     if lead:
-        add_text(s, Inches(0.6), Inches(2.4), Inches(7.5), Inches(2.5),
-                 lead, size=16, color=THEME["fg_sec"])
+        add_text(s, Inches(0.6), Inches(2.4), Inches(7.5), Inches(2.5), lead, size=16, color=THEME["fg_sec"])
     if callout:
-        add_rect(s, Inches(0.7), Inches(5.0), Inches(7.3), Inches(1.4),
-                 line_color=THEME["accent"])
-        add_text(s, Inches(0.95), Inches(5.3), Inches(6.85), Inches(0.9),
-                 callout, size=14, color=THEME["fg"])
+        add_rect(s, Inches(0.7), Inches(5.0), Inches(7.3), Inches(1.4), line_color=THEME["accent"])
+        add_text(s, Inches(0.95), Inches(5.3), Inches(6.85), Inches(0.9), callout, size=14, color=THEME["fg"])
 
     # Right rail: card with name/trigger rows
     add_rect(s, Inches(8.4), Inches(1.0), Inches(4.3), Inches(5.4))
@@ -574,10 +745,18 @@ def build_split_narrow(prs, slide_data, _palette=None):
     for r in rows:
         name = r.get("name", "")
         trigger = r.get("trigger", "")
-        add_text(s, Inches(8.6), cy, Inches(2.5), Inches(0.6),
-                 name, size=16, bold=True, color=THEME["fg"])
-        add_text(s, Inches(11.0), cy, Inches(1.6), Inches(0.6),
-                 trigger, size=16, color=THEME["accent"], font=THEME["font_mono"])
+        add_text(s, Inches(8.6), cy, Inches(2.5), Inches(0.6), name, size=16, bold=True, color=THEME["fg"])
+        add_text(
+            s,
+            Inches(11.0),
+            cy,
+            Inches(1.6),
+            Inches(0.6),
+            trigger,
+            size=16,
+            color=THEME["accent"],
+            font=THEME["font_mono"],
+        )
         cy += Inches(0.95)
     return s
 
@@ -590,9 +769,18 @@ def build_closing(prs, slide_data, _palette=None):
     subtitle = slide_data.get("subtitle", "")
 
     if eyebrow:
-        add_text(s, Inches(0.6), Inches(0.5), Inches(12), Inches(0.4),
-                 eyebrow.upper(), size=14, bold=True, color=THEME["accent"],
-                 align=PP_ALIGN.CENTER)
+        add_text(
+            s,
+            Inches(0.6),
+            Inches(0.5),
+            Inches(12),
+            Inches(0.4),
+            eyebrow.upper(),
+            size=14,
+            bold=True,
+            color=THEME["accent"],
+            align=PP_ALIGN.CENTER,
+        )
 
     # Split title from accent_text if accent_text appears within title.
     main_text = title
@@ -600,18 +788,41 @@ def build_closing(prs, slide_data, _palette=None):
         main_text = title.replace(accent_text, "").strip()
 
     add_text(
-        s, Inches(1.0), Inches(2.6), Inches(11.3), Inches(1.5),
-        main_text, size=32, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER,
+        s,
+        Inches(1.0),
+        Inches(2.6),
+        Inches(11.3),
+        Inches(1.5),
+        main_text,
+        size=32,
+        bold=True,
+        color=THEME["fg"],
+        align=PP_ALIGN.CENTER,
     )
     if accent_text:
         add_text(
-            s, Inches(1.0), Inches(3.9), Inches(11.3), Inches(1.5),
-            accent_text, size=32, bold=True, color=THEME["accent"], align=PP_ALIGN.CENTER,
+            s,
+            Inches(1.0),
+            Inches(3.9),
+            Inches(11.3),
+            Inches(1.5),
+            accent_text,
+            size=32,
+            bold=True,
+            color=THEME["accent"],
+            align=PP_ALIGN.CENTER,
         )
     if subtitle:
         add_text(
-            s, Inches(1.0), Inches(5.7), Inches(11.3), Inches(1.5),
-            subtitle, size=16, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+            s,
+            Inches(1.0),
+            Inches(5.7),
+            Inches(11.3),
+            Inches(1.5),
+            subtitle,
+            size=16,
+            color=THEME["fg_sec"],
+            align=PP_ALIGN.CENTER,
         )
     return s
 

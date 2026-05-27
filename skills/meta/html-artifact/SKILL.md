@@ -20,6 +20,12 @@ routing:
     - HTML file
     - self-contained HTML
     - visual companion
+    - pptx
+    - powerpoint
+    - editable deck
+    - pitch deck
+    - slide deck
+    - make a deck
   pairs_with:
     - pr-workflow
     - research-pipeline
@@ -236,6 +242,34 @@ See `references/pdf-export.md` for the full page-size table, troubleshooting (fo
 
 ---
 
+### Phase 7: EXPORT-PPTX (optional)
+
+Render the generated HTML deck to an editable Microsoft PowerPoint `.pptx`. Opt-in only — HTML stays the default deliverable. Mirrors Phase 6 EXPORT-PDF in shape: signal-triggered, deterministic, runs after the HTML is built.
+
+Fires when the user message contains any of: `"pptx"`, `".pptx"`, `"powerpoint"`, `"editable deck"`, `"editable"`, `"as pptx"`, `"export pptx"`, `"hand-off"`, `"corporate template"`. Without one of those signals, this phase stays dormant.
+
+Only valid when the detected shape is `deck`. Other shapes (report, spec, diagram, etc.) cannot be exported to PPTX — fall back to Phase 6 PDF if the user asks.
+
+Runs:
+
+```bash
+python3 skills/meta/html-artifact/scripts/pptx-bridge/run-unified.py \
+    --input <generated.html> \
+    --format pptx \
+    --out <generated.pptx> \
+    --no-render
+```
+
+The bridge re-authors slides natively via `python-pptx` because no general HTML→PPTX converter preserves CSS-rich layout. Output is 13.333 × 7.5 in (16:9), dark navy theme, Aptos body / Cascadia Code mono. Each `<section class="slide">` becomes one editable slide; up to 12 layout types (title, content, metric_grid, layer_rows, pipeline, code_block, compare_table_2col/3col, outcome_grid, split_narrow, closing) map 1:1 to native python-pptx builders.
+
+`--out` accepts either a `.pptx` file path (single-file mode) or a directory (writes the .pptx plus `slides.json`, `report.md`, optional `render/` siblings). `--no-render` skips the optional LibreOffice QA step; required on hosts without `soffice`.
+
+If `python-pptx` is unavailable, exit code 1 surfaces install instructions: `pip install python-pptx`. Pass that hint along to the user instead of failing silently.
+
+See `references/pptx-export.md` for the full layout table, THEME dict, CLI reference, validation criteria, and failure modes.
+
+---
+
 ## Error Handling
 
 | Error | Cause | Solution |
@@ -312,6 +346,7 @@ See `references/pdf-export.md` for the full page-size table, troubleshooting (fo
 | Shape = deck | `references/shape-slide-deck.md` | Slide types, navigation, print styles |
 | Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
 | Request mentions PDF, export PDF, as PDF, PDF version | `references/pdf-export.md` | Phase 6 trigger conditions, page-size table, troubleshooting, install instructions |
+| Request mentions pptx, .pptx, powerpoint, editable deck, hand-off, corporate template | `references/pptx-export.md` | Phase 7 trigger conditions, layout types, THEME dict, CLI reference, failure modes |
 
 ---
 
@@ -339,8 +374,10 @@ This skill uses:
 - `agents/html-builder.md`: Subagent prompt for HTML generation
 - `references/scrollytelling-patterns.md`: IntersectionObserver scroll animation patterns
 - `references/pdf-export.md`: Phase 6 EXPORT — trigger conditions, page-size table, print stylesheet inventory, troubleshooting
+- `references/pptx-export.md`: Phase 7 EXPORT-PPTX — trigger conditions, layout types, THEME dict, CLI reference, failure modes
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/assemble-template.py`: Template assembly with theme, shape, and component CSS/JS injection
 - `scripts/validate-artifact.py`: HTML structure and self-containment validation
 - `scripts/to-pdf.py`: Playwright-based PDF rendering with per-shape page sizing
+- `scripts/pptx-bridge/`: HTML deck → editable PPTX (extract_slides.py, _pptx_engine.py, render_pptx.py, run-unified.py)
 - `templates/`: CSS/JS template files organized by themes/, shapes/, components/, print/
