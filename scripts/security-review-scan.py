@@ -79,6 +79,15 @@ SUPPORTED_EXTENSIONS = frozenset(
         ".htm",
         ".yml",
         ".yaml",
+        # Documentation/data files. Opened so scan_docs secret rules (AKIA, PEM)
+        # can fire on a real secret in a README/JSON. Every other rule stays
+        # doc-skipped via _rule_applies_to_file, so prose mentioning eval/exec/
+        # password= does not false-positive.
+        ".md",
+        ".mdx",
+        ".txt",
+        ".rst",
+        ".json",
     ]
 )
 
@@ -125,12 +134,27 @@ def _build_rules() -> list[dict]:
       - path_filter: optional callable(path) -> bool; True means the rule applies
                      to that file. Default: applies to every supported file
                      except documentation files.
+      - scan_docs: when True, the rule also scans documentation files
+                   (_DOC_EXTS). Reserved for anchored, near-zero-false-positive
+                   secret rules where a real secret in a README/JSON must fire.
+                   Has no effect when an explicit path_filter is supplied.
       - filter_fn: optional callable(match, line, filepath) -> bool;
                    True means *keep* the finding (proximity/context suppression)
     """
     rules: list[dict] = []
 
-    def add(name, severity, pattern, *, flags=0, skip_test=False, redact=False, path_filter=None, filter_fn=None):
+    def add(
+        name,
+        severity,
+        pattern,
+        *,
+        flags=0,
+        skip_test=False,
+        redact=False,
+        path_filter=None,
+        filter_fn=None,
+        scan_docs=False,
+    ):
         rules.append(
             {
                 "name": name,
@@ -140,6 +164,7 @@ def _build_rules() -> list[dict]:
                 "redact": redact,
                 "path_filter": path_filter,
                 "filter_fn": filter_fn,
+                "scan_docs": scan_docs,
             }
         )
 
@@ -185,8 +210,13 @@ def _build_rules() -> list[dict]:
         flags=re.IGNORECASE,
         redact=True,
     )
-    add("hardcoded-secret", "CRITICAL", r"AKIA[0-9A-Z]{16}", redact=True)
-    add("hardcoded-secret", "CRITICAL", r"-----BEGIN.*PRIVATE KEY-----", redact=True)
+    # AWS access key id and PEM private-key headers are anchored, near-zero
+    # false-positive signatures. A real secret pasted into a README/JSON is a
+    # genuine leak, so these two rules scan documentation too (scan_docs=True).
+    # The loose assignment rules above stay doc-skipped — they false-positive in
+    # prose. See `_rule_applies_to_file`.
+    add("hardcoded-secret", "CRITICAL", r"AKIA[0-9A-Z]{16}", redact=True, scan_docs=True)
+    add("hardcoded-secret", "CRITICAL", r"-----BEGIN.*PRIVATE KEY-----", redact=True, scan_docs=True)
 
     # Hardcoded public IP (ours). skip_test + private-range filter.
     add(
@@ -594,10 +624,14 @@ def _is_test_file(filepath: str) -> bool:
 
 def _rule_applies_to_file(rule: dict, filepath: str) -> bool:
     """Whether a rule's path_filter (if any) accepts this file. Rules without a
-    path_filter apply to every supported file except documentation files."""
+    path_filter apply to every supported file except documentation files —
+    unless the rule sets scan_docs=True, which bypasses the _DOC_EXTS exclusion
+    so anchored secret signatures fire in README/JSON too."""
     pf = rule.get("path_filter")
     if pf is not None:
         return bool(pf(filepath))
+    if rule.get("scan_docs"):
+        return True
     return _ext(filepath) not in _DOC_EXTS
 
 

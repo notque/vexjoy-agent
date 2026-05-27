@@ -93,6 +93,37 @@ class TestExistingRules:
 # ---------------------------------------------------------------------------
 
 
+class TestSecretsInDocs:
+    """Anchored secret signatures (AKIA, PEM) scan documentation; loose
+    assignment rules and code-execution rules stay doc-skipped (close the
+    doc-secret gap without reintroducing the markdown false positives)."""
+
+    def test_aws_key_in_markdown_fires(self):
+        f = _findings("Example key: AKIAIOSFODNN7EXAMPLE in our README.", "README.md")
+        assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
+
+    def test_aws_key_in_json_fires(self):
+        f = _findings('{"aws_key": "AKIAIOSFODNN7EXAMPLE"}', "config.json")
+        assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
+
+    def test_pem_header_in_markdown_fires(self):
+        f = _findings("-----BEGIN RSA PRIVATE KEY-----", "docs.md")
+        assert any(x["rule"] == "hardcoded-secret" and x["severity"] == "CRITICAL" for x in f)
+
+    def test_loose_password_in_markdown_still_skipped(self):
+        # Loose assignment rule stays doc-skipped — false-positives in prose.
+        assert "hardcoded-secret" not in _rules_hit('password = "x"', "a.md")
+
+    def test_eval_in_markdown_still_skipped(self):
+        # Regression guard: code-execution rules must stay doc-skipped (the
+        # behavior that beat Anthropic on the markdown false positive).
+        assert "dangerous-eval" not in _rules_hit("eval(x)", "a.md")
+
+    def test_aws_key_redacted_in_docs(self):
+        f = _findings("key AKIAIOSFODNN7EXAMPLE here", "README.md")
+        assert any("AKIA[REDACTED]" in x["match"] for x in f)
+
+
 class TestEvalExec:
     def test_eval_python(self):
         assert "dangerous-eval" in _rules_hit("eval(user_input)", "a.py")
@@ -321,6 +352,34 @@ class TestGithubActions:
 # ---------------------------------------------------------------------------
 # Exit-code contract (ADR criterion 11)
 # ---------------------------------------------------------------------------
+
+
+class TestDocSecretsCLI:
+    """End-to-end via the CLI main() gate: doc files must be opened so the
+    scan_docs secret rules fire (the unit tests above bypass main()'s
+    SUPPORTED_EXTENSIONS gate by calling _scan_file directly)."""
+
+    def test_aws_key_in_md_via_cli(self, tmp_path):
+        f = tmp_path / "README.md"
+        f.write_text("Example: AKIAIOSFODNN7EXAMPLE\n")
+        code, report = _run_cli([str(f)])
+        assert code == 1
+        assert report["summary"]["critical"] >= 1
+        assert "hardcoded-secret" in {x["rule"] for x in report["findings"]}
+
+    def test_pem_in_json_via_cli(self, tmp_path):
+        f = tmp_path / "keys.json"
+        f.write_text('{"pem": "-----BEGIN RSA PRIVATE KEY-----"}\n')
+        code, report = _run_cli([str(f)])
+        assert code == 1
+        assert "hardcoded-secret" in {x["rule"] for x in report["findings"]}
+
+    def test_eval_and_password_in_md_clean_via_cli(self, tmp_path):
+        f = tmp_path / "guide.md"
+        f.write_text('Call eval(x) when password = "x" is set.\n')
+        code, report = _run_cli([str(f)])
+        assert code == 0
+        assert report["summary"]["total"] == 0
 
 
 class TestExitCodes:
