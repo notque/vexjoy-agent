@@ -23,7 +23,7 @@ routing:
     - zprofile
     - compinit
     - fpath
-    - autoload
+    - autoload -Uz
     - oh-my-zsh
     - prezto
     - zinit

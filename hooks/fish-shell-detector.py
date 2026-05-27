@@ -7,8 +7,8 @@ Detects Fish shell users and injects the fish-shell-config skill.
 Runs once at session start to provide Fish-specific guidance.
 
 Detection Logic:
-- Check $SHELL environment variable for "fish"
-- Check if ~/.config/fish/ directory exists
+- $SHELL short-circuits: names "fish" -> detected; names another shell -> skip
+- Fallback (only when $SHELL is unset/unrecognised): ~/.config/fish/ directory exists
 
 Output Format:
 - [fish-shell] Detected Fish shell user
