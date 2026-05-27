@@ -8,6 +8,7 @@ and dangerous function calls using pattern matching.
 Usage:
     python3 scripts/security-review-scan.py --files file1.py file2.go
     python3 scripts/security-review-scan.py --files src/*.py --format json
+    python3 scripts/security-review-scan.py --staged --format json
     python3 scripts/security-review-scan.py --help
 
 Exit codes:
@@ -20,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -308,6 +310,30 @@ def _is_test_file(filepath: str) -> bool:
     return any(pat.search(name) for pat in _TEST_FILE_PATTERNS)
 
 
+def _staged_files(cwd: str | None = None) -> list[str]:
+    """Return staged files (added/copied/modified) filtered to supported extensions.
+
+    Uses ``git diff --cached --name-only --diff-filter=ACM`` so deletions and
+    renames-to-deleted are excluded. Returns an empty list when git is
+    unavailable or the working directory is not a repository — callers treat
+    an empty list as "nothing to scan" and exit cleanly.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=cwd or None,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return []
+    if result.returncode != 0:
+        return []
+    files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return [f for f in files if Path(f).suffix in SUPPORTED_EXTENSIONS]
+
+
 def _redact_secret(matched_text: str) -> str:
     """Redact secret values in matched text, preserving key names."""
     # Handle key=value patterns: show key, redact value
@@ -430,8 +456,12 @@ def main() -> int:
     parser.add_argument(
         "--files",
         nargs="+",
-        required=True,
         help="Source files to scan",
+    )
+    parser.add_argument(
+        "--staged",
+        action="store_true",
+        help="Scan staged files (git diff --cached) instead of an explicit --files list",
     )
     parser.add_argument(
         "--format",
@@ -441,12 +471,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    # Resolve the file list from either --staged or --files. --files stays the
+    # default path so existing callers and tests are unaffected; --staged is an
+    # additive convenience that derives the list from the git index.
+    if args.staged:
+        files = _staged_files()
+    elif args.files:
+        files = args.files
+    else:
+        parser.error("one of --files or --staged is required")
+
     rules = _build_rules()
     all_findings: list[dict] = []
     files_scanned = 0
     files_skipped = 0
 
-    for filepath in args.files:
+    for filepath in files:
         path = Path(filepath)
 
         # Skip missing files with a warning

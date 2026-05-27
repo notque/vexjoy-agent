@@ -164,6 +164,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-index-sync-check.py\"",
             "description": "INDEX.json sync gate: blocks git commit/push when SKILL.md staged without INDEX.json",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
+            "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
+            "timeout": 30000
           }
         ]
       },
@@ -529,6 +535,15 @@
             "command": "python3 \"$HOME/.claude/hooks/rules-distill-trigger.py\"",
             "description": "Auto-trigger rules distillation every 7 days",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
+            "description": "Advisory: re-wake the session to run the local security-review pipeline over the working-tree diff",
+            "timeout": 20000,
+            "asyncRewake": true,
+            "rewakeMessage": "Local security review of this session's changes \u2014 address or acknowledge the findings below, then continue with the user's original request or continue waiting for their reply. This is supplementary, not a replacement for your previous response:",
+            "rewakeSummary": "Local security review found changes to review"
           }
         ]
       }
