@@ -48,6 +48,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: pip install pyyaml
       # INDEX.json is generated (untracked); the benchmark reads it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/routing-benchmark.py --verbose
@@ -59,6 +60,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: pip install pyyaml
       # INDEX.json is generated (untracked); the drift check reads it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/check-routing-drift.py --verbose
