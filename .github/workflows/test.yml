@@ -15,6 +15,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install ruff pyyaml
+      # INDEX.json is generated (untracked); build it before validators read it.
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: ruff check . --config pyproject.toml
       - run: ruff format --check . --config pyproject.toml
       - run: python scripts/validate-references.py --check-do-framing
@@ -35,6 +37,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install pytest pyyaml pillow numpy
+      # INDEX.json is generated (untracked); tests that read the real index need it.
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python -m pytest --tb=short -q
 
   routing-benchmark:
@@ -44,6 +48,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      # INDEX.json is generated (untracked); the benchmark reads it.
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/routing-benchmark.py --verbose
 
   routing-drift:
@@ -53,6 +59,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      # INDEX.json is generated (untracked); the drift check reads it.
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python scripts/check-routing-drift.py --verbose
 
   joy-check:

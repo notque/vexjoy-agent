@@ -18,17 +18,50 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# INDEX.json is a generated artifact (untracked). When the tracked path is
+# missing — fresh checkout, no install.sh run — regenerate it on the fly from
+# SKILL.md/agent frontmatter via these generators.
+_INDEX_GENERATORS = {
+    "skills": REPO_ROOT / "scripts" / "generate-skill-index.py",
+    "agents": REPO_ROOT / "scripts" / "generate-agent-index.py",
+}
+
 
 def _resolve_index(tracked: Path, local_name: str) -> Path:
     """Return the local override path when it exists, otherwise the tracked path."""
     local = tracked.parent / local_name
     return local if local.exists() else tracked
+
+
+def _ensure_index(index_type: str, path: Path) -> None:
+    """Regenerate a missing index by invoking its generator.
+
+    Fail-safe: any failure (generator missing, non-zero exit, timeout) is
+    swallowed so routing never crashes. A missing index simply means
+    load_entries() reads nothing for that type and the request falls through.
+    """
+    if path.exists():
+        return
+    generator = _INDEX_GENERATORS.get(index_type)
+    if generator is None or not generator.exists():
+        return
+    try:
+        subprocess.run(
+            [sys.executable, str(generator)],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+            timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        pass
 
 
 INDEX_PATHS = {
@@ -85,6 +118,8 @@ def load_entries() -> list[dict]:
     entries: list[dict] = []
 
     for index_type, path in INDEX_PATHS.items():
+        # Auto-regenerate a missing (untracked) index before reading. Fail-safe.
+        _ensure_index(index_type, path)
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError, OSError):

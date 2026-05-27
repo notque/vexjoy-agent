@@ -7,6 +7,10 @@ Triggered by Write|Edit events. Checks whether the written file is a
 skills/**/SKILL.md. If yes, regenerates skills/INDEX.json by running
 scripts/generate-skill-index.py. Silent on unrelated file writes.
 
+INDEX.json is an untracked, generated artifact (ADR untrack-generated-indexes):
+this hook only refreshes the local on-disk copy so routing stays current within
+the session. It does NOT stage anything for commit — the index is gitignored.
+
 Registration (add to ~/.claude/settings.json under hooks.PostToolUse):
     {
       "matcher": "Write|Edit",

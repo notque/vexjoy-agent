@@ -107,7 +107,11 @@ skills/voice-*
 skills/voice
 skills/gemini-wrestlejoy-*
 
-# Local-only index targets, not committed
+# Generated index artifacts — derived from SKILL.md/agent frontmatter.
+# Regenerated at install/CI/runtime (ADR untrack-generated-indexes). Never tracked.
+skills/INDEX.json
+agents/INDEX.json
+# Local-only (private-inclusive) index targets, not committed
 skills/INDEX.local.json
 agents/INDEX.local.json
 
