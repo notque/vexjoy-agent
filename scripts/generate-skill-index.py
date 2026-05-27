@@ -198,6 +198,33 @@ def extract_phases(content: str) -> list[str]:
     return phases
 
 
+def _repo_relative_path(skill_dir: Path, dir_prefix: str, repo_root: Path | None) -> str | None:
+    """If skill_dir resolves to a location inside the repo, return its repo-relative
+    nested path (e.g. "skills/business/csuite/SKILL.md"); else None.
+
+    In the synced/deployed layout, ~/.claude/skills/<name> is a SYMLINK back into
+    the repo's nested skills/<category>/<name>. Resolving the symlink recovers the
+    real, on-disk-valid nested path — the fix for the path-flattening bug that wrote
+    "skills/<name>/SKILL.md" entries pointing at files that exist in no layout here.
+    """
+    if repo_root is None:
+        return None
+    try:
+        real = skill_dir.resolve()
+        rel = real.relative_to(repo_root.resolve())
+    except (OSError, ValueError):
+        return None
+    # rel is already repo-relative and includes the leading skills/ component
+    # (e.g. "skills/business/csuite"); do not re-prepend dir_prefix. Only honor
+    # paths that actually sit under dir_prefix so the entry stays well-formed.
+    if rel.parts and rel.parts[0] != dir_prefix:
+        return None
+    candidate = repo_root / rel / "SKILL.md"
+    if candidate.is_file():
+        return f"{rel.as_posix()}/SKILL.md"
+    return None
+
+
 def build_entry(
     frontmatter: dict,
     skill_dir: Path,
@@ -206,6 +233,7 @@ def build_entry(
     content: str | None = None,
     is_pipeline: bool = False,
     flatten: bool = False,
+    repo_root: Path | None = None,
 ) -> dict:
     """Build a single index entry from frontmatter and optional content.
 
@@ -216,8 +244,10 @@ def build_entry(
         source_dir: Root scan directory; used to compute relative paths for nested skills.
         content: Full SKILL.md content (needed for pipeline phase extraction).
         is_pipeline: Whether this entry is a pipeline (enables phase extraction).
-        flatten: When True, use leaf directory name only (matches deployed layout).
-            Used for INDEX.local.json where sync hook flattens nested paths.
+        flatten: When True, prefer the deployed flat layout — but a skill whose
+            directory resolves back into the repo records its real repo-relative
+            nested path so the entry always points at an on-disk file.
+        repo_root: Repo root, used to recover nested paths through deployed symlinks.
 
     Returns:
         Dict representing the index entry for this skill/pipeline.
@@ -227,9 +257,11 @@ def build_entry(
     # Compute file path relative to source_dir for nested category folders.
     # Flat: skills/foo/SKILL.md → "skills/foo/SKILL.md"
     # Nested: skills/meta/foo/SKILL.md → "skills/meta/foo/SKILL.md"
-    # Flatten: skills/meta/foo/SKILL.md → "skills/foo/SKILL.md" (matches deployed layout)
+    # Flatten: prefer the repo's real nested path when the (possibly symlinked)
+    #   deployed dir resolves back into the repo; otherwise the flat deployed name.
     if flatten:
-        file_path = f"{dir_prefix}/{skill_dir.name}/SKILL.md"
+        nested = _repo_relative_path(skill_dir, dir_prefix, repo_root)
+        file_path = nested if nested else f"{dir_prefix}/{skill_dir.name}/SKILL.md"
     elif source_dir:
         rel = skill_dir.relative_to(source_dir)
         file_path = f"{dir_prefix}/{rel}/SKILL.md"
@@ -301,6 +333,7 @@ def generate_index(
     include_private: bool = False,
     strict: bool = False,
     flatten: bool = False,
+    repo_root: Path | None = None,
 ) -> tuple[dict, list[str]]:
     """Generate a dict-keyed routing index from all SKILL.md files in a directory.
 
@@ -313,11 +346,15 @@ def generate_index(
             only directly-tracked directories are indexed.
         strict: When True, YAML parse failure skips the skill (no regex fallback).
         flatten: When True, use leaf directory name for paths (matches deployed layout).
+        repo_root: Repo root, used to recover nested paths through deployed symlinks
+            in flatten mode. Defaults to source_dir's parent when not supplied.
 
     Returns:
         tuple: (index dict with version/generated/generated_by/collection,
                 list of warning messages)
     """
+    if repo_root is None:
+        repo_root = source_dir.parent
     index: dict = {
         "version": "2.0",
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -376,7 +413,19 @@ def generate_index(
             content=content_ if is_pipeline else None,
             is_pipeline=is_pipeline,
             flatten=flatten,
+            repo_root=repo_root,
         )
+        # A skill can be reached twice in include_private mode: once at its
+        # canonical repo location and again via a symlinked category (e.g.
+        # skills/voice -> private-skills/voice). Keep the entry whose file
+        # actually exists in the repo rather than letting a shadow copy with a
+        # fabricated flat path clobber a good canonical path.
+        existing = index[collection_key].get(name)
+        if existing is not None:
+            new_ok = (repo_root / entry["file"]).is_file() if repo_root else False
+            old_ok = (repo_root / existing["file"]).is_file() if repo_root else False
+            if old_ok and not new_ok:
+                return
         index[collection_key][name] = entry
 
     for child in sorted(source_dir.iterdir()):
@@ -521,6 +570,7 @@ def main() -> int:
         include_private=args.include_private,
         strict=args.strict,
         flatten=args.include_private,
+        repo_root=repo_root,
     )
 
     # Scan ~/.claude/skills/ for deployed skills not already indexed.
@@ -563,8 +613,13 @@ def main() -> int:
                 content=None,
                 is_pipeline=False,
                 flatten=True,
+                repo_root=repo_root,
             )
-            entry["file"] = f"skills/{deploy_name}/SKILL.md"
+            # build_entry already recovers the repo-relative nested path when this
+            # deployed dir is a symlink back into the repo. Only force the flat
+            # deployed name when the skill resolves OUTSIDE the repo (true private).
+            if _repo_relative_path(skill_dir, "skills", repo_root) is None:
+                entry["file"] = f"skills/{deploy_name}/SKILL.md"
             skills_index["skills"][deploy_name] = entry
 
     # When --include-private, also scan ~/private-skills/ for skills deployed
@@ -618,10 +673,13 @@ def main() -> int:
                         content=None,
                         is_pipeline=False,
                         flatten=True,  # Always flat for private skills
+                        repo_root=repo_root,
                     )
-                    # Fix: build_entry with source_dir=None uses skill_dir.name,
-                    # but we need deploy_name for the path
-                    entry["file"] = f"skills/{deploy_name}/SKILL.md"
+                    # Private skills live under ~/private-skills (outside the repo),
+                    # so the flat deployed name is the correct path. Keep the nested
+                    # path only if this skill happens to resolve back into the repo.
+                    if _repo_relative_path(skill_dir, "skills", repo_root) is None:
+                        entry["file"] = f"skills/{deploy_name}/SKILL.md"
                     skills_index["skills"][deploy_name] = entry
 
     # Report warnings if any
