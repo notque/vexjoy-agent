@@ -149,10 +149,14 @@ def step_report(
         f"{width_in:.2f}x{height_in:.2f}in (aspect {aspect:.3f})",
     )
     # Types in extractor that fall back to default in engine = layout fidelity loss.
-    supported = {"title", "section", "section_divider", "content", "bullets",
-                 "content_bullets", "two_column", "two-column", "quote", "callout",
-                 "table", "image_text", "image-text", "closing"}
-    fallback_types = [t for t in type_counts if t not in supported]
+    # Pulled from the engine's registry so the two stay in sync.
+    supported = set(getattr(pptx_engine, "SUPPORTED_LAYOUTS", set()))
+    if not supported:  # pragma: no cover - belt-and-suspenders
+        supported = {"title", "content", "closing"}
+    # Normalize extractor types the same way the engine does before lookup.
+    def _norm(t: str) -> str:
+        return str(t).lower().strip().replace("-", "_").replace(" ", "_")
+    fallback_types = [t for t in type_counts if _norm(t) not in supported]
     fallback_slides = sum(type_counts[t] for t in fallback_types)
     add_axis(
         "layout_coverage",
@@ -189,7 +193,7 @@ def step_report(
         "|---|---|---|",
     ]
     for t, c in sorted(type_counts.items(), key=lambda kv: -kv[1]):
-        handling = "native" if t in supported else "FALLBACK -> content_bullets"
+        handling = "native" if _norm(t) in supported else "FALLBACK -> content"
         lines.append(f"| `{t}` | {c} | {handling} |")
     lines += [
         "",
@@ -216,14 +220,13 @@ def step_report(
         lines.append("No baseline PNGs found at `.audit/pptx-test/render/` — comparison skipped.")
     lines += [
         "",
-        "## Known gaps (Phase 1 scope)",
+        "## Known gaps (Phase 2 scope)",
         "",
         "- PDF output (`--format pdf`) NOT wired; would require LibreOffice headless or weasyprint.",
-        "- Extended types (`metric_grid`, `layer_rows`, `pipeline`, `code_block`,",
-        "  `compare_table_2col/3col`, `outcome_grid`, `split_narrow`) fall back to bullets.",
-        "  Phase 2 work: add native builders to `_pptx_engine.py`.",
         "- Perceptual diff vs baseline PNGs not implemented (would require pixelmatch / SSIM).",
         "- LibreOffice render step skipped on hosts without `soffice`.",
+        "- Font embedding not implemented; relies on Aptos / Cascadia Code being present",
+        "  on the viewer machine (PowerPoint 2023+ ships them).",
     ]
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

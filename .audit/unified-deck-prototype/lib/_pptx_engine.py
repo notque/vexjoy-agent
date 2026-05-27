@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
+"""Deterministic PPTX generator (v2: dark theme + full layout coverage).
+
+Reads a slide-map JSON and produces a .pptx file. No LLM calls -- pure
+mechanical slide construction using python-pptx.
+
+Layout coverage (matches `extract_slides.py` output):
+    title, content, metric_grid, layer_rows, pipeline, code_block,
+    compare_table_2col, compare_table_3col, outcome_grid, split_narrow,
+    closing, section/section_divider (legacy passthrough).
+
+Theme: matches `vexjoy-agent-management-deck.html` -- dark navy background,
+Aptos body font, Cascadia Code mono, sky-blue accent, semantic colors.
 """
-Deterministic PPTX generator.
 
-Reads a slide map JSON and design config JSON, produces a .pptx file.
-No LLM calls -- pure mechanical slide construction using python-pptx.
-
-Usage:
-    python3 generate_pptx.py --slide-map slides.json --design design.json --output deck.pptx
-
-Exit codes:
-    0 = success
-    1 = missing dependencies
-    2 = invalid input
-    3 = generation failed
-"""
+from __future__ import annotations
 
 import argparse
 import json
@@ -23,562 +23,597 @@ from pathlib import Path
 try:
     from pptx import Presentation
     from pptx.dml.color import RGBColor
+    from pptx.enum.shapes import MSO_SHAPE
     from pptx.enum.text import PP_ALIGN
-    from pptx.util import Emu, Inches, Pt
+    from pptx.util import Inches, Pt
 except ImportError:
     print("ERROR: python-pptx not installed. Run: pip install python-pptx", file=sys.stderr)
     sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
-# Palette definitions
+# THEME — single source of truth for v2 visual identity.
+# Matches the dark navy HTML deck. Keep colors here; never inline hex codes
+# in builders.
+# ---------------------------------------------------------------------------
+THEME = {
+    # Backgrounds
+    "bg":        RGBColor(0x1A, 0x1A, 0x2E),  # slide background
+    "card_bg":   RGBColor(0x23, 0x23, 0x40),  # surface / card
+    "code_bg":   RGBColor(0x16, 0x16, 0x2A),  # code panel
+    "border":    RGBColor(0x3A, 0x3A, 0x5C),
+
+    # Text
+    "fg":        RGBColor(0xE8, 0xE8, 0xF0),  # primary text (off-white)
+    "fg_sec":    RGBColor(0xA0, 0xA0, 0xB8),  # secondary
+    "muted":     RGBColor(0x6E, 0x6E, 0x8A),  # muted / eyebrow
+
+    # Accents
+    "accent":    RGBColor(0x64, 0xB5, 0xF6),  # sky blue (brand)
+    "success":   RGBColor(0x81, 0xC7, 0x84),  # softer green for dark bg
+    "danger":    RGBColor(0xEF, 0x53, 0x50),  # red
+
+    # Fonts (chained fallbacks aren't supported by python-pptx in a single
+    # field; PowerPoint 2023+ ships Aptos and Cascadia Code by default. If
+    # absent, PowerPoint falls back to its own substitution table — which
+    # gives Segoe UI / Calibri on Windows and Helvetica Neue on macOS.)
+    "font_body": "Aptos",
+    "font_mono": "Cascadia Code",
+}
+
+
+# ---------------------------------------------------------------------------
+# Legacy palette support (kept so old callers don't break, but builders all
+# read THEME).
 # ---------------------------------------------------------------------------
 PALETTES = {
-    "corporate": {
-        "primary": "#2C3E50",
-        "secondary": "#34495E",
-        "accent": "#E74C3C",
-        "background": "#FFFFFF",
-        "text": "#2C3E50",
-        "muted": "#BDC3C7",
-    },
-    "tech": {
+    "vexjoy-dark": {
         "primary": "#1A1A2E",
-        "secondary": "#16213E",
-        "accent": "#0F3460",
-        "background": "#F5F5F5",
-        "text": "#1A1A2E",
-        "muted": "#A0A0A0",
-    },
-    "warm": {
-        "primary": "#D4A574",
-        "secondary": "#C68B59",
-        "accent": "#8B4513",
-        "background": "#FFF8F0",
-        "text": "#3D2B1F",
-        "muted": "#D2B48C",
-    },
-    "ocean": {
-        "primary": "#006994",
-        "secondary": "#008B8B",
-        "accent": "#20B2AA",
-        "background": "#F0FFFF",
-        "text": "#003333",
-        "muted": "#B0C4DE",
-    },
-    "midnight": {
-        "primary": "#1B1464",
-        "secondary": "#2E1A47",
-        "accent": "#7B2FBE",
-        "background": "#0D0D0D",
-        "text": "#E0E0E0",
-        "muted": "#4A4A6A",
-    },
-    "forest": {
-        "primary": "#2D5016",
-        "secondary": "#3A6B1E",
-        "accent": "#7CB342",
-        "background": "#F5F9F0",
-        "text": "#1A2E0A",
-        "muted": "#A5D6A7",
-    },
-    "sunset": {
-        "primary": "#FF6B35",
-        "secondary": "#F7931E",
-        "accent": "#FFD700",
-        "background": "#FFF5E6",
-        "text": "#333333",
-        "muted": "#FFE0B2",
-    },
-    "minimal": {
-        "primary": "#333333",
-        "secondary": "#666666",
-        "accent": "#0066CC",
-        "background": "#FFFFFF",
-        "text": "#333333",
-        "muted": "#CCCCCC",
+        "secondary": "#23233D",
+        "accent": "#64B5F6",
+        "background": "#1A1A2E",
+        "text": "#E8E8F0",
+        "muted": "#6E6E8A",
     },
 }
 
 
 def hex_to_rgb(hex_str: str) -> RGBColor:
-    """Convert '#RRGGBB' to RGBColor."""
     h = hex_str.lstrip("#")
     return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
 
 
 def get_palette(name: str) -> dict:
-    """Return palette dict with RGBColor values."""
-    raw = PALETTES.get(name.lower(), PALETTES["minimal"])
+    raw = PALETTES.get(name.lower(), PALETTES["vexjoy-dark"])
     return {role: hex_to_rgb(color) for role, color in raw.items()}
 
 
 # ---------------------------------------------------------------------------
-# Slide builders
+# Low-level primitives (theme-aware)
 # ---------------------------------------------------------------------------
 
 
-def set_slide_background(slide, color: RGBColor):
-    """Set solid background color on a slide."""
+def fill_bg(slide, color: RGBColor | None = None) -> None:
     bg = slide.background
     fill = bg.fill
     fill.solid()
-    fill.fore_color.rgb = color
+    fill.fore_color.rgb = color or THEME["bg"]
 
 
-def add_text_box(
+def add_text(
     slide,
     left,
     top,
     width,
     height,
-    text,
-    font_size=18,
-    bold=False,
-    italic=False,
-    color=None,
-    alignment=None,
-    word_wrap=True,
-    line_spacing=None,
+    text: str,
+    *,
+    size: int = 18,
+    bold: bool = False,
+    italic: bool = False,
+    color: RGBColor | None = None,
+    align=PP_ALIGN.LEFT,
+    font: str | None = None,
+    word_wrap: bool = True,
 ):
-    """Add a text box with formatted text to a slide."""
-    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-    tf = txBox.text_frame
+    """Add a single-run text box."""
+    tb = slide.shapes.add_textbox(left, top, width, height)
+    tf = tb.text_frame
     tf.word_wrap = word_wrap
     p = tf.paragraphs[0]
-    p.text = text
-    p.font.size = Pt(font_size)
-    p.font.bold = bold
-    p.font.italic = italic
-    if color:
-        p.font.color.rgb = color
-    if alignment:
-        p.alignment = alignment
-    if line_spacing:
-        p.line_spacing = line_spacing
-    p.font.name = "Calibri"
-    return txBox
+    p.alignment = align
+    r = p.add_run()
+    r.text = text
+    r.font.name = font or THEME["font_body"]
+    r.font.size = Pt(size)
+    r.font.bold = bold
+    r.font.italic = italic
+    r.font.color.rgb = color if color is not None else THEME["fg"]
+    return tb
 
 
-def add_bullet_list(slide, left, top, width, height, bullets, font_size=18, color=None, line_spacing=1.15):
-    """Add a bulleted list text box to a slide."""
-    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-    tf = txBox.text_frame
-    tf.word_wrap = True
-
-    for i, bullet in enumerate(bullets):
-        if isinstance(bullet, dict):
-            text = bullet.get("text", "")
-            level = bullet.get("level", 0)
-        else:
-            text = str(bullet)
-            level = 0
-
-        if i == 0:
-            p = tf.paragraphs[0]
-        else:
-            p = tf.add_paragraph()
-
-        p.text = text
-        p.font.size = Pt(font_size)
-        p.font.name = "Calibri"
-        p.level = level
-        p.space_after = Pt(6)
-        p.line_spacing = line_spacing
-        if color:
-            p.font.color.rgb = color
-
-    return txBox
+def add_rect(
+    slide,
+    left,
+    top,
+    width,
+    height,
+    *,
+    fill_color: RGBColor | None = None,
+    line_color: RGBColor | None = None,
+    line_width_pt: float = 0.75,
+):
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = fill_color or THEME["card_bg"]
+    shape.line.color.rgb = line_color or THEME["border"]
+    shape.line.width = Pt(line_width_pt)
+    shape.shadow.inherit = False
+    shape.text_frame.text = ""
+    return shape
 
 
-def build_title_slide(prs, slide_data, palette):
-    """Build a title slide."""
+def add_eyebrow_and_title(slide, eyebrow: str, title: str, *, title_size: int = 32):
+    """Standard top-of-slide pattern: eyebrow label + bold title."""
+    if eyebrow:
+        add_text(
+            slide, Inches(0.6), Inches(0.5), Inches(12), Inches(0.4),
+            eyebrow.upper(), size=12, bold=True, color=THEME["accent"],
+        )
+    if title:
+        add_text(
+            slide, Inches(0.6), Inches(1.0), Inches(12), Inches(1.0),
+            title, size=title_size, bold=True, color=THEME["fg"],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Slide builders. Each takes (prs, slide_data) and returns the slide.
+# ---------------------------------------------------------------------------
+
+
+def _new_slide(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank
-    set_slide_background(slide, palette["background"])
-
-    title = slide_data.get("title", "Untitled Presentation")
-    subtitle = slide_data.get("subtitle", "")
-
-    add_text_box(
-        slide,
-        1,
-        2,
-        11.333,
-        2,
-        title,
-        font_size=44,
-        bold=True,
-        color=palette["text"],
-        alignment=PP_ALIGN.CENTER,
-    )
-
-    if subtitle:
-        add_text_box(
-            slide,
-            2,
-            4.2,
-            9.333,
-            1,
-            subtitle,
-            font_size=22,
-            color=palette["secondary"],
-            alignment=PP_ALIGN.CENTER,
-        )
-
+    fill_bg(slide)
     return slide
 
 
-def build_section_divider(prs, slide_data, palette):
-    """Build a section divider slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["primary"])
-
-    title = slide_data.get("title", "Section")
+def build_title(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    eyebrow = slide_data.get("eyebrow", "")
+    title = slide_data.get("title", "Untitled")
     subtitle = slide_data.get("subtitle", "")
 
-    # White text on primary background
-    white = RGBColor(0xFF, 0xFF, 0xFF)
-    add_text_box(
-        slide,
-        1,
-        2.5,
-        11.333,
-        2,
-        title,
-        font_size=36,
-        bold=True,
-        color=white,
-        alignment=PP_ALIGN.LEFT,
-    )
-
-    if subtitle:
-        add_text_box(
-            slide,
-            1,
-            4.5,
-            11.333,
-            1,
-            subtitle,
-            font_size=20,
-            color=RGBColor(0xE0, 0xE0, 0xE0),
-            alignment=PP_ALIGN.LEFT,
+    if eyebrow:
+        add_text(
+            s, Inches(0.5), Inches(0.5), Inches(12.3), Inches(0.5),
+            eyebrow.upper(), size=14, bold=True, color=THEME["accent"],
+            align=PP_ALIGN.CENTER,
         )
+    add_text(
+        s, Inches(0.5), Inches(2.8), Inches(12.3), Inches(1.5),
+        title, size=56, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER,
+    )
+    if subtitle:
+        add_text(
+            s, Inches(0.5), Inches(4.6), Inches(12.3), Inches(2.0),
+            subtitle, size=22, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+        )
+    return s
 
-    return slide
 
-
-def build_content_bullets(prs, slide_data, palette):
-    """Build a standard content slide with headline and bullets."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["background"])
-
+def build_content(prs, slide_data, _palette=None):
+    """Eyebrow + title + lead paragraph + optional bullets + optional callout."""
+    s = _new_slide(prs)
+    eyebrow = slide_data.get("eyebrow", "")
     title = slide_data.get("title", "")
+    lead = slide_data.get("lead", "")
+    callout = slide_data.get("callout", "")
     bullets = slide_data.get("bullets", [])
 
-    if title:
-        add_text_box(
-            slide,
-            0.5,
-            0.5,
-            12.333,
-            1,
-            title,
-            font_size=28,
-            bold=True,
-            color=palette["text"],
+    add_eyebrow_and_title(s, eyebrow, title, title_size=32)
+
+    y = 2.3
+    if lead:
+        add_text(
+            s, Inches(0.6), Inches(y), Inches(12.0), Inches(2.5),
+            lead, size=18, color=THEME["fg_sec"],
         )
+        # Approx height per ~110 chars ≈ 0.45in
+        y += max(1.0, 0.45 * (len(lead) // 110 + 1))
 
     if bullets:
-        add_bullet_list(
-            slide,
-            0.5,
-            1.8,
-            12.333,
-            5.2,
-            bullets,
-            font_size=18,
-            color=palette["text"],
+        y = max(y, 3.4)
+        for b in bullets:
+            if isinstance(b, dict):
+                prefix = b.get("bold_prefix", "")
+                txt = b.get("text", "")
+            else:
+                prefix, txt = "", str(b)
+            tb = s.shapes.add_textbox(Inches(0.9), Inches(y), Inches(11.5), Inches(0.6))
+            tf = tb.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.alignment = PP_ALIGN.LEFT
+            # Bullet glyph
+            r0 = p.add_run()
+            r0.text = "• "
+            r0.font.name = THEME["font_body"]
+            r0.font.size = Pt(18)
+            r0.font.color.rgb = THEME["accent"]
+            if prefix:
+                r1 = p.add_run()
+                r1.text = prefix + " "
+                r1.font.name = THEME["font_body"]
+                r1.font.size = Pt(18)
+                r1.font.bold = True
+                r1.font.color.rgb = THEME["fg"]
+            r2 = p.add_run()
+            r2.text = txt
+            r2.font.name = THEME["font_body"]
+            r2.font.size = Pt(18)
+            r2.font.color.rgb = THEME["fg_sec"]
+            y += 0.6
+
+    if callout:
+        cy = max(y + 0.2, 5.6)
+        add_rect(
+            s, Inches(0.6), Inches(cy), Inches(12.2), Inches(1.4),
+            fill_color=THEME["card_bg"], line_color=THEME["accent"],
         )
-
-    return slide
-
-
-def build_two_column(prs, slide_data, palette):
-    """Build a two-column content slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["background"])
-
-    title = slide_data.get("title", "")
-    left_content = slide_data.get("left", {})
-    right_content = slide_data.get("right", {})
-
-    if title:
-        add_text_box(
-            slide,
-            0.5,
-            0.5,
-            12.333,
-            1,
-            title,
-            font_size=28,
-            bold=True,
-            color=palette["text"],
+        add_text(
+            s, Inches(0.85), Inches(cy + 0.2), Inches(11.7), Inches(1.0),
+            callout, size=14, italic=True, color=THEME["fg"],
         )
+    return s
 
-    # Left column header
-    left_header = left_content.get("header", "")
-    if left_header:
-        add_text_box(
-            slide,
-            0.5,
-            1.8,
-            5.9,
-            0.6,
-            left_header,
-            font_size=20,
-            bold=True,
-            color=palette["primary"],
+
+def build_section_divider(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_text(
+        s, Inches(0.6), Inches(0.5), Inches(12), Inches(0.5),
+        slide_data.get("eyebrow", "SECTION").upper(),
+        size=14, bold=True, color=THEME["accent"],
+    )
+    add_text(
+        s, Inches(1.0), Inches(2.8), Inches(11.3), Inches(2.0),
+        slide_data.get("title", ""), size=44, bold=True,
+        color=THEME["fg"], align=PP_ALIGN.LEFT,
+    )
+    if slide_data.get("subtitle"):
+        add_text(
+            s, Inches(1.0), Inches(4.8), Inches(11.3), Inches(1.5),
+            slide_data.get("subtitle", ""), size=20, color=THEME["fg_sec"],
         )
-
-    left_bullets = left_content.get("bullets", [])
-    if left_bullets:
-        top = 2.5 if left_header else 1.8
-        add_bullet_list(
-            slide,
-            0.5,
-            top,
-            5.9,
-            4.5,
-            left_bullets,
-            font_size=18,
-            color=palette["text"],
-        )
-
-    # Right column header
-    right_header = right_content.get("header", "")
-    if right_header:
-        add_text_box(
-            slide,
-            6.933,
-            1.8,
-            5.9,
-            0.6,
-            right_header,
-            font_size=20,
-            bold=True,
-            color=palette["primary"],
-        )
-
-    right_bullets = right_content.get("bullets", [])
-    if right_bullets:
-        top = 2.5 if right_header else 1.8
-        add_bullet_list(
-            slide,
-            6.933,
-            top,
-            5.9,
-            4.5,
-            right_bullets,
-            font_size=18,
-            color=palette["text"],
-        )
-
-    return slide
+    return s
 
 
-def build_quote(prs, slide_data, palette):
-    """Build a quote/callout slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["background"])
-
-    quote_text = slide_data.get("quote", "")
-    attribution = slide_data.get("attribution", "")
-
-    if quote_text:
-        add_text_box(
-            slide,
-            1.5,
-            2,
-            10.333,
-            3,
-            f'"{quote_text}"',
-            font_size=28,
-            italic=True,
-            color=palette["text"],
-            alignment=PP_ALIGN.CENTER,
-        )
-
-    if attribution:
-        add_text_box(
-            slide,
-            2,
-            5.2,
-            9.333,
-            0.8,
-            f"-- {attribution}",
-            font_size=16,
-            color=palette["muted"],
-            alignment=PP_ALIGN.CENTER,
-        )
-
-    return slide
-
-
-def build_table_slide(prs, slide_data, palette):
-    """Build a table slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["background"])
-
-    title = slide_data.get("title", "")
-    headers = slide_data.get("headers", [])
-    rows_data = slide_data.get("rows", [])
-
-    if title:
-        add_text_box(
-            slide,
-            0.5,
-            0.5,
-            12.333,
-            1,
-            title,
-            font_size=28,
-            bold=True,
-            color=palette["text"],
-        )
-
-    if headers and rows_data:
-        num_rows = len(rows_data) + 1  # +1 for header
-        num_cols = len(headers)
-
-        table_shape = slide.shapes.add_table(
-            num_rows,
-            num_cols,
-            Inches(0.5),
-            Inches(1.8),
-            Inches(12.333),
-            Inches(min(5.0, 0.5 * num_rows + 0.5)),
-        )
-        table = table_shape.table
-
-        # Header row
-        for i, header in enumerate(headers):
-            cell = table.cell(0, i)
-            cell.text = str(header)
-            cell.fill.solid()
-            cell.fill.fore_color.rgb = palette["primary"]
-            for paragraph in cell.text_frame.paragraphs:
-                paragraph.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-                paragraph.font.bold = True
-                paragraph.font.size = Pt(14)
-                paragraph.font.name = "Calibri"
-
-        # Data rows
-        for row_idx, row in enumerate(rows_data):
-            for col_idx, cell_text in enumerate(row):
-                cell = table.cell(row_idx + 1, col_idx)
-                cell.text = str(cell_text)
-                # Alternating row colors
-                if row_idx % 2 == 1:
-                    cell.fill.solid()
-                    cell.fill.fore_color.rgb = palette.get("muted", RGBColor(0xF0, 0xF0, 0xF0))
-                for paragraph in cell.text_frame.paragraphs:
-                    paragraph.font.size = Pt(12)
-                    paragraph.font.name = "Calibri"
-                    paragraph.font.color.rgb = palette["text"]
-
-    return slide
-
-
-def build_image_text(prs, slide_data, palette):
-    """Build an image + text slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["background"])
-
-    title = slide_data.get("title", "")
-    image_path = slide_data.get("image_path", "")
-    bullets = slide_data.get("bullets", [])
-    image_side = slide_data.get("image_side", "left")
-
-    if title:
-        add_text_box(
-            slide,
-            0.5,
-            0.5,
-            12.333,
-            1,
-            title,
-            font_size=28,
-            bold=True,
-            color=palette["text"],
-        )
-
-    if image_side == "left":
-        img_left, text_left = 0.5, 6.933
-    else:
-        img_left, text_left = 6.933, 0.5
-
-    # Add image if it exists
-    if image_path and Path(image_path).exists():
-        slide.shapes.add_picture(
-            image_path,
-            Inches(img_left),
-            Inches(1.8),
-            Inches(5.9),
-            Inches(5.2),
-        )
-
-    # Add text bullets
-    if bullets:
-        add_bullet_list(
-            slide,
-            text_left,
-            1.8,
-            5.9,
-            5.2,
-            bullets,
-            font_size=18,
-            color=palette["text"],
-        )
-
-    return slide
-
-
-def build_closing_slide(prs, slide_data, palette):
-    """Build a closing slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    set_slide_background(slide, palette["primary"])
-
-    main_text = slide_data.get("title", "Thank You")
-    subtitle = slide_data.get("subtitle", "")
-
-    white = RGBColor(0xFF, 0xFF, 0xFF)
-    add_text_box(
-        slide,
-        1,
-        2.5,
-        11.333,
-        2,
-        main_text,
-        font_size=36,
-        bold=True,
-        color=white,
-        alignment=PP_ALIGN.CENTER,
+def build_metric_grid(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
     )
 
-    if subtitle:
-        add_text_box(
-            slide,
-            2,
-            4.8,
-            9.333,
-            1,
-            subtitle,
-            font_size=18,
-            color=RGBColor(0xE0, 0xE0, 0xE0),
-            alignment=PP_ALIGN.CENTER,
-        )
+    metrics = slide_data.get("metrics", [])
+    n = max(1, len(metrics))
+    card_w = Inches(2.85) if n >= 4 else Inches(3.5)
+    card_h = Inches(2.5)
+    gap = Inches(0.18)
+    total_w = card_w * n + gap * (n - 1)
+    left0 = (prs.slide_width - total_w) / 2
+    top0 = Inches(2.6)
 
-    return slide
+    for i, m in enumerate(metrics):
+        val = m.get("value", "")
+        lab = m.get("label", "")
+        desc = m.get("desc", "")
+        x = left0 + i * (card_w + gap)
+        add_rect(s, x, top0, card_w, card_h)
+        add_text(
+            s, x, top0 + Inches(0.4), card_w, Inches(1.0), val,
+            size=48, bold=True, color=THEME["accent"], align=PP_ALIGN.CENTER,
+        )
+        add_text(
+            s, x, top0 + Inches(1.4), card_w, Inches(0.4), lab,
+            size=14, bold=True, color=THEME["muted"], align=PP_ALIGN.CENTER,
+        )
+        if desc:
+            add_text(
+                s, x, top0 + Inches(1.85), card_w, Inches(0.5), desc,
+                size=12, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+            )
+
+    callout = slide_data.get("callout", "")
+    if callout:
+        add_text(
+            s, Inches(0.6), Inches(5.6), Inches(12), Inches(1.5),
+            callout, size=14, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+        )
+    return s
+
+
+def build_layer_rows(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+    )
+    layers = slide_data.get("layers", [])
+    y = Inches(2.4)
+    for layer in layers:
+        name = layer.get("name", "")
+        count = layer.get("count", "")
+        desc = layer.get("desc", "")
+        add_rect(s, Inches(0.6), y, Inches(12.2), Inches(0.95))
+        add_text(s, Inches(0.9), y + Inches(0.25), Inches(2), Inches(0.5),
+                 name, size=22, bold=True, color=THEME["fg"])
+        add_text(s, Inches(3.0), y + Inches(0.25), Inches(1.2), Inches(0.5),
+                 str(count), size=22, bold=True, color=THEME["accent"])
+        add_text(s, Inches(4.5), y + Inches(0.3), Inches(8.2), Inches(0.5),
+                 desc, size=14, color=THEME["fg_sec"])
+        y += Inches(1.05)
+    return s
+
+
+def build_pipeline(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+    )
+    steps = slide_data.get("pipeline_steps", [])
+    n = max(1, len(steps))
+    sw = Inches(1.85) if n >= 6 else Inches(2.1)
+    sh = Inches(1.2)
+    sgap = Inches(0.15)
+    total = sw * n + sgap * (n - 1)
+    sl = (prs.slide_width - total) / 2
+    sy = Inches(3.0)
+    for i, step in enumerate(steps):
+        label = step.get("label", f"{i + 1:02d}")
+        name = step.get("name", "")
+        x = sl + i * (sw + sgap)
+        add_rect(s, x, sy, sw, sh, line_color=THEME["accent"])
+        add_text(s, x, sy + Inches(0.15), sw, Inches(0.4),
+                 label, size=12, bold=True, color=THEME["muted"], align=PP_ALIGN.CENTER)
+        add_text(s, x, sy + Inches(0.55), sw, Inches(0.5),
+                 name, size=18, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER)
+
+    caption = slide_data.get("pipeline_caption", "") or slide_data.get("callout", "")
+    if caption:
+        add_text(s, Inches(0.6), Inches(5.0), Inches(12), Inches(1.8),
+                 caption, size=16, color=THEME["fg_sec"])
+    return s
+
+
+def build_code_block(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+    )
+    code = slide_data.get("code", "")
+    add_rect(
+        s, Inches(0.8), Inches(2.3), Inches(11.7), Inches(4.6),
+        fill_color=THEME["code_bg"], line_color=THEME["border"],
+    )
+    tb = s.shapes.add_textbox(Inches(1.0), Inches(2.5), Inches(11.3), Inches(4.2))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    for i, line in enumerate(code.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run()
+        r.text = line if line else " "
+        r.font.name = THEME["font_mono"]
+        r.font.size = Pt(13)
+        if line.lstrip().startswith("$"):
+            r.font.color.rgb = THEME["muted"]
+        elif "✓" in line or "Delivered" in line:
+            r.font.color.rgb = THEME["success"]
+        elif line.lstrip().startswith(">"):
+            r.font.color.rgb = THEME["accent"]
+        else:
+            r.font.color.rgb = THEME["fg"]
+    return s
+
+
+def _row_color(role: str) -> RGBColor:
+    role = (role or "").lower()
+    if role == "success":
+        return THEME["success"]
+    if role == "danger":
+        return THEME["danger"]
+    if role == "label":
+        return THEME["fg"]
+    return THEME["fg_sec"]
+
+
+def _cell_text(cell) -> str:
+    if isinstance(cell, dict):
+        return cell.get("text", "")
+    return str(cell)
+
+
+def _cell_role(cell) -> str:
+    if isinstance(cell, dict):
+        return cell.get("role", "")
+    return ""
+
+
+def build_compare_table_2col(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+    )
+
+    intro = slide_data.get("intro", "")
+    if intro:
+        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6),
+                 intro, size=16, color=THEME["fg_sec"])
+
+    tbl = slide_data.get("table", {})
+    headers = tbl.get("headers", [])
+    rows = tbl.get("rows", [])
+    ty = Inches(2.7) if intro else Inches(2.2)
+    rh = Inches(0.55)
+
+    # Header row
+    if len(headers) >= 2:
+        add_text(s, Inches(0.7), ty, Inches(5.5), rh,
+                 headers[0], size=14, bold=True, color=THEME["muted"])
+        add_text(s, Inches(6.5), ty, Inches(6.3), rh,
+                 headers[1], size=14, bold=True, color=THEME["muted"])
+        ty += Inches(0.65)
+
+    for row in rows:
+        if len(row) < 2:
+            continue
+        l_text = _cell_text(row[0])
+        r_text = _cell_text(row[1])
+        l_color = _row_color(_cell_role(row[0]))
+        r_color = _row_color(_cell_role(row[1]))
+        add_text(s, Inches(0.7), ty, Inches(5.5), rh,
+                 l_text, size=14, color=l_color)
+        add_text(s, Inches(6.5), ty, Inches(6.3), rh,
+                 r_text, size=14, color=r_color)
+        ty += Inches(0.65)
+    return s
+
+
+def build_compare_table_3col(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""), title_size=26,
+    )
+
+    intro = slide_data.get("intro", "")
+    if intro:
+        add_text(s, Inches(0.6), Inches(2.0), Inches(12), Inches(0.6),
+                 intro, size=14, color=THEME["fg_sec"])
+
+    tbl = slide_data.get("table", {})
+    headers = tbl.get("headers", [])
+    rows = tbl.get("rows", [])
+    ty = Inches(2.4) if not intro else Inches(2.7)
+
+    if len(headers) >= 3:
+        add_text(s, Inches(0.7), ty, Inches(4.0), Inches(0.5),
+                 headers[0], size=13, bold=True, color=THEME["muted"])
+        add_text(s, Inches(4.9), ty, Inches(4.0), Inches(0.5),
+                 headers[1], size=13, bold=True, color=THEME["muted"])
+        add_text(s, Inches(9.1), ty, Inches(4.0), Inches(0.5),
+                 headers[2], size=13, bold=True, color=THEME["muted"])
+        ty += Inches(0.7)
+
+    for row in rows:
+        if len(row) < 3:
+            continue
+        add_text(s, Inches(0.7), ty, Inches(4.0), Inches(0.5),
+                 _cell_text(row[0]), size=13,
+                 color=_row_color(_cell_role(row[0]) or "label"))
+        add_text(s, Inches(4.9), ty, Inches(4.0), Inches(0.5),
+                 _cell_text(row[1]), size=13,
+                 color=_row_color(_cell_role(row[1]) or "danger"))
+        add_text(s, Inches(9.1), ty, Inches(4.0), Inches(0.5),
+                 _cell_text(row[2]), size=13,
+                 color=_row_color(_cell_role(row[2]) or "success"))
+        ty += Inches(0.7)
+    return s
+
+
+def build_outcome_grid(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    add_eyebrow_and_title(
+        s, slide_data.get("eyebrow", ""), slide_data.get("title", ""),
+    )
+    outcomes = slide_data.get("outcomes", [])
+    ow = Inches(4.0)
+    oh = Inches(1.85)
+    ogap = Inches(0.15)
+    ox0 = Inches(0.6)
+    oy0 = Inches(2.4)
+    for i, o in enumerate(outcomes):
+        col = i % 3
+        row = i // 3
+        x = ox0 + col * (ow + ogap)
+        y = oy0 + row * (oh + ogap)
+        add_rect(s, x, y, ow, oh)
+        add_text(s, x + Inches(0.2), y + Inches(0.2), ow - Inches(0.4), Inches(0.6),
+                 o.get("heading", ""), size=16, bold=True, color=THEME["fg"])
+        add_text(s, x + Inches(0.2), y + Inches(0.85), ow - Inches(0.4), Inches(1.0),
+                 o.get("body", ""), size=12, color=THEME["fg_sec"])
+    return s
+
+
+def build_split_narrow(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    split = slide_data.get("split", {})
+    left = split.get("left", {})
+    rows = split.get("rows", [])
+
+    eyebrow = left.get("eyebrow", slide_data.get("eyebrow", ""))
+    title = left.get("title", slide_data.get("title", ""))
+    lead = left.get("lead", slide_data.get("lead", ""))
+    callout = left.get("callout", slide_data.get("callout", ""))
+
+    if eyebrow:
+        add_text(s, Inches(0.6), Inches(0.5), Inches(8), Inches(0.4),
+                 eyebrow.upper(), size=12, bold=True, color=THEME["accent"])
+    if title:
+        add_text(s, Inches(0.6), Inches(1.0), Inches(7.5), Inches(1.2),
+                 title, size=32, bold=True, color=THEME["fg"])
+    if lead:
+        add_text(s, Inches(0.6), Inches(2.4), Inches(7.5), Inches(2.5),
+                 lead, size=16, color=THEME["fg_sec"])
+    if callout:
+        add_rect(s, Inches(0.7), Inches(5.0), Inches(7.3), Inches(1.4),
+                 line_color=THEME["accent"])
+        add_text(s, Inches(0.95), Inches(5.3), Inches(6.85), Inches(0.9),
+                 callout, size=14, color=THEME["fg"])
+
+    # Right rail: card with name/trigger rows
+    add_rect(s, Inches(8.4), Inches(1.0), Inches(4.3), Inches(5.4))
+    cy = Inches(1.3)
+    for r in rows:
+        name = r.get("name", "")
+        trigger = r.get("trigger", "")
+        add_text(s, Inches(8.6), cy, Inches(2.5), Inches(0.6),
+                 name, size=16, bold=True, color=THEME["fg"])
+        add_text(s, Inches(11.0), cy, Inches(1.6), Inches(0.6),
+                 trigger, size=16, color=THEME["accent"], font=THEME["font_mono"])
+        cy += Inches(0.95)
+    return s
+
+
+def build_closing(prs, slide_data, _palette=None):
+    s = _new_slide(prs)
+    eyebrow = slide_data.get("eyebrow", "")
+    title = slide_data.get("title", "Thank You")
+    accent_text = slide_data.get("accent_text", "")
+    subtitle = slide_data.get("subtitle", "")
+
+    if eyebrow:
+        add_text(s, Inches(0.6), Inches(0.5), Inches(12), Inches(0.4),
+                 eyebrow.upper(), size=14, bold=True, color=THEME["accent"],
+                 align=PP_ALIGN.CENTER)
+
+    # Split title from accent_text if accent_text appears within title.
+    main_text = title
+    if accent_text and accent_text in title:
+        main_text = title.replace(accent_text, "").strip()
+
+    add_text(
+        s, Inches(1.0), Inches(2.6), Inches(11.3), Inches(1.5),
+        main_text, size=32, bold=True, color=THEME["fg"], align=PP_ALIGN.CENTER,
+    )
+    if accent_text:
+        add_text(
+            s, Inches(1.0), Inches(3.9), Inches(11.3), Inches(1.5),
+            accent_text, size=32, bold=True, color=THEME["accent"], align=PP_ALIGN.CENTER,
+        )
+    if subtitle:
+        add_text(
+            s, Inches(1.0), Inches(5.7), Inches(11.3), Inches(1.5),
+            subtitle, size=16, color=THEME["fg_sec"], align=PP_ALIGN.CENTER,
+        )
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -586,57 +621,53 @@ def build_closing_slide(prs, slide_data, palette):
 # ---------------------------------------------------------------------------
 
 LAYOUT_BUILDERS = {
-    "title": build_title_slide,
+    "title": build_title,
     "section": build_section_divider,
     "section_divider": build_section_divider,
-    "content": build_content_bullets,
-    "bullets": build_content_bullets,
-    "content_bullets": build_content_bullets,
-    "two_column": build_two_column,
-    "two-column": build_two_column,
-    "quote": build_quote,
-    "callout": build_quote,
-    "table": build_table_slide,
-    "image_text": build_image_text,
-    "image-text": build_image_text,
-    "closing": build_closing_slide,
+    "content": build_content,
+    "bullets": build_content,
+    "content_bullets": build_content,
+    "metric_grid": build_metric_grid,
+    "metrics": build_metric_grid,
+    "layer_rows": build_layer_rows,
+    "pipeline": build_pipeline,
+    "code_block": build_code_block,
+    "code": build_code_block,
+    "compare_table_2col": build_compare_table_2col,
+    "compare_table_3col": build_compare_table_3col,
+    "outcome_grid": build_outcome_grid,
+    "outcomes": build_outcome_grid,
+    "split_narrow": build_split_narrow,
+    "closing": build_closing,
 }
 
 
+# Public registry so callers (and run-unified.py's report) can ask
+# "is this type natively supported?".
+SUPPORTED_LAYOUTS = set(LAYOUT_BUILDERS.keys())
+
+
 def build_presentation(slide_map: list, design: dict, output_path: str) -> str:
-    """Build a complete presentation from slide map and design config.
-
-    Args:
-        slide_map: List of slide dicts with 'type' and content fields.
-        design: Dict with 'palette' name and optional overrides.
-        output_path: Path to write the .pptx file.
-
-    Returns:
-        Path to the created .pptx file.
-    """
-    palette_name = design.get("palette", "minimal")
+    palette_name = design.get("palette", "vexjoy-dark")
     palette = get_palette(palette_name)
 
-    # Support template-based generation
     template_path = design.get("template_path")
     if template_path and Path(template_path).exists():
         prs = Presentation(template_path)
     else:
         prs = Presentation()
 
-    # Set widescreen (16:9) dimensions
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
 
     for slide_data in slide_map:
-        slide_type = slide_data.get("type", "content").lower().replace(" ", "_")
-        builder = LAYOUT_BUILDERS.get(slide_type, build_content_bullets)
+        raw_type = slide_data.get("type", "content")
+        slide_type = str(raw_type).lower().strip().replace("-", "_").replace(" ", "_")
+        builder = LAYOUT_BUILDERS.get(slide_type, build_content)
         builder(prs, slide_data, palette)
 
-    # Ensure output directory exists
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-
     prs.save(str(output))
     return str(output)
 
@@ -648,31 +679,17 @@ def build_presentation(slide_map: list, design: dict, output_path: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Generate a PPTX presentation from a slide map JSON.")
-    parser.add_argument(
-        "--slide-map",
-        required=True,
-        help="Path to slide map JSON file",
-    )
-    parser.add_argument(
-        "--design",
-        required=True,
-        help="Path to design config JSON file",
-    )
-    parser.add_argument(
-        "--output",
-        required=True,
-        help="Output .pptx file path",
-    )
+    parser.add_argument("--slide-map", required=True)
+    parser.add_argument("--design", required=True)
+    parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
-    # Validate inputs
     slide_map_path = Path(args.slide_map)
     design_path = Path(args.design)
 
     if not slide_map_path.exists():
         print(f"ERROR: Slide map not found: {slide_map_path}", file=sys.stderr)
         sys.exit(2)
-
     if not design_path.exists():
         print(f"ERROR: Design config not found: {design_path}", file=sys.stderr)
         sys.exit(2)
@@ -680,32 +697,20 @@ def main():
     try:
         with open(slide_map_path) as f:
             slide_map = json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Invalid slide map JSON: {e}", file=sys.stderr)
-        sys.exit(2)
-
-    try:
         with open(design_path) as f:
             design = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"ERROR: Invalid design config JSON: {e}", file=sys.stderr)
+        print(f"ERROR: Invalid JSON: {e}", file=sys.stderr)
         sys.exit(2)
 
-    if not isinstance(slide_map, list):
-        print("ERROR: Slide map must be a JSON array of slide objects", file=sys.stderr)
-        sys.exit(2)
-
-    if len(slide_map) == 0:
-        print("ERROR: Slide map is empty", file=sys.stderr)
+    if not isinstance(slide_map, list) or not slide_map:
+        print("ERROR: Slide map must be a non-empty JSON array", file=sys.stderr)
         sys.exit(2)
 
     try:
         result = build_presentation(slide_map, design, args.output)
-        file_size = Path(result).stat().st_size
-        print(f"SUCCESS: Generated {len(slide_map)} slides")
-        print(f"  Output: {result}")
-        print(f"  Size: {file_size:,} bytes")
-        print(f"  Palette: {design.get('palette', 'minimal')}")
+        size = Path(result).stat().st_size
+        print(f"SUCCESS: {len(slide_map)} slides -> {result} ({size:,} bytes)")
     except Exception as e:
         print(f"ERROR: Generation failed: {e}", file=sys.stderr)
         sys.exit(3)
