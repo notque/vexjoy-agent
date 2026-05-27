@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Deterministic pre-router for /do dispatch.
+"""Deterministic safety-net + offline drift/benchmark tool for /do routing.
 
-Pattern-matches user requests against trigger keywords from INDEX.json
-files BEFORE the Haiku LLM routing agent. High-confidence matches skip
-LLM routing entirely; low-confidence or unmatched requests fall through.
+Pattern-matches user requests against trigger keywords from INDEX.json files.
+In the /do flow this runs AFTER the semantic (Haiku) routing decision, not
+before it: semantic intent routing is primary, and this module is the
+deterministic safety-net. It enforces safety-critical force-routes (a
+high-confidence force_route for pr-workflow or a security skill overrides a
+disagreeing semantic pick so git/security work always hits quality gates) and
+its phrase/unigram guards continue to suppress false matches. It no longer
+short-circuits or skips Haiku on the long tail.
+
+Offline, the same matching logic powers check-routing-drift.py and
+routing-benchmark.py. The CLI, output shape, confidence levels, and guards are
+a stable contract those tools depend on.
 
 Usage:
     python3 scripts/pre-route.py --request "run go tests"

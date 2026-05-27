@@ -1,0 +1,1 @@
+{"agent": null, "skill": "read-only-ops", "pipeline": null, "reasoning": "User is asking for read-only git state inspection (current branch), which matches read-only-ops skill for exploration and reporting without modifications.", "confidence": "medium"}

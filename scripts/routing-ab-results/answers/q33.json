@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User requests merging branches; FORCE-ROUTE rule mandates pr-workflow for all git operations including merge.", "confidence": "high"}

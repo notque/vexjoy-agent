@@ -1,0 +1,1 @@
+{"agent": null, "skill": "socratic-debugging", "pipeline": null, "reasoning": "User needs to identify root cause of a broken function; socratic-debugging guides discovery through questions rather than direct answers.", "confidence": "high"}

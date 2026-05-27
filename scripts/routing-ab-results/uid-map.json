@@ -1,0 +1,492 @@
+{
+  "u000": {
+    "query_id": "q00",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u001": {
+    "query_id": "q00",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u002": {
+    "query_id": "q01",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u003": {
+    "query_id": "q01",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u004": {
+    "query_id": "q02",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u005": {
+    "query_id": "q02",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u006": {
+    "query_id": "q03",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u007": {
+    "query_id": "q03",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u008": {
+    "query_id": "q04",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u009": {
+    "query_id": "q04",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u010": {
+    "query_id": "q05",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u011": {
+    "query_id": "q05",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u012": {
+    "query_id": "q06",
+    "arm": "A",
+    "bucket": "paraphrase-security"
+  },
+  "u013": {
+    "query_id": "q06",
+    "arm": "B",
+    "bucket": "paraphrase-security"
+  },
+  "u014": {
+    "query_id": "q07",
+    "arm": "A",
+    "bucket": "paraphrase-security"
+  },
+  "u015": {
+    "query_id": "q07",
+    "arm": "B",
+    "bucket": "paraphrase-security"
+  },
+  "u016": {
+    "query_id": "q08",
+    "arm": "A",
+    "bucket": "paraphrase-security"
+  },
+  "u017": {
+    "query_id": "q08",
+    "arm": "B",
+    "bucket": "paraphrase-security"
+  },
+  "u018": {
+    "query_id": "q09",
+    "arm": "A",
+    "bucket": "paraphrase-debug"
+  },
+  "u019": {
+    "query_id": "q09",
+    "arm": "B",
+    "bucket": "paraphrase-debug"
+  },
+  "u020": {
+    "query_id": "q10",
+    "arm": "A",
+    "bucket": "paraphrase-debug"
+  },
+  "u021": {
+    "query_id": "q10",
+    "arm": "B",
+    "bucket": "paraphrase-debug"
+  },
+  "u022": {
+    "query_id": "q11",
+    "arm": "A",
+    "bucket": "paraphrase-debug"
+  },
+  "u023": {
+    "query_id": "q11",
+    "arm": "B",
+    "bucket": "paraphrase-debug"
+  },
+  "u024": {
+    "query_id": "q12",
+    "arm": "A",
+    "bucket": "paraphrase-refactor"
+  },
+  "u025": {
+    "query_id": "q12",
+    "arm": "B",
+    "bucket": "paraphrase-refactor"
+  },
+  "u026": {
+    "query_id": "q13",
+    "arm": "A",
+    "bucket": "paraphrase-refactor"
+  },
+  "u027": {
+    "query_id": "q13",
+    "arm": "B",
+    "bucket": "paraphrase-refactor"
+  },
+  "u028": {
+    "query_id": "q14",
+    "arm": "A",
+    "bucket": "paraphrase-test"
+  },
+  "u029": {
+    "query_id": "q14",
+    "arm": "B",
+    "bucket": "paraphrase-test"
+  },
+  "u030": {
+    "query_id": "q15",
+    "arm": "A",
+    "bucket": "paraphrase-test"
+  },
+  "u031": {
+    "query_id": "q15",
+    "arm": "B",
+    "bucket": "paraphrase-test"
+  },
+  "u032": {
+    "query_id": "q16",
+    "arm": "A",
+    "bucket": "paraphrase-review"
+  },
+  "u033": {
+    "query_id": "q16",
+    "arm": "B",
+    "bucket": "paraphrase-review"
+  },
+  "u034": {
+    "query_id": "q17",
+    "arm": "A",
+    "bucket": "paraphrase-review"
+  },
+  "u035": {
+    "query_id": "q17",
+    "arm": "B",
+    "bucket": "paraphrase-review"
+  },
+  "u036": {
+    "query_id": "q18",
+    "arm": "A",
+    "bucket": "paraphrase-explore"
+  },
+  "u037": {
+    "query_id": "q18",
+    "arm": "B",
+    "bucket": "paraphrase-explore"
+  },
+  "u038": {
+    "query_id": "q19",
+    "arm": "A",
+    "bucket": "paraphrase-explore"
+  },
+  "u039": {
+    "query_id": "q19",
+    "arm": "B",
+    "bucket": "paraphrase-explore"
+  },
+  "u040": {
+    "query_id": "q20",
+    "arm": "A",
+    "bucket": "paraphrase-explore"
+  },
+  "u041": {
+    "query_id": "q20",
+    "arm": "B",
+    "bucket": "paraphrase-explore"
+  },
+  "u042": {
+    "query_id": "q21",
+    "arm": "A",
+    "bucket": "paraphrase-review"
+  },
+  "u043": {
+    "query_id": "q21",
+    "arm": "B",
+    "bucket": "paraphrase-review"
+  },
+  "u044": {
+    "query_id": "q22",
+    "arm": "A",
+    "bucket": "paraphrase-security"
+  },
+  "u045": {
+    "query_id": "q22",
+    "arm": "B",
+    "bucket": "paraphrase-security"
+  },
+  "u046": {
+    "query_id": "q23",
+    "arm": "A",
+    "bucket": "paraphrase-refactor"
+  },
+  "u047": {
+    "query_id": "q23",
+    "arm": "B",
+    "bucket": "paraphrase-refactor"
+  },
+  "u048": {
+    "query_id": "q24",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u049": {
+    "query_id": "q24",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u050": {
+    "query_id": "q25",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u051": {
+    "query_id": "q25",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u052": {
+    "query_id": "q26",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u053": {
+    "query_id": "q26",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u054": {
+    "query_id": "q27",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u055": {
+    "query_id": "q27",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u056": {
+    "query_id": "q28",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u057": {
+    "query_id": "q28",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u058": {
+    "query_id": "q29",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u059": {
+    "query_id": "q29",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u060": {
+    "query_id": "q30",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u061": {
+    "query_id": "q30",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u062": {
+    "query_id": "q31",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u063": {
+    "query_id": "q31",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u064": {
+    "query_id": "q32",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u065": {
+    "query_id": "q32",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u066": {
+    "query_id": "q33",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u067": {
+    "query_id": "q33",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u068": {
+    "query_id": "q34",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u069": {
+    "query_id": "q34",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u070": {
+    "query_id": "q35",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u071": {
+    "query_id": "q35",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u072": {
+    "query_id": "q36",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u073": {
+    "query_id": "q36",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u074": {
+    "query_id": "q37",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u075": {
+    "query_id": "q37",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u076": {
+    "query_id": "q38",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u077": {
+    "query_id": "q38",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u078": {
+    "query_id": "q39",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u079": {
+    "query_id": "q39",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u080": {
+    "query_id": "q40",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u081": {
+    "query_id": "q40",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u082": {
+    "query_id": "q41",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u083": {
+    "query_id": "q41",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u084": {
+    "query_id": "q42",
+    "arm": "A",
+    "bucket": "benchmark-llm_only"
+  },
+  "u085": {
+    "query_id": "q42",
+    "arm": "B",
+    "bucket": "benchmark-llm_only"
+  },
+  "u086": {
+    "query_id": "q43",
+    "arm": "A",
+    "bucket": "benchmark-llm_only"
+  },
+  "u087": {
+    "query_id": "q43",
+    "arm": "B",
+    "bucket": "benchmark-llm_only"
+  },
+  "u088": {
+    "query_id": "q44",
+    "arm": "A",
+    "bucket": "benchmark-llm_only"
+  },
+  "u089": {
+    "query_id": "q44",
+    "arm": "B",
+    "bucket": "benchmark-llm_only"
+  },
+  "u090": {
+    "query_id": "q45",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u091": {
+    "query_id": "q45",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  },
+  "u092": {
+    "query_id": "q46",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u093": {
+    "query_id": "q46",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u094": {
+    "query_id": "q47",
+    "arm": "A",
+    "bucket": "benchmark-llm_only"
+  },
+  "u095": {
+    "query_id": "q47",
+    "arm": "B",
+    "bucket": "benchmark-llm_only"
+  },
+  "u096": {
+    "query_id": "q48",
+    "arm": "A",
+    "bucket": "benchmark-llm_only"
+  },
+  "u097": {
+    "query_id": "q48",
+    "arm": "B",
+    "bucket": "benchmark-llm_only"
+  }
+}

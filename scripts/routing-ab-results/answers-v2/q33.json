@@ -1,0 +1,1 @@
+{"agent": null, "skill": "multi-persona-critique", "pipeline": null, "reasoning": "User request is metaphorical 'merge ideas in your head' (synthesize perspectives), not a Git operation, so routes to multi-persona-critique skill for parallel perspective synthesis and consensus.", "confidence": "high"}

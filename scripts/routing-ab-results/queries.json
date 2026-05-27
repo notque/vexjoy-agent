@@ -1,0 +1,443 @@
+[
+  {
+    "id": "q00",
+    "request": "send my commits to the server",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY. Real git push intent, no 'push'/'GitHub' keyword. MUST route pr-workflow so the commit->quality-gate guarantee holds. pre-route falls through (no trigger)."
+  },
+  {
+    "id": "q01",
+    "request": "save my work to the shared repository",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY. 'save to shared repository' = push. No trigger keyword. MUST route pr-workflow."
+  },
+  {
+    "id": "q02",
+    "request": "I'd like to submit my changes for review",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY. 'submit changes for review' = open a PR. MUST route pr-workflow."
+  },
+  {
+    "id": "q03",
+    "request": "please record what I changed into version control",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY. 'record into version control' = commit. MUST route pr-workflow (commit intent)."
+  },
+  {
+    "id": "q04",
+    "request": "I want to upload my finished work so the team can see it",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY. Plain phrasing of push-for-team-visibility = push/PR. MUST route pr-workflow."
+  },
+  {
+    "id": "q05",
+    "request": "can you check if the automated tests on my submitted change went green",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "paraphrase-git",
+    "notes": "SAFETY-adjacent. CI status on a PR; benchmark routes ci-check intent to pr-workflow. No 'CI'/'PR' token. MUST route pr-workflow."
+  },
+  {
+    "id": "q06",
+    "request": "look over my code for safety problems",
+    "expected_agent": "reviewer-system",
+    "expected_skill": "security-review",
+    "category": "security",
+    "bucket": "paraphrase-security",
+    "notes": "SAFETY. Security review intent, no 'security' token. security-review FORCE agent=reviewer-system. Defensible equivalent: parallel-code-review security pass."
+  },
+  {
+    "id": "q07",
+    "request": "check whether anything here is unsafe before I share it",
+    "expected_agent": "reviewer-system",
+    "expected_skill": "security-review",
+    "category": "security",
+    "bucket": "paraphrase-security",
+    "notes": "SAFETY. 'is anything unsafe' = security review. No 'security' keyword. MUST route security-review (or defensible parallel-code-review)."
+  },
+  {
+    "id": "q08",
+    "request": "I worry someone could break into this, can you inspect it",
+    "expected_agent": "reviewer-system",
+    "expected_skill": "security-review",
+    "category": "security",
+    "bucket": "paraphrase-security",
+    "notes": "SAFETY. Vulnerability/intrusion concern = security review. No trigger keyword."
+  },
+  {
+    "id": "q09",
+    "request": "the program stops working when two things happen at the same time, help me find why",
+    "expected_agent": null,
+    "expected_skill": "workflow",
+    "category": "debugging",
+    "bucket": "paraphrase-debug",
+    "notes": "Race-condition debug, no language stated, no 'debug' token. workflow umbrella owns the debug pipeline. Defensible: socratic-debugging."
+  },
+  {
+    "id": "q10",
+    "request": "something is wrong with this function and I cannot work out the cause",
+    "expected_agent": null,
+    "expected_skill": "workflow",
+    "category": "debugging",
+    "bucket": "paraphrase-debug",
+    "notes": "Root-cause investigation, no 'debug'/'bug' trigger phrase that force-routes. workflow debug pipeline. Defensible: socratic-debugging."
+  },
+  {
+    "id": "q11",
+    "request": "my Go service slowly eats memory until it falls over, find the cause",
+    "expected_agent": "golang-general-engineer",
+    "expected_skill": "go-patterns",
+    "category": "go-development",
+    "bucket": "paraphrase-debug",
+    "notes": "Go memory leak (goroutine leak) phrased without 'goroutine'/'leak' triggers. Domain is explicit (Go). Should reach golang-general-engineer + go-patterns."
+  },
+  {
+    "id": "q12",
+    "request": "this chunk of logic is repeated everywhere, help me tidy it into one place",
+    "expected_agent": null,
+    "expected_skill": "workflow",
+    "category": "refactoring",
+    "bucket": "paraphrase-refactor",
+    "notes": "Extract-duplicate refactor, no 'refactor'/'extract' trigger. workflow owns systematic-refactoring. Defensible: quick if judged contained."
+  },
+  {
+    "id": "q13",
+    "request": "the structure of this module is messy, reorganize it without changing behaviour",
+    "expected_agent": null,
+    "expected_skill": "workflow",
+    "category": "refactoring",
+    "bucket": "paraphrase-refactor",
+    "notes": "Behaviour-preserving restructure = refactor, no trigger keyword. workflow refactor pipeline."
+  },
+  {
+    "id": "q14",
+    "request": "please write some checks that prove this Python parser behaves correctly",
+    "expected_agent": "python-general-engineer",
+    "expected_skill": null,
+    "category": "python-development",
+    "bucket": "paraphrase-test",
+    "notes": "'write checks that prove correctness' = write tests. Python domain explicit. python-general-engineer. Defensible: test-driven-development / python-quality-gate."
+  },
+  {
+    "id": "q15",
+    "request": "I need automated checks so future edits do not break this feature",
+    "expected_agent": null,
+    "expected_skill": "test-driven-development",
+    "category": "testing",
+    "bucket": "paraphrase-test",
+    "notes": "Regression test intent, no language, no 'test'/'pytest' trigger. test-driven-development or workflow. Defensible: any test-authoring skill."
+  },
+  {
+    "id": "q16",
+    "request": "have a careful read through my recent edits and tell me what could be better",
+    "expected_agent": null,
+    "expected_skill": "systematic-code-review",
+    "category": "code-review",
+    "bucket": "paraphrase-review",
+    "notes": "Code review of a diff, no 'review code' trigger phrasing that force-routes. systematic-code-review. Defensible: parallel-code-review."
+  },
+  {
+    "id": "q17",
+    "request": "go through what I wrote and point out mistakes from a few angles",
+    "expected_agent": null,
+    "expected_skill": "parallel-code-review",
+    "category": "code-review",
+    "bucket": "paraphrase-review",
+    "notes": "'from a few angles' = multi-perspective review. parallel-code-review or systematic-code-review both defensible. 'go through' must NOT route golang."
+  },
+  {
+    "id": "q18",
+    "request": "help me understand how this codebase is put together",
+    "expected_agent": null,
+    "expected_skill": "read-only-ops",
+    "category": "exploration",
+    "bucket": "paraphrase-explore",
+    "notes": "Read-only architecture exploration, no edit intent. read-only-ops or codebase-analyzer. MUST NOT route an editing skill."
+  },
+  {
+    "id": "q19",
+    "request": "walk me through what each part of this project does, do not change anything",
+    "expected_agent": null,
+    "expected_skill": "read-only-ops",
+    "category": "exploration",
+    "bucket": "paraphrase-explore",
+    "notes": "Explicit no-edit exploration. read-only-ops. Defensible: codebase-analyzer / workflow explore pipeline."
+  },
+  {
+    "id": "q20",
+    "request": "give me a map of where the important files live in here",
+    "expected_agent": null,
+    "expected_skill": "read-only-ops",
+    "category": "exploration",
+    "bucket": "paraphrase-explore",
+    "notes": "Codebase-map exploration, read-only. read-only-ops or codebase-analyzer."
+  },
+  {
+    "id": "q21",
+    "request": "moderate the reports waiting in my subreddit queue",
+    "expected_agent": null,
+    "expected_skill": "reddit-moderate",
+    "category": "reddit",
+    "bucket": "paraphrase-review",
+    "notes": "Reddit modqueue task phrased plainly. reddit-moderate. Distinguishes 'moderate'/'queue' domain from code review."
+  },
+  {
+    "id": "q22",
+    "request": "before I share my branch, make sure I did not leave any passwords or keys in the code",
+    "expected_agent": "reviewer-system",
+    "expected_skill": "security-review",
+    "category": "security",
+    "bucket": "paraphrase-security",
+    "notes": "SAFETY. Secret-leak scan = security review, no 'security' token. security-review. Defensible: parallel-code-review security pass."
+  },
+  {
+    "id": "q23",
+    "request": "I think there is a small mistake in the spelling inside main.go, fix it",
+    "expected_agent": null,
+    "expected_skill": "quick",
+    "category": "trivial-operations",
+    "bucket": "paraphrase-refactor",
+    "notes": "Trivial typo fix phrased plainly (no 'typo' trigger). quick. Tests that plain phrasing of a trivial op still lands light, not on workflow."
+  },
+  {
+    "id": "q24",
+    "request": "push my changes to GitHub",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "benchmark-force_route",
+    "notes": "SAFETY control. Keyword form; pre-route fires high-confidence. Anchors that A keeps git safety."
+  },
+  {
+    "id": "q25",
+    "request": "commit these files",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "benchmark-force_route",
+    "notes": "SAFETY control. Keyword commit; pre-route high-confidence."
+  },
+  {
+    "id": "q26",
+    "request": "did CI pass on my PR?",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "benchmark-force_route",
+    "notes": "SAFETY control. CI status keyword form; pre-route fires pr-workflow."
+  },
+  {
+    "id": "q27",
+    "request": "clean up my merged branches",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "category": "git-operations",
+    "bucket": "benchmark-force_route",
+    "notes": "Keyword branch cleanup; pre-route force-route pr-workflow."
+  },
+  {
+    "id": "q28",
+    "request": "push back on this approach",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Disagreement, not git push. MUST NOT route pr-workflow. Semantic guard exists in pre-route; B must also resist."
+  },
+  {
+    "id": "q29",
+    "request": "commit to this approach and move forward",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Decision/dedication, not git commit. MUST NOT route pr-workflow."
+  },
+  {
+    "id": "q30",
+    "request": "go ahead and fix the bug",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. 'go' is a verb, not Go language. MUST NOT route golang-general-engineer."
+  },
+  {
+    "id": "q31",
+    "request": "fish out the root cause of this bug",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Search/investigate, not Fish shell. MUST NOT route fish-shell-config."
+  },
+  {
+    "id": "q32",
+    "request": "give me a quick read on the architecture",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Brief overview, not a 'quick' edit task. MUST NOT force-route quick."
+  },
+  {
+    "id": "q33",
+    "request": "go ahead and merge the branches in your head",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Cognitive merge, not git merge. MUST NOT route pr-workflow."
+  },
+  {
+    "id": "q34",
+    "request": "we need to scan and remove voice samples from the corpus",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "false-positive-guard",
+    "bucket": "false-positive-guard",
+    "notes": "GUARD. Data cleaning, not voice-writer generation. MUST NOT force-route voice-writer."
+  },
+  {
+    "id": "q35",
+    "request": "debug the goroutine leak in the worker pool",
+    "expected_agent": "golang-general-engineer",
+    "expected_skill": "go-patterns",
+    "category": "go-development",
+    "bucket": "benchmark-force_route",
+    "notes": "Keyword Go debug; pre-route force-routes go-patterns. Control for Go domain force-route."
+  },
+  {
+    "id": "q36",
+    "request": "write table-driven tests for the parser",
+    "expected_agent": "golang-general-engineer",
+    "expected_skill": "go-patterns",
+    "category": "go-development",
+    "bucket": "benchmark-force_route",
+    "notes": "Keyword Go tests; force-route go-patterns via 'table-driven'."
+  },
+  {
+    "id": "q37",
+    "request": "add auth middleware to the Python Flask API",
+    "expected_agent": "python-general-engineer",
+    "expected_skill": null,
+    "category": "python-development",
+    "bucket": "benchmark-candidate",
+    "notes": "Python domain task; candidate tier. python-general-engineer expected (no force-route fires)."
+  },
+  {
+    "id": "q38",
+    "request": "run ruff and mypy on this Python project",
+    "expected_agent": null,
+    "expected_skill": "python-quality-gate",
+    "category": "python-development",
+    "bucket": "benchmark-candidate",
+    "notes": "Python quality checks; candidate tier. python-quality-gate."
+  },
+  {
+    "id": "q39",
+    "request": "fix the React component rendering bug",
+    "expected_agent": "typescript-frontend-engineer",
+    "expected_skill": null,
+    "category": "frontend-development",
+    "bucket": "benchmark-candidate",
+    "notes": "React/frontend domain; candidate tier. typescript-frontend-engineer."
+  },
+  {
+    "id": "q40",
+    "request": "comprehensive code review from multiple perspectives",
+    "expected_agent": null,
+    "expected_skill": "systematic-code-review",
+    "category": "code-review",
+    "bucket": "benchmark-candidate",
+    "notes": "Multi-reviewer review; systematic-code-review or parallel-code-review defensible."
+  },
+  {
+    "id": "q41",
+    "request": "deploy the app to Kubernetes with Helm",
+    "expected_agent": "kubernetes-helm-engineer",
+    "expected_skill": null,
+    "category": "infrastructure",
+    "bucket": "benchmark-candidate",
+    "notes": "K8s domain; candidate tier. kubernetes-helm-engineer."
+  },
+  {
+    "id": "q42",
+    "request": "roast this design doc",
+    "expected_agent": null,
+    "expected_skill": "roast",
+    "category": "code-review",
+    "bucket": "benchmark-llm_only",
+    "notes": "Niche skill; pre-route does not force-route. LLM must recognize 'roast' as multi-persona critique."
+  },
+  {
+    "id": "q43",
+    "request": "plan the implementation for this feature",
+    "expected_agent": null,
+    "expected_skill": "feature-lifecycle",
+    "category": "feature-lifecycle",
+    "bucket": "benchmark-llm_only",
+    "notes": "Feature plan phase; llm_only. feature-lifecycle or planning defensible. No false-positive force-route expected."
+  },
+  {
+    "id": "q44",
+    "request": "research the topic thoroughly then write an article",
+    "expected_agent": null,
+    "expected_skill": "research-pipeline",
+    "category": "content-creation",
+    "bucket": "benchmark-llm_only",
+    "notes": "Multi-skill chain; research then voice-writer. research-pipeline or voice-writer defensible. LLM resolves chain."
+  },
+  {
+    "id": "q45",
+    "request": "create a new Claude Code skill with quality gates",
+    "expected_agent": "toolkit-governance-engineer",
+    "expected_skill": "skill-creator",
+    "category": "meta-tooling",
+    "bucket": "benchmark-candidate",
+    "notes": "Skill creation; skill-creator (or skill-creation-pipeline) with toolkit-governance-engineer."
+  },
+  {
+    "id": "q46",
+    "request": "scaffold a new agent for Rust development",
+    "expected_agent": null,
+    "expected_skill": "agent-creator",
+    "category": "meta-tooling",
+    "bucket": "benchmark-force_route",
+    "notes": "Agent creation; force-route agent-creator."
+  },
+  {
+    "id": "q47",
+    "request": "what's my current branch?",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "trivial-operations",
+    "bucket": "benchmark-llm_only",
+    "notes": "Trivial git status; router handles directly, no force-route. MUST NOT route pr-workflow (read-only status, not a git mutation)."
+  },
+  {
+    "id": "q48",
+    "request": "give me your opinion on this design",
+    "expected_agent": null,
+    "expected_skill": null,
+    "category": "trivial-operations",
+    "bucket": "benchmark-llm_only",
+    "notes": "Opinion/recommendation; NOT trivial, must not force-route any skill."
+  }
+]

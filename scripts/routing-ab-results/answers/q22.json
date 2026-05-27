@@ -1,0 +1,1 @@
+{"agent": "reviewer-system", "skill": "security-review", "pipeline": null, "reasoning": "FORCE match: security-review skill with reviewer-system agent detects passwords and keys in git changes before sharing", "confidence": "high"}

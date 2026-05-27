@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "Git commit operation matches FORCE-ROUTE rule for pr-workflow which handles commit as first operation in git workflow lifecycle.", "confidence": "high"}

@@ -1,0 +1,1 @@
+{"agent":"reviewer-code","skill":"parallel-code-review","pipeline":null,"reasoning":"User requests careful review of recent edits to identify improvements, matching the code quality review domain with focus on conventions, naming, dead code, and performance analysis.","confidence":"high"}

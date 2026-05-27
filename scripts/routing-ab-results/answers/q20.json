@@ -1,0 +1,1 @@
+{"agent": null, "skill": "codebase-overview", "pipeline": null, "reasoning": "User wants a map of repository structure and file locations; codebase-overview explicitly provides systematic codebase exploration and architecture mapping.", "confidence": "high"}
