@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "FORCE-match: user request for commit is a git operation; FORCE rule mandates pr-workflow for commit, push, PR, merge operations.", "confidence": "high"}

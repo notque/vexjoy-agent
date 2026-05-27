@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User requests git commit operation, which is FORCE-routed to pr-workflow skill per manifest rule for git operations (commit, push, PR, merge).", "confidence": "high"}

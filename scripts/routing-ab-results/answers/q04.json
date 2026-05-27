@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User intent is git collaboration (uploading finished work for team visibility), which is a FORCE-match for pr-workflow per the routing rules.", "confidence": "high"}

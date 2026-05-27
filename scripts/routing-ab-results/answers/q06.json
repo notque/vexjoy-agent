@@ -1,0 +1,1 @@
+{"agent": "reviewer-system", "skill": "security-review", "pipeline": null, "reasoning": "security-review is a FORCE-routed skill designed for safety problems in code with deterministic scanning and security review of diffs.", "confidence": "high"}

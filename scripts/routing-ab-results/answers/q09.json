@@ -1,0 +1,1 @@
+{"agent": "typescript-debugging-engineer", "skill": "workflow", "pipeline": null, "reasoning": "User has a concurrency/timing bug (program fails when two things happen simultaneously); typescript-debugging-engineer explicitly handles race conditions and async/await issues, and workflow provides the debug phase-gated process.", "confidence": "high"}

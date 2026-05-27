@@ -1,0 +1,1 @@
+{"agent": "reviewer-code", "skill": "workflow", "pipeline": null, "reasoning": "User requests help consolidating duplicated code logic; workflow skill explicitly handles refactoring workflows and reviewer-code agent specializes in detecting code quality issues including patterns and duplication.", "confidence": "high"}

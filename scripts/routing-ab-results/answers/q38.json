@@ -1,0 +1,1 @@
+{"agent": "python-general-engineer", "skill": "python-quality-gate", "pipeline": null, "reasoning": "FORCE-rule match: python-quality-gate explicitly runs ruff and mypy on Python projects.", "confidence": "high"}

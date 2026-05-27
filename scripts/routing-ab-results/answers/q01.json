@@ -1,0 +1,1 @@
+{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User intent is to save and push work to shared repository, which is a git operation (commit + push) explicitly covered by FORCE-routed pr-workflow skill.", "confidence": "high"}

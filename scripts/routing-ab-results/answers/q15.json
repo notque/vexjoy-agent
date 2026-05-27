@@ -1,0 +1,1 @@
+{"agent": "testing-automation-engineer", "skill": "test-driven-development", "pipeline": null, "reasoning": "User needs automated checks to prevent future edits from breaking features; testing-automation-engineer with TDD provides RED-GREEN-REFACTOR cycle for automated regression prevention.", "confidence": "high"}
