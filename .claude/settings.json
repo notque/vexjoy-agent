@@ -161,12 +161,6 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-index-sync-check.py\"",
-            "description": "INDEX.json sync gate: blocks git commit/push when SKILL.md staged without INDEX.json",
-            "timeout": 5000
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
             "timeout": 30000
