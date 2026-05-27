@@ -51,6 +51,28 @@ def _stop_event(cwd: str | None = None, stop_hook_active: bool = False) -> str:
     return json.dumps(event)
 
 
+def _post_event(tool_name: str, file_path: str, cwd: str | None = None) -> str:
+    event = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": tool_name,
+        "tool_input": {"file_path": file_path},
+    }
+    if cwd:
+        event["cwd"] = cwd
+    return json.dumps(event)
+
+
+def _advisory_context(stdout_str: str) -> str | None:
+    """Return the additionalContext string from a PostToolUse output, or None."""
+    for line in stdout_str.strip().splitlines():
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        return data.get("hookSpecificOutput", {}).get("additionalContext")
+    return None
+
+
 def _clean_env(extra: dict | None = None) -> dict:
     base = {
         k: v
@@ -257,6 +279,67 @@ class TestStopAsyncRewake:
         )
         assert code == 0
         assert "rewakeSummary" not in out
+
+
+# ---------------------------------------------------------------------------
+# PostToolUse — advisory edit-time scan (matches Anthropic edit-time firing)
+# ---------------------------------------------------------------------------
+
+
+class TestPostToolUseAdvisory:
+    def test_vulnerable_edit_injects_advisory_context(self, tmp_path):
+        f = tmp_path / "app.py"
+        f.write_text("import os\nos.system(cmd)\n")
+        code, out, _ = _run(_post_event("Write", str(f), cwd=str(tmp_path)))
+        assert code == 0
+        ctx = _advisory_context(out)
+        assert ctx is not None
+        assert "shell-injection" in ctx
+        assert "app.py:2" in ctx
+
+    def test_advisory_never_emits_permission_decision(self, tmp_path):
+        """PostToolUse runs after the edit — it must never block."""
+        f = tmp_path / "app.py"
+        f.write_text("os.system(cmd)\n")
+        code, out, _ = _run(_post_event("Edit", str(f), cwd=str(tmp_path)))
+        assert code == 0
+        assert not _is_deny(out)
+
+    def test_clean_edit_emits_no_advisory(self, tmp_path):
+        f = tmp_path / "ok.py"
+        f.write_text("x = 1 + 1\n")
+        code, out, _ = _run(_post_event("Edit", str(f), cwd=str(tmp_path)))
+        assert code == 0
+        assert _advisory_context(out) is None
+
+    def test_non_source_file_skipped(self, tmp_path):
+        f = tmp_path / "notes.md"
+        f.write_text("Call eval(x) to run.\n")
+        code, out, _ = _run(_post_event("Write", str(f), cwd=str(tmp_path)))
+        assert code == 0
+        assert _advisory_context(out) is None
+
+    def test_non_edit_tool_skipped(self, tmp_path):
+        f = tmp_path / "app.py"
+        f.write_text("os.system(cmd)\n")
+        code, out, _ = _run(_post_event("Bash", str(f), cwd=str(tmp_path)))
+        assert code == 0
+        assert _advisory_context(out) is None
+
+    def test_disable_env_disables_post_tool_use(self, tmp_path):
+        f = tmp_path / "app.py"
+        f.write_text("os.system(cmd)\n")
+        code, out, _ = _run(
+            _post_event("Write", str(f), cwd=str(tmp_path)),
+            env={"VEXJOY_SECURITY_REVIEW_DISABLE": "1"},
+        )
+        assert code == 0
+        assert _advisory_context(out) is None
+
+    def test_missing_file_fails_open(self, tmp_path):
+        code, out, _ = _run(_post_event("Write", str(tmp_path / "gone.py"), cwd=str(tmp_path)))
+        assert code == 0
+        assert _advisory_context(out) is None
 
 
 # ---------------------------------------------------------------------------

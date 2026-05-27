@@ -10,8 +10,16 @@ reads from stdin. Two paths, no Agent SDK, no API key, no network calls:
 |-------------|---------------------------------|-----------------------------------------------------|
 | PreToolUse  | Bash command contains git commit| Scan STAGED files via scripts/security-review-scan. |
 |             |                                 | HIGH/CRITICAL -> JSON permissionDecision:deny.      |
+| PostToolUse | Edit / Write / MultiEdit        | Scan the just-edited file via the same scanner rules|
+|             |                                 | and inject findings as ADVISORY additionalContext.  |
+|             |                                 | Never blocks (PostToolUse runs after the edit) —    |
+|             |                                 | matches Anthropic's edit-time firing.               |
 | Stop        | (always)                        | asyncRewake the session agent with the working-tree |
 |             |                                 | diff + instruction to run the security-review skill.|
+
+The commit gate (PreToolUse) is the ONLY blocking path. PostToolUse and Stop are
+advisory — they inform but never deny, mirroring the ADR's "Stop is advisory" rule
+and Anthropic's edit-time PostToolUse reminders.
 
 The deterministic regex layer is `scripts/security-review-scan.py` (the single
 source of detection rules — called as a subprocess with `--staged --format json`).
@@ -38,6 +46,7 @@ Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
 """
 
+import importlib.util
 import json
 import os
 import re
@@ -47,6 +56,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import context_output, empty_output
 from stdin_timeout import read_stdin
 
 _SKIP_ENV = "VEXJOY_SECURITY_REVIEW_SKIP"
@@ -181,6 +191,80 @@ def handle_pre_tool_use(event: dict) -> None:
     sys.exit(0)
 
 
+def _load_scanner_module():
+    """Load scripts/security-review-scan.py as a module (single source of rules).
+
+    Returns the module or None on any failure (callers fail open / silent).
+    """
+    scanner = _scanner_path()
+    if scanner is None:
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("security_review_scan", scanner)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+def _edited_file_path(event: dict) -> str | None:
+    """Extract the file path the Edit/Write/MultiEdit tool just wrote."""
+    tool_input = event.get("tool_input") or {}
+    path = tool_input.get("file_path") or tool_input.get("path")
+    if isinstance(path, str) and path.strip():
+        return path
+    return None
+
+
+def handle_post_tool_use(event: dict) -> None:
+    """PostToolUse (Edit|Write|MultiEdit): advisory scan of the just-edited file.
+
+    Mirrors Anthropic's edit-time firing so we surface the same findings at the
+    same place. ADVISORY ONLY: PostToolUse runs after the tool, so it cannot block;
+    it injects findings as additionalContext. The commit gate stays the only blocker.
+    """
+    tool_name = event.get("tool_name", "")
+    if tool_name not in ("Edit", "Write", "MultiEdit"):
+        empty_output("PostToolUse").print_and_exit()
+
+    path = _edited_file_path(event)
+    if not path:
+        empty_output("PostToolUse").print_and_exit()
+
+    # Only scan supported source files; skip everything else silently.
+    scanner = _load_scanner_module()
+    if scanner is None:
+        empty_output("PostToolUse").print_and_exit()
+
+    if scanner._ext(path) not in scanner.SUPPORTED_EXTENSIONS:
+        empty_output("PostToolUse").print_and_exit()
+
+    # Resolve the file against the session cwd so relative tool paths scan correctly.
+    cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
+    abs_path = path if os.path.isabs(path) else os.path.join(cwd or os.getcwd(), path)
+    if not os.path.isfile(abs_path):
+        empty_output("PostToolUse").print_and_exit()
+
+    try:
+        rules = scanner._build_rules()
+        rules.extend(scanner._load_custom_rules(cwd or os.getcwd()))
+        findings = scanner._scan_file(abs_path, rules)
+    except Exception:
+        # Fail open — never crash the session over an advisory scan.
+        empty_output("PostToolUse").print_and_exit()
+
+    if not findings:
+        empty_output("PostToolUse").print_and_exit()
+
+    header = (
+        f"[security-review] {len(findings)} potential security finding(s) in {path} "
+        f"(advisory — review or document; the commit gate blocks only HIGH/CRITICAL):"
+    )
+    body = _format_findings(findings)
+    context_output("PostToolUse", header + "\n" + body).print_and_exit()
+
+
 def _working_tree_diff(cwd: str | None) -> str:
     """Return the working-tree diff (tracked changes) for the Stop rewake context."""
     try:
@@ -267,6 +351,8 @@ def main() -> None:
     hook_event_name = event.get("hook_event_name", "")
     if hook_event_name == "PreToolUse":
         handle_pre_tool_use(event)
+    elif hook_event_name == "PostToolUse":
+        handle_post_tool_use(event)
     elif hook_event_name == "Stop":
         handle_stop(event)
 

@@ -121,6 +121,91 @@ class TestSymlinkIncludedWithFlag:
         assert "private-target-skill" in index["skills"], "Symlinked skill should be included when include_private=True"
 
 
+class TestFlattenResolvesNestedThroughSymlink:
+    """Regression: in the deployed/synced layout, a flattened entry whose dir is a
+    symlink back into the repo must record the real repo-relative NESTED path, not a
+    fabricated flat ``skills/<name>/SKILL.md`` that exists in no layout.
+    """
+
+    def test_repo_relative_path_recovers_nested(self, tmp_path: Path) -> None:
+        repo = tmp_path
+        nested = repo / "skills" / "business" / "csuite"
+        nested.mkdir(parents=True)
+        (nested / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="csuite"))
+        # Deployed flat symlink pointing back into the nested repo location.
+        deployed = repo / "deployed" / "csuite"
+        deployed.parent.mkdir(parents=True)
+        deployed.symlink_to(nested)
+
+        got = gsi._repo_relative_path(deployed, "skills", repo)
+        assert got == "skills/business/csuite/SKILL.md"
+
+    def test_build_entry_flatten_prefers_nested_repo_path(self, tmp_path: Path) -> None:
+        repo = tmp_path
+        nested = repo / "skills" / "meta" / "do"
+        nested.mkdir(parents=True)
+        (nested / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="do"))
+        deployed = repo / "deployed" / "do"
+        deployed.parent.mkdir(parents=True)
+        deployed.symlink_to(nested)
+
+        entry = gsi.build_entry(
+            frontmatter={"name": "do", "description": "Router."},
+            skill_dir=deployed,
+            dir_prefix="skills",
+            flatten=True,
+            repo_root=repo,
+        )
+        # The bug wrote a fabricated flat path (which exists in no layout); the
+        # fix records the real nested path under skills/meta/.
+        assert entry["file"] == "skills/meta/do/SKILL.md"
+        assert (repo / entry["file"]).is_file()
+
+    def test_flatten_keeps_flat_for_external_skill(self, tmp_path: Path) -> None:
+        """A genuinely external (outside-repo) skill keeps the flat deployed name."""
+        repo = tmp_path / "repo"
+        (repo / "skills").mkdir(parents=True)
+        external = tmp_path / "private" / "secret-skill"
+        external.mkdir(parents=True)
+        (external / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="secret-skill"))
+
+        entry = gsi.build_entry(
+            frontmatter={"name": "secret-skill", "description": "x"},
+            skill_dir=external,
+            dir_prefix="skills",
+            flatten=True,
+            repo_root=repo,
+        )
+        assert entry["file"] == "skills/secret-skill/SKILL.md"
+
+    def test_canonical_entry_not_clobbered_by_symlink_shadow(self, tmp_path: Path) -> None:
+        """A skill reached at its canonical nested path AND via a symlinked category
+        keeps the on-disk nested path (the shadow must not overwrite it)."""
+        repo = tmp_path
+        skills = repo / "skills"
+        # Canonical copy under a normal category.
+        canon = skills / "content" / "voice-writer"
+        canon.mkdir(parents=True)
+        (canon / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-writer"))
+        # Shadow copy reached through a symlinked category skills/voice -> external.
+        external_voice = repo / "private" / "voice"
+        shadow = external_voice / "voice-writer"
+        shadow.mkdir(parents=True)
+        (shadow / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-writer"))
+        (skills / "voice").symlink_to(external_voice)
+
+        index, _ = gsi.generate_index(
+            source_dir=skills,
+            dir_prefix="skills",
+            collection_key="skills",
+            include_private=True,
+            flatten=True,
+            repo_root=repo,
+        )
+        assert index["skills"]["voice-writer"]["file"] == "skills/content/voice-writer/SKILL.md"
+        assert (repo / index["skills"]["voice-writer"]["file"]).is_file()
+
+
 class TestCustomOutputPath:
     """The --output flag controls where the index file is written."""
 

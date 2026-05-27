@@ -316,6 +316,12 @@
             "command": "python3 \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
             "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
+            "description": "Advisory security scan of just-edited file (matches Anthropic edit-time firing; never blocks; VEXJOY_SECURITY_REVIEW_DISABLE=1 to disable)",
+            "timeout": 5000
           }
         ]
       },
