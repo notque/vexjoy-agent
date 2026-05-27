@@ -282,6 +282,14 @@ def _working_tree_diff(cwd: str | None) -> str:
     return result.stdout
 
 
+def _has_reviewable_content(diff: str) -> bool:
+    """Return True if diff has actual added/removed lines (not just mode changes)."""
+    for line in diff.splitlines():
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
+            return True
+    return False
+
+
 def handle_stop(event: dict) -> None:
     """Stop: asyncRewake the session agent to run the security-review pipeline.
 
@@ -297,8 +305,8 @@ def handle_stop(event: dict) -> None:
 
     cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
     diff = _working_tree_diff(cwd)
-    if not diff.strip():
-        # Nothing changed this session — no review needed.
+    if not diff.strip() or not _has_reviewable_content(diff):
+        # Nothing reviewable (empty or mode-only changes) — skip.
         sys.exit(0)
 
     # Cap the injected diff so the rewake context stays bounded.

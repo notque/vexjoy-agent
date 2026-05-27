@@ -271,6 +271,13 @@ class TestStopAsyncRewake:
         assert code == 0
         assert "rewakeSummary" not in out
 
+    def test_stop_mode_only_diff_no_rewake(self):
+        """A diff with only mode changes (no +/- content lines) must not trigger a rewake."""
+        mode_only = "diff --git a/foo.py b/foo.py\nold mode 100644\nnew mode 100755\n"
+        code, out, err = _run(_stop_event(cwd="/repo"), diff=mode_only)
+        assert code == 0
+        assert "rewakeSummary" not in out
+
     def test_stop_hook_active_skips(self):
         """The asyncRewake recursion guard prevents re-firing while a rewake is in flight."""
         code, out, err = _run(
