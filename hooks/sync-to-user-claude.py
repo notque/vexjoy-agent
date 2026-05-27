@@ -346,6 +346,14 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
 
     Root-level items (INDEX.json, shared-patterns/, workflow/, kb/) are
     also symlinked directly.
+
+    Index-symlink policy (prevents the private-skill leak into the *tracked*
+    skills/INDEX.json): ~/.claude/skills/INDEX.json is the runtime index the
+    harness reads — and may rewrite in place. The private-inclusive view lives
+    in the gitignored skills/INDEX.local.json. So when a local index exists we
+    point ~/.claude/skills/INDEX.json at INDEX.local.json: any in-place harness
+    write then lands in the gitignored file, never the tracked public index.
+    Without a local index, INDEX.json falls back to the tracked public file.
     """
     # If dst is a single symlink to the repo (old-style), replace with a real dir
     if dst.is_symlink():
@@ -356,16 +364,28 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     # Track what we create so we can clean stale entries
     expected_names: set[str] = set()
 
+    # Resolve the index-symlink targets per the leak-prevention policy above.
+    local_index = src / "INDEX.local.json"
+    runtime_index_target = local_index if local_index.is_file() else (src / "INDEX.json")
+
+    def _index_target(item: Path) -> Path:
+        # Redirect the runtime INDEX.json symlink to the private-inclusive
+        # local index so harness writes never reach the tracked public file.
+        if item.name == "INDEX.json":
+            return runtime_index_target
+        return item
+
     # Symlink root-level files (INDEX.json, INDEX.local.json, README.md)
     for item in src.iterdir():
         if item.is_file():
             expected_names.add(item.name)
+            link_src = _index_target(item)
             target = dst / item.name
             if target.is_symlink() or target.exists():
-                if target.is_symlink() and target.resolve() == item.resolve():
+                if target.is_symlink() and target.resolve() == link_src.resolve():
                     continue
                 target.unlink()
-            target.symlink_to(item)
+            target.symlink_to(link_src)
 
     # Symlink root-level utility directories (shared-patterns, workflow, kb)
     # These contain no SKILL.md at the category level — they're utility refs.

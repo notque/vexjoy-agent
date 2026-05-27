@@ -196,6 +196,50 @@ class TestEnsureSymlink:
         assert not dst.exists()
 
 
+class TestSkillsFlatSymlinkIndexPolicy:
+    """The runtime ~/.claude/skills/INDEX.json symlink must point at the
+    gitignored INDEX.local.json (when present) so in-place harness writes never
+    reach the tracked public INDEX.json. Root cause of the recurring private-
+    skill leak."""
+
+    def _make_src(self, tmp_path: Path, with_local: bool) -> Path:
+        src = tmp_path / "skills"
+        src.mkdir()
+        (src / "INDEX.json").write_text('{"skills": {}}\n')
+        if with_local:
+            (src / "INDEX.local.json").write_text('{"skills": {"voice-x": {}}}\n')
+        # one real skill so the flatten loop has something to do
+        skill = src / "meta" / "do"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("---\nname: do\n---\n")
+        return src
+
+    def test_index_redirects_to_local_when_present(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path, with_local=True)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        # INDEX.json symlink resolves to the gitignored local file
+        assert (dst / "INDEX.json").resolve() == (src / "INDEX.local.json").resolve()
+        # INDEX.local.json still maps to itself
+        assert (dst / "INDEX.local.json").resolve() == (src / "INDEX.local.json").resolve()
+
+    def test_inplace_write_through_index_spares_tracked_file(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path, with_local=True)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        # Simulate a harness rewriting the runtime index in place
+        (dst / "INDEX.json").write_text('{"skills": {"voice-x": {}, "leak": {}}}\n')
+        # Tracked public index is untouched; the local (gitignored) one absorbs it
+        assert json.loads((src / "INDEX.json").read_text()) == {"skills": {}}
+        assert "leak" in json.loads((src / "INDEX.local.json").read_text())["skills"]
+
+    def test_index_falls_back_to_tracked_without_local(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path, with_local=False)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        assert (dst / "INDEX.json").resolve() == (src / "INDEX.json").resolve()
+
+
 class TestMainSymlinkMode:
     """Integration tests for main() in symlink mode."""
 

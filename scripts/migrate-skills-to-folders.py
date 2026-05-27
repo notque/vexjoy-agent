@@ -146,6 +146,7 @@ SKILL_MAPPING: dict[str, str] = {
     "systematic-code-review": "review",
     "parallel-code-review": "review",
     "integration-checker": "review",
+    "security-review": "review",
     # testing/
     "test-driven-development": "testing",
     "e2e-testing": "testing",

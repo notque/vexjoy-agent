@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-26T19:59:45Z",
+  "generated": "2026-05-27T04:23:00Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "csuite": {
@@ -2566,6 +2566,31 @@
         "systematic-code-review",
         "verification-before-completion"
       ]
+    },
+    "security-review": {
+      "file": "skills/review/security-review/SKILL.md",
+      "description": "Local security review of git changes: deterministic scan + Security reviewer over the diff.",
+      "triggers": [
+        "security review",
+        "review my changes for security",
+        "review my changes",
+        "review for security",
+        "security scan",
+        "review for vulnerabilities",
+        "scan for vulnerabilities",
+        "check for security issues",
+        "security issues"
+      ],
+      "not_for": "general code review (use parallel-code-review or systematic-code-review), threat modeling a whole system (use security-threat-model), or non-security quality checks (use universal-quality-gate) \u2014 fires when the user wants a security pass over their current git changes",
+      "category": "code-review",
+      "force_route": true,
+      "user_invocable": true,
+      "pairs_with": [
+        "parallel-code-review",
+        "security-threat-model",
+        "reviewer-system"
+      ],
+      "agent": "reviewer-system"
     },
     "systematic-code-review": {
       "file": "skills/review/systematic-code-review/SKILL.md",
