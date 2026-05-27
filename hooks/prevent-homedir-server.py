@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.2.0
 """
 PreToolUse:Bash Hook: Home Directory HTTP Server Safety Gate
 
@@ -37,25 +37,38 @@ from pathlib import Path
 
 PROTECTED_HOME = str(Path.home())
 EVENT_NAME = "PreToolUse"
+DEBUG_ENABLED = os.environ.get("CLAUDE_HOOKS_DEBUG", "") == "1"
 DEBUG_LOG = "/tmp/claude_hook_debug.log"
 
-# Patterns that indicate an http server invocation
+# Patterns that indicate an http server invocation.
+# Only match explicit `python -m http.server` invocations — broad patterns
+# like bare `http.server` would false-positive on grep, pip install, etc.
 HTTP_SERVER_PATTERNS = [
     r"\bpython3?\s+.*-m\s+http\.server\b",
     r"\bpython3?\s+.*-m\s+SimpleHTTPServer\b",
-    r"\bhttp\.server\b",
-    r"\bSimpleHTTPServer\b",
 ]
 
-# --directory flag pointing somewhere — we need to verify where it points
-DIRECTORY_FLAG_RE = re.compile(r"--directory\s+['\"]?([^\s'\"]+)['\"]?")
+# --directory flag pointing somewhere — we need to verify where it points.
+# Matches: --directory <path>, --directory=<path>, -d <path>
+DIRECTORY_FLAG_RE = re.compile(r"(?:--directory(?:\s+|=)|(?<=\s)-d\s+)['\"]?([^\s'\"]+)['\"]?")
 
-# cd into a subdir of home first (must have at least one subdir level)
-CD_INTO_SUBDIR_RE = re.compile(r"\bcd\s+['\"]?(" + re.escape(PROTECTED_HOME) + r"/[^'\";\s]+)['\"]?")
+# cd into a subdir of home first (must have at least one subdir level).
+# Matches: cd ~/project, cd $HOME/project, cd /home/user/project
+_HOME_PREFIXES = "|".join(
+    re.escape(p)
+    for p in [
+        PROTECTED_HOME + "/",
+        "~/",
+        "$HOME/",
+    ]
+)
+CD_INTO_SUBDIR_RE = re.compile(r"\bcd\s+['\"]?(?:" + _HOME_PREFIXES + r")[^'\";\s]*['\"]?")
 
 
 def _debug(msg: str) -> None:
-    """Non-blocking debug log."""
+    """Non-blocking debug log — only writes when CLAUDE_HOOKS_DEBUG=1."""
+    if not DEBUG_ENABLED:
+        return
     try:
         with open(DEBUG_LOG, "a") as f:
             f.write(f"[prevent-homedir-server] {msg}\n")
@@ -134,7 +147,7 @@ def main() -> None:
         if not _is_http_server_command(command):
             _allow()
 
-        _debug(f"http.server command detected: {command[:120]}")
+        _debug("http.server command detected")
 
         # --- Check 1: --directory flag pointing to a safe path ---
         dir_flag = _extract_directory_flag(command)
