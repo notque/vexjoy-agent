@@ -285,7 +285,7 @@ def _working_tree_diff(cwd: str | None) -> str:
 def _has_reviewable_content(diff: str) -> bool:
     """Return True if diff has actual added/removed lines (not just mode changes)."""
     for line in diff.splitlines():
-        if line.startswith(('+', '-')) and not line.startswith(('+++', '---')):
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
             return True
     return False
 
