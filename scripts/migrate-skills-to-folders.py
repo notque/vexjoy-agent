@@ -41,7 +41,6 @@ SKILL_MAPPING: dict[str, str] = {
     "content-calendar": "content",
     "content-engine": "content",
     "professional-communication": "content",
-    "pptx-generator": "content",
     "series-planner": "content",
     "topic-brainstormer": "content",
     "publish": "content",

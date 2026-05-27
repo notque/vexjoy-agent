@@ -142,7 +142,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `content-calendar` | no | Manage editorial content through 6 pipeline stages |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
-| `pptx-generator` | no | PPTX presentation generation with visual QA: slides, pitch decks |
 | `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
 | `image-to-video` | no | FFmpeg-based video creation from image and audio |
 | `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
