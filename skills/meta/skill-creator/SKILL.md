@@ -1,10 +1,17 @@
 ---
 name: skill-creator
 description: "Create and iteratively improve skills through eval-driven validation."
+agent: toolkit-governance-engineer
 routing:
+  force_route: true
   triggers:
     - create skill
+    - create a skill
+    - create new skill
     - new skill
+    - scaffold skill
+    - scaffold a skill
+    - build a skill
     - skill template
     - skill design
     - test skill
