@@ -48,14 +48,10 @@ HTTP_SERVER_PATTERNS = [
 ]
 
 # --directory flag pointing somewhere — we need to verify where it points
-DIRECTORY_FLAG_RE = re.compile(
-    r"--directory\s+['\"]?([^\s'\"]+)['\"]?"
-)
+DIRECTORY_FLAG_RE = re.compile(r"--directory\s+['\"]?([^\s'\"]+)['\"]?")
 
 # cd into a subdir of home first (must have at least one subdir level)
-CD_INTO_SUBDIR_RE = re.compile(
-    r"\bcd\s+['\"]?(" + re.escape(PROTECTED_HOME) + r"/[^'\";\s]+)['\"]?"
-)
+CD_INTO_SUBDIR_RE = re.compile(r"\bcd\s+['\"]?(" + re.escape(PROTECTED_HOME) + r"/[^'\";\s]+)['\"]?")
 
 
 def _debug(msg: str) -> None:
@@ -166,10 +162,7 @@ def main() -> None:
         # Fall back to CLAUDE_CWD env var or os.getcwd() (hook process CWD
         # reflects the session CWD in Claude Code).
         session_cwd = (
-            data.get("cwd")
-            or data.get("session", {}).get("cwd")
-            or os.environ.get("CLAUDE_CWD")
-            or os.getcwd()
+            data.get("cwd") or data.get("session", {}).get("cwd") or os.environ.get("CLAUDE_CWD") or os.getcwd()
         )
 
         _debug(f"session_cwd={session_cwd}")
