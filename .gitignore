@@ -139,3 +139,5 @@ evolution-reports/
 
 # Feature state (ephemeral, per-session feature lifecycle)
 .feature/
+
+.audit/
