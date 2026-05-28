@@ -278,6 +278,73 @@ class TestStopAsyncRewake:
         assert code == 0
         assert "rewakeSummary" not in out
 
+    def test_stop_dedup_short_circuits_identical_diff(self, tmp_path):
+        """A byte-identical diff re-fired within the TTL window must short-circuit (exit 0)."""
+        state_file = tmp_path / "last-diff-hash.json"
+        diff = "diff --git a/x b/x\n+payload\n"
+        with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
+            code1, _, _ = _run(_stop_event(cwd="/repo"), diff=diff)
+            assert code1 == 2
+            assert state_file.exists()
+            code2, out2, err2 = _run(_stop_event(cwd="/repo"), diff=diff)
+            assert code2 == 0
+            assert "rewakeSummary" not in out2
+            assert "diff unchanged" in err2
+
+    def test_stop_dedup_does_not_block_changed_diff(self, tmp_path):
+        """A different diff after a recorded one must still trigger a rewake."""
+        state_file = tmp_path / "last-diff-hash.json"
+        with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
+            code1, _, _ = _run(_stop_event(cwd="/repo"), diff="diff --git a/x b/x\n+a\n")
+            assert code1 == 2
+            code2, out2, _ = _run(_stop_event(cwd="/repo"), diff="diff --git a/x b/x\n+b\n")
+            assert code2 == 2
+            assert "rewakeSummary" in out2
+
+    def test_stop_dedup_disabled_when_ttl_zero(self, tmp_path):
+        """VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS=0 disables dedup; identical diffs both rewake."""
+        state_file = tmp_path / "last-diff-hash.json"
+        diff = "diff --git a/x b/x\n+payload\n"
+        with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
+            env = {"VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS": "0"}
+            code1, _, _ = _run(_stop_event(cwd="/repo"), env=env, diff=diff)
+            code2, out2, _ = _run(_stop_event(cwd="/repo"), env=env, diff=diff)
+            assert code1 == 2
+            assert code2 == 2
+            assert "rewakeSummary" in out2
+
+    def test_stop_dedup_expires_after_ttl(self, tmp_path):
+        """A stale state record (older than TTL) must NOT short-circuit; rewake fires again."""
+        state_file = tmp_path / "last-diff-hash.json"
+        diff = "diff --git a/x b/x\n+payload\n"
+        with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
+            # Pre-seed state with a record older than the default TTL window.
+            stale_ts = __import__("time").time() - 10_000
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "hash": mod._diff_signature("/repo", diff),
+                        "ts": stale_ts,
+                        "ts_iso": "2020-01-01T00:00:00+00:00",
+                        "cwd": "/repo",
+                    }
+                )
+            )
+            code, out, _ = _run(_stop_event(cwd="/repo"), diff=diff)
+            assert code == 2
+            assert "rewakeSummary" in out
+
+    def test_stop_dedup_distinguishes_by_cwd(self, tmp_path):
+        """Same diff under different cwds must not collide — each cwd dedups independently."""
+        state_file = tmp_path / "last-diff-hash.json"
+        diff = "diff --git a/x b/x\n+payload\n"
+        with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
+            code1, _, _ = _run(_stop_event(cwd="/repo-a"), diff=diff)
+            code2, out2, _ = _run(_stop_event(cwd="/repo-b"), diff=diff)
+            assert code1 == 2
+            assert code2 == 2
+            assert "rewakeSummary" in out2
+
     def test_stop_hook_active_skips(self):
         """The asyncRewake recursion guard prevents re-firing while a rewake is in flight."""
         code, out, err = _run(
