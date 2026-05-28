@@ -15,6 +15,7 @@ routing:
     - "is service running"
     - "check health"
   category: infrastructure
+  not_for: "validating individual API endpoint responses (use endpoint-validator); only service/process liveness and uptime"
   pairs_with:
     - kubernetes-debugging
     - endpoint-validator

@@ -13,7 +13,10 @@ routing:
     - "compliance tracking"
   category: business
   force_route: false
-  pairs_with: []
+  pairs_with:
+    - csuite
+    - finance
+    - hr
 user-invocable: true
 ---
 

@@ -20,6 +20,7 @@ routing:
     - python image generation
     - create sprite
     - generate character art
+  not_for: "batch/post-processing/card-art work (use nano-banana-builder); only simple one-shot text-to-image"
   pairs_with:
     - python-general-engineer
     - workflow

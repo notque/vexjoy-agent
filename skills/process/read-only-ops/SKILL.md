@@ -1,6 +1,6 @@
 ---
 name: read-only-ops
-description: "Read-only exploration, inspection, and reporting without modifications."
+description: "Read-only exploration, inspection, and reporting without modifications. Explore and report on code/config/state without writing or modifying anything."
 user-invocable: false
 allowed-tools:
   - Read
@@ -9,7 +9,9 @@ allowed-tools:
   - Bash
 routing:
   triggers:
-    - "check status"
+    - "inspect without changing"
+    - "report only no edits"
+    - "audit current state"
     - "explore code"
     - "read-only"
     - "browse code"

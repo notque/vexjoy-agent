@@ -11,11 +11,11 @@ allowed-tools:
 command: /nano-banana
 routing:
   category: image-generation
+  not_for: "simple one-shot text-to-image (use gemini-image-generator)"
   triggers:
     - nano banana
     - gemini image generation
     - AI image generator
-    - generate image
     - gemini-2.5-flash-image
     - gemini-3-pro-image-preview
     - batch image generation
