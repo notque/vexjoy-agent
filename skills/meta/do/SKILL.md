@@ -139,7 +139,7 @@ python3 "$SDIR/routing-manifest.py"
 Dispatch the Agent tool with `model: "haiku"`, omitting `isolation: "worktree"` — the routing agent only reads a manifest and returns JSON; it never touches files or git, and worktree isolation fails outside a git repo. Use this prompt structure:
 
 ```
-You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination, and optionally a pipeline.
 
 USER REQUEST: {user_request}
 
@@ -162,6 +162,18 @@ FORCE-ROUTE RULE: Entries marked "FORCE" in the manifest MUST be selected when t
 - "fish for bugs" → NOT fish-shell-config (user means search for bugs)
 - "quick fix to the login page" → quick (FORCE) ✓ (user wants a small edit)
 - "quick overview of the architecture" → NOT quick (user wants exploration)
+
+PIPELINE-SELECTION RULE: The `pipeline` field is OPTIONAL and most requests should return `null`. Return a pipeline name ONLY when BOTH conditions hold:
+(1) the user's intent SEMANTICALLY matches a pipeline's `triggers` or `description` in the PIPELINES section of the manifest, AND
+(2) the request genuinely benefits from a multi-phase flow (research + write, scope + gather + synthesize, multi-wave review) — not just a single skill task.
+Match on MEANING, not keyword overlap. If a single agent+skill satisfies the request, return `null` for pipeline. Examples:
+- "write an article in vexjoy voice about X" → pipeline: "voice-writer" ✓ (multi-phase voice content generation matches the voice-writer pipeline)
+- "research X with artifacts and sources" → pipeline: "research-pipeline" ✓ (formal SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER flow)
+- "comprehensive review of these 8 files" → pipeline: "comprehensive-review" ✓ (multi-wave per-package review across many files)
+- "fix the typo on line 42 of foo.py" → pipeline: null (single trivial edit, no pipeline needed)
+- "debug this failing test" → pipeline: null (one agent+skill handles it; pipeline only if user asks for systematic debugging artifacts)
+- "review this 10-line function" → pipeline: null (single skill, no multi-wave review warranted)
+When in doubt, return null. A pipeline pick must be defensible against the manifest's PIPELINES section.
 
 Rules:
 - Pick the most specific match. "Go tests" → golang-general-engineer + go-patterns, not general-purpose.
