@@ -283,19 +283,18 @@ Rationale: low-risk mechanical change, safe to merge.
 
     # Invalid severity bucket: uses parallel's "Critical" heading in a
     # systematic review (systematic buckets are blocking/should_fix/suggestions).
-    # The blocking finding therefore lands in no recognized bucket -> the real
-    # should-fix content is lost; combined with removing the legit should-fix
-    # this yields a structurally thin review. Here we additionally strip the
-    # location to guarantee a schema violation on the surviving finding.
+    # The "Unbounded cache growth" finding therefore lands under an unrecognized
+    # heading and is silently dropped into no bucket. Because the systematic
+    # schema has no minItems on findings, the surviving Suggestions finding keeps
+    # the review schema-valid — so a naive gate accepts it (a true false-negative).
+    # The validator must detect the invalid severity heading itself and flag it.
     items.append(
         Item(
             "S04",
             "systematic",
             "malformed",
-            "invalid severity bucket heading + finding missing file:line",
-            SYSTEMATIC_VALID.replace("### Should Fix", "### Critical").replace(
-                "`internal/cache/store.go:53`", "the store file"
-            ),
+            "invalid severity bucket heading (finding silently dropped)",
+            SYSTEMATIC_VALID.replace("### Should Fix", "### Critical"),
         )
     )
 

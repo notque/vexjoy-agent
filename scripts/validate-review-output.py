@@ -411,6 +411,66 @@ def _extract_findings_section(
     return findings
 
 
+def _normalize_heading(text: str) -> str:
+    """Normalize a heading to its severity key form (lowercased, no count/suffix).
+
+    Mirrors the normalization in `_extract_findings_section` so heading-to-bucket
+    comparison is consistent: "CRITICAL (0)" and "Critical (Block Merge)" both
+    normalize to "critical".
+    """
+    text_lower = text.lower().strip()
+    text_clean = re.sub(r"\s*\(.*?\)\s*$", "", text_lower)
+    text_clean = re.sub(r"\s*\(.*$", "", text_clean)
+    return text_clean.strip()
+
+
+def _find_invalid_severity_headings(lines: list[str], severity_map: dict[str, str]) -> list[str]:
+    """Find severity-typed subheadings in the Findings section not valid for this type.
+
+    A finding written under a heading that is NOT a recognized severity bucket for
+    the review type is silently dropped by `_extract_findings_section` (the heading
+    ends the prior bucket and starts no new one). That is a structural defect, not
+    a clean review: it must be surfaced, never dropped.
+
+    We scope detection to the ``## Findings`` section and flag any ``###`` (or
+    deeper) subheading whose normalized text is not in this type's ``severity_map``.
+    A genuinely empty Findings section (no stray subheadings) yields no findings,
+    so a clean zero-findings APPROVE still passes.
+
+    Returns the raw (un-normalized) heading texts that are invalid, in document
+    order, deduplicated.
+    """
+    if not severity_map:
+        return []
+
+    invalid: list[str] = []
+    in_findings = False
+    findings_level = 0
+
+    for line in lines:
+        heading = _heading_level(line)
+        if heading is None:
+            continue
+        level, text = heading
+
+        if not in_findings:
+            if level <= 2 and _normalize_heading(text).startswith("findings"):
+                in_findings = True
+                findings_level = level
+            continue
+
+        # Inside the Findings section.
+        # A heading at or above the Findings heading level closes the section.
+        if level <= findings_level:
+            break
+
+        normalized = _normalize_heading(text)
+        if normalized and normalized not in severity_map and text not in invalid:
+            invalid.append(text)
+
+    return invalid
+
+
 def _extract_scorecard(lines: list[str]) -> list[dict[str, Any]]:
     """Extract SAPCC review scorecard from markdown table."""
     scorecard: list[dict[str, Any]] = []
@@ -672,6 +732,14 @@ def parse_markdown(content: str, review_type: str) -> dict[str, Any]:
     findings = _extract_findings_section(lines, sev_map)
     result["findings"] = findings
 
+    # Structural guard: a finding under an unrecognized severity heading is
+    # silently dropped by the bucket parser. Record those headings so the
+    # validator can flag them instead of letting the review pass with lost
+    # findings. Stored under a private key stripped before schema validation.
+    invalid_headings = _find_invalid_severity_headings(lines, sev_map)
+    if invalid_headings:
+        result["_invalid_severity_headings"] = invalid_headings
+
     # Positives
     positives = _extract_positives(lines)
     if positives:
@@ -735,6 +803,20 @@ def load_schema(review_type: str) -> dict[str, Any]:
     return json.loads(schema_file.read_text())
 
 
+def _valid_bucket_names(review_type: str) -> str:
+    """Return a human-readable, ordered list of valid severity buckets for a type.
+
+    Derived from the unique normalized values in ``SEVERITY_MAP`` so the message
+    stays in sync with the parser (e.g. systematic -> "Blocking, Should Fix,
+    Suggestions"). Order follows first appearance in the alias map.
+    """
+    seen: list[str] = []
+    for value in SEVERITY_MAP.get(review_type, {}).values():
+        if value not in seen:
+            seen.append(value)
+    return ", ".join(v.replace("_", " ").title() for v in seen)
+
+
 def validate_structure(data: dict[str, Any], review_type: str) -> list[str]:
     """Validate parsed review data against its JSON Schema.
 
@@ -745,9 +827,19 @@ def validate_structure(data: dict[str, Any], review_type: str) -> list[str]:
     Returns:
         List of human-readable error messages. Empty list means valid.
     """
+    errors: list[str] = []
+
+    # Structural pre-check: findings written under a severity heading that is not
+    # valid for this review type are silently dropped by the bucket parser. Flag
+    # them explicitly so a malformed review can never pass with lost findings.
+    invalid_headings = data.pop("_invalid_severity_headings", None)
+    if invalid_headings:
+        valid_buckets = _valid_bucket_names(review_type)
+        for heading in invalid_headings:
+            errors.append(f"INVALID SEVERITY HEADING: '{heading}' ({review_type} reviews use: {valid_buckets})")
+
     schema = load_schema(review_type)
     validator = jsonschema.Draft202012Validator(schema)
-    errors: list[str] = []
 
     for error in sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path)):
         path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "(root)"

@@ -152,6 +152,36 @@ MALFORMED_SYSTEMATIC_MD = textwrap.dedent("""\
 """)
 
 
+# systematic review whose Findings section uses an INVALID severity heading
+# (`### Critical` is a parallel bucket, not systematic). The finding under it
+# would otherwise be silently dropped into no bucket, and — because the
+# systematic schema has no minItems on findings — the review would pass with the
+# real finding lost. This is the false-negative the gate must catch (exit 1).
+MALFORMED_SYSTEMATIC_BAD_BUCKET_MD = textwrap.dedent("""\
+    # Code Review
+
+    ## Summary
+    Reviewed the cache layer; one eviction concern. Otherwise acceptable.
+
+    ## Risk Level: MEDIUM
+
+    ## Findings
+
+    ### Critical
+    1. **Unbounded cache growth** - `internal/cache/store.go:53`
+       - Issue: entries are never evicted under memory pressure
+       - Recommendation: add an LRU bound
+
+    ### Suggestions
+    1. **Extract magic number** - `internal/cache/store.go:17`
+       - Recommendation: name the 3600 TTL constant
+
+    ## Verdict: REQUEST-CHANGES
+
+    Rationale: eviction gap should be addressed before merge.
+""")
+
+
 # parallel with the CANONICAL hyphenated reviewer name [Business-Logic]
 # (per skills/review/parallel-code-review/SKILL.md). The reviewer-extraction
 # regex must accept the hyphen, or this structurally valid review is rejected
@@ -240,6 +270,35 @@ def test_malformed_systematic_flags_verdict_risk_and_location() -> None:
     # Bare "handler.go" never reaches the file:line pattern; it surfaces as a
     # missing location on the finding.
     assert "MISSING: location" in joined
+
+
+def test_systematic_invalid_severity_heading_is_rejected() -> None:
+    """A systematic finding under an invalid bucket heading must NOT be silently dropped.
+
+    Regression for the false-negative: `### Critical` is a valid parallel bucket
+    but not a systematic one. Previously the parser treated it as a non-severity
+    heading that ended the section, discarding the finding into no bucket, and the
+    review passed (exit 0). It must now surface a structural error.
+    """
+    parsed = parse_markdown(MALFORMED_SYSTEMATIC_BAD_BUCKET_MD, "systematic")
+    errors = validate_structure(parsed, "systematic")
+    joined = "\n".join(errors)
+    assert errors, "expected a structural error for the invalid severity heading, got none"
+    assert "INVALID SEVERITY HEADING" in joined
+    assert "Critical" in joined
+
+
+def test_cli_rejects_systematic_invalid_severity_heading_via_stdin() -> None:
+    """The invalid-bucket systematic review exits 1 via the CLI (the gate fires)."""
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR_PATH), "--type", "systematic", "-"],
+        input=MALFORMED_SYSTEMATIC_BAD_BUCKET_MD,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1, f"stdout={result.stdout}\nstderr={result.stderr}"
+    assert "VALIDATION FAILED" in result.stdout
+    assert "INVALID SEVERITY HEADING" in result.stdout
 
 
 # ---------------------------------------------------------------------------
