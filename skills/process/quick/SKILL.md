@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. Covers zero-ceremony inline fixes (≤3 edits) through contained multi-file changes."
+description: "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. Covers zero-ceremony inline fixes (typo, spelling fix, small mistake in a single file, ≤3 edits) through contained multi-file changes."
 user-invocable: true
 argument-hint: "[--trivial] [--discuss] [--research] [--full] <task>"
 allowed-tools:
@@ -31,6 +31,16 @@ routing:
     - rename this variable
     - update value
     - fix import
+    - small mistake
+    - small mistake in
+    - mistake in spelling
+    - spelling mistake
+    - spelling fix
+    - fix the spelling
+    - typo in
+    - small fix in
+    - small fix
+    - tiny fix
   not_for: "'quick' as speed preference, general bug diagnosis requiring investigation"
   complexity: Simple
   category: process
