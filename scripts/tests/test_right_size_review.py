@@ -9,6 +9,7 @@ tier wins), boundary cases (5/6, 20/21, 50/51), and the JSON contract.
 import json
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,107 @@ def test_boundary_20_to_21_files():
 def test_boundary_50_to_51_files():
     assert rsr.compute_tier(50, 5) == 3
     assert rsr.compute_tier(51, 6) == 4
+
+
+# --- Zero / negative counts (reachable: _git_scope returns (0,0) on an empty
+#     diff or a git error, and feeds straight into compute_tier) ---------------
+
+
+@pytest.mark.parametrize(
+    "files,pkgs,expected_tier",
+    [
+        (0, 0, 1),  # empty diff / git failure -> safe floor Tier 1
+        (0, 5, 3),  # no files but many packages -> package signal wins
+        (5, 0, 1),  # files present, zero packages -> file signal
+    ],
+)
+def test_zero_count_edge_cases(files, pkgs, expected_tier):
+    assert rsr.compute_tier(files, pkgs) == expected_tier
+
+
+def test_negative_counts_clamped_to_zero():
+    # The max(...,0) clamps mean negative inputs degrade to Tier 1, never crash.
+    assert rsr.compute_tier(-1, -1) == 1
+    assert rsr.compute_tier(-99, 6) == 4  # package signal still applies
+
+
+# --- _git_scope: the git-derived entry point (the primary real-world path,
+#     reached whenever --files is omitted) -----------------------------------
+
+
+def test_git_scope_with_base_uses_range_syntax(monkeypatch):
+    captured = {}
+
+    def _run(cmd, capture_output, text, check):
+        captured["cmd"] = cmd
+        return types.SimpleNamespace(stdout="a/x.py\na/y.py\nb/z.py\n")
+
+    monkeypatch.setattr(rsr.subprocess, "run", _run)
+    files, pkgs = rsr._git_scope("main", "HEAD")
+    assert captured["cmd"] == ["git", "diff", "--name-only", "main...HEAD"]
+    assert files == 3
+    assert pkgs == 2  # {"a", "b"}
+
+
+def test_git_scope_without_base_uses_working_tree(monkeypatch):
+    captured = {}
+
+    def _run(cmd, capture_output, text, check):
+        captured["cmd"] = cmd
+        return types.SimpleNamespace(stdout="x.py\n")
+
+    monkeypatch.setattr(rsr.subprocess, "run", _run)
+    files, pkgs = rsr._git_scope(None, "HEAD")
+    assert captured["cmd"] == ["git", "diff", "--name-only", "HEAD"]
+    assert files == 1
+    assert pkgs == 1  # root file -> {"."}
+
+
+def test_git_scope_root_files_count_as_one_package(monkeypatch):
+    monkeypatch.setattr(
+        rsr.subprocess,
+        "run",
+        lambda *_a, **_k: types.SimpleNamespace(stdout="README.md\nsetup.py\n"),
+    )
+    files, pkgs = rsr._git_scope("main", "HEAD")
+    assert files == 2
+    assert pkgs == 1  # both at root -> {"."}
+
+
+def test_git_scope_ignores_blank_lines(monkeypatch):
+    monkeypatch.setattr(
+        rsr.subprocess,
+        "run",
+        lambda *_a, **_k: types.SimpleNamespace(stdout="a/x.py\n\n  \nb/y.py\n"),
+    )
+    files, pkgs = rsr._git_scope("main", "HEAD")
+    assert files == 2
+    assert pkgs == 2
+
+
+def test_git_scope_called_process_error_falls_back_to_zero(monkeypatch):
+    def _raise(*a, **k):
+        raise subprocess.CalledProcessError(1, "git")
+
+    monkeypatch.setattr(rsr.subprocess, "run", _raise)
+    assert rsr._git_scope("main", "HEAD") == (0, 0)
+
+
+def test_git_scope_missing_git_binary_falls_back_to_zero(monkeypatch):
+    def _raise(*a, **k):
+        raise FileNotFoundError("git not found")
+
+    monkeypatch.setattr(rsr.subprocess, "run", _raise)
+    assert rsr._git_scope("bad-ref", "HEAD") == (0, 0)
+
+
+def test_cli_git_base_path_runs_without_files_flag():
+    # Exercise the default (non --files) branch end-to-end against the real repo.
+    proc = _run("--base", "main", "--head", "HEAD")
+    assert proc.returncode == 0
+    data = json.loads(proc.stdout)
+    assert data["tier"] in (1, 2, 3, 4)
+    assert "file_count" in data and "package_count" in data
 
 
 # --- The max-rule: file-tier vs package-tier, larger wins -------------------

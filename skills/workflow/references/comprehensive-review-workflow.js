@@ -26,46 +26,37 @@ export const meta = {
     "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
 };
 
-// --- Wave rosters (mirror the markdown references) ----------------------------
+// --- Wave rosters: the four real reviewer agents, applied through wave-specific
+//     lenses. The agent files are agents/reviewer-{system,domain,code,perspectives}.md;
+//     each entry dispatches that agent via agentType (so a real specialist runs)
+//     and supplies a lens so the SAME four reviewers scale in depth across waves
+//     rather than inventing nonexistent per-topic agents. This mirrors the
+//     lens-based scheme in comprehensive-review/references/wave-{1,2,3}-*.md. ----
 
 const WAVE1_AGENTS = [
-  "reviewer-security",
-  "reviewer-business-logic",
-  "reviewer-architecture",
-  "reviewer-performance",
-  "reviewer-error-handling",
-  "reviewer-concurrency",
-  "reviewer-testing",
-  "reviewer-api-contracts",
-  "reviewer-language-specialist",
-  "reviewer-data-integrity",
-  "reviewer-observability",
-  "reviewer-dependencies",
+  { agent: "reviewer-system", lens: "security, input validation, error handling, API contracts" },
+  { agent: "reviewer-domain", lens: "business logic, edge cases, data integrity, state transitions" },
+  { agent: "reviewer-code", lens: "conventions, naming, dead code, performance, test coverage" },
+  { agent: "reviewer-perspectives", lens: "newcomer clarity, user-advocate, senior-maintainer view" },
 ];
 
-// Tier 3 dispatches the highest-signal subset of Wave 2; Tier 4 runs all ten.
+// Tier 3 dispatches the deep-dive subset; Tier 4 adds the remaining lenses.
 const WAVE2_SUBSET = [
-  "reviewer-deep-security",
-  "reviewer-deep-correctness",
-  "reviewer-deep-concurrency",
-  "reviewer-deep-data-integrity",
-  "reviewer-deep-api-contracts",
+  { agent: "reviewer-system", lens: "deep security + concurrency + resource lifecycle" },
+  { agent: "reviewer-domain", lens: "deep correctness + data integrity + migration safety" },
+  { agent: "reviewer-code", lens: "deep performance + error paths + state machines" },
 ];
 
 const WAVE2_FULL = WAVE2_SUBSET.concat([
-  "reviewer-deep-performance",
-  "reviewer-deep-resource-lifecycle",
-  "reviewer-deep-error-paths",
-  "reviewer-deep-state-machines",
-  "reviewer-deep-migration-safety",
+  { agent: "reviewer-system", lens: "API-contract compatibility + observability gaps" },
+  { agent: "reviewer-perspectives", lens: "senior-maintainer + meta-process review" },
 ]);
 
 const WAVE3_AGENTS = [
-  "reviewer-adversarial-security",
-  "reviewer-adversarial-correctness",
-  "reviewer-adversarial-assumptions",
-  "reviewer-adversarial-simplicity",
-  "reviewer-adversarial-falsifier",
+  { agent: "reviewer-perspectives", lens: "contrarian + falsifier: try to break the change" },
+  { agent: "reviewer-system", lens: "adversarial security: assume hostile input everywhere" },
+  { agent: "reviewer-domain", lens: "adversarial assumptions: challenge every invariant" },
+  { agent: "reviewer-code", lens: "simplicity challenge: is this over-engineered?" },
 ];
 
 // --- Schemas (mirror skills/shared-patterns/schemas/) -------------------------
@@ -162,15 +153,17 @@ function dedupeFindings(findings) {
   );
 }
 
-function reviewPrompt(role, scope, priorContext) {
-  // priorContext is the typed prior-wave summary passed in-memory (no disk read).
+function reviewPrompt(roster, scope, priorContext) {
+  // roster is {agent, lens}; priorContext is the typed prior-wave summary passed
+  // in-memory (no disk read).
   const context = priorContext
     ? `\n\nPrior-wave findings (typed, in-memory):\n${JSON.stringify(priorContext)}`
     : "";
   return (
-    `You are ${role}. Review the changed code for this diff scope:\n` +
+    `You are ${roster.agent}. Apply this review lens: ${roster.lens}.\n` +
+    `Review the changed code for this diff scope:\n` +
     `${JSON.stringify(scope)}\n` +
-    `Return only findings within your focus. The only valid dispositions are ` +
+    `Return only findings within your lens. The only valid dispositions are ` +
     `FIX NOW, FIX IN FOLLOW-UP (with a tracking artifact), or NOT AN ISSUE ` +
     `(with evidence). "Acceptable", "valid but deferred", and "conservative" ` +
     `are not valid dispositions. Severity is one of critical|high|medium|low.` +
@@ -193,11 +186,12 @@ export default async function run({ scope, tier, fixThreshold }) {
   // Wave 1: foundation. Hard barrier — every foundation agent completes before
   // the wave is considered closed. Failed slots resolve to null and are dropped.
   const wave1 = await parallel(
-    WAVE1_AGENTS.map((role) => () =>
+    WAVE1_AGENTS.map((r) => () =>
       agent({
-        prompt: reviewPrompt(role, scope, null),
+        prompt: reviewPrompt(r, scope, null),
         schema: WAVE_OUTPUT_SCHEMA,
         model: "sonnet",
+        agentType: r.agent,
       }),
     ),
   );
@@ -210,11 +204,12 @@ export default async function run({ scope, tier, fixThreshold }) {
     const wave2Roster = effectiveTier >= 4 ? WAVE2_FULL : WAVE2_SUBSET;
     const wave2Summary = { findings, source: "wave1" };
     const wave2 = await parallel(
-      wave2Roster.map((role) => () =>
+      wave2Roster.map((r) => () =>
         agent({
-          prompt: reviewPrompt(role, scope, wave2Summary),
+          prompt: reviewPrompt(r, scope, wave2Summary),
           schema: WAVE_OUTPUT_SCHEMA,
           model: "sonnet",
+          agentType: r.agent,
         }),
       ),
     );
@@ -227,11 +222,12 @@ export default async function run({ scope, tier, fixThreshold }) {
   if (wave3Required) {
     const wave3Summary = { findings, source: "wave1+2" };
     const wave3 = await parallel(
-      WAVE3_AGENTS.map((role) => () =>
+      WAVE3_AGENTS.map((r) => () =>
         agent({
-          prompt: reviewPrompt(role, scope, wave3Summary),
+          prompt: reviewPrompt(r, scope, wave3Summary),
           schema: WAVE_OUTPUT_SCHEMA,
           model: "sonnet",
+          agentType: r.agent,
         }),
       ),
     );
