@@ -40,7 +40,7 @@ Steps (query `learning-db.py query --format json --limit 20`, filter with the de
 
 **Goal**: Write both handoff files to the project root. This reference only creates files and leaves existing code and git state untouched because it must be safe to invoke repeatedly without side effects.
 
-**Step 1: Write HANDOFF.json** to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps. Include `drafted_adrs` from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so the resume intent can detect absence reliably. Full JSON template: `pause-write-templates.md`.
+**Step 1: Write HANDOFF.json** to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps. Include `drafted_adrs` from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so the resume intent can detect absence reliably. When pausing mid-way through a parallel agent wave, also persist already-returned agents under `agent_outputs` (keyed by `agent_input_hash`) so the resume intent can reuse them instead of re-dispatching; omit the field when no wave was in progress. Full JSON template and cache helper guidance: `pause-write-templates.md`.
 
 **Step 2: Write .continue-here.md** to `{project_root}/.continue-here.md` because humans need prose-form state before committing to the resume intent. Include the "ADRs Drafted from Session Learnings" section only if `drafted_adrs` is non-empty. Full markdown template: `pause-write-templates.md`.
 

@@ -169,7 +169,29 @@ Details by reviewer below.
 **VERDICT** - [1-2 sentence rationale]
 ```
 
-**Step 3: If BLOCK verdict, initiate re-review protocol**
+**Step 3: Validate the structured output (schema gate)**
+
+Each reviewer returns markdown. Before accepting a reviewer's output into the aggregate, run it through the deterministic schema validator so a malformed review is caught mechanically rather than trusted on sight:
+
+```bash
+# Pipe each reviewer's markdown directly (preferred — no shared temp file, so
+# 3 parallel reviewers never overwrite each other):
+echo "$reviewer_markdown" | python3 scripts/validate-review-output.py --type parallel -
+# Or, if writing to disk, use a per-reviewer path (NOT a shared /tmp file):
+python3 scripts/validate-review-output.py --type parallel /tmp/reviewer-<name>.md
+```
+
+Exit codes: `0` = structurally valid (verdict present, severity_matrix complete, every finding carries `[Reviewer]` and a `file:line` location); `1` = schema errors; `2` = unparseable; `3` = `jsonschema` not installed (`pip install jsonschema`).
+
+This gate verifies the review is **structurally well-formed** (verdict, severity buckets, and locations present) — it does NOT verify findings completeness (no minimum count; a parser-dropped malformed finding leaves no trace) NOR that the severity_matrix counts agree with the findings array (no matrix↔findings cross-check).
+
+**On validation failure:** retry that ONE reviewer exactly once, then stop.
+- **Exit 1 (schema errors):** re-invoke the reviewer passing the validator's specific numbered error lines (e.g. `MISSING: reviewer`, `MISSING: location`) so it knows precisely what to repair.
+- **Exit 2 (unparseable):** there are no per-error lines to feed back — the output couldn't be structured at all. Regenerate the reviewer's markdown from scratch in the required format.
+
+Validate the retried result. If it still fails, STOP and report the malformed output — proceed only on review data that passes the schema, because a verdict synthesized from broken findings is worse than no verdict.
+
+**Step 4: If BLOCK verdict, initiate re-review protocol**
 
 After user addresses CRITICAL issues, re-run ALL 3 reviewers (not just the one that found the issue) to verify:
 1. Original CRITICAL issues resolved
@@ -178,7 +200,7 @@ After user addresses CRITICAL issues, re-run ALL 3 reviewers (not just the one t
 
 Re-run all three because fixes often introduce new issues in adjacent code, and you need confirmation across all three domains that the solution is safe.
 
-**Gate**: Structured report delivered with verdict. Review is complete.
+**Gate**: Each reviewer's output passed `validate-review-output.py --type parallel` (exit 0), structured report delivered with verdict. Review is complete.
 
 ---
 

@@ -176,6 +176,13 @@ Take the `next_action` from the handoff and execute it:
 
 Carry forward all context from the handoff: decisions made, approaches rejected, gotchas to avoid. Honor previous session's findings unless circumstances have changed — reexploring rejected approaches burns context on work already done.
 
+**Cache check before re-dispatching agents.** When `next_action` resumes a parallel agent wave (fan-out dispatch) that was interrupted, check the handoff's `agent_outputs` cache before dispatching each agent — reusing a finished agent's output instead of re-running it saves tokens. For each agent about to be dispatched:
+
+1. Compute its input hash with `scripts/feature-state.py`'s `agent_input_hash(prompt, inputs)` over the exact dispatch input (prompt text plus any inputs that determine the agent's output). Determinism is the contract: an unchanged input yields the same hash as the previous session.
+2. Look it up with `lookup_agent_output(handoff, input_hash)`. On a **hit**, reuse the cached `output` and skip dispatch. On a **miss** (or any input that changed since pause), dispatch the agent normally, then record the result with `store_agent_output(handoff, input_hash, output, label, timestamp)` so a later interruption can reuse it too.
+
+A handoff with no `agent_outputs` field loads as an empty cache (`load_agent_outputs` returns `{}`) — every agent is a clean miss, so legacy handoffs and non-wave resumes behave exactly as before. Use the script helpers for hashing and lookup rather than reimplementing the hash in prose, because only identical normalized hashing across sessions makes a cache hit reliable.
+
 **Step 2: Clean up handoff files**
 
 After the next action has been initiated (not necessarily completed — just successfully started), delete the one-shot handoff artifacts to prevent stale state:

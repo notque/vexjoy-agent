@@ -273,3 +273,7 @@ Steps 1-7 above verify that tests pass, builds succeed, and files contain what y
 - `references/adversarial-methodology.md` — 4-level verification system, stub detection, goal-backward framing
 - `references/checklist.md` — Domain-specific checklists (Python, Go, JS, Database, Infrastructure)
 - `references/verification-examples.md` — Good vs bad verification examples per language
+
+**Schema gate for review artifacts**
+
+When the artifact being verified is a code-review output, prefer a deterministic schema check over reading the prose for completeness: `python3 scripts/validate-review-output.py --type {systematic|parallel|sapcc-review|sapcc-audit} <file.md>` (exit 0 = valid, 1 = schema errors, 2 = unparseable, 3 = `jsonschema` not installed — `pip install jsonschema`). The parallel and systematic review skills wire this as a validate-on-return + retry-once-then-stop gate. This is the L1/L2 EXISTS/SUBSTANTIVE check for review documents: it confirms a verdict, severity buckets, and `file:line` locations are actually present, not just that a file was written.
