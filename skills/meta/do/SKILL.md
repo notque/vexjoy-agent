@@ -319,7 +319,24 @@ Quality-loop absorbs Steps 0-1. The Phase 2 agent+skill selection becomes the im
 
 Does NOT apply when: Trivial/Simple (use `quick`), review-only/research/debugging/content creation, or user requests simpler flow.
 
-**Step 1b (review escalation): prefer the native Workflow variant for wide reviews.** When a comprehensive review is requested AND the right-sizing tier is >= 3 (or the diff spans 5+ files / 2+ review categories), prefer running `skills/workflow/references/comprehensive-review-workflow.js` via the native Workflow tool over the prose four-wave dispatch — it scales waves to tier, passes schema-validated typed findings between waves without disk round-trips, runs a per-finding adversarial verify, and bounds the fix loop by the native token budget; below tier 3, or when the Workflow tool is unavailable, use the markdown flow in `comprehensive-review.md` (the documented fallback).
+**Step 1b (native Workflow dispatch): run the deterministic variant when the harness supports it, else the prose pipeline.** When the Haiku router emitted a pipeline `pick` (#686), decide the executor with the ADR decision table (`harness-conditional-workflow-dispatch`):
+
+```
+pick = haiku_route.pipeline                         # #686, may be null
+cap  = scripts/detect-workflow-capability.py        # env proxy: {harness, workflow_capable}
+reg  = scripts/workflow-registry.py                 # auto-derived {meta.name: path}
+{scope, tier} = scripts/right-size-review.py        # #688 right-sizing (review picks)
+
+if pick is None:                                            -> agent + skill direct (no pipeline)
+elif reg.get(pick) and cap.workflow_capable and (Workflow tool in MY tool list):
+        # env proxy AND LLM tool-list self-check (the authoritative gate)
+                                                            -> Workflow tool: run(reg[pick], {scope, tier})
+else:                                                       -> run the prose pipeline markdown (unchanged)
+```
+
+The native path (e.g. `comprehensive-review-workflow.js`) scales waves to tier, passes schema-validated typed findings between waves without disk round-trips, runs a per-finding adversarial verify, and bounds the fix loop by the native token budget. The prose markdown flow is the always-safe fallback and runs identically on Codex/Gemini/Factory or when the `Workflow` tool is absent. `cap.workflow_capable` is an env-derived PROXY; the orchestrator's own tool-list check is the authoritative gate — both must hold. A `pick` with no registry entry is prose-only.
+
+**Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so the banner reads identically regardless of executor.
 
 **Step 2: Invoke agent with skill**
 
