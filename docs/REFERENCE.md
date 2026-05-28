@@ -289,6 +289,14 @@ Environment variables set in `.claude/settings.json` under `"env"`:
 
 **Context on `AUTO_COMPACT_WINDOW`:** Anthropic's prompt caching currently uses a 5-minute TTL. When conversations grow large and cache entries expire between turns, each API call re-processes the full conversation at uncached token prices. Even though Claude supports a 1M token context window, using the full window without cache hits is prohibitively expensive. Setting `AUTO_COMPACT_WINDOW=400000` triggers compaction earlier, keeping the active context within a size that cache hits can cover. Anthropic is aware of this issue and exploring improvements. Credit: [@bcherny](https://github.com/bcherny).
 
+### Orchestration (optional)
+
+Keys under `"orchestration"` in `.claude/settings.json` tune how `/do` sizes dispatched work.
+
+| Key | Default | Why |
+|-----|---------|-----|
+| `orchestration.token_budget` | `500000` | Advisory token budget for a single `/do` task. `/do` Phase 4 prepends "~{remaining} tokens available for this task; prioritize accordingly." to each dispatched agent prompt so agents right-size their own work. A documented signal, not a hard runtime cap — absent the key, the default applies and behavior is unchanged. |
+
 ---
 
 ## Getting Help
