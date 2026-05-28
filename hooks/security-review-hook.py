@@ -41,11 +41,16 @@ Contracts:
 Bypass / kill switches:
 - VEXJOY_SECURITY_REVIEW_SKIP=1     disables the commit BLOCK (deliberate override).
 - VEXJOY_SECURITY_REVIEW_DISABLE=1  disables the hook entirely (both events).
-- VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS=N  Stop dedup window (default 300s; <=0 disables).
+- VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS=N  Opt-in TTL for Stop dedup. Unset or
+                                              0 = no TTL (permanent until the diff
+                                              changes). Positive int = old TTL
+                                              behavior with that window in seconds.
 
-Stop dedup: byte-identical working-tree diffs (under the same cwd) re-firing within
-the TTL window short-circuit instead of triggering another rewake. State persists
-to ~/.claude/state/security-review-hook/last-diff-hash.json via atomic write.
+Stop dedup: byte-identical working-tree diffs (under the same cwd) short-circuit
+instead of triggering another rewake. By default, dedup is permanent — same diff
+means same diff. The state file self-heals: a non-matching hash overwrites the old
+one, so a stale record is a no-op. State persists to
+~/.claude/state/security-review-hook/last-diff-hash.json via atomic write.
 
 Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
@@ -71,7 +76,6 @@ from stdin_timeout import read_stdin
 _SKIP_ENV = "VEXJOY_SECURITY_REVIEW_SKIP"
 _DISABLE_ENV = "VEXJOY_SECURITY_REVIEW_DISABLE"
 _DEDUP_TTL_ENV = "VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS"
-_DEDUP_TTL_DEFAULT = 300  # 5 minutes
 
 # Stop-event dedup state. Absolute path so it works from any cwd the harness fires in.
 _STATE_DIR = Path.home() / ".claude" / "state" / "security-review-hook"
@@ -306,14 +310,19 @@ def _has_reviewable_content(diff: str) -> bool:
 
 
 def _dedup_ttl_seconds() -> int:
-    """Read TTL from env, fall back to default. Non-positive disables dedup."""
+    """Read TTL override from env. Default 0 = no TTL (permanent dedup until diff changes).
+
+    A positive integer re-enables the old time-window behavior. Anything else
+    (unset, 0, negative, malformed) means no TTL.
+    """
     raw = os.environ.get(_DEDUP_TTL_ENV)
     if not raw:
-        return _DEDUP_TTL_DEFAULT
+        return 0
     try:
-        return int(raw)
+        ttl = int(raw)
     except (ValueError, TypeError):
-        return _DEDUP_TTL_DEFAULT
+        return 0
+    return ttl if ttl > 0 else 0
 
 
 def _diff_signature(cwd: str | None, diff: str) -> str:
@@ -357,22 +366,27 @@ def _save_dedup_state(state: dict) -> None:
 
 
 def _is_duplicate_diff(cwd: str | None, diff: str) -> tuple[bool, str | None]:
-    """Return (is_duplicate, last_seen_iso). Compares hash + freshness against state file."""
-    ttl = _dedup_ttl_seconds()
-    if ttl <= 0:
-        return False, None
+    """Return (is_duplicate, last_seen_iso). Hash match is permanent by default.
+
+    Same (cwd, diff) hash means same review — no time window. The state file
+    self-heals: a non-matching hash overwrites the old one on the next call.
+
+    If VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS is set to a positive int, the
+    old TTL window applies and stale matches are treated as misses.
+    """
     state = _load_dedup_state()
     sig = _diff_signature(cwd, diff)
     if state.get("hash") != sig:
         return False, None
-    try:
-        last_ts = float(state.get("ts", 0))
-    except (TypeError, ValueError):
-        return False, None
-    if (time.time() - last_ts) > ttl:
-        return False, None
-    last_iso = state.get("ts_iso")
-    return True, last_iso
+    ttl = _dedup_ttl_seconds()
+    if ttl > 0:
+        try:
+            last_ts = float(state.get("ts", 0))
+        except (TypeError, ValueError):
+            return False, None
+        if (time.time() - last_ts) > ttl:
+            return False, None
+    return True, state.get("ts_iso")
 
 
 def _record_diff_seen(cwd: str | None, diff: str) -> None:
@@ -407,9 +421,9 @@ def handle_stop(event: dict) -> None:
         # Nothing reviewable (empty or mode-only changes) — skip.
         sys.exit(0)
 
-    # Dedup: short-circuit if this exact diff (under this cwd) was already reviewed
-    # within the TTL window. Prevents the rewake from re-firing on Stop events that
-    # carry an unchanged working tree.
+    # Dedup: short-circuit if this exact diff (under this cwd) was already reviewed.
+    # By default the match is permanent — same diff means same diff. The state file
+    # self-heals when the diff actually changes (the new hash overwrites the old).
     is_dup, last_iso = _is_duplicate_diff(cwd, diff)
     if is_dup:
         ts_msg = f" since {last_iso}" if last_iso else ""
@@ -440,8 +454,8 @@ def handle_stop(event: dict) -> None:
     # plugin's emit_metrics rewake_summary on a stdout JSON line.
     print(json.dumps({"rewakeSummary": "Local security review of session changes"}), flush=True)
 
-    # Record the diff signature so a byte-identical re-fire within the TTL window
-    # short-circuits cleanly. Recorded BEFORE exit 2 so the rewake itself won't loop.
+    # Record the diff signature so a byte-identical re-fire short-circuits cleanly.
+    # Recorded BEFORE exit 2 so the rewake itself won't loop.
     _record_diff_seen(cwd, diff)
 
     # The rewake context goes to stderr; exit 2 is the asyncRewake signal.
