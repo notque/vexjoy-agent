@@ -37,6 +37,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -126,6 +127,65 @@ def save_state(feature_dir: Path, state: FeatureState) -> None:
     state.updated = datetime.now().isoformat()
     with open(state_file, "w") as f:
         json.dump(asdict(state), f, indent=2)
+
+
+# ── Resume agent-output cache ────────────────────────────────────────────────
+# Deterministic per-agent output cache for interrupted parallel agent waves.
+# Persisted in the resume artifact (HANDOFF.json) under "agent_outputs":
+#   {input_hash: {"output": str, "label": str, "timestamp": str}}
+# On resume, the prose flow hashes each agent's dispatch input and reuses the
+# cached output on a hit instead of re-dispatching — saving tokens. Missing or
+# absent agent_outputs is treated as an empty cache (backwards compatible).
+
+AGENT_OUTPUTS_KEY = "agent_outputs"
+
+
+def agent_input_hash(prompt: str, inputs: Any = None) -> str:
+    """Deterministic SHA256 hex digest over an agent's dispatch input.
+
+    Determinism is the contract: same prompt + same inputs → same hash, stable
+    across runs and processes. No wall-clock or randomness enters the digest.
+    `inputs` is normalized via json.dumps(sort_keys=True) so dict key ordering
+    does not change the hash; None and an empty inputs value hash identically.
+    """
+    normalized = {
+        "prompt": prompt,
+        "inputs": inputs if inputs is not None else None,
+    }
+    payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def load_agent_outputs(handoff: dict) -> dict:
+    """Return the agent-output cache from a handoff dict.
+
+    A handoff lacking the agent_outputs field (e.g. written before this feature
+    existed) loads as an empty cache so older artifacts keep working.
+    """
+    cache = handoff.get(AGENT_OUTPUTS_KEY)
+    return cache if isinstance(cache, dict) else {}
+
+
+def lookup_agent_output(handoff: dict, input_hash: str) -> dict | None:
+    """Return the cached entry for input_hash, or None on a cache miss."""
+    return load_agent_outputs(handoff).get(input_hash)
+
+
+def store_agent_output(
+    handoff: dict,
+    input_hash: str,
+    output: str,
+    label: str,
+    timestamp: str,
+) -> dict:
+    """Record an agent's output in the handoff cache and return the handoff.
+
+    Creates the agent_outputs field if absent (legacy handoff) without touching
+    other fields. Returns the handoff so callers can chain or store it back.
+    """
+    cache = handoff.setdefault(AGENT_OUTPUTS_KEY, {})
+    cache[input_hash] = {"output": output, "label": label, "timestamp": timestamp}
+    return handoff
 
 
 def slugify(name: str) -> str:
