@@ -51,20 +51,31 @@ Parse the user's topic and $ARGUMENTS. Common categories:
 
 **Goal**: Read actual files before explaining anything.
 
-**Step 1: Read relevant files**
+**Step 1: Get authoritative data from the catalog script**
 
-This constraint (Accuracy Over Speed) is non-negotiable. Never describe components from memory. Always read the actual SKILL.md or agent files:
+This constraint (Accuracy Over Speed) is non-negotiable. Counts and listings come from `scripts/list-capabilities.py`, which reads the generated INDEX files — deterministic, single source of truth. Match the question to the right subcommand:
 
-- For a specific skill: `Read skills/{skill-name}/SKILL.md`
+| Question | Command | Output |
+|----------|---------|--------|
+| Overview / "how many skills/agents?" | `python3 scripts/list-capabilities.py summary` | Skills / Pipelines / Agents counts |
+| "what skills exist [in category X]?" | `python3 scripts/list-capabilities.py skills [--category X] --brief` | Count; drop `--brief` for the full name/trigger/description table |
+| "what agents exist?" | `python3 scripts/list-capabilities.py agents --brief` | Count; drop `--brief` for the full table |
+| "tell me about <name>" | `python3 scripts/list-capabilities.py show <name>` | Type, description, triggers, category, file path for a skill/agent/pipeline |
+| Fuzzy lookup / "is there a skill for X?" | `python3 scripts/list-capabilities.py search <query>` | Ranked name/trigger/description matches across skills, pipelines, agents |
+
+`--category X` filters skills by keyword in name or description (e.g. `voice`, `game`, `kubernetes`); agents filter by exact category field. `show <name>` exits 1 when the name is absent — fall back to `search <name>` to suggest the closest match.
+
+**Step 2: Read the actual file for deep questions**
+
+The script gives authoritative counts, names, and one-line descriptions. For anything deeper — phases, gates, capabilities, when-to-use — read the file the script names in its `File:` field:
+
+- For a specific skill: `Read skills/{path-from-show}/SKILL.md`
 - For a specific agent: `Read agents/{agent-name}.md`
 - For routing overview: Check the /do router configuration
-- For system overview: `Glob for skills/*/SKILL.md and agents/*.md` to get current counts
 
-**Step 2: Extract key information**
-- Name, description, version
-- What it CAN and CANNOT do
-- How to invoke it
-- Related skills or agents
+Extract: name, description, version, what it CAN and CANNOT do, how to invoke it, related skills or agents.
+
+**Staleness**: `summary`, `skills`, and `agents` exit 2 and print a stderr warning when source files are newer than the INDEX. If you see that warning, tell the user to regenerate: `python3 scripts/generate-skill-index.py` (skills) or `python3 scripts/generate-agent-index.py` (agents), then re-run.
 
 **Constraint (No Fabrication)**: If a skill or agent does not exist, say so rather than inventing capabilities. If a skill or agent was recently deleted or merged, search with Glob for similar names and suggest the closest match.
 
@@ -74,7 +85,7 @@ This constraint (Accuracy Over Speed) is non-negotiable. Never describe componen
 
 **Goal**: Present information in the format most useful for the user's question.
 
-**For system overview**, present the execution architecture:
+**For system overview**, lead with live counts from `python3 scripts/list-capabilities.py summary`, then present the execution architecture:
 
 ```
 Router (/do) -> Agent (domain expert) -> Skill (methodology) -> Script (execution)
@@ -138,12 +149,12 @@ Solution:
 2. Route to the appropriate skill (e.g., systematic-debugging)
 3. Do not explain the debugging process; invoke it
 
-### Error: "Stale Information"
-Cause: Skill files may have changed since last read
+### Error: "Stale INDEX"
+Cause: `scripts/list-capabilities.py` exited 2 with a stderr warning — source files are newer than the generated INDEX
 Solution:
-1. Always read files fresh; never rely on cached descriptions
-2. Check file modification dates if information seems inconsistent
-3. Report any discrepancies found
+1. Tell the user to regenerate: `python3 scripts/generate-skill-index.py` and/or `python3 scripts/generate-agent-index.py`
+2. Re-run the catalog command; the counts now reflect current files
+3. For deep content, read the file fresh rather than relying on cached descriptions
 
 ---
 
@@ -154,7 +165,7 @@ Solution:
 This skill is built on five hardcoded constraints that must always apply:
 
 1. **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before answering any question
-2. **Accuracy Over Speed**: Read actual SKILL.md and agent files before explaining them; never describe from memory
+2. **Accuracy Over Speed**: Get counts and listings from `scripts/list-capabilities.py` (deterministic, INDEX-backed); read the actual SKILL.md and agent file for any deeper detail. Describe components from these sources, not from memory.
 3. **Show Real Examples**: Reference actual skill names, commands, and file paths from this repository
 4. **No Fabrication**: If a skill or agent does not exist, say so rather than inventing capabilities
 5. **Route When Appropriate**: If user actually wants to execute a workflow, route to the correct skill instead of explaining it
