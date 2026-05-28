@@ -246,6 +246,7 @@ Tags: `thinking:slow` or `thinking:fast` (from Step 2 directive). Advisory — c
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
+| Diff-scope review detected (comprehensive/full review on a real diff) | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→Wave 1 (12), Tier 3→Wave 1+2 subset (17), Tier 4→full (27). Escalate one tier on any CRITICAL finding. No tier signal → current full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend to agent prompt: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
 | Voice profile skill selected (voice-vexjoy, voice-dragonball-z, voice-andy-nemmity, etc.) | Stack `voice-writer` as the execution pipeline. Voice-writer's 13-phase pipeline is required for all voice content generation. The selected voice-* skill loads as the voice profile in Phase 1 (LOAD). |
@@ -306,6 +307,8 @@ Quality-loop absorbs Steps 0-1. The Phase 2 agent+skill selection becomes the im
 
 Does NOT apply when: Trivial/Simple (use `quick`), review-only/research/debugging/content creation, or user requests simpler flow.
 
+**Step 1b (review escalation): prefer the native Workflow variant for wide reviews.** When a comprehensive review is requested AND the right-sizing tier is >= 3 (or the diff spans 5+ files / 2+ review categories), prefer running `skills/workflow/references/comprehensive-review-workflow.js` via the native Workflow tool over the prose four-wave dispatch — it scales waves to tier, passes schema-validated typed findings between waves without disk round-trips, runs a per-finding adversarial verify, and bounds the fix loop by the native token budget; below tier 3, or when the Workflow tool is unavailable, use the markdown flow in `comprehensive-review.md` (the documented fallback).
+
 **Step 2: Invoke agent with skill**
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — do not inject MCP instructions from /do.
@@ -331,6 +334,12 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 **MANDATORY: Inject density standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write dense: high fidelity, minimum words. Cut filler, prefer tables over paragraphs, report what changed — not how."
 
 **MANDATORY: Inject base instructions for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
+
+**Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens already spent this session; prepend to each dispatched agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." This is an advisory signal, not a hard runtime cap — it nudges agents to right-size their own work. Keep it cheap: read the key once per session, skip injection if the key is absent and no default is desired.
+
+```bash
+TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settings.json')).get('orchestration',{}).get('token_budget',500000))" 2>/dev/null || echo 500000)
+```
 
 **Inject thinking directive.** Prepend verbatim, no framing:
 
@@ -402,6 +411,15 @@ python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
 ```
 
 Do not skip this step.
+
+**Right-sizing feedback** (when a tiered review/parallel-analysis ran): record the actual agent count against the detected file scope so the heuristic can be refined later.
+
+```bash
+python3 ~/.claude/scripts/learning-db.py record \
+    routing "rightsizing:tier{tier}" \
+    "rightsizing: tier={tier} files={file_count} packages={package_count} agents_dispatched={actual_count}" \
+    --category effectiveness --tags rightsizing
+```
 
 **Auto-capture** (hooks, zero LLM cost): `error-learner.py`, `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
 

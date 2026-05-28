@@ -140,6 +140,27 @@ REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only 2>/dev/null |
 
 If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-language-specialist`) gets organization-specific flags appended. Log: "Organization conventions detected."
 
+**Step 2b: Compute the review tier (work-proportional sizing)** — scale agents to diff scope, because a 3-file change does not earn a 27-agent four-wave review.
+
+```bash
+FILES=$(git diff --name-only | grep -c . || echo 0)
+PKGS=$(git diff --name-only | sed 's#/[^/]*$##;s#^[^/]*$#.#' | sort -u | grep -c . || echo 0)
+python3 scripts/right-size-review.py --files "$FILES" --packages "$PKGS"
+```
+
+The script returns `{tier, waves, agent_estimate, wave3_on_critical}`. Tier governs which waves run:
+
+| Tier | Scope | Waves run | Agents |
+|------|-------|-----------|--------|
+| 1 | 1-5 files, 1 pkg | none here — use `/parallel-code-review` (3 agents) | 3 |
+| 2 | 6-20 files, 1-2 pkg | Wave 1 only | 12 |
+| 3 | 21-50 files, 3-5 pkg | Wave 1 + Wave 2 subset (5 of 10); Wave 3 only if a CRITICAL is found | 17 (+Wave 3 on CRITICAL) |
+| 4 | 50+ files, 5+ pkg | Wave 1 + Wave 2 + Wave 3 (full) | 27 |
+
+The larger of the file-tier and package-tier wins (a few files across many packages is still a wide change). **Escalate one tier on any CRITICAL finding**: if any wave surfaces a CRITICAL, run the next-higher tier's waves before finalizing — Tier 2 adds Wave 2; Tier 3 adds Wave 3. This is the safety valve: sizing reduces spend on small diffs without capping depth when a real risk appears.
+
+When `--severity` or `--focus` flags are set, or no tier signal is computable, fall back to the full four-wave behavior (backwards-compatible default).
+
 **Step 3: Initialize findings directory** — critical for surviving context compaction between waves
 
 ```bash
@@ -285,7 +306,9 @@ echo "Saved Wave 0+1 summary: $(wc -l < "$REVIEW_DIR/wave01-summary.md") lines"
 
 ## Phase 3a: WAVE 2 DISPATCH
 
-**ALL 10 Wave 2 agent dispatches MUST be in ONE message.**
+**Tier gate**: Skip Wave 2 entirely at Tier 1. At Tier 3, dispatch a **5-agent subset** (highest-signal deep-dive roles) instead of all 10 — unless a CRITICAL was found in Wave 0/1, which escalates Tier 3 to the full 10. Tiers 2 and 4 dispatch per their wave list (Tier 2 ends after Wave 1; Tier 4 runs all 10). The full 10 remain the default when no tier signal is present.
+
+**ALL Wave 2 agent dispatches for the selected count MUST be in ONE message.**
 
 Read `${CLAUDE_SKILL_DIR}/references/wave-2-deep-dive.md` for:
 - Complete agent roster (10 agents with focus areas and Wave 1 context used)
@@ -349,6 +372,14 @@ echo "Saved Wave 0+1+2 summary: $(wc -l < "$REVIEW_DIR/wave012-summary.md") line
 ---
 
 ## Phase 3c: WAVE 3 DISPATCH — Adversarial Perspectives
+
+**Tier gate**: Wave 3 runs unconditionally at Tier 4. At Tier 3 it runs **only if a CRITICAL finding exists** in the Wave 0+1+2 summary (the CRITICAL-escalation safety valve). Skip Wave 3 at Tiers 1-2 unless a CRITICAL escalated the tier upward. When no tier signal is present, Wave 3 runs (backwards-compatible default).
+
+```bash
+if grep -qi "CRITICAL" "$REVIEW_DIR/wave012-summary.md" 2>/dev/null; then
+    echo "CRITICAL present — Wave 3 adversarial review required regardless of tier."
+fi
+```
 
 **ALL Wave 3 agent dispatches MUST be in ONE message.**
 
@@ -541,3 +572,11 @@ Review findings persisted at: $REVIEW_DIR/
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
+
+---
+
+## Native Workflow variant (option for wide reviews)
+
+`comprehensive-review-workflow.js` (this directory) implements the same four waves as a deterministic native Workflow script. It is an **option, not a replacement** — this markdown flow remains the documented fallback and works without the Workflow tool.
+
+Prefer the JS variant when tier >= 3 (or 5+ files / 2+ review categories). It scales waves to the right-sizing tier, returns schema-validated typed findings per wave (reusing the shapes in `skills/shared-patterns/schemas/`), passes Wave 1 findings to Wave 2 in-memory via `pipeline()`/`parallel()` instead of `$REVIEW_DIR/*.md` round-trips, runs a per-finding adversarial verify before synthesis, and bounds the Phase 4 fix loop by the native token `budget`. Use this markdown flow at lower tiers or when the Workflow tool is unavailable.

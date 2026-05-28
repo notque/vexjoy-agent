@@ -81,7 +81,14 @@ The 10 perspectives are:
 9. Complexity Management
 10. Limitation and Nuance Handling
 
-**Optional**: Use 5 perspectives instead of 10 for faster completion if user requests reduced mode.
+**Perspective sizing rule (work-proportional).** Match perspective count to source depth — a short source does not yield 10 distinct, non-overlapping analyses, so the extra 5 agents spend tokens producing near-duplicate findings.
+
+| Source word count | Perspectives | Which |
+|-------------------|-------------|-------|
+| < 2000 words | 5 | Structural, Clarity, Technical Explanation, Complexity Management, Limitation/Nuance (perspectives 1, 2, 3, 9, 10) |
+| >= 2000 words | 10 | All ten above |
+
+Use the word count captured in Phase 1, Step 3. Below 2000 words, dispatch 5; the synthesis Gate threshold (3 Must-Have + 3 Should-Have) is unchanged. A user may request the full 10 on a short source, or the reduced 5 on a long source, overriding the default.
 
 **Step 2: Collect results with timeout awareness**
 
@@ -101,7 +108,7 @@ Agent running > 5 minutes?
 
 **Step 3: Assess completeness**
 
-Not all 10 agents are guaranteed to complete (network/timeout issues may reduce count). Degrade gracefully:
+Not all dispatched agents are guaranteed to complete (network/timeout issues may reduce count). Degrade gracefully. Thresholds below are stated for the 10-perspective mode; in 5-perspective mode, halve them (≥4 = full, 3 = proceed, ≤2 = fall back to inline).
 
 | Agents Completed | Action |
 |------------------|--------|
