@@ -20,6 +20,7 @@ routing:
     - improve module interfaces
     - reduce complexity
     - architecture deepening
+  not_for: "small-scope refactors ('tidy this up', 'reorganize without changing behaviour', 'messy code in one file') — those route to workflow refactor; architecture-deepening is for module-interface analysis across the codebase, not local cleanup"
   pairs_with:
     - full-repo-review
     - adr-consultation

@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more."
+description: "Structured multi-phase workflows: review, debug, refactor (tidy up, clean up, untangle messy code, reorganize without changing behaviour), deploy, create, research, and more."
 user-invocable: false
 context: fork
 routing:
@@ -15,6 +15,20 @@ routing:
     - "structured pipeline"
     - "phased execution"
     - "orchestrated workflow"
+    - "tidy up"
+    - "tidy it"
+    - "tidy into one place"
+    - "clean up"
+    - "messy"
+    - "messy code"
+    - "structure is messy"
+    - "reorganize"
+    - "reorganize without changing behaviour"
+    - "reorganize without changing behavior"
+    - "untangle"
+    - "consolidate duplicated"
+    - "duplicated everywhere"
+    - "repeated everywhere"
 allowed-tools:
   - Read
   - Edit
