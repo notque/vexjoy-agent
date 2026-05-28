@@ -41,18 +41,27 @@ Contracts:
 Bypass / kill switches:
 - VEXJOY_SECURITY_REVIEW_SKIP=1     disables the commit BLOCK (deliberate override).
 - VEXJOY_SECURITY_REVIEW_DISABLE=1  disables the hook entirely (both events).
+- VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS=N  Stop dedup window (default 300s; <=0 disables).
+
+Stop dedup: byte-identical working-tree diffs (under the same cwd) re-firing within
+the TTL window short-circuit instead of triggering another rewake. State persists
+to ~/.claude/state/security-review-hook/last-diff-hash.json via atomic write.
 
 Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
 """
 
+import hashlib
 import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
+import time
 import traceback
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
@@ -61,6 +70,12 @@ from stdin_timeout import read_stdin
 
 _SKIP_ENV = "VEXJOY_SECURITY_REVIEW_SKIP"
 _DISABLE_ENV = "VEXJOY_SECURITY_REVIEW_DISABLE"
+_DEDUP_TTL_ENV = "VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS"
+_DEDUP_TTL_DEFAULT = 300  # 5 minutes
+
+# Stop-event dedup state. Absolute path so it works from any cwd the harness fires in.
+_STATE_DIR = Path.home() / ".claude" / "state" / "security-review-hook"
+_STATE_FILE = _STATE_DIR / "last-diff-hash.json"
 
 # Matches a `git commit` invocation anywhere in the Bash command string.
 _GIT_COMMIT_RE = re.compile(r"\bgit\s+commit(?:\s|$)")
@@ -290,6 +305,89 @@ def _has_reviewable_content(diff: str) -> bool:
     return False
 
 
+def _dedup_ttl_seconds() -> int:
+    """Read TTL from env, fall back to default. Non-positive disables dedup."""
+    raw = os.environ.get(_DEDUP_TTL_ENV)
+    if not raw:
+        return _DEDUP_TTL_DEFAULT
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return _DEDUP_TTL_DEFAULT
+
+
+def _diff_signature(cwd: str | None, diff: str) -> str:
+    """Hash (cwd, diff) so different repos with identical diffs don't collide."""
+    h = hashlib.sha256()
+    h.update((cwd or "").encode("utf-8", errors="replace"))
+    h.update(b"\x00")
+    h.update(diff.encode("utf-8", errors="replace"))
+    return h.hexdigest()
+
+
+def _load_dedup_state() -> dict:
+    """Load last-diff-hash state. Empty dict on any failure."""
+    try:
+        if _STATE_FILE.exists():
+            return json.loads(_STATE_FILE.read_text())
+    except (json.JSONDecodeError, OSError, ValueError):
+        pass
+    return {}
+
+
+def _save_dedup_state(state: dict) -> None:
+    """Atomic write: tempfile in same dir + os.replace. Silent on failure (advisory path)."""
+    try:
+        _STATE_DIR.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(_STATE_DIR), suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(state, f)
+            os.replace(tmp, str(_STATE_FILE))
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
+    except Exception:
+        # Failing to persist dedup state must never block a Stop hook — at worst we
+        # double-review on the next event, which is the existing behavior.
+        pass
+
+
+def _is_duplicate_diff(cwd: str | None, diff: str) -> tuple[bool, str | None]:
+    """Return (is_duplicate, last_seen_iso). Compares hash + freshness against state file."""
+    ttl = _dedup_ttl_seconds()
+    if ttl <= 0:
+        return False, None
+    state = _load_dedup_state()
+    sig = _diff_signature(cwd, diff)
+    if state.get("hash") != sig:
+        return False, None
+    try:
+        last_ts = float(state.get("ts", 0))
+    except (TypeError, ValueError):
+        return False, None
+    if (time.time() - last_ts) > ttl:
+        return False, None
+    last_iso = state.get("ts_iso")
+    return True, last_iso
+
+
+def _record_diff_seen(cwd: str | None, diff: str) -> None:
+    """Persist the current diff signature so a byte-identical re-fire short-circuits."""
+    now = time.time()
+    _save_dedup_state(
+        {
+            "hash": _diff_signature(cwd, diff),
+            "ts": now,
+            "ts_iso": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+            "cwd": cwd or "",
+        }
+    )
+
+
 def handle_stop(event: dict) -> None:
     """Stop: asyncRewake the session agent to run the security-review pipeline.
 
@@ -307,6 +405,18 @@ def handle_stop(event: dict) -> None:
     diff = _working_tree_diff(cwd)
     if not diff.strip() or not _has_reviewable_content(diff):
         # Nothing reviewable (empty or mode-only changes) — skip.
+        sys.exit(0)
+
+    # Dedup: short-circuit if this exact diff (under this cwd) was already reviewed
+    # within the TTL window. Prevents the rewake from re-firing on Stop events that
+    # carry an unchanged working tree.
+    is_dup, last_iso = _is_duplicate_diff(cwd, diff)
+    if is_dup:
+        ts_msg = f" since {last_iso}" if last_iso else ""
+        print(
+            f"[security-review] diff unchanged{ts_msg} — skipping",
+            file=sys.stderr,
+        )
         sys.exit(0)
 
     # Cap the injected diff so the rewake context stays bounded.
@@ -329,6 +439,10 @@ def handle_stop(event: dict) -> None:
     # Per-run rewakeSummary (one-liner shown to the user). Mirrors the official
     # plugin's emit_metrics rewake_summary on a stdout JSON line.
     print(json.dumps({"rewakeSummary": "Local security review of session changes"}), flush=True)
+
+    # Record the diff signature so a byte-identical re-fire within the TTL window
+    # short-circuits cleanly. Recorded BEFORE exit 2 so the rewake itself won't loop.
+    _record_diff_seen(cwd, diff)
 
     # The rewake context goes to stderr; exit 2 is the asyncRewake signal.
     sys.stderr.write(
