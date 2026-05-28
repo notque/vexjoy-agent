@@ -572,3 +572,11 @@ Review findings persisted at: $REVIEW_DIR/
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
+
+---
+
+## Native Workflow variant (option for wide reviews)
+
+`comprehensive-review-workflow.js` (this directory) implements the same four waves as a deterministic native Workflow script. It is an **option, not a replacement** — this markdown flow remains the documented fallback and works without the Workflow tool.
+
+Prefer the JS variant when tier >= 3 (or 5+ files / 2+ review categories). It scales waves to the right-sizing tier, returns schema-validated typed findings per wave (reusing the shapes in `skills/shared-patterns/schemas/`), passes Wave 1 findings to Wave 2 in-memory via `pipeline()`/`parallel()` instead of `$REVIEW_DIR/*.md` round-trips, runs a per-finding adversarial verify before synthesis, and bounds the Phase 4 fix loop by the native token `budget`. Use this markdown flow at lower tiers or when the Workflow tool is unavailable.

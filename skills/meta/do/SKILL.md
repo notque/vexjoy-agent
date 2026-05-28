@@ -307,6 +307,8 @@ Quality-loop absorbs Steps 0-1. The Phase 2 agent+skill selection becomes the im
 
 Does NOT apply when: Trivial/Simple (use `quick`), review-only/research/debugging/content creation, or user requests simpler flow.
 
+**Step 1b (review escalation): prefer the native Workflow variant for wide reviews.** When a comprehensive review is requested AND the right-sizing tier is >= 3 (or the diff spans 5+ files / 2+ review categories), prefer running `skills/workflow/references/comprehensive-review-workflow.js` via the native Workflow tool over the prose four-wave dispatch — it scales waves to tier, passes schema-validated typed findings between waves without disk round-trips, runs a per-finding adversarial verify, and bounds the fix loop by the native token budget; below tier 3, or when the Workflow tool is unavailable, use the markdown flow in `comprehensive-review.md` (the documented fallback).
+
 **Step 2: Invoke agent with skill**
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — do not inject MCP instructions from /do.
