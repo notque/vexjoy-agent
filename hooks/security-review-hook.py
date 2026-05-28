@@ -301,10 +301,80 @@ def _working_tree_diff(cwd: str | None) -> str:
     return result.stdout
 
 
+def _scannable_extensions() -> frozenset[str]:
+    """Return the scanner's *source* extensions (its supported set minus doc types).
+
+    Derived from the scanner's own constants so the Stop gate and the scanner can't
+    drift: SUPPORTED_EXTENSIONS is the superset the scanner opens, and _DOC_EXTS is
+    the doc/data subset (.md/.txt/.rst/.json/.mdx) where only anchored secret rules
+    fire. The Stop rewake is the heavy LLM-depth pass, so it gates on real code
+    files; doc-only changes are non-triggering here (their secret leaks are still
+    caught by the edit-time advisory and the commit-block gate, which scan docs).
+
+    Falls back to common source extensions if the scanner can't load. The
+    over-broad fallback is safe because the added-line gate still applies.
+    """
+    scanner = _load_scanner_module()
+    if scanner is not None:
+        supported = getattr(scanner, "SUPPORTED_EXTENSIONS", None)
+        if supported:
+            doc_exts = frozenset(getattr(scanner, "_DOC_EXTS", ()))
+            return frozenset(supported) - doc_exts
+    return frozenset({".py", ".go", ".js", ".ts", ".rb", ".java", ".php", ".kt", ".swift"})
+
+
+def _diff_post_image_ext(header_line: str) -> str | None:
+    """Extract the lowercased extension of a diff's post-image path.
+
+    `header_line` is a `+++ ` line. Returns None for `/dev/null` (deletions) or
+    when no extension is present.
+    """
+    path = header_line[4:].strip()
+    if not path or path == "/dev/null":
+        return None
+    # Strip git's `b/` prefix (and the rare `i/`/`w/`/`c/`/`o/` prefixes).
+    if len(path) > 2 and path[1] == "/" and path[0] in "abciwo":
+        path = path[2:]
+    dot = path.rfind(".")
+    slash = path.rfind("/")
+    if dot == -1 or dot < slash:
+        return None
+    return path[dot:].lower()
+
+
 def _has_reviewable_content(diff: str) -> bool:
-    """Return True if diff has actual added/removed lines (not just mode changes)."""
+    """Return True only if the diff is security-relevant for the Stop rewake.
+
+    Security-relevant means: at least one scannable source file (an extension in
+    _scannable_extensions() — the scanner's SUPPORTED_EXTENSIONS minus doc types)
+    has at least one ADDED or MODIFIED line.
+
+    Why this gate:
+    - Pure deletions (only `-` lines) cannot introduce a vulnerability, so a diff
+      whose only changes are removals is skipped.
+    - Doc/config-only diffs (.md, .txt, .json, etc. — not in the source set)
+      aren't worth the heavy LLM-depth Stop pass, so they're skipped.
+    - Mode-only diffs (no content lines) were already skipped; they still are,
+      since they contain no added lines.
+
+    An added line in a real source file (e.g. a new `eval(...)` in a `.py`) MUST
+    still pass this gate — true positives are preserved.
+    """
+    scannable_exts = _scannable_extensions()
+    current_scannable = False  # is the file in the current diff block scannable?
     for line in diff.splitlines():
-        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
+        if line.startswith("+++ "):
+            # New per-file post-image header: decide if this file is scannable.
+            ext = _diff_post_image_ext(line)
+            current_scannable = ext in scannable_exts if ext is not None else False
+            continue
+        if line.startswith("diff --git "):
+            # Start of a new file block; reset until its +++ header is seen.
+            current_scannable = False
+            continue
+        # An added content line (not the `+++` header) in a scannable file is the
+        # only thing that makes a diff security-relevant.
+        if current_scannable and line.startswith("+") and not line.startswith("+++"):
             return True
     return False
 
