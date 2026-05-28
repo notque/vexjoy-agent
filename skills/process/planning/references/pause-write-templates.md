@@ -4,7 +4,9 @@ Verbatim Phase 4 (WRITE) templates for HANDOFF.json and .continue-here.md, plus 
 
 ## Step 1: Write HANDOFF.json
 
-Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambiguous parsing across time zones and system clocks. Include the `drafted_adrs` field from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so `/resume-work` can detect absence reliably:
+Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambiguous parsing across time zones and system clocks. Include the `drafted_adrs` field from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so `/resume-work` can detect absence reliably.
+
+Include `agent_outputs` only when a parallel agent wave (fan-out dispatch) was interrupted mid-flight and some agents already returned. It caches per-agent output keyed by a deterministic input hash so `/resume-work` can reuse finished agents' output instead of re-dispatching them (saving tokens). Omit the field entirely when no agent wave was in progress. Compute each key with `scripts/feature-state.py`'s `agent_input_hash(prompt, inputs)` (SHA256 over the normalized dispatch input) and write entries with `store_agent_output` — keeping hashing deterministic in code rather than guessed in prose:
 
 ```json
 {
@@ -38,9 +40,18 @@ Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambigu
   ],
   "drafted_adrs": [
     {"number": "<N>", "path": "adr/<N>-<slug>.md", "title": "<title>"}
-  ]
+  ],
+  "agent_outputs": {
+    "<input_hash>": {
+      "output": "<agent's returned output>",
+      "label": "<agent name or role, e.g. security-reviewer>",
+      "timestamp": "<ISO 8601 UTC timestamp>"
+    }
+  }
 }
 ```
+
+The `agent_outputs` map is the resume cache for interrupted agent waves. Each key is the deterministic `agent_input_hash(prompt, inputs)` of the agent's dispatch input; the value records its output, a human-readable `label`, and when it was captured. Omit the whole field when no agent wave was interrupted. A handoff missing this field loads as an empty cache, so older artifacts keep working.
 
 ## Step 2: Write .continue-here.md
 

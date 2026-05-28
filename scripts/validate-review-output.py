@@ -21,6 +21,7 @@ Exit codes:
   0 = valid
   1 = structural errors found
   2 = parse error (couldn't extract structure from markdown)
+  3 = dependency missing (jsonschema not installed — validator cannot run)
 """
 
 from __future__ import annotations
@@ -32,7 +33,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import jsonschema
+try:
+    import jsonschema
+except ImportError:
+    print(
+        "ERROR: jsonschema not installed — the review validator cannot run, "
+        "so a malformed review could pass unchecked.\n"
+        "Install it: pip install jsonschema  (or reinstall: pip install -r requirements.txt)",
+        file=sys.stderr,
+    )
+    # Distinct exit code 3 = dependency missing (0=valid, 1=invalid, 2=parse error).
+    # Fail loudly here so a missing validator never lets a malformed review through.
+    raise SystemExit(3) from None
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -260,7 +272,7 @@ def _parse_finding_block(block_lines: list[str], reviewer: str | None = None) ->
     # Remove bold markers from issue title
     first_line = re.sub(r"\*\*(.+?)\*\*", r"\1", first_line)
     # Extract [Reviewer] prefix if present (parallel review format)
-    reviewer_prefix = re.match(r"^\[([A-Za-z\s]+)\]\s*", first_line)
+    reviewer_prefix = re.match(r"^\[([A-Za-z\s-]+)\]\s*", first_line)
     if reviewer_prefix:
         finding["reviewer"] = reviewer_prefix.group(1).strip()
         first_line = first_line[reviewer_prefix.end() :]
@@ -316,7 +328,7 @@ def _parse_finding_block(block_lines: list[str], reviewer: str | None = None) ->
             continue
 
         # Reviewer tag (parallel review)
-        rev_match = re.match(r"^\[([A-Za-z\s]+)\]", stripped)
+        rev_match = re.match(r"^\[([A-Za-z\s-]+)\]", stripped)
         if rev_match and "reviewer" not in finding:
             finding["reviewer"] = rev_match.group(1).strip()
 
