@@ -77,7 +77,12 @@ def _clean_env(extra: dict | None = None) -> dict:
     base = {
         k: v
         for k, v in os.environ.items()
-        if k not in ("VEXJOY_SECURITY_REVIEW_SKIP", "VEXJOY_SECURITY_REVIEW_DISABLE")
+        if k
+        not in (
+            "VEXJOY_SECURITY_REVIEW_SKIP",
+            "VEXJOY_SECURITY_REVIEW_DISABLE",
+            "VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS",
+        )
     }
     if extra:
         base.update(extra)
@@ -279,7 +284,7 @@ class TestStopAsyncRewake:
         assert "rewakeSummary" not in out
 
     def test_stop_dedup_short_circuits_identical_diff(self, tmp_path):
-        """A byte-identical diff re-fired within the TTL window must short-circuit (exit 0)."""
+        """A byte-identical diff re-fired must short-circuit (exit 0). Permanent by default."""
         state_file = tmp_path / "last-diff-hash.json"
         diff = "diff --git a/x b/x\n+payload\n"
         with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
@@ -301,24 +306,32 @@ class TestStopAsyncRewake:
             assert code2 == 2
             assert "rewakeSummary" in out2
 
-    def test_stop_dedup_disabled_when_ttl_zero(self, tmp_path):
-        """VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS=0 disables dedup; identical diffs both rewake."""
+    def test_no_ttl_means_forever(self, tmp_path):
+        """Default behavior: no TTL. An ancient ts (e.g. ts=0) still suppresses if hash matches."""
         state_file = tmp_path / "last-diff-hash.json"
         diff = "diff --git a/x b/x\n+payload\n"
         with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
-            env = {"VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS": "0"}
-            code1, _, _ = _run(_stop_event(cwd="/repo"), env=env, diff=diff)
-            code2, out2, _ = _run(_stop_event(cwd="/repo"), env=env, diff=diff)
-            assert code1 == 2
-            assert code2 == 2
-            assert "rewakeSummary" in out2
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "hash": mod._diff_signature("/repo", diff),
+                        "ts": 0,
+                        "ts_iso": "1970-01-01T00:00:00+00:00",
+                        "cwd": "/repo",
+                    }
+                )
+            )
+            code, out, err = _run(_stop_event(cwd="/repo"), diff=diff)
+            assert code == 0
+            assert "rewakeSummary" not in out
+            assert "diff unchanged" in err
 
-    def test_stop_dedup_expires_after_ttl(self, tmp_path):
-        """A stale state record (older than TTL) must NOT short-circuit; rewake fires again."""
+    def test_explicit_ttl_env_still_works(self, tmp_path):
+        """Setting VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS to a positive int re-enables TTL expiry."""
         state_file = tmp_path / "last-diff-hash.json"
         diff = "diff --git a/x b/x\n+payload\n"
         with patch.object(mod, "_STATE_DIR", tmp_path), patch.object(mod, "_STATE_FILE", state_file):
-            # Pre-seed state with a record older than the default TTL window.
+            # Pre-seed state with a record older than the explicit TTL.
             stale_ts = __import__("time").time() - 10_000
             state_file.write_text(
                 json.dumps(
@@ -330,7 +343,8 @@ class TestStopAsyncRewake:
                     }
                 )
             )
-            code, out, _ = _run(_stop_event(cwd="/repo"), diff=diff)
+            env = {"VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS": "300"}
+            code, out, _ = _run(_stop_event(cwd="/repo"), env=env, diff=diff)
             assert code == 2
             assert "rewakeSummary" in out
 
