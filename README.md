@@ -6,7 +6,7 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-This toolkit prevents that. 44 domain agents, 123 workflow skills, 79 hooks, 102 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+This toolkit prevents that. 44 domain agents, 123 workflow skills, 79 hooks, 103 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Factory (`/do`).
 
