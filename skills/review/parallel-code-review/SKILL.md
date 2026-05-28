@@ -80,6 +80,15 @@ Dispatch exactly these 3 agents. This is a read-only review—reviewers observe 
 - Focus: Design patterns, naming, structure, performance, maintainability
 - Output: Severity-classified findings with `file:line` references
 
+**Dimension lenses (all 3 reviewers apply, in addition to their role focus).** Roles cover *who* reviews; lenses cover *what classes of issue* every review must touch. Folding these into the existing briefs catches doc-accuracy and scope creep without paying for extra agents:
+
+| Lens | What it catches | Owner reviewer (primary) |
+|------|-----------------|--------------------------|
+| Doc-accuracy | Comments, docstrings, READMEs, or PR description that no longer match the code's actual behavior | Business Logic |
+| Scope / simplicity | Changes beyond the stated task, speculative abstraction, dead options, YAGNI violations | Architecture |
+
+Each reviewer reports lens findings inline with its role findings, tagged with the same `[Reviewer]` and `file:line` format so they flow through the schema gate unchanged.
+
 **Critical constraint**: Always run all 3 reviewers regardless of perceived change simplicity. Config changes can expose secrets, "trivial" fixes can break authorization, and each reviewer's specialization catches issues the others miss. Let a reviewer report "no findings" rather than skip it—because silence is information too.
 
 **Gate**: All 3 Task calls dispatched in a single message. Proceed only when ALL 3 return results—never issue a verdict from partial results, because the missing reviewer may hold the only CRITICAL finding. Partial results are worse than no review.
@@ -118,11 +127,47 @@ Include this matrix in every report so stakeholders see the severity distributio
 
 **Gate**: All findings classified, deduplicated, and summarized. Proceed only when gate passes.
 
+### Phase 3.5: ADVERSARIAL VERIFY (GATED)
+
+**Goal**: Refute each surviving finding independently before it reaches the report, so speculative or already-handled findings are dropped instead of shipped. This is the behavior that cut a native review from 10 findings to 3 (~70% noise removed) and directly targets the false-positive class that produced a 25% false-positive rate earlier.
+
+**Run this phase ONLY when the gate condition below is true. Otherwise skip straight to Phase 4 — small, clean reviews pay nothing.**
+
+**Gate condition (run the verify pass when EITHER is true):**
+
+```
+findings_count >= 4   OR   any finding is severity CRITICAL or HIGH
+```
+
+Otherwise (≤3 findings, all MEDIUM/LOW): skip this phase. State in the report: `Adversarial verify: SKIPPED (N findings, max severity MEDIUM — below gate).`
+
+**Step 1: Dispatch one verification check per finding.** Each finding gets an independent check (a Task call) prompted to REFUTE the finding, not confirm it. Dispatch the checks for a single review in one message so they run concurrently, matching the parallel pattern of Phase 2. The verifier's default stance is **not-real**; the finding survives only if the verifier cannot refute it.
+
+Verifier prompt contract (per finding):
+- Input: the finding text, its `file:line`, its claimed severity, and read access to the cited code.
+- Task: attempt to refute. Mark the finding **REFUTED** if any of these hold:
+  - **Speculative** — the failure path is hypothetical; no concrete input or call sequence reaches it.
+  - **Already-handled** — a guard, validation, type constraint, or upstream caller already prevents it (cite the line that handles it).
+  - **Not actionable** — no specific code change would resolve it, or it restates a style preference already covered by lint/format.
+- Output: `CONFIRMED` or `REFUTED`, a one-line justification with a `file:line` citation, and (for confirmed findings) a verified severity per Step 2.
+
+**Step 2: Verify-and-downgrade severity.** Reviewers over-grade. The verifier may re-grade a confirmed finding's severity, recording original→final with a written justification. Severity changes only on evidence (e.g., "downgraded CRITICAL→MEDIUM: the unsanitized value is server-issued UUID, not user input — `auth/token.go:88`"). Record every re-grade; never silently alter a severity.
+
+**Step 3: Keep only CONFIRMED findings.** REFUTED findings are removed from the aggregate and listed separately as refuted (with the refutation reason) so the reader sees what was filtered and why — transparency, not a silent drop.
+
+**Honest framing**: per-finding verify catches false positives at the structure-and-plausibility level — it refutes findings whose failure path is hypothetical or already-guarded. It is not a correctness oracle: it cannot prove a confirmed finding is a real exploitable bug, only that a refutation attempt failed. Treat CONFIRMED as "survived refutation," not "proven."
+
+**Cost guardrail**: the verify pass scales linearly with finding count (one check per finding) and is bounded two ways — (1) the gate above skips it entirely for small/clean reviews, and (2) it runs at most once per finding (no verify-the-verifier recursion). For larger diffs, cap the number of verify checks to the right-sizing tier for the review (the tier rules and `scripts/right-size-review.py` live outside this skill; reference the tier the review was sized to). When the cap is hit, verify the highest-severity findings first and note the uncapped remainder in the report.
+
+**Gate**: Verify pass was either skipped (gate condition false, stated in report) or completed (every finding marked CONFIRMED/REFUTED, severity re-grades recorded). Proceed only when gate passes.
+
 ### Phase 4: VERDICT
 
 **Goal**: Produce final report with clear recommendation.
 
 **Critical constraint**: Every review must end with an explicit verdict. Ambiguity is a decision to merge untested code. Choose: BLOCK, FIX, or APPROVE.
+
+The verdict is computed from **confirmed findings only** (after Phase 3.5). When the verify pass was skipped, all aggregated findings count as confirmed. Use each finding's **final** severity (post-downgrade), not its original.
 
 **Step 1: Determine verdict**
 
@@ -146,7 +191,15 @@ Include this matrix in every report so stakeholders see the severity distributio
 | Medium   | N | One-line aggregated summary |
 | Low      | N | One-line aggregated summary |
 
-Details by reviewer below.
+Counts above are CONFIRMED findings (post-verify). Details by reviewer below.
+
+### Adversarial Verify
+- Status: RAN (gate: N findings / max severity X) | SKIPPED (gate condition false)
+- Confirmed: N | Refuted: N
+- Severity re-grades: [original→final with justification, or "none"]
+
+### Refuted Findings (filtered, not in verdict)
+1. [Reviewer] Original finding - file:line — Refuted: [speculative | already-handled | not-actionable] ([citing file:line])
 
 ### Combined Findings
 
@@ -238,5 +291,6 @@ Re-run all three because fixes often introduce new issues in adjacent code, and 
 ## References
 
 - Severity classification: CRITICAL (blocks merge), HIGH (fix before), MEDIUM (should fix), LOW (nice to have)
-- Verdict decision tree: Any CRITICAL → BLOCK; HIGH without CRITICAL → FIX; MEDIUM/LOW only → APPROVE
+- Verdict decision tree: Any CRITICAL → BLOCK; HIGH without CRITICAL → FIX; MEDIUM/LOW only → APPROVE (computed from confirmed findings, final severity)
+- Adversarial verify gate: run per-finding refutation when `findings_count >= 4` OR any finding is CRITICAL/HIGH; else skip. One check per finding, capped to the right-sizing tier; refuted findings filtered, severity re-grades recorded
 - Re-review trigger: Always re-run all 3 reviewers after BLOCK fixes to catch regressions

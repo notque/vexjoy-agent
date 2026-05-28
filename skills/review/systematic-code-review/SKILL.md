@@ -185,6 +185,35 @@ Risk Level: LOW | MEDIUM | HIGH | CRITICAL
 
 **Gate**: Security, performance, and architectural risks explicitly evaluated (not skipped or hand-waved). Proceed only when gate passes.
 
+### Phase 3.5: VERIFY FINDINGS (GATED)
+
+**Goal**: Refute each candidate finding before it reaches the DOCUMENT report, so speculative or already-handled findings are filtered out instead of written up. This mirrors the per-finding adversarial verify that cut a parallel review from 10 findings to 3 and targets the false-positive class that drives over-grading.
+
+**Run this phase ONLY when the gate condition is true. Otherwise skip to Phase 4 — small, clean reviews pay nothing.**
+
+**Gate condition (run the verify pass when EITHER is true):**
+
+```
+candidate_findings_count >= 4   OR   any finding is BLOCKING
+```
+
+Otherwise (≤3 findings, none BLOCKING): skip this phase and note in DOCUMENT: `Finding verify: SKIPPED (N findings, none blocking — below gate).`
+
+**Step 1: Refute each finding.** For every candidate finding from Phases 2–3, attempt to refute it against the actual code. The default stance is **not-real**; a finding survives only if refutation fails. Mark **REFUTED** when:
+- **Speculative** — the failure path is hypothetical; no concrete input or call sequence reaches it (Phase 1 caller tracing is the evidence here).
+- **Already-handled** — a guard, validation, type constraint, or upstream caller already prevents it; cite the line.
+- **Not actionable** — no specific code change resolves it, or it restates a lint/format-covered style preference.
+
+**Step 2: Verify-and-downgrade severity.** Reviewers over-grade; the verify step may re-grade a confirmed finding's tier (BLOCKING / SHOULD FIX / SUGGESTIONS) with a written justification, recording original→final. Change severity only on evidence (e.g., "BLOCKING→SHOULD FIX: the value is a server-issued UUID, not user input — `auth/token.go:88`"). Never silently alter a tier.
+
+**Step 3: Keep only confirmed findings** for DOCUMENT. List refuted findings separately with their refutation reason so the reader sees what was filtered and why.
+
+**Honest framing**: this verify is structure-and-plausibility level — it refutes findings whose path is hypothetical or already-guarded. It is not a correctness oracle: a CONFIRMED finding survived a refutation attempt, it is not thereby proven a real exploitable bug.
+
+**Cost guardrail**: the pass scales with finding count (one refutation per finding) and is bounded — the gate skips it for small/clean reviews, and each finding is verified at most once. For large reviews, cap verification to the right-sizing tier the review was sized to (tier rules and `scripts/right-size-review.py` live outside this skill); verify highest-severity findings first and note any uncapped remainder.
+
+**Gate**: Verify pass was skipped (gate false, noted in DOCUMENT) or completed (each candidate finding CONFIRMED/REFUTED, severity re-grades recorded). Proceed only when gate passes.
+
 ### Phase 4: DOCUMENT
 
 **Goal**: Produce structured review output with clear verdict and rationale.
@@ -195,6 +224,8 @@ Only flag issues within the scope of the changed code because suggesting feature
 
 When classifying severity, use the Severity Classification Rules below and classify UP when in doubt because it is better to require a fix and have the author push back than to let a real issue slip through as "optional."
 
+Document **confirmed findings only** (after Phase 3.5). When the verify pass was skipped, all candidate findings count as confirmed. Use each finding's **final** tier (post-downgrade).
+
 ```
 PHASE 4: DOCUMENT
 
@@ -203,6 +234,11 @@ Review Summary:
   Lines Changed: [+X/-Y]
   Test Status: [PASS/FAIL/SKIPPED]
   Risk Level: [LOW/MEDIUM/HIGH/CRITICAL]
+
+Finding Verify: [RAN — confirmed N / refuted N; re-grades: original→final or "none"] | [SKIPPED — N findings, none blocking]
+
+Refuted (filtered, not in verdict):
+  1. [Original finding with file:line] — Refuted: [speculative | already-handled | not-actionable] ([citing file:line])
 
 Findings (use Severity Classification Rules - when in doubt, classify UP):
 
