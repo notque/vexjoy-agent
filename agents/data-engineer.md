@@ -35,6 +35,7 @@ routing:
     - data-pipeline-patterns
     - data-quality
     - debugging
+  not_for: "OLTP schema/query tuning (use database-engineer)"
   pairs_with:
     - database-engineer
     - data-analysis
