@@ -169,7 +169,22 @@ Details by reviewer below.
 **VERDICT** - [1-2 sentence rationale]
 ```
 
-**Step 3: If BLOCK verdict, initiate re-review protocol**
+**Step 3: Validate the structured output (schema gate)**
+
+Each reviewer returns markdown. Before accepting a reviewer's output into the aggregate, run it through the deterministic schema validator so a malformed review is caught mechanically rather than trusted on sight:
+
+```bash
+# Write the reviewer's markdown to a temp file, then validate.
+python3 scripts/validate-review-output.py --type parallel /tmp/reviewer-output.md
+# Or pipe directly:
+echo "$reviewer_markdown" | python3 scripts/validate-review-output.py --type parallel -
+```
+
+Exit codes: `0` = structurally valid (verdict present, severity_matrix complete, every finding carries `[Reviewer]` and a `file:line` location); `1` = schema errors; `2` = unparseable.
+
+**On validation failure (exit 1 or 2):** re-invoke that ONE reviewer exactly once, passing the validator's specific error lines (e.g. `MISSING: reviewer`, `FORMAT: findings.high.0.location`) so it knows precisely what to repair. Validate the second result. If it still fails, STOP and report the malformed output — proceed only on review data that passes the schema, because a verdict synthesized from broken findings is worse than no verdict. The aggregate gate from Phase 2 ("all 3 return") plus this schema gate together guarantee the report is built from complete, well-formed data.
+
+**Step 4: If BLOCK verdict, initiate re-review protocol**
 
 After user addresses CRITICAL issues, re-run ALL 3 reviewers (not just the one that found the issue) to verify:
 1. Original CRITICAL issues resolved
@@ -178,7 +193,7 @@ After user addresses CRITICAL issues, re-run ALL 3 reviewers (not just the one t
 
 Re-run all three because fixes often introduce new issues in adjacent code, and you need confirmation across all three domains that the solution is safe.
 
-**Gate**: Structured report delivered with verdict. Review is complete.
+**Gate**: Each reviewer's output passed `validate-review-output.py --type parallel` (exit 0), structured report delivered with verdict. Review is complete.
 
 ---
 
