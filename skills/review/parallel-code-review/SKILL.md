@@ -181,7 +181,7 @@ echo "$reviewer_markdown" | python3 scripts/validate-review-output.py --type par
 python3 scripts/validate-review-output.py --type parallel /tmp/reviewer-<name>.md
 ```
 
-Exit codes: `0` = structurally valid (verdict present, severity_matrix complete, every finding carries `[Reviewer]` and a `file:line` location); `1` = schema errors; `2` = unparseable; `3` = `jsonschema` not installed (`pip install -e '.[review]'`).
+Exit codes: `0` = structurally valid (verdict present, severity_matrix complete, every finding carries `[Reviewer]` and a `file:line` location); `1` = schema errors; `2` = unparseable; `3` = `jsonschema` not installed (`pip install jsonschema`).
 
 This gate verifies the review is **structurally well-formed** (verdict, severity buckets, and locations present) — it does NOT verify findings completeness (no minimum count; a parser-dropped malformed finding leaves no trace) NOR that the severity_matrix counts agree with the findings array (no matrix↔findings cross-check).
 

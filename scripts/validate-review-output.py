@@ -39,7 +39,7 @@ except ImportError:
     print(
         "ERROR: jsonschema not installed — the review validator cannot run, "
         "so a malformed review could pass unchecked.\n"
-        "Install it: pip install jsonschema  (or: pip install -e '.[review]')",
+        "Install it: pip install jsonschema  (or reinstall: pip install -r requirements.txt)",
         file=sys.stderr,
     )
     # Distinct exit code 3 = dependency missing (0=valid, 1=invalid, 2=parse error).
