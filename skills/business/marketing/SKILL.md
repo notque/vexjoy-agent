@@ -13,7 +13,8 @@ routing:
     - "marketing performance"
   category: business
   force_route: false
-  pairs_with: []
+  pairs_with:
+    - csuite
 user-invocable: true
 ---
 

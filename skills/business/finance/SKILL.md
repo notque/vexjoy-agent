@@ -13,7 +13,9 @@ routing:
     - "SOX"
   category: business
   force_route: false
-  pairs_with: []
+  pairs_with:
+    - csuite
+    - data-analysis
 user-invocable: true
 ---
 

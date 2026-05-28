@@ -45,6 +45,14 @@ routing:
   not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts"
   complexity: Medium
   category: decision-support
+  pairs_with:
+    - customer-support
+    - finance
+    - hr
+    - marketing
+    - operations
+    - sales
+    - product-management
 ---
 
 # C-Suite Decision Support

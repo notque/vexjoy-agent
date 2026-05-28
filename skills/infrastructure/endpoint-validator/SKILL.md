@@ -17,6 +17,7 @@ routing:
     - "check API"
     - "smoke test"
   category: infrastructure
+  not_for: "process/service uptime or daemon liveness (use service-health-check); only HTTP/API endpoint request validation"
   pairs_with:
     - service-health-check
     - e2e-testing
