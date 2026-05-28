@@ -6,7 +6,6 @@
 #   pip install -e ".[evals]"    — for scripts/skill_eval/
 #   pip install -e ".[reddit]"   — for scripts/reddit_mod.py
 #   pip install -e ".[gemini]"   — for scripts/gemini-text-generate.py
-#   pip install -e ".[review]"   — for scripts/validate-review-output.py
 #
 # AI Overkill - Python Dependencies
 #
@@ -39,3 +38,6 @@ python-dotenv>=1.0
 
 # Required for Google Search Indexing API (optional)
 google-auth>=2.22
+
+# Required for the review-output validation gate (parallel/systematic code review)
+jsonschema>=4.0

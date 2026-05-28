@@ -18,9 +18,6 @@ gemini = [
 pdf = [
     "playwright>=1.40",
 ]
-review = [
-    "jsonschema>=4.0",
-]
 quality = [
     "ruff>=0.8.0",
 ]
