@@ -45,8 +45,8 @@ fs = importlib.import_module("feature-state")  # the real module under test
 # Per-dispatch token cost = avg prompt tokens fed to the subagent + avg output
 # tokens it generates. These are the ONLY assumptions; everything else is
 # measured. Override via env or by editing here for your own workload.
-PROMPT_TOKENS_PER_DISPATCH = 1500   # system+task prompt handed to each subagent
-OUTPUT_TOKENS_PER_DISPATCH = 2500   # tokens the subagent generates
+PROMPT_TOKENS_PER_DISPATCH = 1500  # system+task prompt handed to each subagent
+OUTPUT_TOKENS_PER_DISPATCH = 2500  # tokens the subagent generates
 TOKENS_PER_DISPATCH = PROMPT_TOKENS_PER_DISPATCH + OUTPUT_TOKENS_PER_DISPATCH
 
 # Cost of a cache HIT instead of a dispatch: we still read the stored output
@@ -163,6 +163,7 @@ def token_savings(n: int, k: int) -> dict:
 # ASSERTIONS (pytest collects these; main() prints the report)
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def test_dispatch_avoidance_matches_k() -> None:
     """Cached resume dispatches exactly N-k; baseline dispatches N."""
     wave = make_wave(8)
@@ -249,8 +250,10 @@ def main() -> None:
 
     # --- A/B dispatch measurement across realistic interruption points. ---
     print("MEASURED A/B (N agents, interrupted after k complete):")
-    print(f"  {'N':>3} {'k':>3} | {'A:disp':>7} {'B:disp':>7} {'avoided':>7} | "
-          f"{'tok_base':>9} {'tok_cache':>9} {'saved':>8} {'%':>6}")
+    print(
+        f"  {'N':>3} {'k':>3} | {'A:disp':>7} {'B:disp':>7} {'avoided':>7} | "
+        f"{'tok_base':>9} {'tok_cache':>9} {'saved':>8} {'%':>6}"
+    )
     print("  " + "-" * 78)
     for n, k in [(10, 0), (10, 3), (10, 7), (10, 9), (20, 15), (5, 4)]:
         wave = make_wave(n)
@@ -260,9 +263,11 @@ def main() -> None:
         # Cross-check the formula against the actual mock dispatch counts.
         assert a.dispatch_count == s["dispatches_baseline"]
         assert b.dispatch_count == s["dispatches_cached"]
-        print(f"  {n:>3} {k:>3} | {a.dispatch_count:>7} {b.dispatch_count:>7} "
-              f"{s['dispatches_avoided']:>7} | {s['tokens_baseline']:>9} "
-              f"{s['tokens_cached']:>9} {s['tokens_saved']:>8} {s['pct_saved']:>5}%")
+        print(
+            f"  {n:>3} {k:>3} | {a.dispatch_count:>7} {b.dispatch_count:>7} "
+            f"{s['dispatches_avoided']:>7} | {s['tokens_baseline']:>9} "
+            f"{s['tokens_cached']:>9} {s['tokens_saved']:>8} {s['pct_saved']:>5}%"
+        )
 
     print("\nCORRECTNESS PROOF:")
     checks = [
