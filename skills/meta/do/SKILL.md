@@ -136,7 +136,7 @@ SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"
 python3 "$SDIR/routing-manifest.py"
 ```
 
-Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
+Dispatch the Agent tool with `model: "haiku"`, omitting `isolation: "worktree"` — the routing agent only reads a manifest and returns JSON; it never touches files or git, and worktree isolation fails outside a git repo. Use this prompt structure:
 
 ```
 You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
