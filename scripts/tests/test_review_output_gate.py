@@ -148,6 +148,40 @@ MALFORMED_SYSTEMATIC_MD = textwrap.dedent("""\
 """)
 
 
+# parallel with the CANONICAL hyphenated reviewer name [Business-Logic]
+# (per skills/review/parallel-code-review/SKILL.md). The reviewer-extraction
+# regex must accept the hyphen, or this structurally valid review is rejected
+# with MISSING: reviewer (the 25% false-positive class).
+VALID_PARALLEL_HYPHEN_MD = textwrap.dedent("""\
+    ## Parallel Review Complete
+
+    ### Severity Matrix
+
+    | Severity | Count | Summary |
+    |----------|-------|---------|
+    | Critical | 0     | None |
+    | High     | 1     | Auth bypass |
+    | Medium   | 0     | None |
+    | Low      | 0     | None |
+
+    ### Combined Findings
+
+    #### HIGH
+    1. [Business-Logic] Auth bypass on admin route - `internal/api/admin.go:22`
+       - Issue: Missing role check before privileged action
+       - Recommendation: Add role guard middleware
+
+    ### Summary by Reviewer
+
+    | Reviewer       | CRITICAL | HIGH | MEDIUM | LOW |
+    |----------------|----------|------|--------|-----|
+    | Business-Logic | 0        | 1    | 0      | 0   |
+
+    ### Recommendation
+    **FIX** - Auth bypass must be fixed before merge.
+""")
+
+
 VALID_MD = {"parallel": VALID_PARALLEL_MD, "systematic": VALID_SYSTEMATIC_MD}
 MALFORMED_MD = {"parallel": MALFORMED_PARALLEL_MD, "systematic": MALFORMED_SYSTEMATIC_MD}
 
@@ -207,6 +241,32 @@ def test_malformed_systematic_flags_verdict_risk_and_location() -> None:
 # ---------------------------------------------------------------------------
 # CLI-level: exit-code contract the SKILL.md prose depends on
 # ---------------------------------------------------------------------------
+
+
+def test_hyphenated_reviewer_name_parses_and_validates() -> None:
+    """[Business-Logic] (canonical, hyphenated) must extract `reviewer` and validate clean.
+
+    Regression: the reviewer-extraction regex `[A-Za-z\\s]+` rejected hyphens, so
+    a finding tagged [Business-Logic] had no reviewer -> schema MISSING: reviewer.
+    """
+    parsed = parse_markdown(VALID_PARALLEL_HYPHEN_MD, "parallel")
+    high = parsed["findings"]["high"]
+    assert high, "expected the HIGH finding to be parsed"
+    assert high[0].get("reviewer") == "Business-Logic", f"reviewer not extracted from hyphenated tag: {high[0]}"
+    errors = validate_structure(parsed, "parallel")
+    assert errors == [], f"expected clean validation, got: {errors}"
+
+
+def test_cli_accepts_hyphenated_reviewer_via_stdin() -> None:
+    """[Business-Logic] review passes the CLI gate (exit 0) via stdin."""
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR_PATH), "--type", "parallel", "-"],
+        input=VALID_PARALLEL_HYPHEN_MD,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
+    assert "VALIDATION PASSED" in result.stdout
 
 
 @pytest.mark.parametrize("review_type", ["parallel", "systematic"])

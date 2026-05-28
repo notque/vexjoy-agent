@@ -236,7 +236,13 @@ echo "$review_markdown" | python3 scripts/validate-review-output.py --type syste
 
 Exit codes: `0` = structurally valid (verdict in {APPROVE, REQUEST-CHANGES, NEEDS-DISCUSSION}, `risk_level` present, every finding carries a `file:line` location); `1` = schema errors; `2` = unparseable.
 
-**On validation failure (exit 1 or 2):** regenerate the DOCUMENT output exactly once, using the validator's specific error lines (e.g. `MISSING: risk_level`, `FORMAT: findings.blocking.0.location`) to repair the precise defect. Validate the regenerated output. If it still fails, STOP and report the malformed output — deliver only a review that passes the schema, because a verdict built on findings without locations or a missing risk level is unactionable.
+This gate verifies the review is **structurally well-formed** (verdict, risk level, and finding locations present) — it does NOT verify findings completeness; a finding the parser couldn't structure is silently dropped rather than flagged.
+
+**On validation failure:** retry exactly once, then stop.
+- **Exit 1 (schema errors):** regenerate the DOCUMENT output using the validator's specific numbered error lines (e.g. `MISSING: risk_level`, `MISSING: location`) to repair the precise defect.
+- **Exit 2 (unparseable):** there are no per-error lines to feed back — the output couldn't be structured at all. Regenerate the DOCUMENT output from scratch in the required format.
+
+Validate the regenerated output. If it still fails, STOP and report the malformed output — deliver only a review that passes the schema, because a verdict built on findings without locations or a missing risk level is unactionable.
 
 After producing the review, remove any temporary analysis files, notes, or debug outputs created during review because only the final review document should persist.
 

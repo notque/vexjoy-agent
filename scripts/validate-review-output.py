@@ -260,7 +260,7 @@ def _parse_finding_block(block_lines: list[str], reviewer: str | None = None) ->
     # Remove bold markers from issue title
     first_line = re.sub(r"\*\*(.+?)\*\*", r"\1", first_line)
     # Extract [Reviewer] prefix if present (parallel review format)
-    reviewer_prefix = re.match(r"^\[([A-Za-z\s]+)\]\s*", first_line)
+    reviewer_prefix = re.match(r"^\[([A-Za-z\s-]+)\]\s*", first_line)
     if reviewer_prefix:
         finding["reviewer"] = reviewer_prefix.group(1).strip()
         first_line = first_line[reviewer_prefix.end() :]
@@ -316,7 +316,7 @@ def _parse_finding_block(block_lines: list[str], reviewer: str | None = None) ->
             continue
 
         # Reviewer tag (parallel review)
-        rev_match = re.match(r"^\[([A-Za-z\s]+)\]", stripped)
+        rev_match = re.match(r"^\[([A-Za-z\s-]+)\]", stripped)
         if rev_match and "reviewer" not in finding:
             finding["reviewer"] = rev_match.group(1).strip()
 
