@@ -29,6 +29,10 @@ from pathlib import Path
 
 import pytest
 
+# Local-dev safety net: skip (not error) if the optional validator dep is absent.
+# CI installs jsonschema, so these tests still run for real there.
+pytest.importorskip("jsonschema", exc_type=ImportError)
+
 VALIDATOR_PATH = Path(__file__).resolve().parents[2] / "scripts" / "validate-review-output.py"
 
 _spec = importlib.util.spec_from_file_location("validate_review_output", VALIDATOR_PATH)

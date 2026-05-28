@@ -234,7 +234,7 @@ python3 scripts/validate-review-output.py --type systematic /tmp/review-output.m
 echo "$review_markdown" | python3 scripts/validate-review-output.py --type systematic -
 ```
 
-Exit codes: `0` = structurally valid (verdict in {APPROVE, REQUEST-CHANGES, NEEDS-DISCUSSION}, `risk_level` present, every finding carries a `file:line` location); `1` = schema errors; `2` = unparseable.
+Exit codes: `0` = structurally valid (verdict in {APPROVE, REQUEST-CHANGES, NEEDS-DISCUSSION}, `risk_level` present, every finding carries a `file:line` location); `1` = schema errors; `2` = unparseable; `3` = `jsonschema` not installed (`pip install -e '.[review]'`).
 
 This gate verifies the review is **structurally well-formed** (verdict, risk level, and finding locations present) — it does NOT verify findings completeness; a finding the parser couldn't structure is silently dropped rather than flagged.
 

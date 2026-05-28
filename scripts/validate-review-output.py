@@ -21,6 +21,7 @@ Exit codes:
   0 = valid
   1 = structural errors found
   2 = parse error (couldn't extract structure from markdown)
+  3 = dependency missing (jsonschema not installed — validator cannot run)
 """
 
 from __future__ import annotations
@@ -32,7 +33,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import jsonschema
+try:
+    import jsonschema
+except ImportError:
+    print(
+        "ERROR: jsonschema not installed — the review validator cannot run, "
+        "so a malformed review could pass unchecked.\n"
+        "Install it: pip install jsonschema  (or: pip install -e '.[review]')",
+        file=sys.stderr,
+    )
+    # Distinct exit code 3 = dependency missing (0=valid, 1=invalid, 2=parse error).
+    # Fail loudly here so a missing validator never lets a malformed review through.
+    raise SystemExit(3) from None
 
 # ---------------------------------------------------------------------------
 # Constants
