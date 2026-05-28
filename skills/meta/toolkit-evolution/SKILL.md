@@ -117,6 +117,10 @@ Run the orphaned session check from `references/diagnose-scripts.md` § DIAGNOSE
 
 Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4c. Flag any stub hook as a cleanup opportunity.
 
+**Step 4d: Check usage and governance signals**
+
+Run the usage and governance commands from `references/diagnose-scripts.md` § DIAGNOSE Step 4d. Feed dormant skills/agents into gap discovery (tag `[USAGE]`) and cluster unresolved governance events into the "what's failing" diagnosis (tag `[GOVERNANCE]`).
+
 **Step 5: Dedup against prior proposals**
 
 Load `references/evolution-history.md`. Check each opportunity against: (a) Rejected Proposals -- do not re-propose unless the reopen condition is met, (b) Shelved Proposals -- re-propose only if the reactivation condition is now satisfied, (c) Distilled Lessons -- apply the learned criteria to filter weak proposals early.

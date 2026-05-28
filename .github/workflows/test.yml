@@ -25,6 +25,7 @@ jobs:
       - run: python scripts/validate-doc-links.py
       - run: python scripts/validate-doc-counts.py
       - run: python scripts/validate-doc-commands.py
+      - run: python scripts/validate_component_models.py
 
   test:
     runs-on: ubuntu-latest
