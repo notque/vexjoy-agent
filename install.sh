@@ -15,7 +15,7 @@
 #   1. Verifies Python 3.10+ is available
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
-#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex and ~/.gemini
+#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.gemini, and ~/.hermes
 #   5. Sets up local overlay directory
 #   6. Configures hooks in settings.json
 #
@@ -48,6 +48,9 @@ FACTORY_DROIDS_DIR="${FACTORY_DIR}/droids"
 FACTORY_HOOKS_DIR="${FACTORY_DIR}/hooks"
 FACTORY_COMMANDS_DIR="${FACTORY_DIR}/commands"
 FACTORY_SCRIPTS_DIR="${FACTORY_DIR}/scripts"
+HERMES_DIR="${HOME}/.hermes"
+HERMES_SKILLS_DIR="${HERMES_DIR}/skills"
+HERMES_SCRIPTS_DIR="${HERMES_DIR}/scripts"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                VexJoy Agent - Installation Script               ║${NC}"
@@ -649,6 +652,79 @@ os.rename(tmp, dst)
     # Note: ~/.factory/config.toml is intentionally left untouched.
     # Users may have other Factory configurations we did not write.
 
+    # Phase 3.10: Clean toolkit-owned Hermes skills mirror
+    echo ""
+    echo -e "${YELLOW}Cleaning Hermes skills mirror...${NC}"
+    if [ -d "$HERMES_SKILLS_DIR" ]; then
+        for item in "${SCRIPT_DIR}/skills/"*; do
+            [ -e "$item" ] || continue
+            target="${HERMES_SKILLS_DIR}/$(basename "$item")"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove Hermes entry: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed Hermes entry: ${target}${NC}"
+                fi
+                REMOVED+=("Hermes skill $(basename "$item")")
+            fi
+        done
+
+        if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+            for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+                [ -d "$voice_dir" ] || continue
+                skill_src="${voice_dir}/skill"
+                [ -d "$skill_src" ] || continue
+                voice_name=$(basename "$voice_dir")
+                target="${HERMES_SKILLS_DIR}/voice-${voice_name}"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Hermes entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Hermes entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Hermes skill voice-${voice_name}")
+                fi
+            done
+        fi
+
+        if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+            for item in "${SCRIPT_DIR}/private-skills/"*; do
+                [ -e "$item" ] || continue
+                target="${HERMES_SKILLS_DIR}/$(basename "$item")"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Hermes entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Hermes entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Hermes skill $(basename "$item")")
+                fi
+            done
+        fi
+    else
+        echo "  No ~/.hermes/skills mirror found. Nothing to clean."
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Cleaning Hermes scripts mirror...${NC}"
+    if [ -d "$HERMES_SCRIPTS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${HERMES_SCRIPTS_DIR}${NC}"
+        else
+            rm -rf "$HERMES_SCRIPTS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${HERMES_SCRIPTS_DIR}${NC}"
+        fi
+        REMOVED+=("Hermes scripts mirror directory")
+    else
+        echo "  No ~/.hermes/scripts mirror found. Nothing to clean."
+    fi
+
+    # Note: ~/.hermes/config.yaml is intentionally left untouched.
+    # Users may have other Hermes configurations we did not write.
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -696,6 +772,7 @@ os.rename(tmp, dst)
     echo "  • ~/.codex/config.toml (including [features] codex_hooks flag)"
     echo "  • ~/.gemini/settings.json (all keys except hooks)"
     echo "  • ~/.factory/config.toml (if present, like Codex)"
+    echo "  • ~/.hermes/config.yaml (Hermes Agent configuration)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -814,6 +891,15 @@ else
     mkdir -p "${FACTORY_DIR}"
 fi
 echo -e "${GREEN}✓ ${FACTORY_DIR} ready${NC}"
+
+echo ""
+echo -e "${YELLOW}Setting up ~/.hermes/skills directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${HERMES_SKILLS_DIR}${NC}"
+else
+    mkdir -p "${HERMES_SKILLS_DIR}"
+fi
+echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
 
 # Install components
 echo ""
@@ -1383,6 +1469,52 @@ else
     GEMINI_SCRIPT_COUNT=0
 fi
 
+echo ""
+echo -e "${YELLOW}Syncing Hermes skills mirror...${NC}"
+HERMES_ENTRY_COUNT=0
+for item in "${SCRIPT_DIR}/skills/"*; do
+    [ -e "$item" ] || continue
+    target="${HERMES_SKILLS_DIR}/$(basename "$item")"
+    sync_mirror_entry "$item" "$target" "Hermes"
+    HERMES_ENTRY_COUNT=$((HERMES_ENTRY_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${HERMES_SKILLS_DIR}/voice-${voice_name}"
+        sync_mirror_entry "$skill_src" "$target" "Hermes"
+        HERMES_ENTRY_COUNT=$((HERMES_ENTRY_COUNT + 1))
+    done
+fi
+
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    for item in "${SCRIPT_DIR}/private-skills/"*; do
+        [ -e "$item" ] || continue
+        target="${HERMES_SKILLS_DIR}/$(basename "$item")"
+        sync_mirror_entry "$item" "$target" "Hermes"
+        HERMES_ENTRY_COUNT=$((HERMES_ENTRY_COUNT + 1))
+    done
+fi
+
+echo ""
+echo -e "${YELLOW}Syncing Hermes scripts mirror...${NC}"
+if [ -d "${SCRIPT_DIR}/scripts" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would mirror scripts to: ${HERMES_SCRIPTS_DIR}${NC}"
+    else
+        mkdir -p "$HERMES_SCRIPTS_DIR"
+    fi
+    sync_mirror_entry "${SCRIPT_DIR}/scripts" "$HERMES_SCRIPTS_DIR" "Hermes"
+    HERMES_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+    echo -e "${GREEN}  ✓ Scripts mirrored to ${HERMES_SCRIPTS_DIR}${NC}"
+else
+    HERMES_SCRIPT_COUNT=0
+fi
+
 # Deploy private-voices shared references into skills/shared-patterns/
 # These files were removed from the public repo and live in private-voices/shared-references/
 # (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
@@ -1393,7 +1525,7 @@ if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
     for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
         [ -f "$ref_file" ] || continue
         ref_name=$(basename "$ref_file")
-        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns"; do
+        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns" "${HERMES_SKILLS_DIR}/shared-patterns"; do
             # Resolve symlinks so we write into the actual directory
             resolved_dir="$target_dir"
             [ -L "$target_dir" ] && resolved_dir="$(readlink -f "$target_dir")"
@@ -1581,6 +1713,7 @@ manifest = {
     'codex_components': ['skills', 'agents', 'hooks', 'scripts'],
     'gemini_components': ['skills', 'agents', 'hooks', 'scripts'],
     'factory_components': ['skills', 'droids', 'hooks'],
+    'hermes_components': ['skills', 'scripts'],
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
 print('  Install manifest written to ~/.claude/.install-manifest.json')
@@ -1620,6 +1753,8 @@ echo "  • Gemini scripts: ${GEMINI_SCRIPT_COUNT} mirrored scripts in ~/.gemini
 echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
 echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
+echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
+echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"
