@@ -25,6 +25,7 @@ from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
+HERMES_DIR = Path.home() / ".hermes"
 COMPONENTS = ["agents", "skills", "hooks", "commands", "scripts"]
 
 
@@ -290,6 +291,37 @@ def check_codex_agents() -> dict:
         "label": "~/.codex/agents mirror",
         "passed": True,
         "detail": f"All {len(expected_entries)} toolkit entries mirrored",
+    }
+
+
+def check_hermes_skills() -> dict:
+    """Check that toolkit skills are mirrored into ~/.hermes/skills."""
+    hermes_skills_dir = HERMES_DIR / "skills"
+
+    if not hermes_skills_dir.is_dir():
+        return {
+            "name": "hermes_skills",
+            "label": "~/.hermes/skills mirror",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Hermes Agent.",
+        }
+
+    repo_root = get_toolkit_repo_root()
+    if repo_root is None:
+        return {
+            "name": "hermes_skills",
+            "label": "~/.hermes/skills mirror",
+            "passed": True,
+            "detail": str(hermes_skills_dir),
+        }
+
+    # Count entries present (simplified check — Hermes uses same flat structure)
+    entry_count = sum(1 for _ in hermes_skills_dir.iterdir())
+    return {
+        "name": "hermes_skills",
+        "label": "~/.hermes/skills mirror",
+        "passed": entry_count > 0,
+        "detail": f"{entry_count} entries present in Hermes skills mirror",
     }
 
 
@@ -819,6 +851,7 @@ def run_all_checks() -> list[dict]:
     results.extend(check_components_installed())
     results.append(check_codex_skills())
     results.append(check_codex_agents())
+    results.append(check_hermes_skills())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())

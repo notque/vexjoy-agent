@@ -132,7 +132,7 @@ If ANY creation signal found AND complexity Simple+: set `is_creation = true`, P
 Generate the manifest, then dispatch the Haiku routing agent. Its decision is the primary route.
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
 python3 "$SDIR/routing-manifest.py"
 ```
 
@@ -184,7 +184,7 @@ Route to the simplest agent+skill that satisfies the request. When `[cross-repo]
 Run the pre-router and use its result ONLY as a guardrail over the semantic pick:
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"
 python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
 ```
 
