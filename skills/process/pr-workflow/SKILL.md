@@ -146,20 +146,43 @@ Every agent-authored PR body MUST follow the same five sections as `.github/pull
 
 The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces, dogfood output), never the bare claim "tests pass" — this ties to `verification-before-completion`: evidence, not assertion.
 
+### Write for Density
+
+Aim for high meaning per word: each line states one fact about the change, declaratively, so a reviewer understands it fast. Density is the target, not minimal length — a large change keeps all five sections and carries the detail it needs; it earns that length by packing each line with signal. Six rules carry the vibe:
+
+1. **One fact per line.** Each Summary/Changes line reads verb + what + where. Plain words, high meaning.
+2. **Summary states the goal.** 1-3 plain sentences or a few crisp bullets. Keep metrics to the single number that matters.
+3. **One line per change.** When a change has many sub-items, state the shape and count ("add 21 PR-creation trigger phrases") and let the diff enumerate them. Keep rationale to the clause that earns its place.
+4. **Testing pastes the result line.** Show the command and its final verdict — counts, exit code, the summary line (`pytest -q` → 55 passed; `ruff check` → All checks passed!). A few lines of proof, summarized from the run.
+5. **Scope & Risk stays terse.** Touches / not-touched / rollback, one line each, facts only.
+6. **Every line earns its place.** Keep the lines a reviewer needs; let the diff carry the rest.
+
+**Worked example — the shape to emulate:**
+
+| Section | Dense (emulate) | Bloated (rewrite toward dense) |
+|---------|-----------------|--------------------------------|
+| Summary | "Registers 3 hooks in settings.json; integrates `pre-route.py` into /do Phase 2 as a deterministic pre-filter." | One 5-sentence block stuffed with jargon and four metrics. |
+| Changes | "`SKILL.md` — add 21 PR-creation trigger phrases." | One bullet inlining all 21 phrases verbatim; another a 3-sentence rationale paragraph. |
+| Testing | "`pytest -q` → 55 passed; `ruff check` → All checks passed!" | 25 lines of `pytest -v` per-test output. |
+| Scope & Risk | "Touches: routing layer. NOT touched: scoring logic. Rollback: revert the commit." | Five defensive paragraphs. |
+
+The dense column reads in seconds because each cell carries facts; the bloated column buries the same facts in volume. Aim every body at the dense column.
+
 Copy this canonical skeleton into `--body`:
 
 ```markdown
 ## Summary
-<!-- 1-3 sentences: what changed and why. Name the ADR/issue if any. -->
+<!-- State the goal plainly: 1-3 sentences or a few crisp bullets, one fact per line. Name the ADR/issue if any. Keep metrics to the single number that matters. -->
 
 ## Changes
+<!-- One line per change: verb + what + where. State shape and count for many sub-items; let the diff enumerate them. -->
 - `path/to/file` — what changed
 
 ## Testing
-<!-- Paste command + result. Evidence, not "tests pass". -->
+<!-- Paste the command and its result line. Evidence, summarized: counts, exit code, verdict. -->
 \`\`\`
 $ <command>
-<pasted output: counts / exit code / trace>
+<result line: counts / exit code / verdict>
 \`\`\`
 
 ## Scope & Risk
@@ -175,7 +198,7 @@ $ <command>
 - [ ] No forbidden files staged
 ```
 
-The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carry this same skeleton at their `gh pr create` call sites. When either path writes a `--body`, it uses this structure.
+The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carry this same skeleton at their `gh pr create` call sites. When either path writes a `--body`, it uses this structure and the density rules above.
 
 ## Instructions
 

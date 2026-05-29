@@ -244,7 +244,7 @@ Analyze the full diff against the base branch and all commit messages to draft:
 
 **Step 1.5: Artifact-Driven PR Body Generation**
 
-When planning artifacts exist (`task_plan.md`, verification reports, review summaries, deviation logs), generate the PR body from them rather than writing freeform. Artifacts capture *intent*, which is more valuable to reviewers than a mechanical diff summary. Fall back to diff-based generation when no artifacts exist.
+When planning artifacts exist (`task_plan.md`, verification reports, review summaries, deviation logs), generate the PR body from them rather than writing freeform. Artifacts capture *intent*, which is more valuable to reviewers than a mechanical diff summary. Summarize each artifact into dense lines — pull the goal, the completed-task shapes, and the result/exit lines, so each PR line carries one fact. Fall back to diff-based generation when no artifacts exist.
 
 See `references/pr-templates.md` for the full artifact table, PR body template, and fallback guidance.
 
@@ -252,20 +252,22 @@ See `references/pr-templates.md` for the full artifact table, PR body template, 
 
 This pipeline cannot create PRs without staged changes -- if nothing is staged, the earlier phases would have caught this.
 
-**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models. The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces, reviewer verdicts) — evidence, not the bare claim "tests pass" — which ties to `verification-before-completion`.
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models.
+
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Scope & Risk to one terse line each. The **Testing** section pastes the command and its result line plus reviewer verdicts — evidence summarized from the run, which ties to `verification-before-completion`. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
 ## Summary
-[1-3 sentences: what changed and why. Name the ADR/issue if any.]
+[State the goal plainly: 1-3 sentences or a few crisp bullets, one fact per line. Name the ADR/issue if any.]
 
 ## Changes
-- `path/to/file` — what changed
+- `path/to/file` — what changed [one line per change; give shape + count for many sub-items]
 
 ## Testing
-[Paste command + result. Evidence, not "tests pass". Include Phase 2/4b reviewer verdicts. Wrap output in a fenced block.]
+[Paste the command and its result line. Evidence summarized: counts, exit code, verdict. Include Phase 2/4b reviewer verdicts. Wrap in a fenced block.]
 $ <command>
-<pasted output: counts / exit code / trace>
+<result line: counts / exit code / verdict>
 Security: PASS  Business Logic: PASS  Code Quality: PASS
 
 ## Scope & Risk
@@ -662,16 +664,16 @@ Full details for Phase 5 (CREATE PR) of the PR Pipeline: artifact-driven body ge
 
 ## Artifact-Driven PR Body Generation
 
-When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary.
+When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary. Summarize each artifact into dense lines — one fact per line — so a reviewer scans the body fast. Pull the goal, the completed-task shapes, and the result/exit lines; let the diff and the linked reports carry the rest.
 
 Check for artifacts in this order and build the PR body from what's available:
 
 | Artifact | PR Section Generated | How to Extract |
 |----------|---------------------|----------------|
-| `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; list completed items as change bullets |
-| Verification reports (`*-verification.md`, test output) | **Testing** (paste pass/fail counts) | Extract pass/fail counts and key assertions verified |
-| Review summaries (Phase 2 / Phase 4b output) | **Testing** (reviewer verdicts) | Summarize security/logic/quality verdicts |
-| Deviation logs (ADR-076 repair actions) | **Scope & Risk** (deviations) | List repair actions taken and why the original plan changed |
+| `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; state the goal plainly; write one line per completed item (shape + count for many sub-items) |
+| Verification reports (`*-verification.md`, test output) | **Testing** (result line) | Extract the final result line: pass/fail counts and exit code. Summarize; the result line stands in for the full run |
+| Review summaries (Phase 2 / Phase 4b output) | **Testing** (reviewer verdicts) | Summarize security/logic/quality verdicts to one line |
+| Deviation logs (ADR-076 repair actions) | **Scope & Risk** (deviations) | List repair actions taken and why the original plan changed, one terse line each |
 
 **Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
@@ -681,19 +683,19 @@ Follows the canonical five-section structure from `.github/pull_request_template
 
 ```markdown
 ## Summary
-<!-- From task_plan.md Goal section, or from commit messages if no plan -->
-[Goal statement: what changed and why, 1-3 sentences. Name the ADR/issue if any.]
+<!-- From task_plan.md Goal section, or from commit messages if no plan. State the goal plainly: 1-3 sentences, one fact per line. Name the ADR/issue if any. -->
+[Goal statement: what changed and why, plainly, in 1-3 sentences.]
 
 ## Changes
-<!-- From task_plan.md completed phases/tasks -->
+<!-- From task_plan.md completed phases/tasks. One line per change: verb + what + where. Give shape + count for many sub-items. -->
 - `path/to/file` — [completed task description]
 - `path/to/file` — [completed task description]
 
 ## Testing
-<!-- From verification reports + Phase 2/4b review output. Paste evidence, not "tests pass". -->
+<!-- From verification reports + Phase 2/4b review output. Paste the command and its result line: counts, exit code, verdict. Summarized evidence, one-to-few lines. -->
 \`\`\`
 $ <command>
-<pasted output: counts / exit code / trace>
+<result line: counts / exit code / verdict>
 Security: PASS  Business Logic: PASS  Code Quality: PASS
 \`\`\`
 

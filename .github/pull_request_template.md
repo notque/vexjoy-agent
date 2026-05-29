@@ -1,23 +1,23 @@
 ## Summary
 
-<!-- 1-3 sentences: WHAT changed and WHY. State the goal, not the diff. If this implements an ADR or closes an issue, name it. -->
+<!-- State the goal plainly in 1-3 sentences (or a few crisp bullets). Say WHAT changed and WHY, in plain words. Name the ADR or issue if one applies. Write for a reviewer scanning in ~15 seconds: one fact per line, declarative. Keep metrics to the single number that matters; let the diff carry the rest. -->
 
 ## Changes
 
-<!-- Bullet list of concrete changes, one per file or area: `path/or/area` — what changed. Keep each bullet to the actual edit, not intent. -->
+<!-- One line per change: verb + what + where, declaratively (`path/or/area` — what changed). Keep each line to a single fact a reviewer needs. When a change has many sub-items, state the SHAPE and count ("add 21 PR-creation trigger phrases") and let the diff list them. One line per change keeps rationale terse. -->
 - `path/to/file` — what changed
 
 ## Testing
 
-<!-- Show EVIDENCE, not "tests pass". Paste the command AND its result: ruff exit, pytest counts, gate traces, dogfood output. The reviewer must be able to see the proof, not take your word for it. -->
+<!-- Paste the SUMMARY of evidence: the command and its final result line (counts, exit code, the verdict). e.g. `pytest -q` → 55 passed; `ruff check` → All checks passed!. A few lines of proof read fast and prove the work. Let the command and its result line stand in for the full run. -->
 ```
 $ <command>
-<pasted output: counts / exit code / trace>
+<result line: counts / exit code / verdict>
 ```
 
 ## Scope & Risk
 
-<!-- Which limb/area this touches; what was deliberately NOT touched (name the files/limbs); how to roll back. -->
+<!-- One line each, terse: what this touches, what stays untouched (name the files/limbs), how to roll back. Each line states a fact a reviewer needs to gauge blast radius. Keep it to facts; skip defensive prose. -->
 - **Touches:** <limb / area>
 - **NOT touched:** <files/limbs deliberately left alone — e.g. router, Phase 2, execution-limb .js>
 - **Rollback:** <revert the commit; no data migration / state change> 

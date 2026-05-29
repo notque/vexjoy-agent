@@ -140,7 +140,9 @@ After 3 iterations, proceed to Step 5 with any remaining issues documented in th
 
 Generate the PR title from the branch name or first commit when not provided by the user. Never create a PR with an empty description, because reviewers need context to understand the changes and a missing test plan signals incomplete work.
 
-**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models. The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces) — evidence, not the bare claim "tests pass" — which ties to `verification-before-completion`.
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models.
+
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Scope & Risk to one terse line each. The **Testing** section pastes the command and its result line (counts, exit code, verdict) — evidence summarized from the run, which ties to `verification-before-completion`. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 # Check if PR already exists for this branch
@@ -150,15 +152,15 @@ if [[ -z "$EXISTING_PR" ]]; then
     # Create new PR — --body follows .github/pull_request_template.md's section structure
     CLAUDE_GATE_BYPASS=1 gh pr create --title "$PR_TITLE" --body "$(cat <<'EOF'
 ## Summary
-[1-3 sentences: what changed and why. Name the ADR/issue if any.]
+[State the goal plainly: 1-3 sentences or a few crisp bullets, one fact per line. Name the ADR/issue if any.]
 
 ## Changes
-- `path/to/file` — what changed
+- `path/to/file` — what changed [one line per change; give shape + count for many sub-items, e.g. "add 21 trigger phrases"]
 
 ## Testing
-[Paste command + result. Evidence, not "tests pass". Wrap output in a fenced block.]
+[Paste the command and its result line. Evidence summarized: counts, exit code, verdict. Wrap in a fenced block.]
 $ <command>
-<pasted output: counts / exit code / trace>
+<result line: counts / exit code / verdict>
 
 ## Scope & Risk
 - **Touches:** <limb / area>
