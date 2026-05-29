@@ -140,9 +140,9 @@ After 3 iterations, proceed to Step 5 with any remaining issues documented in th
 
 Generate the PR title from the branch name or first commit when not provided by the user. Never create a PR with an empty description, because reviewers need context to understand the changes and a missing test plan signals incomplete work.
 
-**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models.
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Scope & Risk to one terse line each. The **Testing** section pastes the command and its result line (counts, exit code, verdict) — evidence summarized from the run, which ties to `verification-before-completion`. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Notes short and optional — context, rollback, follow-ups, "supersedes #N". Tests run as GitHub Actions, so the Checks tab is the test record; leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 # Check if PR already exists for this branch
@@ -157,21 +157,8 @@ if [[ -z "$EXISTING_PR" ]]; then
 ## Changes
 - `path/to/file` — what changed [one line per change; give shape + count for many sub-items, e.g. "add 21 trigger phrases"]
 
-## Testing
-[Paste the command and its result line. Evidence summarized: counts, exit code, verdict. Wrap in a fenced block.]
-$ <command>
-<result line: counts / exit code / verdict>
-
-## Scope & Risk
-- **Touches:** <limb / area>
-- **NOT touched:** <files/limbs deliberately left alone>
-- **Rollback:** <revert the commit; any state notes>
-
-## Checklist
-- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
-- [ ] pytest green (counts pasted above)
-- [ ] `validate-doc-counts.py` → 0 drift
-- [ ] No forbidden files staged
+## Notes
+[Optional, short. Context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add.]
 EOF
 )"
 else

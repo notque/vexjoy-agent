@@ -244,7 +244,7 @@ Analyze the full diff against the base branch and all commit messages to draft:
 
 **Step 1.5: Artifact-Driven PR Body Generation**
 
-When planning artifacts exist (`task_plan.md`, verification reports, review summaries, deviation logs), generate the PR body from them rather than writing freeform. Artifacts capture *intent*, which is more valuable to reviewers than a mechanical diff summary. Summarize each artifact into dense lines — pull the goal, the completed-task shapes, and the result/exit lines, so each PR line carries one fact. Fall back to diff-based generation when no artifacts exist.
+When planning artifacts exist (`task_plan.md`, review summaries, deviation logs), generate the PR body from them rather than writing freeform. Artifacts capture *intent*, which is more valuable to reviewers than a mechanical diff summary. Feed them into the three sections: the goal into Summary, the completed-task shapes into Changes, and context/rollback/deviations into Notes, so each line carries one fact. Tests run as GitHub Actions — the Checks tab is the test record, so leave verification output to CI rather than pasting it. Fall back to diff-based generation when no artifacts exist.
 
 See `references/pr-templates.md` for the full artifact table, PR body template, and fallback guidance.
 
@@ -252,9 +252,9 @@ See `references/pr-templates.md` for the full artifact table, PR body template, 
 
 This pipeline cannot create PRs without staged changes -- if nothing is staged, the earlier phases would have caught this.
 
-**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models.
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Scope & Risk to one terse line each. The **Testing** section pastes the command and its result line plus reviewer verdicts — evidence summarized from the run, which ties to `verification-before-completion`. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Notes short and optional — context, rollback, follow-ups, "supersedes #N". Tests run as GitHub Actions and the Checks tab is the test record; reviewer verdicts likewise show on the PR, so leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
@@ -264,23 +264,8 @@ CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(c
 ## Changes
 - `path/to/file` — what changed [one line per change; give shape + count for many sub-items]
 
-## Testing
-[Paste the command and its result line. Evidence summarized: counts, exit code, verdict. Include Phase 2/4b reviewer verdicts. Wrap in a fenced block.]
-$ <command>
-<result line: counts / exit code / verdict>
-Security: PASS  Business Logic: PASS  Code Quality: PASS
-
-## Scope & Risk
-- **Touches:** <limb / area>
-- **NOT touched:** <files/limbs deliberately left alone>
-- **Rollback:** <revert the commit; any state notes>
-
-## Checklist
-- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
-- [ ] pytest green (counts pasted above)
-- [ ] `validate-doc-counts.py` → 0 drift
-- [ ] conformance gate passes — if any workflow `.js` touched
-- [ ] No forbidden files staged
+## Notes
+[Optional, short. Context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add.]
 EOF
 )"
 ```
@@ -664,22 +649,21 @@ Full details for Phase 5 (CREATE PR) of the PR Pipeline: artifact-driven body ge
 
 ## Artifact-Driven PR Body Generation
 
-When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary. Summarize each artifact into dense lines — one fact per line — so a reviewer scans the body fast. Pull the goal, the completed-task shapes, and the result/exit lines; let the diff and the linked reports carry the rest.
+When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary. Summarize each artifact into dense lines — one fact per line — so a reviewer scans the body fast. Pull the goal, the completed-task shapes, and any context a reviewer needs beyond the diff; let the diff and the linked reports carry the rest. Tests are covered by CI — the Checks tab is the test record, so leave command output to CI rather than pasting it.
 
 Check for artifacts in this order and build the PR body from what's available:
 
 | Artifact | PR Section Generated | How to Extract |
 |----------|---------------------|----------------|
 | `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; state the goal plainly; write one line per completed item (shape + count for many sub-items) |
-| Verification reports (`*-verification.md`, test output) | **Testing** (result line) | Extract the final result line: pass/fail counts and exit code. Summarize; the result line stands in for the full run |
-| Review summaries (Phase 2 / Phase 4b output) | **Testing** (reviewer verdicts) | Summarize security/logic/quality verdicts to one line |
-| Deviation logs (ADR-076 repair actions) | **Scope & Risk** (deviations) | List repair actions taken and why the original plan changed, one terse line each |
+| Deviation logs (ADR-076 repair actions) | **Notes** (deviations) | List repair actions taken and why the original plan changed, one terse line each |
+| Context for reviewers (rollback, follow-ups, supersedes) | **Notes** (optional) | One terse line each; omit Notes when there's nothing to add. Verification reports and review summaries stay in CI — the Checks tab carries the result |
 
 **Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
 ## PR Body Template (Artifact-Driven)
 
-Follows the canonical five-section structure from `.github/pull_request_template.md` (Summary / Changes / Testing / Scope & Risk / Checklist), with each section populated from artifacts. Reviewer verdicts and deviation logs fold into **Testing** and **Scope & Risk**.
+Follows the canonical three-section structure from `.github/pull_request_template.md` (Summary / Changes / Notes), with each section populated from artifacts. Deviation logs and reviewer context fold into **Notes**.
 
 ```markdown
 ## Summary
@@ -691,26 +675,9 @@ Follows the canonical five-section structure from `.github/pull_request_template
 - `path/to/file` — [completed task description]
 - `path/to/file` — [completed task description]
 
-## Testing
-<!-- From verification reports + Phase 2/4b review output. Paste the command and its result line: counts, exit code, verdict. Summarized evidence, one-to-few lines. -->
-\`\`\`
-$ <command>
-<result line: counts / exit code / verdict>
-Security: PASS  Business Logic: PASS  Code Quality: PASS
-\`\`\`
-
-## Scope & Risk
-- **Touches:** [limb / area from task_plan]
-- **NOT touched:** [files/limbs deliberately left alone]
-- **Rollback:** [revert the commit; any state notes]
-- **Deviations:** [from deviation logs (ADR-076); omit if none]
-
-## Checklist
-- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
-- [ ] pytest green (counts pasted above)
-- [ ] `validate-doc-counts.py` → 0 drift
-- [ ] conformance gate passes — if any workflow `.js` touched
-- [ ] No forbidden files staged
+## Notes
+<!-- Optional, short. Context, rollback, follow-ups, "supersedes #N", deviations from deviation logs (ADR-076). Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add. -->
+[Optional context a reviewer needs beyond the diff.]
 ```
 
 ---
