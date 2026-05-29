@@ -5,17 +5,15 @@ color: blue
 memory: project
 routing:
   triggers:
-    - go
-    - golang
     - tight context
     - compact
     - focused go
+  not_for: "general Go feature/debug work via /do (use golang-general-engineer) — only tight-context budgets and per-package review fan-out"
   retro-topics:
     - go-patterns
     - concurrency
     - debugging
   pairs_with:
-    - go-patterns
     - go-patterns
   complexity: Medium-Complex
   category: language

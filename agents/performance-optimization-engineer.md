@@ -4,10 +4,13 @@ description: "Web performance optimization: Core Web Vitals, rendering, bundle a
 color: yellow
 routing:
   triggers:
-    - performance
-    - optimization
-    - speed
-    - profiling
+    - core web vitals
+    - LCP
+    - bundle size
+    - render performance
+    - web performance
+    - lighthouse
+  not_for: "backend/algorithmic performance in a specific language (use that language engineer) — only web/frontend runtime and load performance"
   pairs_with:
     - verification-before-completion
   complexity: Medium-Complex

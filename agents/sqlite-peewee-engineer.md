@@ -9,6 +9,7 @@ routing:
     - ORM
     - python database
     - playhouse
+  not_for: "server databases like Postgres/MySQL (use database-engineer)"
   retro-topics:
     - database-patterns
     - debugging

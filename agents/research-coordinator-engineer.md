@@ -5,13 +5,14 @@ color: purple
 background: true
 routing:
   triggers:
-    - research
-    - investigate
-    - explore
-    - analyze
+    - research topic
+    - multi-source analysis
+    - investigate question
+    - synthesize sources
     - comprehensive analysis
     - study
     - examine
+  not_for: "reading/exploring local code (use codebase-overview/read-only-ops) or a single delegated subtask (use research-subagent-executor)"
   pairs_with:
     - workflow
     - subagent-driven-development
