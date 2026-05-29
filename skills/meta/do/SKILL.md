@@ -155,6 +155,13 @@ Return your answer as JSON:
   "confidence": "high/medium/low"
 }
 
+SECTION-INTEGRITY RULE (HARD CONSTRAINT — never violate):
+- The `agent` field MUST be a name listed in the `AGENTS:` section of the manifest, or null. Never put a skill name in `agent`.
+- The `skill` field MUST be a name listed in the `SKILLS:` section of the manifest, or null. Never put an agent name in `skill`.
+- The `pipeline` field MUST be a name listed in the `PIPELINES:` section of the manifest, or null.
+- If no agent fits the request, return `"agent": null` — DO NOT promote a skill into the `agent` slot. The router will fall back to a default agent (e.g. `general-purpose`) and pair it with your chosen skill.
+- Skills marked `FORCE (process)` are still skills, not agents. They go in the `skill` field only. Example: `zsh-shell-config` is a SKILL — if it matches, set `"skill": "zsh-shell-config"` and pick a separate agent (or null) for `agent`.
+
 FORCE-ROUTE RULE: Entries marked "FORCE" in the manifest MUST be selected when their domain clearly matches the user's intent. However, FORCE matching is SEMANTIC, not keyword-based. Match on what the user MEANS, not individual words. Examples:
 - "push my changes" → pr-workflow (FORCE) ✓ (user means git push)
 - "push back on this design" → NOT pr-workflow (user means resist/argue)
@@ -188,6 +195,27 @@ Rules:
 **Step 0b: Apply the Haiku agent's recommendation**
 
 Use `agent` and `skill` fields directly. If `confidence` is "low", verify against INDEX files and `INDEX files`. Haiku response is internal — never print to user.
+
+**Dispatch-time section validator (MANDATORY before every `Agent(subagent_type=...)` call).** The Haiku router can mis-place a skill name in the `agent` field, and the harness then rejects the dispatch with `Agent type 'X' not found`. Before invoking the Agent tool, assert the `agent` field maps to a name in the manifest's `AGENTS:` section. Pseudocode:
+
+```
+agents_section = grep_section(manifest, "AGENTS:", "SKILLS:")
+skills_section = grep_section(manifest, "SKILLS:", "PIPELINES:")
+agent_names = [first_token(line) for line in agents_section]
+skill_names = [first_token(line) for line in skills_section]
+
+if haiku.agent and haiku.agent not in agent_names:
+    if haiku.agent in skill_names:
+        # Cross-section slip: Haiku put a skill in the agent slot.
+        haiku.skill = haiku.skill or haiku.agent  # promote to skill if empty
+        haiku.agent = None                         # clear bad agent pick
+    record_misroute(reason="agent-slot held skill name", value=haiku.agent)
+
+if haiku.agent is None:
+    haiku.agent = "general-purpose"  # safe fallback; pair with chosen skill
+```
+
+If the Haiku JSON is malformed, fall back to `general-purpose` + verification-before-completion. Always validate the agent name against the AGENTS: section before passing it to `subagent_type`.
 
 Route to the simplest agent+skill that satisfies the request. When `[cross-repo]` output is present, route to `.claude/agents/` local agents. Route all code modifications to domain agents.
 
