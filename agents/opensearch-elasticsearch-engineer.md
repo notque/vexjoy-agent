@@ -12,6 +12,7 @@ routing:
     - search performance
   pairs_with:
     - verification-before-completion
+    - enterprise-search
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

@@ -1,6 +1,7 @@
 ---
 name: enterprise-search
 description: Enterprise search engineering — relevance tuning, query understanding, index management, search quality measurement, ranking optimization, schema design. Use when building search features, debugging relevance, tuning ranking, designing indices, or measuring search quality.
+agent: opensearch-elasticsearch-engineer
 routing:
   triggers:
     - "enterprise search"

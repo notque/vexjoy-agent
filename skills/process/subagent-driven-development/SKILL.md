@@ -73,7 +73,19 @@ This context gets passed to EVERY subagent to prevent repeated discovery and que
 
 **Why**: Early context capture answers 80% of subagent questions before they ask, unblocks implementation immediately, and must be collected once (not rediscovered per task). BASE_SHA must be captured BEFORE the first implementer runs because subsequent edits will move HEAD forward.
 
-**Gate**: All tasks extracted with full text. BASE_SHA captured. Scene-setting context gathered. Proceed only when gate passes.
+**Step 4: Determine parallel vs sequential dispatch (scope-overlap check)**
+
+Each extracted task already carries its `Files:` list. Feed those file scopes into the deterministic overlap checker before defaulting to sequential. Tasks whose scopes do not overlap can run in parallel; only overlapping tasks must serialize.
+
+```bash
+python3 scripts/check-scope-overlap.py \
+  --tasks '[{"id":"task-1","scope":["path/a.py"]},{"id":"task-2","scope":["path/b.py"]}]' \
+  --human   # use --check for exit 0 (no conflicts) / exit 1 (conflicts) in scripted gates
+```
+
+Each task object takes `id` (string) and `scope` (list of file/dir paths); add `"readonly": true` for tasks that only read a path. Directory entries match any file beneath them. The output reports conflicting pairs plus parallel groups and a dispatch recommendation. Use those groups to decide Phase 2 dispatch: parallelize within a group, serialize across overlapping tasks.
+
+**Gate**: All tasks extracted with full text. BASE_SHA captured. Scene-setting context gathered. Scope-overlap check run; parallel groups identified. Proceed only when gate passes.
 
 ### Phase 2: EXECUTE (Per-Task Loop)
 
@@ -93,7 +105,7 @@ Use the Task tool with the prompt template from `./implementer-prompt.md`. Inclu
 
 **Implementation constraints** (enforced inline):
 - Implementer must understand task fully before coding begins. If they ask questions: answer clearly and completely, provide additional context, re-dispatch with answers. Give them time to fully understand the task.
-- Tasks must run sequentially. dispatch implementers sequentially because overlapping file edits cause conflicts that are expensive to resolve.
+- Dispatch follows the Phase 1 scope-overlap decision: parallelize tasks within a non-overlapping group; serialize tasks whose file scopes overlap, because overlapping file edits cause conflicts that are expensive to resolve. When the overlap check reports any conflict, run those tasks sequentially.
 - Implementer MUST follow these steps in order:
   1. Understand the task fully
   2. Ask questions if unclear (BEFORE implementing)
@@ -102,7 +114,7 @@ Use the Task tool with the prompt template from `./implementer-prompt.md`. Inclu
   5. Self-review code
   6. Commit changes
 
-**Why sequential execution**: Each task's output becomes the next task's input. Parallel execution breaks file locking semantics and requires complex merge handling. Sequential is simpler, safer, and conflicts are rare when each subagent gets full context.
+**Why scope-aware dispatch**: When task scopes overlap, parallel edits to the same files break file-locking semantics and require complex merge handling — those tasks serialize so each output feeds the next. When scopes are disjoint (verified by the scope-overlap check), parallel dispatch is safe and faster. The check makes the choice deterministic instead of defaulting to sequential for every plan.
 
 **Step 3: Dispatch ADR compliance reviewer subagent**
 
@@ -196,13 +208,13 @@ Solution:
 **Why hard limit**: Review loops that fail to converge are expensive and signal a deeper problem. Continuing them burns tokens without progress. Human judgment is needed to decide whether to clarify, change, or accept.
 
 ### Error: "Subagent File Conflicts"
-Cause: Multiple subagents modifying overlapping files (usually from parallel dispatch)
+Cause: Multiple subagents modifying overlapping files — the scope-overlap check missed an overlap because a task's declared `scope` list was incomplete.
 Solution:
 1. Resolve conflicts manually
 2. Re-run the affected review stage
-3. Enforce sequential dispatch going forward -- run implementers sequentially
+3. Re-run `check-scope-overlap.py` with the corrected (complete) scope lists, then serialize the now-overlapping tasks
 
-**Why this happens**: The sequential constraint exists to prevent this. If it occurs anyway, it means the constraint was violated. Reassert it.
+**Why this happens**: Parallel dispatch is only safe for disjoint scopes. A conflict means the declared scopes understated the real file footprint. Complete the scope lists and let the overlap check re-group the tasks.
 
 ---
 
