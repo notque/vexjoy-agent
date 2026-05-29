@@ -44,9 +44,13 @@ _spec.loader.exec_module(dwc)
         # factory / droid
         ({"FACTORY_SESSION_ID": "f1"}, "factory"),
         ({"DROID_SESSION_ID": "d1"}, "factory"),
-        # reasonix: no env marker — keyed off the _ invocation var
+        # reasonix: no env marker — keyed off the _ invocation var (basename match)
         ({"_": "/usr/local/bin/reasonix"}, "reasonix"),
         ({"_": "/opt/node/bin/Reasonix"}, "reasonix"),
+        ({"_": "/usr/local/bin/reasonix-dev"}, "reasonix"),
+        # basename guard: "reasonix" in the parent path must NOT match
+        ({"_": "/Users/reasonix-fan/bin/python3"}, "unknown"),
+        ({"_": "/opt/reasonix-corp/python"}, "unknown"),
         # nothing distinctive
         ({}, "unknown"),
     ],
@@ -85,6 +89,22 @@ def test_claude_code_wins_over_other_markers():
 )
 def test_workflow_capable(harness, expected):
     assert dwc.workflow_capable(harness) is expected
+
+
+def test_workflow_capable_set_is_single_source_of_truth():
+    """Adding a harness to WORKFLOW_CAPABLE is the one-line migration when a
+    harness ships native Workflow upstream. Pin the set so future changes are
+    deliberate.
+    """
+    expected = frozenset({"claude-code"})
+    assert dwc.WORKFLOW_CAPABLE == expected  # noqa: SIM300 — left side is the unit-under-test
+    # Every member of WORKFLOW_CAPABLE must classify as workflow_capable=True.
+    for h in dwc.WORKFLOW_CAPABLE:
+        assert dwc.workflow_capable(h) is True
+    # Every harness NOT in the set must classify as False.
+    for h in dwc.HARNESSES:
+        if h not in dwc.WORKFLOW_CAPABLE:
+            assert dwc.workflow_capable(h) is False
 
 
 # --- never raises ------------------------------------------------------------

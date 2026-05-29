@@ -5,9 +5,10 @@ Emits JSON: {"harness": "claude-code|codex|gemini|factory|reasonix|unknown",
              "workflow_capable": bool}
 
 Anthropic's native ``Workflow`` tool (deterministic JS orchestration) is
-Claude Code-only. Codex, Gemini, Factory, and Reasonix do not have it; the
-toolkit's prose pipelines run everywhere. ``workflow_capable`` is the
-env-derived proxy ``harness == "claude-code"``.
+Claude Code-only. ``workflow_capable`` is the env-derived proxy
+``harness in WORKFLOW_CAPABLE`` — currently the singleton ``{"claude-code"}``.
+The toolkit's prose pipelines run on every harness when the native path is
+unavailable.
 
 PROXY, NOT AUTHORITY. A subprocess cannot introspect the session's tool list,
 only the environment. So this script answers "which harness am I in?" and the
@@ -42,6 +43,11 @@ import sys
 
 HARNESSES = ("claude-code", "codex", "gemini", "factory", "reasonix", "unknown")
 
+# Single source of truth for native-Workflow availability. Add a harness here
+# the day it ships the native Workflow tool; the docstring and tests pin against
+# this set so a one-line change flips the contract.
+WORKFLOW_CAPABLE: frozenset[str] = frozenset({"claude-code"})
+
 # Marker var -> harness. Claude Code is checked first so it wins when env from
 # a Claude Code session leaks other harnesses' vars (config copied around).
 _MARKERS: list[tuple[str, tuple[str, ...]]] = [
@@ -66,9 +72,11 @@ def detect_harness(env: dict | None) -> str:
                 if env.get(key):
                     return harness
         # Reasonix exposes no distinctive env marker. Fall back to the ``_``
-        # invocation var (path of the invoking binary), the same best-effort
-        # mechanism used for gemini/codex in detect_cli().
-        if "reasonix" in env.get("_", "").lower():
+        # invocation var (path of the invoking binary). Match on basename so
+        # unrelated parent paths like ``/Users/reasonix-fan/bin/python3`` do
+        # not false-positive while wrapper scripts ``reasonix``/``Reasonix``/
+        # ``reasonix-dev`` still match.
+        if "reasonix" in os.path.basename(env.get("_", "")).lower():
             return "reasonix"
     except Exception:
         return "unknown"
@@ -77,7 +85,7 @@ def detect_harness(env: dict | None) -> str:
 
 def workflow_capable(harness: str) -> bool:
     """Env-derived proxy for native Workflow availability."""
-    return harness == "claude-code"
+    return harness in WORKFLOW_CAPABLE
 
 
 def main(argv: list[str]) -> int:

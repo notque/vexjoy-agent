@@ -472,7 +472,9 @@ def detect_cli() -> str:
         return "codex"
     # Reasonix sets no session/home env var and spawns hooks with the ambient
     # env inherited, so it is only identifiable via the _ invocation var.
-    if "reasonix" in invocation.lower():
+    # Match on basename so unrelated parent paths (/Users/reasonix-fan/bin/...)
+    # do not false-positive while wrapper scripts (reasonix-dev) still match.
+    if "reasonix" in os.path.basename(invocation).lower():
         return "reasonix"
     # Codex-specific env vars
     if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):

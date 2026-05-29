@@ -346,17 +346,25 @@ def check_reasonix_skills() -> dict:
         }
 
     # The /do router is always installed; use it as the canary for discoverability.
-    do_skill = reasonix_skills_dir / "do" / "SKILL.md"
-    if do_skill.is_file():
+    # Reasonix v0.53.2 ignores symlinked skill ENTRIES (only real dirs are scanned),
+    # so the doctor must reject a stale symlinked entry from a pre-fix install even
+    # though `is_file()` would otherwise traverse the symlink and report success.
+    do_entry = reasonix_skills_dir / "do"
+    do_skill = do_entry / "SKILL.md"
+    if do_entry.is_dir() and not do_entry.is_symlink() and do_skill.is_file():
         return {
             "name": "reasonix_skills",
             "label": "~/.reasonix/skills discoverable",
             "passed": True,
-            "detail": f"'do' skill resolves at {do_skill} (real file, one level deep)",
+            "detail": f"'do' skill resolves at {do_skill} (real dir, one level deep)",
         }
 
     # Fallback: any flattened skill resolving one level deep also proves discoverability.
-    discoverable = sum(1 for entry in reasonix_skills_dir.iterdir() if (entry / "SKILL.md").is_file())
+    discoverable = sum(
+        1
+        for entry in reasonix_skills_dir.iterdir()
+        if entry.is_dir() and not entry.is_symlink() and (entry / "SKILL.md").is_file()
+    )
     if discoverable > 0:
         return {
             "name": "reasonix_skills",
@@ -370,7 +378,7 @@ def check_reasonix_skills() -> dict:
         "label": "~/.reasonix/skills discoverable",
         "passed": False,
         "detail": (
-            "No <name>/SKILL.md resolves one level deep — Reasonix sees zero skills. "
+            "No <name>/SKILL.md resolves one level deep as a real dir — Reasonix sees zero skills. "
             "Skills must be flattened+copied (not symlinked, not category-nested). Re-run install.sh."
         ),
     }
