@@ -41,6 +41,14 @@ python3 ~/.claude/scripts/install-doctor.py check
 
 If the script is not found at `scripts/install-doctor.py`, try `~/.claude/scripts/install-doctor.py`.
 
+**Step 1b: Run runtime health check**
+
+```bash
+python3 ~/.claude/scripts/toolkit-health.py --json
+```
+
+If the script is not found at `scripts/toolkit-health.py`, try `~/.claude/scripts/toolkit-health.py`. This surfaces runtime health (hook error rate, stale memory files) that `install-doctor.py` does not cover. It exits 1 when `has_warnings` is true — treat that as "warnings to surface," not a setup failure. Capture the `flags` array for Step 3.
+
 **Step 2: Interpret results**
 
 | Result | Action |
@@ -56,6 +64,8 @@ If the script is not found at `scripts/install-doctor.py`, try `~/.claude/script
 **Step 3: Display results clearly**
 
 Show the check output to the user with a clear pass/fail summary. Display the raw script output without paraphrasing or reformatting, because the script already formats diagnostics for readability and rewriting them risks losing detail or misrepresenting status.
+
+Append the runtime-health result from Step 1b: if `has_warnings` is true, list each entry from the `flags` array as a WARN line in the summary (e.g. stale memory files, elevated hook error rate). When `has_warnings` is false, report runtime health as OK. WARN flags are advisory — they inform the user without blocking the pass/fail verdict for setup.
 
 **Gate**: Health check complete. If issues found, proceed to Phase 2. If clean, skip to Phase 3.
 

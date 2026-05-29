@@ -194,3 +194,21 @@ else:
         print('No stub hooks found (OK)')
 "
 ```
+
+## DIAGNOSE Step 4d: Usage and Governance Signals
+
+Two activity feeds turn runtime telemetry into opportunities. Both exit 0 on success.
+
+```bash
+# Dormant skills/agents (unused in the window) — feed into gap discovery.
+# A long-dormant component is either a discoverability gap or a retirement candidate.
+python3 scripts/usage-report.py --dormant --json
+
+# Unresolved governance events (last 30 days) — feed into the "what's failing" diagnosis.
+# Repeated hook_blocked / policy_violation events surface enforcement friction worth fixing.
+python3 scripts/governance-report.py --days 30 --unresolved
+```
+
+**How to use the output:**
+- **usage-report `--dormant`**: Each dormant skill/agent is a candidate for the opportunity list — tag the source `[USAGE]`. Cross-check before proposing retirement: dormant may mean low discoverability (routing/trigger gap) rather than low value.
+- **governance-report `--unresolved`**: Cluster unresolved events by `TYPE` and `TOOL`. A recurring `policy_violation` or `hook_blocked` cluster is an enforcement-friction signal — tag it `[GOVERNANCE]` on the opportunity list with the event count as evidence.
