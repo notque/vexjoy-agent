@@ -19,14 +19,20 @@ function enterPhase(title) {
   if (typeof phase === "function") phase(title);
 }
 
+// Emit one Skill("..") directive per element of the skills list (mirrors the
+// shared workflow-helpers.js skillDirectives()).
+function skillDirectives(skills) {
+  return (skills || []).map((s) => `Skill("${s}")`).join(" ");
+}
+
 export default async function run({ scope, roster, synthAgentType } = {}) {
   enterPhase("fan-out");
   const workers = await parallel(
     roster.map((r) => () =>
       agent({
         prompt:
-          `You are a ${r.lens} specialist. Invoke your methodology by name ` +
-          `first: Skill("${r.skill}"). Scope: ${JSON.stringify(scope)}`,
+          `You are a ${r.lens} specialist. Invoke your methodologies by name ` +
+          `first: ${skillDirectives(r.skills)}. Scope: ${JSON.stringify(scope)}`,
         schema: { type: "object", required: ["summary"], properties: { summary: { type: "string" } } },
         agentType: r.agentType,
         phase: "fan-out",

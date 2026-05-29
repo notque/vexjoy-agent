@@ -9,9 +9,9 @@ export const meta = {
   contract: {
     phases: ["wave-1"],
     roster: [
-      { agentType: "reviewer-system", skill: "systematic-code-review" },
-      { agentType: "reviewer-domain", skill: "systematic-code-review" },
-      { agentType: "reviewer-code", skill: "systematic-code-review" },
+      { agentType: "reviewer-system", skills: ["systematic-code-review"] },
+      { agentType: "reviewer-domain", skills: ["systematic-code-review"] },
+      { agentType: "reviewer-code", skills: ["systematic-code-review"] },
     ],
     // Declares 3 static agents but the body only dispatches reviewer-system.
     agents: { static: 3, dynamic: false },
