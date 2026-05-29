@@ -372,6 +372,42 @@ else:                                                       -> agent + skill dir
 
 **Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so the banner reads identically regardless of executor. For the complexity-trigger fan-out, both the native `fan-out-workflow` and the prose `dispatching-parallel-agents` floor expand to the same phases (`fan-out → synthesize`) — the banner reads identically whether the Workflow tool runs or the floor does.
 
+**Step 1c (inline-authored Workflow scripts): when the user explicitly asks to "run through a workflow" with no named pipeline `pick`, the orchestrator MUST dictate roster size and skill stacks — never delegate those defaults to the Workflow tool's heuristics.** The Workflow tool's authoring defaults skew toward many-skeptic adversarial fan-outs and rarely emit `Skill(...)` directives. Override both. Before emitting any inline `script:`, the orchestrator builds the same `roster` object Step 1b uses for the registered fan-out path and pins these constraints in the script:
+
+| Constraint | Rule |
+|------------|------|
+| **Agent count** | Dictate explicit roster length per task class (table below). Never let the Workflow tool decide via "comprehensiveness" heuristics. |
+| **Skill stacks** | EVERY `agent()` call inside the script MUST be preceded by one `Skill("<name>")` directive per element of that roster entry's `skills` list. Empty `skills` is a routing bug — fail closed and re-route. |
+| **Adversarial passes** | Default to **single skeptic per finding**, not 3–5. Escalate to 3 only when the request explicitly says "adversarial," "heavy refute," or "high-stakes review" — and only on the findings that survive the first pass. |
+| **Phase count** | Match the named pipeline's phase shape if a similar pipeline exists in the registry. Don't invent novel phase names when `comprehensive-review-workflow`, `fan-out-workflow`, or `research-pipeline` already covers the shape. |
+
+Roster-size table (agent counts dictated, NOT advisory):
+
+| Request class | Roster size | Skeptic pass |
+|---------------|-------------|--------------|
+| PR review (Tier 1, ≤6 files) | 3 reviewers | none default; 1 skeptic on user request |
+| PR review (Tier 2–3) | 12 / 17 reviewers per `right-size-review.py` | 1 skeptic on findings flagged "Critical" only |
+| PR review (Tier 4) | 27 reviewers | 1 skeptic on Critical+High findings |
+| Adversarial validation of N findings | 1 skeptic × N (not 3 × N) | escalate to 3 only on user-flagged "needs heavy pushback" |
+| Research fan-out | 3–5 researchers per `research-pipeline` Wave 1 | n/a |
+| Generic complexity-trigger fan-out | use `fan-out-workflow` registered roster | n/a |
+
+When the orchestrator emits an inline `script:`, the script body MUST follow this shape (skill directives in EVERY worker, count dictated by the roster):
+
+```js
+const ROSTER = [/* dictated count, NOT model-chosen */
+  {agentType: "reviewer-system",       skills: ["systematic-code-review", "anti-rationalization-review"], lens: "security"},
+  {agentType: "reviewer-domain",       skills: ["systematic-code-review", "anti-rationalization-review"], lens: "domain"},
+  {agentType: "reviewer-perspectives", skills: ["systematic-code-review", "anti-rationalization-review"], lens: "newcomer"},
+];
+const findings = await parallel(ROSTER.map(r => async () => {
+  for (const s of r.skills) await Skill(s);   // FULL stack, one directive per skill
+  return agent(buildPrompt(r), {agentType: r.agentType, schema: FINDINGS_SCHEMA});
+}));
+```
+
+If the orchestrator catches itself authoring `parallel(Array.from({length: N}, ...))` with a model-chosen N, or omitting `Skill(...)` directives, **stop and rebuild the script from the roster table above**. The Workflow tool's autonomy here is a footgun the router has to disarm.
+
 **Step 2: Invoke agent with skill**
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — do not inject MCP instructions from /do.
