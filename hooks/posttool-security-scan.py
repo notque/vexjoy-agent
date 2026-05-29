@@ -1,233 +1,81 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 2.0.0
 """
 PostToolUse:Write,Edit Hook: Unified Security Pattern Scanner
 
 Scans edited/written code files for common security vulnerability patterns
 after each modification. Outputs informational warnings — never blocks.
 
-Categories scanned:
-1. Hardcoded credentials (credential-named variables with string literals)
-2. SQL injection (f-strings, format(), concatenation, sprintf in SQL context)
-3. Command injection (shell=True, os.system)
-4. Path traversal (unvalidated relative path components)
-5. Unsafe deserialization (loading without safe loaders)
+Detection is delegated to the CANONICAL rule engine,
+``scripts/security-review-scan.py`` (the single source of detection rules,
+shared with hooks/security-review-hook.py). This hook used to hand-maintain
+its own ``_build_patterns`` regex list; that fork has been retired. Importing
+the canonical engine means this hook automatically inherits:
 
-Merged from posttool-security-scan.py + sql-injection-detector.py per
-ADR hook-injection-condensation.
+  - the engine's full rule set (a strict superset of the old inline list —
+    parity proven by scripts/tests/test_security_review_scan.py),
+  - the 13 test-skip guards (``skip_test`` rules + ``_is_test_file``) so
+    project test-fixture files no longer false-positive, and
+  - doc-aware filtering (``_DOC_EXTS`` / ``_rule_applies_to_file``) so prose in
+    markdown/JSON does not trip code-pattern rules, while anchored secret
+    signatures (AKIA/PEM) still fire in docs,
+  - custom rules from ``.claude/security-patterns.{yaml,json}``.
 
 Design:
-- PostToolUse (informational only, never blocks)
-- Only scans code files (skips markdown, config, images)
-- Compiled regex patterns for <50ms execution
+- PostToolUse (informational only, never blocks — always exit 0)
+- Only scans files the engine supports (SUPPORTED_EXTENSIONS)
 - Reads file content from disk (tool_result may be truncated)
-- Skips files >10,000 lines
+- Fail-open: any error is swallowed and the hook exits 0
 
-ADR: adr/018-post-edit-security-scan.md, adr/134-sql-injection-detector-hook.md
+ADR: adr/018-post-edit-security-scan.md
 """
 
+import importlib.util
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from stdin_timeout import read_stdin
 
-# Code file extensions worth scanning
-_CODE_EXTENSIONS = frozenset(
-    {
-        ".py",
-        ".go",
-        ".js",
-        ".ts",
-        ".tsx",
-        ".jsx",
-        ".rb",
-        ".java",
-        ".php",
-        ".rs",
-        ".c",
-        ".cpp",
-        ".cs",
-        ".swift",
-        ".kt",
-    }
-)
-
-# Max lines to scan (skip generated/vendored files)
-_MAX_LINES = 10_000
+# Max findings to print before collapsing to a count (avoid noise).
+_MAX_FINDINGS = 5
 
 
-def _build_patterns() -> list[tuple[re.Pattern[str], str, str]]:
-    """Build security patterns at import time.
+def _scanner_path() -> Path | None:
+    """Locate scripts/security-review-scan.py from known deploy layouts.
 
-    Patterns are constructed programmatically to avoid triggering
-    security-reminder hooks that scan for literal pattern strings.
+    Mirrors hooks/security-review-hook.py so this hook works from any cwd
+    (deployed copies live under ~/.claude/hooks/ alongside ~/.claude/scripts/).
     """
-    # Credential variable names to detect
-    cred_names = "|".join(
-        [
-            "password",
-            "passwd",
-            "api_key",
-            "apikey",
-            "secret_key",
-            "secretkey",
-            "auth_token",
-        ]
-    )
-
-    # Extended SQL keywords for broader coverage (merged from sql-injection-detector.py)
-    sql_kw = "|".join(
-        [
-            "SELECT",
-            "INSERT",
-            "UPDATE",
-            "DELETE",
-            "DROP",
-            "WHERE",
-            "FROM",
-            "JOIN",
-            "SET",
-            "VALUES",
-        ]
-    )
-
-    return [
-        # Hardcoded credentials — variable assignment with string literal
-        (
-            re.compile(
-                rf"""(?:{cred_names})\s*[=:]\s*['"][^'"]{"{8,}"}['"]""",
-                re.IGNORECASE,
-            ),
-            "hardcoded-credential",
-            "Use environment variables or a secrets manager instead of hardcoded values",
-        ),
-        # SQL injection — f-string or format() in SQL-like strings
-        (
-            re.compile(
-                r"""f['"]{1,3}(?:SELECT|INSERT|UPDATE|DELETE|DROP)\s.*\{""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries instead of string interpolation in SQL",
-        ),
-        (
-            re.compile(
-                r"""['"](?:SELECT|INSERT|UPDATE|DELETE)\s.*['"].*%\s""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries instead of % formatting in SQL",
-        ),
-        # SQL injection — string concatenation: "...SQL..." + variable
-        (
-            re.compile(
-                rf"""['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*)['"]\s*\+""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries (e.g., cursor.execute(sql, params))",
-        ),
-        # SQL injection — variable + "...SQL..."
-        (
-            re.compile(
-                rf"""\+\s*['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*)['"]\s*(?:\+|$|;|\)|,)""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries (e.g., cursor.execute(sql, params))",
-        ),
-        # SQL injection — .format() call on a SQL string
-        (
-            re.compile(
-                rf"""['"](?:[^'"]*\b(?:{sql_kw})\b[^'"]*\{{[^'"]*)['"]\s*\.format\s*\(""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries instead of .format() in SQL strings",
-        ),
-        # SQL injection — Go fmt.Sprintf with SQL percent placeholders
-        (
-            re.compile(
-                rf"""fmt\.Sprintf\s*\(\s*['"`](?:[^'"`]*\b(?:{sql_kw})\b[^'"`]*%[sdvfq][^'"`]*)[`'"]\s*,""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use db.Query with ? or $N placeholders and pass values as arguments",
-        ),
-        # SQL injection — Java String.format with SQL percent placeholders
-        (
-            re.compile(
-                rf"""String\.format\s*\(\s*["'](?:[^"']*\b(?:{sql_kw})\b[^"']*%[sdnf][^"']*)['"]\s*,""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use PreparedStatement with ? placeholders instead of String.format",
-        ),
-        # SQL injection — PHP sprintf with SQL percent placeholders
-        (
-            re.compile(
-                rf"""(?<!\w)sprintf\s*\(\s*["'](?:[^"']*\b(?:{sql_kw})\b[^"']*%[sduf][^"']*)['"]\s*,""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use PDO prepared statements with ? placeholders instead of sprintf",
-        ),
-        # SQL injection — f-string with extended SQL keywords (WHERE, FROM, JOIN, SET, VALUES)
-        (
-            re.compile(
-                r"""f['"]{1,3}(?:[^'"]*\b(?:WHERE|FROM|JOIN|SET|VALUES)\b[^'"]*)\{""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Use parameterized queries instead of f-string interpolation in SQL",
-        ),
-        # SQL injection — multi-line SQL building via += concatenation
-        (
-            re.compile(
-                rf"""\b\w+\s*\+=\s*(?:f?['"][^'"]*\b(?:{sql_kw})\b)""",
-                re.IGNORECASE,
-            ),
-            "sql-injection",
-            "Build SQL with parameterized placeholders; collect params in a list",
-        ),
-        # Command injection — shell=True with variable input
-        (
-            re.compile(r"""subprocess\.(?:call|run|Popen)\(.*shell\s*=\s*True"""),
-            "command-injection",
-            "Use subprocess with shell=False and pass args as a list",
-        ),
-        (
-            re.compile(r"""os\.system\s*\("""),
-            "command-injection",
-            "Use subprocess.run() with shell=False instead of os.system()",
-        ),
-        # Path traversal — joining user input with paths without sanitization
-        (
-            re.compile(r"""os\.path\.join\(.*\.\./"""),
-            "path-traversal",
-            "Validate path components and use Path.resolve() to prevent traversal",
-        ),
-        # Unsafe YAML loading
-        (
-            re.compile(r"""yaml\.load\s*\([^)]*\)(?!.*Loader)"""),
-            "unsafe-deserialization",
-            "Use yaml.safe_load() or specify Loader=yaml.SafeLoader",
-        ),
-        # Unsafe serialization loading from untrusted sources
-        (
-            re.compile(re.escape("pickle") + r"""\.loads?\s*\("""),
-            "unsafe-deserialization",
-            "Unsafe with untrusted data; consider json or msgpack",
-        ),
+    here = Path(__file__).resolve()
+    candidates = [
+        here.parent.parent / "scripts" / "security-review-scan.py",  # repo: hooks/ -> scripts/
+        here.parent / "scripts" / "security-review-scan.py",
+        Path(os.path.expanduser("~/.claude/scripts/security-review-scan.py")),
     ]
+    for c in candidates:
+        if c.is_file():
+            return c
+    return None
 
 
-# Compile once at module load
-_PATTERNS = _build_patterns()
+def _load_scanner_module():
+    """Load scripts/security-review-scan.py as a module (single source of rules).
+
+    Returns the module or None on any failure (callers fail open / silent).
+    """
+    scanner = _scanner_path()
+    if scanner is None:
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("security_review_scan", scanner)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
 
 
 def main() -> None:
@@ -235,60 +83,53 @@ def main() -> None:
         raw = read_stdin(timeout=2)
         event = json.loads(raw)
 
-        # tool_name/event_type filters removed — matcher "Write|Edit" in settings.json
-        # prevents this hook from spawning for non-matching tools.
-
+        # tool_name/event_type filters are unnecessary — the matcher "Write|Edit"
+        # in settings.json prevents this hook from spawning for other tools.
         tool_input = event.get("tool_input", {})
-        file_path = tool_input.get("file_path", "")
+        file_path = tool_input.get("file_path") or tool_input.get("path") or ""
         if not file_path:
             return
 
-        # Only scan code files
-        ext = Path(file_path).suffix.lower()
-        if ext not in _CODE_EXTENSIONS:
+        scanner = _load_scanner_module()
+        if scanner is None:
             return
 
-        # Read file content from disk
-        p = Path(file_path)
-        if not p.is_file():
+        # Only scan files the engine supports; everything else is skipped.
+        if scanner._ext(file_path) not in scanner.SUPPORTED_EXTENSIONS:
             return
 
-        try:
-            content = p.read_text(errors="replace")
-        except OSError:
+        # Resolve relative tool paths against the session cwd.
+        cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
+        abs_path = file_path if os.path.isabs(file_path) else os.path.join(cwd or os.getcwd(), file_path)
+        if not os.path.isfile(abs_path):
             return
 
-        lines = content.splitlines()
-        if len(lines) > _MAX_LINES:
+        # Build the canonical rule set (+ any project custom rules) and scan.
+        # _scan_file applies the engine's test-skip + doc-aware filtering.
+        rules = scanner._build_rules()
+        rules.extend(scanner._load_custom_rules(cwd or os.getcwd()))
+        findings = scanner._scan_file(abs_path, rules)
+        if not findings:
             return
 
-        # Scan each line against patterns
-        findings: list[str] = []
-        for line_num, line in enumerate(lines, 1):
-            for pattern, category, suggestion in _PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        f"[SECURITY-HINT] Potential {category} at "
-                        f"{Path(file_path).name}:{line_num}\n"
-                        f"  Suggestion: {suggestion}"
-                    )
-                    break  # One finding per line max
+        name = Path(file_path).name
+        for f in findings[:_MAX_FINDINGS]:
+            print(
+                f"[SECURITY-HINT] Potential {f.get('rule', '?')} "
+                f"({f.get('severity', '?')}) at {name}:{f.get('line', '?')}\n"
+                f"  Match: {f.get('match', '')}"
+            )
+        if len(findings) > _MAX_FINDINGS:
+            print(f"  ... and {len(findings) - _MAX_FINDINGS} more security hints")
 
-        if findings:
-            # Limit output to first 5 findings to avoid noise
-            for finding in findings[:5]:
-                print(finding)
-            if len(findings) > 5:
-                print(f"  ... and {len(findings) - 5} more security hints")
-
-    except (json.JSONDecodeError, Exception) as e:
+    except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
 
             print(f"[security-scan] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
     finally:
-        # CRITICAL: Always exit 0 to prevent blocking Claude Code
+        # CRITICAL: Always exit 0 to prevent blocking Claude Code.
         sys.exit(0)
 
 
