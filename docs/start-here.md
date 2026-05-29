@@ -12,7 +12,7 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: Codex CLI, Gemini CLI, Factory, or Reasonix. The toolkit mirrors skills and agents into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Claude Code remains the full runtime for hooks, commands, and scripts.
+Optional: Codex CLI, Gemini CLI, Factory, or Reasonix. The toolkit mirrors skills (and agents where the harness supports them) into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Claude Code remains the full runtime for hooks, commands, and scripts.
 
 Verify optional tools: `codex --version` / `gemini --version` / `factory --version` / `reasonix --version`.
 
