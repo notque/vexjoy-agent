@@ -6,17 +6,23 @@ the dispatch shape it promises:
 
     contract: {
       phases: ["wave-1", ...],                 // phase() titles entered
-      roster: [{agentType, skill}, ...],       // the FIXED (static) Wave-1 barrier
+      roster: [{agentType, skills:[...]}, ...],// the FIXED (static) Wave-1 barrier
         // OR  roster: { dynamic: true }        // a FULLY-DYNAMIC, caller-supplied roster
       agents: { static: <N>, dynamic: <bool> },// fixed barrier size
       dynamic: <bool>,                          // data-driven passes present?
     }
 
+Each roster entry declares ``skills`` as a LIST (the full /do skill stack the
+agent attaches via one ``Skill("..")`` per element). The legacy singular
+``skill: "name"`` is accepted as a one-element list. The gate verifies EACH
+declared skill has a corresponding ``Skill("..")`` emission.
+
 Two roster shapes are supported:
 
-* STATIC roster (list of ``{agentType, skill}``): the fixed Wave-1 barrier. Each
-  name is pinned (SHAPE + SKILLS) and the barrier size is COUNT-checked. This is
-  the comprehensive-review shape (static Wave-1 + dynamic tail).
+* STATIC roster (list of ``{agentType, skills:[...]}``): the fixed Wave-1 barrier.
+  Each agentType is pinned (SHAPE) and EVERY skill in each entry's list is checked
+  (SKILLS); the barrier size is COUNT-checked. This is the comprehensive-review
+  shape (static Wave-1 + dynamic tail).
 * FULLY-DYNAMIC roster (``roster: {dynamic: true}``): the roster is supplied
   entirely by the caller (e.g. fan-out-workflow), so there are NO static
   agentType:/Skill("..") literals to pin. The gate asserts the STRUCTURAL
@@ -99,6 +105,25 @@ _SKILL_DIRECTIVE = re.compile(r"\bSkill\(")
 # This is the fully-dynamic-roster invariant: a Skill directive built from a
 # variable, not a fixed literal.
 _SKILL_INTERPOLATED = re.compile(r"""\bSkill\(\s*["'`][^"'`]*\$\{[^}]+\}""")
+# A DELEGATED per-roster skill-attach: a skillDirectives(<expr>) CALL — the shared
+# helper that emits one Skill("..") per element of a skills LIST. The inline
+# Skill("${..}") literal lives in the helper module; the workflow body delegates
+# to it. This is the Stage-2.5 form of the per-roster methodology attach (full
+# skill stack), and counts as the fully-dynamic structural invariant. The
+# negative lookbehind excludes a `function skillDirectives(` DEFINITION so only an
+# actual invocation counts as evidence (a definition emits nothing).
+_SKILL_DIRECTIVES_CALL = re.compile(r"(?<!function )\bskillDirectives\(")
+# A `skills: ["a", "b", ...]` array-literal field on a roster entry. The capture
+# is the inner array body; individual quoted names are extracted from it. This is
+# the Stage-2.5 multi-skill roster shape (skill -> skills LIST).
+_SKILLS_ARRAY = re.compile(r"""\bskills\s*:\s*\[([^\]]*)\]""")
+# A map-value array literal: ``"key": ["a", "b"]`` — the AGENT_SKILLS-style map
+# from agent name to its skill stack. The roster entries reference this map
+# (``skills: AGENT_SKILLS["reviewer-system"]``), so the literal names live in the
+# map value array, not on the entry. Capture the inner array body.
+_MAP_ARRAY = re.compile(r"""["'`][\w.\-/]+["'`]\s*:\s*\[([^\]]*)\]""")
+# A single quoted string literal (used to pull names out of a skills:[...] body).
+_QUOTED = re.compile(r"""["'`]([^"'`$]+)["'`]""")
 # agentType dispatched from a VARIABLE (e.g. agentType: r.agentType), not a
 # string literal. The fully-dynamic-roster invariant: the dispatched specialist
 # is chosen at runtime from the roster, not pinned to a name in source.
@@ -248,17 +273,37 @@ def extract_agent_types(source: str) -> set[str]:
 def extract_skill_tokens(source: str) -> set[str]:
     """Return the set of skill names statically resolvable from source.
 
-    Skill names reach the prompt via a template (``Skill("${roster.skill}")``), so
-    the literal names live in the roster/map declarations, not the prompt string.
-    Collect from: literal ``Skill("name")`` tokens, ``skill: "name"`` fields, and
-    ``"agentType": "name"`` map values (the AGENT_SKILL map). Interpolation
-    placeholders (``${...}``) are excluded by the patterns.
+    Skill names reach the prompt via a template (``Skill("${s}")`` inside the
+    skillDirectives helper), so the literal names live in the roster/map
+    declarations, not the prompt string. Collect from: literal ``Skill("name")``
+    tokens, ``skill: "name"`` fields, ``skills: ["a", "b"]`` array elements (the
+    Stage-2.5 multi-skill roster shape), and ``"key": "name"`` map values (an
+    AGENT_SKILLS-style map). Interpolation placeholders (``${...}``) are excluded
+    by the patterns.
     """
     names: set[str] = set()
     names.update(_SKILL_LITERAL.findall(source))
     names.update(_SKILL_FIELD.findall(source))
     names.update(_MAP_VALUE.findall(source))
+    for body in _SKILLS_ARRAY.findall(source):
+        names.update(_QUOTED.findall(body))
+    for body in _MAP_ARRAY.findall(source):
+        names.update(_QUOTED.findall(body))
     return names
+
+
+def entry_skills(entry: dict) -> list[str]:
+    """Return a roster entry's full skill LIST.
+
+    Stage 2.5: a roster entry declares ``skills: [...]`` (a list). The legacy
+    singular ``skill: "name"`` field is accepted as a one-element list for
+    backward compatibility. Returns [] when neither is present.
+    """
+    skills = entry.get("skills")
+    if isinstance(skills, list):
+        return [s for s in skills if isinstance(s, str) and s]
+    one = entry.get("skill")
+    return [one] if isinstance(one, str) and one else []
 
 
 def has_skill_directive(source: str) -> bool:
@@ -267,12 +312,16 @@ def has_skill_directive(source: str) -> bool:
 
 
 def has_dynamic_skill_directive(source: str) -> bool:
-    """True if source emits a TEMPLATE-INTERPOLATED Skill directive (Skill("${..}")).
+    """True if source emits a per-roster Skill directive built from a variable.
 
     This is the fully-dynamic-roster invariant: the per-agent methodology attach is
-    built from a roster variable, not pinned to a fixed skill name.
+    built from a roster variable, not pinned to a fixed skill name. Two accepted
+    forms:
+      * INLINE template literal ``Skill("${..}")`` (a single from-variable Skill).
+      * DELEGATED ``skillDirectives(<expr>)`` — the shared helper that emits one
+        Skill("..") per element of a skills LIST (the Stage-2.5 full-stack attach).
     """
-    return _SKILL_INTERPOLATED.search(source) is not None
+    return _SKILL_INTERPOLATED.search(source) is not None or _SKILL_DIRECTIVES_CALL.search(source) is not None
 
 
 def has_dynamic_agent_dispatch(source: str) -> bool:
@@ -381,25 +430,30 @@ def _static_checks(source: str, contract: dict) -> tuple[list[str], list[str]]:
         if at and at not in src_agent_types:
             errors.append(f"roster agentType '{at}' not dispatched in source (no agentType: token)")
 
-    # 3. roster skill present in source (SKILLS). The skill-attach directive must
-    #    be emitted (Skill( present), and each declared skill must be resolvable
-    #    from source roster/map literals (names reach the prompt via a template).
+    # 3. roster skills present in source (SKILLS). The skill-attach directive must
+    #    be emitted (Skill( OR a skillDirectives( delegation present), and EACH
+    #    declared skill in every entry's skills LIST must be resolvable from source
+    #    roster/map literals (names reach the prompt via a template, or are passed
+    #    to the skillDirectives helper). Stage 2.5: skill -> skills LIST, so each
+    #    element is checked independently.
     labels.append(
-        "roster.skill: SKILLS (Skill( directive emitted; each skill resolvable from source roster/map literals)"
+        "roster.skills: SKILLS (Skill( directive emitted; EACH skill in every entry's "
+        "skills list resolvable from source roster/map literals)"
     )
-    wiring = has_skill_directive(body)
-    if roster and not wiring:
+    all_declared_skills = [s for entry in roster for s in entry_skills(entry)]
+    wiring = has_skill_directive(body) or _SKILL_DIRECTIVES_CALL.search(body) is not None
+    if all_declared_skills and not wiring:
         errors.append(
-            "no Skill( directive emitted in source, but contract.roster declares "
-            f"skills {[e.get('skill') for e in roster if e.get('skill')]}"
+            "no Skill( directive (or skillDirectives( delegation) emitted in source, "
+            f"but contract.roster declares skills {sorted(set(all_declared_skills))}"
         )
     for entry in roster:
-        sk = entry.get("skill")
-        if sk and sk not in src_skills:
-            errors.append(
-                f"roster skill '{sk}' not resolvable from source "
-                '(no Skill("{sk}") literal, skill: field, or AGENT_SKILL map value)'.replace("{sk}", sk)
-            )
+        for sk in entry_skills(entry):
+            if sk not in src_skills:
+                errors.append(
+                    f"roster skill '{sk}' not resolvable from source "
+                    '(no Skill("{sk}") literal, skills:[...] element, skill: field, or map value)'.replace("{sk}", sk)
+                )
 
     # 4. fixed Wave-1 barrier size (COUNT — the ONLY count check; static barrier).
     labels.append("agents.static: COUNT (== len(roster); fixed Wave-1 barrier only)")
@@ -464,7 +518,9 @@ def _dynamic_checks(js_path: Path, contract: dict) -> tuple[list[str], list[str]
     declared_phases = set(contract.get("phases", []))
     fully_dynamic = roster_is_fully_dynamic(contract)
     roster = [] if fully_dynamic else contract.get("roster", [])
-    expected_roster = [(e.get("agentType"), tuple(sorted([e.get("skill")] if e.get("skill") else []))) for e in roster]
+    # Stage 2.5: each entry declares a skills LIST; the recorded trace must show
+    # EVERY declared skill for that agent (one Skill() per element).
+    expected_roster = [(e.get("agentType"), tuple(sorted(entry_skills(e)))) for e in roster]
 
     traces = harness_out.get("traces", {})
     notes.append(f"dynamic: recorded {len(traces)} tier trace(s): {sorted(traces.keys())}")

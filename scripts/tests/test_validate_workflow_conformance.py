@@ -88,6 +88,25 @@ def test_extract_skill_tokens_from_source():
     assert "roast" in skills
 
 
+def test_extract_skill_tokens_picks_up_skills_array():
+    """Skill names declared inside a `skills: ["a", "b"]` array are resolvable.
+
+    The roster entry now carries a skills LIST; every element must be collected
+    as a resolvable skill token (so the per-skill check can verify each one).
+    """
+    src = (FIXTURES / "matching.js").read_text()
+    skills = vwc.extract_skill_tokens(src)
+    # verification-before-completion is declared only inside skills:[...] arrays.
+    assert "verification-before-completion" in skills
+
+
+def test_extract_skills_list_from_roster_entry():
+    """Each static roster entry exposes its full skills LIST (not a single skill)."""
+    matching = vwc.extract_contract((FIXTURES / "matching.js").read_text())
+    entry = matching["roster"][0]
+    assert vwc.entry_skills(entry) == ["systematic-code-review", "verification-before-completion"]
+
+
 def test_count_agent_callsites():
     src = (FIXTURES / "matching.js").read_text()
     # matching.js dispatches agent() twice (wave-1 map + verify).
@@ -254,8 +273,13 @@ def test_dynamic_roster_not_vacuous_pass():
     assert vwc.roster_is_fully_dynamic(contract) is True
     errors, _ = vwc._static_checks(src, contract)
     assert errors == [], errors  # the real fixture passes
-    # Remove the Skill( directive -> structural invariant violated -> must error.
-    stripped = src.replace('Skill("${r.skill}")', "your usual methodology")
+    # Remove the inline Skill("${s}") literal AND the per-roster
+    # skillDirectives(r.skills) CALL -> the structural invariant is violated ->
+    # must error. The helper DEFINITION (function skillDirectives(...)) is excluded
+    # from evidence by the gate's lookbehind, so it does not mask the removal.
+    stripped = src.replace('Skill("${s}")', "your usual methodology").replace(
+        "skillDirectives(r.skills)", "your usual methodology"
+    )
     errs2, _ = vwc._static_checks(stripped, contract)
     assert any("skill" in e.lower() for e in errs2), errs2
 
@@ -277,3 +301,76 @@ def test_real_fan_out_workflow_passes_static():
     rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
     res = _result_for(data, "fan-out-workflow.js")
     assert res["status"] == "pass", res
+
+
+# --- skills[] CONTRACT: full stack per agent (Stage 2.5) ---------------------
+# Each roster entry now declares a skills LIST and the body must emit one
+# Skill("..") per element. The gate verifies EACH declared skill has a
+# corresponding Skill() emission (static for literal rosters; structural for
+# fully-dynamic rosters where emission is delegated to skillDirectives(<var>)).
+
+
+def test_matching_multi_skill_fixture_passes_static():
+    """A static roster with a multi-skill list, all skills emitted, PASSES."""
+    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
+    res = _result_for(data, "matching.js")
+    assert res["status"] == "pass", res
+
+
+def test_missing_one_of_several_skills_fails_static():
+    """A static roster entry declaring 2 skills but emitting only 1 FAILS."""
+    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
+    res = _result_for(data, "mismatch-skill.js")
+    assert res["status"] == "fail", res
+    assert any("verification-before-completion" in e for e in res["static_errors"]), res["static_errors"]
+
+
+def test_each_declared_skill_checked_independently():
+    """The gate asserts EACH skill in the list, not just the first one."""
+    src = (FIXTURES / "mismatch-skill.js").read_text()
+    contract = vwc.extract_contract(src)
+    errors, _ = vwc._static_checks(src, contract)
+    # systematic-code-review is emitted (ok); verification-before-completion is not.
+    assert any("verification-before-completion" in e for e in errors), errors
+    assert not any("'systematic-code-review'" in e and "not resolvable" in e for e in errors), errors
+
+
+def test_delegated_skill_directives_call_satisfies_invariant():
+    """has_dynamic_skill_directive() also recognizes a skillDirectives(<var>) call.
+
+    The real workflows delegate per-roster Skill() emission to an imported helper
+    skillDirectives(r.skills); the inline Skill("${..}") literal lives in the
+    helper module, not the workflow body. The structural invariant must accept the
+    delegated call as evidence the per-roster methodology attach is emitted.
+    """
+    delegated = "agent({ prompt: `You are ${r.agentType}.` + skillDirectives(r.skills), agentType: r.agentType })"
+    inline = 'agent({ prompt: `Skill("${r.skill}")`, agentType: r.agentType })'
+    none = "agent({ prompt: `review the diff`, agentType: r.agentType })"
+    assert vwc.has_dynamic_skill_directive(delegated) is True
+    assert vwc.has_dynamic_skill_directive(inline) is True
+    assert vwc.has_dynamic_skill_directive(none) is False
+
+
+def test_real_comprehensive_review_passes_static_with_skills_list():
+    """The hardened comprehensive-review workflow (skills[] per entry) PASSES."""
+    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
+    res = _result_for(data, "comprehensive-review-workflow.js")
+    assert res["status"] == "pass", res
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
+def test_real_comprehensive_review_dynamic_records_every_skill():
+    """The recorded trace shows EVERY declared skill per agent (multiple Skill())."""
+    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR))
+    res = _result_for(data, "comprehensive-review-workflow.js")
+    assert res["status"] == "pass", res
+    assert not res["dynamic_errors"], res["dynamic_errors"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
+def test_real_fan_out_dynamic_records_every_skill():
+    """The fan-out recorded trace shows every skill in each worker's list."""
+    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR))
+    res = _result_for(data, "fan-out-workflow.js")
+    assert res["status"] == "pass", res
+    assert not res["dynamic_errors"], res["dynamic_errors"]

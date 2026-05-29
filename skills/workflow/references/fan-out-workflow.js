@@ -20,10 +20,12 @@
 //   - Wall-clock and randomness are unavailable by design (determinism is
 //     bit-stable across replay). This script uses neither.
 
+import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+
 export const meta = {
   name: "fan-out-workflow",
   description:
-    "Generic native fan-out/synthesize Workflow for Complex / tier-4 work with no named pipeline: dispatch a caller-supplied roster of specialists in a single parallel barrier (each attaching its own methodology by name via Skill(...)), then synthesize the typed worker results in-memory with one budget-aware synthesizer. The roster, skills, lenses, and synthesizer are all caller-supplied — the floor is the prose dispatching-parallel-agents flow.",
+    "Generic native fan-out/synthesize Workflow for Complex / tier-4 work with no named pipeline: dispatch a caller-supplied roster of specialists in a single parallel barrier (each attaching its FULL skill stack by name via one Skill(...) per skill, plus the /do mandatory injections), then synthesize the typed worker results in-memory with one budget-aware synthesizer. The roster, skills, lenses, and synthesizer are all caller-supplied — the floor is the prose dispatching-parallel-agents flow.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 2). This is a FULLY-DYNAMIC-roster contract: the roster is
@@ -101,24 +103,24 @@ function enterPhase(title) {
 }
 
 // Build one worker's prompt from its roster entry. The roster entry supplies the
-// dispatched specialist (agentType), the methodology skill it attaches by name
-// (Skill("...") — resolves path-independent inside a native Workflow agent()
-// dispatch, proven this session), and the lens that focuses its pass. `scope` is
-// the shared diff/task descriptor. The Skill directive is built FROM the roster
-// variable r.skill — this is the fully-dynamic structural invariant the
-// conformance gate asserts.
+// dispatched specialist (agentType), the FULL skill stack it attaches by name
+// (one Skill("...") per element of r.skills — resolves path-independent inside a
+// native Workflow agent() dispatch, proven this session), and the lens that
+// focuses its pass. `scope` is the shared diff/task descriptor. The Skill
+// directives are built FROM the roster variable r.skills — this is the fully-
+// dynamic structural invariant the conformance gate asserts. Every prompt also
+// embeds the /do mandatory injections (completeness/density/base-instructions/
+// reference-loading) so a workflow agent gets the same context as a direct /do
+// dispatch.
 function workerPrompt(r, scope) {
-  const skillDirective = r.skill
-    ? `\nInvoke your methodology by name first: Skill("${r.skill}"). ` +
-      `Run it, then report through its structure.`
-    : "";
   const lens = r.lens ? `Apply this lens: ${r.lens}.` : "Apply your specialist lens.";
   return (
     `You are ${r.agentType}. ${lens}` +
-    skillDirective +
+    skillDirectives(r.skills) +
     `\nWork this scope:\n${JSON.stringify(scope)}\n` +
     `Return a typed result: verdict (PASS|CONCERN|BLOCK|INFO), a summary, and any ` +
-    `findings within your lens. Stay within your lens — the synthesizer merges across workers.`
+    `findings within your lens. Stay within your lens — the synthesizer merges across workers.` +
+    mandatoryInjections()
   );
 }
 
@@ -128,7 +130,8 @@ function workerPrompt(r, scope) {
 //   - scope: the shared task/diff descriptor passed to every worker.
 //   - tier: right-size-review tier (carried into scope for the workers; this
 //     workflow does not gate phases on tier — the CALLER sizes the roster).
-//   - roster: [{agentType, skill, lens}] — caller-supplied; the fan-out set.
+//   - roster: [{agentType, skills, lens}] — caller-supplied; the fan-out set.
+//     `skills` is a LIST (the full /do Phase-3 stack), one Skill() per element.
 //   - synthAgentType: the synthesizer agent (default a general synthesizer).
 //   - fixThreshold: min budget to attempt the synthesis pass (default 8000).
 
@@ -141,8 +144,9 @@ export default async function run({ scope, tier, roster, synthAgentType, fixThre
 
   // Phase fan-out: one hard barrier over the caller-supplied roster. Each slot
   // dispatches the roster's specialist via agentType (a runtime variable) and
-  // embeds a per-roster Skill( directive built from r.skill. A failed slot
-  // resolves to null; nulls are filtered before synthesis.
+  // embeds one Skill( directive per element of r.skills (the full stack) plus
+  // the /do mandatory injections. A failed slot resolves to null; nulls are
+  // filtered before synthesis.
   enterPhase("fan-out");
   const rawResults = await parallel(
     workers.map((r) => () =>
@@ -179,7 +183,7 @@ export default async function run({ scope, tier, roster, synthAgentType, fixThre
   return {
     tier: typeof tier === "number" ? tier : null,
     workers_ran: results.length,
-    roster: workers.map((r) => ({ agentType: r.agentType, skill: r.skill, lens: r.lens })),
+    roster: workers.map((r) => ({ agentType: r.agentType, skills: r.skills, lens: r.lens })),
     synthesis,
     budget_remaining: budget.remaining(),
   };
