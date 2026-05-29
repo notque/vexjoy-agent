@@ -280,6 +280,70 @@ def _build_rules() -> list[dict]:
     )
     add("sql-injection", "HIGH", r"""["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*%s.*["']\s*%""", flags=re.IGNORECASE)
 
+    # The following SQL-injection forms are consolidated from the retired inline
+    # PostToolUse scanner (hooks/posttool-security-scan._build_patterns). They
+    # extend the three rules above so the canonical engine is a strict superset
+    # of the inline scanner's SQL coverage — no true positive is lost on retire.
+    # `_SQL_KW` is the broader keyword set the inline scanner used for the
+    # concat / sprintf-family / `+=` forms.
+    _SQL_KW = "SELECT|INSERT|UPDATE|DELETE|DROP|WHERE|FROM|JOIN|SET|VALUES"
+    # String concatenation: "...SQL..." + variable
+    add("sql-injection", "HIGH", rf"""["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*)["']\s*\+""", flags=re.IGNORECASE)
+    # variable + "...SQL..."
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""\+\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*)["']\s*(?:\+|$|;|\)|,)""",
+        flags=re.IGNORECASE,
+    )
+    # Go fmt.Sprintf with SQL percent placeholders
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""fmt\.Sprintf\s*\(\s*['"`](?:[^'"`]*\b(?:{_SQL_KW})\b[^'"`]*%[sdvfq][^'"`]*)[`'"]\s*,""",
+        flags=re.IGNORECASE,
+    )
+    # Java String.format with SQL percent placeholders
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""String\.format\s*\(\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*%[sdnf][^"']*)['"]\s*,""",
+        flags=re.IGNORECASE,
+    )
+    # PHP sprintf with SQL percent placeholders (lookbehind skips fmt.Sprintf above)
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""(?<!\w)sprintf\s*\(\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*%[sduf][^"']*)['"]\s*,""",
+        flags=re.IGNORECASE,
+    )
+    # f-string with the extended keywords (WHERE/FROM/JOIN/SET/VALUES) the
+    # SELECT/INSERT/... f-string rule above doesn't cover.
+    add(
+        "sql-injection",
+        "HIGH",
+        r"""f["'](?:[^"']*\b(?:WHERE|FROM|JOIN|SET|VALUES)\b[^"']*)\{""",
+        flags=re.IGNORECASE,
+    )
+    # Multi-line SQL building via += concatenation
+    add("sql-injection", "HIGH", rf"""\b\w+\s*\+=\s*(?:f?["'][^"']*\b(?:{_SQL_KW})\b)""", flags=re.IGNORECASE)
+
+    # ==================================================================
+    # MEDIUM — path traversal (consolidated from the retired inline scanner)
+    # ==================================================================
+
+    # os.path.join(...) with a literal `../` component. Heuristic and
+    # Python-specific; MEDIUM so it never blocks a commit (the inline scanner
+    # was advisory-only). filter_fn keeps it quiet when a clear sanitizer
+    # (Path.resolve / os.path.realpath) is already on the same line.
+    add(
+        "path-traversal",
+        "MEDIUM",
+        r"""os\.path\.join\([^)\n]*\.\./""",
+        path_filter=py_only,
+        filter_fn=_filter_sanitized_path,
+    )
+
     # ==================================================================
     # HIGH — unsafe deserialization (Anthropic; ADR bumps deser to HIGH)
     # ==================================================================
@@ -431,6 +495,15 @@ def _filter_safe_yaml_load(match: re.Match, line: str, filepath: str) -> bool:
     """Return True to keep finding (unsafe yaml.load). Suppress when the line
     pins a safe loader (Loader=SafeLoader / Loader=Safe...)."""
     if "Loader=" in line and "Safe" in line:
+        return False
+    return True
+
+
+def _filter_sanitized_path(match: re.Match, line: str, filepath: str) -> bool:
+    """Return True to keep finding (potential path traversal). Suppress when the
+    same line already pins a resolver (Path.resolve / os.path.realpath /
+    os.path.abspath) — those normalize away `../` before use."""
+    if any(s in line for s in (".resolve(", "os.path.realpath", "os.path.abspath")):
         return False
     return True
 

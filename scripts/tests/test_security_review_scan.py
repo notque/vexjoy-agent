@@ -526,6 +526,82 @@ class TestRedosHeuristic:
 
 
 # ---------------------------------------------------------------------------
+# Consolidation parity: patterns lifted from the old inline
+# posttool-security-scan._build_patterns must all fire here, so the inline
+# scanner can be retired without losing any true positive.
+# ---------------------------------------------------------------------------
+
+
+class TestSqlInjectionConsolidation:
+    """SQL-injection forms the retired inline scanner caught. The canonical
+    engine already had f-string / .format() / `%s % ` — these add the
+    string-concat, var+string, cross-language sprintf-family, extended-keyword
+    f-string, and `+=` building forms so coverage is a strict superset."""
+
+    def test_sql_concat_string_then_plus(self):
+        # "SELECT ... WHERE id=" + uid
+        assert "sql-injection" in _rules_hit('q = "SELECT * FROM users WHERE id=" + uid', "a.py")
+
+    def test_sql_concat_plus_then_string(self):
+        # base + "SELECT name FROM t"
+        assert "sql-injection" in _rules_hit('q = base + "SELECT name FROM t"', "a.py")
+
+    def test_sql_go_sprintf(self):
+        assert "sql-injection" in _rules_hit('q := fmt.Sprintf("SELECT * FROM t WHERE id=%d", uid)', "a.go")
+
+    def test_sql_java_string_format(self):
+        assert "sql-injection" in _rules_hit('String q = String.format("SELECT id FROM t WHERE x=%s", v);', "a.java")
+
+    def test_sql_php_sprintf(self):
+        assert "sql-injection" in _rules_hit('$q = sprintf("DELETE FROM t WHERE id=%d", $uid);', "a.php")
+
+    def test_sql_fstring_extended_keyword_where(self):
+        # f-string with WHERE/FROM/JOIN/SET/VALUES (no SELECT/INSERT/...).
+        assert "sql-injection" in _rules_hit('q = f"col WHERE id={uid}"', "a.py")
+
+    def test_sql_fstring_extended_keyword_from_join(self):
+        assert "sql-injection" in _rules_hit('q = f"x FROM t JOIN y ON {cond}"', "a.py")
+
+    def test_sql_plus_equals_build(self):
+        assert "sql-injection" in _rules_hit('q += "SELECT col FROM t"', "a.py")
+
+    def test_sql_concat_is_high_severity(self):
+        # SQL injection is HIGH in the canonical engine — keep the commit gate
+        # blocking it (the inline scanner was advisory; the engine is the SoT).
+        f = _findings('q = "SELECT * FROM t WHERE id=" + uid', "a.py")
+        assert any(x["rule"] == "sql-injection" and x["severity"] == "HIGH" for x in f)
+
+    # Documented exclusions — parameterized SQL and non-SQL concat must NOT fire.
+    def test_parameterized_query_not_flagged(self):
+        assert "sql-injection" not in _rules_hit("cursor.execute(sql, (uid,))", "a.py")
+
+    def test_plain_string_concat_not_flagged(self):
+        assert "sql-injection" not in _rules_hit('msg = "hello " + name', "a.py")
+
+    def test_sql_rules_skip_docs(self):
+        # SQL rules are code rules — prose in markdown must stay quiet.
+        assert "sql-injection" not in _rules_hit('q = "SELECT * FROM t" + uid', "a.md")
+
+
+class TestPathTraversalConsolidation:
+    """Path traversal via os.path.join with a literal `../` component — lifted
+    from the retired inline scanner. MEDIUM: heuristic, must not block commits."""
+
+    def test_os_path_join_dotdot(self):
+        assert "path-traversal" in _rules_hit('p = os.path.join(base, "../etc/passwd")', "a.py")
+
+    def test_path_traversal_is_medium(self):
+        f = _findings('p = os.path.join(base, "../x")', "a.py")
+        assert any(x["rule"] == "path-traversal" and x["severity"] == "MEDIUM" for x in f)
+
+    def test_safe_join_not_flagged(self):
+        assert "path-traversal" not in _rules_hit('p = os.path.join(base, "sub", name)', "a.py")
+
+    def test_path_traversal_skips_docs(self):
+        assert "path-traversal" not in _rules_hit('os.path.join(base, "../x")', "a.md")
+
+
+# ---------------------------------------------------------------------------
 # Parity count guard (ADR criterion 8 — all 25 Anthropic patterns covered)
 # ---------------------------------------------------------------------------
 
