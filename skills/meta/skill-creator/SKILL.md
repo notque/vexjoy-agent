@@ -401,6 +401,20 @@ Run it from the repo root. Treat it as a commit-gating step: the scaffold is
 not complete until INDEX.json reflects the new skill. Diff the file before
 staging to confirm exactly one new entry was added.
 
+### Post-scaffold: content-cleanliness audit
+
+Audit the SKILL.md for non-runtime content (meta-commentary, changelog prose,
+narration the runtime never reads). The audit globs `<root>/*/SKILL.md`, so
+point `--root` at the new skill's category directory to scan it:
+
+```bash
+python3 scripts/audit-skill-content.py --root skills/<category> --severity high
+```
+
+Exit 0 with zero high-severity violations is the gate. Drop to `--severity low`
+to see every flagged line. This catches content that bloats the skill without
+serving the runtime — distinct from condense (prose density) and joy-check (framing).
+
 ### Post-scaffold: joy-check + do-pair validation
 
 Before declaring the skill shippable, run both checks. They catch different

@@ -208,6 +208,17 @@ Standards enforced:
 
 The full spec lives in `skills/meta/do/references/repo-architecture.md`.
 
+## Skill Content Validation
+
+When editing or auditing SKILL.md files, run the content-cleanliness audit alongside the frontmatter and reference validators. It flags non-runtime content (meta-commentary, changelog prose, narration the runtime never reads) that bloats a skill without serving execution.
+
+```bash
+# Audit globs <root>/*/SKILL.md — point --root at the skill's category dir.
+python3 scripts/audit-skill-content.py --root skills/{category} --severity high
+```
+
+Exit 0 with zero high-severity violations is the gate. Drop to `--severity low` to surface every flagged line. This complements `validate-skill-frontmatter.py` (frontmatter) and `validate-references.py` (reference structure + do-framing).
+
 ## Error Handling
 
 ### Broken YAML Frontmatter

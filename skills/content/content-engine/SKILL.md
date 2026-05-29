@@ -59,6 +59,14 @@ Establish everything needed to write platform-native variants. Do not begin writ
 | Goal | Awareness, conversion, recruiting, authority, launch support, engagement | Infer from source if obvious; ask otherwise |
 | Constraints | Character limits already observed, brand voice notes, phrases to avoid | Skip if none stated |
 
+**Acquiring a transcript source asset**: When the source asset is a video URL (YouTube, etc.) rather than text, extract the transcript first:
+
+```bash
+python3 scripts/video-transcript.py transcript "<video-url>"   # add --timestamps or --json -o file as needed
+```
+
+Use the extracted transcript as the source asset for the rest of this phase.
+
 **Gate**: Source asset present AND at least one target platform identified. If either is missing, ask before proceeding. Both missing means there is nothing to work with — do not guess.
 
 Produce only the platforms the user requested. If the user says "turn this into an X thread", produce an X thread. Offer to expand to other platforms in Phase 5, but do not produce unrequested variants.

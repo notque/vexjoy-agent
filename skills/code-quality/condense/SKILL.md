@@ -40,7 +40,15 @@ Identify targets.
 2. **Glob**: User gives a pattern (`agents/*.md`). Expand, list matches, confirm with user.
 3. **Batch (10+ files)**: Dispatch parallel agents, one per file.
 
-**Gate**: At least one target file identified and readable.
+**Mechanical pre-pass** (deterministic, run before LLM condensing): strip trailing whitespace and consecutive blank lines that inflate Opus token counts. The script handles the mechanical reduction so the LLM phase focuses on prose density.
+
+```bash
+python3 scripts/check-whitespace.py --fix <target-file-or-dir>   # 0=clean, 1=violations fixed
+```
+
+Run on the scoped targets (defaults to `agents/**/*.md` and `skills/**/*.md` when no path given). Then proceed to the LLM pass on the same files.
+
+**Gate**: At least one target file identified and readable; mechanical pre-pass run.
 
 ---
 
