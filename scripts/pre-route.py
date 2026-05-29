@@ -81,7 +81,27 @@ INDEX_PATHS = {
 # Phrases that look like trigger matches but are common English idioms
 # unrelated to the skill. Keyed by skill name -> set of disqualifying context words.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
-    "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
+    "pr-workflow": {
+        "back",
+        "pressure",
+        "pushback",
+        "pushed",
+        "pushing",
+        # Idiom guards for ship/merge/publish/review triggers (ADR pr-create-skill-guard).
+        # These suppress matches when context indicates non-git intent.
+        "theseus",
+        "manuscript",
+        "captain",
+        "ideas",
+        "personalities",
+        "merger",
+        "head",
+        "paper",
+        "arxiv",
+        "menu",
+        "essay",
+        "offsite",
+    },
     "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "zsh-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
@@ -94,6 +114,19 @@ SEMANTIC_GUARDS: dict[str, set[str]] = {
 SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
     "fish-shell-config": {"fish out", "fish for"},
     "zsh-shell-config": {"zsh out", "zsh for"},
+    # ADR pr-create-skill-guard: phrase guards for newly-added pr-workflow triggers.
+    # The unigram guards above catch most idioms; these phrase guards suppress
+    # multi-word collisions that span the trigger window (e.g. 'ship of theseus'
+    # has 'ship' adjacent to 'theseus' as a phrase, not just a word in context).
+    "pr-workflow": {
+        "ship of theseus",
+        "merge ideas",
+        "merge personalities",
+        "publish a paper",
+        "publish a book",
+        "review the menu",
+        "review my essay",
+    },
 }
 
 
