@@ -326,17 +326,23 @@ pick = haiku_route.pipeline                         # #686, may be null
 cap  = scripts/detect-workflow-capability.py        # env proxy: {harness, workflow_capable}
 reg  = scripts/workflow-registry.py                 # auto-derived {meta.name: path}
 {scope, tier} = scripts/right-size-review.py        # #688 right-sizing (review picks)
+complex4 = (complexity == Complex) or (tier == 4)   # ADR native-fast-path Stage 2
 
-if pick is None:                                            -> agent + skill direct (no pipeline)
-elif reg.get(pick) and cap.workflow_capable and (Workflow tool in MY tool list):
-        # env proxy AND LLM tool-list self-check (the authoritative gate)
-                                                            -> Workflow tool: run(reg[pick], {scope, tier})
-else:                                                       -> run the prose pipeline markdown (unchanged)
+if pick is not None and reg.get(pick) and cap.workflow_capable and (Workflow tool in MY tool list):
+        # NAMED pipeline: env proxy AND LLM tool-list self-check (authoritative gate)
+                                                            -> Workflow.run(reg[pick], {scope, tier})
+elif pick is not None and reg.get(pick):                    -> run the prose pipeline markdown (unchanged)
+elif pick is None and complex4 and cap.workflow_capable and (Workflow tool in MY tool list):
+        # NO named pipeline + Complex/tier-4: generic native fan-out (Stage 2)
+                                                            -> Workflow.run("fan-out-workflow", {scope, tier, roster})
+elif pick is None and complex4:                             # Workflow tool absent -> floor
+                                                            -> dispatching-parallel-agents (prose fan-out, unchanged)
+else:                                                       -> agent + skill direct (simpler; unchanged)
 ```
 
-The native path (e.g. `comprehensive-review-workflow.js`) scales waves to tier, passes schema-validated typed findings between waves without disk round-trips, runs a per-finding adversarial verify, and bounds the fix loop by the native token budget. The prose markdown flow is the always-safe fallback and runs identically on Codex/Gemini/Factory or when the `Workflow` tool is absent. `cap.workflow_capable` is an env-derived PROXY; the orchestrator's own tool-list check is the authoritative gate — both must hold. A `pick` with no registry entry is prose-only.
+`roster` is built from the Phase-3 enhancement signals (e.g. "comprehensive" → 3 reviewers with `systematic-code-review`; research → research subagents with `research-pipeline`), scaled by `tier` per `right-size-review.py`: each entry is `{agentType, skill, lens}`. The native path scales work to scope, passes schema-validated typed results in-memory (no disk round-trips), and bounds synthesis by the native token budget. `comprehensive-review-workflow.js` is the named-pipeline form; `fan-out-workflow.js` is the generic complexity-trigger form for Complex/tier-4 work with no named pipeline. The prose floor (`dispatching-parallel-agents` for fan-out, the pipeline markdown for named picks) runs identically on Codex/Gemini/Factory or when the `Workflow` tool is absent. `cap.workflow_capable` is an env-derived PROXY; the orchestrator's own tool-list check is the authoritative gate — both must hold. A `pick` with no registry entry is prose-only.
 
-**Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so the banner reads identically regardless of executor.
+**Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so the banner reads identically regardless of executor. For the complexity-trigger fan-out, both the native `fan-out-workflow` and the prose `dispatching-parallel-agents` floor expand to the same phases (`fan-out → synthesize`) — the banner reads identically whether the Workflow tool runs or the floor does.
 
 **Step 2: Invoke agent with skill**
 
