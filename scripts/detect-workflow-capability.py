@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Detect the running harness from environment variables (env proxy).
 
-Emits JSON: {"harness": "claude-code|codex|gemini|factory|unknown",
+Emits JSON: {"harness": "claude-code|codex|gemini|factory|reasonix|unknown",
              "workflow_capable": bool}
 
 Anthropic's native ``Workflow`` tool (deterministic JS orchestration) is
-Claude Code-only. Codex, Gemini, and Factory do not have it; the toolkit's
-prose pipelines run everywhere. ``workflow_capable`` is the env-derived proxy
-``harness == "claude-code"``.
+Claude Code-only. ``workflow_capable`` is the env-derived proxy
+``harness in WORKFLOW_CAPABLE`` — currently the singleton ``{"claude-code"}``.
+The toolkit's prose pipelines run on every harness when the native path is
+unavailable.
 
 PROXY, NOT AUTHORITY. A subprocess cannot introspect the session's tool list,
 only the environment. So this script answers "which harness am I in?" and the
@@ -21,6 +22,9 @@ API-key vars like GEMINI_API_KEY, which are commonly set under any harness):
   codex       : CODEX_HOME, CODEX_HOOKS_DIR
   gemini      : GEMINI_CLI
   factory     : FACTORY_SESSION_ID, FACTORY_HOME, DROID_SESSION_ID, DROID_HOME
+  reasonix    : (no env marker) — keyed off the ``_`` invocation var, since
+                reasonix sets no session/home var and spawns hooks with the
+                ambient env inherited (src/hooks.ts:206-212).
 Mirrors hooks/lib/hook_utils.py:detect_cli(), extended with factory + the
 Claude Code session markers.
 
@@ -37,7 +41,12 @@ import json
 import os
 import sys
 
-HARNESSES = ("claude-code", "codex", "gemini", "factory", "unknown")
+HARNESSES = ("claude-code", "codex", "gemini", "factory", "reasonix", "unknown")
+
+# Single source of truth for native-Workflow availability. Add a harness here
+# the day it ships the native Workflow tool; the docstring and tests pin against
+# this set so a one-line change flips the contract.
+WORKFLOW_CAPABLE: frozenset[str] = frozenset({"claude-code"})
 
 # Marker var -> harness. Claude Code is checked first so it wins when env from
 # a Claude Code session leaks other harnesses' vars (config copied around).
@@ -62,6 +71,13 @@ def detect_harness(env: dict | None) -> str:
             for key in keys:
                 if env.get(key):
                     return harness
+        # Reasonix exposes no distinctive env marker. Fall back to the ``_``
+        # invocation var (path of the invoking binary). Match on basename so
+        # unrelated parent paths like ``/Users/reasonix-fan/bin/python3`` do
+        # not false-positive while wrapper scripts ``reasonix``/``Reasonix``/
+        # ``reasonix-dev`` still match.
+        if "reasonix" in os.path.basename(env.get("_", "")).lower():
+            return "reasonix"
     except Exception:
         return "unknown"
     return "unknown"
@@ -69,7 +85,7 @@ def detect_harness(env: dict | None) -> str:
 
 def workflow_capable(harness: str) -> bool:
     """Env-derived proxy for native Workflow availability."""
-    return harness == "claude-code"
+    return harness in WORKFLOW_CAPABLE
 
 
 def main(argv: list[str]) -> int:
