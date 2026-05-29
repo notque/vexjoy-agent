@@ -117,8 +117,48 @@ Detect the user's intent and load the appropriate reference file:
 | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `commit.md` | **Commit** |
 | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `codex-review.md` | **Codex review** |
 
+## Mandatory PR Body Structure
+
+`gh pr create --body "..."` is how every agent in this toolkit opens PRs, and it **bypasses `.github/pull_request_template.md` entirely** — GitHub only applies that file to the web UI and to a bare `gh pr create` with no `--body`. So the structure must be reproduced in the `--body` string by hand.
+
+Every agent-authored PR body MUST follow the same five sections as `.github/pull_request_template.md`, in this order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models (Opus, Sonnet, and every other harness produce the same shape).
+
+The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces, dogfood output), never the bare claim "tests pass" — this ties to `verification-before-completion`: evidence, not assertion.
+
+Copy this canonical skeleton into `--body`:
+
+```markdown
+## Summary
+<!-- 1-3 sentences: what changed and why. Name the ADR/issue if any. -->
+
+## Changes
+- `path/to/file` — what changed
+
+## Testing
+<!-- Paste command + result. Evidence, not "tests pass". -->
+\`\`\`
+$ <command>
+<pasted output: counts / exit code / trace>
+\`\`\`
+
+## Scope & Risk
+- **Touches:** <limb / area>
+- **NOT touched:** <files/limbs deliberately left alone>
+- **Rollback:** <revert the commit; any state notes>
+
+## Checklist
+- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
+- [ ] pytest green (counts pasted above)
+- [ ] `validate-doc-counts.py` → 0 drift
+- [ ] conformance gate passes — if any workflow `.js` touched
+- [ ] No forbidden files staged
+```
+
+The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carry this same skeleton at their `gh pr create` call sites. When either path writes a `--body`, it uses this structure.
+
 ## Instructions
 
 1. Identify the user's PR task from their message
 2. Load the matching reference file from the table above
 3. Follow the instructions in that reference file exactly
+4. When the task creates a PR, build the `--body` from the canonical five-section skeleton above (Summary / Changes / Testing / Scope & Risk / Checklist), because `--body` bypasses the GitHub template file
