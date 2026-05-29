@@ -1705,7 +1705,7 @@ try:
 except Exception:
     commit = 'unknown'
 manifest = {
-    'installed_at': datetime.datetime.utcnow().isoformat() + 'Z',
+    'installed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
     'toolkit_commit': commit,
     'toolkit_path': '${SCRIPT_DIR}',
     'mode': '${MODE}',
