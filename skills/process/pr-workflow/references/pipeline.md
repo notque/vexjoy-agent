@@ -254,7 +254,7 @@ This pipeline cannot create PRs without staged changes -- if nothing is staged, 
 
 **PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Notes short and optional — context, rollback, follow-ups, "supersedes #N". Tests run as GitHub Actions and the Checks tab is the test record; reviewer verdicts likewise show on the PR, so leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Notes for non-obvious signal only — include just what a reviewer cannot infer from the diff or assume by default (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N"), skip what is always true (a PR can be reverted; CI runs the tests), and drop the section when nothing qualifies. Tests run as GitHub Actions and the Checks tab is the test record; reviewer verdicts likewise show on the PR, so leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
@@ -265,7 +265,7 @@ CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(c
 - `path/to/file` — what changed [one line per change; give shape + count for many sub-items]
 
 ## Notes
-[Optional, short. Context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add.]
+[Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section.]
 EOF
 )"
 ```
@@ -656,8 +656,8 @@ Check for artifacts in this order and build the PR body from what's available:
 | Artifact | PR Section Generated | How to Extract |
 |----------|---------------------|----------------|
 | `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; state the goal plainly; write one line per completed item (shape + count for many sub-items) |
-| Deviation logs (ADR-076 repair actions) | **Notes** (deviations) | List repair actions taken and why the original plan changed, one terse line each |
-| Context for reviewers (rollback, follow-ups, supersedes) | **Notes** (optional) | One terse line each; omit Notes when there's nothing to add. Verification reports and review summaries stay in CI — the Checks tab carries the result |
+| Deviation logs (ADR-076 repair actions) | **Notes** (deviations) | List repair actions taken and why the original plan changed, one terse line each — these are non-obvious by nature |
+| Context a reviewer cannot infer (non-obvious decision, deliberate omission, follow-up, gotcha, supersedes) | **Notes** (optional) | One terse line each. Populate Notes only when an artifact surfaces something non-obvious; skip what is always true (a PR can be reverted; CI runs the tests) and drop the section when nothing qualifies. Verification reports and review summaries stay in CI — the Checks tab carries the result |
 
 **Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
@@ -676,8 +676,8 @@ Follows the canonical three-section structure from `.github/pull_request_templat
 - `path/to/file` — [completed task description]
 
 ## Notes
-<!-- Optional, short. Context, rollback, follow-ups, "supersedes #N", deviations from deviation logs (ADR-076). Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add. -->
-[Optional context a reviewer needs beyond the diff.]
+<!-- Optional, and usually omitted. Populate only when an artifact surfaces something a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N", a deviation log (ADR-076). Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section. -->
+[Optional context a reviewer cannot infer from the diff.]
 ```
 
 ---

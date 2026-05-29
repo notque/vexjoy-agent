@@ -153,7 +153,7 @@ Aim for high meaning per word: each line states one fact about the change, decla
 1. **One fact per line.** Each Summary/Changes line reads verb + what + where. Plain words, high meaning.
 2. **Summary states the goal.** 1-3 plain sentences or a few crisp bullets. Keep metrics to the single number that matters.
 3. **One line per change.** When a change has many sub-items, state the shape and count ("add 21 PR-creation trigger phrases") and let the diff enumerate them. Keep rationale to the clause that earns its place.
-4. **Notes stays short and optional.** Context, rollback, follow-ups, "supersedes #N" — one terse line each. Omit the section when there's nothing to add.
+4. **Notes carries non-obvious signal only.** Usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N" — one terse line each. Skip what is always true (a PR can be reverted; CI runs the tests). Drop the section when nothing qualifies.
 
 **Worked example — the shape to emulate (#608-good vs #710-bad):**
 
@@ -161,7 +161,7 @@ Aim for high meaning per word: each line states one fact about the change, decla
 |---------|-----------------|--------------------------------|
 | Summary | "Registers 3 hooks in settings.json; integrates `pre-route.py` into /do Phase 2 as a deterministic pre-filter." | One 5-sentence block stuffed with jargon and four metrics. |
 | Changes | "`SKILL.md` — add 21 PR-creation trigger phrases." | One bullet inlining all 21 phrases verbatim; another a 3-sentence rationale paragraph. |
-| Notes | "Supersedes #705. Roll back by reverting the branch commits." | A pasted `pytest -v` dump plus a Scope & Risk wall and a CI-mirroring checklist. |
+| Notes | "Supersedes #705." (non-obvious signal) — or omitted entirely when nothing qualifies | "Roll back by reverting the branch commits. Tests run in CI — see Checks." (always-true filler) plus a pasted `pytest -v` dump and a Scope & Risk wall. |
 
 The dense column reads in seconds because each cell carries facts; the bloated column buries the same facts in volume (and re-states what the Checks tab already shows). Aim every body at the dense column.
 
@@ -176,7 +176,7 @@ Copy this canonical skeleton into `--body`:
 - `path/to/file` — what changed
 
 ## Notes
-<!-- Optional, short. Context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add. -->
+<!-- Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section. -->
 ```
 
 The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carry this same skeleton at their `gh pr create` call sites. When either path writes a `--body`, it uses this structure and the density rules above.

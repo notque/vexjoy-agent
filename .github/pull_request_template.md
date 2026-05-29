@@ -9,4 +9,4 @@
 
 ## Notes
 
-<!-- Optional, short. Anything a reviewer needs beyond the diff: context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit this section when there's nothing to add. -->
+<!-- Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha. Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section. -->

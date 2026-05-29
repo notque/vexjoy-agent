@@ -142,7 +142,7 @@ Generate the PR title from the branch name or first commit when not provided by 
 
 **PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Notes short and optional — context, rollback, follow-ups, "supersedes #N". Tests run as GitHub Actions, so the Checks tab is the test record; leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Notes for non-obvious signal only — include just what a reviewer cannot infer from the diff or assume by default (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N"), skip what is always true (a PR can be reverted; CI runs the tests), and drop the section when nothing qualifies. Tests run as GitHub Actions, so the Checks tab is the test record; leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 # Check if PR already exists for this branch
@@ -158,7 +158,7 @@ if [[ -z "$EXISTING_PR" ]]; then
 - `path/to/file` — what changed [one line per change; give shape + count for many sub-items, e.g. "add 21 trigger phrases"]
 
 ## Notes
-[Optional, short. Context, rollback, follow-ups, "supersedes #N". Tests run in CI — the Checks tab is the test record, so paste no command output here. Omit when there's nothing to add.]
+[Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section.]
 EOF
 )"
 else
