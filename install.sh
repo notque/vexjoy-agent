@@ -15,7 +15,8 @@
 #   1. Verifies Python 3.10+ is available
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
-#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.gemini, and ~/.hermes
+#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.gemini, ~/.factory,
+#      ~/.hermes, and ~/.reasonix (no agent surface for ~/.reasonix)
 #   5. Sets up local overlay directory
 #   6. Configures hooks in settings.json
 #
@@ -739,6 +740,7 @@ os.rename(tmp, dst)
     # toolkit symlinks left by the pre-flatten installer. Finally drop the dir if now empty.
     if [ -d "$REASONIX_SKILLS_DIR" ]; then
         reasonix_uninstall_entry() {
+            [ -n "$1" ] || return 0
             local target="${REASONIX_SKILLS_DIR}/$1"
             [ -e "$target" ] || [ -L "$target" ] || return 0
             if [ "$DRY_RUN" = true ]; then
@@ -874,6 +876,7 @@ os.rename(tmp, dst)
     echo "  • ~/.gemini/settings.json (all keys except hooks)"
     echo "  • ~/.factory/config.toml (if present, like Codex)"
     echo "  • ~/.hermes/config.yaml (Hermes Agent configuration)"
+    echo "  • ~/.reasonix/config.json (Reasonix MCP/model/permissions, user-owned)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -1652,6 +1655,8 @@ fi
 # traverse symlinked skill ENTRIES during discovery (only real directories are scanned), so
 # a symlinked skill is invisible while a real-dir copy is found instantly. The reasonix
 # skills mirror therefore forces real-directory copies regardless of the install MODE.
+# Re-test symlink discovery on each reasonix bump; drop this copy fallback once
+# src/skills.ts traverses symlinked entries.
 reasonix_install_skill() {
     # $1 = skill source dir (the dir containing SKILL.md); $2 = flat skill name
     local skill_dir=$1
@@ -1679,12 +1684,16 @@ reasonix_install_skill() {
     REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
 }
 
-# Flatten every SKILL.md under skills/ (122 nested + 1 top-level = 123 skills).
-while IFS= read -r skill_md; do
-    [ -n "$skill_md" ] || continue
-    skill_dir=$(dirname "$skill_md")
-    reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
-done < <(find "${SCRIPT_DIR}/skills" -name SKILL.md | sort)
+# Private skills FIRST so they claim canonical names; matching public-skill names then
+# trip the within-run collision guard and yield to the private override (parity with the
+# Claude install: private overrides public).
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    while IFS= read -r skill_md; do
+        [ -n "$skill_md" ] || continue
+        skill_dir=$(dirname "$skill_md")
+        reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+    done < <(find "${SCRIPT_DIR}/private-skills" -name SKILL.md | sort)
+fi
 
 # Voice skills: private-voices/<name>/skill/SKILL.md -> ~/.reasonix/skills/voice-<name>/
 if [ -d "${SCRIPT_DIR}/private-voices" ]; then
@@ -1697,14 +1706,12 @@ if [ -d "${SCRIPT_DIR}/private-voices" ]; then
     done
 fi
 
-# Private skills: flatten every SKILL.md (handles flat or category-nested layouts).
-if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-    while IFS= read -r skill_md; do
-        [ -n "$skill_md" ] || continue
-        skill_dir=$(dirname "$skill_md")
-        reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
-    done < <(find "${SCRIPT_DIR}/private-skills" -name SKILL.md | sort)
-fi
+# Public skills last: same-name entries are skipped by the collision guard (private wins).
+while IFS= read -r skill_md; do
+    [ -n "$skill_md" ] || continue
+    skill_dir=$(dirname "$skill_md")
+    reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+done < <(find "${SCRIPT_DIR}/skills" -name SKILL.md | sort)
 
 # Support dirs (no SKILL.md anywhere — e.g. shared-patterns, kb): copy as real top-level
 # dirs so flattened skills' sibling references like ../shared-patterns/*.md resolve, and so
@@ -1937,6 +1944,7 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
+    echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
 else
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
     find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
@@ -1949,6 +1957,8 @@ else
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
     chmod 600 "${FACTORY_DIR}/settings.json" 2>/dev/null || true
     chmod 600 "$(ls -1t "${FACTORY_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
+    chmod 600 "${REASONIX_DIR}/settings.json" 2>/dev/null || true
+    chmod 600 "$(ls -1t "${REASONIX_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 
