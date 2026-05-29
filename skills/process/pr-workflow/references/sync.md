@@ -140,19 +140,36 @@ After 3 iterations, proceed to Step 5 with any remaining issues documented in th
 
 Generate the PR title from the branch name or first commit when not provided by the user. Never create a PR with an empty description, because reviewers need context to understand the changes and a missing test plan signals incomplete work.
 
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models. The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces) — evidence, not the bare claim "tests pass" — which ties to `verification-before-completion`.
+
 ```bash
 # Check if PR already exists for this branch
 EXISTING_PR=$(gh pr list --head "$CURRENT_BRANCH" --json number --jq '.[0].number' 2>/dev/null)
 
 if [[ -z "$EXISTING_PR" ]]; then
-    # Create new PR
+    # Create new PR — --body follows .github/pull_request_template.md's section structure
     CLAUDE_GATE_BYPASS=1 gh pr create --title "$PR_TITLE" --body "$(cat <<'EOF'
 ## Summary
-[Description of changes]
+[1-3 sentences: what changed and why. Name the ADR/issue if any.]
 
-## Test Plan
-- [ ] Tested locally
-- [ ] Tests pass
+## Changes
+- `path/to/file` — what changed
+
+## Testing
+[Paste command + result. Evidence, not "tests pass". Wrap output in a fenced block.]
+$ <command>
+<pasted output: counts / exit code / trace>
+
+## Scope & Risk
+- **Touches:** <limb / area>
+- **NOT touched:** <files/limbs deliberately left alone>
+- **Rollback:** <revert the commit; any state notes>
+
+## Checklist
+- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
+- [ ] pytest green (counts pasted above)
+- [ ] `validate-doc-counts.py` → 0 drift
+- [ ] No forbidden files staged
 EOF
 )"
 else

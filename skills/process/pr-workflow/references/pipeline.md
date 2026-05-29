@@ -252,20 +252,33 @@ See `references/pr-templates.md` for the full artifact table, PR body template, 
 
 This pipeline cannot create PRs without staged changes -- if nothing is staged, the earlier phases would have caught this.
 
+**PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's five sections in the `--body` string, in order: **Summary → Changes → Testing → Scope & Risk → Checklist**. This keeps PR bodies consistent across models. The **Testing** section requires pasted command output (ruff exit, pytest counts, gate traces, reviewer verdicts) — evidence, not the bare claim "tests pass" — which ties to `verification-before-completion`.
+
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
 ## Summary
-- [Key change 1]
-- [Key change 2]
+[1-3 sentences: what changed and why. Name the ADR/issue if any.]
 
-## Test Plan
-- [ ] Tests pass
-- [ ] Manual verification of [specific behavior]
+## Changes
+- `path/to/file` — what changed
 
-## Review Findings
-Security: PASS
-Business Logic: PASS
-Code Quality: PASS
+## Testing
+[Paste command + result. Evidence, not "tests pass". Include Phase 2/4b reviewer verdicts. Wrap output in a fenced block.]
+$ <command>
+<pasted output: counts / exit code / trace>
+Security: PASS  Business Logic: PASS  Code Quality: PASS
+
+## Scope & Risk
+- **Touches:** <limb / area>
+- **NOT touched:** <files/limbs deliberately left alone>
+- **Rollback:** <revert the commit; any state notes>
+
+## Checklist
+- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
+- [ ] pytest green (counts pasted above)
+- [ ] `validate-doc-counts.py` → 0 drift
+- [ ] conformance gate passes — if any workflow `.js` touched
+- [ ] No forbidden files staged
 EOF
 )"
 ```
@@ -656,40 +669,46 @@ Check for artifacts in this order and build the PR body from what's available:
 | Artifact | PR Section Generated | How to Extract |
 |----------|---------------------|----------------|
 | `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; list completed items as change bullets |
-| Verification reports (`*-verification.md`, test output) | **Test Plan** (from verification output) | Extract pass/fail counts and key assertions verified |
-| Review summaries (Phase 2 / Phase 4b output) | **Review Findings** (from reviewer results) | Summarize security/logic/quality verdicts |
-| Deviation logs (ADR-076 repair actions) | **Deviations** section | List repair actions taken and why the original plan changed |
+| Verification reports (`*-verification.md`, test output) | **Testing** (paste pass/fail counts) | Extract pass/fail counts and key assertions verified |
+| Review summaries (Phase 2 / Phase 4b output) | **Testing** (reviewer verdicts) | Summarize security/logic/quality verdicts |
+| Deviation logs (ADR-076 repair actions) | **Scope & Risk** (deviations) | List repair actions taken and why the original plan changed |
 
 **Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
 ## PR Body Template (Artifact-Driven)
 
+Follows the canonical five-section structure from `.github/pull_request_template.md` (Summary / Changes / Testing / Scope & Risk / Checklist), with each section populated from artifacts. Reviewer verdicts and deviation logs fold into **Testing** and **Scope & Risk**.
+
 ```markdown
 ## Summary
 <!-- From task_plan.md Goal section, or from commit messages if no plan -->
-- [Goal statement]
-- [Key change 1 from completed tasks]
-- [Key change 2 from completed tasks]
+[Goal statement: what changed and why, 1-3 sentences. Name the ADR/issue if any.]
 
 ## Changes
 <!-- From task_plan.md completed phases/tasks -->
-- [Completed task description]
-- [Completed task description]
+- `path/to/file` — [completed task description]
+- `path/to/file` — [completed task description]
 
-## Test Plan
-<!-- From verification reports, or manual checklist if no reports -->
-- [ ] [Verification result 1]
-- [ ] [Verification result 2]
+## Testing
+<!-- From verification reports + Phase 2/4b review output. Paste evidence, not "tests pass". -->
+\`\`\`
+$ <command>
+<pasted output: counts / exit code / trace>
+Security: PASS  Business Logic: PASS  Code Quality: PASS
+\`\`\`
 
-## Review Findings
-<!-- From Phase 2 / Phase 4b review output -->
-Security: PASS
-Business Logic: PASS
-Code Quality: PASS
+## Scope & Risk
+- **Touches:** [limb / area from task_plan]
+- **NOT touched:** [files/limbs deliberately left alone]
+- **Rollback:** [revert the commit; any state notes]
+- **Deviations:** [from deviation logs (ADR-076); omit if none]
 
-## Deviations
-<!-- From deviation logs, omit section if none -->
-- [Deviation description and rationale]
+## Checklist
+- [ ] ruff check + format clean (excl `venv.312.bak`) — if any `.py` touched
+- [ ] pytest green (counts pasted above)
+- [ ] `validate-doc-counts.py` → 0 drift
+- [ ] conformance gate passes — if any workflow `.js` touched
+- [ ] No forbidden files staged
 ```
 
 ---
