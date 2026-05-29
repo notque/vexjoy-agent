@@ -24,6 +24,43 @@ export const meta = {
   name: "comprehensive-review-workflow",
   description:
     "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
+  // --- Conformance contract (pure literal — no calls/variables; see
+  //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
+  //     Stages 0-1). This is the declared dispatch shape the conformance gate
+  //     asserts the actual script against. STATIC validation pins phases + the
+  //     fixed Wave-1 barrier (countable). DYNAMIC validation records the real
+  //     dispatch trace and asserts SHAPE + SKILLS, NOT count, where dynamic:true.
+  //     name + description stay BEFORE this nested object so the non-greedy
+  //     meta-name parser in workflow-registry.py still resolves meta.name.
+  contract: {
+    // Phase titles this script enters at runtime via phase(). Order matters.
+    phases: ["wave-1", "wave-2", "wave-3", "verify", "fix"],
+    // Wave-1 is a FIXED barrier: a literal 4-agent roster, every run. Countable.
+    roster: [
+      { agentType: "reviewer-system", skill: "systematic-code-review" },
+      { agentType: "reviewer-domain", skill: "systematic-code-review" },
+      { agentType: "reviewer-code", skill: "systematic-code-review" },
+      { agentType: "reviewer-perspectives", skill: "roast" },
+    ],
+    // The Wave-1 barrier dispatches exactly 4 agents on every run (static).
+    agents: { static: 4, dynamic: false },
+    // Wave-2/3 rosters are literal arrays (countable) but tier-gated, and the
+    // per-finding verify pass + the budget-bounded fix loop fan out over
+    // RUNTIME data (findings.length, budget) — NOT statically countable.
+    // Honest limit: the gate asserts SHAPE + SKILLS for these, not COUNT.
+    dynamic: true,
+  },
+};
+
+// Map each reviewer agent to the methodology skill it invokes by name. Skill-
+// attach inside a native Workflow agent() dispatch resolves by name (path-
+// independent), proven this session. reviewer-{system,domain,code} run the
+// 4-phase systematic review; reviewer-perspectives runs the roast lens.
+const AGENT_SKILL = {
+  "reviewer-system": "systematic-code-review",
+  "reviewer-domain": "systematic-code-review",
+  "reviewer-code": "systematic-code-review",
+  "reviewer-perspectives": "roast",
 };
 
 // --- Wave rosters: the four real reviewer agents, applied through wave-specific
@@ -33,30 +70,33 @@ export const meta = {
 //     rather than inventing nonexistent per-topic agents. This mirrors the
 //     lens-based scheme in comprehensive-review/references/wave-{1,2,3}-*.md. ----
 
+// Each entry now carries BOTH `agent` (-> agentType, dispatches the real
+// specialist) AND `skill` (the methodology that agent invokes by name via
+// Skill("...")). `lens` still scales review depth across waves.
 const WAVE1_AGENTS = [
-  { agent: "reviewer-system", lens: "security, input validation, error handling, API contracts" },
-  { agent: "reviewer-domain", lens: "business logic, edge cases, data integrity, state transitions" },
-  { agent: "reviewer-code", lens: "conventions, naming, dead code, performance, test coverage" },
-  { agent: "reviewer-perspectives", lens: "newcomer clarity, user-advocate, senior-maintainer view" },
+  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "security, input validation, error handling, API contracts" },
+  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "business logic, edge cases, data integrity, state transitions" },
+  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "conventions, naming, dead code, performance, test coverage" },
+  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "newcomer clarity, user-advocate, senior-maintainer view" },
 ];
 
 // Tier 3 dispatches the deep-dive subset; Tier 4 adds the remaining lenses.
 const WAVE2_SUBSET = [
-  { agent: "reviewer-system", lens: "deep security + concurrency + resource lifecycle" },
-  { agent: "reviewer-domain", lens: "deep correctness + data integrity + migration safety" },
-  { agent: "reviewer-code", lens: "deep performance + error paths + state machines" },
+  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "deep security + concurrency + resource lifecycle" },
+  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "deep correctness + data integrity + migration safety" },
+  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "deep performance + error paths + state machines" },
 ];
 
 const WAVE2_FULL = WAVE2_SUBSET.concat([
-  { agent: "reviewer-system", lens: "API-contract compatibility + observability gaps" },
-  { agent: "reviewer-perspectives", lens: "senior-maintainer + meta-process review" },
+  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "API-contract compatibility + observability gaps" },
+  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "senior-maintainer + meta-process review" },
 ]);
 
 const WAVE3_AGENTS = [
-  { agent: "reviewer-perspectives", lens: "contrarian + falsifier: try to break the change" },
-  { agent: "reviewer-system", lens: "adversarial security: assume hostile input everywhere" },
-  { agent: "reviewer-domain", lens: "adversarial assumptions: challenge every invariant" },
-  { agent: "reviewer-code", lens: "simplicity challenge: is this over-engineered?" },
+  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "contrarian + falsifier: try to break the change" },
+  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "adversarial security: assume hostile input everywhere" },
+  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "adversarial assumptions: challenge every invariant" },
+  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "simplicity challenge: is this over-engineered?" },
 ];
 
 // --- Schemas (mirror skills/shared-patterns/schemas/) -------------------------
@@ -154,14 +194,21 @@ function dedupeFindings(findings) {
 }
 
 function reviewPrompt(roster, scope, priorContext) {
-  // roster is {agent, lens}; priorContext is the typed prior-wave summary passed
-  // in-memory (no disk read).
+  // roster is {agent, skill, lens}; priorContext is the typed prior-wave summary
+  // passed in-memory (no disk read). The skill directive instructs the dispatched
+  // agent to load its methodology by name — Skill("...") resolves path-independent
+  // inside a native Workflow agent() dispatch (proven this session).
   const context = priorContext
     ? `\n\nPrior-wave findings (typed, in-memory):\n${JSON.stringify(priorContext)}`
     : "";
+  const skillDirective = roster.skill
+    ? `\nInvoke your review methodology by name first: Skill("${roster.skill}"). ` +
+      `Run it, then report findings through its structure.`
+    : "";
   return (
-    `You are ${roster.agent}. Apply this review lens: ${roster.lens}.\n` +
-    `Review the changed code for this diff scope:\n` +
+    `You are ${roster.agent}. Apply this review lens: ${roster.lens}.` +
+    skillDirective +
+    `\nReview the changed code for this diff scope:\n` +
     `${JSON.stringify(scope)}\n` +
     `Return only findings within your lens. The only valid dispositions are ` +
     `FIX NOW, FIX IN FOLLOW-UP (with a tracking artifact), or NOT AN ISSUE ` +
@@ -169,6 +216,16 @@ function reviewPrompt(roster, scope, priorContext) {
     `are not valid dispositions. Severity is one of critical|high|medium|low.` +
     context
   );
+}
+
+// Defensive phase marker: the native runtime guarantees agent/parallel/pipeline/
+// budget, but does NOT document a phase() global. Guard the call so the real
+// runtime never throws if phase is absent, while the conformance harness's mock
+// records the entered phase. Phase titles match meta.contract.phases.
+function enterPhase(title) {
+  if (typeof phase === "function") {
+    phase(title);
+  }
 }
 
 // --- Workflow body ------------------------------------------------------------
@@ -185,6 +242,7 @@ export default async function run({ scope, tier, fixThreshold }) {
 
   // Wave 1: foundation. Hard barrier — every foundation agent completes before
   // the wave is considered closed. Failed slots resolve to null and are dropped.
+  enterPhase("wave-1");
   const wave1 = await parallel(
     WAVE1_AGENTS.map((r) => () =>
       agent({
@@ -201,6 +259,7 @@ export default async function run({ scope, tier, fixThreshold }) {
   // finding into a matched deep-dive agent without a disk re-read — agent B
   // can start while agent A is still running.
   if (effectiveTier >= 3) {
+    enterPhase("wave-2");
     const wave2Roster = effectiveTier >= 4 ? WAVE2_FULL : WAVE2_SUBSET;
     const wave2Summary = { findings, source: "wave1" };
     const wave2 = await parallel(
@@ -220,6 +279,7 @@ export default async function run({ scope, tier, fixThreshold }) {
   // CRITICAL is present (escalation safety valve mirrored from the markdown).
   const wave3Required = effectiveTier >= 4 || hasCritical(findings);
   if (wave3Required) {
+    enterPhase("wave-3");
     const wave3Summary = { findings, source: "wave1+2" };
     const wave3 = await parallel(
       WAVE3_AGENTS.map((r) => () =>
@@ -239,6 +299,7 @@ export default async function run({ scope, tier, fixThreshold }) {
   // Per-finding adversarial verify BEFORE synthesis (mirrors the pr-review
   // gated per-finding verify). Each finding gets one challenger; DISMISS drops
   // it from the fix queue. parallel() barriers the whole verify pass.
+  enterPhase("verify");
   const verdicts = await parallel(
     findings.map((f) => () =>
       agent({
@@ -261,6 +322,7 @@ export default async function run({ scope, tier, fixThreshold }) {
   // Phase 4 fix loop, bounded by the native token budget. CRITICAL first.
   // The loop stops when findings are exhausted OR the run-wide budget can no
   // longer afford another fix agent — a hard, replayable spend ceiling.
+  enterPhase("fix");
   const queue = verified.slice();
   const fixes = [];
   const deferred = [];
