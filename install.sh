@@ -15,7 +15,8 @@
 #   1. Verifies Python 3.10+ is available
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
-#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.gemini, and ~/.hermes
+#   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.gemini, ~/.factory,
+#      ~/.hermes, and ~/.reasonix (no agent surface for ~/.reasonix)
 #   5. Sets up local overlay directory
 #   6. Configures hooks in settings.json
 #
@@ -51,6 +52,10 @@ FACTORY_SCRIPTS_DIR="${FACTORY_DIR}/scripts"
 HERMES_DIR="${HOME}/.hermes"
 HERMES_SKILLS_DIR="${HERMES_DIR}/skills"
 HERMES_SCRIPTS_DIR="${HERMES_DIR}/scripts"
+REASONIX_DIR="${HOME}/.reasonix"
+REASONIX_SKILLS_DIR="${REASONIX_DIR}/skills"
+REASONIX_SCRIPTS_DIR="${REASONIX_DIR}/scripts"
+REASONIX_HOOKS_DIR="${REASONIX_DIR}/hooks"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                VexJoy Agent - Installation Script               ║${NC}"
@@ -725,6 +730,104 @@ os.rename(tmp, dst)
     # Note: ~/.hermes/config.yaml is intentionally left untouched.
     # Users may have other Hermes configurations we did not write.
 
+    # Phase 3.11: Clean toolkit-owned Reasonix mirror (skills + scripts + hooks + settings.json)
+    echo ""
+    echo -e "${YELLOW}Cleaning Reasonix skills mirror...${NC}"
+    # Remove ONLY the toolkit-owned flatten-copy output, recomputed from the repo so it
+    # matches what the install wrote (skills/<cat>/<name> + top-level skills + private-skills
+    # flattened to <name>, voice skills as voice-<name>, support dirs copied by name). Skills
+    # a USER added by hand (real dirs we never wrote) are left intact. Also sweep stale
+    # toolkit symlinks left by the pre-flatten installer. Finally drop the dir if now empty.
+    if [ -d "$REASONIX_SKILLS_DIR" ]; then
+        reasonix_uninstall_entry() {
+            [ -n "$1" ] || return 0
+            local target="${REASONIX_SKILLS_DIR}/$1"
+            [ -e "$target" ] || [ -L "$target" ] || return 0
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would remove Reasonix entry: ${target}${NC}"
+            else
+                rm -rf "$target"
+                echo -e "${GREEN}  ✓ Removed Reasonix entry: ${target}${NC}"
+            fi
+            REMOVED+=("Reasonix skill $1")
+        }
+
+        # Flattened skills + private skills (basename of each dir holding a SKILL.md).
+        while IFS= read -r skill_md; do
+            [ -n "$skill_md" ] || continue
+            reasonix_uninstall_entry "$(basename "$(dirname "$skill_md")")"
+        done < <(find "${SCRIPT_DIR}/skills" "${SCRIPT_DIR}/private-skills" -name SKILL.md 2>/dev/null)
+
+        # Voice skills (voice-<name>).
+        if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+            for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+                [ -f "${voice_dir}/skill/SKILL.md" ] || continue
+                reasonix_uninstall_entry "voice-$(basename "$voice_dir")"
+            done
+        fi
+
+        # Support dirs (no SKILL.md anywhere — shared-patterns, kb, voice-shared*).
+        for support_dir in "${SCRIPT_DIR}/skills/"*/; do
+            [ -d "$support_dir" ] || continue
+            [ -z "$(find "$support_dir" -name SKILL.md -print -quit)" ] || continue
+            reasonix_uninstall_entry "$(basename "$support_dir")"
+        done
+
+        # Stale toolkit symlinks from the pre-flatten installer (reasonix entries are always
+        # real dirs now, so any symlink here is toolkit-owned residue).
+        if [ "$DRY_RUN" != true ]; then
+            find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l -delete 2>/dev/null || true
+            rmdir "$REASONIX_SKILLS_DIR" 2>/dev/null && \
+                echo -e "${GREEN}  ✓ Removed empty ${REASONIX_SKILLS_DIR}${NC}" || true
+        fi
+    else
+        echo "  No ~/.reasonix/skills mirror found. Nothing to clean."
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Cleaning Reasonix scripts mirror...${NC}"
+    if [ -d "$REASONIX_SCRIPTS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${REASONIX_SCRIPTS_DIR}${NC}"
+        else
+            rm -rf "$REASONIX_SCRIPTS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${REASONIX_SCRIPTS_DIR}${NC}"
+        fi
+        REMOVED+=("Reasonix scripts mirror directory")
+    else
+        echo "  No ~/.reasonix/scripts mirror found. Nothing to clean."
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Cleaning Reasonix hooks mirror...${NC}"
+    if [ -d "$REASONIX_HOOKS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${REASONIX_HOOKS_DIR}${NC}"
+        else
+            rm -rf "$REASONIX_HOOKS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${REASONIX_HOOKS_DIR}${NC}"
+        fi
+        REMOVED+=("Reasonix hooks mirror directory")
+    else
+        echo "  No ~/.reasonix/hooks mirror found. Nothing to clean."
+    fi
+
+    # Archive the generated Reasonix settings.json (hooks key). config.json is
+    # user-owned and never touched.
+    if [ -f "${REASONIX_DIR}/settings.json" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would archive: ${REASONIX_DIR}/settings.json${NC}"
+        else
+            ARCHIVE_TS=$(date +%Y%m%d-%H%M%S)
+            mv "${REASONIX_DIR}/settings.json" "${REASONIX_DIR}/settings.json.uninstalled.${ARCHIVE_TS}"
+            echo -e "${GREEN}  ✓ Archived ${REASONIX_DIR}/settings.json${NC}"
+        fi
+        REMOVED+=("Reasonix settings.json (archived)")
+    fi
+
+    # Note: ~/.reasonix/config.json is intentionally left untouched.
+    # Users own MCP/model/permissions config we did not write.
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -773,6 +876,7 @@ os.rename(tmp, dst)
     echo "  • ~/.gemini/settings.json (all keys except hooks)"
     echo "  • ~/.factory/config.toml (if present, like Codex)"
     echo "  • ~/.hermes/config.yaml (Hermes Agent configuration)"
+    echo "  • ~/.reasonix/config.json (Reasonix MCP/model/permissions, user-owned)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -900,6 +1004,15 @@ else
     mkdir -p "${HERMES_SKILLS_DIR}"
 fi
 echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
+
+echo ""
+echo -e "${YELLOW}Setting up ~/.reasonix/skills directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${REASONIX_SKILLS_DIR}${NC}"
+else
+    mkdir -p "${REASONIX_SKILLS_DIR}"
+fi
+echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 
 # Install components
 echo ""
@@ -1515,6 +1628,175 @@ else
     HERMES_SCRIPT_COUNT=0
 fi
 
+# ── Reasonix mirror (skills + scripts + hooks; Claude-Code-compatible extension layer) ──
+# Reasonix natively reads ~/.reasonix/skills, shells out to scripts via the SDIR chain,
+# and runs Claude-Code-identical hooks declared in ~/.reasonix/settings.json (hooks key only;
+# MCP/model/permissions live in user-owned ~/.reasonix/config.json, which we never touch).
+echo ""
+echo -e "${YELLOW}Syncing Reasonix skills mirror (flatten + copy)...${NC}"
+REASONIX_ENTRY_COUNT=0
+REASONIX_SEEN_NAMES=" "  # space-delimited set of flat names claimed this run (collision guard)
+if [ "$DRY_RUN" != true ]; then
+    mkdir -p "$REASONIX_SKILLS_DIR"
+    # Sweep stale toolkit symlinks left by the pre-flatten installer (it symlinked
+    # skills/<category> dirs, which reasonix can't discover). Reasonix skill entries are
+    # ALWAYS real copied dirs now, so any symlink here is stale toolkit output — safe to
+    # drop. User-added skills are real dirs and are left untouched.
+    find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l -delete 2>/dev/null || true
+fi
+
+# Reasonix scans skill roots EXACTLY ONE LEVEL DEEP (src/skills.ts:251-258): a dir entry
+# <X> is a skill only when <X>/SKILL.md exists, and it never recurses. vexjoy skills live
+# at skills/<category>/<name>/SKILL.md (two levels), so a naive same-name mirror exposes
+# category dirs that hold no SKILL.md and reasonix discovers nothing. We therefore FLATTEN
+# every skill to ~/.reasonix/skills/<name>/SKILL.md (one level deep).
+#
+# COPY ALWAYS — even when MODE=symlink: the shipped reasonix npm build (v0.53.2) does NOT
+# traverse symlinked skill ENTRIES during discovery (only real directories are scanned), so
+# a symlinked skill is invisible while a real-dir copy is found instantly. The reasonix
+# skills mirror therefore forces real-directory copies regardless of the install MODE.
+# Re-test symlink discovery on each reasonix bump; drop this copy fallback once
+# src/skills.ts traverses symlinked entries.
+reasonix_install_skill() {
+    # $1 = skill source dir (the dir containing SKILL.md); $2 = flat skill name
+    local skill_dir=$1
+    local name=$2
+    local target="${REASONIX_SKILLS_DIR}/${name}"
+
+    # Within-run collision guard: basenames are verified unique, but never clobber a name
+    # already claimed by this run. (A target left from a PRIOR run is refreshed below.)
+    case "$REASONIX_SEEN_NAMES" in
+        *" ${name} "*)
+            echo -e "${YELLOW}  Warning: duplicate Reasonix skill name '${name}', skipping ${skill_dir}${NC}"
+            return 0
+            ;;
+    esac
+    REASONIX_SEEN_NAMES="${REASONIX_SEEN_NAMES}${name} "
+
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would copy Reasonix skill (real dir, copy forced even in symlink mode): ${skill_dir} -> ${target}/${NC}"
+    else
+        rm -rf "$target"            # idempotent re-run: refresh content like the other mirrors
+        mkdir -p "$target"
+        cp -r "${skill_dir}/." "$target/"
+        echo -e "${GREEN}  ✓ Reasonix copied ${name}${NC}"
+    fi
+    REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
+}
+
+# Private skills FIRST so they claim canonical names; matching public-skill names then
+# trip the within-run collision guard and yield to the private override (parity with the
+# Claude install: private overrides public).
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    while IFS= read -r skill_md; do
+        [ -n "$skill_md" ] || continue
+        skill_dir=$(dirname "$skill_md")
+        reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+    done < <(find "${SCRIPT_DIR}/private-skills" -name SKILL.md | sort)
+fi
+
+# Voice skills: private-voices/<name>/skill/SKILL.md -> ~/.reasonix/skills/voice-<name>/
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -f "${skill_src}/SKILL.md" ] || continue
+        voice_name=$(basename "$voice_dir")
+        reasonix_install_skill "$skill_src" "voice-${voice_name}"
+    done
+fi
+
+# Public skills last: same-name entries are skipped by the collision guard (private wins).
+while IFS= read -r skill_md; do
+    [ -n "$skill_md" ] || continue
+    skill_dir=$(dirname "$skill_md")
+    reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+done < <(find "${SCRIPT_DIR}/skills" -name SKILL.md | sort)
+
+# Support dirs (no SKILL.md anywhere — e.g. shared-patterns, kb): copy as real top-level
+# dirs so flattened skills' sibling references like ../shared-patterns/*.md resolve, and so
+# the downstream voice shared-references deploy (which targets ${REASONIX_SKILLS_DIR}/shared-patterns)
+# keeps working. These are not skills (reasonix ignores them: no SKILL.md) so they are not counted.
+for support_dir in "${SCRIPT_DIR}/skills/"*/; do
+    [ -d "$support_dir" ] || continue
+    [ -z "$(find "$support_dir" -name SKILL.md -print -quit)" ] || continue  # skip dirs that hold skills
+    support_name=$(basename "$support_dir")
+    support_target="${REASONIX_SKILLS_DIR}/${support_name}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would copy Reasonix support dir: ${support_dir} -> ${support_target}/${NC}"
+    else
+        rm -rf "$support_target"
+        cp -r "$support_dir" "$support_target"
+        echo -e "${GREEN}  ✓ Reasonix copied support dir ${support_name}${NC}"
+    fi
+done
+
+echo ""
+echo -e "${YELLOW}Syncing Reasonix scripts mirror...${NC}"
+if [ -d "${SCRIPT_DIR}/scripts" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would mirror scripts to: ${REASONIX_SCRIPTS_DIR}${NC}"
+    else
+        mkdir -p "$REASONIX_SCRIPTS_DIR"
+    fi
+    sync_mirror_entry "${SCRIPT_DIR}/scripts" "$REASONIX_SCRIPTS_DIR" "Reasonix"
+    REASONIX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+    echo -e "${GREEN}  ✓ Scripts mirrored to ${REASONIX_SCRIPTS_DIR}${NC}"
+else
+    REASONIX_SCRIPT_COUNT=0
+fi
+
+echo ""
+echo -e "${YELLOW}Syncing Reasonix hooks mirror...${NC}"
+if [ -d "${SCRIPT_DIR}/hooks" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would mirror hooks to: ${REASONIX_HOOKS_DIR}${NC}"
+    else
+        mkdir -p "$REASONIX_HOOKS_DIR"
+    fi
+    sync_mirror_entry "${SCRIPT_DIR}/hooks" "$REASONIX_HOOKS_DIR" "Reasonix"
+    REASONIX_HOOK_COUNT=$(ls -1 "${SCRIPT_DIR}/hooks/"*.py 2>/dev/null | grep -cv '__init__')
+    echo -e "${GREEN}  ✓ Hooks mirrored to ${REASONIX_HOOKS_DIR}${NC}"
+else
+    REASONIX_HOOK_COUNT=0
+fi
+
+# Generate ~/.reasonix/settings.json (hooks key only; rewrite .claude paths to .reasonix).
+# config.json (MCP/model/permissions) is user-owned and never written here.
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would sync hooks from ${SCRIPT_DIR}/.claude/settings.json to ${REASONIX_DIR}/settings.json (with path rewrite)${NC}"
+elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
+    REASONIX_SETTINGS="${REASONIX_DIR}/settings.json"
+    if [ ! -f "$REASONIX_SETTINGS" ]; then
+        echo '{}' > "$REASONIX_SETTINGS"
+    fi
+    BACKUP_TS=$(date +%Y%m%d-%H%M%S)
+    cp "$REASONIX_SETTINGS" "${REASONIX_SETTINGS}.backup.${BACKUP_TS}"
+    $PYTHON_CMD -c "
+import json, os
+repo = json.load(open('${SCRIPT_DIR}/.claude/settings.json'))
+dst = '${REASONIX_SETTINGS}'
+try:
+    merged = json.load(open(dst, encoding='utf-8'))
+except (FileNotFoundError, json.JSONDecodeError):
+    merged = {}
+hooks_json = json.dumps(repo.get('hooks', {}))
+hooks_json = hooks_json.replace('\$HOME/.claude/', '\$HOME/.reasonix/')
+hooks_json = hooks_json.replace('\${HOME}/.claude/', '\${HOME}/.reasonix/')
+merged['hooks'] = json.loads(hooks_json)
+merged.setdefault('attribution', repo.get('attribution', {'commit': '', 'pr': ''}))
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(merged, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
+print('  Reasonix hooks configured from .claude/settings.json')
+"
+else
+    echo -e "${YELLOW}  Warning: ${SCRIPT_DIR}/.claude/settings.json not found, skipping Reasonix hook sync${NC}"
+fi
+
 # Deploy private-voices shared references into skills/shared-patterns/
 # These files were removed from the public repo and live in private-voices/shared-references/
 # (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
@@ -1525,7 +1807,7 @@ if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
     for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
         [ -f "$ref_file" ] || continue
         ref_name=$(basename "$ref_file")
-        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns" "${HERMES_SKILLS_DIR}/shared-patterns"; do
+        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${GEMINI_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns" "${HERMES_SKILLS_DIR}/shared-patterns" "${REASONIX_SKILLS_DIR}/shared-patterns"; do
             # Resolve symlinks so we write into the actual directory
             resolved_dir="$target_dir"
             [ -L "$target_dir" ] && resolved_dir="$(readlink -f "$target_dir")"
@@ -1662,6 +1944,7 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
+    echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
 else
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
     find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
@@ -1674,6 +1957,8 @@ else
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
     chmod 600 "${FACTORY_DIR}/settings.json" 2>/dev/null || true
     chmod 600 "$(ls -1t "${FACTORY_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
+    chmod 600 "${REASONIX_DIR}/settings.json" 2>/dev/null || true
+    chmod 600 "$(ls -1t "${REASONIX_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 
@@ -1714,6 +1999,7 @@ manifest = {
     'gemini_components': ['skills', 'agents', 'hooks', 'scripts'],
     'factory_components': ['skills', 'droids', 'hooks'],
     'hermes_components': ['skills', 'scripts'],
+    'reasonix_components': ['skills', 'scripts', 'hooks'],
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
 print('  Install manifest written to ~/.claude/.install-manifest.json')
@@ -1755,6 +2041,9 @@ echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factor
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
 echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
 echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
+echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (real dirs, one level deep) in ~/.reasonix/skills"
+echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
+echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"

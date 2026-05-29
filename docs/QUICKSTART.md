@@ -13,13 +13,14 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Claude Code is the primary runtime. If you also use Codex CLI, Gemini CLI, or Factory, the same install mirrors toolkit skills and agents into `~/.codex/`, `~/.gemini/`, and `~/.factory/` so all four CLIs share the same skill and agent library.
+Claude Code is the primary runtime. If you also use Codex CLI, Gemini CLI, Factory, or Reasonix, the same install mirrors toolkit skills (and agents where the harness supports them) into `~/.codex/`, `~/.gemini/`, `~/.factory/`, and `~/.reasonix/` so all the CLIs share the same skill library. Reasonix has no agent surface, so it gets skills + scripts + hooks only.
 
 Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
 - Gemini CLI: `/do`
 - Factory: `/do`
+- Reasonix: `/do`
 
 **Alternative (bootstrap via Claude):** Start Claude Code in the vexjoy-agent directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
 
