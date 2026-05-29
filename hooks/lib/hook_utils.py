@@ -10,10 +10,15 @@ Provides common functionality used across multiple hooks:
 Inspired by shared/lib patterns.
 """
 
+import hashlib
 import json
 import os
+import subprocess
 import sys
+import tempfile
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar
 
@@ -583,3 +588,173 @@ def record_activations_safe(
     except Exception as e:
         if debug:
             print(f"[activation] Recording failed: {e}", file=sys.stderr)
+
+
+# =============================================================================
+# Working-tree diff / reviewable-content gating / async rewake
+#
+# Promoted from hooks/security-review-hook.py so any hook that needs to reason
+# about the git working-tree diff (Stop rewake, security review, etc.) shares a
+# single implementation. These are import-and-call utilities — not auto-applied.
+# =============================================================================
+
+
+def working_tree_diff(cwd: Optional[str], timeout: int = 15) -> str:
+    """Return the working-tree diff (tracked changes vs HEAD) for `cwd`.
+
+    Fails closed to an empty string on any error (non-repo, git missing,
+    timeout) so callers can treat "no diff" and "couldn't diff" the same way.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--no-color", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd or None,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return ""
+    if result.returncode != 0:
+        return ""
+    return result.stdout
+
+
+def diff_post_image_ext(header_line: str) -> Optional[str]:
+    """Extract the lowercased extension of a unified-diff post-image path.
+
+    `header_line` is a ``+++ `` line. Returns None for ``/dev/null``
+    (deletions) or when the post-image path has no extension.
+    """
+    path = header_line[4:].strip()
+    if not path or path == "/dev/null":
+        return None
+    # Strip git's `b/` prefix (and the rare `i/`/`w/`/`c/`/`o/` prefixes).
+    if len(path) > 2 and path[1] == "/" and path[0] in "abciwo":
+        path = path[2:]
+    dot = path.rfind(".")
+    slash = path.rfind("/")
+    if dot == -1 or dot < slash:
+        return None
+    return path[dot:].lower()
+
+
+def has_reviewable_content(diff: str, scannable_exts: frozenset[str]) -> bool:
+    """Return True only if `diff` is security-relevant.
+
+    Security-relevant means: at least one file whose extension is in
+    `scannable_exts` has at least one ADDED content line. The caller supplies
+    `scannable_exts` (e.g. the scanner's SUPPORTED_EXTENSIONS minus doc types)
+    so this helper stays decoupled from any particular rule engine.
+
+    - Pure deletions (only ``-`` lines) cannot introduce a vulnerability → False.
+    - Files whose extension is not in `scannable_exts` (docs/config) → ignored.
+    - Mode-only / pure-rename diffs (no added content lines) → False.
+
+    An added line in a scannable file (e.g. a new ``eval(...)`` in a ``.py``)
+    MUST pass this gate — true positives are preserved.
+    """
+    current_scannable = False  # is the file in the current diff block scannable?
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            ext = diff_post_image_ext(line)
+            current_scannable = ext in scannable_exts if ext is not None else False
+            continue
+        if line.startswith("diff --git "):
+            current_scannable = False
+            continue
+        if current_scannable and line.startswith("+") and not line.startswith("+++"):
+            return True
+    return False
+
+
+class DiffDedup:
+    """Byte-identical working-tree-diff dedup with atomic state + opt-in TTL.
+
+    Hashes ``sha256(cwd, diff)`` so different repos with identical diffs do not
+    collide. State persists to a JSON file via atomic write (tempfile in the
+    same dir + ``os.replace``). By default dedup is permanent — the same
+    ``(cwd, diff)`` hash means the same review until the diff actually changes;
+    a non-matching hash overwrites the old record (self-healing).
+
+    A positive ``ttl_seconds`` re-enables a time window: a hash match older than
+    the TTL is treated as a miss.
+    """
+
+    def __init__(self, state_dir: Path, state_file: Path, ttl_seconds: int = 0):
+        self.state_dir = Path(state_dir)
+        self.state_file = Path(state_file)
+        self.ttl_seconds = ttl_seconds if ttl_seconds and ttl_seconds > 0 else 0
+
+    def signature(self, cwd: Optional[str], diff: str) -> str:
+        """Hash (cwd, diff) so different repos with identical diffs don't collide."""
+        h = hashlib.sha256()
+        h.update((cwd or "").encode("utf-8", errors="replace"))
+        h.update(b"\x00")
+        h.update(diff.encode("utf-8", errors="replace"))
+        return h.hexdigest()
+
+    def _load(self) -> dict:
+        try:
+            if self.state_file.exists():
+                return json.loads(self.state_file.read_text())
+        except (json.JSONDecodeError, OSError, ValueError):
+            pass
+        return {}
+
+    def is_duplicate(self, cwd: Optional[str], diff: str) -> tuple[bool, Optional[str]]:
+        """Return (is_duplicate, last_seen_iso).
+
+        A hash match is permanent unless ``ttl_seconds`` is positive, in which
+        case a match older than the TTL is treated as a miss.
+        """
+        state = self._load()
+        if state.get("hash") != self.signature(cwd, diff):
+            return False, None
+        if self.ttl_seconds > 0:
+            try:
+                last_ts = float(state.get("ts", 0))
+            except (TypeError, ValueError):
+                return False, None
+            if (time.time() - last_ts) > self.ttl_seconds:
+                return False, None
+        return True, state.get("ts_iso")
+
+    def record(self, cwd: Optional[str], diff: str) -> None:
+        """Persist the current (cwd, diff) signature. Silent on failure —
+        dedup persistence is best-effort and must never block a hook."""
+        now = time.time()
+        state = {
+            "hash": self.signature(cwd, diff),
+            "ts": now,
+            "ts_iso": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+            "cwd": cwd or "",
+        }
+        try:
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=str(self.state_dir), suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w") as f:
+                    json.dump(state, f)
+                os.replace(tmp, str(self.state_file))
+            except Exception:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+                raise
+        except Exception:
+            # At worst we double-review on the next event — the existing behavior.
+            pass
+
+
+def async_rewake(message: str, summary: str) -> None:
+    """Emit an asyncRewake signal: rewakeSummary on stdout, context on stderr,
+    then exit 2 (the asyncRewake signal that mirrors the official plugin).
+
+    Does not return — always raises SystemExit(2). `summary` is the one-liner
+    shown to the user; `message` is the full rewake context for the agent.
+    """
+    print(json.dumps({"rewakeSummary": summary}), flush=True)
+    sys.stderr.write(message)
+    sys.exit(2)

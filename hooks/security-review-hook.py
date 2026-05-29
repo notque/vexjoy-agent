@@ -56,21 +56,24 @@ Fail-open: any internal error allows the commit / skips the rewake and prints a
 warning to stderr. A crashed hook never blocks a tool and never stalls a session.
 """
 
-import hashlib
 import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
-import time
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, empty_output
+from hook_utils import (
+    DiffDedup,
+    async_rewake,
+    context_output,
+    empty_output,
+    has_reviewable_content,
+    working_tree_diff,
+)
 from stdin_timeout import read_stdin
 
 _SKIP_ENV = "VEXJOY_SECURITY_REVIEW_SKIP"
@@ -285,20 +288,12 @@ def handle_post_tool_use(event: dict) -> None:
 
 
 def _working_tree_diff(cwd: str | None) -> str:
-    """Return the working-tree diff (tracked changes) for the Stop rewake context."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--no-color", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            cwd=cwd or None,
-        )
-    except (subprocess.TimeoutExpired, OSError):
-        return ""
-    if result.returncode != 0:
-        return ""
-    return result.stdout
+    """Return the working-tree diff (tracked changes) for the Stop rewake context.
+
+    Thin wrapper over hook_utils.working_tree_diff (the shared implementation).
+    Kept as a module-level name so the test-suite can patch it.
+    """
+    return working_tree_diff(cwd)
 
 
 def _scannable_extensions() -> frozenset[str]:
@@ -323,60 +318,19 @@ def _scannable_extensions() -> frozenset[str]:
     return frozenset({".py", ".go", ".js", ".ts", ".rb", ".java", ".php", ".kt", ".swift"})
 
 
-def _diff_post_image_ext(header_line: str) -> str | None:
-    """Extract the lowercased extension of a diff's post-image path.
-
-    `header_line` is a `+++ ` line. Returns None for `/dev/null` (deletions) or
-    when no extension is present.
-    """
-    path = header_line[4:].strip()
-    if not path or path == "/dev/null":
-        return None
-    # Strip git's `b/` prefix (and the rare `i/`/`w/`/`c/`/`o/` prefixes).
-    if len(path) > 2 and path[1] == "/" and path[0] in "abciwo":
-        path = path[2:]
-    dot = path.rfind(".")
-    slash = path.rfind("/")
-    if dot == -1 or dot < slash:
-        return None
-    return path[dot:].lower()
-
-
 def _has_reviewable_content(diff: str) -> bool:
     """Return True only if the diff is security-relevant for the Stop rewake.
 
-    Security-relevant means: at least one scannable source file (an extension in
-    _scannable_extensions() — the scanner's SUPPORTED_EXTENSIONS minus doc types)
-    has at least one ADDED or MODIFIED line.
+    Thin wrapper over hook_utils.has_reviewable_content with this hook's scanner-
+    derived scannable extension set (SUPPORTED_EXTENSIONS minus doc types). Kept
+    as a module-level name so the test-suite can reason about it directly.
 
-    Why this gate:
-    - Pure deletions (only `-` lines) cannot introduce a vulnerability, so a diff
-      whose only changes are removals is skipped.
-    - Doc/config-only diffs (.md, .txt, .json, etc. — not in the source set)
-      aren't worth the heavy LLM-depth Stop pass, so they're skipped.
-    - Mode-only diffs (no content lines) were already skipped; they still are,
-      since they contain no added lines.
-
-    An added line in a real source file (e.g. a new `eval(...)` in a `.py`) MUST
-    still pass this gate — true positives are preserved.
+    Security-relevant means: at least one scannable source file has at least one
+    ADDED line. Pure deletions, doc/config-only diffs, mode-only and pure-rename
+    diffs are all non-triggering. An added line in a real source file (a new
+    `eval(...)` in a `.py`) MUST still pass — true positives are preserved.
     """
-    scannable_exts = _scannable_extensions()
-    current_scannable = False  # is the file in the current diff block scannable?
-    for line in diff.splitlines():
-        if line.startswith("+++ "):
-            # New per-file post-image header: decide if this file is scannable.
-            ext = _diff_post_image_ext(line)
-            current_scannable = ext in scannable_exts if ext is not None else False
-            continue
-        if line.startswith("diff --git "):
-            # Start of a new file block; reset until its +++ header is seen.
-            current_scannable = False
-            continue
-        # An added content line (not the `+++` header) in a scannable file is the
-        # only thing that makes a diff security-relevant.
-        if current_scannable and line.startswith("+") and not line.startswith("+++"):
-            return True
-    return False
+    return has_reviewable_content(diff, _scannable_extensions())
 
 
 def _dedup_ttl_seconds() -> int:
@@ -395,81 +349,32 @@ def _dedup_ttl_seconds() -> int:
     return ttl if ttl > 0 else 0
 
 
+def _dedup() -> DiffDedup:
+    """Build a DiffDedup bound to the current state paths + TTL.
+
+    Reads _STATE_DIR / _STATE_FILE / _dedup_ttl_seconds() at call time so the
+    test-suite's patching of those module-level names keeps working.
+    """
+    return DiffDedup(_STATE_DIR, _STATE_FILE, ttl_seconds=_dedup_ttl_seconds())
+
+
 def _diff_signature(cwd: str | None, diff: str) -> str:
     """Hash (cwd, diff) so different repos with identical diffs don't collide."""
-    h = hashlib.sha256()
-    h.update((cwd or "").encode("utf-8", errors="replace"))
-    h.update(b"\x00")
-    h.update(diff.encode("utf-8", errors="replace"))
-    return h.hexdigest()
-
-
-def _load_dedup_state() -> dict:
-    """Load last-diff-hash state. Empty dict on any failure."""
-    try:
-        if _STATE_FILE.exists():
-            return json.loads(_STATE_FILE.read_text())
-    except (json.JSONDecodeError, OSError, ValueError):
-        pass
-    return {}
-
-
-def _save_dedup_state(state: dict) -> None:
-    """Atomic write: tempfile in same dir + os.replace. Silent on failure (advisory path)."""
-    try:
-        _STATE_DIR.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=str(_STATE_DIR), suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w") as f:
-                json.dump(state, f)
-            os.replace(tmp, str(_STATE_FILE))
-        except Exception:
-            try:
-                os.unlink(tmp)
-            except OSError:
-                pass
-            raise
-    except Exception:
-        # Failing to persist dedup state must never block a Stop hook — at worst we
-        # double-review on the next event, which is the existing behavior.
-        pass
+    return _dedup().signature(cwd, diff)
 
 
 def _is_duplicate_diff(cwd: str | None, diff: str) -> tuple[bool, str | None]:
     """Return (is_duplicate, last_seen_iso). Hash match is permanent by default.
 
-    Same (cwd, diff) hash means same review — no time window. The state file
-    self-heals: a non-matching hash overwrites the old one on the next call.
-
-    If VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS is set to a positive int, the
-    old TTL window applies and stale matches are treated as misses.
+    Delegates to the shared DiffDedup state machine. Same (cwd, diff) hash means
+    same review unless VEXJOY_SECURITY_REVIEW_DEDUP_TTL_SECONDS is a positive int.
     """
-    state = _load_dedup_state()
-    sig = _diff_signature(cwd, diff)
-    if state.get("hash") != sig:
-        return False, None
-    ttl = _dedup_ttl_seconds()
-    if ttl > 0:
-        try:
-            last_ts = float(state.get("ts", 0))
-        except (TypeError, ValueError):
-            return False, None
-        if (time.time() - last_ts) > ttl:
-            return False, None
-    return True, state.get("ts_iso")
+    return _dedup().is_duplicate(cwd, diff)
 
 
 def _record_diff_seen(cwd: str | None, diff: str) -> None:
     """Persist the current diff signature so a byte-identical re-fire short-circuits."""
-    now = time.time()
-    _save_dedup_state(
-        {
-            "hash": _diff_signature(cwd, diff),
-            "ts": now,
-            "ts_iso": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
-            "cwd": cwd or "",
-        }
-    )
+    _dedup().record(cwd, diff)
 
 
 def handle_stop(event: dict) -> None:
@@ -520,23 +425,21 @@ def handle_stop(event: dict) -> None:
     if truncated:
         instruction += f"\n\n(diff truncated to {max_chars} chars)"
 
-    # Per-run rewakeSummary (one-liner shown to the user). Mirrors the official
-    # plugin's emit_metrics rewake_summary on a stdout JSON line.
-    print(json.dumps({"rewakeSummary": "Local security review of session changes"}), flush=True)
-
     # Record the diff signature so a byte-identical re-fire short-circuits cleanly.
-    # Recorded BEFORE exit 2 so the rewake itself won't loop.
+    # Recorded BEFORE the rewake (exit 2) so the rewake itself won't loop.
     _record_diff_seen(cwd, diff)
 
-    # The rewake context goes to stderr; exit 2 is the asyncRewake signal.
-    sys.stderr.write(
+    # async_rewake (shared helper) emits the per-run rewakeSummary one-liner on
+    # stdout, writes the rewake context to stderr, and exits 2 (the asyncRewake
+    # signal). Mirrors the official plugin; advisory — never blocks.
+    message = (
         "[security-review] Session security review\n\n"
         + instruction
         + "\n\n=== working-tree diff ===\n"
         + diff_excerpt
         + "\n"
     )
-    sys.exit(2)
+    async_rewake(message, "Local security review of session changes")
 
 
 def main() -> None:
