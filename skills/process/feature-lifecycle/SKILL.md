@@ -37,7 +37,6 @@ routing:
     - feature release
     - release feature
     - merge feature
-    - ship it
     - build feature end to end
     - full feature lifecycle
     - feature from scratch
