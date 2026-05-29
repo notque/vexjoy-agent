@@ -7,18 +7,31 @@ the dispatch shape it promises:
     contract: {
       phases: ["wave-1", ...],                 // phase() titles entered
       roster: [{agentType, skill}, ...],       // the FIXED (static) Wave-1 barrier
+        // OR  roster: { dynamic: true }        // a FULLY-DYNAMIC, caller-supplied roster
       agents: { static: <N>, dynamic: <bool> },// fixed barrier size
       dynamic: <bool>,                          // data-driven passes present?
     }
+
+Two roster shapes are supported:
+
+* STATIC roster (list of ``{agentType, skill}``): the fixed Wave-1 barrier. Each
+  name is pinned (SHAPE + SKILLS) and the barrier size is COUNT-checked. This is
+  the comprehensive-review shape (static Wave-1 + dynamic tail).
+* FULLY-DYNAMIC roster (``roster: {dynamic: true}``): the roster is supplied
+  entirely by the caller (e.g. fan-out-workflow), so there are NO static
+  agentType:/Skill("..") literals to pin. The gate asserts the STRUCTURAL
+  INVARIANT instead — source emits a per-roster ``Skill(`` directive built from a
+  variable AND dispatches ``agentType`` from a roster variable — NOT specific
+  names, and LABELS the check as STRUCTURAL (no silent vacuous pass).
 
 This script asserts the actual script against that contract, in two layers:
 
 * STATIC (pure stdlib, always runs, the CI gate):
   - ``meta.phases`` (the phase()/enterPhase() titles in source) == ``contract.phases``
-  - every ``contract.roster`` agentType is dispatched in source (``agentType:`` token)
-  - every ``contract.roster`` skill appears as a ``Skill("..")`` token in source
-  - ``contract.agents.static`` == ``len(contract.roster)`` (the fixed barrier size),
-    and there are at least that many ``agent(`` call-sites
+  - static roster: every agentType dispatched + every skill resolvable in source;
+    ``contract.agents.static`` == ``len(roster)`` and >= that many ``agent(`` call-sites
+  - fully-dynamic roster: the STRUCTURAL invariant (Skill(-from-variable +
+    agentType-from-variable) is present in source
 * DYNAMIC (shells to scripts/conformance-harness.mjs IF node is available):
   - every recorded ``phases_entered`` (per tier) is a subset of ``contract.phases``
   - the recorded static Wave-1 roster (agentType + skills) matches ``contract.roster``
@@ -81,6 +94,15 @@ _SKILL_LITERAL = re.compile(r"""\bSkill\(\s*["'`]([^"'`$]+)["'`]\s*\)""")
 # Any Skill( directive at all — proves the skill-attach wiring is emitted, even
 # when the name is template-interpolated (Skill("${roster.skill}")).
 _SKILL_DIRECTIVE = re.compile(r"\bSkill\(")
+# A template-interpolated Skill directive: Skill("${...}") — the per-roster
+# methodology attach where the skill name is supplied by a (roster) variable.
+# This is the fully-dynamic-roster invariant: a Skill directive built from a
+# variable, not a fixed literal.
+_SKILL_INTERPOLATED = re.compile(r"""\bSkill\(\s*["'`][^"'`]*\$\{[^}]+\}""")
+# agentType dispatched from a VARIABLE (e.g. agentType: r.agentType), not a
+# string literal. The fully-dynamic-roster invariant: the dispatched specialist
+# is chosen at runtime from the roster, not pinned to a name in source.
+_AGENT_TYPE_VAR = re.compile(r"""\bagentType\s*:\s*(?!["'`])[A-Za-z_$][\w$.\[\]]*""")
 # Literal `skill: "name"` values declared on roster entries / maps in source.
 _SKILL_FIELD = re.compile(r"""\bskill\s*:\s*["'`]([^"'`$]+)["'`]""")
 # Quoted string values inside an AGENT_SKILL-style map (key: "value").
@@ -244,6 +266,36 @@ def has_skill_directive(source: str) -> bool:
     return _SKILL_DIRECTIVE.search(source) is not None
 
 
+def has_dynamic_skill_directive(source: str) -> bool:
+    """True if source emits a TEMPLATE-INTERPOLATED Skill directive (Skill("${..}")).
+
+    This is the fully-dynamic-roster invariant: the per-agent methodology attach is
+    built from a roster variable, not pinned to a fixed skill name.
+    """
+    return _SKILL_INTERPOLATED.search(source) is not None
+
+
+def has_dynamic_agent_dispatch(source: str) -> bool:
+    """True if source dispatches agentType from a VARIABLE (agentType: r.agentType).
+
+    The fully-dynamic-roster invariant: the dispatched specialist is selected at
+    runtime from the roster, not pinned to a literal name in source.
+    """
+    return _AGENT_TYPE_VAR.search(source) is not None
+
+
+def roster_is_fully_dynamic(contract: dict) -> bool:
+    """True if the contract declares a FULLY-DYNAMIC roster (no static entries).
+
+    The static roster is a list of {agentType, skill}. A fully-dynamic roster is
+    caller-supplied, so the contract declares it as ``roster: {dynamic: true}``
+    (an object, not a list). There are no names to pin — the gate asserts the
+    STRUCTURAL invariant instead.
+    """
+    roster = contract.get("roster")
+    return isinstance(roster, dict) and bool(roster.get("dynamic"))
+
+
 def count_agent_callsites(source: str) -> int:
     """Count agent( call-sites in source."""
     return len(_AGENT_CALL.findall(source))
@@ -264,7 +316,8 @@ def _static_checks(source: str, contract: dict) -> tuple[list[str], list[str]]:
     # contract is the spec being validated; comments prove nothing).
     body = evidence_body(source)
 
-    # 1. phases (SHAPE): declared set == entered set.
+    # 1. phases (SHAPE): declared set == entered set. Asserted statically for BOTH
+    #    the static-roster and fully-dynamic-roster shapes.
     declared_phases = set(contract.get("phases", []))
     entered_phases = extract_phase_titles(body)
     labels.append("phases: SHAPE (declared set == phase() titles in source)")
@@ -278,11 +331,50 @@ def _static_checks(source: str, contract: dict) -> tuple[list[str], list[str]]:
             parts.append(f"entered-but-not-declared={sorted(extra)}")
         errors.append("phase mismatch: " + "; ".join(parts))
 
+    # 2. roster checks. Two shapes:
+    #    (a) STATIC roster (list of {agentType, skill}) — pin each name (SHAPE +
+    #        SKILLS + COUNT of the fixed barrier).
+    #    (b) FULLY-DYNAMIC roster ({dynamic:true}) — the roster is caller-supplied,
+    #        so there are NO names to pin. Assert the STRUCTURAL invariant: source
+    #        emits a per-roster Skill( directive built from a variable AND dispatches
+    #        agentType from a variable. Label it STRUCTURAL (honest limits — no names,
+    #        no silent vacuous pass).
+    if roster_is_fully_dynamic(contract):
+        labels.append(
+            "roster: STRUCTURAL (fully-dynamic, caller-supplied roster — assert the "
+            "INVARIANT not specific names: source emits a Skill( directive derived from "
+            "a roster variable AND dispatches agentType from a roster variable)"
+        )
+        if not has_dynamic_skill_directive(body):
+            errors.append(
+                "fully-dynamic roster invariant violated: source emits no per-roster "
+                'Skill( directive built from a variable (expected Skill("${...}") — the '
+                "proven per-agent methodology attach)"
+            )
+        if not has_dynamic_agent_dispatch(body):
+            errors.append(
+                "fully-dynamic roster invariant violated: source dispatches no agentType "
+                "from a roster variable (expected agentType: <var>, e.g. agentType: r.agentType)"
+            )
+        # agents.static must be absent/0 for a fully-dynamic roster (nothing to count).
+        agents = contract.get("agents", {})
+        static_n = agents.get("static")
+        if static_n:
+            errors.append(
+                f"agents.static={static_n} declared but roster is fully-dynamic "
+                "(no static barrier to count — declare agents:{dynamic:true})"
+            )
+        labels.append(
+            "agents: SHAPE-only, NOT COUNT (fully-dynamic roster — agent count is "
+            "caller-supplied and not statically countable)"
+        )
+        return errors, labels
+
     roster = contract.get("roster", [])
     src_agent_types = extract_agent_types(body)
     src_skills = extract_skill_tokens(body)
 
-    # 2. roster agentType present in source (SHAPE).
+    # 2a. roster agentType present in source (SHAPE).
     labels.append("roster.agentType: SHAPE (each present as agentType: in source)")
     for entry in roster:
         at = entry.get("agentType")
@@ -370,7 +462,8 @@ def _dynamic_checks(js_path: Path, contract: dict) -> tuple[list[str], list[str]
             errors.append(f"harness error at tier {e.get('tier')}: {e.get('error')}")
 
     declared_phases = set(contract.get("phases", []))
-    roster = contract.get("roster", [])
+    fully_dynamic = roster_is_fully_dynamic(contract)
+    roster = [] if fully_dynamic else contract.get("roster", [])
     expected_roster = [(e.get("agentType"), tuple(sorted([e.get("skill")] if e.get("skill") else []))) for e in roster]
 
     traces = harness_out.get("traces", {})
@@ -383,14 +476,34 @@ def _dynamic_checks(js_path: Path, contract: dict) -> tuple[list[str], list[str]
                 f"tier {tier}: entered phases {sorted(entered)} not a subset of "
                 f"contract.phases {sorted(declared_phases)}"
             )
-        # static Wave-1 roster: SHAPE + SKILLS (agentType + its skills), NOT COUNT.
         recorded_roster = [(r.get("agentType"), tuple(sorted(r.get("skills", [])))) for r in trace.get("rosters", [])]
-        if recorded_roster != expected_roster:
+        if fully_dynamic:
+            # Fully-dynamic roster: NO names to pin. Assert the STRUCTURAL invariant
+            # in the recorded trace — the first-phase fan-out dispatched at least one
+            # worker via agentType AND each carried a Skill( directive (the per-agent
+            # methodology attach). NOT count, NOT specific names (honest limit).
+            if recorded_roster and not all(at for at, _ in recorded_roster):
+                errors.append(
+                    f"tier {tier}: fan-out dispatched a worker with no agentType (roster variable not applied)"
+                )
+            if recorded_roster and not all(skills for _, skills in recorded_roster):
+                errors.append(
+                    f"tier {tier}: a fan-out worker carried no Skill( directive "
+                    "(per-roster methodology attach missing in the recorded trace)"
+                )
+        elif recorded_roster != expected_roster:
+            # static Wave-1 roster: SHAPE + SKILLS (agentType + its skills), NOT COUNT.
             errors.append(
                 f"tier {tier}: recorded Wave-1 roster {recorded_roster} != "
                 f"contract.roster (agentType+skills) {expected_roster}"
             )
-    if contract.get("dynamic"):
+    if fully_dynamic:
+        notes.append(
+            "dynamic: fully-dynamic roster — agent_count and names are caller-supplied "
+            "and NOT asserted (honest limit); only phase-subset + the STRUCTURAL "
+            "invariant (agentType-from-variable + Skill(-from-variable per worker) are checked"
+        )
+    elif contract.get("dynamic"):
         notes.append(
             "dynamic: agent_count is data-driven and NOT asserted (honest limit); "
             "only phase-subset + static Wave-1 roster SHAPE+SKILLS are checked"

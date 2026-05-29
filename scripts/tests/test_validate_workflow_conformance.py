@@ -189,3 +189,91 @@ def test_output_labels_count_vs_shape_checks():
     res = _result_for(data, "matching.js")
     blob = json.dumps(res).lower()
     assert "count" in blob and ("shape" in blob or "skills" in blob), res
+
+
+# --- FULLY-DYNAMIC ROSTER: the fan-out contract shape ------------------------
+# A fully-dynamic-roster workflow has NO static agentType:/Skill("..") literals
+# (the roster is caller-supplied). The contract declares roster:{dynamic:true}.
+# The validator must assert the STRUCTURAL invariant — source emits a Skill(
+# directive derived from a roster variable AND dispatches agentType from a roster
+# variable — NOT specific names, and LABEL the check as structural.
+
+
+def test_roster_is_fully_dynamic_helper():
+    """roster_is_fully_dynamic() is True for {dynamic:true}, False for a list."""
+    assert vwc.roster_is_fully_dynamic({"roster": {"dynamic": True}}) is True
+    assert vwc.roster_is_fully_dynamic({"roster": [{"agentType": "x", "skill": "y"}]}) is False
+    assert vwc.roster_is_fully_dynamic({"roster": []}) is False
+
+
+def test_has_dynamic_skill_directive_detects_interpolated_skill():
+    """Skill("${r.skill}") (template-derived) counts as a per-roster Skill directive."""
+    yes = 'agent({ prompt: `Skill("${r.skill}")`, agentType: r.agentType })'
+    no = "agent({ prompt: `review the diff`, agentType: r.agentType })"
+    assert vwc.has_dynamic_skill_directive(yes) is True
+    assert vwc.has_dynamic_skill_directive(no) is False
+
+
+def test_has_dynamic_agent_dispatch_detects_variable_agenttype():
+    """agentType: <variable> (not a string literal) counts as dynamic dispatch."""
+    yes = "agent({ agentType: r.agentType })"
+    literal_only = 'agent({ agentType: "reviewer-system" })'
+    assert vwc.has_dynamic_agent_dispatch(yes) is True
+    assert vwc.has_dynamic_agent_dispatch(literal_only) is False
+
+
+def test_dynamic_roster_fixture_passes_static():
+    """Fully-dynamic roster WITH the structural invariant present PASSES."""
+    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
+    res = _result_for(data, "dynamic-roster.js")
+    assert res["status"] == "pass", res
+
+
+def test_dynamic_roster_missing_skill_fails_static():
+    """Fully-dynamic roster MISSING the Skill(-from-roster invariant FAILS."""
+    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
+    res = _result_for(data, "dynamic-roster-missing-skill.js")
+    assert res["status"] == "fail", res
+    assert any("skill" in e.lower() for e in res["static_errors"]), res["static_errors"]
+
+
+def test_dynamic_roster_labels_structural():
+    """The validator must LABEL the dynamic-roster check as STRUCTURAL (honest limits)."""
+    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
+    res = _result_for(data, "dynamic-roster.js")
+    blob = json.dumps(res["checks"]).lower()
+    assert "structural" in blob, res["checks"]
+
+
+def test_dynamic_roster_not_vacuous_pass():
+    """A fully-dynamic contract must NOT pass merely because there are no names to
+    check. Stripping the structural invariant from a {dynamic:true} contract source
+    must produce a failure (proves the check is doing real work)."""
+    src = (FIXTURES / "dynamic-roster.js").read_text()
+    contract = vwc.extract_contract(src)
+    assert vwc.roster_is_fully_dynamic(contract) is True
+    errors, _ = vwc._static_checks(src, contract)
+    assert errors == [], errors  # the real fixture passes
+    # Remove the Skill( directive -> structural invariant violated -> must error.
+    stripped = src.replace('Skill("${r.skill}")', "your usual methodology")
+    errs2, _ = vwc._static_checks(stripped, contract)
+    assert any("skill" in e.lower() for e in errs2), errs2
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
+def test_dynamic_roster_fixture_passes_dynamic():
+    """With node, the fully-dynamic fixture records a real trace and PASSES."""
+    rc, data = _run_json("--dir", str(FIXTURES))
+    res = _result_for(data, "dynamic-roster.js")
+    assert res["status"] == "pass", res
+    assert res.get("dynamic_ran") is True
+    assert not res["dynamic_errors"], res["dynamic_errors"]
+
+
+# --- The real fan-out workflow MUST conform (static) -------------------------
+
+
+def test_real_fan_out_workflow_passes_static():
+    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
+    res = _result_for(data, "fan-out-workflow.js")
+    assert res["status"] == "pass", res

@@ -21,6 +21,11 @@
 //   - budget -> {remaining: () => 1e9, spent: () => 0, total: null}  (never exhausts)
 //   - log(...) -> no-op recorder
 //
+// The harness calls run({scope, tier, fixThreshold, roster, synthAgentType}). The
+// roster + synthAgentType keys let a FULLY-DYNAMIC workflow (caller-supplied
+// roster, e.g. fan-out-workflow) execute its fan-out; static-roster workflows
+// (e.g. comprehensive-review) ignore the extra keys.
+//
 // Usage:
 //   node scripts/conformance-harness.mjs <path-to-workflow.js> [--tiers 2,3,4]
 // Emits to stdout: JSON { workflow, traces: { "<tier>": <trace> }, errors: [...] }
@@ -133,10 +138,18 @@ async function recordTier(modUrl, tier) {
     throw new Error("workflow has no default export function");
   }
   // Minimal mock args that exercise the data-driven branches at this tier.
+  // A sample roster + synthAgentType lets a FULLY-DYNAMIC workflow (caller-supplied
+  // roster, e.g. fan-out-workflow) run its fan-out; static-roster workflows ignore
+  // these extra keys. fixThreshold bounds any budget loop.
   await run({
     scope: { files: ["src/a.py", "src/b.py"], packages: ["pkg"], tier },
     tier,
     fixThreshold: 8000,
+    roster: [
+      { agentType: "reviewer-system", skill: "systematic-code-review", lens: "security" },
+      { agentType: "reviewer-code", skill: "systematic-code-review", lens: "quality" },
+    ],
+    synthAgentType: "research-coordinator-engineer",
   });
   return buildTrace(records, phasesEntered);
 }
