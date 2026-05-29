@@ -140,14 +140,16 @@ async function recordTier(modUrl, tier) {
   // Minimal mock args that exercise the data-driven branches at this tier.
   // A sample roster + synthAgentType lets a FULLY-DYNAMIC workflow (caller-supplied
   // roster, e.g. fan-out-workflow) run its fan-out; static-roster workflows ignore
-  // these extra keys. fixThreshold bounds any budget loop.
+  // these extra keys. fixThreshold bounds any budget loop. Each roster entry
+  // carries a `skills` LIST (Stage 2.5: the full /do skill stack) so the workflow
+  // emits one Skill() per element — the recorded trace then shows every skill.
   await run({
     scope: { files: ["src/a.py", "src/b.py"], packages: ["pkg"], tier },
     tier,
     fixThreshold: 8000,
     roster: [
-      { agentType: "reviewer-system", skill: "systematic-code-review", lens: "security" },
-      { agentType: "reviewer-code", skill: "systematic-code-review", lens: "quality" },
+      { agentType: "reviewer-system", skills: ["systematic-code-review", "verification-before-completion"], lens: "security" },
+      { agentType: "reviewer-code", skills: ["systematic-code-review", "verification-before-completion"], lens: "quality" },
     ],
     synthAgentType: "research-coordinator-engineer",
   });

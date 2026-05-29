@@ -20,10 +20,12 @@
 //   - Wall-clock and randomness are unavailable by design, so determinism is
 //     bit-stable across replay. This script uses neither.
 
+import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
+
 export const meta = {
   name: "comprehensive-review-workflow",
   description:
-    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
+    "Four-wave code review as a deterministic native Workflow: tier-scaled waves (right-sizing), schema-validated typed findings per wave, parallel barriers within a wave, pipelined Wave 1 -> Wave 2 hand-off, per-finding adversarial verify before synthesis, and a budget-bounded fix loop. Each reviewer attaches its full skill stack (one Skill() per skill) plus the /do mandatory injections. Mirrors comprehensive-review.md; that markdown flow stays the fallback.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stages 0-1). This is the declared dispatch shape the conformance gate
@@ -36,11 +38,14 @@ export const meta = {
     // Phase titles this script enters at runtime via phase(). Order matters.
     phases: ["wave-1", "wave-2", "wave-3", "verify", "fix"],
     // Wave-1 is a FIXED barrier: a literal 4-agent roster, every run. Countable.
+    // Each entry carries a `skills` LIST (the full stack the agent attaches via
+    // one Skill() per element) — the gate asserts EACH declared skill has a
+    // corresponding Skill("..") emission in source.
     roster: [
-      { agentType: "reviewer-system", skill: "systematic-code-review" },
-      { agentType: "reviewer-domain", skill: "systematic-code-review" },
-      { agentType: "reviewer-code", skill: "systematic-code-review" },
-      { agentType: "reviewer-perspectives", skill: "roast" },
+      { agentType: "reviewer-system", skills: ["systematic-code-review", "verification-before-completion"] },
+      { agentType: "reviewer-domain", skills: ["systematic-code-review", "verification-before-completion"] },
+      { agentType: "reviewer-code", skills: ["systematic-code-review", "verification-before-completion"] },
+      { agentType: "reviewer-perspectives", skills: ["roast", "verification-before-completion"] },
     ],
     // The Wave-1 barrier dispatches exactly 4 agents on every run (static).
     agents: { static: 4, dynamic: false },
@@ -52,15 +57,17 @@ export const meta = {
   },
 };
 
-// Map each reviewer agent to the methodology skill it invokes by name. Skill-
-// attach inside a native Workflow agent() dispatch resolves by name (path-
-// independent), proven this session. reviewer-{system,domain,code} run the
-// 4-phase systematic review; reviewer-perspectives runs the roast lens.
-const AGENT_SKILL = {
-  "reviewer-system": "systematic-code-review",
-  "reviewer-domain": "systematic-code-review",
-  "reviewer-code": "systematic-code-review",
-  "reviewer-perspectives": "roast",
+// Map each reviewer agent to the FULL skill stack it invokes by name (one
+// Skill() per element). Skill-attach inside a native Workflow agent() dispatch
+// resolves by name (path-independent), proven this session. reviewer-{system,
+// domain,code} run the 4-phase systematic review; reviewer-perspectives runs
+// the roast lens; every reviewer also runs verification-before-completion
+// (review work earns the verification gate — the /do Phase-3 stack for review).
+const AGENT_SKILLS = {
+  "reviewer-system": ["systematic-code-review", "verification-before-completion"],
+  "reviewer-domain": ["systematic-code-review", "verification-before-completion"],
+  "reviewer-code": ["systematic-code-review", "verification-before-completion"],
+  "reviewer-perspectives": ["roast", "verification-before-completion"],
 };
 
 // --- Wave rosters: the four real reviewer agents, applied through wave-specific
@@ -71,32 +78,33 @@ const AGENT_SKILL = {
 //     lens-based scheme in comprehensive-review/references/wave-{1,2,3}-*.md. ----
 
 // Each entry now carries BOTH `agent` (-> agentType, dispatches the real
-// specialist) AND `skill` (the methodology that agent invokes by name via
-// Skill("...")). `lens` still scales review depth across waves.
+// specialist) AND `skills` (the full methodology stack that agent invokes by
+// name, one Skill("...") per element). `lens` still scales review depth across
+// waves.
 const WAVE1_AGENTS = [
-  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "security, input validation, error handling, API contracts" },
-  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "business logic, edge cases, data integrity, state transitions" },
-  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "conventions, naming, dead code, performance, test coverage" },
-  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "newcomer clarity, user-advocate, senior-maintainer view" },
+  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "security, input validation, error handling, API contracts" },
+  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "business logic, edge cases, data integrity, state transitions" },
+  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "conventions, naming, dead code, performance, test coverage" },
+  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "newcomer clarity, user-advocate, senior-maintainer view" },
 ];
 
 // Tier 3 dispatches the deep-dive subset; Tier 4 adds the remaining lenses.
 const WAVE2_SUBSET = [
-  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "deep security + concurrency + resource lifecycle" },
-  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "deep correctness + data integrity + migration safety" },
-  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "deep performance + error paths + state machines" },
+  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "deep security + concurrency + resource lifecycle" },
+  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "deep correctness + data integrity + migration safety" },
+  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "deep performance + error paths + state machines" },
 ];
 
 const WAVE2_FULL = WAVE2_SUBSET.concat([
-  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "API-contract compatibility + observability gaps" },
-  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "senior-maintainer + meta-process review" },
+  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "API-contract compatibility + observability gaps" },
+  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "senior-maintainer + meta-process review" },
 ]);
 
 const WAVE3_AGENTS = [
-  { agent: "reviewer-perspectives", skill: AGENT_SKILL["reviewer-perspectives"], lens: "contrarian + falsifier: try to break the change" },
-  { agent: "reviewer-system", skill: AGENT_SKILL["reviewer-system"], lens: "adversarial security: assume hostile input everywhere" },
-  { agent: "reviewer-domain", skill: AGENT_SKILL["reviewer-domain"], lens: "adversarial assumptions: challenge every invariant" },
-  { agent: "reviewer-code", skill: AGENT_SKILL["reviewer-code"], lens: "simplicity challenge: is this over-engineered?" },
+  { agent: "reviewer-perspectives", skills: AGENT_SKILLS["reviewer-perspectives"], lens: "contrarian + falsifier: try to break the change" },
+  { agent: "reviewer-system", skills: AGENT_SKILLS["reviewer-system"], lens: "adversarial security: assume hostile input everywhere" },
+  { agent: "reviewer-domain", skills: AGENT_SKILLS["reviewer-domain"], lens: "adversarial assumptions: challenge every invariant" },
+  { agent: "reviewer-code", skills: AGENT_SKILLS["reviewer-code"], lens: "simplicity challenge: is this over-engineered?" },
 ];
 
 // --- Schemas (mirror skills/shared-patterns/schemas/) -------------------------
@@ -194,26 +202,26 @@ function dedupeFindings(findings) {
 }
 
 function reviewPrompt(roster, scope, priorContext) {
-  // roster is {agent, skill, lens}; priorContext is the typed prior-wave summary
-  // passed in-memory (no disk read). The skill directive instructs the dispatched
-  // agent to load its methodology by name — Skill("...") resolves path-independent
-  // inside a native Workflow agent() dispatch (proven this session).
+  // roster is {agent, skills, lens}; priorContext is the typed prior-wave summary
+  // passed in-memory (no disk read). skillDirectives emits one Skill("...") per
+  // element of roster.skills (the full stack) — Skill("...") resolves path-
+  // independent inside a native Workflow agent() dispatch (proven this session).
+  // mandatoryInjections() embeds the /do completeness/density/base-instructions/
+  // reference-loading block so a workflow agent gets the same context as a direct
+  // /do dispatch.
   const context = priorContext
     ? `\n\nPrior-wave findings (typed, in-memory):\n${JSON.stringify(priorContext)}`
     : "";
-  const skillDirective = roster.skill
-    ? `\nInvoke your review methodology by name first: Skill("${roster.skill}"). ` +
-      `Run it, then report findings through its structure.`
-    : "";
   return (
     `You are ${roster.agent}. Apply this review lens: ${roster.lens}.` +
-    skillDirective +
+    skillDirectives(roster.skills) +
     `\nReview the changed code for this diff scope:\n` +
     `${JSON.stringify(scope)}\n` +
     `Return only findings within your lens. The only valid dispositions are ` +
     `FIX NOW, FIX IN FOLLOW-UP (with a tracking artifact), or NOT AN ISSUE ` +
     `(with evidence). "Acceptable", "valid but deferred", and "conservative" ` +
     `are not valid dispositions. Severity is one of critical|high|medium|low.` +
+    mandatoryInjections() +
     context
   );
 }
