@@ -732,54 +732,51 @@ os.rename(tmp, dst)
     # Phase 3.11: Clean toolkit-owned Reasonix mirror (skills + scripts + hooks + settings.json)
     echo ""
     echo -e "${YELLOW}Cleaning Reasonix skills mirror...${NC}"
+    # Remove ONLY the toolkit-owned flatten-copy output, recomputed from the repo so it
+    # matches what the install wrote (skills/<cat>/<name> + top-level skills + private-skills
+    # flattened to <name>, voice skills as voice-<name>, support dirs copied by name). Skills
+    # a USER added by hand (real dirs we never wrote) are left intact. Also sweep stale
+    # toolkit symlinks left by the pre-flatten installer. Finally drop the dir if now empty.
     if [ -d "$REASONIX_SKILLS_DIR" ]; then
-        for item in "${SCRIPT_DIR}/skills/"*; do
-            [ -e "$item" ] || continue
-            target="${REASONIX_SKILLS_DIR}/$(basename "$item")"
-            if [ -L "$target" ] || [ -e "$target" ]; then
-                if [ "$DRY_RUN" = true ]; then
-                    echo -e "${BLUE}  Would remove Reasonix entry: ${target}${NC}"
-                else
-                    rm -rf "$target"
-                    echo -e "${GREEN}  ✓ Removed Reasonix entry: ${target}${NC}"
-                fi
-                REMOVED+=("Reasonix skill $(basename "$item")")
+        reasonix_uninstall_entry() {
+            local target="${REASONIX_SKILLS_DIR}/$1"
+            [ -e "$target" ] || [ -L "$target" ] || return 0
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would remove Reasonix entry: ${target}${NC}"
+            else
+                rm -rf "$target"
+                echo -e "${GREEN}  ✓ Removed Reasonix entry: ${target}${NC}"
             fi
-        done
+            REMOVED+=("Reasonix skill $1")
+        }
 
+        # Flattened skills + private skills (basename of each dir holding a SKILL.md).
+        while IFS= read -r skill_md; do
+            [ -n "$skill_md" ] || continue
+            reasonix_uninstall_entry "$(basename "$(dirname "$skill_md")")"
+        done < <(find "${SCRIPT_DIR}/skills" "${SCRIPT_DIR}/private-skills" -name SKILL.md 2>/dev/null)
+
+        # Voice skills (voice-<name>).
         if [ -d "${SCRIPT_DIR}/private-voices" ]; then
             for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
-                [ -d "$voice_dir" ] || continue
-                skill_src="${voice_dir}/skill"
-                [ -d "$skill_src" ] || continue
-                voice_name=$(basename "$voice_dir")
-                target="${REASONIX_SKILLS_DIR}/voice-${voice_name}"
-                if [ -L "$target" ] || [ -e "$target" ]; then
-                    if [ "$DRY_RUN" = true ]; then
-                        echo -e "${BLUE}  Would remove Reasonix entry: ${target}${NC}"
-                    else
-                        rm -rf "$target"
-                        echo -e "${GREEN}  ✓ Removed Reasonix entry: ${target}${NC}"
-                    fi
-                    REMOVED+=("Reasonix skill voice-${voice_name}")
-                fi
+                [ -f "${voice_dir}/skill/SKILL.md" ] || continue
+                reasonix_uninstall_entry "voice-$(basename "$voice_dir")"
             done
         fi
 
-        if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-            for item in "${SCRIPT_DIR}/private-skills/"*; do
-                [ -e "$item" ] || continue
-                target="${REASONIX_SKILLS_DIR}/$(basename "$item")"
-                if [ -L "$target" ] || [ -e "$target" ]; then
-                    if [ "$DRY_RUN" = true ]; then
-                        echo -e "${BLUE}  Would remove Reasonix entry: ${target}${NC}"
-                    else
-                        rm -rf "$target"
-                        echo -e "${GREEN}  ✓ Removed Reasonix entry: ${target}${NC}"
-                    fi
-                    REMOVED+=("Reasonix skill $(basename "$item")")
-                fi
-            done
+        # Support dirs (no SKILL.md anywhere — shared-patterns, kb, voice-shared*).
+        for support_dir in "${SCRIPT_DIR}/skills/"*/; do
+            [ -d "$support_dir" ] || continue
+            [ -z "$(find "$support_dir" -name SKILL.md -print -quit)" ] || continue
+            reasonix_uninstall_entry "$(basename "$support_dir")"
+        done
+
+        # Stale toolkit symlinks from the pre-flatten installer (reasonix entries are always
+        # real dirs now, so any symlink here is toolkit-owned residue).
+        if [ "$DRY_RUN" != true ]; then
+            find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l -delete 2>/dev/null || true
+            rmdir "$REASONIX_SKILLS_DIR" 2>/dev/null && \
+                echo -e "${GREEN}  ✓ Removed empty ${REASONIX_SKILLS_DIR}${NC}" || true
         fi
     else
         echo "  No ~/.reasonix/skills mirror found. Nothing to clean."
@@ -1633,35 +1630,99 @@ fi
 # and runs Claude-Code-identical hooks declared in ~/.reasonix/settings.json (hooks key only;
 # MCP/model/permissions live in user-owned ~/.reasonix/config.json, which we never touch).
 echo ""
-echo -e "${YELLOW}Syncing Reasonix skills mirror...${NC}"
+echo -e "${YELLOW}Syncing Reasonix skills mirror (flatten + copy)...${NC}"
 REASONIX_ENTRY_COUNT=0
-for item in "${SCRIPT_DIR}/skills/"*; do
-    [ -e "$item" ] || continue
-    target="${REASONIX_SKILLS_DIR}/$(basename "$item")"
-    sync_mirror_entry "$item" "$target" "Reasonix"
-    REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
-done
+REASONIX_SEEN_NAMES=" "  # space-delimited set of flat names claimed this run (collision guard)
+if [ "$DRY_RUN" != true ]; then
+    mkdir -p "$REASONIX_SKILLS_DIR"
+    # Sweep stale toolkit symlinks left by the pre-flatten installer (it symlinked
+    # skills/<category> dirs, which reasonix can't discover). Reasonix skill entries are
+    # ALWAYS real copied dirs now, so any symlink here is stale toolkit output — safe to
+    # drop. User-added skills are real dirs and are left untouched.
+    find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l -delete 2>/dev/null || true
+fi
 
+# Reasonix scans skill roots EXACTLY ONE LEVEL DEEP (src/skills.ts:251-258): a dir entry
+# <X> is a skill only when <X>/SKILL.md exists, and it never recurses. vexjoy skills live
+# at skills/<category>/<name>/SKILL.md (two levels), so a naive same-name mirror exposes
+# category dirs that hold no SKILL.md and reasonix discovers nothing. We therefore FLATTEN
+# every skill to ~/.reasonix/skills/<name>/SKILL.md (one level deep).
+#
+# COPY ALWAYS — even when MODE=symlink: the shipped reasonix npm build (v0.53.2) does NOT
+# traverse symlinked skill ENTRIES during discovery (only real directories are scanned), so
+# a symlinked skill is invisible while a real-dir copy is found instantly. The reasonix
+# skills mirror therefore forces real-directory copies regardless of the install MODE.
+reasonix_install_skill() {
+    # $1 = skill source dir (the dir containing SKILL.md); $2 = flat skill name
+    local skill_dir=$1
+    local name=$2
+    local target="${REASONIX_SKILLS_DIR}/${name}"
+
+    # Within-run collision guard: basenames are verified unique, but never clobber a name
+    # already claimed by this run. (A target left from a PRIOR run is refreshed below.)
+    case "$REASONIX_SEEN_NAMES" in
+        *" ${name} "*)
+            echo -e "${YELLOW}  Warning: duplicate Reasonix skill name '${name}', skipping ${skill_dir}${NC}"
+            return 0
+            ;;
+    esac
+    REASONIX_SEEN_NAMES="${REASONIX_SEEN_NAMES}${name} "
+
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would copy Reasonix skill (real dir, copy forced even in symlink mode): ${skill_dir} -> ${target}/${NC}"
+    else
+        rm -rf "$target"            # idempotent re-run: refresh content like the other mirrors
+        mkdir -p "$target"
+        cp -r "${skill_dir}/." "$target/"
+        echo -e "${GREEN}  ✓ Reasonix copied ${name}${NC}"
+    fi
+    REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
+}
+
+# Flatten every SKILL.md under skills/ (122 nested + 1 top-level = 123 skills).
+while IFS= read -r skill_md; do
+    [ -n "$skill_md" ] || continue
+    skill_dir=$(dirname "$skill_md")
+    reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+done < <(find "${SCRIPT_DIR}/skills" -name SKILL.md | sort)
+
+# Voice skills: private-voices/<name>/skill/SKILL.md -> ~/.reasonix/skills/voice-<name>/
 if [ -d "${SCRIPT_DIR}/private-voices" ]; then
     for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
         [ -d "$voice_dir" ] || continue
         skill_src="${voice_dir}/skill"
-        [ -d "$skill_src" ] || continue
+        [ -f "${skill_src}/SKILL.md" ] || continue
         voice_name=$(basename "$voice_dir")
-        target="${REASONIX_SKILLS_DIR}/voice-${voice_name}"
-        sync_mirror_entry "$skill_src" "$target" "Reasonix"
-        REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
+        reasonix_install_skill "$skill_src" "voice-${voice_name}"
     done
 fi
 
+# Private skills: flatten every SKILL.md (handles flat or category-nested layouts).
 if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-    for item in "${SCRIPT_DIR}/private-skills/"*; do
-        [ -e "$item" ] || continue
-        target="${REASONIX_SKILLS_DIR}/$(basename "$item")"
-        sync_mirror_entry "$item" "$target" "Reasonix"
-        REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
-    done
+    while IFS= read -r skill_md; do
+        [ -n "$skill_md" ] || continue
+        skill_dir=$(dirname "$skill_md")
+        reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
+    done < <(find "${SCRIPT_DIR}/private-skills" -name SKILL.md | sort)
 fi
+
+# Support dirs (no SKILL.md anywhere — e.g. shared-patterns, kb): copy as real top-level
+# dirs so flattened skills' sibling references like ../shared-patterns/*.md resolve, and so
+# the downstream voice shared-references deploy (which targets ${REASONIX_SKILLS_DIR}/shared-patterns)
+# keeps working. These are not skills (reasonix ignores them: no SKILL.md) so they are not counted.
+for support_dir in "${SCRIPT_DIR}/skills/"*/; do
+    [ -d "$support_dir" ] || continue
+    [ -z "$(find "$support_dir" -name SKILL.md -print -quit)" ] || continue  # skip dirs that hold skills
+    support_name=$(basename "$support_dir")
+    support_target="${REASONIX_SKILLS_DIR}/${support_name}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would copy Reasonix support dir: ${support_dir} -> ${support_target}/${NC}"
+    else
+        rm -rf "$support_target"
+        cp -r "$support_dir" "$support_target"
+        echo -e "${GREEN}  ✓ Reasonix copied support dir ${support_name}${NC}"
+    fi
+done
 
 echo ""
 echo -e "${YELLOW}Syncing Reasonix scripts mirror...${NC}"
@@ -1970,7 +2031,7 @@ echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factor
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
 echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
 echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
-echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} mirrored entries in ~/.reasonix/skills"
+echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (real dirs, one level deep) in ~/.reasonix/skills"
 echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
 echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"

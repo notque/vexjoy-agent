@@ -327,33 +327,52 @@ def check_hermes_skills() -> dict:
 
 
 def check_reasonix_skills() -> dict:
-    """Check that toolkit skills are mirrored into ~/.reasonix/skills."""
+    """Verify toolkit skills are DISCOVERABLE by Reasonix in ~/.reasonix/skills.
+
+    Reasonix scans skill roots exactly one level deep (src/skills.ts:251-258): a dir
+    entry ``<name>`` is a skill only when ``<name>/SKILL.md`` exists, and it never
+    recurses. The shipped npm build also skips symlinked entries. So a passing check
+    requires a REAL ``~/.reasonix/skills/<name>/SKILL.md`` one level deep — counting
+    top-level entries is not enough (category dirs / symlinks count but stay invisible).
+    """
     reasonix_skills_dir = REASONIX_DIR / "skills"
 
     if not reasonix_skills_dir.is_dir():
         return {
             "name": "reasonix_skills",
-            "label": "~/.reasonix/skills mirror",
+            "label": "~/.reasonix/skills discoverable",
             "passed": False,
             "detail": "Directory not found. Run install.sh to mirror toolkit skills for Reasonix.",
         }
 
-    repo_root = get_toolkit_repo_root()
-    if repo_root is None:
+    # The /do router is always installed; use it as the canary for discoverability.
+    do_skill = reasonix_skills_dir / "do" / "SKILL.md"
+    if do_skill.is_file():
         return {
             "name": "reasonix_skills",
-            "label": "~/.reasonix/skills mirror",
+            "label": "~/.reasonix/skills discoverable",
             "passed": True,
-            "detail": str(reasonix_skills_dir),
+            "detail": f"'do' skill resolves at {do_skill} (real file, one level deep)",
         }
 
-    # Count entries present (simplified check — Reasonix uses same flat structure)
-    entry_count = sum(1 for _ in reasonix_skills_dir.iterdir())
+    # Fallback: any flattened skill resolving one level deep also proves discoverability.
+    discoverable = sum(1 for entry in reasonix_skills_dir.iterdir() if (entry / "SKILL.md").is_file())
+    if discoverable > 0:
+        return {
+            "name": "reasonix_skills",
+            "label": "~/.reasonix/skills discoverable",
+            "passed": True,
+            "detail": f"{discoverable} skill(s) resolve one level deep (canary 'do' missing)",
+        }
+
     return {
         "name": "reasonix_skills",
-        "label": "~/.reasonix/skills mirror",
-        "passed": entry_count > 0,
-        "detail": f"{entry_count} entries present in Reasonix skills mirror",
+        "label": "~/.reasonix/skills discoverable",
+        "passed": False,
+        "detail": (
+            "No <name>/SKILL.md resolves one level deep — Reasonix sees zero skills. "
+            "Skills must be flattened+copied (not symlinked, not category-nested). Re-run install.sh."
+        ),
     }
 
 
