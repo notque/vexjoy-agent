@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Detect the running harness from environment variables (env proxy).
 
-Emits JSON: {"harness": "claude-code|codex|gemini|factory|unknown",
+Emits JSON: {"harness": "claude-code|codex|gemini|factory|reasonix|unknown",
              "workflow_capable": bool}
 
 Anthropic's native ``Workflow`` tool (deterministic JS orchestration) is
-Claude Code-only. Codex, Gemini, and Factory do not have it; the toolkit's
-prose pipelines run everywhere. ``workflow_capable`` is the env-derived proxy
-``harness == "claude-code"``.
+Claude Code-only. Codex, Gemini, Factory, and Reasonix do not have it; the
+toolkit's prose pipelines run everywhere. ``workflow_capable`` is the
+env-derived proxy ``harness == "claude-code"``.
 
 PROXY, NOT AUTHORITY. A subprocess cannot introspect the session's tool list,
 only the environment. So this script answers "which harness am I in?" and the
@@ -21,6 +21,9 @@ API-key vars like GEMINI_API_KEY, which are commonly set under any harness):
   codex       : CODEX_HOME, CODEX_HOOKS_DIR
   gemini      : GEMINI_CLI
   factory     : FACTORY_SESSION_ID, FACTORY_HOME, DROID_SESSION_ID, DROID_HOME
+  reasonix    : (no env marker) — keyed off the ``_`` invocation var, since
+                reasonix sets no session/home var and spawns hooks with the
+                ambient env inherited (src/hooks.ts:206-212).
 Mirrors hooks/lib/hook_utils.py:detect_cli(), extended with factory + the
 Claude Code session markers.
 
@@ -37,7 +40,7 @@ import json
 import os
 import sys
 
-HARNESSES = ("claude-code", "codex", "gemini", "factory", "unknown")
+HARNESSES = ("claude-code", "codex", "gemini", "factory", "reasonix", "unknown")
 
 # Marker var -> harness. Claude Code is checked first so it wins when env from
 # a Claude Code session leaks other harnesses' vars (config copied around).
@@ -62,6 +65,11 @@ def detect_harness(env: dict | None) -> str:
             for key in keys:
                 if env.get(key):
                     return harness
+        # Reasonix exposes no distinctive env marker. Fall back to the ``_``
+        # invocation var (path of the invoking binary), the same best-effort
+        # mechanism used for gemini/codex in detect_cli().
+        if "reasonix" in env.get("_", "").lower():
+            return "reasonix"
     except Exception:
         return "unknown"
     return "unknown"

@@ -26,6 +26,7 @@ from pathlib import Path
 CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
 HERMES_DIR = Path.home() / ".hermes"
+REASONIX_DIR = Path.home() / ".reasonix"
 COMPONENTS = ["agents", "skills", "hooks", "commands", "scripts"]
 
 
@@ -322,6 +323,37 @@ def check_hermes_skills() -> dict:
         "label": "~/.hermes/skills mirror",
         "passed": entry_count > 0,
         "detail": f"{entry_count} entries present in Hermes skills mirror",
+    }
+
+
+def check_reasonix_skills() -> dict:
+    """Check that toolkit skills are mirrored into ~/.reasonix/skills."""
+    reasonix_skills_dir = REASONIX_DIR / "skills"
+
+    if not reasonix_skills_dir.is_dir():
+        return {
+            "name": "reasonix_skills",
+            "label": "~/.reasonix/skills mirror",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Reasonix.",
+        }
+
+    repo_root = get_toolkit_repo_root()
+    if repo_root is None:
+        return {
+            "name": "reasonix_skills",
+            "label": "~/.reasonix/skills mirror",
+            "passed": True,
+            "detail": str(reasonix_skills_dir),
+        }
+
+    # Count entries present (simplified check — Reasonix uses same flat structure)
+    entry_count = sum(1 for _ in reasonix_skills_dir.iterdir())
+    return {
+        "name": "reasonix_skills",
+        "label": "~/.reasonix/skills mirror",
+        "passed": entry_count > 0,
+        "detail": f"{entry_count} entries present in Reasonix skills mirror",
     }
 
 
@@ -852,6 +884,7 @@ def run_all_checks() -> list[dict]:
     results.append(check_codex_skills())
     results.append(check_codex_agents())
     results.append(check_hermes_skills())
+    results.append(check_reasonix_skills())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())

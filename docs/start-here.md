@@ -12,9 +12,9 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: Codex CLI, Gemini CLI, or Factory. The toolkit mirrors skills and agents into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`), so all four CLIs dispatch the same domain expertise. Claude Code remains the full runtime for hooks, commands, and scripts.
+Optional: Codex CLI, Gemini CLI, Factory, or Reasonix. The toolkit mirrors skills and agents into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Claude Code remains the full runtime for hooks, commands, and scripts.
 
-Verify optional tools: `codex --version` / `gemini --version` / `factory --version`.
+Verify optional tools: `codex --version` / `gemini --version` / `factory --version` / `reasonix --version`.
 
 Command entry points:
 
@@ -24,6 +24,7 @@ Command entry points:
 | Codex | `$do` |
 | Gemini CLI | `/do` |
 | Factory | `/do` |
+| Reasonix | `/do` |
 
 ## Install
 
@@ -35,7 +36,7 @@ cd vexjoy-agent
 
 The installer asks one question: symlink or copy. Symlink means updates via `git pull`. Copy means a stable snapshot. Either works.
 
-What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"). Configures hooks in settings so they activate automatically.
+What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"), and skills + scripts + hooks into `~/.reasonix/` (no agent surface there). Configures hooks in settings so they activate automatically.
 
 ## Verify
 

@@ -2,9 +2,10 @@
 """Tests for scripts/detect-workflow-capability.py — harness identity from env.
 
 Covers the env-matrix harness classifier (claude-code / codex / gemini /
-factory / unknown), the workflow_capable proxy (true only for claude-code),
-the never-raises / exit-0 contract, and the JSON output shape. The env signal
-is a PROXY: the orchestrator LLM adds the authoritative tool-list gate.
+factory / reasonix / unknown), the workflow_capable proxy (true only for
+claude-code), the never-raises / exit-0 contract, and the JSON output shape.
+The env signal is a PROXY: the orchestrator LLM adds the authoritative
+tool-list gate.
 """
 
 import json
@@ -43,6 +44,9 @@ _spec.loader.exec_module(dwc)
         # factory / droid
         ({"FACTORY_SESSION_ID": "f1"}, "factory"),
         ({"DROID_SESSION_ID": "d1"}, "factory"),
+        # reasonix: no env marker — keyed off the _ invocation var
+        ({"_": "/usr/local/bin/reasonix"}, "reasonix"),
+        ({"_": "/opt/node/bin/Reasonix"}, "reasonix"),
         # nothing distinctive
         ({}, "unknown"),
     ],
@@ -75,6 +79,7 @@ def test_claude_code_wins_over_other_markers():
         ("codex", False),
         ("gemini", False),
         ("factory", False),
+        ("reasonix", False),
         ("unknown", False),
     ],
 )

@@ -62,7 +62,7 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
+Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
 
 | CLI | Entry Point |
 |-----|-------------|
@@ -70,6 +70,7 @@ Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/
 | Codex | `$do` |
 | Gemini CLI | `/do` |
 | Factory | `/do` |
+| Reasonix | `/do` |
 
 **Full setup:** [docs/start-here.md](docs/start-here.md)
 
@@ -93,6 +94,13 @@ Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event na
 <summary><b>Factory CLI Support</b></summary>
 
 Mirrors agents (as "droids"), skills, and all hooks into `~/.factory/`. Hook config merges into `~/.factory/settings.json` with paths rewritten.
+
+</details>
+
+<details>
+<summary><b>Reasonix Support</b></summary>
+
+Mirrors skills, scripts, and all hooks into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix's hook contract is Claude-Code-identical, so hook config is written to the `hooks` key of `~/.reasonix/settings.json` with paths rewritten. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 

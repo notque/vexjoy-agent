@@ -459,7 +459,7 @@ def detect_cli() -> str:
     running Claude Code.
 
     Returns:
-        One of "gemini", "codex", or "claude".
+        One of "gemini", "codex", "reasonix", or "claude".
     """
     # Most specific: explicit CLI identification env var
     if os.environ.get("GEMINI_CLI"):
@@ -470,6 +470,10 @@ def detect_cli() -> str:
         return "gemini"
     if "codex" in invocation.lower():
         return "codex"
+    # Reasonix sets no session/home env var and spawns hooks with the ambient
+    # env inherited, so it is only identifiable via the _ invocation var.
+    if "reasonix" in invocation.lower():
+        return "reasonix"
     # Codex-specific env vars
     if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
         return "codex"
