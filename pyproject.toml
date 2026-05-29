@@ -30,6 +30,9 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# Local-only backup virtualenv (untracked; absent in CI). Exclude its vendored
+# third-party scripts from lint/format so local gate runs stay clean.
+extend-exclude = ["venv.312.bak"]
 
 [tool.ruff.lint]
 select = [

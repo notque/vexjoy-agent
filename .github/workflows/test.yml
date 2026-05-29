@@ -26,6 +26,11 @@ jobs:
       - run: python scripts/validate-doc-counts.py
       - run: python scripts/validate-doc-commands.py
       - run: python scripts/validate_component_models.py
+      # Conformance gate for native .js workflows: declared meta.contract vs actual
+      # dispatch. node is not installed in CI, so the STATIC validator is the gate
+      # and the dynamic .mjs harness pass auto-skips (local/dev tool). See
+      # adr/native-fast-path-portable-floor.md Stages 0-1.
+      - run: python scripts/validate-workflow-conformance.py
 
   test:
     runs-on: ubuntu-latest
