@@ -395,6 +395,12 @@
             "command": "python3 \"$HOME/.claude/hooks/instruction-compliance.py\"",
             "description": "Instruction compliance measurement after agent dispatch",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-decision-recorder.py\"",
+            "description": "Record routing-decision row per Agent dispatch (replaces /do Phase 5 action A)",
+            "timeout": 3000
           }
         ]
       },
@@ -470,6 +476,12 @@
             "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
             "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "description": "Record routing decision outcome (boost/decay) per subagent stop (replaces /do Phase 5 action B)",
+            "timeout": 3000
           }
         ]
       }

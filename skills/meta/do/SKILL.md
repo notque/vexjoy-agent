@@ -259,19 +259,9 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 
 **Optional: Verbose Routing** — OFF by default. When enabled, explain why each alternative was rejected.
 
-**Step 4: Record routing decision** (Simple+ only — skip Trivial):
+**Learning capture is automatic.** The router records nothing by hand. The `routing-decision-recorder` hook (PostToolUse:Agent) writes the `routing` decision row on every dispatch; `routing-outcome-recorder` (SubagentStop) records the success/failure outcome; `error-learner` and `review-capture` capture the rest. See the note after Phase 4 and ADR `learn-step-to-hook`.
 
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "{selected_agent}:{selected_skill}" \
-    "routing-decision: agent={selected_agent} skill={selected_skill} request: {first_200_chars} complexity: {complexity} enhancements: {comma_separated_list}" \
-    --category effectiveness \
-    --tags "{applicable_flags}"
-```
-
-Tags: `thinking:slow` or `thinking:fast` (from Step 2 directive). Advisory — continue if it fails. Categories: `effectiveness` (success), `misroute` (reroutes).
-
-**Gate**: Agent+skill selected. Banner displayed. Decision recorded. Proceed to Phase 3.
+**Gate**: Agent+skill selected. Banner displayed. Proceed to Phase 3.
 
 ---
 
@@ -451,7 +441,7 @@ TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settin
 
 **Category overrides** (regardless of complexity): `thinking:slow` for security work, API/schema design, migrations, 5+ file reviews, architectural decisions. `thinking:fast` for lookups, status checks, single-function renames/refactors.
 
-Record as `thinking:slow` or `thinking:fast` in Phase 2 Step 4 `--tags`.
+Thinking class (`thinking:slow` / `thinking:fast`) is captured automatically by the routing hooks via the dispatch metadata; the router sets the directive but records nothing by hand.
 
 **Verb-based model dispatch for Complex tasks (3+ data sources).** Extraction verbs use parallel Haiku readers; analysis verbs use single Opus agent (38% cheaper, 23% faster for extraction — A/B tested).
 
@@ -478,59 +468,34 @@ Invoke `auto-pipeline` for unmatched requests. If no pipeline matches, fall back
 
 When uncertain: **ROUTE ANYWAY** with verification-before-completion as safety net.
 
-**Gate**: Agent invoked, results delivered. Proceed to Phase 5.
+**Gate**: Agent invoked, results delivered. Learning capture runs automatically (see note below) — the router does not record by hand.
 
 ---
 
-### Phase 5: LEARN
+### Learning Capture (automatic — no router step)
 
-**Goal**: Capture session insights to `learning.db`.
+Learning capture is fully automatic via hooks. The router records nothing by hand:
 
-**Routing decision** (Simple+, observable facts only):
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "{selected_agent}:{selected_skill}" \
-    "routing-decision: agent={selected_agent} skill={selected_skill} tool_errors: {0|1} user_rerouted: {0|1}" \
-    --category effectiveness
-```
+| Capture | Hook | Event |
+|---------|------|-------|
+| Routing decision row (`{agent}:{skill}`, `category=effectiveness`) | `routing-decision-recorder` | PostToolUse:Agent |
+| Routing outcome (boost on success / decay on failure) | `routing-outcome-recorder` | SubagentStop |
+| Right-sizing tier feedback (when a `rightsizing:` banner is emitted) | `routing-decision-recorder` | PostToolUse:Agent |
+| Tool errors and fixes | `error-learner` | PostToolUse |
+| Review findings | `review-capture` | PostToolUse:Agent |
 
-**Routing outcome** (MANDATORY for Simple+ — records whether the route succeeded):
-After the agent completes, evaluate the outcome based on observable facts:
-- **Success signals**: agent produced commits, tests passed, no tool errors, user accepted result
-- **Failure signals**: agent errored, user re-routed, rework required, `tool_errors=1`
+These keep the routing feedback loop fed: `learning-db.py route-health` reads the decision rows (denominator) and the boost/decay outcomes (numerator) the hooks write. See ADR `learn-step-to-hook`.
 
-```bash
-# On success:
-python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
-    "{selected_agent}:{selected_skill}" --success
+**Outcome fidelity (note).** The hook-derived outcome is a deterministic proxy: success = no tool errors and no re-route this dispatch; failure = errors detected. It cannot see a *next-turn* user rejection, so it is lower-fidelity than a manual LLM judgment — accepted deliberately for zero-cost coverage on every route.
 
-# On failure (include reason):
-python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
-    "{selected_agent}:{selected_skill}" --failure --reason "{brief reason}"
-```
+**OPTIONAL (not a gate):** curated free-text insight and graduation of review findings are now opt-in, handled via the `retro` skill (`retro graduate`), not a forced router step:
 
-Do not skip this step.
-
-**Right-sizing feedback** (when a tiered review/parallel-analysis ran): record the actual agent count against the detected file scope so the heuristic can be refined later.
-
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "rightsizing:tier{tier}" \
-    "rightsizing: tier={tier} files={file_count} packages={package_count} agents_dispatched={actual_count}" \
-    --category effectiveness --tags rightsizing
-```
-
-**Auto-capture** (hooks, zero LLM cost): `error-learner.py`, `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
-
-**Skill-scoped recording**:
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn --skill go-patterns "insight"
 python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "insight"
 ```
 
-**Immediate graduation for review findings** (MANDATORY): Issue found + fixed in same PR → (1) Record scoped, (2) Boost to 1.0, (3) Embed into failure modes, (4) Graduate, (5) Stage in same PR.
-
-**Gate**: Record at least one learning AND one routing outcome for Simple+ tasks. Review findings get immediate graduation.
+Routing rows are `category=effectiveness`, which `retro graduate` excludes — so these never require graduation.
 
 ---
 
