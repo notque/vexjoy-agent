@@ -139,6 +139,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-worktree-edit-guard.py\"",
+            "description": "Worktree edit guard: blocks worktree-isolated agents from editing main-repo files outside their worktree (ADR worktree-edit-guard)",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
