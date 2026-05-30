@@ -259,19 +259,9 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 
 **Optional: Verbose Routing** — OFF by default. When enabled, explain why each alternative was rejected.
 
-**Step 4: Record routing decision** (Simple+ only — skip Trivial):
+**Learning capture is automatic.** The router records nothing by hand. The `routing-decision-recorder` hook (PostToolUse:Agent) writes the `routing` decision row on every dispatch; `routing-outcome-recorder` (SubagentStop) records the success/failure outcome; `error-learner` and `review-capture` capture the rest. See the note after Phase 4 and ADR `learn-step-to-hook`.
 
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "{selected_agent}:{selected_skill}" \
-    "routing-decision: agent={selected_agent} skill={selected_skill} request: {first_200_chars} complexity: {complexity} enhancements: {comma_separated_list}" \
-    --category effectiveness \
-    --tags "{applicable_flags}"
-```
-
-Tags: `thinking:slow` or `thinking:fast` (from Step 2 directive). Advisory — continue if it fails. Categories: `effectiveness` (success), `misroute` (reroutes).
-
-**Gate**: Agent+skill selected. Banner displayed. Decision recorded. Proceed to Phase 3.
+**Gate**: Agent+skill selected. Banner displayed. Proceed to Phase 3.
 
 ---
 
@@ -434,6 +424,8 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject base instructions for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
 
+**MANDATORY: Stamp the routing marker on every routed agent prompt.** Prepend verbatim: `[do-route] agent={agent} skill={skill} complexity={complexity}` (use `skill=-` when routing agent-only). This is the SOLE signal the `routing-decision-recorder` hook uses to record a `routing` decision row — dispatches without it (pr-review reviewer sub-agents, nested fan-out) are correctly excluded from route-health, and the hook reads `agent`/`skill` straight from the marker (no prompt-sniffing). Stamp it on each agent in a parallel roster.
+
 **Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens already spent this session; prepend to each dispatched agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." This is an advisory signal, not a hard runtime cap — it nudges agents to right-size their own work. Keep it cheap: read the key once per session, skip injection if the key is absent and no default is desired.
 
 ```bash
@@ -451,7 +443,7 @@ TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settin
 
 **Category overrides** (regardless of complexity): `thinking:slow` for security work, API/schema design, migrations, 5+ file reviews, architectural decisions. `thinking:fast` for lookups, status checks, single-function renames/refactors.
 
-Record as `thinking:slow` or `thinking:fast` in Phase 2 Step 4 `--tags`.
+Thinking class (`thinking:slow` / `thinking:fast`) is captured automatically by the routing hooks via the dispatch metadata; the router sets the directive but records nothing by hand.
 
 **Verb-based model dispatch for Complex tasks (3+ data sources).** Extraction verbs use parallel Haiku readers; analysis verbs use single Opus agent (38% cheaper, 23% faster for extraction — A/B tested).
 
@@ -478,59 +470,36 @@ Invoke `auto-pipeline` for unmatched requests. If no pipeline matches, fall back
 
 When uncertain: **ROUTE ANYWAY** with verification-before-completion as safety net.
 
-**Gate**: Agent invoked, results delivered. Proceed to Phase 5.
+**Gate**: Agent invoked, results delivered. Learning capture runs automatically (see note below) — the router does not record by hand.
 
 ---
 
-### Phase 5: LEARN
+### Learning Capture (automatic — no router step)
 
-**Goal**: Capture session insights to `learning.db`.
+Learning capture is fully automatic via hooks. The router records nothing by hand:
 
-**Routing decision** (Simple+, observable facts only):
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "{selected_agent}:{selected_skill}" \
-    "routing-decision: agent={selected_agent} skill={selected_skill} tool_errors: {0|1} user_rerouted: {0|1}" \
-    --category effectiveness
-```
+| Capture | Hook | Event |
+|---------|------|-------|
+| Routing decision row (`{agent}:{skill}`, `category=effectiveness`) | `routing-decision-recorder` | PostToolUse:Agent |
+| Routing outcome - validate pending (decision-row exists, re-queue late rows) | `routing-outcome-recorder` | SubagentStop |
+| Routing outcome - finalize (boost/decay) on the next user turn | `routing-outcome-finalizer` | UserPromptSubmit |
+| Routing outcome - session-end fallback for autonomous runs | `session-learning-recorder` | Stop |
+| Right-sizing tier feedback (when a `rightsizing:` banner is emitted) | `routing-decision-recorder` | PostToolUse:Agent |
+| Tool errors and fixes | `error-learner` | PostToolUse |
+| Review findings | `review-capture` | PostToolUse:Agent |
 
-**Routing outcome** (MANDATORY for Simple+ — records whether the route succeeded):
-After the agent completes, evaluate the outcome based on observable facts:
-- **Success signals**: agent produced commits, tests passed, no tool errors, user accepted result
-- **Failure signals**: agent errored, user re-routed, rework required, `tool_errors=1`
+These keep the routing feedback loop fed: `learning-db.py route-health` reads the decision rows (denominator) and the boost/decay outcomes (numerator) the hooks write. See ADR `learn-step-to-hook`.
 
-```bash
-# On success:
-python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
-    "{selected_agent}:{selected_skill}" --success
+**Outcome fidelity (note).** A routed dispatch's outcome is resolved on the user's NEXT turn from three deterministic inputs - this dispatch's tool errors, the user's reaction, and whether they re-routed the same intent - at zero LLM cost. `routing-decision-recorder` writes the decision row; `routing-outcome-recorder` (SubagentStop) records a *provisional* pending outcome (no eager boost/decay); `routing-outcome-finalizer` (UserPromptSubmit) finalizes it once: **failure** on tool errors OR a clear rejection/rework/re-route, **success** otherwise (explicit acceptance, or a neutral/new topic - no complaint = accepted, matching the prior LLM step's default). A Stop fallback resolves any dispatch with no next prompt (autonomous runs) from the error flag alone. Residual: the reaction detector is **deterministic and high-precision** - it fires failure only on strong, unambiguous markers and errs toward success on ambiguity, so it is conservative rather than full semantic judgment. It does not eagerly score "no error = success" anymore.
 
-# On failure (include reason):
-python3 ~/.claude/scripts/learning-db.py record-routing-outcome \
-    "{selected_agent}:{selected_skill}" --failure --reason "{brief reason}"
-```
+**OPTIONAL (not a gate):** curated free-text insight and graduation of review findings are now opt-in, handled via the `retro` skill (`retro graduate`), not a forced router step:
 
-Do not skip this step.
-
-**Right-sizing feedback** (when a tiered review/parallel-analysis ran): record the actual agent count against the detected file scope so the heuristic can be refined later.
-
-```bash
-python3 ~/.claude/scripts/learning-db.py record \
-    routing "rightsizing:tier{tier}" \
-    "rightsizing: tier={tier} files={file_count} packages={package_count} agents_dispatched={actual_count}" \
-    --category effectiveness --tags rightsizing
-```
-
-**Auto-capture** (hooks, zero LLM cost): `error-learner.py`, `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
-
-**Skill-scoped recording**:
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn --skill go-patterns "insight"
 python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "insight"
 ```
 
-**Immediate graduation for review findings** (MANDATORY): Issue found + fixed in same PR → (1) Record scoped, (2) Boost to 1.0, (3) Embed into failure modes, (4) Graduate, (5) Stage in same PR.
-
-**Gate**: Record at least one learning AND one routing outcome for Simple+ tasks. Review findings get immediate graduation.
+Routing rows are `category=effectiveness`, which `retro graduate` excludes — so these never require graduation.
 
 ---
 

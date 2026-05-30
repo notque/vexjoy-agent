@@ -23,7 +23,8 @@ wastes tokens and hits prompt-length limits.
 | Single commit review | `codex exec review --commit <SHA>` | `--commit <SHA>` |
 | Unstaged changes only | `codex exec review --uncommitted` | `--uncommitted` |
 | Custom focus areas | `codex exec "YOUR PROMPT"` | no `--base/--commit` |
-| High-quality analysis | add to any | `-m gpt-5.4 -c 'model_reasoning_effort="xhigh"'` |
+| High-quality analysis (default) | add to any | `-m gpt-5.4 -c 'model_reasoning_effort="high"'` |
+| Hard correctness escalation (security/concurrency/migrations) | opt-in only | `-m gpt-5.4 -c 'model_reasoning_effort="xhigh"'` |
 | Capture output | add to any | `-o "$TMPFILE"` |
 | One-shot (no persist) | add to any | `--ephemeral` |
 | Container/VM bypass | add to any | `--dangerously-bypass-approvals-and-sandbox` |
@@ -40,7 +41,7 @@ TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX)
 codex exec review \
   --base main \
   -m gpt-5.4 \
-  -c 'model_reasoning_effort="xhigh"' \
+  -c 'model_reasoning_effort="high"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE"
@@ -57,7 +58,7 @@ TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX)
 
 codex exec \
   -m gpt-5.4 \
-  -c 'model_reasoning_effort="xhigh"' \
+  -c 'model_reasoning_effort="high"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE" \

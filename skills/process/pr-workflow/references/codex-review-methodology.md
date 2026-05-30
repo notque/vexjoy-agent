@@ -157,7 +157,7 @@ Codex's Positive Notes section affirms — confirm those patterns are actually c
 ## Report Structure Template
 
 ```markdown
-## Codex Code Review (GPT-5.4 xhigh)
+## Codex Code Review (GPT-5.4 high)
 
 **Scope**: {what was reviewed — e.g., "git diff main...HEAD (12 files, +340/-120 lines)"}
 **Review date**: {date}
