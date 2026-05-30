@@ -118,7 +118,6 @@ _REJECTION_PATTERNS = [
     r"\bthis (didn'?t|did not) work\b",
     r"\b(start over|try again)\b",
     r"\byou (broke|messed up|got it wrong)\b",
-    r"\b(no,? that'?s|nope,? that'?s)\b",
     # Sole surviving re-route signal: anchored on the literal complaint "wrong".
     r"\bwrong (agent|skill|route|routing)\b",
     r"\b(fix|undo) (your|the) (mistake|error|mess)\b",
@@ -144,6 +143,24 @@ _INSTRUCTIONAL_CUE_PATTERNS = [
 _REJECTION_RE = re.compile("|".join(_REJECTION_PATTERNS), re.IGNORECASE)
 _ACCEPTANCE_RE = re.compile("|".join(_ACCEPTANCE_PATTERNS), re.IGNORECASE)
 _INSTRUCTIONAL_CUE_RE = re.compile("|".join(_INSTRUCTIONAL_CUE_PATTERNS), re.IGNORECASE)
+
+# LEADING "no"/"nope" REACTION (dead-pattern fix). The old rejection regex
+# `\b(no,? that'?s|nope,? that'?s)\b` was written to span a comma ("no, that's")
+# but the clause splitter severs "no" from "that's" FIRST, so it could never
+# match — a genuine complaint "no, that's not what I asked for" silently fell
+# back to SUCCESS. This special-case detects the leading bare reaction token
+# WITHOUT depending on comma-adjacency the splitter destroys:
+#   (1) `^\s*(no|nope)\b` — the reaction must be at the ABSOLUTE START of the
+#       RAW prompt, so "no" inside "there is no cache" or "undo is hard" / a
+#       mid-sentence "nope" never qualifies; AND
+#   (2) a `that'?s` complaint marker anywhere in the prompt — a negation/fault
+#       ("that's wrong", "that's not what I asked for"). The complaint anchor
+#       keeps the leading "no" from firing on benign "no, go ahead and ship it".
+_LEADING_NO_RE = re.compile(r"^\s*(no|nope)\b", re.IGNORECASE)
+_THATS_COMPLAINT_RE = re.compile(
+    r"\bthat'?s (wrong|worse|broken|not (right|what i (wanted|asked for)))\b",
+    re.IGNORECASE,
+)
 
 # Clause boundary: split on sentence/clause terminators (incl. comma) so only the
 # user's immediate reaction (the first clause) is tested for rejection. The comma
@@ -187,6 +204,12 @@ def is_rejection(prompt: str) -> bool:
         return False  # acceptance precedence — later "redo" clauses are new work
     if _INSTRUCTIONAL_CUE_RE.search(first):
         return False  # instructional/conditional/spec clause — not a complaint
+    # Dead-pattern fix: a leading bare "no"/"nope" reaction at the ABSOLUTE start
+    # of the raw prompt, paired with a `that's <complaint>` anywhere, is a genuine
+    # rejection the comma-splitter would otherwise hide (it severs "no" from
+    # "that's"). Anchored at ^ so "no" inside "there is no cache" never fires.
+    if _LEADING_NO_RE.match(prompt) and _THATS_COMPLAINT_RE.search(prompt):
+        return True
     return bool(_REJECTION_RE.search(first))
 
 

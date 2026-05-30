@@ -1103,12 +1103,15 @@ class TestRejectionPrecision:
         "that's wrong, redo it",
         "wrong agent, use a different agent",
         # "that's not what I wanted" is a self-contained first-clause complaint.
-        # (A leading "no, …" would split off "no" as the first clause under the
-        # comma split — that is an acceptable MISS under the asymmetric-cost rule,
-        # not a false failure.)
         "that's not what I wanted",
         "that didn't work, try again",
         "revert that change",
+        # Dead-pattern fix: a leading bare "no"/"nope" reaction + a `that's`
+        # complaint is now caught on the RAW prompt (not the comma-severed first
+        # clause). The old `\b(no,? that's…)\b` pattern could never match because
+        # the clause splitter severed "no" from "that's" first.
+        "no, that's not what I asked for",
+        "nope, that's wrong",
     ]
 
     # The EXACT phrases the confirmation review named as false-positives. Prose
@@ -1125,6 +1128,13 @@ class TestRejectionPrecision:
         "we should have used a different skill for this",
         "thanks, that worked. redo it for the other file",
         "great, now start over on the README",
+        # Leading-"no"/"undo" benign guards: a bare "no"/"undo"/"rollback" token
+        # that is NOT the absolute-start reaction + complaint must stay SUCCESS.
+        # These guard the dead-pattern fix's `^\s*(no|nope)\b` anchor against
+        # over-firing on the word "no"/"undo" mid-sentence.
+        "there is no cache here, document it",
+        "undo is hard here; explain how to revert a squashed merge",
+        "the rollback procedure didn't work in staging, document it",
     ]
     # Genuine complaints the review named as must-still-FAIL.
     NAMED_GENUINE: ClassVar = [
@@ -1132,6 +1142,9 @@ class TestRejectionPrecision:
         "that didn't work",
         "revert that, you broke the build",
         "that's worse than before",
+        # Dead-pattern fix: leading "no"/"nope" reaction + `that's` complaint.
+        "no, that's not what I asked for",
+        "nope, that's wrong",
     ]
 
     def test_benign_first_clause_not_rejection(self):
