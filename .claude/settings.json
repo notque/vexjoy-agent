@@ -112,6 +112,12 @@
             "command": "python3 \"$HOME/.claude/hooks/prompt-capture.py\"",
             "description": "Capture user prompts as voice samples (git repos only)",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-finalizer.py\"",
+            "description": "Finalize routing-decision outcomes on the next user turn (tool-errors + user reaction + re-route); replaces eager SubagentStop boost/decay",
+            "timeout": 3000
           }
         ]
       }
@@ -406,6 +412,12 @@
             "command": "python3 \"$HOME/.claude/hooks/instruction-compliance.py\"",
             "description": "Instruction compliance measurement after agent dispatch",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-decision-recorder.py\"",
+            "description": "Record routing-decision row per Agent dispatch (replaces /do Phase 5 action A)",
+            "timeout": 3000
           }
         ]
       },
@@ -481,6 +493,12 @@
             "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
             "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
           }
         ]
       }
