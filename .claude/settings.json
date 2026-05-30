@@ -82,6 +82,20 @@
             "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/team-config-loader.py\"",
+            "description": "Load optional team-config.yaml into session context; silent when no config file exists",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/rules-distill-injector.py\"",
+            "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -355,6 +369,12 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-rename-sweep.py\"",
             "description": "After git mv, scan for stale references to the old filename stem (ADR-129)",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-bash-injection-scan.py\"",
+            "description": "Advisory scan of files written by Bash commands for prompt-injection patterns (ADR-121); never blocks",
             "timeout": 3000
           }
         ]

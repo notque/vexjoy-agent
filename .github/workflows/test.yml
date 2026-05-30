@@ -81,3 +81,27 @@ jobs:
       - run: pip install pytest
       - name: Joy-check golden fixtures and fleet scan (agents + SKILL.md)
         run: python -m pytest scripts/tests/test_joy_check_instruction_mode.py -v --tb=short
+
+  hook-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      # Static checks (dormancy, schema, mirror, allowlist) read the repo
+      # directly. Liveness (smoke-test) + register-hook validate read
+      # ~/.claude, so deploy hooks + settings.json there first.
+      - name: Deploy hooks and settings to ~/.claude
+        run: |
+          mkdir -p "$HOME/.claude/hooks/lib"
+          cp hooks/*.py "$HOME/.claude/hooks/"
+          cp hooks/lib/*.py "$HOME/.claude/hooks/lib/" 2>/dev/null || true
+          cp .claude/settings.json "$HOME/.claude/settings.json"
+      - name: Registered hooks resolve to backing files
+        run: python scripts/register-hook.py validate
+      - name: Hook-health gate (no-dormant, schema, mirror, liveness)
+        run: python scripts/validate-hook-health.py --ci
+      - name: Smoke-test all registered hooks
+        run: python scripts/smoke-test-hooks.py --ci
