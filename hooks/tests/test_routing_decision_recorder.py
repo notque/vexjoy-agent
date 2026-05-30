@@ -24,6 +24,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -941,3 +942,218 @@ class TestClaimDispatchAtomicity:
         monkeypatch.setattr(ros, "_STATE_DIR", tmp_path / "state")
         assert ros.claim_dispatch("s", "sig-1") is True
         assert ros.claim_dispatch("s", "sig-1") is False
+
+
+# ---------------------------------------------------------------------------
+# HIGH-1 — turn-level rejection is attributable only on a SINGLE pending dispatch
+# ---------------------------------------------------------------------------
+
+
+class TestSingleDispatchAttribution:
+    """A turn-level reaction ("that's wrong, redo it") can only be pinned to a
+    route when exactly ONE dispatch is pending this turn. /do Phase 4 fans out
+    multiple agents per turn; broadcasting the reaction across N parallel
+    siblings would re-decay correct routes (the sibling-misattribution bug on the
+    reaction axis). So with >1 pending, each entry resolves by its OWN errors flag
+    and the turn-level reaction is IGNORED."""
+
+    def _seed(self, ldb, key):
+        ldb.record_learning(
+            topic="routing",
+            key=key,
+            value=f"routing-decision: {key} tool_errors=0",
+            category="effectiveness",
+            source="test",
+        )
+
+    def test_multi_dispatch_rejection_not_broadcast(self, db_env, monkeypatch):
+        # Two CLEAN parallel dispatches + "that's wrong, redo it" => NEITHER
+        # sibling is decayed (the reaction is unattributable across siblings).
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        a = "python-general-engineer:sib-a"
+        b = "golang-general-engineer:sib-b"
+        for key in (a, b):
+            self._seed(ldb, key)
+        a_before = next(r for r in _query_routing_all(db_env) if r["key"] == a)["confidence"]
+        b_before = next(r for r in _query_routing_all(db_env) if r["key"] == b)["confidence"]
+
+        session = "multi-rej"
+        ros.append_pending_outcome(session, a, errors=False)
+        ros.append_pending_outcome(session, b, errors=False)
+
+        f = _load(F_PATH, "fin_multi_rej")
+        ev = _prompt_event("that's wrong, redo it", session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+
+        a_after = next(r for r in _query_routing_all(db_env) if r["key"] == a)
+        b_after = next(r for r in _query_routing_all(db_env) if r["key"] == b)
+        # Both clean siblings score SUCCESS, neither decayed by the ambiguous turn.
+        assert a_after["failure_count"] == 0 and b_after["failure_count"] == 0
+        assert a_after["success_count"] == 1 and b_after["success_count"] == 1
+        assert a_after["confidence"] > a_before and b_after["confidence"] > b_before
+
+    def test_multi_dispatch_per_entry_error_still_fails(self, db_env, monkeypatch):
+        # With >1 pending, the IGNORED turn-reaction does not stop a per-entry
+        # tool error from failing its own key (per-entry attribution preserved).
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        clean = "python-general-engineer:multi-clean"
+        errd = "golang-general-engineer:multi-errd"
+        for key in (clean, errd):
+            self._seed(ldb, key)
+
+        session = "multi-mixed"
+        ros.append_pending_outcome(session, clean, errors=False)
+        ros.append_pending_outcome(session, errd, errors=True)
+
+        f = _load(F_PATH, "fin_multi_mixed")
+        # Even a benign-looking turn: per-entry error decides each key.
+        ev = _prompt_event("ok, next task", session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        clean_after = next(r for r in _query_routing_all(db_env) if r["key"] == clean)
+        errd_after = next(r for r in _query_routing_all(db_env) if r["key"] == errd)
+        assert clean_after["success_count"] == 1 and clean_after["failure_count"] == 0
+        assert errd_after["failure_count"] == 1 and errd_after["success_count"] == 0
+
+    def test_single_dispatch_rejection_decays(self, db_env, monkeypatch):
+        # A SINGLE clean dispatch + "that's wrong" => attributable => decayed.
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        only = "python-general-engineer:solo"
+        self._seed(ldb, only)
+
+        session = "single-rej"
+        ros.append_pending_outcome(session, only, errors=False)
+
+        f = _load(F_PATH, "fin_single_rej")
+        ev = _prompt_event("that's wrong, redo it", session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == only)
+        assert after["failure_count"] == 1 and after["success_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# HIGH-2 — clause-scoped, acceptance-precedence false-failure precision
+# ---------------------------------------------------------------------------
+
+
+class TestRejectionPrecision:
+    """is_rejection() must be high-precision: benign prompts that merely contain
+    a rework verb in a LATER clause (new work, not a complaint) score SUCCESS;
+    only the user's IMMEDIATE reaction (first clause) is tested. Acceptance in
+    the first clause takes precedence over a later rework-shaped clause."""
+
+    BENIGN: ClassVar = [
+        "thanks, that worked. redo it for the other file",
+        "great, now start over on the README",
+        "the workflow should roll back on failure; document that",
+        "looks good. now refactor the parser",
+        "perfect, switch to a different file and add the same test",
+    ]
+    GENUINE: ClassVar = [
+        "that's wrong, redo it",
+        "wrong agent, use a different agent",
+        "no, that's not what I wanted",
+        "that didn't work, try again",
+        "revert that change",
+    ]
+
+    def test_benign_first_clause_not_rejection(self):
+        f = _load(F_PATH, "fin_precision_benign")
+        for p in self.BENIGN:
+            assert f.is_rejection(p) is False, f"benign prompt falsely flagged: {p!r}"
+
+    def test_genuine_rejection_is_rejection(self):
+        f = _load(F_PATH, "fin_precision_genuine")
+        for p in self.GENUINE:
+            assert f.is_rejection(p) is True, f"genuine rejection missed: {p!r}"
+
+    def test_benign_prompt_scores_success_end_to_end(self, db_env, monkeypatch):
+        # A single dispatch + a benign "redo it in a later clause" prompt => the
+        # reaction is acceptance/neutral in the first clause => SUCCESS, no decay.
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        for i, prompt in enumerate(self.BENIGN):
+            key = f"python-general-engineer:benign-{i}"
+            ldb.record_learning(
+                topic="routing",
+                key=key,
+                value=f"routing-decision: {key} tool_errors=0",
+                category="effectiveness",
+                source="test",
+            )
+            session = f"benign-e2e-{i}"
+            ros.append_pending_outcome(session, key, errors=False)
+            f = _load(F_PATH, f"fin_benign_e2e_{i}")
+            ev = _prompt_event(prompt, session=session)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+                f.main()
+            after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+            assert after["failure_count"] == 0, f"benign prompt decayed route: {prompt!r}"
+            assert after["success_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# MEDIUM-1 — orphan (no decision row) is attempt-bounded at the finalizer too
+# ---------------------------------------------------------------------------
+
+
+class TestFinalizerOrphanBounded:
+    """A pending entry whose decision row was NEVER written must be routed
+    through the attempt-bounded requeue at UserPromptSubmit (increments attempts,
+    dropped at MAX_REQUEUE_ATTEMPTS) — not the attempt-preserving revalidate that
+    lets a never-written-row orphan linger up to 24h."""
+
+    def test_orphan_dropped_after_max_requeue_passes(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "fin-orphan"
+        key = "ghost-agent:ghost-skill"
+        ros.append_pending_outcome(session, key, errors=False)
+
+        # Each finalizer pass finds no decision row => requeue (attempts+1).
+        # After MAX_REQUEUE_ATTEMPTS passes the orphan is dropped.
+        for i in range(ros.MAX_REQUEUE_ATTEMPTS + 1):
+            f = _load(F_PATH, f"fin_orphan_{i}")
+            ev = _prompt_event("ok next", session=session)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+                f.main()
+
+        remaining = ros.peek_pending_outcomes(session)
+        assert remaining == [], f"orphan not dropped by finalizer after cap: {remaining}"
+
+    def test_orphan_attempts_increment_each_pass(self, db_env, monkeypatch):
+        # Distinguishes requeue (increments) from revalidate (preserves): after
+        # one finalizer pass the orphan's attempts must be 1, not 0.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "fin-orphan-attempt"
+        key = "ghost-agent:ghost-skill"
+        ros.append_pending_outcome(session, key, errors=False)
+
+        f = _load(F_PATH, "fin_orphan_attempt")
+        ev = _prompt_event("ok next", session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        still = ros.peek_pending_outcomes(session)
+        assert len(still) == 1 and still[0]["attempts"] == 1, still

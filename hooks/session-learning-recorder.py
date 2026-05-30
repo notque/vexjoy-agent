@@ -84,6 +84,9 @@ def finalize_routing_outcomes(session_id: str) -> None:
             return
         import time
 
+        # LOW-1: decision_row_exists no longer self-inits; ensure the schema
+        # exists once before the per-key existence checks below.
+        init_db()
         now = time.time()
         for item in pending:
             key = item.get("key")

@@ -30,11 +30,18 @@ def decision_row_exists(key: str) -> bool:
     edited (a pre-existing SQLi false-positive trips the commit security gate),
     only read. Category matches action A's exact write ('effectiveness');
     topic+key alone is unique so category only narrows.
+
+    LOW-1: this function NO LONGER calls ``init_db()`` per key. Callers that
+    invoke it in a loop MUST call ``init_db()`` once before the loop (the
+    finalizer does so at the top of its scoring block). The DB path/file is
+    expected to already exist by the time an outcome is being scored (action A
+    wrote a decision row through ``init_db`` first). If the file is genuinely
+    absent the SELECT raises and is caught below => treated as "unknown" (skip),
+    identical to the prior best-effort behavior.
     """
-    from learning_db_v2 import get_db_path, init_db
+    from learning_db_v2 import get_db_path
 
     try:
-        init_db()  # ensure schema/file exist before SELECT
         conn = sqlite3.connect(get_db_path(), timeout=5.0)
         try:
             row = conn.execute(

@@ -196,32 +196,10 @@ def claim_dispatch(session_id: str, signature: str) -> bool:
         return True
 
 
-def dispatch_seen(session_id: str, signature: str) -> bool:
-    """Deprecated: non-atomic read. Use claim_dispatch for check-and-set.
-
-    Retained for backward compatibility / diagnostics only. Callers that gate
-    recording on this RACE: pair it with mark_dispatch_seen and two concurrent
-    duplicate deliveries can both pass. Prefer claim_dispatch.
-    """
-    try:
-        return signature in _load(_state_file(session_id)).get("seen", [])
-    except Exception:
-        return False
-
-
-def mark_dispatch_seen(session_id: str, signature: str) -> None:
-    """Deprecated: locked write half of the old split protocol. See claim_dispatch."""
-    try:
-        path = _state_file(session_id)
-        with _state_lock(path):
-            data = _load(path)
-            if signature not in data["seen"]:
-                data["seen"].append(signature)
-                # Bound the seen list so a long session can't grow it unbounded.
-                data["seen"] = data["seen"][-500:]
-                _atomic_write(path, data)
-    except Exception:
-        pass
+# NIT (removed): the split ``dispatch_seen`` (unlocked read) + ``mark_dispatch_seen``
+# (locked write) pair was superseded by the atomic ``claim_dispatch`` check-and-set
+# above. They were dead (no caller) and their split read/write protocol is exactly
+# the TOCTOU race ``claim_dispatch`` closes — deleted so it cannot be re-introduced.
 
 
 def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:

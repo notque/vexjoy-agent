@@ -83,7 +83,12 @@ def main() -> None:
 
         # Lazy import of the shared scorer so a B run that drains nothing pays no
         # learning_db_v2 import cost.
+        from learning_db_v2 import init_db
         from routing_outcome_score import decision_row_exists
+
+        # LOW-1: decision_row_exists no longer self-inits; init the schema ONCE
+        # before the per-key loop so the keyed SELECT has a DB to open.
+        init_db()
 
         debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
         # HIGH (A-before-B): pending entries whose decision row is not yet
