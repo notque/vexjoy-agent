@@ -59,6 +59,47 @@ def count_session_learnings(session_id: str) -> int:
         return row[0] if row else 0
 
 
+def finalize_routing_outcomes(session_id: str) -> None:
+    """Stop fallback: resolve any STILL-pending routed dispatches.
+
+    The next-turn finalizer (UserPromptSubmit, routing-outcome-finalizer.py)
+    resolves a dispatch's outcome from tool-errors + user reaction + re-route.
+    But an autonomous / headless run may end with NO next user prompt, leaving
+    its dispatches provisional forever. This fallback resolves whatever the
+    UserPromptSubmit finalizer did not, using the DETERMINISTIC FLOOR — this
+    dispatch's own ``errors`` flag alone (the old proxy): errors => decay, else
+    boost. It NEVER double-resolves: finalize_pending_outcomes atomically
+    read-and-clears, so anything UserPromptSubmit already scored (and cleared)
+    is simply absent here. Best-effort, silent, never raises.
+    """
+    try:
+        from routing_outcome_score import apply_outcome, decision_row_exists
+        from routing_outcome_state import (
+            MAX_PENDING_AGE_SEC,
+            finalize_pending_outcomes,
+        )
+
+        pending = finalize_pending_outcomes(session_id)
+        if not pending:
+            return
+        import time
+
+        now = time.time()
+        for item in pending:
+            key = item.get("key")
+            if not key:
+                continue
+            if now - float(item.get("created", now)) > MAX_PENDING_AGE_SEC:
+                continue  # drop abandoned provisional entry, do not score
+            if not decision_row_exists(key):
+                continue  # no row to score (orphaned); drop quietly at session end
+            # Deterministic floor: per-dispatch error flag only (no next turn).
+            apply_outcome(key, bool(item.get("errors")))
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)
+
+
 def is_substantive_session(event: dict) -> bool:
     """Determine if the session was substantive enough to warrant a gap check."""
     session_data = event.get("session_data", {})
@@ -85,6 +126,11 @@ def main():
 
         event = json.loads(event_data)
         session_id = event.get("session_id") or get_session_id()
+
+        # Stop fallback: resolve routed dispatches the next-turn finalizer never
+        # saw (autonomous / no-next-prompt runs). Runs BEFORE the trivial-session
+        # gate so an outcome is recorded even on otherwise-quiet sessions.
+        finalize_routing_outcomes(session_id)
 
         # Skip trivial sessions
         if not is_substantive_session(event):

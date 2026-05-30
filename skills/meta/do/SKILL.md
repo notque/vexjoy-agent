@@ -481,14 +481,16 @@ Learning capture is fully automatic via hooks. The router records nothing by han
 | Capture | Hook | Event |
 |---------|------|-------|
 | Routing decision row (`{agent}:{skill}`, `category=effectiveness`) | `routing-decision-recorder` | PostToolUse:Agent |
-| Routing outcome (boost on success / decay on failure) | `routing-outcome-recorder` | SubagentStop |
+| Routing outcome - validate pending (decision-row exists, re-queue late rows) | `routing-outcome-recorder` | SubagentStop |
+| Routing outcome - finalize (boost/decay) on the next user turn | `routing-outcome-finalizer` | UserPromptSubmit |
+| Routing outcome - session-end fallback for autonomous runs | `session-learning-recorder` | Stop |
 | Right-sizing tier feedback (when a `rightsizing:` banner is emitted) | `routing-decision-recorder` | PostToolUse:Agent |
 | Tool errors and fixes | `error-learner` | PostToolUse |
 | Review findings | `review-capture` | PostToolUse:Agent |
 
 These keep the routing feedback loop fed: `learning-db.py route-health` reads the decision rows (denominator) and the boost/decay outcomes (numerator) the hooks write. See ADR `learn-step-to-hook`.
 
-**Outcome fidelity (note).** The hook-derived outcome is a deterministic proxy: success = no tool errors and no re-route this dispatch; failure = errors detected. It cannot see a *next-turn* user rejection, so it is lower-fidelity than a manual LLM judgment — accepted deliberately for zero-cost coverage on every route.
+**Outcome fidelity (note).** A routed dispatch's outcome is resolved on the user's NEXT turn from three deterministic inputs - this dispatch's tool errors, the user's reaction, and whether they re-routed the same intent - at zero LLM cost. `routing-decision-recorder` writes the decision row; `routing-outcome-recorder` (SubagentStop) records a *provisional* pending outcome (no eager boost/decay); `routing-outcome-finalizer` (UserPromptSubmit) finalizes it once: **failure** on tool errors OR a clear rejection/rework/re-route, **success** otherwise (explicit acceptance, or a neutral/new topic - no complaint = accepted, matching the prior LLM step's default). A Stop fallback resolves any dispatch with no next prompt (autonomous runs) from the error flag alone. Residual: the reaction detector is **deterministic and high-precision** - it fires failure only on strong, unambiguous markers and errs toward success on ambiguity, so it is conservative rather than full semantic judgment. It does not eagerly score "no error = success" anymore.
 
 **OPTIONAL (not a gate):** curated free-text insight and graduation of review findings are now opt-in, handled via the `retro` skill (`retro graduate`), not a forced router step:
 

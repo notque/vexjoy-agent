@@ -1,9 +1,19 @@
-"""Per-session bridge between the routing decision hook and the outcome hook.
+"""Per-session bridge for next-turn routing-outcome resolution.
 
 The PostToolUse:Agent hook (routing-decision-recorder.py) records the routing
-decision row and appends a *pending outcome* (routing key + observed error
-flag) here. The SubagentStop hook (routing-outcome-recorder.py) drains the
-pending outcomes and applies boost/decay to the matching decision rows.
+decision row and appends a PROVISIONAL pending outcome (routing key + observed
+error flag) here. Resolution happens at a SINGLE point per dispatch, when the
+next-turn signal is available:
+
+  - SubagentStop (routing-outcome-recorder.py): validates each pending entry's
+    decision row exists; re-queues late rows (bounded) and revalidates healthy
+    entries to stay pending. It NO LONGER applies boost/decay.
+  - UserPromptSubmit (routing-outcome-finalizer.py): on the next user turn,
+    finalizes still-pending entries from tool-errors + user reaction + re-route,
+    applying boost/decay ONCE then clearing them (idempotent).
+  - Stop (session-learning-recorder.py fallback): resolves any STILL-pending
+    entries via the error flag alone (the deterministic floor) so autonomous /
+    no-next-prompt runs still record an outcome.
 
 State lives in a per-session JSON file under /tmp. All writes are atomic
 (write-to-temp-then-rename) so an interrupted hook never corrupts the file.
@@ -24,7 +34,8 @@ unavailable the operation still proceeds (degraded, never blocking).
 File shape:
     {
       "seen": ["<dispatch-sig>", ...],     # idempotency for the decision hook
-      "pending": [{"key": "agent:skill", "errors": false, "attempts": 0}, ...]
+      "pending": [{"key": "agent:skill", "errors": false,
+                   "attempts": 0, "created": 1735000000.0}, ...]
     }
 
 Idempotency (MEDIUM, TOCTOU): the decision hook claims a dispatch signature via
@@ -47,6 +58,7 @@ import fcntl
 import json
 import os
 import tempfile
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -58,6 +70,13 @@ _STATE_DIR = Path("/tmp")
 # After this many attempts the entry is dropped so a permanently-orphaned
 # pending key (decision row never written) cannot grow the file unbounded.
 MAX_REQUEUE_ATTEMPTS = 5
+
+# Bounded pending age: a provisional pending entry that is never finalized by
+# UserPromptSubmit or Stop (e.g. a crashed session that emits neither a next
+# user prompt nor a clean Stop) must not live forever. ``finalize_pending_outcomes``
+# drops entries older than this so the per-session state file cannot grow
+# unbounded across long-lived or abandoned sessions.
+MAX_PENDING_AGE_SEC = 24 * 3600  # 24h
 
 
 def _state_dir() -> Path:
@@ -206,12 +225,94 @@ def mark_dispatch_seen(session_id: str, signature: str) -> None:
 
 
 def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:
-    """Append a pending outcome for the SubagentStop hook to drain."""
+    """Append a PROVISIONAL pending outcome.
+
+    The entry carries this dispatch's own observed ``errors`` flag and is left
+    pending (not scored) until a resolver finalizes it: UserPromptSubmit on the
+    next user turn (reaction + error + re-route) or Stop at session end (error
+    flag alone). ``created`` bounds its lifetime; ``attempts`` bounds re-queues
+    while the decision row is still not visible at SubagentStop.
+    """
     try:
         path = _state_file(session_id)
         with _state_lock(path):
             data = _load(path)
-            data["pending"].append({"key": key, "errors": bool(errors), "attempts": 0})
+            data["pending"].append({"key": key, "errors": bool(errors), "attempts": 0, "created": time.time()})
+            data["pending"] = data["pending"][-500:]
+            _atomic_write(path, data)
+    except Exception:
+        pass
+
+
+def peek_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
+    """Return a copy of the still-pending outcomes WITHOUT clearing them.
+
+    Read-only helper for diagnostics / the SubagentStop validator, which must
+    inspect pending entries but leave them in place for a later finalizer.
+    """
+    try:
+        return list(_load(_state_file(session_id)).get("pending", []))
+    except Exception:
+        return []
+
+
+def finalize_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
+    """Atomically read-AND-clear all still-pending outcomes for resolution.
+
+    Used by the single resolution point on each turn (UserPromptSubmit) and by
+    the session-end fallback (Stop). Returns the pending entries; the caller is
+    responsible for applying boost/decay exactly once. Entries older than
+    ``MAX_PENDING_AGE_SEC`` are dropped (returned but the caller skips scoring
+    via the age check) — handled here by simply clearing them so abandoned
+    sessions cannot grow state unbounded.
+
+    Clearing here makes finalization idempotent across re-delivered events: a
+    second UserPromptSubmit for the same prompt finds an empty pending list and
+    applies nothing (no double boost/decay).
+    """
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            pending = data.get("pending", [])
+            if pending:
+                data["pending"] = []
+                _atomic_write(path, data)
+        return pending
+    except Exception:
+        return []
+
+
+def revalidate_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> None:
+    """Re-queue VALIDATED provisional entries that are not yet finalizable.
+
+    SubagentStop confirms each pending entry's decision row exists, then puts
+    the still-unresolved entries BACK (so a later UserPromptSubmit/Stop can
+    finalize them) WITHOUT advancing the re-queue attempt counter — these are
+    healthy entries awaiting a next-turn signal, not late-row mistimings. Stale
+    entries (older than ``MAX_PENDING_AGE_SEC``) are dropped here too.
+    """
+    if not items:
+        return
+    try:
+        now = time.time()
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            for item in items:
+                if not item.get("key"):
+                    continue
+                created = float(item.get("created", now))
+                if now - created > MAX_PENDING_AGE_SEC:
+                    continue  # drop abandoned provisional entry
+                data["pending"].append(
+                    {
+                        "key": item.get("key"),
+                        "errors": bool(item.get("errors")),
+                        "attempts": int(item.get("attempts", 0)),
+                        "created": created,
+                    }
+                )
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
     except Exception:
@@ -261,6 +362,7 @@ def requeue_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> No
                     "key": item.get("key"),
                     "errors": bool(item.get("errors")),
                     "attempts": attempts,
+                    "created": float(item.get("created", time.time())),
                 }
                 data["pending"].append(entry)
             data["pending"] = data["pending"][-500:]

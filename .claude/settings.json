@@ -112,6 +112,12 @@
             "command": "python3 \"$HOME/.claude/hooks/prompt-capture.py\"",
             "description": "Capture user prompts as voice samples (git repos only)",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-finalizer.py\"",
+            "description": "Finalize routing-decision outcomes on the next user turn (tool-errors + user reaction + re-route); replaces eager SubagentStop boost/decay",
+            "timeout": 3000
           }
         ]
       }
@@ -480,7 +486,7 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
-            "description": "Record routing decision outcome (boost/decay) per subagent stop (replaces /do Phase 5 action B)",
+            "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
             "timeout": 3000
           }
         ]
