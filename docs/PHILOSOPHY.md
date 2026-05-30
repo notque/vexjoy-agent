@@ -66,6 +66,14 @@ Skills route at four confidence tiers driven by trigger-match count and the `for
 
 `force_route: true` belongs on umbrella, setup, and methodology skills where a single high-specificity trigger phrase carries unambiguous intent (`pr-workflow`, `install`, `quick`). Domain task skills earn confidence through multiple trigger matches — preventing misroute when phrases like "fix" or "review" overlap.
 
+### The Haiku Router Reads Intent; Keywords Cannot
+
+`/do` Phase 2 runs a Haiku semantic router. Its value is **not** skill discovery — the harness already injects the full `available-skills` list (~140 skills, with descriptions) into every session, so dropping the router would not reclaim that context. The router earns its keep doing what native skill auto-invocation cannot: agent+skill *pairing*, safety-critical force-routes that drag git/security work through the quality gates (lint/tests/CI), the quality-loop wrapper, complexity classification, parallel decomposition, and task-spec injection.
+
+The decisive number: dropping Haiku for pure deterministic `pre-route.py` keyword routing collapses strict routing accuracy **63.3% → 34.7%** (corpus n=49). It scores **0% on every paraphrase bucket** — "send my commits to the server" carries no keyword trigger — so **22 of 49 requests** lose their correct agent+skill and fall to a skill-less general handler. Cost of keeping the router: ~+0.1 Haiku calls/request. Trivial, by design (see `skills/meta/do/references/semantic-first-ab-results.md`; drop-Haiku A/B in `tmp/drophaiku-ab-report.md`).
+
+**Known follow-up.** The honest cost is the manifest, not the router: the ~31.9 KB routing manifest duplicates skill descriptions the native list already carries. Trim it to router-only metadata (FORCE flags, agent pairings, `not_for`) — that, not removing the router, is the real optimization.
+
 ---
 
 ## Triple-Validation Extraction Gate
