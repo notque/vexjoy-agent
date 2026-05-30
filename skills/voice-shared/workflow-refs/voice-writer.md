@@ -254,14 +254,15 @@ Count words per sentence across the entire article:
 
 All three clusters must appear at least 15% of the time.
 
-**Step 2: Check paragraph variation**
-- At least 1 single-sentence paragraph per 500 words
-- At least 1 paragraph of 4+ sentences per 1000 words
-- No 3+ consecutive paragraphs of the same length
+**Step 2: Check paragraph length (hard ceiling, enforces short paragraphs with spacing between thoughts)**
+- Every paragraph holds 3 sentences or fewer. Count sentences per paragraph (split on blank lines).
+- Any paragraph of 4+ sentences fails the gate: split it at the thought boundary and insert a blank line.
+- At least 1 single-sentence paragraph per 500 words (single-sentence paragraphs are welcome whenever a thought stands alone).
+- This applies to ALL voices and modes. Walls of text read as AI output; short paragraphs with spacing read as a person thinking.
 
-**Step 3: Calculate standard deviation** of sentence word counts. Must be >= 8.0. If below, inject longer exploratory sentences and shorter fragment punches to redistribute.
+**Step 3: Calculate standard deviation** of sentence word counts. Must be >= 8.0. If below, inject longer exploratory sentences and shorter fragment punches to redistribute, while keeping each paragraph at 3 sentences or fewer.
 
-**Gate**: All distribution thresholds met. Stddev >= 8.0. Proceed only when gate passes.
+**Gate**: All distribution thresholds met. Every paragraph is 3 sentences or fewer (no walls of text), with at least 1 single-sentence paragraph per 500 words. Stddev >= 8.0. Proceed only when gate passes.
 
 ### Phase 6: JOY-CHECK (Mandatory)
 
