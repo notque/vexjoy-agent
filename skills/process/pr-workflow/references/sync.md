@@ -142,7 +142,7 @@ Generate the PR title from the branch name or first commit when not provided by 
 
 **PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them); keep Notes for non-obvious signal only — include just what a reviewer cannot infer from the diff or assume by default (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N"), skip what is always true (a PR can be reverted; CI runs the tests), and drop the section when nothing qualifies. Tests run as GitHub Actions, so the Checks tab is the test record; leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each Changes line states one fact, declaratively (verb + what + where), so a reviewer scans the body fast; Summary states the goal and why. Write one line per change in Changes (give shape and count for many sub-items, like "add 21 trigger phrases", and let the diff enumerate them). Omit Notes for routine PRs and drop the section when nothing qualifies; note it, one terse line per point, when a reviewer cannot infer the signal from the diff (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N") or when a risk/verification trigger holds — manual verification was performed, part of the change sits outside CI coverage, migration/rollout ordering matters, or a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests). Tests run as GitHub Actions, so the Checks tab is the test record; leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 # Check if PR already exists for this branch
@@ -155,10 +155,10 @@ if [[ -z "$EXISTING_PR" ]]; then
 [State the goal plainly: 1-3 sentences or a few crisp bullets, one fact per line. Name the ADR/issue if any.]
 
 ## Changes
-- `path/to/file` — what changed [one line per change; give shape + count for many sub-items, e.g. "add 21 trigger phrases"]
+- `path/or/area` — what changed [one line per change; give shape + count for many sub-items, e.g. "add 21 trigger phrases"]
 
 ## Notes
-[Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section.]
+[Omit for routine PRs (drop the section when nothing qualifies). Note it, one terse line per point, when a reviewer cannot infer the signal from the diff: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Note it too when a risk/verification trigger holds — manual verification was performed; part of the change sits outside CI coverage; migration/rollout ordering matters; a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests).]
 EOF
 )"
 else
