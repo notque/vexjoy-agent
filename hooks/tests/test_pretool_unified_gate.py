@@ -953,3 +953,199 @@ class TestGlobToRegexEscaping:
         assert pattern.search("/secrets/keyA.pem") is not None
         assert pattern.search("/secrets/key.pem") is None  # ? requires exactly one char
         assert pattern.search("/secrets/key12.pem") is None  # ? matches only one char
+
+
+# ---------------------------------------------------------------------------
+# TestCheckPublicDevServer
+# ---------------------------------------------------------------------------
+
+
+class TestCheckPublicDevServer:
+    """check_public_dev_server blocks dev servers bound to non-loopback interfaces."""
+
+    # --- python http.server: block-by-default (binds 0.0.0.0 by default) ---
+
+    def test_bare_http_server_blocked(self):
+        """Bare `python3 -m http.server 8080` binds 0.0.0.0 by default → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m http.server 8080")) == 2
+
+    def test_http_server_no_port_blocked(self):
+        assert _run_main(_make_bash_event("python -m http.server")) == 2
+
+    def test_http_server_explicit_public_bind_blocked(self):
+        assert _run_main(_make_bash_event("python3 -m http.server 8080 --bind 0.0.0.0")) == 2
+
+    def test_http_server_equals_public_bind_blocked(self):
+        """`--bind=0.0.0.0` (equals form) must be caught."""
+        assert _run_main(_make_bash_event("python3 -m http.server --bind=0.0.0.0")) == 2
+
+    def test_http_server_no_space_after_m_blocked(self):
+        """`-mhttp.server` (no space) is accepted by Python and must be caught (PR #716)."""
+        assert _run_main(_make_bash_event("python3 -mhttp.server 8080")) == 2
+
+    def test_http_server_bare_zero_bind_blocked(self):
+        """`--bind 0` is shorthand for 0.0.0.0 → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m http.server --bind 0")) == 2
+
+    def test_http_server_ipv6_wildcard_bind_blocked(self):
+        """`--bind ::` is the IPv6 all-interfaces wildcard → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m http.server --bind ::")) == 2
+
+    def test_simplehttpserver_blocked(self):
+        """python2 SimpleHTTPServer is the legacy module name → BLOCK."""
+        assert _run_main(_make_bash_event("python2 -m SimpleHTTPServer 8000")) == 2
+
+    def test_http_server_loopback_bind_allowed(self):
+        assert _run_main(_make_bash_event("python3 -m http.server 8080 --bind 127.0.0.1")) == 0
+
+    def test_http_server_localhost_bind_allowed(self):
+        assert _run_main(_make_bash_event("python3 -m http.server --bind localhost")) == 0
+
+    def test_http_server_ipv6_loopback_bind_allowed(self):
+        assert _run_main(_make_bash_event("python3 -m http.server --bind ::1")) == 0
+
+    def test_http_server_short_bind_loopback_allowed(self):
+        assert _run_main(_make_bash_event("python3 -m http.server -b 127.0.0.1")) == 0
+
+    # --- cwd symlinked to a public path: bare http.server still blocks ---
+
+    def test_cwd_symlinked_public_path_blocked(self, tmp_path):
+        """Even from a symlinked cwd, bare http.server (no loopback bind) is blocked.
+
+        The interface-based block does not depend on cwd, so a symlinked working
+        directory that resolves to a served public path is still caught.
+        """
+        real = tmp_path / "served"
+        real.mkdir()
+        link = tmp_path / "link"
+        link.symlink_to(real)
+        payload = json.dumps(
+            {"tool_name": "Bash", "tool_input": {"command": "python3 -m http.server 8080"}, "cwd": str(link)}
+        )
+        assert _run_main(payload) == 2
+
+    # --- php -S ---
+
+    def test_php_server_public_blocked(self):
+        assert _run_main(_make_bash_event("php -S 0.0.0.0:8000")) == 2
+
+    def test_php_server_loopback_allowed(self):
+        assert _run_main(_make_bash_event("php -S 127.0.0.1:8000")) == 0
+
+    def test_php_server_localhost_allowed(self):
+        assert _run_main(_make_bash_event("php -S localhost:8000")) == 0
+
+    # --- JS/static dev servers: block only on explicit public host flag ---
+
+    def test_vite_public_host_blocked(self):
+        assert _run_main(_make_bash_event("vite --host 0.0.0.0")) == 2
+
+    def test_next_public_host_blocked(self):
+        assert _run_main(_make_bash_event("next dev -H 0.0.0.0")) == 2
+
+    def test_hugo_public_bind_blocked(self):
+        assert _run_main(_make_bash_event("hugo server --bind 0.0.0.0")) == 2
+
+    def test_http_server_npm_public_blocked(self):
+        """The http-server npm package binds via -a/--address → BLOCK on 0.0.0.0."""
+        assert _run_main(_make_bash_event("http-server -a 0.0.0.0")) == 2
+
+    def test_http_server_npm_loopback_allowed(self):
+        assert _run_main(_make_bash_event("http-server -a 127.0.0.1")) == 0
+
+    def test_vite_loopback_host_allowed(self):
+        assert _run_main(_make_bash_event("vite --host 127.0.0.1")) == 0
+
+    def test_bare_npm_run_dev_allowed(self):
+        """Bare `npm run dev` with no host flag defaults to localhost → ALLOW (no false positive)."""
+        assert _run_main(_make_bash_event("npm run dev")) == 0
+
+    def test_bare_vite_allowed(self):
+        """Bare `vite` (no --host) defaults to localhost → ALLOW."""
+        assert _run_main(_make_bash_event("vite")) == 0
+
+    # --- deployment tooling and unrelated commands: ALLOW ---
+
+    def test_nginx_restart_allowed(self):
+        assert _run_main(_make_bash_event("sudo systemctl restart nginx")) == 0
+
+    def test_certbot_allowed(self):
+        assert _run_main(_make_bash_event("certbot --nginx -d example.com")) == 0
+
+    def test_caddy_allowed(self):
+        assert _run_main(_make_bash_event("caddy run --config /etc/caddy/Caddyfile")) == 0
+
+    def test_cloudflared_allowed(self):
+        assert _run_main(_make_bash_event("cloudflared tunnel run mytunnel")) == 0
+
+    def test_unrelated_command_allowed(self):
+        assert _run_main(_make_bash_event("ls -la")) == 0
+
+    def test_grep_http_server_allowed(self):
+        """grep for the literal string http.server must not be mistaken for an invocation."""
+        assert _run_main(_make_bash_event("grep -r http.server .")) == 0
+
+    def test_echo_http_server_allowed(self):
+        assert _run_main(_make_bash_event("echo http.server")) == 0
+
+    # --- codex-found bypasses (now fixed) ---
+
+    def test_py_launcher_blocked(self):
+        """The Windows/py launcher `py -m http.server` was a regex miss → now BLOCK."""
+        assert _run_main(_make_bash_event("py -m http.server 8000")) == 2
+
+    def test_quoted_module_name_blocked(self):
+        """`python3 -m 'http.server'` (quoted module arg, still executed) → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m 'http.server' 8000")) == 2
+
+    def test_double_quoted_module_name_blocked(self):
+        assert _run_main(_make_bash_event('python3 -m "http.server" 8000')) == 2
+
+    def test_npm_run_dev_forwarded_public_host_blocked(self):
+        """`npm run dev -- --host 0.0.0.0` forwards an explicit public host → BLOCK."""
+        assert _run_main(_make_bash_event("npm run dev -- --host 0.0.0.0")) == 2
+
+    def test_pnpm_dev_public_host_blocked(self):
+        assert _run_main(_make_bash_event("pnpm run dev -- --host 0.0.0.0")) == 2
+
+    # --- codex-found false positives (now fixed) ---
+
+    def test_echo_quoting_full_command_allowed(self):
+        """`echo 'python3 -m http.server 8000'` only displays a string → ALLOW."""
+        assert _run_main(_make_bash_event("echo 'python3 -m http.server 8000'")) == 0
+
+    def test_grep_quoting_full_command_allowed(self):
+        assert _run_main(_make_bash_event("grep -r 'python3 -m http.server' .")) == 0
+
+    def test_echo_quoting_vite_host_allowed(self):
+        assert _run_main(_make_bash_event("echo 'vite --host 0.0.0.0'")) == 0
+
+    def test_printf_quoting_command_allowed(self):
+        assert _run_main(_make_bash_event("printf 'php -S 0.0.0.0:8000\\n'")) == 0
+
+    # --- chaining: the real invocation in a chain is still caught ---
+
+    def test_cd_then_http_server_blocked(self):
+        """`cd ~/proj && python3 -m http.server 8080` — the served segment blocks."""
+        assert _run_main(_make_bash_event("cd ~/proj && python3 -m http.server 8080")) == 2
+
+    def test_echo_then_real_server_blocked(self):
+        """A benign echo followed by a real public server still blocks the server."""
+        assert _run_main(_make_bash_event("echo hi && vite --host 0.0.0.0")) == 2
+
+    def test_printf_multiline_quoted_data_allowed(self):
+        """A literal newline inside a quoted printf arg must not be mis-split into
+        a fake server segment (codex-found false positive). Splitter ignores \\n."""
+        assert _run_main(_make_bash_event("printf '%s\n' 'python3 -m http.server'")) == 0
+
+    def test_heredoc_body_mentioning_server_allowed(self):
+        """A heredoc body that merely contains the server string is data, not an
+        invocation — must not block (codex-found false positive)."""
+        assert _run_main(_make_bash_event("cat <<'EOF'\npython3 -m http.server\nEOF")) == 0
+
+    # --- bypass ---
+
+    def test_bypass_allows_public_server(self):
+        """PUBLIC_SERVER_GUARD_BYPASS=1 allows the blocked command through."""
+        payload = _make_bash_event("python3 -m http.server 8080")
+        assert _run_main(payload, env={"PUBLIC_SERVER_GUARD_BYPASS": "1"}) == 0

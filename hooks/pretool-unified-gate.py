@@ -9,6 +9,9 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
 3. pretool-dangerous-command-guard — Bash: blocks destructive commands
 4. pretool-creation-gate    — Write: blocks new agent/skill file creation
 5. pretool-sensitive-file-guard — Write+Edit: blocks writes to .env, credentials, SSH keys, etc.
+6. public-dev-server-guard     — Bash: blocks dev servers bound to non-loopback interfaces
+                                  (python http.server binds 0.0.0.0 by default; php -S, vite --host, etc.)
+                                  Supersedes the narrow, dormant prevent-homedir-server.py.
 
 Attribution blocking removed: use settings.json {"attribution": {"commit": "", "pr": ""}} instead.
 Each check preserves its original stderr prefix and bypass mechanism.
@@ -214,6 +217,78 @@ _SENSITIVE_EXCEPTIONS: list[re.Pattern[str]] = [
     re.compile(r"/test_?data/"),
 ]
 
+# ═══════════════════════════════════════════════════════════════
+# 6. PUBLIC DEV SERVER GUARD (supersedes prevent-homedir-server.py)
+# ═══════════════════════════════════════════════════════════════
+#
+# WHY: A raw dev server bound to a non-loopback interface exposes the served
+# directory to the public internet. `python -m http.server` binds 0.0.0.0 BY
+# DEFAULT (all interfaces). On a public VPS this silently publishes files. The
+# old prevent-homedir-server.py only blocked serving the BARE home dir and
+# explicitly allowed `cd ~/project && http.server` — i.e. it permitted the exact
+# unsafe pattern. This check is block-by-default for python http.server unless
+# an explicit loopback bind is present, and blocks any dev server given an
+# explicit non-loopback bind/host.
+#
+# Bound to its own bypass var, consistent with the gate's per-check convention.
+_PUBLIC_SERVER_BYPASS_ENV = "PUBLIC_SERVER_GUARD_BYPASS"
+
+# Loopback / local-only host values (lowercased).
+_LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+
+# python -m http.server / SimpleHTTPServer. Handles python / python2 / python3 /
+# python3.11 / the `py` launcher, a space or no space after -m (`-m http.server`,
+# `-mhttp.server`), both module names, and an optionally quoted module name
+# (`-m 'http.server'`, `-m "http.server"`). Detection is regex-on-text (a shared
+# limit of every check in this gate): variable-expanded interpreters (`$p -m …`)
+# or module names built in a var are NOT caught — that is an accepted residual.
+_PY_HTTP_SERVER_RE = re.compile(r"(?:\bpython[\d.]*\b|\bpy\b)[^|;&]*?-m\s*['\"]?(?:http\.server|SimpleHTTPServer)\b")
+
+# Node task runners (npm/pnpm/yarn run …). On their own they default to
+# localhost (do NOT over-block), but `npm run dev -- --host 0.0.0.0` forwards an
+# explicit public host flag and must be caught by the host-flag scan.
+_NODE_RUNNER_RE = re.compile(r"\b(?:npm|pnpm|yarn|bun)\b[^|;&]*?\brun\b")
+
+# Explicit bind flag value on a python http.server invocation (http.server uses
+# --bind/-b). Captures bracketed IPv6 too: --bind [::1].
+_PY_BIND_RE = re.compile(r"(?:--bind(?:\s+|=)|(?<![\w-])-b\s+)['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+
+# Generic public-bind/host flags used by node/JS/go dev servers and http.server:
+#   --bind/--host/--listen/--address <value>, -H <value>, -b <value>, -a <value>.
+#   Supports `=` form. (-a/--address is the http-server npm package's bind flag.)
+_HOST_FLAG_RE = re.compile(
+    r"(?:--(?:bind|host|listen|address)(?:\s+|=)|(?<![\w-])-[Hba]\s+)['\"]?(\[[^\]]+\]|[^\s'\"]+)"
+)
+
+# php -S <host>:<port>  (built-in PHP dev server; binds exactly the given host).
+_PHP_SERVER_RE = re.compile(r"\bphp\b[^|;&]*?\s-S\s+['\"]?(\[[^\]]+\]|[^\s'\":]+)")
+
+# Common JS/static dev servers whose --host flag exposes the server publicly.
+_JS_DEV_SERVER_RE = re.compile(
+    r"\b(?:vite|next|nuxt|http-server|hugo|webpack(?:-dev-server)?|ng|astro|remix|svelte-kit|vue-cli-service)\b"
+)
+
+
+def _host_is_public(host: str) -> bool:
+    """Return True if a host/bind value exposes a non-loopback interface.
+
+    Bare `0` is the classic shorthand for 0.0.0.0. Empty/odd values fail safe
+    (treated as public → block). IPv6 `::` / `[::]` is the wildcard. Any
+    concrete non-loopback IP or hostname on an explicit bind flag is public.
+    """
+    h = host.strip().strip("'\"")
+    if not h:
+        return True  # flag present with no usable value — fail safe (block)
+    low = h.lower()
+    if low in _LOCAL_HOSTS:
+        return False
+    if low.startswith("127."):  # IPv4 loopback range (127.x)
+        return False
+    if low in {"0.0.0.0", "0", "::", "[::]", "*", "[::0]", "::0"}:  # wildcards
+        return True
+    # Any other concrete host on an explicit public-bind flag → non-loopback.
+    return True
+
 
 # ═══════════════════════════════════════════════════════════════
 # HELPERS
@@ -239,7 +314,7 @@ def _load_guard_whitelist() -> list[str]:
                 continue
             entries.append(entry)
         print(
-            f"[dangerous-command-guard] INFO: Loaded {len(entries)} whitelist entries from {whitelist_path}",
+            f"[dangerous-command-guard] INFO: Loaded {len(entries)} whitelist entries ({whitelist_path})",
             file=sys.stderr,
         )
         return entries
@@ -522,6 +597,108 @@ def check_sensitive_file(file_path: str) -> None:
             )
 
 
+_PUBLIC_SERVER_DENY_MSG = (
+    "BLOCKED: this command would expose a dev server on a PUBLIC network interface.\n\n"
+    "`python -m http.server` (and many dev servers) bind 0.0.0.0 — ALL interfaces — "
+    "by default, publishing the served directory to the internet on a public host.\n\n"
+    "For LOCAL preview, bind loopback explicitly:\n"
+    "  python3 -m http.server 8080 --bind 127.0.0.1\n"
+    "  php -S 127.0.0.1:8000\n"
+    "  vite --host 127.0.0.1\n\n"
+    "For PUBLIC hosting, do NOT expose a raw dev server. Put it behind a real web "
+    "server / tunnel (nginx, Caddy, Cloudflare Tunnel) — see the public-web-deploy skill.\n\n"
+    "Rare intentional case: set PUBLIC_SERVER_GUARD_BYPASS=1."
+)
+
+
+# Commands that merely DISPLAY or SEARCH text — a server string in their args is
+# data, not an executed invocation. Used to suppress false positives like
+# `echo 'python3 -m http.server'` and `grep -r 'vite --host 0.0.0.0' .`.
+_DISPLAY_CMD_RE = re.compile(
+    r"^(?:#|:|echo\b|printf\b|grep\b|egrep\b|fgrep\b|rg\b|cat\b|less\b|more\b|head\b|tail\b|comm\b)"
+)
+
+# Shell separators that start a new command segment. Splitting on these lets us
+# evaluate each segment independently: `echo foo && python3 -m http.server`
+# still blocks the real invocation while `echo 'python3 -m http.server'` does not.
+# Deliberately does NOT split on newline: heredoc bodies and quoted multiline
+# args contain literal newlines that must stay attached to their leading command
+# (e.g. `printf '%s\n' '...'`, `cat <<'EOF' ... EOF`) — splitting them produced
+# false positives (codex-found). Chaining is still caught via ; && || | &.
+_SEGMENT_SPLIT_RE = re.compile(r"(?:&&|\|\||[;|&])")
+
+
+def _block_public_server() -> None:
+    """Emit the public-server deny decision and exit 0."""
+    _block(
+        f"[public-server-guard] {_PUBLIC_SERVER_DENY_MSG}",
+        tool_name="Bash",
+        reason=_PUBLIC_SERVER_DENY_MSG,
+    )
+
+
+def _check_public_dev_server_segment(segment: str) -> None:
+    """Evaluate one shell command segment; _block on a public dev-server bind."""
+    seg = segment.strip()
+    if not seg:
+        return
+
+    # A pure display/search command quoting a server string is data, not an
+    # invocation — skip it (false-positive suppression).
+    if _DISPLAY_CMD_RE.match(seg.lstrip("'\"")):
+        return
+
+    is_py_http = bool(_PY_HTTP_SERVER_RE.search(seg))
+    is_php_server = bool(_PHP_SERVER_RE.search(seg))
+    # Real client-side dev servers OR a node task runner forwarding host flags.
+    is_js_dev = bool(_JS_DEV_SERVER_RE.search(seg)) or bool(_NODE_RUNNER_RE.search(seg))
+
+    if not (is_py_http or is_php_server or is_js_dev):
+        return
+
+    # python http.server: block by default unless an explicit loopback --bind.
+    if is_py_http:
+        m = _PY_BIND_RE.search(seg)
+        if m is None or _host_is_public(m.group(1)):
+            _block_public_server()
+        return  # explicit loopback bind → allow
+
+    # php -S <host>:<port>: block if host is non-loopback.
+    if is_php_server:
+        m = _PHP_SERVER_RE.search(seg)
+        if m and _host_is_public(m.group(1)):
+            _block_public_server()
+        return
+
+    # JS/static dev servers and node runners: block only on an EXPLICIT public
+    # bind/host flag. Bare `npm run dev` / `vite` (no host flag) default to
+    # localhost → allow, to avoid false positives.
+    for m in _HOST_FLAG_RE.finditer(seg):
+        if _host_is_public(m.group(1)):
+            _block_public_server()
+
+
+def check_public_dev_server(command: str) -> None:
+    """Block raw dev servers bound to non-loopback interfaces.
+
+    Block-by-default for `python -m http.server` / SimpleHTTPServer (which bind
+    0.0.0.0 by default) unless an explicit loopback --bind is present. Also block
+    any dev server given an explicit public --bind/--host/--listen/--address/-H/
+    -b/-a, and `php -S` on a non-loopback host. Allow loopback binds, deployment
+    tooling (nginx/caddy/etc.), display/search commands that merely quote a
+    server string, and commands with no dev-server invocation.
+
+    The command is split on shell separators and each segment is evaluated
+    independently, so chained invocations are caught while quoted-string data is
+    not. Detection is regex-on-text (a shared limit of every check in this gate).
+    """
+    if os.environ.get(_PUBLIC_SERVER_BYPASS_ENV) == "1":
+        return
+
+    for segment in _SEGMENT_SPLIT_RE.split(command):
+        _check_public_dev_server_segment(segment)
+
+
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
@@ -545,6 +722,7 @@ def main() -> None:
         check_gitignore_bypass(command)
         check_git_submission(command)
         check_dangerous_command(command)
+        check_public_dev_server(command)
 
     elif tool == "Write":
         file_path = tool_input.get("file_path", "")
