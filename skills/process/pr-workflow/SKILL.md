@@ -150,10 +150,10 @@ Tests run as GitHub Actions, so the Checks tab is the test record. Let CI carry 
 
 Aim for high meaning per word: each line states one fact about the change, declaratively, so a reviewer understands it fast. Density is the target, not minimal length — a large change keeps the three sections and carries the detail it needs; it earns that length by packing each line with signal. Four rules carry the vibe:
 
-1. **One fact per line.** Each Summary/Changes line reads verb + what + where. Plain words, high meaning.
+1. **One fact per line.** Each Changes line reads verb + what + where; Summary states the goal and why. Plain words, high meaning.
 2. **Summary states the goal.** 1-3 plain sentences or a few crisp bullets. Keep metrics to the single number that matters.
 3. **One line per change.** When a change has many sub-items, state the shape and count ("add 21 PR-creation trigger phrases") and let the diff enumerate them. Keep rationale to the clause that earns its place.
-4. **Notes carries non-obvious signal only.** Usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N" — one terse line each. Skip what is always true (a PR can be reverted; CI runs the tests). Drop the section when nothing qualifies.
+4. **Notes carries non-obvious signal — required when a trigger applies.** Omit it for routine PRs and drop the section when nothing qualifies. Note it, one terse declarative line per point, when a reviewer cannot infer the signal from the diff: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N". Note it too when a RISK/VERIFICATION trigger holds — manual verification was performed; part of the change sits outside CI coverage; migration/rollout ordering matters; a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). State each caveat as one fact and let CI carry command output. Skip what is always true (a PR can be reverted; CI runs the tests).
 
 **Worked example — the shape to emulate (#608-good vs #710-bad):**
 
@@ -161,7 +161,7 @@ Aim for high meaning per word: each line states one fact about the change, decla
 |---------|-----------------|--------------------------------|
 | Summary | "Registers 3 hooks in settings.json; integrates `pre-route.py` into /do Phase 2 as a deterministic pre-filter." | One 5-sentence block stuffed with jargon and four metrics. |
 | Changes | "`SKILL.md` — add 21 PR-creation trigger phrases." | One bullet inlining all 21 phrases verbatim; another a 3-sentence rationale paragraph. |
-| Notes | "Supersedes #705." (non-obvious signal) — or omitted entirely when nothing qualifies | "Roll back by reverting the branch commits. Tests run in CI — see Checks." (always-true filler) plus a pasted `pytest -v` dump and a Scope & Risk wall. |
+| Notes | "Not covered by CI — the Terraform plan is applied manually." or "Apply the column migration before deploying." (a required risk/verification caveat) — or omitted entirely when nothing qualifies | "Roll back by reverting the branch commits. Tests run in CI — see Checks." (always-true filler) plus a pasted `pytest -v` dump and a Scope & Risk wall. |
 
 The dense column reads in seconds because each cell carries facts; the bloated column buries the same facts in volume (and re-states what the Checks tab already shows). Aim every body at the dense column.
 
@@ -173,10 +173,10 @@ Copy this canonical skeleton into `--body`:
 
 ## Changes
 <!-- One line per change: verb + what + where. State shape and count for many sub-items; let the diff enumerate them. -->
-- `path/to/file` — what changed
+- `path/or/area` — what changed
 
 ## Notes
-<!-- Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section. -->
+<!-- Omit for routine PRs (drop the section when nothing qualifies). Note it, one terse declarative line per point, when a reviewer cannot infer the signal from the diff: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, a "supersedes #N". Note it too when a RISK/VERIFICATION trigger holds — manual verification was performed; part of the change sits outside CI coverage; migration/rollout ordering matters; a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Let CI carry command output. Skip what is always true (a PR can be reverted; CI runs the tests). -->
 ```
 
 The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carry this same skeleton at their `gh pr create` call sites. When either path writes a `--body`, it uses this structure and the density rules above.
