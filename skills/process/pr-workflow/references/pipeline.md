@@ -254,7 +254,7 @@ This pipeline cannot create PRs without staged changes -- if nothing is staged, 
 
 **PR body structure is mandatory.** `gh pr create --body` bypasses `.github/pull_request_template.md` (GitHub applies that file only to the web UI and to a bare `gh pr create`). Reproduce the template's three sections in the `--body` string, in order: **Summary → Changes → Notes**. This keeps PR bodies consistent across models.
 
-**Write for density.** Each line states one fact about the change, declaratively (verb + what + where), so a reviewer scans the body fast. State the goal plainly in Summary; write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them); keep Notes for non-obvious signal only — include just what a reviewer cannot infer from the diff or assume by default (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N"), skip what is always true (a PR can be reverted; CI runs the tests), and drop the section when nothing qualifies. Tests run as GitHub Actions and the Checks tab is the test record; reviewer verdicts likewise show on the PR, so leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
+**Write for density.** Each Changes line states one fact, declaratively (verb + what + where), so a reviewer scans the body fast; Summary states the goal and why. Write one line per change in Changes (give shape and count for many sub-items, e.g. "add 21 trigger phrases", and let the diff enumerate them). Omit Notes for routine PRs and drop the section when nothing qualifies; note it, one terse line per point, when a reviewer cannot infer the signal from the diff (a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N") or when a risk/verification trigger holds — manual verification was performed, part of the change sits outside CI coverage, migration/rollout ordering matters, or a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests). Tests run as GitHub Actions and the Checks tab is the test record; reviewer verdicts likewise show on the PR, so leave command output to CI and keep it out of the body. See the SKILL.md "Write for Density" rules for the full vibe and worked example.
 
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
@@ -262,10 +262,10 @@ CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(c
 [State the goal plainly: 1-3 sentences or a few crisp bullets, one fact per line. Name the ADR/issue if any.]
 
 ## Changes
-- `path/to/file` — what changed [one line per change; give shape + count for many sub-items]
+- `path/or/area` — what changed [one line per change; give shape + count for many sub-items]
 
 ## Notes
-[Optional, and usually omitted. Include only what a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section.]
+[Omit for routine PRs (drop the section when nothing qualifies). Note it, one terse line per point, when a reviewer cannot infer the signal from the diff: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N". Note it too when a risk/verification trigger holds — manual verification was performed; part of the change sits outside CI coverage; migration/rollout ordering matters; a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests).]
 EOF
 )"
 ```
@@ -657,7 +657,7 @@ Check for artifacts in this order and build the PR body from what's available:
 |----------|---------------------|----------------|
 | `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; state the goal plainly; write one line per completed item (shape + count for many sub-items) |
 | Deviation logs (ADR-076 repair actions) | **Notes** (deviations) | List repair actions taken and why the original plan changed, one terse line each — these are non-obvious by nature |
-| Context a reviewer cannot infer (non-obvious decision, deliberate omission, follow-up, gotcha, supersedes) | **Notes** (optional) | One terse line each. Populate Notes only when an artifact surfaces something non-obvious; skip what is always true (a PR can be reverted; CI runs the tests) and drop the section when nothing qualifies. Verification reports and review summaries stay in CI — the Checks tab carries the result |
+| Context a reviewer cannot infer (non-obvious decision, deliberate omission, follow-up, gotcha, supersedes) or a risk/verification trigger (manual verification performed, CI-coverage gap, migration/rollout ordering, security-surface change) | **Notes** (required on trigger) | One terse line each. Omit Notes for routine PRs and drop the section when nothing qualifies; note it when an artifact surfaces non-obvious context or a risk/verification trigger holds (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests). Verification reports and review summaries stay in CI — the Checks tab carries the result |
 
 **Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
@@ -672,11 +672,11 @@ Follows the canonical three-section structure from `.github/pull_request_templat
 
 ## Changes
 <!-- From task_plan.md completed phases/tasks. One line per change: verb + what + where. Give shape + count for many sub-items. -->
-- `path/to/file` — [completed task description]
-- `path/to/file` — [completed task description]
+- `path/or/area` — [completed task description]
+- `path/or/area` — [completed task description]
 
 ## Notes
-<!-- Optional, and usually omitted. Populate only when an artifact surfaces something a reviewer cannot infer from the diff or assume by default: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N", a deviation log (ADR-076). Skip what is always true (a PR can be reverted; CI runs the tests). When nothing qualifies, drop this section. -->
+<!-- Omit for routine PRs (drop the section when nothing qualifies). Note it, one terse line per point, when an artifact surfaces something a reviewer cannot infer from the diff: a non-obvious decision, a deliberate omission, a follow-up, a gotcha, "supersedes #N", a deviation log (ADR-076). Note it too when a risk/verification trigger holds — manual verification was performed; part of the change sits outside CI coverage; migration/rollout ordering matters; a security-sensitive surface changed (e.g. `Not covered by CI — terraform plan is manual`). Skip what is always true (a PR can be reverted; CI runs the tests). -->
 [Optional context a reviewer cannot infer from the diff.]
 ```
 
