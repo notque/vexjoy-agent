@@ -9,6 +9,9 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
 3. pretool-dangerous-command-guard — Bash: blocks destructive commands
 4. pretool-creation-gate    — Write: blocks new agent/skill file creation
 5. pretool-sensitive-file-guard — Write+Edit: blocks writes to .env, credentials, SSH keys, etc.
+6. public-dev-server-guard     — Bash: blocks dev servers bound to non-loopback interfaces
+                                  (python http.server binds 0.0.0.0 by default; php -S, vite --host, etc.)
+                                  Supersedes the narrow, dormant prevent-homedir-server.py.
 
 Attribution blocking removed: use settings.json {"attribution": {"commit": "", "pr": ""}} instead.
 Each check preserves its original stderr prefix and bypass mechanism.
@@ -24,6 +27,7 @@ Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass use
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -214,6 +218,416 @@ _SENSITIVE_EXCEPTIONS: list[re.Pattern[str]] = [
     re.compile(r"/test_?data/"),
 ]
 
+# ═══════════════════════════════════════════════════════════════
+# 6. PUBLIC DEV SERVER GUARD (supersedes prevent-homedir-server.py)
+# ═══════════════════════════════════════════════════════════════
+#
+# WHY: A raw dev server bound to a non-loopback interface exposes the served
+# directory to the public internet. `python -m http.server` binds 0.0.0.0 BY
+# DEFAULT (all interfaces). On a public VPS this silently publishes files. The
+# old prevent-homedir-server.py only blocked serving the BARE home dir and
+# explicitly allowed `cd ~/project && http.server` — i.e. it permitted the exact
+# unsafe pattern. This check is block-by-default for python http.server unless
+# an explicit loopback bind is present, and blocks any dev server given an
+# explicit non-loopback bind/host.
+#
+# Bound to its own bypass var, consistent with the gate's per-check convention.
+_PUBLIC_SERVER_BYPASS_ENV = "PUBLIC_SERVER_GUARD_BYPASS"
+
+# Loopback / local-only host values (lowercased).
+_LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+
+# python -m http.server / SimpleHTTPServer module names (lowercased). Resolved by
+# walking shlex tokens (see _python_m_module), NOT a free-text regex: a literal
+# `python -m http.server` sitting inside a commit message, grep pattern, or a
+# `-c "..."` payload is NOT a command invocation and must NOT match. Handles
+# python / python2 / python3 / python3.11 / the `py` launcher, a space or no space
+# after -m (`-m http.server`, `-mhttp.server`), and an optionally quoted module
+# (`-m 'http.server'`, `-m "http.server"`).
+#
+# Residual (accepted, shared limit of every check in this gate): a variable-
+# expanded interpreter (`p=python3; $p -m http.server`) is NOT caught because the
+# command token is `$p`, not a python interpreter.
+#
+# Known FALSE-NEGATIVE follow-up gaps (OUT of scope for PR #719, tracked for a
+# separate round — do NOT "fix" by loosening detection):
+#   * bare `http-server` / `npx http-server` (binds 0.0.0.0 by default)
+#   * bare `vite --host` / `next dev --host` / `vite --host --strictPort`
+#   * env-var-expanded interpreter residual above
+_PY_HTTP_SERVER_MODULES = frozenset({"http.server", "simplehttpserver"})
+
+# `FOO=bar` env-assignment prefix (transparent: the real executable follows).
+# Tokenized via shlex, so the value (quotes already removed) may contain spaces;
+# match the assignment prefix and accept any value content.
+_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+# Transparent command wrappers — the real executable is the next NON-OPTION token.
+# Their own option flags (e.g. `sudo -u nobody`, `env -i`) are stripped so they do
+# not become the command token (which would hide the wrapped server). `-u`/`-g`/
+# etc. that take a value: the value (a non-option token) is consumed by the normal
+# "skip options" loop only if it is itself an option; a bare value token is treated
+# as the next executable candidate, so we conservatively skip one token after a
+# known value-taking wrapper flag.
+_WRAPPERS = frozenset(
+    {"sudo", "env", "exec", "command", "nohup", "time", "nice", "setsid", "stdbuf", "ionice", "doas", "timeout"}
+)
+# Wrappers that take a mandatory POSITIONAL value before the command, after any
+# options: `timeout [opts] DURATION cmd …`. Its duration token is skipped (unless
+# it is itself an executable, guarded like flag values).
+_POSITIONAL_VALUE_WRAPPERS = frozenset({"timeout"})
+# Exec-style runners that launch an INNER command (`npx vite`, `npm exec next`,
+# `yarn dlx astro`, `pnpm dlx vite`, `bun x next`). The inner command is the real
+# server, so these prefixes are stripped to expose it as the command token.
+_EXEC_RUNNER_PREFIXES = (
+    ("npx",),
+    ("npm", "exec"),
+    ("pnpm", "exec"),
+    ("pnpm", "dlx"),
+    ("yarn", "exec"),
+    ("yarn", "dlx"),
+    ("bun", "x"),
+    # Python launchers that run an INNER interpreter/command. `<launcher> run
+    # python3 -m http.server` must expose the inner `python3` as the command token
+    # so token-anchored detection still fires (codex-found regression in PR #719:
+    # token-anchoring otherwise let these real public binds slip past, where the
+    # prior free-text scan blocked them). Covers the common task-runners.
+    ("uv", "run"),
+    ("poetry", "run"),
+    ("pipx", "run"),
+    ("pdm", "run"),
+    ("hatch", "run"),
+    ("rye", "run"),
+    ("conda", "run"),
+)
+# Wrapper short flags that consume a following value token (so we skip that token
+# too): sudo -u/-g/-C/-h/-p/-r/-t/-U; env -u NAME / -C dir; nice -n N; ionice -c
+# CLASS / -n N; stdbuf -i/-o/-e. NOTE: these letters mean different things across
+# wrappers (env -i is valueless; stdbuf -i takes a value), so a value token is
+# NEVER consumed when it is itself a known server/runner/interpreter name (see
+# _is_executable_token) — that prevents `env -i vite …` from eating `vite`.
+_WRAPPER_VALUE_FLAGS = frozenset(
+    {"-u", "-g", "-C", "-p", "-r", "-t", "-U", "-i", "-o", "-e", "-h", "-n", "-c", "-s", "-k"}
+)
+# Long wrapper value-flags in space-separated form (`sudo --user nobody`,
+# `nice --adjustment 5`, `timeout --signal KILL`). The `--key=value` form is a
+# single token (no value skip); this set covers `--key value`.
+_WRAPPER_LONG_VALUE_FLAGS = frozenset(
+    {
+        "--user",
+        "--group",
+        "--chdir",
+        "--prompt",
+        "--role",
+        "--type",
+        "--adjustment",
+        "--class",
+        "--signal",
+        "--kill-after",
+    }
+)
+# Exec-runner option flags that take a VALUE (the following token is the flag's
+# value — a package/env/path name — NOT the wrapped command, so it is consumed so
+# the real inner command surfaces). Covers the documented value-taking options of
+# every runner in _EXEC_RUNNER_PREFIXES:
+#   npx:      -p/--package <pkg>, -c/--call <cmd>
+#   uv run:   --with/--with-requirements <pkg>, --python/-p <ver>, --project <dir>,
+#             --directory <dir>, --index <url>, --extra <name>
+#   pdm run:  --venv <name>, -p/--project <dir>
+#   pipx run: --spec <pkg>, --python <ver>
+#   conda run: -n/--name <env>, -p/--prefix <path>
+# Enumeration (not a generic skip) is required: a generic "skip non-executable
+# tokens" loop desyncs when a value happens to be an executable NAME (codex-found
+# PR #719: `uv run --with uvicorn python3 …` and `uv run --with flask echo …`).
+# Residual (documented follow-up gap): an UNKNOWN value-taking runner flag leaves
+# its value as the command token → resolves to a non-server → ALLOW (a miss, never
+# a false positive). The `--key=value` form is a single token and needs no skip.
+_EXEC_RUNNER_VALUE_FLAGS = frozenset(
+    {
+        "-p",
+        "--package",
+        "-c",
+        "--call",
+        "-n",
+        "--name",
+        "--prefix",
+        "--with",
+        "--with-requirements",
+        "--python",
+        "--project",
+        "--directory",
+        "--index",
+        "--extra",
+        "--spec",
+        "--venv",
+    }
+)
+
+
+def _is_executable_token(tok: str) -> bool:
+    """True if `tok` (basename, lowercased) names a server/runner/interpreter.
+
+    Used as a guard so a wrapper/runner flag's VALUE is never consumed when it is
+    actually the wrapped command: `env -i vite …` must not eat `vite` as the value
+    of `-i`. A real flag value (a username, niceness, fd, package) is never one of
+    these executable names.
+    """
+    base = tok.rsplit("/", 1)[-1].lower()
+    at = base.find("@", 1)  # drop a version spec (vite@latest) before matching
+    if at != -1:
+        base = base[:at]
+    return (
+        base in _JS_DEV_SERVERS
+        or base in _NODE_RUNNERS
+        or base in _PY_WEB_SERVERS
+        or base in _SHELL_LAUNCHERS  # `env -i bash -c …` must not eat `bash`
+        or base in {"php", "py"}
+        or base.startswith("python")
+    )
+
+
+def _strip_leading_prefixes(segment: str) -> str:
+    """Strip leading env-assignments, transparent wrappers, and exec-runner
+    prefixes so the real executable is at the front.
+
+    Handles `FOO=bar`, wrappers and THEIR option flags (`sudo -u nobody`, `env -i`,
+    `nice -n 5`, `sudo --user nobody`), path-qualified wrappers (`/usr/bin/env`),
+    and exec-style runners launching an inner command (`npx vite`, `npm exec next`,
+    `yarn dlx astro`). Without this, a wrapped server (`sudo -u nobody php -S
+    0.0.0.0`) or an exec-launched server (`npx vite --host 0.0.0.0`) would slip
+    past command-token detection. A flag's value is not consumed when it is itself
+    an executable name (guards `env -i vite …` against eating `vite`).
+    """
+    seg = segment.strip().lstrip("'\"")
+    # shlex respects quotes so a quoted env value with spaces (`A='x y' vite …`)
+    # stays one token; fall back to naive split on a parse error (unbalanced quote).
+    try:
+        toks = shlex.split(seg, posix=True)
+    except ValueError:
+        toks = seg.split()
+
+    def base(tok: str) -> str:
+        return tok.rsplit("/", 1)[-1].lower()
+
+    i = 0
+    changed = True
+    while changed and i < len(toks):
+        changed = False
+        # env-assignment prefix: FOO=bar
+        if i < len(toks) and _ENV_ASSIGN_RE.match(toks[i]):
+            i += 1
+            changed = True
+            continue
+        # transparent wrapper (basename-normalized) + its option flags
+        if i < len(toks) and base(toks[i]) in _WRAPPERS:
+            wrapper = base(toks[i])
+            i += 1
+            changed = True
+            while i < len(toks) and toks[i].startswith("-"):
+                flag = toks[i]
+                i += 1
+                # `-u nobody` / `--user nobody`: skip the value token too — unless it
+                # is itself an executable (then it is the wrapped command, not a value).
+                takes_value = flag in _WRAPPER_VALUE_FLAGS or flag in _WRAPPER_LONG_VALUE_FLAGS
+                if takes_value and i < len(toks) and not toks[i].startswith("-") and not _is_executable_token(toks[i]):
+                    i += 1
+            # mandatory positional value (`timeout DURATION cmd`): skip it unless it
+            # is itself an executable (guards against eating the wrapped command).
+            if (
+                wrapper in _POSITIONAL_VALUE_WRAPPERS
+                and i < len(toks)
+                and not toks[i].startswith("-")
+                and not _is_executable_token(toks[i])
+            ):
+                i += 1
+            continue
+        # exec-style runner prefix (basename-normalized) + the runner's own option
+        # flags (`npx --yes vite`, `npx -p pkg vite`), so the INNER command — not a
+        # runner flag like `--yes` — becomes the executable token.
+        matched = False
+        for prefix in _EXEC_RUNNER_PREFIXES:
+            n = len(prefix)
+            if n and [base(t) for t in toks[i : i + n]] == list(prefix):
+                i += n
+                changed = True
+                matched = True
+                while i < len(toks) and toks[i].startswith("-"):
+                    if toks[i] == "--":  # explicit end-of-options
+                        i += 1
+                        break
+                    flag = toks[i]
+                    i += 1
+                    # `--key=value` is a single token (no value skip). For `--key
+                    # value`, consume the value token EVEN when it looks like an
+                    # executable name: a `--with uvicorn` / `--venv flask` value is a
+                    # package/env name, NOT the wrapped command, so the
+                    # _is_executable_token guard must NOT apply here (codex-found
+                    # PR #719 desync: it both hid `uv run --with uvicorn python3 -m
+                    # http.server` and falsely blocked `uv run --with flask echo …`).
+                    if flag in _EXEC_RUNNER_VALUE_FLAGS and i < len(toks) and not toks[i].startswith("-"):
+                        i += 1
+                break
+        if matched:
+            continue
+    return " ".join(toks[i:])
+
+
+def _command_token(segment: str) -> str:
+    """Return the lowercased executable token of a shell segment.
+
+    Anchors server-name detection to the COMMAND, not a free-floating word in an
+    argument (so `git commit -a -m next` does not match the `next` dev server).
+    Returns the basename so `/usr/bin/vite` and `./node_modules/.bin/vite` match,
+    and strips a trailing `@version` so `npx vite@latest` still resolves to `vite`.
+    """
+    seg = _strip_leading_prefixes(segment)
+    m = re.match(r"['\"]?([^\s'\"]+)", seg)
+    if not m:
+        return ""
+    tok = m.group(1).rsplit("/", 1)[-1].lower()
+    # Drop a package version spec (`vite@latest`, `http-server@14`). A leading `@`
+    # (scoped pkg like `@angular/cli`) is preserved by only splitting after char 0.
+    at = tok.find("@", 1)
+    if at != -1:
+        tok = tok[:at]
+    return tok
+
+
+def _is_python_interpreter(tok: str) -> bool:
+    """True if `tok` (a raw command token) names a python interpreter.
+
+    Matches `python`, `python2`, `python3`, `python3.11`, and the `py` launcher,
+    path-qualified or not. Used to anchor `-m <module>` detection to a genuine
+    interpreter command so a literal module string in an argument never matches.
+    """
+    base = tok.rsplit("/", 1)[-1].lower()
+    return base == "py" or base.startswith("python")
+
+
+def _python_m_module(segment: str) -> str | None:
+    """Return the lowercased `-m <module>` module run by a python interpreter, else None.
+
+    Walks shlex TOKENS (after leading wrappers/env-assignments are stripped
+    upstream), not free text. This is the fix for PR #719's HIGH-1 false
+    positives: a literal `python -m http.server` inside a commit message, a grep
+    pattern, or a `-c "..."` payload is a single shlex token (or sits in one), so
+    no real `-m` flag token is found and the function returns None → ALLOW.
+
+    Mirrors the flask/uvicorn `-m` resolution but is token-anchored so it cannot
+    fire on free-floating text. Handles `-m module`, `-mmodule` (no space), and an
+    optionally quoted module (`-m 'http.server'`). Stops scanning a `-c <payload>`
+    argument's value (the payload is its own token; any `-m` inside it is data).
+    """
+    seg = _strip_leading_prefixes(segment)
+    try:
+        toks = shlex.split(seg, posix=True)
+    except ValueError:
+        toks = seg.split()
+    if not toks or not _is_python_interpreter(toks[0]):
+        return None
+    i = 1
+    while i < len(toks):
+        t = toks[i]
+        if t == "-m":
+            if i + 1 < len(toks):
+                return toks[i + 1].strip("'\"").lower()
+            return None
+        if t.startswith("-m") and len(t) > 2 and not t.startswith("--"):
+            return t[2:].strip("'\"").lower()  # combined `-mhttp.server`
+        if t == "-c" or t == "--command":
+            i += 2  # skip the payload value token; `-m` inside it is data
+            continue
+        i += 1
+    return None
+
+
+# Node task runners (npm/pnpm/yarn/bun) recognized as the COMMAND token. On their
+# own they default to localhost (do NOT over-block), but `npm run dev -- --host
+# 0.0.0.0` forwards an explicit public host flag, caught by the host-flag scan.
+_NODE_RUNNERS = frozenset({"npm", "pnpm", "yarn", "bun"})
+
+# Explicit bind flag value on a python http.server invocation (http.server uses
+# --bind/-b). Captures bracketed IPv6 too: --bind [::1].
+_PY_BIND_RE = re.compile(r"(?:--bind(?:\s+|=)|(?<![\w-])-b\s+)['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+
+# Long-form public-bind/host flags used by node/JS/go/python dev servers:
+#   --bind/--host/--listen/--address <value>. Supports `=` form. Always scanned —
+#   long flags do not collide with common non-server short flags.
+_HOST_FLAG_RE = re.compile(r"(?:--(?:bind|host|listen|address)(?:\s+|=))['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+
+
+# Per-server SHORT bind/host flags. Each server uses a DIFFERENT short letter, and
+# those letters collide with unrelated tools (git -a, curl -H, ssh -b) AND with
+# other servers' unrelated flags (ng's passthrough -a is not a host). So a short
+# flag is honored only for the specific server that uses it for binding:
+#   next -H <host>;  http-server -a <addr>;  gunicorn -b <host:port>;  flask -h.
+# Built once; compiled regexes capture the flag's value (bracketed IPv6 too).
+def _short_flag_re(letter: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<![\w-])-{letter}(?:\s+|=)?['\"]?(\[[^\]]+\]|[^\s'\"]+)")
+
+
+_SERVER_SHORT_FLAGS: dict[str, re.Pattern[str]] = {
+    "next": _short_flag_re("H"),
+    "http-server": _short_flag_re("a"),
+    "gunicorn": _short_flag_re("b"),
+    "flask": _short_flag_re("h"),  # `flask run -h <host>` is short for --host
+}
+
+# php -S <host>:<port>  (built-in PHP dev server; binds exactly the given host).
+_PHP_SERVER_RE = re.compile(r"\bphp\b[^|;&]*?\s-S\s+['\"]?(\[[^\]]+\]|[^\s'\":]+)")
+
+# `php artisan serve` (Laravel dev server). Only THIS php subcommand exposes a
+# server via --host; a plain `php script.php --host …` is an ordinary CLI script.
+_PHP_ARTISAN_SERVE_RE = re.compile(r"\bartisan\s+serve\b")
+
+# Client-side JS/static dev servers whose --host flag exposes the server publicly,
+# matched as the COMMAND token (not a free-floating word).
+_JS_DEV_SERVERS = frozenset(
+    {
+        "vite",
+        "next",
+        "nuxt",
+        "http-server",
+        "hugo",
+        "webpack",
+        "webpack-dev-server",
+        "ng",
+        "astro",
+        "remix",
+        "svelte-kit",
+        "vue-cli-service",
+    }
+)
+
+# Python web servers (flask run, uvicorn, gunicorn) that expose a public host
+# through a --host/--bind/-b flag. Caught by the long-flag scan (plus gunicorn's
+# -b short flag). Recognized either as their own console-script command token or
+# via `python -m <module>`, resolved by the token-anchored _python_m_module.
+_PY_WEB_SERVERS = frozenset({"flask", "uvicorn", "gunicorn"})
+
+
+def _host_is_public(host: str) -> bool:
+    """Return True if a host/bind value exposes a non-loopback interface.
+
+    Bare `0` is the classic shorthand for 0.0.0.0. Empty/odd values fail safe
+    (treated as public → block). IPv6 `::` / `[::]` is the wildcard. Any
+    concrete non-loopback IP or hostname on an explicit bind flag is public.
+    A value starting with `-` is another flag, not a host → NOT public.
+    """
+    h = host.strip().strip("'\"")
+    if not h:
+        return True  # flag present with no usable value — fail safe (block)
+    if h.startswith("-"):
+        return False  # captured token is a flag, not a host address
+    low = h.lower()
+    if low in _LOCAL_HOSTS:
+        return False
+    if low.startswith("127."):  # IPv4 loopback range (127.x)
+        return False
+    if low in {"0.0.0.0", "0", "::", "[::]", "*", "[::0]", "::0"}:  # wildcards
+        return True
+    # Any other concrete host on an explicit public-bind flag → non-loopback.
+    return True
+
 
 # ═══════════════════════════════════════════════════════════════
 # HELPERS
@@ -239,7 +653,7 @@ def _load_guard_whitelist() -> list[str]:
                 continue
             entries.append(entry)
         print(
-            f"[dangerous-command-guard] INFO: Loaded {len(entries)} whitelist entries from {whitelist_path}",
+            f"[dangerous-command-guard] INFO: Loaded {len(entries)} whitelist entries ({whitelist_path})",
             file=sys.stderr,
         )
         return entries
@@ -522,6 +936,255 @@ def check_sensitive_file(file_path: str) -> None:
             )
 
 
+_PUBLIC_SERVER_DENY_MSG = (
+    "BLOCKED: this command would expose a dev server on a PUBLIC network interface.\n\n"
+    "`python -m http.server` (and many dev servers) bind 0.0.0.0 — ALL interfaces — "
+    "by default, publishing the served directory to the internet on a public host.\n\n"
+    "For LOCAL preview, bind loopback explicitly:\n"
+    "  python3 -m http.server 8080 --bind 127.0.0.1\n"
+    "  php -S 127.0.0.1:8000\n"
+    "  vite --host 127.0.0.1\n\n"
+    "For PUBLIC hosting, do NOT expose a raw dev server. Put it behind a real web "
+    "server / tunnel (nginx, Caddy, Cloudflare Tunnel) — see the public-web-deploy skill."
+)
+# LOW-1 (PR #719): the deny message deliberately does NOT advertise the bypass
+# env var. Surfacing the disarm switch in user-facing block output hands a novice
+# (or a coerced agent) the exact escape hatch on any false positive. The bypass
+# remains FUNCTIONAL via PUBLIC_SERVER_GUARD_BYPASS=1 (checked in
+# check_public_dev_server) for the rare intentional case — documented here in code
+# only, not in the block reason.
+
+
+# Commands that merely DISPLAY or SEARCH text — a server string in their args is
+# data, not an executed invocation. Used to suppress false positives like
+# `echo 'python3 -m http.server'` and `grep -r 'vite --host 0.0.0.0' .`.
+_DISPLAY_CMD_RE = re.compile(
+    r"^(?:#|:|echo\b|printf\b|grep\b|egrep\b|fgrep\b|rg\b|cat\b|less\b|more\b|head\b|tail\b|comm\b)"
+)
+
+# Shell separators that start a new command segment. Splitting on these lets us
+# evaluate each segment independently: `echo foo && python3 -m http.server`
+# still blocks the real invocation while `echo 'python3 -m http.server'` does not.
+# Deliberately does NOT split on newline: heredoc bodies and quoted multiline
+# args contain literal newlines that must stay attached to their leading command
+# (e.g. `printf '%s\n' '...'`, `cat <<'EOF' ... EOF`) — splitting them produced
+# false positives (codex-found). Chaining is still caught via ; && || | &.
+_SEGMENT_SPLIT_RE = re.compile(r"(?:&&|\|\||[;|&])")
+
+# Command-substitution bodies: $(...), `...`, and <(...) / >(...) process subs.
+# A server launched inside a substitution is a real invocation even when the
+# outer command is a display command (`echo $(python3 -m http.server)`), so the
+# body is evaluated independently before display-command suppression. Single
+# level (no recursive $( $( ) ) nesting) — an accepted regex-on-text residual.
+_SUBSTITUTION_RE = re.compile(r"\$\((?P<dollar>[^()]*)\)|`(?P<back>[^`]*)`|[<>]\((?P<proc>[^()]*)\)")
+
+
+def _single_quoted_spans(text: str) -> list[tuple[int, int]]:
+    """Return (start, end) spans of LITERAL single-quoted regions in `text`.
+
+    In POSIX shells single quotes are literal — `$(...)`/backticks inside them are
+    NOT substitutions — so a substitution inside such a span is data, not an
+    invocation (`echo '$(python3 -m …)'` must NOT block). Three subtleties this
+    scanner honors so the suppression cannot be abused to hide a real server:
+      * A `'` inside a DOUBLE-quoted region is an ordinary char, NOT a span opener
+        (`echo "'$(…)'"` still executes the substitution → must block).
+      * A backslash-escaped `\\'` outside quotes is a literal `'`, NOT a span
+        opener (`echo \\'$(…)\\'` still executes → must block).
+      * Inside a single-quoted span, backslash is NOT special (POSIX) — the span
+        ends at the next raw `'`.
+    """
+    spans: list[tuple[int, int]] = []
+    in_double = False
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == "\\" and not in_double:
+            i += 2  # backslash escapes the next char outside double quotes
+            continue
+        if c == '"':
+            in_double = not in_double
+        elif c == "'" and not in_double:
+            close = text.find("'", i + 1)
+            if close == -1:
+                break  # unterminated single quote — no literal span
+            spans.append((i, close + 1))
+            i = close + 1
+            continue
+        i += 1
+    return spans
+
+
+# Shell launchers whose `-c <payload>` argument is the real command to evaluate.
+_SHELL_LAUNCHERS = frozenset({"sh", "bash", "zsh", "dash", "ash", "ksh"})
+
+
+def _shell_c_payload(seg: str) -> str:
+    """Return the `-c <payload>` argument of a shell launcher segment, or "".
+
+    Handles `-c payload`, combined short flags `-lc payload` (the `c` may be the
+    last letter of a short-flag cluster), and `--command payload`. Quotes are
+    removed by shlex so the payload is the inner command string.
+    """
+    try:
+        toks = shlex.split(seg, posix=True)
+    except ValueError:
+        toks = seg.split()
+    for j, t in enumerate(toks):
+        is_c = t == "-c" or t == "--command" or (t.startswith("-") and not t.startswith("--") and t.endswith("c"))
+        if is_c and j + 1 < len(toks):
+            return toks[j + 1]
+    return ""
+
+
+def _block_public_server() -> None:
+    """Emit the public-server deny decision and exit 0."""
+    _block(
+        f"[public-server-guard] {_PUBLIC_SERVER_DENY_MSG}",
+        tool_name="Bash",
+        reason=_PUBLIC_SERVER_DENY_MSG,
+    )
+
+
+def _scan_host_flags(seg: str, short_re: re.Pattern[str] | None = None) -> bool:
+    """Return True if any host/bind flag in `seg` resolves to a public host.
+
+    Always scans long flags (--bind/--host/--listen/--address). Additionally
+    scans `short_re` (the specific short bind flag this server uses) when given.
+    """
+    for m in _HOST_FLAG_RE.finditer(seg):
+        if _host_is_public(m.group(1)):
+            return True
+    if short_re is not None:
+        for m in short_re.finditer(seg):
+            if _host_is_public(m.group(1)):
+                return True
+    return False
+
+
+def _check_public_dev_server_segment(segment: str, _depth: int = 0) -> None:
+    """Evaluate one shell command segment; _block on a public dev-server bind."""
+    seg = segment.strip()
+    if not seg:
+        return
+    if _depth > 4:  # death-loop guard for pathological nesting (fail open: stop)
+        return
+
+    # MEDIUM-1: evaluate command-substitution bodies ($(...), `...`, <(...))
+    # independently FIRST. A display command (echo/grep/…) suppresses its OWN
+    # text, but a server launched inside a substitution is a real invocation
+    # (`echo $(python3 -m http.server 8080)`) and must still be caught.
+    sq_spans = _single_quoted_spans(seg)
+    for sub in _SUBSTITUTION_RE.finditer(seg):
+        # `$(...)` inside SINGLE quotes is literal data, not a real substitution
+        # (`echo '$(python3 -m http.server)'`) — skip it to avoid a false positive.
+        if any(start <= sub.start() < end for start, end in sq_spans):
+            continue
+        body = sub.group("dollar") or sub.group("back") or sub.group("proc") or ""
+        if body.strip():
+            for sub_seg in _SEGMENT_SPLIT_RE.split(body):
+                _check_public_dev_server_segment(sub_seg, _depth + 1)
+
+    cmd = _command_token(seg)
+
+    # Shell launcher (`bash -c '<cmd>'`, `sh -lc '…'`): the real invocation is the
+    # `-c` payload. Recurse into it (split into segments) so a server launched via
+    # a shell wrapper is still caught. The payload was a quoted token, so shlex
+    # tokenization reconstructs it; the launcher itself is then not a server.
+    if cmd in _SHELL_LAUNCHERS:
+        payload = _shell_c_payload(seg)
+        if payload:
+            for sub_seg in _SEGMENT_SPLIT_RE.split(payload):
+                _check_public_dev_server_segment(sub_seg, _depth + 1)
+        return
+
+    # A pure display/search command quoting a server string is data, not an
+    # invocation — suppress the outer text (substitutions were already handled).
+    if _DISPLAY_CMD_RE.match(seg.lstrip("'\"")):
+        return
+
+    # Resolve `python -m <module>` once, anchored to the interpreter COMMAND token
+    # (token-walk, not free text). None when the segment is not a real `python -m`
+    # invocation (e.g. the literal string lives in a commit message / grep pattern
+    # / `-c "..."` payload) — that is the HIGH-1 false-positive fix.
+    py_module = _python_m_module(seg)
+
+    # python http.server: block by default unless an explicit loopback --bind.
+    # Only fires when the COMMAND is a python interpreter running `-m http.server`.
+    if py_module in _PY_HTTP_SERVER_MODULES:
+        m = _PY_BIND_RE.search(seg)
+        if m is None or _host_is_public(m.group(1)):
+            _block_public_server()
+        return  # explicit loopback bind → allow
+
+    # php: two server forms only. `php -S <host>` (built-in server; block on a
+    # non-loopback host) and `php artisan serve --host=…` (Laravel dev server).
+    # A plain `php script.php --host …` CLI script is NOT a server — its --host is
+    # the script's own arg, so host flags are scanned ONLY for `artisan serve`.
+    if cmd == "php":
+        m = _PHP_SERVER_RE.search(seg)
+        if m and _host_is_public(m.group(1)):
+            _block_public_server()
+            return
+        if _PHP_ARTISAN_SERVE_RE.search(seg) and _scan_host_flags(seg):
+            _block_public_server()
+        return
+
+    # Resolve the effective server name. A python web server may be launched via
+    # its own console script (`flask run`, `uvicorn`, `gunicorn`) OR as a module
+    # (`python3 -m flask run`); the module form maps the interpreter token to the
+    # module name so it is still anchored to a real invocation.
+    server = cmd
+    if py_module in _PY_WEB_SERVERS:
+        server = py_module
+
+    # Known servers anchored at the COMMAND token (or `-m <module>` for python web
+    # servers): client-side JS/static dev servers, node task runners
+    # (npm/pnpm/yarn/bun run), and python web servers (flask/uvicorn/gunicorn).
+    # Block ONLY on an EXPLICIT public bind/host flag — bare `vite` / `npm run dev`
+    # default to localhost → allow (no false positive).
+    is_known_server = server in _JS_DEV_SERVERS or server in _NODE_RUNNERS or server in _PY_WEB_SERVERS
+    if not is_known_server:
+        return
+
+    # Command token is a known server, so this server's specific short bind flag
+    # (if any) is safe to scan — the collision cases (git -a, curl -H, ssh -b)
+    # never reach this point, and another server's short flag is not honored
+    # (e.g. ng has no host short flag, so `ng build -- -a foo` is not a bind).
+    if _scan_host_flags(seg, _SERVER_SHORT_FLAGS.get(server)):
+        _block_public_server()
+        return
+
+    # Residual (accepted): a node runner forwarding a SHORT host flag to an unknown
+    # inner dev server (`npm run dev -- -H 0.0.0.0`). The inner server is unknown,
+    # so the short letter (-H/-a/-b) is ambiguous — `-a src` is a non-host arg on a
+    # build script. Scanning it generically over-blocks routine `npm run … -- -a`,
+    # which would re-introduce the very false positives this PR removes. The LONG
+    # form (`-- --host 0.0.0.0`, the documented case) IS caught above, as is the
+    # direct server form (`next dev -H 0.0.0.0`). Left as a documented residual.
+
+
+def check_public_dev_server(command: str) -> None:
+    """Block raw dev servers bound to non-loopback interfaces.
+
+    Block-by-default for `python -m http.server` / SimpleHTTPServer (which bind
+    0.0.0.0 by default) unless an explicit loopback --bind is present. Also block
+    any dev server given an explicit public --bind/--host/--listen/--address/-H/
+    -b/-a, and `php -S` on a non-loopback host. Allow loopback binds, deployment
+    tooling (nginx/caddy/etc.), display/search commands that merely quote a
+    server string, and commands with no dev-server invocation.
+
+    The command is split on shell separators and each segment is evaluated
+    independently, so chained invocations are caught while quoted-string data is
+    not. Detection is regex-on-text (a shared limit of every check in this gate).
+    """
+    if os.environ.get(_PUBLIC_SERVER_BYPASS_ENV) == "1":
+        return
+
+    for segment in _SEGMENT_SPLIT_RE.split(command):
+        _check_public_dev_server_segment(segment)
+
+
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
@@ -545,6 +1208,7 @@ def main() -> None:
         check_gitignore_bypass(command)
         check_git_submission(command)
         check_dangerous_command(command)
+        check_public_dev_server(command)
 
     elif tool == "Write":
         file_path = tool_input.get("file_path", "")
