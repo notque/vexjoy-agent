@@ -1,0 +1,30 @@
+# hook-health-allowlist.txt — INTENTIONALLY unregistered hook files.
+#
+# Format:  filename.py  # reason
+# Lines starting with # are comments. Blank lines ignored.
+#
+# Every hooks/*.py that is NOT registered in .claude/settings.json and NOT
+# dispatched by another hook MUST appear here with a reason, or the
+# hook-health gate (scripts/validate-hook-health.py --ci) fails. A stale entry
+# (file removed) also fails the gate. This is the artifact that would have
+# caught prevent-homedir-server.py before it became an incident.
+#
+# Dispatched helpers (e.g. voice-pipeline-tracker.py, invoked via subprocess by
+# pretool-voice-publish-gate.py) are detected automatically and do NOT need an
+# entry here.
+
+# --- Retired / superseded stubs (kept on disk for compatibility) ---
+instruction-reminder.py                   # retired stub: superseded by session-context.py (settings.json compat)
+retro-knowledge-injector.py               # retired stub: dream payload now injected by session-context.py (ADR-147)
+creation-request-enforcer-userprompt.py   # retired stub: /do Phase 1 handles creation-request enforcement
+skill-evaluator.py                        # disabled stub: main() is a no-op; routing-injection superseded by /do SKILL.md routing tables (overlaps /do)
+
+# --- Deferred blockers (false-block risk; opt-in only) ---
+mcp-health-check.py                        # deferred: PreToolUse exits 2 (BLOCK) on unhealthy MCP within backoff; would block tool use on a session with a transiently-failing MCP server — needs explicit opt-in, not default-on
+pretool-main-thread-discipline.py          # pending: blocks Edit/Write/Bash during an active /do session marker; /do dispatches agents to do exactly that work, so default-on risks false-blocking agent edits
+pretool-config-protection.py               # deferred (ADR-115): denies ANY Write/Edit whose stdin payload exceeds 1 MB (truncation-safety path, before file_path check), so registering on Write|Edit false-blocks large writes to non-config files; register only after the hook fails-open on oversize
+
+# --- Voice hooks superseded by the voice-writer skill pipeline ---
+voice-output-gate.py                       # superseded: voice-writer skill internalizes output gating (HOOK-GATE/CLOSE-GATE phases); private-skills install registers it separately when voice stack is active
+posttool-voice-quality-check.py            # superseded: voice-writer ANTI-AI phase covers AI-pattern checks; advisory-only, not needed default-on
+pretool-voice-publish-gate.py              # superseded: voice-writer pipeline phases enforce publish-readiness; dispatches voice-pipeline-tracker.py; private voice-stack installer registers it when active
