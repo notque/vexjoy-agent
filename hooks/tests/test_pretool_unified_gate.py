@@ -1143,6 +1143,407 @@ class TestCheckPublicDevServer:
         invocation — must not block (codex-found false positive)."""
         assert _run_main(_make_bash_event("cat <<'EOF'\npython3 -m http.server\nEOF")) == 0
 
+    # --- PR #719: command-token anchoring removes flag/word-collision false
+    # positives. Server names in arguments (commit messages, URLs) and unrelated
+    # short flags (git -a, curl -H, ssh -b) must NOT be mistaken for a server. ---
+
+    def test_git_commit_message_named_next_allowed(self):
+        """`git commit -a -m next`: `next` is a commit message, not the dev server,
+        and `-a` is git's all-tracked flag, not http-server's address flag → ALLOW."""
+        assert _run_main(_make_bash_event("git commit -a -m next")) == 0
+
+    def test_git_add_then_commit_message_named_next_allowed(self):
+        """Chained `git add -A && git commit -a -m next` → ALLOW (no segment is a server)."""
+        assert _run_main(_make_bash_event("git add -A && git commit -a -m next")) == 0
+
+    def test_git_commit_message_named_vite_allowed(self):
+        """`git commit -a -m vite`: `vite` in a commit message is not an invocation → ALLOW."""
+        assert _run_main(_make_bash_event("git commit -a -m vite")) == 0
+
+    def test_curl_header_to_vite_dev_url_allowed(self):
+        """`curl -H 'X: y' https://vite.dev`: curl's -H is a header, the host token
+        is `curl`, and `vite.dev` is a URL — not the vite dev server → ALLOW."""
+        assert _run_main(_make_bash_event("curl -H 'X: y' https://vite.dev")) == 0
+
+    def test_ng_build_passthrough_dash_a_allowed(self):
+        """`ng build -- -a foo`: a build (not serve) with a passthrough -a that is
+        not a public host; -a's value `foo` is not a wildcard/public IP → ALLOW."""
+        assert _run_main(_make_bash_event("ng build -- -a foo")) == 0
+
+    def test_npm_run_build_allowed(self):
+        """`npm run build` has no host flag → ALLOW (no false positive on build)."""
+        assert _run_main(_make_bash_event("npm run build")) == 0
+
+    def test_ssh_dash_b_bind_address_allowed(self):
+        """`ssh -b 0.0.0.0 host`: ssh's -b is a bind-address for the SSH client,
+        and `ssh` is not a guarded server → ALLOW (short flag not scanned)."""
+        assert _run_main(_make_bash_event("ssh -b 0.0.0.0 example.com")) == 0
+
+    def test_server_name_as_path_arg_allowed(self):
+        """`ls next/` — `next` appearing as a path argument is not an invocation → ALLOW."""
+        assert _run_main(_make_bash_event("ls next/")) == 0
+
+    # --- PR #719 MEDIUM-1: command-substitution bodies are real invocations even
+    # inside a display command, and must still BLOCK. ---
+
+    def test_echo_substitution_http_server_blocked(self):
+        """`echo $(python3 -m http.server 8080)` launches a real server in the
+        substitution — the display wrapper must NOT suppress it → BLOCK."""
+        assert _run_main(_make_bash_event("echo $(python3 -m http.server 8080)")) == 2
+
+    def test_grep_substitution_php_server_blocked(self):
+        """`grep $(php -S 0.0.0.0:8000) f` launches php's public server in a
+        substitution → BLOCK."""
+        assert _run_main(_make_bash_event("grep $(php -S 0.0.0.0:8000) f")) == 2
+
+    def test_backtick_substitution_http_server_blocked(self):
+        """Backtick substitution `\\`python3 -m http.server\\`` is also a real
+        invocation → BLOCK."""
+        assert _run_main(_make_bash_event("echo `python3 -m http.server`")) == 2
+
+    def test_echo_substitution_loopback_allowed(self):
+        """A loopback bind inside a substitution is still safe → ALLOW."""
+        assert _run_main(_make_bash_event("echo $(python3 -m http.server --bind 127.0.0.1)")) == 0
+
+    # --- PR #719 MEDIUM-2: common Python web servers (flask/uvicorn/gunicorn) on
+    # a public host. Anchored at the command token, so no new false positives. ---
+
+    def test_flask_run_public_host_blocked(self):
+        """`flask run --host=0.0.0.0` exposes the Flask dev server publicly → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m flask run --host=0.0.0.0")) == 2
+
+    def test_flask_run_command_token_public_blocked(self):
+        """Bare `flask run --host 0.0.0.0` (console-script form) → BLOCK."""
+        assert _run_main(_make_bash_event("flask run --host 0.0.0.0")) == 2
+
+    def test_uvicorn_public_host_blocked(self):
+        """`uvicorn app:app --host 0.0.0.0` → BLOCK."""
+        assert _run_main(_make_bash_event("uvicorn app:app --host 0.0.0.0")) == 2
+
+    def test_gunicorn_public_bind_blocked(self):
+        """`gunicorn -b 0.0.0.0:8000 app:app` (-b is gunicorn's bind) → BLOCK."""
+        assert _run_main(_make_bash_event("gunicorn -b 0.0.0.0:8000 app:app")) == 2
+
+    def test_php_artisan_serve_public_blocked(self):
+        """`php artisan serve --host=0.0.0.0` (Laravel dev server) → BLOCK."""
+        assert _run_main(_make_bash_event("php artisan serve --host=0.0.0.0")) == 2
+
+    def test_flask_run_loopback_allowed(self):
+        """`flask run --host=127.0.0.1` binds loopback → ALLOW."""
+        assert _run_main(_make_bash_event("flask run --host=127.0.0.1")) == 0
+
+    def test_uvicorn_loopback_allowed(self):
+        """`uvicorn app:app --host 127.0.0.1` → ALLOW."""
+        assert _run_main(_make_bash_event("uvicorn app:app --host 127.0.0.1")) == 0
+
+    def test_gunicorn_loopback_bind_allowed(self):
+        """`gunicorn -b 127.0.0.1:8000 app` → ALLOW."""
+        assert _run_main(_make_bash_event("gunicorn -b 127.0.0.1:8000 app")) == 0
+
+    def test_bare_flask_run_allowed(self):
+        """Bare `flask run` (no host flag) defaults to 127.0.0.1 → ALLOW."""
+        assert _run_main(_make_bash_event("flask run")) == 0
+
+    # --- PR #719 still-block regressions for the core cases ---
+
+    def test_bind_wildcard_still_blocked(self):
+        """`python3 -m http.server --bind 0.0.0.0` still blocks after the refactor."""
+        assert _run_main(_make_bash_event("python3 -m http.server --bind 0.0.0.0")) == 2
+
+    def test_vite_public_host_still_blocked(self):
+        """`vite --host 0.0.0.0` still blocks (long flag, command-token anchored)."""
+        assert _run_main(_make_bash_event("vite --host 0.0.0.0")) == 2
+
+    def test_sudo_wrapped_server_blocked(self):
+        """`sudo python3 -m http.server` — wrapper stripped, server still caught → BLOCK."""
+        assert _run_main(_make_bash_event("sudo python3 -m http.server")) == 2
+
+    def test_env_prefixed_server_blocked(self):
+        """`PORT=80 vite --host 0.0.0.0` — env-assignment prefix stripped → BLOCK."""
+        assert _run_main(_make_bash_event("PORT=80 vite --host 0.0.0.0")) == 2
+
+    # --- PR #719 codex round-2: wrapper-flag and exec-runner bypasses (closed) ---
+
+    def test_sudo_value_flag_wrapped_php_blocked(self):
+        """`sudo -u nobody php -S 0.0.0.0:8000` — sudo's `-u nobody` value flag is
+        stripped so php becomes the command token (codex round-2 false negative)."""
+        assert _run_main(_make_bash_event("sudo -u nobody php -S 0.0.0.0:8000")) == 2
+
+    def test_npx_vite_public_host_blocked(self):
+        """`npx vite --host 0.0.0.0` — the npx exec-runner prefix is stripped so
+        vite is the command token (codex round-2 false negative)."""
+        assert _run_main(_make_bash_event("npx vite --host 0.0.0.0")) == 2
+
+    def test_npm_exec_next_short_flag_blocked(self):
+        """`npm exec next dev -H 0.0.0.0` — exec prefix stripped, next's -H scanned."""
+        assert _run_main(_make_bash_event("npm exec next dev -H 0.0.0.0")) == 2
+
+    def test_yarn_dlx_astro_public_blocked(self):
+        """`yarn dlx astro dev --host 0.0.0.0` — yarn dlx prefix stripped → BLOCK."""
+        assert _run_main(_make_bash_event("yarn dlx astro dev --host 0.0.0.0")) == 2
+
+    def test_bun_x_next_public_blocked(self):
+        """`bun x next dev -H 0.0.0.0` — bun x prefix stripped → BLOCK."""
+        assert _run_main(_make_bash_event("bun x next dev -H 0.0.0.0")) == 2
+
+    def test_npx_non_server_allowed(self):
+        """`npx eslint .` — exec runner of a non-server tool → ALLOW (no false positive)."""
+        assert _run_main(_make_bash_event("npx eslint .")) == 0
+
+    def test_npm_exec_non_server_allowed(self):
+        """`npm exec tsc -- --noEmit` — exec of a non-server tool → ALLOW."""
+        assert _run_main(_make_bash_event("npm exec tsc -- --noEmit")) == 0
+
+    # --- PR #719 codex round-3: exec-runner option flags and php CLI scripts ---
+
+    def test_npx_yes_flag_then_server_blocked(self):
+        """`npx --yes vite --host 0.0.0.0` — npx's `--yes` option is stripped so
+        vite becomes the command token (codex round-3 false negative)."""
+        assert _run_main(_make_bash_event("npx --yes vite --host 0.0.0.0")) == 2
+
+    def test_npx_package_value_flag_then_server_blocked(self):
+        """`npx -p vite vite --host 0.0.0.0` — `-p vite` value flag is consumed."""
+        assert _run_main(_make_bash_event("npx -p vite vite --host 0.0.0.0")) == 2
+
+    def test_npx_yes_non_server_allowed(self):
+        """`npx --yes prettier --write .` — non-server exec with an option → ALLOW."""
+        assert _run_main(_make_bash_event("npx --yes prettier --write .")) == 0
+
+    def test_php_cli_script_with_host_arg_allowed(self):
+        """`php script.php --host 0.0.0.0` is an ordinary CLI script — its --host is
+        the script's own arg, NOT a server bind (codex round-3 false positive)."""
+        assert _run_main(_make_bash_event("php script.php --host 0.0.0.0")) == 0
+
+    def test_php_artisan_serve_loopback_allowed(self):
+        """`php artisan serve --host=127.0.0.1` binds loopback → ALLOW."""
+        assert _run_main(_make_bash_event("php artisan serve --host=127.0.0.1")) == 0
+
+    # --- PR #719 codex round-4: wrapper value-flags (nice -n, ionice -c) ---
+
+    def test_nice_value_flag_wrapped_server_blocked(self):
+        """`nice -n 5 vite --host 0.0.0.0` — nice's `-n 5` value flag is stripped so
+        vite becomes the command token (codex round-4 false negative)."""
+        assert _run_main(_make_bash_event("nice -n 5 vite --host 0.0.0.0")) == 2
+
+    def test_ionice_value_flag_wrapped_server_blocked(self):
+        """`ionice -c 2 vite --host 0.0.0.0` — ionice's `-c 2` value flag stripped."""
+        assert _run_main(_make_bash_event("ionice -c 2 vite --host 0.0.0.0")) == 2
+
+    def test_nice_wrapped_non_server_allowed(self):
+        """`nice -n 10 npm run build` — wrapped non-server build → ALLOW."""
+        assert _run_main(_make_bash_event("nice -n 10 npm run build")) == 0
+
+    # --- PR #719 codex round-5: flask -h short flag and long wrapper value-flags ---
+
+    def test_flask_short_host_flag_blocked(self):
+        """`flask run -h 0.0.0.0` — flask's `-h` is short for --host → BLOCK."""
+        assert _run_main(_make_bash_event("flask run -h 0.0.0.0")) == 2
+
+    def test_flask_module_short_host_flag_blocked(self):
+        """`python3 -m flask run -h 0.0.0.0` — module form, flask's -h → BLOCK."""
+        assert _run_main(_make_bash_event("python3 -m flask run -h 0.0.0.0")) == 2
+
+    def test_sudo_long_user_flag_wrapped_server_blocked(self):
+        """`sudo --user nobody vite --host 0.0.0.0` — sudo's `--user nobody` long
+        value flag is stripped so vite is the command token (codex round-5)."""
+        assert _run_main(_make_bash_event("sudo --user nobody vite --host 0.0.0.0")) == 2
+
+    def test_sudo_long_user_equals_flag_wrapped_server_blocked(self):
+        """`sudo --user=nobody vite --host 0.0.0.0` — `--user=nobody` single token."""
+        assert _run_main(_make_bash_event("sudo --user=nobody vite --host 0.0.0.0")) == 2
+
+    def test_sudo_long_user_flag_non_server_allowed(self):
+        """`sudo --user me ls -la` — wrapped non-server command → ALLOW."""
+        assert _run_main(_make_bash_event("sudo --user me ls -la")) == 0
+
+    # --- PR #719 codex round-6: valueless-flag mis-consume and path-qualified
+    # wrappers/runners/interpreters. ---
+
+    def test_env_valueless_flag_then_server_blocked(self):
+        """`env -i vite --host 0.0.0.0` — env's `-i` is valueless; vite (an
+        executable token) must not be eaten as its value (codex round-6)."""
+        assert _run_main(_make_bash_event("env -i vite --host 0.0.0.0")) == 2
+
+    def test_time_valueless_flag_then_server_blocked(self):
+        """`time -p vite --host 0.0.0.0` — `-p` valueless, vite preserved → BLOCK."""
+        assert _run_main(_make_bash_event("time -p vite --host 0.0.0.0")) == 2
+
+    def test_path_qualified_wrapper_server_blocked(self):
+        """`/usr/bin/env vite --host 0.0.0.0` — wrapper matched by basename → BLOCK."""
+        assert _run_main(_make_bash_event("/usr/bin/env vite --host 0.0.0.0")) == 2
+
+    def test_path_qualified_sudo_server_blocked(self):
+        """`/bin/sudo vite --host 0.0.0.0` — path-qualified sudo stripped → BLOCK."""
+        assert _run_main(_make_bash_event("/bin/sudo vite --host 0.0.0.0")) == 2
+
+    def test_path_qualified_npx_server_blocked(self):
+        """`/usr/local/bin/npx vite --host 0.0.0.0` — path-qualified runner → BLOCK."""
+        assert _run_main(_make_bash_event("/usr/local/bin/npx vite --host 0.0.0.0")) == 2
+
+    def test_path_qualified_python_flask_blocked(self):
+        """`/usr/bin/python3 -m flask run --host=0.0.0.0` — path-qualified interpreter."""
+        assert _run_main(_make_bash_event("/usr/bin/python3 -m flask run --host=0.0.0.0")) == 2
+
+    def test_env_unset_then_non_server_allowed(self):
+        """`env -u FOO npm run build` — env -u consumes FOO, non-server build → ALLOW."""
+        assert _run_main(_make_bash_event("env -u FOO npm run build")) == 0
+
+    def test_python_m_pytest_flask_keyword_allowed(self):
+        """`python3 -m pytest -k flask` — pytest is not a web server; `flask` is a
+        test keyword, not the flask server → ALLOW."""
+        assert _run_main(_make_bash_event("python3 -m pytest -k flask")) == 0
+
+    # --- PR #719 codex round-7: single-quoted substitution is literal data ---
+
+    def test_single_quoted_substitution_allowed(self):
+        """`echo '$(python3 -m http.server)'` — inside single quotes the `$(...)` is
+        literal text, NOT a substitution → ALLOW (codex round-7 false positive)."""
+        assert _run_main(_make_bash_event("echo '$(python3 -m http.server)'")) == 0
+
+    def test_unquoted_substitution_still_blocked(self):
+        """`echo $(python3 -m http.server)` (unquoted) is a real substitution → BLOCK.
+        Guards that the single-quote fix did not disable MEDIUM-1 detection."""
+        assert _run_main(_make_bash_event("echo $(python3 -m http.server)")) == 2
+
+    def test_double_quoted_substitution_still_blocked(self):
+        """`echo "$(python3 -m http.server)"` — double quotes DO allow substitution
+        in the shell, so this is a real invocation → BLOCK."""
+        assert _run_main(_make_bash_event('echo "$(python3 -m http.server)"')) == 2
+
+    # --- PR #719 codex round-8: quoted env-assignment values with spaces ---
+
+    def test_quoted_env_value_with_space_then_server_blocked(self):
+        """`A='x y' vite --host 0.0.0.0` — shlex keeps the quoted value one token so
+        the env-assignment prefix is stripped and vite is the command token
+        (codex round-8 false negative; naive split() broke on the space)."""
+        assert _run_main(_make_bash_event("A='x y' vite --host 0.0.0.0")) == 2
+
+    def test_quoted_env_value_with_space_php_blocked(self):
+        """`A='x y' php -S 0.0.0.0:8000` → BLOCK after shlex tokenization."""
+        assert _run_main(_make_bash_event("A='x y' php -S 0.0.0.0:8000")) == 2
+
+    def test_quoted_env_value_with_space_loopback_allowed(self):
+        """`A='x y' vite --host 127.0.0.1` — loopback bind still allowed."""
+        assert _run_main(_make_bash_event("A='x y' vite --host 127.0.0.1")) == 0
+
+    def test_unbalanced_quote_does_not_crash(self):
+        """An unbalanced quote must not crash shlex tokenization (fail open, exit 0).
+        The real server in the segment is still caught via the naive-split fallback."""
+        assert _run_main(_make_bash_event("vite --host 0.0.0.0 'unbalanced")) == 2
+
+    # --- PR #719 codex round-9: single quotes INSIDE double quotes are not literal ---
+
+    def test_single_quotes_inside_double_quotes_substitution_blocked(self):
+        """`echo "'$(python3 -m http.server)'"` — single quotes inside double quotes
+        are ordinary characters, so the `$()` STILL executes in the shell and must
+        be caught (codex round-9: naive single-quote-span suppression missed this)."""
+        assert _run_main(_make_bash_event("echo \"'$(python3 -m http.server)'\"")) == 2
+
+    def test_single_quotes_inside_double_quotes_php_blocked(self):
+        """`echo "'$(php -S 0.0.0.0:8000)'"` — same mixed-quoting case for php → BLOCK."""
+        assert _run_main(_make_bash_event("echo \"'$(php -S 0.0.0.0:8000)'\"")) == 2
+
+    # --- PR #719 codex round-10: backslash-escaped single quotes are not literal ---
+
+    def test_escaped_single_quote_substitution_blocked(self):
+        r"""`echo \'$(python3 -m http.server)\'` — `\'` is a literal quote char, NOT a
+        single-quoted span, so the `$()` still executes → BLOCK (codex round-10)."""
+        assert _run_main(_make_bash_event(r"echo \'$(python3 -m http.server)\'")) == 2
+
+    def test_escaped_single_quote_php_substitution_blocked(self):
+        r"""`echo \'$(php -S 0.0.0.0:8000)\'` — escaped quotes, php server → BLOCK."""
+        assert _run_main(_make_bash_event(r"echo \'$(php -S 0.0.0.0:8000)\'")) == 2
+
+    # --- PR #719 codex round-11: timeout-wrapped servers (common smoke-test form) ---
+
+    def test_timeout_wrapped_vite_blocked(self):
+        """`timeout 30s vite --host 0.0.0.0` — timeout's DURATION positional is
+        skipped so vite is the command token (codex round-11, common in CI)."""
+        assert _run_main(_make_bash_event("timeout 30s vite --host 0.0.0.0")) == 2
+
+    def test_timeout_wrapped_flask_blocked(self):
+        """`timeout 60 flask run --host 0.0.0.0` — bare-number duration skipped."""
+        assert _run_main(_make_bash_event("timeout 60 flask run --host 0.0.0.0")) == 2
+
+    def test_timeout_signal_flag_wrapped_server_blocked(self):
+        """`timeout -s KILL 30 vite --host 0.0.0.0` — `-s KILL` value flag then the
+        duration are both skipped → BLOCK."""
+        assert _run_main(_make_bash_event("timeout -s KILL 30 vite --host 0.0.0.0")) == 2
+
+    def test_timeout_wrapped_python_flask_blocked(self):
+        """`timeout 30s python3 -m flask run --host 0.0.0.0` → BLOCK."""
+        assert _run_main(_make_bash_event("timeout 30s python3 -m flask run --host 0.0.0.0")) == 2
+
+    def test_timeout_wrapped_non_server_allowed(self):
+        """`timeout 30s npm run build` — wrapped non-server build → ALLOW."""
+        assert _run_main(_make_bash_event("timeout 30s npm run build")) == 0
+
+    def test_timeout_wrapped_loopback_allowed(self):
+        """`timeout 30s vite --host 127.0.0.1` — loopback bind still allowed."""
+        assert _run_main(_make_bash_event("timeout 30s vite --host 127.0.0.1")) == 0
+
+    # --- PR #719 codex round-12: npx package@version forms (common npx/dlx usage) ---
+
+    def test_npx_versioned_package_server_blocked(self):
+        """`npx vite@latest --host 0.0.0.0` — the `@version` suffix is stripped so
+        vite is recognized as the server (codex round-12, common npx form)."""
+        assert _run_main(_make_bash_event("npx vite@latest --host 0.0.0.0")) == 2
+
+    def test_pnpm_dlx_versioned_http_server_blocked(self):
+        """`pnpm dlx http-server@14 -a 0.0.0.0` — versioned http-server → BLOCK."""
+        assert _run_main(_make_bash_event("pnpm dlx http-server@14 -a 0.0.0.0")) == 2
+
+    def test_npx_versioned_non_server_allowed(self):
+        """`npx eslint@8 .` — versioned non-server tool → ALLOW (no false positive)."""
+        assert _run_main(_make_bash_event("npx eslint@8 .")) == 0
+
+    # --- PR #719 codex round-13: shell `-c` launchers (bash/sh/zsh) recurse into payload ---
+
+    def test_bash_c_vite_blocked(self):
+        """`bash -lc 'vite --host 0.0.0.0'` — the `-c` payload is the real command;
+        recurse into it so vite is caught (codex round-13, common CI wrapper)."""
+        assert _run_main(_make_bash_event("bash -lc 'vite --host 0.0.0.0'")) == 2
+
+    def test_sh_c_php_blocked(self):
+        """`sh -c 'php -S 0.0.0.0:8000'` → BLOCK via payload recursion."""
+        assert _run_main(_make_bash_event("sh -c 'php -S 0.0.0.0:8000'")) == 2
+
+    def test_bash_c_flask_blocked(self):
+        """`bash -c 'flask run --host 0.0.0.0'` → BLOCK."""
+        assert _run_main(_make_bash_event("bash -c 'flask run --host 0.0.0.0'")) == 2
+
+    def test_bash_c_chained_payload_blocked(self):
+        """`bash -c 'cd /app && vite --host 0.0.0.0'` — chained payload, server
+        segment still caught."""
+        assert _run_main(_make_bash_event("bash -c 'cd /app && vite --host 0.0.0.0'")) == 2
+
+    def test_bash_c_build_payload_allowed(self):
+        """`bash -c 'npm run build'` — non-server payload → ALLOW."""
+        assert _run_main(_make_bash_event("bash -c 'npm run build'")) == 0
+
+    def test_bash_c_display_payload_allowed(self):
+        """`bash -lc 'echo vite --host 0.0.0.0'` — payload is a display command → ALLOW."""
+        assert _run_main(_make_bash_event("bash -lc 'echo vite --host 0.0.0.0'")) == 0
+
+    # --- PR #719 codex round-14: wrapper + shell-launcher composition ---
+
+    def test_env_wrapped_bash_c_blocked(self):
+        """`env -i bash -c 'vite --host 0.0.0.0'` — bash is an executable token, so
+        env's `-i` must not eat it; the shell launcher then recurses (codex r14)."""
+        assert _run_main(_make_bash_event("env -i bash -c 'vite --host 0.0.0.0'")) == 2
+
+    def test_time_wrapped_sh_c_blocked(self):
+        """`time -p sh -c 'php -S 0.0.0.0:8000'` → BLOCK (wrapper + shell launcher)."""
+        assert _run_main(_make_bash_event("time -p sh -c 'php -S 0.0.0.0:8000'")) == 2
+
+    def test_sudo_wrapped_bash_c_blocked(self):
+        """`sudo -u me bash -c 'vite --host 0.0.0.0'` → BLOCK."""
+        assert _run_main(_make_bash_event("sudo -u me bash -c 'vite --host 0.0.0.0'")) == 2
+
+    def test_env_wrapped_bash_c_non_server_allowed(self):
+        """`env -i bash -c 'npm run build'` — wrapped shell launcher, non-server → ALLOW."""
+        assert _run_main(_make_bash_event("env -i bash -c 'npm run build'")) == 0
+
     # --- bypass ---
 
     def test_bypass_allows_public_server(self):
