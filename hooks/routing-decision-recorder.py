@@ -55,7 +55,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from routing_outcome_state import append_pending_outcome, dispatch_seen, mark_dispatch_seen
+from routing_outcome_state import append_pending_outcome, claim_dispatch
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PostToolUse"
@@ -66,9 +66,12 @@ EVENT_NAME = "PostToolUse"
 # fan-out (pr-review reviewers, nested dispatches) carries no marker → skipped.
 #   [do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium
 # skill may be empty/"-"/absent (agent-only routing).
+# Anchored to line start (^\s*, MULTILINE) so a quoted/forwarded marker
+# mid-prose (e.g. a user pasting "...the [do-route] line...") doesn't get
+# recorded — only a marker /do itself emitted at the head of a line counts.
 _DO_ROUTE_RE = re.compile(
-    r"\[do-route\]\s+agent=([a-z0-9][a-z0-9-]*)(?:\s+skill=([a-z0-9-]*|-)?)?",
-    re.IGNORECASE,
+    r"^\s*\[do-route\]\s+agent=([a-z0-9][a-z0-9-]*)(?:\s+skill=([a-z0-9-]*|-)?)?",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 # Right-sizing banner, e.g. "rightsizing: tier=2 files=8 packages=3 agents_dispatched=12"
@@ -172,10 +175,12 @@ def main() -> None:
             return  # malformed marker => nothing to key on
         key = build_routing_key(agent, skill)
 
-        # Idempotency: skip if we've already recorded this exact dispatch.
+        # Idempotency (atomic, MEDIUM/TOCTOU): claim this dispatch signature.
+        # claim_dispatch performs check-and-set under one flock, so N concurrent
+        # duplicate deliveries record exactly once. False => already claimed.
         sig = dispatch_signature(agent, skill, description, prompt)
         session_id = event.get("session_id") or ""
-        if dispatch_seen(session_id, sig):
+        if not claim_dispatch(session_id, sig):
             return
 
         has_errors = detect_errors(event)
@@ -204,9 +209,10 @@ def main() -> None:
         if isinstance(output, str):
             record_rightsizing(output)
 
-        # Bridge to the SubagentStop outcome hook (action B).
+        # Bridge to the SubagentStop outcome hook (action B). The dispatch was
+        # already claimed (marked seen) atomically above, so no separate mark.
+        # Decision row is written BEFORE this append (ordering: A-before-B).
         append_pending_outcome(session_id, key, has_errors)
-        mark_dispatch_seen(session_id, sig)
 
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):

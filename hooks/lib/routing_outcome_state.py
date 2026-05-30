@@ -24,8 +24,23 @@ unavailable the operation still proceeds (degraded, never blocking).
 File shape:
     {
       "seen": ["<dispatch-sig>", ...],     # idempotency for the decision hook
-      "pending": [{"key": "agent:skill", "errors": false}, ...]
+      "pending": [{"key": "agent:skill", "errors": false, "attempts": 0}, ...]
     }
+
+Idempotency (MEDIUM, TOCTOU): the decision hook claims a dispatch signature via
+``claim_dispatch`` — an atomic check-and-set under the SAME flock as the write.
+The previous split of ``dispatch_seen`` (unlocked read) + ``mark_dispatch_seen``
+(locked write) let two concurrent duplicate deliveries both observe "unseen"
+and double-record/double-score. ``claim_dispatch`` collapses both into one
+locked critical section so exactly one caller wins.
+
+Ordering (HIGH, A-before-B): action A (PostToolUse:Agent) writes the decision
+row BEFORE appending the pending bridge entry, and PostToolUse:Agent fires
+before SubagentStop — so the decision row is normally present when B drains.
+If a B drains a pending key whose decision row is not yet visible (mistiming),
+B RE-QUEUES that entry via ``requeue_pending_outcomes`` (bounded by
+``MAX_REQUEUE_ATTEMPTS``) instead of discarding it, so a late-arriving decision
+row gets scored on a subsequent stop. See adr/learn-step-to-hook.md.
 """
 
 import fcntl
@@ -37,6 +52,12 @@ from pathlib import Path
 from typing import Any
 
 _STATE_DIR = Path("/tmp")
+
+# Bounded re-queue: how many SubagentStop drains a pending entry may survive
+# while its decision row is still not visible (HIGH, A-before-B mistiming).
+# After this many attempts the entry is dropped so a permanently-orphaned
+# pending key (decision row never written) cannot grow the file unbounded.
+MAX_REQUEUE_ATTEMPTS = 5
 
 
 def _state_dir() -> Path:
@@ -127,8 +148,42 @@ def _atomic_write(path: Path, data: dict[str, Any]) -> None:
         pass
 
 
+def claim_dispatch(session_id: str, signature: str) -> bool:
+    """Atomic check-and-set: claim a dispatch signature for recording.
+
+    Returns True iff THIS caller is the first to claim ``signature`` (the row
+    should be recorded). Returns False if it was already seen (skip — a
+    duplicate delivery). The check and the mark happen under ONE flock, so N
+    concurrent duplicate deliveries see exactly one True (MEDIUM, TOCTOU fix:
+    replaces the split dispatch_seen-read + mark_dispatch_seen-write that let
+    two racers both observe "unseen").
+
+    Best-effort: if state I/O fails entirely it returns True (record rather than
+    silently drop a real dispatch); the DB upsert on (topic, key) is itself
+    idempotent, so a rare double-claim under total I/O failure is bounded.
+    """
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            if signature in data["seen"]:
+                return False
+            data["seen"].append(signature)
+            # Bound the seen list so a long session can't grow it unbounded.
+            data["seen"] = data["seen"][-500:]
+            _atomic_write(path, data)
+            return True
+    except Exception:
+        return True
+
+
 def dispatch_seen(session_id: str, signature: str) -> bool:
-    """Return True if this dispatch signature was already recorded this session."""
+    """Deprecated: non-atomic read. Use claim_dispatch for check-and-set.
+
+    Retained for backward compatibility / diagnostics only. Callers that gate
+    recording on this RACE: pair it with mark_dispatch_seen and two concurrent
+    duplicate deliveries can both pass. Prefer claim_dispatch.
+    """
     try:
         return signature in _load(_state_file(session_id)).get("seen", [])
     except Exception:
@@ -136,7 +191,7 @@ def dispatch_seen(session_id: str, signature: str) -> bool:
 
 
 def mark_dispatch_seen(session_id: str, signature: str) -> None:
-    """Mark a dispatch signature as recorded (idempotency for the decision hook)."""
+    """Deprecated: locked write half of the old split protocol. See claim_dispatch."""
     try:
         path = _state_file(session_id)
         with _state_lock(path):
@@ -156,7 +211,7 @@ def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:
         path = _state_file(session_id)
         with _state_lock(path):
             data = _load(path)
-            data["pending"].append({"key": key, "errors": bool(errors)})
+            data["pending"].append({"key": key, "errors": bool(errors), "attempts": 0})
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
     except Exception:
@@ -180,3 +235,35 @@ def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
         return pending
     except Exception:
         return []
+
+
+def requeue_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> None:
+    """Re-queue pending outcomes whose decision row was not yet visible at drain.
+
+    HIGH (A-before-B mistiming): when B drains a key before A's decision row is
+    visible, the entry is put BACK so a later SubagentStop can score it once the
+    row lands — instead of being silently dropped. Each re-queue increments the
+    entry's ``attempts``; entries that exceed ``MAX_REQUEUE_ATTEMPTS`` are
+    dropped (the decision row was likely never written — e.g. A errored) so the
+    pending list cannot grow unbounded.
+    """
+    if not items:
+        return
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            for item in items:
+                attempts = int(item.get("attempts", 0)) + 1
+                if attempts > MAX_REQUEUE_ATTEMPTS:
+                    continue  # give up on a permanently-orphaned pending key
+                entry = {
+                    "key": item.get("key"),
+                    "errors": bool(item.get("errors")),
+                    "attempts": attempts,
+                }
+                data["pending"].append(entry)
+            data["pending"] = data["pending"][-500:]
+            _atomic_write(path, data)
+    except Exception:
+        pass

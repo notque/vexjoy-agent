@@ -127,8 +127,7 @@ class TestDecisionRecorder:
     def test_records_decision_row_with_skill(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a1")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(skill="test-driven-development", body="Write tests.")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -141,8 +140,7 @@ class TestDecisionRecorder:
     def test_agent_only_key_when_no_skill(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a2")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         # marker present with skill=- => agent-only key.
         event = _agent_event(skill="", body="Just do the thing, no skill named.")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -155,8 +153,7 @@ class TestDecisionRecorder:
         # => not a /do routing decision => recorder records NOTHING.
         a = _load(A_PATH, "rdr_a_nomarker")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         # A reviewer-style prompt that even names a skill the OLD sniffer would catch.
         event = _agent_event(
             marker=False,
@@ -169,8 +166,7 @@ class TestDecisionRecorder:
     def test_error_flag_when_result_errored(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a3")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
             skill="go-patterns",
             output="fatal: permission denied",
@@ -184,8 +180,7 @@ class TestDecisionRecorder:
     def test_rightsizing_row_recorded(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a4")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
             skill="systematic-code-review",
             output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17",
@@ -198,8 +193,7 @@ class TestDecisionRecorder:
     def test_no_rightsizing_row_when_banner_absent(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a5")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(skill="go-patterns", output="plain output")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -225,8 +219,7 @@ class TestDecisionRecorder:
     def test_non_agent_tool_ignored(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a7")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "dispatch_seen", lambda *_a, **_k: False)
-        monkeypatch.setattr(a, "mark_dispatch_seen", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "ls"}}
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -434,3 +427,256 @@ class TestBridgeConcurrency:
         drained = self._drain(session, state_dir)
         assert len(drained) == n, f"lost outcomes: drained {len(drained)} of {n}"
         assert {d["key"] for d in drained} == {f"agent:skill-{i}" for i in range(n)}
+
+
+# ---------------------------------------------------------------------------
+# CRITICAL — decision_row_exists keyed lookup survives a >1000-row table
+# ---------------------------------------------------------------------------
+
+
+class TestDecisionRowExistsBeyondTop1000:
+    """A decayed target row beyond a confidence-DESC top-1000 window must still
+    be found by the KEYED existence check, so its outcome is still scored.
+
+    The old top-1000 query_learnings scan ordered confidence DESC; once the
+    routing/effectiveness table exceeded 1000 rows, a low-confidence target
+    fell out of the window => decision_row_exists False => outcome silently
+    skipped (data loss). The keyed SELECT has no row cap.
+    """
+
+    def test_decayed_target_beyond_1000_rows_is_scored(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+
+        target = "python-general-engineer:rare-route"
+        # Seed the target FIRST and decay it to a low confidence so it sorts
+        # LAST under confidence DESC.
+        ldb.record_learning(
+            topic="routing",
+            key=target,
+            value=f"routing-decision: {target} tool_errors=0",
+            category="effectiveness",
+            source="test",
+        )
+        ldb.decay_confidence("routing", target, delta=0.45)  # -> ~0.05, near floor
+
+        # Now flood the table with >1000 HIGH-confidence routing rows so the
+        # target is pushed past any top-1000 confidence-DESC window.
+        for i in range(1100):
+            ldb.record_learning(
+                topic="routing",
+                key=f"filler-agent:skill-{i}",
+                value=f"routing-decision: filler {i} tool_errors=0",
+                category="effectiveness",
+                confidence=0.95,
+                source="test",
+            )
+
+        # Sanity: the OLD top-1000 confidence-DESC scan would NOT see the target.
+        top1000 = ldb.query_learnings(
+            topic="routing",
+            category="effectiveness",
+            exclude_graduated=False,
+            exclude_test_sources=False,
+            limit=1000,
+        )
+        assert target not in {r["key"] for r in top1000}, "test premise broken: target still in top-1000"
+
+        # The hook's keyed existence check MUST still find it.
+        b = _load(B_PATH, "ror_keyed")
+        assert b.decision_row_exists(target) is True
+
+        # And the outcome is applied (failure_count increments) — not skipped.
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == target)["failure_count"]
+        monkeypatch.setattr(b, "drain_pending_outcomes", lambda _sid: [{"key": target, "errors": True}])
+        event = {"hook_event_name": "SubagentStop", "session_id": "s1"}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == target)["failure_count"]
+        assert after == before + 1, "decayed beyond-top-1000 target was not scored"
+
+
+def _query_routing_all(db_env):
+    """Keyed-safe routing fetch for assertions: read every routing row directly
+    (no confidence-DESC top-N cap) so a decayed target is always visible."""
+    sys.path.insert(0, str(LIB_DIR))
+    import sqlite3
+
+    import learning_db_v2 as ldb
+
+    ldb.init_db()
+    conn = sqlite3.connect(ldb.get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute("SELECT * FROM learnings WHERE topic = 'routing'").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# HIGH-2 — per-agent attribution: one key's error must NOT decay a sibling
+# ---------------------------------------------------------------------------
+
+
+class TestPerAgentAttribution:
+    """Each pending entry is scored by its OWN errors flag. A failing agent in
+    the same session/transcript must not broadcast failure onto a clean
+    sibling key (the dropped whole-transcript substring scan used to do this).
+    """
+
+    def test_sibling_key_not_decayed_by_other_agents_error(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+
+        good = "python-general-engineer:clean"
+        bad = "golang-general-engineer:broken"
+        for key in (good, bad):
+            ldb.record_learning(
+                topic="routing",
+                key=key,
+                value=f"routing-decision: {key} tool_errors=0",
+                category="effectiveness",
+                source="test",
+            )
+        good_before = next(r for r in _query_routing_all(db_env) if r["key"] == good)["confidence"]
+
+        b = _load(B_PATH, "ror_attrib")
+        # Two pending entries drained together: only `bad` carries errors=True.
+        monkeypatch.setattr(
+            b,
+            "drain_pending_outcomes",
+            lambda _sid: [{"key": good, "errors": False}, {"key": bad, "errors": True}],
+        )
+        # A transcript full of error prose must NOT influence the clean key.
+        event = {"hook_event_name": "SubagentStop", "session_id": "s1"}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+
+        good_after = next(r for r in _query_routing_all(db_env) if r["key"] == good)
+        bad_after = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
+        # Clean key boosted (success), NOT decayed by the sibling's error.
+        assert good_after["success_count"] == 1
+        assert good_after["failure_count"] == 0
+        assert good_after["confidence"] > good_before
+        # Failing key decayed on its own flag.
+        assert bad_after["failure_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# HIGH-3 — late decision row is re-queued (bounded), not dropped
+# ---------------------------------------------------------------------------
+
+
+class TestLateDecisionRowRequeue:
+    def test_missing_row_requeued_then_scored_on_next_stop(self, db_env, monkeypatch):
+        """B fires before A's decision row is visible => entry re-queued; once
+        the row lands, a subsequent SubagentStop scores it (no data loss)."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        state_dir = db_env["state"]
+        monkeypatch.setattr(ros, "_STATE_DIR", state_dir)
+        session = "late-row"
+        key = "python-general-engineer:late"
+
+        # Pending exists but NO decision row yet.
+        ros.append_pending_outcome(session, key, errors=True)
+
+        b = _load(B_PATH, "ror_late1")
+        event = {"hook_event_name": "SubagentStop", "session_id": session}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b.main()
+
+        # Entry must be RE-QUEUED (attempts incremented), not dropped.
+        requeued = ros.drain_pending_outcomes(session)
+        assert len(requeued) == 1
+        assert requeued[0]["key"] == key
+        assert requeued[0]["attempts"] == 1
+        # Put it back for the next stop.
+        ros.requeue_pending_outcomes(session, [{"key": key, "errors": True, "attempts": 0}])
+
+        # Now the decision row lands (action A late).
+        import learning_db_v2 as ldb
+
+        ldb.record_learning(
+            topic="routing",
+            key=key,
+            value=f"routing-decision: {key} tool_errors=1",
+            category="effectiveness",
+            source="test",
+        )
+
+        b2 = _load(B_PATH, "ror_late2")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            b2.main()
+        row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert row["failure_count"] == 1, "late-landing decision row was not scored"
+
+    def test_requeue_is_bounded_and_drops_orphan(self, db_env, monkeypatch):
+        """A pending key whose decision row never lands is dropped after
+        MAX_REQUEUE_ATTEMPTS so the pending list cannot grow unbounded."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        state_dir = db_env["state"]
+        monkeypatch.setattr(ros, "_STATE_DIR", state_dir)
+        session = "orphan"
+        key = "ghost-agent:ghost-skill"
+        ros.append_pending_outcome(session, key, errors=False)
+
+        event = {"hook_event_name": "SubagentStop", "session_id": session}
+        # Drain repeatedly; the decision row never exists. Each stop re-queues
+        # with attempts+1 until the cap is exceeded, then the entry is dropped.
+        for i in range(ros.MAX_REQUEUE_ATTEMPTS + 2):
+            b = _load(B_PATH, f"ror_orphan_{i}")
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                b.main()
+
+        # After exceeding the cap, the orphan is gone from pending.
+        remaining = ros.drain_pending_outcomes(session)
+        assert remaining == [], f"orphan pending not dropped after cap: {remaining}"
+
+
+# ---------------------------------------------------------------------------
+# MEDIUM — claim_dispatch atomicity: N concurrent identical deliveries -> once
+# ---------------------------------------------------------------------------
+
+_PROC_CLAIM_SRC = """
+import sys
+sys.path.insert(0, {lib!r})
+from routing_outcome_state import claim_dispatch
+won = claim_dispatch({session!r}, {sig!r})
+sys.exit(0 if won else 3)  # exit 0 == this proc claimed (won)
+"""
+
+
+class TestClaimDispatchAtomicity:
+    def test_concurrent_identical_claims_record_once(self, tmp_path):
+        """N separate processes claim the SAME signature concurrently; exactly
+        one must win (return True). The old split read+write let several win =>
+        double-record/double-score. claim_dispatch is one locked check-and-set.
+        """
+        import os as _os
+
+        state_dir = tmp_path / "state-claim"
+        state_dir.mkdir()
+        session = "claim-session"
+        sig = "deadbeefcafef00d"
+        n = 30
+
+        env = dict(_os.environ)
+        env["CLAUDE_ROUTING_STATE_DIR"] = str(state_dir)
+        src = _PROC_CLAIM_SRC.format(lib=str(LIB_DIR), session=session, sig=sig)
+
+        procs = [subprocess.Popen([sys.executable, "-c", src], env=env) for _ in range(n)]
+        winners = sum(1 for p in procs if p.wait() == 0)
+        assert winners == 1, f"expected exactly one claimer, got {winners}"
+
+    def test_claim_then_reclaim_same_signature_is_false(self, tmp_path, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", tmp_path / "state")
+        assert ros.claim_dispatch("s", "sig-1") is True
+        assert ros.claim_dispatch("s", "sig-1") is False
