@@ -1306,9 +1306,12 @@ def check_public_dev_server(command: str) -> None:
 # `_SEGMENT_SPLIT_RE` splits on `|`, which would tear `curl … | sh` apart.
 #
 # Single shared bypass for the whole group (per the gate's per-check convention).
+# Setting SYSADMIN_GUARD_BYPASS=1 in the environment skips this whole guard (see
+# check_sysadmin_security). The escape hatch is intentionally NOT advertised in the
+# user-facing deny message: a deny that is itself a FALSE POSITIVE would otherwise
+# teach the operator to disable the guard on the next benign command. Mirrors the
+# #719 LOW-1 fix for the public-dev-server guard. Documented here in code only.
 _SYSADMIN_GUARD_BYPASS_ENV = "SYSADMIN_GUARD_BYPASS"
-
-_SYSADMIN_BYPASS_HINT = "\n\nRare intentional case: set SYSADMIN_GUARD_BYPASS=1."
 
 # --- WHOLE-LINE BLOCK patterns (pipe-spanning / multi-segment shapes) ----------
 # Each tuple: (compiled pattern, category, educational deny message naming the fix).
@@ -1390,6 +1393,10 @@ _SYSADMIN_CHMOD_LOOSEN_WORLD_RE = re.compile(
     r"|(?<![\w-])\+[rw]"  # bare +r/+w (applies to all incl. other)
     r"|(?<![\w-])[0-7]?[0-7][0-7][1-7]\b)"  # non-zero OTHER digit (646, 666, 777)
 )
+# A real `chmod` command verb (word-boundaried). Required to fire OUTSIDE quotes
+# alongside the target+mode so the secret-chmod rule only triggers on an actual
+# chmod invocation, not chmod TEXT inside a quoted argument of another command.
+_CHMOD_VERB_RE = re.compile(r"\bchmod\b")
 
 # redis is handled by a dedicated helper (_redis_is_unsafe) rather than a single
 # regex: `--protected-mode no` is only a footgun WITHOUT a `--requirepass` and
@@ -1398,10 +1405,26 @@ _SYSADMIN_CHMOD_LOOSEN_WORLD_RE = re.compile(
 # `::` matches the IPv6 wildcard but NOT loopback `::1` (codex round-18 FP): require
 # the `::` to be followed by a non-hex-digit (end/space) so `::1` falls through to
 # the loopback check.
-_REDIS_PUBLIC_BIND_RE = re.compile(r"--bind(?:\s+|=)(?:0\.0\.0\.0\b|::(?![0-9a-fA-F])|\[::\]|\*|0(?=\s|$))")
-_REDIS_LOOPBACK_BIND_RE = re.compile(r"--bind(?:\s+|=)(?:127\.|localhost|::1|\[::1\])")
-_REDIS_PROTECTED_OFF_RE = re.compile(r"--protected-mode(?:\s+|=)no\b")
-_REDIS_REQUIREPASS_RE = re.compile(r"--requirepass(?:\s+|=)\S")
+# `redis-server` as an executed COMMAND token (command position), used with the
+# quoted-span-excluding `_fires` so the redis text inside a quoted argument of an
+# unrelated command is data, not a server (#724 FP) — yet a real invocation behind
+# a launcher (`systemd-run redis-server …`, `sudo redis-server …`) is still caught
+# (a pure `_command_token=="redis-server"` test would miss those launchers). Command
+# position = start of segment OR right after a shell op / launcher boundary (space).
+_REDIS_SERVER_CMD_RE = re.compile(r"(?:^|[\s;&|])(?:[^\s'\"]*/)?redis-server\b")
+# Each flag tolerates an OPTIONAL quote on its VALUE (`--bind "0.0.0.0"`,
+# `--protected-mode 'no'`): bash strips those quotes before redis sees argv, so a
+# quoted value is a REAL footgun. The FLAG-position guard in `_redis_is_unsafe`
+# (offset must be outside quoted spans) is what distinguishes this from a `--bind`
+# keyword buried INSIDE a quoted value (`--logfile "--bind 0.0.0.0"` → flag start is
+# inside the quote → ignored). `\s+` after the flag also matches across the opening
+# quote position since the value may be `["']`-prefixed.
+_REDIS_PUBLIC_BIND_RE = re.compile(
+    r"--bind(?:\s+|=)['\"]?(?:0\.0\.0\.0\b|::(?![0-9a-fA-F])|\[::\]|\*|0(?=['\"]?(?:\s|$)))"
+)
+_REDIS_LOOPBACK_BIND_RE = re.compile(r"--bind(?:\s+|=)['\"]?(?:127\.|localhost|::1|\[::1\])")
+_REDIS_PROTECTED_OFF_RE = re.compile(r"--protected-mode(?:\s+|=)['\"]?no\b")
+_REDIS_REQUIREPASS_RE = re.compile(r"--requirepass(?:\s+|=)['\"]?\S")
 _SYSADMIN_REDIS_MSG = (
     "Binding redis to 0.0.0.0 (or protected-mode off with no password) publishes "
     "your data unauthenticated — these get ransomware-scanned within minutes. Bind "
@@ -1412,17 +1435,37 @@ _SYSADMIN_REDIS_MSG = (
 )
 
 
+def _redis_flag_fires(pat: re.Pattern[str], seg: str, quoted: list[tuple[int, int]]) -> bool:
+    """True if `pat` matches `seg` with the FLAG KEYWORD starting OUTSIDE quotes.
+
+    A match whose start offset is inside a quoted span means the flag keyword (e.g.
+    `--bind`) is literal text inside another argument's quoted value
+    (`--logfile "--bind 0.0.0.0"`) — not a real flag — so it is ignored. A real flag
+    with a quoted VALUE (`--bind "0.0.0.0"`) has its keyword OUTSIDE quotes and fires.
+    """
+    return any(not any(start <= m.start() < end for start, end in quoted) for m in pat.finditer(seg))
+
+
 def _redis_is_unsafe(seg: str) -> bool:
     """True if a `redis-server` segment exposes data unauthenticated.
 
     Unsafe when: bound to a public interface (any --bind 0.0.0.0/*/::), OR
     protected-mode is off AND there is no --requirepass AND it is not loopback-
     bound. A loopback bind with a password is safe (codex round-6 FP fix).
+
+    Each flag is matched only when its KEYWORD sits OUTSIDE quotes (codex #724
+    round-2/3): a quoted VALUE (`--bind "0.0.0.0"`) is a real footgun and fires,
+    while a `--bind`/`--protected-mode` keyword buried inside another flag's quoted
+    value (`--logfile "--bind 0.0.0.0"`) is data and is ignored.
     """
-    if _REDIS_PUBLIC_BIND_RE.search(seg):
+    quoted = _quoted_spans_all(seg)
+    if _redis_flag_fires(_REDIS_PUBLIC_BIND_RE, seg, quoted):
         return True
-    if _REDIS_PROTECTED_OFF_RE.search(seg):
-        return not (_REDIS_REQUIREPASS_RE.search(seg) or _REDIS_LOOPBACK_BIND_RE.search(seg))
+    if _redis_flag_fires(_REDIS_PROTECTED_OFF_RE, seg, quoted):
+        return not (
+            _redis_flag_fires(_REDIS_REQUIREPASS_RE, seg, quoted)
+            or _redis_flag_fires(_REDIS_LOOPBACK_BIND_RE, seg, quoted)
+        )
     return False
 
 
@@ -1759,6 +1802,57 @@ _SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 _HEREDOC_START_RE = re.compile(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
 
 
+def _strip_unquoted_comment(line: str) -> str:
+    """Drop a POSIX shell comment (`# …` to end of line) that starts OUTSIDE quotes.
+
+    A `#` begins a comment only at WORD START — preceded by start-of-line or an
+    unquoted blank/operator (`;`, `&`, `|`, `(`). So `curl http://x#frag` (mid-word)
+    and a `#` inside quotes (`echo "a#b"`) are NOT comments and are preserved.
+    Footgun text living in a comment is shell-ignored DATA, so scanning it produced
+    false positives (`true # ufw disable`, codex #724 round-1). Mirrors heredoc-body
+    stripping. Quote tracking matches `_quoted_spans_all` (backslash escapes honored
+    outside quotes; single quotes literal; double quotes honor `\\"`).
+    """
+    i, n = 0, len(line)
+    prev_is_word_boundary = True  # start-of-line counts as a boundary
+    while i < n:
+        c = line[i]
+        if c == "\\":
+            i += 2
+            prev_is_word_boundary = False
+            continue
+        if c == "'":
+            close = line.find("'", i + 1)
+            if close == -1:
+                return line  # unterminated quote — do not strip (treat as-is)
+            i = close + 1
+            prev_is_word_boundary = False
+            continue
+        if c == '"':
+            j = i + 1
+            while j < n:
+                if line[j] == "\\":
+                    j += 2
+                    continue
+                if line[j] == '"':
+                    break
+                j += 1
+            if j >= n:
+                return line  # unterminated quote
+            i = j + 1
+            prev_is_word_boundary = False
+            continue
+        if c == "#" and prev_is_word_boundary:
+            return line[:i].rstrip()
+        # Comment-start boundary is whitespace / `;` / `&` / `|` only. `(` is
+        # deliberately EXCLUDED: in bash with extglob, `@(#…)` / `?(#…)` is real
+        # pattern syntax, not a comment, so treating `#` after `(` as a comment
+        # would truncate a live command before a `| sh` (codex #724 round-2 bypass).
+        prev_is_word_boundary = c in " \t;&|"
+        i += 1
+    return line
+
+
 def _non_heredoc_lines(text: str) -> list[str]:
     """Split `text` into command lines, dropping heredoc BODY lines.
 
@@ -1791,11 +1885,18 @@ def _warn(message: str) -> None:
 
 
 def _block_sysadmin(category: str, message: str) -> None:
-    """Emit the sysadmin-guard deny decision and exit 0."""
+    """Emit the sysadmin-guard deny decision and exit 0.
+
+    The deny text deliberately does NOT mention SYSADMIN_GUARD_BYPASS (the env var
+    is still honored in check_sysadmin_security). Advertising the bypass in a
+    message that could be a false positive trains the operator to disable the
+    guard — the exact anti-pattern the #719 LOW-1 fix removed for the dev-server
+    guard. The message names the correct SAFE alternative instead.
+    """
     _block(
-        f"[sysadmin-guard] BLOCKED ({category}): {message}{_SYSADMIN_BYPASS_HINT}",
+        f"[sysadmin-guard] BLOCKED ({category}): {message}",
         tool_name="Bash",
-        reason=f"{message}{_SYSADMIN_BYPASS_HINT}",
+        reason=message,
     )
 
 
@@ -1815,6 +1916,12 @@ def _check_sysadmin_segment(segment: str) -> None:
         for line in _non_heredoc_lines(seg):
             if line.strip():
                 _check_sysadmin_segment(line)
+        return
+
+    # Drop a trailing unquoted shell comment: `true # ufw disable` ignores the
+    # footgun text, so scanning it produced a false positive (codex #724 round-1).
+    seg = _strip_unquoted_comment(seg)
+    if not seg.strip():
         return
 
     # A pure display/search command quoting a footgun string is data, not an
@@ -1844,7 +1951,21 @@ def _check_sysadmin_segment(segment: str) -> None:
         return False
 
     # redis exposed unauthenticated (dedicated helper — see _redis_is_unsafe).
-    if "redis-server" in seg and _redis_is_unsafe(seg):
+    # `redis-server` must be the EXECUTED command, not free text in a quoted arg of
+    # an unrelated command (`gh pr edit --body "redis-server --bind 0.0.0.0 is bad"`,
+    # a recursed `python3 -c "print('redis-server …')"` payload) — that was the #724
+    # free-text FP. Two complementary anchors:
+    #   * `_fires(_REDIS_SERVER_CMD_RE)` — command-position match OUTSIDE quotes; also
+    #     catches a launcher form (`systemd-run redis-server …`, `sudo redis-server`).
+    #   * `_command_token(seg) == "redis-server"` — covers a quoted EXEC NAME
+    #     (`"redis-server" --bind …`, which bash still runs as redis-server; codex
+    #     #724 round-2 bypass). `_command_token` of `gh …`/`python3 -c …` is the
+    #     outer command, so this adds no FP.
+    # `_redis_is_unsafe` does its own quoted-span handling: a `--bind`/`--protected-
+    # mode` keyword buried in another flag's quoted value (`--logfile "--bind
+    # 0.0.0.0"`) is ignored (round-2 FP), while a real flag with a quoted VALUE
+    # (`--bind "0.0.0.0"`) still fires (round-3 footgun).
+    if (_fires(_REDIS_SERVER_CMD_RE) or _command_token(seg) == "redis-server") and _redis_is_unsafe(seg):
         _block_sysadmin("redis-no-auth", _SYSADMIN_REDIS_MSG)
 
     for pattern, category, message in _SYSADMIN_SEGMENT_BLOCK_PATTERNS:
@@ -1866,11 +1987,19 @@ def _check_sysadmin_segment(segment: str) -> None:
     #   only WORLD access. So `chmod 644 app.py`, `chmod 600 ~/.ssh/id_rsa`,
     #   `chmod 640 /etc/shadow`, and `chmod 440 /etc/sudoers` are all allowed, while
     #   `chmod 640 ~/.ssh/id_rsa` and `chmod o+r /etc/shadow` block.
-    if seg.lstrip().startswith("chmod") or " chmod " in seg:
-        if (_SYSADMIN_OWNER_ONLY_TARGET_RE.search(seg) and _SYSADMIN_CHMOD_LOOSEN_OWNER_RE.search(seg)) or (
-            _SYSADMIN_GROUP_OK_TARGET_RE.search(seg) and _SYSADMIN_CHMOD_LOOSEN_WORLD_RE.search(seg)
-        ):
-            _block_sysadmin("secret-chmod", _SYSADMIN_CHMOD_SECRET_MSG)
+    # Every part of the rule must fire OUTSIDE quotes via `_fires` (the chmod verb,
+    # the secret-file target, AND the loosening mode). Otherwise the whole pattern
+    # free-text-matched inside a quoted argument of an unrelated command
+    # (`gh pr create --body "do not chmod 777 ~/.ssh/id_rsa"`, a `python3 -c
+    # "print('chmod 644 id_rsa.pem')"` payload) and blocked (#724 free-text FP).
+    # `_fires` also keeps real invocations — `chmod 644 server.key`,
+    # `sudo chmod o+r /etc/shadow`, `find . -exec chmod 777 id_rsa {} +` — because
+    # their verb/target/mode sit outside any quoted span.
+    if _fires(_CHMOD_VERB_RE) and (
+        (_fires(_SYSADMIN_OWNER_ONLY_TARGET_RE) and _fires(_SYSADMIN_CHMOD_LOOSEN_OWNER_RE))
+        or (_fires(_SYSADMIN_GROUP_OK_TARGET_RE) and _fires(_SYSADMIN_CHMOD_LOOSEN_WORLD_RE))
+    ):
+        _block_sysadmin("secret-chmod", _SYSADMIN_CHMOD_SECRET_MSG)
 
     # WARN-only patterns: advise, do not deny.
     for pattern, advice in _SYSADMIN_WARN_PATTERNS:
@@ -1897,8 +2026,12 @@ def check_sysadmin_security(command: str) -> None:
     # For the whole-line scans, drop heredoc BODY lines: their text is literal stdin
     # data, not commands (`bash -lc "cat <<EOF … curl|sh … EOF"`, codex round-13 FP).
     # Per-segment scanning does its own heredoc stripping; this covers the recursed
-    # `-c` payload path where the heredoc reaches the whole-line patterns.
-    scan_line = "\n".join(_non_heredoc_lines(command)) if "\n" in command else command
+    # `-c` payload path where the heredoc reaches the whole-line patterns. Also drop
+    # trailing unquoted shell comments per line so a commented footgun does not fire
+    # the whole-line pipe-to-shell / reverse-shell patterns (`true # curl … | sh`,
+    # codex #724 round-1 FP).
+    _scan_src_lines = _non_heredoc_lines(command) if "\n" in command else [command]
+    scan_line = "\n".join(_strip_unquoted_comment(ln) for ln in _scan_src_lines)
 
     # A single `git …` command cannot EXECUTE a pipe-to-shell, reverse shell, or
     # sudoers write — a footgun string in its commit message/args is documentation
