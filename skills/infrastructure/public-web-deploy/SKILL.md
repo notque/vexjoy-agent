@@ -14,6 +14,8 @@ routing:
   triggers:
     - "public site"
     - "public website"
+    - "static site"
+    - "landing page"
     - "deploy website"
     - "deploy site"
     - "host a website"
@@ -22,6 +24,7 @@ routing:
     - "put site online"
     - "website online"
     - "make it public"
+    - "make public"
     - "use my domain"
     - "point my domain"
     - "set up https"
@@ -139,23 +142,52 @@ Raw dev servers are single-threaded, unauthenticated, serve the whole working di
    location ~* \.(md|env|ini|conf|log|bak|old|orig|swp|sql|yml|yaml|zip|tar|tar\.gz|tgz)$ { deny all; }
    location ~ ~$            { deny all; }             # editor backup files like index.html~
 
-   # Restrict methods to read-only for a static site
-   if ($request_method !~ ^(GET|HEAD)$) { return 405; }
+   # Restrict methods to read-only INSIDE the served location.
+   # limit_except is location-scoped and evaluated per matched location;
+   # a server-level `if ($request_method ...)` runs before location
+   # selection and leaks the restriction to proxied/other locations.
+   # Add this directive to the SAME `location /` from Phase 2 — do not
+   # create a second `location /`:
+   #   limit_except GET HEAD { deny all; }   # 403 on POST/PUT/DELETE
    ```
-   When the app genuinely needs `POST`/`PUT`, widen the allow-list for that `location` only.
+   The consolidated `location /` (method limit + rate limit) is shown in step 4. When an API `location` genuinely needs `POST`/`PUT`, give it its own `limit_except` (or none) — the restriction stays scoped to the static `location /`.
 3. Security headers:
    ```nginx
-   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+   # HSTS: start WITHOUT includeSubDomains. Add it only once you have confirmed
+   # EVERY subdomain (current and future) serves HTTPS — includeSubDomains forces
+   # HTTPS on all of them and a non-HTTPS subdomain becomes unreachable.
+   add_header Strict-Transport-Security "max-age=31536000" always;
+   # PRECONDITION to append "; includeSubDomains": all subdomains are HTTPS-capable.
+   #   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
    add_header X-Content-Type-Options "nosniff" always;
    add_header X-Frame-Options "SAMEORIGIN" always;
    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-   add_header Content-Security-Policy "default-src 'self'" always;
+
+   # CSP: deploy in Report-Only first so a too-strict policy cannot break the site.
+   # Inventory this site's real asset origins (CDNs, fonts, analytics, inline
+   # scripts) BEFORE enforcing — a blanket "default-src 'self'" silently blocks
+   # any third-party asset the pages actually load.
+   add_header Content-Security-Policy-Report-Only "default-src 'self'" always;
+   # Promote to enforcing only after Report-Only shows zero legitimate violations:
+   #   add_header Content-Security-Policy "default-src 'self'" always;
    ```
-4. Rate limiting:
+4. Rate limiting — define the zone in `http{}`, enforce it in the served `location`:
    ```nginx
+   # http{} context (e.g. /etc/nginx/nginx.conf or a conf.d include)
    limit_req_zone $binary_remote_addr zone=web:10m rate=10r/s;
-   # in location: limit_req zone=web burst=20 nodelay;
    ```
+   This is the ONE canonical `location /` for the server block — it replaces the
+   minimal `location /` from Phase 2 and carries both the method limit and the
+   rate limit (one `location /` per server block, no duplicates):
+   ```nginx
+   location / {
+       try_files $uri $uri/ =404;             # Phase 2
+       limit_except GET HEAD { deny all; }    # step 2: 403 on POST/PUT/DELETE
+       limit_req zone=web burst=20 nodelay;   # active rate limit — enforced, not commented
+   }
+   ```
+   A `limit_req_zone` with no matching `limit_req` defines a zone that never throttles anything.
 5. fail2ban watching nginx for bad requests and bot probes:
    ```bash
    apt-get install -y fail2ban
@@ -176,7 +208,7 @@ curl -s  https://app.example.com/.env -o /dev/null -w '%{http_code}\n'        # 
 curl -s  https://app.example.com/.git/config -o /dev/null -w '%{http_code}\n' # 403/404
 curl -s  https://app.example.com/backup.zip -o /dev/null -w '%{http_code}\n'  # 403/404 (archive deny)
 curl -s  https://app.example.com/ -o /dev/null -w '%{http_code}\n'            # no autoindex on a dir
-curl -X POST -s https://app.example.com/ -o /dev/null -w '%{http_code}\n'     # 405 for static
+curl -X POST -s https://app.example.com/ -o /dev/null -w '%{http_code}\n'     # 403 for static (limit_except deny all)
 ss -tlnp | grep -vE '127\.0\.0\.1|:(80|443)\b'      # no app/dev port on a public iface
 # Mixed content: served pages reference only https:// subresources
 curl -s https://app.example.com/ | grep -oE 'http://[^"'\'' ]+' || echo "no http:// subresources"
@@ -199,8 +231,8 @@ Run every item before declaring the site live. Each line is pass/fail.
 | 5 | UFW allows only intended ports, IPv4 and IPv6 | `ufw status` shows only 80/443/SSH; v6 parity when an AAAA record exists |
 | 6 | nginx denies sensitive paths | dotfiles, `.md/.env/config/logs`, backups, archives (`.zip/.tar/.tgz`), editor/VCS leftovers (`~/.old/.orig/.swp`) return 403/404 |
 | 7 | Directory listing disabled | `autoindex off`; a directory URL does not return a file index |
-| 8 | Methods limited to GET/HEAD unless app needs more | other methods return 405 for static sites |
-| 9 | Security headers present | HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy set; CSP set and actually correct for this site (not just present) |
+| 8 | Methods limited to GET/HEAD unless app needs more | `limit_except GET HEAD` in the served `location`; other methods return 403 for static sites |
+| 9 | Security headers present | HSTS (`includeSubDomains` only when all subdomains are HTTPS-capable), X-Content-Type-Options, X-Frame-Options, Referrer-Policy set; CSP deployed Report-Only first, promoted to enforcing after zero legitimate violations |
 | 10 | No mixed content | every subresource (img/script/style/font) loads over HTTPS; no `http://` references in served pages |
 | 11 | Rate limiting active | `limit_req` zone applied to public locations |
 | 12 | fail2ban watches nginx bad requests/bot probes | nginx-bad-request + nginx-botsearch jails active |
@@ -215,7 +247,7 @@ Run every item before declaring the site live. Each line is pass/fail.
 2. nginx server block, docroot `/var/www/mysite.com`, `nginx -t && reload` (Web Server).
 3. `certbot --nginx -d mysite.com`; `certbot renew --dry-run`; confirm HTTP->HTTPS (HTTPS).
 4. UFW 80/443/SSH; deny dotfiles; GET/HEAD only; headers; rate limit; fail2ban (Hardening).
-5. Run the 11-item checklist; curl-probe `.env`/`.git`/POST from outside (Verify).
+5. Run the 13-item checklist; curl-probe `.env`/`.git`/POST from outside (Verify).
 Result: public HTTPS static site, no dev server, sensitive paths closed.
 
 ### Example 2: "Use my domain to serve this app I'm running on :8000"
