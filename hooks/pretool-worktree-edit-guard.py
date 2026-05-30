@@ -28,13 +28,27 @@ Deny mechanism: JSON permissionDecision:deny on stdout + exit 0 (matches
 pretool-config-protection.py / pretool-unified-gate.py convention). The deny
 message names worktree_root and the corrected path the agent should edit.
 
-Properties: dependency-free (stdlib only), <300ms (no subprocess), fails OPEN on
-any internal error -- never blocks legitimate work due to a hook bug.
-Bypass: WORKTREE_EDIT_GUARD_BYPASS=1.
+Properties: dependency-free (stdlib only). Fails OPEN on any internal error --
+never blocks legitimate work due to a hook bug. Bypass:
+WORKTREE_EDIT_GUARD_BYPASS=1.
+
+Path namespace (HIGH-1): cwd is realpath-canonicalized ONCE in main() before
+roots/targets are derived, so containment checks never compare a canonical
+target against a raw symlinked root (which both allowed escapes and blocked
+legitimate in-worktree edits under symlinked /tmp, $HOME, NFS).
+
+Worktree-root derivation (MEDIUM-1): the worktree root comes from
+`git -C <cwd> rev-parse --show-toplevel` (0.5s timeout), which is robust to
+nested `.../worktrees/<group>/<id>/` layouts that the single-segment
+string-split computed too shallow (letting sibling-worktree edits slip
+through). Git is invoked ONLY when cwd is inside a worktree (rare hot path),
+not on the common pass-through. Any git failure (missing, not-a-repo, timeout,
+non-zero) falls back to the string-split and ultimately fails OPEN.
 """
 
 import json
 import os
+import subprocess
 import sys
 import traceback
 from pathlib import Path
@@ -51,14 +65,61 @@ except Exception:  # pragma: no cover - lib import must never hard-fail the hook
 
 _BYPASS_ENV = "WORKTREE_EDIT_GUARD_BYPASS"
 _WORKTREE_MARKER = "/.claude/worktrees/"
+# This hook is the SOLE PreToolUse guard covering MultiEdit and NotebookEdit
+# (pretool-unified-gate.py matches only Bash|Write|Edit). The MultiEdit/
+# NotebookEdit schema-parsing in _iter_target_paths and the tests that exercise
+# it must never be weakened: nothing else blocks those two tools.
 _GUARDED_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+_GIT_TOPLEVEL_TIMEOUT_S = 0.5
+
+
+def _git_worktree_root(cwd: str) -> str | None:
+    """Return the realpath-resolved worktree root via `git rev-parse`, or None.
+
+    `git -C <cwd> rev-parse --show-toplevel` returns the top of the *current*
+    working tree, which for a worktree CWD is the worktree root itself
+    (already realpath-resolved by git). This is the source of truth and is
+    robust to ANY nesting layout under the marker.
+
+    Returns None on any failure (git missing, not a repo, timeout, non-zero
+    exit, empty output) so the caller can fall back to string-splitting and,
+    ultimately, fail OPEN.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=_GIT_TOPLEVEL_TIMEOUT_S,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    root = proc.stdout.strip()
+    if not root:
+        return None
+    # Canonicalize so it shares the same resolved namespace as the (already
+    # realpath'd) cwd and targets, regardless of git's own normalization.
+    try:
+        return os.path.realpath(root)
+    except OSError:
+        return root
 
 
 def _split_worktree(cwd: str) -> tuple[str, str] | None:
     """Given a cwd inside a worktree, return (main_repo_root, worktree_root).
 
-    worktree_root  = main_repo_root + "/.claude/worktrees/<id>"
-    main_repo_root = everything before "/.claude/worktrees/"
+    `cwd` is expected to already be realpath-canonicalized by the caller so
+    that roots and targets are compared in one resolved namespace.
+
+    main_repo_root = everything before "/.claude/worktrees/".
+    worktree_root  = the worktree's own toplevel. Preferred source is
+                     `git rev-parse --show-toplevel` (robust to nested
+                     `.../<group>/<id>/` layouts). If git is unavailable we
+                     fall back to the single-segment string-split, and if that
+                     also fails we return None -> ALLOW (fail open).
 
     Returns None if cwd is not inside a worktree.
     """
@@ -66,10 +127,27 @@ def _split_worktree(cwd: str) -> tuple[str, str] | None:
     if idx == -1:
         return None
     main_repo_root = cwd[:idx]
+    if not main_repo_root:
+        return None
+
+    # Preferred: ask git for the worktree's true toplevel. This handles nested
+    # worktree-id layouts (e.g. ".../worktrees/<group>/<id>/") that the
+    # single-segment string-split computes too shallow, which would let edits
+    # into a SIBLING worktree slip through (the exact clobber this hook stops).
+    git_root = _git_worktree_root(cwd)
+    if git_root is not None and _is_inside(cwd, git_root):
+        # Sanity: the git toplevel must itself live under the worktrees marker
+        # of this main repo. Otherwise git resolved to something unexpected
+        # (e.g. cwd is inside the marker dir but not an actual worktree) and we
+        # fall back to the string-split below.
+        if _is_inside(git_root, f"{main_repo_root}{_WORKTREE_MARKER}".rstrip("/")):
+            return main_repo_root, git_root
+
+    # Fallback: single-segment string-split. This assumes the worktree id is a
+    # single path segment directly after the marker. For a nested layout this
+    # computes worktree_root too shallow; we keep it only as a degraded path
+    # when git is unavailable, and ultimately fail OPEN if even this fails.
     after = cwd[idx + len(_WORKTREE_MARKER) :]
-    # Assumes the worktree id is a single path segment directly after the marker
-    # (e.g. ".../.claude/worktrees/<id>/..."). If a layout nests the id deeper,
-    # worktree_root is computed too shallow -> we under-block (fail-open direction).
     worktree_id = after.split("/", 1)[0]
     if not worktree_id:
         return None
@@ -203,6 +281,17 @@ def main() -> None:
     # cwd from event; fall back to process cwd if absent.
     cwd = event.get("cwd") or os.getcwd()
     if not isinstance(cwd, str) or not cwd:
+        sys.exit(0)
+
+    # HIGH-1 fix: canonicalize cwd ONCE here so the worktree/main roots derived
+    # from it and the realpath'd targets are compared in the SAME resolved
+    # namespace. Without this, a symlinked path (macOS /tmp->/private/tmp,
+    # symlinked $HOME, NFS) makes _is_inside compare canonical-vs-raw, which
+    # both allows out-of-worktree escapes and blocks legitimate in-worktree
+    # edits. Fail OPEN if realpath raises.
+    try:
+        cwd = os.path.realpath(cwd)
+    except OSError:
         sys.exit(0)
 
     split = _split_worktree(cwd)
