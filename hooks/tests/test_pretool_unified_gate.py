@@ -1550,3 +1550,130 @@ class TestCheckPublicDevServer:
         """PUBLIC_SERVER_GUARD_BYPASS=1 allows the blocked command through."""
         payload = _make_bash_event("python3 -m http.server 8080")
         assert _run_main(payload, env={"PUBLIC_SERVER_GUARD_BYPASS": "1"}) == 0
+
+
+# ---------------------------------------------------------------------------
+# TestPublicDevServerHigh1FalsePositives (PR #719 HIGH-1)
+#
+# The literal string `python -m http.server` sitting in a command's ARGUMENTS
+# (commit message, PR body, grep/sed/ag pattern, `-c "..."` payload) is data, not
+# an invocation. Detection is now token-anchored to a python interpreter COMMAND
+# token via _python_m_module, so these must ALLOW while real invocations BLOCK.
+#
+# `gh pr create` / `git commit` are independently intercepted by the
+# git-submission gate under the "work" profile used by _run_main, so for those two
+# the public-server check is asserted IN ISOLATION (it must not raise a block).
+# ---------------------------------------------------------------------------
+
+
+def _public_check_blocks(command: str) -> bool:
+    """True iff check_public_dev_server alone would deny `command`.
+
+    Isolates the public-server guard from the other gates so a command that is
+    blocked by an unrelated gate (e.g. `gh pr create` in the work profile) can
+    still be asserted to be ALLOWED by the public-server check specifically.
+    """
+    captured = io.StringIO()
+    with patch("sys.stdout", captured), patch("sys.stderr", io.StringIO()):
+        try:
+            mod.check_public_dev_server(command)
+        except SystemExit:
+            return True
+    return False
+
+
+class TestPublicDevServerHigh1FalsePositives:
+    """Literal http.server strings in arguments must not be mistaken for invocations."""
+
+    def test_git_commit_message_mentioning_http_server_allowed(self):
+        cmd = 'git commit -m "fix: python -m http.server binds 0.0.0.0 by default"'
+        assert _run_main(_make_bash_event(cmd)) == 0
+        assert _public_check_blocks(cmd) is False
+
+    def test_gh_pr_body_mentioning_http_server_allowed_by_public_check(self):
+        # `gh pr create` is blocked by the git-submission gate (work profile), so
+        # only the public-server check is asserted here.
+        assert _public_check_blocks('gh pr create --body "blocks python -m http.server"') is False
+
+    def test_git_grep_http_server_pattern_allowed(self):
+        cmd = 'git grep -n "python3 -m http.server" README.md'
+        assert _run_main(_make_bash_event(cmd)) == 0
+        assert _public_check_blocks(cmd) is False
+
+    def test_sed_http_server_pattern_allowed(self):
+        cmd = 'sed -n "/python3 -m http.server/p" README.md'
+        assert _run_main(_make_bash_event(cmd)) == 0
+
+    def test_ag_http_server_pattern_allowed(self):
+        cmd = 'ag "python -m http.server"'
+        assert _run_main(_make_bash_event(cmd)) == 0
+
+    def test_python_dash_c_print_http_server_allowed(self):
+        """`python3 -c "print('python3 -m http.server')"` — the literal sits in the
+        -c payload token, not a real `-m` flag → ALLOW."""
+        cmd = '''python3 -c "print('python3 -m http.server')"'''
+        assert _run_main(_make_bash_event(cmd)) == 0
+        assert _public_check_blocks(cmd) is False
+
+    # --- the real invocations these FPs resemble must STILL block ---
+
+    def test_real_http_server_still_blocks(self):
+        assert _run_main(_make_bash_event("python3 -m http.server 8080")) == 2
+
+    def test_real_http_server_public_bind_still_blocks(self):
+        assert _run_main(_make_bash_event("python3 -m http.server --bind 0.0.0.0")) == 2
+
+    def test_command_substitution_http_server_still_blocks(self):
+        """The command-substitution body's token IS python → real invocation → BLOCK."""
+        assert _run_main(_make_bash_event("echo $(python3 -m http.server 8080)")) == 2
+
+    # --- codex-found regression: python launchers must expose the inner python ---
+
+    def test_uv_run_http_server_blocked(self):
+        """`uv run python3 -m http.server 8080` — `uv run` launches a real public
+        bind; the inner python3 must be exposed as the command token → BLOCK."""
+        assert _run_main(_make_bash_event("uv run python3 -m http.server 8080")) == 2
+
+    def test_poetry_run_http_server_blocked(self):
+        assert _run_main(_make_bash_event("poetry run python3 -m http.server 8080")) == 2
+
+    def test_bash_c_uv_run_http_server_blocked(self):
+        assert _run_main(_make_bash_event("bash -lc 'uv run python3 -m http.server 8080'")) == 2
+
+    def test_uv_run_http_server_loopback_allowed(self):
+        """`uv run python3 -m http.server --bind 127.0.0.1` — explicit loopback → ALLOW."""
+        assert _run_main(_make_bash_event("uv run python3 -m http.server --bind 127.0.0.1")) == 0
+
+    def test_pipx_run_http_server_blocked(self):
+        assert _run_main(_make_bash_event("pipx run python3 -m http.server 8080")) == 2
+
+    def test_conda_run_named_env_http_server_blocked(self):
+        """`conda run -n myenv python3 -m http.server` — env-selector value consumed,
+        inner python3 exposed as the command token → BLOCK."""
+        assert _run_main(_make_bash_event("conda run -n myenv python3 -m http.server")) == 2
+
+    def test_rye_run_http_server_blocked(self):
+        assert _run_main(_make_bash_event("rye run python3 -m http.server")) == 2
+
+    def test_uv_run_with_option_value_http_server_blocked(self):
+        """`uv run --with requests python3 -m http.server` — a runner option value
+        (`requests`) must not become the command token; the inner python3 → BLOCK."""
+        assert _run_main(_make_bash_event("uv run --with requests python3 -m http.server 8080")) == 2
+
+    def test_pdm_run_venv_option_value_http_server_blocked(self):
+        assert _run_main(_make_bash_event("pdm run --venv foo python3 -m http.server 8080")) == 2
+
+    def test_uv_run_python_option_value_http_server_blocked(self):
+        assert _run_main(_make_bash_event("uv run --python 3.12 python3 -m http.server")) == 2
+
+    def test_uv_run_with_executable_named_value_http_server_blocked(self):
+        """`uv run --with uvicorn python3 -m http.server` — the `--with` value
+        (`uvicorn`) is a PACKAGE name, not the command; it must be consumed so the
+        inner python3 is found → BLOCK (would otherwise desync and ALLOW)."""
+        assert _run_main(_make_bash_event("uv run --with uvicorn python3 -m http.server 8080")) == 2
+
+    def test_uv_run_with_value_then_display_command_allowed(self):
+        """`uv run --with flask echo --host 0.0.0.0` — after consuming the `--with`
+        value (`flask`), the real command is `echo` (display) → ALLOW. Guards
+        against misreading the flag value as a Flask server."""
+        assert _run_main(_make_bash_event("uv run --with flask echo --host 0.0.0.0")) == 0

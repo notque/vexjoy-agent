@@ -237,13 +237,24 @@ _PUBLIC_SERVER_BYPASS_ENV = "PUBLIC_SERVER_GUARD_BYPASS"
 # Loopback / local-only host values (lowercased).
 _LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
 
-# python -m http.server / SimpleHTTPServer. Handles python / python2 / python3 /
-# python3.11 / the `py` launcher, a space or no space after -m (`-m http.server`,
-# `-mhttp.server`), both module names, and an optionally quoted module name
-# (`-m 'http.server'`, `-m "http.server"`). Detection is regex-on-text (a shared
-# limit of every check in this gate): variable-expanded interpreters (`$p -m …`)
-# or module names built in a var are NOT caught — that is an accepted residual.
-_PY_HTTP_SERVER_RE = re.compile(r"(?:\bpython[\d.]*\b|\bpy\b)[^|;&]*?-m\s*['\"]?(?:http\.server|SimpleHTTPServer)\b")
+# python -m http.server / SimpleHTTPServer module names (lowercased). Resolved by
+# walking shlex tokens (see _python_m_module), NOT a free-text regex: a literal
+# `python -m http.server` sitting inside a commit message, grep pattern, or a
+# `-c "..."` payload is NOT a command invocation and must NOT match. Handles
+# python / python2 / python3 / python3.11 / the `py` launcher, a space or no space
+# after -m (`-m http.server`, `-mhttp.server`), and an optionally quoted module
+# (`-m 'http.server'`, `-m "http.server"`).
+#
+# Residual (accepted, shared limit of every check in this gate): a variable-
+# expanded interpreter (`p=python3; $p -m http.server`) is NOT caught because the
+# command token is `$p`, not a python interpreter.
+#
+# Known FALSE-NEGATIVE follow-up gaps (OUT of scope for PR #719, tracked for a
+# separate round — do NOT "fix" by loosening detection):
+#   * bare `http-server` / `npx http-server` (binds 0.0.0.0 by default)
+#   * bare `vite --host` / `next dev --host` / `vite --host --strictPort`
+#   * env-var-expanded interpreter residual above
+_PY_HTTP_SERVER_MODULES = frozenset({"http.server", "simplehttpserver"})
 
 # `FOO=bar` env-assignment prefix (transparent: the real executable follows).
 # Tokenized via shlex, so the value (quotes already removed) may contain spaces;
@@ -275,6 +286,18 @@ _EXEC_RUNNER_PREFIXES = (
     ("yarn", "exec"),
     ("yarn", "dlx"),
     ("bun", "x"),
+    # Python launchers that run an INNER interpreter/command. `<launcher> run
+    # python3 -m http.server` must expose the inner `python3` as the command token
+    # so token-anchored detection still fires (codex-found regression in PR #719:
+    # token-anchoring otherwise let these real public binds slip past, where the
+    # prior free-text scan blocked them). Covers the common task-runners.
+    ("uv", "run"),
+    ("poetry", "run"),
+    ("pipx", "run"),
+    ("pdm", "run"),
+    ("hatch", "run"),
+    ("rye", "run"),
+    ("conda", "run"),
 )
 # Wrapper short flags that consume a following value token (so we skip that token
 # too): sudo -u/-g/-C/-h/-p/-r/-t/-U; env -u NAME / -C dir; nice -n N; ionice -c
@@ -302,10 +325,42 @@ _WRAPPER_LONG_VALUE_FLAGS = frozenset(
         "--kill-after",
     }
 )
-# Exec-runner option flags that take a value (so the value token is skipped too):
-# `npx -p <pkg>`, `npx --package <pkg>`, `npx -c <cmd>`. Plain `--yes`/`-y`/`-q`
-# are valueless and skipped by the generic option loop.
-_EXEC_RUNNER_VALUE_FLAGS = frozenset({"-p", "--package", "-c", "--call"})
+# Exec-runner option flags that take a VALUE (the following token is the flag's
+# value — a package/env/path name — NOT the wrapped command, so it is consumed so
+# the real inner command surfaces). Covers the documented value-taking options of
+# every runner in _EXEC_RUNNER_PREFIXES:
+#   npx:      -p/--package <pkg>, -c/--call <cmd>
+#   uv run:   --with/--with-requirements <pkg>, --python/-p <ver>, --project <dir>,
+#             --directory <dir>, --index <url>, --extra <name>
+#   pdm run:  --venv <name>, -p/--project <dir>
+#   pipx run: --spec <pkg>, --python <ver>
+#   conda run: -n/--name <env>, -p/--prefix <path>
+# Enumeration (not a generic skip) is required: a generic "skip non-executable
+# tokens" loop desyncs when a value happens to be an executable NAME (codex-found
+# PR #719: `uv run --with uvicorn python3 …` and `uv run --with flask echo …`).
+# Residual (documented follow-up gap): an UNKNOWN value-taking runner flag leaves
+# its value as the command token → resolves to a non-server → ALLOW (a miss, never
+# a false positive). The `--key=value` form is a single token and needs no skip.
+_EXEC_RUNNER_VALUE_FLAGS = frozenset(
+    {
+        "-p",
+        "--package",
+        "-c",
+        "--call",
+        "-n",
+        "--name",
+        "--prefix",
+        "--with",
+        "--with-requirements",
+        "--python",
+        "--project",
+        "--directory",
+        "--index",
+        "--extra",
+        "--spec",
+        "--venv",
+    }
+)
 
 
 def _is_executable_token(tok: str) -> bool:
@@ -401,12 +456,14 @@ def _strip_leading_prefixes(segment: str) -> str:
                         break
                     flag = toks[i]
                     i += 1
-                    if (
-                        flag in _EXEC_RUNNER_VALUE_FLAGS
-                        and i < len(toks)
-                        and not toks[i].startswith("-")
-                        and not _is_executable_token(toks[i])
-                    ):
+                    # `--key=value` is a single token (no value skip). For `--key
+                    # value`, consume the value token EVEN when it looks like an
+                    # executable name: a `--with uvicorn` / `--venv flask` value is a
+                    # package/env name, NOT the wrapped command, so the
+                    # _is_executable_token guard must NOT apply here (codex-found
+                    # PR #719 desync: it both hid `uv run --with uvicorn python3 -m
+                    # http.server` and falsely blocked `uv run --with flask echo …`).
+                    if flag in _EXEC_RUNNER_VALUE_FLAGS and i < len(toks) and not toks[i].startswith("-"):
                         i += 1
                 break
         if matched:
@@ -433,6 +490,54 @@ def _command_token(segment: str) -> str:
     if at != -1:
         tok = tok[:at]
     return tok
+
+
+def _is_python_interpreter(tok: str) -> bool:
+    """True if `tok` (a raw command token) names a python interpreter.
+
+    Matches `python`, `python2`, `python3`, `python3.11`, and the `py` launcher,
+    path-qualified or not. Used to anchor `-m <module>` detection to a genuine
+    interpreter command so a literal module string in an argument never matches.
+    """
+    base = tok.rsplit("/", 1)[-1].lower()
+    return base == "py" or base.startswith("python")
+
+
+def _python_m_module(segment: str) -> str | None:
+    """Return the lowercased `-m <module>` module run by a python interpreter, else None.
+
+    Walks shlex TOKENS (after leading wrappers/env-assignments are stripped
+    upstream), not free text. This is the fix for PR #719's HIGH-1 false
+    positives: a literal `python -m http.server` inside a commit message, a grep
+    pattern, or a `-c "..."` payload is a single shlex token (or sits in one), so
+    no real `-m` flag token is found and the function returns None → ALLOW.
+
+    Mirrors the flask/uvicorn `-m` resolution but is token-anchored so it cannot
+    fire on free-floating text. Handles `-m module`, `-mmodule` (no space), and an
+    optionally quoted module (`-m 'http.server'`). Stops scanning a `-c <payload>`
+    argument's value (the payload is its own token; any `-m` inside it is data).
+    """
+    seg = _strip_leading_prefixes(segment)
+    try:
+        toks = shlex.split(seg, posix=True)
+    except ValueError:
+        toks = seg.split()
+    if not toks or not _is_python_interpreter(toks[0]):
+        return None
+    i = 1
+    while i < len(toks):
+        t = toks[i]
+        if t == "-m":
+            if i + 1 < len(toks):
+                return toks[i + 1].strip("'\"").lower()
+            return None
+        if t.startswith("-m") and len(t) > 2 and not t.startswith("--"):
+            return t[2:].strip("'\"").lower()  # combined `-mhttp.server`
+        if t == "-c" or t == "--command":
+            i += 2  # skip the payload value token; `-m` inside it is data
+            continue
+        i += 1
+    return None
 
 
 # Node task runners (npm/pnpm/yarn/bun) recognized as the COMMAND token. On their
@@ -496,13 +601,8 @@ _JS_DEV_SERVERS = frozenset(
 # Python web servers (flask run, uvicorn, gunicorn) that expose a public host
 # through a --host/--bind/-b flag. Caught by the long-flag scan (plus gunicorn's
 # -b short flag). Recognized either as their own console-script command token or
-# via `python -m <module>` (see _PY_MODULE_RE).
+# via `python -m <module>`, resolved by the token-anchored _python_m_module.
 _PY_WEB_SERVERS = frozenset({"flask", "uvicorn", "gunicorn"})
-
-# `python[-ver] -m <module>` — captures the module a python interpreter runs, so
-# `python3 -m flask run --host=0.0.0.0` maps to the `flask` server. Anchored at
-# the segment's leading interpreter token (after wrappers are stripped upstream).
-_PY_MODULE_RE = re.compile(r"^(?:\S*/)?(?:python[\d.]*|py)\b[^|;&]*?-m\s+['\"]?([A-Za-z0-9_.\-]+)")
 
 
 def _host_is_public(host: str) -> bool:
@@ -845,9 +945,14 @@ _PUBLIC_SERVER_DENY_MSG = (
     "  php -S 127.0.0.1:8000\n"
     "  vite --host 127.0.0.1\n\n"
     "For PUBLIC hosting, do NOT expose a raw dev server. Put it behind a real web "
-    "server / tunnel (nginx, Caddy, Cloudflare Tunnel) — see the public-web-deploy skill.\n\n"
-    "Rare intentional case: set PUBLIC_SERVER_GUARD_BYPASS=1."
+    "server / tunnel (nginx, Caddy, Cloudflare Tunnel) — see the public-web-deploy skill."
 )
+# LOW-1 (PR #719): the deny message deliberately does NOT advertise the bypass
+# env var. Surfacing the disarm switch in user-facing block output hands a novice
+# (or a coerced agent) the exact escape hatch on any false positive. The bypass
+# remains FUNCTIONAL via PUBLIC_SERVER_GUARD_BYPASS=1 (checked in
+# check_public_dev_server) for the rare intentional case — documented here in code
+# only, not in the block reason.
 
 
 # Commands that merely DISPLAY or SEARCH text — a server string in their args is
@@ -998,8 +1103,15 @@ def _check_public_dev_server_segment(segment: str, _depth: int = 0) -> None:
     if _DISPLAY_CMD_RE.match(seg.lstrip("'\"")):
         return
 
+    # Resolve `python -m <module>` once, anchored to the interpreter COMMAND token
+    # (token-walk, not free text). None when the segment is not a real `python -m`
+    # invocation (e.g. the literal string lives in a commit message / grep pattern
+    # / `-c "..."` payload) — that is the HIGH-1 false-positive fix.
+    py_module = _python_m_module(seg)
+
     # python http.server: block by default unless an explicit loopback --bind.
-    if _PY_HTTP_SERVER_RE.search(seg):
+    # Only fires when the COMMAND is a python interpreter running `-m http.server`.
+    if py_module in _PY_HTTP_SERVER_MODULES:
         m = _PY_BIND_RE.search(seg)
         if m is None or _host_is_public(m.group(1)):
             _block_public_server()
@@ -1023,9 +1135,8 @@ def _check_public_dev_server_segment(segment: str, _depth: int = 0) -> None:
     # (`python3 -m flask run`); the module form maps the interpreter token to the
     # module name so it is still anchored to a real invocation.
     server = cmd
-    mod = _PY_MODULE_RE.match(_strip_leading_prefixes(seg))
-    if mod and mod.group(1).lower() in _PY_WEB_SERVERS:
-        server = mod.group(1).lower()
+    if py_module in _PY_WEB_SERVERS:
+        server = py_module
 
     # Known servers anchored at the COMMAND token (or `-m <module>` for python web
     # servers): client-side JS/static dev servers, node task runners
