@@ -68,7 +68,7 @@ Skills route at four confidence tiers driven by trigger-match count and the `for
 
 ### The Haiku Router Reads Intent; Keywords Cannot
 
-`/do` Phase 2 runs a Haiku semantic router. Its value is **not** skill discovery — the harness already injects the full `available-skills` list (~123 skills, with descriptions) into every session, so dropping the router would not reclaim that context. The router earns its keep doing what keyword pre-routing cannot: agent+skill *pairing*, safety-critical force-routes that drag git/security work through the quality gates (lint/tests/CI), the quality-loop wrapper, complexity classification, parallel decomposition, and task-spec injection.
+`/do` Phase 2 runs a Haiku semantic router. Its value is **not** skill discovery — the harness already injects the full `available-skills` list (~124 skills, with descriptions) into every session, so dropping the router would not reclaim that context. The router earns its keep doing what keyword pre-routing cannot: agent+skill *pairing*, safety-critical force-routes that drag git/security work through the quality gates (lint/tests/CI), the quality-loop wrapper, complexity classification, parallel decomposition, and task-spec injection.
 
 The decisive number: dropping Haiku for pure deterministic `pre-route.py` keyword routing collapses strict routing accuracy **63.3% → 34.7%** (corpus n=49). It scores **0% on every paraphrase bucket** — "send my commits to the server" carries no keyword trigger — so **22 of 49 requests** lose their correct agent+skill and fall to a skill-less general handler. Cost of keeping the router: ~+0.1 Haiku calls/request. Trivial, by design (see `skills/meta/do/references/semantic-first-ab-results.md`; drop-Haiku A/B in `tmp/drophaiku-ab-report.md`).
 

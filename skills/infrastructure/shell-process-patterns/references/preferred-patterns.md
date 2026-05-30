@@ -22,13 +22,16 @@ You start a background daemon with `nohup`, capture `$!`, later run `kill $!`, a
 `nohup` is itself a wrapper process. When you write:
 
 ```bash
-nohup python3 -m http.server 8080 > log 2>&1 &
+# local-only test server — bind 127.0.0.1, never on a public VPS
+nohup python3 -m http.server 8080 --bind 127.0.0.1 > log 2>&1 &
 PID=$!
 ```
 
+This `http.server` is a local-only test server: it binds `127.0.0.1` so it stays on the loopback interface. For an internet-facing site, route through nginx/Caddy/Apache instead — see the `public-web-deploy` skill. `--bind 0.0.0.0` would expose it on every interface (the public internet on a VPS), which is the wrong tool for a public service.
+
 `$!` holds the PID of the `nohup` wrapper, not the Python interpreter `nohup` forked. On many systems `nohup` exec-replaces itself with the child, so they end up identical; on others (including recent glibc/coreutils combinations) they do not. You cannot rely on them being the same.
 
-Concrete failure (2026-04-21): Python `http.server` was started with `nohup python3 -m http.server 8080 --bind 0.0.0.0 > log 2>&1 &`. The captured `$!` was PID 1052107 (the `nohup` wrapper). The real listening process was 1052108. `kill 1052107` returned success. Port 8080 stayed `LISTEN`. The server was only killed after `ss -tlnp` was re-queried to find the real PID.
+Concrete failure (2026-04-21): a Python `http.server` was started with `--bind 0.0.0.0`, binding every interface on a public VPS and exposing the working directory to the internet — the wrong tool for a public site (use the `public-web-deploy` skill). The same run also hit the PID bug: the captured `$!` was PID 1052107 (the `nohup` wrapper), the real listening process was 1052108, `kill 1052107` returned success, and port 8080 stayed `LISTEN`. The server was only killed after `ss -tlnp` was re-queried to find the real PID.
 
 ### Detection
 
