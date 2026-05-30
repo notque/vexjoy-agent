@@ -247,17 +247,18 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
    - Long (21+ words): target 10-25%
 2. Verify all three clusters appear at least 15% of the time
 3. If any cluster is below 15%: rewrite sentences in the dominant cluster to redistribute
-4. Check paragraph length variation:
-   - At least 1 single-sentence paragraph per 500 words
-   - At least 1 paragraph of 4+ sentences per 1000 words
-   - Consecutive paragraphs should vary in length (avoid runs of all 2-3 sentence paragraphs)
+4. Check paragraph length (hard ceiling, enforces short paragraphs with spacing between thoughts):
+   - Every paragraph holds 3 sentences or fewer. Count sentences per paragraph (split on blank lines).
+   - Any paragraph of 4+ sentences fails the gate: split it at the thought boundary and insert a blank line.
+   - At least 1 single-sentence paragraph per 500 words (single-sentence paragraphs are welcome whenever a thought stands alone).
+   - This applies to ALL voices and modes. Walls of text read as AI output; short paragraphs with spacing read as a person thinking.
 5. Calculate variety score: standard deviation of sentence word counts
 6. If variety score < 8.0 words:
-   - Inject longer exploratory sentences (complex thoughts, compound structures)
+   - Inject longer exploratory sentences (complex thoughts, compound structures) while keeping each paragraph at 3 sentences or fewer
    - Inject shorter fragment punches (declarations, observations, reactions)
    - Recalculate until stddev >= 8.0
 
-**Gate**: All three sentence clusters >= 15%. Paragraph length variation requirements met. Variety score (stddev of sentence lengths) >= 8.0. If below, rewrite and re-measure. Max 3 attempts.
+**Gate**: All three sentence clusters >= 15%. Every paragraph is 3 sentences or fewer (no walls of text), with at least 1 single-sentence paragraph per 500 words. Variety score (stddev of sentence lengths) >= 8.0. If any check fails, rewrite and re-measure. Max 3 attempts.
 
 ---
 
