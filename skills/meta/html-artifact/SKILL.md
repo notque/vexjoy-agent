@@ -277,7 +277,7 @@ See `references/pptx-export.md` for the full layout table, THEME dict, CLI refer
 | detect-shape.py returns low confidence | Ambiguous request mapping to multiple shapes | Fall back to "report" shape -- safest general-purpose format |
 | Generated HTML has external dependencies | Builder included CDN links or external `src` refs | Regenerate with explicit constraint: "no external deps, all CSS/JS inline" |
 | File exceeds 500KB | Excessive inline SVGs or animation keyframes | Simplify SVG paths, reduce keyframe count, compress data |
-| Browser won't open | No display server (headless, SSH, WSL without WSLg) | Print path only, suggest `scp` or `python3 -m http.server` |
+| Browser won't open | No display server (headless, SSH, WSL without WSLg) | Print path only, suggest `scp` or a local preview: `python3 -m http.server --bind 127.0.0.1`. For public access use nginx, not http.server; see the public-web-deploy skill. |
 | Validation fails repeatedly (3+ attempts) | Structural issue the builder cannot self-correct | Show validation output to user, ask for guidance |
 | Shape misclassified | Auto-detection picked wrong shape for request | User overrides with `/html --shape=<name> <request>` |
 

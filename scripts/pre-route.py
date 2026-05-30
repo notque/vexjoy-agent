@@ -78,9 +78,128 @@ INDEX_PATHS = {
     "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
 }
 
+# Verbs/nouns that signal working ON a site (build, edit, debug, discuss) rather
+# than PUBLISHING one. Shared blocklist for public-web-deploy idiom triggers so
+# overloaded deploy companions ("public", "domain") cannot wave through ordinary
+# dev/content/architecture requests.
+# Only ACTION verbs and unambiguous non-deploy modifiers belong here. Site-TYPE
+# nouns (blog, docs, app, content, image, form, font) are deliberately excluded:
+# "deploy my blog website to my domain" is a genuine deploy, and the
+# accompanying work-verb (translate/optimize/fix/...) is what marks a non-deploy
+# request, not the noun. Keep this a verb/intent blocklist, not a noun list.
+_SITE_WORK_GUARD: set[str] = {
+    # build / generate
+    "build",
+    "generator",
+    "generators",
+    "generation",
+    "ssg",
+    "convert",
+    "migrate",
+    "scaffold",
+    # edit / content actions
+    "edit",
+    "write",
+    "rewrite",
+    "wording",
+    "css",
+    "style",
+    "restyle",
+    "design",
+    "redesign",
+    "translate",
+    "translation",
+    "localize",
+    "localise",
+    "localization",
+    "rebrand",
+    "branding",
+    "retheme",
+    "theme",
+    "search",
+    "seo",
+    "newsletter",
+    "navigation",
+    "accessibility",
+    "audit",
+    # debug / maintenance actions
+    "fix",
+    "bug",
+    "error",
+    "debug",
+    "caching",
+    "cache",
+    "optimize",
+    "optimization",
+    "performance",
+    "tuning",
+    "analytics",
+    "tracking",
+    "redirect",
+    "redirects",
+    "lighthouse",
+    "vitals",
+    # discuss / compare
+    "compare",
+    "comparison",
+    "review",
+    "architecture",
+    "dynamic",
+    "versus",
+    "vs",
+    "difference",
+    "terminology",
+    "examples",
+    "example",
+    # test
+    "test",
+    "tests",
+    "unit",
+    "qa",
+    # "site"-prefix overmatch (the matcher treats the last trigger word as a
+    # prefix, so "deploy site" matches "deploy sitemap"/"sitecore"). Block the
+    # non-deploy site* words explicitly.
+    "sitemap",
+    "sitemaps",
+    "sitecore",
+}
+
+# Repo/code/package visibility vocabulary. "make (it) public" most often means
+# flipping a GitHub repo / npm package / code symbol to public, not deploying a
+# web page. These words near the trigger discard the public-web-deploy match.
+# Note: "github"/"gitlab" are intentionally absent — "make my website public on
+# github pages" is a genuine managed-static deploy. The repo-visibility signal
+# is carried by repo/repository/gist/code/source/package, not the host name.
+_VISIBILITY_OP_GUARD: set[str] = {
+    "repo",
+    "repository",
+    "gist",
+    "code",
+    "source",
+    "package",
+    "npm",
+    "pypi",
+    "crate",
+    "gem",
+    "method",
+    "field",
+    "function",
+    "class",
+    "variable",
+    "module",
+}
+
 # Phrases that look like trigger matches but are common English idioms
-# unrelated to the skill. Keyed by skill name -> set of disqualifying context words.
-SEMANTIC_GUARDS: dict[str, set[str]] = {
+# unrelated to the skill. Keyed by skill name -> disqualifying context words.
+#
+# The value is either:
+#   - set[str]            : guards applied to EVERY trigger of the skill (legacy)
+#   - dict[str, set[str]] : per-trigger guards, keyed by the lowercased trigger
+#                           phrase, so a disqualifier scoped to one idiom does
+#                           not over-suppress an unrelated trigger of the same
+#                           skill (e.g. "repo" disambiguates "make it public"
+#                           but must not suppress "deploy website").
+SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
     "pr-workflow": {
         "back",
         "pressure",
@@ -105,6 +224,125 @@ SEMANTIC_GUARDS: dict[str, set[str]] = {
     "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "zsh-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
+    # ADR public-web-deploy. Low-specificity idiom triggers ("go live",
+    # "make it public", "static site", "use my domain", "set up https",
+    # "public website") are handled by the POSITIVE companion-word requirement
+    # below (SEMANTIC_REQUIRE_COMPANION), not by enumerating disqualifiers — a
+    # blocklist loses the arms race against ordinary phrasing. Only the
+    # near-specific "deploy website" keeps a negative guard for its one idiom.
+    # Defense-in-depth for public-web-deploy: a match routes only when it
+    # survives BOTH this per-trigger blocklist AND (for idiom triggers) the
+    # companion-word requirement below. The blocklist catches build/edit/
+    # discuss verbs that overloaded companions ("public", "domain") would
+    # otherwise wave through ("compare static site generators for public docs").
+    "public-web-deploy": {
+        # build / edit / discuss verbs that mean "work ON a site", not "publish one"
+        "static site": _SITE_WORK_GUARD,
+        "landing page": _SITE_WORK_GUARD,
+        "public website": _SITE_WORK_GUARD,
+        "public site": _SITE_WORK_GUARD,
+        "nginx public site": _SITE_WORK_GUARD,
+        "deploy site": _SITE_WORK_GUARD,
+        "deploy website": _SITE_WORK_GUARD | {"unit"},  # + "deploy website unit tests"
+        "set up https": _SITE_WORK_GUARD | {"client", "pinning", "validation", "certificate"},
+        # "host a website locally for testing" -> local/QA, not a public deploy
+        # (aligns with the skill's not_for: local-only preview needs no deploy)
+        "host a website": {"local", "locally", "localhost", "testing", "qa", "dev"},
+        # "website online store checkout bug" -> e-commerce/app bug, not deploy
+        "website online": {"store", "shop", "checkout", "cart"},
+        # "make (it) public" -> repo/code/package visibility ops, not a web deploy.
+        # Runs before the companion gate, so a nearby "website"/"site" can't
+        # rescue "make website repo public on github".
+        "make public": _VISIBILITY_OP_GUARD,
+        "make it public": _VISIBILITY_OP_GUARD,
+    },
+}
+
+# Positive companion-word requirement: keyed by skill -> trigger -> set of
+# words that MUST appear in the 60-char window around the matched trigger,
+# otherwise the match is discarded. Use this for low-specificity idiom
+# triggers where "deploy intent" is only confirmed by a nearby deploy/host
+# term — the inverse of SEMANTIC_GUARDS (allowlist instead of blocklist).
+# This kills the false-positive arms race: ordinary requests that merely
+# mention "static site" or "go live" fall through unless a deploy companion
+# is present. High-specificity triggers ("public site", "website online",
+# "nginx public site", "deploy site", "put X online", "host a website",
+# "point my domain") are NOT listed here and route on their own.
+# Public-web-SPECIFIC companions only. Generic terms (server, production, prod,
+# publish, serve) are deliberately excluded — they appear in ordinary non-deploy
+# requests ("on production", "publish the report") and would re-open the false
+# positives. Every word here names public web hosting / DNS / TLS concretely.
+_DEPLOY_COMPANIONS: set[str] = {
+    # "site"/"website" confirm deploy intent for verb-only idiom triggers
+    # ("set up https for my website", "go live with my website"). They are
+    # excluded when they are the matched trigger's own words, so triggers like
+    # "static site"/"public website" cannot self-satisfy on them.
+    "site",
+    "website",
+    "webpage",
+    "webserver",
+    # common deploy-target nouns ("set up https for my portfolio",
+    # "make my homepage public", "deploy my landing page"). "docs"/"blog"/"app"
+    # are intentionally absent — they are ambiguous ("https docs for the team"
+    # is documentation, not a deploy); those deploy when paired with
+    # "site"/"website" ("deploy my docs website"), which are companions.
+    "portfolio",
+    "homepage",
+    "landing",
+    "online",
+    "public",
+    "publicly",
+    "host",
+    "hosted",
+    "hosting",
+    "domain",
+    "subdomain",
+    "dns",
+    "nginx",
+    "caddy",
+    "apache",
+    "cloudflare",
+    "pages",
+    "vercel",
+    "netlify",
+    "heroku",
+    "render",
+    "surge",
+    "fly",  # fly.io — tokenizer splits on ".", so match the "fly" token
+    "https",
+    "tls",
+    "ssl",
+    "certbot",
+    "letsencrypt",
+    "deploy",
+    "deployed",
+    "deploying",
+    "internet",
+    "internet-facing",
+    "vps",
+    "droplet",
+}
+SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
+    "public-web-deploy": {
+        "go live": _DEPLOY_COMPANIONS,
+        "make it public": _DEPLOY_COMPANIONS,
+        "make public": _DEPLOY_COMPANIONS,
+        "static site": _DEPLOY_COMPANIONS,
+        "landing page": _DEPLOY_COMPANIONS,
+        "use my domain": _DEPLOY_COMPANIONS,
+        "set up https": _DEPLOY_COMPANIONS,
+        "public website": _DEPLOY_COMPANIONS,
+        # "public site" force-routes only with a deploy companion nearby, so
+        # "translate my public site", "rebrand my public site", etc. (work ON an
+        # already-public site) fall through. The trigger's own words
+        # ("public"/"site") are excluded from satisfying this.
+        # NOTE: "deploy site"/"deploy website" are NOT companion-gated — "deploy"
+        # itself is unambiguous deploy intent, so "deploy my site to vercel"
+        # must route. Their _SITE_WORK_GUARD blocklist still catches
+        # "retheme the deploy site" / "deploy website unit tests".
+        "public site": _DEPLOY_COMPANIONS,
+        "nginx public site": _DEPLOY_COMPANIONS,
+    },
 }
 
 # Multi-word disqualifying phrases (substring match in lowered request).
@@ -255,11 +493,15 @@ def _is_semantically_guarded(
 ) -> bool:
     """Check if the match is a false positive due to common English idioms.
 
-    Two layers of suppression:
+    Three layers of suppression:
     1. SEMANTIC_GUARD_PHRASES (multi-word substring match anywhere in request) —
        used when a single guard word would over-suppress (e.g. "fish out").
-    2. SEMANTIC_GUARDS (unigram word match in 60-char context window around
-       the trigger) — used for words that are unambiguous in context.
+    2. SEMANTIC_GUARDS (unigram blocklist in 60-char context window around the
+       trigger) — discard when a disqualifying word is near the trigger.
+    3. SEMANTIC_REQUIRE_COMPANION (unigram allowlist in the same window) —
+       discard UNLESS a required companion word is near the trigger. Used for
+       low-specificity idiom triggers where deploy intent is only confirmed by
+       a nearby deploy/host term; avoids the blocklist arms race.
 
     Uses the trigger's compiled regex pattern to locate the match position,
     which correctly handles multi-word triggers with intervening words
@@ -276,8 +518,22 @@ def _is_semantically_guarded(
             if re.search(rf"\b{re.escape(phrase)}\b", request_lower):
                 return True
 
-    guards = SEMANTIC_GUARDS.get(skill_name)
-    if not guards:
+    # Resolve the active blocklist word-set. Two shapes are supported:
+    #   - set[str]            : applies to every trigger of the skill (legacy)
+    #   - dict[str, set[str]] : per-trigger; pick the set for the matched idiom
+    #                           so a guard scoped to one trigger does not
+    #                           over-suppress an unrelated trigger.
+    guard_spec = SEMANTIC_GUARDS.get(skill_name)
+    guards: set[str] | None = None
+    if isinstance(guard_spec, dict):
+        guards = guard_spec.get(matched_trigger)
+    elif guard_spec:
+        guards = guard_spec
+
+    companion_spec = SEMANTIC_REQUIRE_COMPANION.get(skill_name, {})
+    required_companions = companion_spec.get(matched_trigger)
+
+    if not guards and not required_companions:
         return False
 
     # Use the regex pattern to find the trigger match position, not str.find().
@@ -289,13 +545,26 @@ def _is_semantically_guarded(
     trigger_pos = m.start()
     match_len = m.end() - m.start()
 
-    # Extract context window: 60 chars before and after the trigger match
+    # Extract context window: 60 chars before and after the trigger match.
     ctx_start = max(0, trigger_pos - 60)
     ctx_end = min(len(request_lower), trigger_pos + match_len + 60)
     context = request_lower[ctx_start:ctx_end]
-
     words_in_context = set(re.findall(r"\b\w+\b", context))
-    return bool(words_in_context & guards)
+
+    # Blocklist: a disqualifying word near the trigger discards the match.
+    if guards and (words_in_context & guards):
+        return True
+
+    # Allowlist: exclude the trigger's own words so the trigger cannot satisfy
+    # its own companion requirement (e.g. "live" in "go live"). Discard the
+    # match when no required companion word is present in the window.
+    if required_companions:
+        trigger_words = set(matched_trigger.split())
+        companion_words = words_in_context - trigger_words
+        if not (companion_words & required_companions):
+            return True
+
+    return False
 
 
 def score_matches(table: list[MatchEntry], request: str) -> dict[str, ScoredMatch]:

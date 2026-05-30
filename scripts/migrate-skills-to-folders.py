@@ -91,6 +91,7 @@ SKILL_MAPPING: dict[str, str] = {
     "cron-job-auditor": "infrastructure",
     "endpoint-validator": "infrastructure",
     "service-health-check": "infrastructure",
+    "public-web-deploy": "infrastructure",
     "cve-source-check": "infrastructure",
     # meta/ — toolkit self-management
     "do": "meta",
