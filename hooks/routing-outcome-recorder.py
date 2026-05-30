@@ -34,9 +34,12 @@ See adr/learn-step-to-hook.md.
 ----------------------------------------------------------------------------
 
 Crash-safe on missing decision record: the old CLI exits 1 when no decision
-row exists for the key. boost_confidence/decay_confidence return 0.0 for a
-missing row instead of raising, so we treat 0.0 as "no decision row, skip" and
-never crash. (The hook exits 0 regardless, per the always-exit-0 contract.)
+row exists for the key. boost_confidence/decay_confidence are no-ops on a
+missing row (they return 0.0), so we DON'T rely on the return value to tell
+"missing row" from "decayed to zero" — both are 0.0. Instead we run a cheap
+row-existence pre-check (decision_row_exists) BEFORE calling boost/decay: no
+row => skip, never crash; row present => score it, even when its confidence is
+a legitimate 0.0. (The hook exits 0 regardless, per the always-exit-0 contract.)
 
 Design Principles:
 - SILENT (records to DB, stderr only on debug)
@@ -80,12 +83,34 @@ def transcript_has_errors(transcript_path: str) -> bool:
     return any(ind in content for ind in _ERROR_INDICATORS)
 
 
+def decision_row_exists(key: str) -> bool:
+    """True iff a routing decision row was already written for ``key``.
+
+    Row-existence pre-check that replaces the None-return sentinel: it lets the
+    caller distinguish "no decision row" (skip) from "row decayed to 0.0"
+    (score it) WITHOUT relying on boost/decay's return value, which is 0.0 in
+    both cases. Reads only the routing/effectiveness slice, including
+    test-source and graduated rows so the outcome path matches what action A
+    wrote.
+    """
+    from learning_db_v2 import query_learnings
+
+    rows = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        exclude_graduated=False,
+        exclude_test_sources=False,
+        limit=1000,
+    )
+    return any(r.get("key") == key for r in rows)
+
+
 def apply_outcome(key: str, failure: bool) -> float:
     """Boost (success) or decay (failure) the routing row. Returns new confidence.
 
-    Returns 0.0 when no decision row exists for the key (boost/decay no-op),
-    which the caller treats as a skip — crash-safe replacement for the old
-    CLI's exit-1 behavior.
+    Caller MUST gate this on decision_row_exists(key): boost/decay are no-ops
+    on a missing row and return 0.0, indistinguishable from a legitimate
+    decayed-to-zero confidence.
     """
     from learning_db_v2 import boost_confidence, decay_confidence
 
@@ -118,16 +143,17 @@ def main() -> None:
             key = item.get("key")
             if not key:
                 continue
-            failure = bool(item.get("errors")) or transcript_errors
-            new_conf = apply_outcome(key, failure)
-            if new_conf == 0.0:
-                # No decision row for this key — skip, never crash.
+            if not decision_row_exists(key):
+                # No decision row for this key — skip, never crash. (Pre-check,
+                # not a 0.0-return sentinel: a row at confidence 0.0 still scores.)
                 if debug:
                     print(
                         f"[routing-outcome-recorder] no decision row for '{key}' — skipped",
                         file=sys.stderr,
                     )
                 continue
+            failure = bool(item.get("errors")) or transcript_errors
+            new_conf = apply_outcome(key, failure)
             if debug:
                 outcome = "failure" if failure else "success"
                 print(

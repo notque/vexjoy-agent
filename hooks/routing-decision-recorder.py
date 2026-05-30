@@ -8,12 +8,25 @@ feedback loop (`learning-db.py route-health`) keeps receiving the rows it
 needs. Replaces the hand-run `learning-db.py record routing ...` step that
 lived in /do Phase 2 Step 4 + Phase 5 action A.
 
+SCOPING — record ONLY /do-routed dispatches.
+Every Agent dispatch fires PostToolUse:Agent, including pr-review's reviewer
+sub-agents (code-reviewer, security-reviewer, reviewer-*) and any other
+nested fan-out. Recording all of them would inflate route-health's denominator
+with dispatches /do never routed. So /do stamps a machine-readable marker on
+the prompts IT routes (Phase 4 Step 2):
+
+    [do-route] agent={agent} skill={skill} complexity={complexity}
+
+This hook records ONLY when that marker is present, and reads the agent + skill
+directly FROM the marker (structured intent emitted by the router — not fragile
+prompt-sniffing). No marker → not a /do routing decision → skip. This is the
+sole scoping mechanism (no reviewer-name denylist).
+
 PostToolUse:Agent fires AFTER the subagent completes, so the event carries
 both the dispatch metadata (tool_input.subagent_type / .prompt / .description)
 and the subagent's tool_result. From these we:
-  1. Reconstruct the routing key {agent}:{skill} (skill parsed from the
-     dispatch prompt; agent-only "{agent}:" when the skill is undiscoverable —
-     matching the key format Phase 5 used).
+  1. Read the routing key {agent}:{skill} from the [do-route] marker
+     (agent-only "{agent}:" when the marker carries no skill).
   2. Record topic="routing", category="effectiveness" with observable fields
      (tool_errors, request/description snippet).
   3. (C) Parse a `rightsizing:tier{N}` banner from the subagent output and
@@ -47,12 +60,16 @@ from stdin_timeout import read_stdin
 
 EVENT_NAME = "PostToolUse"
 
-# Skill discovery from the dispatch prompt, in priority order.
-_SKILL_PATTERNS = [
-    re.compile(r"""Skill\(\s*["']([a-z0-9][a-z0-9-]*)["']""", re.IGNORECASE),
-    re.compile(r"\bskill\s*[:=]\s*([a-z0-9][a-z0-9-]*)", re.IGNORECASE),
-    re.compile(r"\b(?:load|use|run|invoke)\s+the\s+([a-z0-9][a-z0-9-]*)\s+skill\b", re.IGNORECASE),
-]
+# The /do routing marker. /do (SKILL.md Phase 4 Step 2) prepends this to every
+# agent prompt IT routes. Its presence is the SOLE signal that a dispatch is a
+# /do routing decision; agent + skill are read straight from it. Sub-agent
+# fan-out (pr-review reviewers, nested dispatches) carries no marker → skipped.
+#   [do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium
+# skill may be empty/"-"/absent (agent-only routing).
+_DO_ROUTE_RE = re.compile(
+    r"\[do-route\]\s+agent=([a-z0-9][a-z0-9-]*)(?:\s+skill=([a-z0-9-]*|-)?)?",
+    re.IGNORECASE,
+)
 
 # Right-sizing banner, e.g. "rightsizing: tier=2 files=8 packages=3 agents_dispatched=12"
 _RIGHTSIZING_RE = re.compile(
@@ -61,15 +78,22 @@ _RIGHTSIZING_RE = re.compile(
 )
 
 
-def extract_skill(prompt: str) -> str:
-    """Return the first skill name discoverable in the dispatch prompt, else ''."""
-    if not prompt:
-        return ""
-    for pat in _SKILL_PATTERNS:
-        m = pat.search(prompt)
-        if m:
-            return m.group(1).lower()
-    return ""
+def parse_do_route_marker(prompt: str) -> tuple[str, str] | None:
+    """Read (agent, skill) from the [do-route] marker, or None when absent.
+
+    None means this dispatch was not routed by /do (no marker) → the caller
+    skips recording. skill is "" when the marker carries no skill or "-".
+    """
+    if not prompt or "[do-route]" not in prompt.lower():
+        return None
+    m = _DO_ROUTE_RE.search(prompt)
+    if not m:
+        return None
+    agent = m.group(1).strip().lower()
+    skill = (m.group(2) or "").strip().lower()
+    if skill == "-":
+        skill = ""
+    return agent, skill
 
 
 def build_routing_key(agent: str, skill: str) -> str:
@@ -84,20 +108,20 @@ def dispatch_signature(agent: str, skill: str, description: str, prompt: str) ->
 
 
 def detect_errors(event: dict) -> bool:
-    """Return True if the subagent's tool_result shows an error. Best-effort."""
+    """Return True if the subagent's tool_result shows an error. Best-effort.
+
+    Uses hook_utils.is_tool_error as the intended detector. (The earlier
+    `from error_learner import detect_error` branch was dead code: the module
+    file is hooks/error-learner.py — hyphenated, so the import always raised
+    ImportError and silently fell through to is_tool_error. Removed to make the
+    real detector explicit.)
+    """
     try:
-        from error_learner import detect_error
+        from hook_utils import get_tool_result, is_tool_error
 
-        has_error, _ = detect_error(event)
-        return bool(has_error)
+        return is_tool_error(get_tool_result(event))
     except Exception:
-        # Fallback: direct error field on the result.
-        try:
-            from hook_utils import get_tool_result, is_tool_error
-
-            return is_tool_error(get_tool_result(event))
-        except Exception:
-            return False
+        return False
 
 
 def record_rightsizing(output: str) -> None:
@@ -133,13 +157,19 @@ def main() -> None:
             return
 
         tool_input = event.get("tool_input") or event.get("input") or {}
-        agent = (tool_input.get("subagent_type") or "").strip()
-        if not agent:
-            return  # no agent => nothing to key on
-
         prompt = tool_input.get("prompt") or ""
         description = tool_input.get("description") or ""
-        skill = extract_skill(prompt)
+
+        # SCOPING: record ONLY /do-routed dispatches. No [do-route] marker =>
+        # this is a sub-agent fan-out (pr-review reviewers, nested dispatch),
+        # not a /do routing decision — skip so route-health's denominator stays
+        # clean. agent + skill are read straight from the marker.
+        routed = parse_do_route_marker(prompt)
+        if routed is None:
+            return
+        agent, skill = routed
+        if not agent:
+            return  # malformed marker => nothing to key on
         key = build_routing_key(agent, skill)
 
         # Idempotency: skip if we've already recorded this exact dispatch.

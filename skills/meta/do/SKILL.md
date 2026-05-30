@@ -424,6 +424,8 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject base instructions for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
 
+**MANDATORY: Stamp the routing marker on every routed agent prompt.** Prepend verbatim: `[do-route] agent={agent} skill={skill} complexity={complexity}` (use `skill=-` when routing agent-only). This is the SOLE signal the `routing-decision-recorder` hook uses to record a `routing` decision row — dispatches without it (pr-review reviewer sub-agents, nested fan-out) are correctly excluded from route-health, and the hook reads `agent`/`skill` straight from the marker (no prompt-sniffing). Stamp it on each agent in a parallel roster.
+
 **Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens already spent this session; prepend to each dispatched agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." This is an advisory signal, not a hard runtime cap — it nudges agents to right-size their own work. Keep it cheap: read the key once per session, skip injection if the key is absent and no default is desired.
 
 ```bash
