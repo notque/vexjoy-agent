@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.0
+# hook-version: 1.3.0
 """
 PreToolUse:Bash Hook: Home Directory HTTP Server Safety Gate
 
@@ -43,9 +43,11 @@ DEBUG_LOG = "/tmp/claude_hook_debug.log"
 # Patterns that indicate an http server invocation.
 # Only match explicit `python -m http.server` invocations — broad patterns
 # like bare `http.server` would false-positive on grep, pip install, etc.
+# `-m\s*` (not `-m\s+`) so the no-space form `python3 -mhttp.server`, which
+# Python accepts, is matched too — otherwise it is a trivial bypass.
 HTTP_SERVER_PATTERNS = [
-    r"\bpython3?\s+.*-m\s+http\.server\b",
-    r"\bpython3?\s+.*-m\s+SimpleHTTPServer\b",
+    r"\bpython3?\s+.*-m\s*http\.server\b",
+    r"\bpython3?\s+.*-m\s*SimpleHTTPServer\b",
 ]
 
 # --directory flag pointing somewhere — we need to verify where it points.
@@ -109,13 +111,23 @@ def _extract_directory_flag(command: str) -> str | None:
     return m.group(1) if m else None
 
 
-def _directory_flag_is_safe(directory_value: str) -> bool:
-    """Return True if --directory points outside the protected home."""
+def _directory_flag_is_safe(directory_value: str, base_cwd: str) -> bool:
+    """Return True if --directory points outside the protected home.
+
+    Relative values (e.g. ``--directory .``) are resolved against the session
+    ``base_cwd`` from the event envelope, NOT the hook process cwd — otherwise
+    ``--directory .`` from a home-directory session would be judged against
+    wherever the hook happens to run. Symlinks are resolved so a link into
+    home cannot mask the target.
+    """
     # Normalize: resolve ~ shorthand
     if directory_value.startswith("~"):
         directory_value = PROTECTED_HOME + directory_value[1:]
     try:
-        resolved = Path(directory_value).resolve()
+        candidate = Path(directory_value)
+        if not candidate.is_absolute():
+            candidate = Path(base_cwd) / candidate
+        resolved = candidate.resolve()
         home = Path(PROTECTED_HOME).resolve()
         if resolved == home:
             return False  # Exactly home — dangerous
@@ -149,10 +161,18 @@ def main() -> None:
 
         _debug("http.server command detected")
 
+        # Resolve the session CWD up front — Check 1 needs it to resolve a
+        # relative --directory against the right base. Claude Code exposes cwd
+        # via the event envelope; fall back to CLAUDE_CWD or os.getcwd().
+        session_cwd = (
+            data.get("cwd") or data.get("session", {}).get("cwd") or os.environ.get("CLAUDE_CWD") or os.getcwd()
+        )
+        _debug(f"session_cwd={session_cwd}")
+
         # --- Check 1: --directory flag pointing to a safe path ---
         dir_flag = _extract_directory_flag(command)
         if dir_flag is not None:
-            if _directory_flag_is_safe(dir_flag):
+            if _directory_flag_is_safe(dir_flag, session_cwd):
                 _debug(f"allow: --directory={dir_flag} is safe")
                 _allow()
             else:
@@ -170,20 +190,17 @@ def main() -> None:
             _debug("allow: command cd's into a subdir first")
             _allow()
 
-        # --- Check 3: inspect the session CWD ---
-        # Claude Code exposes cwd via the event envelope.
-        # Fall back to CLAUDE_CWD env var or os.getcwd() (hook process CWD
-        # reflects the session CWD in Claude Code).
-        session_cwd = (
-            data.get("cwd") or data.get("session", {}).get("cwd") or os.environ.get("CLAUDE_CWD") or os.getcwd()
-        )
+        # --- Check 3: inspect the session CWD (computed above) ---
+        # Compare both raw and symlink-resolved forms: a cwd that is a symlink
+        # pointing at home (e.g. /tmp/link -> /home/user) must still block.
+        home_resolved = Path(PROTECTED_HOME).resolve()
+        cwd_matches_home = str(session_cwd).rstrip("/") == PROTECTED_HOME.rstrip("/")
+        try:
+            cwd_matches_home = cwd_matches_home or Path(session_cwd).resolve() == home_resolved
+        except Exception:
+            pass
 
-        _debug(f"session_cwd={session_cwd}")
-
-        cwd_norm = str(session_cwd).rstrip("/")
-        home_norm = PROTECTED_HOME.rstrip("/")
-
-        if cwd_norm == home_norm:
+        if cwd_matches_home:
             _debug(f"block: CWD is home ({session_cwd})")
             _deny(
                 f"BLOCKED: http.server would serve your home directory publicly.\n\n"

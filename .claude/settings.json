@@ -160,6 +160,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/prevent-homedir-server.py\"",
+            "description": "Home-dir server safety: blocks python http.server/SimpleHTTPServer started from the bare home directory (would serve ~/.ssh, ~/.git-credentials publicly)",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-branch-safety.py\"",
             "description": "Branch safety: blocks git commit on main/master, forces feature branches",
             "timeout": 3000
