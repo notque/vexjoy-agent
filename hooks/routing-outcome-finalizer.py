@@ -65,50 +65,63 @@ EVENT_NAME = "UserPromptSubmit"
 # -----------------------------------------------------------------------------
 # Reaction marker sets (module-level constants — conservative + tunable).
 #
-# REJECTION markers fire FAILURE. Kept deliberately strong/unambiguous: each is
-# a phrase a user uses to reject or demand rework of the immediately-prior work.
-# Matched as whole-phrase / word-boundary regexes so a substring like the word
-# "wrong" inside an unrelated new request does NOT trip them (see the benign
-# "wrong" non-decay test). Tune by adding/removing entries here.
+# GOVERNING PRINCIPLE — ASYMMETRIC COSTS => NEAR-ZERO FALSE POSITIVES:
+# A MISSED rejection falls back to SUCCESS = the old proxy floor (never worse).
+# A FALSE rejection decays a route that actually WORKED = strictly worse than the
+# proxy. So the bar is near-zero false-positives; recall is secondary. When in
+# any doubt, classify SUCCESS. Only decay on an unambiguous complaint about the
+# just-completed work.
 #
-# CLAUSE-SCOPING (HIGH-2 precision): rejection/re-route markers are tested ONLY
-# against the FIRST clause of the prompt (split on `. ; \n`). The first clause is
-# the user's immediate reaction to the prior work; a later clause is new work,
-# not a complaint. So "thanks, that worked. redo it for the other file" or
-# "great, now start over on the README" score SUCCESS — the reaction clause is
-# acceptance/neutral; "redo it"/"start over" land in a SEPARATE clause that
-# describes the NEXT task. Greedy `.*` in re-route patterns is replaced with the
-# bounded `[^.;\n]{0,40}` so a reroute marker cannot span unrelated clauses.
+# PROSE RE-ROUTE DETECTION REMOVED (HIGH-2): the old `_REROUTE_PATTERNS` ("use a
+# different approach", "should have used … agent/skill", …) were the biggest
+# false-positive source — they fired on instructional/spec prose like "explain
+# when to use a different approach", "we should have used a cache, and document
+# the skill matrix", "try a different approach to memoization". Re-route is rare
+# and unreliable to detect from prose; capturing it is not worth poisoning
+# route-health. The ONLY surviving re-route signal is the complaint-anchored
+# literal "wrong agent/skill/route/routing" (it requires the word "wrong"), kept
+# inside the rejection set below.
+#
+# REJECTION markers fire FAILURE. Each is an unambiguous complaint about the
+# immediately-prior work, matched as whole-phrase / word-boundary regexes so a
+# substring (e.g. "wrong" inside an unrelated new request) does NOT trip them.
+# "revert/undo/roll back" require a complaint OBJECT (it|that|this|your) — never
+# the spec-shaped "the change" — so "undo the change only if the checksum fails"
+# / "roll back the change on failure" are NOT complaints.
+#
+# CLAUSE-SCOPING: rejection markers are tested ONLY against the FIRST clause of
+# the prompt (split on `, . ; \n`). The first clause is the user's immediate
+# reaction; a later clause is new work. So "thanks, that worked. redo it for the
+# other file" and "we should have used a cache, and document the skill matrix"
+# score SUCCESS.
+#
+# INSTRUCTIONAL/CONDITIONAL EXCLUSION: if the first clause carries an
+# instructional / conditional / explanatory cue — should, when, if, whether,
+# explain, document, how to, can you, try — the clause is a feature request or
+# spec, NOT a complaint, so it scores SUCCESS regardless of marker presence.
+# ("the migration should roll back the change on failure" is a requirement;
+# "document when to use a different agent" is a docs task.)
 #
 # ACCEPTANCE PRECEDENCE: if an acceptance marker appears in the first clause, the
-# turn scores SUCCESS even when a later clause contains "redo/start over" (that's
-# new work, not a complaint about the prior route).
+# turn scores SUCCESS even when a later clause contains "redo/start over".
 # -----------------------------------------------------------------------------
 _REJECTION_PATTERNS = [
     r"that'?s (wrong|worse|broken|not (right|what i wanted))",
     r"this (is|isn'?t) (wrong|worse|broken|not (right|what i wanted))",
     r"\bnot what i (wanted|asked for)\b",
     r"\b(redo|re-?do) (it|that|this)\b",
-    r"\b(revert|undo|roll ?back) (it|that|this|your|the (change|edit|commit))\b",
+    # Complaint-anchored only: object must be it/that/this/your (the prior work),
+    # NOT "the change" — that is a conditional/spec use ("roll back the change on
+    # failure", "undo the change only if …"), excluded by the cue guard too.
+    r"\b(revert|undo|roll ?back) (it|that|this|your)\b",
     r"\bthat (didn'?t|did not) work\b",
     r"\bthis (didn'?t|did not) work\b",
     r"\b(start over|try again)\b",
     r"\byou (broke|messed up|got it wrong)\b",
     r"\b(no,? that'?s|nope,? that'?s)\b",
-    r"\bwrong (agent|skill|approach|route|routing)\b",
-    r"\b(fix|undo) (your|the) (mistake|error|mess)\b",
-]
-
-# RE-ROUTE markers fire FAILURE too: the user redirects the SAME intent to a
-# different agent/skill/approach, i.e. the route was wrong. Distinct from a
-# brand-new unrelated request (which is neutral => success). Bounded
-# `[^.;\n]{0,40}` (NOT greedy `.*`) keeps a marker from spanning unrelated clauses.
-_REROUTE_PATTERNS = [
-    r"\b(use|try|switch to|route (this )?to) (a )?different (agent|skill|approach)\b",
+    # Sole surviving re-route signal: anchored on the literal complaint "wrong".
     r"\bwrong (agent|skill|route|routing)\b",
-    r"\bre-?route\b",
-    r"\bthat'?s the wrong (agent|skill|approach)\b",
-    r"\b(should|shouldn'?t) (have )?(use|used|been) [^.;\n]{0,40}(agent|skill)\b",
+    r"\b(fix|undo) (your|the) (mistake|error|mess)\b",
 ]
 
 # ACCEPTANCE markers: when one appears in the FIRST clause it takes precedence
@@ -119,13 +132,24 @@ _ACCEPTANCE_PATTERNS = [
     r"\b(merge it|ship it|ship that|approve|approved)\b",
 ]
 
-_REJECTION_RE = re.compile("|".join(_REJECTION_PATTERNS), re.IGNORECASE)
-_REROUTE_RE = re.compile("|".join(_REROUTE_PATTERNS), re.IGNORECASE)
-_ACCEPTANCE_RE = re.compile("|".join(_ACCEPTANCE_PATTERNS), re.IGNORECASE)
+# INSTRUCTIONAL / CONDITIONAL / EXPLANATORY cues. A first clause carrying any of
+# these describes a feature/spec/docs task or a conditional, NOT a complaint
+# about the prior work => SUCCESS. `if` is matched at a word boundary that also
+# allows a leading non-word char so "only if" / "if the" are caught.
+_INSTRUCTIONAL_CUE_PATTERNS = [
+    r"\b(should|when|whether|explain|document|how to|can you|try)\b",
+    r"(?:^|\W)if\b",
+]
 
-# Clause boundary: split on sentence/clause terminators so only the user's
-# immediate reaction (the first clause) is tested for rejection.
-_CLAUSE_SPLIT_RE = re.compile(r"[.;\n]")
+_REJECTION_RE = re.compile("|".join(_REJECTION_PATTERNS), re.IGNORECASE)
+_ACCEPTANCE_RE = re.compile("|".join(_ACCEPTANCE_PATTERNS), re.IGNORECASE)
+_INSTRUCTIONAL_CUE_RE = re.compile("|".join(_INSTRUCTIONAL_CUE_PATTERNS), re.IGNORECASE)
+
+# Clause boundary: split on sentence/clause terminators (incl. comma) so only the
+# user's immediate reaction (the first clause) is tested for rejection. The comma
+# split lets "we should have used a cache, and document …" surface its cue-laden
+# first clause and lets "revert that, you broke the build" test "revert that".
+_CLAUSE_SPLIT_RE = re.compile(r"[.,;\n]")
 
 
 def _first_clause(prompt: str) -> str:
@@ -141,24 +165,29 @@ def _first_clause(prompt: str) -> str:
 
 
 def is_rejection(prompt: str) -> bool:
-    """High-precision: True only on a clear rejection / rework / re-route signal
+    """High-precision: True only on an UNAMBIGUOUS complaint about the prior work
     in the user's IMMEDIATE reaction (the first clause).
 
-    Precision rules (HIGH-2):
-    - Clause-scoped: only the FIRST clause is tested. A rejection verb in a later
+    Precision rules (asymmetric-cost — near-zero false positives, recall second):
+    - Clause-scoped: only the FIRST clause is tested. A rework verb in a later
       clause ("thanks. redo it for the other file") is NEW work, not a complaint.
     - Acceptance precedence: an acceptance marker in the first clause => not a
       rejection, even if a later clause looks rework-shaped.
-    Conservative by design — ambiguous prompts (a NEW request that merely
-    contains the word "wrong") return False. Returns False on empty / non-string
-    input.
+    - Instructional/conditional exclusion: a first clause carrying should / when /
+      if / whether / explain / document / how to / can you / try is a feature
+      request, spec, or conditional ("should roll back on failure", "document when
+      to use a different agent") — NOT a complaint => not a rejection.
+    Conservative by design — when in any doubt, return False (=> SUCCESS), which
+    falls back to the old proxy floor. Returns False on empty / non-string input.
     """
     if not prompt or not isinstance(prompt, str):
         return False
     first = _first_clause(prompt)
     if _ACCEPTANCE_RE.search(first):
         return False  # acceptance precedence — later "redo" clauses are new work
-    return bool(_REJECTION_RE.search(first) or _REROUTE_RE.search(first))
+    if _INSTRUCTIONAL_CUE_RE.search(first):
+        return False  # instructional/conditional/spec clause — not a complaint
+    return bool(_REJECTION_RE.search(first))
 
 
 def main() -> None:
@@ -210,7 +239,21 @@ def main() -> None:
         # reaction is applied ONLY in the unambiguous single-dispatch case. Stale
         # entries (dropped by the age check below) do not count toward the live
         # pending population for this decision.
-        live = [it for it in pending if it.get("key") and (now - float(it.get("created", now))) <= MAX_PENDING_AGE_SEC]
+        #
+        # LOW: parse `created` defensively — a malformed entry must not abort the
+        # whole turn. `_created_or_none` returns None on a bad value; such an
+        # entry is excluded from `live` (not attributable) and skipped in the loop.
+        def _created_or_none(it: dict) -> float | None:
+            try:
+                return float(it.get("created", now))
+            except (TypeError, ValueError):
+                return None
+
+        live = [
+            it
+            for it in pending
+            if it.get("key") and (c := _created_or_none(it)) is not None and (now - c) <= MAX_PENDING_AGE_SEC
+        ]
         attributable = len(live) == 1
 
         debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
@@ -220,8 +263,13 @@ def main() -> None:
             key = item.get("key")
             if not key:
                 continue
+            # LOW: per-entry robustness — one malformed pending entry (e.g. a
+            # non-numeric `created`) must NOT abort scoring for the rest of the
+            # turn's entries. Parse defensively; skip only the bad entry.
+            created = _created_or_none(item)
+            if created is None:
+                continue
             # Drop abandoned provisional entries; never score a stale one.
-            created = float(item.get("created", now))
             if now - created > MAX_PENDING_AGE_SEC:
                 continue
             # MED-1: a pending entry whose decision row was NEVER written is an

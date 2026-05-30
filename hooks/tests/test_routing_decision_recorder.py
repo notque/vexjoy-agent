@@ -377,6 +377,9 @@ class TestFinalizer:
         self._pend(ros, "fin-rr", key, errors=False)
 
         f = _load(F_PATH, "fin_rr")
+        # Re-route now decays ONLY via the complaint-anchored literal "wrong agent"
+        # (prose re-route detection was removed); the trailing "use a different
+        # agent" no longer matters.
         ev = _prompt_event("wrong agent — use a different agent for this", session="fin-rr")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
             f.main()
@@ -454,6 +457,36 @@ class TestFinalizer:
         # Put back (revalidated) for a later resolver, not lost.
         assert ros.peek_pending_outcomes(session)
 
+    def test_malformed_created_entry_does_not_abort_sibling_scoring(self, db_env, monkeypatch):
+        # LOW: one pending entry with a non-numeric `created` must be SKIPPED
+        # without aborting scoring for the other (valid) entries this turn.
+        import json as _json
+
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        session = "fin-malformed-created"
+        good_key = _seed_decision("python-general-engineer:good-sibling")
+        # Append a valid sibling, then inject a malformed-`created` entry directly.
+        ros.append_pending_outcome(session, good_key, errors=False)
+        path = ros._state_file(session)
+        with ros._state_lock(path):
+            data = ros._load(path)
+            data["pending"].append(
+                {"key": "python-general-engineer:bad-sibling", "errors": False, "attempts": 0, "created": "NaN-oops"}
+            )
+            ros._atomic_write(path, data)
+
+        f = _load(F_PATH, "fin_malformed")
+        ev = _prompt_event("now write the docs", session=session)  # neutral => success
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=_json.dumps(ev)):
+            f.main()
+        # The valid sibling still scored (success); the malformed one was skipped.
+        after = next(r for r in _query_routing(db_env) if r["key"] == good_key)
+        assert after["success_count"] == 1, "malformed sibling aborted scoring of the valid entry"
+        assert after["failure_count"] == 0
+
     def test_exit_zero_on_empty_and_malformed(self, db_env):
         assert _run_hook(F_PATH, {}).returncode == 0
         assert (
@@ -464,7 +497,9 @@ class TestFinalizer:
 
     def test_marker_unit_high_precision(self):
         f = _load(F_PATH, "fin_unit")
-        # Clear rejections / re-routes => True.
+        # Clear complaints about the prior work => True. (Prose re-route detection
+        # was REMOVED; the only surviving re-route signal is the complaint-anchored
+        # literal "wrong agent/skill" — bare "use a different skill" is now benign.)
         for p in [
             "that's wrong",
             "that's worse",
@@ -473,15 +508,16 @@ class TestFinalizer:
             "that didn't work",
             "not what I wanted",
             "wrong agent",
-            "use a different skill",
+            "wrong skill",
         ]:
             assert f.is_rejection(p) is True, p
-        # Benign / neutral / acceptance => False.
+        # Benign / neutral / acceptance / instructional => False.
         for p in [
             "Add a test for wrong-format dates.",
             "looks good, merge it",
             "now write the docs",
             "thanks!",
+            "use a different skill",  # bare re-route prose — no complaint anchor
             "",
             None,
         ]:
@@ -1066,9 +1102,36 @@ class TestRejectionPrecision:
     GENUINE: ClassVar = [
         "that's wrong, redo it",
         "wrong agent, use a different agent",
-        "no, that's not what I wanted",
+        # "that's not what I wanted" is a self-contained first-clause complaint.
+        # (A leading "no, …" would split off "no" as the first clause under the
+        # comma split — that is an acceptable MISS under the asymmetric-cost rule,
+        # not a false failure.)
+        "that's not what I wanted",
         "that didn't work, try again",
         "revert that change",
+    ]
+
+    # The EXACT phrases the confirmation review named as false-positives. Prose
+    # re-route / spec / conditional / docs prompts that must ALL classify SUCCESS.
+    # Listed verbatim — these are the regression guards for HIGH-2.
+    NAMED_BENIGN: ClassVar = [
+        "the migration should roll back the change on failure",
+        "explain when to use a different approach for caching",
+        "we should have used a cache here, and document the skill matrix",
+        "can you use a different approach here",
+        "try a different approach to memoization",
+        "undo the change only if the checksum fails",
+        "document when to use a different agent",
+        "we should have used a different skill for this",
+        "thanks, that worked. redo it for the other file",
+        "great, now start over on the README",
+    ]
+    # Genuine complaints the review named as must-still-FAIL.
+    NAMED_GENUINE: ClassVar = [
+        "that's wrong, redo it",
+        "that didn't work",
+        "revert that, you broke the build",
+        "that's worse than before",
     ]
 
     def test_benign_first_clause_not_rejection(self):
@@ -1080,6 +1143,18 @@ class TestRejectionPrecision:
         f = _load(F_PATH, "fin_precision_genuine")
         for p in self.GENUINE:
             assert f.is_rejection(p) is True, f"genuine rejection missed: {p!r}"
+
+    def test_named_benign_phrases_classify_success(self):
+        # The exact review-named false-positives must NOT be rejections.
+        f = _load(F_PATH, "fin_named_benign")
+        for p in self.NAMED_BENIGN:
+            assert f.is_rejection(p) is False, f"review-named benign falsely flagged: {p!r}"
+
+    def test_named_genuine_phrases_classify_failure(self):
+        # The exact review-named genuine complaints must remain rejections.
+        f = _load(F_PATH, "fin_named_genuine")
+        for p in self.NAMED_GENUINE:
+            assert f.is_rejection(p) is True, f"review-named genuine missed: {p!r}"
 
     def test_benign_prompt_scores_success_end_to_end(self, db_env, monkeypatch):
         # A single dispatch + a benign "redo it in a later clause" prompt => the
@@ -1107,6 +1182,32 @@ class TestRejectionPrecision:
             after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
             assert after["failure_count"] == 0, f"benign prompt decayed route: {prompt!r}"
             assert after["success_count"] == 1
+
+    def test_named_rollback_phrase_scores_success_end_to_end(self, db_env, monkeypatch):
+        # Spec-required E2E: a single clean dispatch + the review's roll-back spec
+        # phrase => SUCCESS (success_count=1, failure_count=0), no decay.
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = "python-general-engineer:rollback-spec"
+        ldb.record_learning(
+            topic="routing",
+            key=key,
+            value=f"routing-decision: {key} tool_errors=0",
+            category="effectiveness",
+            source="test",
+        )
+        session = "named-rollback-e2e"
+        ros.append_pending_outcome(session, key, errors=False)
+        f = _load(F_PATH, "fin_named_rollback_e2e")
+        ev = _prompt_event("the migration should roll back the change on failure", session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert after["success_count"] == 1, "named roll-back spec phrase failed to score success"
+        assert after["failure_count"] == 0, "named roll-back spec phrase falsely decayed route"
 
 
 # ---------------------------------------------------------------------------
