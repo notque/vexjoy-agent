@@ -103,20 +103,31 @@ EVENT_NAME = "UserPromptSubmit"
 # "document when to use a different agent" is a docs task.)
 #
 # ACCEPTANCE PRECEDENCE: if an acceptance marker appears in the first clause, the
-# turn scores SUCCESS even when a later clause contains "redo/start over".
+# turn scores SUCCESS even when a later clause looks rework-shaped. (Bare rework
+# verbs "redo/start over/try again" no longer fire at all — see C1 note below —
+# so acceptance precedence now guards only genuine first-clause complaints.)
 # -----------------------------------------------------------------------------
 _REJECTION_PATTERNS = [
     r"that'?s (wrong|worse|broken|not (right|what i wanted))",
     r"this (is|isn'?t) (wrong|worse|broken|not (right|what i wanted))",
     r"\bnot what i (wanted|asked for)\b",
-    r"\b(redo|re-?do) (it|that|this)\b",
+    # NOTE: the STANDALONE rework arms `\b(redo|re-?do) (it|that|this)\b` and
+    # `\b(start over|try again)\b` were REMOVED (codex C1). Bare imperatives like
+    # "redo it for the other file", "start over on the README", "try again with a
+    # smaller batch size" are benign FOLLOW-UPS (apply same work elsewhere / new
+    # task / parameter change), NOT complaints about the just-completed route, so
+    # firing FAILURE on them decayed a route that SUCCEEDED — strictly worse than
+    # the proxy floor. Recall loss is the safe direction (asymmetric costs). Genuine
+    # complaints that happen to contain these verbs still fire via their COMPLAINT
+    # clause: "that's wrong, redo it" → `that's wrong`; "no, that's not what I asked
+    # for" → leading-no arm; "revert that, you broke the build" → `revert that` /
+    # `you broke`.
     # Complaint-anchored only: object must be it/that/this/your (the prior work),
     # NOT "the change" — that is a conditional/spec use ("roll back the change on
     # failure", "undo the change only if …"), excluded by the cue guard too.
     r"\b(revert|undo|roll ?back) (it|that|this|your)\b",
     r"\bthat (didn'?t|did not) work\b",
     r"\bthis (didn'?t|did not) work\b",
-    r"\b(start over|try again)\b",
     r"\byou (broke|messed up|got it wrong)\b",
     # Sole surviving re-route signal: anchored on the literal complaint "wrong".
     r"\bwrong (agent|skill|route|routing)\b",

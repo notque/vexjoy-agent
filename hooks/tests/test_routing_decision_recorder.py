@@ -503,7 +503,6 @@ class TestFinalizer:
         for p in [
             "that's wrong",
             "that's worse",
-            "redo it",
             "revert that",
             "that didn't work",
             "not what I wanted",
@@ -511,13 +510,21 @@ class TestFinalizer:
             "wrong skill",
         ]:
             assert f.is_rejection(p) is True, p
-        # Benign / neutral / acceptance / instructional => False.
+        # Benign / neutral / acceptance / instructional => False. The STANDALONE
+        # rework arms (redo it/that/this, start over, try again) were removed
+        # (codex C1): a bare rework imperative is a benign follow-up (new task /
+        # apply-elsewhere / parameter change), NOT a complaint about the prior
+        # route, so it must score SUCCESS. Genuine complaints carrying these verbs
+        # still fire via their complaint clause (covered above + in NAMED_GENUINE).
         for p in [
             "Add a test for wrong-format dates.",
             "looks good, merge it",
             "now write the docs",
             "thanks!",
             "use a different skill",  # bare re-route prose — no complaint anchor
+            "redo it",  # bare rework imperative — benign follow-up (C1)
+            "start over",  # bare rework imperative — benign follow-up (C1)
+            "try again",  # bare rework imperative — benign follow-up (C1)
             "",
             None,
         ]:
@@ -1135,6 +1142,16 @@ class TestRejectionPrecision:
         "there is no cache here, document it",
         "undo is hard here; explain how to revert a squashed merge",
         "the rollback procedure didn't work in staging, document it",
+        # codex C1: BARE rework imperatives are benign follow-ups, not complaints
+        # about the just-completed route (apply-elsewhere / new task / parameter
+        # change). The standalone redo/start-over/try-again arms were removed, so
+        # these must classify SUCCESS — decaying them violates "never worse than
+        # the proxy" in the common single-dispatch path.
+        "redo it for the other file",
+        "start over on the README",
+        "try again with a smaller batch size",
+        "redo the diagram so it matches",
+        "start over with a cleaner schema",
     ]
     # Genuine complaints the review named as must-still-FAIL.
     NAMED_GENUINE: ClassVar = [
