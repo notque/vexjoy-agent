@@ -137,15 +137,28 @@ def _color_to_lc(value: str) -> tuple[float, float] | None:
 
 # --- rule scanners ---
 
-_BLOCK_RE = re.compile(r"([^{}]*)\{([^{}]*)\}", re.DOTALL)
+# Anchored on the literal "{" so finditer scans directly to each brace instead
+# of trying "[^{}]*" from every offset. The old shape r"([^{}]*)\{([^{}]*)\}"
+# was O(n^2) on large brace-free input (e.g. a ~500KB minified single line): the
+# pre-brace run succeeded to end-of-string, the "\{" failed, and the engine
+# retried from the next start position. This form is linear. The selector (the
+# pre-brace text) is recovered by slicing from the previous block's close brace.
+_BLOCK_RE = re.compile(r"\{([^{}]*)\}", re.DOTALL)
 
 
 def _iter_blocks(css: str):
-    """Yield (selector, body, body_offset) for each top-level rule block."""
+    """Yield (selector, body, body_offset) for each top-level rule block.
+
+    Behavior matches the prior "([^{}]*)\\{([^{}]*)\\}" form: the selector is the
+    run of non-brace text immediately preceding the block.
+    """
+    last_close = 0
     for m in _BLOCK_RE.finditer(css):
-        selector = m.group(1).strip()
-        body = m.group(2)
-        yield selector, body, m.start(2)
+        gap = css[last_close : m.start()]
+        cut = max(gap.rfind("{"), gap.rfind("}"))
+        selector = (gap[cut + 1 :] if cut != -1 else gap).strip()
+        yield selector, m.group(1), m.start(1)
+        last_close = m.end()
 
 
 def _decls(body: str) -> list[tuple[str, str]]:

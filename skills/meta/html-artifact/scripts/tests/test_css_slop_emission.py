@@ -103,14 +103,32 @@ class TestSlopScanWiring:
         finally:
             path.unlink()
 
-    def test_oversized_file_skips_slop_scan(self) -> None:
-        # Oversized file is already flagged by the size check; the slop scan is
-        # bounded out to stay deterministic. Must return quickly, not hang.
+    def test_oversized_file_still_scanned_fast(self) -> None:
+        # The slop scanner is linear, so oversized files are scanned, not skipped.
+        # Slop in an oversized file is still flagged; the size check fires
+        # independently. Must complete quickly, not hang.
+        import time
+
         path = _write_tmp(SLOP_HTML + ("x" * (501 * 1024)))
         try:
+            start = time.perf_counter()
             result = validate_artifact(path)
-            assert result.checks["css_slop_clean"] is True
+            assert time.perf_counter() - start < 1.0
+            assert result.checks["css_slop_clean"] is False
             assert not result.checks["reasonable_size"]
+        finally:
+            path.unlink()
+
+    def test_oversized_single_line_does_not_hang(self) -> None:
+        # Adversarial ~1MB minified single line: the old O(n^2) block regex hung.
+        import time
+
+        unit = '<div class="btn cta" style="color:#111;background:#222">x</div>'
+        path = _write_tmp("<html><body>" + unit * 16000 + "</body></html>")
+        try:
+            start = time.perf_counter()
+            validate_artifact(path)
+            assert time.perf_counter() - start < 1.0
         finally:
             path.unlink()
 

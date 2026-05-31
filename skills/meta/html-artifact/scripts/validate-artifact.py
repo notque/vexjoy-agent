@@ -154,14 +154,11 @@ def _check_emitted_css_slop(content: str, result: ValidationResult) -> None:
     Shape-agnostic: the rules check CSS/markup, not page structure, so they apply
     to every artifact shape (including hero-less shapes like report or data-viz).
 
-    Skip when content exceeds the size limit: an oversized file is already flagged
-    by the size check, and the slop regexes can backtrack pathologically over a
-    multi-hundred-KB single line. Bounding by size keeps the scan deterministic.
+    Scans every size. The slop rules are linear (the block scanner is anchored on
+    "{", not the old O(n^2) "[^{}]*" pre-brace run that hung on minified single
+    lines), so there is no ReDoS reason to cap by size. Oversized files are still
+    flagged independently by the reasonable_size check.
     """
-    if len(content.encode("utf-8")) >= MAX_FILE_SIZE_BYTES:
-        result.checks["css_slop_clean"] = True
-        return
-
     sys.path.insert(0, str(Path(__file__).parent))
     slop = import_module("css_slop_rules")
     findings = slop.scan_css(content)

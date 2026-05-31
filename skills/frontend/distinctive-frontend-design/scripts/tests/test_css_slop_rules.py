@@ -7,6 +7,7 @@ The contrast canary covers both the hex and the oklch color paths.
 from __future__ import annotations
 
 import sys
+import time
 from importlib import import_module
 from pathlib import Path
 
@@ -146,3 +147,30 @@ def test_finding_has_required_fields() -> None:
 def test_clean_css_silent() -> None:
     css = ".btn { transition: opacity 0.2s ease; color: #1a1a1a; background: #fafafa; }"
     assert scan_css(css) == []
+
+
+# --- ReDoS regression: large single-line input must scan fast ---
+
+
+def test_scan_css_fast_on_large_single_line() -> None:
+    """A ~1MB single-line artifact must scan in well under a second.
+
+    Guards the block-iterating scanners against the O(n^2) backtracking that
+    hung scan_css on minified single-line input (the "[^{}]*" pre-brace run).
+    """
+    unit = '<div class="btn cta" style="color:#111;background:#222">text</div>'
+    big = "<html><body>" + unit * 16000 + "</body></html>"
+    assert len(big) >= 1_000_000
+    start = time.perf_counter()
+    scan_css(big)
+    assert time.perf_counter() - start < 1.0
+
+
+def test_scan_css_correct_after_large_block_fix() -> None:
+    """Fix must not change findings on normal nested CSS (at-rule + blocks)."""
+    css = (
+        "h1 { -webkit-background-clip: text; } "
+        ".card:hover { transform: scale(1.0); } "
+        "@media (min-width: 600px) { .x { color: #1a1a1a; background-color: #1e1e1e; } }"
+    )
+    assert ids(css) == {"gradient-text-headline", "universal-hover-scale", "contrast-canary"}
