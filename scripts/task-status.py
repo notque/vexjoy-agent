@@ -20,6 +20,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+
 try:
     import fcntl
 except ImportError:  # Windows has no fcntl — supply a no-op shim so the advisory
