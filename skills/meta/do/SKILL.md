@@ -66,7 +66,8 @@ The **Dense-Complete Writing standard** is the structural guide for everything t
 3. Plain English, not jargon.
 4. Concrete over abstract.
 5. Put heavy qualifications in separate short sentences.
-6. Completeness: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly.
+
+Plus the Completeness clause: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly.
 
 The distinct contribution over Orwell is rule 5 — heavy qualifications go in their own sentences — the concrete-over-abstract bias, and the explicit scope: thinking, comments, and authored skill files, not just user-facing prose. The Completeness clause keeps density from collapsing into under-coverage. Canonical statement: `skills/shared-patterns/dense-complete-writing.md`.
 
