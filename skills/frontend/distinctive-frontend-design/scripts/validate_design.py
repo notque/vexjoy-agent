@@ -193,9 +193,16 @@ def validate_palette(palette_path: Path) -> Tuple[int, bool, str, List[str]]:
     return (score, True, details, warnings)
 
 
-def calculate_variety_score(project_name: str, fonts: List[str], palette_name: str) -> Tuple[int, str]:
+def calculate_variety_score(
+    project_name: str, fonts: List[str], palette_name: str, macrostructure: str = ""
+) -> Tuple[int, str]:
     """
     Calculate variety score based on project history.
+
+    Penalizes reuse of fonts, palette theme, or page macrostructure versus recent
+    projects. Macrostructure mirrors the font/palette step-down: a match against the
+    last 1-2 projects drops the score to the same 70 threshold, because structural
+    sameness reads as templated just as font/palette sameness does.
 
     Returns: (score, details)
     """
@@ -227,14 +234,29 @@ def calculate_variety_score(project_name: str, fonts: List[str], palette_name: s
         if palette_name and project_palette and palette_name.lower() in project_palette.lower():
             similar_palette += 1
 
+    # Macrostructure repetition: penalize a match against the last 1-2 projects.
+    # Back-compat: old entries lack the field; .get("macrostructure", "") yields "".
+    similar_macro = 0
+    if macrostructure:
+        for project in recent_projects[-2:]:
+            if project.get("macrostructure", "") == macrostructure:
+                similar_macro += 1
+
     if similar_fonts > 0:
         return (70, f"⚠️  Font pairing matches {similar_fonts} recent project(s). Aim for more variety.")
+
+    if similar_macro > 0:
+        return (
+            70,
+            f"⚠️  Macrostructure '{macrostructure}' matches {similar_macro} recent project(s). "
+            f"Pick a different macro:* page structure for variety.",
+        )
 
     if similar_palette > 0:
         return (80, f"⚠️  Similar palette theme used in {similar_palette} recent project(s).")
 
     score = 90
-    details = f"✅ Aesthetic differs significantly from {len(recent_projects)} recent project(s)."
+    details = f"✅ Aesthetic is distinct across the {len(recent_projects)} most recent project(s)."
 
     return (score, details)
 
@@ -289,7 +311,12 @@ def calculate_distinctiveness_score(
 
 
 def run_validation(
-    fonts: List[str], palette_path: Path, project_name: str, has_animation: bool = False, has_background: bool = False
+    fonts: List[str],
+    palette_path: Path,
+    project_name: str,
+    has_animation: bool = False,
+    has_background: bool = False,
+    macrostructure: str = "",
 ) -> Dict[str, Any]:
     """Run comprehensive validation and return results."""
 
@@ -316,7 +343,7 @@ def run_validation(
 
     # Variety check
     palette_name = palette.get("palette_name", "")
-    variety_score, variety_details = calculate_variety_score(project_name, fonts, palette_name)
+    variety_score, variety_details = calculate_variety_score(project_name, fonts, palette_name, macrostructure)
     results["checks"]["variety"] = {"score": variety_score, "passed": variety_score >= 70, "details": variety_details}
 
     # Distinctiveness check
@@ -364,8 +391,12 @@ def run_validation(
     return results
 
 
-def update_project_history(project_name: str, fonts: List[str], palette_name: str):
-    """Update project history with new project."""
+def update_project_history(project_name: str, fonts: List[str], palette_name: str, macrostructure: str = ""):
+    """Update project history with new project.
+
+    Writes the macrostructure axis alongside fonts/palette so the next run's variety
+    check can penalize structural repetition. Old entries lacking the field still load.
+    """
     skill_dir = Path(__file__).parent.parent
     history_path = skill_dir / "references" / "project-history.json"
 
@@ -382,7 +413,13 @@ def update_project_history(project_name: str, fonts: List[str], palette_name: st
     from datetime import datetime
 
     history["projects"].append(
-        {"name": project_name, "fonts": fonts, "palette_name": palette_name, "timestamp": datetime.now().isoformat()}
+        {
+            "name": project_name,
+            "fonts": fonts,
+            "palette_name": palette_name,
+            "macrostructure": macrostructure,
+            "timestamp": datetime.now().isoformat(),
+        }
     )
 
     # Save updated history
@@ -433,6 +470,36 @@ def print_validation_report(results: Dict[str, Any]):
     print("=" * 70 + "\n")
 
 
+def read_macro_from_stamp(css_text: str) -> str:
+    """Recover the macro id from a vexjoy-design stamp comment, or "" if absent.
+
+    The stamp is the first CSS comment in generated output:
+        /* vexjoy-design: macro=<id> theme=<name> contrast=<pass|fail> ... */
+    Never trusted blindly — the slop rules verify the rendered CSS independently.
+    """
+    import re
+
+    m = re.search(r"vexjoy-design:.*?\bmacro=(\S+)", css_text)
+    return m.group(1) if m else ""
+
+
+def scan_emitted_css(css_path: Path) -> List[Dict[str, Any]]:
+    """Route emitted CSS/HTML through the slop rules. Returns finding dicts.
+
+    Warnings do not fail the build yet. Promote-to-error path: a caller raises the
+    exit code once a rule_id graduates from "warning" to "error" in css_slop_rules.
+    """
+    import sys as _sys
+    from importlib import import_module
+
+    _sys.path.insert(0, str(Path(__file__).parent))
+    slop = import_module("css_slop_rules")
+
+    text = css_path.read_text(encoding="utf-8")
+    findings = slop.scan_css(text)
+    return [{"rule_id": f.rule_id, "severity": f.severity, "message": f.message, "line": f.line} for f in findings]
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -449,12 +516,27 @@ def main():
     parser.add_argument(
         "--background", action="store_true", help="Flag indicating atmospheric background is implemented"
     )
+    parser.add_argument(
+        "--macrostructure",
+        default="",
+        help="Chosen macro:* page structure id (e.g. macro:stat-led) for structural variety tracking",
+    )
+    parser.add_argument(
+        "--emitted-css",
+        type=Path,
+        help="Path to generated CSS/HTML to scan for rendered-CSS slop (warnings, non-blocking)",
+    )
 
     args = parser.parse_args()
 
     try:
         # Parse fonts
         fonts = [f.strip() for f in args.fonts.split(",")]
+
+        # If a macro id was not passed but emitted CSS carries a stamp, recover it.
+        macrostructure = args.macrostructure
+        if not macrostructure and args.emitted_css and args.emitted_css.exists():
+            macrostructure = read_macro_from_stamp(args.emitted_css.read_text(encoding="utf-8"))
 
         # Run validation
         results = run_validation(
@@ -463,10 +545,27 @@ def main():
             project_name=args.project,
             has_animation=args.animation,
             has_background=args.background,
+            macrostructure=macrostructure,
         )
 
         # Print report
         print_validation_report(results)
+
+        # Scan emitted CSS for rendered-CSS slop (advisory warnings, do not fail build).
+        if args.emitted_css:
+            if not args.emitted_css.exists():
+                raise DesignValidationError(f"Emitted CSS file not found: {args.emitted_css}")
+            slop_findings = scan_emitted_css(args.emitted_css)
+            results["css_slop"] = slop_findings
+            print("-" * 70)
+            print(f"RENDERED-CSS SLOP SCAN: {args.emitted_css}")
+            if slop_findings:
+                for f in slop_findings:
+                    print(f"  ⚠️  [{f['rule_id']}] line {f['line']}: {f['message']}")
+                print("  (warnings are advisory; promote a rule to error to fail the build)")
+            else:
+                print("  ✅ No slop patterns detected.")
+            print("-" * 70 + "\n")
 
         # Save JSON output if requested
         if args.output:
@@ -479,7 +578,7 @@ def main():
         if results["overall_score"] >= 70:
             palette = load_json_file(args.palette)
             palette_name = palette.get("palette_name", "")
-            update_project_history(args.project, fonts, palette_name)
+            update_project_history(args.project, fonts, palette_name, macrostructure)
 
         # Exit with appropriate code
         sys.exit(0 if results["overall_score"] >= 80 else 1)

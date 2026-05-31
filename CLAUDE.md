@@ -10,7 +10,21 @@ The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity tha
 
 **LLMs orchestrate, programs execute.** If a process is deterministic and measurable (file searching, test execution, build validation, frontmatter checking), use a script. Reserve LLM judgment for contextual diagnosis, design decisions, and code review.
 
-**Write dense.** High fidelity, minimum words. Cut every word that carries no instruction, rule, or decision. Prefer tables and lists over paragraphs. If cutting a sentence loses no instruction, cut it.
+**Write dense.** High fidelity, minimum words. Prefer tables and lists over paragraphs. See the Communication Standard below.
+
+---
+
+## Communication Standard
+
+The Russell density standard governs **every** generation: replies to the user, plain text, the model's own thinking, skill and instruction files, and code comments.
+
+1. Shortest accurate word; never a long word where a short one serves.
+2. Cut every word that carries no instruction, rule, or decision.
+3. Plain English, not jargon.
+4. Concrete over abstract.
+5. Put heavy qualifications in separate short sentences.
+
+Test: say everything the task needs, and not one word more. Full rules and scope: `skills/shared-patterns/russell-density.md`.
 
 ---
 

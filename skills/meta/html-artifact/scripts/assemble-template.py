@@ -102,8 +102,13 @@ def assemble_template(
     # detect it without re-running shape classification.
     html = html.replace("<body>", f'<body data-shape="{shape}">', 1)
 
-    # Build CSS injection: reset + theme + shape + components
+    # Build CSS injection: stamp + reset + theme + shape + components
     css_parts: list[str] = []
+
+    # 0. Self-describing stamp — first CSS comment in the output. Lets a later run
+    #    re-audit the build statelessly (shape/theme recovery). contrast=n/a because
+    #    the assembler runs no WCAG check; a contrast-aware caller may overwrite it.
+    css_parts.append(f"/* vexjoy-artifact: shape={shape} theme={resolved_theme} contrast=n/a */")
 
     # 1. Base reset
     reset_css = _read_template("base-reset.css")

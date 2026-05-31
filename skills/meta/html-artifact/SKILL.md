@@ -109,6 +109,14 @@ The script reads CSS/JS from `templates/` and injects:
 3. Shape-specific layout CSS (`templates/shapes/{shape}.css`)
 4. Component CSS + JS (`templates/components/{name}.{css,js}`)
 
+The assembler also emits a self-describing stamp as the FIRST CSS comment, so a later run can re-audit the build statelessly (recover shape/theme from output):
+
+```
+/* vexjoy-artifact: shape=<shape> theme=<name> contrast=<pass|fail|n/a> */
+```
+
+`shape` and `theme` come from this build's decisions. `contrast=n/a` at assembly time because the assembler runs no WCAG check; the stamp is a claim, not proof — Phase 4's slop scan verifies the rendered CSS independently rather than trusting it.
+
 Select components based on shape needs:
 
 | Shape | Typical Components |
@@ -197,6 +205,9 @@ The script checks:
 | Has viewport meta | Missing viewport meta tag |
 | File size under 500KB | Excessive inline assets or animation keyframes |
 | No broken internal refs | `href="#id"` pointing to nonexistent `id` attributes |
+| Rendered-CSS slop scan | `css_slop_rules.scan_css` over the file content (warnings only, non-blocking) |
+
+The slop scan (vendored `css_slop_rules.py`) flags 7 rendered-CSS patterns — `transition-all`, `universal-hover-scale`, `gradient-text-headline`, `focus-ring-fade`, `emoji-feature-icon`, `two-line-cta`, `contrast-canary`. It is shape-agnostic (checks CSS/markup, not page structure), so it applies to all 8 shapes including hero-less ones. Findings surface as warnings and do not fail the build yet; promote a rule to error in `css_slop_rules.py` to make it blocking.
 
 Gate: All validation checks pass.
 -- because an HTML file with external dependencies fails offline, missing meta tags render inconsistently across browsers, and missing structure breaks accessibility.
@@ -377,7 +388,8 @@ This skill uses:
 - `references/pptx-export.md`: Phase 7 EXPORT-PPTX — trigger conditions, layout types, THEME dict, CLI reference, failure modes
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/assemble-template.py`: Template assembly with theme, shape, and component CSS/JS injection
-- `scripts/validate-artifact.py`: HTML structure and self-containment validation
+- `scripts/validate-artifact.py`: HTML structure, self-containment, and rendered-CSS slop validation
+- `scripts/css_slop_rules.py`: vendored slop scanner (`scan_css`) — 7 rendered-CSS rules, dependency-free. Keep in sync with distinctive-frontend-design.
 - `scripts/to-pdf.py`: Playwright-based PDF rendering with per-shape page sizing
 - `scripts/pptx-bridge/`: HTML deck → editable PPTX (extract_slides.py, _pptx_engine.py, render_pptx.py, run-unified.py)
 - `templates/`: CSS/JS template files organized by themes/, shapes/, components/, print/
