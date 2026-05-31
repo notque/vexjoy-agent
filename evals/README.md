@@ -36,6 +36,10 @@ evals/
     README.md                # Test plan (progressive depth, explanation traces, multi-persona critique)
     scoring-rubric.md        # Blind evaluation rubric with dimension anchors
     *-cases.md               # Test case files per skill
+  dense-complete-writing/    # Writing-standard A/B + Completeness clause race
+    README.md                # Test plan and findings
+    scoring-rubric.md        # 20-point coverage rubric + 0-100 dense-and-complete axis
+    clause-race-cases.md     # Skill-creation task + 11 arms
 ```
 
 See `new-skills-ab-test/` for the canonical example of a well-structured evaluation.

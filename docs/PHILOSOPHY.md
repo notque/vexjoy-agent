@@ -162,13 +162,15 @@ Complex work decomposes into phases. Phases have gates. Gates prevent cascading 
 
 ---
 
-## Density — The Russell Standard
+## Density — The Dense-Complete Writing standard
 
-High fidelity, minimum words. The standard is Bertrand Russell's five prose rules ("How I Write"): shortest accurate word, cut words carrying no instruction, plain English, concrete over abstract, heavy qualifications in separate sentences. It governs every generation — output, plain text, the model's own thinking, skill and instruction files, code comments. Prefer tables and lists for structured content, paragraphs for reasoning.
+High fidelity, minimum words. The standard is Bertrand Russell's five prose rules ("How I Write"): shortest accurate word, cut words carrying no instruction, plain English, concrete over abstract, heavy qualifications in separate sentences. A sixth rule, Completeness, guards the floor: treat content as fixed and wording as negotiable — carry every required point through the draft, then choose the shortest plain words that say those points exactly. It is the structural guide for everything we do — every part of every agent, every thinking turn, every generation: output, plain text, the model's own thinking, skill and instruction files, code comments. Prefer tables and lists for structured content, paragraphs for reasoning.
 
 This is not minimalism, which drops information for aesthetics. Density keeps all information and drops everything else.
 
-The canonical wording lives at `skills/shared-patterns/russell-density.md`. Three high-traffic surfaces reproduce the five rules verbatim so they sit in context every turn — `CLAUDE.md`, `agents/base-instructions.md`, the `/do` router injection (`skills/meta/do/SKILL.md`); edit the canonical file first, then propagate to those three. This reference doc and `skill-creator` carry a summary plus the pointer above.
+**Evidence.** Three blind dual-track (Claude + Codex) A/B runs tested whether the standard helps. A Go token-bucket task showed no effect — correctness was ceiling-bound, every variant passed build, vet, and race. A skill-authoring task showed the payoff: the guidance arm (PHILOSOPHY.md + standard) beat control by +6.4/60, won 80% of cross-arm pairwise comparisons, Cliff's delta +0.60. Lesson: the standard pays off on prose and judgment work, not ceiling-bound code. One treatment run over-compressed — thinnest skill, dropped detail — which motivated a Completeness clause. A clause race then tested control plus ten candidate phrasings (five Codex, five Claude) on one complex skill task (`log-secret-auditor`), graded blind dual-track on a 20-point coverage rubric plus a dense-and-complete score. The winner (g07) decouples content from wording and hit top coverage at the fewest words. Caveat: pilot N=1 per arm; coverage held across all arms, so the clause is proven to raise density at equal coverage, not yet proven to prevent a coverage collapse.
+
+The canonical wording lives at `skills/shared-patterns/dense-complete-writing.md`. Three high-traffic surfaces reproduce the rules verbatim so they sit in context every turn — `CLAUDE.md`, `agents/base-instructions.md`, the `/do` router injection (`skills/meta/do/SKILL.md`); edit the canonical file first, then propagate to those three. This reference doc and `skill-creator` carry a summary plus the pointer above.
 
 **Test:** Read each sentence. Does it carry an instruction, rule, or decision? If none, cut it.
 
