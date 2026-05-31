@@ -59,15 +59,16 @@ Every sentence the router prints is a sentence the user reads before seeing resu
 5. Everyday English over jargon.
 6. Break any rule sooner than say anything barbarous.
 
-**Russell's density rules** (1956) extend Orwell and apply to the same surfaces *plus* the model's own thinking, code comments, and any skill or reference files written:
+The **Dense-Complete Writing standard** extends Orwell and applies to the same surfaces *plus* the model's own thinking, code comments, and any skill or reference files written. Its five density rules (Russell, 1956):
 
 1. Shortest accurate word; never a long word where a short one serves.
 2. Cut every word that carries no instruction, rule, or decision.
 3. Plain English, not jargon.
 4. Concrete over abstract.
 5. Put heavy qualifications in separate short sentences.
+6. Completeness: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly.
 
-Russell's distinct contribution over Orwell is rule 5 — heavy qualifications go in their own sentences — and the explicit scope: thinking, comments, and authored skill files, not just user-facing prose. Canonical statement: `skills/shared-patterns/russell-density.md`.
+The distinct contribution over Orwell is rule 5 — heavy qualifications go in their own sentences — the concrete-over-abstract bias, and the explicit scope: thinking, comments, and authored skill files, not just user-facing prose. The Completeness clause keeps density from collapsing into under-coverage. Canonical statement: `skills/shared-patterns/dense-complete-writing.md`.
 
 These rules apply equally to agent prompts. Every word in a dispatched prompt costs tokens on that agent's context window.
 
@@ -430,7 +431,7 @@ Extraction: Intent from verb+object. Constraints include branch safety (never me
 
 **MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product. Ship the complete thing."
 
-**MANDATORY: Inject the Russell density standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write to the Russell density standard — it governs your output, code comments, any skill or reference files you write, AND your own thinking: (1) shortest accurate word; (2) cut every word that carries no instruction, rule, or decision; (3) plain English, not jargon; (4) concrete over abstract; (5) heavy qualifications in separate short sentences. Say everything the task needs and not one word more. Report what changed, not how. Full rules: `skills/shared-patterns/russell-density.md`."
+**MANDATORY: Inject the Dense-Complete Writing standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Write to the Dense-Complete Writing standard — it governs your output, code comments, any skill or reference files you write, AND your own thinking: (1) shortest accurate word; (2) cut every word that carries no instruction, rule, or decision; (3) plain English, not jargon; (4) concrete over abstract; (5) heavy qualifications in separate short sentences; (6) Completeness: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly. Say everything the task needs and not one word more. Report what changed, not how. Full rules: `skills/shared-patterns/dense-complete-writing.md`."
 
 **MANDATORY: Inject base instructions for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
 

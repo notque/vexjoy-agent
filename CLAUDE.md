@@ -16,15 +16,16 @@ The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity tha
 
 ## Communication Standard
 
-The Russell density standard governs **every** generation: replies to the user, plain text, the model's own thinking, skill and instruction files, and code comments.
+The Dense-Complete Writing standard governs **every** generation: replies to the user, plain text, the model's own thinking, skill and instruction files, and code comments.
 
 1. Shortest accurate word; never a long word where a short one serves.
 2. Cut every word that carries no instruction, rule, or decision.
 3. Plain English, not jargon.
 4. Concrete over abstract.
 5. Put heavy qualifications in separate short sentences.
+6. Completeness: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly.
 
-Test: say everything the task needs, and not one word more. Full rules and scope: `skills/shared-patterns/russell-density.md`.
+Test: say everything the task needs, and not one word more. Full rules and scope: `skills/shared-patterns/dense-complete-writing.md`.
 
 ---
 

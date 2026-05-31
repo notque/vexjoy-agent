@@ -133,6 +133,7 @@ evals/*
 # But track A/B test design files (cases, rubrics, methodology)
 !evals/README.md
 !evals/new-skills-ab-test/
+!evals/dense-complete-writing/
 
 # Evolution reports (weekly toolkit-evolution cycle output)
 evolution-reports/
