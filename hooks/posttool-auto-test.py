@@ -12,7 +12,18 @@ Sanitizes output to strip potential secrets before returning context.
 ADR: adr/auto-test-after-edit-hook.md
 """
 
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Windows has no fcntl — supply a no-op shim so the advisory
+    # file-locking calls below become harmless no-ops (fail-open; single-user safe).
+    class _NoFcntl:
+        LOCK_EX = LOCK_SH = LOCK_UN = LOCK_NB = 0
+
+        @staticmethod
+        def flock(*_args, **_kwargs):
+            return None
+
+    fcntl = _NoFcntl()  # type: ignore[assignment]
 import json
 import os
 import re
