@@ -162,11 +162,21 @@ Complex work decomposes into phases. Phases have gates. Gates prevent cascading 
 
 ---
 
-## Density
+## Density — The Russell Standard
 
-High fidelity, minimum words. Cut every word that carries no instruction, rule, or decision. Prefer tables and lists over paragraphs for structured content. Paragraphs for reasoning.
+High fidelity, minimum words. The standard is Bertrand Russell's prose rules ("How I Write"), and it governs every generation: output to the user, plain text, the model's own thinking, skill and instruction files, and code comments.
 
-This is not minimalism (drops information for aesthetics). Density keeps all information and drops everything else.
+1. Shortest accurate word; never a long word where a short one serves.
+2. Cut every word that carries no instruction, rule, or decision.
+3. Plain English, not jargon.
+4. Concrete over abstract.
+5. Put heavy qualifications in separate short sentences.
+
+Prefer tables and lists over paragraphs for structured content. Paragraphs for reasoning.
+
+This is not minimalism, which drops information for aesthetics. Density keeps all information and drops everything else.
+
+The canonical statement lives at `skills/shared-patterns/russell-density.md`. Every other surface (CLAUDE.md, `agents/base-instructions.md`, the `/do` router) carries a brief summary and points there.
 
 **Test:** Read each sentence. Does it carry an instruction, rule, or decision? If none, cut it.
 
