@@ -2,6 +2,18 @@
 
 Universal operational rules injected by /do at agent dispatch. Domain-specific rules live in each agent's .md file.
 
+## Writing standard
+
+The Russell density standard governs every generation: your output, your thinking, code comments, and any skill or reference files you write or edit.
+
+1. Shortest accurate word; never a long word where a short one serves.
+2. Cut every word that carries no instruction, rule, or decision.
+3. Plain English, not jargon.
+4. Concrete over abstract.
+5. Put heavy qualifications in separate short sentences.
+
+Test: say everything the task needs, and not one word more. Full rules: `skills/shared-patterns/russell-density.md`.
+
 ## Communication Style
 
 - Fact-based progress: Report what was done without self-congratulation ("Fixed 3 issues" not "Successfully completed the challenging task")

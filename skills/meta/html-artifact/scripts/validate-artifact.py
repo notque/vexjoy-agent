@@ -22,6 +22,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass, field
+from importlib import import_module
 from pathlib import Path
 
 MAX_FILE_SIZE_BYTES = 500 * 1024  # 500KB
@@ -142,6 +143,30 @@ def _check_valid_structure(content: str, result: ValidationResult) -> None:
         result.errors.append(f"Missing structural tags: {', '.join(missing)}.")
 
 
+def _check_emitted_css_slop(content: str, result: ValidationResult) -> None:
+    """Scan emitted CSS/markup for slop patterns via the vendored slop rules.
+
+    Findings are reported as warnings — they do not fail the build (matches the
+    non-blocking choice in distinctive-frontend-design). Promote-to-error path:
+    raise a finding's rule_id to a build error here once a rule graduates from
+    "warning" to "error" in css_slop_rules.py.
+
+    Shape-agnostic: the rules check CSS/markup, not page structure, so they apply
+    to every artifact shape (including hero-less shapes like report or data-viz).
+
+    Scans every size. The slop rules are linear (the block scanner is anchored on
+    "{", not the old O(n^2) "[^{}]*" pre-brace run that hung on minified single
+    lines), so there is no ReDoS reason to cap by size. Oversized files are still
+    flagged independently by the reasonable_size check.
+    """
+    sys.path.insert(0, str(Path(__file__).parent))
+    slop = import_module("css_slop_rules")
+    findings = slop.scan_css(content)
+    result.checks["css_slop_clean"] = not findings
+    for f in findings:
+        result.warnings.append(f"CSS slop [{f.rule_id}] line {f.line}: {f.message}")
+
+
 EXPORT_SHAPES = frozenset({"editor", "prototype"})
 
 
@@ -191,6 +216,7 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_reasonable_size(file_path, result)
     _check_no_empty_body(content, result)
     _check_valid_structure(content, result)
+    _check_emitted_css_slop(content, result)
 
     if shape is not None:
         _check_export_button(content, shape, result)

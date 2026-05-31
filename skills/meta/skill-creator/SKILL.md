@@ -50,6 +50,10 @@ text focused on accuracy**. Minimize prose, maximize signal, no filler.
 - Explanations of "why" stay short and attached to the rule they justify --
   one clause, not a paragraph.
 
+New and edited skill files are written to the **Russell density standard**:
+`skills/shared-patterns/russell-density.md`. That file is the canonical rule;
+the bullets above are its application to skill scaffolding.
+
 This is a generation constraint on the outputs of this skill, not a style note
 for this skill's own prose. Enforce it during the "Write the SKILL.md" phase
 and during any agent scaffolding.
