@@ -12,7 +12,7 @@ This standard governs **every generation**, with no exception:
 - Skill, instruction, and reference files the agent writes or edits
 - Code comments
 
-Every surface points here. This file holds the rules; other surfaces carry a brief summary and a link back.
+This file holds the canonical wording. Surfaces that must guarantee the rules are present every turn — `CLAUDE.md`, `agents/base-instructions.md`, the `/do` router injection (`skills/meta/do/SKILL.md`) — reproduce all five rules verbatim, because the model will not open this file each turn and the rules must sit in context. The duplication is intentional. Propagation rule: edit the canonical wording here first, then update those three high-traffic surfaces to match. Reference docs that the model reads on demand — `docs/PHILOSOPHY.md`, `skill-creator` — carry a one-line summary plus a pointer here instead.
 
 ## The Five Rules
 
