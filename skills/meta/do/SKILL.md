@@ -48,30 +48,7 @@ Model confidence in handling a task directly is a signal to route, not to procee
 
 ## Output Discipline
 
-Every sentence the router prints is a sentence the user reads before seeing results.
-
-**Orwell's Six Rules** (1946) apply to all output and all agent prompts:
-
-1. No stale metaphors or figures of speech.
-2. Short words over long.
-3. Cut every word you can.
-4. Active voice over passive.
-5. Everyday English over jargon.
-6. Break any rule sooner than say anything barbarous.
-
-The **Dense-Complete Writing standard** is the structural guide for everything the toolkit does — every part of every agent, every thinking turn. It extends Orwell and applies to the same surfaces *plus* the model's own thinking, code comments, and any skill or reference files written. Its five density rules (Russell, 1956):
-
-1. Shortest accurate word; never a long word where a short one serves.
-2. Cut every word that carries no instruction, rule, or decision.
-3. Plain English, not jargon.
-4. Concrete over abstract.
-5. Put heavy qualifications in separate short sentences.
-
-Plus the Completeness clause: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly.
-
-The distinct contribution over Orwell is rule 5 — heavy qualifications go in their own sentences — the concrete-over-abstract bias, and the explicit scope: thinking, comments, and authored skill files, not just user-facing prose. The Completeness clause keeps density from collapsing into under-coverage. Canonical statement: `skills/shared-patterns/dense-complete-writing.md`.
-
-These rules apply equally to agent prompts. Every word in a dispatched prompt costs tokens on that agent's context window.
+Every word the router prints, and every word in a dispatched agent prompt, follows the **Dense-Complete Writing standard** — the toolkit's structural guide for all output, code comments, authored files, and thinking. It is Russell's five density rules plus the Completeness clause — treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly — extending Orwell's six rules (1946). Every word in a prompt costs tokens on the agent's context window. Full rules: `skills/shared-patterns/dense-complete-writing.md`.
 
 **User sees:** phase banners, routing decision banner, brief post-agent summary (what changed, not how).
 
