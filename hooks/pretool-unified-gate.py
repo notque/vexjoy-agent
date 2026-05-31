@@ -554,6 +554,14 @@ _PY_BIND_RE = re.compile(r"(?:--bind(?:\s+|=)|(?<![\w-])-b\s+)['\"]?(\[[^\]]+\]|
 #   long flags do not collide with common non-server short flags.
 _HOST_FLAG_RE = re.compile(r"(?:--(?:bind|host|listen|address)(?:\s+|=))['\"]?(\[[^\]]+\]|[^\s'\"]+)")
 
+# Value-less `--host` / `-H` on a JS dev server (#720). In Vite/Nuxt/Next a bare
+# `--host` (or `-H`) with no value — i.e. end of segment, or the next token is
+# ANOTHER flag (`vite --host --strictPort`) — means "listen on ALL interfaces"
+# (equivalent to 0.0.0.0). The host-flag scans above require a value token, so
+# this slips through unless detected explicitly. Captures: `--host` / `-H` /
+# `--host=` with nothing after, OR followed by a flag, OR end of string.
+_VALUELESS_HOST_FLAG_RE = re.compile(r"(?:--host|(?<![\w-])-H)(?:=\s*)?(?=\s*$|\s+-)")
+
 
 # Per-server SHORT bind/host flags. Each server uses a DIFFERENT short letter, and
 # those letters collide with unrelated tools (git -a, curl -H, ssh -b) AND with
@@ -1015,6 +1023,85 @@ def _single_quoted_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _quoted_spans_all(text: str) -> list[tuple[int, int]]:
+    """Return (start, end) spans of BOTH single- and double-quoted regions.
+
+    Used to suppress whole-line footgun matches that are merely DISPLAYED/searched
+    data (`grep -R "curl … | sh" docs/`, codex round-8 FP). A real execution inside
+    double quotes only happens via `$(...)`, which is recursed into separately
+    (that recursion skips single-quoted spans but evaluates double-quoted ones), so
+    excluding literal double-quoted text from the whole-line scan does not hide a
+    real invocation. Honors backslash escapes outside quotes.
+    """
+    spans: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == "\\":
+            i += 2
+            continue
+        if c == "'":
+            # Single quotes are literal: no escapes inside; span ends at next `'`.
+            close = text.find("'", i + 1)
+            if close == -1:
+                break
+            spans.append((i, close + 1))
+            i = close + 1
+            continue
+        if c == '"':
+            # Double quotes honor `\"` escapes inside the span (codex round-9 FP).
+            j = i + 1
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    break
+                j += 1
+            if j >= n:
+                break  # unterminated double quote
+            spans.append((i, j + 1))
+            i = j + 1
+            continue
+        i += 1
+    return spans
+
+
+def _has_unquoted_shell_op(text: str) -> bool:
+    """True if `text` contains a shell operator (| ; & && ||) OUTSIDE any quotes.
+
+    Walks the string honoring single- AND double-quote spans and backslash escapes,
+    so an operator inside a quoted argument (a `git commit -m "a | b"` message) is
+    not counted. Used to tell a single real `git` command apart from a git chained
+    to another command (`git commit -m wip && curl … | sh`).
+    """
+    i, n = 0, len(text)
+    in_single = in_double = False
+    while i < n:
+        c = text[i]
+        if in_single:
+            if c == "'":
+                in_single = False
+        elif in_double:
+            if c == "\\":
+                i += 2
+                continue
+            if c == '"':
+                in_double = False
+        else:
+            if c == "\\":
+                i += 2
+                continue
+            if c == "'":
+                in_single = True
+            elif c == '"':
+                in_double = True
+            elif c in "|;&":
+                return True
+        i += 1
+    return False
+
+
 # Shell launchers whose `-c <payload>` argument is the real command to evaluate.
 _SHELL_LAUNCHERS = frozenset({"sh", "bash", "zsh", "dash", "ash", "ksh"})
 
@@ -1147,6 +1234,26 @@ def _check_public_dev_server_segment(segment: str, _depth: int = 0) -> None:
     if not is_known_server:
         return
 
+    # #720: the `http-server` npm package binds 0.0.0.0 by DEFAULT (publishes the
+    # served directory). Block-by-default — like python http.server — unless an
+    # explicit loopback `-a 127.0.0.1|localhost|::1` is present. A non-loopback
+    # `-a` is caught by the short-flag scan below; a bare `http-server` (no `-a`)
+    # would otherwise slip through, so it must block here.
+    if server == "http-server":
+        m = _SERVER_SHORT_FLAGS["http-server"].search(seg)
+        if m is None or _host_is_public(m.group(1)):
+            _block_public_server()
+        return  # explicit loopback `-a` → allow
+
+    # #720: value-less `--host` / `-H` on a JS dev server (`vite --host`,
+    # `next dev --host`, `vite --host --strictPort`) means "all interfaces".
+    # The value-bearing scan below requires a value token, so a bare flag would
+    # slip through — detect it explicitly here. Only JS dev servers use this
+    # all-interfaces shorthand (python web servers require a value).
+    if server in _JS_DEV_SERVERS and _VALUELESS_HOST_FLAG_RE.search(seg):
+        _block_public_server()
+        return
+
     # Command token is a known server, so this server's specific short bind flag
     # (if any) is safe to scan — the collision cases (git -a, curl -H, ssh -b)
     # never reach this point, and another server's short flag is not honored
@@ -1186,6 +1293,815 @@ def check_public_dev_server(command: str) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════
+# 7. SYSADMIN-SECURITY GUARD  (issue #720)
+# ═══════════════════════════════════════════════════════════════
+#
+# Catch first-time-Linux-user footguns that leak secrets or open the host, and
+# either BLOCK (clear footgun) with an EDUCATIONAL message that names the correct
+# safe way, or WARN (context-dependent) without denying. Mirrors #719's machinery:
+# regex-on-text, display-suppression (`echo`/`grep` of a footgun string is data),
+# segment-split tokenizer, one bypass env var, fail-open / exit-0.
+#
+# Pipe-spanning shapes (curl|sh, reverse shells) are checked on the WHOLE line —
+# `_SEGMENT_SPLIT_RE` splits on `|`, which would tear `curl … | sh` apart.
+#
+# Single shared bypass for the whole group (per the gate's per-check convention).
+# Setting SYSADMIN_GUARD_BYPASS=1 in the environment skips this whole guard (see
+# check_sysadmin_security). The escape hatch is intentionally NOT advertised in the
+# user-facing deny message: a deny that is itself a FALSE POSITIVE would otherwise
+# teach the operator to disable the guard on the next benign command. Mirrors the
+# #719 LOW-1 fix for the public-dev-server guard. Documented here in code only.
+_SYSADMIN_GUARD_BYPASS_ENV = "SYSADMIN_GUARD_BYPASS"
+
+# --- WHOLE-LINE BLOCK patterns (pipe-spanning / multi-segment shapes) ----------
+# Each tuple: (compiled pattern, category, educational deny message naming the fix).
+_SYSADMIN_WHOLELINE_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
+    (
+        # Remote-script-to-shell footguns, all forms:
+        #   curl … | sh            pipe to shell (optional sudo/env wrappers)
+        #   sh <(curl …)           process substitution (and `sh < <(curl …)`)
+        #   source <(curl …)       source/`.` of a downloaded script
+        #   sh -c "$(curl …)"      the Homebrew-installer shape (codex round-11)
+        re.compile(
+            r"(?:\b(?:curl|wget)\b[^|]*\|\s*(?:(?:/\S*/)?(?:sudo|env|command|exec|nohup|setsid|time|nice|stdbuf|ionice|doas|timeout)\s+(?:-\S+\s+|\w+=\S+\s+|\d\S*\s+|[a-z][\w.-]*\s+(?=-|\w|/))*)*(?:/\S*/)?(?:ba|z|d|a|k)?sh\b)"
+            r"|(?:(?:sudo|env|command|exec)\s+)*(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b|source\b|\.(?=\s))\s+(?:<\s*)?<\(\s*(?:curl|wget)\b"
+            r"|(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b[^|;&]*-c\b|\beval\b)[^|;&]*\$\(\s*(?:curl|wget)\b",
+        ),
+        "pipe-to-shell",
+        "Piping a remote script straight to a shell runs unreviewed, possibly-MITM'd "
+        "code as you. Download it, read it, verify a checksum, then run it:\n"
+        "  curl -fsSLo install.sh https://… && less install.sh && bash install.sh",
+    ),
+    (
+        # Reverse-shell one-liners: bash /dev/tcp, nc -e, socat EXEC, mkfifo backpipe.
+        # The mkfifo backpipe is detected by co-occurrence of `mkfifo` + a shell +
+        # `nc`/`ncat`/`netcat` on the line (both the `… | sh | nc …` and the
+        # `sh </fifo | nc … >/fifo` one-pipe forms, codex round-19), since the named
+        # FIFO is the shared signal — benign `mkfifo` use rarely pairs with nc+sh.
+        re.compile(
+            r"(?:>\s*&?\s*/dev/(?:tcp|udp)/)"
+            r"|(?:\b(?:nc|ncat|netcat)\b[^|;&]*\s-e\b)"
+            r"|(?:\bsocat\b[^|;&]*\bEXEC:)"
+            r"|(?:\bmkfifo\b[\s\S]*\b(?:ba|z|d|a|k)?sh\b[\s\S]*\b(?:nc|ncat|netcat)\b)"
+            r"|(?:\bmkfifo\b[\s\S]*\b(?:nc|ncat|netcat)\b[\s\S]*\b(?:ba|z|d|a|k)?sh\b)",
+        ),
+        "reverse-shell",
+        "This is a reverse-shell shape — it hands a remote host a shell on this "
+        "machine. Don't run remote shell one-liners on a server; use SSH or a "
+        "bastion for legitimate remote access.",
+    ),
+]
+
+# --- PER-SEGMENT BLOCK patterns ------------------------------------------------
+# Sensitive chmod targets come in TWO tiers (codex round-13): the correct mode
+# differs, so the loosening test differs.
+#
+# OWNER-ONLY tier — private keys, secrets, .env, .aws/credentials. Correct mode is
+# owner-only (600/400/700); ANY group OR other access is a leak (SSH rejects a
+# group-readable key, secrets must not be group-readable).
+_SYSADMIN_OWNER_ONLY_TARGET_RE = re.compile(
+    r"(?:\.ssh/id_[a-z0-9]+(?!\.pub)\b"  # private keys; exclude `.pub`. authorized_keys
+    # is intentionally NOT here — it is public-key material and 0644 is a common valid
+    # mode; SSH only rejects it when group/world-WRITABLE (codex round-16 FP).
+    r"|(?<![\w/.])/etc/ssh/\S*key(?!\.pub)\b"  # private host keys (system path); exclude `.pub`
+    r"|\.(?:pem|key|p12|pfx)(?!\.pub)\b"  # private material anywhere; exclude `*.key.pub`
+    r"|(?:^|/|\s)\.env(?!\.(?:example|sample|template|dist)\b)\b"  # exclude safe templates
+    r"|\.aws/credentials\b)",
+)
+# GROUP-OK tier — system auth files & docker socket whose correct mode IS group-
+# readable (`/etc/shadow` → 640 root:shadow, `/etc/sudoers` → 440 root:root). Only
+# WORLD access (other bit set) or world-writable is a footgun here. The system paths
+# are root-anchored `(?<![\w/.])` so a fixture path like `./fixtures/etc/sudoers`
+# does not match the live system file (codex round-19 FP).
+_SYSADMIN_GROUP_OK_TARGET_RE = re.compile(
+    r"(?<![\w/.])(?:/etc/(?:shadow|gshadow|sudoers)\b|/etc/sudoers\.d/"
+    r"|/var/run/docker\.sock\b|/run/docker\.sock\b)",
+)
+
+# Loosen test for OWNER-ONLY targets: symbolic g/o/a grant, bare +r/+w, OR an octal
+# with a non-zero GROUP or OTHER digit. (600/400/700 → no match → allowed.)
+_SYSADMIN_CHMOD_LOOSEN_OWNER_RE = re.compile(
+    r"(?:[ugoa]*[goa][ugoa]*[+=][rwxstugo]"  # g+r, o=r, go=rw, a+r
+    r"|(?<![\w-])\+[rw]"  # bare +r/+w
+    r"|(?<![\w-])[0-7]?[0-7][1-7][0-7]\b"  # non-zero GROUP digit (640, 660, 750)
+    r"|(?<![\w-])[0-7]?[0-7][0-7][1-7]\b)"  # non-zero OTHER digit (604, 777)
+)
+# Loosen test for GROUP-OK targets: only WORLD access — symbolic `o+`/`o=`/`a+`,
+# bare +r/+w, OR an octal with a non-zero OTHER (last) digit. (640/440 → allowed.)
+_SYSADMIN_CHMOD_LOOSEN_WORLD_RE = re.compile(
+    r"(?:[ugoa]*[oa][ugoa]*[+=][rwxstugo]"  # o+r, o=rw, a+r (world grant)
+    r"|(?<![\w-])\+[rw]"  # bare +r/+w (applies to all incl. other)
+    r"|(?<![\w-])[0-7]?[0-7][0-7][1-7]\b)"  # non-zero OTHER digit (646, 666, 777)
+)
+# A real `chmod` command verb (word-boundaried). Required to fire OUTSIDE quotes
+# alongside the target+mode so the secret-chmod rule only triggers on an actual
+# chmod invocation, not chmod TEXT inside a quoted argument of another command.
+_CHMOD_VERB_RE = re.compile(r"\bchmod\b")
+
+# redis is handled by a dedicated helper (_redis_is_unsafe) rather than a single
+# regex: `--protected-mode no` is only a footgun WITHOUT a `--requirepass` and
+# without a loopback bind (codex round-6 FP: a loopback + requirepass redis is safe).
+# Each flag accepts both `--flag value` and `--flag=value` syntax (codex round-8).
+# `::` matches the IPv6 wildcard but NOT loopback `::1` (codex round-18 FP): require
+# the `::` to be followed by a non-hex-digit (end/space) so `::1` falls through to
+# the loopback check.
+# `redis-server` as an executed COMMAND token (command position), used with the
+# quoted-span-excluding `_fires` so the redis text inside a quoted argument of an
+# unrelated command is data, not a server (#724 FP) — yet a real invocation behind
+# a launcher (`systemd-run redis-server …`, `sudo redis-server …`) is still caught
+# (a pure `_command_token=="redis-server"` test would miss those launchers). Command
+# position = start of segment OR right after a shell op / launcher boundary (space).
+_REDIS_SERVER_CMD_RE = re.compile(r"(?:^|[\s;&|])(?:[^\s'\"]*/)?redis-server\b")
+# Each flag tolerates an OPTIONAL quote on its VALUE (`--bind "0.0.0.0"`,
+# `--protected-mode 'no'`): bash strips those quotes before redis sees argv, so a
+# quoted value is a REAL footgun. The FLAG-position guard in `_redis_is_unsafe`
+# (offset must be outside quoted spans) is what distinguishes this from a `--bind`
+# keyword buried INSIDE a quoted value (`--logfile "--bind 0.0.0.0"` → flag start is
+# inside the quote → ignored). `\s+` after the flag also matches across the opening
+# quote position since the value may be `["']`-prefixed.
+_REDIS_PUBLIC_BIND_RE = re.compile(
+    r"--bind(?:\s+|=)['\"]?(?:0\.0\.0\.0\b|::(?![0-9a-fA-F])|\[::\]|\*|0(?=['\"]?(?:\s|$)))"
+)
+_REDIS_LOOPBACK_BIND_RE = re.compile(r"--bind(?:\s+|=)['\"]?(?:127\.|localhost|::1|\[::1\])")
+_REDIS_PROTECTED_OFF_RE = re.compile(r"--protected-mode(?:\s+|=)['\"]?no\b")
+_REDIS_REQUIREPASS_RE = re.compile(r"--requirepass(?:\s+|=)['\"]?\S")
+_SYSADMIN_REDIS_MSG = (
+    "Binding redis to 0.0.0.0 (or protected-mode off with no password) publishes "
+    "your data unauthenticated — these get ransomware-scanned within minutes. Bind "
+    "loopback and require a password:\n"
+    "  redis-server --bind 127.0.0.1 --protected-mode yes --requirepass <pw>\n"
+    "For remote access use an SSH tunnel, a private network/VPN, or redis TLS "
+    "plus firewall rules — never a raw public bind."
+)
+
+
+def _redis_flag_fires(pat: re.Pattern[str], seg: str, quoted: list[tuple[int, int]]) -> bool:
+    """True if `pat` matches `seg` with the FLAG KEYWORD starting OUTSIDE quotes.
+
+    A match whose start offset is inside a quoted span means the flag keyword (e.g.
+    `--bind`) is literal text inside another argument's quoted value
+    (`--logfile "--bind 0.0.0.0"`) — not a real flag — so it is ignored. A real flag
+    with a quoted VALUE (`--bind "0.0.0.0"`) has its keyword OUTSIDE quotes and fires.
+    """
+    return any(not any(start <= m.start() < end for start, end in quoted) for m in pat.finditer(seg))
+
+
+def _redis_is_unsafe(seg: str) -> bool:
+    """True if a `redis-server` segment exposes data unauthenticated.
+
+    Unsafe when: bound to a public interface (any --bind 0.0.0.0/*/::), OR
+    protected-mode is off AND there is no --requirepass AND it is not loopback-
+    bound. A loopback bind with a password is safe (codex round-6 FP fix).
+
+    Each flag is matched only when its KEYWORD sits OUTSIDE quotes (codex #724
+    round-2/3): a quoted VALUE (`--bind "0.0.0.0"`) is a real footgun and fires,
+    while a `--bind`/`--protected-mode` keyword buried inside another flag's quoted
+    value (`--logfile "--bind 0.0.0.0"`) is data and is ignored.
+    """
+    quoted = _quoted_spans_all(seg)
+    if _redis_flag_fires(_REDIS_PUBLIC_BIND_RE, seg, quoted):
+        return True
+    if _redis_flag_fires(_REDIS_PROTECTED_OFF_RE, seg, quoted):
+        return not (
+            _redis_flag_fires(_REDIS_REQUIREPASS_RE, seg, quoted)
+            or _redis_flag_fires(_REDIS_LOOPBACK_BIND_RE, seg, quoted)
+        )
+    return False
+
+
+_SYSADMIN_SEGMENT_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
+    (
+        # mongod with auth disabled.
+        re.compile(r"\bmongod\b(?=[^|;&]*--noauth\b)"),
+        "mongod-noauth",
+        "`mongod --noauth` disables all authentication. Run with auth enabled and "
+        "bind loopback:\n  mongod --bind_ip 127.0.0.1 --auth\n"
+        "Create users with `db.createUser(...)` before exposing it anywhere.",
+    ),
+    (
+        # mysqld / mariadbd / mysqld_safe with the grant-tables auth check bypassed.
+        re.compile(r"\b(?:mysqld_safe|mysqld|mariadbd)\b(?=[^|;&]*--skip-grant-tables\b)"),
+        "mysql-skip-grant",
+        "`--skip-grant-tables` disables MySQL/MariaDB privilege checks — anyone who "
+        "connects is root. Use it only offline for password recovery, never on a "
+        "running/exposed server. Reset a password via `ALTER USER … IDENTIFIED BY` "
+        "with normal auth instead.",
+    ),
+    (
+        # docker/podman run with isolation removed.
+        re.compile(
+            r"\b(?:docker|podman)\b[^|;&]*\brun\b"
+            r"(?=[^|;&]*(?:--privileged\b|--cap-add[= ]ALL\b|--security-opt[= ]\S*(?:seccomp|apparmor)=unconfined))",
+        ),
+        "container-privileged",
+        "These flags remove container isolation — a compromise becomes host root. "
+        "Grant only the one capability you need instead:\n"
+        "  docker run --cap-add=NET_BIND_SERVICE …  (never --privileged)",
+    ),
+    (
+        # docker/podman run mounting the docker socket or host root, via the
+        # `-v/--volume host:container` form OR the `--mount type=bind,src=…` form.
+        re.compile(
+            r"\b(?:docker|podman)\b[^|;&]*\brun\b"
+            r"(?=[^|;&]*(?:"
+            r"(?:-v|--volume)(?:[= ]\s*|)(?:/var/run/docker\.sock|/run/docker\.sock|/):"  # -v host:ctr (incl. attached -v/:/…)
+            r"|--mount\b[^|;&]*(?:src|source)=(?:/var/run/docker\.sock|/run/docker\.sock|/)(?:[,\s]|$)"  # --mount src=…
+            r"))",
+        ),
+        "docker-sock-mount",
+        "Mounting the docker socket (or host `/`) gives the container full root "
+        "control of this host. Mount only the subpath you need, read-only:\n"
+        "  docker run -v /srv/data:/data:ro …\n"
+        "For Docker API access use a scoped proxy, not the raw socket.",
+    ),
+    (
+        # iptables flush / default-ACCEPT (`-P` or `--policy`), or nft flush ruleset.
+        re.compile(
+            # `-F`/`--flush` blocks when it flushes everything or a built-in chain:
+            # bare (`-F` then end/another flag like `-t nat` = whole-table flush) or
+            # `-F INPUT|FORWARD|OUTPUT`. Flushing ONE custom chain (`-F DOCKER-USER`,
+            # next token is a non-flag chain name) is a normal targeted op → allowed
+            # (codex round-11 FP, round-20 `-t nat` bypass).
+            r"\biptables\b[^|;&]*\s(?:-F|--flush)(?:\s+(?:INPUT|FORWARD|OUTPUT|PREROUTING|POSTROUTING)\b|\s*(?=[|;&]|$)|\s+-)"
+            r"|\biptables\b[^|;&]*\s(?:-P|--policy)\s+(?:INPUT|FORWARD|OUTPUT)\s+ACCEPT\b"
+            r"|\bnft\b[^|;&]*\bflush\s+ruleset\b",
+        ),
+        "firewall-flush",
+        "Flushing rules / setting the default policy to ACCEPT removes all network "
+        "filtering. Snapshot first, then change only the one rule you need:\n"
+        "  iptables-save > rules.v4 ; iptables -A INPUT -p tcp --dport 443 -j ACCEPT\n"
+        "  nft (nftables): nft list ruleset > rules.nft ; nft add rule inet filter input tcp dport 443 accept",
+    ),
+    (
+        # ufw disable (allow intervening flags like `ufw --force disable`).
+        re.compile(r"\bufw\b(?:\s+--?\S+)*\s+disable\b"),
+        "ufw-disable",
+        "`ufw disable` turns the whole host firewall off. Keep it on and open only "
+        "the port you need:\n  sudo ufw allow 443/tcp",
+    ),
+    (
+        # stop/disable/mask firewalld — both `systemctl stop firewalld` (action-first)
+        # and the SysV `service firewalld stop` (unit-first) forms.
+        re.compile(
+            r"\bsystemctl\b[^|;&]*\b(?:stop|disable|mask)\b[^|;&]*\bfirewalld\b"
+            r"|\bservice\b[^|;&]*\bfirewalld\b[^|;&]*\b(?:stop|disable)\b"
+            r"|\bsystemctl\b[^|;&]*\bfirewalld\b[^|;&]*\b(?:stop|disable|mask)\b"
+        ),
+        "firewalld-stop",
+        "Stopping/disabling firewalld removes host filtering. Keep it running and "
+        "open the port instead:\n"
+        "  firewall-cmd --add-port=443/tcp --permanent && firewall-cmd --reload",
+    ),
+    (
+        # backdoor uid-0 account, or password removal.
+        re.compile(
+            r"\buseradd\b[^|;&]*-o\b[^|;&]*-u\s*0\b|\buseradd\b[^|;&]*-u\s*0\b[^|;&]*-o\b"
+            r"|\busermod\b[^|;&]*-u\s*0\b"
+            r"|\bpasswd\b\s+-d\b|\busermod\b[^|;&]*-p\s*(?:''|\"\")",
+        ),
+        "backdoor-account",
+        "Creating a second UID-0 account or removing a password is a backdoor. Use "
+        "named accounts with sudo, and lock an account with `passwd -l <user>` "
+        "rather than blanking its password.",
+    ),
+]
+
+# Recursive chown/chmod targeting bare `/` — extends (does not duplicate) the
+# existing bare `chmod -R 777` rule by catching `chown -R user /`. Anchored so
+# `chown -R me:me ./build` and `chmod -R 755 /srv/app` do NOT match.
+_SYSADMIN_RECURSIVE_ROOT_RE = re.compile(
+    r"\b(?:chown|chmod)\b[^|;&]*\s(?:-[a-zA-Z]*R[a-zA-Z]*|--recursive)\b[^|;&]*?\s/(?=\s|$)"
+)
+_SYSADMIN_RECURSIVE_ROOT_MSG = (
+    "Recursive ownership/permission changes on `/` break the OS and are near-"
+    "unrecoverable. Target the exact path you mean (never `/`):\n"
+    "  chown -R user:user /srv/app\n"
+    "  chmod -R 755 /srv/app"
+)
+
+# A bare path TOKEN that names a secret file (.env, id_rsa, *.pem, *.key, …).
+# Applied to individual shlex tokens (not free text) so a secret name inside a
+# `-m "…"` commit message is data, never matched (codex finding). Safe template
+# and public-material suffixes are excluded: `.env.example` / `.sample` /
+# `.template` (the recommended safe file) and `*.pub` (public keys).
+#
+# Accepted residual (codex round-3, NOT fixed by design): a wildcard stage such as
+# `git add -A` / `git add .` / `git commit -a` does NOT name the secret file on the
+# command line, so regex-on-text cannot see it. Detecting that would require running
+# `git` (subprocess) on every commit — outside this gate's regex-only/perf model and
+# outside the stated BLOCK scope ("git commit that stages a NAMED secret"). The
+# Write/Edit-side sensitive-file guard already blocks CREATING such files.
+# Matches literal secret path tokens AND ordinary git glob pathspecs that stage
+# secrets (`*.env`, `.env.*`, `config/.env.*`, `*.pem`, `id_rsa*` — codex round-22).
+# A trailing `*`/`.*` glob or a leading `*` is permitted. Template suffixes
+# (.example/.sample/.template/.dist) are still exempt.
+_SYSADMIN_GIT_SECRET_TOKEN_RE = re.compile(
+    r"(?:^|/)\*?"  # optional path prefix and a leading glob (`*.env`)
+    r"(?!.*\.(?:example|sample|template|dist)$)"  # exempt ANY *.example/.sample/.template/.dist
+    r"(?:"
+    r"\.env(?:\.[\w.*]+)?"  # .env, .env.local, .env.*, .env.production.local
+    r"|id_rsa\*?|id_ed25519\*?|id_ecdsa\*?|id_dsa\*?"
+    r"|[^/\s]*\.(?:pem|key|p12|pfx)"  # *.pem, server.key, *.key
+    r"|credentials\.json"
+    r")\*?$",  # optional trailing glob (`*.env.*` etc.)
+)
+# git options whose VALUE is the next token and is NOT a path (so a secret name in
+# a commit message, author, or template value is data, not a staged secret).
+_GIT_VALUE_OPTS = frozenset(
+    {"-m", "--message", "-F", "--file", "--author", "-c", "-C", "--reuse-message", "--template", "-t"}
+)
+
+
+def _git_stages_secret(seg: str) -> bool:
+    """True if a `git add`/`git commit` segment stages a secret file as a PATH arg.
+
+    Token-walks the segment so a secret filename inside a `-m "…"` message (or any
+    option value) is treated as data, not a staged path. Returns False for non-git
+    or non-add/commit segments.
+    """
+    try:
+        toks = shlex.split(seg, posix=True)
+    except ValueError:
+        toks = seg.split()
+    # Skip leading wrapper/env-assignment tokens (`sudo git add …`, codex round-14)
+    # WITHOUT re-joining (which would lose quoting and mis-tokenize a `-m "…"`
+    # message). Consume `FOO=bar`, `sudo`/`env`/… and their option flags + values.
+    w = 0
+    while w < len(toks):
+        base = toks[w].rsplit("/", 1)[-1]
+        if _ENV_ASSIGN_RE.match(toks[w]):
+            w += 1
+        elif base in {"sudo", "env", "command", "exec", "nice", "nohup", "setsid", "doas", "time", "timeout", "stdbuf"}:
+            w += 1
+            # Skip wrapper option flags AND value-taking ones (`sudo -u deploy`,
+            # `nice -n 5`) so the inner `git` is still found (codex round-15).
+            while w < len(toks) and toks[w].startswith("-"):
+                takes_value = (
+                    toks[w] in {"-u", "--user", "-g", "--group", "-n", "--adjustment", "-C", "--chdir"}
+                    and "=" not in toks[w]
+                )
+                w += 2 if takes_value else 1
+        else:
+            break
+    toks = toks[w:]
+    if len(toks) < 2 or toks[0].rsplit("/", 1)[-1] != "git":
+        return False
+    # Skip global git options before the subcommand (`git -C /tmp add …`,
+    # `git -c k=v commit …`). `-C`/`-c` take a value token (codex round-6 bypass).
+    i = 1
+    while i < len(toks) and toks[i].startswith("-"):
+        if toks[i] in {"-C", "-c"}:
+            i += 2
+        else:
+            i += 1
+    if i >= len(toks) or toks[i] not in {"add", "commit"}:
+        return False
+    subcmd = toks[i]
+    i += 1
+    # `git add --dry-run`/`-n` stages nothing (codex round-12 FP). For `add`, a
+    # dry-run flag anywhere means no secret is actually staged.
+    if subcmd == "add" and ("--dry-run" in toks or "-n" in toks):
+        return False
+    while i < len(toks):
+        t = toks[i]
+        if t in _GIT_VALUE_OPTS:
+            i += 2  # skip the option AND its value token (message/author/etc.)
+            continue
+        if t.startswith("-"):
+            # `-m"msg"` / `--message=msg` glued forms carry their value inline → data.
+            i += 1
+            continue
+        if _SYSADMIN_GIT_SECRET_TOKEN_RE.search(t):
+            return True
+        i += 1
+    return False
+
+
+_SYSADMIN_GIT_SECRET_MSG = (
+    "Committing a secret to git usually becomes permanent (history + every remote "
+    "and clone). Don't stage it:\n"
+    "  git restore --staged <path>     # unstage it now\n"
+    "  git rm --cached <path>          # if already tracked\n"
+    "Add the path to `.gitignore`, commit only a redacted `.env.example`, and "
+    "rotate anything already exposed."
+)
+
+# NOPASSWD:ALL written into a sudoers file. Checked on the WHOLE line and NOT
+# display-suppressed: here `echo`/`printf`/`tee` is the WRITE vector (the string is
+# redirected/piped INTO /etc/sudoers), so it is action, not mere display. Requires
+# both the literal `NOPASSWD:ALL` and a sudoers target on the line.
+_SYSADMIN_NOPASSWD_SUDOERS_RE = re.compile(
+    r"NOPASSWD\s*:\s*ALL\b.*?(?:/etc/sudoers|sudoers\.d)|(?:/etc/sudoers|sudoers\.d)\S*.*?\bNOPASSWD\s*:\s*ALL\b",
+    re.DOTALL,
+)
+# A WRITE vector into a SUDOERS file specifically: redirect to sudoers, `tee`/`dd`
+# whose target is a sudoers file, in-place `sed` on sudoers, or `visudo`. Required
+# alongside the NOPASSWD:ALL match so read-only audits do NOT block — including
+# `grep NOPASSWD:ALL /etc/sudoers.d | tee findings.txt` (tee targets a benign file,
+# not sudoers; codex round-2 finding).
+# A real sudoers path target (the canonical files / drop-in dir), used to confirm
+# a write VECTOR actually targets sudoers — not just any token containing the word
+# (`tee /tmp/sudoers-findings.txt` is a benign audit dump, codex round-4 finding).
+# A real sudoers path. The `/etc/sudoers` form must NOT be preceded by another path
+# char (so `/tmp/etc/sudoers.d/test` — a benign temp file — does not match the
+# canonical system path, codex round-5 finding).
+# Only the ABSOLUTE system path counts — a bare relative `sudoers.d/me` in a repo or
+# fixtures dir is NOT the live system file (codex round-23 FP).
+_SUDOERS_PATH = r"(?<![\w/])/etc/sudoers(?:\.d/\S*)?\b"
+_SYSADMIN_SUDOERS_WRITE_RE = re.compile(
+    rf">>?\s*(?:{_SUDOERS_PATH})"  # redirect into a sudoers path
+    rf"|\b(?:tee|dd|install)\b[^|;&]*(?:{_SUDOERS_PATH})"  # tee/dd/install writing a sudoers path
+    rf"|\bsed\b[^|;&]*-i[^|;&]*(?:{_SUDOERS_PATH})"  # in-place sed on sudoers
+    r"|\bvisudo\b(?![^|;&]*(?:--check\b|-[a-z]*c[a-z]*\b))",  # visudo edits; `-c`/`-cf`/`--check` is read-only
+)
+_SYSADMIN_NOPASSWD_MSG = (
+    "`NOPASSWD:ALL` is silent passwordless root for that user. If you truly need "
+    "non-interactive sudo, scope it to one command via `visudo`:\n"
+    "  user ALL=(root) NOPASSWD:/usr/bin/systemctl restart app"
+)
+
+_SYSADMIN_CHMOD_SECRET_MSG = (
+    "Loosening permissions on a key, secret, or auth file leaks it: world-readable "
+    "password hashes enable offline cracking, and SSH refuses group/world-readable "
+    "keys. Keep least privilege:\n"
+    "  chmod 600 ~/.ssh/id_ed25519   (700 on ~/.ssh)\n"
+    "  /etc/shadow → 640 root:shadow ; /etc/sudoers → 440 root:root (edit via visudo)"
+)
+
+# --- WARN-only patterns (advise, do NOT deny) ----------------------------------
+# Each tuple: (compiled pattern, advice message). Context-dependent footguns with
+# common legitimate uses — too noisy to block, so teach without obstructing.
+_SYSADMIN_WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (
+        re.compile(
+            r"\blisten_addresses\s*=\s*['\"]?\*|--bind-address\s*=\s*0\.0\.0\.0"
+            r"|\bnetwork\.host\s*=\s*0\.0\.0\.0|\bmongod\b[^|;&]*(?:--bind_ip_all|--bind_ip\s+0\.0\.0\.0)",
+        ),
+        "A database listening on 0.0.0.0/all interfaces is reachable from every "
+        "network. Prefer 127.0.0.1 or a private IP, require real accounts + TLS, "
+        "and restrict with firewall rules.",
+    ),
+    (
+        re.compile(r"\bPermitRootLogin\s+yes\b|\bPasswordAuthentication\s+yes\b|\bPubkeyAuthentication\s+no\b"),
+        "Root login / password auth are the first brute-force targets. Prefer a "
+        "named sudo user with PermitRootLogin no, PasswordAuthentication no, and "
+        "key-only auth.",
+    ),
+    (
+        re.compile(r"\bStrictHostKeyChecking[= ]no\b|\bUserKnownHostsFile[= ]/dev/null\b"),
+        "Disabling host-key checks removes server-identity verification (MITM risk). "
+        "Enroll the key once: `ssh-keyscan host >> ~/.ssh/known_hosts`, then connect "
+        "normally.",
+    ),
+    (
+        # `-p<pw>` is only flagged for DB clients where `-p` means password (mysql,
+        # mariadb, redis-cli, mongosh) — NOT for `ssh -p2222` / `tar -pxf` where `-p`
+        # is a port/preserve flag (codex round-20 warn-noise). Plus explicit
+        # `--password=`, a `user:pass@` creds URL, and inline secret env exports.
+        re.compile(
+            r"\b(?:mysql|mariadb|redis-cli|mongosh)\b[^|;&]*(?<![\w-])-p\S"
+            r"|--password[= ]\S"
+            r"|://\w+:[^@\s/]+@"
+            r"|\bexport\s+\w*(?:TOKEN|SECRET|PASSWORD|API_KEY)\w*="
+            r"|(?:-e\s+)\w*(?:SECRET|TOKEN|PASSWORD)\w*="
+        ),
+        "Secrets on the command line or in env exports leak to shell history and "
+        "`ps`. Use a prompt, a 0600 config file (~/.my.cnf, ~/.pgpass), or a secret "
+        "store.",
+    ),
+    (
+        re.compile(r"\b(?:usermod|gpasswd)\b[^|;&]*(?:-aG\s+docker\b|-a\s+docker\b)"),
+        "The `docker` group is root-equivalent on the host. Add a user only if they "
+        "should have root-equivalent control; otherwise use rootless Docker or "
+        "scoped sudo.",
+    ),
+    (
+        re.compile(
+            r"\bsysctl\b[^|;&]*(?:kernel\.randomize_va_space\s*=\s*0|kernel\.kptr_restrict\s*=\s*0|fs\.protected_(?:hardlinks|symlinks)\s*=\s*0)"
+        ),
+        "These sysctls turn off kernel hardening (ASLR, kptr restriction, symlink "
+        "protection). Change them only for a short, documented diagnostic window and "
+        "restore immediately.",
+    ),
+    (
+        re.compile(r"\bsshpass\s+-p\S"),
+        "`sshpass -p <pw>` leaks the password to history and `ps`. Use key auth, or "
+        "at minimum `sshpass -f <file>` / the SSHPASS env var.",
+    ),
+    (
+        re.compile(
+            r"\bsetenforce\s+0\b|\baa-disable\b|\b(?:systemctl|service)\b[^|;&]*\b(?:stop|disable|mask)\b[^|;&]*\bapparmor\b|\bapparmor_parser\s+-R\b|SELINUX\s*=\s*disabled"
+        ),
+        "Disabling SELinux/AppArmor removes a system-wide containment layer. Put the "
+        "one offending profile into permissive/complain mode instead "
+        "(`semanage`/`audit2allow`, or `aa-complain /etc/apparmor.d/<profile>`).",
+    ),
+]
+
+
+_HEREDOC_START_RE = re.compile(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
+
+
+def _strip_unquoted_comment(line: str) -> str:
+    """Drop a POSIX shell comment (`# …` to end of line) that starts OUTSIDE quotes.
+
+    A `#` begins a comment only at WORD START — preceded by start-of-line or an
+    unquoted blank/operator (`;`, `&`, `|`, `(`). So `curl http://x#frag` (mid-word)
+    and a `#` inside quotes (`echo "a#b"`) are NOT comments and are preserved.
+    Footgun text living in a comment is shell-ignored DATA, so scanning it produced
+    false positives (`true # ufw disable`, codex #724 round-1). Mirrors heredoc-body
+    stripping. Quote tracking matches `_quoted_spans_all` (backslash escapes honored
+    outside quotes; single quotes literal; double quotes honor `\\"`).
+    """
+    i, n = 0, len(line)
+    prev_is_word_boundary = True  # start-of-line counts as a boundary
+    while i < n:
+        c = line[i]
+        if c == "\\":
+            i += 2
+            prev_is_word_boundary = False
+            continue
+        if c == "'":
+            close = line.find("'", i + 1)
+            if close == -1:
+                return line  # unterminated quote — do not strip (treat as-is)
+            i = close + 1
+            prev_is_word_boundary = False
+            continue
+        if c == '"':
+            j = i + 1
+            while j < n:
+                if line[j] == "\\":
+                    j += 2
+                    continue
+                if line[j] == '"':
+                    break
+                j += 1
+            if j >= n:
+                return line  # unterminated quote
+            i = j + 1
+            prev_is_word_boundary = False
+            continue
+        if c == "#" and prev_is_word_boundary:
+            return line[:i].rstrip()
+        # Comment-start boundary is whitespace / `;` / `&` / `|` only. `(` is
+        # deliberately EXCLUDED: in bash with extglob, `@(#…)` / `?(#…)` is real
+        # pattern syntax, not a comment, so treating `#` after `(` as a comment
+        # would truncate a live command before a `| sh` (codex #724 round-2 bypass).
+        prev_is_word_boundary = c in " \t;&|"
+        i += 1
+    return line
+
+
+def _non_heredoc_lines(text: str) -> list[str]:
+    """Split `text` into command lines, dropping heredoc BODY lines.
+
+    A heredoc body (`cmd <<EOF\\n…\\nEOF`) is literal data passed to the command's
+    stdin, not a sequence of commands, so its lines must not be scanned as footguns.
+    The line that OPENS the heredoc is kept (it is a real command); body lines up to
+    and including the terminator are skipped.
+    """
+    out: list[str] = []
+    pending_terms: list[str] = []
+    for line in text.split("\n"):
+        if pending_terms:
+            if line.strip() == pending_terms[-1]:
+                pending_terms.pop()  # heredoc terminator — body ends here
+            continue  # inside a heredoc body — skip
+        out.append(line)
+        for m in _HEREDOC_START_RE.finditer(line):
+            pending_terms.append(m.group(1))
+    return out
+
+
+def _warn(message: str) -> None:
+    """Emit an educational advisory to stderr WITHOUT denying (fail-open).
+
+    Symmetric to `_block` but prints no JSON permissionDecision and does not
+    exit — the tool proceeds. Visible in Ctrl+O verbose mode. Used for
+    context-dependent footguns that are too noisy to block outright.
+    """
+    print(f"[sysadmin-guard] ADVISORY: {message}", file=sys.stderr)
+
+
+def _block_sysadmin(category: str, message: str) -> None:
+    """Emit the sysadmin-guard deny decision and exit 0.
+
+    The deny text deliberately does NOT mention SYSADMIN_GUARD_BYPASS (the env var
+    is still honored in check_sysadmin_security). Advertising the bypass in a
+    message that could be a false positive trains the operator to disable the
+    guard — the exact anti-pattern the #719 LOW-1 fix removed for the dev-server
+    guard. The message names the correct SAFE alternative instead.
+    """
+    _block(
+        f"[sysadmin-guard] BLOCKED ({category}): {message}",
+        tool_name="Bash",
+        reason=message,
+    )
+
+
+def _check_sysadmin_segment(segment: str) -> None:
+    """Evaluate one shell segment for per-segment sysadmin footguns."""
+    seg = segment.strip()
+    if not seg:
+        return
+
+    # Multiline input: a newline separates shell commands, but `_SEGMENT_SPLIT_RE`
+    # deliberately does NOT split on it (heredoc/quoted-multiline safety, #719). So a
+    # display command on line 1 would otherwise suppress a real footgun on line 2
+    # (`echo "x"\nufw disable`, codex round-9 bypass). Scan each NON-heredoc line
+    # independently. Heredoc bodies (`cmd <<EOF … EOF`) are skipped so their text is
+    # not misread as commands. Only recurse when there is a real extra command line.
+    if "\n" in seg:
+        for line in _non_heredoc_lines(seg):
+            if line.strip():
+                _check_sysadmin_segment(line)
+        return
+
+    # Drop a trailing unquoted shell comment: `true # ufw disable` ignores the
+    # footgun text, so scanning it produced a false positive (codex #724 round-1).
+    seg = _strip_unquoted_comment(seg)
+    if not seg.strip():
+        return
+
+    # A pure display/search command quoting a footgun string is data, not an
+    # invocation (`echo 'ufw disable'`, `grep -r 'curl x | sh' .`) → suppress.
+    if _DISPLAY_CMD_RE.match(seg.lstrip("'\"")):
+        return
+
+    # `git` segments: git cannot EXECUTE iptables/curl|sh/chmod/etc. — a footgun
+    # string in a `git commit -m "…"` message or any git argument is documentation,
+    # not an invocation (codex round-7 FPs). The ONLY git footgun is staging a
+    # secret file, handled by the token-walking _git_stages_secret below. So for a
+    # git command, check ONLY that and skip every generic footgun/warn pattern.
+    if _command_token(seg) == "git":
+        if _git_stages_secret(seg):
+            _block_sysadmin("commit-secret", _SYSADMIN_GIT_SECRET_MSG)
+        return
+
+    # Quoted-span exclusion: a footgun matched ENTIRELY inside a quoted argument is
+    # data, not an invocation (`sed -n '/ufw disable/p' README.md`, `awk '/curl|sh/'`,
+    # codex round-17 FP). A real command never has its verb inside quotes.
+    quoted = _quoted_spans_all(seg)
+
+    def _fires(pat: re.Pattern[str]) -> bool:
+        for m in pat.finditer(seg):
+            if not any(start <= m.start() < end for start, end in quoted):
+                return True
+        return False
+
+    # redis exposed unauthenticated (dedicated helper — see _redis_is_unsafe).
+    # `redis-server` must be the EXECUTED command, not free text in a quoted arg of
+    # an unrelated command (`gh pr edit --body "redis-server --bind 0.0.0.0 is bad"`,
+    # a recursed `python3 -c "print('redis-server …')"` payload) — that was the #724
+    # free-text FP. Two complementary anchors:
+    #   * `_fires(_REDIS_SERVER_CMD_RE)` — command-position match OUTSIDE quotes; also
+    #     catches a launcher form (`systemd-run redis-server …`, `sudo redis-server`).
+    #   * `_command_token(seg) == "redis-server"` — covers a quoted EXEC NAME
+    #     (`"redis-server" --bind …`, which bash still runs as redis-server; codex
+    #     #724 round-2 bypass). `_command_token` of `gh …`/`python3 -c …` is the
+    #     outer command, so this adds no FP.
+    # `_redis_is_unsafe` does its own quoted-span handling: a `--bind`/`--protected-
+    # mode` keyword buried in another flag's quoted value (`--logfile "--bind
+    # 0.0.0.0"`) is ignored (round-2 FP), while a real flag with a quoted VALUE
+    # (`--bind "0.0.0.0"`) still fires (round-3 footgun).
+    if (_fires(_REDIS_SERVER_CMD_RE) or _command_token(seg) == "redis-server") and _redis_is_unsafe(seg):
+        _block_sysadmin("redis-no-auth", _SYSADMIN_REDIS_MSG)
+
+    for pattern, category, message in _SYSADMIN_SEGMENT_BLOCK_PATTERNS:
+        if _fires(pattern):
+            _block_sysadmin(category, message)
+
+    # Recursive chown/chmod on bare `/`.
+    if _fires(_SYSADMIN_RECURSIVE_ROOT_RE):
+        _block_sysadmin("recursive-root", _SYSADMIN_RECURSIVE_ROOT_MSG)
+
+    # git add/commit staging a secret file (token-walked: a secret name inside a
+    # `-m "…"` message or other option value is data, not a staged path).
+    if _git_stages_secret(seg):
+        _block_sysadmin("commit-secret", _SYSADMIN_GIT_SECRET_MSG)
+
+    # chmod loosening permissions on a key/secret/auth file. Two tiers (round-13):
+    #   owner-only targets (keys/secrets/.env) → block ANY group/other access;
+    #   group-ok targets (/etc/shadow=640, /etc/sudoers=440, docker.sock) → block
+    #   only WORLD access. So `chmod 644 app.py`, `chmod 600 ~/.ssh/id_rsa`,
+    #   `chmod 640 /etc/shadow`, and `chmod 440 /etc/sudoers` are all allowed, while
+    #   `chmod 640 ~/.ssh/id_rsa` and `chmod o+r /etc/shadow` block.
+    # Every part of the rule must fire OUTSIDE quotes via `_fires` (the chmod verb,
+    # the secret-file target, AND the loosening mode). Otherwise the whole pattern
+    # free-text-matched inside a quoted argument of an unrelated command
+    # (`gh pr create --body "do not chmod 777 ~/.ssh/id_rsa"`, a `python3 -c
+    # "print('chmod 644 id_rsa.pem')"` payload) and blocked (#724 free-text FP).
+    # `_fires` also keeps real invocations — `chmod 644 server.key`,
+    # `sudo chmod o+r /etc/shadow`, `find . -exec chmod 777 id_rsa {} +` — because
+    # their verb/target/mode sit outside any quoted span.
+    if _fires(_CHMOD_VERB_RE) and (
+        (_fires(_SYSADMIN_OWNER_ONLY_TARGET_RE) and _fires(_SYSADMIN_CHMOD_LOOSEN_OWNER_RE))
+        or (_fires(_SYSADMIN_GROUP_OK_TARGET_RE) and _fires(_SYSADMIN_CHMOD_LOOSEN_WORLD_RE))
+    ):
+        _block_sysadmin("secret-chmod", _SYSADMIN_CHMOD_SECRET_MSG)
+
+    # WARN-only patterns: advise, do not deny.
+    for pattern, advice in _SYSADMIN_WARN_PATTERNS:
+        if _fires(pattern):
+            _warn(advice)
+
+
+def check_sysadmin_security(command: str) -> None:
+    """Block sysadmin footguns with educational fixes; warn on context-dependent ones.
+
+    Two layers:
+      * Whole-line BLOCK patterns for pipe-spanning shapes (curl|sh, reverse
+        shells) that `_SEGMENT_SPLIT_RE` would otherwise tear apart.
+      * Per-segment BLOCK/WARN patterns evaluated after segment-splitting and
+        display-command suppression (so `echo 'ufw disable'` is data, not action).
+
+    Every BLOCK message names the correct safe alternative. WARN messages advise
+    via stderr without denying. One shared bypass: SYSADMIN_GUARD_BYPASS=1.
+    Fail-open / exit-0 contract preserved (raised inside the gate's try/finally).
+    """
+    if os.environ.get(_SYSADMIN_GUARD_BYPASS_ENV) == "1":
+        return
+
+    # For the whole-line scans, drop heredoc BODY lines: their text is literal stdin
+    # data, not commands (`bash -lc "cat <<EOF … curl|sh … EOF"`, codex round-13 FP).
+    # Per-segment scanning does its own heredoc stripping; this covers the recursed
+    # `-c` payload path where the heredoc reaches the whole-line patterns. Also drop
+    # trailing unquoted shell comments per line so a commented footgun does not fire
+    # the whole-line pipe-to-shell / reverse-shell patterns (`true # curl … | sh`,
+    # codex #724 round-1 FP).
+    _scan_src_lines = _non_heredoc_lines(command) if "\n" in command else [command]
+    scan_line = "\n".join(_strip_unquoted_comment(ln) for ln in _scan_src_lines)
+
+    # A single `git …` command cannot EXECUTE a pipe-to-shell, reverse shell, or
+    # sudoers write — a footgun string in its commit message/args is documentation
+    # (codex round-7 FPs). It is "pure git" when the first token is `git` and every
+    # shell operator (`| ; & && ||`) on the line sits INSIDE a quoted span (e.g. a
+    # `-m "…|…"` message), so the line is one real command. A git chained to a real
+    # footgun has an UNQUOTED operator → not pure → the footgun segment is scanned.
+    # Multiline (`\n` = a command separator) is never "pure git": a later line may be
+    # a real footgun (`git status\ntee /etc/sudoers.d/x <<EOF…NOPASSWD:ALL…EOF`, codex
+    # round-20). Only a single-line git command with no unquoted `| ; &` is pure git.
+    line_is_pure_git = _command_token(command) == "git" and "\n" not in command and not _has_unquoted_shell_op(command)
+
+    # NOPASSWD:ALL → sudoers: checked unconditionally (NOT display-suppressed)
+    # because echo/printf/tee + redirect IS the write vector into the privileged
+    # file. The string is action here, not display.
+    # Scan the FULL command (incl. heredoc bodies): a heredoc piped to `tee
+    # /etc/sudoers.d/…` IS the write payload (`tee /etc/sudoers.d/dev <<EOF …
+    # NOPASSWD:ALL … EOF`, codex round-14) — the body is action here, not data.
+    if (
+        not line_is_pure_git
+        and _SYSADMIN_NOPASSWD_SUDOERS_RE.search(command)
+        and _SYSADMIN_SUDOERS_WRITE_RE.search(command)
+    ):
+        _block_sysadmin("nopasswd-all", _SYSADMIN_NOPASSWD_MSG)
+
+    # Whole-line shapes first (pipe-spanning). A leading display command suppresses
+    # the OUTER text (`echo 'curl x | sh'` is data), but a substitution body is a
+    # real invocation (`echo $(curl x | sh)`) and is evaluated independently — same
+    # treatment the public-server guard gives `$(...)` (codex bypass finding).
+    sq_spans = _single_quoted_spans(command)
+    for sub in _SUBSTITUTION_RE.finditer(command):
+        if any(start <= sub.start() < end for start, end in sq_spans):
+            continue  # `$(...)` inside single quotes is literal data
+        body = sub.group("dollar") or sub.group("back") or sub.group("proc") or ""
+        if body.strip():
+            check_sysadmin_security(body)
+
+    # Shell launcher (`bash -c '<payload>'`, `sh -lc '…'`) OR `su -c '<payload>'`:
+    # the real command is the `-c` payload — recurse into it so a footgun wrapped in
+    # a `-c` is still caught (`bash -lc 'curl … | sh'` round-5; `su -c 'ufw disable'`
+    # round-18). Evaluated on the UN-split command: the payload's own `|`/`;` live
+    # inside the quoted token, so segment-splitting first would tear it apart.
+    if _command_token(command) in _SHELL_LAUNCHERS or _command_token(command) == "su":
+        payload = _shell_c_payload(command)
+        if payload.strip() and payload.strip() != command.strip():
+            check_sysadmin_security(payload)
+
+    # Whole-line pipe-spanning patterns. A match that lies ENTIRELY inside a single-
+    # quoted span is literal data (`echo 'curl x | sh'`) and is suppressed; a match
+    # outside quotes is a real invocation (`cat <(curl …) | sh`, codex round-4
+    # finding) and blocks. Quote-span exclusion is more precise than a leading-
+    # display-command heuristic, which a reader-then-pipe shape (`cat <(…) | sh`)
+    # would have bypassed.
+    if not line_is_pure_git:
+        # Exclude matches inside ANY quoted span (single OR double): displayed/
+        # searched footgun text is data (`grep -R "curl … | sh" docs/`, codex
+        # round-8 FP). A real execution inside double quotes is a `$(...)`, already
+        # recursed above. Scan ALL matches so a quoted decoy does not mask a later
+        # real match (`echo 'curl x | sh' && curl … | sh`, round-5).
+        quoted = _quoted_spans_all(scan_line)
+        for pattern, category, message in _SYSADMIN_WHOLELINE_BLOCK_PATTERNS:
+            for m in pattern.finditer(scan_line):
+                if not any(start <= m.start() < end for start, end in quoted):
+                    _block_sysadmin(category, message)
+
+    for segment in _SEGMENT_SPLIT_RE.split(command):
+        _check_sysadmin_segment(segment)
+
+
+# ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
 
@@ -1209,6 +2125,7 @@ def main() -> None:
         check_git_submission(command)
         check_dangerous_command(command)
         check_public_dev_server(command)
+        check_sysadmin_security(command)
 
     elif tool == "Write":
         file_path = tool_input.get("file_path", "")
