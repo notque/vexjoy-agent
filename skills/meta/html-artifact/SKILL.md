@@ -358,6 +358,8 @@ See `references/pptx-export.md` for the full layout table, THEME dict, CLI refer
 | Request mentions scroll, reveal, animate on scroll, progressive | `references/scrollytelling-patterns.md` | IntersectionObserver scroll animations, stagger, counters, progress bar |
 | Request mentions PDF, export PDF, as PDF, PDF version | `references/pdf-export.md` | Phase 6 trigger conditions, page-size table, troubleshooting, install instructions |
 | Request mentions pptx, .pptx, powerpoint, editable deck, hand-off, corporate template | `references/pptx-export.md` | Phase 7 trigger conditions, layout types, THEME dict, CLI reference, failure modes |
+| Shape = `diagram` OR request contains "SVG", "architecture diagram", "flowchart", "sequence diagram" | `references/diagram-layering.md` | SVG layer order, masking rect technique, semantic color system for dark-theme diagrams |
+| Shape = `data-viz` OR request contains "infographic", "layout", "visualize data", "chart type" | `references/infographic-layouts.md` | 21 layout types with content-type pairings and 22 visual styles |
 
 ---
 
@@ -386,6 +388,8 @@ This skill uses:
 - `references/scrollytelling-patterns.md`: IntersectionObserver scroll animation patterns
 - `references/pdf-export.md`: Phase 6 EXPORT — trigger conditions, page-size table, print stylesheet inventory, troubleshooting
 - `references/pptx-export.md`: Phase 7 EXPORT-PPTX — trigger conditions, layout types, THEME dict, CLI reference, failure modes
+- `references/diagram-layering.md`: SVG layer order, masking rect technique, dark design system constants, semantic color palette
+- `references/infographic-layouts.md`: 21 layout types with structure and use guidance, 22 visual styles, content-type pairings
 - `scripts/detect-shape.py`: Deterministic shape classification from user request
 - `scripts/assemble-template.py`: Template assembly with theme, shape, and component CSS/JS injection
 - `scripts/validate-artifact.py`: HTML structure, self-containment, and rendered-CSS slop validation
