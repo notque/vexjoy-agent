@@ -45,6 +45,7 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 | example-driven tasks | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
 | tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
+| picking a page structure in Phase 1 | `macrostructure-catalog.md` | Load only the single chosen `macro:*` entry by its heading anchor (e.g. `#macrostat-led`), never the whole file — one entry carries every rule the build needs. |
 | tasks related to this reference | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |
 
 ## Instructions
@@ -69,13 +70,15 @@ See `references/vocabulary.md` for term definitions (Hero, Full-bleed, Narrative
 8. **Real content**: Gather the actual copy, real product name, real imagery, real product context. Placeholder text produces placeholder thinking. If final content is not yet available, secure at minimum the hero headline, product name, and the single promise you want the first viewport to convey.
 9. **Previous projects**: Any recent frontend work? Variety across projects is mandatory, so check for choices that would overlap with recent work and avoid them.
 
+**Step 1b: Pick one macrostructure** before any aesthetic direction. Choose a single `macro:*` page-structure id from `references/macrostructure-catalog.md` based on the purpose and content from Step 1 (e.g. `macro:stat-led`, `macro:long-document`, `macro:split-hero`). Load only the one entry you pick, addressed by its heading anchor — not the whole catalog. Structure chosen before color and type keeps every page from collapsing into the same hero-then-cards template. Record the chosen id; it becomes the `macrostructure` field in the spec output and feeds the variety check in Phase 6.
+
 **Step 2: Define 3-5 distinct aesthetic directions** using `references/color-inspirations.json` and `references/font-catalog.json` as starting points. Providing multiple directions prevents anchoring on a first instinct, which is the primary source of generic "AI slop" output. See `references/phase-details.md` for example directions (Neo-Brutalist Technical, Warm Artisan, Midnight Synthwave, Botanical Minimal, Arctic Technical).
 
 **Step 3: Output** `aesthetic_direction.json` with chosen direction(s) and contextual justification. Every direction must link back to project purpose, audience, and emotion -- context-driven justification is what separates distinctive design from arbitrary choices. See `references/implementation-examples.md` for template.
 
 **Step 4: Write the narrative brief**. Before any code or visual exploration, commit three sentences to the page: visual thesis, content plan, interaction thesis. See `references/phase-details.md` for the full definition with examples.
 
-**Gate**: Aesthetic direction is defined with contextual justification linking project purpose, audience, and emotion to the chosen direction. Narrative brief from Step 4 is written with visual thesis, content plan, and interaction thesis. Proceed only after both gate items pass.
+**Gate**: A single `macro:*` macrostructure id is chosen and recorded. Aesthetic direction is defined with contextual justification linking project purpose, audience, and emotion to the chosen direction. Narrative brief from Step 4 is written with visual thesis, content plan, and interaction thesis. Proceed only after all three gate items pass.
 
 **Skip-if-answered**: If the user's original request already provides the surface type, the product name, and a clear promise for the hero, treat those answers as already gathered. Ask only for missing context. The context-gathering questions exist to close gaps, not to gate every request on ceremony.
 
@@ -154,10 +157,15 @@ See `references/app-vs-landing-rules.md` for the full rule sets, app litmus test
 **Step 1: Run comprehensive validation**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py design-spec.json
+python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py \
+  --fonts "Display,Body" --palette palette.json --project NAME \
+  --macrostructure macro:CHOSEN-ID --animation --background \
+  --emitted-css generated.html
 ```
 
-**Step 2: Review** validation report. See `references/phase-details.md` for the full list of report checks (banned fonts, cliche colors, dominance ratio, motion count, hero composition, etc.).
+Pass `--macrostructure` so the variety check penalizes a structure matching the last two projects (mirrors the font/palette step-down). Pass `--emitted-css` once generated output exists (Phase 7) to scan the rendered CSS for slop. The slop scan reports warnings and does not fail the build yet; promote a rule to error in `css_slop_rules.py` to make it blocking.
+
+**Step 2: Review** validation report and the rendered-CSS slop scan. See `references/phase-details.md` for the full list of report checks (banned fonts, cliche colors, dominance ratio, motion count, hero composition, macrostructure variety, rendered-CSS slop rules, etc.).
 
 **Step 3: Address issues** -- if overall score < 80:
 1. Review each failed check in the report
@@ -170,6 +178,14 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py design-spec.json
 ### Phase 7: Design Specification Output
 
 **Goal**: Deliver a complete, implementable design specification. Only implement what was directly requested -- focus on distinctive aesthetics, not unnecessary abstractions or design system scaffolding unless the user explicitly asked for it.
+
+**Step 0: Emit the design stamp** as the first line of the generated CSS. The stamp is a one-line comment recording the build's structural and quality results so a later run can re-audit statelessly and the variety check can recover the macro id from output:
+
+```
+/* vexjoy-design: macro=<id> theme=<name> contrast=<pass|fail> nav=<id> footer=<id> mobile=<pass|fail> */
+```
+
+Fill each field from this build's decisions: `macro` is the Phase 1 id, `theme` the palette name, `contrast`/`mobile` the WCAG and responsive results, `nav`/`footer` the chosen patterns. The stamp is a claim, not proof — the Phase 6 slop scan (`css_slop_rules.py`) verifies the rendered CSS independently rather than trusting the stamp. See `references/phase-details.md` for the field reference.
 
 **Step 1: Generate CSS custom properties** (design tokens) covering typography, colors, spacing, shadows, and animation values. Reference `references/implementation-examples.md` for comprehensive token template.
 
@@ -210,6 +226,7 @@ These reference files contain the curated domain knowledge that drives design de
 - `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`: CSS tokens, base styles, framework templates, specification document templates
 - `${CLAUDE_SKILL_DIR}/references/project-history.json`: Aesthetic choices across projects (auto-generated by validation)
 - `${CLAUDE_SKILL_DIR}/references/vocabulary.md`: Term definitions used as hard rules across phases
+- `${CLAUDE_SKILL_DIR}/references/macrostructure-catalog.md`: Named `macro:*` page structures (skeleton + anti-cliche note per entry); pick one in Phase 1, load only the chosen entry by heading anchor
 - `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Detailed selection processes, validation blocks, easing/timing tables, hero composition rules, validation checks
 - `${CLAUDE_SKILL_DIR}/references/app-vs-landing-rules.md`: Full rule sets for landing vs app surface types
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Worked examples for new landing page and design audit
@@ -234,3 +251,4 @@ See `references/error-handling.md` for recovery procedures covering banned fonts
 - `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`
+- `${CLAUDE_SKILL_DIR}/references/macrostructure-catalog.md`

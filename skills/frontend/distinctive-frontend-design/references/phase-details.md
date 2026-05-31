@@ -165,3 +165,24 @@ The report checks:
 - Surface type classified as landing page or app, with matching rule set applied
 - For landing pages: hero reads as one composition, no cards in hero, full-bleed hero confirmed
 - For apps: Linear-style restraint applied, no decorative gradients or card mosaics
+- Macrostructure variety: chosen `macro:*` id differs from the last two projects (variety check step-down)
+- Rendered-CSS slop scan (when `--emitted-css` is passed): warnings reported for `transition-all`, `universal-hover-scale`, `gradient-text-headline`, `focus-ring-fade`, `emoji-feature-icon`, `two-line-cta`, `contrast-canary`
+
+### Phase 7: Design Stamp Field Reference
+
+The first line of generated CSS is a one-line stamp recording the build's results so a later run can re-audit statelessly and the variety check can recover the macro id from output:
+
+```
+/* vexjoy-design: macro=<id> theme=<name> contrast=<pass|fail> nav=<id> footer=<id> mobile=<pass|fail> */
+```
+
+| field | value |
+|---|---|
+| `macro` | the Phase 1 `macro:*` id |
+| `theme` | palette name from Phase 3 |
+| `contrast` | `pass` if text meets WCAG AA against its background, else `fail` |
+| `nav` | navigation pattern id used (e.g. `top-bar`, `sidebar`, `none`) |
+| `footer` | footer pattern id used (e.g. `slim`, `sitemap`, `none`) |
+| `mobile` | `pass` if the layout is verified responsive, else `fail` |
+
+The stamp is a claim, not proof. `scripts/css_slop_rules.py` re-scans the rendered CSS independently; the slop scan verifies the output rather than trusting the stamp text.
