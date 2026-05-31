@@ -30,6 +30,24 @@ git checkout -b <branch-name>
 
 Never commit on the default `worktree-agent-*` branch. Create your feature branch FIRST.
 
+If `git checkout -b <branch-name>` fails with "a branch named X already exists":
+
+```bash
+# Option A: the branch has no commits beyond main — safe to reset and reuse
+git branch -D <branch-name>
+git checkout -b <branch-name>
+
+# Option B: the branch is checked out in another active worktree — use a unique name
+git checkout -b <branch-name>-2   # or append timestamp: $(date +%s)
+```
+
+If `git checkout -b <branch-name>` fails with "X is already used by worktree at Y":
+
+```bash
+# Branch is live in another worktree — use a unique suffix
+git checkout -b <branch-name>-$(date +%s)
+```
+
 ## Rule 3: Use Worktree-Relative Paths
 
 Never hardcode absolute paths from the main repo. Use `$(git rev-parse --show-toplevel)/path`.
@@ -66,6 +84,26 @@ ruff format --check . --config pyproject.toml
 
 Running only `ruff check` misses formatting violations. The `Tests / lint` CI job runs both — if you skip `ruff format --check`, the PR will fail CI and cannot merge due to branch protection.
 
+## Rule 9: Run Preflight Check on Start
+
+Run the preflight script at the start of any worktree task to confirm clean state:
+
+```bash
+bash scripts/worktree-preflight.sh <intended-branch-name>
+```
+
+If it exits 1, fix the reported issue before proceeding.
+
+## Post-Merge Cleanup
+
+After a PR is merged, the dispatcher runs:
+
+```bash
+bash scripts/worktree-cleanup.sh --force
+```
+
+This prunes stale `.git/worktrees` entries and deletes zombie branches (harness-created branches with no active worktree that are already merged into main). Run manually when `git worktree list` shows stale locked entries.
+
 ## Failure Modes This Prevents
 
 | Failure | Rule | Without It |
@@ -76,3 +114,4 @@ Running only `ruff check` misses formatting violations. The `Tests / lint` CI jo
 | PR has changes from 2 ADRs | 5, 6 | Cross-contamination between agents |
 | Branch locked by worktree | 2 | Fatal error on checkout |
 | PR fails CI on format | 8 | Merge blocked; `ruff format --check` was skipped |
+| New task fails to create worktree | 9 | Branch name collision from prior stale run |
