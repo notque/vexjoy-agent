@@ -1323,7 +1323,7 @@ _SYSADMIN_WHOLELINE_BLOCK_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
         #   source <(curl …)       source/`.` of a downloaded script
         #   sh -c "$(curl …)"      the Homebrew-installer shape (codex round-11)
         re.compile(
-            r"(?:\b(?:curl|wget)\b[^|]*\|\s*(?:(?:/\S*/)?(?:sudo|env|command|exec|nohup|setsid)\s+(?:-\S+\s+|\w+=\S+\s+|[a-z][\w.-]*\s+(?=-|\w|/))*)*(?:/\S*/)?(?:ba|z|d|a|k)?sh\b)"
+            r"(?:\b(?:curl|wget)\b[^|]*\|\s*(?:(?:/\S*/)?(?:sudo|env|command|exec|nohup|setsid|time|nice|stdbuf|ionice|doas|timeout)\s+(?:-\S+\s+|\w+=\S+\s+|\d\S*\s+|[a-z][\w.-]*\s+(?=-|\w|/))*)*(?:/\S*/)?(?:ba|z|d|a|k)?sh\b)"
             r"|(?:(?:sudo|env|command|exec)\s+)*(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b|source\b|\.(?=\s))\s+(?:<\s*)?<\(\s*(?:curl|wget)\b"
             r"|(?:(?:/\S*/)?(?:ba|z|d|a|k)?sh\b[^|;&]*-c\b|\beval\b)[^|;&]*\$\(\s*(?:curl|wget)\b",
         ),
