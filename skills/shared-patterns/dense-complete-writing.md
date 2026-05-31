@@ -1,6 +1,6 @@
 # Dense-Complete Writing standard
 
-The toolkit's universal writing standard. Russell's five density rules plus a measured Completeness clause, applied to every LLM generation.
+The toolkit's universal writing standard. Russell's five density rules plus a measured Completeness clause. It is the structural guide for everything the toolkit does — every part of every agent, every thinking turn, every generation.
 
 ## Scope
 

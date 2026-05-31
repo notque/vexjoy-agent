@@ -164,7 +164,7 @@ Complex work decomposes into phases. Phases have gates. Gates prevent cascading 
 
 ## Density — The Dense-Complete Writing standard
 
-High fidelity, minimum words. The standard is Bertrand Russell's five prose rules ("How I Write"): shortest accurate word, cut words carrying no instruction, plain English, concrete over abstract, heavy qualifications in separate sentences. A sixth rule, Completeness, guards the floor: treat content as fixed and wording as negotiable — carry every required point through the draft, then choose the shortest plain words that say those points exactly. It governs every generation — output, plain text, the model's own thinking, skill and instruction files, code comments. Prefer tables and lists for structured content, paragraphs for reasoning.
+High fidelity, minimum words. The standard is Bertrand Russell's five prose rules ("How I Write"): shortest accurate word, cut words carrying no instruction, plain English, concrete over abstract, heavy qualifications in separate sentences. A sixth rule, Completeness, guards the floor: treat content as fixed and wording as negotiable — carry every required point through the draft, then choose the shortest plain words that say those points exactly. It is the structural guide for everything we do — every part of every agent, every thinking turn, every generation: output, plain text, the model's own thinking, skill and instruction files, code comments. Prefer tables and lists for structured content, paragraphs for reasoning.
 
 This is not minimalism, which drops information for aesthetics. Density keeps all information and drops everything else.
 

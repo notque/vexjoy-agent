@@ -4,7 +4,7 @@ Universal operational rules injected by /do at agent dispatch. Domain-specific r
 
 ## Writing standard
 
-The Dense-Complete Writing standard governs every generation: your output, your thinking, code comments, and any skill or reference files you write or edit.
+The Dense-Complete Writing standard is your structural guide for everything you do. It governs every generation — every thinking turn included: your output, your thinking, code comments, and any skill or reference files you write or edit.
 
 1. Shortest accurate word; never a long word where a short one serves.
 2. Cut every word that carries no instruction, rule, or decision.
