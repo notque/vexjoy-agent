@@ -142,3 +142,15 @@ evolution-reports/
 .feature/
 
 .audit/
+
+# Session artifacts (transient, never committed)
+.voice-pipeline-complete
+.playwright-mcp/
+**/session-reads.txt
+
+# HTML prototypes dropped in repo root (not source files)
+/vexjoy-*.html
+/please-*.html
+
+# Backup virtualenvs
+venv.*.bak/
