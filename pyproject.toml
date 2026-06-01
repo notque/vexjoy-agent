@@ -1,7 +1,7 @@
 [project]
 name = "vexjoy-agent"
 version = "1.0.0"
-description = "Agent-driven workflow system for Claude Code, Codex, and Gemini CLI"
+description = "Agent-driven workflow system for Claude Code, Codex, Gemini CLI, and Antigravity CLI"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]

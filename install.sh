@@ -39,6 +39,9 @@ CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
 CODEX_HOOKS_DIR="${CODEX_DIR}/hooks"
 CODEX_SCRIPTS_DIR="${CODEX_DIR}/scripts"
 GEMINI_DIR="${HOME}/.gemini"
+ANTIGRAVITY_DIR="${HOME}/.gemini/antigravity"
+ANTIGRAVITY_PLUGINS_DIR="${ANTIGRAVITY_DIR}/plugins"
+ANTIGRAVITY_PLUGIN_DIR="${ANTIGRAVITY_PLUGINS_DIR}/vexjoy-agent"
 GEMINI_SKILLS_DIR="${GEMINI_DIR}/skills"
 GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
 GEMINI_HOOKS_DIR="${GEMINI_DIR}/hooks"
@@ -472,6 +475,18 @@ os.rename(tmp, dst)
     # Users may have other Codex hook configurations we did not write.
 
     # Phase 3.7: Clean toolkit-owned Gemini skills mirror
+    echo ""
+    echo -e "${YELLOW}Cleaning Antigravity CLI Plugin...${NC}"
+    if [ -d "$ANTIGRAVITY_PLUGIN_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${ANTIGRAVITY_PLUGIN_DIR}${NC}"
+        else
+            rm -rf "$ANTIGRAVITY_PLUGIN_DIR"
+            echo -e "${GREEN}  ✓ Removed ${ANTIGRAVITY_PLUGIN_DIR}${NC}"
+        fi
+        REMOVED+=("Antigravity Plugin directory")
+    fi
+
     echo ""
     echo -e "${YELLOW}Cleaning Gemini skills mirror...${NC}"
     if [ -d "$GEMINI_SKILLS_DIR" ]; then
@@ -1442,6 +1457,101 @@ else
     echo -e "${YELLOW}  Warning: ${SCRIPT_DIR}/.claude/settings.json not found, skipping Factory hook sync${NC}"
 fi
 
+# Sync Antigravity CLI Plugin mirror
+echo ""
+echo -e "${YELLOW}Syncing VexJoy Agent to Antigravity CLI Plugin Space...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create plugin directory: ${ANTIGRAVITY_PLUGIN_DIR}${NC}"
+else
+    mkdir -p "${ANTIGRAVITY_PLUGIN_DIR}/skills"
+    mkdir -p "${ANTIGRAVITY_PLUGIN_DIR}/agents"
+    mkdir -p "${ANTIGRAVITY_PLUGIN_DIR}/hooks"
+fi
+
+# 1. Mirror plugin.json and hooks.json
+sync_mirror_entry "${SCRIPT_DIR}/plugins/vexjoy-agent/plugin.json" "${ANTIGRAVITY_PLUGIN_DIR}/plugin.json" "Antigravity"
+sync_mirror_entry "${SCRIPT_DIR}/plugins/vexjoy-agent/hooks.json" "${ANTIGRAVITY_PLUGIN_DIR}/hooks.json" "Antigravity"
+
+# 2. Mirror skills
+ANTIGRAVITY_ENTRY_COUNT=0
+for item in "${SCRIPT_DIR}/skills/"*; do
+    [ -e "$item" ] || continue
+    target="${ANTIGRAVITY_PLUGIN_DIR}/skills/$(basename "$item")"
+    sync_mirror_entry "$item" "$target" "Antigravity"
+    ANTIGRAVITY_ENTRY_COUNT=$((ANTIGRAVITY_ENTRY_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${ANTIGRAVITY_PLUGIN_DIR}/skills/voice-${voice_name}"
+        sync_mirror_entry "$skill_src" "$target" "Antigravity"
+        ANTIGRAVITY_ENTRY_COUNT=$((ANTIGRAVITY_ENTRY_COUNT + 1))
+    done
+fi
+
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    for item in "${SCRIPT_DIR}/private-skills/"*; do
+        [ -e "$item" ] || continue
+        target="${ANTIGRAVITY_PLUGIN_DIR}/skills/$(basename "$item")"
+        sync_mirror_entry "$item" "$target" "Antigravity"
+        ANTIGRAVITY_ENTRY_COUNT=$((ANTIGRAVITY_ENTRY_COUNT + 1))
+    done
+fi
+
+# 3. Mirror agents
+ANTIGRAVITY_AGENT_COUNT=0
+for item in "${SCRIPT_DIR}/agents/"*; do
+    [ -e "$item" ] || continue
+    target="${ANTIGRAVITY_PLUGIN_DIR}/agents/$(basename "$item")"
+    sync_mirror_entry "$item" "$target" "Antigravity"
+    ANTIGRAVITY_AGENT_COUNT=$((ANTIGRAVITY_AGENT_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+    for item in "${SCRIPT_DIR}/private-agents/"*; do
+        [ -e "$item" ] || continue
+        target="${ANTIGRAVITY_PLUGIN_DIR}/agents/$(basename "$item")"
+        sync_mirror_entry "$item" "$target" "Antigravity"
+        ANTIGRAVITY_AGENT_COUNT=$((ANTIGRAVITY_AGENT_COUNT + 1))
+    done
+fi
+
+# 4. Mirror hooks
+ANTIGRAVITY_HOOK_COUNT=0
+if [ -d "${SCRIPT_DIR}/hooks" ]; then
+    for item in "${SCRIPT_DIR}/hooks/"*; do
+        [ -e "$item" ] || continue
+        name=$(basename "$item")
+        case "$name" in
+            __pycache__|*.pyc|tests) continue;;
+        esac
+        target="${ANTIGRAVITY_PLUGIN_DIR}/hooks/${name}"
+        sync_mirror_entry "$item" "$target" "Antigravity"
+        ANTIGRAVITY_HOOK_COUNT=$((ANTIGRAVITY_HOOK_COUNT + 1))
+    done
+fi
+
+# Warn if installed Antigravity CLI is missing
+if command -v agy >/dev/null 2>&1; then
+    if agy_ver_raw=$(agy --version 2>&1); then
+        agy_ver=$(printf '%s' "$agy_ver_raw" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ -n "$agy_ver" ]; then
+            echo -e "${GREEN}  ✓ Antigravity CLI (${agy_ver}) detected. Plugin ready for activation.${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ Antigravity CLI detected but version string unparseable${NC}"
+        fi
+    else
+        echo -e "${YELLOW}  ⚠ Antigravity CLI installed but \`agy --version\` failed${NC}"
+    fi
+else
+    echo -e "${BLUE}  (agy CLI not installed; plugin will activate when Antigravity CLI is installed)${NC}"
+fi
+
+# Sync Gemini CLI hooks mirror (coexists with Antigravity plugin under ~/.gemini/)
 echo ""
 echo -e "${YELLOW}Syncing Gemini skills mirror...${NC}"
 GEMINI_ENTRY_COUNT=0
@@ -1492,14 +1602,12 @@ if [ -d "${SCRIPT_DIR}/private-agents" ]; then
     done
 fi
 
-# Sync Gemini hooks mirror
 echo ""
 echo -e "${YELLOW}Syncing Gemini hooks mirror...${NC}"
 GEMINI_HOOK_COUNT=0
 GEMINI_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/gemini-hooks-allowlist.txt"
 
 if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
-    # Ensure hooks directory exists
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would create: ${GEMINI_HOOKS_DIR}${NC}"
     else
@@ -1527,7 +1635,7 @@ if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
         GEMINI_HOOK_COUNT=$((GEMINI_HOOK_COUNT + 1))
     done < "$GEMINI_HOOKS_ALLOWLIST"
 
-    # Also mirror the hooks/lib directory so intra-hook imports resolve.
+    # Mirror hooks/lib so intra-hook imports resolve.
     if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
         lib_target="${GEMINI_HOOKS_DIR}/lib"
         sync_mirror_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target" "Gemini"
@@ -1565,6 +1673,13 @@ if [ -f "$GEMINI_HOOKS_ALLOWLIST" ]; then
     fi
 else
     echo -e "${YELLOW}  ⚠ Gemini hooks allowlist not found at ${GEMINI_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
+fi
+
+# Nudge consumer-tier Gemini CLI users toward Antigravity before the 2026-06-18 sunset.
+if command -v gemini >/dev/null 2>&1 && ! command -v agy >/dev/null 2>&1; then
+    echo -e "${YELLOW}  ⚠ Consumer Gemini CLI tiers (AI Pro/Ultra, free Code Assist) sunset 2026-06-18.${NC}"
+    echo -e "${YELLOW}    Install Antigravity CLI from https://antigravity.google/cli to continue past that date.${NC}"
+    echo -e "${BLUE}    Enterprise/paid-API tiers unaffected.${NC}"
 fi
 
 echo ""
@@ -2036,6 +2151,9 @@ echo "  • Gemini skills: ${GEMINI_ENTRY_COUNT} mirrored entries in ~/.gemini/s
 echo "  • Gemini agents: ${GEMINI_AGENT_COUNT} mirrored entries in ~/.gemini/agents"
 echo "  • Gemini hooks: ${GEMINI_HOOK_COUNT} mirrored entries in ~/.gemini/hooks"
 echo "  • Gemini scripts: ${GEMINI_SCRIPT_COUNT} mirrored scripts in ~/.gemini/scripts"
+echo "  • Antigravity plugin skills: ${ANTIGRAVITY_ENTRY_COUNT} entries in ${ANTIGRAVITY_PLUGIN_DIR}/skills"
+echo "  • Antigravity plugin agents: ${ANTIGRAVITY_AGENT_COUNT} entries in ${ANTIGRAVITY_PLUGIN_DIR}/agents"
+echo "  • Antigravity plugin hooks: ${ANTIGRAVITY_HOOK_COUNT} entries in ${ANTIGRAVITY_PLUGIN_DIR}/hooks"
 echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
 echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
