@@ -72,7 +72,7 @@ def test_single_session_start_no_matcher():
     hook = block["hooks"][0]
     assert hook["type"] == "command"
     assert "session-github-briefing.py" in hook["command"]
-    assert hook["timeout"] == 600
+    assert hook["timeout"] == 60000
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +333,7 @@ def test_cli_dry_run_produces_valid_json():
     session_hook = parsed["hooks"]["SessionStart"][0]["hooks"][0]
     assert session_hook["type"] == "command"
     assert "session-github-briefing.py" in session_hook["command"]
-    assert session_hook["timeout"] == 600
+    assert session_hook["timeout"] == 60000
 
 
 # ---------------------------------------------------------------------------
