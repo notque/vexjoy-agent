@@ -108,7 +108,7 @@ def test_install_sh_creates_codex_hooks_dir(fake_home: Path) -> None:
     assert hooks_dir.is_dir(), "~/.codex/hooks is not a directory"
 
     target_hook = hooks_dir / "session-github-briefing.py"
-    assert target_hook.exists(), f"session-github-briefing.py missing from hooks dir.\nSTDOUT:\n{result.stdout}"
+    assert target_hook.exists(), "session-github-briefing.py missing from hooks dir"
 
 
 def test_install_sh_mirrors_all_allowlisted_hooks(fake_home: Path) -> None:
@@ -186,7 +186,7 @@ def test_install_sh_generates_valid_hooks_json(fake_home: Path) -> None:
 
 @requires_tomllib
 def test_install_sh_sets_feature_flag(fake_home: Path) -> None:
-    """install.sh sets codex_hooks = true in ~/.codex/config.toml."""
+    """install.sh sets hooks = true in ~/.codex/config.toml."""
     result = _run_install(fake_home, ["--copy", "--force"])
     config_path = fake_home / ".codex" / "config.toml"
 
@@ -195,9 +195,10 @@ def test_install_sh_sets_feature_flag(fake_home: Path) -> None:
     with open(config_path, "rb") as fh:
         config = tomllib.load(fh)
 
-    assert "features" in config, f"[features] section missing from config.toml. Content:\n{config_path.read_text()}"
-    assert config["features"].get("codex_hooks") is True, (
-        f"codex_hooks != true in [features]. Got: {config['features']}"
+    assert "features" in config, "[features] section missing from config.toml"
+    assert config["features"].get("hooks") is True, f"hooks != true in [features]. Got: {config['features']}"
+    assert "codex_hooks" not in config["features"], (
+        f"deprecated codex_hooks should not be written. Got: {config['features']}"
     )
 
 
@@ -227,7 +228,7 @@ def test_install_sh_preserves_existing_config_toml_sections(fake_home: Path) -> 
     assert config["notice"].get("hide_rate_limit_model_nudge") is True
 
     assert "features" in config, f"[features] section not added. Full config: {config}"
-    assert config["features"].get("codex_hooks") is True
+    assert config["features"].get("hooks") is True
 
 
 def test_install_sh_dry_run_does_not_touch_filesystem(fake_home: Path) -> None:
@@ -285,8 +286,8 @@ def test_install_sh_uninstall_removes_hooks(fake_home: Path) -> None:
     if config_path.exists():
         with open(config_path, "rb") as fh:
             config = tomllib.load(fh)
-        assert config.get("features", {}).get("codex_hooks") is True, (
-            "Uninstall incorrectly removed codex_hooks = true from config.toml"
+        assert config.get("features", {}).get("hooks") is True, (
+            "Uninstall incorrectly removed hooks = true from config.toml"
         )
 
 

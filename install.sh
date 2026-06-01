@@ -468,7 +468,7 @@ os.rename(tmp, dst)
         echo "  No ~/.codex/hooks.json found. Nothing to archive."
     fi
 
-    # Note: [features] codex_hooks = true is intentionally left in config.toml.
+    # Note: [features] hooks = true is intentionally left in config.toml.
     # Users may have other Codex hook configurations we did not write.
 
     # Phase 3.7: Clean toolkit-owned Gemini skills mirror
@@ -872,7 +872,7 @@ os.rename(tmp, dst)
     echo "  • ~/.claude/settings.json (all keys except hooks)"
     echo "  • ~/.claude/projects/"
     echo "  • ~/.claude/memory/"
-    echo "  • ~/.codex/config.toml (including [features] codex_hooks flag)"
+    echo "  • ~/.codex/config.toml (including [features] hooks flag)"
     echo "  • ~/.gemini/settings.json (all keys except hooks)"
     echo "  • ~/.factory/config.toml (if present, like Codex)"
     echo "  • ~/.hermes/config.yaml (Hermes Agent configuration)"
@@ -1291,10 +1291,10 @@ if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
         fi
     fi
 
-    # Ensure codex_hooks feature flag is enabled in ~/.codex/config.toml.
+    # Ensure hooks feature flag is enabled in ~/.codex/config.toml.
     CODEX_CONFIG="${CODEX_DIR}/config.toml"
     if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] codex_hooks = true${NC}"
+        echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] hooks = true${NC}"
     else
         if $PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
             --config "$CODEX_CONFIG" 2>&1; then

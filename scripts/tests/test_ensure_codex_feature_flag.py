@@ -1,8 +1,9 @@
 """Tests for scripts/ensure-codex-feature-flag.py.
 
 Covers: missing file, empty file, no [features] section, [features] without
-key, already present, codex_hooks = false error, idempotency, section
-preservation, --dry-run, backup creation, and CLI end-to-end via subprocess.
+key, already present, hooks = false error, deprecated codex_hooks migration,
+idempotency, section preservation, --dry-run, backup creation, and CLI
+end-to-end via subprocess.
 """
 
 import importlib.util
@@ -73,21 +74,42 @@ class TestNeedsUpdate:
         assert action == "added-section"
 
     def test_features_section_without_key_returns_added_key(self) -> None:
-        """[features] section lacking codex_hooks maps to added-key."""
+        """[features] section lacking hooks maps to added-key."""
         content = "[features]\nother_flag = true\n"
         write_needed, action = needs_update(content)
         assert write_needed is True
         assert action == "added-key"
 
-    def test_codex_hooks_true_returns_already_present(self) -> None:
-        """codex_hooks = true means no write is needed."""
-        content = "[features]\ncodex_hooks = true\n"
+    def test_hooks_true_returns_already_present(self) -> None:
+        """hooks = true means no write is needed."""
+        content = "[features]\nhooks = true\n"
         write_needed, action = needs_update(content)
         assert write_needed is False
         assert action == "already-present"
 
-    def test_codex_hooks_false_exits_2(self) -> None:
-        """codex_hooks = false must exit with code 2."""
+    def test_hooks_false_exits_2(self) -> None:
+        """hooks = false must exit with code 2."""
+        content = "[features]\nhooks = false\n"
+        with pytest.raises(SystemExit) as exc_info:
+            needs_update(content)
+        assert exc_info.value.code == 2
+
+    def test_both_keys_returns_migrated(self) -> None:
+        """hooks = true alongside deprecated codex_hooks maps to migrated."""
+        content = "[features]\ncodex_hooks = true\nhooks = true\n"
+        write_needed, action = needs_update(content)
+        assert write_needed is True
+        assert action == "migrated"
+
+    def test_only_deprecated_key_returns_added_key(self) -> None:
+        """Deprecated codex_hooks alone (no hooks) maps to added-key."""
+        content = "[features]\ncodex_hooks = true\n"
+        write_needed, action = needs_update(content)
+        assert write_needed is True
+        assert action == "added-key"
+
+    def test_deprecated_key_false_exits_2(self) -> None:
+        """Deprecated codex_hooks = false (no hooks) must exit with code 2."""
         content = "[features]\ncodex_hooks = false\n"
         with pytest.raises(SystemExit) as exc_info:
             needs_update(content)
@@ -106,9 +128,9 @@ class TestApplyUpdate:
     def test_missing_file_produces_features_block(self) -> None:
         """Empty string yields a valid [features] block."""
         result = apply_update("")
-        assert "[features]\ncodex_hooks = true\n" in result
+        assert "[features]\nhooks = true\n" in result
         parsed = tomllib.loads(result)
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
     @requires_tomllib
     def test_no_features_section_appends_block(self) -> None:
@@ -116,25 +138,47 @@ class TestApplyUpdate:
         original = "[notice]\nhide_rate_limit_model_nudge = true\n"
         result = apply_update(original)
         assert original in result
-        assert "[features]\ncodex_hooks = true\n" in result
+        assert "[features]\nhooks = true\n" in result
         parsed = tomllib.loads(result)
         assert parsed["notice"]["hide_rate_limit_model_nudge"] is True
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
     @requires_tomllib
     def test_existing_features_adds_key_after_header(self) -> None:
-        """codex_hooks is injected directly after the [features] header line."""
+        """hooks is injected directly after the [features] header line."""
         original = "[features]\nother_flag = true\n"
         result = apply_update(original)
         parsed = tomllib.loads(result)
         assert parsed["features"]["other_flag"] is True
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
     def test_already_present_returns_identical_content(self) -> None:
         """Content that already has the flag is returned unchanged."""
-        original = "[features]\ncodex_hooks = true\n"
+        original = "[features]\nhooks = true\n"
         result = apply_update(original)
         assert result == original
+
+    @requires_tomllib
+    def test_both_keys_strips_deprecated_keeps_hooks(self) -> None:
+        """A config with both keys drops codex_hooks and keeps hooks = true."""
+        original = "[features]\ncodex_hooks = true\nhooks = true\nterminal_resize_reflow = true\n"
+        result = apply_update(original)
+        assert "codex_hooks" not in result
+        assert "hooks = true" in result
+        parsed = tomllib.loads(result)
+        assert parsed["features"]["hooks"] is True
+        assert parsed["features"]["terminal_resize_reflow"] is True
+        assert "codex_hooks" not in parsed["features"]
+
+    @requires_tomllib
+    def test_only_deprecated_key_migrates_to_hooks(self) -> None:
+        """A config with only codex_hooks is migrated to hooks = true."""
+        original = "[features]\ncodex_hooks = true\n"
+        result = apply_update(original)
+        assert "codex_hooks" not in result
+        parsed = tomllib.loads(result)
+        assert parsed["features"]["hooks"] is True
+        assert "codex_hooks" not in parsed["features"]
 
     @requires_tomllib
     def test_idempotent_second_call_is_noop(self) -> None:
@@ -152,7 +196,7 @@ class TestApplyUpdate:
         assert parsed["projects"]["/home/feedgen/vexjoy-agent"]["trust_level"] == "trusted"
         assert parsed["plugins"]["github@openai-curated"]["enabled"] is True
         assert parsed["notice"]["hide_rate_limit_model_nudge"] is True
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +245,7 @@ class TestCLI:
         assert result.stdout.strip() == "created-file"
         assert cfg.exists()
         parsed = tomllib.loads(cfg.read_text())
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
     @requires_tomllib
     def test_empty_file_adds_section(self, tmp_path: Path) -> None:
@@ -212,7 +256,7 @@ class TestCLI:
         assert result.returncode == 0
         assert result.stdout.strip() == "added-section"
         parsed = tomllib.loads(cfg.read_text())
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
 
     @requires_tomllib
     def test_existing_features_without_key_adds_key(self, tmp_path: Path) -> None:
@@ -223,23 +267,36 @@ class TestCLI:
         assert result.returncode == 0
         assert result.stdout.strip() == "added-key"
         parsed = tomllib.loads(cfg.read_text())
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
         assert parsed["features"]["other_flag"] is True
+
+    @requires_tomllib
+    def test_both_keys_migrates_and_reports_migrated(self, tmp_path: Path) -> None:
+        """A config with both keys is migrated; stdout reports migrated."""
+        cfg = tmp_path / "config.toml"
+        cfg.write_text("[features]\ncodex_hooks = true\nhooks = true\n", encoding="utf-8")
+        result = _run(["--config", str(cfg), "--no-backup"])
+        assert result.returncode == 0
+        assert result.stdout.strip() == "migrated"
+        text = cfg.read_text()
+        assert "codex_hooks" not in text
+        parsed = tomllib.loads(text)
+        assert parsed["features"]["hooks"] is True
 
     def test_already_present_is_noop(self, tmp_path: Path) -> None:
         """Pre-existing flag produces no file change and reports already-present."""
         cfg = tmp_path / "config.toml"
-        original = "[features]\ncodex_hooks = true\n"
+        original = "[features]\nhooks = true\n"
         cfg.write_text(original, encoding="utf-8")
         result = _run(["--config", str(cfg), "--no-backup"])
         assert result.returncode == 0
         assert result.stdout.strip() == "already-present"
         assert cfg.read_text() == original
 
-    def test_codex_hooks_false_exits_2(self, tmp_path: Path) -> None:
-        """codex_hooks = false causes exit code 2 with stderr guidance."""
+    def test_hooks_false_exits_2(self, tmp_path: Path) -> None:
+        """hooks = false causes exit code 2 with stderr guidance."""
         cfg = tmp_path / "config.toml"
-        cfg.write_text("[features]\ncodex_hooks = false\n", encoding="utf-8")
+        cfg.write_text("[features]\nhooks = false\n", encoding="utf-8")
         result = _run(["--config", str(cfg), "--no-backup"])
         assert result.returncode == 2
         assert "manually" in result.stderr.lower() or "manual" in result.stderr.lower()
@@ -254,7 +311,7 @@ class TestCLI:
         # File must be untouched.
         assert cfg.read_text() == original
         # Printed content must contain the flag.
-        assert "codex_hooks = true" in result.stdout
+        assert "hooks = true" in result.stdout
 
     def test_backup_is_created(self, tmp_path: Path) -> None:
         """A .bak timestamped file is created from the original before writing."""
@@ -278,4 +335,4 @@ class TestCLI:
         assert parsed["projects"]["/home/feedgen/road-to-aew"]["trust_level"] == "trusted"
         assert parsed["plugins"]["github@openai-curated"]["enabled"] is True
         assert parsed["notice"]["hide_rate_limit_model_nudge"] is True
-        assert parsed["features"]["codex_hooks"] is True
+        assert parsed["features"]["hooks"] is True
