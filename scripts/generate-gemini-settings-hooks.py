@@ -65,6 +65,11 @@ EVENT_ORDER = [
 
 ALL_KNOWN_EVENTS = set(EVENT_ORDER)
 
+# Per-hook timeout in milliseconds. Gemini reads this field as ms (its
+# DEFAULT_HOOK_TIMEOUT is 60000); Claude Code reads it as seconds. The old
+# value of 600 meant 600 ms to Gemini, which killed slow cold-start hooks.
+HOOK_TIMEOUT_MS = 60000
+
 
 def parse_allowlist(text: str) -> list[dict]:
     """Parse allowlist text into a list of entry dicts.
@@ -168,7 +173,7 @@ def build_hooks_json(entries: list[dict], gemini_hooks_dir: str | None = None) -
                 {
                     "type": "command",
                     "command": f'python3 "{gemini_hooks_dir}/{fname}"',
-                    "timeout": 600,
+                    "timeout": HOOK_TIMEOUT_MS,
                 }
                 for fname in filenames
             ]
