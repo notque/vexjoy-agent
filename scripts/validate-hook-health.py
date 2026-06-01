@@ -705,6 +705,77 @@ def check_matcher_liveness() -> list[str]:
     return msgs
 
 
+_AGY_PLUGIN_DIR = Path("$HOME/.gemini/antigravity/plugins/vexjoy-agent")
+_AGY_KNOWN_EVENTS = {"PreToolUse", "PostToolUse", "Stop", "UserPromptSubmit"}
+_AGY_CMD_RE = re.compile(r'^python3\s+"\$HOME/\.gemini/antigravity/plugins/vexjoy-agent/hooks/([A-Za-z0-9._-]+\.py)"$')
+
+
+def _check_antigravity_plugin() -> tuple[int, list[str]]:
+    """Validate ~/.gemini/antigravity/plugins/vexjoy-agent/hooks.json.
+
+    Checks: top-level keys are in _AGY_KNOWN_EVENTS; each entry has
+    type == "command", a $HOME-based command (no literal "~"), positive int
+    timeout, and the referenced .py file exists. Returns (passed, failed).
+    Returns (0, []) when the plugin dir is absent (skip silently).
+    """
+    import os
+
+    plugin_root = Path(os.path.expandvars(str(_AGY_PLUGIN_DIR))).expanduser()
+    hooks_json = plugin_root / "hooks.json"
+    if not hooks_json.exists():
+        return 0, []
+    failed: list[str] = []
+    passed = 0
+    try:
+        data = json.loads(hooks_json.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        return 0, [f"AGY: cannot parse {hooks_json}: {e}"]
+    if not isinstance(data, dict):
+        return 0, [f"AGY: {hooks_json} top level is not an object."]
+    for event, groups in data.items():
+        if event not in _AGY_KNOWN_EVENTS:
+            failed.append(f"AGY: unknown event '{event}' (allowed: {sorted(_AGY_KNOWN_EVENTS)}).")
+            continue
+        if not isinstance(groups, list):
+            failed.append(f"AGY: {event} value is not a list.")
+            continue
+        for group in groups:
+            if not isinstance(group, dict):
+                failed.append(f"AGY: {event} group is not an object.")
+                continue
+            for entry in group.get("hooks", []):
+                if not isinstance(entry, dict):
+                    failed.append(f"AGY: {event} hook entry is not an object.")
+                    continue
+                if entry.get("type") != "command":
+                    failed.append(f"AGY: {event} entry type must be 'command', got {entry.get('type')!r}.")
+                    continue
+                cmd = entry.get("command", "")
+                if not isinstance(cmd, str) or not cmd:
+                    failed.append(f"AGY: {event} entry missing 'command' string.")
+                    continue
+                if "~/" in cmd or cmd.startswith("~"):
+                    failed.append(f"AGY: {event} command uses literal '~' (must use $HOME): {cmd!r}.")
+                    continue
+                timeout = entry.get("timeout")
+                if not isinstance(timeout, int) or timeout <= 0:
+                    failed.append(f"AGY: {event} timeout must be a positive int, got {timeout!r}.")
+                m = _AGY_CMD_RE.match(cmd)
+                if not m:
+                    failed.append(
+                        f"AGY: {event} command not in canonical form "
+                        f'python3 "$HOME/.gemini/antigravity/plugins/vexjoy-agent/hooks/<file>.py": {cmd!r}.'
+                    )
+                    continue
+                fname = m.group(1)
+                hook_path = plugin_root / "hooks" / fname
+                if not hook_path.exists():
+                    failed.append(f"AGY: {event} references {hook_path} but file does not exist.")
+                    continue
+                passed += 1
+    return passed, failed
+
+
 def check_liveness() -> list[str]:
     """Delegate to smoke-test-hooks.py --ci. Returns failure msgs if it exits nonzero."""
     smoke = REPO_ROOT / "scripts" / "smoke-test-hooks.py"
@@ -745,6 +816,15 @@ def main() -> int:
 
     with_liveness = args.ci or args.with_liveness
     failures = run_all(with_liveness=with_liveness)
+
+    # Antigravity plugin (best-effort; absent dir = skip).
+    agy_passed, agy_failed = _check_antigravity_plugin()
+    print(f"--- Antigravity plugin hooks (~/.gemini/antigravity/plugins/vexjoy-agent/hooks.json) ---")
+    if agy_passed == 0 and not agy_failed:
+        print("AGY: plugin dir not present — skipped.")
+    else:
+        print(f"AGY: {agy_passed} hook entries validated; {len(agy_failed)} failure(s).")
+    failures += agy_failed
 
     checks = [
         "schema",

@@ -39,8 +39,24 @@ class TestDetectCli:
 
     @staticmethod
     def _clean_env() -> dict[str, str]:
-        """Return env dict stripped of Gemini/Codex/_ vars."""
-        return {k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_")) and k != "_"}
+        """Return env dict stripped of Gemini/Codex/Antigravity/_ vars."""
+        return {
+            k: v for k, v in os.environ.items() if not k.startswith(("GEMINI_", "CODEX_", "ANTIGRAVITY_")) and k != "_"
+        }
+
+    def test_detects_agy_via_env(self):
+        """detect_cli returns 'agy' when ANTIGRAVITY_AGENT is set."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["ANTIGRAVITY_AGENT"] = "1"
+            assert detect_cli() == "agy"
+
+    def test_detects_agy_via_underscore_var(self):
+        """detect_cli returns 'agy' when _ contains 'agy'."""
+        env = self._clean_env()
+        with patch.dict(os.environ, env, clear=True):
+            os.environ["_"] = "/usr/local/bin/agy"
+            assert detect_cli() == "agy"
 
     def test_detects_gemini_via_gemini_cli_env(self):
         """detect_cli returns 'gemini' when GEMINI_CLI is set."""

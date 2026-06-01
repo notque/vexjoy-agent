@@ -459,14 +459,21 @@ def detect_cli() -> str:
     running Claude Code.
 
     Returns:
-        One of "gemini", "codex", "reasonix", or "claude".
+        One of "agy", "gemini", "codex", "reasonix", or "claude".
     """
     # Most specific: explicit CLI identification env var
+    if os.environ.get("ANTIGRAVITY_AGENT"):
+        return "agy"
     if os.environ.get("GEMINI_CLI"):
         return "gemini"
-    # Process-based: the _ var contains the invoking command path
+    # Process-based: the _ var contains the invoking command path.
+    # Match on basename to avoid false positives from parent paths
+    # like /Users/agy-fan/bin/gemini or /opt/gemini-tools/bin/agy.
     invocation = os.environ.get("_", "")
-    if "gemini" in invocation.lower():
+    invocation_basename = os.path.basename(invocation).lower()
+    if invocation_basename == "agy" or invocation_basename.startswith("agy-"):
+        return "agy"
+    if "gemini" in invocation_basename:
         return "gemini"
     if "codex" in invocation.lower():
         return "codex"
@@ -480,6 +487,44 @@ def detect_cli() -> str:
     if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
         return "codex"
     return "claude"
+
+
+def is_first_bootstrap_call_this_session() -> bool:
+    """Best-effort once-per-session gate for bootstrap hooks under Antigravity.
+
+    Antigravity (`agy`) has no SessionStart event, so bootstrap hooks (github
+    briefing, operator context, team config, rules-distill) ride on
+    UserPromptSubmit and would fire every prompt. We touch a PPID-keyed marker
+    in TMPDIR; the first call returns True, subsequent calls return False.
+
+    Other CLIs hit these hooks via SessionStart (which already fires once per
+    session), so callers should bypass this gate when ``detect_cli() != "agy"``.
+
+    On filesystem failure we return True (fire), preferring duplicate output
+    over silently dropping the bootstrap.
+    """
+    ppid = os.getppid()
+    tmpdir = Path(os.environ.get("TMPDIR", "/tmp"))
+    marker = tmpdir / f"vexjoy-session-bootstrap-{ppid}"
+    if marker.exists():
+        return False
+    try:
+        marker.touch()
+    except OSError:
+        return True
+    return True
+
+
+def should_run_bootstrap_hook() -> bool:
+    """True when a bootstrap hook should run THIS invocation.
+
+    Always True on Claude / Codex / Gemini CLI / Reasonix (their SessionStart
+    contract already fires once per session). On Antigravity, gated to the
+    first UserPromptSubmit per session via PPID touchfile.
+    """
+    if detect_cli() != "agy":
+        return True
+    return is_first_bootstrap_call_this_session()
 
 
 def normalize_input(data: dict[str, Any]) -> dict[str, Any]:

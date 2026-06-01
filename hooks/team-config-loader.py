@@ -23,6 +23,10 @@ import os
 import sys
 from pathlib import Path
 
+# Lib imports for once-per-session bootstrap gate.
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import should_run_bootstrap_hook
+
 DEBUG = os.environ.get("CLAUDE_HOOKS_DEBUG") == "1"
 
 
@@ -210,6 +214,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
+        if not should_run_bootstrap_hook():
+            sys.exit(0)
         main()
     except Exception as e:
         if DEBUG:
