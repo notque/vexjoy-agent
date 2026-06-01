@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Ensure ~/.codex/config.toml contains the codex_hooks feature flag.
+"""Ensure ~/.codex/config.toml contains the hooks feature flag.
 
-Performs a TOML-aware merge: adds [features] and codex_hooks = true if
-absent, while preserving all existing sections unchanged. Backs up the
-config before writing unless --no-backup is passed.
+Performs a TOML-aware merge: adds [features] and hooks = true if absent,
+while preserving all existing sections unchanged. Backs up the config
+before writing unless --no-backup is passed.
+
+Codex CLI renamed this flag from codex_hooks to hooks (codex_hooks now
+prints a deprecation warning). This script writes the new hooks key and
+removes any deprecated codex_hooks line it finds, migrating old configs.
 
 Exit codes:
   0  success (including already-present)
   1  unexpected error
-  2  codex_hooks = false detected; manual resolution required
+  2  hooks = false detected; manual resolution required
 """
 
 import argparse
@@ -18,7 +22,11 @@ from datetime import datetime
 from pathlib import Path
 
 _FEATURES_HEADER = "[features]"
-_KEY_PATTERN = re.compile(r"^\s*codex_hooks\s*=\s*(true|false)\s*$", re.MULTILINE)
+# Match the current key. ^\s*hooks does not match "codex_hooks" because that
+# line begins with "codex_", so the deprecated key is handled separately.
+_KEY_PATTERN = re.compile(r"^\s*hooks\s*=\s*(true|false)\s*$", re.MULTILINE)
+# Match the deprecated key so we can strip it during migration.
+_DEPRECATED_KEY_PATTERN = re.compile(r"^[ \t]*codex_hooks\s*=\s*(true|false)\s*$\n?", re.MULTILINE)
 _SECTION_PATTERN = re.compile(r"^\[features\]", re.MULTILINE)
 
 
@@ -59,7 +67,7 @@ def _classify_content(content: str, file_exists: bool) -> tuple[bool, str]:
         A tuple of (needs_write, action_tag).
 
     Raises:
-        SystemExit: With exit code 2 when codex_hooks = false is found.
+        SystemExit: With exit code 2 when hooks (or deprecated codex_hooks) is false.
     """
     if not file_exists:
         return True, "created-file"
@@ -78,25 +86,40 @@ def _analyse_content(content: str) -> tuple[bool, str]:
         A tuple of (needs_write, action_tag).
 
     Raises:
-        SystemExit: With exit code 2 when codex_hooks = false is found.
+        SystemExit: With exit code 2 when hooks (or deprecated codex_hooks) is false.
     """
-    match = _KEY_PATTERN.search(content)
-    if match:
-        value = match.group(1)
-        if value == "true":
-            return False, "already-present"
-        print(
-            "ERROR: codex_hooks = false found in config. "
-            "This appears to be a deliberate user setting. "
-            "Edit the file manually to set codex_hooks = true before re-running.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+    new_match = _KEY_PATTERN.search(content)
+    dep_match = _DEPRECATED_KEY_PATTERN.search(content)
+    has_deprecated = dep_match is not None
+
+    if new_match:
+        if new_match.group(1) == "false":
+            _exit_on_disabled()
+        # hooks = true. Still rewrite when a deprecated codex_hooks line is
+        # present so we can strip it and clear the deprecation warning.
+        if has_deprecated:
+            return True, "migrated"
+        return False, "already-present"
+
+    # No new key. A deprecated codex_hooks = false is a deliberate disable.
+    if dep_match and dep_match.group(1) == "false":
+        _exit_on_disabled()
 
     has_features_section = bool(_SECTION_PATTERN.search(content))
     if has_features_section:
         return True, "added-key"
     return True, "added-section"
+
+
+def _exit_on_disabled() -> None:
+    """Print guidance and exit 2 when the hooks flag is explicitly disabled."""
+    print(
+        "ERROR: hooks = false (or deprecated codex_hooks = false) found in config. "
+        "This appears to be a deliberate user setting. "
+        "Edit the file manually to set hooks = true before re-running.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 
 
 def needs_update(content: str) -> tuple[bool, str]:
@@ -112,39 +135,28 @@ def needs_update(content: str) -> tuple[bool, str]:
 
     Returns:
         A tuple of (needs_write, action_tag) where action_tag is one of:
-        'already-present', 'added-section', 'added-key', 'created-file'.
+        'already-present', 'added-section', 'added-key', 'created-file',
+        'migrated'.
 
     Raises:
-        SystemExit: With exit code 2 when codex_hooks = false is found.
+        SystemExit: With exit code 2 when hooks (or deprecated codex_hooks) is false.
     """
     if not content:
         return True, "created-file"
+    return _analyse_content(content)
 
-    match = _KEY_PATTERN.search(content)
-    if match:
-        value = match.group(1)
-        if value == "true":
-            return False, "already-present"
-        # value == "false": this is a conscious user choice
-        print(
-            "ERROR: codex_hooks = false found in config. "
-            "This appears to be a deliberate user setting. "
-            "Edit the file manually to set codex_hooks = true before re-running.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
 
-    has_features_section = bool(_SECTION_PATTERN.search(content))
-    if has_features_section:
-        return True, "added-key"
-    return True, "added-section"
+def _strip_deprecated(content: str) -> str:
+    """Remove any deprecated codex_hooks line from the content."""
+    return _DEPRECATED_KEY_PATTERN.sub("", content)
 
 
 def apply_update(content: str) -> str:
-    """Return the updated config content with codex_hooks = true set.
+    """Return the updated config content with hooks = true set.
 
-    Adds [features] if absent, or injects codex_hooks under the existing
-    [features] section. Does not modify any other section.
+    Adds [features] if absent, or injects hooks under the existing [features]
+    section. Removes any deprecated codex_hooks line. Does not modify any
+    other section.
 
     Args:
         content: The current file content (may be empty).
@@ -157,6 +169,10 @@ def apply_update(content: str) -> str:
     if action == "already-present":
         return content
 
+    if action == "migrated":
+        # hooks = true is already present; just drop the deprecated key.
+        return _strip_deprecated(content)
+
     if action in ("created-file", "added-section"):
         # Append a new [features] block. Ensure a trailing newline before it
         # when appending to non-empty content.
@@ -164,18 +180,19 @@ def apply_update(content: str) -> str:
             content += "\n"
         if content:
             content += "\n"
-        content += "[features]\ncodex_hooks = true\n"
+        content += "[features]\nhooks = true\n"
         return content
 
-    # action == "added-key": insert codex_hooks after the [features] header.
-    # Find the line index of [features] and insert after it.
+    # action == "added-key": strip any deprecated key, then insert hooks after
+    # the [features] header.
+    content = _strip_deprecated(content)
     lines = content.splitlines(keepends=True)
     result: list[str] = []
     injected = False
     for line in lines:
         result.append(line)
         if not injected and line.strip() == "[features]":
-            result.append("codex_hooks = true\n")
+            result.append("hooks = true\n")
             injected = True
     return "".join(result)
 
@@ -199,7 +216,7 @@ def _write_with_backup(path: Path, new_content: str, backup: bool) -> None:
 
 def main() -> None:
     """Parse arguments, determine required action, and update the config file."""
-    parser = argparse.ArgumentParser(description="Ensure ~/.codex/config.toml has the codex_hooks feature flag.")
+    parser = argparse.ArgumentParser(description="Ensure ~/.codex/config.toml has the hooks feature flag.")
     parser.add_argument(
         "--config",
         type=Path,
