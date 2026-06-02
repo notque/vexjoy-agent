@@ -39,6 +39,10 @@ _spec.loader.exec_module(dwc)
         # codex: home / hooks dir markers
         ({"CODEX_HOME": "/home/u/.codex"}, "codex"),
         ({"CODEX_HOOKS_DIR": "/x"}, "codex"),
+        # agy (Antigravity): explicit agent identifier — checked before gemini
+        ({"ANTIGRAVITY_AGENT": "1"}, "agy"),
+        # agy wins over a stray GEMINI_CLI (transitional env)
+        ({"ANTIGRAVITY_AGENT": "1", "GEMINI_CLI": "1"}, "agy"),
         # gemini: explicit CLI identifier
         ({"GEMINI_CLI": "1"}, "gemini"),
         # factory / droid
@@ -81,6 +85,7 @@ def test_claude_code_wins_over_other_markers():
     [
         ("claude-code", True),
         ("codex", False),
+        ("agy", False),
         ("gemini", False),
         ("factory", False),
         ("reasonix", False),

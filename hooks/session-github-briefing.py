@@ -17,7 +17,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, should_run_bootstrap_hook
 
 EVENT_NAME = "SessionStart"
 MAX_BRIEFING_AGE_HOURS = 24
@@ -168,6 +168,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
+        if not should_run_bootstrap_hook():
+            empty_output(EVENT_NAME).print_and_exit()
         main()
     except Exception as e:
         if os.environ.get("CLAUDE_HOOK_DEBUG"):
