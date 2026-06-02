@@ -174,6 +174,15 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
 4. Use the voice profile's modal register (teaching, casual, investigative, etc.) as appropriate
 5. Include code examples if technical — they must be complete and tested
 6. Target word count per user request or default 1200-2000 words
+7. Apply narrative structure guidance (these counter the most durable AI fingerprints — narrative patterns survive stylistic editing):
+   - Let evidence speak — present the facts, quotes, and moments that carry the meaning. Resist the pull to state the theme explicitly.
+   - Mix emotional registers: name feelings directly sometimes, use behavioral cues, alternate between sensation and plain statement.
+   - Weave secondary threads: a tangent, counter-example, or aside that returns to enrich the main point.
+   - Reference specifically: name the person, the event, the source. Generic authority ("many experts") reads as evasion.
+   - Vary intensity: build peaks and valleys in the piece. Flat escalation is a Claude fingerprint.
+   - Acknowledge the reader: address their likely experience, ask what they have noticed, speak to them.
+   - Vary temporal structure: call back to an earlier point, open with the conclusion and explain how you got there, break chronological order where it serves the piece.
+   - Close with action or open question — resist the pull to a tidy realization epilogue.
 
 **Gate**: Complete draft exists with front matter, body, and closing. Draft is in the target voice. Proceed.
 
