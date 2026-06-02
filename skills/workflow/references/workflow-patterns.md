@@ -34,7 +34,7 @@ Each maps to existing HAVE machinery. Load the linked file for mechanics.
 
 ## The 3 Failure Modes Workflows Fight
 
-These are agentic-execution failures (a single agent declaring victory wrong). They are NOT the universal output failures in `skills/shared-patterns/llm-domain-failure-modes-base.md` (hallucination, miscalibration, generic template) — contrast, do not re-add.
+These are agentic-execution failures (a single agent declaring victory wrong). They are NOT the universal output failures in `skills/shared-patterns/llm-domain-failure-modes-base.md` (hallucination, overconfidence, generic template) — contrast, do not re-add.
 
 | Failure mode | Symptom | Control + when to escalate |
 |---|---|---|
