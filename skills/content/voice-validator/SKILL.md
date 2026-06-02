@@ -69,6 +69,17 @@ Check all categories against the target voice's checklist. Standard categories i
 - **Emotion**: Does emotion handling match? (e.g., explicitly named emotions, venting/ranting, moralizing)
 - **Questions**: Do question patterns match? (e.g., open-ended brainstorming, vague curiosity)
 - **Metaphors**: Do metaphor patterns match? (e.g., journey/path, biological/growth, narrative/story)
+- **Narrative** (500+ words only; full 13-check rubric in `anti-ai-editor/references/narrative-patterns.md`):
+  - Evidence speaks for itself, or narrator over-explains the point?
+  - Emotional registers mixed (named feelings + behavioral cues + sensation)?
+  - Secondary threads present that enrich the main argument?
+  - Reader's experience acknowledged?
+  - Temporal structure varied (callbacks, non-linear points)?
+  - References specific (named people, works, sources)?
+  - Room for uncertainty and loose ends, or subject has every answer?
+  - Intensity varies (peaks and valleys), or flat throughout?
+  - Event types diverse, or every paragraph does the same thing?
+  - Ending carries forward motion, or defaults to tidy realization epilogue?
 
 **Step 2: Check pass conditions**
 
@@ -78,12 +89,13 @@ Verify the content matches the target voice's positive identity markers. Common 
 - Voice-specific patterns are present (thinking out loud, warmth, precision, etc.)
 - Could NOT be posted on LinkedIn without edits (for casual voices) — this heuristic catches ~80% of voice violations
 - Does NOT sound like AI wrote it
+- Narrative structure shows variety — secondary threads, temporal variation, forward-motion ending
 - Mode-specific patterns are present (casual modes: no preamble, no wrap-up; formal modes: structured flow)
 
 **Step 3: Document violations**
 
 For each violation, record:
-1. Category (tone, structure, sentence, language, emotion, question, metaphor)
+1. Category (tone, structure, sentence, language, emotion, question, metaphor, narrative)
 2. Quoted text from the content
 3. Specific fix recommendation
 
@@ -156,7 +168,7 @@ User says: "Validate this draft is in the right voice"
 
 Actions:
 1. Identify target voice from context, determine mode from content style (IDENTIFY TARGET)
-2. Run full 7-category negative prompt checklist, find 2 violations (SCAN)
+2. Run full 8-category checklist (Tone, Structure, Sentences, Language, Emotion, Questions, Metaphors, Narrative), find 2 violations (SCAN)
 3. Fix "I'm excited to share" (named emotion) and "This changes everything" (dramatic short sentence) (REVISE)
 4. Rescan revised content, confirm PASS (VERIFY)
 
