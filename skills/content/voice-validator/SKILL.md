@@ -69,7 +69,17 @@ Check all categories against the target voice's checklist. Standard categories i
 - **Emotion**: Does emotion handling match? (e.g., explicitly named emotions, venting/ranting, moralizing)
 - **Questions**: Do question patterns match? (e.g., open-ended brainstorming, vague curiosity)
 - **Metaphors**: Do metaphor patterns match? (e.g., journey/path, biological/growth, narrative/story)
-- **Narrative** (500+ words only): Does the piece let evidence speak, or does the narrator over-explain the point? Are emotional registers mixed (named feelings + behavioral cues + sensation)? Does the piece have secondary threads that enrich the main argument? Does the piece acknowledge the reader's experience or perspective? Is temporal structure varied (callbacks, non-linear points) where appropriate? Are references specific (named people, works, sources) rather than vague?
+- **Narrative** (500+ words only; full 13-check rubric in `anti-ai-editor/references/narrative-patterns.md`):
+  - Evidence speaks for itself, or narrator over-explains the point?
+  - Emotional registers mixed (named feelings + behavioral cues + sensation)?
+  - Secondary threads present that enrich the main argument?
+  - Reader's experience acknowledged?
+  - Temporal structure varied (callbacks, non-linear points)?
+  - References specific (named people, works, sources)?
+  - Room for uncertainty and loose ends, or subject has every answer?
+  - Intensity varies (peaks and valleys), or flat throughout?
+  - Event types diverse, or every paragraph does the same thing?
+  - Ending carries forward motion, or defaults to tidy realization epilogue?
 
 **Step 2: Check pass conditions**
 
@@ -79,7 +89,7 @@ Verify the content matches the target voice's positive identity markers. Common 
 - Voice-specific patterns are present (thinking out loud, warmth, precision, etc.)
 - Could NOT be posted on LinkedIn without edits (for casual voices) — this heuristic catches ~80% of voice violations
 - Does NOT sound like AI wrote it
-- Narrative structure shows variety -- secondary threads present, temporal structure varied, ending is action or open question rather than tidy realization
+- Narrative structure shows variety — secondary threads, temporal variation, forward-motion ending
 - Mode-specific patterns are present (casual modes: no preamble, no wrap-up; formal modes: structured flow)
 
 **Step 3: Document violations**
