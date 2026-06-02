@@ -86,6 +86,8 @@ Read and follow the repository CLAUDE.md first — its conventions affect agent 
 
 **Maximize skill/agent/pipeline usage.** If one exists, USE IT.
 
+**Named-pattern + escalation guide:** for which workflow pattern fits, the failure modes a workflow fights, and the "does this really need more compute?" cost gate, load `skills/workflow/references/workflow-patterns.md`.
+
 **Check for parallel patterns FIRST**: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/`; if present, run `feature-state.py status`). On 2+ independent items, dispatch all in parallel in one message.
 
 **Optional: Force Direct** — OFF by default; applies only on explicit request.
@@ -443,6 +445,8 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 **Step 4: Auto-Pipeline Fallback** (no match AND complexity >= Simple)
 
 Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent + verification-before-completion as safety net.
+
+**Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`.
 
 **Gate**: Agent invoked, results delivered. Learning capture runs automatically (see note below).
 
