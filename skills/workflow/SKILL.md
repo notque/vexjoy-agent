@@ -42,8 +42,10 @@ allowed-tools:
 
 # Workflow
 
-Umbrella skill for all structured multi-phase workflows (formerly pipelines/).
+Umbrella skill for all structured multi-phase workflows.
 Load the appropriate workflow reference based on the task.
+
+**Terminology:** "workflow" is the canonical term for these flows. "pipeline" is the retained legacy alias — kept for back-compat. Routing keys, `meta.name` exports, and `pipeline-index.json` keep their existing "pipeline" identifiers unchanged; do not rename them. Use "workflow" in new prose.
 
 ## Available Workflows
 
@@ -78,6 +80,9 @@ Load the appropriate workflow reference based on the task.
 | **Testing** | Pipeline retro | `references/pipeline-retro.md` |
 | **GitHub** | Profile rules extraction | `references/github-profile-rules.md` |
 | **Orchestration** | Task orchestration | `references/workflow-orchestrator.md` |
+| **Patterns** | Composable-pattern + failure-mode + cost-gate catalog | `references/workflow-patterns.md` |
+| **Patterns** | Tournament (pairwise-comparison) template | `references/tournament-workflow.md` |
+| **Patterns** | Quarantine (untrusted-source triage isolation) | `references/quarantine-pattern.md` |
 
 ## How to Use (MANDATORY)
 
@@ -125,3 +130,6 @@ If the task spans multiple workflows (e.g., research then write), load each refe
 | **Testing** | `pipeline-retro.md` | Pipeline retro |
 | **GitHub** | `github-profile-rules.md` | Profile rules extraction |
 | **Orchestration** | `workflow-orchestrator.md` | Task orchestration |
+| **Patterns / cost gate / failure modes** | `workflow-patterns.md` | Which named pattern + when to escalate + when NOT to use |
+| **Tournament** | `tournament-workflow.md` | Pairwise-comparison ranking template |
+| **Quarantine** | `quarantine-pattern.md` | Isolate untrusted-source readers from privileged actions |
