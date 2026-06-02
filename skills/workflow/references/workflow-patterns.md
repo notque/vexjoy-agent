@@ -30,7 +30,7 @@ Each maps to existing HAVE machinery. Load the linked file for mechanics.
 | Adversarial verification | Executor builds, fresh skeptic refutes the result | quality-loop PHASE 5 (intent-verify) + PHASE 7 (fresh-agent fix) |
 | Generate-and-filter | Over-generate candidates, a gate keeps survivors | voice-writer HOOK-GATE / VARIETY-GATE; `right-size-review.py` tiering |
 | Tournament | N agents attempt the SAME task; pairwise judges pick a winner per round | `tournament-workflow.md` |
-| Loop-until-done | Repeat until a hard completion test passes | `/goal` (hard completion) + `/loop` (interval); quality-loop PHASE 8 RETEST (max 3) |
+| Loop-until-done | Repeat until a hard completion test passes | quality-loop PHASE 8 RETEST (max 3) + verification-before-completion as the completion bar; `/loop` for interval re-run |
 
 ## The 3 Failure Modes Workflows Fight
 
@@ -42,10 +42,10 @@ These are agentic-execution failures (a single agent declaring victory wrong). T
 | Self-preferential bias | Agent reviews its own work, rates it good | quality-loop PHASE 7 fresh-agent (already covered); escalate when the builder is also the judge |
 | Goal drift | Output answers a nearby question, not the asked one | quality-loop PHASE 5 intent-verify (already covered); escalate when the diff diverges from request |
 
-## Repeatable Workflows: pair /goal + /loop
+## Repeatable Workflows: completion bar + /loop
 
-- `/goal` — hard completion test; the workflow runs until the goal is provably met, not until the agent feels done.
-- `/loop` — interval re-run (continuous triage, polling). Pair with `/goal` so each cycle has a completion bar.
+- Completion bar — quality-loop PHASE 8 RETEST + verification-before-completion: the workflow loops until the objective is provably met, not until the agent feels done. (Upstream Claude Code ships a `/goal` command for this; not wired in this toolkit — use the quality-loop gate.)
+- `/loop` — interval re-run (continuous triage, polling). Pair with the completion bar so each cycle has a provable stop test.
 
 ## Token-Budget Directive (optional)
 
