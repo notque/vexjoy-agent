@@ -8,7 +8,7 @@ AI agents skip steps.
 
 44 domain agents, 124 workflow skills, 82 hooks, 106 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
-Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Factory (`/do`).
+Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`).
 
 ## What It Looks Like
 
@@ -69,6 +69,7 @@ Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/
 | Claude Code | `/do` |
 | Codex | `$do` |
 | Gemini CLI | `/do` |
+| Antigravity (`agy`) | `/do` |
 | Factory | `/do` |
 | Reasonix | `/do` |
 
@@ -84,9 +85,17 @@ Mirrors agents, skills, and 6 allowlisted hooks into `~/.codex/`. Requires Codex
 </details>
 
 <details>
-<summary><b>Gemini CLI Support</b></summary>
+<summary><b>Gemini CLI / Antigravity CLI Support</b></summary>
 
 Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event names (`Stop` → `SessionEnd`, `PostToolUse` → `AfterTool`, `PreToolUse` → `BeforeTool`). Tool mapping: `Bash` → `run_shell_command`. Hook config merges into `~/.gemini/settings.json`.
+
+Antigravity (`agy`) is supported additively alongside Gemini CLI — the installer ships a plugin at `~/.gemini/antigravity/plugins/vexjoy-agent/` (manifest + `hooks.json`) and does not replace the Gemini CLI integration. Antigravity has no `SessionStart` event, so the four bootstrap hooks (github briefing, operator-context detector, team-config loader, rules-distill injector) ride on `UserPromptSubmit` and self-gate to once-per-session via a PPID touchfile. Other CLIs continue to hit those hooks via `SessionStart` and are unaffected.
+
+#### Gemini CLI sunset (consumer tiers, 2026-06-18)
+
+Per Google's [transition announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), Gemini CLI stops serving requests on **2026-06-18** for Google AI Pro / Ultra and free Gemini Code Assist for individuals. Unchanged past that date: Gemini Code Assist Standard / Enterprise, paid Gemini API keys, Gemini Enterprise Agent Platform.
+
+Consumer-tier users: install Antigravity CLI from <https://antigravity.google/cli> before 2026-06-18. The toolkit installs both targets; whichever CLI you actually use keeps working.
 
 </details>
 
