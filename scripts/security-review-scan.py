@@ -23,6 +23,19 @@ Custom rules (optional, additive — built-ins always run):
             "paths"?, "exclude_paths"?}]}. ReDoS-prone or invalid rules are skipped
     with a stderr warning. Capped at 50 rules.
 
+Suppression (two escape hatches so commits stop being gated on code you don't own):
+    1. Inline marker — a line containing ``nosec`` or ``security-review: ignore``
+       (also ``security_review ignore``) drops every finding on THAT line. For
+       deliberate, auditable, single-line exceptions in your own code.
+    2. Wholesale path ignore — drop a ``security-review-ignore`` file (no ext,
+       one path glob per line, ``#`` comments) in, lowest precedence first:
+         ~/.claude/security-review-ignore
+         <cwd>/.claude/security-review-ignore
+         <cwd>/.claude/security-review-ignore.local
+       Globs match repo-relative path AND basename (``core/*``, ``*/vendor/*``).
+       Intended for vendored / third-party code the repo owner does not maintain.
+    Both are additive and OFF by default — no file and no marker == prior behavior.
+
 Exit codes:
     0  No HIGH or CRITICAL findings
     1  At least one HIGH or CRITICAL finding
@@ -46,6 +59,19 @@ _PY_EXTS = (".py", ".pyi", ".ipynb")
 # Documentation/data files where prose mentioning eval/exec/etc. is not code.
 # yaml/yml are intentionally NOT skipped — the GitHub-Actions rule needs them.
 _DOC_EXTS = (".md", ".mdx", ".txt", ".rst", ".json")
+
+# Inline per-line suppression: a finding on a line containing one of these markers
+# is dropped. Mirrors bandit `# nosec` / semgrep `// nosemgrep`. Intended for
+# deliberate, auditable, single-line exceptions (e.g. a vetted vendored sink).
+# `nosec` must be a standalone token so it doesn't fire on unrelated identifiers.
+_INLINE_SUPPRESS_RE = re.compile(
+    r"(?:\bnosec\b|security[-_ ]?review\s*:?\s*ignore)", re.IGNORECASE
+)
+
+# Project/user file listing path globs to skip wholesale (one glob per line,
+# `#` comments, blank lines ignored). For vendored / third-party code we don't
+# own and shouldn't gate on. Discovered like the custom-patterns config.
+_IGNORE_FILE_STEM = "security-review-ignore"
 
 # Files we open and scan. A file is scannable if at least one rule's path_filter
 # accepts it; this set is the superset of every rule's accepted extensions so
@@ -661,6 +687,45 @@ def _glob_match(path: str, include: tuple[str, ...], exclude: tuple[str, ...]) -
     return True
 
 
+def _ignore_file_paths(cwd: str | None) -> list[str]:
+    """security-review-ignore file locations, lowest precedence first:
+    user (~/.claude) -> project (<cwd>/.claude) -> project-local. No extension."""
+    home = os.path.expanduser(os.path.join("~", ".claude", _IGNORE_FILE_STEM))
+    paths = [home]
+    if cwd:
+        paths.append(os.path.join(cwd, ".claude", _IGNORE_FILE_STEM))
+        paths.append(os.path.join(cwd, ".claude", _IGNORE_FILE_STEM + ".local"))
+    return paths
+
+
+def _load_ignore_globs(cwd: str | None) -> tuple[str, ...]:
+    """Load path globs from the security-review-ignore file(s). One glob per
+    line; blank lines and `#` comments ignored. Non-fatal on missing/unreadable.
+    These suppress ALL findings for matching paths — intended for vendored /
+    third-party code the repo owner does not maintain."""
+    globs: list[str] = []
+    for path in _ignore_file_paths(cwd):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                for raw in fh:
+                    line = raw.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    globs.append(line)
+        except OSError:
+            continue
+    return tuple(globs)
+
+
+def _path_ignored(path: str, globs: tuple[str, ...]) -> bool:
+    """True if `path` matches any ignore glob (full path or basename)."""
+    if not globs:
+        return False
+    norm = _norm_path(path)
+    base = os.path.basename(norm)
+    return any(fnmatch.fnmatch(norm, g) or fnmatch.fnmatch(base, g) for g in globs)
+
+
 def _load_custom_rules(cwd: str | None) -> list[dict]:
     """Load additive custom rules from security-patterns.{yaml,json}. Failures
     are non-fatal. Capped at PATTERN_MAX_RULES."""
@@ -758,6 +823,10 @@ def _scan_file(filepath: str, rules: list[dict]) -> list[dict]:
     lines = text.splitlines()
 
     for line_num, line in enumerate(lines, start=1):
+        # Inline per-line suppression (`# nosec`, `// security-review: ignore`).
+        # A deliberate, auditable, single-line exception — skip every rule here.
+        if _INLINE_SUPPRESS_RE.search(line):
+            continue
         for rule in applicable:
             if is_test and rule.get("skip_test", False):
                 continue
@@ -864,6 +933,7 @@ def main() -> int:
 
     rules = _build_rules()
     rules.extend(_load_custom_rules(os.getcwd()))
+    ignore_globs = _load_ignore_globs(os.getcwd())
 
     all_findings: list[dict] = []
     files_scanned = 0
@@ -878,6 +948,12 @@ def main() -> int:
             continue
 
         if _ext(str(path)) not in SUPPORTED_EXTENSIONS:
+            files_skipped += 1
+            continue
+
+        # Wholesale path ignore (security-review-ignore globs) — vendored /
+        # third-party code the repo owner doesn't maintain.
+        if _path_ignored(str(path), ignore_globs):
             files_skipped += 1
             continue
 
