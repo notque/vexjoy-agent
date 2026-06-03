@@ -1080,10 +1080,10 @@ detect_conflicts() {
                 _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
                 continue
             fi
-            # Count items in target not present in src
+            # Count items (files and dirs) in target not present in src
             count=0; items=""
-            for item in "$target"/*/; do
-                [ -e "$item" ] || continue
+            for item in "$target"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
                 name=$(basename "$item")
                 [ -e "$src/$name" ] || { count=$((count+1)); items="$items $name"; }
             done
@@ -1121,8 +1121,15 @@ install_component() {
     local source="${SCRIPT_DIR}/${name}"
     local target="${base_dir}/${target_name}"
 
-    # Per-item mode: skip targets flagged as conflicting or when CONFLICT_MODE=per-item
     local component_key="$base_dir/$target_name"
+
+    # Skip mode: leave conflicting locations untouched; install conflict-free ones normally.
+    if [ "$CONFLICT_MODE" = "skip" ] && [ "$MODE" = "symlink" ] && _conflict_has "$component_key"; then
+        echo -e "${YELLOW}  Skipping ${target} (kept existing — skip mode)${NC}"
+        return
+    fi
+
+    # Per-item mode: symlink each item (file or dir) individually; preserve external content.
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
        { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
         if [ "$DRY_RUN" = true ]; then
@@ -1130,8 +1137,8 @@ install_component() {
         else
             mkdir -p "$target"
             local item item_name
-            for item in "$source"/*/; do
-                [ -e "$item" ] || continue
+            for item in "$source"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
                 item_name=$(basename "$item")
                 if [ -e "$target/$item_name" ]; then
                     echo -e "${YELLOW}  WARNING: $target/$item_name already exists — skipping (kept existing)${NC}"
@@ -1195,15 +1202,15 @@ sync_mirror_entry() {
     local name
     name=$(basename "$source")
 
-    # Per-item mode: add-only symlink for each item; skip existing entries
+    # Per-item mode: add-only symlink for each item (file or dir); skip existing entries
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && [ -d "$source" ]; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
         else
             mkdir -p "$target"
             local item item_name
-            for item in "$source"/*/; do
-                [ -e "$item" ] || continue
+            for item in "$source"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
                 item_name=$(basename "$item")
                 if [ -e "$target/$item_name" ]; then
                     continue  # already present; skip silently
@@ -1254,6 +1261,11 @@ sync_codex_entry() {
 install_git_hook() {
     local hook=".git/hooks/post-merge"
     [ -d ".git" ] || return 0  # no-op outside a git repo clone
+    # Never clobber a pre-existing hook we did not write.
+    if [ -e "$hook" ] && ! grep -q "Written by vexjoy-agent" "$hook" 2>/dev/null; then
+        echo -e "${YELLOW}  Existing post-merge hook found — not overwriting: ${hook}${NC}"
+        return 0
+    fi
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would install post-merge hook: ${hook}${NC}"
         return 0
@@ -1271,7 +1283,8 @@ for runtime_dir in     "$HOME/.claude" "$HOME/.codex" "$HOME/.gemini"     "$HOME
     dst="$runtime_dir/$component"
     [ -d "$src" ] || continue
     [ -d "$dst" ] || continue  # only sync if component dir already installed
-    for item in "$src"/*/; do
+    for item in "$src"/*; do
+      [ -e "$item" ] || [ -L "$item" ] || continue
       name=$(basename "$item")
       [ -e "$dst/$name" ] && continue  # already present; skip
       ln -s "$item" "$dst/$name"
