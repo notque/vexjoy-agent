@@ -1043,11 +1043,32 @@ fi
 echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 
 # detect_conflicts — scans all runtime dirs × all component types.
-# Populates global associative array: conflicts[runtime/component]="description"
-declare -A conflicts
+# Populates parallel arrays conflict_keys[] and conflict_vals[] (bash 3.2 compatible).
+conflict_keys=()
+conflict_vals=()
+
+_conflict_set() {
+    conflict_keys+=("$1")
+    conflict_vals+=("$2")
+}
+
+_conflict_get() {
+    local _k _i
+    _k="$1"
+    for _i in "${!conflict_keys[@]}"; do
+        [ "${conflict_keys[$_i]}" = "$_k" ] && { printf '%s' "${conflict_vals[$_i]}"; return 0; }
+    done
+    return 1
+}
+
+_conflict_has() {
+    _conflict_get "$1" > /dev/null 2>&1
+}
+
 detect_conflicts() {
     local runtime_dir component target src count items item name
-    for runtime_dir in "$CLAUDE_DIR" "$CODEX_DIR" "$GEMINI_DIR"                        "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
+    for runtime_dir in "$CLAUDE_DIR" "$CODEX_DIR" "$GEMINI_DIR" \
+                       "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
         [ -d "$runtime_dir" ] || continue
         for component in agents skills hooks commands scripts; do
             target="$runtime_dir/$component"
@@ -1056,7 +1077,7 @@ detect_conflicts() {
             [ -d "$target" ] || [ -L "$target" ] || continue
             # Whole-dir symlink pointing elsewhere
             if [ -L "$target" ] && [ "$(readlink "$target")" != "$src" ]; then
-                conflicts["$runtime_dir/$component"]="symlink→$(readlink "$target")"
+                _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
                 continue
             fi
             # Count items in target not present in src
@@ -1067,7 +1088,7 @@ detect_conflicts() {
                 [ -e "$src/$name" ] || { count=$((count+1)); items="$items $name"; }
             done
             if [ "$count" -gt 0 ]; then
-                conflicts["$runtime_dir/$component"]="$count external:$items"
+                _conflict_set "$runtime_dir/$component" "$count external:$items"
             fi
         done
     done
@@ -1075,10 +1096,11 @@ detect_conflicts() {
 }
 
 print_conflict_table() {
+    local _i
     echo ""
     echo "Found existing content in the following locations:"
-    for key in "${!conflicts[@]}"; do
-        echo "  $key  (${conflicts[$key]})"
+    for _i in "${!conflict_keys[@]}"; do
+        echo "  ${conflict_keys[$_i]}  (${conflict_vals[$_i]})"
     done
     echo ""
     echo "Choose install mode for all conflicting locations:"
@@ -1101,7 +1123,8 @@ install_component() {
 
     # Per-item mode: skip targets flagged as conflicting or when CONFLICT_MODE=per-item
     local component_key="$base_dir/$target_name"
-    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] &&        { [ -n "${conflicts[$component_key]+_}" ] || [ -d "$target" ] || [ -L "$target" ]; }; then
+    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
+       { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
         else
@@ -1264,7 +1287,7 @@ HOOK
 # Scan for conflicts before first install_component call
 if [ "$MODE" = "symlink" ]; then
     detect_conflicts
-    if [ ${#conflicts[@]} -gt 0 ]; then
+    if [ ${#conflict_keys[@]} -gt 0 ]; then
         if [ "$DRY_RUN" = true ]; then
             print_conflict_table
             _default_mode="${CONFLICT_MODE:-per-item}"
