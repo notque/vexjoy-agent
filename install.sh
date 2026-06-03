@@ -69,6 +69,7 @@ echo ""
 MODE=""
 DRY_RUN=false
 FORCE=true  # Default to force — never prompt about existing directories
+CONFLICT_MODE=""  # per-item | replace | skip; set by --per-item/--sync or conflict prompt
 while [[ $# -gt 0 ]]; do
     case $1 in
         --symlink)
@@ -99,8 +100,18 @@ while [[ $# -gt 0 ]]; do
             FORCE=false  # Opt in to interactive prompts
             shift
             ;;
+        --per-item)
+            CONFLICT_MODE="per-item"
+            shift
+            ;;
+        --sync)
+            CONFLICT_MODE="per-item"
+            # --sync implies symlink mode when MODE is not yet set
+            [ -z "$MODE" ] && MODE="symlink"
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force]"
+            echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force|--per-item|--sync]"
             echo ""
             echo "Options:"
             echo "  --symlink    Create symlinks to this repo (recommended for development)"
@@ -110,6 +121,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --dry-run    Show what would happen without making changes"
             echo "  --force      Replace existing directories without prompting (default)"
             echo "  --no-force   Prompt before replacing existing directories"
+            echo "  --per-item   Symlink each item individually; preserve external content"
+            echo "  --sync       Alias for --per-item; implies --symlink mode default"
             echo ""
             echo "If no option provided, will prompt interactively."
             exit 0
@@ -1029,6 +1042,52 @@ else
 fi
 echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 
+# detect_conflicts — scans all runtime dirs × all component types.
+# Populates global associative array: conflicts[runtime/component]="description"
+declare -A conflicts
+detect_conflicts() {
+    local runtime_dir component target src count items item name
+    for runtime_dir in "$CLAUDE_DIR" "$CODEX_DIR" "$GEMINI_DIR"                        "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
+        [ -d "$runtime_dir" ] || continue
+        for component in agents skills hooks commands scripts; do
+            target="$runtime_dir/$component"
+            src="$SCRIPT_DIR/$component"
+            [ -d "$src" ] || continue
+            [ -d "$target" ] || [ -L "$target" ] || continue
+            # Whole-dir symlink pointing elsewhere
+            if [ -L "$target" ] && [ "$(readlink "$target")" != "$src" ]; then
+                conflicts["$runtime_dir/$component"]="symlink→$(readlink "$target")"
+                continue
+            fi
+            # Count items in target not present in src
+            count=0; items=""
+            for item in "$target"/*/; do
+                [ -e "$item" ] || continue
+                name=$(basename "$item")
+                [ -e "$src/$name" ] || { count=$((count+1)); items="$items $name"; }
+            done
+            if [ "$count" -gt 0 ]; then
+                conflicts["$runtime_dir/$component"]="$count external:$items"
+            fi
+        done
+    done
+    return 0
+}
+
+print_conflict_table() {
+    echo ""
+    echo "Found existing content in the following locations:"
+    for key in "${!conflicts[@]}"; do
+        echo "  $key  (${conflicts[$key]})"
+    done
+    echo ""
+    echo "Choose install mode for all conflicting locations:"
+    echo "  [1] per-item  — symlink each vexjoy item individually; preserve external content (recommended)"
+    echo "  [2] replace   — rm -rf and replace with whole-dir symlink (destroys external content)"
+    echo "  [3] skip      — leave conflicting locations unchanged; install only conflict-free locations"
+    echo ""
+}
+
 # Install components
 echo ""
 echo -e "${YELLOW}Installing components (mode: ${MODE})...${NC}"
@@ -1039,6 +1098,28 @@ install_component() {
     local target_name=${3:-$name}
     local source="${SCRIPT_DIR}/${name}"
     local target="${base_dir}/${target_name}"
+
+    # Per-item mode: skip targets flagged as conflicting or when CONFLICT_MODE=per-item
+    local component_key="$base_dir/$target_name"
+    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] &&        { [ -n "${conflicts[$component_key]+_}" ] || [ -d "$target" ] || [ -L "$target" ]; }; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+        else
+            mkdir -p "$target"
+            local item item_name
+            for item in "$source"/*/; do
+                [ -e "$item" ] || continue
+                item_name=$(basename "$item")
+                if [ -e "$target/$item_name" ]; then
+                    echo -e "${YELLOW}  WARNING: $target/$item_name already exists — skipping (kept existing)${NC}"
+                    continue
+                fi
+                ln -s "$item" "$target/$item_name"
+                echo -e "${GREEN}  ✓ Per-item linked ${item_name}${NC}"
+            done
+        fi
+        return
+    fi
 
     # Check if target exists
     if [ -e "$target" ] || [ -L "$target" ]; then
@@ -1091,6 +1172,26 @@ sync_mirror_entry() {
     local name
     name=$(basename "$source")
 
+    # Per-item mode: add-only symlink for each item; skip existing entries
+    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && [ -d "$source" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+        else
+            mkdir -p "$target"
+            local item item_name
+            for item in "$source"/*/; do
+                [ -e "$item" ] || continue
+                item_name=$(basename "$item")
+                if [ -e "$target/$item_name" ]; then
+                    continue  # already present; skip silently
+                fi
+                ln -s "$item" "$target/$item_name"
+                echo -e "${GREEN}  ✓ ${label} per-item linked ${item_name}${NC}"
+            done
+        fi
+        return
+    fi
+
     if [ -e "$target" ] || [ -L "$target" ]; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would replace ${label} entry: ${target}${NC}"
@@ -1124,6 +1225,65 @@ sync_mirror_entry() {
 sync_codex_entry() {
     sync_mirror_entry "$1" "$2" "Codex"
 }
+
+# install_git_hook — writes .git/hooks/post-merge to auto-sync new items after git pull.
+# Add-only, never removes, never overwrites existing entries.
+install_git_hook() {
+    local hook=".git/hooks/post-merge"
+    [ -d ".git" ] || return 0  # no-op outside a git repo clone
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would install post-merge hook: ${hook}${NC}"
+        return 0
+    fi
+    mkdir -p ".git/hooks"
+    cat > "$hook" << 'HOOK'
+#!/usr/bin/env bash
+# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.
+# Add-only: skips items already present; never removes or overwrites.
+REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+for runtime_dir in     "$HOME/.claude" "$HOME/.codex" "$HOME/.gemini"     "$HOME/.factory" "$HOME/.hermes" "$HOME/.reasonix"; do
+  [ -d "$runtime_dir" ] || continue
+  for component in agents skills hooks commands scripts; do
+    src="$REPO_DIR/$component"
+    dst="$runtime_dir/$component"
+    [ -d "$src" ] || continue
+    [ -d "$dst" ] || continue  # only sync if component dir already installed
+    for item in "$src"/*/; do
+      name=$(basename "$item")
+      [ -e "$dst/$name" ] && continue  # already present; skip
+      ln -s "$item" "$dst/$name"
+      echo "[vexjoy-agent] auto-synced: $dst/$name"
+    done
+  done
+done
+HOOK
+    chmod +x "$hook"
+    echo -e "${GREEN}  ✓ Installed post-merge hook: ${hook}${NC}"
+}
+
+# Scan for conflicts before first install_component call
+if [ "$MODE" = "symlink" ]; then
+    detect_conflicts
+    if [ ${#conflicts[@]} -gt 0 ]; then
+        if [ "$DRY_RUN" = true ]; then
+            print_conflict_table
+            _default_mode="${CONFLICT_MODE:-per-item}"
+            echo -e "${BLUE}  DRY RUN: Would prompt for conflict mode. Default would be: ${_default_mode}${NC}"
+            echo -e "${BLUE}  Would use mode: ${_default_mode}${NC}"
+            [ -z "$CONFLICT_MODE" ] && CONFLICT_MODE="per-item"
+        elif [ -z "$CONFLICT_MODE" ]; then
+            print_conflict_table
+            read -r -p "Choice [1/2/3, default=1]: " _ans
+            case "${_ans:-1}" in
+                1) CONFLICT_MODE="per-item" ;;
+                2) CONFLICT_MODE="replace"  ;;
+                3) CONFLICT_MODE="skip"     ;;
+                *) CONFLICT_MODE="per-item" ;;
+            esac
+            echo ""
+        fi
+    fi
+fi
 
 # Install main components
 for component in agents skills hooks commands scripts; do
@@ -1194,6 +1354,11 @@ if [ -d "${SCRIPT_DIR}/private-voices" ]; then
         fi
     done
 fi
+
+# Install git post-merge hook for automatic sync on git pull
+echo ""
+echo -e "${YELLOW}Installing post-merge git hook...${NC}"
+install_git_hook
 
 echo ""
 echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
