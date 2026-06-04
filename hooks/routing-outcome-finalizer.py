@@ -322,6 +322,16 @@ def main() -> None:
             reaction_failure = rejected if attributable else False
             failure = bool(item.get("errors")) or reaction_failure
             new_conf = apply_outcome(key, failure)
+            # T3: per-dispatch OUTCOME event (JSONL), append-only + failure-safe.
+            # Auxiliary instrumentation for replay; route_events swallows write
+            # errors so a logging failure never breaks finalization.
+            from route_events import record_outcome_event
+
+            record_outcome_event(
+                session=session_id,
+                key=key,
+                outcome="failure" if failure else "success",
+            )
             if debug:
                 outcome = "failure" if failure else "success"
                 if item.get("errors"):

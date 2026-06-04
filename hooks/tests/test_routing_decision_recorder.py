@@ -21,6 +21,7 @@ Run with: python3 -m pytest hooks/tests/test_routing_decision_recorder.py -v
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -529,6 +530,136 @@ class TestFinalizer:
             None,
         ]:
             assert f.is_rejection(p) is False, p
+
+
+# ---------------------------------------------------------------------------
+# T3 — per-dispatch route event log (JSONL)
+# ---------------------------------------------------------------------------
+
+EVENTS_NAME = "route-events.jsonl"
+
+
+def _read_events(db_env):
+    """Read every event line from the throwaway route-events.jsonl, or []."""
+    path = db_env["db_dir"] / EVENTS_NAME
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+class TestRouteEventLog:
+    """T3: the decision hook appends one DECISION event per recorded dispatch;
+    the finalizer appends one OUTCOME event per finalized dispatch. Append-only,
+    failure-safe — a write error must never break the hook."""
+
+    def test_decision_event_appended_on_record(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_evt1")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(skill="go-patterns", body="Refactor the parser.", session="evt-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        events = _read_events(db_env)
+        decisions = [e for e in events if e["type"] == "decision"]
+        assert len(decisions) == 1
+        d = decisions[0]
+        assert d["agent"] == "python-general-engineer"
+        assert d["skill"] == "go-patterns"
+        assert d["session"] == "evt-s1"
+        assert d["complexity"].lower() == "medium"
+        assert "request_snippet" in d and "health_at_decision" in d
+
+    def test_no_decision_event_when_marker_absent(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_evt2")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(marker=False, body="Review this PR.")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        assert _read_events(db_env) == []
+
+    def test_outcome_event_appended_on_finalize(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-fin")
+        ros.append_pending_outcome("evt-fin", key, errors=False)
+
+        f = _load(F_PATH, "fin_evt1")
+        ev = _prompt_event("looks good, merge it", session="evt-fin")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcomes = [e for e in _read_events(db_env) if e["type"] == "outcome"]
+        assert len(outcomes) == 1
+        assert outcomes[0]["key"] == key
+        assert outcomes[0]["outcome"] in {"success", "failure", "neutral"}
+        assert outcomes[0]["session"] == "evt-fin"
+
+    def test_outcome_event_records_failure(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-fail")
+        ros.append_pending_outcome("evt-fail", key, errors=True)
+
+        f = _load(F_PATH, "fin_evt_fail")
+        ev = _prompt_event("ok next", session="evt-fail")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcomes = [e for e in _read_events(db_env) if e["type"] == "outcome"]
+        assert outcomes and outcomes[0]["outcome"] == "failure"
+
+    def test_log_is_append_only_across_dispatches(self, db_env, monkeypatch):
+        # Two recorded dispatches => two decision lines, none overwritten.
+        a = _load(A_PATH, "rdr_evt_append")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for i, skill in enumerate(("go-patterns", "test-driven-development")):
+            ev = _agent_event(skill=skill, body=f"task {i}", session=f"append-{i}")
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+                a.main()
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert {d["skill"] for d in decisions} == {"go-patterns", "test-driven-development"}
+        assert len(decisions) == 2
+
+    def test_decision_event_write_error_does_not_break_hook(self, db_env, monkeypatch):
+        # A failing event append must NOT prevent the aggregate row being written
+        # and must NOT raise — the hook stays non-blocking.
+        a = _load(A_PATH, "rdr_evt_safe")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        import route_events
+
+        monkeypatch.setattr(
+            route_events,
+            "_append",
+            lambda *_a, **_k: (_ for _ in ()).throw(OSError("disk full")),
+        )
+        event = _agent_event(skill="go-patterns", session="evt-safe")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()  # must not raise
+        # Aggregate row still recorded despite the event-log failure.
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys
+
+    def test_malformed_events_dir_does_not_crash_recorder(self, db_env, monkeypatch):
+        # CLAUDE_LEARNING_DIR pointing at a non-creatable path => event append
+        # fails silently; the hook still exits 0 (subprocess end-to-end).
+        bad = db_env["db_dir"] / "notadir"
+        bad.write_text("i am a file, not a directory")
+        env = dict(os.environ)
+        env["CLAUDE_LEARNING_DIR"] = str(bad)  # base path is a file => mkdir fails
+        event = _agent_event(skill="go-patterns", session="evt-baddir")
+        p = subprocess.run(
+            [sys.executable, str(A_PATH)],
+            input=json.dumps(event),
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert p.returncode == 0
 
 
 # ---------------------------------------------------------------------------

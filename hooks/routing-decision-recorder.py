@@ -74,6 +74,10 @@ _DO_ROUTE_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
+# Optional complexity field on the same marker line, recorded into the T3 event
+# log for replay. Absent => "".
+_COMPLEXITY_RE = re.compile(r"\bcomplexity=([a-z0-9-]+)", re.IGNORECASE)
+
 # Right-sizing banner, e.g. "rightsizing: tier=2 files=8 packages=3 agents_dispatched=12"
 _RIGHTSIZING_RE = re.compile(
     r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)",
@@ -200,6 +204,22 @@ def main() -> None:
             tags=["routing", agent] + ([skill] if skill else []),
             source="hook:routing-decision-recorder",
             session_id=session_id or None,
+        )
+
+        # T3: per-dispatch DECISION event (JSONL), append-only + failure-safe.
+        # Auxiliary to the aggregate row above — never blocks; route_events
+        # swallows write errors so the hook stays non-blocking.
+        cm = _COMPLEXITY_RE.search(prompt)
+        complexity = cm.group(1) if cm else ""
+        from route_events import record_decision_event
+
+        record_decision_event(
+            session=session_id,
+            request_snippet=request_snippet,
+            agent=agent,
+            skill=skill,
+            complexity=complexity,
+            health_at_decision=None,  # populated by the gated Step-1.5 wiring (T6)
         )
 
         # (C) right-sizing feedback, parse-only.
