@@ -62,6 +62,18 @@ def _skill_of(token: str) -> str:
     return token.split(":", 1)[1] if ":" in token else token
 
 
+def _norm_skill(token: str) -> str:
+    """Skill name from a token, normalized for comparison: strip + casefold.
+
+    Defense-in-depth. Inputs are canonical in practice (manifest skill names and
+    route keys are lowercase, untrimmed), so this normalization should be a
+    no-op on real data — Codex rates operational reachability medium confidence.
+    It closes the bypass class where a noncanonical pick or flag (changed case
+    or surrounding whitespace) slips past the force-route exemption.
+    """
+    return _skill_of(token).strip().casefold()
+
+
 def _is_exempt(key: str, force_route_flags: Iterable[str]) -> bool:
     """True iff `key` is force-routed. Skill-name match is authoritative.
 
@@ -75,12 +87,17 @@ def _is_exempt(key: str, force_route_flags: Iterable[str]) -> bool:
     Hardened against attack C: a flag given as ``otheragent:security-review``
     no longer fails to protect a pick ``pickagent:security-review`` — both
     reduce to skill ``security-review`` and match.
+
+    Codex C2: the skill-name reduction is normalized (strip + casefold) on BOTH
+    sides, so a noncanonical pick/flag (case-changed or whitespace-padded)
+    cannot bypass the exemption. This is defense-in-depth; inputs are canonical
+    in practice (medium confidence on operational reachability).
     """
     flags = set(force_route_flags)
     if key in flags:
         return True
-    pick_skill = _skill_of(key)
-    return any(_skill_of(flag) == pick_skill for flag in flags)
+    pick_skill = _norm_skill(key)
+    return any(_norm_skill(flag) == pick_skill for flag in flags)
 
 
 def _health_score(entry: Mapping[str, object]) -> float:

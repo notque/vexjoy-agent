@@ -155,6 +155,88 @@ def test_force_route_pair_flag_different_agent_still_exempt() -> None:
     assert result["action"] == "keep"
 
 
+# --- force-route exemption: normalization (Codex C2 adversarial table) ------
+#
+# _is_exempt must normalize (strip + casefold) the skill-name reduction on both
+# sides. These cover Codex's proven bypasses: a noncanonical pick or flag must
+# still KEEP. The empty-flags control must still DEMOTE (proves the floor logic
+# is reachable and the exemption is not silently swallowing every case).
+
+
+def _floor_pick_and_weights(pick_key: str) -> tuple[dict[str, object], dict[str, object]]:
+    """A floor-demotable pick plus a healthier alternate, for exemption tests."""
+    pick = {"key": pick_key, "confidence": 0.5}
+    weights = {
+        pick_key: _w(0.05, 20, 1, 18),
+        "agent-good:skill-good": _w(0.99, 50, 50, 0),
+    }
+    return pick, weights
+
+
+def test_exempt_case_changed_pick() -> None:
+    """Case-changed pick (Security-Review) vs canonical flag still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:Security-Review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"security-review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:Security-Review"
+
+
+def test_exempt_case_changed_flag() -> None:
+    """Case-changed flag (Security-Review) vs canonical pick still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"Security-Review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:security-review"
+
+
+def test_exempt_whitespace_pick() -> None:
+    """Trailing-whitespace pick skill still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:security-review ")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"security-review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:security-review "
+
+
+def test_exempt_whitespace_flag() -> None:
+    """Surrounding-whitespace flag still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {" security-review "})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:security-review"
+
+
+def test_exempt_agent_mismatch_full_pair_flag() -> None:
+    """Full-pair flag with a different agent but same skill still KEEPS."""
+    pick, weights = _floor_pick_and_weights("pick-agent:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"other-agent:security-review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "pick-agent:security-review"
+
+
+def test_exempt_bare_skill_flag() -> None:
+    """Bare skill-name flag (manifest form) still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"security-review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:security-review"
+
+
+def test_exempt_exact_full_pair() -> None:
+    """Exact full-pair flag matching the pick verbatim still KEEPS."""
+    pick, weights = _floor_pick_and_weights("direct:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"direct:security-review"})
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "direct:security-review"
+
+
+def test_exempt_control_empty_flags_demotes() -> None:
+    """Control: with NO flags, the same floor pick DEMOTES (exemption is real)."""
+    pick, weights = _floor_pick_and_weights("direct:security-review")
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, set())
+    assert result["action"] == "demote"
+    assert result["final_pick"] == "agent-good:skill-good"
+
+
 # --- comparative health ----------------------------------------------------
 
 
