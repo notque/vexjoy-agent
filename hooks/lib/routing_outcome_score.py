@@ -95,6 +95,9 @@ def apply_outcome(key: str, outcome: str) -> float:
     A bare ``True``/``False`` is still accepted for back-compat (True=>failure,
     False=>success) but callers should pass an explicit outcome string.
 
+    Any other string raises ``ValueError`` — an unrecognized outcome (e.g. a
+    typo) must surface as a bug, never silently boost confidence.
+
     Caller MUST gate on decision_row_exists(key) first.
     """
     from learning_db_v2 import boost_confidence, decay_confidence
@@ -109,4 +112,9 @@ def apply_outcome(key: str, outcome: str) -> float:
         return _current_confidence(key)  # no-op: read-only, no count change
     if outcome == FAILURE:
         return decay_confidence("routing", key, delta=DECAY_DELTA)
-    return boost_confidence("routing", key, delta=BOOST_DELTA)
+    if outcome == SUCCESS:
+        return boost_confidence("routing", key, delta=BOOST_DELTA)
+    # Unknown/typo outcome must NOT silently boost. Callers pass the literal
+    # SUCCESS/FAILURE/NEUTRAL constants; an unrecognized string is a bug to
+    # surface, not a default boost that inflates confidence.
+    raise ValueError(f"unknown routing outcome {outcome!r}; expected one of {SUCCESS!r}, {FAILURE!r}, {NEUTRAL!r}")

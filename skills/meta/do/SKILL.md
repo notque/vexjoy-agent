@@ -219,7 +219,8 @@ python3 "$SDIR/learning-db.py" route-weights --json
 Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`scripts/lib/route_policy.py`). It returns `{final_pick, action, reason}` with `action` in `keep | demote | tiebreak`.
 
 - **Demote fires only at the floor:** `confidence < 0.30 AND failure >= 3 AND n >= 5`, and only toward a healthier alternate. Otherwise the **semantic pick stands**.
-- **Force-route/security pairs are hard-exempt** — checked first, never demoted.
+- **Tie-break:** when the SEMANTIC confidence is low (`< 0.35`) AND an evidenced (`n >= 5`) healthier alternate is supplied, the route moves toward that alternate. This is gated on semantic confidence, not the floor — so unlike demote, tie-break CAN move a route on current data when you pass a low-confidence pick plus a real alternate. Pass alternates only when you genuinely have them.
+- **Force-route/security pairs are hard-exempt** — checked first, never demoted, never tie-broken. Exemption is by SKILL name (a security skill is protected under any agent), and accepts force_route_flags as bare skill names or full `agent:skill` pairs.
 - **Evidence gate:** `n < 5` or no row => keep the semantic pick.
 
 **Banner:** on a `demote`, add one optional line to the routing banner:
@@ -230,7 +231,7 @@ Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`sc
 
 **Always log the evaluation** to the T3 event stream: set `health_at_decision` (the picked pair's `{confidence, n, failure}` from the weights, or `null` when absent) so `routing-decision-recorder` records it on the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. This is live shadow instrumentation: every route is scored even when nothing changes.
 
-**Gate state — cannot fire on current data (by design).** Every routing row is at or above 0.5 confidence with zero recorded failures, so the floor condition matches no row; the demote branch is unreachable until the signal-fidelity fixes (neutral outcomes + Stop fallback) let negative signal accumulate. Until then Step 1.5 is pure instrumentation: it scores and logs, it does not reroute.
+**Gate state — DEMOTE cannot fire on current data (by design).** Every routing row is at or above 0.5 confidence with zero recorded failures, so the floor condition matches no row; the demote branch is unreachable until the signal-fidelity fixes (neutral outcomes + Stop fallback) let negative signal accumulate. TIE-BREAK is separate: it keys on semantic confidence, so it CAN move a route today on a low-confidence pick with an evidenced alternate (intended behavior). Demote is pure shadow instrumentation now; tie-break is live but only on low-confidence dispatches you explicitly hand alternates.
 
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 

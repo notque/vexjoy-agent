@@ -135,6 +135,26 @@ def test_force_route_by_skill_name_exempt() -> None:
     assert result["action"] == "keep"
 
 
+def test_force_route_pair_flag_different_agent_still_exempt() -> None:
+    """Attack C: flag is a full pair whose AGENT differs from the pick's agent.
+
+    Force-route protection is keyed by SKILL: a security skill must be exempt no
+    matter which agent the semantic layer paired it with. A flag
+    ``other-agent:security-review`` must still protect a pick
+    ``pick-agent:security-review`` (same skill, different agent). Pre-fix this
+    returned demote (the skill-name fallback compared against a full-pair flag
+    and missed).
+    """
+    pick = {"key": "pick-agent:security-review", "confidence": 0.5}
+    weights = {
+        "pick-agent:security-review": _w(0.05, 20, 1, 18),
+        "agent-good:skill-good": _w(0.99, 50, 50, 0),
+    }
+    result = health_adjust(pick, ["agent-good:skill-good"], weights, {"other-agent:security-review"})
+    assert result["final_pick"] == "pick-agent:security-review"
+    assert result["action"] == "keep"
+
+
 # --- comparative health ----------------------------------------------------
 
 
@@ -176,6 +196,37 @@ def test_tiebreak_only_when_semantic_low() -> None:
     result = health_adjust(pick, ["agent-b:skill-b"], weights, set())
     assert result["action"] == "tiebreak"
     assert result["final_pick"] == "agent-b:skill-b"
+
+
+def test_tiebreak_requires_evidenced_alternate() -> None:
+    """Tie-break never moves toward an under-evidenced alternate (n < 5).
+
+    Low semantic confidence alone is not enough: the healthier alternate must
+    clear the evidence gate. A flashy but under-observed alternate is ignored,
+    and the semantic pick stands. This bounds the tie-break path so it cannot
+    reroute toward thin evidence.
+    """
+    pick = {"key": "agent-a:skill-a", "confidence": 0.2}
+    weights = {
+        "agent-a:skill-a": _w(0.50, 8, 4, 4),
+        "agent-b:skill-b": _w(0.99, MIN_OBSERVATIONS - 1, MIN_OBSERVATIONS - 1, 0),
+    }
+    result = health_adjust(pick, ["agent-b:skill-b"], weights, set())
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "agent-a:skill-a"
+
+
+def test_tiebreak_does_not_fire_with_no_alternates() -> None:
+    """Low semantic confidence + no alternates supplied => pick stands.
+
+    The real-DB replay arm offers no alternates, so tie-break cannot fire there
+    even though semantic confidence is moot. Documents why the real arm is 0.
+    """
+    pick = {"key": "agent-a:skill-a", "confidence": 0.1}
+    weights = {"agent-a:skill-a": _w(0.50, 8, 4, 4)}
+    result = health_adjust(pick, [], weights, set())
+    assert result["action"] == "keep"
+    assert result["final_pick"] == "agent-a:skill-a"
 
 
 def test_no_tiebreak_when_semantic_high() -> None:

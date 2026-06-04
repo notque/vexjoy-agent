@@ -13,12 +13,27 @@ Design (frozen spec T2):
   - Force-route / security pairs are NEVER demoted (hard exempt) — checked
     first, before any health logic.
   - Tie-break toward a higher-health alternate ONLY when the semantic
-    confidence is "low" (< LOW_CONFIDENCE, 0.35).
+    confidence is "low" (< LOW_CONFIDENCE, 0.35) AND the alternate clears the
+    evidence gate (n >= MIN_OBSERVATIONS). Under-evidenced alternates are never
+    preferred.
   - Default: the semantic pick stands.
 
-On current real data the demote branch cannot fire (zero failure-bearing rows),
-so the wiring is instrumentation until negative signal accumulates. The synthetic
-replay arm (T7) proves the mechanism on seeded failure data.
+force_route_flags form contract: the caller (SKILL.md Step 1.5, route-replay)
+passes either bare skill names (the manifest's form, e.g. ``security-review``)
+or full ``agent:skill`` pairs. Exemption is decided by SKILL name, so a security
+skill is protected regardless of which agent the semantic layer paired it with.
+
+Reachability on current real data:
+  - DEMOTE cannot fire: every live row is >= 0.5 confidence with 0 failures, so
+    the floor (conf<0.30 AND fail>=3 AND n>=5) matches no row.
+  - TIE-BREAK CAN fire: it is gated on SEMANTIC confidence, not on the floor.
+    On a live /do where the semantic layer reports low confidence (< 0.35) AND
+    supplies an evidenced healthier alternate, the route is moved. This is
+    intended behavior (spec T2), not a defect — but it means Step 1.5 is NOT a
+    pure no-op on current data; the precise claim is "demote is unreachable;
+    tie-break only fires on low-confidence picks with an evidenced alternate."
+The synthetic replay arm (T7) proves both demote (help) and the force-route
+exemption; the tie-break arm proves the low-confidence path moves toward gold.
 """
 
 from __future__ import annotations
@@ -42,17 +57,30 @@ def _key_of(item: object) -> str | None:
     return None
 
 
-def _is_exempt(key: str, force_route_flags: Iterable[str]) -> bool:
-    """True iff `key` is force-routed (by full `agent:skill` pair or skill name).
+def _skill_of(token: str) -> str:
+    """Skill name from a flag/key that may be a bare skill or ``agent:skill``."""
+    return token.split(":", 1)[1] if ":" in token else token
 
-    The caller may pass either full pairs (``agent:skill``) or bare skill names
-    (the manifest keys force_route by skill). Both forms exempt the pick.
+
+def _is_exempt(key: str, force_route_flags: Iterable[str]) -> bool:
+    """True iff `key` is force-routed. Skill-name match is authoritative.
+
+    The caller may pass force_route_flags as bare skill names (the manifest's
+    form) OR full ``agent:skill`` pairs. Force-route / security protection is
+    keyed by SKILL, not agent: a security skill must be exempt no matter which
+    agent the semantic layer paired it with. So a pick is exempt when its skill
+    name matches ANY flag's skill name (full-pair flags are reduced to their
+    skill), or when the full pick key matches a flag verbatim.
+
+    Hardened against attack C: a flag given as ``otheragent:security-review``
+    no longer fails to protect a pick ``pickagent:security-review`` — both
+    reduce to skill ``security-review`` and match.
     """
     flags = set(force_route_flags)
     if key in flags:
         return True
-    skill = key.split(":", 1)[1] if ":" in key else key
-    return skill in flags
+    pick_skill = _skill_of(key)
+    return any(_skill_of(flag) == pick_skill for flag in flags)
 
 
 def _health_score(entry: Mapping[str, object]) -> float:
@@ -76,11 +104,14 @@ def _healthiest_alternate(
     alternates: Sequence[object],
     weights: Mapping[str, Mapping[str, object]],
     must_beat: float,
+    require_evidence: bool = False,
 ) -> str | None:
     """Return the alternate key with the highest health score above `must_beat`.
 
-    Skips alternates with no weight row (no evidence to prefer them).
-    Deterministic: ties resolve to the first alternate in input order.
+    Skips alternates with no weight row (no evidence to prefer them). When
+    ``require_evidence`` is set, also skips alternates below MIN_OBSERVATIONS —
+    used by tie-break so a route is never moved toward an under-evidenced
+    alternate. Deterministic: ties resolve to the first alternate in input order.
     """
     best_key: str | None = None
     best_score = must_beat
@@ -88,7 +119,10 @@ def _healthiest_alternate(
         alt_key = _key_of(alt)
         if alt_key is None or alt_key not in weights:
             continue
-        score = _health_score(weights[alt_key])
+        entry = weights[alt_key]
+        if require_evidence and int(entry.get("n", 0) or 0) < MIN_OBSERVATIONS:
+            continue
+        score = _health_score(entry)
         if score > best_score:
             best_score = score
             best_key = alt_key
@@ -171,7 +205,7 @@ def health_adjust(
     # 4) Low-confidence tie-break: only when the SEMANTIC confidence is low.
     sem_conf = float(semantic_pick.get("confidence", 1.0) or 0.0)
     if sem_conf < LOW_CONFIDENCE:
-        target = _healthiest_alternate(alternates, weights, must_beat=_health_score(entry))
+        target = _healthiest_alternate(alternates, weights, must_beat=_health_score(entry), require_evidence=True)
         if target is not None:
             return {
                 "final_pick": target,

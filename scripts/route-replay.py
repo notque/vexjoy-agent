@@ -245,6 +245,89 @@ def replay_synthetic(
     }
 
 
+def replay_tiebreak(
+    cases: list[dict[str, Any]],
+    force_flags: set[str],
+    db_dir: Path,
+) -> dict[str, Any]:
+    """ARM C: low-confidence semantic pick + an evidenced healthy gold alternate.
+
+    Tie-break keys on SEMANTIC confidence, not the demote floor, so it can fire
+    on healthy data. This arm proves the path honestly: a wrong pick offered at
+    low semantic confidence (0.1) with the gold route as an evidenced healthy
+    alternate must be tie-broken toward gold (help). Force-route picks are kept
+    even at low confidence (exemption applies to tie-break too).
+    """
+    env = dict(os.environ)
+    env["CLAUDE_LEARNING_DIR"] = str(db_dir)
+
+    # The wrong pick needs a (healthy) weight row so it clears the evidence gate
+    # but is still beaten by the gold alternate's score.
+    _seed_healthy(env, _WRONG_KEY, observations=6, successes=4)
+    healthy_seeded: set[str] = set()
+    for case in cases:
+        gold = _gold_key(case)
+        if gold is None:
+            continue
+        if gold not in healthy_seeded:
+            _seed_healthy(env, gold)
+            healthy_seeded.add(gold)
+
+    weights = _read_weights(env)
+
+    changed = help_ = harm = unchanged = evaluated = exempt_held = 0
+    changes: list[dict[str, Any]] = []
+    for case in cases:
+        gold = _gold_key(case)
+        if gold is None:
+            continue
+        evaluated += 1
+        skill = gold.split(":", 1)[1]
+        # Low semantic confidence triggers the tie-break path.
+        if skill in force_flags:
+            pick = {"key": gold, "confidence": 0.1}
+            result = health_adjust(pick, [_WRONG_KEY], weights, force_flags)
+            if result["final_pick"] == gold:
+                unchanged += 1
+                exempt_held += 1
+            else:
+                changed += 1
+                harm += 1
+                changes.append(
+                    {
+                        "request": case.get("request"),
+                        "from": gold,
+                        "to": result["final_pick"],
+                        "reason": result["reason"],
+                    }
+                )
+            continue
+        pick = {"key": _WRONG_KEY, "confidence": 0.1}
+        result = health_adjust(pick, [gold], weights, force_flags)
+        final = result["final_pick"]
+        if final == _WRONG_KEY:
+            unchanged += 1
+        elif final == gold:
+            changed += 1
+            help_ += 1
+        else:
+            changed += 1
+            harm += 1
+            changes.append(
+                {"request": case.get("request"), "from": _WRONG_KEY, "to": final, "reason": result["reason"]}
+            )
+    return {
+        "arm": "tiebreak",
+        "evaluated": evaluated,
+        "changed": changed,
+        "help": help_,
+        "harm": harm,
+        "unchanged": unchanged,
+        "force_route_held": exempt_held,
+        "changes": changes,
+    }
+
+
 def _read_weights(env: dict[str, str]) -> dict[str, dict[str, Any]]:
     """Read route-weights from the DB pointed at by env (subprocess)."""
     proc = subprocess.run(
@@ -281,13 +364,19 @@ def run_replay(
         db_dir.mkdir(parents=True, exist_ok=True)
     else:
         db_dir.mkdir(parents=True, exist_ok=True)
-    synthetic = replay_synthetic(cases, force_flags, db_dir)
+    syn_dir = db_dir / "synthetic"
+    tb_dir = db_dir / "tiebreak"
+    syn_dir.mkdir(parents=True, exist_ok=True)
+    tb_dir.mkdir(parents=True, exist_ok=True)
+    synthetic = replay_synthetic(cases, force_flags, syn_dir)
+    tiebreak = replay_tiebreak(cases, force_flags, tb_dir)
 
     return {
         "corpora": {"ab": ab_path.name, "benchmark": benchmark_path.name},
         "total_cases": len(cases),
         "real": real,
         "synthetic": synthetic,
+        "tiebreak": tiebreak,
     }
 
 
@@ -309,6 +398,7 @@ def render_markdown(result: dict[str, Any]) -> str:
     """Render the full results as Dense-Complete markdown."""
     real = result["real"]
     syn = result["synthetic"]
+    tb = result["tiebreak"]
     real_finding = (
         "Predicted and confirmed: the real-DB arm changes **0** routes. Every live row is "
         ">=0.5 confidence with 0 failures, so the demote floor (conf<0.30 AND fail>=3 AND n>=5) "
@@ -337,11 +427,25 @@ alternate (health_adjust demotes toward gold = help); force-route picks carry
 the same failure load and must be kept (exemption). Result: help>0, harm=0,
 and every force-route pair held.
 
+## Arm C — TIE-BREAK on healthy data (low semantic confidence)
+
+{_md_arm(tb)}
+
+Tie-break keys on SEMANTIC confidence, NOT the demote floor — so it CAN move a
+route on healthy data (zero failures). This arm offers a low-confidence (0.1)
+wrong pick plus the gold route as an evidenced healthy alternate: health_adjust
+tie-breaks toward gold (help). Force-route picks are kept even at low confidence
+(exemption covers tie-break too). This is the honest counter to "Step 1.5 cannot
+change any live route": demote cannot, but tie-break can when a low-confidence
+pick is handed an evidenced alternate.
+
 ## Verdict
 
 - Mechanism is SOUND: synthetic arm shows help={syn["help"]}, harm={syn["harm"]},
-  force-route held={syn["force_route_held"]}.
-- Live value TODAY: {"NONE — 0 routes change on real data (honest finding)." if real["changed"] == 0 else f"{real['changed']} routes change."}
+  force-route held={syn["force_route_held"]}; tie-break arm shows help={tb["help"]},
+  harm={tb["harm"]}, force-route held={tb["force_route_held"]}.
+- Live value TODAY: {"DEMOTE: NONE — 0 routes change on real data (honest finding)." if real["changed"] == 0 else f"{real['changed']} routes change."}
+  TIE-BREAK can fire on low-confidence dispatches with an evidenced alternate.
 """
 
 
@@ -365,10 +469,15 @@ def main(argv: list[str] | None = None) -> int:
 
     real = result["real"]
     syn = result["synthetic"]
+    tb = result["tiebreak"]
     print(f"REAL arm: changed={real['changed']} help={real['help']} harm={real['harm']} unchanged={real['unchanged']}")
     print(
         f"SYNTHETIC arm: changed={syn['changed']} help={syn['help']} harm={syn['harm']} "
         f"unchanged={syn['unchanged']} force_route_held={syn['force_route_held']}"
+    )
+    print(
+        f"TIEBREAK arm: changed={tb['changed']} help={tb['help']} harm={tb['harm']} "
+        f"unchanged={tb['unchanged']} force_route_held={tb['force_route_held']}"
     )
     print(f"Wrote {out_dir / 'replay-results.md'} and replay-results.json")
     return 0

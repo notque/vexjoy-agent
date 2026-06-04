@@ -119,6 +119,25 @@ def test_force_route_never_demoted_under_failure(tiny_corpora: tuple[Path, Path]
         assert "security-review" not in str(change["from"])
 
 
+def test_tiebreak_arm_help_positive_harm_zero(tiny_corpora: tuple[Path, Path], tmp_path: Path) -> None:
+    """Tie-break arm moves low-confidence non-force picks toward gold; force held.
+
+    Proves the honest counter to "Step 1.5 cannot change a live route on healthy
+    data": tie-break keys on semantic confidence, so it fires with zero failures.
+    """
+    rr = _load_replay()
+    ab_path, bm_path = tiny_corpora
+    db_dir = tmp_path / "learning"
+    result = rr.run_replay(ab_path, bm_path, db_dir=db_dir, real_weights={})
+
+    tb = result["tiebreak"]
+    assert tb["harm"] == 0, tb["changes"]
+    # Two non-force-route cases (tdd, codebase-overview) tie-break toward gold.
+    assert tb["help"] == 2
+    # Two force-route cases (pr-workflow, security-review) held by exemption.
+    assert tb["force_route_held"] == 2
+
+
 def test_render_markdown_reports_real_zero_finding(tiny_corpora: tuple[Path, Path], tmp_path: Path) -> None:
     """Markdown renders the honest 0-change finding when the real arm is inert."""
     rr = _load_replay()
