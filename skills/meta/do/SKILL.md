@@ -205,6 +205,33 @@ If the Haiku JSON is malformed, fall back to `general-purpose` + verification-be
 
 Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` output, route to `.claude/agents/` local agents. Route all code changes to domain agents.
 
+**Step 1.5: Health-aware re-rank (gated, shadow instrumentation)**
+
+Runs AFTER the semantic pick (Step 0/0b), BEFORE the Step 1 safety-net — so pre-route safety always wins over health, and the Step 2 verb override may still change the skill afterward (accepted, documented).
+
+Once per /do, read the routing weights and ask the policy whether health should override the semantic pick:
+
+```bash
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+python3 "$SDIR/learning-db.py" route-weights --json
+```
+
+Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`scripts/lib/route_policy.py`). It returns `{final_pick, action, reason}` with `action` in `keep | demote | tiebreak`.
+
+- **Demote fires only at the floor:** `confidence < 0.30 AND failure >= 3 AND n >= 5`, and only toward a healthier alternate. Otherwise the **semantic pick stands**.
+- **Force-route/security pairs are hard-exempt** — checked first, never demoted.
+- **Evidence gate:** `n < 5` or no row => keep the semantic pick.
+
+**Banner:** on a `demote`, add one optional line to the routing banner:
+
+```
+ [health] demoted {old_pair} -> {new_pair} (conf, fail/n)
+```
+
+**Always log the evaluation** to the T3 event stream: set `health_at_decision` (the picked pair's `{confidence, n, failure}` from the weights, or `null` when absent) so `routing-decision-recorder` records it on the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. This is live shadow instrumentation: every route is scored even when nothing changes.
+
+**Gate state — cannot fire on current data (by design).** Every routing row is at or above 0.5 confidence with zero recorded failures, so the floor condition matches no row; the demote branch is unreachable until the signal-fidelity fixes (neutral outcomes + Stop fallback) let negative signal accumulate. Until then Step 1.5 is pure instrumentation: it scores and logs, it does not reroute.
+
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 
 Use its result ONLY as a guardrail:
