@@ -247,6 +247,49 @@ def _seed_decision(key="python-general-engineer:go-patterns"):
     return key
 
 
+class TestApplyOutcomeThreeWay:
+    """T4: apply_outcome is three-way — success boosts, failure decays, neutral
+    is a pure no-op (no boost, no decay, no count change)."""
+
+    def test_neutral_is_pure_noop(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        key = _seed_decision("python-general-engineer:noop")
+        before = next(r for r in _query_routing(db_env) if r["key"] == key)
+        ros_score.apply_outcome(key, "neutral")
+        after = next(r for r in _query_routing(db_env) if r["key"] == key)
+        assert after["success_count"] == before["success_count"]
+        assert after["failure_count"] == before["failure_count"]
+        assert after["confidence"] == before["confidence"]
+        assert after["observation_count"] == before["observation_count"]
+
+    def test_success_boosts_failure_decays(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        sk = _seed_decision("python-general-engineer:succ")
+        fk = _seed_decision("python-general-engineer:fail")
+        ros_score.apply_outcome(sk, "success")
+        ros_score.apply_outcome(fk, "failure")
+        sr = next(r for r in _query_routing(db_env) if r["key"] == sk)
+        fr = next(r for r in _query_routing(db_env) if r["key"] == fk)
+        assert sr["success_count"] == 1 and sr["failure_count"] == 0
+        assert fr["failure_count"] == 1 and fr["success_count"] == 0
+
+    def test_legacy_bool_still_supported(self, db_env):
+        # Back-compat: True=>failure, False=>success.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        tk = _seed_decision("python-general-engineer:legacy-true")
+        fk = _seed_decision("python-general-engineer:legacy-false")
+        ros_score.apply_outcome(tk, True)
+        ros_score.apply_outcome(fk, False)
+        assert next(r for r in _query_routing(db_env) if r["key"] == tk)["failure_count"] == 1
+        assert next(r for r in _query_routing(db_env) if r["key"] == fk)["success_count"] == 1
+
+
 class TestOutcomeValidator:
     """B (SubagentStop) NO LONGER scores. It validates the decision row exists
     and keeps the entry PROVISIONAL (revalidated) for the next-turn finalizer;
@@ -336,22 +379,28 @@ class TestFinalizer:
         assert after["success_count"] == 1
         assert after["confidence"] > before
 
-    def test_neutral_new_topic_boosts(self, db_env, monkeypatch):
-        # No complaint = success, matching the old LLM's "user accepted" default.
+    def test_neutral_new_topic_is_noop(self, db_env, monkeypatch):
+        # T4 three-way: an unrelated / new-topic next prompt carries NO acceptance
+        # and NO complaint => NEUTRAL no-op. No boost, no decay, no count change.
+        # (Previously this boosted — the inflation T4 removes.)
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
         monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
         key = _seed_decision("python-general-engineer:neutral")
         self._pend(ros, "fin-neu", key, errors=False)
+        before = next(r for r in _query_routing(db_env) if r["key"] == key)
 
         f = _load(F_PATH, "fin2")
         ev = _prompt_event("now add a CHANGELOG entry for the release", session="fin-neu")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
             f.main()
         after = next(r for r in _query_routing(db_env) if r["key"] == key)
-        assert after["success_count"] == 1
-        assert after["failure_count"] == 0
+        assert after["success_count"] == before["success_count"]  # no boost
+        assert after["failure_count"] == before["failure_count"]  # no decay
+        assert after["confidence"] == before["confidence"]  # unchanged
+        # Pending cleared (resolved once, idempotent) even though it was a no-op.
+        assert ros.peek_pending_outcomes("fin-neu") == []
 
     def test_rejection_decays(self, db_env, monkeypatch):
         sys.path.insert(0, str(LIB_DIR))
@@ -424,7 +473,8 @@ class TestFinalizer:
             f.main()
         after = next(r for r in _query_routing(db_env) if r["key"] == key)
         assert after["failure_count"] == 0, "benign 'wrong' falsely decayed the prior dispatch"
-        assert after["success_count"] == 1
+        # T4: a benign new request is neutral (no acceptance marker) — no boost.
+        assert after["success_count"] == 0
 
     def test_idempotent_double_prompt_scores_once(self, db_env, monkeypatch):
         sys.path.insert(0, str(LIB_DIR))
@@ -480,10 +530,11 @@ class TestFinalizer:
             ros._atomic_write(path, data)
 
         f = _load(F_PATH, "fin_malformed")
-        ev = _prompt_event("now write the docs", session=session)  # neutral => success
+        ev = _prompt_event("thanks, now write the docs", session=session)  # acceptance => success
         with patch("sys.exit"), patch("sys.stdin.read", return_value=_json.dumps(ev)):
             f.main()
-        # The valid sibling still scored (success); the malformed one was skipped.
+        # The valid sibling still scored; the malformed one was skipped. With one
+        # live entry the turn acceptance is attributable => success.
         after = next(r for r in _query_routing(db_env) if r["key"] == good_key)
         assert after["success_count"] == 1, "malformed sibling aborted scoring of the valid entry"
         assert after["failure_count"] == 0
@@ -530,6 +581,29 @@ class TestFinalizer:
             None,
         ]:
             assert f.is_rejection(p) is False, p
+
+    def test_acceptance_marker_unit(self):
+        # T4: is_acceptance decides boost-vs-neutral. Explicit affirmation in the
+        # FIRST clause => True; an unrelated/new-topic prompt => False (=> neutral).
+        f = _load(F_PATH, "fin_acc_unit")
+        for p in [
+            "thanks!",
+            "looks good, merge it",
+            "perfect, ship it",
+            "lgtm",
+            "great work",
+            "that worked, now do the next file",
+        ]:
+            assert f.is_acceptance(p) is True, p
+        for p in [
+            "now add a CHANGELOG entry for the release",
+            "write the docs",
+            "that's wrong",
+            "Add a test for wrong-format dates.",
+            "",
+            None,
+        ]:
+            assert f.is_acceptance(p) is False, p
 
 
 # ---------------------------------------------------------------------------
@@ -907,8 +981,10 @@ class TestPerAgentAttribution:
         ros.append_pending_outcome(session, good, errors=False)
         ros.append_pending_outcome(session, bad, errors=True)
 
-        # Neutral next turn (no rejection): good=success (own flag), bad=failure
-        # (own flag). The session-level reaction does NOT broadcast errors.
+        # Neutral next turn (no acceptance, no rejection) with >1 pending: the
+        # turn reaction is NOT attributable. Each entry resolves on its OWN flag —
+        # good=neutral (T4: clean, no acceptance => no-op), bad=failure (own
+        # error). The sibling's error does NOT broadcast a decay onto good.
         f = _load(HOOKS_DIR / "routing-outcome-finalizer.py", "fin_attrib")
         event = {"hook_event_name": "UserPromptSubmit", "session_id": session, "prompt": "ok, next task"}
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -916,10 +992,10 @@ class TestPerAgentAttribution:
 
         good_after = next(r for r in _query_routing_all(db_env) if r["key"] == good)
         bad_after = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
-        # Clean key boosted (success), NOT decayed by the sibling's error.
-        assert good_after["success_count"] == 1
+        # Clean key is NEUTRAL (no boost, no decay) — NOT decayed by the sibling.
+        assert good_after["success_count"] == 0
         assert good_after["failure_count"] == 0
-        assert good_after["confidence"] > good_before
+        assert good_after["confidence"] == good_before
         # Failing key decayed on its own flag.
         assert bad_after["failure_count"] == 1
 
@@ -1017,7 +1093,8 @@ STOP_PATH = HOOKS_DIR / "session-learning-recorder.py"
 class TestStopFallback:
     def test_session_end_resolves_pending_via_error_flag(self, db_env, monkeypatch):
         """No next user prompt: the Stop hook resolves still-pending dispatches
-        using each dispatch's own error flag (the deterministic floor)."""
+        from each dispatch's own error flag (T4 deterministic floor):
+        error => failure (decay); CLEAN run => NEUTRAL no-op (no boost)."""
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
@@ -1027,6 +1104,7 @@ class TestStopFallback:
         session = "autorun"
         ros.append_pending_outcome(session, ok, errors=False)
         ros.append_pending_outcome(session, bad, errors=True)
+        ok_before = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
 
         s = _load(STOP_PATH, "stop1")
         event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
@@ -1035,8 +1113,11 @@ class TestStopFallback:
 
         ok_row = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
         bad_row = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
-        assert ok_row["success_count"] == 1  # no error => boost
-        assert bad_row["failure_count"] == 1  # error => decay
+        # T4: a clean autonomous run is NEUTRAL — no boost, no count change.
+        assert ok_row["success_count"] == ok_before["success_count"]
+        assert ok_row["failure_count"] == 0
+        assert ok_row["confidence"] == ok_before["confidence"]
+        assert bad_row["failure_count"] == 1  # error => decay (unchanged)
         # Pending cleared — nothing left to double-resolve.
         assert ros.peek_pending_outcomes(session) == []
 
@@ -1063,6 +1144,30 @@ class TestStopFallback:
             s.main()
         row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
         assert row["success_count"] == 1, "Stop double-resolved a finalized dispatch"
+
+    def test_stop_clean_run_is_neutral(self, db_env, monkeypatch):
+        """T4: a clean autonomous run (no errors, no next prompt) resolves to
+        NEUTRAL at Stop — no boost, no count change. Regression guard against the
+        old 'else boost' that inflated success on every quiet session."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:clean-neutral")
+        session = "clean-run"
+        ros.append_pending_outcome(session, key, errors=False)
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+
+        s = _load(STOP_PATH, "stop_clean")
+        event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            s.main()
+
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert after["success_count"] == before["success_count"]
+        assert after["failure_count"] == before["failure_count"]
+        assert after["confidence"] == before["confidence"]
+        assert ros.peek_pending_outcomes(session) == []
 
     def test_stop_exits_zero_on_malformed(self):
         assert _run_hook(STOP_PATH, {}).returncode == 0
@@ -1166,10 +1271,12 @@ class TestSingleDispatchAttribution:
 
         a_after = next(r for r in _query_routing_all(db_env) if r["key"] == a)
         b_after = next(r for r in _query_routing_all(db_env) if r["key"] == b)
-        # Both clean siblings score SUCCESS, neither decayed by the ambiguous turn.
+        # CORE GUARD: neither sibling is DECAYED by the unattributable turn. Under
+        # T4 a clean unattributable sibling is NEUTRAL (no boost either), not the
+        # old auto-success — but the misattribution guard (no false decay) holds.
         assert a_after["failure_count"] == 0 and b_after["failure_count"] == 0
-        assert a_after["success_count"] == 1 and b_after["success_count"] == 1
-        assert a_after["confidence"] > a_before and b_after["confidence"] > b_before
+        assert a_after["success_count"] == 0 and b_after["success_count"] == 0
+        assert a_after["confidence"] == a_before and b_after["confidence"] == b_before
 
     def test_multi_dispatch_per_entry_error_still_fails(self, db_env, monkeypatch):
         # With >1 pending, the IGNORED turn-reaction does not stop a per-entry
@@ -1195,7 +1302,9 @@ class TestSingleDispatchAttribution:
             f.main()
         clean_after = next(r for r in _query_routing_all(db_env) if r["key"] == clean)
         errd_after = next(r for r in _query_routing_all(db_env) if r["key"] == errd)
-        assert clean_after["success_count"] == 1 and clean_after["failure_count"] == 0
+        # T4: clean sibling is NEUTRAL (no acceptance, unattributable turn) — no
+        # boost, no decay. The errored sibling still fails on its own flag.
+        assert clean_after["success_count"] == 0 and clean_after["failure_count"] == 0
         assert errd_after["failure_count"] == 1 and errd_after["success_count"] == 0
 
     def test_single_dispatch_rejection_decays(self, db_env, monkeypatch):
@@ -1317,13 +1426,17 @@ class TestRejectionPrecision:
         for p in self.NAMED_GENUINE:
             assert f.is_rejection(p) is True, f"review-named genuine missed: {p!r}"
 
-    def test_benign_prompt_scores_success_end_to_end(self, db_env, monkeypatch):
-        # A single dispatch + a benign "redo it in a later clause" prompt => the
-        # reaction is acceptance/neutral in the first clause => SUCCESS, no decay.
+    def test_benign_prompt_never_decays_end_to_end(self, db_env, monkeypatch):
+        # CORE GUARD: a benign prompt (rework verb only in a LATER clause, or a
+        # spec/instructional first clause) must NEVER DECAY the route. Under T4 the
+        # outcome is SUCCESS only when the first clause carries an acceptance
+        # marker; an instructional/spec first clause is NEUTRAL (no boost). Either
+        # way failure_count stays 0 — the precision guard this test exists for.
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
         import routing_outcome_state as ros
 
+        f_unit = _load(F_PATH, "fin_benign_unit")
         monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
         for i, prompt in enumerate(self.BENIGN):
             key = f"python-general-engineer:benign-{i}"
@@ -1342,11 +1455,15 @@ class TestRejectionPrecision:
                 f.main()
             after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
             assert after["failure_count"] == 0, f"benign prompt decayed route: {prompt!r}"
-            assert after["success_count"] == 1
+            # acceptance first clause => success; instructional/spec => neutral.
+            expected = 1 if f_unit.is_acceptance(prompt) else 0
+            assert after["success_count"] == expected, prompt
 
-    def test_named_rollback_phrase_scores_success_end_to_end(self, db_env, monkeypatch):
-        # Spec-required E2E: a single clean dispatch + the review's roll-back spec
-        # phrase => SUCCESS (success_count=1, failure_count=0), no decay.
+    def test_named_rollback_phrase_does_not_decay_end_to_end(self, db_env, monkeypatch):
+        # Spec-required E2E false-positive guard: a single clean dispatch + the
+        # review's roll-back SPEC phrase must NOT decay the route. T4: it carries
+        # no acceptance marker (instructional/conditional clause) => NEUTRAL
+        # (failure_count=0, success_count=0). The guard is "no false decay".
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
         import routing_outcome_state as ros
@@ -1360,6 +1477,7 @@ class TestRejectionPrecision:
             category="effectiveness",
             source="test",
         )
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)["confidence"]
         session = "named-rollback-e2e"
         ros.append_pending_outcome(session, key, errors=False)
         f = _load(F_PATH, "fin_named_rollback_e2e")
@@ -1367,7 +1485,9 @@ class TestRejectionPrecision:
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
             f.main()
         after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
-        assert after["success_count"] == 1, "named roll-back spec phrase failed to score success"
+        assert after["failure_count"] == 0, "spec phrase falsely decayed the route"
+        assert after["success_count"] == 0, "spec phrase is neutral, not success (T4)"
+        assert after["confidence"] == before
         assert after["failure_count"] == 0, "named roll-back spec phrase falsely decayed route"
 
 

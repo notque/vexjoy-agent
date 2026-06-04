@@ -67,8 +67,11 @@ def finalize_routing_outcomes(session_id: str) -> None:
     But an autonomous / headless run may end with NO next user prompt, leaving
     its dispatches provisional forever. This fallback resolves whatever the
     UserPromptSubmit finalizer did not, using the DETERMINISTIC FLOOR — this
-    dispatch's own ``errors`` flag alone (the old proxy): errors => decay, else
-    boost. It NEVER double-resolves: finalize_pending_outcomes atomically
+    dispatch's own ``errors`` flag alone (no next-turn signal):
+    errors => failure (decay); a CLEAN autonomous run => NEUTRAL no-op (T4).
+    A clean Stop run carries no acceptance evidence, so it must NOT boost — the
+    old "else boost" inflated success counts on every quiet session. It NEVER
+    double-resolves: finalize_pending_outcomes atomically
     read-and-clears, so anything UserPromptSubmit already scored (and cleared)
     is simply absent here. Best-effort, silent, never raises.
     """
@@ -96,8 +99,10 @@ def finalize_routing_outcomes(session_id: str) -> None:
                 continue  # drop abandoned provisional entry, do not score
             if not decision_row_exists(key):
                 continue  # no row to score (orphaned); drop quietly at session end
-            # Deterministic floor: per-dispatch error flag only (no next turn).
-            apply_outcome(key, bool(item.get("errors")))
+            # Deterministic floor (T4): errors => failure (decay); a clean
+            # autonomous run carries no acceptance evidence => NEUTRAL no-op.
+            outcome = "failure" if bool(item.get("errors")) else "neutral"
+            apply_outcome(key, outcome)
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)

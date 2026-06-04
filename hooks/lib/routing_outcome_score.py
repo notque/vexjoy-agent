@@ -57,13 +57,56 @@ def decision_row_exists(key: str) -> bool:
         return False
 
 
-def apply_outcome(key: str, failure: bool) -> float:
-    """Boost (success) or decay (failure) the routing row. Returns new confidence.
+SUCCESS = "success"
+FAILURE = "failure"
+NEUTRAL = "neutral"
+
+
+def _current_confidence(key: str) -> float:
+    """Read-only current confidence for routing/{key}; 0.0 if absent."""
+    from learning_db_v2 import get_db_path
+
+    try:
+        conn = sqlite3.connect(get_db_path(), timeout=5.0)
+        try:
+            row = conn.execute(
+                "SELECT confidence FROM learnings WHERE topic = ? AND key = ? LIMIT 1",
+                ("routing", key),
+            ).fetchone()
+            return float(row[0]) if row else 0.0
+        finally:
+            conn.close()
+    except Exception:
+        return 0.0
+
+
+def apply_outcome(key: str, outcome: str) -> float:
+    """Apply a THREE-WAY routing outcome. Returns new (or unchanged) confidence.
+
+    ``outcome`` is one of:
+      - ``"failure"`` — decay the row (errors or attributable rejection).
+      - ``"success"`` — boost the row (acceptance / continuation).
+      - ``"neutral"`` — NO-OP: no boost, no decay, no count change, no schema
+        migration. Returns the row's current confidence unchanged. Neutral is the
+        new default for unrelated/new-topic next prompts and clean autonomous Stop
+        runs — signal-fidelity fix so future data can contain real negatives
+        instead of being drowned by boost-everything.
+
+    A bare ``True``/``False`` is still accepted for back-compat (True=>failure,
+    False=>success) but callers should pass an explicit outcome string.
 
     Caller MUST gate on decision_row_exists(key) first.
     """
     from learning_db_v2 import boost_confidence, decay_confidence
 
-    if failure:
+    # Back-compat: legacy callers passed a `failure` bool.
+    if outcome is True:
+        outcome = FAILURE
+    elif outcome is False:
+        outcome = SUCCESS
+
+    if outcome == NEUTRAL:
+        return _current_confidence(key)  # no-op: read-only, no count change
+    if outcome == FAILURE:
         return decay_confidence("routing", key, delta=DECAY_DELTA)
     return boost_confidence("routing", key, delta=BOOST_DELTA)
