@@ -29,6 +29,7 @@ Usage:
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
     python3 scripts/learning-db.py route-health
+    python3 scripts/learning-db.py route-weights --json
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
 """
 
@@ -609,6 +610,43 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         print(json_mod.dumps(records, indent=2, default=str))
 
 
+def collect_route_weights() -> dict[str, dict[str, object]]:
+    """Read routing/effectiveness rows into a weight map.
+
+    Returns a dict keyed `<agent>:<skill>` with the fields confidence, n
+    (observation_count), success, failure, last_seen. Read-only; excludes
+    obvious test rows (source LIKE 'test%'); deterministic key ordering.
+    """
+    init_db()
+    # Read only the columns we emit, ordered by key, for speed and determinism.
+    # Excludes obvious test rows (source LIKE 'test%'); read-only.
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT key, confidence, observation_count, success_count, failure_count, last_seen
+            FROM learnings
+            WHERE topic = 'routing' AND category = 'effectiveness'
+              AND source NOT LIKE 'test%'
+            ORDER BY key ASC
+            """
+        ).fetchall()
+    return {
+        row["key"]: {
+            "confidence": round(float(row["confidence"]), 4),
+            "n": int(row["observation_count"] or 1),
+            "success": int(row["success_count"] or 0),
+            "failure": int(row["failure_count"] or 0),
+            "last_seen": row["last_seen"],
+        }
+        for row in rows
+    }
+
+
+def cmd_route_weights(args: argparse.Namespace) -> None:
+    """Emit routing weights as JSON for health-aware re-ranking."""
+    print(json.dumps(collect_route_weights(), indent=2, default=str))
+
+
 def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
     """Record whether a routing decision succeeded or failed."""
     init_db()
@@ -1060,6 +1098,13 @@ def main():
     )
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
+
+    # route-weights
+    p_route_weights = subparsers.add_parser(
+        "route-weights", help="Emit routing weights as JSON (read-only) for health-aware re-rank"
+    )
+    p_route_weights.add_argument("--json", action="store_true", help="Output as JSON (only supported format)")
+    p_route_weights.set_defaults(func=cmd_route_weights)
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
