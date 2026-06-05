@@ -28,7 +28,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 4
+_CURRENT_SCHEMA_VERSION = 5
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -173,6 +173,16 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (4, 'add instruction_compliance table for per-observation tracking')"
         )
 
+    if current < 5:
+        # v4 -> v5: append-only per-run telemetry envelope (ADR: learning-telemetry-envelope).
+        # Same DDL a fresh DB gets from _SCHEMA; idempotent IF NOT EXISTS. Old rows untouched.
+        conn.executescript(_TELEMETRY_DDL)
+        conn.execute("PRAGMA user_version = 5")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (5, 'add telemetry_runs table for per-run envelope')"
+        )
+
     conn.commit()
 
 
@@ -229,7 +239,36 @@ def _migrate_fts(pre_migration_version: int = 0) -> None:
                 pass  # FTS table doesn't exist yet
 
 
-_SCHEMA = """
+# Append-only per-run telemetry envelope (schema v5). Defined standalone so the
+# v4->v5 migration block can run the identical DDL an existing DB never got from
+# _SCHEMA. A fresh DB gets the same table from _SCHEMA below; both are idempotent
+# (IF NOT EXISTS). See ADR: learning-telemetry-envelope.
+_TELEMETRY_DDL = """
+CREATE TABLE IF NOT EXISTS telemetry_runs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id        TEXT NOT NULL,
+    batch_id      TEXT,
+    topic         TEXT NOT NULL,
+    key           TEXT NOT NULL,
+    session_id    TEXT,
+    git_sha       TEXT,
+    model_id      TEXT,
+    skill_version TEXT,
+    token_count   INTEGER,
+    wall_clock_ms INTEGER,
+    tool_errors   INTEGER DEFAULT 0,
+    recorded_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    source        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_telemetry_recorded_at ON telemetry_runs(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_git_sha ON telemetry_runs(git_sha);
+CREATE INDEX IF NOT EXISTS idx_telemetry_topic_key ON telemetry_runs(topic, key);
+CREATE INDEX IF NOT EXISTS idx_telemetry_batch ON telemetry_runs(batch_id);
+"""
+
+
+_SCHEMA = (
+    """
 CREATE TABLE IF NOT EXISTS learnings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic TEXT NOT NULL,
@@ -369,6 +408,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     description TEXT
 );
 """
+    + _TELEMETRY_DDL
+)
 
 
 # ─── Injection Defense ────────────────────────────────────────
@@ -526,6 +567,51 @@ def record_learning(
         }
 
 
+def record_telemetry_run(
+    *,
+    topic: str,
+    key: str,
+    run_id: str,
+    source: str,
+    batch_id: str | None = None,
+    session_id: str | None = None,
+    git_sha: str | None = None,
+    model_id: str | None = None,
+    skill_version: str | None = None,
+    token_count: int | None = None,
+    wall_clock_ms: int | None = None,
+    tool_errors: bool = False,
+) -> None:
+    """Append one per-run telemetry envelope row. Pure INSERT, never upsert.
+
+    Best-effort fields stay NULL when the caller has no value (ADR:
+    learning-telemetry-envelope). NULL is the honest value — it is never
+    coerced to 0, so a query that averages tokens can report its true n.
+    """
+    init_db()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO telemetry_runs (run_id, batch_id, topic, key, session_id, "
+            "git_sha, model_id, skill_version, token_count, wall_clock_ms, tool_errors, source) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                run_id,
+                batch_id,
+                topic,
+                key,
+                session_id,
+                git_sha,
+                model_id,
+                skill_version,
+                token_count,
+                wall_clock_ms,
+                1 if tool_errors else 0,
+                source,
+            ),
+        )
+        conn.commit()
+
+
 def query_learnings(
     *,
     topic: str | None = None,
@@ -604,7 +690,7 @@ def query_learnings(
 
     with get_connection() as conn:
         rows = conn.execute(
-            f"SELECT * FROM learnings WHERE {where} ORDER BY {order_by} LIMIT ?",
+            f"SELECT * FROM learnings WHERE {where} ORDER BY {order_by} LIMIT ?",  # security-review: ignore (internal clauses; user values bound as ?; pre-existing)
             params,
         ).fetchall()
         return [dict(row) for row in rows]
@@ -1085,12 +1171,12 @@ def query_governance_events(
             conditions.append("session_id = ?")
             params.append(session_id)
 
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""  # security-review: ignore (fixed condition strings; pre-existing)  # fmt: skip
         params.append(limit)
 
         with get_connection() as conn:
             rows = conn.execute(
-                f"SELECT * FROM governance_events {where} ORDER BY created_at DESC LIMIT ?",
+                f"SELECT * FROM governance_events {where} ORDER BY created_at DESC LIMIT ?",  # security-review: ignore (fixed clauses; user values bound as ?; pre-existing)
                 params,
             ).fetchall()
             return [dict(row) for row in rows]
@@ -1230,7 +1316,7 @@ def prune_ancillary(
         for table, ts_col, days in table_specs:
             try:
                 cursor = conn.execute(
-                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",
+                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",  # security-review: ignore (table/ts_col from hardcoded table_specs; days bound as ?; pre-existing)
                     (f"-{days} days",),
                 )
                 counts[table] = cursor.rowcount
