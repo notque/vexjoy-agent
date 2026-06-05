@@ -69,6 +69,7 @@ echo ""
 MODE=""
 DRY_RUN=false
 FORCE=true  # Default to force — never prompt about existing directories
+CONFLICT_MODE=""  # per-item | replace | skip; set by --per-item/--sync or conflict prompt
 while [[ $# -gt 0 ]]; do
     case $1 in
         --symlink)
@@ -99,8 +100,18 @@ while [[ $# -gt 0 ]]; do
             FORCE=false  # Opt in to interactive prompts
             shift
             ;;
+        --per-item)
+            CONFLICT_MODE="per-item"
+            shift
+            ;;
+        --sync)
+            CONFLICT_MODE="per-item"
+            # --sync implies symlink mode when MODE is not yet set
+            [ -z "$MODE" ] && MODE="symlink"
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force]"
+            echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force|--per-item|--sync]"
             echo ""
             echo "Options:"
             echo "  --symlink    Create symlinks to this repo (recommended for development)"
@@ -110,6 +121,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --dry-run    Show what would happen without making changes"
             echo "  --force      Replace existing directories without prompting (default)"
             echo "  --no-force   Prompt before replacing existing directories"
+            echo "  --per-item   Symlink each item individually; preserve external content"
+            echo "  --sync       Alias for --per-item; implies --symlink mode default"
             echo ""
             echo "If no option provided, will prompt interactively."
             exit 0
@@ -1030,6 +1043,74 @@ else
 fi
 echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 
+# detect_conflicts — scans all runtime dirs × all component types.
+# Populates parallel arrays conflict_keys[] and conflict_vals[] (bash 3.2 compatible).
+conflict_keys=()
+conflict_vals=()
+
+_conflict_set() {
+    conflict_keys+=("$1")
+    conflict_vals+=("$2")
+}
+
+_conflict_get() {
+    local _k _i
+    _k="$1"
+    for _i in "${!conflict_keys[@]}"; do
+        [ "${conflict_keys[$_i]}" = "$_k" ] && { printf '%s' "${conflict_vals[$_i]}"; return 0; }
+    done
+    return 1
+}
+
+_conflict_has() {
+    _conflict_get "$1" > /dev/null 2>&1
+}
+
+detect_conflicts() {
+    local runtime_dir component target src count items item name
+    for runtime_dir in "$CLAUDE_DIR" "$CODEX_DIR" "$GEMINI_DIR" \
+                       "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
+        [ -d "$runtime_dir" ] || continue
+        for component in agents skills hooks commands scripts; do
+            target="$runtime_dir/$component"
+            src="$SCRIPT_DIR/$component"
+            [ -d "$src" ] || continue
+            [ -d "$target" ] || [ -L "$target" ] || continue
+            # Whole-dir symlink pointing elsewhere
+            if [ -L "$target" ] && [ "$(readlink "$target")" != "$src" ]; then
+                _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
+                continue
+            fi
+            # Count items (files and dirs) in target not present in src
+            count=0; items=""
+            for item in "$target"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
+                name=$(basename "$item")
+                [ -e "$src/$name" ] || { count=$((count+1)); items="$items $name"; }
+            done
+            if [ "$count" -gt 0 ]; then
+                _conflict_set "$runtime_dir/$component" "$count external:$items"
+            fi
+        done
+    done
+    return 0
+}
+
+print_conflict_table() {
+    local _i
+    echo ""
+    echo "Found existing content in the following locations:"
+    for _i in "${!conflict_keys[@]}"; do
+        echo "  ${conflict_keys[$_i]}  (${conflict_vals[$_i]})"
+    done
+    echo ""
+    echo "Choose install mode for all conflicting locations:"
+    echo "  [1] per-item  — symlink each vexjoy item individually; preserve external content (recommended)"
+    echo "  [2] replace   — rm -rf and replace with whole-dir symlink (destroys external content)"
+    echo "  [3] skip      — leave conflicting locations unchanged; install only conflict-free locations"
+    echo ""
+}
+
 # Install components
 echo ""
 echo -e "${YELLOW}Installing components (mode: ${MODE})...${NC}"
@@ -1040,6 +1121,36 @@ install_component() {
     local target_name=${3:-$name}
     local source="${SCRIPT_DIR}/${name}"
     local target="${base_dir}/${target_name}"
+
+    local component_key="$base_dir/$target_name"
+
+    # Skip mode: leave conflicting locations untouched; install conflict-free ones normally.
+    if [ "$CONFLICT_MODE" = "skip" ] && [ "$MODE" = "symlink" ] && _conflict_has "$component_key"; then
+        echo -e "${YELLOW}  Skipping ${target} (kept existing — skip mode)${NC}"
+        return
+    fi
+
+    # Per-item mode: symlink each item (file or dir) individually; preserve external content.
+    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
+       { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+        else
+            mkdir -p "$target"
+            local item item_name
+            for item in "$source"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
+                item_name=$(basename "$item")
+                if [ -e "$target/$item_name" ]; then
+                    echo -e "${YELLOW}  WARNING: $target/$item_name already exists — skipping (kept existing)${NC}"
+                    continue
+                fi
+                ln -s "$item" "$target/$item_name"
+                echo -e "${GREEN}  ✓ Per-item linked ${item_name}${NC}"
+            done
+        fi
+        return
+    fi
 
     # Check if target exists
     if [ -e "$target" ] || [ -L "$target" ]; then
@@ -1092,6 +1203,26 @@ sync_mirror_entry() {
     local name
     name=$(basename "$source")
 
+    # Per-item mode: add-only symlink for each item (file or dir); skip existing entries
+    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && [ -d "$source" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+        else
+            mkdir -p "$target"
+            local item item_name
+            for item in "$source"/*; do
+                [ -e "$item" ] || [ -L "$item" ] || continue
+                item_name=$(basename "$item")
+                if [ -e "$target/$item_name" ]; then
+                    continue  # already present; skip silently
+                fi
+                ln -s "$item" "$target/$item_name"
+                echo -e "${GREEN}  ✓ ${label} per-item linked ${item_name}${NC}"
+            done
+        fi
+        return
+    fi
+
     if [ -e "$target" ] || [ -L "$target" ]; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would replace ${label} entry: ${target}${NC}"
@@ -1125,6 +1256,85 @@ sync_mirror_entry() {
 sync_codex_entry() {
     sync_mirror_entry "$1" "$2" "Codex"
 }
+
+# install_git_hook — writes .git/hooks/post-merge to auto-sync new items after git pull.
+# Add-only, never removes, never overwrites existing entries.
+install_git_hook() {
+    local hook=".git/hooks/post-merge"
+    [ -d ".git" ] || return 0  # no-op outside a git repo clone
+    # Never clobber a pre-existing hook we did not write.
+    if [ -e "$hook" ] && ! grep -q "Written by vexjoy-agent" "$hook" 2>/dev/null; then
+        echo -e "${YELLOW}  Existing post-merge hook found — not overwriting: ${hook}${NC}"
+        return 0
+    fi
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would install post-merge hook: ${hook}${NC}"
+        return 0
+    fi
+    mkdir -p ".git/hooks"
+    cat > "$hook" << 'HOOK'
+#!/usr/bin/env bash
+# Written by vexjoy-agent install.sh — auto-syncs new items after git pull.
+# Add-only: skips items already present; never removes or overwrites.
+REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+for runtime_dir in     "$HOME/.claude" "$HOME/.codex" "$HOME/.gemini"     "$HOME/.factory" "$HOME/.hermes" "$HOME/.reasonix"; do
+  [ -d "$runtime_dir" ] || continue
+  for component in agents skills hooks commands scripts; do
+    src="$REPO_DIR/$component"
+    dst="$runtime_dir/$component"
+    [ -d "$src" ] || continue
+    [ -d "$dst" ] || continue  # only sync if component dir already installed
+    for item in "$src"/*; do
+      [ -e "$item" ] || [ -L "$item" ] || continue
+      name=$(basename "$item")
+      [ -e "$dst/$name" ] && continue  # already present; skip
+      ln -s "$item" "$dst/$name"
+      echo "[vexjoy-agent] auto-synced: $dst/$name"
+    done
+  done
+done
+
+# Deploy-staleness notice (warn-only): the sync above is add-only, so an EDITED
+# hook/script stays stale in ~/.claude until sync-to-user-claude.py runs. If this
+# merge touched hooks/ or scripts/, tell the user to redeploy. Guarded so it can
+# never fail the merge; the hook always exits 0.
+if git rev-parse --verify -q ORIG_HEAD >/dev/null 2>&1 && git rev-parse --verify -q HEAD >/dev/null 2>&1; then
+  changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null | grep -E '^(hooks|scripts)/' || true)"
+  if [ -n "$changed" ]; then
+    echo "[vexjoy-agent] hook/script changes merged — run:"
+    echo "  python3 ~/.claude/hooks/sync-to-user-claude.py"
+    echo "to deploy live (or restart the session)."
+  fi
+fi
+exit 0
+HOOK
+    chmod +x "$hook"
+    echo -e "${GREEN}  ✓ Installed post-merge hook: ${hook}${NC}"
+}
+
+# Scan for conflicts before first install_component call
+if [ "$MODE" = "symlink" ]; then
+    detect_conflicts
+    if [ ${#conflict_keys[@]} -gt 0 ]; then
+        if [ "$DRY_RUN" = true ]; then
+            print_conflict_table
+            _default_mode="${CONFLICT_MODE:-per-item}"
+            echo -e "${BLUE}  DRY RUN: Would prompt for conflict mode. Default would be: ${_default_mode}${NC}"
+            echo -e "${BLUE}  Would use mode: ${_default_mode}${NC}"
+            [ -z "$CONFLICT_MODE" ] && CONFLICT_MODE="per-item"
+        elif [ -z "$CONFLICT_MODE" ]; then
+            print_conflict_table
+            read -r -p "Choice [1/2/3, default=1]: " _ans
+            case "${_ans:-1}" in
+                1) CONFLICT_MODE="per-item" ;;
+                2) CONFLICT_MODE="replace"  ;;
+                3) CONFLICT_MODE="skip"     ;;
+                *) CONFLICT_MODE="per-item" ;;
+            esac
+            echo ""
+        fi
+    fi
+fi
 
 # Install main components
 for component in agents skills hooks commands scripts; do
@@ -1195,6 +1405,11 @@ if [ -d "${SCRIPT_DIR}/private-voices" ]; then
         fi
     done
 fi
+
+# Install git post-merge hook for automatic sync on git pull
+echo ""
+echo -e "${YELLOW}Installing post-merge git hook...${NC}"
+install_git_hook
 
 echo ""
 echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
@@ -1761,16 +1976,13 @@ REASONIX_ENTRY_COUNT=0
 REASONIX_SEEN_NAMES=" "  # space-delimited set of flat names claimed this run (collision guard)
 if [ "$DRY_RUN" != true ]; then
     mkdir -p "$REASONIX_SKILLS_DIR"
-    # Remove only the toolkit-owned entries (stale from prior installs whose format changed).
-    # User-added skills (real dirs we never wrote) are left untouched: the recognizer below
-    # looks for SKILL.md under the target and only removes entries whose source vanished.
-    for entry in "${REASONIX_SKILLS_DIR}/"*; do
-        [ -e "$entry" ] || [ -L "$entry" ] || continue
-        name=$(basename "$entry")
-        [ -f "${entry}/SKILL.md" ] || [ -f "${entry}" ] || continue
-        # Treat any entry that does NOT have a valid SKILL.md as stale user residue — leave alone.
-        [ -f "${entry}/SKILL.md" ] || continue
-    done
+    # Sweep broken symlinks before installing. A symlink whose target vanished is stale
+    # toolkit output: a skill removed/renamed in the repo, or mode-switch residue (a prior
+    # --symlink install whose source moved, now re-running --copy). reasonix_install_skill
+    # only refreshes entries for skills that STILL exist, so dead links would otherwise
+    # linger until uninstall. Healthy symlinks (valid --symlink install) and user-added
+    # real dirs are left untouched. Matches the uninstall sweep below.
+    find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l ! -exec test -e {} \; -delete 2>/dev/null || true
 fi
 
 reasonix_install_skill() {
@@ -1878,6 +2090,9 @@ fi
 echo ""
 echo -e "${YELLOW}Syncing Reasonix hooks mirror (allowlist-driven)...${NC}"
 REASONIX_HOOK_COUNT=0
+REASONIX_HOOK_MISSING=0          # allowlisted hooks whose source file is absent
+REASONIX_HOOK_MISSING_LIST=""    # space-delimited names, for the summary
+REASONIX_HOOK_FAILED=false       # settings.json generator failed → hooks never wire in
 REASONIX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/reasonix-hooks-allowlist.txt"
 
 if [ -f "$REASONIX_HOOKS_ALLOWLIST" ]; then
@@ -1900,6 +2115,8 @@ if [ -f "$REASONIX_HOOKS_ALLOWLIST" ]; then
         source_file="${SCRIPT_DIR}/hooks/${filename}"
         if [ ! -f "$source_file" ]; then
             echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
+            REASONIX_HOOK_MISSING=$((REASONIX_HOOK_MISSING + 1))
+            REASONIX_HOOK_MISSING_LIST="${REASONIX_HOOK_MISSING_LIST}${filename} "
             continue
         fi
 
@@ -1908,6 +2125,13 @@ if [ -f "$REASONIX_HOOKS_ALLOWLIST" ]; then
         REASONIX_HOOK_COUNT=$((REASONIX_HOOK_COUNT + 1))
     done < "$REASONIX_HOOKS_ALLOWLIST"
 
+    # Surface an incomplete mirror loudly. The generator below reads the same allowlist,
+    # so it would otherwise emit settings.json entries pointing at files we did not mirror.
+    if [ "$REASONIX_HOOK_MISSING" -gt 0 ]; then
+        echo -e "${RED}  ⚠ ${REASONIX_HOOK_MISSING} allowlisted Reasonix hook(s) missing from hooks/: ${REASONIX_HOOK_MISSING_LIST}${NC}"
+        echo -e "${RED}    Their settings.json entries will reference absent files. Fix scripts/reasonix-hooks-allowlist.txt or restore the hook.${NC}"
+    fi
+
     # Mirror hooks/lib so intra-hook imports resolve.
     if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
         lib_target="${REASONIX_HOOKS_DIR}/lib"
@@ -1915,17 +2139,23 @@ if [ -f "$REASONIX_HOOKS_ALLOWLIST" ]; then
     fi
 
     # Generate ~/.reasonix/settings.json from the allowlist (Reasonix-native flat shape).
+    # On failure the OLD settings.json is left untouched (or none exists on a fresh install),
+    # so hooks are mirrored but NEVER wired into Reasonix. Fail loud — do not let the final
+    # summary report a hookless install as success.
     REASONIX_SETTINGS="${REASONIX_DIR}/settings.json"
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would generate: ${REASONIX_SETTINGS}${NC}"
     else
-        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-reasonix-settings-hooks.py" \
+        gen_err=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-reasonix-settings-hooks.py" \
             --allowlist "$REASONIX_HOOKS_ALLOWLIST" \
             --output "$REASONIX_SETTINGS" \
-            --reasonix-hooks-dir "$REASONIX_HOOKS_DIR" 2>&1; then
+            --reasonix-hooks-dir "$REASONIX_HOOKS_DIR" 2>&1)
+        if [ $? -eq 0 ]; then
             echo -e "${GREEN}  ✓ Generated ${REASONIX_SETTINGS}${NC}"
         else
-            echo -e "${RED}  ✗ Failed to generate ${REASONIX_SETTINGS}${NC}"
+            REASONIX_HOOK_FAILED=true
+            echo -e "${RED}  ✗ Failed to generate ${REASONIX_SETTINGS} — Reasonix hooks are NOT wired in.${NC}"
+            echo -e "${RED}${gen_err}${NC}"
         fi
     fi
 else
@@ -2183,6 +2413,12 @@ echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes
 echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
 echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
 echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
+if [ "$REASONIX_HOOK_FAILED" = true ]; then
+    echo -e "${RED}  • FAILED: ~/.reasonix/settings.json was not generated — Reasonix hooks (gates + observers) will NOT fire. See the error above.${NC}"
+fi
+if [ "${REASONIX_HOOK_MISSING:-0}" -gt 0 ]; then
+    echo -e "${RED}  • WARNING: ${REASONIX_HOOK_MISSING} allowlisted Reasonix hook(s) were missing and not mirrored: ${REASONIX_HOOK_MISSING_LIST}${NC}"
+fi
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"

@@ -639,3 +639,94 @@ class TestParityCoverage:
     )
     def test_each_anthropic_pattern_detected(self, snippet, filename, expected_rule):
         assert expected_rule in _rules_hit(snippet, filename)
+
+
+# ---------------------------------------------------------------------------
+# Suppression: inline markers + project ignore-file (vendored-code escape hatch)
+# ---------------------------------------------------------------------------
+
+
+class TestInlineSuppression:
+    def test_no_marker_innerHTML_fires(self):
+        assert "xss-sink" in _rules_hit("el.innerHTML = userInput;", "a.js")
+
+    def test_nosec_token_suppresses(self):
+        assert _findings("el.innerHTML = userInput; // nosec", "a.js") == []
+
+    def test_security_review_ignore_suppresses(self):
+        assert _findings("el.innerHTML = x; // security-review: ignore (vetted)", "a.js") == []
+
+    def test_security_review_ignore_underscore_form(self):
+        assert _findings("el.innerHTML = x;  # security_review ignore", "a.js") == []
+
+    def test_marker_only_affects_its_own_line(self):
+        # First line suppressed, second (no marker) still fires.
+        content = "a.innerHTML = x; // nosec\nb.innerHTML = y;"
+        rules = _rules_hit(content, "a.js")
+        assert "xss-sink" in rules  # the second line still produces a finding
+
+    def test_nosec_requires_word_boundary(self):
+        # An identifier containing 'nosec' must NOT suppress.
+        assert "xss-sink" in _rules_hit("nosecurityHandler.innerHTML = x;", "a.js")
+
+
+class TestIgnoreFile:
+    def _project(self, d, ignore_lines, files):
+        """Create a temp project dir with a .claude/security-review-ignore and files."""
+        root = Path(d)
+        cfg = root / ".claude" / "security-review-ignore"
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        cfg.write_text("\n".join(ignore_lines) + "\n", encoding="utf-8")
+        for rel, content in files.items():
+            fp = root / rel
+            fp.parent.mkdir(parents=True, exist_ok=True)
+            fp.write_text(content, encoding="utf-8")
+        return root
+
+    def test_path_ignored_helper(self):
+        globs = ("core/*", "ui/citylabels/*")
+        assert scan._path_ignored("core/ui/camera/x.js", globs) is True
+        assert scan._path_ignored("ui/citylabels/options/o.js", globs) is True
+        assert scan._path_ignored("ui/rhq-banner.js", globs) is False
+        assert scan._path_ignored("anything.js", ()) is False
+
+    def test_load_ignore_globs(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            root = self._project(d, ["# comment", "", "core/*", "vendor/*"], {})
+            globs = scan._load_ignore_globs(str(root))
+            assert "core/*" in globs and "vendor/*" in globs
+            assert "# comment" not in globs and "" not in globs
+
+    def test_ignored_path_not_scanned_via_cli(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            self._project(
+                d,
+                ["vendored/*"],
+                {
+                    "vendored/x.js": "el.innerHTML = userInput;",
+                    "mine.js": "el.innerHTML = userInput;",
+                },
+            )
+            # Vendored file: ignored -> 0 scanned, 0 findings, exit 0.
+            code, out = _run_cli(["vendored/x.js"], cwd=d)
+            assert out["summary"]["files_scanned"] == 0
+            assert out["summary"]["total"] == 0
+            assert code == 0
+            # Our own file: still scanned and still flagged.
+            code2, out2 = _run_cli(["mine.js"], cwd=d)
+            assert out2["summary"]["files_scanned"] == 1
+            assert out2["summary"]["high"] >= 1
+            assert code2 == 1
+
+    def test_no_ignore_file_is_default_behavior(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "x.js").write_text("el.innerHTML = userInput;", encoding="utf-8")
+            code, out = _run_cli(["x.js"], cwd=d)  # no .claude/security-review-ignore
+            assert out["summary"]["files_scanned"] == 1
+            assert out["summary"]["high"] >= 1

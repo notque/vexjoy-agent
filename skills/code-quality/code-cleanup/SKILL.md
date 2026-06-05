@@ -30,6 +30,7 @@ routing:
     - "tidy code"
     - "remove dead code"
     - "find unused"
+  not_for: "multi-phase workflow orchestration or repo reorganization (use workflow). This skill finds dead code and stale TODOs in place."
   category: code-quality
   pairs_with:
     - code-linting

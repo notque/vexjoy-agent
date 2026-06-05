@@ -28,7 +28,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 4
+_CURRENT_SCHEMA_VERSION = 6
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -173,6 +173,26 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (4, 'add instruction_compliance table for per-observation tracking')"
         )
 
+    if current < 5:
+        # v4 -> v5: append-only per-run telemetry envelope (ADR: learning-telemetry-envelope).
+        # Same DDL a fresh DB gets from _SCHEMA; idempotent IF NOT EXISTS. Old rows untouched.
+        conn.executescript(_TELEMETRY_DDL)
+        conn.execute("PRAGMA user_version = 5")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (5, 'add telemetry_runs table for per-run envelope')"
+        )
+
+    if current < 6:
+        # v5 -> v6: per-route outcome-basis counters (ADR: silent-failure-outcome-quality).
+        # Same DDL a fresh DB gets from _SCHEMA; idempotent IF NOT EXISTS. Old rows untouched.
+        conn.executescript(_BASIS_DDL)
+        conn.execute("PRAGMA user_version = 6")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (6, 'add routing_outcome_basis table for outcome-basis counters')"
+        )
+
     conn.commit()
 
 
@@ -229,7 +249,50 @@ def _migrate_fts(pre_migration_version: int = 0) -> None:
                 pass  # FTS table doesn't exist yet
 
 
-_SCHEMA = """
+# Append-only per-run telemetry envelope (schema v5). Defined standalone so the
+# v4->v5 migration block can run the identical DDL an existing DB never got from
+# _SCHEMA. A fresh DB gets the same table from _SCHEMA below; both are idempotent
+# (IF NOT EXISTS). See ADR: learning-telemetry-envelope.
+_TELEMETRY_DDL = """
+CREATE TABLE IF NOT EXISTS telemetry_runs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id        TEXT NOT NULL,
+    batch_id      TEXT,
+    topic         TEXT NOT NULL,
+    key           TEXT NOT NULL,
+    session_id    TEXT,
+    git_sha       TEXT,
+    model_id      TEXT,
+    skill_version TEXT,
+    token_count   INTEGER,
+    wall_clock_ms INTEGER,
+    tool_errors   INTEGER DEFAULT 0,
+    recorded_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    source        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_telemetry_recorded_at ON telemetry_runs(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_git_sha ON telemetry_runs(git_sha);
+CREATE INDEX IF NOT EXISTS idx_telemetry_topic_key ON telemetry_runs(topic, key);
+CREATE INDEX IF NOT EXISTS idx_telemetry_batch ON telemetry_runs(batch_id);
+"""
+
+
+# Per-route outcome-basis counters (schema v6). Labels each finalized routing
+# outcome by its evidence basis so route-health can report the silent-success
+# share. Additive and idempotent; same DDL a fresh DB gets from _SCHEMA and the
+# v5->v6 migration runs on an existing DB. See ADR: silent-failure-outcome-quality.
+_BASIS_DDL = """
+CREATE TABLE IF NOT EXISTS routing_outcome_basis (
+    key   TEXT NOT NULL,
+    basis TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (key, basis)
+);
+"""
+
+
+_SCHEMA = (
+    """
 CREATE TABLE IF NOT EXISTS learnings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic TEXT NOT NULL,
@@ -369,6 +432,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     description TEXT
 );
 """
+    + _TELEMETRY_DDL
+    + _BASIS_DDL
+)
 
 
 # ─── Injection Defense ────────────────────────────────────────
@@ -526,6 +592,173 @@ def record_learning(
         }
 
 
+# ─── Rightsizing ROI accumulation (ADR: review-tier-roi) ──────
+#
+# The rightsizing:tier{N} row must yield a TRUE per-tier mean, not the last
+# review's sample. record_learning's upsert keeps only the longest `value` and
+# discards per-review numbers, so it cannot store a running mean. This function
+# read-modify-writes running sums in the value envelope under one connection, so
+# review-roi divides true sums by true counts. Findings-bearing and cost counts
+# are tracked separately: a legacy (no-findings) review bumps `reviews` only,
+# never the findings sums or denominator; a review with tokens "-" never enters
+# the token sum. Atomic: SELECT + UPSERT share one connection and commit.
+
+# Order is the stored value's field order; review-roi parses by name, not order.
+_RIGHTSIZING_SUM_FIELDS = (
+    "reviews",  # all banners at this tier (= observation_count)
+    "sum_critical",
+    "sum_high",
+    "sum_medium",
+    "n_findings",  # banners that carried findings= (findings denominator)
+    "sum_tokens",
+    "n_tokens",  # banners with a numeric tokens= (token denominator)
+    "sum_wall_clock_s",
+    "n_wall",  # banners with a numeric wall_clock_s=
+)
+
+
+def _parse_rightsizing_sums(value: str) -> dict[str, int]:
+    """Read the running-sum envelope into ints; missing/non-numeric fields = 0."""
+    sums = dict.fromkeys(_RIGHTSIZING_SUM_FIELDS, 0)
+    for pair in (value or "").split(" | "):
+        if ": " not in pair:
+            continue
+        k, v = pair.split(": ", 1)
+        k = k.strip()
+        if k in sums:
+            try:
+                sums[k] = int(float(v.strip()))
+            except (ValueError, TypeError):
+                pass
+    return sums
+
+
+def accumulate_rightsizing(
+    tier: int,
+    *,
+    critical: int | None = None,
+    high: int | None = None,
+    medium: int | None = None,
+    tokens: int | None = None,
+    wall_clock_s: int | None = None,
+    source: str = "hook:routing-decision-recorder",
+    session_id: str | None = None,
+    confidence: float | None = None,
+) -> dict:
+    """Add one rightsizing review to the tier's running sums. Atomic upsert.
+
+    Pass None for an absent banner field. `critical/high/medium` are all-or-none:
+    when all three are given it counts as a findings-bearing review (bumps
+    n_findings and the severity sums); when all three are None it is a legacy
+    composition-only review (bumps `reviews` alone). `tokens` / `wall_clock_s`
+    each enter their own sum and denominator only when numeric.
+
+    The stored `value` always reflects the new sums (written directly, not via
+    record_learning's longest-value merge). observation_count = reviews at tier.
+    """
+    init_db()
+    now = datetime.now().isoformat()
+    if confidence is None:
+        confidence = CATEGORY_DEFAULTS.get("effectiveness", 0.5)
+
+    key = f"rightsizing:tier{int(tier)}"
+    has_findings = critical is not None and high is not None and medium is not None
+    has_tokens = tokens is not None
+    has_wall = wall_clock_s is not None
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT value FROM learnings WHERE topic = 'routing' AND key = ?",
+            (key,),
+        ).fetchone()
+        sums = _parse_rightsizing_sums(row["value"]) if row else dict.fromkeys(_RIGHTSIZING_SUM_FIELDS, 0)
+
+        sums["reviews"] += 1
+        if has_findings:
+            sums["sum_critical"] += int(critical)
+            sums["sum_high"] += int(high)
+            sums["sum_medium"] += int(medium)
+            sums["n_findings"] += 1
+        if has_tokens:
+            sums["sum_tokens"] += int(tokens)
+            sums["n_tokens"] += 1
+        if has_wall:
+            sums["sum_wall_clock_s"] += int(wall_clock_s)
+            sums["n_wall"] += 1
+
+        value = f"tier: {int(tier)} | " + " | ".join(f"{f}: {sums[f]}" for f in _RIGHTSIZING_SUM_FIELDS)
+        tags_str = ",".join(["routing", "rightsizing", f"tier{int(tier)}"])
+
+        conn.execute(
+            """
+            INSERT INTO learnings
+                (topic, key, value, category, confidence, tags,
+                 source, session_id, first_seen, last_seen)
+            VALUES ('routing', ?, ?, 'effectiveness', ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(topic, key) DO UPDATE SET
+                value = excluded.value,
+                confidence = max(confidence, excluded.confidence),
+                observation_count = observation_count + 1,
+                last_seen = excluded.last_seen,
+                source = excluded.source,
+                tags = COALESCE(excluded.tags, tags)
+            """,
+            (key, value, confidence, tags_str, source, session_id, now, now),
+        )
+        conn.commit()
+
+        out = conn.execute(
+            "SELECT value, observation_count FROM learnings WHERE topic = 'routing' AND key = ?",
+            (key,),
+        ).fetchone()
+        return {"key": key, "value": out["value"], "observation_count": out["observation_count"]}
+
+
+def record_telemetry_run(
+    *,
+    topic: str,
+    key: str,
+    run_id: str,
+    source: str,
+    batch_id: str | None = None,
+    session_id: str | None = None,
+    git_sha: str | None = None,
+    model_id: str | None = None,
+    skill_version: str | None = None,
+    token_count: int | None = None,
+    wall_clock_ms: int | None = None,
+    tool_errors: bool = False,
+) -> None:
+    """Append one per-run telemetry envelope row. Pure INSERT, never upsert.
+
+    Best-effort fields stay NULL when the caller has no value (ADR:
+    learning-telemetry-envelope). NULL is the honest value — it is never
+    coerced to 0, so a query that averages tokens can report its true n.
+    """
+    init_db()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO telemetry_runs (run_id, batch_id, topic, key, session_id, "
+            "git_sha, model_id, skill_version, token_count, wall_clock_ms, tool_errors, source) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                run_id,
+                batch_id,
+                topic,
+                key,
+                session_id,
+                git_sha,
+                model_id,
+                skill_version,
+                token_count,
+                wall_clock_ms,
+                1 if tool_errors else 0,
+                source,
+            ),
+        )
+        conn.commit()
+
+
 def query_learnings(
     *,
     topic: str | None = None,
@@ -604,7 +837,7 @@ def query_learnings(
 
     with get_connection() as conn:
         rows = conn.execute(
-            f"SELECT * FROM learnings WHERE {where} ORDER BY {order_by} LIMIT ?",
+            f"SELECT * FROM learnings WHERE {where} ORDER BY {order_by} LIMIT ?",  # security-review: ignore (internal clauses; user values bound as ?; pre-existing)
             params,
         ).fetchall()
         return [dict(row) for row in rows]
@@ -1085,12 +1318,12 @@ def query_governance_events(
             conditions.append("session_id = ?")
             params.append(session_id)
 
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""  # security-review: ignore (fixed condition strings; pre-existing)  # fmt: skip
         params.append(limit)
 
         with get_connection() as conn:
             rows = conn.execute(
-                f"SELECT * FROM governance_events {where} ORDER BY created_at DESC LIMIT ?",
+                f"SELECT * FROM governance_events {where} ORDER BY created_at DESC LIMIT ?",  # security-review: ignore (fixed clauses; user values bound as ?; pre-existing)
                 params,
             ).fetchall()
             return [dict(row) for row in rows]
@@ -1230,7 +1463,7 @@ def prune_ancillary(
         for table, ts_col, days in table_specs:
             try:
                 cursor = conn.execute(
-                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",
+                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",  # security-review: ignore (table/ts_col from hardcoded table_specs; days bound as ?; pre-existing)
                     (f"-{days} days",),
                 )
                 counts[table] = cursor.rowcount

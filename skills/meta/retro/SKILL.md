@@ -40,6 +40,7 @@ Parse the user's argument to determine the subcommand. Default to `status` if no
 | list | **list** |
 | search TERM | **search** |
 | graduate | **graduate** |
+| what-didnt-work | **what-didnt-work** |
 
 ### Subcommand: status
 
@@ -194,6 +195,46 @@ Entries marked. They will no longer be injected via the hook
 since they are now part of the agent's permanent knowledge.
 ```
 
+### Subcommand: what-didnt-work
+
+Print the negative-results registry, the list of experiments that lost. Read it before re-running an experiment so a known-dead path is not retried.
+
+The registry is a doc, not a DB table: `docs/what-didnt-work.md` is capture, store, and query target. This subcommand reads and prints it, then offers an optional one-line mirror into learning.db for FTS search.
+
+**Step 1**: Read and print the registry.
+
+Use the Read tool on `docs/what-didnt-work.md` and present it. Group by the dated `## YYYY-MM-DD` headings; show each entry's Decision verdict (rejected / deferred / revisit-if) up front so a scan answers "did we already reject this?".
+
+```
+NEGATIVE RESULTS (docs/what-didnt-work.md)
+==========================================
+
+## [date] [experiment]
+  Decision: [rejected | deferred | revisit-if <condition>]
+  What happened: [one line]
+...
+```
+
+If the file is missing, report that no negative results are recorded yet and point the user at the format in `CONTRIBUTING.md`.
+
+**Step 2** (optional): Mirror one line into learning.db for full-text search.
+
+The doc stays canonical. The mirror is one pointer row, not a parallel store. Run only when the user wants the entry FTS-searchable via `/retro search`:
+
+```bash
+python3 ~/.claude/scripts/learning-db.py learn --topic negative-results \
+  "YYYY-MM-DD <experiment>: <decision> - see docs/what-didnt-work.md"
+```
+
+This reuses the existing `learn` command (no new code). Confirm with either:
+
+```bash
+# Topic listing (exact, includes the hyphen):
+python3 ~/.claude/scripts/learning-db.py query --topic negative-results
+# Or FTS (use a space, not the hyphen; the tokenizer splits hyphens):
+python3 ~/.claude/scripts/learning-db.py search "negative results"
+```
+
 ---
 
 ## Examples
@@ -238,3 +279,4 @@ Solution: Report the stats and suggest recording more learnings via normal work.
 - `~/.claude/scripts/learning-db.py` — Python CLI for all database operations
 - `hooks/session-context.py` — Hook that injects the pre-built dream payload and high-confidence patterns at session start (ADR-147, supersedes retro-knowledge-injector.py)
 - `scripts/learning.db` — SQLite database with FTS5 search index
+- `docs/what-didnt-work.md`: Negative-results registry. Printed by the `what-didnt-work` subcommand; the doc is the canonical store.

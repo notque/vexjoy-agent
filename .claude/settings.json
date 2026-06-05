@@ -338,6 +338,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttooluse-sync-agent-index.py\"",
+            "description": "Auto-regenerate agents/INDEX.json when an agent .md is written or edited",
+            "timeout": 15000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-docs-drift-alert.py\"",
             "description": "Alert when INDEX.json or agents/*.md writes may leave documentation out of sync",
             "timeout": 3000

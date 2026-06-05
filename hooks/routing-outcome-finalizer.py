@@ -250,7 +250,7 @@ def main() -> None:
         import time
 
         from learning_db_v2 import init_db
-        from routing_outcome_score import apply_outcome, decision_row_exists
+        from routing_outcome_score import apply_outcome, decision_row_exists, outcome_basis
         from routing_outcome_state import (
             MAX_PENDING_AGE_SEC,
             requeue_pending_outcomes,
@@ -321,7 +321,8 @@ def main() -> None:
             # single pending dispatch this turn); with >1 pending it is ignored.
             reaction_failure = rejected if attributable else False
             failure = bool(item.get("errors")) or reaction_failure
-            new_conf = apply_outcome(key, failure)
+            basis = outcome_basis(bool(item.get("errors")), reaction_failure)
+            new_conf = apply_outcome(key, failure, basis=basis)
             if debug:
                 outcome = "failure" if failure else "success"
                 if item.get("errors"):

@@ -22,6 +22,12 @@ Reasonix's source (src/hooks.ts) reads:
 UserPromptSubmit and Stop have no `match` field. PreToolUse and PostToolUse
 take a single anchored regex over the tool name.
 
+Each allowlist file becomes its OWN entry — files are never `&&`-joined into one
+command. Reasonix spawns each entry independently (own timeout, own stdout, own
+exit code), so one entry per file preserves per-hook block/observer semantics.
+Only the `hooks` key is rewritten; any other top-level key in an existing
+settings.json is preserved.
+
 Usage:
     python3 scripts/generate-reasonix-settings-hooks.py --allowlist scripts/reasonix-hooks-allowlist.txt
     python3 scripts/generate-reasonix-settings-hooks.py --allowlist scripts/reasonix-hooks-allowlist.txt --dry-run
@@ -105,8 +111,17 @@ def parse_allowlist(text: str) -> list[dict]:
     return entries
 
 
-def build_settings(entries: list[dict], reasonix_hooks_dir: str | None = None) -> dict:
-    """Build the Reasonix settings.json structure from parsed allowlist entries.
+def build_hooks(entries: list[dict], reasonix_hooks_dir: str | None = None) -> dict:
+    """Build the Reasonix `hooks` structure from parsed allowlist entries.
+
+    Emits ONE flat entry per allowlist file. Reasonix iterates matching entries
+    sequentially, spawns each as its own process with its own timeout, and reads
+    one decision JSON from each entry's stdout (exit 0 = pass, exit 2 = block on
+    PreToolUse/UserPromptSubmit). We do NOT collapse files that share an
+    (event, match) into one `&&`-joined command: that would give them one shared
+    timeout, merge their stdout into unparseable concatenated JSON, and turn a
+    mid-chain block into a generic shell exit 1 — dropping the block decision and
+    silently skipping every later observer in the group.
 
     Args:
         entries: List of entry dicts from parse_allowlist().
@@ -114,54 +129,50 @@ def build_settings(entries: list[dict], reasonix_hooks_dir: str | None = None) -
             Defaults to $HOME/.reasonix/hooks.
 
     Returns:
-        Dict representing the full settings.json (the "hooks" key only;
-        Reasonix currently only consumes the "hooks" key).
+        Dict mapping each event to its list of hook entries (the value for the
+        settings "hooks" key).
     """
     if reasonix_hooks_dir is None:
         reasonix_hooks_dir = os.path.join(os.environ.get("HOME", "~"), ".reasonix", "hooks")
 
-    # Group by (event, match) so a shared match collapses into one entry.
-    # Each group becomes a single Reasonix hook entry whose command runs all filenames.
-    groups: dict[tuple[str, str | None], list[str]] = {}
-    for entry in entries:
-        key = (entry["event"], entry["match"])
-        groups.setdefault(key, []).append(entry["filename"])
-
-    if not groups:
-        return {"hooks": {}}
-
-    # Reasonix runs hooks sequentially with `&&`-style chaining via the shell;
-    # we emit a single `command` string that runs every file in the group.
-    # This keeps the same effective behavior as separate hook entries while
-    # emitting one entry per match group (matches Reasonix's flat shape).
     hooks_by_event: dict[str, list[dict]] = {}
 
     for event in EVENT_ORDER:
-        event_keys = sorted(
-            (k for k in groups if k[0] == event),
-            key=lambda k: (k[1] is None, k[1] or ""),
-        )
-        if not event_keys:
+        event_entries = [e for e in entries if e["event"] == event]
+        if not event_entries:
             continue
 
-        event_blocks: list[dict] = []
-        for key in event_keys:
-            _, match = key
-            filenames = groups[key]
-            # Chain filenames with `&&` so an early failure short-circuits.
-            chained = " && ".join(f'python3 "{reasonix_hooks_dir}/{fn}"' for fn in filenames)
+        # Stable order: by match (None last), then filename.
+        event_entries.sort(key=lambda e: (e["match"] is None, e["match"] or "", e["filename"]))
 
+        event_blocks: list[dict] = []
+        for entry in event_entries:
             block: dict = {
-                "command": chained,
+                "command": f'python3 "{reasonix_hooks_dir}/{entry["filename"]}"',
                 "timeout": DEFAULT_TIMEOUTS_MS[event],
             }
-            if match is not None:
-                block["match"] = match
+            if entry["match"] is not None:
+                block["match"] = entry["match"]
             event_blocks.append(block)
 
         hooks_by_event[event] = event_blocks
 
-    return {"hooks": hooks_by_event}
+    return hooks_by_event
+
+
+def merge_settings(existing: dict, hooks_data: dict) -> dict:
+    """Merge hooks into existing settings, preserving all other top-level keys.
+
+    Args:
+        existing: Current settings.json content as a dict.
+        hooks_data: Value for the "hooks" key.
+
+    Returns:
+        Updated settings dict with only the "hooks" key replaced.
+    """
+    result = dict(existing)
+    result["hooks"] = hooks_data
+    return result
 
 
 def main() -> None:
@@ -210,18 +221,27 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        result = build_settings(entries, reasonix_hooks_dir=args.reasonix_hooks_dir)
+        hooks_data = build_hooks(entries, reasonix_hooks_dir=args.reasonix_hooks_dir)
     except Exception as exc:
         print(f"Error building settings: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    output_path = Path(args.output)
+
+    # Load existing settings so non-hook top-level keys survive a re-install.
+    existing: dict = {}
+    if output_path.exists():
+        try:
+            existing = json.loads(output_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"Warning: could not read existing {output_path}: {exc}", file=sys.stderr)
+
+    result = merge_settings(existing, hooks_data)
     output_json = json.dumps(result, indent=2)
 
     if args.dry_run:
         print(output_json)
         return
-
-    output_path = Path(args.output)
 
     # Back up existing file before overwriting.
     if output_path.exists():
