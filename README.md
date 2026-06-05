@@ -180,6 +180,13 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 
 Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
 
+## Maintenance
+
+Two report-only scripts surface upkeep work; both print a digest and never edit, delete, or block.
+
+- `python3 scripts/harvest-corrections.py` — clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
+- `python3 scripts/stale-skill-scan.py --top 20` — ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
