@@ -28,6 +28,7 @@ routing:
     - compare implementations
     - grade two versions
     - which skill is better
+  not_for: "creating a new skill from scratch (use skill-creator). This skill evaluates and benchmarks skills that already exist."
   pairs_with:
     - agent-evaluation
     - verification-before-completion

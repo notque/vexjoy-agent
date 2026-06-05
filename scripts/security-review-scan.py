@@ -64,9 +64,7 @@ _DOC_EXTS = (".md", ".mdx", ".txt", ".rst", ".json")
 # is dropped. Mirrors bandit `# nosec` / semgrep `// nosemgrep`. Intended for
 # deliberate, auditable, single-line exceptions (e.g. a vetted vendored sink).
 # `nosec` must be a standalone token so it doesn't fire on unrelated identifiers.
-_INLINE_SUPPRESS_RE = re.compile(
-    r"(?:\bnosec\b|security[-_ ]?review\s*:?\s*ignore)", re.IGNORECASE
-)
+_INLINE_SUPPRESS_RE = re.compile(r"(?:\bnosec\b|security[-_ ]?review\s*:?\s*ignore)", re.IGNORECASE)
 
 # Project/user file listing path globs to skip wholesale (one glob per line,
 # `#` comments, blank lines ignored). For vendored / third-party code we don't
