@@ -46,6 +46,13 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 Operational dead-ends from the implementation program. Reverted approaches and runtime quirks, not experiment hypotheses, so they sit below the dated seed entries. Same six fields, lighter heading.
 
+### 2026-06-05 Installed .git/hooks/* update on generator-change merge
+
+- **Expectation**: merging an `install.sh` generator change (e.g. a new staleness notice in the installed git hook) updates the already-installed `.git/hooks/*` for that repo.
+- **What happened**: installed `.git/hooks/*` are install-time artifacts written by `install_git_hook`; they do NOT regenerate on a code merge. PR #751's staleness notice was absent live after PR #740's merge because the installed hook predated #751 and was never rewritten.
+- **Evidence**: PR #751; PR #740; `install.sh` `install_git_hook`; program negative-notes log, 2026-06-05.
+- **Decision**: rejected. After merging `install.sh` generator changes, rerun `install.sh` (or `install_git_hook`) to rewrite the installed `.git/hooks/*`; merging the generator alone does not update them.
+
 ### 2026-06-05 Post-merge git pull as live hook deployment
 
 - **Expectation**: pulling main after a merge puts the changed hooks live in `~/.claude` immediately via the post-merge sync hook.

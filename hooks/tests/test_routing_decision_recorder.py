@@ -207,6 +207,34 @@ class TestDecisionRecorder:
         keys = {r["key"] for r in _query_routing(db_env)}
         assert "rightsizing:tier3" in keys
 
+    def test_rightsizing_row_recorded_from_live_content_block_shape(self, db_env, monkeypatch):
+        # LIVE PAYLOAD REGRESSION: a real Agent (Task) dispatch returns its final
+        # message as the Anthropic content-block shape — a LIST of
+        # {"type":"text","text":...} blocks — NOT the Bash-style {"output": str}
+        # the other tests simulate. The old get_tool_output read only output/stdout
+        # string keys, so it returned "" for this shape and the banner was missed
+        # (decision + telemetry rows still recorded). This drives the fix.
+        a = _load(A_PATH, "rdr_live_blocks")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        banner = (
+            "rightsizing: tier=3 files=5 packages=3 agents_dispatched=17 "
+            "findings=1C/13H/24M tokens=1984536 wall_clock_s=1667"
+        )
+        event = _agent_event(skill="systematic-code-review")
+        # Replace the Bash-style result with the LIVE content-block list shape
+        # under tool_response (the key live Agent dispatches populate).
+        event["tool_response"] = [{"type": "text", "text": f"summary...\n{banner}"}]
+        event.pop("tool_result", None)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 1" in row["value"]
+        assert "sum_high: 13" in row["value"]
+        assert "sum_medium: 24" in row["value"]
+        assert "sum_tokens: 1984536" in row["value"]
+        assert "sum_wall_clock_s: 1667" in row["value"]
+
     def test_no_rightsizing_row_when_banner_absent(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a5")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)

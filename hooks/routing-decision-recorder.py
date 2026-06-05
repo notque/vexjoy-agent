@@ -133,6 +133,48 @@ def detect_errors(event: dict) -> bool:
         return False
 
 
+def extract_output_text(result: object) -> str:
+    """Flatten a PostToolUse tool_result/tool_response into searchable text.
+
+    The shipped tests simulate the Bash-style ``{"output": "..."}`` shape, but a
+    LIVE Agent (Task) dispatch returns its final message as the Anthropic
+    message-content shape: a LIST of content blocks
+    ``[{"type": "text", "text": "...banner..."}]`` (or a dict carrying that list
+    under ``content``). ``get_tool_output`` only reads the ``output``/``stdout``
+    string keys, so it returned "" for the live shape and the rightsizing banner
+    was never seen (decision + telemetry rows still recorded — they don't read
+    output). This handles every shape and keeps the plain-string path:
+
+      - str                              -> itself
+      - {"output"/"stdout": str}         -> that string (via get_tool_output)
+      - {"text": str}                    -> that string
+      - {"content": <blocks or str>}     -> recurse into content
+      - [block, ...] / content blocks    -> concat each block's text
+    """
+    if result is None:
+        return ""
+    if isinstance(result, str):
+        return result
+    if isinstance(result, list):
+        # A list of content blocks (or nested lists). Concat each block's text.
+        return "\n".join(extract_output_text(block) for block in result)
+    if isinstance(result, dict):
+        # Bash-style output/stdout first (preserves the existing path).
+        from hook_utils import get_tool_output
+
+        out = get_tool_output(result)
+        if out:
+            return out
+        # Content-block dict: {"type": "text", "text": "..."} or {"content": ...}.
+        text = result.get("text")
+        if isinstance(text, str) and text:
+            return text
+        if "content" in result:
+            return extract_output_text(result["content"])
+        return ""
+    return ""
+
+
 def record_rightsizing(output: str, session_id: str | None = None) -> None:
     """(C) Add one rightsizing review to the tier's running sums. Silent when no banner.
 
@@ -245,11 +287,14 @@ def main() -> None:
             tool_errors=has_errors,
         )
 
-        # (C) right-sizing feedback, parse-only.
-        from hook_utils import get_tool_output, get_tool_result
+        # (C) right-sizing feedback, parse-only. extract_output_text flattens
+        # the LIVE Agent content-block shape (list of {"type","text"} blocks)
+        # as well as the Bash-style {"output": "..."} the tests simulate, so the
+        # banner is found regardless of payload shape.
+        from hook_utils import get_tool_result
 
-        output = get_tool_output(get_tool_result(event))
-        if isinstance(output, str):
+        output = extract_output_text(get_tool_result(event))
+        if output:
             record_rightsizing(output, session_id)
 
         # Bridge to the SubagentStop outcome hook (action B). The dispatch was
