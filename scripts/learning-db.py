@@ -1152,6 +1152,23 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     basis_total = strong + default_success
     silent_share = (default_success / basis_total) if basis_total else None
 
+    # Correction rate (ADR: correction-harvesting). Share of routed sessions that
+    # drew correction language, plus corrections with no concurrent /do route.
+    # Read-only: adds informational lines, changes no boost/decay, no schema.
+    corrections = query_learnings(
+        topic="user-correction",
+        category="correction",
+        min_confidence=0.65,
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=True,
+    )
+    corr_sessions = {c["session_id"] for c in corrections if c.get("session_id")}
+    routed_sessions = {r["session_id"] for r in results if r.get("session_id")}
+    routed_with_corr = len(corr_sessions & routed_sessions)
+    pct_corr = (routed_with_corr / len(routed_sessions) * 100) if routed_sessions else 0.0
+    unattributed_corr = len(corr_sessions - routed_sessions)
+
     if as_json:
         print(
             json.dumps(
@@ -1168,6 +1185,10 @@ def cmd_route_health(args: argparse.Namespace) -> None:
                     "default_success": default_success,
                     "silent_success_share": silent_share,
                     "governed_path_coverage": round(pct, 1),
+                    "correction_rate_pct": round(pct_corr, 1),
+                    "routed_sessions_with_correction": routed_with_corr,
+                    "routed_sessions": len(routed_sessions),
+                    "unattributed_corrections": unattributed_corr,
                 },
                 indent=2,
             )
@@ -1187,6 +1208,11 @@ def cmd_route_health(args: argparse.Namespace) -> None:
         print(f"  default_no_complaint {basis['default_no_complaint']}")
         print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
     print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
+    print(
+        f"Correction rate: {routed_with_corr}/{len(routed_sessions)} "
+        f"routed sessions drew correction language ({pct_corr:.0f}%)"
+    )
+    print(f"Unattributed corrections: {unattributed_corr} (correction with no concurrent /do route)")
 
 
 def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
