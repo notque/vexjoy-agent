@@ -11,6 +11,7 @@ routing:
     - "hiring"
     - "onboarding"
     - "org planning"
+  not_for: "code performance review (use reviewer-code). This skill covers people performance reviews and HR operations."
   category: business
   force_route: false
   pairs_with:
