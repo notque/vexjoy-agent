@@ -1292,6 +1292,20 @@ for runtime_dir in     "$HOME/.claude" "$HOME/.codex" "$HOME/.gemini"     "$HOME
     done
   done
 done
+
+# Deploy-staleness notice (warn-only): the sync above is add-only, so an EDITED
+# hook/script stays stale in ~/.claude until sync-to-user-claude.py runs. If this
+# merge touched hooks/ or scripts/, tell the user to redeploy. Guarded so it can
+# never fail the merge; the hook always exits 0.
+if git rev-parse --verify -q ORIG_HEAD >/dev/null 2>&1 && git rev-parse --verify -q HEAD >/dev/null 2>&1; then
+  changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null | grep -E '^(hooks|scripts)/' || true)"
+  if [ -n "$changed" ]; then
+    echo "[vexjoy-agent] hook/script changes merged — run:"
+    echo "  python3 ~/.claude/hooks/sync-to-user-claude.py"
+    echo "to deploy live (or restart the session)."
+  fi
+fi
+exit 0
 HOOK
     chmod +x "$hook"
     echo -e "${GREEN}  ✓ Installed post-merge hook: ${hook}${NC}"
