@@ -714,11 +714,20 @@ def _cohort_tokens(conn, where: str, params: list[str]) -> dict:
 # "best" tier — a humility gate, not a merge gate (ADR: review-tier-roi).
 ROI_MIN_REVIEWS = 20
 
-# Severity fields whose per-tier average is always reported.
-_ROI_FINDINGS_FIELDS = ("findings_critical", "findings_high", "findings_medium")
-# Cost fields that are nullable: a "-" value is skipped, never counted as 0.
-_ROI_COST_FIELDS = ("tokens", "wall_clock_s")
 _RIGHTSIZING_KEY_RE = re.compile(r"^rightsizing:tier(\d+)$")
+# Running-sum fields stored by accumulate_rightsizing (learning_db_v2). review-roi
+# divides these true sums by their true counts — no per-review sample survives.
+_RIGHTSIZING_SUM_KEYS = (
+    "reviews",
+    "sum_critical",
+    "sum_high",
+    "sum_medium",
+    "n_findings",
+    "sum_tokens",
+    "n_tokens",
+    "sum_wall_clock_s",
+    "n_wall",
+)
 
 
 def _parse_pipe_value(value: str) -> dict[str, str]:
@@ -731,6 +740,14 @@ def _parse_pipe_value(value: str) -> dict[str, str]:
     return parsed
 
 
+def _to_int(s: str | None) -> int:
+    """Read a stored sum/count field to int; non-numeric or missing => 0."""
+    try:
+        return int(float(s))
+    except (ValueError, TypeError):
+        return 0
+
+
 def _avg(total: float, count: int) -> float | None:
     """Average, or None when there is no contributing row (n/a, not 0)."""
     return round(total / count, 2) if count else None
@@ -739,10 +756,16 @@ def _avg(total: float, count: int) -> float | None:
 def _compute_review_roi() -> list[dict]:
     """Aggregate rightsizing:tier{N} rows into per-tier ROI dicts, tier ascending.
 
-    reviews = observation_count (reviews recorded at that tier). Findings are
-    averaged over reviews. Cost fields average only over rows with a numeric
-    value; an all-"-" tier reports null (n/a). Tiers with zero findings-bearing
-    reviews are excluded (a composition-only banner carries no findings)."""
+    Each row stores RUNNING SUMS, not one sample, so averages are true means
+    (ADR: review-tier-roi). Findings averages divide sum_critical/high/medium by
+    n_findings (findings-bearing reviews only) — legacy no-findings reviews are
+    counted in `reviews` but never inflate the findings denominator. Cost
+    averages divide sum_tokens by n_tokens (and wall by n_wall); an all-"-" tier
+    has n_tokens 0 and reports null (n/a, not 0). A tier with zero
+    findings-bearing reviews (n_findings 0) is excluded from the table.
+
+    `reviews` displayed = n_findings (the reviews the findings averages rest on),
+    so the count and the averages describe the same sample."""
     rows = query_learnings(
         topic="routing",
         category="effectiveness",
@@ -750,50 +773,36 @@ def _compute_review_roi() -> list[dict]:
         exclude_graduated=False,
         exclude_test_sources=False,
     )
-    # Per tier: review count + running sums for findings (per-review) and cost.
-    agg: dict[int, dict] = {}
+    # One row per tier carries the running sums; merge defensively if duplicated.
+    agg: dict[int, dict[str, int]] = {}
     for r in rows:
         m = _RIGHTSIZING_KEY_RE.match(r["key"])
         if not m:
             continue
-        fields = _parse_pipe_value(r["value"])
-        # A findings-bearing review has numeric severity counts (not "-").
-        if any(fields.get(f, "-") == "-" for f in _ROI_FINDINGS_FIELDS):
-            continue
+        f = _parse_pipe_value(r["value"])
         tier = int(m.group(1))
-        reviews = int(r.get("observation_count", 1) or 1)
-        a = agg.setdefault(
-            tier,
-            {
-                "reviews": 0,
-                "findings": dict.fromkeys(_ROI_FINDINGS_FIELDS, 0.0),
-                "cost": {c: [0.0, 0] for c in _ROI_COST_FIELDS},
-            },
-        )
-        a["reviews"] += reviews
-        for f in _ROI_FINDINGS_FIELDS:
-            a["findings"][f] += float(fields[f]) * reviews
-        for c in _ROI_COST_FIELDS:
-            raw = fields.get(c, "-")
-            if raw != "-":
-                a["cost"][c][0] += float(raw) * reviews
-                a["cost"][c][1] += reviews
+        a = agg.setdefault(tier, dict.fromkeys(_RIGHTSIZING_SUM_KEYS, 0))
+        for k in _RIGHTSIZING_SUM_KEYS:
+            a[k] += _to_int(f.get(k))
 
-    total_reviews = sum(a["reviews"] for a in agg.values())
+    # Reviews underpinning the findings averages, summed across findings-bearing tiers.
+    total_reviews = sum(a["n_findings"] for a in agg.values() if a["n_findings"])
     insufficient = total_reviews < ROI_MIN_REVIEWS
     out = []
     for tier in sorted(agg):
         a = agg[tier]
-        n = a["reviews"]
+        nf = a["n_findings"]
+        if nf <= 0:
+            continue  # composition-only tier: no findings to average
         out.append(
             {
                 "tier": tier,
-                "reviews": n,
-                "avg_critical": _avg(a["findings"]["findings_critical"], n),
-                "avg_high": _avg(a["findings"]["findings_high"], n),
-                "avg_medium": _avg(a["findings"]["findings_medium"], n),
-                "avg_tokens": _avg(*a["cost"]["tokens"]),
-                "avg_wall_clock_s": _avg(*a["cost"]["wall_clock_s"]),
+                "reviews": nf,
+                "avg_critical": _avg(a["sum_critical"], nf),
+                "avg_high": _avg(a["sum_high"], nf),
+                "avg_medium": _avg(a["sum_medium"], nf),
+                "avg_tokens": _avg(a["sum_tokens"], a["n_tokens"]),
+                "avg_wall_clock_s": _avg(a["sum_wall_clock_s"], a["n_wall"]),
                 "insufficient_data": insufficient,
             }
         )

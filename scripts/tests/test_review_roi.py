@@ -54,25 +54,33 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return db_dir
 
 
-def _seed_tier(tier, *, critical, high, medium, tokens="-", wall="-", reviews=1):
-    """Seed a rightsizing:tier{N} row, bumping observation_count to `reviews`.
+def _seed_tier(tier, *, critical, high, medium, tokens=None, wall=None, reviews=1):
+    """Seed `reviews` identical findings-bearing reviews at a tier.
 
-    Value uses the pipe-delimited `k: v` envelope cmd_review_roi parses.
+    Each call accumulates into the tier's running sums via the same path the
+    hook uses (accumulate_rightsizing). tokens/wall None => no cost recorded.
     """
-    value = (
-        f"tier: {tier} | files: 10 | packages: 2 | agents_dispatched: 12 | "
-        f"findings_critical: {critical} | findings_high: {high} | "
-        f"findings_medium: {medium} | tokens: {tokens} | wall_clock_s: {wall}"
-    )
     for _ in range(reviews):
-        _ld2_repo.record_learning(
-            topic="routing",
-            key=f"rightsizing:tier{tier}",
-            value=value,
-            category="effectiveness",
-            tags=["routing", "rightsizing", f"tier{tier}"],
-            source="hook:routing-decision-recorder",
+        _ld2_repo.accumulate_rightsizing(
+            tier,
+            critical=critical,
+            high=high,
+            medium=medium,
+            tokens=tokens,
+            wall_clock_s=wall,
         )
+
+
+def _seed_review(tier, *, critical=None, high=None, medium=None, tokens=None, wall=None):
+    """Seed ONE review at a tier. critical/high/medium None => legacy (no findings)."""
+    _ld2_repo.accumulate_rightsizing(
+        tier,
+        critical=critical,
+        high=high,
+        medium=medium,
+        tokens=tokens,
+        wall_clock_s=wall,
+    )
 
 
 def _run_json():
@@ -97,9 +105,9 @@ def _run_human():
 
 class TestRoiMath:
     def test_per_tier_averages(self, isolated_db):
-        # Two tiers, each seeded so observation_count = reviews.
+        # Two tiers, each seeded with `reviews` identical findings-bearing reviews.
         _seed_tier(1, critical=0, high=2, medium=4, reviews=14)
-        _seed_tier(3, critical=1, high=3, medium=6, tokens="84000", wall="310", reviews=8)
+        _seed_tier(3, critical=1, high=3, medium=6, tokens=84000, wall=310, reviews=8)
         rows = {r["tier"]: r for r in _run_json()}
 
         assert rows[1]["reviews"] == 14
@@ -111,6 +119,39 @@ class TestRoiMath:
         assert rows[3]["avg_critical"] == 1.0
         assert rows[3]["avg_tokens"] == 84000.0
         assert rows[3]["avg_wall_clock_s"] == 310.0
+
+    def test_differing_per_review_findings_yield_true_mean(self, isolated_db):
+        # The bug this fix exists for: per-review findings 2,5,0 must average to
+        # 2.33 (7/3), not a single stored sample. The old single-row model
+        # reported 2.0 (one arbitrary row's value).
+        for c, h, m in ((2, 1, 0), (5, 2, 3), (0, 0, 1)):
+            _seed_review(3, critical=c, high=h, medium=m)
+        row = next(r for r in _run_json() if r["tier"] == 3)
+        assert row["reviews"] == 3
+        assert row["avg_critical"] == 2.33  # 7 / 3
+        assert row["avg_high"] == 1.0  # 3 / 3
+        assert row["avg_medium"] == 1.33  # 4 / 3
+
+    def test_tokens_mean_skips_dash_review(self, isolated_db):
+        # tokens 50000, 80000, and one review with no tokens => mean 65000 over
+        # n=2, attributed to the two reviews that actually carried tokens.
+        _seed_review(3, critical=1, high=1, medium=1, tokens=50000, wall=100)
+        _seed_review(3, critical=1, high=1, medium=1, tokens=80000, wall=200)
+        _seed_review(3, critical=1, high=1, medium=1)  # no cost
+        row = next(r for r in _run_json() if r["tier"] == 3)
+        assert row["reviews"] == 3  # three findings-bearing reviews
+        assert row["avg_tokens"] == 65000.0  # (50000 + 80000) / 2
+        assert row["avg_wall_clock_s"] == 150.0  # (100 + 200) / 2
+
+    def test_legacy_review_excluded_from_findings_mean(self, isolated_db):
+        # A tier mixing findings-bearing and legacy (no-findings) reviews: the
+        # legacy review counts in neither the findings denominator nor the sums.
+        _seed_review(2, critical=4, high=2, medium=2)  # findings-bearing
+        _seed_review(2, critical=2, high=0, medium=0)  # findings-bearing
+        _seed_review(2)  # legacy, no findings
+        row = next(r for r in _run_json() if r["tier"] == 2)
+        assert row["reviews"] == 2  # only findings-bearing reviews
+        assert row["avg_critical"] == 3.0  # (4 + 2) / 2, legacy not in denominator
 
     def test_tiers_sorted_ascending(self, isolated_db):
         _seed_tier(4, critical=1, high=1, medium=1, reviews=11)
