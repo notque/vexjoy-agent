@@ -24,16 +24,20 @@ Usage:
     python3 scripts/learning-db.py record-waste --session SESSION_ID --tokens 1500
     python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
     python3 scripts/learning-db.py roi [--json]
-    python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override [--json]
+    python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override|week|day [--json]
+    python3 scripts/learning-db.py review-roi [--json]
+    python3 scripts/learning-db.py route-delta --from REF --to REF [--key AGENT:SKILL] [--metric error|tokens] [--json]
+    python3 scripts/learning-db.py telemetry-query --topic eval:evals/<dir> [--git-sha SHA] [--format json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
-    python3 scripts/learning-db.py route-health
+    python3 scripts/learning-db.py route-health [--json]
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
 """
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta
@@ -174,10 +178,10 @@ def cmd_export(args):
 def cmd_import(args):
     if args.from_retro:
         result = import_from_retro(args.from_retro)
-        print(f"Imported from retro: {result['imported']} entries, {result['skipped']} skipped")
+        print(f"Imported from retro: {result['imported']} entries, {result['skipped']} skipped")  # security-review: ignore (print, not SQL; pre-existing)  # fmt: skip
     elif args.from_patterns:
         result = import_from_patterns_db(args.from_patterns)
-        print(f"Imported from patterns.db: {result['imported']} entries, {result['skipped']} skipped")
+        print(f"Imported from patterns.db: {result['imported']} entries, {result['skipped']} skipped")  # security-review: ignore (print, not SQL; pre-existing)  # fmt: skip
     else:
         print("Specify --from-retro or --from-patterns")
         sys.exit(1)
@@ -547,6 +551,13 @@ def cmd_roi(args: argparse.Namespace) -> None:
 def cmd_route_stats(args: argparse.Namespace) -> None:
     """Display routing decision statistics."""
     init_db()
+
+    # Time-series dimensions (ADR: learning-telemetry-envelope) read the
+    # append-only telemetry_runs table, not the aggregated learnings value string.
+    if args.by in ("week", "day"):
+        _route_stats_time_series(args)
+        return
+
     results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
 
     if not results:
@@ -607,6 +618,330 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         import json as json_mod
 
         print(json_mod.dumps(records, indent=2, default=str))
+
+
+# Default minimum cohort size below which route-delta prints a low-sample WARNING.
+# Report-only — it never blocks; the numbers still print (ADR: learning-telemetry-envelope).
+MIN_N = 5
+
+
+def _route_stats_time_series(args: argparse.Namespace) -> None:
+    """route-stats --by week|day: per-period run/error counts from telemetry_runs."""
+    # strftime period format: ISO-ish week ('%Y-W%W') or calendar day ('%Y-%m-%d').
+    period_fmt = "%Y-W%W" if args.by == "week" else "%Y-%m-%d"
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT strftime(?, recorded_at) AS period, "
+            "COUNT(*) AS runs, "
+            "COALESCE(SUM(tool_errors), 0) AS errors, "
+            "ROUND(100.0 * SUM(tool_errors) / COUNT(*), 1) AS error_pct "
+            "FROM telemetry_runs WHERE topic = 'routing' "
+            "GROUP BY period ORDER BY period",
+            (period_fmt,),
+        ).fetchall()
+
+    data = [
+        {"period": r["period"], "runs": r["runs"], "errors": r["errors"], "error_pct": r["error_pct"]} for r in rows
+    ]
+
+    if args.json:
+        print(json.dumps(data, indent=2, default=str))
+        return
+
+    if not data:
+        print("No telemetry runs yet. Telemetry captures from the next /do dispatch after merge+sync.")
+        return
+
+    label = "Week" if args.by == "week" else "Day"
+    max_runs = max(row["runs"] for row in data) or 1
+    print(f"Routing telemetry by {label.lower()} ({sum(row['runs'] for row in data)} runs)")
+    print("-" * 56)
+    print(f"{label:<11} {'runs':>5} {'errors':>7} {'err%':>6}  bar")
+    for row in data:
+        bar = "#" * max(1, round(20 * row["runs"] / max_runs))
+        pct = row["error_pct"] if row["error_pct"] is not None else 0.0
+        print(f"{row['period']:<11} {row['runs']:>5} {row['errors']:>7} {pct:>5.1f}%  {bar}")
+
+
+def _resolve_cohort(conn, ref: str, key: str | None) -> str:
+    """Build the WHERE clause for one cohort ref (git-SHA prefix or date), with params.
+
+    A `ref` that is all hex and >=4 chars is treated as a git-SHA prefix matched
+    against telemetry_runs.git_sha; otherwise it is matched as a date prefix on
+    recorded_at. --key further scopes to one route. Returns (where_sql, params).
+    """
+    clauses = ["topic = 'routing'"]
+    params: list[str] = []
+    is_sha = len(ref) >= 4 and all(c in "0123456789abcdefABCDEF" for c in ref)
+    if is_sha:
+        clauses.append("git_sha LIKE ?")
+        params.append(ref + "%")
+    else:
+        clauses.append("recorded_at LIKE ?")
+        params.append(ref + "%")
+    if key:
+        clauses.append("key = ?")
+        params.append(key)
+    return " AND ".join(clauses), params
+
+
+def _cohort_error(conn, where: str, params: list[str]) -> dict:
+    """Error-rate stats for one cohort."""
+    # `where` is built only from fixed clauses; all user values are bound as ? params.
+    row = conn.execute(
+        f"SELECT COUNT(*) AS runs, COALESCE(SUM(tool_errors), 0) AS errors FROM telemetry_runs WHERE {where}",  # security-review: ignore (fixed clauses; user values bound as ?)
+        params,
+    ).fetchone()
+    runs = row["runs"]
+    errors = row["errors"]
+    pct = round(100.0 * errors / runs, 1) if runs else None
+    return {"runs": runs, "errors": errors, "error_pct": pct}
+
+
+def _cohort_tokens(conn, where: str, params: list[str]) -> dict:
+    """Token stats for one cohort. n counts NON-NULL token rows only; NULL never
+    counts as 0 (ADR NULL-tolerance)."""
+    # `where` is built only from fixed clauses; all user values are bound as ? params.
+    row = conn.execute(
+        f"SELECT COUNT(token_count) AS n, AVG(token_count) AS avg_tokens, COUNT(*) AS runs FROM telemetry_runs WHERE {where}",  # security-review: ignore (fixed clauses; user values bound as ?)
+        params,
+    ).fetchone()
+    n = row["n"]
+    avg = round(row["avg_tokens"], 1) if row["avg_tokens"] is not None else None
+    return {"runs": row["runs"], "n": n, "avg_tokens": avg}
+
+
+# Below this many findings-bearing reviews the ROI table refuses to assert a
+# "best" tier — a humility gate, not a merge gate (ADR: review-tier-roi).
+ROI_MIN_REVIEWS = 20
+
+_RIGHTSIZING_KEY_RE = re.compile(r"^rightsizing:tier(\d+)$")
+# Running-sum fields stored by accumulate_rightsizing (learning_db_v2). review-roi
+# divides these true sums by their true counts — no per-review sample survives.
+_RIGHTSIZING_SUM_KEYS = (
+    "reviews",
+    "sum_critical",
+    "sum_high",
+    "sum_medium",
+    "n_findings",
+    "sum_tokens",
+    "n_tokens",
+    "sum_wall_clock_s",
+    "n_wall",
+)
+
+
+def _parse_pipe_value(value: str) -> dict[str, str]:
+    """Parse a pipe-delimited `k: v | k: v` value into a dict (route-stats format)."""
+    parsed: dict[str, str] = {}
+    for pair in value.split(" | "):
+        if ": " in pair:
+            k, v = pair.split(": ", 1)
+            parsed[k.strip()] = v.strip()
+    return parsed
+
+
+def _to_int(s: str | None) -> int:
+    """Read a stored sum/count field to int; non-numeric or missing => 0."""
+    try:
+        return int(float(s))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _avg(total: float, count: int) -> float | None:
+    """Average, or None when there is no contributing row (n/a, not 0)."""
+    return round(total / count, 2) if count else None
+
+
+def _compute_review_roi() -> list[dict]:
+    """Aggregate rightsizing:tier{N} rows into per-tier ROI dicts, tier ascending.
+
+    Each row stores RUNNING SUMS, not one sample, so averages are true means
+    (ADR: review-tier-roi). Findings averages divide sum_critical/high/medium by
+    n_findings (findings-bearing reviews only) — legacy no-findings reviews are
+    counted in `reviews` but never inflate the findings denominator. Cost
+    averages divide sum_tokens by n_tokens (and wall by n_wall); an all-"-" tier
+    has n_tokens 0 and reports null (n/a, not 0). A tier with zero
+    findings-bearing reviews (n_findings 0) is excluded from the table.
+
+    `reviews` displayed = n_findings (the reviews the findings averages rest on),
+    so the count and the averages describe the same sample."""
+    rows = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+    # One row per tier carries the running sums; merge defensively if duplicated.
+    agg: dict[int, dict[str, int]] = {}
+    for r in rows:
+        m = _RIGHTSIZING_KEY_RE.match(r["key"])
+        if not m:
+            continue
+        f = _parse_pipe_value(r["value"])
+        tier = int(m.group(1))
+        a = agg.setdefault(tier, dict.fromkeys(_RIGHTSIZING_SUM_KEYS, 0))
+        for k in _RIGHTSIZING_SUM_KEYS:
+            a[k] += _to_int(f.get(k))
+
+    # Reviews underpinning the findings averages, summed across findings-bearing tiers.
+    total_reviews = sum(a["n_findings"] for a in agg.values() if a["n_findings"])
+    insufficient = total_reviews < ROI_MIN_REVIEWS
+    out = []
+    for tier in sorted(agg):
+        a = agg[tier]
+        nf = a["n_findings"]
+        if nf <= 0:
+            continue  # composition-only tier: no findings to average
+        out.append(
+            {
+                "tier": tier,
+                "reviews": nf,
+                "avg_critical": _avg(a["sum_critical"], nf),
+                "avg_high": _avg(a["sum_high"], nf),
+                "avg_medium": _avg(a["sum_medium"], nf),
+                "avg_tokens": _avg(a["sum_tokens"], a["n_tokens"]),
+                "avg_wall_clock_s": _avg(a["sum_wall_clock_s"], a["n_wall"]),
+                "insufficient_data": insufficient,
+            }
+        )
+    return out
+
+
+def cmd_review_roi(args: argparse.Namespace) -> None:
+    """review-roi: per-tier review cost/findings ROI (report-only, never blocks)."""
+    init_db()
+    data = _compute_review_roi()
+    total_reviews = sum(r["reviews"] for r in data)
+
+    if args.json:
+        print(json.dumps(data, indent=2, default=str))
+        return
+
+    if not data:
+        print("No review-ROI data. Run reviews that emit findings= in the rightsizing banner.")
+        return
+
+    def _cell(v: float | None) -> str:
+        return "n/a" if v is None else f"{v:g}"
+
+    print(f"Review-Tier ROI  ({total_reviews} reviews)")
+    print(
+        f"{'Tier':<5} {'Reviews':>8} {'Avg Crit':>9} {'Avg High':>9} {'Avg Med':>8} {'Avg Tokens':>11} {'Avg Wall(s)':>12}"
+    )
+    for r in data:
+        print(
+            f"{r['tier']:<5} {r['reviews']:>8} {_cell(r['avg_critical']):>9} {_cell(r['avg_high']):>9} "
+            f"{_cell(r['avg_medium']):>8} {_cell(r['avg_tokens']):>11} {_cell(r['avg_wall_clock_s']):>12}"
+        )
+    if data and data[0]["insufficient_data"]:
+        print(
+            f"INSUFFICIENT DATA: {total_reviews} reviews (<{ROI_MIN_REVIEWS}). "
+            "Numbers shown for inspection; do not act on them."
+        )
+
+
+def cmd_route_delta(args: argparse.Namespace) -> None:
+    """route-delta --from REF --to REF: 'did that change help?' cohort comparison.
+
+    Report-only — a low sample prints a WARNING but never blocks (exit 0).
+    """
+    init_db()
+    metric = args.metric
+    with get_connection() as conn:
+        where_a, params_a = _resolve_cohort(conn, args.from_ref, args.key)
+        where_b, params_b = _resolve_cohort(conn, args.to_ref, args.key)
+        if metric == "tokens":
+            cohort_a = _cohort_tokens(conn, where_a, params_a)
+            cohort_b = _cohort_tokens(conn, where_b, params_b)
+        else:
+            cohort_a = _cohort_error(conn, where_a, params_a)
+            cohort_b = _cohort_error(conn, where_b, params_b)
+
+    if metric == "tokens":
+        a_val = cohort_a["avg_tokens"]
+        b_val = cohort_b["avg_tokens"]
+        delta = round(b_val - a_val, 1) if (a_val is not None and b_val is not None) else None
+        result = {"metric": "tokens", "from": cohort_a, "to": cohort_b, "delta_tokens": delta}
+    else:
+        a_pct = cohort_a["error_pct"]
+        b_pct = cohort_b["error_pct"]
+        delta = round(b_pct - a_pct, 1) if (a_pct is not None and b_pct is not None) else None
+        result = {"metric": "error", "from": cohort_a, "to": cohort_b, "delta_pts": delta}
+
+    if args.json:
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    scope = f"  key={args.key}" if args.key else ""
+    print(f"route-delta  metric={metric}  from={args.from_ref}  to={args.to_ref}{scope}")  # security-review: ignore (print, not SQL)  # fmt: skip
+    print("-" * 56)
+    if metric == "tokens":
+        a_disp = f"{cohort_a['avg_tokens']}" if cohort_a["avg_tokens"] is not None else "n/a"
+        b_disp = f"{cohort_b['avg_tokens']}" if cohort_b["avg_tokens"] is not None else "n/a"
+        print(f"Cohort A ({args.from_ref}): {cohort_a['runs']:>4} runs, avg tokens {a_disp} (n={cohort_a['n']})")
+        print(f"Cohort B ({args.to_ref}): {cohort_b['runs']:>4} runs, avg tokens {b_disp} (n={cohort_b['n']})")
+        if delta is not None:
+            direction = "fewer" if delta < 0 else "more"
+            print(f"Delta: {delta:+} tokens ({direction})   n_A={cohort_a['n']} n_B={cohort_b['n']}")
+        else:
+            print("Delta: n/a (a cohort has no non-NULL token_count)")
+    else:
+        a_pct = f"{cohort_a['error_pct']:.1f}%" if cohort_a["error_pct"] is not None else "n/a"
+        b_pct = f"{cohort_b['error_pct']:.1f}%" if cohort_b["error_pct"] is not None else "n/a"
+        print(f"Cohort A ({args.from_ref}): {cohort_a['runs']:>4} runs, {cohort_a['errors']:>3} errors ({a_pct})")
+        print(f"Cohort B ({args.to_ref}): {cohort_b['runs']:>4} runs, {cohort_b['errors']:>3} errors ({b_pct})")
+        if delta is not None:
+            direction = "improved" if delta < 0 else ("worse" if delta > 0 else "flat")
+            print(f"Delta: {delta:+} pts error rate  ({direction})   n_A={cohort_a['runs']} n_B={cohort_b['runs']}")
+        else:
+            print("Delta: n/a (a cohort has no runs)")
+
+    # Low-sample advisory — report-only, never blocks.
+    for label, n in (("A", cohort_a["runs"]), ("B", cohort_b["runs"])):
+        if n < MIN_N:
+            print(f"WARNING: cohort {label} has only {n} run(s) (< MIN_N={MIN_N}); treat the delta as low-confidence.")
+
+
+def cmd_telemetry_query(args: argparse.Namespace) -> None:
+    """telemetry-query --topic T [--git-sha SHA]: read per-run rows from telemetry_runs.
+
+    PR-A's envelope (git_sha/model_id/skill_version) lives in telemetry_runs, not
+    on learnings. This reads those rows back by topic, optionally scoped to a
+    git-SHA prefix. Used to verify an ablation run landed under its head SHA.
+    Report-only; exit 0.
+    """
+    init_db()
+    # Fixed clauses only; all user values are bound as ? params.
+    clauses = ["topic = ?"]
+    params: list = [args.topic]
+    if args.git_sha:
+        clauses.append("git_sha LIKE ?")
+        params.append(args.git_sha + "%")
+    if args.key:
+        clauses.append("key = ?")
+        params.append(args.key)
+    where = " AND ".join(clauses)
+    params.append(args.limit)
+    with get_connection() as conn:
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                f"SELECT * FROM telemetry_runs WHERE {where} ORDER BY recorded_at DESC LIMIT ?",  # security-review: ignore (fixed clauses; user values bound as ?)
+                params,
+            ).fetchall()
+        ]
+
+    if args.format == "json":
+        print(json.dumps(rows, indent=2, default=str))
+        return
+    if not rows:
+        print(f"No telemetry runs for topic={args.topic}.")
+        return
+    for r in rows:
+        print(f"{r['recorded_at']}  {r['topic']}/{r['key']}  git_sha={r['git_sha']}  source={r['source']}")
 
 
 def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
@@ -758,9 +1093,31 @@ def cmd_skip_rate(args: argparse.Namespace) -> None:
         print("No instructions flagged. Threshold: >20% skip rate over 30+ observations.")
 
 
+_BASIS_LABELS = ("rejection_detected", "tool_errors_only", "default_no_complaint")
+
+
+def _read_basis_counts() -> dict[str, int]:
+    """Sum routing_outcome_basis counts per label. Best-effort: {} on any error.
+
+    All three labels are always present (0 when unseen) so callers never
+    KeyError. Table absent / unreadable (pre-v6 DB) => all zeros.
+    """
+    counts = {label: 0 for label in _BASIS_LABELS}
+    try:
+        with get_connection() as conn:
+            rows = conn.execute("SELECT basis, SUM(count) AS n FROM routing_outcome_basis GROUP BY basis").fetchall()
+        for row in rows:
+            if row["basis"] in counts:
+                counts[row["basis"]] = int(row["n"] or 0)
+    except Exception:
+        pass
+    return counts
+
+
 def cmd_route_health(args: argparse.Namespace) -> None:
     """Display a quick health summary of routing entries."""
     init_db()
+    as_json = getattr(args, "json", False)
     results = query_learnings(
         topic="routing",
         category="effectiveness",
@@ -772,7 +1129,10 @@ def cmd_route_health(args: argparse.Namespace) -> None:
 
     total = len(results)
     if total == 0:
-        print("No routing entries found.")
+        if as_json:
+            print(json.dumps({"total": 0, "entries_with_outcomes": 0}, indent=2))
+        else:
+            print("No routing entries found.")
         return
 
     baseline = sum(1 for r in results if r["success_count"] == 0 and r["failure_count"] == 0)
@@ -780,12 +1140,79 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     decayed_count = sum(1 for r in results if r["failure_count"] > 0)
     has_outcome = total - baseline
     pct = has_outcome / total * 100
+    status = "CLOSED" if pct >= 50 else "OPEN"
+    no_outcome_pct = baseline / total * 100
+
+    # Outcome-basis split (ADR: silent-failure-outcome-quality). strong-feedback
+    # = an observed signal scored the outcome; default-success = success on
+    # silence (upper bound on silent success, NOT confirmed silent failures).
+    basis = _read_basis_counts()
+    strong = basis["rejection_detected"] + basis["tool_errors_only"]
+    default_success = basis["default_no_complaint"]
+    basis_total = strong + default_success
+    silent_share = (default_success / basis_total) if basis_total else None
+
+    # Correction rate (ADR: correction-harvesting). Share of routed sessions that
+    # drew correction language, plus corrections with no concurrent /do route.
+    # Read-only: adds informational lines, changes no boost/decay, no schema.
+    corrections = query_learnings(
+        topic="user-correction",
+        category="correction",
+        min_confidence=0.65,
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=True,
+    )
+    corr_sessions = {c["session_id"] for c in corrections if c.get("session_id")}
+    routed_sessions = {r["session_id"] for r in results if r.get("session_id")}
+    routed_with_corr = len(corr_sessions & routed_sessions)
+    pct_corr = (routed_with_corr / len(routed_sessions) * 100) if routed_sessions else 0.0
+    unattributed_corr = len(corr_sessions - routed_sessions)
+
+    if as_json:
+        print(
+            json.dumps(
+                {
+                    "total": total,
+                    "entries_with_outcomes": has_outcome,
+                    "outcome_pct": round(pct, 1),
+                    "baseline": baseline,
+                    "boosted": boosted,
+                    "decayed": decayed_count,
+                    "feedback_loop": status,
+                    "basis": basis,
+                    "strong_feedback": strong,
+                    "default_success": default_success,
+                    "silent_success_share": silent_share,
+                    "governed_path_coverage": round(pct, 1),
+                    "correction_rate_pct": round(pct_corr, 1),
+                    "routed_sessions_with_correction": routed_with_corr,
+                    "routed_sessions": len(routed_sessions),
+                    "unattributed_corrections": unattributed_corr,
+                },
+                indent=2,
+            )
+        )
+        return
 
     print(f"Route Health: {has_outcome}/{total} entries have outcomes ({pct:.0f}%)")
     print(f"Confidence: {baseline} at baseline | {boosted} boosted | {decayed_count} decayed")
-    status = "CLOSED" if pct >= 50 else "OPEN"
-    no_outcome_pct = baseline / total * 100
     print(f"Feedback loop: {status} ({no_outcome_pct:.0f}% entries have no outcome data)")
+
+    if basis_total == 0:
+        print("Outcome basis: no basis data yet")
+    else:
+        print(f"Outcome basis: {strong} strong-feedback vs {default_success} default-success")
+        print(f"  rejection_detected   {basis['rejection_detected']}")
+        print(f"  tool_errors_only     {basis['tool_errors_only']}")
+        print(f"  default_no_complaint {basis['default_no_complaint']}")
+        print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
+    print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
+    print(
+        f"Correction rate: {routed_with_corr}/{len(routed_sessions)} "
+        f"routed sessions drew correction language ({pct_corr:.0f}%)"
+    )
+    print(f"Unattributed corrections: {unattributed_corr} (correction with no concurrent /do route)")
 
 
 def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
@@ -1055,11 +1482,36 @@ def main():
     p_route_stats.add_argument(
         "--by",
         required=True,
-        choices=["agent", "skill", "force-route", "errors", "override"],
-        help="Dimension to aggregate by",
+        choices=["agent", "skill", "force-route", "errors", "override", "week", "day"],
+        help="Dimension to aggregate by (week|day read telemetry_runs time-series)",
     )
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
+
+    # review-roi — per-tier review cost/findings ROI (report-only).
+    p_review_roi = subparsers.add_parser("review-roi", help="Per-tier review cost/findings ROI")
+    p_review_roi.add_argument("--json", action="store_true", help="Output as JSON")
+    p_review_roi.set_defaults(func=cmd_review_roi)
+
+    # route-delta — "did that change help?" cohort comparison over telemetry_runs.
+    p_route_delta = subparsers.add_parser("route-delta", help="Compare two cohorts (git-SHA or date) of telemetry runs")
+    p_route_delta.add_argument("--from", dest="from_ref", required=True, help="Cohort A: git-SHA prefix or date prefix")
+    p_route_delta.add_argument("--to", dest="to_ref", required=True, help="Cohort B: git-SHA prefix or date prefix")
+    p_route_delta.add_argument("--key", help="Scope to one route key (agent:skill)")
+    p_route_delta.add_argument(
+        "--metric", choices=["error", "tokens"], default="error", help="error rate (default) or avg tokens"
+    )
+    p_route_delta.add_argument("--json", action="store_true", help="Output as JSON")
+    p_route_delta.set_defaults(func=cmd_route_delta)
+
+    # telemetry-query — read per-run envelope rows (incl. git_sha) from telemetry_runs.
+    p_tquery = subparsers.add_parser("telemetry-query", help="Query per-run telemetry_runs rows by topic")
+    p_tquery.add_argument("--topic", required=True, help="Filter by topic (e.g., eval:evals/<dir>)")
+    p_tquery.add_argument("--git-sha", dest="git_sha", help="Filter to a git-SHA prefix")
+    p_tquery.add_argument("--key", help="Filter to one key (e.g., <skill>@<head>:<arm>)")
+    p_tquery.add_argument("--limit", type=int, default=50)
+    p_tquery.add_argument("--format", choices=["human", "json"], default="human")
+    p_tquery.set_defaults(func=cmd_telemetry_query)
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
@@ -1084,6 +1536,7 @@ def main():
 
     # route-health
     p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")
+    p_route_health.add_argument("--json", action="store_true", help="Output as JSON")
     p_route_health.set_defaults(func=cmd_route_health)
 
     args = parser.parse_args()

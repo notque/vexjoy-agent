@@ -25,8 +25,12 @@ Exit 0 always (a sizing signal never blocks a review).
 
 import argparse
 import json
+import re
 import subprocess
 import sys
+
+# Validates the --findings value: NC/NH/NM (critical/high/medium counts).
+_FINDINGS_RE = re.compile(r"^(\d+)C/(\d+)H/(\d+)M$", re.IGNORECASE)
 
 
 def _tier_from_value(value: int, bounds: list[int]) -> int:
@@ -108,6 +112,10 @@ def main() -> int:
     parser.add_argument("--packages", type=int, help="package (directory) count")
     parser.add_argument("--base", help="git base ref (computes scope from range)")
     parser.add_argument("--head", default="HEAD", help="git head ref (default: HEAD)")
+    parser.add_argument(
+        "--findings",
+        help="aggregated review findings NC/NH/NM; emits the rightsizing capture banner",
+    )
     args = parser.parse_args()
 
     if args.files is not None:
@@ -118,6 +126,20 @@ def main() -> int:
 
     tier = compute_tier(file_count, package_count)
     comp = composition_for_tier(tier)
+
+    # With --findings, emit the rightsizing banner the routing-decision-recorder
+    # parses (ADR: review-tier-roi). Without it, JSON-only — existing callers
+    # that json.loads(stdout) are unaffected. Malformed findings => warn, skip.
+    if args.findings:
+        fm = _FINDINGS_RE.match(args.findings.strip())
+        if fm:
+            print(
+                f"rightsizing: tier={tier} files={file_count} packages={package_count} "
+                f"agents_dispatched={comp['agent_estimate']} "
+                f"findings={fm.group(1)}C/{fm.group(2)}H/{fm.group(3)}M"
+            )
+        else:
+            print(f"warning: --findings must be NC/NH/NM, got {args.findings!r}", file=sys.stderr)
 
     result = {
         "tier": tier,

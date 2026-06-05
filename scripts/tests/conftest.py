@@ -5,12 +5,177 @@ Provides:
 - Path fixtures for the fixtures directory
 - Content fixtures for sample good/bad files
 - Expected output fixtures for golden file testing
+- Skill-eval-ablation fixtures (ADR skill-eval-pr-ablation): temp_db variants,
+  mock_skill_tree, mock_evals, git_range
 """
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Skill-eval-ablation fixtures (ADR: skill-eval-pr-ablation)
+#
+# Shared by test_detect_skill_changes.py and test_skill_eval_ablation.py.
+# They mirror the throwaway-DB + throwaway-git-repo patterns already used in
+# hooks/tests/test_routing_decision_recorder.py and
+# scripts/tests/test_check_index_colocation.py.
+# ---------------------------------------------------------------------------
+
+_LIB_DIR = Path(__file__).resolve().parents[2] / "hooks" / "lib"
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    """Run a git command in `repo`, raising on failure."""
+    return subprocess.run(
+        ["git", *args],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def _skill_md(name: str, version: str = "1.0.0", body: str = "Body.") -> str:
+    """Minimal valid SKILL.md frontmatter (name + version) plus a body."""
+    return f"---\nname: {name}\nversion: {version}\ndescription: {name} skill.\n---\n\n# {name}\n\n{body}\n"
+
+
+def _init_temp_db(db_dir: Path, monkeypatch, *, envelope: bool):
+    """Create a throwaway learning.db under db_dir from the real schema.
+
+    PR-A shipped the envelope as a dedicated `telemetry_runs` table (schema v5+),
+    not as columns on `learnings`. `init_db()` builds that table. So the
+    with-envelope DB is just the real, fully-migrated schema. The no-envelope DB
+    simulates a pre-PR-A install by dropping `telemetry_runs` after init.
+
+    Returns the learning.db path. Points CLAUDE_LEARNING_DIR at db_dir and
+    resets the learning_db_v2 init cache so the DB is built fresh.
+    """
+    db_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(db_dir))
+    if str(_LIB_DIR) not in sys.path:
+        sys.path.insert(0, str(_LIB_DIR))
+    import learning_db_v2 as ldb
+
+    monkeypatch.setattr(ldb, "_initialized", False, raising=False)
+    ldb.init_db()
+    db_path = db_dir / "learning.db"
+
+    if not envelope:
+        # Simulate a pre-PR-A DB: remove the telemetry_runs table so the runner's
+        # envelope probe takes the degraded (log-file) path.
+        import sqlite3
+
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("DROP TABLE IF EXISTS telemetry_runs")
+            conn.commit()
+    return db_path
+
+
+@pytest.fixture
+def temp_db_no_envelope(tmp_path, monkeypatch) -> Path:
+    """Throwaway learning.db simulating pre-PR-A (no telemetry_runs table)."""
+    return _init_temp_db(tmp_path / "learning_noenv", monkeypatch, envelope=False)
+
+
+@pytest.fixture
+def temp_db_with_envelope(tmp_path, monkeypatch) -> Path:
+    """Throwaway learning.db with PR-A's telemetry_runs table (real schema)."""
+    return _init_temp_db(tmp_path / "learning_env", monkeypatch, envelope=True)
+
+
+@pytest.fixture
+def mock_skill_tree(tmp_path) -> Path:
+    """A skills/ tree: skills/<cat>/<name>/SKILL.md with minimal frontmatter.
+
+    Returns the root holding skills/. Names chosen to exercise the mapper.
+    """
+    root = tmp_path / "tree"
+    layout = {
+        ("process", "planning"): "planning",
+        ("process", "quick"): "quick",
+        ("meta", "skill-creator"): "skill-creator",
+    }
+    for (cat, dirname), name in layout.items():
+        d = root / "skills" / cat / dirname
+        d.mkdir(parents=True)
+        (d / "SKILL.md").write_text(_skill_md(name), encoding="utf-8")
+    return root
+
+
+@pytest.fixture
+def mock_evals(tmp_path) -> Path:
+    """An evals/ tree exercising all three resolution rules.
+
+    - evals/planning/            -> exact-dir match for skill "planning"
+    - evals/quick-eval/          -> "-eval" suffix match for skill "quick"
+    - evals/grouped/README.md    -> README whole-word mention of "skill-creator"
+    Returns the root holding evals/.
+    """
+    root = tmp_path / "evalsroot"
+    (root / "evals" / "planning").mkdir(parents=True)
+    (root / "evals" / "planning" / "README.md").write_text("# planning eval\n", encoding="utf-8")
+    (root / "evals" / "quick-eval").mkdir(parents=True)
+    (root / "evals" / "quick-eval" / "README.md").write_text("# quick eval\n", encoding="utf-8")
+    (root / "evals" / "grouped").mkdir(parents=True)
+    (root / "evals" / "grouped" / "README.md").write_text(
+        "# grouped\n\nTests the skill-creator skill against baseline.\n", encoding="utf-8"
+    )
+    return root
+
+
+@pytest.fixture
+def git_range(tmp_path):
+    """A git repo with a base commit and a head commit that edits three skills.
+
+    Builds skills/ and evals/ trees, commits the base, edits three skills
+    (two map to evals, one is uncovered), commits the head. Returns a dict:
+    {repo, base, head} where base/head are full SHAs.
+    """
+    repo = tmp_path / "repo"
+    (repo / "skills").mkdir(parents=True)
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "t@t.test")
+    _git(repo, "config", "user.name", "t")
+
+    # Three skills; planning + quick map to evals, orphan is uncovered.
+    skills = {
+        ("process", "planning"): "planning",
+        ("process", "quick"): "quick",
+        ("process", "orphan"): "orphan",
+    }
+    for (cat, dirname), name in skills.items():
+        d = repo / "skills" / cat / dirname
+        d.mkdir(parents=True)
+        (d / "SKILL.md").write_text(_skill_md(name, body="Base body."), encoding="utf-8")
+
+    # Evals: exact-dir for planning, -eval suffix for quick. No eval for orphan.
+    (repo / "evals" / "planning").mkdir(parents=True)
+    (repo / "evals" / "planning" / "README.md").write_text("# planning\n", encoding="utf-8")
+    (repo / "evals" / "quick-eval").mkdir(parents=True)
+    (repo / "evals" / "quick-eval" / "README.md").write_text("# quick\n", encoding="utf-8")
+
+    # A non-SKILL.md file that also changes (must be ignored by the mapper).
+    (repo / "README.md").write_text("base\n", encoding="utf-8")
+
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    base = _git(repo, "rev-parse", "HEAD").stdout.strip()
+
+    # Head: edit all three SKILL.md bodies + the non-skill file.
+    for (cat, dirname), name in skills.items():
+        f = repo / "skills" / cat / dirname / "SKILL.md"
+        f.write_text(_skill_md(name, version="1.1.0", body="Head body changed."), encoding="utf-8")
+    (repo / "README.md").write_text("head\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "head")
+    head = _git(repo, "rev-parse", "HEAD").stdout.strip()
+
+    return {"repo": repo, "base": base, "head": head}
 
 
 @pytest.fixture
