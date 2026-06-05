@@ -105,3 +105,7 @@ Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verifi
 **50ms hook budget.** Hooks fire on every tool call. Keep them fast. `scripts/benchmark-hooks.py` validates this.
 
 **Wabi-sabi in docs.** Write like a human. Contractions fine. Fragments fine. Banned words: "delve", "leverage", "comprehensive", "robust", "streamline", "empower". `scripts/scan-ai-patterns.py` catches violations.
+
+### Negative results
+
+Tried something that lost? Record it in `docs/what-didnt-work.md` before you forget. One dated section, four fields (Expectation, What happened, Evidence, Decision), newest on top. Evidence must be a location, not a claim. Check the file before re-running an experiment, so you don't re-litigate a decision already made.
