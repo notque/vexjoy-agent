@@ -134,37 +134,33 @@ def detect_errors(event: dict) -> bool:
 
 
 def record_rightsizing(output: str, session_id: str | None = None) -> None:
-    """(C) Record a rightsizing row when the output carries the banner. Silent otherwise.
+    """(C) Add one rightsizing review to the tier's running sums. Silent when no banner.
 
-    Stores the full review envelope as a pipe-delimited `k: v` value so
-    `learning-db.py review-roi` (and route-stats) can parse it with the shared
-    split loop. findings= and the cost fields are optional; absent fields store
-    as "-" and average out as n/a downstream (ADR: review-tier-roi).
+    Per-review findings and cost are accumulated into running sums in the
+    rightsizing:tier{N} row (`accumulate_rightsizing`) so `learning-db.py
+    review-roi` reports a TRUE per-tier mean (sum / count), not the last
+    review's sample. findings= and the cost fields are optional: a legacy
+    banner (no findings=) bumps the review count only; a "-" cost never enters
+    its sum (ADR: review-tier-roi).
     """
     if not output or "rightsizing:" not in output.lower():
         return
     m = _RIGHTSIZING_RE.search(output)
     if not m:
         return
-    tier, files, packages, agents = m.group(1), m.group(2), m.group(3), m.group(4)
-    crit = m.group(5) or "-"
-    high = m.group(6) or "-"
-    med = m.group(7) or "-"
-    tokens = m.group(8) or "-"
-    wall = m.group(9) or "-"
-    from learning_db_v2 import record_learning
 
-    record_learning(
-        topic="routing",
-        key=f"rightsizing:tier{tier}",
-        value=(
-            f"tier: {tier} | files: {files} | packages: {packages} | "
-            f"agents_dispatched: {agents} | findings_critical: {crit} | "
-            f"findings_high: {high} | findings_medium: {med} | "
-            f"tokens: {tokens} | wall_clock_s: {wall}"
-        ),
-        category="effectiveness",
-        tags=["routing", "rightsizing", f"tier{tier}"],
+    def _int_or_none(s: str | None) -> int | None:
+        return int(s) if s is not None and s != "" else None
+
+    from learning_db_v2 import accumulate_rightsizing
+
+    accumulate_rightsizing(
+        int(m.group(1)),
+        critical=_int_or_none(m.group(5)),
+        high=_int_or_none(m.group(6)),
+        medium=_int_or_none(m.group(7)),
+        tokens=_int_or_none(m.group(8)),
+        wall_clock_s=_int_or_none(m.group(9)),
         source="hook:routing-decision-recorder",
         session_id=session_id or None,
     )
