@@ -46,6 +46,13 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 Operational dead-ends from the implementation program. Reverted approaches and runtime quirks, not experiment hypotheses, so they sit below the dated seed entries. Same six fields, lighter heading.
 
+### 2026-06-05 Post-merge git pull as live hook deployment
+
+- **Expectation**: pulling main after a merge puts the changed hooks live in `~/.claude` immediately via the post-merge sync hook.
+- **What happened**: the post-merge hook is deliberately no-clobber (commit 18e6d03c) so it adds new items but never overwrites existing `~/.claude` hooks. Freshly merged telemetry capture stayed inert (0 rows) until `sync-to-user-claude.py` was run manually on SessionStart; the next probe then wrote the first `telemetry_runs` row.
+- **Evidence**: commit 18e6d03c; `hooks/sync-to-user-claude.py`; program negative-notes log, 2026-06-05.
+- **Decision**: rejected. After merging hook changes mid-session, run `sync-to-user-claude.py` (or restart the session) before expecting live hook behavior; the no-clobber pull alone will not deploy them.
+
 ### 2026-06-05 Workflow args global on the Windows runtime
 
 - **Expectation**: the Workflow tool `args` param is exposed to the script as the `args` global.
