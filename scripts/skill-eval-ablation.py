@@ -14,10 +14,12 @@ detect-skill-changes.py:
 
 Uncovered skills print a no-coverage line and continue.
 
---record writes one row per run to learning.db. If PR-A's telemetry envelope
-columns are present (git_commit_sha/model_id/skill_version), the run promotes
-those fields to named columns. If absent, the run still lands in the DB (envelope
-packed into the free-text `value` column) AND appends one JSON line to
+--record writes one run per arm to learning.db. PR-A shipped the envelope as a
+dedicated telemetry_runs table (git_sha/model_id/skill_version per row) with a
+record_telemetry_run() API. When that table is present, the run's envelope goes
+to telemetry_runs and a human-queryable summary row goes to learnings. When it
+is absent (no PR-A), the run still lands in learnings (envelope packed into the
+free-text `value` column) AND appends one JSON line to
 ~/.claude/eval-ablations.log -- never dropped, never a failure.
 
 Usage:
@@ -33,6 +35,7 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,6 +43,17 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPTS_DIR.parent
 DETECTOR = SCRIPTS_DIR / "detect-skill-changes.py"
 RUN_EVAL = SCRIPTS_DIR / "skill_eval" / "run_eval.py"
+
+
+class DirtyTreeError(RuntimeError):
+    """Raised when a skill file has uncommitted edits before a base-arm checkout.
+
+    The ablation checks out base content over the working tree, then restores
+    head content. That round-trip destroys uncommitted edits. So the runner
+    refuses to ablate a skill whose file is dirty and tells the user to commit
+    or stash first.
+    """
+
 
 # Degraded-record log (pre-PR-A). Kept as a module global so tests can redirect.
 ABLATION_LOG = Path.home() / ".claude" / "eval-ablations.log"
@@ -88,11 +102,15 @@ def _import_learning_db():
 
 
 def _envelope_present(ldb) -> bool:
-    """True when learning.db has PR-A's git_commit_sha column (envelope landed)."""
+    """True when learning.db has PR-A's telemetry_runs table (envelope landed).
+
+    PR-A shipped the envelope as a dedicated telemetry_runs table, not as columns
+    on learnings. So the probe is the table's existence, not a column on learnings.
+    """
     ldb.init_db()
     with ldb.get_connection() as conn:
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(learnings)")}
-    return "git_commit_sha" in cols
+        row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'telemetry_runs'").fetchone()
+    return row is not None
 
 
 def _append_log(record: dict) -> None:
@@ -116,10 +134,11 @@ def record_run(
 ) -> int:
     """Record one ablation run to learning.db. Returns 0 always.
 
-    PR-A landed (envelope columns present): promote git_commit_sha/model_id/
-    skill_version to named columns. Otherwise: write the row with the envelope
-    packed into `value`, AND append a JSON line to ~/.claude/eval-ablations.log.
-    The record is never dropped.
+    PR-A landed (telemetry_runs table present): write the envelope (git_sha/
+    model_id/skill_version) to telemetry_runs via record_telemetry_run, and keep
+    a human-queryable summary row in learnings. Otherwise: write the summary row
+    with the envelope packed into `value`, AND append a JSON line to
+    ~/.claude/eval-ablations.log. The record is never dropped.
     """
     ldb = _import_learning_db()
     topic = f"eval:{eval_dir}"
@@ -130,8 +149,17 @@ def record_run(
     )
 
     if _envelope_present(ldb):
-        # PR-A present: write via record_learning, then promote envelope fields
-        # to the named columns on this row.
+        # PR-A present: envelope -> telemetry_runs (the real per-run table);
+        # human-queryable summary -> learnings.
+        ldb.record_telemetry_run(
+            topic=topic,
+            key=key,
+            run_id=f"{key}:{uuid.uuid4().hex}",
+            source="manual:skill-eval-ablation",
+            git_sha=head_sha,
+            model_id=model_id,
+            skill_version=skill_version,
+        )
         ldb.record_learning(
             topic=topic,
             key=key,
@@ -139,16 +167,10 @@ def record_run(
             category="effectiveness",
             source="manual:skill-eval-ablation",
         )
-        with ldb.get_connection() as conn:
-            conn.execute(
-                "UPDATE learnings SET git_commit_sha = ?, model_id = ?, skill_version = ? WHERE topic = ? AND key = ?",
-                (head_sha, model_id, skill_version, topic, key),
-            )
-            conn.commit()
         return 0
 
-    # No PR-A: write to the DB (envelope packed into value) so the run is not
-    # lost, then append the JSON line and warn.
+    # No PR-A: write the summary row to learnings (envelope packed into value) so
+    # the run is not lost, then append the JSON line and warn.
     ldb.record_learning(
         topic=topic,
         key=key,
@@ -185,6 +207,15 @@ def record_run(
 def _git(repo: Path, *args: str) -> str:
     res = subprocess.run(["git", *args], cwd=str(repo), capture_output=True, text=True, check=True)
     return res.stdout.strip()
+
+
+def _is_dirty(repo: Path, rel_path: str) -> bool:
+    """True when `rel_path` has uncommitted changes (staged or unstaged).
+
+    `git status --porcelain -- <path>` prints one line per changed path and
+    nothing for a clean path. Any output means the file is dirty.
+    """
+    return bool(_git(repo, "status", "--porcelain", "--", rel_path))
 
 
 def detect(repo: Path, base: str, head: str) -> dict:
@@ -263,10 +294,17 @@ def run_eval_for_content(repo: Path, eval_dir: str, skill: str, runs: int) -> fl
 def ablate_skill(repo: Path, skill: str, eval_dir: str, base_sha: str, head_sha: str, runs: int, record: bool) -> None:
     """Run base vs head eval for one mapped skill; print the delta; restore tree.
 
-    Stashes the working tree, checks out base content of the skill, runs the
-    eval, restores head content, runs again. The try/finally guarantees the
-    tree is restored on every exit path (a crash must not leave base checked
-    out).
+    Refuses to run when the skill file has uncommitted edits: the base-arm
+    checkout would overwrite them and the head-arm restore would not bring them
+    back, so the edits would be lost. When the file is clean, checks out base
+    content, runs the eval, restores head content, runs again. The try/finally
+    restores head content on every exit path, so a crash never leaves base
+    checked out.
+
+    Raises:
+        DirtyTreeError: the skill file has uncommitted changes. The caller
+            reports it and skips this skill; no checkout has run yet, so the
+            working tree is untouched.
     """
     skill_rel = None
     for skill_md in (repo / "skills").rglob("SKILL.md"):
@@ -276,6 +314,15 @@ def ablate_skill(repo: Path, skill: str, eval_dir: str, base_sha: str, head_sha:
     if skill_rel is None:
         print(f"[skill-eval-ablation] skill dir not found for {skill}", file=sys.stderr)
         return
+
+    # Guard BEFORE any checkout. A dirty skill file would lose its uncommitted
+    # edits to the base-arm checkout, so refuse and tell the user to commit or
+    # stash. The tree is still pristine here — nothing to restore.
+    if _is_dirty(repo, skill_rel):
+        raise DirtyTreeError(
+            f"{skill}: {skill_rel} has uncommitted changes; commit or stash them before ablating "
+            "(the base-arm checkout would overwrite them)."
+        )
 
     model_id = _model_id()
     skill_version = _skill_version(repo, skill)
@@ -395,7 +442,12 @@ def run_ablation(repo: Path, base: str, head: str, only_skill: str | None, runs:
         uncovered = [s for s in uncovered if s == only_skill]
 
     for m in mapped:
-        ablate_skill(repo, m["skill"], m["eval_dir"], base_sha, head_sha, runs, record)
+        try:
+            ablate_skill(repo, m["skill"], m["eval_dir"], base_sha, head_sha, runs, record)
+        except DirtyTreeError as exc:
+            # Advisory tool: report the dirty skill and move on. Never abort the
+            # run or touch the working tree.
+            print(f"[skill-eval-ablation] skipped {exc}", file=sys.stderr)
     if uncovered:
         print(format_uncovered(uncovered))
     return 0

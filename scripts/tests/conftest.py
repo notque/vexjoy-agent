@@ -45,7 +45,12 @@ def _skill_md(name: str, version: str = "1.0.0", body: str = "Body.") -> str:
 
 
 def _init_temp_db(db_dir: Path, monkeypatch, *, envelope: bool):
-    """Create a throwaway learning.db under db_dir; optionally add PR-A columns.
+    """Create a throwaway learning.db under db_dir from the real schema.
+
+    PR-A shipped the envelope as a dedicated `telemetry_runs` table (schema v5+),
+    not as columns on `learnings`. `init_db()` builds that table. So the
+    with-envelope DB is just the real, fully-migrated schema. The no-envelope DB
+    simulates a pre-PR-A install by dropping `telemetry_runs` after init.
 
     Returns the learning.db path. Points CLAUDE_LEARNING_DIR at db_dir and
     resets the learning_db_v2 init cache so the DB is built fresh.
@@ -60,29 +65,26 @@ def _init_temp_db(db_dir: Path, monkeypatch, *, envelope: bool):
     ldb.init_db()
     db_path = db_dir / "learning.db"
 
-    if envelope:
-        # Simulate PR-A's telemetry envelope: add the three named columns.
+    if not envelope:
+        # Simulate a pre-PR-A DB: remove the telemetry_runs table so the runner's
+        # envelope probe takes the degraded (log-file) path.
         import sqlite3
 
         with sqlite3.connect(db_path) as conn:
-            for col in ("git_commit_sha", "model_id", "skill_version"):
-                try:
-                    conn.execute(f"ALTER TABLE learnings ADD COLUMN {col} TEXT")
-                except sqlite3.OperationalError:
-                    pass
+            conn.execute("DROP TABLE IF EXISTS telemetry_runs")
             conn.commit()
     return db_path
 
 
 @pytest.fixture
 def temp_db_no_envelope(tmp_path, monkeypatch) -> Path:
-    """Throwaway learning.db with today's schema (no PR-A envelope columns)."""
+    """Throwaway learning.db simulating pre-PR-A (no telemetry_runs table)."""
     return _init_temp_db(tmp_path / "learning_noenv", monkeypatch, envelope=False)
 
 
 @pytest.fixture
 def temp_db_with_envelope(tmp_path, monkeypatch) -> Path:
-    """Throwaway learning.db with PR-A envelope columns present."""
+    """Throwaway learning.db with PR-A's telemetry_runs table (real schema)."""
     return _init_temp_db(tmp_path / "learning_env", monkeypatch, envelope=True)
 
 

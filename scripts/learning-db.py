@@ -26,6 +26,7 @@ Usage:
     python3 scripts/learning-db.py roi [--json]
     python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override|week|day [--json]
     python3 scripts/learning-db.py route-delta --from REF --to REF [--key AGENT:SKILL] [--metric error|tokens] [--json]
+    python3 scripts/learning-db.py telemetry-query --topic eval:evals/<dir> [--git-sha SHA] [--format json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
@@ -770,6 +771,45 @@ def cmd_route_delta(args: argparse.Namespace) -> None:
             print(f"WARNING: cohort {label} has only {n} run(s) (< MIN_N={MIN_N}); treat the delta as low-confidence.")
 
 
+def cmd_telemetry_query(args: argparse.Namespace) -> None:
+    """telemetry-query --topic T [--git-sha SHA]: read per-run rows from telemetry_runs.
+
+    PR-A's envelope (git_sha/model_id/skill_version) lives in telemetry_runs, not
+    on learnings. This reads those rows back by topic, optionally scoped to a
+    git-SHA prefix. Used to verify an ablation run landed under its head SHA.
+    Report-only; exit 0.
+    """
+    init_db()
+    # Fixed clauses only; all user values are bound as ? params.
+    clauses = ["topic = ?"]
+    params: list = [args.topic]
+    if args.git_sha:
+        clauses.append("git_sha LIKE ?")
+        params.append(args.git_sha + "%")
+    if args.key:
+        clauses.append("key = ?")
+        params.append(args.key)
+    where = " AND ".join(clauses)
+    params.append(args.limit)
+    with get_connection() as conn:
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                f"SELECT * FROM telemetry_runs WHERE {where} ORDER BY recorded_at DESC LIMIT ?",  # security-review: ignore (fixed clauses; user values bound as ?)
+                params,
+            ).fetchall()
+        ]
+
+    if args.format == "json":
+        print(json.dumps(rows, indent=2, default=str))
+        return
+    if not rows:
+        print(f"No telemetry runs for topic={args.topic}.")
+        return
+    for r in rows:
+        print(f"{r['recorded_at']}  {r['topic']}/{r['key']}  git_sha={r['git_sha']}  source={r['source']}")
+
+
 def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
     """Record whether a routing decision succeeded or failed."""
     init_db()
@@ -1298,6 +1338,15 @@ def main():
     )
     p_route_delta.add_argument("--json", action="store_true", help="Output as JSON")
     p_route_delta.set_defaults(func=cmd_route_delta)
+
+    # telemetry-query — read per-run envelope rows (incl. git_sha) from telemetry_runs.
+    p_tquery = subparsers.add_parser("telemetry-query", help="Query per-run telemetry_runs rows by topic")
+    p_tquery.add_argument("--topic", required=True, help="Filter by topic (e.g., eval:evals/<dir>)")
+    p_tquery.add_argument("--git-sha", dest="git_sha", help="Filter to a git-SHA prefix")
+    p_tquery.add_argument("--key", help="Filter to one key (e.g., <skill>@<head>:<arm>)")
+    p_tquery.add_argument("--limit", type=int, default=50)
+    p_tquery.add_argument("--format", choices=["human", "json"], default="human")
+    p_tquery.set_defaults(func=cmd_telemetry_query)
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
