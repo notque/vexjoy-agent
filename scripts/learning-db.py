@@ -29,7 +29,7 @@ Usage:
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
-    python3 scripts/learning-db.py route-health
+    python3 scripts/learning-db.py route-health [--json]
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
 """
 
@@ -919,9 +919,31 @@ def cmd_skip_rate(args: argparse.Namespace) -> None:
         print("No instructions flagged. Threshold: >20% skip rate over 30+ observations.")
 
 
+_BASIS_LABELS = ("rejection_detected", "tool_errors_only", "default_no_complaint")
+
+
+def _read_basis_counts() -> dict[str, int]:
+    """Sum routing_outcome_basis counts per label. Best-effort: {} on any error.
+
+    All three labels are always present (0 when unseen) so callers never
+    KeyError. Table absent / unreadable (pre-v6 DB) => all zeros.
+    """
+    counts = {label: 0 for label in _BASIS_LABELS}
+    try:
+        with get_connection() as conn:
+            rows = conn.execute("SELECT basis, SUM(count) AS n FROM routing_outcome_basis GROUP BY basis").fetchall()
+        for row in rows:
+            if row["basis"] in counts:
+                counts[row["basis"]] = int(row["n"] or 0)
+    except Exception:
+        pass
+    return counts
+
+
 def cmd_route_health(args: argparse.Namespace) -> None:
     """Display a quick health summary of routing entries."""
     init_db()
+    as_json = getattr(args, "json", False)
     results = query_learnings(
         topic="routing",
         category="effectiveness",
@@ -933,7 +955,10 @@ def cmd_route_health(args: argparse.Namespace) -> None:
 
     total = len(results)
     if total == 0:
-        print("No routing entries found.")
+        if as_json:
+            print(json.dumps({"total": 0, "entries_with_outcomes": 0}, indent=2))
+        else:
+            print("No routing entries found.")
         return
 
     baseline = sum(1 for r in results if r["success_count"] == 0 and r["failure_count"] == 0)
@@ -941,12 +966,53 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     decayed_count = sum(1 for r in results if r["failure_count"] > 0)
     has_outcome = total - baseline
     pct = has_outcome / total * 100
+    status = "CLOSED" if pct >= 50 else "OPEN"
+    no_outcome_pct = baseline / total * 100
+
+    # Outcome-basis split (ADR: silent-failure-outcome-quality). strong-feedback
+    # = an observed signal scored the outcome; default-success = success on
+    # silence (upper bound on silent success, NOT confirmed silent failures).
+    basis = _read_basis_counts()
+    strong = basis["rejection_detected"] + basis["tool_errors_only"]
+    default_success = basis["default_no_complaint"]
+    basis_total = strong + default_success
+    silent_share = (default_success / basis_total) if basis_total else None
+
+    if as_json:
+        print(
+            json.dumps(
+                {
+                    "total": total,
+                    "entries_with_outcomes": has_outcome,
+                    "outcome_pct": round(pct, 1),
+                    "baseline": baseline,
+                    "boosted": boosted,
+                    "decayed": decayed_count,
+                    "feedback_loop": status,
+                    "basis": basis,
+                    "strong_feedback": strong,
+                    "default_success": default_success,
+                    "silent_success_share": silent_share,
+                    "governed_path_coverage": round(pct, 1),
+                },
+                indent=2,
+            )
+        )
+        return
 
     print(f"Route Health: {has_outcome}/{total} entries have outcomes ({pct:.0f}%)")
     print(f"Confidence: {baseline} at baseline | {boosted} boosted | {decayed_count} decayed")
-    status = "CLOSED" if pct >= 50 else "OPEN"
-    no_outcome_pct = baseline / total * 100
     print(f"Feedback loop: {status} ({no_outcome_pct:.0f}% entries have no outcome data)")
+
+    if basis_total == 0:
+        print("Outcome basis: no basis data yet")
+    else:
+        print(f"Outcome basis: {strong} strong-feedback vs {default_success} default-success")
+        print(f"  rejection_detected   {basis['rejection_detected']}")
+        print(f"  tool_errors_only     {basis['tool_errors_only']}")
+        print(f"  default_no_complaint {basis['default_no_complaint']}")
+        print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
+    print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
 
 
 def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
@@ -1256,6 +1322,7 @@ def main():
 
     # route-health
     p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")
+    p_route_health.add_argument("--json", action="store_true", help="Output as JSON")
     p_route_health.set_defaults(func=cmd_route_health)
 
     args = parser.parse_args()

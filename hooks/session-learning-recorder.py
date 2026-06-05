@@ -97,7 +97,11 @@ def finalize_routing_outcomes(session_id: str) -> None:
             if not decision_row_exists(key):
                 continue  # no row to score (orphaned); drop quietly at session end
             # Deterministic floor: per-dispatch error flag only (no next turn).
-            apply_outcome(key, bool(item.get("errors")))
+            # No turn to complain in => a Stop-resolved success is always
+            # default_no_complaint (the largest silent-failure source).
+            errors = bool(item.get("errors"))
+            basis = "tool_errors_only" if errors else "default_no_complaint"
+            apply_outcome(key, errors, basis=basis)
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)

@@ -28,7 +28,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 5
+_CURRENT_SCHEMA_VERSION = 6
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -183,6 +183,16 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (5, 'add telemetry_runs table for per-run envelope')"
         )
 
+    if current < 6:
+        # v5 -> v6: per-route outcome-basis counters (ADR: silent-failure-outcome-quality).
+        # Same DDL a fresh DB gets from _SCHEMA; idempotent IF NOT EXISTS. Old rows untouched.
+        conn.executescript(_BASIS_DDL)
+        conn.execute("PRAGMA user_version = 6")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (6, 'add routing_outcome_basis table for outcome-basis counters')"
+        )
+
     conn.commit()
 
 
@@ -264,6 +274,20 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_recorded_at ON telemetry_runs(recorded_
 CREATE INDEX IF NOT EXISTS idx_telemetry_git_sha ON telemetry_runs(git_sha);
 CREATE INDEX IF NOT EXISTS idx_telemetry_topic_key ON telemetry_runs(topic, key);
 CREATE INDEX IF NOT EXISTS idx_telemetry_batch ON telemetry_runs(batch_id);
+"""
+
+
+# Per-route outcome-basis counters (schema v6). Labels each finalized routing
+# outcome by its evidence basis so route-health can report the silent-success
+# share. Additive and idempotent; same DDL a fresh DB gets from _SCHEMA and the
+# v5->v6 migration runs on an existing DB. See ADR: silent-failure-outcome-quality.
+_BASIS_DDL = """
+CREATE TABLE IF NOT EXISTS routing_outcome_basis (
+    key   TEXT NOT NULL,
+    basis TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (key, basis)
+);
 """
 
 
@@ -409,6 +433,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 """
     + _TELEMETRY_DDL
+    + _BASIS_DDL
 )
 
 

@@ -109,8 +109,10 @@ def test_migration_on_existing_v4_db_preserves_rows(tmp_path, monkeypatch):
     # init_db runs migrations.
     ldb.init_db()
 
+    # Migrations run forward to the current floor (>=5 once telemetry landed;
+    # 6 after the additive routing_outcome_basis migration).
     version = _rows(db_path, "PRAGMA user_version")[0]["user_version"]
-    assert version == 5
+    assert version >= 5
 
     tables = {r["name"] for r in _rows(db_path, "SELECT name FROM sqlite_master WHERE type='table'")}
     assert "telemetry_runs" in tables
@@ -124,9 +126,11 @@ def test_migration_on_existing_v4_db_preserves_rows(tmp_path, monkeypatch):
     assert _rows(db_path, "SELECT COUNT(*) AS n FROM telemetry_runs")[0]["n"] == 0
 
 
-def test_schema_version_constant_is_5():
+def test_schema_version_constant_at_least_5():
+    # Telemetry landed v5; the additive routing_outcome_basis migration is v6.
+    # The constant tracks the latest applied version, so it only ever grows.
     ldb = _ldb()
-    assert ldb._CURRENT_SCHEMA_VERSION == 5
+    assert ldb._CURRENT_SCHEMA_VERSION >= 5
 
 
 # ---------------------------------------------------------------------------
