@@ -24,7 +24,8 @@ Usage:
     python3 scripts/learning-db.py record-waste --session SESSION_ID --tokens 1500
     python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
     python3 scripts/learning-db.py roi [--json]
-    python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override [--json]
+    python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override|week|day [--json]
+    python3 scripts/learning-db.py route-delta --from REF --to REF [--key AGENT:SKILL] [--metric error|tokens] [--json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
     python3 scripts/learning-db.py backfill-routing-outcomes
@@ -174,10 +175,10 @@ def cmd_export(args):
 def cmd_import(args):
     if args.from_retro:
         result = import_from_retro(args.from_retro)
-        print(f"Imported from retro: {result['imported']} entries, {result['skipped']} skipped")
+        print(f"Imported from retro: {result['imported']} entries, {result['skipped']} skipped")  # security-review: ignore (print, not SQL; pre-existing)  # fmt: skip
     elif args.from_patterns:
         result = import_from_patterns_db(args.from_patterns)
-        print(f"Imported from patterns.db: {result['imported']} entries, {result['skipped']} skipped")
+        print(f"Imported from patterns.db: {result['imported']} entries, {result['skipped']} skipped")  # security-review: ignore (print, not SQL; pre-existing)  # fmt: skip
     else:
         print("Specify --from-retro or --from-patterns")
         sys.exit(1)
@@ -547,6 +548,13 @@ def cmd_roi(args: argparse.Namespace) -> None:
 def cmd_route_stats(args: argparse.Namespace) -> None:
     """Display routing decision statistics."""
     init_db()
+
+    # Time-series dimensions (ADR: learning-telemetry-envelope) read the
+    # append-only telemetry_runs table, not the aggregated learnings value string.
+    if args.by in ("week", "day"):
+        _route_stats_time_series(args)
+        return
+
     results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
 
     if not results:
@@ -607,6 +615,159 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         import json as json_mod
 
         print(json_mod.dumps(records, indent=2, default=str))
+
+
+# Default minimum cohort size below which route-delta prints a low-sample WARNING.
+# Report-only — it never blocks; the numbers still print (ADR: learning-telemetry-envelope).
+MIN_N = 5
+
+
+def _route_stats_time_series(args: argparse.Namespace) -> None:
+    """route-stats --by week|day: per-period run/error counts from telemetry_runs."""
+    # strftime period format: ISO-ish week ('%Y-W%W') or calendar day ('%Y-%m-%d').
+    period_fmt = "%Y-W%W" if args.by == "week" else "%Y-%m-%d"
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT strftime(?, recorded_at) AS period, "
+            "COUNT(*) AS runs, "
+            "COALESCE(SUM(tool_errors), 0) AS errors, "
+            "ROUND(100.0 * SUM(tool_errors) / COUNT(*), 1) AS error_pct "
+            "FROM telemetry_runs WHERE topic = 'routing' "
+            "GROUP BY period ORDER BY period",
+            (period_fmt,),
+        ).fetchall()
+
+    data = [
+        {"period": r["period"], "runs": r["runs"], "errors": r["errors"], "error_pct": r["error_pct"]} for r in rows
+    ]
+
+    if args.json:
+        print(json.dumps(data, indent=2, default=str))
+        return
+
+    if not data:
+        print("No telemetry runs yet. Telemetry captures from the next /do dispatch after merge+sync.")
+        return
+
+    label = "Week" if args.by == "week" else "Day"
+    max_runs = max(row["runs"] for row in data) or 1
+    print(f"Routing telemetry by {label.lower()} ({sum(row['runs'] for row in data)} runs)")
+    print("-" * 56)
+    print(f"{label:<11} {'runs':>5} {'errors':>7} {'err%':>6}  bar")
+    for row in data:
+        bar = "#" * max(1, round(20 * row["runs"] / max_runs))
+        pct = row["error_pct"] if row["error_pct"] is not None else 0.0
+        print(f"{row['period']:<11} {row['runs']:>5} {row['errors']:>7} {pct:>5.1f}%  {bar}")
+
+
+def _resolve_cohort(conn, ref: str, key: str | None) -> str:
+    """Build the WHERE clause for one cohort ref (git-SHA prefix or date), with params.
+
+    A `ref` that is all hex and >=4 chars is treated as a git-SHA prefix matched
+    against telemetry_runs.git_sha; otherwise it is matched as a date prefix on
+    recorded_at. --key further scopes to one route. Returns (where_sql, params).
+    """
+    clauses = ["topic = 'routing'"]
+    params: list[str] = []
+    is_sha = len(ref) >= 4 and all(c in "0123456789abcdefABCDEF" for c in ref)
+    if is_sha:
+        clauses.append("git_sha LIKE ?")
+        params.append(ref + "%")
+    else:
+        clauses.append("recorded_at LIKE ?")
+        params.append(ref + "%")
+    if key:
+        clauses.append("key = ?")
+        params.append(key)
+    return " AND ".join(clauses), params
+
+
+def _cohort_error(conn, where: str, params: list[str]) -> dict:
+    """Error-rate stats for one cohort."""
+    # `where` is built only from fixed clauses; all user values are bound as ? params.
+    row = conn.execute(
+        f"SELECT COUNT(*) AS runs, COALESCE(SUM(tool_errors), 0) AS errors FROM telemetry_runs WHERE {where}",  # security-review: ignore (fixed clauses; user values bound as ?)
+        params,
+    ).fetchone()
+    runs = row["runs"]
+    errors = row["errors"]
+    pct = round(100.0 * errors / runs, 1) if runs else None
+    return {"runs": runs, "errors": errors, "error_pct": pct}
+
+
+def _cohort_tokens(conn, where: str, params: list[str]) -> dict:
+    """Token stats for one cohort. n counts NON-NULL token rows only; NULL never
+    counts as 0 (ADR NULL-tolerance)."""
+    # `where` is built only from fixed clauses; all user values are bound as ? params.
+    row = conn.execute(
+        f"SELECT COUNT(token_count) AS n, AVG(token_count) AS avg_tokens, COUNT(*) AS runs FROM telemetry_runs WHERE {where}",  # security-review: ignore (fixed clauses; user values bound as ?)
+        params,
+    ).fetchone()
+    n = row["n"]
+    avg = round(row["avg_tokens"], 1) if row["avg_tokens"] is not None else None
+    return {"runs": row["runs"], "n": n, "avg_tokens": avg}
+
+
+def cmd_route_delta(args: argparse.Namespace) -> None:
+    """route-delta --from REF --to REF: 'did that change help?' cohort comparison.
+
+    Report-only — a low sample prints a WARNING but never blocks (exit 0).
+    """
+    init_db()
+    metric = args.metric
+    with get_connection() as conn:
+        where_a, params_a = _resolve_cohort(conn, args.from_ref, args.key)
+        where_b, params_b = _resolve_cohort(conn, args.to_ref, args.key)
+        if metric == "tokens":
+            cohort_a = _cohort_tokens(conn, where_a, params_a)
+            cohort_b = _cohort_tokens(conn, where_b, params_b)
+        else:
+            cohort_a = _cohort_error(conn, where_a, params_a)
+            cohort_b = _cohort_error(conn, where_b, params_b)
+
+    if metric == "tokens":
+        a_val = cohort_a["avg_tokens"]
+        b_val = cohort_b["avg_tokens"]
+        delta = round(b_val - a_val, 1) if (a_val is not None and b_val is not None) else None
+        result = {"metric": "tokens", "from": cohort_a, "to": cohort_b, "delta_tokens": delta}
+    else:
+        a_pct = cohort_a["error_pct"]
+        b_pct = cohort_b["error_pct"]
+        delta = round(b_pct - a_pct, 1) if (a_pct is not None and b_pct is not None) else None
+        result = {"metric": "error", "from": cohort_a, "to": cohort_b, "delta_pts": delta}
+
+    if args.json:
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    scope = f"  key={args.key}" if args.key else ""
+    print(f"route-delta  metric={metric}  from={args.from_ref}  to={args.to_ref}{scope}")  # security-review: ignore (print, not SQL)  # fmt: skip
+    print("-" * 56)
+    if metric == "tokens":
+        a_disp = f"{cohort_a['avg_tokens']}" if cohort_a["avg_tokens"] is not None else "n/a"
+        b_disp = f"{cohort_b['avg_tokens']}" if cohort_b["avg_tokens"] is not None else "n/a"
+        print(f"Cohort A ({args.from_ref}): {cohort_a['runs']:>4} runs, avg tokens {a_disp} (n={cohort_a['n']})")
+        print(f"Cohort B ({args.to_ref}): {cohort_b['runs']:>4} runs, avg tokens {b_disp} (n={cohort_b['n']})")
+        if delta is not None:
+            direction = "fewer" if delta < 0 else "more"
+            print(f"Delta: {delta:+} tokens ({direction})   n_A={cohort_a['n']} n_B={cohort_b['n']}")
+        else:
+            print("Delta: n/a (a cohort has no non-NULL token_count)")
+    else:
+        a_pct = f"{cohort_a['error_pct']:.1f}%" if cohort_a["error_pct"] is not None else "n/a"
+        b_pct = f"{cohort_b['error_pct']:.1f}%" if cohort_b["error_pct"] is not None else "n/a"
+        print(f"Cohort A ({args.from_ref}): {cohort_a['runs']:>4} runs, {cohort_a['errors']:>3} errors ({a_pct})")
+        print(f"Cohort B ({args.to_ref}): {cohort_b['runs']:>4} runs, {cohort_b['errors']:>3} errors ({b_pct})")
+        if delta is not None:
+            direction = "improved" if delta < 0 else ("worse" if delta > 0 else "flat")
+            print(f"Delta: {delta:+} pts error rate  ({direction})   n_A={cohort_a['runs']} n_B={cohort_b['runs']}")
+        else:
+            print("Delta: n/a (a cohort has no runs)")
+
+    # Low-sample advisory — report-only, never blocks.
+    for label, n in (("A", cohort_a["runs"]), ("B", cohort_b["runs"])):
+        if n < MIN_N:
+            print(f"WARNING: cohort {label} has only {n} run(s) (< MIN_N={MIN_N}); treat the delta as low-confidence.")
 
 
 def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
@@ -1055,11 +1216,22 @@ def main():
     p_route_stats.add_argument(
         "--by",
         required=True,
-        choices=["agent", "skill", "force-route", "errors", "override"],
-        help="Dimension to aggregate by",
+        choices=["agent", "skill", "force-route", "errors", "override", "week", "day"],
+        help="Dimension to aggregate by (week|day read telemetry_runs time-series)",
     )
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
+
+    # route-delta — "did that change help?" cohort comparison over telemetry_runs.
+    p_route_delta = subparsers.add_parser("route-delta", help="Compare two cohorts (git-SHA or date) of telemetry runs")
+    p_route_delta.add_argument("--from", dest="from_ref", required=True, help="Cohort A: git-SHA prefix or date prefix")
+    p_route_delta.add_argument("--to", dest="to_ref", required=True, help="Cohort B: git-SHA prefix or date prefix")
+    p_route_delta.add_argument("--key", help="Scope to one route key (agent:skill)")
+    p_route_delta.add_argument(
+        "--metric", choices=["error", "tokens"], default="error", help="error rate (default) or avg tokens"
+    )
+    p_route_delta.add_argument("--json", action="store_true", help="Output as JSON")
+    p_route_delta.set_defaults(func=cmd_route_delta)
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")

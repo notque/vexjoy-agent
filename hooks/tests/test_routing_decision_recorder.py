@@ -119,6 +119,22 @@ def _query_routing(db_env):
     )
 
 
+def _query_telemetry(db_env):
+    """Read every telemetry_runs row directly (ADR: learning-telemetry-envelope)."""
+    sys.path.insert(0, str(LIB_DIR))
+    import sqlite3
+
+    import learning_db_v2 as ldb
+
+    ldb.init_db()
+    conn = sqlite3.connect(ldb.get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        return [dict(r) for r in conn.execute("SELECT * FROM telemetry_runs").fetchall()]
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # A — routing-decision-recorder
 # ---------------------------------------------------------------------------
@@ -225,6 +241,43 @@ class TestDecisionRecorder:
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         assert _query_routing(db_env) == []
+
+    def test_telemetry_envelope_row_written_on_marked_dispatch(self, db_env, tmp_path, monkeypatch):
+        # ADR: learning-telemetry-envelope — a /do-marked dispatch writes ONE
+        # envelope row alongside the decision row, with always-derivable fields set.
+        a = _load(A_PATH, "rdr_tel_marked")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        sys.path.insert(0, str(LIB_DIR))
+        import telemetry_capture as tc
+
+        monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
+        event = _agent_event(skill="go-patterns", session="tel-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        rows = _query_telemetry(db_env)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["topic"] == "routing"
+        assert row["key"] == "python-general-engineer:go-patterns"
+        assert row["session_id"] == "tel-s1"
+        assert row["run_id"]
+        assert row["git_sha"]
+        assert row["source"] == "hook:routing-decision-recorder"
+
+    def test_no_telemetry_row_when_marker_absent(self, db_env, tmp_path, monkeypatch):
+        # No [do-route] marker => no decision row AND no envelope row.
+        a = _load(A_PATH, "rdr_tel_nomarker")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        sys.path.insert(0, str(LIB_DIR))
+        import telemetry_capture as tc
+
+        monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
+        event = _agent_event(marker=False, body="Review this PR, no marker.")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        assert _query_telemetry(db_env) == []
 
 
 # ---------------------------------------------------------------------------

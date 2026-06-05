@@ -202,6 +202,30 @@ def main() -> None:
             session_id=session_id or None,
         )
 
+        # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,
+        # one row per dispatch, AFTER the decision row so both share (topic, key).
+        # git_sha + session_id + run_id are always derivable, so this row is non-empty
+        # even when the best-effort fields (token_count, wall_clock_ms, model_id) are NULL.
+        import uuid
+
+        from learning_db_v2 import record_telemetry_run
+        from telemetry_capture import git_sha_cached, model_id_from, token_count_from, wall_clock_ms_from
+
+        record_telemetry_run(
+            topic="routing",
+            key=key,
+            run_id=str(uuid.uuid4()),
+            source="hook:routing-decision-recorder",
+            batch_id=os.environ.get("CLAUDE_TELEMETRY_BATCH") or session_id or None,
+            session_id=session_id or None,
+            git_sha=git_sha_cached(session_id),
+            model_id=model_id_from(event),
+            skill_version=None,  # PR-A: None (ADR Alternative D — populate when cheap)
+            token_count=token_count_from(event),
+            wall_clock_ms=wall_clock_ms_from(event),
+            tool_errors=has_errors,
+        )
+
         # (C) right-sizing feedback, parse-only.
         from hook_utils import get_tool_output, get_tool_result
 
