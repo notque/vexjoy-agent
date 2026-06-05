@@ -117,7 +117,7 @@ Tokens buy more value as specialists in parallel than as longer prompts to a sin
 
 ---
 
-## Knowledge Lives in Agents
+## Knowledge Lives in Agents, Authored by Humans
 
 The base LLM is a generalist. An agent's job is to close the gap with actual expert knowledge, not by declaring "I am an expert in X."
 
@@ -128,6 +128,10 @@ The base LLM is a generalist. An agent's job is to close the gap with actual exp
 Progressive disclosure: main agent file stays navigable (≤600 lines, ~10k words). Reference files cap at ≤500 lines so each loads cleanly without crowding context. Deep reference material lives in `references/`, loaded on demand.
 
 **Test:** Remove the motivational preamble. Does quality change? (No.) Remove a domain-specific failure mode table. Does quality change? (Yes.)
+
+### Human Owns Definitions; Claude Drafts
+
+Skill descriptions, agent profiles, and INDEX entries are hand-authored. When LLM auto-generation of definitions was tested on evals, accuracy fell net-negative. The system scaffolds and suggests; humans decide. No auto-generation hook exists: `skill-creator` stages output for human review before merge, and `CONTRIBUTING.md` holds the quality bar (specific, verifiable, battle-tested, minimal, dense) every definition must clear.
 
 ---
 
@@ -146,6 +150,16 @@ Gates are automated, not advisory. Hook fails = pipeline stops. Hooks are fragil
 
 ---
 
+## Warn-Only Gates Beat Blocking Gates
+
+A gate is a hard stop; a safeguard is an observable alert. Most checks should be safeguards. Anything that blocks a merge must prove its worth and ship with an explicit escalation path. New checks start advisory and graduate to blocking only via a dedicated ADR and operator sign-off.
+
+This is how the system is built, not an aspiration. `hooks/stop-drift-guard.py` detects toolkit drift and re-wakes the session async — it never blocks. The post-merge sync hook is add-only: it adds new items, never overwrites (`install.sh`, commit 8d7c8b00). `hooks/session-learning-recorder.py` warns when a substantive session captured zero learnings, then exits clean. When PR #747 weighed a blocking re-run check for the negative-results registry, it deferred to a future ADR with a documented escalation path rather than ship a hard stop.
+
+**Test:** Does this check stop work on failure? If the failure is advisory, make it warn and exit 0; reserve blocking for gates that earned an ADR.
+
+---
+
 ## Everything Pipelines
 
 Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
@@ -159,6 +173,16 @@ Complex work decomposes into phases. Phases have gates. Gates prevent cascading 
 **Standard template:** GATHER (parallel agents) -> COMPILE (structure) -> EXECUTE (do the work) -> VALIDATE (deterministic + LLM) -> DELIVER (output + validation report).
 
 **Test:** Does this task have independently-failing phases? Does an intermediate artifact have value even if later phases fail? If yes, pipeline it.
+
+---
+
+## Maintenance as Governance
+
+One-line doc PRs are system health, not chores. A registry entry or a README count fix is the feedback loop that surfaces drift early; invest in it to prevent rot.
+
+The loop is designed, not incidental. `scripts/validate-doc-counts.py` runs as a CI gate and `hooks/stop-drift-guard.py` re-checks counts when a component is added or removed — together they turn a stale script-count claim in the README into a failing check and a one-line fix. PR #748 dogfooded the whole capture→store→query→display path through a single boring-fix registry entry: a mistake surfaced, got recorded as a negative result, was reviewed, and merged. The tiny PR proved the loop works end to end.
+
+**Test:** Is this fix "too small to bother"? If it closes a drift the system can detect, it is governance — ship it.
 
 ---
 
@@ -271,11 +295,35 @@ A prompt variable is a typed program input: expected format, escaping, behavior 
 
 ---
 
-## When Things Go Wrong
+## Learning System Discipline
+
+Negative results are assets worth a registry. Document what didn't work before it vanishes; one lookup prevents re-litigating a settled decision.
+
+Store failed experiments in a format-fixed doc, newest first, keyed by hypothesis plus an evidence location — a `file:line`, eval path, PR number, or `learning.db` topic/key, never a bare claim. `docs/what-didnt-work.md` is that registry: PR #747 shipped it with a six-field format (date, experiment, expectation, what happened, evidence, decision) and seeded it from three real program refutations. No schema, no blocking gate — the doc is canonical, queried by grep/Read before re-running an experiment, and surfaced through `CONTRIBUTING.md` and the `retro` subcommand.
+
+**Test:** Did this experiment fail, weaken, or get reverted? Record it in the registry with an evidence location before the next session re-runs it.
+
+---
+
+## Recursive Measurement
+
+The measurement system that catches routing misses must itself be measured. If negative results from a program don't land in the registry built during that program, the learning system failed — measure at program scale, not just per session.
+
+The blog-learnings program is its own test case. Early PRs shipped the telemetry envelope and routing-outcome capture; later PRs had to appear in that measurement. PR #747's registry was seeded with real negatives from the program itself — two refuted recommendations plus the post-merge-sync gotcha. Closure runs end to end: `hooks/routing-decision-recorder.py` → `hooks/routing-outcome-finalizer.py` → `scripts/learning-db.py route-health`, each with a visible correctness metric.
+
+**Test:** Did this program's own misses and dead ends get captured by the tooling it built? If not, the tooling is unproven.
+
+---
+
+## Operational Gotchas & Recovery
+
+Three failure modes need three detectors. **Loud failures** raise errors or exceptions — caught by tool error flags and `hooks/error-learner.py` classification. **Silent failures** succeed locally but hand the user a wrong answer — caught only by user reaction, where `hooks/routing-outcome-finalizer.py` runs high-precision rejection detection to avoid false positives. **Misroutes** pick the wrong agent for the right problem. Silent failure is the central enemy: it leaves no error to grep, so route-health tracks the outcome basis and silent-success share explicitly (PR #743). Recognizing which mode you face decides how to recover.
 
 **Routing misclassification.** Wrong agent selected. Signal: unexpected agent in routing banner, or output mismatched to domain. Recovery: re-invoke with explicit domain context.
 
 **Hook deadlock.** Hook points to nonexistent file. Every tool call returns exit 2. Recovery: check `~/.claude/settings.json`, verify `.py` file exists.
+
+**Merged is not deployed.** A `git pull` merges code but does not make freshly-merged hooks live. The post-merge hook is deliberately no-clobber (commit 18e6d03c): it adds new items but never overwrites existing `~/.claude` hooks. Signal: merged telemetry or hook changes stay inert (e.g., zero new rows) until synced. Recovery: after merging hook changes mid-session, run `hooks/sync-to-user-claude.py` or restart the session before expecting live behavior.
 
 **Pipeline stall.** Phase gate blocks on missing/malformed prerequisite artifact. Signal: same phase reruns without advancing. Recovery: check/fix the expected artifact file.
 
