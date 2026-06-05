@@ -96,13 +96,6 @@
             "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
             "timeout": 2000,
             "once": true
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-harvest-digest.py\"",
-            "description": "Weekly correction-harvest digest; gated to once per 7 days, silent otherwise (ADR correction-harvest-routine)",
-            "timeout": 5000,
-            "once": true
           }
         ]
       }
