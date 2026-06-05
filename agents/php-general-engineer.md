@@ -84,6 +84,7 @@ routing:
     - php-cs-fixer
     - phpstan
     - psalm
+  not_for: "running or configuring PHP quality or test tooling in isolation (use php-quality or php-testing). This agent writes and debugs PHP features."
   retro-topics:
     - php-patterns
     - security

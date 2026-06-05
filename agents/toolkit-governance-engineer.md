@@ -18,6 +18,7 @@ routing:
     - scaffold skill
     - build a skill
     - create a skill
+  not_for: "authoring one new skill end-to-end (use skill-creator). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding."
   pairs_with:
     - adr-consultation
     - routing-table-updater
