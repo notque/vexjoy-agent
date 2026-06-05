@@ -592,6 +592,128 @@ def record_learning(
         }
 
 
+# ─── Rightsizing ROI accumulation (ADR: review-tier-roi) ──────
+#
+# The rightsizing:tier{N} row must yield a TRUE per-tier mean, not the last
+# review's sample. record_learning's upsert keeps only the longest `value` and
+# discards per-review numbers, so it cannot store a running mean. This function
+# read-modify-writes running sums in the value envelope under one connection, so
+# review-roi divides true sums by true counts. Findings-bearing and cost counts
+# are tracked separately: a legacy (no-findings) review bumps `reviews` only,
+# never the findings sums or denominator; a review with tokens "-" never enters
+# the token sum. Atomic: SELECT + UPSERT share one connection and commit.
+
+# Order is the stored value's field order; review-roi parses by name, not order.
+_RIGHTSIZING_SUM_FIELDS = (
+    "reviews",  # all banners at this tier (= observation_count)
+    "sum_critical",
+    "sum_high",
+    "sum_medium",
+    "n_findings",  # banners that carried findings= (findings denominator)
+    "sum_tokens",
+    "n_tokens",  # banners with a numeric tokens= (token denominator)
+    "sum_wall_clock_s",
+    "n_wall",  # banners with a numeric wall_clock_s=
+)
+
+
+def _parse_rightsizing_sums(value: str) -> dict[str, int]:
+    """Read the running-sum envelope into ints; missing/non-numeric fields = 0."""
+    sums = dict.fromkeys(_RIGHTSIZING_SUM_FIELDS, 0)
+    for pair in (value or "").split(" | "):
+        if ": " not in pair:
+            continue
+        k, v = pair.split(": ", 1)
+        k = k.strip()
+        if k in sums:
+            try:
+                sums[k] = int(float(v.strip()))
+            except (ValueError, TypeError):
+                pass
+    return sums
+
+
+def accumulate_rightsizing(
+    tier: int,
+    *,
+    critical: int | None = None,
+    high: int | None = None,
+    medium: int | None = None,
+    tokens: int | None = None,
+    wall_clock_s: int | None = None,
+    source: str = "hook:routing-decision-recorder",
+    session_id: str | None = None,
+    confidence: float | None = None,
+) -> dict:
+    """Add one rightsizing review to the tier's running sums. Atomic upsert.
+
+    Pass None for an absent banner field. `critical/high/medium` are all-or-none:
+    when all three are given it counts as a findings-bearing review (bumps
+    n_findings and the severity sums); when all three are None it is a legacy
+    composition-only review (bumps `reviews` alone). `tokens` / `wall_clock_s`
+    each enter their own sum and denominator only when numeric.
+
+    The stored `value` always reflects the new sums (written directly, not via
+    record_learning's longest-value merge). observation_count = reviews at tier.
+    """
+    init_db()
+    now = datetime.now().isoformat()
+    if confidence is None:
+        confidence = CATEGORY_DEFAULTS.get("effectiveness", 0.5)
+
+    key = f"rightsizing:tier{int(tier)}"
+    has_findings = critical is not None and high is not None and medium is not None
+    has_tokens = tokens is not None
+    has_wall = wall_clock_s is not None
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT value FROM learnings WHERE topic = 'routing' AND key = ?",
+            (key,),
+        ).fetchone()
+        sums = _parse_rightsizing_sums(row["value"]) if row else dict.fromkeys(_RIGHTSIZING_SUM_FIELDS, 0)
+
+        sums["reviews"] += 1
+        if has_findings:
+            sums["sum_critical"] += int(critical)
+            sums["sum_high"] += int(high)
+            sums["sum_medium"] += int(medium)
+            sums["n_findings"] += 1
+        if has_tokens:
+            sums["sum_tokens"] += int(tokens)
+            sums["n_tokens"] += 1
+        if has_wall:
+            sums["sum_wall_clock_s"] += int(wall_clock_s)
+            sums["n_wall"] += 1
+
+        value = f"tier: {int(tier)} | " + " | ".join(f"{f}: {sums[f]}" for f in _RIGHTSIZING_SUM_FIELDS)
+        tags_str = ",".join(["routing", "rightsizing", f"tier{int(tier)}"])
+
+        conn.execute(
+            """
+            INSERT INTO learnings
+                (topic, key, value, category, confidence, tags,
+                 source, session_id, first_seen, last_seen)
+            VALUES ('routing', ?, ?, 'effectiveness', ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(topic, key) DO UPDATE SET
+                value = excluded.value,
+                confidence = max(confidence, excluded.confidence),
+                observation_count = observation_count + 1,
+                last_seen = excluded.last_seen,
+                source = excluded.source,
+                tags = COALESCE(excluded.tags, tags)
+            """,
+            (key, value, confidence, tags_str, source, session_id, now, now),
+        )
+        conn.commit()
+
+        out = conn.execute(
+            "SELECT value, observation_count FROM learnings WHERE topic = 'routing' AND key = ?",
+            (key,),
+        ).fetchone()
+        return {"key": key, "value": out["value"], "observation_count": out["observation_count"]}
+
+
 def record_telemetry_run(
     *,
     topic: str,

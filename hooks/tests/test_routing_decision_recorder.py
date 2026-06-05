@@ -217,6 +217,99 @@ class TestDecisionRecorder:
         keys = {r["key"] for r in _query_routing(db_env)}
         assert not any(k.startswith("rightsizing:") for k in keys)
 
+    def test_rightsizing_row_records_findings(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 1: a banner carrying findings= adds the
+        # severity counts to the tier's running sums (one findings-bearing review).
+        a = _load(A_PATH, "rdr_findings")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 2" in row["value"]
+        assert "sum_high: 3" in row["value"]
+        assert "sum_medium: 5" in row["value"]
+        assert "n_findings: 1" in row["value"]
+
+    def test_rightsizing_sums_accumulate_a_true_mean(self, db_env, monkeypatch):
+        # The fix's core: two findings-bearing reviews at one tier accumulate
+        # into running sums (2+5 critical over n_findings=2 => mean 3.5), NOT
+        # the last sample. Two banners must not overwrite each other.
+        a = _load(A_PATH, "rdr_mean")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for out, sess in (
+            ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/1H/0M", "s1"),
+            ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=5C/3H/4M", "s2"),
+        ):
+            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 7" in row["value"]  # 2 + 5
+        assert "sum_high: 4" in row["value"]  # 1 + 3
+        assert "n_findings: 2" in row["value"]
+
+    def test_rightsizing_row_records_cost_fields(self, db_env, monkeypatch):
+        # ADR review-tier-roi: optional tokens= and wall_clock_s= enter the sums.
+        a = _load(A_PATH, "rdr_cost")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output=(
+                "done. rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 "
+                "findings=0C/1H/2M tokens=52000 wall_clock_s=180"
+            ),
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
+        assert "sum_tokens: 52000" in row["value"]
+        assert "n_tokens: 1" in row["value"]
+        assert "sum_wall_clock_s: 180" in row["value"]
+
+    def test_legacy_rightsizing_banner_still_records(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 2: a four-field legacy banner (no findings=)
+        # still records the tier row; it bumps `reviews` but no findings sum.
+        a = _load(A_PATH, "rdr_legacy")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=1 files=3 packages=1 agents_dispatched=3",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier1")
+        assert "reviews: 1" in row["value"]
+        assert "n_findings: 0" in row["value"]
+        assert "sum_critical: 0" in row["value"]
+        assert "n_tokens: 0" in row["value"]
+
+    def test_legacy_review_does_not_pollute_findings_mean(self, db_env, monkeypatch):
+        # A legacy (no-findings) review at a tier that also has a findings-bearing
+        # review must NOT count into the findings denominator: n_findings stays 1
+        # while `reviews` is 2. (The old single-row model lost this distinction.)
+        a = _load(A_PATH, "rdr_mix")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for out, sess in (
+            ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 findings=4C/2H/1M", "s1"),
+            ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12", "s2"),  # legacy
+        ):
+            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
+        assert "reviews: 2" in row["value"]
+        assert "n_findings: 1" in row["value"]
+        assert "sum_critical: 4" in row["value"]  # only the findings-bearing review
+
     def test_idempotent_same_dispatch_recorded_once(self, db_env):
         # Use the real bridge state (redirected to tmp) so dedup engages.
         a = _load(A_PATH, "rdr_a6")
