@@ -28,7 +28,12 @@ from pathlib import Path
 
 
 def _atomic_json_write(path: Path, data: dict) -> None:
-    """Write JSON atomically via temp file + rename."""
+    """Write JSON atomically via temp file + replace.
+
+    os.replace (not os.rename) so the swap overwrites an existing target
+    atomically on Windows too — os.rename raises WinError 183 when the target
+    file already exists. See adr/windows-locking-deploy-warning.md.
+    """
     tmp_path = path.with_suffix(".json.tmp")
     try:
         with open(tmp_path, "w") as f:
@@ -36,7 +41,7 @@ def _atomic_json_write(path: Path, data: dict) -> None:
             f.write("\n")
             f.flush()
             os.fsync(f.fileno())
-        os.rename(str(tmp_path), str(path))
+        os.replace(str(tmp_path), str(path))
     except Exception:
         # Clean up temp file on failure
         try:
@@ -699,7 +704,7 @@ def main():
             if missing_hooks:
                 print(
                     f"[sync] WARNING: {len(missing_hooks)} hook(s) registered in settings.json "
-                    f"but missing from ~/.claude/hooks/: {', '.join(missing_hooks)}",
+                    f"but missing from ~/.claude/hooks/: {', '.join(missing_hooks)}",  # security-review: ignore — false positive: "from" in a stderr warning, no SQL
                     file=sys.stderr,
                 )
                 # Attempt emergency copy from repo hooks/ for any missing files.
