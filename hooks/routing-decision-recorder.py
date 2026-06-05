@@ -74,9 +74,15 @@ _DO_ROUTE_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Right-sizing banner, e.g. "rightsizing: tier=2 files=8 packages=3 agents_dispatched=12"
+# Right-sizing banner. The first four fields are required; findings= and the
+# cost fields (tokens=, wall_clock_s=) are optional, additive extensions
+# (ADR: review-tier-roi). Legacy four-field banners still match.
+#   rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M tokens=84000 wall_clock_s=312
 _RIGHTSIZING_RE = re.compile(
-    r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)",
+    r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)"
+    r"(?:\s+findings=(\d+)C/(\d+)H/(\d+)M)?"
+    r"(?:\s+tokens=(\d+))?"
+    r"(?:\s+wall_clock_s=(\d+))?",
     re.IGNORECASE,
 )
 
@@ -127,23 +133,36 @@ def detect_errors(event: dict) -> bool:
         return False
 
 
-def record_rightsizing(output: str) -> None:
-    """(C) Record a rightsizing row when the output carries the banner. Silent otherwise."""
+def record_rightsizing(output: str, session_id: str | None = None) -> None:
+    """(C) Add one rightsizing review to the tier's running sums. Silent when no banner.
+
+    Per-review findings and cost are accumulated into running sums in the
+    rightsizing:tier{N} row (`accumulate_rightsizing`) so `learning-db.py
+    review-roi` reports a TRUE per-tier mean (sum / count), not the last
+    review's sample. findings= and the cost fields are optional: a legacy
+    banner (no findings=) bumps the review count only; a "-" cost never enters
+    its sum (ADR: review-tier-roi).
+    """
     if not output or "rightsizing:" not in output.lower():
         return
     m = _RIGHTSIZING_RE.search(output)
     if not m:
         return
-    tier, files, packages, agents = m.group(1), m.group(2), m.group(3), m.group(4)
-    from learning_db_v2 import record_learning
 
-    record_learning(
-        topic="routing",
-        key=f"rightsizing:tier{tier}",
-        value=f"rightsizing: tier={tier} files={files} packages={packages} agents_dispatched={agents}",
-        category="effectiveness",
-        tags=["routing", "rightsizing"],
+    def _int_or_none(s: str | None) -> int | None:
+        return int(s) if s is not None and s != "" else None
+
+    from learning_db_v2 import accumulate_rightsizing
+
+    accumulate_rightsizing(
+        int(m.group(1)),
+        critical=_int_or_none(m.group(5)),
+        high=_int_or_none(m.group(6)),
+        medium=_int_or_none(m.group(7)),
+        tokens=_int_or_none(m.group(8)),
+        wall_clock_s=_int_or_none(m.group(9)),
         source="hook:routing-decision-recorder",
+        session_id=session_id or None,
     )
 
 
@@ -231,7 +250,7 @@ def main() -> None:
 
         output = get_tool_output(get_tool_result(event))
         if isinstance(output, str):
-            record_rightsizing(output)
+            record_rightsizing(output, session_id)
 
         # Bridge to the SubagentStop outcome hook (action B). The dispatch was
         # already claimed (marked seen) atomically above, so no separate mark.
