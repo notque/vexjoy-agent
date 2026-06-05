@@ -6,7 +6,7 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-44 domain agents, 124 workflow skills, 83 hooks, 113 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+44 domain agents, 124 workflow skills, 83 hooks, 114 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`).
 
@@ -109,7 +109,7 @@ Mirrors agents (as "droids"), skills, and all hooks into `~/.factory/`. Hook con
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, scripts, and all hooks into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix's hook contract is Claude-Code-identical, so hook config is written to the `hooks` key of `~/.reasonix/settings.json` with paths rewritten. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, scripts, and the allowlisted hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 
