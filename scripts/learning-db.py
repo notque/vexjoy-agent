@@ -25,6 +25,7 @@ Usage:
     python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
     python3 scripts/learning-db.py roi [--json]
     python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override|week|day [--json]
+    python3 scripts/learning-db.py review-roi [--json]
     python3 scripts/learning-db.py route-delta --from REF --to REF [--key AGENT:SKILL] [--metric error|tokens] [--json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
@@ -35,6 +36,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta
@@ -708,6 +710,129 @@ def _cohort_tokens(conn, where: str, params: list[str]) -> dict:
     return {"runs": row["runs"], "n": n, "avg_tokens": avg}
 
 
+# Below this many findings-bearing reviews the ROI table refuses to assert a
+# "best" tier — a humility gate, not a merge gate (ADR: review-tier-roi).
+ROI_MIN_REVIEWS = 20
+
+# Severity fields whose per-tier average is always reported.
+_ROI_FINDINGS_FIELDS = ("findings_critical", "findings_high", "findings_medium")
+# Cost fields that are nullable: a "-" value is skipped, never counted as 0.
+_ROI_COST_FIELDS = ("tokens", "wall_clock_s")
+_RIGHTSIZING_KEY_RE = re.compile(r"^rightsizing:tier(\d+)$")
+
+
+def _parse_pipe_value(value: str) -> dict[str, str]:
+    """Parse a pipe-delimited `k: v | k: v` value into a dict (route-stats format)."""
+    parsed: dict[str, str] = {}
+    for pair in value.split(" | "):
+        if ": " in pair:
+            k, v = pair.split(": ", 1)
+            parsed[k.strip()] = v.strip()
+    return parsed
+
+
+def _avg(total: float, count: int) -> float | None:
+    """Average, or None when there is no contributing row (n/a, not 0)."""
+    return round(total / count, 2) if count else None
+
+
+def _compute_review_roi() -> list[dict]:
+    """Aggregate rightsizing:tier{N} rows into per-tier ROI dicts, tier ascending.
+
+    reviews = observation_count (reviews recorded at that tier). Findings are
+    averaged over reviews. Cost fields average only over rows with a numeric
+    value; an all-"-" tier reports null (n/a). Tiers with zero findings-bearing
+    reviews are excluded (a composition-only banner carries no findings)."""
+    rows = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+    # Per tier: review count + running sums for findings (per-review) and cost.
+    agg: dict[int, dict] = {}
+    for r in rows:
+        m = _RIGHTSIZING_KEY_RE.match(r["key"])
+        if not m:
+            continue
+        fields = _parse_pipe_value(r["value"])
+        # A findings-bearing review has numeric severity counts (not "-").
+        if any(fields.get(f, "-") == "-" for f in _ROI_FINDINGS_FIELDS):
+            continue
+        tier = int(m.group(1))
+        reviews = int(r.get("observation_count", 1) or 1)
+        a = agg.setdefault(
+            tier,
+            {
+                "reviews": 0,
+                "findings": dict.fromkeys(_ROI_FINDINGS_FIELDS, 0.0),
+                "cost": {c: [0.0, 0] for c in _ROI_COST_FIELDS},
+            },
+        )
+        a["reviews"] += reviews
+        for f in _ROI_FINDINGS_FIELDS:
+            a["findings"][f] += float(fields[f]) * reviews
+        for c in _ROI_COST_FIELDS:
+            raw = fields.get(c, "-")
+            if raw != "-":
+                a["cost"][c][0] += float(raw) * reviews
+                a["cost"][c][1] += reviews
+
+    total_reviews = sum(a["reviews"] for a in agg.values())
+    insufficient = total_reviews < ROI_MIN_REVIEWS
+    out = []
+    for tier in sorted(agg):
+        a = agg[tier]
+        n = a["reviews"]
+        out.append(
+            {
+                "tier": tier,
+                "reviews": n,
+                "avg_critical": _avg(a["findings"]["findings_critical"], n),
+                "avg_high": _avg(a["findings"]["findings_high"], n),
+                "avg_medium": _avg(a["findings"]["findings_medium"], n),
+                "avg_tokens": _avg(*a["cost"]["tokens"]),
+                "avg_wall_clock_s": _avg(*a["cost"]["wall_clock_s"]),
+                "insufficient_data": insufficient,
+            }
+        )
+    return out
+
+
+def cmd_review_roi(args: argparse.Namespace) -> None:
+    """review-roi: per-tier review cost/findings ROI (report-only, never blocks)."""
+    init_db()
+    data = _compute_review_roi()
+    total_reviews = sum(r["reviews"] for r in data)
+
+    if args.json:
+        print(json.dumps(data, indent=2, default=str))
+        return
+
+    if not data:
+        print("No review-ROI data. Run reviews that emit findings= in the rightsizing banner.")
+        return
+
+    def _cell(v: float | None) -> str:
+        return "n/a" if v is None else f"{v:g}"
+
+    print(f"Review-Tier ROI  ({total_reviews} reviews)")
+    print(
+        f"{'Tier':<5} {'Reviews':>8} {'Avg Crit':>9} {'Avg High':>9} {'Avg Med':>8} {'Avg Tokens':>11} {'Avg Wall(s)':>12}"
+    )
+    for r in data:
+        print(
+            f"{r['tier']:<5} {r['reviews']:>8} {_cell(r['avg_critical']):>9} {_cell(r['avg_high']):>9} "
+            f"{_cell(r['avg_medium']):>8} {_cell(r['avg_tokens']):>11} {_cell(r['avg_wall_clock_s']):>12}"
+        )
+    if data and data[0]["insufficient_data"]:
+        print(
+            f"INSUFFICIENT DATA: {total_reviews} reviews (<{ROI_MIN_REVIEWS}). "
+            "Numbers shown for inspection; do not act on them."
+        )
+
+
 def cmd_route_delta(args: argparse.Namespace) -> None:
     """route-delta --from REF --to REF: 'did that change help?' cohort comparison.
 
@@ -1287,6 +1412,11 @@ def main():
     )
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
+
+    # review-roi — per-tier review cost/findings ROI (report-only).
+    p_review_roi = subparsers.add_parser("review-roi", help="Per-tier review cost/findings ROI")
+    p_review_roi.add_argument("--json", action="store_true", help="Output as JSON")
+    p_review_roi.set_defaults(func=cmd_review_roi)
 
     # route-delta — "did that change help?" cohort comparison over telemetry_runs.
     p_route_delta = subparsers.add_parser("route-delta", help="Compare two cohorts (git-SHA or date) of telemetry runs")

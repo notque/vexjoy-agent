@@ -259,3 +259,43 @@ def test_cli_includes_recommended_and_field_scope_tier():
     assert data["tier"] == 2
     assert "recommended" in data
     assert data["FILE_SCOPE_TIER"] == 2
+
+
+# --- Findings banner emission (ADR: review-tier-roi) ------------------------
+
+
+def _banner_line(stdout):
+    """Return the rightsizing banner line from mixed stdout, or None."""
+    for line in stdout.splitlines():
+        if line.startswith("rightsizing:"):
+            return line
+    return None
+
+
+def test_findings_flag_emits_banner_line():
+    # --findings makes the script print the capture banner the recorder parses.
+    proc = _run("--files", "15", "--packages", "4", "--findings", "2C/3H/5M")
+    assert proc.returncode == 0
+    banner = _banner_line(proc.stdout)
+    assert banner is not None
+    assert "tier=3" in banner
+    assert "files=15" in banner
+    assert "packages=4" in banner
+    assert "agents_dispatched=17" in banner
+    assert "findings=2C/3H/5M" in banner
+
+
+def test_findings_flag_keeps_json_parseable():
+    # The JSON contract still holds: a JSON line is present alongside the banner.
+    proc = _run("--files", "15", "--packages", "4", "--findings", "2C/3H/5M")
+    json_line = next(line for line in proc.stdout.splitlines() if line.startswith("{"))
+    data = json.loads(json_line)
+    assert data["tier"] == 3
+    assert data["agent_estimate"] == 17
+
+
+def test_no_banner_without_findings_flag():
+    # Default (no --findings): JSON only, no banner — preserves existing callers.
+    proc = _run("--files", "15", "--packages", "4")
+    assert _banner_line(proc.stdout) is None
+    assert json.loads(proc.stdout)["tier"] == 3

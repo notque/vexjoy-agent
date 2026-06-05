@@ -217,6 +217,57 @@ class TestDecisionRecorder:
         keys = {r["key"] for r in _query_routing(db_env)}
         assert not any(k.startswith("rightsizing:") for k in keys)
 
+    def test_rightsizing_row_records_findings(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 1: a banner carrying findings= records the
+        # per-severity counts in the rightsizing:tier{N} row value.
+        a = _load(A_PATH, "rdr_findings")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "findings_critical: 2" in row["value"]
+        assert "findings_high: 3" in row["value"]
+        assert "findings_medium: 5" in row["value"]
+
+    def test_rightsizing_row_records_cost_fields(self, db_env, monkeypatch):
+        # ADR review-tier-roi: optional tokens= and wall_clock_s= are stored.
+        a = _load(A_PATH, "rdr_cost")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output=(
+                "done. rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 "
+                "findings=0C/1H/2M tokens=52000 wall_clock_s=180"
+            ),
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
+        assert "tokens: 52000" in row["value"]
+        assert "wall_clock_s: 180" in row["value"]
+
+    def test_legacy_rightsizing_banner_still_records(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 2: a four-field legacy banner (no findings=)
+        # still records the tier row; findings/cost fields stored as "-".
+        a = _load(A_PATH, "rdr_legacy")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=1 files=3 packages=1 agents_dispatched=3",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier1")
+        assert "findings_critical: -" in row["value"]
+        assert "tokens: -" in row["value"]
+
     def test_idempotent_same_dispatch_recorded_once(self, db_env):
         # Use the real bridge state (redirected to tmp) so dedup engages.
         a = _load(A_PATH, "rdr_a6")
