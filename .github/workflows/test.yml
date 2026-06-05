@@ -105,3 +105,32 @@ jobs:
         run: python scripts/validate-hook-health.py --ci
       - name: Smoke-test all registered hooks
         run: python scripts/smoke-test-hooks.py --ci
+
+  trigger-ambiguity:
+    # Advisory: audit-trigger-ambiguity.py always exits 0; this job is always green.
+    # It prints the ranked undisambiguated-collision list into the CI log each run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      # INDEX.json is generated (untracked); the audit reads it.
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
+      - run: python scripts/audit-trigger-ambiguity.py
+
+  index-colocation:
+    # Advisory: WARN-ONLY frontmatter<->INDEX colocation report. Never blocks merge.
+    # continue-on-error makes even a crash non-fatal to the run.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - run: python scripts/check-index-colocation.py --base origin/main --head HEAD --json || true
