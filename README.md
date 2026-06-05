@@ -6,7 +6,7 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-44 domain agents, 124 workflow skills, 83 hooks, 111 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+44 domain agents, 124 workflow skills, 83 hooks, 113 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`).
 
@@ -179,6 +179,13 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 - **Everything pipelines.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
 Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+
+## Maintenance
+
+Two report-only scripts surface upkeep work; both print a digest and never edit, delete, or block.
+
+- `python3 scripts/harvest-corrections.py` — clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
+- `python3 scripts/stale-skill-scan.py --top 20` — ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
 ## Contributing
 
