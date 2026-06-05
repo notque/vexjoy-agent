@@ -43,3 +43,65 @@ evals/
 ```
 
 See `new-skills-ab-test/` for the canonical example of a well-structured evaluation.
+
+## Per-PR Skill-Eval Ablation
+
+ADR skill-eval-pr-ablation. When a PR edits a skill, run its eval before vs.
+after the edit to measure the delta. CI cannot run evals (the runner shells to
+the `claude` CLI, absent on GitHub runners), so the real ablation runs locally.
+CI only posts a coverage map.
+
+### Mapping convention (changed skill -> eval)
+
+`scripts/detect-skill-changes.py --base <ref> --head <ref> --format json` lists
+the skills changed in a range and maps each to an eval. Resolution order, first
+hit wins:
+
+1. exact dir: `evals/<skill>/` exists.
+2. `-eval` suffix: `evals/<skill>-eval/` exists.
+3. README mention: the skill name appears as a whole word (case-insensitive) in
+   any `evals/*/README.md`.
+4. no match -> the skill is reported as **uncovered** (a gap to consider, not a
+   failure).
+
+The mapper always exits 0. Uncovered skills are data, not errors.
+
+### Running the ablation locally
+
+```bash
+make skill-eval-ablation BASE=<ref> HEAD=<ref> [SKILL=<name>] [RUNS=3] [RECORD=1]
+```
+
+For each mapped skill it runs the eval against the base content, then the head
+content, and prints the delta:
+
+```
+planning  base 58% -> head 67%  (+9, eval=evals/new-skills-ab-test, runs=3)
+```
+
+The command restores the working tree on every exit path; a crashed run leaves
+no base content checked out.
+
+`RECORD=1` writes one row per run to `learning.db` (topic `eval:<dir>`,
+`git_commit_sha` = head SHA), so eval history becomes a queryable time-series:
+
+```bash
+python3 scripts/learning-db.py query --topic "eval:evals/new-skills-ab-test"
+```
+
+If PR-A's telemetry envelope columns are absent, `--record` degrades to a no-op
+against those columns: it still writes the row (envelope packed into `value`)
+and appends one JSON line to `~/.claude/eval-ablations.log`. No run is lost; it
+never fails.
+
+### Opt-in pre-push hook
+
+Off by default — ablation spends real model calls. Install it explicitly:
+
+```bash
+make skill-eval-install-hook      # writes .git/hooks/pre-push (advisory)
+```
+
+Even installed, the hook acts only when `VEXJOY_SKILL_EVAL_PREPUSH=1`; otherwise
+it does nothing. It never blocks the push (`exit 0` always). Re-installing is
+idempotent and never clobbers a foreign pre-push hook.
