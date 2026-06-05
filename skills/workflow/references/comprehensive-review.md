@@ -441,6 +441,17 @@ echo "Saved final report: $(wc -l < "$REVIEW_DIR/final-report.md") lines"
 ls -la "$REVIEW_DIR/"
 ```
 
+**Step 5b: Emit the rightsizing capture banner** — closes the review-tier-ROI loop (ADR: review-tier-roi). Count final CRITICAL/HIGH/MEDIUM and re-run the sizer with `--findings` so `routing-decision-recorder` captures the per-tier yield. Without this line, `review-roi` reports insufficient data forever.
+
+```bash
+C=$(grep -c -i "CRITICAL" "$REVIEW_DIR/final-report.md" || echo 0)
+H=$(grep -c -i "HIGH" "$REVIEW_DIR/final-report.md" || echo 0)
+M=$(grep -c -i "MEDIUM" "$REVIEW_DIR/final-report.md" || echo 0)
+python3 scripts/right-size-review.py --files "$FILES" --packages "$PKGS" --findings "${C}C/${H}H/${M}M"
+```
+
+The printed `rightsizing: ... findings=NC/NH/NM` line is the capture banner. Append `tokens=` / `wall_clock_s=` to it from PR-A's telemetry envelope when those values are known; absent, they store as n/a.
+
 **Step 6**: Show the matrix, agreement summary, and CONTESTED findings BEFORE proceeding to fixes. If `--review-only`, stop here.
 
 For CONTESTED findings: "Wave 3 challenges these N findings. Fix them anyway, skip them, or decide individually?"
