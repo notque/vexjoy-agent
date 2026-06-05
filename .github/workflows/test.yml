@@ -134,3 +134,63 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       - run: python scripts/check-index-colocation.py --base origin/main --head HEAD --json || true
+
+  skill-eval-coverage:
+    # Report-only (ADR skill-eval-pr-ablation, Decision 2). Maps skills changed
+    # in this PR to their evals and posts a sticky coverage comment. It does NOT
+    # run evals -- the runner shells to the `claude` CLI, absent on GitHub
+    # runners (ADR hard constraint). continue-on-error + always-exit-0 detector
+    # mean it can never become a failing required check. PR-only, skills/** only.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Skip when no skills changed
+        id: filter
+        env:
+          # Context bound to env, referenced as "$BASE"/"$HEAD" in the shell —
+          # the recommended injection-safe pattern. Values are 40-hex SHAs.
+          BASE: ${{ github.event.pull_request.base.sha }}  # security-review: ignore
+          HEAD: ${{ github.sha }}
+        run: |
+          if git diff --name-only "$BASE" "$HEAD" | grep -qE '^skills/.+/SKILL\.md$'; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build coverage comment
+        if: steps.filter.outputs.changed == '1'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}  # security-review: ignore
+          HEAD: ${{ github.sha }}
+        run: |
+          python scripts/detect-skill-changes.py --base "$BASE" --head "$HEAD" --format json > coverage.json || echo '{}' > coverage.json
+          python scripts/render-skill-eval-comment.py coverage.json > comment.md
+      - name: Post sticky PR comment
+        if: steps.filter.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Bound to env, used as "$PR"/"$REPO" in the shell (injection-safe).
+          # PR number is an integer; repo is owner/repo.
+          PR: ${{ github.event.pull_request.number }}  # security-review: ignore
+          REPO: ${{ github.repository }}
+        run: |
+          MARKER='<!-- skill-eval-coverage -->'
+          # Edit the prior bot comment if present (sticky), else create one.
+          CID=$(gh api "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n1) || true
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$CID" -f body="$(cat comment.md)" || true
+          else
+            gh pr comment "$PR" --body-file comment.md || true
+          fi
