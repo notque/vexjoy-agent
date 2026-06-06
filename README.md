@@ -135,6 +135,8 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Hooks | 77 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
 | Scripts | 101 | Determinism: test runners, linters, validators. No LLM judgment. |
 
+Full skill catalog: [docs/skills.md](docs/skills.md).
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  SKILL.md                                       │

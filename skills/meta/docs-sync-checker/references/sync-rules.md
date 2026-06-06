@@ -5,9 +5,9 @@ This file documents the synchronization rules for determining which files must d
 ## Primary Documentation Rules
 
 ### Skills
-**Primary Location**: `skills/README.md`
+**Primary Location**: `docs/skills.md`
 
-**Rule**: EVERY skill with a `skills/*/SKILL.md` file MUST be documented in `skills/README.md`
+**Rule**: EVERY skill with a `skills/*/SKILL.md` file MUST be documented in `docs/skills.md`
 
 **Format**: Markdown table with columns: Name, Description, Command, Hook
 
@@ -75,7 +75,7 @@ This file documents the synchronization rules for determining which files must d
 
 **Recommended**:
 - docs/REFERENCE.md: Include version in tool section
-- skills/README.md: Could add Version column (not standard currently)
+- docs/skills.md: Could add Version column (not standard currently)
 
 **Enforcement**: Low priority - version mismatches reported as LOW severity
 
@@ -146,7 +146,7 @@ description: Combined Python (ruff) and JavaScript (Biome) linting
 ```
 
 ```markdown
-# skills/README.md
+# docs/skills.md
 | code-linting | Combined Python (ruff) and JavaScript (Biome) linting | ... |
 
 # docs/REFERENCE.md
@@ -292,13 +292,13 @@ python3 skills/meta/docs-sync-checker/scripts/parse_docs.py --repo-root . --scan
 python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/parse.json --scan-results /tmp/scan.json
 
 # 3. Review report and update documentation
-vim skills/README.md
+vim docs/skills.md
 
 # 4. Verify sync
 python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/parse.json --scan-results /tmp/scan.json
 
 # 5. Commit tool AND documentation together
-git add skills/new-skill skills/README.md
+git add skills/new-skill docs/skills.md
 git commit -m "Add new-skill with documentation"
 ```
 
@@ -308,7 +308,7 @@ These rules may evolve as the repository grows:
 
 **Potential Changes**:
 - Add `.docsignore` for tools to exclude
-- Add version column to skills/README.md table
+- Add version column to docs/skills.md table
 - Introduce skill/agent namespaces
 - Add automated description consistency checking
 - Support alternative documentation formats (JSON, YAML)
