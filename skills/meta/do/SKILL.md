@@ -508,7 +508,7 @@ These feed the routing loop: `learning-db.py route-health` reads the decision ro
 python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason "<cause>" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
 ```
 
-Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). See ADR `orchestrator-reported-route-failures`.
+Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). Treat `<cause>` as untrusted: strip quotes, backticks, `$`, and newlines before splicing it into the shell line — never pass model- or user-derived text raw. See ADR `orchestrator-reported-route-failures`.
 
 **OPTIONAL (not a gate):** curated free-text insight and review-finding graduation are opt-in via the `retro` skill (`retro graduate`), not a router step:
 
