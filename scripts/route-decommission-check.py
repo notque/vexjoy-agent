@@ -17,7 +17,7 @@ Verdicts (the trigger contract):
   ACCRUING      zero interventions, clock valid, neither threshold reached.
                 Keep collecting; prints exact remaining days/decisions. Exit 0.
   CLOCK-INVALID the recorded telemetry cannot support a DELETE/KEEP decision:
-                post-fix non-null health rate < 95% OR outcome unknown_rate > 5%.
+                post-fix INSTRUMENTED rate < 95% OR outcome unknown_rate > 5%.
                 The zero cannot be trusted. Exit 4.
 
 interventions:
@@ -31,9 +31,18 @@ interventions:
             replay prefer them; bare-key alternates have no weight row, so the
             shadow replay cannot fire toward them (honest zero, not a hidden one).
 
-Clock validity (else the zero is not trustworthy):
-  health_rate  = post-fix decisions with non-null health_at_decision / total
-                 post-fix decisions; must be >= 95%.
+Clock validity (else the zero is not trustworthy). Three instrumentation states,
+keyed on what the do-route marker carried:
+  (a) numeric  health=<float>  -> health_at_decision float.
+  (b) no-row   health=-        -> health null, gate_inputs_present true. The pick
+               had NO weight row — valid, expected data. Most live picks are
+               state (b); reading it as missing kept the clock unreachable
+               forever (the soundness gap this fixes).
+  (c) legacy   no health= token -> health null, gate_inputs_present false/absent.
+               The marker never carried a gate input (pre-fix / missing wiring).
+  instrumented_rate = (a + b) / total post-fix decisions; must be >= 95%. Only
+                 state (c) counts against it. The validity signal is "marker
+                 carried gate inputs (incl. '-')", NOT "non-null health".
   unknown_rate = post-fix decisions with no joinable outcome / total post-fix
                  decisions; must be <= 5%. Join key (ADR): session id, nearest
                  preceding decision in that session.
@@ -67,7 +76,12 @@ DELETE_DAYS = 90
 DELETE_DECISIONS = 3000
 
 # Clock-validity gates (else CLOCK-INVALID).
-MIN_HEALTH_RATE = 0.95
+# instrumented = decision carried gate inputs on the marker: state (a) numeric
+# health OR state (b) `health=-` (pick had no weight row — valid, expected). Only
+# state (c) (no `health=` token on the marker, legacy/missing wiring) counts
+# against this rate. Reading non-null health as the signal kept the clock
+# unreachable forever, because most picks are state (b) (the soundness fix).
+MIN_INSTRUMENTED_RATE = 0.95
 MAX_UNKNOWN_RATE = 0.05
 
 _DEFAULT_EVENTS = Path.home() / ".claude" / "learning" / "route-events.jsonl"
@@ -152,15 +166,14 @@ def count_post_fix(events_path: Path) -> dict[str, Any]:
 
     real_demote = real_tiebreak = 0
     shadow_demote = shadow_tiebreak = 0
-    non_null_health = 0
+    state_a = state_b = state_c = 0
     for d in decisions:
         action = d.get("action")
         if action == "demote":
             real_demote += 1
         elif action == "tiebreak":
             real_tiebreak += 1
-        if d.get("health_at_decision") is not None:
-            non_null_health += 1
+        state_a, state_b, state_c = _bump_state(d, state_a, state_b, state_c)
         sa = _shadow_action(d)
         if sa == "demote":
             shadow_demote += 1
@@ -168,7 +181,10 @@ def count_post_fix(events_path: Path) -> dict[str, Any]:
             shadow_tiebreak += 1
 
     n_dec = len(decisions)
-    health_rate = (non_null_health / n_dec) if n_dec else 0.0
+    # instrumented = state (a) + state (b): the marker carried the gate input.
+    # Only state (c) (no gate input) counts against the 95% rate.
+    instrumented = state_a + state_b
+    instrumented_rate = (instrumented / n_dec) if n_dec else 0.0
     joined = _count_joined(decisions, outcomes)
     unknown_rate = ((n_dec - joined) / n_dec) if n_dec else 1.0
 
@@ -176,8 +192,11 @@ def count_post_fix(events_path: Path) -> dict[str, Any]:
     return {
         "post_fix_decisions": n_dec,
         "post_fix_outcomes": len(outcomes),
-        "non_null_health": non_null_health,
-        "health_rate": round(health_rate, 4),
+        "state_a_numeric": state_a,
+        "state_b_norow": state_b,
+        "state_c_legacy": state_c,
+        "instrumented": instrumented,
+        "instrumented_rate": round(instrumented_rate, 4),
         "joined_outcomes": joined,
         "unknown_rate": round(unknown_rate, 4),
         "real_demote": real_demote,
@@ -186,6 +205,22 @@ def count_post_fix(events_path: Path) -> dict[str, Any]:
         "shadow_tiebreak": shadow_tiebreak,
         "interventions": interventions,
     }
+
+
+def _bump_state(d: dict[str, Any], a: int, b: int, c: int) -> tuple[int, int, int]:
+    """Classify one decision into the three instrumentation states.
+
+    (a) numeric: health_at_decision is non-null (marker carried a real score).
+    (b) no-row : health null AND gate_inputs_present true (marker said `health=-`;
+        the pick had no weight row — valid, expected data).
+    (c) legacy : neither (no `health=` token on the marker; pre-fix / missing
+        wiring). A legacy event with no gate_inputs_present key lands here.
+    """
+    if d.get("health_at_decision") is not None:
+        return a + 1, b, c
+    if d.get("gate_inputs_present"):
+        return a, b + 1, c
+    return a, b, c + 1
 
 
 def _count_joined(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]) -> int:
@@ -222,15 +257,19 @@ def clock_valid(stats: dict[str, Any]) -> tuple[bool, str]:
     """True iff the recorded telemetry can support a DELETE/KEEP decision.
 
     Fails (with the offending number) when there are no post-fix decisions, the
-    non-null health rate is < 95%, or the outcome unknown_rate is > 5%.
+    INSTRUMENTED rate is < 95%, or the outcome unknown_rate is > 5%. Instrumented
+    = state (a) numeric health + state (b) `health=-` no-row; only state (c)
+    (no gate input on the marker) counts against the rate.
     """
     if stats["post_fix_decisions"] == 0:
         return False, "no post-fix decisions recorded yet (clock cannot start)"
-    if stats["health_rate"] < MIN_HEALTH_RATE:
+    if stats["instrumented_rate"] < MIN_INSTRUMENTED_RATE:
         return (
             False,
-            f"health rate {stats['health_rate']:.4f} < {MIN_HEALTH_RATE} "
-            f"({stats['non_null_health']}/{stats['post_fix_decisions']} non-null)",
+            f"instrumented rate {stats['instrumented_rate']:.4f} < {MIN_INSTRUMENTED_RATE} "
+            f"(a numeric={stats['state_a_numeric']} + b no-row={stats['state_b_norow']} "
+            f"= {stats['instrumented']}/{stats['post_fix_decisions']}; "
+            f"c legacy={stats['state_c_legacy']} not instrumented)",
         )
     if stats["unknown_rate"] > MAX_UNKNOWN_RATE:
         return (
@@ -307,11 +346,14 @@ def render_human(res: dict[str, Any]) -> str:
         f"elapsed: {res['elapsed_days']} days  | remaining to delete: "
         f"{res['remaining_days']} days OR {res['remaining_decisions']} decisions",
         f"post-fix decisions: {res['post_fix_decisions']}",
+        f"instrumentation states: a numeric={res['state_a_numeric']} "
+        f"b no-row={res['state_b_norow']} c legacy={res['state_c_legacy']} "
+        f"(instrumented a+b={res['instrumented']}/{res['post_fix_decisions']})",
         f"interventions: {res['interventions']} "
         f"(real demote={res['real_demote']} tiebreak={res['real_tiebreak']}; "
         f"shadow demote={res['shadow_demote']} tiebreak={res['shadow_tiebreak']})",
         f"clock valid: {str(res['clock_valid']).lower()}  "
-        f"(health_rate={res['health_rate']} >= {MIN_HEALTH_RATE}? ; "
+        f"(instrumented_rate={res['instrumented_rate']} >= {MIN_INSTRUMENTED_RATE}? ; "
         f"unknown_rate={res['unknown_rate']} <= {MAX_UNKNOWN_RATE}?)",
     ]
     if not res["clock_valid"]:

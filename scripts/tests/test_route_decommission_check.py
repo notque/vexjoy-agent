@@ -45,6 +45,9 @@ def _write(path: Path, events: list[dict]) -> Path:
 
 
 def _decision(ts: float, **kw) -> dict:
+    # gate_inputs_present defaults True for a numeric-health decision (state a);
+    # state (b)/(c) tests pass it explicitly. A null-health default still marks
+    # the marker as carrying the gate input unless overridden.
     e = {
         "type": "decision",
         "ts": ts,
@@ -56,6 +59,7 @@ def _decision(ts: float, **kw) -> dict:
         "failure": kw.pop("failure", 0),
         "action": kw.pop("action", "keep"),
         "alternates": kw.pop("alternates", None),
+        "gate_inputs_present": kw.pop("gate_inputs_present", True),
     }
     e.update(kw)
     return e
@@ -75,7 +79,7 @@ def test_clock_start_is_stage0_commit():
     assert mod.STAGE0_FIX_COMMIT == "d943ba74"
     assert mod.DELETE_DAYS == 90
     assert mod.DELETE_DECISIONS == 3000
-    assert mod.MIN_HEALTH_RATE == 0.95
+    assert mod.MIN_INSTRUMENTED_RATE == 0.95
     assert mod.MAX_UNKNOWN_RATE == 0.05
 
 
@@ -168,18 +172,78 @@ def test_clock_valid_when_health_rate_and_unknown_rate_ok(tmp_path):
     assert valid is True
 
 
-def test_clock_invalid_when_health_rate_below_95(tmp_path):
+def test_clock_invalid_when_instrumented_rate_below_95(tmp_path):
+    # Contract change (soundness fix): validity counts INSTRUMENTED decisions
+    # (state a numeric + state b no-row), not non-null health. Only state (c)
+    # (no gate input on the marker) counts against the 95% rate. 9 state-(c)
+    # legacy decisions + 1 state-(a) => 10% instrumented => clock invalid.
     mod = _load()
     fix, _, _ = _mod_consts(mod)
-    # 9 null-health + 1 non-null => 10% health rate, far below 95%.
-    decs = [_decision(fix + i + 1, session=f"s{i}", health=None) for i in range(9)]
+    decs = [_decision(fix + i + 1, session=f"s{i}", health=None, gate_inputs_present=False) for i in range(9)]
     decs.append(_decision(fix + 50, session="s9", health=0.7))
     p = _write(tmp_path / "e.jsonl", decs)
     stats = mod.count_post_fix(p)
     valid, reason = mod.clock_valid(stats)
     assert valid is False
-    assert "health" in reason.lower()
+    assert "instrumented" in reason.lower()
     assert "0.1" in reason or "10" in reason  # the failing number is reported
+
+
+def test_state_b_majority_is_valid_clock(tmp_path):
+    # CORE FIX: most live picks are state (b) — pick has no weight row, recorded
+    # as null health BUT gate_inputs_present True. These are instrumented, valid,
+    # expected data. The clock must be VALID when state (b) dominates, else the
+    # decommission clock stays unreachable forever (the soundness gap).
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    events: list[dict] = []
+    for i in range(20):
+        events.append(_decision(fix + i + 1, session=f"s{i}", health=None, gate_inputs_present=True))
+        events.append({"type": "outcome", "ts": fix + i + 1.5, "session": f"s{i}", "outcome": "success"})
+    p = _write(tmp_path / "e.jsonl", events)
+    stats = mod.count_post_fix(p)
+    assert stats["state_b_norow"] == 20
+    assert stats["state_a_numeric"] == 0
+    assert stats["state_c_legacy"] == 0
+    assert stats["instrumented_rate"] == 1.0
+    valid, _reason = mod.clock_valid(stats)
+    assert valid is True
+
+
+def test_state_c_majority_is_clock_invalid(tmp_path):
+    # State (c) majority (legacy / no gate input on the marker) => instrumented
+    # rate below 95% => CLOCK-INVALID. Distinguishes missing instrumentation
+    # (state c) from the valid no-row signal (state b).
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    decs = [_decision(fix + i + 1, session=f"s{i}", health=None, gate_inputs_present=False) for i in range(19)]
+    decs.append(_decision(fix + 50, session="s19", health=None, gate_inputs_present=True))
+    p = _write(tmp_path / "e.jsonl", decs)
+    stats = mod.count_post_fix(p)
+    assert stats["state_c_legacy"] == 19
+    assert stats["state_b_norow"] == 1
+    valid, reason = mod.clock_valid(stats)
+    assert valid is False
+    assert "instrumented" in reason.lower()
+
+
+def test_three_state_breakdown_in_stats(tmp_path):
+    # The stats expose the three-state counts so the CLOCK-INVALID message and
+    # the live report can print the breakdown.
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    decs = [
+        _decision(fix + 1, session="a", health=0.7),  # state a
+        _decision(fix + 2, session="b", health=None, gate_inputs_present=True),  # state b
+        _decision(fix + 3, session="c", health=None, gate_inputs_present=False),  # state c
+    ]
+    p = _write(tmp_path / "e.jsonl", decs)
+    stats = mod.count_post_fix(p)
+    assert stats["state_a_numeric"] == 1
+    assert stats["state_b_norow"] == 1
+    assert stats["state_c_legacy"] == 1
+    # instrumented = a + b = 2 of 3 (rate rounded to 4 dp).
+    assert stats["instrumented_rate"] == 0.6667
 
 
 # --------------------------------------------------------------------------- #
@@ -247,9 +311,10 @@ def test_accruing_when_neither_threshold_reached(tmp_path):
 def test_clock_invalid_blocks_delete(tmp_path):
     mod = _load()
     fix, days, _ = _mod_consts(mod)
-    # Time threshold met AND zero interventions, but health rate is 10% => the
-    # zero cannot be trusted => CLOCK-INVALID, not DELETE.
-    decs = [_decision(fix + i + 1, session=f"s{i}", health=None) for i in range(9)]
+    # Time threshold met AND zero interventions, but instrumented rate is 10%
+    # (9 state-c legacy + 1 state-a) => the zero cannot be trusted =>
+    # CLOCK-INVALID, not DELETE.
+    decs = [_decision(fix + i + 1, session=f"s{i}", health=None, gate_inputs_present=False) for i in range(9)]
     decs.append(_decision(fix + 50, session="s9", health=0.7))
     p = _write(tmp_path / "e.jsonl", decs)
     now = fix + (days + 1) * 86400
@@ -310,7 +375,10 @@ def test_decide_emits_machine_fields(tmp_path):
         "remaining_days",
         "remaining_decisions",
         "clock_valid",
-        "health_rate",
+        "instrumented_rate",
+        "state_a_numeric",
+        "state_b_norow",
+        "state_c_legacy",
         "unknown_rate",
     ):
         assert field in res, f"missing field {field}"

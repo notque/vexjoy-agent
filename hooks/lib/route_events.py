@@ -67,6 +67,7 @@ def record_decision_event(
     failure: int | None = None,
     action: str | None = None,
     alternates: list[str] | None = None,
+    gate_inputs_present: bool = False,
 ) -> None:
     """Append a per-dispatch DECISION event.
 
@@ -77,6 +78,13 @@ def record_decision_event(
     back-filled from later weights. action is the Step-1.5 outcome (keep/demote/
     tiebreak); alternates are the keys offered. All recorded as-is so replay can
     distinguish "no health evaluated" (null) from a real score.
+
+    gate_inputs_present is the instrumentation signal the decommission clock
+    reads. True when the marker carried a `health=` token — numeric (state a) OR
+    `-` (state b, pick had no weight row, valid expected data). False when the
+    marker carried no `health=` token (state c, legacy/missing wiring). This
+    distinguishes "no-row, but instrumented" from "never instrumented" — null
+    health_at_decision alone cannot. Additive field; old readers ignore it.
     """
     _append(
         {
@@ -92,6 +100,7 @@ def record_decision_event(
             "failure": failure,
             "action": action,
             "alternates": alternates,
+            "gate_inputs_present": gate_inputs_present,
         }
     )
 

@@ -90,26 +90,45 @@ _ALTS_RE = re.compile(r"\balts=([a-z0-9:_,-]+)", re.IGNORECASE)
 
 
 def parse_health_inputs(prompt: str) -> dict[str, object]:
-    """Read the Stage-0 gate inputs off the marker. All null when absent.
+    """Read the Stage-0 gate inputs off the marker. Three instrumentation states.
 
-    `health=-` (no weight row) => health/n/failure/action/alternates all null.
-    A real `health=<float>` keeps the other fields that are present; missing
-    siblings stay null. Snapshotted at decision time; replay never re-derives.
+    `gate_inputs_present` is the instrumentation signal the decommission clock
+    reads — NOT non-null health. Three states the event must distinguish:
+      (a) numeric  `health=<float>` => health float, gate_inputs_present True.
+      (b) no-row   `health=-`       => health null,  gate_inputs_present True.
+          The pick has no weight row — valid, expected data. Most live picks are
+          state (b), so reading it as missing would keep the clock unreachable
+          forever (the soundness gap this fixes).
+      (c) legacy   no `health=` token => health null, gate_inputs_present False.
+          The marker never carried a gate input (pre-fix / missing wiring).
+    n/failure/action/alternates stay null unless a real `health=<float>` is read.
+    Snapshotted at decision time; replay never re-derives.
     """
-    null = {"health": None, "n": None, "failure": None, "action": None, "alternates": None}
+    null = {
+        "health": None,
+        "n": None,
+        "failure": None,
+        "action": None,
+        "alternates": None,
+        "gate_inputs_present": False,
+    }
     hm = _HEALTH_RE.search(prompt)
-    if not hm or hm.group(1) == "-":
-        return null
+    if not hm:
+        return null  # state (c): no gate input on the marker at all
+    if hm.group(1) == "-":
+        # state (b): marker carried the gate input; the pick had no weight row.
+        return {**null, "gate_inputs_present": True}
     nm = _N_RE.search(prompt)
     fm = _FAIL_RE.search(prompt)
     am = _ACTION_RE.search(prompt)
     altm = _ALTS_RE.search(prompt)
     return {
-        "health": float(hm.group(1)),
+        "health": float(hm.group(1)),  # state (a)
         "n": int(nm.group(1)) if nm else None,
         "failure": int(fm.group(1)) if fm else None,
         "action": am.group(1).lower() if am else None,
         "alternates": [k for k in altm.group(1).split(",") if k] if altm else None,
+        "gate_inputs_present": True,
     }
 
 
@@ -321,6 +340,7 @@ def main() -> None:
             failure=health["failure"],
             action=health["action"],
             alternates=health["alternates"],
+            gate_inputs_present=health["gate_inputs_present"],
         )
 
         # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,

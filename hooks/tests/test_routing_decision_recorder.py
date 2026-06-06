@@ -932,7 +932,15 @@ def _health_event(marker_body, *, session="hs1", description="do work"):
 
 class TestHealthMarkerParse:
     """Stage 0: the recorder reads {health, n, fail, action, alts} off the marker
-    and writes them to the DECISION event. `health=-` writes null health."""
+    and writes them to the DECISION event. `health=-` writes null health.
+
+    Three-state instrumentation contract (decommission clock validity):
+      (a) numeric  health=<float>  => health_at_decision float, gate_inputs_present True
+      (b) no-row   health=-        => health_at_decision null,  gate_inputs_present True
+      (c) legacy   no health= token => health_at_decision null,  gate_inputs_present False
+    States (a)+(b) are instrumented (marker carried the gate input); only (c)
+    counts against the 95% rate. `gate_inputs_present` is the validity signal,
+    not non-null health — most live picks are state (b) (pair has no weight row)."""
 
     def test_health_fields_written_to_decision_event(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_health1")
@@ -951,6 +959,8 @@ class TestHealthMarkerParse:
         assert d["failure"] == 4
         assert d["action"] == "demote"
         assert d["alternates"] == ["direct:pr-workflow", "explore:codebase-overview"]
+        # State (a): marker carried gate inputs.
+        assert d["gate_inputs_present"] is True
 
     def test_health_dash_writes_null(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_health2")
@@ -966,9 +976,14 @@ class TestHealthMarkerParse:
         assert d["failure"] is None
         assert d["action"] is None
         assert d["alternates"] is None
+        # State (b): marker said no-row (`-`). The pick has no weight row — valid,
+        # expected data — so it is INSTRUMENTED, not missing. This is the fix: the
+        # gate must read this as instrumented, distinguishable from state (c).
+        assert d["gate_inputs_present"] is True
 
     def test_absent_health_field_writes_null(self, db_env, monkeypatch):
-        # A legacy marker with no health= token => null health, all fields null.
+        # State (c): a legacy marker with no health= token => null health, all
+        # fields null, gate_inputs_present False (no marker gate input at all).
         a = _load(A_PATH, "rdr_health3")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
@@ -979,6 +994,7 @@ class TestHealthMarkerParse:
         d = next(e for e in _read_events(db_env) if e["type"] == "decision")
         assert d["health_at_decision"] is None
         assert d["action"] is None
+        assert d["gate_inputs_present"] is False
 
 
 # ---------------------------------------------------------------------------
