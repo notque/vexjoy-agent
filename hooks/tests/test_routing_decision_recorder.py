@@ -911,6 +911,77 @@ class TestRouteEventLog:
 
 
 # ---------------------------------------------------------------------------
+# Stage 0 — health gate inputs carried on the [do-route] marker
+# ---------------------------------------------------------------------------
+
+
+def _health_event(marker_body, *, session="hs1", description="do work"):
+    """PostToolUse:Agent event whose prompt is the supplied marker line verbatim."""
+    return {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "session_id": session,
+        "tool_input": {
+            "subagent_type": "python-general-engineer",
+            "description": description,
+            "prompt": marker_body + "\ndo the work",
+        },
+        "tool_result": {"output": "ok", "is_error": False},
+    }
+
+
+class TestHealthMarkerParse:
+    """Stage 0: the recorder reads {health, n, fail, action, alts} off the marker
+    and writes them to the DECISION event. `health=-` writes null health."""
+
+    def test_health_fields_written_to_decision_event(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_health1")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = (
+            "[do-route] agent=python-general-engineer skill=go-patterns "
+            "complexity=Medium health=0.20 n=6 fail=4 action=demote alts=direct:pr-workflow,explore:codebase-overview"
+        )
+        event = _health_event(marker, session="hs-demote")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] == 0.20
+        assert d["n"] == 6
+        assert d["failure"] == 4
+        assert d["action"] == "demote"
+        assert d["alternates"] == ["direct:pr-workflow", "explore:codebase-overview"]
+
+    def test_health_dash_writes_null(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_health2")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        event = _health_event(marker, session="hs-null")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["n"] is None
+        assert d["failure"] is None
+        assert d["action"] is None
+        assert d["alternates"] is None
+
+    def test_absent_health_field_writes_null(self, db_env, monkeypatch):
+        # A legacy marker with no health= token => null health, all fields null.
+        a = _load(A_PATH, "rdr_health3")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium"
+        event = _health_event(marker, session="hs-legacy")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["action"] is None
+
+
+# ---------------------------------------------------------------------------
 # A + B integration: route-health closes the loop
 # ---------------------------------------------------------------------------
 

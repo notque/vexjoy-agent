@@ -78,6 +78,41 @@ _DO_ROUTE_RE = re.compile(
 # log for replay. Absent => "".
 _COMPLEXITY_RE = re.compile(r"\bcomplexity=([a-z0-9-]+)", re.IGNORECASE)
 
+# Stage 0 health gate inputs on the same marker line (do/SKILL.md Phase 4 Step 2).
+# Each is an independent \b token. `health=-` => null (no weight row); else float.
+# n=/fail= are the other demote-floor inputs; action= is keep|demote|tiebreak;
+# alts= is a comma-separated key list. All optional; absent => null.
+_HEALTH_RE = re.compile(r"\bhealth=([0-9.]+|-)", re.IGNORECASE)
+_N_RE = re.compile(r"\bn=(\d+)", re.IGNORECASE)
+_FAIL_RE = re.compile(r"\bfail=(\d+)", re.IGNORECASE)
+_ACTION_RE = re.compile(r"\baction=(keep|demote|tiebreak)", re.IGNORECASE)
+_ALTS_RE = re.compile(r"\balts=([a-z0-9:_,-]+)", re.IGNORECASE)
+
+
+def parse_health_inputs(prompt: str) -> dict[str, object]:
+    """Read the Stage-0 gate inputs off the marker. All null when absent.
+
+    `health=-` (no weight row) => health/n/failure/action/alternates all null.
+    A real `health=<float>` keeps the other fields that are present; missing
+    siblings stay null. Snapshotted at decision time; replay never re-derives.
+    """
+    null = {"health": None, "n": None, "failure": None, "action": None, "alternates": None}
+    hm = _HEALTH_RE.search(prompt)
+    if not hm or hm.group(1) == "-":
+        return null
+    nm = _N_RE.search(prompt)
+    fm = _FAIL_RE.search(prompt)
+    am = _ACTION_RE.search(prompt)
+    altm = _ALTS_RE.search(prompt)
+    return {
+        "health": float(hm.group(1)),
+        "n": int(nm.group(1)) if nm else None,
+        "failure": int(fm.group(1)) if fm else None,
+        "action": am.group(1).lower() if am else None,
+        "alternates": [k for k in altm.group(1).split(",") if k] if altm else None,
+    }
+
+
 # Right-sizing banner. The first four fields are required; findings= and the
 # cost fields (tokens=, wall_clock_s=) are optional, additive extensions
 # (ADR: review-tier-roi). Legacy four-field banners still match.
@@ -272,6 +307,7 @@ def main() -> None:
         # swallows write errors so the hook stays non-blocking.
         cm = _COMPLEXITY_RE.search(prompt)
         complexity = cm.group(1) if cm else ""
+        health = parse_health_inputs(prompt)
         from route_events import record_decision_event
 
         record_decision_event(
@@ -280,7 +316,11 @@ def main() -> None:
             agent=agent,
             skill=skill,
             complexity=complexity,
-            health_at_decision=None,  # populated by the gated Step-1.5 wiring (T6)
+            health_at_decision=health["health"],  # real gate inputs from the marker (Stage 0)
+            n=health["n"],
+            failure=health["failure"],
+            action=health["action"],
+            alternates=health["alternates"],
         )
 
         # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,

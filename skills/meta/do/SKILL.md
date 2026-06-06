@@ -231,6 +231,8 @@ Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`sc
 
 **Always log the evaluation** to the T3 event stream: set `health_at_decision` (the picked pair's `{confidence, n, failure}` from the weights, or `null` when absent) so `routing-decision-recorder` records it on the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. This is live shadow instrumentation: every route is scored even when nothing changes.
 
+Carry the gate inputs on the routing marker (Phase 4 Step 2) so the recorder snapshots them at decision time. Confidence alone cannot reconstruct the demote floor — it needs `n` and `failure` too. Append to the marker: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, and ` alts={k1,k2}` when you passed alternates. When the picked pair has no weight row, append ` health=-` (the recorder writes null health and drops the n/fail/action fields).
+
 **Gate state — DEMOTE cannot fire on current data (by design).** Every routing row is at or above 0.5 confidence with zero recorded failures, so the floor condition matches no row; the demote branch is unreachable until the signal-fidelity fixes (neutral outcomes + Stop fallback) let negative signal accumulate. TIE-BREAK is separate: it keys on semantic confidence, so it CAN move a route today on a low-confidence pick with an evidenced alternate (intended behavior). Demote is pure shadow instrumentation now; tie-break is live but only on low-confidence dispatches you explicitly hand alternates.
 
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
@@ -435,6 +437,8 @@ Four injections (verbatim): completeness and density standards on Simple+; refer
 **MANDATORY: Base instructions.** MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
 
 **MANDATORY: Stamp the routing marker on every routed agent prompt.** Prepend verbatim: `[do-route] agent={agent} skill={skill} complexity={complexity}` (use `skill=-` when routing agent-only). It is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health. Stamp each agent in a roster.
+
+Append the Step 1.5 gate inputs to the same marker line so the recorder snapshots the route's decision-time health: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, plus ` alts={k1,k2}` when alternates were passed. When the picked pair has no weight row, append ` health=-` only (the recorder writes null). Example: `[do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium health=0.72 n=6 fail=0 action=keep`.
 
 **Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens spent; prepend to each agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." Advisory, not a hard cap. Read the key once per session.
 

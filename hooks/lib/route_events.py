@@ -63,12 +63,20 @@ def record_decision_event(
     skill: str,
     complexity: str = "",
     health_at_decision: float | None = None,
+    n: int | None = None,
+    failure: int | None = None,
+    action: str | None = None,
+    alternates: list[str] | None = None,
 ) -> None:
     """Append a per-dispatch DECISION event.
 
-    health_at_decision is the route's health when the dispatch was made; None
-    until the gated Step-1.5 wiring (T6) supplies it. Recorded as-is so replay
-    can distinguish "no health evaluated" (null) from a real score.
+    health_at_decision is the picked pair's confidence at decision time; None
+    when the pair had no weight row. n and failure are the other gate inputs the
+    demote floor needs (confidence<0.30 AND failure>=3 AND n>=5) — confidence
+    alone cannot reconstruct the floor, so all three are snapshotted here, never
+    back-filled from later weights. action is the Step-1.5 outcome (keep/demote/
+    tiebreak); alternates are the keys offered. All recorded as-is so replay can
+    distinguish "no health evaluated" (null) from a real score.
     """
     _append(
         {
@@ -80,6 +88,10 @@ def record_decision_event(
             "skill": skill or "",
             "complexity": complexity or "",
             "health_at_decision": health_at_decision,
+            "n": n,
+            "failure": failure,
+            "action": action,
+            "alternates": alternates,
         }
     )
 
