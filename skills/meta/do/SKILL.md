@@ -478,7 +478,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent + verification-before-completion as safety net.
 
-**Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`.
+**Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`. On a re-dispatch from this check, report the route failure (see Learning Capture, "Report routing failures").
 
 **Gate**: Agent invoked, results delivered. Learning capture runs automatically (see note below).
 
@@ -501,6 +501,14 @@ Hooks capture everything; the router records nothing by hand:
 These feed the routing loop: `learning-db.py route-health` reads the decision rows (denominator) and boost/decay outcomes (numerator). See ADR `learn-step-to-hook`.
 
 **Outcome fidelity (note).** An outcome resolves deterministically on the user's NEXT turn at zero LLM cost: the pending outcome stays *provisional* (no eager boost/decay) and finalizes once — **failure** on tool errors OR a clear rejection/rework/re-route, **success** otherwise (no complaint = accepted). The Stop fallback resolves autonomous runs from the error flag alone. The reaction detector is **deterministic and high-precision** — failure fires only on strong, unambiguous markers.
+
+**Report routing failures (router-reported channel).** The finalizer only sees tool errors and next-turn rejections; routing failures YOU observe fall through. On a HIGH-CONFIDENCE routing failure only, run:
+
+```bash
+python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason "<cause>" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
+```
+
+Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). See ADR `orchestrator-reported-route-failures`.
 
 **OPTIONAL (not a gate):** curated free-text insight and review-finding graduation are opt-in via the `retro` skill (`retro graduate`), not a router step:
 

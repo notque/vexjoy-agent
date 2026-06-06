@@ -96,14 +96,20 @@ def record_decision_event(
     )
 
 
-def record_outcome_event(*, session: str, key: str, outcome: str) -> None:
-    """Append a per-dispatch OUTCOME event (outcome in {success, failure, neutral})."""
-    _append(
-        {
-            "type": "outcome",
-            "ts": time.time(),
-            "session": session or "",
-            "key": key or "",
-            "outcome": outcome or "",
-        }
-    )
+def record_outcome_event(*, session: str, key: str, outcome: str, reason: str | None = None) -> None:
+    """Append a per-dispatch OUTCOME event (outcome in {success, failure, neutral}).
+
+    ``reason`` is the orchestrator's stated cause for a router-reported failure
+    (ADR orchestrator-reported-route-failures). Included only when given, so the
+    deterministic finalizer keeps writing reason-free events unchanged.
+    """
+    event: dict[str, Any] = {
+        "type": "outcome",
+        "ts": time.time(),
+        "session": session or "",
+        "key": key or "",
+        "outcome": outcome or "",
+    }
+    if reason:
+        event["reason"] = reason
+    _append(event)

@@ -30,6 +30,7 @@ Usage:
     python3 scripts/learning-db.py telemetry-query --topic eval:evals/<dir> [--git-sha SHA] [--format json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
+    python3 scripts/learning-db.py route-failure AGENT:SKILL --reason "re-route after unusable output" --routing-relevant yes [--session SID --marker MK]
     python3 scripts/learning-db.py backfill-routing-outcomes
     python3 scripts/learning-db.py route-health [--json]
     python3 scripts/learning-db.py route-weights --json
@@ -1024,6 +1025,79 @@ def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
     print(f"Recorded {outcome} for routing/{key} — confidence: {new_conf:.4f}")
 
 
+def _ensure_route_failure_dedup_table(conn: sqlite3.Connection) -> None:
+    """Create the route_failure_dedup table if absent (idempotence ledger).
+
+    learning_db_v2.py is never edited (a pre-existing SQLi false-positive there
+    trips the commit security gate), so the table is created here, like
+    _ensure_archive_table. One row per (session, marker) dispatch key records a
+    failure already counted, so a retry loop cannot decay a pair repeatedly.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS route_failure_dedup (
+            session TEXT NOT NULL,
+            marker TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (session, marker)
+        )
+        """
+    )
+    conn.commit()
+
+
+def cmd_route_failure(args: argparse.Namespace) -> None:
+    """Record an orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures).
+
+    Routing-relevant => decay the pair's weight row via the finalizer's decay
+    path (apply_outcome failure) AND append a reasoned failure event. Not-relevant
+    => event only, zero decay (a task failure by the right route must not poison
+    route health). Idempotent per dispatch key (session, marker): a duplicate is a
+    no-op, exit 0. Malformed pair (no ':') exits non-zero.
+    """
+    key = args.agent_skill
+    if ":" not in key:
+        print(f"Error: pair must be 'agent:skill', got {key!r}", file=sys.stderr)
+        sys.exit(2)
+
+    init_db()
+    routing_relevant = args.routing_relevant == "yes"
+    session = args.session or ""
+    marker = args.marker or ""
+
+    # Idempotence: only when both keys are present. A duplicate dispatch key is a
+    # no-op (exit 0). Insert succeeds exactly once; a second insert is the dup.
+    if session and marker:
+        with get_connection() as conn:
+            _ensure_route_failure_dedup_table(conn)
+            try:
+                conn.execute(
+                    "INSERT INTO route_failure_dedup (session, marker, recorded_at) VALUES (?, ?, ?)",
+                    (session, marker, datetime.now().isoformat()),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                print(f"Duplicate dispatch key (session={session}, marker={marker}); no-op.")
+                return
+
+    # route_events lives in hooks/lib (already on sys.path via the header).
+    from route_events import record_outcome_event
+
+    decayed_note = "no decay (not routing-relevant)"
+    if routing_relevant:
+        # Reuse the finalizer's decay path — do NOT invent a second formula.
+        from routing_outcome_score import apply_outcome, decision_row_exists
+
+        if decision_row_exists(key):
+            new_conf = apply_outcome(key, "failure")
+            decayed_note = f"decayed routing/{key} -> confidence {new_conf:.4f}"
+        else:
+            decayed_note = f"no weight row for {key}; event logged, nothing to decay"
+
+    record_outcome_event(session=session, key=key, outcome="failure", reason=args.reason)
+    print(f"Recorded route failure: {key} (routing-relevant={args.routing_relevant}) — {decayed_note}")
+
+
 def cmd_backfill_routing_outcomes(args: argparse.Namespace) -> None:
     """Backfill routing outcomes from existing entry data."""
     init_db()
@@ -1566,6 +1640,21 @@ def main():
     p_rro_group.add_argument("--failure", action="store_true", help="Route failed")
     p_rro.add_argument("--reason", help="Reason for outcome (appended to value)")
     p_rro.set_defaults(func=cmd_record_routing_outcome)
+
+    # route-failure — orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures)
+    p_rf = subparsers.add_parser("route-failure", help="Record an orchestrator-reported routing failure")
+    p_rf.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
+    p_rf.add_argument("--reason", required=True, help="Why the route failed (recorded with the event)")
+    p_rf.add_argument(
+        "--routing-relevant",
+        dest="routing_relevant",
+        required=True,
+        choices=["yes", "no"],
+        help="yes => decay the pair + log event; no => log event only, no decay",
+    )
+    p_rf.add_argument("--session", help="Session ID (with --marker, the idempotence dispatch key)")
+    p_rf.add_argument("--marker", help="Dispatch marker (with --session, the idempotence dispatch key)")
+    p_rf.set_defaults(func=cmd_route_failure)
 
     # backfill-routing-outcomes
     p_backfill = subparsers.add_parser(
