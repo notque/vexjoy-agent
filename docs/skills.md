@@ -139,7 +139,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
 | `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
 | `content-engine` | no | Repurpose source assets into platform-native social content |
-| `content-calendar` | no | Manage editorial content through 6 pipeline stages |
+| `content-calendar` | no | Manage editorial content through six pipeline stages |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
 | `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
