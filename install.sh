@@ -208,6 +208,50 @@ print_manual_pip_command() {
     echo "  Run manually: ${manual_cmd_str% }"
 }
 
+# unlink_skills_nested TARGET — tear down a nested skills tree built by
+# link_skills_nested, preserving any external (non-toolkit) entries.
+# Removes only symlinks; for category dirs, removes the per-skill symlinks we
+# created and drops the category dir if it ends up empty. Real files/dirs the
+# user added are left untouched.
+unlink_skills_nested() {
+    local target=$1
+    local entry child
+
+    [ -d "$target" ] || return 0
+
+    for entry in "$target"/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        if [ -L "$entry" ]; then
+            # Top-level skill or file symlink (or a whole-category symlink from
+            # an older install): drop it.
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would remove skills entry: ${entry}${NC}"
+            else
+                rm "$entry"
+            fi
+        elif [ -d "$entry" ]; then
+            # Category / support dir: remove per-skill symlinks, keep real entries.
+            for child in "$entry"/*; do
+                [ -L "$child" ] || continue
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove skill symlink: ${child}${NC}"
+                else
+                    rm "$child"
+                fi
+            done
+            # Drop the category dir if nothing external remains.
+            if [ "$DRY_RUN" != true ]; then
+                rmdir "$entry" 2>/dev/null || true
+            fi
+        fi
+    done
+    # Drop the skills dir itself if now empty (no external content remained).
+    if [ "$DRY_RUN" != true ]; then
+        rmdir "$target" 2>/dev/null || true
+        echo -e "${GREEN}  ✓ Removed toolkit skills (preserved any external skills)${NC}"
+    fi
+}
+
 # Function to uninstall
 uninstall() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
@@ -249,9 +293,15 @@ uninstall() {
             fi
             REMOVED+=("$item (symlink)")
         elif [ -d "$target" ]; then
+            # The skills dir may be a nested tree of toolkit-owned symlinks
+            # (real category dirs + per-skill links). Remove only what the
+            # toolkit created and preserve any external skills the user added.
+            if [ "$item" = "skills" ] && [ "$INSTALL_MODE" != "copy" ]; then
+                unlink_skills_nested "$target"
+                REMOVED+=("$item (nested symlinks)")
             # Only remove directories if the manifest says we copied them,
             # or if no manifest exists (best-effort cleanup)
-            if [ "$INSTALL_MODE" = "copy" ] || [ -z "$INSTALL_MODE" ]; then
+            elif [ "$INSTALL_MODE" = "copy" ] || [ -z "$INSTALL_MODE" ]; then
                 if [ "$DRY_RUN" = true ]; then
                     echo -e "${BLUE}  Would remove directory: ${target}${NC}"
                 else
@@ -1196,6 +1246,71 @@ install_component() {
     fi
 }
 
+# link_skills_nested SOURCE TARGET — build a nested skills tree (symlink mode).
+#
+# The repo skills/ tree is category/skill (e.g. skills/business/csuite), plus a
+# few top-level entries that are skills themselves (a dir holding SKILL.md) or
+# loose files (INDEX.json). To let users drop their own skills alongside ours at
+# any level, we mirror it the same way ~/.codex and ~/.gemini do: each category
+# is a REAL directory containing per-skill symlinks, while top-level skill dirs
+# and files are symlinked directly. This is add-only — existing external entries
+# are preserved, never overwritten.
+link_skills_nested() {
+    local source=$1
+    local target=$2
+    local entry entry_name child child_name
+
+    if [ "$DRY_RUN" = true ]; then
+        if [ -L "$target" ]; then
+            echo -e "${BLUE}  Would convert whole-dir symlink to nested skills dir: ${target}${NC}"
+        else
+            echo -e "${BLUE}  Would nest per-skill symlinks into: ${target}${NC}"
+        fi
+        return
+    fi
+
+    # A prior install may have left ~/.../skills as a whole-dir symlink into the
+    # repo; replace it with a real dir so per-skill links can live inside.
+    if [ -L "$target" ]; then
+        echo "  Converting whole-dir symlink to nested skills dir: $target"
+        rm "$target"
+    fi
+    mkdir -p "$target"
+
+    for entry in "$source"/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        entry_name=$(basename "$entry")
+
+        # Top-level file (e.g. INDEX.json) or a top-level skill dir (has SKILL.md):
+        # link the whole thing at the top level.
+        if [ ! -d "$entry" ] || [ -f "$entry/SKILL.md" ]; then
+            if [ -e "$target/$entry_name" ] || [ -L "$target/$entry_name" ]; then
+                continue  # external/existing entry; keep it
+            fi
+            ln -s "$entry" "$target/$entry_name"
+            echo -e "${GREEN}  ✓ Linked ${entry_name}${NC}"
+            continue
+        fi
+
+        # Category / support dir (no SKILL.md at this level): make a real dir and
+        # link each child individually so external skills can coexist.
+        # If a prior install left this category as a whole-dir symlink, convert it.
+        if [ -L "$target/$entry_name" ]; then
+            rm "$target/$entry_name"
+        fi
+        mkdir -p "$target/$entry_name"
+        for child in "$entry"/*; do
+            [ -e "$child" ] || [ -L "$child" ] || continue
+            child_name=$(basename "$child")
+            if [ -e "$target/$entry_name/$child_name" ] || [ -L "$target/$entry_name/$child_name" ]; then
+                continue  # external/existing entry; keep it
+            fi
+            ln -s "$child" "$target/$entry_name/$child_name"
+        done
+        echo -e "${GREEN}  ✓ Nested ${entry_name}/${NC}"
+    done
+}
+
 sync_mirror_entry() {
     local source=$1
     local target=$2
@@ -1339,7 +1454,16 @@ fi
 # Install main components
 for component in agents skills hooks commands scripts; do
     if [ -d "${SCRIPT_DIR}/${component}" ]; then
-        install_component "$component"
+        # Skills get a nested layout (real category dirs + per-skill symlinks),
+        # matching ~/.codex and ~/.gemini, so users can drop their own skills
+        # into any category. Only in symlink mode, and not when explicitly
+        # replacing or skipping conflicting locations.
+        if [ "$component" = "skills" ] && [ "$MODE" = "symlink" ] && \
+           [ "$CONFLICT_MODE" != "replace" ] && [ "$CONFLICT_MODE" != "skip" ]; then
+            link_skills_nested "${SCRIPT_DIR}/skills" "${CLAUDE_DIR}/skills"
+        else
+            install_component "$component"
+        fi
     fi
 done
 
@@ -1580,7 +1704,13 @@ for component in agents skills hooks commands scripts; do
     if [ -d "${SCRIPT_DIR}/${component}" ]; then
         target_name="$component"
         [ "$component" = "agents" ] && target_name="droids"
-        install_component "$component" "$FACTORY_DIR" "$target_name"
+        # Skills get the same nested layout as Claude/Codex/Gemini.
+        if [ "$component" = "skills" ] && [ "$MODE" = "symlink" ] && \
+           [ "$CONFLICT_MODE" != "replace" ] && [ "$CONFLICT_MODE" != "skip" ]; then
+            link_skills_nested "${SCRIPT_DIR}/skills" "${FACTORY_SKILLS_DIR}"
+        else
+            install_component "$component" "$FACTORY_DIR" "$target_name"
+        fi
     fi
 done
 
