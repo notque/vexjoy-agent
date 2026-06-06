@@ -1076,9 +1076,17 @@ detect_conflicts() {
             src="$SCRIPT_DIR/$component"
             [ -d "$src" ] || continue
             [ -d "$target" ] || [ -L "$target" ] || continue
-            # Whole-dir symlink pointing elsewhere
-            if [ -L "$target" ] && [ "$(readlink "$target")" != "$src" ]; then
-                _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
+            if [ -L "$target" ]; then
+                if [ "$(readlink "$target")" != "$src" ]; then
+                    # Whole-dir symlink pointing elsewhere (external content lives there).
+                    _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
+                else
+                    # Whole-dir symlink pointing at our source (e.g. a prior
+                    # --force install). Per-item mode will convert it to a real
+                    # dir so external siblings can coexist; surface it here so
+                    # the conversion is not silent.
+                    _conflict_set "$runtime_dir/$component" "whole-dir symlink (will convert to per-item)"
+                fi
                 continue
             fi
             # Count items (files and dirs) in target not present in src
@@ -1134,8 +1142,20 @@ install_component() {
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
        { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+            if [ -L "$target" ]; then
+                echo -e "${BLUE}  Would convert whole-dir symlink to per-item dir: ${target}${NC}"
+            else
+                echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+            fi
         else
+            # A prior --force install may have left a whole-dir symlink here.
+            # Tear it down first so per-item links can live inside a real dir;
+            # otherwise "$target/<item>" resolves through the symlink into the
+            # source and every item looks like it already exists.
+            if [ -L "$target" ]; then
+                echo "  Converting whole-dir symlink to per-item dir: $target"
+                rm "$target"
+            fi
             mkdir -p "$target"
             local item item_name
             for item in "$source"/*; do
@@ -1206,8 +1226,19 @@ sync_mirror_entry() {
     # Per-item mode: add-only symlink for each item (file or dir); skip existing entries
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && [ -d "$source" ]; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+            if [ -L "$target" ]; then
+                echo -e "${BLUE}  Would convert whole-dir symlink to per-item ${label} dir: ${target}${NC}"
+            else
+                echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+            fi
         else
+            # Replace a pre-existing whole-dir symlink with a real dir so the
+            # per-item links below are not silently skipped (the symlink would
+            # otherwise resolve "$target/<item>" back into the source).
+            if [ -L "$target" ]; then
+                echo -e "${GREEN}  ✓ ${label} converting whole-dir symlink to per-item dir${NC}"
+                rm "$target"
+            fi
             mkdir -p "$target"
             local item item_name
             for item in "$source"/*; do
@@ -1324,7 +1355,12 @@ if [ "$MODE" = "symlink" ]; then
             [ -z "$CONFLICT_MODE" ] && CONFLICT_MODE="per-item"
         elif [ -z "$CONFLICT_MODE" ]; then
             print_conflict_table
-            read -r -p "Choice [1/2/3, default=1]: " _ans
+            # `read` returns non-zero on EOF (e.g. stdin from /dev/null in CI or
+            # any non-interactive run). Guard it so that does not trip `set -e`;
+            # an empty answer falls through to the documented default below.
+            if ! read -r -p "Choice [1/2/3, default=1]: " _ans; then
+                _ans=""
+            fi
             case "${_ans:-1}" in
                 1) CONFLICT_MODE="per-item" ;;
                 2) CONFLICT_MODE="replace"  ;;
