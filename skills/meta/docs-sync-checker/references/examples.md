@@ -15,7 +15,7 @@ description: Verify all skills, agents, and commands are documented in repositor
 ---
 ```
 
-### Before: skills/README.md
+### Before: docs/skills.md
 
 ```markdown
 # Skills
@@ -26,7 +26,7 @@ description: Verify all skills, agents, and commands are documented in repositor
 | test-driven-development | RED-GREEN-REFACTOR cycle for all code changes | `skill: test-driven-development` | - |
 ```
 
-### After: skills/README.md
+### After: docs/skills.md
 
 ```markdown
 # Skills
@@ -225,7 +225,7 @@ description: Proactively checks GitHub Actions workflow status after git push
 ---
 ```
 
-### Before: skills/README.md
+### Before: docs/skills.md
 
 ```markdown
 | Name | Description | Command | Hook |
@@ -233,7 +233,7 @@ description: Proactively checks GitHub Actions workflow status after git push
 | code-linting | Combined Python and JavaScript linting | `skill: code-linting` | - |
 ```
 
-### After: skills/README.md
+### After: docs/skills.md
 
 ```markdown
 | Name | Description | Command | Hook |
@@ -259,7 +259,7 @@ description: [EXPERIMENTAL] Automatically fix missing documentation entries
 ---
 ```
 
-### Documentation: skills/README.md
+### Documentation: docs/skills.md
 
 ```markdown
 | Name | Description | Command | Hook |
@@ -288,7 +288,7 @@ description: RED-GREEN-REFACTOR cycle for all code changes. Write failing test f
 ---
 ```
 
-### Update 1: skills/README.md
+### Update 1: docs/skills.md
 
 **Before**:
 ```markdown
@@ -334,7 +334,7 @@ You created 3 new skills and removed 1 old skill. Update all at once.
 - Created: `skill-a`, `skill-b`, `skill-c`
 - Removed: `old-skill`
 
-### Before: skills/README.md
+### Before: docs/skills.md
 
 ```markdown
 | Name | Description | Command | Hook |
@@ -344,7 +344,7 @@ You created 3 new skills and removed 1 old skill. Update all at once.
 | test-driven-development | TDD workflow | `skill: test-driven-development` | - |
 ```
 
-### After: skills/README.md
+### After: docs/skills.md
 
 ```markdown
 | Name | Description | Command | Hook |
@@ -478,12 +478,12 @@ git commit -m "Add/update [tool-name] with documentation"
 
 ### Add Skill
 1. Create `skills/skill-name/SKILL.md` with YAML frontmatter
-2. Add row to `skills/README.md` table
+2. Add row to `docs/skills.md` table
 3. Add section to `docs/REFERENCE.md` (if significant skill)
 
 ### Remove Skill
 1. Delete `skills/skill-name/` directory
-2. Remove row from `skills/README.md` table
+2. Remove row from `docs/skills.md` table
 3. Remove section from `docs/REFERENCE.md` (if documented)
 4. Remove references from `README.md` (if any)
 

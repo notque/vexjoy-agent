@@ -2,7 +2,7 @@
 
 This file provides expected markdown table and list formats for each README file in the repository.
 
-## skills/README.md
+## docs/skills.md
 
 ### Expected Format
 

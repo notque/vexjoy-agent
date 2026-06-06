@@ -211,7 +211,7 @@ version: 1.0.0
             "agents": [],
             "commands": [],
         }
-        documented = {"skills/README.md": [{"name": "old-skill", "description": "Old skill"}]}
+        documented = {"docs/skills.md": [{"name": "old-skill", "description": "Old skill"}]}
 
         issues = parser.detect_issues(discovered, documented)
         missing_count = len(issues["missing_entries"])

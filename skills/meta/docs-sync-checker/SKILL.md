@@ -86,7 +86,7 @@ YAML errors: [N] (must be 0 to proceed)
 
 ### Phase 2: CROSS-REFERENCE
 
-**Goal**: Extract documented tools from README files and compare with discovered tools. Each tool type has a primary documentation file: skills belong in `skills/README.md`, agents in `agents/README.md`, commands in `commands/README.md`.
+**Goal**: Extract documented tools from README files and compare with discovered tools. Each tool type has a primary documentation file: skills belong in `docs/skills.md`, agents in `agents/README.md`, commands in `commands/README.md`.
 
 **Step 1: Run the documentation parser**
 
@@ -100,7 +100,7 @@ These are the five documentation files to check -- no others:
 
 | File | Format | What to Extract |
 |------|--------|-----------------|
-| `skills/README.md` | Markdown table | Name, Description, Command, Hook columns |
+| `docs/skills.md` | Markdown table | Name, Description, Command, Hook columns |
 | `agents/README.md` | Table or list | Name, Description fields |
 | `commands/README.md` | Markdown list | /command-name - Description items |
 | `README.md` | Inline references | Pattern-match `skill: X`, `/command`, `agent-name` |
@@ -208,12 +208,12 @@ Remove any helper scripts and debug outputs created during execution.
 ### Examples
 
 #### Example 1: New Skill Missing from README
-User created `skills/my-new-skill/SKILL.md` but forgot to update `skills/README.md`.
+User created `skills/my-new-skill/SKILL.md` but forgot to update `docs/skills.md`.
 Actions:
 1. SCAN discovers `my-new-skill` in filesystem
-2. CROSS-REFERENCE parses skills/README.md, does not find `my-new-skill`
+2. CROSS-REFERENCE parses docs/skills.md, does not find `my-new-skill`
 3. DETECT flags as HIGH severity missing entry
-4. REPORT suggests exact table row to add to skills/README.md
+4. REPORT suggests exact table row to add to docs/skills.md
 
 #### Example 2: Removed Agent Still Documented
 User deleted `agents/old-agent.md` but `agents/README.md` still lists it.
@@ -235,7 +235,7 @@ Actions:
 User created 3 new skills and deleted 2 old ones in a refactoring PR.
 Actions:
 1. SCAN discovers 3 new skills in filesystem, does not find 2 removed skills
-2. CROSS-REFERENCE finds 2 stale entries and 3 absent entries in skills/README.md
+2. CROSS-REFERENCE finds 2 stale entries and 3 absent entries in docs/skills.md
 3. DETECT flags 3 HIGH (missing) + 2 MEDIUM (stale) issues
 4. REPORT provides exact table rows to add and identifies rows to remove
 
@@ -253,7 +253,7 @@ Solution:
 Cause: Expected README file does not exist at expected path
 Solution:
 1. Verify --repo-root path is correct
-2. Check that skills/README.md, agents/README.md, commands/README.md exist
+2. Check that docs/skills.md, agents/README.md, commands/README.md exist
 3. If file is legitimately missing, create a placeholder with the expected table/list header
 4. Re-run scan after creating placeholder
 
