@@ -276,7 +276,7 @@ def main() -> None:
         import time
 
         from learning_db_v2 import init_db
-        from routing_outcome_score import apply_outcome, decision_row_exists
+        from routing_outcome_score import apply_outcome, decision_row_exists, outcome_basis
         from routing_outcome_state import (
             MAX_PENDING_AGE_SEC,
             requeue_pending_outcomes,
@@ -359,7 +359,12 @@ def main() -> None:
                 outcome = "success"
             else:
                 outcome = "neutral"
-            new_conf = apply_outcome(key, outcome)
+            # Basis is the failure-axis evidence label (errors > rejection >
+            # no-complaint), recorded as a per-route counter for route-health's
+            # silent-success report. Label-only: it never changes the boost/
+            # decay/no-op the three-way outcome drives.
+            basis = outcome_basis(bool(item.get("errors")), reaction_failure)
+            new_conf = apply_outcome(key, outcome, basis=basis)
             # T3: per-dispatch OUTCOME event (JSONL), append-only + failure-safe.
             # Auxiliary instrumentation for replay; route_events swallows write
             # errors so a logging failure never breaks finalization.

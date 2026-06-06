@@ -120,6 +120,22 @@ def _query_routing(db_env):
     )
 
 
+def _query_telemetry(db_env):
+    """Read every telemetry_runs row directly (ADR: learning-telemetry-envelope)."""
+    sys.path.insert(0, str(LIB_DIR))
+    import sqlite3
+
+    import learning_db_v2 as ldb
+
+    ldb.init_db()
+    conn = sqlite3.connect(ldb.get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        return [dict(r) for r in conn.execute("SELECT * FROM telemetry_runs").fetchall()]
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # A — routing-decision-recorder
 # ---------------------------------------------------------------------------
@@ -192,6 +208,34 @@ class TestDecisionRecorder:
         keys = {r["key"] for r in _query_routing(db_env)}
         assert "rightsizing:tier3" in keys
 
+    def test_rightsizing_row_recorded_from_live_content_block_shape(self, db_env, monkeypatch):
+        # LIVE PAYLOAD REGRESSION: a real Agent (Task) dispatch returns its final
+        # message as the Anthropic content-block shape — a LIST of
+        # {"type":"text","text":...} blocks — NOT the Bash-style {"output": str}
+        # the other tests simulate. The old get_tool_output read only output/stdout
+        # string keys, so it returned "" for this shape and the banner was missed
+        # (decision + telemetry rows still recorded). This drives the fix.
+        a = _load(A_PATH, "rdr_live_blocks")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        banner = (
+            "rightsizing: tier=3 files=5 packages=3 agents_dispatched=17 "
+            "findings=1C/13H/24M tokens=1984536 wall_clock_s=1667"
+        )
+        event = _agent_event(skill="systematic-code-review")
+        # Replace the Bash-style result with the LIVE content-block list shape
+        # under tool_response (the key live Agent dispatches populate).
+        event["tool_response"] = [{"type": "text", "text": f"summary...\n{banner}"}]
+        event.pop("tool_result", None)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 1" in row["value"]
+        assert "sum_high: 13" in row["value"]
+        assert "sum_medium: 24" in row["value"]
+        assert "sum_tokens: 1984536" in row["value"]
+        assert "sum_wall_clock_s: 1667" in row["value"]
+
     def test_no_rightsizing_row_when_banner_absent(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_a5")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
@@ -201,6 +245,99 @@ class TestDecisionRecorder:
             a.main()
         keys = {r["key"] for r in _query_routing(db_env)}
         assert not any(k.startswith("rightsizing:") for k in keys)
+
+    def test_rightsizing_row_records_findings(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 1: a banner carrying findings= adds the
+        # severity counts to the tier's running sums (one findings-bearing review).
+        a = _load(A_PATH, "rdr_findings")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 2" in row["value"]
+        assert "sum_high: 3" in row["value"]
+        assert "sum_medium: 5" in row["value"]
+        assert "n_findings: 1" in row["value"]
+
+    def test_rightsizing_sums_accumulate_a_true_mean(self, db_env, monkeypatch):
+        # The fix's core: two findings-bearing reviews at one tier accumulate
+        # into running sums (2+5 critical over n_findings=2 => mean 3.5), NOT
+        # the last sample. Two banners must not overwrite each other.
+        a = _load(A_PATH, "rdr_mean")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for out, sess in (
+            ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/1H/0M", "s1"),
+            ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=5C/3H/4M", "s2"),
+        ):
+            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "sum_critical: 7" in row["value"]  # 2 + 5
+        assert "sum_high: 4" in row["value"]  # 1 + 3
+        assert "n_findings: 2" in row["value"]
+
+    def test_rightsizing_row_records_cost_fields(self, db_env, monkeypatch):
+        # ADR review-tier-roi: optional tokens= and wall_clock_s= enter the sums.
+        a = _load(A_PATH, "rdr_cost")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output=(
+                "done. rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 "
+                "findings=0C/1H/2M tokens=52000 wall_clock_s=180"
+            ),
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
+        assert "sum_tokens: 52000" in row["value"]
+        assert "n_tokens: 1" in row["value"]
+        assert "sum_wall_clock_s: 180" in row["value"]
+
+    def test_legacy_rightsizing_banner_still_records(self, db_env, monkeypatch):
+        # ADR review-tier-roi test 2: a four-field legacy banner (no findings=)
+        # still records the tier row; it bumps `reviews` but no findings sum.
+        a = _load(A_PATH, "rdr_legacy")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(
+            skill="systematic-code-review",
+            output="done. rightsizing: tier=1 files=3 packages=1 agents_dispatched=3",
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier1")
+        assert "reviews: 1" in row["value"]
+        assert "n_findings: 0" in row["value"]
+        assert "sum_critical: 0" in row["value"]
+        assert "n_tokens: 0" in row["value"]
+
+    def test_legacy_review_does_not_pollute_findings_mean(self, db_env, monkeypatch):
+        # A legacy (no-findings) review at a tier that also has a findings-bearing
+        # review must NOT count into the findings denominator: n_findings stays 1
+        # while `reviews` is 2. (The old single-row model lost this distinction.)
+        a = _load(A_PATH, "rdr_mix")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for out, sess in (
+            ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 findings=4C/2H/1M", "s1"),
+            ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12", "s2"),  # legacy
+        ):
+            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
+        assert "reviews: 2" in row["value"]
+        assert "n_findings: 1" in row["value"]
+        assert "sum_critical: 4" in row["value"]  # only the findings-bearing review
 
     def test_idempotent_same_dispatch_recorded_once(self, db_env):
         # Use the real bridge state (redirected to tmp) so dedup engages.
@@ -226,6 +363,43 @@ class TestDecisionRecorder:
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         assert _query_routing(db_env) == []
+
+    def test_telemetry_envelope_row_written_on_marked_dispatch(self, db_env, tmp_path, monkeypatch):
+        # ADR: learning-telemetry-envelope — a /do-marked dispatch writes ONE
+        # envelope row alongside the decision row, with always-derivable fields set.
+        a = _load(A_PATH, "rdr_tel_marked")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        sys.path.insert(0, str(LIB_DIR))
+        import telemetry_capture as tc
+
+        monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
+        event = _agent_event(skill="go-patterns", session="tel-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        rows = _query_telemetry(db_env)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["topic"] == "routing"
+        assert row["key"] == "python-general-engineer:go-patterns"
+        assert row["session_id"] == "tel-s1"
+        assert row["run_id"]
+        assert row["git_sha"]
+        assert row["source"] == "hook:routing-decision-recorder"
+
+    def test_no_telemetry_row_when_marker_absent(self, db_env, tmp_path, monkeypatch):
+        # No [do-route] marker => no decision row AND no envelope row.
+        a = _load(A_PATH, "rdr_tel_nomarker")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        sys.path.insert(0, str(LIB_DIR))
+        import telemetry_capture as tc
+
+        monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
+        event = _agent_event(marker=False, body="Review this PR, no marker.")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        assert _query_telemetry(db_env) == []
 
 
 # ---------------------------------------------------------------------------

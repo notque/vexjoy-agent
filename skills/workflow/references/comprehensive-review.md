@@ -441,6 +441,27 @@ echo "Saved final report: $(wc -l < "$REVIEW_DIR/final-report.md") lines"
 ls -la "$REVIEW_DIR/"
 ```
 
+**Step 5a: Write the machine-readable finding counts** — the post-Wave-3 TOTAL row of the summary matrix you just built. These are the ROI inputs; Step 5b reads them. Use the deduplicated final counts, NOT grep over the report.
+
+```bash
+# Replace the three values with the TOTAL (post-Wave 3) CRITICAL/HIGH/MEDIUM
+# finding counts from the matrix above (e.g. 2 3 5). Integers only,
+# space-separated, one line.
+printf '%s %s %s\n' "$CRITICAL_TOTAL" "$HIGH_TOTAL" "$MEDIUM_TOTAL" > "$REVIEW_DIR/findings-count.txt"
+```
+
+**Step 5b: Emit the rightsizing capture banner** — closes the review-tier-ROI loop (ADR: review-tier-roi). Read the deduplicated finding counts from Step 5a and re-run the sizer with `--findings` so `routing-decision-recorder` captures the per-tier yield. Without this line, `review-roi` reports insufficient data forever.
+
+Read the counts from `findings-count.txt` — the TOTAL row, real findings. Do NOT `grep -c` the report: `grep -c` counts LINES containing the word, so the severity legend, matrix rows, and prose like "highly"/"medium-sized" all inflate the count.
+
+```bash
+# findings-count.txt holds three integers: CRITICAL HIGH MEDIUM (from Step 5a).
+read -r C H M < "$REVIEW_DIR/findings-count.txt"
+python3 scripts/right-size-review.py --files "$FILES" --packages "$PKGS" --findings "${C}C/${H}H/${M}M"
+```
+
+The printed `rightsizing: ... findings=NC/NH/NM` line is the capture banner. Append `tokens=` / `wall_clock_s=` to it from PR-A's telemetry envelope when those values are known; absent, they store as n/a.
+
 **Step 6**: Show the matrix, agreement summary, and CONTESTED findings BEFORE proceeding to fixes. If `--review-only`, stop here.
 
 For CONTESTED findings: "Wave 3 challenges these N findings. Fix them anyway, skip them, or decide individually?"

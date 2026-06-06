@@ -6,13 +6,13 @@ This file defines where each tool type should be documented and the required fie
 
 | Tool Type | Primary Documentation | Secondary Documentation | Optional Documentation |
 |-----------|----------------------|-------------------------|------------------------|
-| Skills | skills/README.md (table) | docs/REFERENCE.md (sections) | README.md (references) |
+| Skills | docs/skills.md (table) | docs/REFERENCE.md (sections) | README.md (references) |
 | Agents | agents/README.md (table/list) | docs/REFERENCE.md (sections) | README.md (references) |
 | Commands | commands/README.md (list) | docs/REFERENCE.md (sections) | README.md (references) |
 
 ## Required Fields Per Documentation Type
 
-### skills/README.md
+### docs/skills.md
 
 **Format**: Markdown table
 
@@ -92,7 +92,7 @@ Combined Python (ruff) and JavaScript (Biome) linting skill. Use when user reque
 ## Cross-Reference Requirements
 
 ### Skills
-- **MUST** be documented in: skills/README.md
+- **MUST** be documented in: docs/skills.md
 - **SHOULD** be documented in: docs/REFERENCE.md (if significant/commonly used)
 - **MAY** be referenced in: README.md (if highlighted as important)
 
@@ -131,7 +131,7 @@ When deprecating a tool:
 
 1. **Create Tool**: Add tool directory with SKILL.md/agent.md file
 2. **Run docs-sync-checker**: Detect missing documentation
-3. **Update Primary Documentation**: Add to skills/README.md, agents/README.md, or commands/README.md
+3. **Update Primary Documentation**: Add to docs/skills.md, agents/README.md, or commands/README.md
 4. **Update Secondary Documentation**: Add to docs/REFERENCE.md if significant tool
 5. **Update Root README**: Add reference if highlighted tool
 6. **Verify Sync**: Re-run docs-sync-checker to confirm all in sync

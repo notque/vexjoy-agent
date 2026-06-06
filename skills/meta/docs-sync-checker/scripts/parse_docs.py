@@ -131,15 +131,15 @@ class DocumentationParser:
 
     def parse_skills_readme(self) -> List[Dict[str, str]]:
         """
-        Parse skills/README.md table.
+        Parse docs/skills.md table.
 
         Expected format:
         | Name | Description | Command | Hook |
         """
-        readme_path = self.repo_root / "skills" / "README.md"
+        readme_path = self.repo_root / "docs" / "skills.md"
 
         if not readme_path.exists():
-            self.log(f"Skills README not found: {readme_path}")
+            self.log(f"Skills catalog not found: {readme_path}")
             return []
 
         self.log(f"Parsing {readme_path}")
@@ -163,7 +163,7 @@ class DocumentationParser:
                         "name": name,
                         "description": description or "",
                         "command": command or "",
-                        "source": "skills/README.md",
+                        "source": "docs/skills.md",
                     }
                 )
 
@@ -356,8 +356,8 @@ class DocumentationParser:
         skill_versions = {s["name"]: s["version"] for s in scan_results.get("skills", [])}
         agent_versions = {a["name"]: a["version"] for a in scan_results.get("agents", [])}
 
-        # Check skills README
-        skills_readme = documented.get("skills/README.md", [])
+        # Check skills catalog
+        skills_readme = documented.get("docs/skills.md", [])
         documented_skills = {s["name"] for s in skills_readme}
 
         # Missing skills
@@ -369,7 +369,7 @@ class DocumentationParser:
                         "tool_type": "skill",
                         "tool_name": skill,
                         "tool_path": skill_info["path"],
-                        "missing_from": ["skills/README.md"],
+                        "missing_from": ["docs/skills.md"],
                         "severity": "high",
                         "yaml_description": skill_info["description"],
                     }
@@ -378,7 +378,7 @@ class DocumentationParser:
         # Stale skills
         for skill in documented_skills - discovered_skills:
             issues["stale_entries"].append(
-                {"tool_type": "skill", "tool_name": skill, "documented_in": ["skills/README.md"], "severity": "medium"}
+                {"tool_type": "skill", "tool_name": skill, "documented_in": ["docs/skills.md"], "severity": "medium"}
             )
 
         # Version mismatches for skills
@@ -465,7 +465,7 @@ def main():
         parser_obj = DocumentationParser(args.repo_root, debug=args.debug)
 
         documented = {
-            "skills/README.md": parser_obj.parse_skills_readme(),
+            "docs/skills.md": parser_obj.parse_skills_readme(),
             "agents/README.md": parser_obj.parse_agents_readme(),
             "commands/README.md": parser_obj.parse_commands_readme(),
             "README.md": parser_obj.parse_root_readme(),

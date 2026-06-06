@@ -6,7 +6,7 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-44 domain agents, 124 workflow skills, 82 hooks, 107 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+44 domain agents, 124 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`).
 
@@ -109,7 +109,7 @@ Mirrors agents (as "droids"), skills, and all hooks into `~/.factory/`. Hook con
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, scripts, and all hooks into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix's hook contract is Claude-Code-identical, so hook config is written to the `hooks` key of `~/.reasonix/settings.json` with paths rewritten. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, scripts, and the allowlisted hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 
@@ -134,6 +134,8 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Skills | 117 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
 | Hooks | 77 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
 | Scripts | 101 | Determinism: test runners, linters, validators. No LLM judgment. |
+
+Full skill catalog: [docs/skills.md](docs/skills.md).
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -179,6 +181,13 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 - **Everything pipelines.** Complex work decomposes into phases. Phases have gates. Gates prevent cascading failures.
 
 Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
+
+## Maintenance
+
+Two report-only scripts surface upkeep work; both print a digest and never edit, delete, or block.
+
+- `python3 scripts/harvest-corrections.py` — clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
+- `python3 scripts/stale-skill-scan.py --top 20` — ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
 ## Contributing
 

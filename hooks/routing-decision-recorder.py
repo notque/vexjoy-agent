@@ -78,9 +78,15 @@ _DO_ROUTE_RE = re.compile(
 # log for replay. Absent => "".
 _COMPLEXITY_RE = re.compile(r"\bcomplexity=([a-z0-9-]+)", re.IGNORECASE)
 
-# Right-sizing banner, e.g. "rightsizing: tier=2 files=8 packages=3 agents_dispatched=12"
+# Right-sizing banner. The first four fields are required; findings= and the
+# cost fields (tokens=, wall_clock_s=) are optional, additive extensions
+# (ADR: review-tier-roi). Legacy four-field banners still match.
+#   rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M tokens=84000 wall_clock_s=312
 _RIGHTSIZING_RE = re.compile(
-    r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)",
+    r"rightsizing:\s*tier=(\d+)\s+files=(\d+)\s+packages=(\d+)\s+agents_dispatched=(\d+)"
+    r"(?:\s+findings=(\d+)C/(\d+)H/(\d+)M)?"
+    r"(?:\s+tokens=(\d+))?"
+    r"(?:\s+wall_clock_s=(\d+))?",
     re.IGNORECASE,
 )
 
@@ -131,23 +137,78 @@ def detect_errors(event: dict) -> bool:
         return False
 
 
-def record_rightsizing(output: str) -> None:
-    """(C) Record a rightsizing row when the output carries the banner. Silent otherwise."""
+def extract_output_text(result: object) -> str:
+    """Flatten a PostToolUse tool_result/tool_response into searchable text.
+
+    The shipped tests simulate the Bash-style ``{"output": "..."}`` shape, but a
+    LIVE Agent (Task) dispatch returns its final message as the Anthropic
+    message-content shape: a LIST of content blocks
+    ``[{"type": "text", "text": "...banner..."}]`` (or a dict carrying that list
+    under ``content``). ``get_tool_output`` only reads the ``output``/``stdout``
+    string keys, so it returned "" for the live shape and the rightsizing banner
+    was never seen (decision + telemetry rows still recorded — they don't read
+    output). This handles every shape and keeps the plain-string path:
+
+      - str                              -> itself
+      - {"output"/"stdout": str}         -> that string (via get_tool_output)
+      - {"text": str}                    -> that string
+      - {"content": <blocks or str>}     -> recurse into content
+      - [block, ...] / content blocks    -> concat each block's text
+    """
+    if result is None:
+        return ""
+    if isinstance(result, str):
+        return result
+    if isinstance(result, list):
+        # A list of content blocks (or nested lists). Concat each block's text.
+        return "\n".join(extract_output_text(block) for block in result)
+    if isinstance(result, dict):
+        # Bash-style output/stdout first (preserves the existing path).
+        from hook_utils import get_tool_output
+
+        out = get_tool_output(result)
+        if out:
+            return out
+        # Content-block dict: {"type": "text", "text": "..."} or {"content": ...}.
+        text = result.get("text")
+        if isinstance(text, str) and text:
+            return text
+        if "content" in result:
+            return extract_output_text(result["content"])
+        return ""
+    return ""
+
+
+def record_rightsizing(output: str, session_id: str | None = None) -> None:
+    """(C) Add one rightsizing review to the tier's running sums. Silent when no banner.
+
+    Per-review findings and cost are accumulated into running sums in the
+    rightsizing:tier{N} row (`accumulate_rightsizing`) so `learning-db.py
+    review-roi` reports a TRUE per-tier mean (sum / count), not the last
+    review's sample. findings= and the cost fields are optional: a legacy
+    banner (no findings=) bumps the review count only; a "-" cost never enters
+    its sum (ADR: review-tier-roi).
+    """
     if not output or "rightsizing:" not in output.lower():
         return
     m = _RIGHTSIZING_RE.search(output)
     if not m:
         return
-    tier, files, packages, agents = m.group(1), m.group(2), m.group(3), m.group(4)
-    from learning_db_v2 import record_learning
 
-    record_learning(
-        topic="routing",
-        key=f"rightsizing:tier{tier}",
-        value=f"rightsizing: tier={tier} files={files} packages={packages} agents_dispatched={agents}",
-        category="effectiveness",
-        tags=["routing", "rightsizing"],
+    def _int_or_none(s: str | None) -> int | None:
+        return int(s) if s is not None and s != "" else None
+
+    from learning_db_v2 import accumulate_rightsizing
+
+    accumulate_rightsizing(
+        int(m.group(1)),
+        critical=_int_or_none(m.group(5)),
+        high=_int_or_none(m.group(6)),
+        medium=_int_or_none(m.group(7)),
+        tokens=_int_or_none(m.group(8)),
+        wall_clock_s=_int_or_none(m.group(9)),
         source="hook:routing-decision-recorder",
+        session_id=session_id or None,
     )
 
 
@@ -222,12 +283,39 @@ def main() -> None:
             health_at_decision=None,  # populated by the gated Step-1.5 wiring (T6)
         )
 
-        # (C) right-sizing feedback, parse-only.
-        from hook_utils import get_tool_output, get_tool_result
+        # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,
+        # one row per dispatch, AFTER the decision row so both share (topic, key).
+        # git_sha + session_id + run_id are always derivable, so this row is non-empty
+        # even when the best-effort fields (token_count, wall_clock_ms, model_id) are NULL.
+        import uuid
 
-        output = get_tool_output(get_tool_result(event))
-        if isinstance(output, str):
-            record_rightsizing(output)
+        from learning_db_v2 import record_telemetry_run
+        from telemetry_capture import git_sha_cached, model_id_from, token_count_from, wall_clock_ms_from
+
+        record_telemetry_run(
+            topic="routing",
+            key=key,
+            run_id=str(uuid.uuid4()),
+            source="hook:routing-decision-recorder",
+            batch_id=os.environ.get("CLAUDE_TELEMETRY_BATCH") or session_id or None,
+            session_id=session_id or None,
+            git_sha=git_sha_cached(session_id),
+            model_id=model_id_from(event),
+            skill_version=None,  # PR-A: None (ADR Alternative D — populate when cheap)
+            token_count=token_count_from(event),
+            wall_clock_ms=wall_clock_ms_from(event),
+            tool_errors=has_errors,
+        )
+
+        # (C) right-sizing feedback, parse-only. extract_output_text flattens
+        # the LIVE Agent content-block shape (list of {"type","text"} blocks)
+        # as well as the Bash-style {"output": "..."} the tests simulate, so the
+        # banner is found regardless of payload shape.
+        from hook_utils import get_tool_result
+
+        output = extract_output_text(get_tool_result(event))
+        if output:
+            record_rightsizing(output, session_id)
 
         # Bridge to the SubagentStop outcome hook (action B). The dispatch was
         # already claimed (marked seen) atomically above, so no separate mark.

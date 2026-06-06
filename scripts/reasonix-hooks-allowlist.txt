@@ -1,0 +1,79 @@
+# Reasonix hooks allowlist.
+# Format: EVENT:filename [match]
+# Lines starting with # are comments. Blank lines ignored.
+#
+# Reasonix supports 4 hook events (see src/hooks.ts in DeepSeek-Reasonix):
+#   PreToolUse, PostToolUse, UserPromptSubmit, Stop
+# PreToolUse and PostToolUse take an anchored regex `match` over the tool name
+# (Reasonix uses `match`, not Claude's `matcher`); UserPromptSubmit and Stop have
+# no match.
+#
+# Unlike Codex/Gemini, Reasonix reads a FLAT array per event — no nested `{hooks: [{type, command, ...}]}`.
+# The settings.json is generated from this allowlist by scripts/generate-reasonix-settings-hooks.py.
+#
+# SessionStart, PreCompact, PostCompact, SubagentStop, StopFailure, TaskCompleted
+# are deliberately excluded — Reasonix never fires them.
+
+# ----- PreToolUse: gates (match is anchored regex over tool name) -----
+
+PreToolUse:suggest-compact.py                                    .*
+PreToolUse:pretool-unified-gate.py                               Bash|Write|Edit
+PreToolUse:pretool-worktree-edit-guard.py                        Write|Edit|MultiEdit|NotebookEdit
+PreToolUse:pretool-branch-safety.py                              Bash
+PreToolUse:ci-merge-gate.py                                      Bash
+PreToolUse:pretool-ruff-format-gate.py                           Bash
+PreToolUse:security-review-hook.py                               Bash
+PreToolUse:pretool-learning-injector.py                          Bash|Edit
+PreToolUse:pretool-synthesis-gate.py                             Write|Edit
+PreToolUse:pretool-plan-gate.py                                  Write|Edit
+PreToolUse:pretool-prompt-injection-scanner.py                   Write|Edit
+PreToolUse:pipeline-phase-gate.py                                Write|Edit
+PreToolUse:reference-loading-gate.py                             Write|Edit
+PreToolUse:pretool-adr-creation-gate.py                          Write
+PreToolUse:pretool-file-backup.py                                Edit
+PreToolUse:reference-loading-enforcer.py                         Agent
+PreToolUse:pretool-subagent-warmstart.py                         Agent
+PreToolUse:creation-protocol-enforcer.py                         Agent
+
+# ----- PostToolUse: observers (match is anchored regex over tool name) -----
+
+PostToolUse:posttool-lint-hint.py                                Write|Edit
+PostToolUse:agent-grade-on-change.py                             Write|Edit
+PostToolUse:adr-enforcement.py                                   Write|Edit
+PostToolUse:posttool-security-scan.py                            Write|Edit
+PostToolUse:posttool-skill-frontmatter-check.py                  Write|Edit
+PostToolUse:posttooluse-joy-check-warn.py                        Write|Edit
+PostToolUse:posttooluse-sync-skill-index.py                      Write|Edit
+PostToolUse:posttool-docs-drift-alert.py                         Write|Edit
+PostToolUse:security-review-hook.py                              Bash|Write|Edit|Agent
+PostToolUse:retro-graduation-gate.py                             Bash
+PostToolUse:adr-lifecycle-on-merge.py                            Bash
+PostToolUse:posttool-rename-sweep.py                             Bash
+PostToolUse:posttool-bash-injection-scan.py                      Bash
+PostToolUse:record-activation.py                                Bash|Write|Edit|Agent
+PostToolUse:posttool-session-reads.py                            Read
+PostToolUse:usage-tracker.py                                     Skill|Agent
+PostToolUse:routing-gap-recorder.py                              Skill|Agent
+PostToolUse:review-capture.py                                    Agent
+PostToolUse:instruction-compliance.py                            Agent
+PostToolUse:routing-decision-recorder.py                         Agent
+PostToolUse:error-learner.py                                     Bash|Write|Edit|Agent
+PostToolUse:record-waste.py                                      Bash|Agent
+PostToolUse:completion-evidence-check.py                         Bash|Agent
+PostToolUse:posttool-auto-test.py                                Write|Edit
+
+# ----- UserPromptSubmit: prompt-time gates and recorders (no match) -----
+
+UserPromptSubmit:pipeline-context-detector.py
+UserPromptSubmit:user-correction-capture.py
+UserPromptSubmit:codex-auto-review.py
+UserPromptSubmit:prompt-capture.py
+UserPromptSubmit:routing-outcome-finalizer.py
+
+# ----- Stop: session-end observers and summarizers (no match) -----
+
+Stop:session-summary.py
+Stop:confidence-decay.py
+Stop:session-learning-recorder.py
+Stop:knowledge-graduation-proposer.py
+Stop:rules-distill-trigger.py

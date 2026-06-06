@@ -118,7 +118,7 @@ python3 skills/meta/docs-sync-checker/scripts/generate_report.py
 
 # Update documentation per report suggestions
 # Commit tool AND documentation together
-git add skills/new-skill skills/README.md
+git add skills/new-skill docs/skills.md
 git commit -m "Add new-skill with documentation"
 ```
 
@@ -130,9 +130,9 @@ rm -rf skills/old-skill
 # Run sync checker to find stale entries
 python3 skills/meta/docs-sync-checker/scripts/generate_report.py
 
-# Remove entries from skills/README.md, docs/REFERENCE.md
+# Remove entries from docs/skills.md, docs/REFERENCE.md
 # Commit deletion AND documentation cleanup together
-git add skills/ skills/README.md docs/REFERENCE.md
+git add skills/ docs/skills.md docs/REFERENCE.md
 git commit -m "Remove old-skill and documentation references"
 ```
 

@@ -54,18 +54,6 @@ B RE-QUEUES that entry via ``requeue_pending_outcomes`` (bounded by
 row gets scored on a subsequent stop. See adr/learn-step-to-hook.md.
 """
 
-try:
-    import fcntl
-except ImportError:  # Windows has no fcntl — supply a no-op shim so the advisory
-    # file-locking calls below become harmless no-ops (fail-open; single-user safe).
-    class _NoFcntl:
-        LOCK_EX = LOCK_SH = LOCK_UN = LOCK_NB = 0
-
-        @staticmethod
-        def flock(*_args, **_kwargs):
-            return None
-
-    fcntl = _NoFcntl()  # type: ignore[assignment]
 import json
 import os
 import tempfile
@@ -73,6 +61,44 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+
+# Cross-platform exclusive lock on an open fd. POSIX uses fcntl.flock; Windows
+# (no fcntl) uses msvcrt.locking on a 1-byte range. Every writer locks the same
+# range on the same sidecar lock file, so the read-modify-write cycles serialize
+# and no outcome is lost. The previous Windows path was a no-op fcntl shim, which
+# left parallel same-session appends racing (lost updates). See
+# adr/windows-locking-deploy-warning.md.
+try:
+    import fcntl  # POSIX
+
+    def _acquire_lock(fd: int) -> None:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+
+    def _release_lock(fd: int) -> None:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+except ImportError:  # Windows
+    import msvcrt
+
+    # msvcrt.locking with LK_LOCK blocks ~10s then raises OSError; retry so a
+    # contended lock waits rather than failing. Bounded so a wedged holder cannot
+    # spin forever (degrades to unlocked at the call site, never blocks a hook).
+    _LOCK_RETRIES = 60  # ~10 min worst case under heavy contention
+
+    def _acquire_lock(fd: int) -> None:
+        os.lseek(fd, 0, os.SEEK_SET)
+        for attempt in range(_LOCK_RETRIES):
+            try:
+                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+                return
+            except OSError:
+                if attempt == _LOCK_RETRIES - 1:
+                    raise
+
+    def _release_lock(fd: int) -> None:
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+
 
 _STATE_DIR = Path("/tmp")
 
@@ -115,16 +141,16 @@ def _lock_file(path: Path) -> Path:
 def _state_lock(path: Path):
     """Hold an exclusive advisory lock across a read-modify-write cycle.
 
-    Best-effort: if the lock file cannot be opened or flock is unavailable the
-    body still runs (degraded to the old unlocked behavior) so the bridge never
-    blocks a hook. The lock lives on a sidecar inode because the state file
-    itself is replaced via ``os.replace`` (which swaps inodes and would drop a
-    lock held on the old one)."""
+    Best-effort: if the lock file cannot be opened or locking is unavailable the
+    body still runs (degraded to unlocked) so the bridge never blocks a hook. The
+    lock lives on a sidecar inode because the state file itself is replaced via
+    ``os.replace`` (which swaps inodes and would drop a lock held on the old one).
+    The backend is fcntl on POSIX and msvcrt on Windows (see module top)."""
     lock_fd = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         lock_fd = os.open(str(_lock_file(path)), os.O_CREAT | os.O_RDWR, 0o600)
-        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        _acquire_lock(lock_fd)
     except OSError:
         if lock_fd is not None:
             try:
@@ -137,7 +163,7 @@ def _state_lock(path: Path):
     finally:
         if lock_fd is not None:
             try:
-                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                _release_lock(lock_fd)
             except OSError:
                 pass
             try:

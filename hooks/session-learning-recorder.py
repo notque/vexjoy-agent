@@ -101,8 +101,14 @@ def finalize_routing_outcomes(session_id: str) -> None:
                 continue  # no row to score (orphaned); drop quietly at session end
             # Deterministic floor (T4): errors => failure (decay); a clean
             # autonomous run carries no acceptance evidence => NEUTRAL no-op.
-            outcome = "failure" if bool(item.get("errors")) else "neutral"
-            apply_outcome(key, outcome)
+            # Basis is the failure-axis label only (no next turn => a non-error
+            # entry is default_no_complaint), recorded for route-health's
+            # silent-success report. It never changes the boost/decay/no-op.
+            errors = bool(item.get("errors"))
+            outcome = "failure" if errors else "neutral"
+            basis = "tool_errors_only" if errors else "default_no_complaint"
+            apply_outcome(key, outcome, basis=basis)
+
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)
