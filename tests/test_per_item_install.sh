@@ -96,31 +96,55 @@ if [ $? -ne 0 ]; then
 fi
 pass "install --symlink --per-item --force exited 0"
 
-# --- Assert ~/.claude/skills was converted to a real dir of per-item symlinks ---
+# --- Assert ~/.claude/skills became a nested tree (real category dirs + per-skill symlinks) ---
 echo ""
-echo "[2] ~/.claude/skills converted to per-item dir"
+echo "[2] ~/.claude/skills converted to nested per-skill dir"
 if [ ! -L "$TEST_HOME/.claude/skills" ] && [ -d "$TEST_HOME/.claude/skills" ]; then
     pass "~/.claude/skills is now a real dir (not a whole-dir symlink)"
 else
-    fail "~/.claude/skills should be a real dir after per-item install"
+    fail "~/.claude/skills should be a real dir after install"
     log "    state: $( [ -L "$TEST_HOME/.claude/skills" ] && echo "symlink -> $(readlink "$TEST_HOME/.claude/skills")" || echo "not a symlink" )"
 fi
 
-# A sample entry inside should be a per-item symlink into the repo. The repo
-# skills/ top level holds category dirs (business, meta, ...); pick the first
-# per-item symlink rather than hardcoding a name.
-SAMPLE_SKILL=$(find "$TEST_HOME/.claude/skills" -maxdepth 1 -type l 2>/dev/null | head -1)
-if [ -n "$SAMPLE_SKILL" ]; then
-    pass "~/.claude/skills contains at least one per-item symlink"
+# A repo category (e.g. business) must be a REAL dir, not a category symlink,
+# so users can drop their own skills inside it.
+if [ -d "$TEST_HOME/.claude/skills/business" ] && [ ! -L "$TEST_HOME/.claude/skills/business" ]; then
+    pass "~/.claude/skills/business is a real category dir"
 else
-    fail "~/.claude/skills should contain per-item symlinks"
+    fail "~/.claude/skills/business should be a real dir (nested layout)"
+fi
+
+# Inside the category, each skill must be a per-skill symlink into the repo.
+SAMPLE_SKILL=$(find "$TEST_HOME/.claude/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
+if [ -n "$SAMPLE_SKILL" ]; then
+    pass "~/.claude/skills/business contains per-skill symlinks"
+else
+    fail "~/.claude/skills/business should contain per-skill symlinks"
 fi
 SKILL_TARGET=$(readlink "$SAMPLE_SKILL" 2>/dev/null || echo "")
-if [[ "$SKILL_TARGET" == "$REPO_ROOT/skills/"* ]]; then
-    pass "per-item skill symlink points into repo skills tree"
+if [[ "$SKILL_TARGET" == "$REPO_ROOT/skills/business/"* ]]; then
+    pass "per-skill symlink points into repo skills/business tree"
 else
-    fail "per-item skill symlink should point into repo skills tree (got '$SKILL_TARGET')"
+    fail "per-skill symlink should point into repo skills/business (got '$SKILL_TARGET')"
 fi
+
+# A top-level skill dir (one holding SKILL.md, e.g. workflow) is symlinked whole.
+if [ -L "$TEST_HOME/.claude/skills/workflow" ]; then
+    pass "~/.claude/skills/workflow (top-level skill) is symlinked whole"
+else
+    fail "~/.claude/skills/workflow should be a whole-dir symlink"
+fi
+
+# A top-level loose file (INDEX.json) is symlinked at the top level.
+if [ -L "$TEST_HOME/.claude/skills/INDEX.json" ]; then
+    pass "~/.claude/skills/INDEX.json is symlinked"
+else
+    fail "~/.claude/skills/INDEX.json should be symlinked"
+fi
+
+# A user-dropped external skill inside a category must be preserved on re-run.
+mkdir -p "$TEST_HOME/.claude/skills/business/my-external-skill"
+echo "external" > "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md"
 
 # --- Assert ~/.claude/agents was converted too ---
 echo ""
@@ -146,7 +170,7 @@ else
     fail "~/.hermes/skills should be a real dir after per-item install"
 fi
 
-# --- Idempotence: re-run should keep the per-item layout, never re-create a whole-dir symlink ---
+# --- Idempotence: re-run should keep the nested layout and preserve external skills ---
 echo ""
 echo "[5] re-run --symlink --per-item --force (idempotent)"
 output=$( cd "$REPO_ROOT" && bash install.sh --symlink --per-item --force 2>&1 )
@@ -160,6 +184,48 @@ if [ ! -L "$TEST_HOME/.claude/skills" ] && [ -d "$TEST_HOME/.claude/skills" ]; t
     pass "~/.claude/skills remains a real dir after re-run"
 else
     fail "~/.claude/skills should remain a real dir after re-run"
+fi
+# The user's external skill inside a category must survive the re-run.
+if [ -f "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md" ]; then
+    pass "external skill inside category preserved on re-run"
+else
+    fail "external skill inside category should be preserved on re-run"
+fi
+
+# --- Factory gets the same nested layout ---
+echo ""
+echo "[6] ~/.factory/skills is a nested per-skill dir"
+if [ -d "$TEST_HOME/.factory/skills/business" ] && [ ! -L "$TEST_HOME/.factory/skills/business" ]; then
+    pass "~/.factory/skills/business is a real category dir"
+    FAC_SAMPLE=$(find "$TEST_HOME/.factory/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
+    if [ -n "$FAC_SAMPLE" ]; then
+        pass "~/.factory/skills/business contains per-skill symlinks"
+    else
+        fail "~/.factory/skills/business should contain per-skill symlinks"
+    fi
+else
+    fail "~/.factory/skills/business should be a real category dir"
+fi
+
+# --- Uninstall preserves external skills, removes toolkit symlinks ---
+echo ""
+echo "[7] uninstall preserves external skills"
+output=$( cd "$REPO_ROOT" && bash install.sh --uninstall 2>&1 )
+if [ $? -ne 0 ]; then
+    fail "uninstall exited non-zero"
+    log "$output"
+fi
+# Toolkit per-skill symlink should be gone.
+if [ ! -e "$TEST_HOME/.claude/skills/business/csuite" ]; then
+    pass "toolkit skill symlink removed on uninstall"
+else
+    fail "toolkit skill symlink should be removed on uninstall"
+fi
+# External skill must remain.
+if [ -f "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md" ]; then
+    pass "external skill preserved through uninstall"
+else
+    fail "external skill should be preserved through uninstall"
 fi
 
 # --- Summary ---
