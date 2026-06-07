@@ -208,6 +208,75 @@ print_manual_pip_command() {
     echo "  Run manually: ${manual_cmd_str% }"
 }
 
+_canonical_path() {
+    python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"
+}
+
+_symlink_points_to() {
+    local link=$1
+    local expected=$2
+    local actual
+
+    [ -L "$link" ] || return 1
+    actual=$(readlink "$link") || return 1
+    case "$actual" in
+        /*) ;;
+        *) actual="$(dirname "$link")/$actual" ;;
+    esac
+    [ "$(_canonical_path "$actual")" = "$(_canonical_path "$expected")" ]
+}
+
+# unlink_skills_nested TARGET — tear down a nested skills tree built by
+# link_skills_nested, preserving any external (non-toolkit) entries.
+# Removes only symlinks; for category dirs, removes the per-skill symlinks we
+# created and drops the category dir if it ends up empty. Real files/dirs the
+# user added are left untouched.
+unlink_skills_nested() {
+    local target=$1
+    local source=${2:-${SCRIPT_DIR}/skills}
+    local entry entry_name child child_name
+
+    [ -d "$target" ] || return 0
+
+    for entry in "$target"/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        entry_name=$(basename "$entry")
+        if [ -L "$entry" ]; then
+            # Top-level skill or file symlink (or a whole-category symlink from
+            # an older install): remove it only when it points at this toolkit.
+            if _symlink_points_to "$entry" "$source/$entry_name"; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove skills entry: ${entry}${NC}"
+                else
+                    rm "$entry"
+                fi
+            fi
+        elif [ -d "$entry" ]; then
+            # Category / support dir: remove per-skill symlinks, keep real entries.
+            for child in "$entry"/*; do
+                [ -L "$child" ] || continue
+                child_name=$(basename "$child")
+                if _symlink_points_to "$child" "$source/$entry_name/$child_name"; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove skill symlink: ${child}${NC}"
+                    else
+                        rm "$child"
+                    fi
+                fi
+            done
+            # Drop the category dir if nothing external remains.
+            if [ "$DRY_RUN" != true ]; then
+                rmdir "$entry" 2>/dev/null || true
+            fi
+        fi
+    done
+    # Drop the skills dir itself if now empty (no external content remained).
+    if [ "$DRY_RUN" != true ]; then
+        rmdir "$target" 2>/dev/null || true
+        echo -e "${GREEN}  ✓ Removed toolkit skills (preserved any external skills)${NC}"
+    fi
+}
+
 # Function to uninstall
 uninstall() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
@@ -240,7 +309,23 @@ uninstall() {
     echo -e "${YELLOW}Removing installed components...${NC}"
     for item in "${COMPONENTS[@]}"; do
         target="${CLAUDE_DIR}/${item}"
-        if [ -L "$target" ]; then
+        if [ "$item" = "skills" ] && [ "$INSTALL_MODE" != "copy" ] && { [ -L "$target" ] || [ -d "$target" ]; }; then
+            if [ -L "$target" ] && _symlink_points_to "$target" "${SCRIPT_DIR}/skills"; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove symlink: ${target}${NC}"
+                else
+                    rm "$target"
+                    echo -e "${GREEN}  ✓ Removed symlink: ${target}${NC}"
+                fi
+                REMOVED+=("$item (symlink)")
+            else
+                # The skills dir may be a nested tree of toolkit-owned symlinks
+                # (real category dirs + per-skill links). Remove only what the
+                # toolkit created and preserve any external skills the user added.
+                unlink_skills_nested "$target" "${SCRIPT_DIR}/skills"
+                REMOVED+=("$item (nested symlinks)")
+            fi
+        elif [ -L "$target" ]; then
             if [ "$DRY_RUN" = true ]; then
                 echo -e "${BLUE}  Would remove symlink: ${target}${NC}"
             else
@@ -658,7 +743,19 @@ os.rename(tmp, dst)
     echo -e "${YELLOW}Cleaning Factory mirror...${NC}"
     for dir_var in FACTORY_SKILLS_DIR FACTORY_DROIDS_DIR FACTORY_HOOKS_DIR FACTORY_COMMANDS_DIR FACTORY_SCRIPTS_DIR; do
         target="${!dir_var}"
-        if [ -L "$target" ] || [ -d "$target" ]; then
+        if [ "$dir_var" = "FACTORY_SKILLS_DIR" ] && { [ -L "$target" ] || [ -d "$target" ]; }; then
+            if [ -L "$target" ] && _symlink_points_to "$target" "${SCRIPT_DIR}/skills"; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove: ${target}${NC}"
+                else
+                    rm "$target"
+                    echo -e "${GREEN}  ✓ Removed: ${target}${NC}"
+                fi
+            else
+                unlink_skills_nested "$target" "${SCRIPT_DIR}/skills"
+            fi
+            REMOVED+=("Factory $(basename "$target")")
+        elif [ -L "$target" ] || [ -d "$target" ]; then
             if [ "$DRY_RUN" = true ]; then
                 echo -e "${BLUE}  Would remove: ${target}${NC}"
             else
@@ -1076,9 +1173,17 @@ detect_conflicts() {
             src="$SCRIPT_DIR/$component"
             [ -d "$src" ] || continue
             [ -d "$target" ] || [ -L "$target" ] || continue
-            # Whole-dir symlink pointing elsewhere
-            if [ -L "$target" ] && [ "$(readlink "$target")" != "$src" ]; then
-                _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
+            if [ -L "$target" ]; then
+                if _symlink_points_to "$target" "$src"; then
+                    # Whole-dir symlink pointing at our source (e.g. a prior
+                    # --force install). Per-item mode will convert it to a real
+                    # dir so external siblings can coexist; surface it here so
+                    # the conversion is not silent.
+                    _conflict_set "$runtime_dir/$component" "whole-dir symlink (will convert to per-item)"
+                else
+                    # Whole-dir symlink pointing elsewhere (external content lives there).
+                    _conflict_set "$runtime_dir/$component" "symlink→$(readlink "$target")"
+                fi
                 continue
             fi
             # Count items (files and dirs) in target not present in src
@@ -1134,8 +1239,19 @@ install_component() {
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
        { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+            if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
+                echo -e "${BLUE}  Would convert whole-dir symlink to per-item dir: ${target}${NC}"
+            else
+                echo -e "${BLUE}  Would per-item symlink into: ${target}${NC}"
+            fi
         else
+            # A prior --force install may have left a whole-dir symlink into the
+            # repo. Convert only toolkit-owned symlinks; external symlinks are
+            # preserved and receive add-only per-item links through the symlink.
+            if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
+                echo "  Converting whole-dir symlink to per-item dir: $target"
+                rm "$target"
+            fi
             mkdir -p "$target"
             local item item_name
             for item in "$source"/*; do
@@ -1196,6 +1312,73 @@ install_component() {
     fi
 }
 
+# link_skills_nested SOURCE TARGET — build a nested skills tree (symlink mode).
+#
+# The repo skills/ tree is category/skill (e.g. skills/business/csuite), plus a
+# few top-level entries that are skills themselves (a dir holding SKILL.md) or
+# loose files (INDEX.json). To let users drop their own skills alongside ours at
+# any level, we mirror it the same way ~/.codex and ~/.gemini do: each category
+# is a REAL directory containing per-skill symlinks, while top-level skill dirs
+# and files are symlinked directly. This is add-only — existing external entries
+# are preserved, never overwritten.
+link_skills_nested() {
+    local source=$1
+    local target=$2
+    local entry entry_name child child_name
+
+    if [ "$DRY_RUN" = true ]; then
+        if [ -L "$target" ]; then
+            echo -e "${BLUE}  Would convert whole-dir symlink to nested skills dir: ${target}${NC}"
+        else
+            echo -e "${BLUE}  Would nest per-skill symlinks into: ${target}${NC}"
+        fi
+        return
+    fi
+
+    # A prior install may have left ~/.../skills as a whole-dir symlink into the
+    # repo; replace only that toolkit-owned symlink with a real dir so per-skill
+    # links can live inside. External symlinks are preserved and populated add-only.
+    if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
+        echo "  Converting whole-dir symlink to nested skills dir: $target"
+        rm "$target"
+    fi
+    mkdir -p "$target"
+
+    for entry in "$source"/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        entry_name=$(basename "$entry")
+
+        # Top-level file (e.g. INDEX.json) or a top-level skill dir (has SKILL.md):
+        # link the whole thing at the top level.
+        if [ ! -d "$entry" ] || [ -f "$entry/SKILL.md" ]; then
+            if [ -e "$target/$entry_name" ] || [ -L "$target/$entry_name" ]; then
+                continue  # external/existing entry; keep it
+            fi
+            ln -s "$entry" "$target/$entry_name"
+            echo -e "${GREEN}  ✓ Linked ${entry_name}${NC}"
+            continue
+        fi
+
+        # Category / support dir (no SKILL.md at this level): make a real dir and
+        # link each child individually so external skills can coexist.
+        # If a prior install left this category as a whole-dir symlink into the
+        # repo, convert it. Preserve category symlinks pointing elsewhere.
+        if [ -L "$target/$entry_name" ] && _symlink_points_to "$target/$entry_name" "$entry"; then
+            rm "$target/$entry_name"
+        fi
+        mkdir -p "$target/$entry_name"
+        for child in "$entry"/*; do
+            [ -e "$child" ] || [ -L "$child" ] || continue
+            child_name=$(basename "$child")
+            if [ -e "$target/$entry_name/$child_name" ] || [ -L "$target/$entry_name/$child_name" ]; then
+                continue  # external/existing entry; keep it
+            fi
+            ln -s "$child" "$target/$entry_name/$child_name"
+        done
+        echo -e "${GREEN}  ✓ Nested ${entry_name}/${NC}"
+    done
+}
+
 sync_mirror_entry() {
     local source=$1
     local target=$2
@@ -1206,8 +1389,18 @@ sync_mirror_entry() {
     # Per-item mode: add-only symlink for each item (file or dir); skip existing entries
     if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && [ -d "$source" ]; then
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+            if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
+                echo -e "${BLUE}  Would convert whole-dir symlink to per-item ${label} dir: ${target}${NC}"
+            else
+                echo -e "${BLUE}  Would per-item sync ${label} entry: ${source} -> ${target}/${NC}"
+            fi
         else
+            # Convert only toolkit-owned whole-dir symlinks. External symlinks
+            # remain the user's chosen active path and get add-only entries.
+            if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
+                echo -e "${GREEN}  ✓ ${label} converting whole-dir symlink to per-item dir${NC}"
+                rm "$target"
+            fi
             mkdir -p "$target"
             local item item_name
             for item in "$source"/*; do
@@ -1324,7 +1517,12 @@ if [ "$MODE" = "symlink" ]; then
             [ -z "$CONFLICT_MODE" ] && CONFLICT_MODE="per-item"
         elif [ -z "$CONFLICT_MODE" ]; then
             print_conflict_table
-            read -r -p "Choice [1/2/3, default=1]: " _ans
+            # `read` returns non-zero on EOF (e.g. stdin from /dev/null in CI or
+            # any non-interactive run). Guard it so that does not trip `set -e`;
+            # an empty answer falls through to the documented default below.
+            if ! read -r -p "Choice [1/2/3, default=1]: " _ans; then
+                _ans=""
+            fi
             case "${_ans:-1}" in
                 1) CONFLICT_MODE="per-item" ;;
                 2) CONFLICT_MODE="replace"  ;;
@@ -1339,7 +1537,16 @@ fi
 # Install main components
 for component in agents skills hooks commands scripts; do
     if [ -d "${SCRIPT_DIR}/${component}" ]; then
-        install_component "$component"
+        # Skills get a nested layout (real category dirs + per-skill symlinks),
+        # matching ~/.codex and ~/.gemini, so users can drop their own skills
+        # into any category. Only in symlink mode, and not when explicitly
+        # replacing or skipping conflicting locations.
+        if [ "$component" = "skills" ] && [ "$MODE" = "symlink" ] && \
+           [ "$CONFLICT_MODE" != "replace" ] && [ "$CONFLICT_MODE" != "skip" ]; then
+            link_skills_nested "${SCRIPT_DIR}/skills" "${CLAUDE_DIR}/skills"
+        else
+            install_component "$component"
+        fi
     fi
 done
 
@@ -1580,7 +1787,13 @@ for component in agents skills hooks commands scripts; do
     if [ -d "${SCRIPT_DIR}/${component}" ]; then
         target_name="$component"
         [ "$component" = "agents" ] && target_name="droids"
-        install_component "$component" "$FACTORY_DIR" "$target_name"
+        # Skills get the same nested layout as Claude/Codex/Gemini.
+        if [ "$component" = "skills" ] && [ "$MODE" = "symlink" ] && \
+           [ "$CONFLICT_MODE" != "replace" ] && [ "$CONFLICT_MODE" != "skip" ]; then
+            link_skills_nested "${SCRIPT_DIR}/skills" "${FACTORY_SKILLS_DIR}"
+        else
+            install_component "$component" "$FACTORY_DIR" "$target_name"
+        fi
     fi
 done
 
