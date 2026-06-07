@@ -229,7 +229,7 @@ Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`sc
  [health] demoted {old_pair} -> {new_pair} (conf, fail/n)
 ```
 
-**Always log the evaluation** to the T3 event stream: set `health_at_decision` (the picked pair's `{confidence, n, failure}` from the weights, or `null` when absent) so `routing-decision-recorder` records it on the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. This is live shadow instrumentation: every route is scored even when nothing changes.
+**Always log the evaluation** to the T3 event stream: set `health_at_decision` to the picked pair's `confidence` scalar (a float, or `null` when the pair has no weight row); `n` and `failure` are separate fields. The recorder writes all three from the marker onto the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. This is live shadow instrumentation: every route is scored even when nothing changes.
 
 Carry the gate inputs on the routing marker (Phase 4 Step 2) so the recorder snapshots them at decision time. Confidence alone cannot reconstruct the demote floor — it needs `n` and `failure` too. Append to the marker: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, and ` alts={k1,k2}` when you passed alternates. When the picked pair has no weight row, append ` health=-` (the recorder writes null health and drops the n/fail/action fields).
 
@@ -486,7 +486,7 @@ Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncer
 
 ### Learning Capture (automatic — no router step)
 
-Hooks capture everything; the router records nothing by hand:
+Hooks capture everything automatically. The router records by hand exactly one case: orchestrator-reported route failures it observes directly (see "Report routing failures" below) — the single deliberate manual capture step, by ADR design. Everything else is hook-driven:
 
 | Capture | Hook | Event |
 |---------|------|-------|
@@ -500,7 +500,7 @@ Hooks capture everything; the router records nothing by hand:
 
 These feed the routing loop: `learning-db.py route-health` reads the decision rows (denominator) and boost/decay outcomes (numerator). See ADR `learn-step-to-hook`.
 
-**Outcome fidelity (note).** An outcome resolves deterministically on the user's NEXT turn at zero LLM cost: the pending outcome stays *provisional* (no eager boost/decay) and finalizes once — **failure** on tool errors OR a clear rejection/rework/re-route, **success** otherwise (no complaint = accepted). The Stop fallback resolves autonomous runs from the error flag alone. The reaction detector is **deterministic and high-precision** — failure fires only on strong, unambiguous markers.
+**Outcome fidelity (note).** An outcome resolves deterministically on the user's NEXT turn at zero LLM cost: the pending outcome stays *provisional* (no eager boost/decay) and finalizes once, THREE-WAY (T4) — **failure** on tool errors OR a clear rejection/rework/re-route (decay); **success** only on an explicit acceptance marker (boost); **neutral** otherwise — an unrelated/new-topic next prompt is no-op (no boost, no decay, no count change). No complaint is NOT acceptance. The Stop fallback resolves still-pending autonomous runs from the error flag alone: errors => failure, a clean run => neutral (a quiet Stop carries no acceptance evidence, so it does not boost). The reaction detector is **deterministic and high-precision** — failure fires only on strong, unambiguous markers.
 
 **Report routing failures (router-reported channel).** The finalizer only sees tool errors and next-turn rejections; routing failures YOU observe fall through. On a HIGH-CONFIDENCE routing failure only, run:
 

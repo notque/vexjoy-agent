@@ -61,6 +61,12 @@ SUCCESS = "success"
 FAILURE = "failure"
 NEUTRAL = "neutral"
 
+# Sentinel for "no positional outcome supplied" — distinct from any valid
+# outcome and from None, so the public `outcome` type is `str | bool` (None is
+# NOT a valid outcome). Callers that omit `outcome` MUST pass the `failure=`
+# kwarg; supplying neither is rejected.
+_OUTCOME_UNSET: object = object()
+
 
 def _current_confidence(key: str) -> float:
     """Read-only current confidence for routing/{key}; 0.0 if absent."""
@@ -131,7 +137,7 @@ def _record_basis(key: str, basis: str) -> None:
 
 def apply_outcome(
     key: str,
-    outcome: str | bool | None = None,
+    outcome: str | bool = _OUTCOME_UNSET,  # type: ignore[assignment]  # sentinel default; None is not a valid outcome
     basis: str | None = None,
     *,
     failure: bool | None = None,
@@ -155,6 +161,11 @@ def apply_outcome(
     Any other string raises ``ValueError`` — an unrecognized outcome (e.g. a
     typo) must surface as a bug, never silently boost confidence.
 
+    ``outcome`` is typed ``str | bool``; ``None`` is NOT a valid outcome. Omitting
+    it uses an internal sentinel meaning "caller used the ``failure=`` kwarg
+    form". Calling with neither a positional ``outcome`` nor a ``failure=`` kwarg
+    raises ``ValueError`` immediately — there is no "no outcome" outcome.
+
     Caller MUST gate on decision_row_exists(key) first.
 
     `basis` is label-only: when given, increment its per-route counter (best
@@ -164,10 +175,15 @@ def apply_outcome(
     """
     from learning_db_v2 import boost_confidence, decay_confidence
 
-    # Back-compat: the legacy binary API passes `failure=<bool>` (no positional
-    # outcome). Map it to the three-way string. An explicit `outcome` wins.
-    if outcome is None and failure is not None:
+    # Back-compat: the legacy binary API passes `failure=<bool>` and no positional
+    # outcome. Map it to the three-way string. An explicit `outcome` wins.
+    if outcome is _OUTCOME_UNSET and failure is not None:
         outcome = FAILURE if failure else SUCCESS
+    # Neither form supplied (or an explicit invalid None): there is no "no
+    # outcome" outcome. Reject so the illegal call surfaces clearly instead of
+    # falling through to the generic unknown-string ValueError.
+    if outcome is _OUTCOME_UNSET or outcome is None:
+        raise ValueError("apply_outcome requires an outcome or a failure= kwarg; got neither")
     # Back-compat: legacy callers passed a `failure` bool positionally.
     if outcome is True:
         outcome = FAILURE

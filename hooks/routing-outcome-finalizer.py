@@ -365,23 +365,35 @@ def main() -> None:
             # decay/no-op the three-way outcome drives.
             basis = outcome_basis(bool(item.get("errors")), reaction_failure)
             new_conf = apply_outcome(key, outcome, basis=basis)
+            # Short, secret-free cause for this dispatch's outcome. Computed
+            # unconditionally (not debug-only) so the JSONL OUTCOME event carries
+            # the demotion cause — an operator reading route-events.jsonl after a
+            # decay can see WHY without the per-key basis table.
+            if item.get("errors"):
+                reason = "tool-errors"
+            elif reaction_failure:
+                reason = "rejection"
+            elif reaction_success:
+                reason = "acceptance"
+            elif (rejected or accepted) and not attributable:
+                reason = "reaction-ignored-multi-dispatch"
+            else:
+                reason = "neutral-new-topic"
             # T3: per-dispatch OUTCOME event (JSONL), append-only + failure-safe.
             # Auxiliary instrumentation for replay; route_events swallows write
             # errors so a logging failure never breaks finalization.
+            # routing_relevant=True: a finalizer failure decays the row by
+            # contract, so it is a routing signal route-value-eval must count.
             from route_events import record_outcome_event
 
-            record_outcome_event(session=session_id, key=key, outcome=outcome)
+            record_outcome_event(
+                session=session_id,
+                key=key,
+                outcome=outcome,
+                reason=reason,
+                routing_relevant=True,
+            )
             if debug:
-                if item.get("errors"):
-                    reason = "tool-errors"
-                elif reaction_failure:
-                    reason = "rejection"
-                elif reaction_success:
-                    reason = "acceptance"
-                elif (rejected or accepted) and not attributable:
-                    reason = "reaction-ignored-multi-dispatch"
-                else:
-                    reason = "neutral-new-topic"
                 print(
                     f"[routing-outcome-finalizer] {outcome} routing/{key} ({reason}) conf={new_conf:.4f}",
                     file=sys.stderr,

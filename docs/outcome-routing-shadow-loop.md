@@ -4,7 +4,8 @@ Branch: `feat/outcome-routing-loop` (LOCAL-ONLY: never push / PR / merge to main
 
 This branch builds a **shadow** routing-health loop: fix outcome signal fidelity
 (three-way failure/neutral/success), add a per-dispatch event log, build the health
-policy as a pure library, wire it gated (cannot fire on current data — by design), and
+policy as a pure library, wire it gated (DEMOTE cannot fire on current data — by design;
+TIE-BREAK can, on a low-confidence pick with an evidenced alternate), and
 prove the mechanism on real (read-only) plus seeded synthetic data.
 
 Why shadow, not live: the learning DB holds 276 successes / 0 failures ever. The

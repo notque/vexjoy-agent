@@ -89,6 +89,20 @@ def test_failure_decays(seeded_key) -> None:
     assert _conf(seeded_key) < before
 
 
+def test_no_outcome_and_no_failure_raises(seeded_key) -> None:
+    """Both outcome and failure= unset is an illegal call: clear ValueError, no boost.
+
+    None is only an internal sentinel for the failure= back-compat path, never a
+    valid outcome. The guard rejects it before any confidence change.
+    """
+    import routing_outcome_score as ros
+
+    before = _conf(seeded_key)
+    with pytest.raises(ValueError, match="requires an outcome or a failure="):
+        ros.apply_outcome(seeded_key)  # no positional outcome, no failure kwarg
+    assert _conf(seeded_key) == before  # confidence untouched
+
+
 def test_legacy_bool_back_compat(seeded_key) -> None:
     """True=>failure (decay), False=>success (boost) still honored."""
     import routing_outcome_score as ros

@@ -7,10 +7,13 @@ monotonic -0.05-toward-0 used for every other topic:
 
     conf += (0.5 - conf) * 0.1
 
-So a stale routing row above 0.5 drops toward 0.5, one below 0.5 rises toward
-0.5, and a fresh routing row (last_seen within 30 days) is untouched.
-Non-routing rows keep the old -0.05 behavior. The decay never touches
-last_seen, observation_count, or success/failure counts.
+Floor guard: staleness must never RAISE routing confidence, so only rows
+above 0.5 decay (downward toward 0.5). A stale routing row above 0.5 drops
+toward 0.5; one at or below 0.5 is skipped (preserves negative evidence so a
+sub-floor row stays floor-demote-eligible); a fresh routing row (last_seen
+within 30 days) is untouched. Non-routing rows keep the old -0.05 behavior.
+The decay never touches last_seen, observation_count, or success/failure
+counts.
 
 Uses a throwaway learning.db via CLAUDE_LEARNING_DIR - never the real DB.
 
@@ -98,13 +101,39 @@ def test_stale_routing_above_half_pulls_down_toward_half(db):
     assert new == pytest.approx(0.86, abs=1e-6)
 
 
-def test_stale_routing_below_half_pulls_up_toward_half(db):
+def test_stale_routing_below_half_is_not_rescued(db):
+    # Floor guard: staleness must never RAISE confidence. A below-baseline row
+    # is skipped, not pulled up toward 0.5 (which would erase negative evidence).
     _seed(db, "routing", "rare:skill", 0.32, STALE)
     res = _run_hook(db)
     assert res.returncode == 0
-    new = _read(db, "routing", "rare:skill")["confidence"]
-    # 0.32 + (0.5 - 0.32) * 0.1 = 0.338
-    assert new == pytest.approx(0.338, abs=1e-6)
+    assert _read(db, "routing", "rare:skill")["confidence"] == pytest.approx(0.32, abs=1e-6)
+
+
+def test_stale_routing_subfloor_stays_floor_eligible(db):
+    # Finding [104]/[105]: a sub-floor routing row (conf < FLOOR_CONFIDENCE=0.30,
+    # fail>=3, n>=5) must NOT be rescued above the 0.30 floor by staleness decay.
+    # Prune does not protect it: prune needs last_seen > 90 days, but this row is
+    # only 45 days stale, so it reaches the staleness UPDATE. Assert confidence
+    # did not rise and the row stays floor-demote-eligible (< 0.30).
+    conn = sqlite3.connect(db)
+    conn.execute(
+        """
+        INSERT INTO learnings
+            (topic, key, value, category, confidence, source,
+             observation_count, success_count, failure_count,
+             first_seen, last_seen)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        ("routing", "bad:pair", "v", "effectiveness", 0.28, "seed", 5, 1, 3, STALE, STALE),
+    )
+    conn.commit()
+    conn.close()
+    res = _run_hook(db)
+    assert res.returncode == 0
+    new = _read(db, "routing", "bad:pair")["confidence"]
+    assert new == pytest.approx(0.28, abs=1e-6)  # unchanged, not raised to 0.302
+    assert new < 0.30  # still floor-demote-eligible
 
 
 def test_fresh_routing_row_untouched(db):
@@ -135,3 +164,13 @@ def test_staleness_decay_does_not_touch_counts_or_last_seen(db):
 def test_hook_exits_zero_on_empty_db(db):
     res = _run_hook(db)
     assert res.returncode == 0
+
+
+def test_stale_routing_at_half_is_noop_and_not_counted(db):
+    # Finding #15: a row already at the 0.5 baseline is a no-op; the > 0.5 guard
+    # excludes it so it is neither changed nor counted in the `decayed` metric.
+    _seed(db, "routing", "neutral:pair", 0.50, STALE)
+    res = _run_hook(db)
+    assert res.returncode == 0
+    assert _read(db, "routing", "neutral:pair")["confidence"] == pytest.approx(0.50, abs=1e-6)
+    assert "decayed=0" in res.stderr or "decayed" not in res.stderr

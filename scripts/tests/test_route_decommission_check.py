@@ -4,12 +4,13 @@ ADR routing-loop-value-eval, decommission trigger. The check answers one
 question: should the outcome-routing shadow loop be removed today?
 
 Contract under test:
-  - Clock start = Stage-0 wiring-fix commit (d943ba74, 2026-06-06).
+  - Clock start = Step-1.5 wiring-fix commit (d943ba74, 2026-06-06).
   - DELETE iff (elapsed >= 90 days OR post-fix decisions >= 3000) AND
-    real_demote + real_tiebreak + shadow_demote + shadow_tiebreak == 0,
-    AND the clock is valid.
-  - Clock valid iff post-fix non-null health_at_decision rate >= 95% AND
-    outcome unknown_rate <= 5%.
+    real_demote + real_tiebreak + shadow_demote == 0, AND the clock is valid.
+    Shadow tiebreak is unmeasurable (semantic confidence is not recorded) and is
+    never counted; recorded tiebreaks count as real interventions.
+  - Clock valid iff post-fix instrumented rate >= 95% AND outcome unknown_rate
+    <= 5% (sessionless rows excluded from the join, reported separately).
   - Verdicts: KEEP (interventions > 0), DELETE, ACCRUING (no threshold reached),
     CLOCK-INVALID. Exit codes: 0 KEEP/ACCRUING, 3 DELETE, 4 CLOCK-INVALID.
 
@@ -65,7 +66,7 @@ def _decision(ts: float, **kw) -> dict:
     return e
 
 
-# Clock start is the Stage-0 commit; events at FIX+1s are post-fix.
+# Clock start is the Step-1.5 commit; events at FIX+1s are post-fix.
 def _mod_consts(mod):
     return mod.STAGE0_FIX_EPOCH, mod.DELETE_DAYS, mod.DELETE_DECISIONS
 
@@ -152,6 +153,139 @@ def test_shadow_zero_when_no_alternate_weights(tmp_path):
     stats = mod.count_post_fix(p)
     assert stats["shadow_demote"] == 0
     assert stats["interventions"] == 0
+
+
+# --------------------------------------------------------------------------- #
+# Finding 3: shadow replay evaluates ONLY the demote floor, never tiebreak.
+# A low WEIGHT-ROW confidence must not fire a spurious shadow tiebreak (the
+# tiebreak gate keys on SEMANTIC confidence, which events never record).
+# --------------------------------------------------------------------------- #
+def test_low_weight_row_confidence_never_shadow_tiebreaks(tmp_path):
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    # health_at_decision=0.20 (< LOW_CONFIDENCE 0.35) but NOT in the floor
+    # (failure=0 < 3): the OLD code conflated this weight-row confidence with
+    # semantic confidence and fired a shadow tiebreak toward the healthy
+    # alternate. The fix forces semantic confidence high, so tiebreak cannot fire
+    # and the floor does not engage => zero shadow interventions.
+    dec = _decision(
+        fix + 1,
+        action="keep",
+        health=0.20,
+        n=6,
+        failure=0,
+        alternates=[{"key": "alt:route", "confidence": 0.9, "n": 6, "success": 6, "failure": 0}],
+    )
+    p = _write(tmp_path / "e.jsonl", [dec])
+    stats = mod.count_post_fix(p)
+    assert stats["shadow_demote"] == 0
+    assert stats["interventions"] == 0
+    assert "shadow_tiebreak" not in stats  # the unmeasurable criterion is gone
+
+
+def test_recorded_tiebreak_counts_as_real_intervention(tmp_path):
+    # A recorded action=tiebreak is ground truth (the router fired) and counts as
+    # a real intervention — not a shadow.
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    dec = _decision(fix + 1, action="tiebreak", health=0.7)
+    p = _write(tmp_path / "e.jsonl", [dec])
+    stats = mod.count_post_fix(p)
+    assert stats["real_tiebreak"] == 1
+    assert stats["interventions"] == 1
+
+
+# --------------------------------------------------------------------------- #
+# codex #6: a force-routed pair is hard-exempt and must never shadow-demote,
+# mirroring production (same canonical manifest force_route set).
+# --------------------------------------------------------------------------- #
+def test_force_route_pair_never_shadow_demotes(tmp_path):
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    # security-review is a canonical force-route skill. Put the pick in the demote
+    # floor with a healthy alternate: without the exemption this shadow-demotes;
+    # with it the pair holds (exempt), so shadow_demote stays 0.
+    assert "security-review" in mod._FORCE_ROUTE_SKILLS  # canonical set loaded
+    dec = _decision(
+        fix + 1,
+        agent="security-reviewer",
+        skill="security-review",
+        action="keep",
+        health=0.20,
+        n=6,
+        failure=4,
+        alternates=[{"key": "alt:route", "confidence": 0.9, "n": 6, "success": 6, "failure": 0}],
+    )
+    p = _write(tmp_path / "e.jsonl", [dec])
+    stats = mod.count_post_fix(p)
+    assert stats["shadow_demote"] == 0
+    assert stats["interventions"] == 0
+
+
+def test_non_force_route_pair_still_shadow_demotes(tmp_path):
+    # Control: the SAME floor + alternate on a non-exempt skill DOES shadow-demote
+    # (proves the exemption above is the only reason the force-route pair held).
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    dec = _decision(
+        fix + 1,
+        agent="python-general-engineer",
+        skill="test-driven-development",
+        action="keep",
+        health=0.20,
+        n=6,
+        failure=4,
+        alternates=[{"key": "alt:route", "confidence": 0.9, "n": 6, "success": 6, "failure": 0}],
+    )
+    p = _write(tmp_path / "e.jsonl", [dec])
+    stats = mod.count_post_fix(p)
+    assert stats["shadow_demote"] == 1
+    assert stats["interventions"] == 1
+
+
+# --------------------------------------------------------------------------- #
+# codex #7: sessionless rows are excluded from the join and reported in their
+# own bucket, so they distort neither unknown_rate nor the join counts.
+# --------------------------------------------------------------------------- #
+def test_sessionless_rows_excluded_from_join(tmp_path):
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    # Two sessionless decisions + two sessionless outcomes. Under the OLD code
+    # both group under "" and the outcomes join the decisions, faking joins. Now
+    # they are excluded and bucketed; with no joinable decisions unknown_rate is
+    # 1.0 (cannot trust the zero).
+    events = [
+        _decision(fix + 1, session=""),
+        _decision(fix + 2, session=""),
+        {"type": "outcome", "ts": fix + 1.5, "session": "", "outcome": "success"},
+        {"type": "outcome", "ts": fix + 2.5, "session": "", "outcome": "success"},
+    ]
+    p = _write(tmp_path / "e.jsonl", events)
+    stats = mod.count_post_fix(p)
+    assert stats["sessionless_decisions"] == 2
+    assert stats["sessionless_outcomes"] == 2
+    assert stats["joinable_decisions"] == 0
+    assert stats["joined_outcomes"] == 0
+    assert stats["unknown_rate"] == 1.0
+
+
+def test_sessionless_decisions_do_not_inflate_unknown_rate(tmp_path):
+    # 10 well-formed sessions (each joins) + 1 sessionless decision. The
+    # sessionless row is excluded from the unknown_rate denominator, so the rate
+    # stays 0.0 (10 of 10 joinable joined) instead of being diluted.
+    mod = _load()
+    fix, _, _ = _mod_consts(mod)
+    events: list[dict] = []
+    for i in range(10):
+        events.append(_decision(fix + i + 1, session=f"s{i}", health=0.7))
+        events.append({"type": "outcome", "ts": fix + i + 1.5, "session": f"s{i}", "outcome": "success"})
+    events.append(_decision(fix + 100, session="", health=0.7))
+    p = _write(tmp_path / "e.jsonl", events)
+    stats = mod.count_post_fix(p)
+    assert stats["sessionless_decisions"] == 1
+    assert stats["joinable_decisions"] == 10
+    assert stats["joined_outcomes"] == 10
+    assert stats["unknown_rate"] == 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -369,7 +503,8 @@ def test_decide_emits_machine_fields(tmp_path):
         "real_demote",
         "real_tiebreak",
         "shadow_demote",
-        "shadow_tiebreak",
+        "sessionless_decisions",
+        "sessionless_outcomes",
         "post_fix_decisions",
         "elapsed_days",
         "remaining_days",

@@ -910,8 +910,59 @@ class TestRouteEventLog:
         assert p.returncode == 0
 
 
+class TestOutcomeEventReasonAndRelevance:
+    """record_outcome_event writes reason + routing_relevant only when supplied,
+    and the finalizer always stamps both so a decay is queryable from the JSONL
+    alone (no per-key basis table needed)."""
+
+    def test_reason_written_when_given(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        route_events.record_outcome_event(session="s", key="a:b", outcome="failure", reason="tool-errors")
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert ev["reason"] == "tool-errors"
+
+    def test_routing_relevant_written_when_given(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        route_events.record_outcome_event(session="s", key="a:b", outcome="failure", routing_relevant=True)
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert ev["routing_relevant"] is True
+
+    def test_routing_relevant_absent_when_none(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        # Default None => field omitted, so old callers stay byte-compatible.
+        route_events.record_outcome_event(session="s", key="a:b", outcome="neutral")
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert "routing_relevant" not in ev
+        assert "reason" not in ev
+
+    def test_finalizer_writes_reason_and_routing_relevant(self, db_env, monkeypatch):
+        # End-to-end: a rejection decay must carry reason + routing_relevant in
+        # the JSONL OUTCOME event so the demotion cause is queryable.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-reason")
+        ros.append_pending_outcome("evt-reason", key, errors=False)
+
+        f = _load(F_PATH, "fin_reason")
+        ev = _prompt_event("that's wrong, redo it", session="evt-reason")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcome = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert outcome["outcome"] == "failure"
+        assert outcome["reason"] == "rejection"
+        assert outcome["routing_relevant"] is True
+
+
 # ---------------------------------------------------------------------------
-# Stage 0 — health gate inputs carried on the [do-route] marker
+# Step 1.5 — health gate inputs carried on the [do-route] marker
 # ---------------------------------------------------------------------------
 
 
@@ -931,7 +982,7 @@ def _health_event(marker_body, *, session="hs1", description="do work"):
 
 
 class TestHealthMarkerParse:
-    """Stage 0: the recorder reads {health, n, fail, action, alts} off the marker
+    """Step 1.5: the recorder reads {health, n, fail, action, alts} off the marker
     and writes them to the DECISION event. `health=-` writes null health.
 
     Three-state instrumentation contract (decommission clock validity):
@@ -995,6 +1046,126 @@ class TestHealthMarkerParse:
         assert d["health_at_decision"] is None
         assert d["action"] is None
         assert d["gate_inputs_present"] is False
+
+
+class TestHealthMarkerLineScoping:
+    """Findings 70/15/97 regression guards.
+
+    70: gate inputs are read from the marker LINE only — a task body mentioning
+        `health=`/`fail=` must NOT poison gate_inputs_present or the clock.
+    15: a malformed `health=1.2.3` reads as field-absent (state c), and the
+        decision event is STILL recorded — never silently dropped.
+    """
+
+    def test_health_in_body_is_ignored(self, db_env, monkeypatch):
+        # Marker line carries NO gate input (state c); the BODY mentions
+        # health=/fail= — those must not be read. Expect state (c): null health,
+        # gate_inputs_present False.
+        a = _load(A_PATH, "rdr_body_ignored")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Agent",
+            "session_id": "body-health",
+            "tool_input": {
+                "subagent_type": "python-general-engineer",
+                "description": "do work",
+                "prompt": (
+                    "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium\n"
+                    "Fix the gate: when health=0.9 and fail=3 the action=demote path is wrong."
+                ),
+            },
+            "tool_result": {"output": "ok", "is_error": False},
+        }
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None  # body health=0.9 NOT read
+        assert d["failure"] is None  # body fail=3 NOT read
+        assert d["action"] is None  # body action=demote NOT read
+        assert d["gate_inputs_present"] is False  # state (c): clean of body poison
+
+    def test_health_on_marker_line_is_parsed(self, db_env, monkeypatch):
+        # Same body health= bait, but the marker line ALSO carries health=0.20.
+        # The marker-line value must win; body values are never read.
+        a = _load(A_PATH, "rdr_line_parsed")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Agent",
+            "session_id": "line-health",
+            "tool_input": {
+                "subagent_type": "python-general-engineer",
+                "description": "do work",
+                "prompt": (
+                    "[do-route] agent=python-general-engineer skill=go-patterns "
+                    "complexity=Medium health=0.20 fail=4 action=demote\n"
+                    "Body text that says health=0.99 and fail=9 must be ignored."
+                ),
+            },
+            "tool_result": {"output": "ok", "is_error": False},
+        }
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] == 0.20  # marker line, not body 0.99
+        assert d["failure"] == 4  # marker line, not body 9
+        assert d["action"] == "demote"
+        assert d["gate_inputs_present"] is True
+
+    def test_malformed_health_is_field_absent_but_event_recorded(self, db_env, monkeypatch):
+        # health=1.2.3 is malformed: it must read as field-absent (state c) and
+        # the decision event MUST still be recorded — never dropped by a raised
+        # float(). gate_inputs_present False, decision + routing rows still land.
+        a = _load(A_PATH, "rdr_malformed_health")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=1.2.3"
+        event = _health_event(marker, session="hs-malformed")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None  # malformed => field absent
+        assert d["gate_inputs_present"] is False  # state (c), honest "not instrumented"
+        # The event is still recorded — the malformed value did NOT drop it.
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys
+
+    def test_valid_health_dash_still_state_b(self, db_env, monkeypatch):
+        # Regression: the tightened regex must still accept `health=-` => state b
+        # (null health, gate_inputs_present True).
+        a = _load(A_PATH, "rdr_dash_stateb")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        event = _health_event(marker, session="hs-dash-b")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["gate_inputs_present"] is True
+
+    def test_recorder_failure_writes_stderr_line(self, db_env, monkeypatch, capsys):
+        # Finding 97: an uncaught recorder error must surface ONE short stderr
+        # line (class: msg) even WITHOUT CLAUDE_HOOKS_DEBUG, and still exit 0.
+        # Force a failure inside main() (claim_dispatch raises) and assert the
+        # outer handler wrote the line and exit(0) was called.
+        monkeypatch.delenv("CLAUDE_HOOKS_DEBUG", raising=False)  # prove no-debug logging
+        a = _load(A_PATH, "rdr_stderr_fail")
+
+        def _boom(*_a, **_k):
+            raise RuntimeError("forced failure")
+
+        monkeypatch.setattr(a, "claim_dispatch", _boom)
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        event = _agent_event(skill="go-patterns", session="stderr-fail")
+        with patch("sys.exit") as ex, patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        ex.assert_called_with(0)  # still non-blocking
+        err = capsys.readouterr().err
+        assert "routing-decision-recorder: RuntimeError: forced failure" in err
 
 
 # ---------------------------------------------------------------------------

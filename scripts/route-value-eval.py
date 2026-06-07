@@ -15,9 +15,10 @@ Two SEPARATE verdicts, never one gate:
     — never PASS, never FAIL.
 
 Stage 2 (no model) is a measurement-availability check: it counts recorded
-decisions/outcomes/non-null-health/failures in a read-only copy of
-route-events.jsonl and decides whether faithful replay can run. Today it prints
-non_null_health=0 recorded_failures=0 and sets value_measured=false.
+decisions/outcomes/non-null-health and recorded_failures (routing-relevant
+outcome=="failure" events only) in a read-only copy of route-events.jsonl and
+decides whether faithful replay can run. Today it prints non_null_health=0
+recorded_failures=0 and sets value_measured=false.
 
 Exit codes (no consumer can mistake mechanism for value):
   0 = MECHANISM PASS AND value_measured AND VALUE PASS
@@ -141,13 +142,21 @@ def run_stage2(events_path: Path | None = None) -> dict[str, Any]:
     """Read-only copy of route-events.jsonl; count and gate faithful replay.
 
     Counts decisions, outcomes, non-null health_at_decision, and recorded
-    failures (action=demote OR a linked failure outcome). Faithful replay runs
-    only when non_null_health >= MIN_NON_NULL_HEALTH AND failures > 0. Today it is
-    skipped; the exact blocking numbers are returned. Neutral outcomes are
-    censored (counted separately, excluded from value).
+    failures. A recorded failure is ONLY a routing-relevant outcome event with
+    ``outcome=="failure"``: a real dispatch that ended in failure. Decision
+    events contribute no failures — a decision's ``failure`` field is the weight
+    row's historical failure_count snapshotted at decision time, not this
+    dispatch's result, so counting it conflates history with outcome (finding
+    [51]). Legacy outcome events without ``routing_relevant`` count as relevant;
+    events explicitly ``routing_relevant: false`` are excluded.
+
+    Faithful replay runs only when non_null_health >= MIN_NON_NULL_HEALTH AND
+    recorded_failures > 0. Today it is skipped; the exact blocking numbers are
+    returned. Neutral outcomes are censored (counted separately, excluded from
+    value).
     """
     src = events_path if events_path is not None else _DEFAULT_EVENTS
-    decisions = outcomes = non_null_health = failures = neutral = 0
+    decisions = outcomes = non_null_health = recorded_failures = neutral = 0
     if src.exists():
         with tempfile.TemporaryDirectory() as td:
             copy = Path(td) / "route-events.jsonl"
@@ -165,24 +174,24 @@ def run_stage2(events_path: Path | None = None) -> dict[str, Any]:
                     decisions += 1
                     if ev.get("health_at_decision") is not None:
                         non_null_health += 1
-                    if ev.get("action") == "demote" or (ev.get("failure") or 0) > 0:
-                        failures += 1
                 elif t == "outcome":
                     outcomes += 1
                     oc = ev.get("outcome")
-                    if oc == "failure":
-                        failures += 1
+                    # routing_relevant defaults True for legacy events; only an
+                    # explicit False excludes the failure from the count.
+                    if oc == "failure" and ev.get("routing_relevant", True):
+                        recorded_failures += 1
                     elif oc == "neutral":
                         neutral += 1
 
-    can_replay = non_null_health >= MIN_NON_NULL_HEALTH and failures > 0
+    can_replay = non_null_health >= MIN_NON_NULL_HEALTH and recorded_failures > 0
     return {
         "events_path": str(src),
         "events_present": src.exists(),
         "decisions": decisions,
         "outcomes": outcomes,
         "non_null_health": non_null_health,
-        "recorded_failures": failures,
+        "recorded_failures": recorded_failures,
         "neutral_censored": neutral,
         "min_non_null_health": MIN_NON_NULL_HEALTH,
         "faithful_replay_ran": can_replay,
@@ -190,7 +199,7 @@ def run_stage2(events_path: Path | None = None) -> dict[str, Any]:
             ""
             if can_replay
             else f"non_null_health={non_null_health} (<{MIN_NON_NULL_HEALTH}) "
-            f"AND/OR recorded_failures={failures} (need >0)"
+            f"AND/OR recorded_failures={recorded_failures} (need >0)"
         ),
         # Stage 2 contributes NO value evidence; it is availability only.
         "value_measured": False,
@@ -199,6 +208,14 @@ def run_stage2(events_path: Path | None = None) -> dict[str, Any]:
 
 # --------------------------------------------------------------------------- #
 # Stage 3 — blind A/B arms + alternate builder (Arm A vs health_adjust Arm B)
+#
+# build_alternates, compute_health_arms, build_judge_rows and
+# _JUDGE_FORBIDDEN_FIELDS are the offline Stage-3 fixture-rebuild pipeline. They
+# have no argparse CLI entry by design: live Stage 3 needs Haiku calls, so the
+# fixture is built out-of-band by the rebuild scripts (build_fixture.py +
+# build_judge.py), which import this module and call these symbols, then feed the
+# resulting scoreboard back through --stage3-stub. They are NOT dead code; each
+# is exercised by the rebuild tooling and unit-tested.
 # --------------------------------------------------------------------------- #
 def _gold_key(case: dict[str, Any]) -> str | None:
     skill = case.get("expected_skill")
@@ -584,7 +601,7 @@ def render_markdown(res: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Routing-loop value eval (two verdicts).")
+    parser = argparse.ArgumentParser(description="Routing-loop value evaluation (two verdicts).")
     parser.add_argument("--out-dir", type=Path, default=_OUT_DIR)
     parser.add_argument("--events", type=Path, default=None, help="route-events.jsonl path (read-only).")
     parser.add_argument(
@@ -619,8 +636,13 @@ def main(argv: list[str] | None = None) -> int:
         f"Stage 2: non_null_health={s2['non_null_health']} recorded_failures={s2['recorded_failures']} "
         f"value_measured={str(res['value_measured']).lower()}"
     )
+    # Exit 1 has two distinct causes; name which one on stderr so an automated
+    # consumer can tell them apart without parsing the JSON output (finding [81]).
     if res["mechanism_verdict"] == "fail":
         print(f"MECHANISM FAIL: {res['stage1']['mechanism']['failing_clauses']}", file=sys.stderr)
+    elif res["value_measured"] and res["value_verdict"] == "fail":
+        ci_low, ci_high = res.get("D_ci_low"), res.get("D_ci_high")
+        print(f"VALUE FAIL: D={res.get('D')} CI=[{ci_low},{ci_high}] mcnemar_p={res.get('mcnemar_p')}", file=sys.stderr)
     print(f"exit_code={res['exit_code']}")
     print(f"Wrote {out_dir / 'route-value-eval-results.md'} and .json")
     return res["exit_code"]

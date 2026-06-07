@@ -38,6 +38,7 @@ Usage:
 """
 
 import argparse
+import inspect
 import json
 import re
 import sqlite3
@@ -645,7 +646,7 @@ def collect_route_weights() -> dict[str, dict[str, object]]:
     return {
         row["key"]: {
             "confidence": round(float(row["confidence"]), 4),
-            "n": int(row["observation_count"] or 1),
+            "n": int(row["observation_count"] or 0),
             "success": int(row["success_count"] or 0),
             "failure": int(row["failure_count"] or 0),
             "last_seen": row["last_seen"],
@@ -1065,20 +1066,29 @@ def cmd_route_failure(args: argparse.Namespace) -> None:
     session = args.session or ""
     marker = args.marker or ""
 
-    # Idempotence: only when both keys are present. A duplicate dispatch key is a
-    # no-op (exit 0). Insert succeeds exactly once; a second insert is the dup.
-    if session and marker:
+    # Idempotence ordering — at-least-once, NOT at-most-once. The failure signal
+    # is the scarcest resource in this loop, so a dropped signal is worse than a
+    # re-applied one. Ordering:
+    #   (a) fast dup exit: if the dedup row already exists, no-op (exit 0);
+    #   (b) do the decay + outcome-event work;
+    #   (c) THEN insert + commit the dedup row.
+    # A crash between (b) and (c) leaves no dedup row, so a retry re-applies ONE
+    # decay — bounded and acceptable on a single-user toolkit. The old order
+    # (commit dedup first) silently DROPPED the signal on a crash between commit
+    # and decay: a retry hit IntegrityError and no-op'd, exit 0, no error.
+    # Two identical concurrent invocations can both pass (a) and both apply once;
+    # accepted (single-user, no concurrent route-failure calls).
+    dedup_active = bool(session and marker)
+    if dedup_active:
         with get_connection() as conn:
             _ensure_route_failure_dedup_table(conn)
-            try:
-                conn.execute(
-                    "INSERT INTO route_failure_dedup (session, marker, recorded_at) VALUES (?, ?, ?)",
-                    (session, marker, datetime.now().isoformat()),
-                )
-                conn.commit()
-            except sqlite3.IntegrityError:
-                print(f"Duplicate dispatch key (session={session}, marker={marker}); no-op.")
-                return
+            row = conn.execute(
+                "SELECT 1 FROM route_failure_dedup WHERE session = ? AND marker = ?",
+                (session, marker),
+            ).fetchone()
+        if row is not None:
+            print(f"Duplicate dispatch key (session={session}, marker={marker}); no-op.")
+            return
 
     # route_events lives in hooks/lib (already on sys.path via the header).
     from route_events import record_outcome_event
@@ -1094,7 +1104,33 @@ def cmd_route_failure(args: argparse.Namespace) -> None:
         else:
             decayed_note = f"no weight row for {key}; event logged, nothing to decay"
 
-    record_outcome_event(session=session, key=key, outcome="failure", reason=args.reason)
+    # Pass routing_relevant only if record_outcome_event accepts it. A sibling
+    # change adds the optional param; guard via signature so neither agent breaks
+    # the other while both land.
+    event_kwargs: dict[str, object] = {
+        "session": session,
+        "key": key,
+        "outcome": "failure",
+        "reason": args.reason,
+    }
+    if "routing_relevant" in inspect.signature(record_outcome_event).parameters:
+        event_kwargs["routing_relevant"] = routing_relevant
+    record_outcome_event(**event_kwargs)
+
+    # (c) Mark the dispatch key done only AFTER the work succeeded.
+    if dedup_active:
+        with get_connection() as conn:
+            _ensure_route_failure_dedup_table(conn)
+            try:
+                conn.execute(
+                    "INSERT INTO route_failure_dedup (session, marker, recorded_at) VALUES (?, ?, ?)",
+                    (session, marker, datetime.now().isoformat()),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # A concurrent invocation won the insert race; the work is done.
+                pass
+
     print(f"Recorded route failure: {key} (routing-relevant={args.routing_relevant}) — {decayed_note}")
 
 

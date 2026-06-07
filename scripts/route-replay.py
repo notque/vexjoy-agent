@@ -138,19 +138,45 @@ def _seed_healthy(env: dict[str, str], key: str, observations: int = 6, successe
     _seed_calls(env, key, observations, boosts=successes, decays=0)
 
 
+# Fixed child program: reads lib path, key, and counts from argv so no caller
+# data is ever interpolated into source (codex #5). The program is constant; only
+# data crosses the boundary, as argv, where it cannot be parsed as code.
+_SEED_CHILD = (
+    "import sys\n"
+    "lib, key, obs, boosts, decays = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])\n"
+    "sys.path.insert(0, lib)\n"
+    "import learning_db_v2 as L\n"
+    "for _ in range(obs):\n"
+    "    L.record_learning(topic='routing', key=key, value='x', category='effectiveness', source='routing:decision')\n"
+    "for _ in range(boosts):\n"
+    "    L.boost_confidence('routing', key)\n"
+    "for _ in range(decays):\n"
+    "    L.decay_confidence('routing', key)\n"
+)
+
+
 def _seed_calls(env: dict[str, str], key: str, observations: int, boosts: int, decays: int) -> None:
-    """Drive record_learning / boost / decay in a subprocess against the temp DB."""
-    script = (
-        "import sys; sys.path.insert(0, r'{lib}')\n"
-        "import learning_db_v2 as L\n"
-        "for _ in range({obs}):\n"
-        "    L.record_learning(topic='routing', key='{key}', value='x', category='effectiveness', source='routing:decision')\n"
-        "for _ in range({boosts}):\n"
-        "    L.boost_confidence('routing', '{key}')\n"
-        "for _ in range({decays}):\n"
-        "    L.decay_confidence('routing', '{key}')\n"
-    ).format(lib=str(_REPO_ROOT / "hooks" / "lib"), obs=observations, key=key, boosts=boosts, decays=decays)
-    subprocess.run([sys.executable, "-c", script], env=env, check=True, capture_output=True, text=True)
+    """Drive record_learning / boost / decay in a subprocess against the temp DB.
+
+    key and the counts are passed as argv (not interpolated into source), so a
+    key containing quotes or newlines cannot inject code into the child.
+    """
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _SEED_CHILD,
+            str(_REPO_ROOT / "hooks" / "lib"),
+            key,
+            str(observations),
+            str(boosts),
+            str(decays),
+        ],
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def replay_synthetic(
@@ -389,7 +415,7 @@ def _md_arm(arm: dict[str, Any]) -> str:
         f"- evaluated: {arm['evaluated']}\n"
         f"- changed: {arm['changed']}\n"
         f"- help (toward gold): **{arm['help']}**\n"
-        f"- harm (away from gold): **{arm['harm']}**\n"
+        f"- harm (moved off gold): **{arm['harm']}**\n"
         f"- unchanged: {arm['unchanged']}{extra}"
     )
 

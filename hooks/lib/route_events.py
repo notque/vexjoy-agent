@@ -105,12 +105,24 @@ def record_decision_event(
     )
 
 
-def record_outcome_event(*, session: str, key: str, outcome: str, reason: str | None = None) -> None:
+def record_outcome_event(
+    *,
+    session: str,
+    key: str,
+    outcome: str,
+    reason: str | None = None,
+    routing_relevant: bool | None = None,
+) -> None:
     """Append a per-dispatch OUTCOME event (outcome in {success, failure, neutral}).
 
-    ``reason`` is the orchestrator's stated cause for a router-reported failure
-    (ADR orchestrator-reported-route-failures). Included only when given, so the
-    deterministic finalizer keeps writing reason-free events unchanged.
+    ``reason`` is the short cause for the outcome (e.g. tool-errors, rejection,
+    acceptance, neutral-new-topic). Free of prompt text/secrets. Included only
+    when given, so old reason-free callers write unchanged events.
+
+    ``routing_relevant`` marks whether the outcome is a routing signal that the
+    confidence loop acts on. Written only when not None; route-value-eval counts
+    only routing-relevant failures. None keeps the field absent for callers that
+    do not assert relevance.
     """
     event: dict[str, Any] = {
         "type": "outcome",
@@ -121,4 +133,6 @@ def record_outcome_event(*, session: str, key: str, outcome: str, reason: str | 
     }
     if reason:
         event["reason"] = reason
+    if routing_relevant is not None:
+        event["routing_relevant"] = routing_relevant
     _append(event)

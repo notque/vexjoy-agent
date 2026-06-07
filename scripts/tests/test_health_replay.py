@@ -158,4 +158,29 @@ def test_render_markdown_reports_real_zero_finding(tiny_corpora: tuple[Path, Pat
     result = rr.run_replay(ab_path, bm_path, db_dir=db_dir, real_weights=weights)
     md = rr.render_markdown(result)
     assert "changes **0** routes" in md
-    assert "harm=0" in md or "harm (away from gold): **0**" in md
+    assert "harm=0" in md or "harm (moved off gold): **0**" in md
+
+
+def test_seed_calls_passes_key_as_argv_no_code_injection(tmp_path: Path) -> None:
+    """codex #5: a key with quotes/newlines/code cannot inject into the child.
+
+    The child program is constant; the key crosses as argv. A key carrying a
+    Python statement that would write a marker file proves no execution: the
+    marker must NOT appear, and the seeded weight row must use the literal key.
+    """
+    import os
+
+    rr = _load_replay()
+    db_dir = tmp_path / "inject-learning"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ)
+    env["CLAUDE_LEARNING_DIR"] = str(db_dir)
+
+    marker = tmp_path / "PWNED"
+    # If the key were interpolated into source, this would run open(...).write().
+    malicious = f"x'); import pathlib; pathlib.Path(r'{marker}').write_text('x'); ('"
+    rr._seed_calls(env, malicious, observations=5, boosts=0, decays=0)
+
+    assert not marker.exists(), "key was interpreted as code (injection)"
+    weights = rr._read_weights(env)
+    assert malicious in weights, "row not seeded under the literal key"

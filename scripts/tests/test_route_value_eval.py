@@ -135,6 +135,9 @@ def test_stage2_counts_and_censors_neutral(tmp_path):
     p = tmp_path / "route-events.jsonl"
     lines = [
         {"type": "decision", "health_at_decision": None, "action": "keep"},
+        # A demote decision with historical failure_count=4. Under finding [51]
+        # this must NOT count toward recorded_failures: it is a snapshot of the
+        # weight row's history, not this dispatch's outcome.
         {"type": "decision", "health_at_decision": 0.2, "action": "demote", "n": 6, "failure": 4},
         {"type": "outcome", "outcome": "neutral"},
         {"type": "outcome", "outcome": "failure"},
@@ -145,9 +148,39 @@ def test_stage2_counts_and_censors_neutral(tmp_path):
     assert res["outcomes"] == 2
     assert res["non_null_health"] == 1
     assert res["neutral_censored"] == 1
-    assert res["recorded_failures"] == 2  # demote decision + failure outcome
+    # Only the one failure OUTCOME counts; the demote decision does not (finding [51]).
+    assert res["recorded_failures"] == 1
     # Still below the gate (non_null_health < 20).
     assert res["faithful_replay_ran"] is False
+
+
+def test_stage2_recorded_failures_counts_only_routing_relevant_outcomes(tmp_path):
+    """Finding [51]: recorded_failures = routing-relevant outcome=="failure" only.
+
+    Legacy failure events (no routing_relevant field) count; explicit
+    routing_relevant: false events do not; decision-event failure_count never
+    counts regardless of action.
+    """
+    ev = _load_eval()
+    p = tmp_path / "route-events.jsonl"
+    lines = [
+        # Historical failure_count on decisions: must contribute 0 failures.
+        {"type": "decision", "health_at_decision": 0.1, "action": "demote", "n": 9, "failure": 7},
+        {"type": "decision", "health_at_decision": 0.4, "action": "keep", "n": 9, "failure": 3},
+        # Legacy failure outcome (no field) -> counts.
+        {"type": "outcome", "outcome": "failure"},
+        # Explicitly routing-relevant failure -> counts.
+        {"type": "outcome", "outcome": "failure", "routing_relevant": True},
+        # Explicitly NOT routing-relevant failure -> excluded.
+        {"type": "outcome", "outcome": "failure", "routing_relevant": False},
+        # Non-failure outcomes never count as failures.
+        {"type": "outcome", "outcome": "success", "routing_relevant": True},
+        {"type": "outcome", "outcome": "neutral"},
+    ]
+    p.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    res = ev.run_stage2(events_path=p)
+    assert res["recorded_failures"] == 2  # two relevant failure outcomes only
+    assert res["neutral_censored"] == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -282,9 +315,46 @@ def test_judge_rows_strip_forbidden_fields_and_score_only_k():
 
 # --------------------------------------------------------------------------- #
 # Orchestrator — exit-code contract
+#
+# orchestrate() calls run_stage1(), which (unstubbed) shells out to the live DB
+# via `learning-db.py route-weights --json`. Every orchestrate test stubs
+# run_stage1 so no test reads or spawns against the live learning dir (finding
+# [19]). _stub_stage1 lets a test force the mechanism verdict pass/fail.
 # --------------------------------------------------------------------------- #
+def _stub_stage1(mechanism_pass: bool = True) -> dict:
+    """A minimal Stage-1 result with a controllable mechanism verdict.
+
+    Mirrors the shape orchestrate() reads: real/synthetic/tiebreak arm blocks and
+    a `mechanism` block. No DB, no subprocess.
+    """
+    arm = {"evaluated": 0, "changed": 0, "help": 0, "harm": 0, "unchanged": 0, "force_route_held": 0}
+    clauses = {"real_changed_zero": mechanism_pass}
+    return {
+        "real": dict(arm),
+        "synthetic": dict(arm),
+        "tiebreak": dict(arm),
+        "force_case_count": 0,
+        "mechanism": {
+            "clauses": clauses,
+            "mechanism_pass": mechanism_pass,
+            "failing_clauses": [] if mechanism_pass else ["real_changed_zero"],
+        },
+    }
+
+
+def _patch_stage1(monkeypatch, ev, *, mechanism_pass: bool) -> None:
+    """Replace run_stage1 with a DB-free stub so no test touches the live DB."""
+    result = _stub_stage1(mechanism_pass=mechanism_pass)
+
+    def _fake_run_stage1(*_args, **_kwargs):
+        return result
+
+    monkeypatch.setattr(ev, "run_stage1", _fake_run_stage1)
+
+
 def test_value_unmeasured_yields_exit_2_not_0(tmp_path, monkeypatch):
     ev = _load_eval()
+    _patch_stage1(monkeypatch, ev, mechanism_pass=True)
     empty = tmp_path / "route-events.jsonl"
     res = ev.orchestrate(events_path=empty, stage3_per_case=None)
     assert res["mechanism_verdict"] == "pass"
@@ -292,15 +362,15 @@ def test_value_unmeasured_yields_exit_2_not_0(tmp_path, monkeypatch):
     assert res["exit_code"] == 2  # NOT 0
 
 
-def test_exit_0_only_when_value_measured_and_pass(tmp_path):
+def test_exit_0_only_when_value_measured_and_pass(tmp_path, monkeypatch):
     ev = _load_eval()
-    # Simulate live telemetry that clears the Stage-2 gate (>=20 non-null, failure>0)
-    # AND a strongly-positive A/B per-case set.
+    _patch_stage1(monkeypatch, ev, mechanism_pass=True)
+    # Simulate live telemetry that clears the Stage-2 gate (>=20 non-null health
+    # AND >0 routing-relevant failure outcomes) AND a strongly-positive A/B set.
     p = tmp_path / "route-events.jsonl"
-    decs = [
-        {"type": "decision", "health_at_decision": 0.2, "action": "demote", "n": 6, "failure": 4} for _ in range(25)
-    ]
-    p.write_text("\n".join(json.dumps(x) for x in decs), encoding="utf-8")
+    decs = [{"type": "decision", "health_at_decision": 0.2, "action": "keep", "n": 6} for _ in range(25)]
+    fails = [{"type": "outcome", "outcome": "failure"} for _ in range(3)]
+    p.write_text("\n".join(json.dumps(x) for x in decs + fails), encoding="utf-8")
     a = [False] * 14
     b = [True] * 12 + [False] * 2
     res = ev.orchestrate(events_path=p, stage3_per_case=_per_case(a, b))
@@ -309,13 +379,13 @@ def test_exit_0_only_when_value_measured_and_pass(tmp_path):
     assert res["exit_code"] == 0
 
 
-def test_value_fail_when_measured_yields_exit_1(tmp_path):
+def test_value_fail_when_measured_yields_exit_1(tmp_path, monkeypatch):
     ev = _load_eval()
+    _patch_stage1(monkeypatch, ev, mechanism_pass=True)
     p = tmp_path / "route-events.jsonl"
-    decs = [
-        {"type": "decision", "health_at_decision": 0.2, "action": "demote", "n": 6, "failure": 4} for _ in range(25)
-    ]
-    p.write_text("\n".join(json.dumps(x) for x in decs), encoding="utf-8")
+    decs = [{"type": "decision", "health_at_decision": 0.2, "action": "keep", "n": 6} for _ in range(25)]
+    fails = [{"type": "outcome", "outcome": "failure"} for _ in range(3)]
+    p.write_text("\n".join(json.dumps(x) for x in decs + fails), encoding="utf-8")
     # Harm present => value FAIL when measured.
     a = [False] * 13 + [True]
     b = [True] * 12 + [False, False]
@@ -323,3 +393,51 @@ def test_value_fail_when_measured_yields_exit_1(tmp_path):
     assert res["value_measured"] is True
     assert res["value_verdict"] == "fail"
     assert res["exit_code"] == 1
+
+
+def test_mechanism_fail_yields_exit_1(tmp_path, monkeypatch):
+    """Finding [20]: the mechanism-fail exit_code=1 path had zero coverage.
+
+    Force mechanism_pass=False via a stubbed Stage 1 and assert orchestrate()
+    reports mechanism_verdict==fail with exit_code==1 (the same exit code as a
+    value fail, which is why finding [81] added a distinguishing stderr line).
+    """
+    ev = _load_eval()
+    _patch_stage1(monkeypatch, ev, mechanism_pass=False)
+    empty = tmp_path / "route-events.jsonl"
+    res = ev.orchestrate(events_path=empty, stage3_per_case=None)
+    assert res["mechanism_verdict"] == "fail"
+    assert res["exit_code"] == 1
+    assert res["stage1"]["mechanism"]["failing_clauses"] == ["real_changed_zero"]
+
+
+def test_main_value_fail_prints_value_fail_diagnostic(tmp_path, monkeypatch, capsys):
+    """Finding [81]: a value fail must print a VALUE FAIL stderr line distinct
+    from the MECHANISM FAIL line, since both exit 1."""
+    ev = _load_eval()
+    _patch_stage1(monkeypatch, ev, mechanism_pass=True)
+    p = tmp_path / "route-events.jsonl"
+    decs = [{"type": "decision", "health_at_decision": 0.2, "action": "keep", "n": 6} for _ in range(25)]
+    fails = [{"type": "outcome", "outcome": "failure"} for _ in range(3)]
+    p.write_text("\n".join(json.dumps(x) for x in decs + fails), encoding="utf-8")
+    stub = tmp_path / "stub.json"
+    a = [False] * 13 + [True]
+    b = [True] * 12 + [False, False]
+    stub.write_text(json.dumps({"per_case": _per_case(a, b)}), encoding="utf-8")
+    code = ev.main(["--events", str(p), "--out-dir", str(tmp_path / "out"), "--stage3-stub", str(stub)])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "VALUE FAIL:" in captured.err
+    assert "MECHANISM FAIL:" not in captured.err
+
+
+def test_main_mechanism_fail_prints_mechanism_diagnostic(tmp_path, monkeypatch, capsys):
+    """Finding [81]/[20]: a mechanism fail prints MECHANISM FAIL, not VALUE FAIL."""
+    ev = _load_eval()
+    _patch_stage1(monkeypatch, ev, mechanism_pass=False)
+    empty = tmp_path / "route-events.jsonl"
+    code = ev.main(["--events", str(empty), "--out-dir", str(tmp_path / "out")])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "MECHANISM FAIL:" in captured.err
+    assert "VALUE FAIL:" not in captured.err

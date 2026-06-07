@@ -110,6 +110,22 @@ class TestRoutingRelevant:
         assert outcome[0]["key"] == "agent-x:skill-x"
         assert outcome[0]["reason"] == "lazy-completion re-dispatch"
 
+    def test_no_weight_row_logs_event_and_skips_decay(
+        self, isolated_db: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # routing_relevant=yes for a pair never routed (no weight row). The event
+        # must still be logged, nothing decays, exit 0, and the message says so.
+        key = "fresh-agent:fresh-skill"
+        learning_db.cmd_route_failure(_ns(agent_skill=key, routing_relevant="yes"))
+        out = capsys.readouterr().out
+
+        assert _confidence(key) is None  # no row created, nothing decayed
+        outcome = [e for e in _events(isolated_db) if e.get("type") == "outcome"]
+        assert len(outcome) == 1
+        assert outcome[0]["key"] == key
+        assert outcome[0]["outcome"] == "failure"
+        assert "nothing to decay" in out
+
 
 class TestNotRelevant:
     def test_no_decay(self, isolated_db: Path) -> None:
