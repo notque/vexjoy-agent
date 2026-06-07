@@ -102,8 +102,10 @@ def _analyse_content(content: str) -> tuple[bool, str]:
         return False, "already-present"
 
     # No new key. A deprecated codex_hooks = false is a deliberate disable.
-    if dep_match and dep_match.group(1) == "false":
-        _exit_on_disabled()
+    if dep_match:
+        if dep_match.group(1) == "false":
+            _exit_on_disabled()
+        return True, "migrated"
 
     has_features_section = bool(_SECTION_PATTERN.search(content))
     if has_features_section:
@@ -170,8 +172,11 @@ def apply_update(content: str) -> str:
         return content
 
     if action == "migrated":
-        # hooks = true is already present; just drop the deprecated key.
-        return _strip_deprecated(content)
+        # Drop the deprecated key. If hooks = true was not already present,
+        # insert the current key below [features].
+        content = _strip_deprecated(content)
+        if _KEY_PATTERN.search(content):
+            return content
 
     if action in ("created-file", "added-section"):
         # Append a new [features] block. Ensure a trailing newline before it
@@ -183,8 +188,8 @@ def apply_update(content: str) -> str:
         content += "[features]\nhooks = true\n"
         return content
 
-    # action == "added-key": strip any deprecated key, then insert hooks after
-    # the [features] header.
+    # action == "added-key" or migrated-without-hooks: strip any deprecated key,
+    # then insert hooks after the [features] header.
     content = _strip_deprecated(content)
     lines = content.splitlines(keepends=True)
     result: list[str] = []

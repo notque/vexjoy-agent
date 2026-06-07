@@ -231,6 +231,30 @@ def test_install_sh_preserves_existing_config_toml_sections(fake_home: Path) -> 
     assert config["features"].get("hooks") is True
 
 
+@requires_tomllib
+def test_install_sh_migrates_deprecated_codex_hooks_flag(fake_home: Path) -> None:
+    """install.sh removes deprecated codex_hooks and reports the migration action."""
+    codex_dir = fake_home / ".codex"
+    codex_dir.mkdir(parents=True, exist_ok=True)
+
+    config_path = codex_dir / "config.toml"
+    config_path.write_text("[features]\ncodex_hooks = true\ngoals = true\n", encoding="utf-8")
+
+    result = _run_install(fake_home, ["--copy", "--force"])
+
+    assert result.returncode == 0, f"install.sh failed.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    text = config_path.read_text(encoding="utf-8")
+    assert "codex_hooks" not in text
+    assert "Codex config feature flag: migrated" in result.stdout
+
+    with open(config_path, "rb") as fh:
+        config = tomllib.load(fh)
+
+    assert config["features"]["hooks"] is True
+    assert config["features"]["goals"] is True
+    assert "codex_hooks" not in config["features"]
+
+
 def test_install_sh_dry_run_does_not_touch_filesystem(fake_home: Path) -> None:
     """install.sh --dry-run leaves ~/.codex untouched."""
     result = _run_install(fake_home, ["--dry-run", "--symlink"])
