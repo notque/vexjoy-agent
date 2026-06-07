@@ -16,6 +16,7 @@ routing:
   retro-topics:
     - typescript-patterns
     - debugging
+  not_for: "React Native mobile apps (use react-native-engineer)"
   pairs_with:
     - universal-quality-gate
     - typescript-check
