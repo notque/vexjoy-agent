@@ -45,6 +45,17 @@ assert() {
     fi
 }
 
+run_install_for_home() {
+    local test_home="$1"; shift
+    (
+        cd "$REPO_ROOT" &&
+        HOME="$test_home" \
+        XDG_CONFIG_HOME="${test_home}/.config" \
+        XDG_DATA_HOME="${test_home}/.local/share" \
+        bash install.sh "$@"
+    )
+}
+
 echo "==================================================================="
 echo "Per-item conversion E2E (test_home=$TEST_HOME)"
 echo "==================================================================="
@@ -160,11 +171,11 @@ echo ""
 echo "[4] ~/.hermes/skills is a per-item dir (sync_mirror_entry path)"
 if [ -d "$TEST_HOME/.hermes/skills" ] && [ ! -L "$TEST_HOME/.hermes/skills" ]; then
     pass "~/.hermes/skills is a real dir"
-    HERMES_SAMPLE=$(find "$TEST_HOME/.hermes/skills" -maxdepth 1 -type l 2>/dev/null | head -1)
+    HERMES_SAMPLE=$(find "$TEST_HOME/.hermes/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
     if [ -n "$HERMES_SAMPLE" ]; then
-        pass "~/.hermes/skills contains per-item symlinks"
+        pass "~/.hermes/skills/business contains per-item symlinks"
     else
-        fail "~/.hermes/skills should contain per-item symlinks"
+        fail "~/.hermes/skills/business should contain per-item symlinks"
     fi
 else
     fail "~/.hermes/skills should be a real dir after per-item install"
@@ -207,9 +218,147 @@ else
     fail "~/.factory/skills/business should be a real category dir"
 fi
 
+# --- External whole-dir symlinks must be preserved, not converted ---
+echo ""
+echo "[7] external symlinks are preserved"
+
+EXT_HOME="$TEST_HOME/external-claude-home"
+EXT_SKILLS="$TEST_HOME/external-claude-skills"
+mkdir -p "$EXT_HOME/.claude" "$EXT_SKILLS/custom-skill"
+echo "external" > "$EXT_SKILLS/custom-skill/SKILL.md"
+ln -s "$EXT_SKILLS" "$EXT_HOME/.claude/skills"
+output=$(run_install_for_home "$EXT_HOME" --symlink --per-item --force 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.claude/skills install exited non-zero"
+    log "$output"
+else
+    pass "external ~/.claude/skills install exited 0"
+fi
+if [ -L "$EXT_HOME/.claude/skills" ] && [ "$(readlink "$EXT_HOME/.claude/skills")" = "$EXT_SKILLS" ]; then
+    pass "external ~/.claude/skills symlink preserved"
+else
+    fail "external ~/.claude/skills symlink should be preserved"
+fi
+if [ -f "$EXT_HOME/.claude/skills/custom-skill/SKILL.md" ]; then
+    pass "external ~/.claude/skills custom skill remains reachable"
+else
+    fail "external ~/.claude/skills custom skill should remain reachable"
+fi
+output=$(run_install_for_home "$EXT_HOME" --uninstall 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.claude/skills uninstall exited non-zero"
+    log "$output"
+else
+    pass "external ~/.claude/skills uninstall exited 0"
+fi
+if [ -L "$EXT_HOME/.claude/skills" ] && [ "$(readlink "$EXT_HOME/.claude/skills")" = "$EXT_SKILLS" ]; then
+    pass "external ~/.claude/skills symlink preserved through uninstall"
+else
+    fail "external ~/.claude/skills symlink should be preserved through uninstall"
+fi
+if [ -f "$EXT_HOME/.claude/skills/custom-skill/SKILL.md" ]; then
+    pass "external ~/.claude/skills custom skill remains reachable after uninstall"
+else
+    fail "external ~/.claude/skills custom skill should remain reachable after uninstall"
+fi
+
+EXT_FACTORY_HOME="$TEST_HOME/external-factory-home"
+EXT_FACTORY_SKILLS="$TEST_HOME/external-factory-skills"
+mkdir -p "$EXT_FACTORY_HOME/.factory" "$EXT_FACTORY_SKILLS/custom-skill"
+echo "external" > "$EXT_FACTORY_SKILLS/custom-skill/SKILL.md"
+ln -s "$EXT_FACTORY_SKILLS" "$EXT_FACTORY_HOME/.factory/skills"
+output=$(run_install_for_home "$EXT_FACTORY_HOME" --symlink --per-item --force 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.factory/skills install exited non-zero"
+    log "$output"
+else
+    pass "external ~/.factory/skills install exited 0"
+fi
+if [ -L "$EXT_FACTORY_HOME/.factory/skills" ] && [ "$(readlink "$EXT_FACTORY_HOME/.factory/skills")" = "$EXT_FACTORY_SKILLS" ]; then
+    pass "external ~/.factory/skills symlink preserved"
+else
+    fail "external ~/.factory/skills symlink should be preserved"
+fi
+if [ -f "$EXT_FACTORY_HOME/.factory/skills/custom-skill/SKILL.md" ]; then
+    pass "external ~/.factory/skills custom skill remains reachable"
+else
+    fail "external ~/.factory/skills custom skill should remain reachable"
+fi
+output=$(run_install_for_home "$EXT_FACTORY_HOME" --uninstall 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.factory/skills uninstall exited non-zero"
+    log "$output"
+else
+    pass "external ~/.factory/skills uninstall exited 0"
+fi
+if [ -L "$EXT_FACTORY_HOME/.factory/skills" ] && [ "$(readlink "$EXT_FACTORY_HOME/.factory/skills")" = "$EXT_FACTORY_SKILLS" ]; then
+    pass "external ~/.factory/skills symlink preserved through uninstall"
+else
+    fail "external ~/.factory/skills symlink should be preserved through uninstall"
+fi
+if [ -f "$EXT_FACTORY_HOME/.factory/skills/custom-skill/SKILL.md" ]; then
+    pass "external ~/.factory/skills custom skill remains reachable after uninstall"
+else
+    fail "external ~/.factory/skills custom skill should remain reachable after uninstall"
+fi
+
+EXT_CATEGORY_HOME="$TEST_HOME/external-category-home"
+EXT_CATEGORY_SKILLS="$TEST_HOME/external-business-skills"
+mkdir -p "$EXT_CATEGORY_HOME/.claude/skills" "$EXT_CATEGORY_SKILLS/custom-business"
+echo "external" > "$EXT_CATEGORY_SKILLS/custom-business/SKILL.md"
+ln -s "$EXT_CATEGORY_SKILLS" "$EXT_CATEGORY_HOME/.claude/skills/business"
+output=$(run_install_for_home "$EXT_CATEGORY_HOME" --symlink --per-item --force 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.claude/skills/business install exited non-zero"
+    log "$output"
+else
+    pass "external ~/.claude/skills/business install exited 0"
+fi
+if [ -L "$EXT_CATEGORY_HOME/.claude/skills/business" ] && [ "$(readlink "$EXT_CATEGORY_HOME/.claude/skills/business")" = "$EXT_CATEGORY_SKILLS" ]; then
+    pass "external ~/.claude/skills/business symlink preserved"
+else
+    fail "external ~/.claude/skills/business symlink should be preserved"
+fi
+if [ -f "$EXT_CATEGORY_HOME/.claude/skills/business/custom-business/SKILL.md" ]; then
+    pass "external ~/.claude/skills/business custom skill remains reachable"
+else
+    fail "external ~/.claude/skills/business custom skill should remain reachable"
+fi
+output=$(run_install_for_home "$EXT_CATEGORY_HOME" --uninstall 2>&1)
+if [ $? -ne 0 ]; then
+    fail "external ~/.claude/skills/business uninstall exited non-zero"
+    log "$output"
+else
+    pass "external ~/.claude/skills/business uninstall exited 0"
+fi
+if [ -L "$EXT_CATEGORY_HOME/.claude/skills/business" ] && [ "$(readlink "$EXT_CATEGORY_HOME/.claude/skills/business")" = "$EXT_CATEGORY_SKILLS" ]; then
+    pass "external ~/.claude/skills/business symlink preserved through uninstall"
+else
+    fail "external ~/.claude/skills/business symlink should be preserved through uninstall"
+fi
+if [ -f "$EXT_CATEGORY_HOME/.claude/skills/business/custom-business/SKILL.md" ]; then
+    pass "external ~/.claude/skills/business custom skill remains reachable after uninstall"
+else
+    fail "external ~/.claude/skills/business custom skill should remain reachable after uninstall"
+fi
+
 # --- Uninstall preserves external skills, removes toolkit symlinks ---
 echo ""
-echo "[7] uninstall preserves external skills"
+echo "[8] uninstall preserves external skills"
+CLAUDE_TOP_LINK_TARGET="$TEST_HOME/claude-top-linked-skill"
+CLAUDE_CHILD_LINK_TARGET="$TEST_HOME/claude-child-linked-skill"
+FACTORY_TOP_LINK_TARGET="$TEST_HOME/factory-top-linked-skill"
+FACTORY_CHILD_LINK_TARGET="$TEST_HOME/factory-child-linked-skill"
+mkdir -p "$CLAUDE_TOP_LINK_TARGET" "$CLAUDE_CHILD_LINK_TARGET" \
+         "$FACTORY_TOP_LINK_TARGET" "$FACTORY_CHILD_LINK_TARGET"
+echo "external" > "$CLAUDE_TOP_LINK_TARGET/SKILL.md"
+echo "external" > "$CLAUDE_CHILD_LINK_TARGET/SKILL.md"
+echo "external" > "$FACTORY_TOP_LINK_TARGET/SKILL.md"
+echo "external" > "$FACTORY_CHILD_LINK_TARGET/SKILL.md"
+ln -s "$CLAUDE_TOP_LINK_TARGET" "$TEST_HOME/.claude/skills/external-top-link"
+ln -s "$CLAUDE_CHILD_LINK_TARGET" "$TEST_HOME/.claude/skills/business/external-child-link"
+ln -s "$FACTORY_TOP_LINK_TARGET" "$TEST_HOME/.factory/skills/external-top-link"
+ln -s "$FACTORY_CHILD_LINK_TARGET" "$TEST_HOME/.factory/skills/business/external-child-link"
 output=$( cd "$REPO_ROOT" && bash install.sh --uninstall 2>&1 )
 if [ $? -ne 0 ]; then
     fail "uninstall exited non-zero"
@@ -226,6 +375,26 @@ if [ -f "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md" ]; then
     pass "external skill preserved through uninstall"
 else
     fail "external skill should be preserved through uninstall"
+fi
+if [ -L "$TEST_HOME/.claude/skills/external-top-link" ] && [ -f "$TEST_HOME/.claude/skills/external-top-link/SKILL.md" ]; then
+    pass "external top-level Claude skill symlink preserved through uninstall"
+else
+    fail "external top-level Claude skill symlink should be preserved through uninstall"
+fi
+if [ -L "$TEST_HOME/.claude/skills/business/external-child-link" ] && [ -f "$TEST_HOME/.claude/skills/business/external-child-link/SKILL.md" ]; then
+    pass "external nested Claude skill symlink preserved through uninstall"
+else
+    fail "external nested Claude skill symlink should be preserved through uninstall"
+fi
+if [ -L "$TEST_HOME/.factory/skills/external-top-link" ] && [ -f "$TEST_HOME/.factory/skills/external-top-link/SKILL.md" ]; then
+    pass "external top-level Factory skill symlink preserved through uninstall"
+else
+    fail "external top-level Factory skill symlink should be preserved through uninstall"
+fi
+if [ -L "$TEST_HOME/.factory/skills/business/external-child-link" ] && [ -f "$TEST_HOME/.factory/skills/business/external-child-link/SKILL.md" ]; then
+    pass "external nested Factory skill symlink preserved through uninstall"
+else
+    fail "external nested Factory skill symlink should be preserved through uninstall"
 fi
 
 # --- Summary ---
