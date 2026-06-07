@@ -1527,10 +1527,13 @@ if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] hooks = true${NC}"
     else
-        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
-            --config "$CODEX_CONFIG" 2>&1; then
-            :
+        codex_flag_action=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
+            --config "$CODEX_CONFIG" 2>&1)
+        codex_flag_status=$?
+        if [ "$codex_flag_status" -eq 0 ]; then
+            echo -e "${GREEN}  ✓ Codex config feature flag: ${codex_flag_action}${NC}"
         else
+            echo "$codex_flag_action"
             echo -e "${YELLOW}  ⚠ Could not update ${CODEX_CONFIG} (see error above). Codex hooks may not activate.${NC}"
         fi
     fi

@@ -101,12 +101,12 @@ class TestNeedsUpdate:
         assert write_needed is True
         assert action == "migrated"
 
-    def test_only_deprecated_key_returns_added_key(self) -> None:
-        """Deprecated codex_hooks alone (no hooks) maps to added-key."""
+    def test_only_deprecated_key_returns_migrated(self) -> None:
+        """Deprecated codex_hooks alone (no hooks) maps to migrated."""
         content = "[features]\ncodex_hooks = true\n"
         write_needed, action = needs_update(content)
         assert write_needed is True
-        assert action == "added-key"
+        assert action == "migrated"
 
     def test_deprecated_key_false_exits_2(self) -> None:
         """Deprecated codex_hooks = false (no hooks) must exit with code 2."""
@@ -282,6 +282,20 @@ class TestCLI:
         assert "codex_hooks" not in text
         parsed = tomllib.loads(text)
         assert parsed["features"]["hooks"] is True
+
+    @requires_tomllib
+    def test_only_deprecated_key_reports_migrated(self, tmp_path: Path) -> None:
+        """A config with only codex_hooks is migrated; stdout reports migrated."""
+        cfg = tmp_path / "config.toml"
+        cfg.write_text("[features]\ncodex_hooks = true\ngoals = true\n", encoding="utf-8")
+        result = _run(["--config", str(cfg), "--no-backup"])
+        assert result.returncode == 0
+        assert result.stdout.strip() == "migrated"
+        text = cfg.read_text()
+        assert "codex_hooks" not in text
+        parsed = tomllib.loads(text)
+        assert parsed["features"]["hooks"] is True
+        assert parsed["features"]["goals"] is True
 
     def test_already_present_is_noop(self, tmp_path: Path) -> None:
         """Pre-existing flag produces no file change and reports already-present."""
