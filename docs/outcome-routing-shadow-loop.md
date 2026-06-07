@@ -17,8 +17,8 @@ routing is impossible. A prior A/B returned null (89.8% == 89.8%).
 Working documents (local-only, gitignored — not in this commit):
 - `research/forward-plan/implementation-spec.md` — the FROZEN spec (read first).
 - `research/forward-plan/{2026-06-03-forward-plan,codex-plan,input-bundle}.md` — inputs.
-- `adr/outcome-routing-shadow-loop.md` — the ADR (decision, alternatives, data-semantics
-  appendix). Registered via `scripts/adr-query.py`.
+- ADR `outcome-routing-shadow-loop` (local-only, `adr/` is gitignored) — the ADR
+  (decision, alternatives, data-semantics appendix). Registered via `scripts/adr-query.py`.
 
 `research/` and `adr/` are gitignored development artifacts; a safety hook blocks
 force-adding them. They stay local by design — this tracked pointer keeps the branch

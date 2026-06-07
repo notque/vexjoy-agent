@@ -168,4 +168,8 @@ def test_performance_10k_rows(isolated_db: Path) -> None:
     rows = learning_db.collect_route_weights()
     elapsed = time.perf_counter() - start
     assert len(rows) == 10000
-    assert elapsed < 0.1, f"route-weights query took {elapsed * 1000:.1f}ms (>100ms)"
+    # Guard against accidental O(n^2)/full-table-scan regressions, not runner jitter.
+    # At 10k rows a real regression lands in seconds; 0.5s keeps the guard while
+    # absorbing shared-runner variance (a clean run is ~0.01s; shared CI runners
+    # have measured ~0.114s for this same correct query).
+    assert elapsed < 0.5, f"route-weights query took {elapsed * 1000:.1f}ms (>500ms)"
