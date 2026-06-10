@@ -719,14 +719,61 @@ def has_reviewable_content(diff: str, scannable_exts: frozenset[str]) -> bool:
     return False
 
 
-class DiffDedup:
-    """Byte-identical working-tree-diff dedup with atomic state + opt-in TTL.
+def normalize_diff_for_fingerprint(diff: str) -> str:
+    """Strip volatile-only noise from a unified diff before fingerprinting.
 
-    Hashes ``sha256(cwd, diff)`` so different repos with identical diffs do not
-    collide. State persists to a JSON file via atomic write (tempfile in the
-    same dir + ``os.replace``). By default dedup is permanent — the same
-    ``(cwd, diff)`` hash means the same review until the diff actually changes;
-    a non-matching hash overwrites the old record (self-healing).
+    The dedup fingerprint must be stable across re-fires that carry the SAME
+    semantic change. Raw ``git diff`` output embeds a few volatile fields that
+    churn even when the file paths and hunks are unchanged — most importantly
+    the ``index <oldsha>..<newsha> <mode>`` line, whose blob SHAs change whenever
+    a build artifact is regenerated (e.g. ``static/game/*`` rebuilds produce the
+    same hunks but fresh blob SHAs). Hashing the raw bytes therefore misses the
+    duplicate and re-reviews the identical change over and over.
+
+    This normalizer removes ONLY those volatile lines, preserving everything
+    that defines WHAT changed:
+
+    Dropped (volatile, carry no review signal):
+      - ``index <sha>..<sha>[ mode]`` — blob SHAs / churn on rebuild
+      - ``old mode`` / ``new mode``   — bare permission churn
+      - ``deleted file mode`` / ``new file mode`` — mode digits only
+      - ``similarity index NN%`` / ``dissimilarity index NN%`` — rename heuristic noise
+
+    Kept (load-bearing — ANY change here yields a new fingerprint → full review):
+      - ``diff --git a/... b/...`` headers (file paths)
+      - ``--- `` / ``+++ `` headers (file paths)
+      - ``rename from`` / ``rename to`` (path moves are real changes)
+      - every ``@@`` hunk header and every ``+``/``-``/context line
+
+    Hardening-preserving: this only collapses byte-noise to a stable form; it
+    never widens what counts as "the same diff" beyond identical paths + hunks.
+    A new file, a changed hunk, or a renamed path all still differ here.
+    """
+    out = []
+    for line in diff.split("\n"):
+        if line.startswith("index "):
+            continue
+        if line.startswith("old mode ") or line.startswith("new mode "):
+            continue
+        if line.startswith("deleted file mode ") or line.startswith("new file mode "):
+            continue
+        if line.startswith("similarity index ") or line.startswith("dissimilarity index "):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+class DiffDedup:
+    """Working-tree-diff dedup with atomic state + opt-in TTL.
+
+    Hashes ``sha256(cwd, normalize_diff_for_fingerprint(diff))`` so different
+    repos with identical diffs do not collide, and so re-fires of the SAME
+    semantic change (same paths + same hunks) fingerprint identically even when
+    git's volatile blob-SHA / mode noise churns underneath. State persists to a
+    JSON file via atomic write (tempfile in the same dir + ``os.replace``). By
+    default dedup is permanent — the same fingerprint means the same review until
+    the diff actually changes; a non-matching hash overwrites the old record
+    (self-healing).
 
     A positive ``ttl_seconds`` re-enables a time window: a hash match older than
     the TTL is treated as a miss.
@@ -738,11 +785,22 @@ class DiffDedup:
         self.ttl_seconds = ttl_seconds if ttl_seconds and ttl_seconds > 0 else 0
 
     def signature(self, cwd: Optional[str], diff: str) -> str:
-        """Hash (cwd, diff) so different repos with identical diffs don't collide."""
+        """Hash (cwd, normalized-diff) so identical changes fingerprint stably.
+
+        The diff is first run through ``normalize_diff_for_fingerprint`` to drop
+        volatile-only noise (blob-SHA index lines, bare mode churn) while keeping
+        file paths and hunks. ``cwd`` keeps different repos with identical diffs
+        from colliding. Fails open: if normalization ever raises, fall back to
+        hashing the raw diff (the original byte-identical behavior).
+        """
+        try:
+            normalized = normalize_diff_for_fingerprint(diff)
+        except Exception:
+            normalized = diff
         h = hashlib.sha256()
         h.update((cwd or "").encode("utf-8", errors="replace"))
         h.update(b"\x00")
-        h.update(diff.encode("utf-8", errors="replace"))
+        h.update(normalized.encode("utf-8", errors="replace"))
         return h.hexdigest()
 
     def _load(self) -> dict:
