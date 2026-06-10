@@ -7,6 +7,7 @@ then outputs a compact text manifest that an LLM can parse efficiently.
 Usage:
     python3 scripts/routing-manifest.py
     python3 scripts/routing-manifest.py --json
+    python3 scripts/routing-manifest.py --tiered
 
 Exit codes:
     0 — Always (advisory)
@@ -16,10 +17,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sqlite3
 import sys
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Tiered mode: how far back a route-events DECISION keeps a name in the
+# working set, and how many description words a stub line keeps.
+WORKING_SET_WINDOW_SECONDS = 30 * 86400
+STUB_DESC_WORDS = 6
 
 
 def _resolve_index(tracked: Path, local_name: str) -> Path:
@@ -74,6 +83,125 @@ def load_entries() -> list[dict]:
             entries.append(entry)
 
     return entries
+
+
+def _learning_dir() -> Path:
+    """Resolve the learning dir from CLAUDE_LEARNING_DIR (tests redirect it)."""
+    env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
+    return Path(env_dir) if env_dir else Path.home() / ".claude" / "learning"
+
+
+def _names_from_key(key: str, names: set[str]) -> None:
+    """Add the agent and skill names from an `agent:skill` route key."""
+    for part in key.split(":", 1):
+        part = part.strip()
+        if part and part != "-":
+            names.add(part)
+
+
+def load_working_set(now: float | None = None) -> set[str]:
+    """Names (agents and skills) with recorded routes.
+
+    Union of: route-weight rows (n >= 1, test rows excluded) from learning.db,
+    and DECISION events from route-events.jsonl in the last 30 days.
+    Read-only. Any read failure yields a smaller set, never an error —
+    a smaller working set only means more stub lines.
+    """
+    names: set[str] = set()
+    base = _learning_dir()
+
+    db_path = base / "learning.db"
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            try:
+                rows = conn.execute(
+                    "SELECT key FROM learnings"
+                    " WHERE topic = 'routing' AND category = 'effectiveness'"
+                    " AND observation_count >= 1 AND source NOT LIKE 'test%'"
+                ).fetchall()
+            finally:
+                conn.close()
+            for (key,) in rows:
+                _names_from_key(str(key), names)
+        except sqlite3.Error:
+            pass
+
+    events_path = base / "route-events.jsonl"
+    cutoff = (now if now is not None else time.time()) - WORKING_SET_WINDOW_SECONDS
+    try:
+        with open(events_path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(event, dict) or event.get("type") != "decision":
+                    continue
+                ts = event.get("ts")
+                if not isinstance(ts, (int, float)) or ts < cutoff:
+                    continue
+                for field in ("agent", "skill"):
+                    value = event.get(field)
+                    if isinstance(value, str) and value and value != "-":
+                        names.add(value)
+    except OSError:
+        pass
+
+    return names
+
+
+def _stub_line(entry: dict) -> str:
+    """One-line stub: name + first STUB_DESC_WORDS words of the description."""
+    desc = " ".join(str(entry["description"]).split()[:STUB_DESC_WORDS])
+    return f"  {entry['name']} — {desc}"
+
+
+def format_tiered(entries: list[dict], working_set: set[str]) -> str:
+    """Format entries with FULL lines for the working set, stubs for the rest.
+
+    FULL: working-set names (recorded routes) and every force-route entry —
+    force-route entries are never stubbed. Stub: name + 6-word description.
+    Pipelines are few; they always render FULL.
+    """
+    agents = []
+    skills = []
+    pipelines = []
+
+    for e in entries:
+        name = e["name"]
+        full = name in working_set or e.get("force_route", False)
+
+        if e["type"] == "pipeline":
+            pipelines.append(f"  {name} — {e['description']}")
+            continue
+        if not full:
+            (agents if e["type"] == "agent" else skills).append(_stub_line(e))
+            continue
+
+        desc = e["description"]
+        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
+        not_for = e.get("not_for", "")
+        not_for_str = f" NOT: {not_for}" if not_for else ""
+
+        if e["type"] == "agent":
+            pairs_str = f" [{pairs}]" if pairs else ""
+            agents.append(f"  {name}{pairs_str} — {desc}{not_for_str}")
+        else:
+            force_str = " FORCE" if e.get("force_route") else ""
+            agent_str = f" agent={e['agent']}" if e.get("agent") else ""
+            cat_str = f" ({e['category']})" if e.get("category") else ""
+            skills.append(f"  {name}{force_str}{agent_str}{cat_str} — {desc}{not_for_str}")
+
+    sections = []
+    if agents:
+        sections.append("AGENTS:\n" + "\n".join(sorted(agents)))
+    if skills:
+        sections.append("SKILLS:\n" + "\n".join(sorted(skills)))
+    if pipelines:
+        sections.append("PIPELINES:\n" + "\n".join(sorted(pipelines)))
+
+    return "\n\n".join(sections)
 
 
 def format_compact(entries: list[dict]) -> str:
@@ -179,6 +307,11 @@ def main() -> int:
         default="",
         help="Request text (used with --compact to decide whether to include PIPELINES)",
     )
+    parser.add_argument(
+        "--tiered",
+        action="store_true",
+        help="Tiered mode: FULL lines for the live working set and force-route entries, one-line stubs otherwise",
+    )
     args = parser.parse_args()
 
     entries = load_entries()
@@ -187,6 +320,8 @@ def main() -> int:
         print(json.dumps(entries, indent=2))
     elif args.compact:
         print(format_compact_mode(entries, request_text=args.request))
+    elif args.tiered:
+        print(format_tiered(entries, load_working_set()))
     else:
         print(format_compact(entries))
 

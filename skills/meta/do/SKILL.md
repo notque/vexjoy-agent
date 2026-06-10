@@ -109,9 +109,21 @@ If ANY creation signal AND complexity Simple+: set `is_creation = true`; Phase 4
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill. Semantic intent routing (Haiku) is primary; the pre-router is a safety-net, not a short-circuit. Prefer FORCE-labeled entries when intent matches semantically.
+**Goal**: Select the correct agent + skill. Semantic intent routing (Haiku) is primary; the pre-router is a safety-net, not a short-circuit — the fast path below is the one exception, and it only commits routes the safety-net would force anyway. Prefer FORCE-labeled entries when intent matches semantically.
 
 **Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: ~+0.1 Haiku calls/request — measured, accepted (`references/semantic-first-ab-results.md`).
+
+**Fast path: high-confidence force-route (run FIRST, before Step 0)**
+
+Resolve SDIR as in Step 0, then run:
+
+```bash
+python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
+```
+
+If the result has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest + Haiku), Step 1.5 (weights read), and Step 1 (pre-route already ran). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
+
+**Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (~18.7k tokens of manifest + Haiku round-trip skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
 
 **Step 0: Semantic intent routing (PRIMARY)**
 
@@ -119,7 +131,7 @@ Generate the manifest, then dispatch the Haiku routing agent.
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
-python3 "$SDIR/routing-manifest.py"
+python3 "$SDIR/routing-manifest.py" --tiered
 ```
 
 Dispatch the Agent tool with `model: "haiku"`, omitting `isolation: "worktree"` (the agent only reads a manifest and returns JSON; worktree isolation fails outside a git repo). Use this prompt structure:
@@ -174,6 +186,7 @@ Rules:
 - If the request implies a task verb (review, debug, refactor, test), prefer skills that match that verb.
 - If nothing matches well, return all nulls with reasoning.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
+- Stub entries are valid picks — if a stub matches the intent best, return it.
 - For GENUINE git / version-control operations — actually pushing code, committing files to a repository, or opening/merging a pull request — ALWAYS select pr-workflow. Do NOT route metaphorical or non-version-control uses of these words (e.g. 'commit to a decision/plan', 'merge ideas in your head', 'push back on a proposal') to pr-workflow.
 - Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
@@ -209,10 +222,9 @@ Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` 
 
 Runs AFTER the semantic pick (Step 0/0b), BEFORE the Step 1 safety-net.
 
-Once per /do, read the routing weights and score the semantic pick:
+Once per /do, read the routing weights and score the semantic pick. Resolve SDIR as in Step 0, then run:
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 python3 "$SDIR/learning-db.py" route-weights --json
 ```
 
@@ -229,14 +241,13 @@ Policy thresholds (for reading the recorded would-action, not for changing the r
 
 **Always log the evaluation** to the T3 event stream: set `health_at_decision` to the picked pair's `confidence` scalar (a float, or `null` when the pair has no weight row); `n` and `failure` are separate fields. The recorder writes all three from the marker onto the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. Every route is scored even though nothing changes.
 
-Carry the gate inputs on the routing marker (Phase 4 Step 2) so the recorder snapshots them at decision time. Confidence alone cannot reconstruct the demote floor — it needs `n` and `failure` too. Append to the marker: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}` (the would-action), and ` alts={k1,k2}` when you passed alternates. When the picked pair has no weight row, append ` health=-` (the recorder writes null health and drops the n/fail/action fields).
+Carry the gate inputs on the routing marker so the recorder snapshots them at decision time — confidence alone cannot reconstruct the demote floor; it needs `n` and `failure` too. Append format and example: Phase 4 Step 2.
 
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 
-Use its result ONLY as a guardrail:
+Use its result ONLY as a guardrail. Reuse the fast-path gate's pre-route output when it ran this turn; otherwise resolve SDIR as in Step 0 and run:
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
 ```
 
@@ -343,66 +354,10 @@ Load `references/quality-loop.md` as the **outer orchestration wrapper**:
 
 Quality-loop absorbs Steps 0-1. The Phase 2 agent+skill is the implementation agent; force-route skills run INSIDE the loop. Skip when: Trivial/Simple (use `quick`), review-only/research/debugging/content creation, or user wants a simpler flow.
 
-**Step 1b (native Workflow dispatch): run the deterministic variant when the harness supports it, else the prose pipeline.** When the Haiku router emitted a pipeline `pick` (#686), select the executor with this ADR decision table (`harness-conditional-workflow-dispatch`):
+**Step 1b/1c (Workflow dispatch — lazy-loaded):**
 
-```
-pick = haiku_route.pipeline                         # #686, may be null
-cap  = scripts/detect-workflow-capability.py        # env proxy: {harness, workflow_capable}
-reg  = scripts/workflow-registry.py                 # auto-derived {meta.name: path}
-{scope, tier} = scripts/right-size-review.py        # #688 right-sizing (review picks)
-complex4 = (complexity == Complex) or (tier == 4)   # ADR native-fast-path Stage 2
-
-if pick is not None and reg.get(pick) and cap.workflow_capable and (Workflow tool in MY tool list):
-        # NAMED pipeline: env proxy AND LLM tool-list self-check (authoritative gate)
-                                                            -> Workflow.run(reg[pick], {scope, tier})
-elif pick is not None and reg.get(pick):                    -> run the prose pipeline markdown (unchanged)
-elif pick is None and complex4 and cap.workflow_capable and (Workflow tool in MY tool list):
-        # NO named pipeline + Complex/tier-4: generic native fan-out (Stage 2)
-                                                            -> Workflow.run("fan-out-workflow", {scope, tier, roster})
-elif pick is None and complex4:                             # Workflow tool absent -> floor
-                                                            -> dispatching-parallel-agents (prose fan-out, unchanged)
-else:                                                       -> agent + skill direct (simpler; unchanged)
-```
-
-Build `roster` from the Phase-3 enhancement signals, scaled by `tier`. **Each entry is `{agentType, skills: [...], lens}` — `skills` is a LIST carrying the FULL Phase-3 stack a direct dispatch would build.** Per agent, emit one `Skill("<name>")` per `skills` element and the four /do mandatory injections. Native forms: `comprehensive-review-workflow.js` (named pipeline), `fan-out-workflow.js` (generic Complex/tier-4). Both pseudocode gates (env proxy AND the orchestrator's own tool-list self-check) must hold; a `pick` with no registry entry is prose-only.
-
-**Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so it reads identically regardless of executor (e.g. complexity-trigger fan-out shows `fan-out → synthesize`).
-
-**Step 1c (inline-authored Workflow scripts): when the user explicitly asks to "run through a workflow" with no named pipeline `pick`, the orchestrator MUST dictate roster size and skill stacks — never delegate those to the Workflow tool** (whose defaults skew toward many-skeptic adversarial fan-outs and rarely emit `Skill(...)`). Before any inline `script:`, build the same `roster` Step 1b uses and pin:
-
-| Constraint | Rule |
-|------------|------|
-| **Agent count** | Dictate explicit roster length per task class (table below), not the Workflow tool's "comprehensiveness" heuristics. |
-| **Skill stacks** | EVERY `agent()` call MUST be preceded by one `Skill("<name>")` per element of its roster entry's `skills` list. Empty `skills` is a routing bug — fail closed and re-route. |
-| **Adversarial passes** | Default to **single skeptic per finding**, not 3–5. Escalate to 3 only on a request for "adversarial," "heavy refute," or "high-stakes review," and only on findings surviving the first pass. |
-| **Phase count** | Reuse a registry pipeline's phase shape (`comprehensive-review-workflow`, `fan-out-workflow`, `research-pipeline`) over inventing novel phase names. |
-
-Roster-size table (counts dictated, NOT advisory):
-
-| Request class | Roster size | Skeptic pass |
-|---------------|-------------|--------------|
-| PR review (Tier 1, ≤6 files) | 3 reviewers | none default; 1 skeptic on user request |
-| PR review (Tier 2–3) | 12 / 17 reviewers per `right-size-review.py` | 1 skeptic on "Critical" findings only |
-| PR review (Tier 4) | 27 reviewers | 1 skeptic on Critical+High findings |
-| Adversarial validation of N findings | 1 skeptic × N (not 3 × N) | escalate to 3 only on user-flagged "heavy pushback" |
-| Research fan-out | 3–5 researchers per `research-pipeline` Wave 1 | n/a |
-| Generic complexity-trigger fan-out | use `fan-out-workflow` registered roster | n/a |
-
-Inline `script:` shape (a `Skill(...)` directive in EVERY worker, count from the roster):
-
-```js
-const ROSTER = [/* dictated count, NOT model-chosen */
-  {agentType: "reviewer-system",       skills: ["systematic-code-review", "anti-rationalization-review"], lens: "security"},
-  {agentType: "reviewer-domain",       skills: ["systematic-code-review", "anti-rationalization-review"], lens: "domain"},
-  {agentType: "reviewer-perspectives", skills: ["systematic-code-review", "anti-rationalization-review"], lens: "newcomer"},
-];
-const findings = await parallel(ROSTER.map(r => async () => {
-  for (const s of r.skills) await Skill(s);   // FULL stack, one directive per skill
-  return agent(buildPrompt(r), {agentType: r.agentType, schema: FINDINGS_SCHEMA});
-}));
-```
-
-Catching a model-chosen N (`parallel(Array.from({length: N}, ...))`) or a missing `Skill(...)` directive means **stop and rebuild the script from the roster table above**.
+On a pipeline `pick`, a Complex/tier-4 task with no pick, or an explicit "run through a workflow" request, load `${CLAUDE_SKILL_DIR}/references/workflow-dispatch.md` and follow it.
+It carries the executor decision table, roster rules, and inline-script constraints verbatim.
 
 **Step 2: Invoke agent with skill**
 
