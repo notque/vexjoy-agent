@@ -111,10 +111,13 @@ See `python-openstack-engineer/references/openstack-patterns.md` for oslo.config
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| oslo.config option registration, oslo.log setup, oslo.messaging transport, oslo.db sessions, oslo.policy enforcement, `CONF.register_opts`, `enginefacade`, `get_rpc_transport` | `oslo-patterns.md` | Routes to the matching deep reference |
-| H201, H301, H303, H304, H501, `tox -e pep8`, import ordering, bare except, wildcard imports, i18n hacking rules, flake8 H-series | `hacking-rules.md` | Routes to the matching deep reference |
-| RPC version negotiation, rolling upgrades, `RPC_API_VERSION`, `prepare(version=X)`, `version_cap`, `RPCVersionCapError`, oslo.messaging Target | `rpc-versioning.md` | Routes to the matching deep reference |
-| Tempest service clients, scenario tests, `addCleanup`, tempest-lib, API validation, `TempestClient` | `tempest-testing.md` | Routes to the matching deep reference |
+| oslo.config option registration, oslo.log setup, oslo.messaging transport, oslo.db sessions, oslo.policy enforcement, `CONF.register_opts`, `enginefacade`, `get_rpc_transport` | [oslo-patterns.md](python-openstack-engineer/references/oslo-patterns.md) | Routes to the matching deep reference |
+| quick Oslo code examples: oslo.config integration, RPC server, Alembic migration | [openstack-patterns.md](python-openstack-engineer/references/openstack-patterns.md) | Short code-example summary; points to the full Oslo reference |
+| H201, H301, H303, H304, H501, `tox -e pep8`, import ordering, bare except, wildcard imports, i18n hacking rules, flake8 H-series | [hacking-rules.md](python-openstack-engineer/references/hacking-rules.md) | Routes to the matching deep reference |
+| RPC version negotiation, rolling upgrades, `RPC_API_VERSION`, `prepare(version=X)`, `version_cap`, `RPCVersionCapError`, oslo.messaging Target | [rpc-versioning.md](python-openstack-engineer/references/rpc-versioning.md) | Routes to the matching deep reference |
+| quick error lookup: bare except (H201), missing i18n, import order (H301-H307) | [error-handling.md](python-openstack-engineer/references/error-handling.md) | Error-to-fix examples for the three most common hacking violations |
+| failure mode list, rationalization table, blocker criteria | [preferred-patterns.md](python-openstack-engineer/references/preferred-patterns.md) | OpenStack failure modes and stop conditions |
+| scoping what this agent can do; output format | [output-format.md](python-openstack-engineer/references/output-format.md) | Implementation Schema phases and CAN/CANNOT lists |
 
 ## Error Handling
 

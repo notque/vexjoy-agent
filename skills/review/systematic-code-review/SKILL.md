@@ -32,8 +32,8 @@ Systematic 4-phase code review: UNDERSTAND changes, VERIFY claims against actual
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `go-review-patterns.md` | Loads detailed guidance from `go-review-patterns.md`. |
-| tasks related to this reference | `receiving-feedback.md` | Loads detailed guidance from `receiving-feedback.md`. |
-| tasks related to this reference | `severity-classification.md` | Loads detailed guidance from `severity-classification.md`. |
+| responding to review feedback on your own code | `receiving-feedback.md` | Loads detailed guidance from `receiving-feedback.md`. |
+| labeling findings: BLOCKING vs SHOULD FIX vs SUGGESTION | `severity-classification.md` | Loads detailed guidance from `severity-classification.md`. |
 
 ## Instructions
 

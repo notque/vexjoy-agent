@@ -148,6 +148,6 @@ STOP and ask the user when:
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `article-structure-patterns.md` | Loads detailed guidance from `article-structure-patterns.md`. |
-| tasks related to this reference | `sourcing-and-claims.md` | Loads detailed guidance from `sourcing-and-claims.md`. |
-| implementation patterns | `voice-patterns.md` | Loads detailed guidance from `voice-patterns.md`. |
+| structuring an explainer, opinion, or analysis article | [article-structure-patterns.md](technical-journalist-writer/references/article-structure-patterns.md) | Structure templates, header and topic-sentence patterns per article type |
+| citing sources, classifying claims, marking inference vs fact | [sourcing-and-claims.md](technical-journalist-writer/references/sourcing-and-claims.md) | Claim classification, inference marking, validation detection commands |
+| auditing draft tone; banned phrases and replacements | [voice-patterns.md](technical-journalist-writer/references/voice-patterns.md) | Banned-pattern reference, replacement map, voice detection commands |

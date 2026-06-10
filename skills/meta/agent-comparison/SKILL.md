@@ -32,13 +32,13 @@ Compare agent variants through controlled A/B benchmarks. Runs identical tasks o
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `benchmark-tasks.md` | Loads detailed guidance from `benchmark-tasks.md`. |
+| selecting benchmark tasks and directory layout (Phase 1) | `benchmark-tasks.md` | Loads detailed guidance from `benchmark-tasks.md`. |
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
-| tasks related to this reference | `grading-rubric.md` | Loads detailed guidance from `grading-rubric.md`. |
-| tasks related to this reference | `methodology.md` | Loads detailed guidance from `methodology.md`. |
-| tasks related to this reference | `optimization-guide.md` | Loads detailed guidance from `optimization-guide.md`. |
-| tasks related to this reference | `optimize-phase.md` | Loads detailed guidance from `optimize-phase.md`. |
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| scoring solutions: 5-criteria rubric and effective cost calculation | `grading-rubric.md` | Loads detailed guidance from `grading-rubric.md`. |
+| deciding when to run comparisons; December 2024 baseline data | `methodology.md` | Loads detailed guidance from `methodology.md`. |
+| configuring autoresearch: targets, task formats, eval isolation modes | `optimization-guide.md` | Loads detailed guidance from `optimization-guide.md`. |
+| executing Phase 5 OPTIMIZE step by step | `optimize-phase.md` | Loads detailed guidance from `optimize-phase.md`. |
+| writing the Phase 4 comparison report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
 
 ## Instructions
 

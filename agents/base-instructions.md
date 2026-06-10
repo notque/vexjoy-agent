@@ -47,5 +47,5 @@ Load these reference files when the task signals match. Do not load preemptively
 
 | Task signal | Reference file | What it adds |
 |------------|----------------|--------------|
-| Writing progress updates, completing tasks, summarizing work | `agents/base-instructions/references/communication-patterns.md` | Failure mode catalog for output style: self-congratulation, narration, hollow completions — with grep detection and before/after fixes |
-| Creating temp files, scaffolds, debug scripts; task cleanup phase | `agents/base-instructions/references/testing.md` | Detection patterns for test scaffolds and temporary files; keep-vs-delete decision table; cleanup grep commands |
+| Writing progress updates, completing tasks, summarizing work | [communication-patterns.md](base-instructions/references/communication-patterns.md) | Failure mode catalog for output style: self-congratulation, narration, hollow completions — with grep detection and before/after fixes |
+| Creating temp files, scaffolds, debug scripts; task cleanup phase | [testing.md](base-instructions/references/testing.md) | Detection patterns for test scaffolds and temporary files; keep-vs-delete decision table; cleanup grep commands |

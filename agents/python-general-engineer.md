@@ -136,11 +136,17 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| errors | `python-errors.md` | Loads detailed guidance from `python-errors.md`. |
-| implementation patterns | `python-preferred-patterns.md` | Loads detailed pattern guidance from `python-preferred-patterns.md`. |
-| implementation patterns | `python-patterns.md` | Loads detailed guidance from `python-patterns.md`. |
-| tasks related to this reference | `python-modern-features.md` | Loads detailed guidance from `python-modern-features.md`. |
-| security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | `python-security.md` | Secure implementation patterns for Python, Django, FastAPI, Flask. |
+| quick error lookup: async deadlock, mypy, mutable defaults, imports, mocks | [error-handling.md](python-general-engineer/references/error-handling.md) | Short error-to-fix list; points to the full catalog |
+| debugging a specific error or exception in depth | [python-errors.md](python-general-engineer/references/python-errors.md) | Comprehensive error catalog with causes and fixes |
+| quick pattern check before writing code | [preferred-patterns.md](python-general-engineer/references/preferred-patterns.md) | Short pattern list; points to the full catalog |
+| auditing code against the full pattern catalog with detection commands | [python-preferred-patterns.md](python-general-engineer/references/python-preferred-patterns.md) | Action-first patterns plus grep detection per violation |
+| choosing language constructs: type hints, dataclasses, protocols, context managers | [python-patterns.md](python-general-engineer/references/python-patterns.md) | Code examples for core Python idioms |
+| Python 3.11+/3.12 features, TaskGroup, Pydantic v2, uv, FastAPI | [python-modern-features.md](python-general-engineer/references/python-modern-features.md) | Modern feature and tooling reference |
+| security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | [python-security.md](python-general-engineer/references/python-security.md) | Secure implementation patterns for Python, Django, FastAPI, Flask. |
+| before writing any Python code (forbidden-pattern gate) | [hard-gate-patterns.md](python-general-engineer/references/hard-gate-patterns.md) | STOP/REPORT/FIX pattern table with detection commands |
+| fundamental design choices, retry limits, recovery | [blocker-criteria.md](python-general-engineer/references/blocker-criteria.md) | Blocker table, retry limits, recovery protocol |
+| before claiming Python work complete | [anti-rationalization.md](python-general-engineer/references/anti-rationalization.md) | Python-specific rationalization table |
+| scoping what this agent can do; output format | [capabilities.md](python-general-engineer/references/capabilities.md) | CAN/CANNOT lists and Implementation Schema template |
 
 ## Error Handling
 

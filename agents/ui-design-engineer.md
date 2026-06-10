@@ -154,6 +154,8 @@ Uses the **Implementation Schema**: ANALYZE (surface type, narrative brief, cont
 | card, table, badge, avatar, progress, alert | `component-library-display.md` | Cards, tables, badges, avatars, progress indicators, alerts |
 | Tailwind config, @apply, responsive, purge, JIT, arbitrary | `tailwind-preferred-patterns.md` | Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values |
 | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | `animation-patterns.md` | Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions |
+| interaction states, hover, focus, disabled, loading, active, pressed | [interaction-state-coverage.md](ui-design-engineer/references/interaction-state-coverage.md) | 6-state matrix, transition timing bounds, element-by-element checklist |
+| AI slop, generic UI, AI-generated look, template look, default styling | [ai-slop-detection.md](ui-design-engineer/references/ai-slop-detection.md) | Purposeful gradients, contextual fonts and colors, spacing scale rules |
 
 ## Error Handling
 

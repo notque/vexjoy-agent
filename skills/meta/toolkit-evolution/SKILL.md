@@ -44,10 +44,10 @@ Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cro
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `diagnose-scripts.md` | Loads detailed guidance from `diagnose-scripts.md`. |
-| tasks related to this reference | `evolution-report-template.md` | Loads detailed guidance from `evolution-report-template.md`. |
+| running DISCOVER/DIAGNOSE commands: learning DB queries, git scan, drift checks | `diagnose-scripts.md` | Loads detailed guidance from `diagnose-scripts.md`. |
+| writing the evolution cycle report | `evolution-report-template.md` | Loads detailed guidance from `evolution-report-template.md`. |
 | implementation patterns | `evolve-preferred-patterns.md` | Loads detailed guidance from `evolve-preferred-patterns.md`. |
-| tasks related to this reference | `evolve-scripts.md` | Loads detailed guidance from `evolve-scripts.md`. |
+| Phase 6 EVOLVE: PR creation, merge, branch cleanup, learning records | `evolve-scripts.md` | Loads detailed guidance from `evolve-scripts.md`. |
 
 ## Instructions
 
