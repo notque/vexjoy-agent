@@ -2,10 +2,10 @@
 
 Native-Workflow executor selection and roster rules, moved verbatim from `SKILL.md` Phase 4. Load on: a pipeline `pick`, Complex/tier-4 with no pick, or an explicit "run through a workflow" request.
 
-**Step 1b (native Workflow dispatch): run the deterministic variant when the harness supports it, else the prose pipeline.** When the Haiku router emitted a pipeline `pick` (#686), select the executor with this ADR decision table (`harness-conditional-workflow-dispatch`):
+**Step 1b (native Workflow dispatch): run the deterministic variant when the harness supports it, else the prose pipeline.** When the Phase 2 Step 0 self-route emitted a pipeline `pick` (#686), select the executor with this ADR decision table (`harness-conditional-workflow-dispatch`):
 
 ```
-pick = haiku_route.pipeline                         # #686, may be null
+pick = route.pipeline                               # #686, may be null
 cap  = scripts/detect-workflow-capability.py        # env proxy: {harness, workflow_capable}
 reg  = scripts/workflow-registry.py                 # auto-derived {meta.name: path}
 {scope, tier} = scripts/right-size-review.py        # #688 right-sizing (review picks)

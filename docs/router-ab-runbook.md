@@ -80,7 +80,7 @@ whose artifacts sit in `scripts/routing-ab-results/`:
 
 - For each `"$OUT"/prompts/<arm>/<id>.txt` (legacy: `prompts/<id>.txt`), send the
   file content verbatim as a single prompt to **Haiku** (`claude-haiku-4-5`, the
-  project's router model) — or, when `arms.json` carries a `models` map
+  router model before self-route landed) — or, when `arms.json` carries a `models` map
   (`--model-arm` runs), to that arm's model (`default` = omit `--model`).
   Record per-call `cost_usd` and token counts in the run dir
   (`call-log.jsonl`) when the runner can capture them.
@@ -188,7 +188,7 @@ the Opus orchestrator session driving it.
 - Gate correctness is exact-pair matching softened only by `acceptable`; the
   blind judge scoreboard remains the nuanced read. When they disagree, say so in
   the PR rather than picking the friendlier number.
-- Single Haiku sample per (query, arm): no self-consistency estimate. Re-run
+- Single sample per (query, arm): no self-consistency estimate. Re-run
   with a fresh `--out-dir` to measure variance.
 - 8 corpus cases carry `uncertain: true` — best-effort gold labels.
 - Gold labels encode INDEX semantics as of corpus v1.1; renamed or split skills
