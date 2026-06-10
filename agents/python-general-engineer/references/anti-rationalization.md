@@ -2,7 +2,7 @@
 
 See `shared-patterns/anti-rationalization-core.md` for universal patterns.
 
-### Python-Specific Rationalizations
+## Python-Specific Rationalizations
 
 | Rationalization Attempt | Why It's Wrong | Required Action |
 |------------------------|----------------|-----------------|

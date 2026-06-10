@@ -50,10 +50,10 @@ This skill loads a real WordPress post in a Playwright headless browser and veri
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `validation-checks.md` | Loads detailed guidance from `validation-checks.md`. |
-| tasks related to this reference | `playwright-tools.md` | Loads detailed guidance from `playwright-tools.md`. |
-| tasks related to this reference | `phase-checks.md` | Loads detailed guidance from `phase-checks.md`. |
-| tasks related to this reference | `output-format.md` | Loads detailed guidance from `output-format.md`. |
+| check specifications: severities, edge cases, JS extraction | `validation-checks.md` | Loads detailed guidance from `validation-checks.md`. |
+| Playwright MCP tool signatures, pitfalls, availability detection | `playwright-tools.md` | Loads detailed guidance from `playwright-tools.md`. |
+| step-by-step NAVIGATE, VALIDATE, RESPONSIVE procedures | `phase-checks.md` | Loads detailed guidance from `phase-checks.md`. |
+| Phase 4 REPORT output format | `output-format.md` | Loads detailed guidance from `output-format.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 

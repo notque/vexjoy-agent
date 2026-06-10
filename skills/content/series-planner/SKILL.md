@@ -37,10 +37,10 @@ This skill plans multi-part content series with proper structure, cross-linking,
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `cadence-guidelines.md` | Loads detailed guidance from `cadence-guidelines.md`. |
-| tasks related to this reference | `cross-linking.md` | Loads detailed guidance from `cross-linking.md`. |
-| tasks related to this reference | `output-format.md` | Loads detailed guidance from `output-format.md`. |
-| tasks related to this reference | `series-types.md` | Loads detailed guidance from `series-types.md`. |
+| choosing publication frequency and managing delays | `cadence-guidelines.md` | Loads detailed guidance from `cadence-guidelines.md`. |
+| series navigation links and Hugo implementation | `cross-linking.md` | Loads detailed guidance from `cross-linking.md`. |
+| writing the series plan output | `output-format.md` | Loads detailed guidance from `output-format.md`. |
+| selecting series type, part count, word targets | `series-types.md` | Loads detailed guidance from `series-types.md`. |
 
 ## Instructions
 

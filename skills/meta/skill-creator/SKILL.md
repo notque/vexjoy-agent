@@ -644,13 +644,13 @@ but only if the queries are well-designed.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
-| tasks related to this reference | `artifact-schemas.md` | Loads detailed guidance from `artifact-schemas.md`. |
-| tasks related to this reference | `bundled-components.md` | Loads detailed guidance from `bundled-components.md`. |
-| tasks related to this reference | `complexity-tiers.md` | Loads detailed guidance from `complexity-tiers.md`. |
-| tasks related to this reference | `domain-research-targets.md` | Loads detailed guidance from `domain-research-targets.md`. |
-| workflow steps | `enrichment-workflow.md` | Loads detailed guidance from `enrichment-workflow.md`. |
+| fixing skill design issues: descriptions, gates, file size, retries | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
+| reading or writing eval pipeline JSON artifacts | `artifact-schemas.md` | Loads detailed guidance from `artifact-schemas.md`. |
+| bundling agents or scripts inside the skill package | `bundled-components.md` | Loads detailed guidance from `bundled-components.md`. |
+| choosing the skill's complexity tier and line budget | `complexity-tiers.md` | Loads detailed guidance from `complexity-tiers.md`. |
+| RESEARCH phase: documentation sources to mine per skill domain | `domain-research-targets.md` | Loads detailed guidance from `domain-research-targets.md`. |
+| enriching an existing skill: AUDIT through PUBLISH loop | `enrichment-workflow.md` | Loads detailed guidance from `enrichment-workflow.md`. |
 | errors | `error-catalog.md` | Loads detailed guidance from `error-catalog.md`. |
-| tasks related to this reference | `progressive-disclosure.md` | Loads detailed guidance from `progressive-disclosure.md`. |
-| tasks related to this reference | `skill-template.md` | Loads detailed guidance from `skill-template.md`. |
-| workflow steps, implementation patterns | `workflow-patterns.md` | Loads detailed guidance from `workflow-patterns.md`. |
+| splitting content between SKILL.md and references/ | `progressive-disclosure.md` | Loads detailed guidance from `progressive-disclosure.md`. |
+| drafting the SKILL.md skeleton with required sections | `skill-template.md` | Loads detailed guidance from `skill-template.md`. |
+| choosing a phase structure: sequential, multi-service, iterative, eval-driven | `workflow-patterns.md` | Loads detailed guidance from `workflow-patterns.md`. |

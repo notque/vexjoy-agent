@@ -48,9 +48,9 @@ Investigate failed or stuck workflows through post-mortem analysis of git histor
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `detectors.md` | Loads detailed guidance from `detectors.md`. |
-| tasks related to this reference | `evidence-collection.md` | Loads detailed guidance from `evidence-collection.md`. |
-| tasks related to this reference | `failure-signatures.md` | Loads detailed guidance from `failure-signatures.md`. |
+| Phase 2 DETECT: running the 5 anomaly detectors | `detectors.md` | Loads detailed guidance from `detectors.md`. |
+| Phase 1 GATHER: git extraction, loop queries, credential scrubbing | `evidence-collection.md` | Loads detailed guidance from `evidence-collection.md`. |
+| matching observed symptoms to the 5 failure types | `failure-signatures.md` | Loads detailed guidance from `failure-signatures.md`. |
 
 ## Instructions
 

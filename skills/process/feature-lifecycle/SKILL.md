@@ -106,14 +106,14 @@ Each phase produces an artifact consumed by the next. Skipping phases is not sup
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `design.md` | Loads detailed guidance from `design.md`. |
+| Phase 1 DESIGN: idea to design document | `design.md` | Loads detailed guidance from `design.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| tasks related to this reference | `implement.md` | Loads detailed guidance from `implement.md`. |
-| tasks related to this reference | `pipeline.md` | Loads detailed guidance from `pipeline.md`. |
-| tasks related to this reference | `plan.md` | Loads detailed guidance from `plan.md`. |
-| tasks related to this reference | `release.md` | Loads detailed guidance from `release.md`. |
-| tasks related to this reference | `shared.md` | Loads detailed guidance from `shared.md`. |
-| tasks related to this reference | `validate.md` | Loads detailed guidance from `validate.md`. |
+| Phase 3 IMPLEMENT: dispatching task waves to domain agents | `implement.md` | Loads detailed guidance from `implement.md`. |
+| running the full design-to-release pipeline | `pipeline.md` | Loads detailed guidance from `pipeline.md`. |
+| Phase 2 PLAN: decomposing design into wave-ordered tasks | `plan.md` | Loads detailed guidance from `plan.md`. |
+| Phase 5 RELEASE: PR merge, tagging, worktree cleanup | `release.md` | Loads detailed guidance from `release.md`. |
+| feature state directory layout, naming, write protection | `shared.md` | Loads detailed guidance from `shared.md`. |
+| Phase 4 VALIDATE: running quality gates | `validate.md` | Loads detailed guidance from `validate.md`. |
 
 ## Error Handling
 

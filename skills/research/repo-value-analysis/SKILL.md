@@ -40,10 +40,10 @@ The pipeline enforces **full file reading** (not sampling), **parallel execution
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| tasks related to this reference | `phase2-agent-template.md` | Loads detailed guidance from `phase2-agent-template.md`. |
-| tasks related to this reference | `phase3-inventory-template.md` | Loads detailed guidance from `phase3-inventory-template.md`. |
-| tasks related to this reference | `phase5-audit-template.md` | Loads detailed guidance from `phase5-audit-template.md`. |
-| tasks related to this reference | `phase6-report-template.md` | Loads detailed guidance from `phase6-report-template.md`. |
+| Phase 2 DEEP-READ: zone agent dispatch | `phase2-agent-template.md` | Loads detailed guidance from `phase2-agent-template.md`. |
+| Phase 3 INVENTORY: cataloging our system | `phase3-inventory-template.md` | Loads detailed guidance from `phase3-inventory-template.md`. |
+| Phase 5 AUDIT: verifying HIGH/MEDIUM recommendations | `phase5-audit-template.md` | Loads detailed guidance from `phase5-audit-template.md`. |
+| Phase 6 REPORT: final report structure | `phase6-report-template.md` | Loads detailed guidance from `phase6-report-template.md`. |
 
 ## Instructions
 

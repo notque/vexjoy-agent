@@ -234,8 +234,8 @@ Load when the task type matches:
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `quality-rubric.md` | Loads detailed guidance from `quality-rubric.md`. |
-| tasks related to this reference | `reference-file-template.md` | Loads detailed guidance from `reference-file-template.md`. |
+| classifying reference depth Level 0-3 (DISCOVER gaps, VALIDATE Tier 2) | `quality-rubric.md` | Loads detailed guidance from `quality-rubric.md`. |
+| writing new reference files (Phase 3 COMPILE) | `reference-file-template.md` | Loads detailed guidance from `reference-file-template.md`. |
 
 ## Error Handling
 

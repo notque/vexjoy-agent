@@ -36,10 +36,10 @@ Orchestrate complex workflows by chaining multiple skills into validated executi
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `compatibility-matrix.md` | Loads detailed guidance from `compatibility-matrix.md`. |
-| implementation patterns | `composition-patterns.md` | Loads detailed guidance from `composition-patterns.md`. |
+| checking skill chain compatibility and input/output type matching | `compatibility-matrix.md` | Loads detailed guidance from `compatibility-matrix.md`. |
+| choosing sequential vs parallel composition; chain length limits | `composition-patterns.md` | Loads detailed guidance from `composition-patterns.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
-| implementation patterns | `skill-patterns.md` | Loads detailed guidance from `skill-patterns.md`. |
+| selecting a proven composition pattern; troubleshooting compositions | `skill-patterns.md` | Loads detailed guidance from `skill-patterns.md`. |
 
 ## Instructions
 

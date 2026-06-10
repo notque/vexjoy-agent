@@ -45,9 +45,9 @@ Load these files when the corresponding signals appear:
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
-| tasks related to this reference | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
-| tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
-| tasks related to this reference | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
+| computing the 100 metrics across 25 categories | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
+| phase banners, reconciliation matrix, rule format | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
+| understanding the measure-don't-read statistical approach | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
 
 ## Instructions
 

@@ -35,18 +35,18 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `animation-patterns.md` | Loads detailed guidance from `animation-patterns.md`. |
-| tasks related to this reference | `app-vs-landing-rules.md` | Loads detailed guidance from `app-vs-landing-rules.md`. |
-| tasks related to this reference | `background-techniques.md` | Loads detailed guidance from `background-techniques.md`. |
-| implementation patterns | `css-audit-patterns.md` | Loads detailed guidance from `css-audit-patterns.md`. |
+| adding motion: page load orchestration, state transitions, scroll reveals, easing | `animation-patterns.md` | Loads detailed guidance from `animation-patterns.md`. |
+| applying layout rules after Phase 1 surface-type classification (app vs landing) | `app-vs-landing-rules.md` | Loads detailed guidance from `app-vs-landing-rules.md`. |
+| building backgrounds: gradients, noise, geometric patterns, atmosphere | `background-techniques.md` | Loads detailed guidance from `background-techniques.md`. |
+| auditing CSS for banned fonts, hardcoded colors, over-animation | `css-audit-patterns.md` | Loads detailed guidance from `css-audit-patterns.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| brief-level walkthroughs: new landing page, app surface | `examples.md` | Loads detailed guidance from `examples.md`. |
 | game UI, AAA game, polished game, Steam game, roguelike UI, Slay the Spire | `game-ui-polish.md` | Loads game-native polish rules that prevent website-like surfaces, excessive gradients, nested boxes, and fake-premium chrome. |
-| example-driven tasks | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
+| starter code: design tokens, base styles, React/Tailwind and HTML templates | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
-| tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
+| aesthetic direction examples and expanded phase steps | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
 | picking a page structure in Phase 1 | `macrostructure-catalog.md` | Load only the single chosen `macro:*` entry by its heading anchor (e.g. `#macrostat-led`), never the whole file — one entry carries every rule the build needs. |
-| tasks related to this reference | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |
+| before Phase 1: definitions of Hero, Full-bleed, Surface type, and other gating terms | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |
 
 ## Instructions
 

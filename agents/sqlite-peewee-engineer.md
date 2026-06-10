@@ -137,9 +137,9 @@ SQLite Constraints: [Limitations to work within]
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| N+1, prefetch, join, slow query, index, WAL, EXPLAIN | `peewee-query-patterns.md` | Query optimization, N+1 prevention, index strategy, SQLite pragmas |
-| test, pytest, fixture, in-memory, :memory:, bind_ctx, migration test | `peewee-testing.md` | Per-test isolation, factory fixtures, transaction rollback tests |
-| migration, ALTER, schema change, add column, drop column, playhouse.migrate | `peewee-migrations.md` | Playhouse migrate operations, SQLite ALTER limitations, rebuild procedure |
+| N+1, prefetch, join, slow query, index, WAL, EXPLAIN | [peewee-query-patterns.md](sqlite-peewee-engineer/references/peewee-query-patterns.md) | Query optimization, N+1 prevention, index strategy, SQLite pragmas |
+| test, pytest, fixture, in-memory, :memory:, bind_ctx, migration test | [peewee-testing.md](sqlite-peewee-engineer/references/peewee-testing.md) | Per-test isolation, factory fixtures, transaction rollback tests |
+| migration, ALTER, schema change, add column, drop column, playhouse.migrate | [peewee-migrations.md](sqlite-peewee-engineer/references/peewee-migrations.md) | Playhouse migrate operations, SQLite ALTER limitations, rebuild procedure |
 
 ## Error Handling
 

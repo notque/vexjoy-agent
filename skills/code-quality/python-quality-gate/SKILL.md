@@ -38,8 +38,8 @@ Run four quality tools in deterministic order -- ruff, pytest, mypy, bandit -- a
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
-| tasks related to this reference | `tool-commands.md` | Loads detailed guidance from `tool-commands.md`. |
+| writing the quality gate report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| invoking ruff/mypy/pytest; severity classification and pass/fail thresholds | `tool-commands.md` | Loads detailed guidance from `tool-commands.md`. |
 
 ## Instructions
 
