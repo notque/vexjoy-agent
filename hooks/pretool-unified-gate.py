@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PreToolUse Hook: Unified Gate (ADR-068)
 
@@ -7,7 +7,11 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
 1. block-gitignore-bypass   — Bash: blocks git add -f on gitignored paths & .gitignore edits
 2. pretool-git-submission-gate — Bash: blocks raw git push, gh pr create/merge
 3. pretool-dangerous-command-guard — Bash: blocks destructive commands
-4. pretool-creation-gate    — Write: blocks new agent/skill file creation
+4. pretool-creation-gate    — Write: blocks new agent/skill file creation;
+                              a registered ADR named for the component
+                              (scripts/adr-query.py register) unlocks the
+                              path — the handshake worktree agents without
+                              the Task tool can perform (see section 4)
 5. pretool-sensitive-file-guard — Write+Edit: blocks writes to .env, credentials, SSH keys, etc.
 6. public-dev-server-guard     — Bash: blocks dev servers bound to non-loopback interfaces
                                   (python http.server binds 0.0.0.0 by default; php -S, vite --host, etc.)
@@ -24,6 +28,7 @@ pass through. Without this, those skills had to bypass via /tmp + cp.
 Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass uses subprocess.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -147,11 +152,40 @@ _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 # 4. CREATION GATE PATTERNS (pretool-creation-gate.py)
 # ═══════════════════════════════════════════════════════════════
 
+# DEPRECATED bypass: superseded by the ADR-registration handshake below.
+# Still functional for unforeseen cases; every use is audit-logged to stderr.
 _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
 _SKILL_PATTERN = re.compile(r"/(skills|pipelines)/(?:[^/]+/)?[^/]+/SKILL\.md$")
 _WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
+
+# Component-name capture variants of the patterns above (kebab-case name).
+_AGENT_NAME_RE = re.compile(r"/agents/([^/]+)\.md$")
+_SKILL_NAME_RE = re.compile(r"/(?:skills|pipelines)/(?:[^/]+/)?([^/]+)/SKILL\.md$")
+_WORKFLOW_REF_NAME_RE = re.compile(r"/skills/workflow/references/([^/]+)\.md$")
+
+# ADR-registration handshake (the worktree-observable creation path).
+#
+# Why this exists: the gate's named remedy — dispatch skill-creator via the
+# Task tool — is unobservable from worktree agents, which lack the Task tool;
+# the gate also cannot observe Skill-tool invocation of skill-creator. That
+# structural gap forced annotated CREATION_GATE_BYPASS writes (PR #770).
+#
+# The handshake anchors on a step the legitimate flow already performs: ADR
+# registration via `python3 scripts/adr-query.py register --adr adr/<name>.md`,
+# which writes .adr-session.json (adr_path, sha256 adr_hash, domain) into the
+# session/worktree root. The gate allows a new-component Write only when a
+# session file in the event cwd or an ancestor of the write target records an
+# ADR whose FILENAME-derived domain equals the new component's kebab-case name
+# AND whose current content hash matches the registered hash. Forging that
+# marker requires writing adr/<name>.md and recording its true hash — which is
+# the registration flow in substance, and the separate pretool-adr-creation-gate
+# independently requires that same ADR to exist. The session file is NOT
+# consumed: pretool-synthesis-gate and other consumers read it, and deleting it
+# would disarm the synthesis gate.
+_ADR_SESSION_FILE = ".adr-session.json"
+_ADR_SESSION_WALK_LIMIT = 20
 
 # Path-shape allowlist for components produced by non-skill-creator paths.
 #
@@ -894,11 +928,92 @@ def check_dangerous_command(command: str) -> None:
             )
 
 
-def check_creation_gate(file_path: str) -> None:
-    """Block new agent/skill file creation unless bypassed or on the producer allowlist."""
-    if os.environ.get(_CREATION_BYPASS_ENV) == "1":
-        return
+def _creation_component_name(file_path: str) -> str | None:
+    """Return the kebab-case component name for a gated creation path."""
+    for pattern in (_AGENT_NAME_RE, _WORKFLOW_REF_NAME_RE, _SKILL_NAME_RE):
+        match = pattern.search(file_path)
+        if match:
+            return match.group(1)
+    return None
 
+
+def _iter_adr_session_files(file_path: str, cwd: str):
+    """Yield existing .adr-session.json files: event cwd first, then ancestors
+    of the write target (covers worktree roots without a usable cwd)."""
+    candidates: list[Path] = []
+    if cwd:
+        candidates.append(Path(cwd))
+    parent = Path(file_path).parent
+    for _ in range(_ADR_SESSION_WALK_LIMIT):
+        candidates.append(parent)
+        if parent == parent.parent:
+            break
+        parent = parent.parent
+    seen: set[Path] = set()
+    for directory in candidates:
+        if directory in seen:
+            continue
+        seen.add(directory)
+        session_file = directory / _ADR_SESSION_FILE
+        try:
+            if session_file.is_file():
+                yield session_file
+        except OSError:
+            continue
+
+
+def _adr_registration_allows(component: str, file_path: str, cwd: str) -> str | None:
+    """Return the registered ADR path that unlocks `component`, or None.
+
+    Allows only when a session file records an ADR that (a) lives in an adr/
+    directory, (b) derives the same kebab-case domain as the component from
+    its FILENAME (the session's domain field is a prefilter, never trusted
+    alone), and (c) still hashes to the registered sha256 — the artifact
+    `scripts/adr-query.py register` produces. Anything less stays blocked.
+    """
+    for session_file in _iter_adr_session_files(file_path, cwd):
+        try:
+            session = json.loads(session_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(session, dict) or session.get("domain") != component:
+            continue
+        adr_path = Path(str(session.get("adr_path", "")))
+        if not adr_path.name:
+            continue
+        if not adr_path.is_absolute():
+            base = str(session.get("cwd") or "") or str(session_file.parent)
+            adr_path = Path(base) / adr_path
+        try:
+            adr_path = adr_path.resolve()
+        except OSError:
+            continue
+        # Registration enforces the ADR lives under the repo's adr/ directory.
+        if "adr" not in adr_path.parent.parts:
+            continue
+        # Re-derive the domain from the ADR filename (adr-query.py rule:
+        # stem, minus a "pipeline-" prefix) — a forged session JSON cannot
+        # just claim the component's name.
+        stem = adr_path.stem
+        derived = stem[len("pipeline-") :] if stem.startswith("pipeline-") else stem
+        if derived != component:
+            continue
+        try:
+            digest = "sha256:" + hashlib.sha256(adr_path.read_bytes()).hexdigest()
+        except OSError:
+            continue
+        if digest == session.get("adr_hash"):
+            return str(adr_path)
+    return None
+
+
+def check_creation_gate(file_path: str, cwd: str = "") -> None:
+    """Block new agent/skill creation without a registered ADR handshake.
+
+    Allow order: non-component path → existing file (update) → producer
+    allowlist → DEPRECATED bypass env (audit-logged) → ADR-registration
+    handshake (audit-logged). Everything else blocks.
+    """
     is_agent = bool(_AGENT_PATTERN.search(file_path))
     is_skill = bool(_SKILL_PATTERN.search(file_path))
     is_workflow_ref = bool(_WORKFLOW_REF_PATTERN.search(file_path))
@@ -915,12 +1030,41 @@ def check_creation_gate(file_path: str) -> None:
         if allowed_pattern.search(file_path):
             return
 
+    # DEPRECATED bypass — kept functional for unforeseen cases, always audited.
+    if os.environ.get(_CREATION_BYPASS_ENV) == "1":
+        print(
+            f"[creation-gate] DEPRECATED: {_CREATION_BYPASS_ENV}=1 bypass used for {file_path}. "
+            "Prefer the ADR handshake: python3 scripts/adr-query.py register --adr adr/<name>.md",
+            file=sys.stderr,
+        )
+        return
+
     component_type = "agent" if is_agent else "workflow reference" if is_workflow_ref else "skill"
+    component = _creation_component_name(file_path)
+    if component:
+        adr_path = _adr_registration_allows(component, file_path, cwd)
+        if adr_path:
+            # Audit line: every handshake allow is visible in verbose mode.
+            print(
+                f"[creation-gate] ALLOW: registered ADR {adr_path} unlocks new {component_type} '{component}'.",
+                file=sys.stderr,
+            )
+            return
+
+    component_label = component or "<name>"
     _block(
         f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator or skill-creation-pipeline.\n"
         f"[creation-gate] Path: {file_path}\n"
+        f"[creation-gate] No Task tool (worktree agent)? Invoke the skill-creator skill, write the ADR, register it:\n"
+        f"[creation-gate]   python3 scripts/adr-query.py register --adr adr/{component_label}.md\n"
+        f"[creation-gate] A registered ADR named '{component_label}' unlocks this path; retry the Write after registering.\n"
         f"[fix-with-agent] skill-creator",
-        reason=f"New {component_type} files must be created via the skill-creator agent, not written directly. Use [fix-with-agent] skill-creator.",
+        reason=(
+            f"New {component_type} files must be created via the skill-creator agent "
+            f"([fix-with-agent] skill-creator). Worktree agents without the Task tool: invoke "
+            f"skill-creator as a skill, write adr/{component_label}.md, run "
+            f"`python3 scripts/adr-query.py register --adr adr/{component_label}.md`, then retry this Write."
+        ),
     )
 
 
@@ -2131,7 +2275,8 @@ def main() -> None:
         file_path = tool_input.get("file_path", "")
         if not file_path:
             return
-        check_creation_gate(file_path)
+        cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR", "")
+        check_creation_gate(file_path, cwd=cwd)
         check_sensitive_file(file_path)
 
     elif tool == "Edit":
