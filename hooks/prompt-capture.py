@@ -12,6 +12,8 @@ Filter logic:
 - Skip < 20 words (too little signal)
 - Skip slash commands (/do, /quick, etc.)
 - Skip prompts that are mostly file paths or shell commands
+- Skip machine prompts: headless `claude -p` jobs and agent-generated task
+  specs fire UserPromptSubmit like human turns (see is_machine_prompt)
 - Skip if this exact prompt was already captured this session (dedup)
 
 Records to learning.db category=voice, topic=voice-sample.
@@ -80,6 +82,53 @@ def is_code_noise(text: str) -> bool:
     return (noise_count / len(tokens)) > 0.4
 
 
+# Machine-prompt filter (audit: 217/279 voice rows were machine text).
+# Three high-precision checks; bias toward rejecting machine-shaped text.
+
+# Substrings that only appear in generated prompts, never in human prose.
+_MACHINE_MARKERS = (
+    "[do-route]",
+    "ROUTING MANIFEST",
+    "<command-message>",
+    "<command-name>",
+    "<skill_content>",
+)
+
+# Markdown heading line — skipped before the opener check so prompts like
+# "# Autonomous loop check\n\nYou're being invoked..." are still caught.
+_MD_HEADING_RE = re.compile(r"^#{1,6}\s")
+
+# Machine prompts assign a role in the second person with proper
+# capitalization ("You are running...", "You're being invoked...").
+# Case-sensitive on purpose: casual human "you are wrong about..." passes.
+_ROLE_OPENER_RE = re.compile(r"^You(?: are|'re)\s")
+
+# Generated task specs and headless job prompts run long. Human prompts in
+# the corpus are 20-200 words; above this a prompt is a machine spec or
+# paste-dominated — not voice corpus material either way.
+_MAX_WORDS = 500
+
+
+def is_machine_prompt(text: str) -> bool:
+    """True if the prompt is machine-generated, not typed by a human.
+
+    Headless `claude -p` jobs (auto-dream, toolkit-evolution, skill analysis)
+    and agent dispatch prompts fire UserPromptSubmit exactly like human turns.
+    """
+    if any(marker in text for marker in _MACHINE_MARKERS):
+        return True
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or _MD_HEADING_RE.match(stripped):
+            continue  # skip blanks and headings before the opener check
+        if _ROLE_OPENER_RE.match(stripped):
+            return True
+        break  # only the first content line is an opener
+
+    return word_count(text) > _MAX_WORDS
+
+
 def is_xml_or_structured(text: str) -> bool:
     """True if the prompt is XML, JSON, or internal system payload."""
     stripped = text.strip()
@@ -111,6 +160,9 @@ def is_natural_language(text: str) -> bool:
         return False
 
     if is_xml_or_structured(stripped):
+        return False
+
+    if is_machine_prompt(stripped):
         return False
 
     wc = word_count(stripped)
