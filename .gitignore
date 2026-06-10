@@ -74,7 +74,13 @@ MIGRATION_CHECKLIST_V2.md
 ab-test-results/
 ab-test-results-r2/
 benchmark/
-scripts/routing-ab-results/
+# routing-ab-results: ignore bulk run output (json/jsonl/txt dumps) but keep
+# human-written evidence (VERDICT.md, answers/README.md) and the cited
+# pre-route map tracked. A blanket dir ignore would block the negation below.
+scripts/routing-ab-results/**/*.json
+scripts/routing-ab-results/**/*.jsonl
+scripts/routing-ab-results/**/*.txt
+!scripts/routing-ab-results/pre-route-map-v1.1/pre-route-map.json
 
 # ADR session state (ephemeral, per-session, not committed)
 .adr-session.json
