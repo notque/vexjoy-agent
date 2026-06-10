@@ -9,13 +9,22 @@ SubagentStop validator can't do — a hook firing when a subagent stops cannot
 see whether the USER accepted the result, asked for rework, or re-routed the
 same intent. Those signals live in the NEXT user turn. This hook reads them.
 
-Resolution per still-pending dispatch (drained atomically, scored ONCE):
+Resolution per still-pending dispatch (drained atomically, scored ONCE) —
+THREE-WAY (T4):
 
     failure  = tool errors recorded for THIS dispatch  OR  clear user rejection
-    success  = otherwise (acceptance, OR neutral / new topic — no complaint)
+    success  = explicit acceptance / affirmation of the prior work
+    neutral  = otherwise (unrelated / new-topic next prompt — no complaint, no
+               acceptance) => NO-OP: no boost, no decay, no count change
 
-then boost (success) / decay (failure) the routing/{key} row, ONCE, and clear
-the pending list so a re-delivered prompt resolves nothing further (idempotent).
+then boost (success) / decay (failure) / no-op (neutral) the routing/{key} row,
+ONCE, and clear the pending list so a re-delivered prompt resolves nothing
+further (idempotent).
+
+SIGNAL FIDELITY (T4): the prior detector boosted EVERYTHING that was not an
+unambiguous failure — including neutral new-topic prompts — inflating success
+counts so no real signal could surface. Success now requires a POSITIVE marker;
+a new-topic prompt is neutral, leaving room for future negatives.
 
 HIGH-PRECISION FAILURE DETECTION (critical):
 A FALSE failure poisons route-health worse than recording nothing — it decays a
@@ -224,6 +233,22 @@ def is_rejection(prompt: str) -> bool:
     return bool(_REJECTION_RE.search(first))
 
 
+def is_acceptance(prompt: str) -> bool:
+    """High-precision: True only on explicit affirmation/acceptance of the prior
+    work in the user's IMMEDIATE reaction (the first clause).
+
+    SUCCESS now requires a POSITIVE signal (T4 three-way). Without one — an
+    unrelated / new-topic next prompt — the outcome is NEUTRAL (no boost), not
+    success. So this detector decides boost-vs-neutral; ``is_rejection`` decides
+    the failure path. Same clause-scoping and word-boundary anchoring as
+    ``is_rejection`` so a substring (e.g. "great" inside "greater") never trips
+    it. Returns False on empty / non-string input.
+    """
+    if not prompt or not isinstance(prompt, str):
+        return False
+    return bool(_ACCEPTANCE_RE.search(_first_clause(prompt)))
+
+
 def main() -> None:
     try:
         raw = read_stdin(timeout=2)
@@ -244,6 +269,7 @@ def main() -> None:
 
         prompt = (event.get("prompt") or "").strip()
         rejected = is_rejection(prompt)
+        accepted = is_acceptance(prompt)
 
         # Lazy: only import the scorer (and thus learning_db_v2) when there is
         # actually something to resolve.
@@ -316,23 +342,58 @@ def main() -> None:
             if not decision_row_exists(key):
                 to_requeue.append(item)
                 continue
-            # Per-entry attribution (HIGH-1): own error flag => failure. The
-            # turn-level rejection is OR'd in ONLY when it is attributable (a
-            # single pending dispatch this turn); with >1 pending it is ignored.
+            # THREE-WAY per-entry resolution (T4). Per-entry error flag is the
+            # only signal that is ALWAYS attributable; the turn-level
+            # reaction (rejection OR acceptance) is attributable ONLY when a
+            # single dispatch is pending this turn (HIGH-1) — with >1 pending it
+            # is ignored so a turn signal cannot broadcast across siblings.
+            #   errors          => failure (decay)              — highest precision
+            #   rejection       => failure (decay)              — attributable only
+            #   acceptance      => success (boost)              — attributable only
+            #   otherwise       => neutral (no-op)              — new-topic default
             reaction_failure = rejected if attributable else False
-            failure = bool(item.get("errors")) or reaction_failure
+            reaction_success = accepted if attributable else False
+            if bool(item.get("errors")) or reaction_failure:
+                outcome = "failure"
+            elif reaction_success:
+                outcome = "success"
+            else:
+                outcome = "neutral"
+            # Basis is the failure-axis evidence label (errors > rejection >
+            # no-complaint), recorded as a per-route counter for route-health's
+            # silent-success report. Label-only: it never changes the boost/
+            # decay/no-op the three-way outcome drives.
             basis = outcome_basis(bool(item.get("errors")), reaction_failure)
-            new_conf = apply_outcome(key, failure, basis=basis)
+            new_conf = apply_outcome(key, outcome, basis=basis)
+            # Short, secret-free cause for this dispatch's outcome. Computed
+            # unconditionally (not debug-only) so the JSONL OUTCOME event carries
+            # the demotion cause — an operator reading route-events.jsonl after a
+            # decay can see WHY without the per-key basis table.
+            if item.get("errors"):
+                reason = "tool-errors"
+            elif reaction_failure:
+                reason = "rejection"
+            elif reaction_success:
+                reason = "acceptance"
+            elif (rejected or accepted) and not attributable:
+                reason = "reaction-ignored-multi-dispatch"
+            else:
+                reason = "neutral-new-topic"
+            # T3: per-dispatch OUTCOME event (JSONL), append-only + failure-safe.
+            # Auxiliary instrumentation for replay; route_events swallows write
+            # errors so a logging failure never breaks finalization.
+            # routing_relevant=True: a finalizer failure decays the row by
+            # contract, so it is a routing signal route-value-eval must count.
+            from route_events import record_outcome_event
+
+            record_outcome_event(
+                session=session_id,
+                key=key,
+                outcome=outcome,
+                reason=reason,
+                routing_relevant=True,
+            )
             if debug:
-                outcome = "failure" if failure else "success"
-                if item.get("errors"):
-                    reason = "tool-errors"
-                elif reaction_failure:
-                    reason = "rejection"
-                elif rejected and not attributable:
-                    reason = "rejection-ignored-multi-dispatch"
-                else:
-                    reason = "accepted/neutral"
                 print(
                     f"[routing-outcome-finalizer] {outcome} routing/{key} ({reason}) conf={new_conf:.4f}",
                     file=sys.stderr,

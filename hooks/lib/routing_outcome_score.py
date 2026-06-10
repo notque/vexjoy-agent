@@ -57,6 +57,35 @@ def decision_row_exists(key: str) -> bool:
         return False
 
 
+SUCCESS = "success"
+FAILURE = "failure"
+NEUTRAL = "neutral"
+
+# Sentinel for "no positional outcome supplied" — distinct from any valid
+# outcome and from None, so the public `outcome` type is `str | bool` (None is
+# NOT a valid outcome). Callers that omit `outcome` MUST pass the `failure=`
+# kwarg; supplying neither is rejected.
+_OUTCOME_UNSET: object = object()
+
+
+def _current_confidence(key: str) -> float:
+    """Read-only current confidence for routing/{key}; 0.0 if absent."""
+    from learning_db_v2 import get_db_path
+
+    try:
+        conn = sqlite3.connect(get_db_path(), timeout=5.0)
+        try:
+            row = conn.execute(
+                "SELECT confidence FROM learnings WHERE topic = ? AND key = ? LIMIT 1",
+                ("routing", key),
+            ).fetchone()
+            return float(row[0]) if row else 0.0
+        finally:
+            conn.close()
+    except Exception:
+        return 0.0
+
+
 def outcome_basis(errors: bool, reaction_failure: bool) -> str:
     """The evidence basis for a finalized outcome — one of three labels.
 
@@ -106,20 +135,71 @@ def _record_basis(key: str, basis: str) -> None:
         pass
 
 
-def apply_outcome(key: str, failure: bool, basis: str | None = None) -> float:
-    """Boost (success) or decay (failure) the routing row. Returns new confidence.
+def apply_outcome(
+    key: str,
+    outcome: str | bool = _OUTCOME_UNSET,  # type: ignore[assignment]  # sentinel default; None is not a valid outcome
+    basis: str | None = None,
+    *,
+    failure: bool | None = None,
+) -> float:
+    """Apply a THREE-WAY routing outcome. Returns new (or unchanged) confidence.
+
+    ``outcome`` is one of:
+      - ``"failure"`` — decay the row (errors or attributable rejection).
+      - ``"success"`` — boost the row (acceptance / continuation).
+      - ``"neutral"`` — NO-OP: no boost, no decay, no count change, no schema
+        migration. Returns the row's current confidence unchanged. Neutral is the
+        new default for unrelated/new-topic next prompts and clean autonomous Stop
+        runs — signal-fidelity fix so future data can contain real negatives
+        instead of being drowned by boost-everything.
+
+    Back-compat (two-way binary callers): pass a bare ``True``/``False`` as
+    ``outcome`` OR the keyword ``failure=<bool>`` (True=>failure, False=>success).
+    The ``failure=`` keyword is the legacy binary API the basis tests still use;
+    it maps to FAILURE/SUCCESS and never reaches NEUTRAL.
+
+    Any other string raises ``ValueError`` — an unrecognized outcome (e.g. a
+    typo) must surface as a bug, never silently boost confidence.
+
+    ``outcome`` is typed ``str | bool``; ``None`` is NOT a valid outcome. Omitting
+    it uses an internal sentinel meaning "caller used the ``failure=`` kwarg
+    form". Calling with neither a positional ``outcome`` nor a ``failure=`` kwarg
+    raises ``ValueError`` immediately — there is no "no outcome" outcome.
 
     Caller MUST gate on decision_row_exists(key) first.
 
     `basis` is label-only: when given, increment its per-route counter (best
     effort) for route-health's silent-success report. It does NOT change the
-    boost/decay — that is byte-identical with or without basis. Default None
+    boost/decay/no-op — that is byte-identical with or without basis. Default None
     keeps every pre-PR caller and test unchanged.
     """
     from learning_db_v2 import boost_confidence, decay_confidence
 
+    # Back-compat: the legacy binary API passes `failure=<bool>` and no positional
+    # outcome. Map it to the three-way string. An explicit `outcome` wins.
+    if outcome is _OUTCOME_UNSET and failure is not None:
+        outcome = FAILURE if failure else SUCCESS
+    # Neither form supplied (or an explicit invalid None): there is no "no
+    # outcome" outcome. Reject so the illegal call surfaces clearly instead of
+    # falling through to the generic unknown-string ValueError.
+    if outcome is _OUTCOME_UNSET or outcome is None:
+        raise ValueError("apply_outcome requires an outcome or a failure= kwarg; got neither")
+    # Back-compat: legacy callers passed a `failure` bool positionally.
+    if outcome is True:
+        outcome = FAILURE
+    elif outcome is False:
+        outcome = SUCCESS
+
     if basis:
         _record_basis(key, basis)
-    if failure:
+
+    if outcome == NEUTRAL:
+        return _current_confidence(key)  # no-op: read-only, no count change
+    if outcome == FAILURE:
         return decay_confidence("routing", key, delta=DECAY_DELTA)
-    return boost_confidence("routing", key, delta=BOOST_DELTA)
+    if outcome == SUCCESS:
+        return boost_confidence("routing", key, delta=BOOST_DELTA)
+    # Unknown/typo outcome must NOT silently boost. Callers pass the literal
+    # SUCCESS/FAILURE/NEUTRAL constants; an unrecognized string is a bug to
+    # surface, not a default boost that inflates confidence.
+    raise ValueError(f"unknown routing outcome {outcome!r}; expected one of {SUCCESS!r}, {FAILURE!r}, {NEUTRAL!r}")
