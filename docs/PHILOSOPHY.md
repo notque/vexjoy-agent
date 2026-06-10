@@ -69,6 +69,8 @@ Skills route at confidence tiers driven by trigger-match count plus a `force_rou
 
 **Known follow-up.** The honest cost is the manifest, not the router: the routing manifest duplicates skill descriptions the native `available-skills` list already carries. Trim it to router-only metadata (FORCE flags, agent pairings, `not_for`) — that, not removing the router, is the real optimization.
 
+**OPEN: structural bets before scalar tweaks.** Hypothesis: when sequencing A/Bs, run the bets that change the system's shape (remove the Haiku step, drop verb dispatch) before the bets that tune it (trim a directive). A structural verdict reshapes every later experiment; a scalar verdict tunes a shape that may not survive. Evidence so far is external only — no in-house run has tested the ordering. Validation: the model-era recalibration A/Bs, which re-run the standing experiments under the new model line in exactly this order.
+
 ---
 
 ## Triple-Validation Extraction Gate
@@ -132,6 +134,10 @@ Jobs migrate by kind — Everything Deterministic (above) applied to the router'
 
 The harness verdict: build no separate harness. Harness-by-accretion through hooks keeps the six-CLI portability a custom harness would forfeit. Revisit when a need appears that the hook surface cannot give — true scheduling, mid-flight arbitration between agents, enforced (not advisory) budgets.
 
+**OPEN: the harness owns the inner loop; we build only the outer.** The inner agent loop — message, tool call, write-back, repeat — is harness code. Hypothesis: our layer is the outer loop on top of it, and no framework belongs in between. Validation: the revisit triggers above. The claim stands until true scheduling, mid-flight arbitration, or enforced budgets demand a loop the harness cannot host.
+
+**OPEN: a loop is an agent loop only if the decider sees what actually happened.** Hypothesis: outer-loop decisions read observed execution results appended to state, never the worker's self-report, and the stop condition is verified criteria, not the model's own done-signal — deliberately stricter than the inner loop's `end_turn`. Validation: the objective-loop skill (in flight on its own branch) running real objectives in production.
+
 **Test:** Is this router job deterministic? Same input, same output? Move it to a hook or script. Does it need judgment? It stays in the skill.
 
 ---
@@ -164,6 +170,8 @@ Instructions can be rationalized past. Exit codes cannot.
 | LLM instructions | Judgment calls: right approach? sufficient quality? route here? | Contextual, nuanced, adaptable |
 
 Gates are automated, not advisory. Hook fails = pipeline stops. Hooks are fragile to deploy, reliable in operation.
+
+**OPEN: verification ranks exit code > fresh-context grader > self-critique.** Hypothesis: an exit code is the strongest verdict; where no mechanical check exists, the next best is a grader reading the work in a fresh context; self-critique sits below both and earns no rung — grading work in the context that produced it inherits that context's rationalizations. Validation: the objective-loop skill (in flight) runs real objectives; compare criteria outcomes on the grader path against the mechanical path.
 
 **Test:** Can the model rationalize past this gate? If yes, make it a hook.
 
@@ -353,6 +361,8 @@ A prompt variable is a typed program input: expected format, escaping, behavior 
 Negative results are assets worth a registry. Document what didn't work before it vanishes; one lookup prevents re-litigating a settled decision.
 
 Store failed experiments in a format-fixed doc, newest first, keyed by hypothesis plus an evidence location — a `file:line`, eval path, PR number, or `learning.db` topic/key, never a bare claim. `docs/what-didnt-work.md` is that registry: PR #747 shipped it with a six-field format (date, experiment, expectation, what happened, evidence, decision) and seeded it from three real program refutations. No schema, no blocking gate — the doc is canonical, queried by grep/Read before re-running an experiment, and surfaced through `CONTRIBUTING.md` and the `retro` subcommand.
+
+**OPEN: memory needs a verify step.** Hypothesis: a learned pattern earns graduation and consultation only after an executed check confirms it; recurrence alone can entrench a wrong guess, because the same misroute recorded three times reads as a pattern. Recurrence screens candidates (Triple-Validation, above); only an executed check confirms one. Validation: a `verified` flag on `hooks/retro-graduation-gate.py` (follow-up to PR #766); measure the precision delta between verified and recurrence-only graduations.
 
 **Test:** Did this experiment fail, weaken, or get reverted? Record it in the registry with an evidence location before the next session re-runs it.
 
