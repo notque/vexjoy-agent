@@ -321,7 +321,7 @@ The biggest risk: rationalization. "Already done" (assumption). "Code looks corr
 
 | Model | Use for |
 |---|---|
-| `haiku` | Cheap classification: routing, extraction, inventory, scanning, backlog generation |
+| `haiku` | Cheap classification: extraction, inventory, scanning, backlog generation. Routing was Haiku pre-#777; self-route since (`scripts/routing-ab-results/self-route-v1/VERDICT.md`) |
 | `sonnet` | Substantive execution: implementation, review, synthesis, semantic rewriting |
 
 Do not treat `opus` as default upgrade. If a component needs opus, inspect its prompt shape and task decomposition first.
