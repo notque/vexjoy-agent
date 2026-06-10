@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "Spelling fixes in .go files explicitly route to quick per go-patterns skill notes; this is a trivial localized typo correction.",
-  "confidence": "high"
-}

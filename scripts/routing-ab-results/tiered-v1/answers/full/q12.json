@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-refactoring",
-  "reasoning": "Consolidating repeated logic requires safe incremental refactoring with verification gates; systematic-refactoring provides the 5-phase structure (CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD) to do this safely.",
-  "confidence": "high"
-}

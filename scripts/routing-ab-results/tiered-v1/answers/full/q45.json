@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "skill-creation-pipeline",
-  "reasoning": "Formal 5-phase pipeline explicitly for creating new skills with quality gates (DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE).",
-  "confidence": "high"
-}

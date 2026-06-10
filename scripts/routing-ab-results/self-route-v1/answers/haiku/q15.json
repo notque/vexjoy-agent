@@ -1,6 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "feature-lifecycle",
-  "reasoning": "Feature validation phase requires automated test coverage, CI/CD integration, and regression prevention for the routing feature.",
-  "confidence": "high"
-}

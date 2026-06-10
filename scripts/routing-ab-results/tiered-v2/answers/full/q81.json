@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "read-only-ops",
-  "pipeline": null,
-  "reasoning": "User wants a lightweight read-only exploration and summary of the scripts/ directory contents without modifications.",
-  "confidence": "high"
-}

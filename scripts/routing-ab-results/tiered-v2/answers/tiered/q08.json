@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "User requests security inspection for potential vulnerabilities and break-in risks; reviewer-system specializes in system-level security review including security, concurrency, and API contracts.",
-  "confidence": "high"
-}

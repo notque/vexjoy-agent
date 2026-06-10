@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Typo fixing in a published blog post is manual text editing; use WordPress admin editor or Markdown file editor directly\u2014this falls outside the toolkit's agent/skill scope.",
-  "confidence": "high"
-}

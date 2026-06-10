@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Adding Flask authentication middleware is a Python backend API implementation task; python-general-engineer covers Flask features, debugging, and code development.",
-  "confidence": "high"
-}

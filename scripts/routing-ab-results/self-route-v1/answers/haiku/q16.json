@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "code-review",
-  "pipeline": null,
-  "reasoning": "User requests a careful review of recent Python edits for quality improvements; reviewer-code specializes in conventions, naming, dead code, and performance; code-review skill matches this directly.",
-  "confidence": "high"
-}

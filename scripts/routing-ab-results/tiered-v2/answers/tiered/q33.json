@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "User requests mental synthesis of merge implications, not a git operation; 'merge the branches in your head' is explicitly listed as metaphorical in pr-workflow's NOT clause\u2014return to main conversation for analysis.",
-  "confidence": "high"
-}

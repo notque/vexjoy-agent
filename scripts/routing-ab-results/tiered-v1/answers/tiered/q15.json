@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Set up automated test suite and CI/CD integration to prevent regressions in future edits to this feature",
-  "confidence": "high"
-}

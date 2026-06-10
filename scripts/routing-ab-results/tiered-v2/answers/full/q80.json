@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "condense",
-  "pipeline": null,
-  "reasoning": "Condense skill maximizes information density by removing filler while preserving essential content\u2014exactly what's needed to distill standup notes into three bullet points.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "create-voice",
-  "pipeline": null,
-  "reasoning": "create-voice is FORCE-marked and explicitly handles building voice profiles from writing samples, which matches the user's request exactly.",
-  "confidence": "high"
-}

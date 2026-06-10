@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "FORCE-match: security-review explicitly reviews git changes for security problems with a deterministic scan plus security reviewer",
-  "confidence": "high"
-}

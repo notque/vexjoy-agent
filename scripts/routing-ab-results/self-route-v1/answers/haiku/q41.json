@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": "verification-before-completion",
-  "pipeline": null,
-  "reasoning": "kubernetes-helm-engineer specializes in Helm deployments to Kubernetes; verification-before-completion ensures the deployment succeeds before declaring the task complete.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "verification-before-completion",
-  "pipeline": null,
-  "reasoning": "Python Flask API feature development requires implementation expertise and mandatory verification that authentication actually protects the endpoints.",
-  "confidence": "high"
-}

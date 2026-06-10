@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "workflow",
-  "pipeline": "systematic-refactoring",
-  "reasoning": "Consolidating duplicate logic is a structured refactoring task; systematic-refactoring pipeline provides safe multi-phase handling (characterize, plan, refactor, verify, record) for deduplication work.",
-  "confidence": "high"
-}

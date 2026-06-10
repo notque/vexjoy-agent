@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "User has an unidentified function bug and can't find the root cause; systematic-debugging provides a structured 5-phase evidence-based approach (OBSERVE → HYPOTHESIZE → TEST → FIX → RECORD) to isolate and fix the problem.",
-  "confidence": "high"
-}

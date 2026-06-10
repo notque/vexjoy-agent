@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "multi-persona-critique",
-  "pipeline": null,
-  "reasoning": "multi-persona-critique critiques design artifacts via 5 philosophical personas for comprehensive feedback; provide the design for review",
-  "confidence": "medium"
-}

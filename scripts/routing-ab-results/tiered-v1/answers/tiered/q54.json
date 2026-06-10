@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "image-to-video",
-  "pipeline": null,
-  "reasoning": "image-to-video is an FFmpeg-based video creation skill designed to combine image sequences with audio into video output.",
-  "confidence": "high"
-}

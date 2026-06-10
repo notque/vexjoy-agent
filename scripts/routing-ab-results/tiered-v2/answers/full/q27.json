@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "pr-workflow FORCE applies\u2014branch cleanup is a git operation, and the skill explicitly covers cleanup as part of PR lifecycle management",
-  "confidence": "high"
-}

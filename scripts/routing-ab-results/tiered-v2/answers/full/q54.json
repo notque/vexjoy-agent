@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "image-to-video",
-  "pipeline": null,
-  "reasoning": "image-to-video is FFmpeg-based video creation from image and audio, directly matching your frames+narration\u2192mp4 workflow.",
-  "confidence": "high"
-}

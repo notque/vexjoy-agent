@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Polishing a pull request for approval is a git PR lifecycle operation (review, fix, sync), which the FORCE-marked pr-workflow skill explicitly covers.",
-  "confidence": "high"
-}

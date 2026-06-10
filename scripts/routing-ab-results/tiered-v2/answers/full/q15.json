@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Testing automation engineer specializes in test automation, CI/CD integration, and coverage enforcement; pairs with TDD to write systematic tests that prevent future regressions on this feature.",
-  "confidence": "high"
-}

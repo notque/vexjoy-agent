@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Uploading finished work for the team to see semantically means pushing/committing and opening a PR, which FORCE-routes to pr-workflow per the git-operations rule.",
-  "confidence": "high"
-}

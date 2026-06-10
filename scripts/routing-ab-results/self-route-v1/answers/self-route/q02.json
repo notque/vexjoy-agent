@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Submitting changes for review means committing, pushing, and opening a PR \u2014 a git operation that force-routes to pr-workflow, which owns the full PR lifecycle including review.",
-  "confidence": "high"
-}

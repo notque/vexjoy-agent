@@ -1,7 +1,0 @@
-{
-  "agent": "Plan",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "User requests an implementation plan for a feature; Plan agent is designed specifically for creating step-by-step implementation strategies with architectural trade-off analysis.",
-  "confidence": "high"
-}

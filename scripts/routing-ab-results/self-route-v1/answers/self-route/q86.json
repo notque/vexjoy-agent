@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "plant-seed",
-  "pipeline": null,
-  "reasoning": "The user has a vague feature idea not yet ready for design or implementation, which matches plant-seed's purpose of capturing a forward-looking idea as a seed for future feature design \u2014 feature-lifecycle would be premature since they don't yet know what the feature should do.",
-  "confidence": "high"
-}

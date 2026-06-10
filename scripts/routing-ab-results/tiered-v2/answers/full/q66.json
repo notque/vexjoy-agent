@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "parallel-code-review skill provides exactly the requested parallel 3-reviewer code review across Security, Business-Logic, and Architecture dimensions",
-  "confidence": "high"
-}

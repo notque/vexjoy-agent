@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "reddit-moderate",
-  "pipeline": null,
-  "reasoning": "reddit-moderate skill uses PRAW to handle modqueue fetching and Reddit moderation operations, matching the user's request to moderate subreddit reports.",
-  "confidence": "high"
-}

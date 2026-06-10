@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User requests committing changes to version control; pr-workflow is FORCE-routed for all git commit operations.",
-  "confidence": "high"
-}

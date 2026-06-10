@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": "kubernetes-debugging",
-  "pipeline": null,
-  "reasoning": "Pod crash/restart is a Kubernetes pod failure, directly matching kubernetes-debugging's scope for pod failures and networking.",
-  "confidence": "high"
-}

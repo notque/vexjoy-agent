@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Git operation (commit and push to shared repository) triggers the FORCE-route rule for pr-workflow, which covers the full commit/push/PR lifecycle.",
-  "confidence": "high"
-}

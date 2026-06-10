@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-pipeline",
-  "reasoning": "research-pipeline implements the exact 5-phase structure (SCOPE\u2192GATHER\u2192SYNTHESIZE\u2192VALIDATE\u2192DELIVER) the user specified, with source quality gates and artifact saving for a comprehensive cited WebGPU adoption report.",
-  "confidence": "high"
-}

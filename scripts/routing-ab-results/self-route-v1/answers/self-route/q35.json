@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": "go-patterns",
-  "pipeline": null,
-  "reasoning": "Goroutine leak in a worker pool is Go concurrency debugging, which semantically triggers the FORCE-marked go-patterns skill bound to golang-general-engineer.",
-  "confidence": "high"
-}

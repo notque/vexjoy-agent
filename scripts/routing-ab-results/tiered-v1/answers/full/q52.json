@@ -1,7 +1,0 @@
-{
-  "agent": "php-general-engineer",
-  "skill": "php-testing",
-  "pipeline": null,
-  "reasoning": "The request is to write PHPUnit tests with database fixtures for a PHP Repository class—directly matched by php-testing skill (PHPUnit, test doubles, database testing patterns) dispatched via php-general-engineer.",
-  "confidence": "high"
-}

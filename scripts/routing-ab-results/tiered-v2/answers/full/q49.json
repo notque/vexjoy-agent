@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "e2e-testing",
-  "pipeline": null,
-  "reasoning": "User is writing Playwright end-to-end tests for a signup form and confirmation flow \u2014 the testing-automation-engineer with e2e-testing skill is the direct expert match for Playwright-based E2E test authoring.",
-  "confidence": "high"
-}

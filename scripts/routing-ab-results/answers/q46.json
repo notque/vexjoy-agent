@@ -1,1 +1,0 @@
-{"agent": "toolkit-governance-engineer", "skill": "agent-creator", "pipeline": null, "reasoning": "User wants to scaffold a new agent; agent-creator is the FORCE skill for creating vexjoy-agent operator files, bound to toolkit-governance-engineer.", "confidence": "high"}

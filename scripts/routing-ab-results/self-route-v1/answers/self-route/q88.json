@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "Vague 'clean things up' maps to the workflow skill's refactor mode, which explicitly covers 'tidy up, clean up, reorganize without changing behaviour' \u2014 code-cleanup is too narrow (only dead code/stale TODOs) for an unscoped repo-wide tidy.",
-  "confidence": "medium"
-}

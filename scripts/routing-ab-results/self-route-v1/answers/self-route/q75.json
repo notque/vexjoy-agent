@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "The request \u2014 a full multi-wave review of the whole repo producing a prioritized issue backlog \u2014 matches full-repo-review's description verbatim (comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog), making it a tighter fit than the comprehensive-review pipeline.",
-  "confidence": "high"
-}

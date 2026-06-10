@@ -1,7 +1,0 @@
-{
-  "agent": "toolkit-governance-engineer",
-  "skill": "skill-creator",
-  "pipeline": "skill-creation-pipeline",
-  "reasoning": "skill-creator is FORCE-routed for creating new skills (binding agent=toolkit-governance-engineer), and the explicit 'quality gates' requirement matches the skill-creation-pipeline's 5-phase DISCOVER\u2192DESIGN\u2192SCAFFOLD\u2192VALIDATE\u2192INTEGRATE flow exactly.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "research-coordinator-engineer",
-  "skill": null,
-  "pipeline": "research-pipeline",
-  "reasoning": "User explicitly requests the 5-phase research workflow (SCOPE-GATHER-SYNTHESIZE-VALIDATE-DELIVER) with cited report artifacts, matching research-pipeline exactly.",
-  "confidence": "high"
-}

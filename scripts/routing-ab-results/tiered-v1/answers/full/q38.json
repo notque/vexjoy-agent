@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "python-quality-gate",
-  "pipeline": null,
-  "reasoning": "python-quality-gate is a FORCE-matched skill explicitly designed to run ruff and mypy on Python code in deterministic order.",
-  "confidence": "high"
-}

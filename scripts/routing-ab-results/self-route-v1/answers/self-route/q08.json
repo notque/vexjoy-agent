@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "security-threat-model",
-  "pipeline": null,
-  "reasoning": "The user fears intrusion into the system as a whole ('someone could break into this'), which is whole-system attack-surface analysis \u2014 security-threat-model's domain \u2014 rather than a security pass over current git changes (security-review explicitly excludes whole-system threat modeling).",
-  "confidence": "medium"
-}

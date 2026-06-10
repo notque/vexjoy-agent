@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "image-to-video",
-  "pipeline": null,
-  "reasoning": "The request is creating an mp4 from image frames plus an audio track, which is exactly what image-to-video covers (FFmpeg-based video creation from image and audio), whereas video-editing targets cutting and assembling existing footage.",
-  "confidence": "high"
-}

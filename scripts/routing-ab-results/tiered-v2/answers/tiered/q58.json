@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "cron-job-auditor",
-  "pipeline": null,
-  "reasoning": "cron-job-auditor directly audits cron scripts for reliability and failure modes, matching the request to identify silent failures and data corruption risks.",
-  "confidence": "high"
-}

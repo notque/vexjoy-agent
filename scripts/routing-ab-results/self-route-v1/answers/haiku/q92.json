@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "public-web-deploy",
-  "pipeline": null,
-  "reasoning": "FORCE skill \u2014 deploy public website safely with DNS, web server, HTTPS, hardening, and verification when site goes internet-facing.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "hook-development-engineer",
-  "skill": "verification-before-completion",
-  "pipeline": null,
-  "reasoning": "Git context shows a hook-related fix in progress; hook-development-engineer specializes in Claude Code hooks, verification-before-completion ensures the fix is complete.",
-  "confidence": "medium"
-}

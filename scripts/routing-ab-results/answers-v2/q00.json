@@ -1,1 +1,0 @@
-{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User request 'send my commits to the server' is a genuine git version-control operation (pushing code to remote), matching pr-workflow's FORCE rule for git operations.", "confidence": "high"}

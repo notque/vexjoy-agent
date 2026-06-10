@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Checking CI status on a PR is part of the PR lifecycle (status sub-flow), which the FORCE-marked pr-workflow skill covers for all git/PR operations.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to preserve work by committing and pushing to a remote repository; pr-workflow handles the git commit and sync operations needed to back up work against data loss.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "research-coordinator-engineer",
-  "skill": "research-pipeline",
-  "pipeline": null,
-  "reasoning": "User explicitly requests the 5-phase research structure (scope, gather, synthesize, validate, deliver) with artifact saving and source citations—this exactly matches research-pipeline's formal SCOPE→GATHER→SYNTHESIZE→VALIDATE→DELIVER workflow, orchestrated by research-coordinator-engineer for multi-source synthesis.",
-  "confidence": "high"
-}

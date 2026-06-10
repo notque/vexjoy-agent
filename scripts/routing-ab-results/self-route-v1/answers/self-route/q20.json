@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "The user wants a map of where important files live, which is exactly codebase-overview's systematic exploration and architecture mapping; no FORCE entry matches and no specialized engineer agent is needed for read-only repo mapping.",
-  "confidence": "high"
-}

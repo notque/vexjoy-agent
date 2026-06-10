@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "planning is FORCE-routed for spec and pre-plan ambiguity resolution, which directly addresses pinning down undecided requirements and acceptance criteria before implementation.",
-  "confidence": "high"
-}

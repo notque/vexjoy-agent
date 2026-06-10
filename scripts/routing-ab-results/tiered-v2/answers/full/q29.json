@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User is in a feature branch and wants to move forward with the decided approach, which implies verifying the work and creating a pull request.",
-  "confidence": "medium"
-}

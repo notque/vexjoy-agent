@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "voice-validator",
-  "pipeline": null,
-  "reasoning": "voice-validator does critique-and-rewrite loops to validate content matches your voice profile and fix fidelity mismatches.",
-  "confidence": "high"
-}

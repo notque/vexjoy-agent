@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Trivial git status query; answer available from context",
-  "confidence": "high"
-}

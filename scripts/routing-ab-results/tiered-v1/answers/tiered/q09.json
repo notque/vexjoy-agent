@@ -1,7 +1,0 @@
-{
-  "agent": "typescript-debugging-engineer",
-  "skill": "systematic-debugging",
-  "pipeline": null,
-  "reasoning": "Race condition diagnosis requires systematic evidence-based debugging (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD); TypeScript agent specializes in race conditions and concurrent timing failures.",
-  "confidence": "medium"
-}

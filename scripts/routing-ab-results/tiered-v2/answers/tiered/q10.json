@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "User has an undiagnosed function bug; systematic-debugging provides evidence-based structured investigation with OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD gates to isolate and resolve the issue.",
-  "confidence": "high"
-}

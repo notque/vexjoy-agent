@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "voice-writer",
-  "pipeline": null,
-  "reasoning": "FORCE skill explicitly includes mandatory voice validation and joy-check phases for article generation",
-  "confidence": "high"
-}

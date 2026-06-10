@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Checking PR CI status is a PR lifecycle operation; pr-workflow covers 'status' and FORCE-ROUTE mandates pr-workflow for all PR operations.",
-  "confidence": "high"
-}

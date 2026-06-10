@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "User explicitly requests a quick factual answer without a report\u2014perfect fit for the quick skill's lightweight execution.",
-  "confidence": "high"
-}

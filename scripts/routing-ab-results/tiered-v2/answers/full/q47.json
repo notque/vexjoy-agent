@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Direct question answerable from provided git status context without routing needed",
-  "confidence": "high"
-}

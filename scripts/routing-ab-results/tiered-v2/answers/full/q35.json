@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Goroutine leak debugging in a worker pool is a core Go concurrency debugging task within the agent's scope.",
-  "confidence": "high"
-}

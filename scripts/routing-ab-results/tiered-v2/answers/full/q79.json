@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "code-review",
-  "pipeline": null,
-  "reasoning": "User requests focused code review of a single Python function before merge; code-review skill provides flexible effort levels (low/medium) appropriate for this targeted scope.",
-  "confidence": "high"
-}

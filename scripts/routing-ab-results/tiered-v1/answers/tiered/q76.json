@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-to-article",
-  "reasoning": "Explicitly designed to orchestrate research discovery into voice-authored article generation; handles both phases of your request end-to-end.",
-  "confidence": "high"
-}

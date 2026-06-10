@@ -1,7 +1,0 @@
-{
-  "agent": "Explore",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Explore agent is optimized for fast read-only discovery of files and directory contents using pattern matching and targeted search.",
-  "confidence": "high"
-}

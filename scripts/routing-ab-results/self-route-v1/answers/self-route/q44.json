@@ -1,7 +1,0 @@
-{
-  "agent": "research-coordinator-engineer",
-  "skill": "voice-writer",
-  "pipeline": "research-to-article",
-  "reasoning": "The request is exactly the two-phase research-then-write flow the research-to-article pipeline covers, with FORCE-marked voice-writer as the article-generation skill and research-coordinator-engineer driving the multi-source research phase.",
-  "confidence": "high"
-}

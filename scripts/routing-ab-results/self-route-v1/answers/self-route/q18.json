@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "The user wants to understand the codebase's structure, which is exactly what codebase-overview's systematic exploration and architecture mapping covers; no FORCE skill matches and no specialized agent is needed for read-only architecture exploration.",
-  "confidence": "high"
-}

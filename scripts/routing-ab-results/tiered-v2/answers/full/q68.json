@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "golang-general-engineer handles Go feature development including implementing new backend endpoints; gRPC implementation is within its scope for modern Go 1.26+ patterns.",
-  "confidence": "high"
-}

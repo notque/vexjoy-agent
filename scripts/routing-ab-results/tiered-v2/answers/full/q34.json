@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "Use Python scripting within a structured multi-phase workflow to systematically scan the corpus, identify voice samples, and safely remove them with verification gates.",
-  "confidence": "high"
-}

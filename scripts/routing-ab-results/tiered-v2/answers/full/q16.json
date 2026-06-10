@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "code-review",
-  "pipeline": null,
-  "reasoning": "User wants a careful review of recent edits on their current branch with improvement suggestions\u2014a direct fit for the code-review skill which reviews the current diff for bugs, simplification, and efficiency cleanups.",
-  "confidence": "high"
-}

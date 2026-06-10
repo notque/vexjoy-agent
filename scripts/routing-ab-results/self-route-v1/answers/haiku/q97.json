@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "python-quality-gate",
-  "pipeline": null,
-  "reasoning": "python-quality-gate runs pytest with deterministic output control, suppressing excessive colored test output",
-  "confidence": "high"
-}

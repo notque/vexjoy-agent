@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "Spelling/typo fixes in .go files explicitly route to quick per go-patterns NOT clause.",
-  "confidence": "high"
-}

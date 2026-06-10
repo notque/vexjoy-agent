@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "multi-persona-critique",
-  "pipeline": null,
-  "reasoning": "Critiques written proposals through 5 philosophical personas in parallel, identifying where arguments break\u2014exactly the user's request to tear apart competing auth designs from multiple angles.",
-  "confidence": "high"
-}

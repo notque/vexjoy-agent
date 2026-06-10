@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Recording changes into version control means a git commit, which the FORCE rule routes to pr-workflow for all git commit/push/PR operations.",
-  "confidence": "high"
-}

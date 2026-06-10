@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "systematic-code-review",
-  "pipeline": null,
-  "reasoning": "The user wants a careful quality review of their uncommitted recent edits (a concrete diff), which matches reviewer-code running the 4-phase systematic-code-review over the working-tree changes.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Feature branch with uncommitted test results and changes ready for git commit and pull request creation.",
-  "confidence": "high"
-}

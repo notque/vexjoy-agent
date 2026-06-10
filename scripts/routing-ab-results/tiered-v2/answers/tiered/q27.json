@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Merged branch cleanup is a git workflow operation explicitly covered by pr-workflow's cleanup phase.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "technical-documentation-engineer",
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "Agent writes system architecture and technical docs for onboarding; skill provides systematic codebase exploration to map structure and behavior.",
-  "confidence": "high"
-}

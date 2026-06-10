@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "Systematically scan the entire codebase across 3 dimensions to discover and prioritize all improvement opportunities, since the request is intentionally vague and needs discovery.",
-  "confidence": "high"
-}

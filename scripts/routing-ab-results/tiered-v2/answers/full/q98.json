@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE rule: PR operations route to pr-workflow. 'Make my pull request nice' is a PR lifecycle task (codex review, cleanup, presentation-readiness for approval).",
-  "confidence": "high"
-}

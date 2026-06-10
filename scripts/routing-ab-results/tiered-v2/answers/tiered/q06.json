@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "security-review is a FORCE-routed skill for deterministic security scanning of git changes; reviewer-system agent performs system-level review including security concerns.",
-  "confidence": "high"
-}

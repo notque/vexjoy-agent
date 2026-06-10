@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Python routing code with vague performance request; code review for algorithmic bottlenecks, efficiency improvements, and optimization opportunities",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": "kubernetes-debugging",
-  "pipeline": null,
-  "reasoning": "kubernetes-debugging skill targets pod failures and CrashLoopBackOff scenarios directly; kubernetes-helm-engineer provides Kubernetes troubleshooting expertise.",
-  "confidence": "high"
-}

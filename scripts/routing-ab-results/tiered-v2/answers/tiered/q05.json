@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to check the test status of a submitted PR; pr-workflow covers pull request lifecycle including status tracking.",
-  "confidence": "high"
-}

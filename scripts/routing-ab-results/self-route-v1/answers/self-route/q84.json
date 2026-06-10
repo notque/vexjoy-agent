@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "A vague whole-project 'refresh, where do we start' request is best served by a comprehensive repo review that produces a prioritized issue backlog to act as the starting roadmap.",
-  "confidence": "medium"
-}

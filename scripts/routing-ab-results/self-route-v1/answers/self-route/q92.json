@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "public-web-deploy",
-  "pipeline": null,
-  "reasoning": "Making a website internet-facing is exactly the public-web-deploy FORCE domain (DNS, web server, HTTPS, hardening, verify), and the skill carries no fixed agent binding.",
-  "confidence": "high"
-}

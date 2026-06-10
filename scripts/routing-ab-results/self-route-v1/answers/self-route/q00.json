@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "'Send my commits to the server' means git push \u2014 a git operation, which force-routes to pr-workflow.",
-  "confidence": "high"
-}
