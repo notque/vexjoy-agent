@@ -16,7 +16,7 @@ The system requires no specialized knowledge from the user. Say what you want do
 
 **Test:** Does this feature require the user to know something internal? If yes, redesign it.
 
-**Automation corollary.** Anything that can fire automatically and fails safe, should. Automation that can delete or overwrite starts add-only and earns its destructive path — Warn-Only Gates (below) applied to automation. The sync hook proved why: its stale-cleanup deleted `skills/voice-shared-references/` four times in one session before a regression test pinned the add-only invariant (citation in Warn-Only Gates). Rule for this document: every invariant asserted here cites the test that enforces it, not the commit that intended it. Gates enforce via hooks. Context injects via SessionStart/UserPromptSubmit. Learning happens via PostToolUse capture. The user describes intent. The system does everything else.
+**Automation corollary.** Anything that can fire automatically and fails safe, should. Automation that can delete or overwrite starts add-only and earns its destructive path — Warn-Only Gates (below) applied to automation. The sync hook proved why: its stale-cleanup deleted `skills/voice-shared-references/` four times in one session before a regression test pinned the add-only invariant (citation in Warn-Only Gates). Rule for this document: every invariant asserted here cites the test that enforces it, not the commit that intended it. Second rule: evidence that the system missed a principle names lifecycle debt, never repeal. The gap goes on the build list; the principle stands until an experiment refutes it. The sync incident reads exactly that way — corollary sound, enforcement lagged. Gates enforce via hooks. Context injects via SessionStart/UserPromptSubmit. Learning happens via PostToolUse capture. The user describes intent. The system does everything else.
 
 ---
 
@@ -113,6 +113,29 @@ Tokens buy more value as specialists in parallel than as longer prompts to a sin
 
 ---
 
+## The Router Is the Management Layer
+
+`/do` is a management layer for the harness, implemented in prompt-space. Inventory its jobs:
+
+| Job | What the router does |
+|---|---|
+| Intent classification | Reads the request, names the task class |
+| Agent + skill selection | Pairs the domain agent with its methodology skill |
+| Workflow composition | Picks the pipeline, fans out, dictates the roster |
+| Parallel decomposition | Splits independent work across agents |
+| Policy enforcement | Force-routes; quality gates (lint/tests/CI) on git and security work |
+| Communication discipline | The mandatory density/completeness injection in every handoff |
+| Resource policy | Model per task class, token budgets |
+| Learning capture | Routing decisions and outcomes into learning.db |
+
+Jobs migrate by kind — Everything Deterministic (above) applied to the router's own work. Judgment jobs (intent reading, complexity classification, decomposition) stay in prompt-space. Mechanical jobs (injection assembly, marker stamping, roster table lookups, banner emission) move to hooks and scripts as they prove deterministic. Hooks are harness code: programs that run on lifecycle events, outside prompt-space. The PreToolUse injection hooks already in production (`pretool-subagent-warmstart.py`, the reference-loading gate) prove the pattern.
+
+The harness verdict: build no separate harness. Harness-by-accretion through hooks keeps the six-CLI portability a custom harness would forfeit. Revisit when a need appears that the hook surface cannot give — true scheduling, mid-flight arbitration between agents, enforced (not advisory) budgets.
+
+**Test:** Is this router job deterministic? Same input, same output? Move it to a hook or script. Does it need judgment? It stays in the skill.
+
+---
+
 ## Knowledge Lives in Agents, Authored by Humans
 
 The base LLM is a generalist. An agent's job is to close the gap with actual expert knowledge, not by declaring "I am an expert in X."
@@ -186,6 +209,8 @@ The loop is designed, not incidental. `scripts/validate-doc-counts.py` runs as a
 
 One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 124 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
 
+Hooks need this governance most: a hook is the easiest component to create and the hardest to manage. Managing, correcting, and retiring hooks is named, recurring debt. The detector seed exists — the hook-health CI job (`scripts/validate-hook-health.py`, gating in `.github/workflows/test.yml`) — and the route-events/learning instrumentation pattern generalizes to hook firings. A hook nobody can attribute a benefit to is shelf-ware with side effects — worse than a shelf-ware skill, because it executes.
+
 **Test:** When did this component last carry a route? If the telemetry can't answer, fix the telemetry. If the answer is "never in a long window," demote it.
 
 ---
@@ -206,7 +231,7 @@ The canonical wording lives at `skills/shared-patterns/dense-complete-writing.md
 
 ## Supporting Principles
 
-These follow from the ten above. They are consequences, not independent axioms.
+These follow from the principles above. They are consequences, not independent axioms.
 
 ### Local-First, Deterministic Over External APIs
 
