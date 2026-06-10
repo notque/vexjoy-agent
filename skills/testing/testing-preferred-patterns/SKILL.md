@@ -46,7 +46,7 @@ This skill identifies and fixes common testing mistakes across unit, integration
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `preferred-pattern-catalog.md` | Loads detailed guidance from `preferred-pattern-catalog.md`. |
+| BAD/GOOD code examples for all 10 testing failure modes | `preferred-pattern-catalog.md` | Loads detailed guidance from `preferred-pattern-catalog.md`. |
 | auditing coverage gaps: concurrency, boundaries, security, error recovery | `blind-spot-taxonomy.md` | Loads detailed guidance from `blind-spot-taxonomy.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | fixing review feedback | `fix-strategies.md` | Loads detailed guidance from `fix-strategies.md`. |

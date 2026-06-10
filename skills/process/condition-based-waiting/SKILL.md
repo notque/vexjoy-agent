@@ -40,8 +40,8 @@ Implement condition-based polling and retry patterns with bounded timeouts, jitt
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
-| implementation patterns | `implementation-patterns.md` | Loads detailed guidance from `implementation-patterns.md`. |
+| reviewing wait/retry code for polling, retry, and backoff mistakes | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
+| writing wait code: polling, exponential backoff, rate-limit recovery, health checks, circuit breaker | `implementation-patterns.md` | Loads detailed guidance from `implementation-patterns.md`. |
 | tests, implementation patterns | `testing-patterns.md` | Loads detailed guidance from `testing-patterns.md`. |
 
 ## Instructions

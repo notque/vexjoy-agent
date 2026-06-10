@@ -36,7 +36,7 @@ This skill transforms dense technical communication into clear, structured busin
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| transforming raw engineer notes: stream-of-consciousness debugging, blockers, crisis updates | `examples.md` | Loads detailed guidance from `examples.md`. |
 | drafting from section templates; phrase transformations | `templates.md` | Loads detailed guidance from `templates.md`. |
 
 ## Instructions

@@ -66,7 +66,7 @@ Quick covers the full lightweight tier from zero-ceremony inline fixes (≤3 edi
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| usage examples, task ID format, error handling | `examples.md` | Loads detailed guidance from `examples.md`. |
 | emitting banners, commit format, or STATE.md entries | `templates.md` | Loads detailed guidance from `templates.md`. |
 
 ## Instructions

@@ -44,7 +44,7 @@ Load these files when the corresponding signals appear:
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| worked analyses: single Go service, multi-repo comparison, pattern adoption and evolution tracking | `examples.md` | Loads detailed guidance from `examples.md`. |
 | computing the 100 metrics across 25 categories | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
 | phase banners, reconciliation matrix, rule format | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
 | understanding the measure-don't-read statistical approach | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
