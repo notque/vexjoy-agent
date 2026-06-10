@@ -131,7 +131,7 @@ Generate the manifest, then dispatch the Haiku routing agent.
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
-python3 "$SDIR/routing-manifest.py" --tiered
+python3 "$SDIR/routing-manifest.py"
 ```
 
 Dispatch the Agent tool with `model: "haiku"`, omitting `isolation: "worktree"` (the agent only reads a manifest and returns JSON; worktree isolation fails outside a git repo). Use this prompt structure:
@@ -186,7 +186,6 @@ Rules:
 - If the request implies a task verb (review, debug, refactor, test), prefer skills that match that verb.
 - If nothing matches well, return all nulls with reasoning.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
-- Stub entries are valid picks — if a stub matches the intent best, return it.
 - For GENUINE git / version-control operations — actually pushing code, committing files to a repository, or opening/merging a pull request — ALWAYS select pr-workflow. Do NOT route metaphorical or non-version-control uses of these words (e.g. 'commit to a decision/plan', 'merge ideas in your head', 'push back on a proposal') to pr-workflow.
 - Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
