@@ -240,6 +240,98 @@ class TestSkillsFlatSymlinkIndexPolicy:
         assert (dst / "INDEX.json").resolve() == (src / "INDEX.json").resolve()
 
 
+class TestSupportDirSurvivesCleanup:
+    """Support dirs (reference .md files, no SKILL.md) must enter
+    expected_names, or the stale-cleanup loop unlinks them every
+    SessionStart. Regression test for the voice-shared-references bug:
+    the dir was missing from the root_dirs allowlist, so the cleanup
+    deleted its symlink 4 times in one session."""
+
+    def _make_src(self, tmp_path: Path) -> Path:
+        src = tmp_path / "skills"
+        refs = src / "voice-shared-references"
+        refs.mkdir(parents=True)
+        for name in (
+            "anti-rhetorical-pivot.md",
+            "voice-first-writing.md",
+            "wabi-sabi-authenticity.md",
+        ):
+            (refs / name).write_text("# ref\n")
+        # one real skill so the flatten loop has something to do
+        skill = src / "meta" / "do"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("---\nname: do\n---\n")
+        return src
+
+    def test_voice_shared_references_survives_sync(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+            # Second pass exercises the stale-cleanup against existing links
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        link = dst / "voice-shared-references"
+        assert link.is_symlink()
+        assert link.resolve() == (src / "voice-shared-references").resolve()
+        assert (link / "voice-first-writing.md").read_text() == "# ref\n"
+
+    def test_preexisting_support_symlink_not_unlinked(self, tmp_path: Path) -> None:
+        """The original failure: a symlink already in dst was unlinked
+        because its name never entered expected_names."""
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        dst.mkdir()
+        (dst / "voice-shared-references").symlink_to(src / "voice-shared-references")
+
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        assert (dst / "voice-shared-references").is_symlink()
+
+    def test_future_support_dir_protected_without_allowlist(self, tmp_path: Path) -> None:
+        """Any root dir with .md files and no skill subdir is treated as a
+        support dir, so the next shared-reference dir cannot repeat the bug."""
+        src = self._make_src(tmp_path)
+        refs = src / "new-shared-refs"
+        refs.mkdir()
+        (refs / "pattern.md").write_text("# pattern\n")
+        dst = tmp_path / "out"
+
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        assert (dst / "new-shared-refs").is_symlink()
+
+    def test_stale_symlink_still_removed(self, tmp_path: Path) -> None:
+        """Cleanup still unlinks symlinks whose source left the repo."""
+        src = self._make_src(tmp_path)
+        gone = tmp_path / "gone-skill"
+        gone.mkdir()
+        dst = tmp_path / "out"
+        dst.mkdir()
+        (dst / "gone-skill").symlink_to(gone)
+
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        assert not (dst / "gone-skill").exists()
+
+    def test_category_with_readme_still_flattened(self, tmp_path: Path) -> None:
+        """A category folder holding a stray README.md plus skill subdirs is
+        NOT a support dir — its skills must still be flattened per-skill."""
+        src = self._make_src(tmp_path)
+        (src / "meta" / "README.md").write_text("# meta\n")
+        dst = tmp_path / "out"
+
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        assert (dst / "do").is_symlink()
+        assert not (dst / "meta").exists()
+
+
 class TestMainSymlinkMode:
     """Integration tests for main() in symlink mode."""
 
