@@ -50,6 +50,7 @@ When you want **generic version** (or sharing):
 ```
 .local.example/
 ├── README.md                              # This file
+├── profile.yaml                           # Disable specific skills/agents/hooks
 ├── config.yaml                            # Environment configuration template
 ├── github-actions-check.yaml              # Repository mapping template
 ├── agents/
@@ -59,6 +60,32 @@ When you want **generic version** (or sharing):
         └── references/
             └── examples.md                # Example: your real vault paths
 ```
+
+### Profile filtering (`profile.yaml`)
+
+Pick which components `./install.sh` should skip. Run the interactive picker
+and the file is generated for you:
+
+```bash
+./install.sh --configure       # pick items, then install
+./install.sh --configure-only  # pick items, then exit
+```
+
+Or copy the template and edit by hand:
+
+```bash
+cp .local.example/profile.yaml .local/profile.yaml
+$EDITOR .local/profile.yaml
+./install.sh                   # honors the disable lists
+```
+
+When `.local/profile.yaml` is absent, `./install.sh` installs the full toolkit
+exactly as before — the feature is opt-in.
+
+The picker uses `questionary` (checkbox UI) when installed; without it, a
+plain numbered prompt runs instead. No new required dependency. The Codex
+mirror filters top-level skills, agents, and hooks; nested category skills
+are filtered in the Claude tree.
 
 ## Tips
 

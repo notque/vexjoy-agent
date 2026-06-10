@@ -1,0 +1,21 @@
+# Toolkit profile — items listed here are excluded by ./install.sh.
+#
+# To regenerate this file interactively:
+#   ./install.sh --configure
+#
+# To install (without re-running the prompt) using the lists below:
+#   ./install.sh
+#
+# Schema:
+#   disabled:
+#     skills: ["skill-name", ...]   # directory names under skills/
+#     agents: ["agent-name", ...]   # filename stems under agents/ (no .md)
+#     hooks:  ["hook-file.py", ...] # filenames under hooks/ (with .py)
+#
+# When this file is absent, install.sh installs the full toolkit (no items
+# disabled). Copy to ../.local/profile.yaml and edit, or run --configure.
+
+disabled:
+  skills: []
+  agents: []
+  hooks: []
