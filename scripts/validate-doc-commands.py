@@ -8,7 +8,7 @@ verifies each referenced script exists on disk.
 Skips:
 - Commands that reference `~/.claude/...` (those are runtime-installed, not in repo)
 - Variables, environment placeholders ($HOME, $VAR)
-- External commands without paths (gh, git, ls, claude, codex, gemini, etc.)
+- External commands without paths (gh, git, ls, claude, codex, etc.)
 
 Exits 0 when every script-by-path reference resolves; exits 1 otherwise.
 

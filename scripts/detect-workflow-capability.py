@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Detect the running harness from environment variables (env proxy).
 
-Emits JSON: {"harness": "claude-code|codex|agy|gemini|factory|reasonix|unknown",
+Emits JSON: {"harness": "claude-code|codex|factory|reasonix|unknown",
              "workflow_capable": bool}
 
 Anthropic's native ``Workflow`` tool (deterministic JS orchestration) is
@@ -20,15 +20,11 @@ Detection markers (distinctive entrypoint/session/home vars — never generic
 API-key vars like GEMINI_API_KEY, which are commonly set under any harness):
   claude-code : CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, CLAUDE_CODE_SESSION_ID
   codex       : CODEX_HOME, CODEX_HOOKS_DIR
-  agy         : ANTIGRAVITY_AGENT (checked before gemini; agy may inherit
-                GEMINI_CLI in transitional environments)
-  gemini      : GEMINI_CLI
   factory     : FACTORY_SESSION_ID, FACTORY_HOME, DROID_SESSION_ID, DROID_HOME
   reasonix    : (no env marker) — keyed off the ``_`` invocation var, since
                 reasonix sets no session/home var and spawns hooks with the
                 ambient env inherited (src/hooks.ts:206-212).
-Mirrors hooks/lib/hook_utils.py:detect_cli(), extended with factory + the
-Claude Code session markers.
+Env-marker detection extended with factory + the Claude Code session markers.
 
 Pure stdlib. Exit 0 always. Never raises.
 
@@ -43,7 +39,7 @@ import json
 import os
 import sys
 
-HARNESSES = ("claude-code", "codex", "agy", "gemini", "factory", "reasonix", "unknown")
+HARNESSES = ("claude-code", "codex", "factory", "reasonix", "unknown")
 
 # Single source of truth for native-Workflow availability. Add a harness here
 # the day it ships the native Workflow tool; the docstring and tests pin against
@@ -55,8 +51,6 @@ WORKFLOW_CAPABLE: frozenset[str] = frozenset({"claude-code"})
 _MARKERS: list[tuple[str, tuple[str, ...]]] = [
     ("claude-code", ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID")),
     ("codex", ("CODEX_HOME", "CODEX_HOOKS_DIR")),
-    ("agy", ("ANTIGRAVITY_AGENT",)),
-    ("gemini", ("GEMINI_CLI",)),
     ("factory", ("FACTORY_SESSION_ID", "FACTORY_HOME", "DROID_SESSION_ID", "DROID_HOME")),
 ]
 
