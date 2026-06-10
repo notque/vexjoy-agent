@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "research-pipeline",
+  "pipeline": null,
+  "reasoning": "research-pipeline skill explicitly handles formal multi-phase research (SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER) with built-in artifact saving and source quality gates, directly matching the user's structured research request.",
+  "confidence": "high"
+}

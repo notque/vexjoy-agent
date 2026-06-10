@@ -1,0 +1,7 @@
+{
+  "agent": "kotlin-general-engineer",
+  "skill": "kotlin-coroutines",
+  "pipeline": null,
+  "reasoning": "Flow error handling and collector behavior are core Flow/coroutine patterns; use kotlin-coroutines skill (explicitly for Flow/Channel) paired with kotlin-general-engineer (which debugs and fixes Kotlin features).",
+  "confidence": "high"
+}

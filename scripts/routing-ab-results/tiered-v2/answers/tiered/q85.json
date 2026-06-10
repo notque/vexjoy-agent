@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "do",
+  "pipeline": null,
+  "reasoning": "Request lacks specificity; /do will classify the actual improvement domain (code quality, UX, docs, perf, etc.) and route to the right agent.",
+  "confidence": "high"
+}

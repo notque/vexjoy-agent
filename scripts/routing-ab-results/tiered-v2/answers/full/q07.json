@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants a security check before sharing; security-review (FORCE) performs deterministic security scanning of git changes with expert review.",
+  "confidence": "high"
+}

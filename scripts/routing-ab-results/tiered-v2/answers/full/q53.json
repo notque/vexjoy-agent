@@ -1,0 +1,7 @@
+{
+  "agent": "swift-general-engineer",
+  "skill": "swift-concurrency",
+  "pipeline": null,
+  "reasoning": "Swift concurrency refactoring (callbacks to async/await, actor safety) matches swift-general-engineer agent with swift-concurrency skill for async/await and Actor patterns.",
+  "confidence": "high"
+}

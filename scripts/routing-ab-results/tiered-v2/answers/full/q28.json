@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "professional-communication",
+  "pipeline": null,
+  "reasoning": "The user is asking to draft a message disagreeing with an approach; professional-communication explicitly handles 'pushing back or disagreeing in a structured business format'.",
+  "confidence": "high"
+}

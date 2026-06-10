@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "x-api",
+  "pipeline": null,
+  "reasoning": "x-api skill directly handles posting threads to X with media attachments via the X API",
+  "confidence": "high"
+}

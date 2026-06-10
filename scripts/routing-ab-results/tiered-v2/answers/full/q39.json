@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-debugging-engineer",
+  "skill": "verify",
+  "pipeline": null,
+  "reasoning": "React component rendering bugs are debugging tasks requiring investigation of race conditions, async/await, type errors, and runtime exceptions; verify skill confirms the fix works in the running app.",
+  "confidence": "high"
+}

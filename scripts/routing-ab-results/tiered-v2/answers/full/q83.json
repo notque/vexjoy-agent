@@ -1,0 +1,7 @@
+{
+  "agent": "nodejs-api-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Adding AI to a site typically means backend API endpoints; needs clarification on specific use case (chat integration, embeddings, image generation, summarization, etc.).",
+  "confidence": "low"
+}

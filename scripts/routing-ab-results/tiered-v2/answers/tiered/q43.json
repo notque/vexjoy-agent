@@ -1,0 +1,7 @@
+{
+  "agent": "general-purpose",
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "FORCE-matched planning skill handles planning lifecycle and plan validation for software tasks; user requests implementation plan for a feature",
+  "confidence": "high"
+}

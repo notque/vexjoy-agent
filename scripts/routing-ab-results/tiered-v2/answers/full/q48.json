@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "User is asking for critique and opinion on a design artifact; multi-persona-critique provides structured feedback via 5 philosophical perspectives with consensus synthesis.",
+  "confidence": "high"
+}

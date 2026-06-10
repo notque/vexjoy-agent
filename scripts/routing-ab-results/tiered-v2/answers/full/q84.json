@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "toolkit-improvement",
+  "pipeline": null,
+  "reasoning": "toolkit-improvement evaluates the entire toolkit from every angle, synthesizes findings with skeptical review, and produces validated ADRs for confirmed issues\u2014directly answering where to prioritize refresh work.",
+  "confidence": "high"
+}

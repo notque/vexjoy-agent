@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Systematic debugging pipeline provides evidence-based 5-phase root cause analysis (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD) with mandatory reproduction and verification gates",
+  "confidence": "high"
+}

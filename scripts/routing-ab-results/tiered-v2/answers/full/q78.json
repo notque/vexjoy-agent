@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Simple technical explanation question requires direct answer, not agent dispatch",
+  "confidence": "high"
+}

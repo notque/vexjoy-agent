@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "reasoning": "User requests security review of code; security-review is the FORCE-marked skill for local security analysis of git changes using the security-focused reviewer-system agent.",
+  "confidence": "high",
+  "pipeline": null
+}

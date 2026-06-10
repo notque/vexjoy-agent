@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "skill-creator",
+  "pipeline": "skill-creation-pipeline",
+  "reasoning": "skill-creator (FORCE) scaffolds vexjoy-agent skills with eval-driven validation gates; skill-creation-pipeline provides structured 5-phase workflow explicitly designed for quality gates (DISCOVER\u2192DESIGN\u2192SCAFFOLD\u2192VALIDATE\u2192INTEGRATE).",
+  "confidence": "high"
+}

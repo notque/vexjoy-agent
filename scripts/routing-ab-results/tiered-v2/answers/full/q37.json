@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "verification-before-completion",
+  "pipeline": null,
+  "reasoning": "Python Flask API feature work with mandatory verification that auth middleware integrates and functions correctly.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "explore-pipeline",
+  "reasoning": "Systematic codebase exploration pipeline with parallel subagents and tiered depth ideal for quickly mapping the vexjoy-agent architecture",
+  "confidence": "high"
+}

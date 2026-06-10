@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "User is at the pre-plan ambiguity resolution phase (uncertain feature scope), which is planning's explicit domain\u2014help spec and clarify what the feature should do before design/implementation.",
+  "confidence": "high"
+}

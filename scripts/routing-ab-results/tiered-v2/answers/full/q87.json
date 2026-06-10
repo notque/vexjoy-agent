@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Request is too vague to route with confidence; quick triage needed to identify which performance domain (web/backend/toolkit/query/build) needs attention.",
+  "confidence": "low"
+}

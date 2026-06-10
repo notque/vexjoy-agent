@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-code",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "User wants targeted code review of a specific function in utils/parse.py; systematic-code-review is designed exactly for reviewing named files/functions, and reviewer-code agent specializes in code quality evaluation.",
+  "confidence": "high"
+}
