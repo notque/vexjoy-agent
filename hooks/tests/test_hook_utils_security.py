@@ -28,6 +28,7 @@ from hook_utils import (
     async_rewake,
     diff_post_image_ext,
     has_reviewable_content,
+    normalize_diff_for_fingerprint,
     working_tree_diff,
 )
 
@@ -216,6 +217,90 @@ class TestDiffDedup:
         d = DiffDedup(tmp_path / "nope", tmp_path / "nope" / "deep" / "s.json")
         with patch("hook_utils.os.replace", side_effect=OSError("ro")):
             d.record("/repo", "diffA")  # must not raise
+
+    # --- fingerprint normalization: blob-SHA / mode churn must NOT re-trigger ---
+
+    def test_signature_ignores_index_blob_sha_churn(self, tmp_path):
+        """Same paths + same hunks but fresh ``index`` blob SHAs → same signature."""
+        d = DiffDedup(tmp_path, tmp_path / "s.json")
+        before = (
+            "diff --git a/static/game/index.html b/static/game/index.html\n"
+            "index 71aae3b..739f207 100644\n"
+            "--- a/static/game/index.html\n"
+            "+++ b/static/game/index.html\n"
+            "@@ -1 +1,2 @@\n x\n+rebuilt\n"
+        )
+        after = before.replace("index 71aae3b..739f207", "index aaaaaaa..bbbbbbb")
+        assert d.signature("/repo", before) == d.signature("/repo", after)
+
+    def test_index_churn_dedups_end_to_end(self, tmp_path):
+        """Record a diff, then re-fire with only blob-SHA churn → duplicate."""
+        d = DiffDedup(tmp_path, tmp_path / "s.json")
+        first = (
+            "diff --git a/app.js b/app.js\nindex 1111111..2222222 100644\n"
+            "--- a/app.js\n+++ b/app.js\n@@ -1 +1,2 @@\n y\n+z\n"
+        )
+        d.record("/repo", first)
+        rebuilt = first.replace("index 1111111..2222222", "index 9999999..8888888")
+        is_dup, _ = d.is_duplicate("/repo", rebuilt)
+        assert is_dup is True
+
+    def test_real_content_change_is_not_duplicate(self, tmp_path):
+        """A changed hunk (one new added line) still produces a fresh review."""
+        d = DiffDedup(tmp_path, tmp_path / "s.json")
+        first = (
+            "diff --git a/app.js b/app.js\nindex 1111111..2222222 100644\n"
+            "--- a/app.js\n+++ b/app.js\n@@ -1 +1,2 @@\n y\n+z\n"
+        )
+        d.record("/repo", first)
+        changed = first.replace("+z\n", "+z\n+brand_new_line\n")
+        is_dup, _ = d.is_duplicate("/repo", changed)
+        assert is_dup is False
+
+    def test_new_file_path_is_not_duplicate(self, tmp_path):
+        """A new file path differs from the recorded diff → fresh review."""
+        d = DiffDedup(tmp_path, tmp_path / "s.json")
+        first = (
+            "diff --git a/app.js b/app.js\nindex 1111111..2222222 100644\n"
+            "--- a/app.js\n+++ b/app.js\n@@ -1 +1,2 @@\n y\n+z\n"
+        )
+        d.record("/repo", first)
+        with_new = first + (
+            "diff --git a/extra.js b/extra.js\nindex 0000000..3333333 100644\n"
+            "--- a/extra.js\n+++ b/extra.js\n@@ -0,0 +1 @@\n+added\n"
+        )
+        is_dup, _ = d.is_duplicate("/repo", with_new)
+        assert is_dup is False
+
+
+class TestNormalizeDiffForFingerprint:
+    def test_drops_index_line(self):
+        norm = normalize_diff_for_fingerprint("index 71aae3b..739f207 100644\n")
+        assert "index " not in norm
+
+    def test_drops_mode_lines(self):
+        diff = "old mode 100644\nnew mode 100755\n"
+        assert normalize_diff_for_fingerprint(diff).strip() == ""
+
+    def test_drops_similarity_index(self):
+        diff = "similarity index 95%\ndissimilarity index 5%\n"
+        assert normalize_diff_for_fingerprint(diff).strip() == ""
+
+    def test_keeps_file_paths_and_hunks(self):
+        diff = (
+            "diff --git a/app.py b/app.py\nindex abc..def 100644\n--- a/app.py\n+++ b/app.py\n@@ -1 +1,2 @@\n x\n+y\n"
+        )
+        norm = normalize_diff_for_fingerprint(diff)
+        for keep in ("diff --git a/app.py b/app.py", "--- a/app.py", "+++ b/app.py", "@@ -1 +1,2 @@", "+y"):
+            assert keep in norm
+
+    def test_keeps_rename_path_lines(self):
+        diff = "rename from old.py\nrename to new.py\n"
+        norm = normalize_diff_for_fingerprint(diff)
+        assert "rename from old.py" in norm and "rename to new.py" in norm
+
+    def test_empty_diff_is_empty(self):
+        assert normalize_diff_for_fingerprint("") == ""
 
 
 # ---------------------------------------------------------------------------
