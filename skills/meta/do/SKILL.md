@@ -299,6 +299,7 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
 | Voice profile skill selected (voice-vexjoy, voice-dragonball-z, voice-andy-nemmity, etc.) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
 | Vague verb + ambiguous object + no concrete file/symbol named + multiple plausible interpretations | `planning` (interview mode) — load `depth-first-interview.md` |
+| Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` (skills/meta/objective-loop) |
 
 **Interview-mode heuristic.** Fires when: short request (<15 words), verb in `{build, design, make, fix, figure out, set up}`, object with no file/symbol/path qualifier, no acceptance criteria.
 
