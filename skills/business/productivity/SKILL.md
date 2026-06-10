@@ -1,6 +1,6 @@
 ---
 name: productivity
-description: Productivity workflows — task management, daily planning, weekly reviews, meeting optimization, focus management, goal setting, status updates. Use when planning days, managing tasks, running weekly reviews, optimizing meetings, or writing status updates.
+description: Personal productivity — sort out what to work on next, prioritize tasks, plan your day, run weekly reviews, optimize meetings, set goals, write status updates. Use when planning days, managing tasks, running weekly reviews, optimizing meetings, or writing status updates.
 routing:
   triggers:
     - "productivity"
@@ -15,6 +15,7 @@ routing:
     - "prioritize tasks"
     - "standup"
     - "retrospective"
+  not_for: "software task specs, requirements, or plan-lifecycle management — that is planning. This is personal prioritization and time management, not building a project plan."
   category: business
   force_route: false
   pairs_with: []
