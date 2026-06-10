@@ -372,6 +372,23 @@ def find_placeholder_signals() -> list[tuple[str, int, str]]:
     return found
 
 
+def run_check_placeholders(json_output: bool) -> int:
+    """Scan loading tables for placeholder signals; return the exit code."""
+    hits = find_placeholder_signals()
+    if json_output:
+        out = {
+            "total": len(hits),
+            "placeholder_signals": [{"file": rel, "line": lineno, "signal": signal} for rel, lineno, signal in hits],
+            "exit_code": 1 if hits else 0,
+        }
+        print(json.dumps(out, indent=2))
+    else:
+        for rel, lineno, signal in hits:
+            print(f"  PLACEHOLDER_SIGNAL: {rel}:{lineno} — {signal!r}")
+        print(f"\n{len(hits)} placeholder signal(s) found" if hits else "PLACEHOLDERS: all loading-table signals OK")
+    return 1 if hits else 0
+
+
 def find_all_reference_files() -> list[Path]:
     """Find every .md file inside any references/ subdirectory under agents/."""
     return list(AGENTS_DIR.rglob("references/*.md"))
@@ -518,12 +535,7 @@ def main() -> None:
         sys.exit(run_check_do_framing(json_output=args.json_output, allowlist_path=allowlist))
 
     if args.check_placeholders:
-        hits = find_placeholder_signals()
-        for rel, lineno, signal in hits:
-            print(f"  PLACEHOLDER_SIGNAL: {rel}:{lineno} — {signal!r}")
-        if hits:
-            print(f"\n{len(hits)} placeholder signal(s) found")
-        sys.exit(1 if hits else 0)
+        sys.exit(run_check_placeholders(json_output=args.json_output))
 
     if not args.agent and not args.all:
         parser.error("Specify --agent <name>, --all, --check-do-framing, or --check-placeholders")
