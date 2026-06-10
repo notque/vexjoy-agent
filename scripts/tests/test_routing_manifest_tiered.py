@@ -71,6 +71,20 @@ ENTRIES = [
         not_for="metaphorical uses",
     ),
     _entry("a-pipeline", "pipeline", "Pipeline description stays full"),
+    _entry(
+        "paired-cold-skill",
+        "skill",
+        "Cold skill that declares an agent pairing here",
+        agent="alpha-agent",
+        category="misc",
+    ),
+    _entry(
+        "guarded-cold-skill",
+        "skill",
+        "Cold skill carrying a not_for guard clause tail",
+        not_for="metaphorical uses of guard",
+        category="misc",
+    ),
 ]
 
 
@@ -188,6 +202,28 @@ def test_working_set_entries_full() -> None:
     assert "Agent for alpha domain tasks plus extra trailing words" in alpha
     cold = next(line for line in lines if line.startswith("  cold-skill"))
     assert cold.strip() == "cold-skill — Never routed skill with a very"
+
+
+def test_stub_skill_keeps_agent_pairing() -> None:
+    """Stub skill lines carry agent= — dropping it made the router return agent: null."""
+    tiered = rm.format_tiered(ENTRIES, working_set=set())
+    line = next(ln for ln in tiered.splitlines() if ln.startswith("  paired-cold-skill"))
+    assert "agent=alpha-agent" in line
+    assert "Cold skill that declares an agent" in line  # first 6 words kept
+    assert "pairing here" not in line  # description still truncated
+
+
+def test_stub_skill_keeps_not_for() -> None:
+    tiered = rm.format_tiered(ENTRIES, working_set=set())
+    line = next(ln for ln in tiered.splitlines() if ln.startswith("  guarded-cold-skill"))
+    assert "NOT: metaphorical uses of guard" in line
+    assert "clause tail" not in line  # description still truncated
+
+
+def test_agent_stub_stays_name_and_description() -> None:
+    tiered = rm.format_tiered(ENTRIES, working_set=set())
+    line = next(ln for ln in tiered.splitlines() if ln.startswith("  beta-agent"))
+    assert line.strip() == "beta-agent — Agent for beta domain tasks plus"
 
 
 def test_pipelines_always_full() -> None:

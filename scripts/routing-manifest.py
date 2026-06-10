@@ -152,9 +152,19 @@ def load_working_set(now: float | None = None) -> set[str]:
 
 
 def _stub_line(entry: dict) -> str:
-    """One-line stub: name + first STUB_DESC_WORDS words of the description."""
+    """One-line stub: name + router-critical metadata + first STUB_DESC_WORDS description words.
+
+    Skill stubs keep the agent= pairing and not_for — dropping them made the
+    router return the right skill with agent: null (tiered-v1 REJECT).
+    Agent stubs stay name + truncated description.
+    """
     desc = " ".join(str(entry["description"]).split()[:STUB_DESC_WORDS])
-    return f"  {entry['name']} — {desc}"
+    if entry["type"] != "skill":
+        return f"  {entry['name']} — {desc}"
+    agent_str = f" agent={entry['agent']}" if entry.get("agent") else ""
+    not_for = entry.get("not_for", "")
+    not_for_str = f" NOT: {not_for}" if not_for else ""
+    return f"  {entry['name']}{agent_str} — {desc}{not_for_str}"
 
 
 def format_tiered(entries: list[dict], working_set: set[str]) -> str:
