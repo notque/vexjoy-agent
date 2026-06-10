@@ -76,24 +76,41 @@ def list_hooks() -> list[str]:
     return names
 
 
-def run_prompts(skills: list[str], agents: list[str], hooks: list[str]) -> dict[str, list[str]]:
+def run_plain_prompts(skills: list[str], agents: list[str], hooks: list[str]) -> dict[str, list[str]]:
+    """Stdlib picker: list items per category, read names to disable from stdin.
+
+    One line per category, comma- or space-separated names. Empty line = keep
+    all. Unknown names are reported and ignored.
+    """
+    disabled: dict[str, list[str]] = {}
+    for label, items in (("skills", skills), ("agents", agents), ("hooks", hooks)):
+        print(f"\n{label} ({len(items)} available):")
+        for name in items:
+            print(f"  {name}")
+        try:
+            raw = input(f"Names to DISABLE in {label} (comma/space separated, empty = none): ")
+        except EOFError:
+            raw = ""
+        picked = set(token for token in raw.replace(",", " ").split() if token)
+        unknown = sorted(picked - set(items))
+        if unknown:
+            print(f"warning: ignoring unknown {label}: {', '.join(unknown)}", file=sys.stderr)
+        disabled[label] = [name for name in items if name in picked]
+    return disabled
+
+
+def run_prompts(skills: list[str], agents: list[str], hooks: list[str], plain: bool = False) -> dict[str, list[str]]:
+    """Questionary checkbox picker when available and on a TTY; plain fallback otherwise."""
+    if plain:
+        return run_plain_prompts(skills, agents, hooks)
     try:
         import questionary
     except ImportError:
-        print(
-            "error: 'questionary' is required for --configure.\n"
-            "Install with: pip install questionary  (or pip install -r requirements.txt)",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
+        print("note: 'questionary' not installed — using plain picker.", file=sys.stderr)
+        return run_plain_prompts(skills, agents, hooks)
     if not sys.stdin.isatty():
-        print(
-            "error: --configure requires an interactive terminal (TTY).\n"
-            "Edit .local/profile.yaml by hand or run from a terminal.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        print("note: no TTY — using plain picker.", file=sys.stderr)
+        return run_plain_prompts(skills, agents, hooks)
 
     def ask(label: str, items: list[str]) -> list[str]:
         if not items:
@@ -129,13 +146,14 @@ def write_profile(path: Path, disabled: dict[str, list[str]]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--plain", action="store_true", help="Force the stdlib picker (no questionary).")
     args = parser.parse_args()
 
     skills = list_skills()
     agents = list_agents()
     hooks = list_hooks()
 
-    disabled = run_prompts(skills, agents, hooks)
+    disabled = run_prompts(skills, agents, hooks, plain=args.plain)
     write_profile(args.output, disabled)
 
     print(
