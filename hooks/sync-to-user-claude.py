@@ -337,6 +337,72 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     return True
 
 
+def _merged_runtime_index(tracked: Path, local: Path) -> dict | None:
+    """Merge the tracked skills index with the gitignored local override.
+
+    Tracked items load first; local items fill gaps per-name (setdefault,
+    add-only). A stale INDEX.local.json can never hide a tracked skill and
+    never overrides tracked entry content — the same merge semantics as
+    _load_index_items in scripts/routing-manifest.py, pre-route.py, and
+    index-router.py (PR #778). Top-level metadata comes from the tracked
+    file; local supplies it only when the tracked file is missing/invalid.
+
+    Returns None when neither file yields a JSON object.
+    """
+    docs = []
+    for path in (tracked, local):
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        if isinstance(raw, dict):
+            docs.append(raw)
+    if not docs:
+        return None
+    merged = dict(docs[0])
+    skills: dict = {}
+    for doc in docs:
+        loaded = doc.get("skills", {})
+        if isinstance(loaded, dict):
+            for name, data in loaded.items():
+                skills.setdefault(name, data)
+    merged["skills"] = skills
+    return merged
+
+
+def _sync_runtime_skill_index(src: Path, dst: Path) -> bool:
+    """Write ~/.claude/skills/INDEX.json as a real merged file.
+
+    The runtime index the harness reads — and may rewrite in place — must be
+    a regular file, never a symlink into the repo:
+    - A symlink to the tracked INDEX.json leaks in-place harness writes into
+      the repo's public index (the recurring private-skill leak).
+    - A symlink to the gitignored INDEX.local.json lets a stale local file
+      hide newly added tracked skills (replace semantics, PR #778 bug class).
+    A materialized tracked-first merge gives both invariants: every tracked
+    entry is present, and writes land in ~/.claude only.
+
+    Returns True when the runtime index exists after the call.
+    """
+    merged = _merged_runtime_index(src / "INDEX.json", src / "INDEX.local.json")
+    if merged is None:
+        return False
+    runtime = dst / "INDEX.json"
+    # Skip the write when content already matches. Only compare a real file:
+    # reading through a symlink would compare repo content and leave the
+    # leaking symlink in place.
+    if runtime.is_file() and not runtime.is_symlink():
+        try:
+            if json.loads(runtime.read_text(encoding="utf-8")) == merged:
+                return True
+        except (json.JSONDecodeError, OSError):
+            pass
+    # _atomic_json_write swaps via os.replace, which replaces a pre-fix
+    # symlink's directory entry — the repo file it pointed at is untouched.
+    _atomic_json_write(runtime, merged)
+    return True
+
+
 def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
@@ -352,13 +418,9 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     Root-level items (INDEX.json, support dirs like shared-patterns/,
     workflow/, kb/, voice-shared-references/) are symlinked directly.
 
-    Index-symlink policy (prevents the private-skill leak into the *tracked*
-    skills/INDEX.json): ~/.claude/skills/INDEX.json is the runtime index the
-    harness reads — and may rewrite in place. The private-inclusive view lives
-    in the gitignored skills/INDEX.local.json. So when a local index exists we
-    point ~/.claude/skills/INDEX.json at INDEX.local.json: any in-place harness
-    write then lands in the gitignored file, never the tracked public index.
-    Without a local index, INDEX.json falls back to the tracked public file.
+    Runtime-index policy: ~/.claude/skills/INDEX.json is materialized as a
+    real merged file (tracked first, local fills gaps per-name), never a
+    symlink. See _sync_runtime_skill_index for the two invariants this keeps.
     """
     # If dst is a single symlink to the repo (old-style), replace with a real dir
     if dst.is_symlink():
@@ -369,28 +431,21 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     # Track what we create so we can clean stale entries
     expected_names: set[str] = set()
 
-    # Resolve the index-symlink targets per the leak-prevention policy above.
-    local_index = src / "INDEX.local.json"
-    runtime_index_target = local_index if local_index.is_file() else (src / "INDEX.json")
+    # Materialize the runtime index as a real merged file (never a symlink).
+    if _sync_runtime_skill_index(src, dst):
+        expected_names.add("INDEX.json")
 
-    def _index_target(item: Path) -> Path:
-        # Redirect the runtime INDEX.json symlink to the private-inclusive
-        # local index so harness writes never reach the tracked public file.
-        if item.name == "INDEX.json":
-            return runtime_index_target
-        return item
-
-    # Symlink root-level files (INDEX.json, INDEX.local.json, README.md)
+    # Symlink root-level files (INDEX.local.json, README.md). INDEX.json is
+    # excluded: it was materialized above.
     for item in src.iterdir():
-        if item.is_file():
+        if item.is_file() and item.name != "INDEX.json":
             expected_names.add(item.name)
-            link_src = _index_target(item)
             target = dst / item.name
             if target.is_symlink() or target.exists():
-                if target.is_symlink() and target.resolve() == link_src.resolve():
+                if target.is_symlink() and target.resolve() == item.resolve():
                     continue
                 target.unlink()
-            target.symlink_to(link_src)
+            target.symlink_to(item)
 
     # Symlink root-level support directories (shared-patterns, workflow, kb,
     # voice-shared-references). These hold reference files, not skills.
@@ -634,6 +689,13 @@ def main():
                     else:
                         shutil.copy2(item, target)
                     count += 1
+
+            # Runtime skill index: overwrite the plain tracked copy with the
+            # tracked+local merge (same invariants as symlink mode). Record
+            # its path so deferred stale cleanup spares it even when the repo
+            # has only INDEX.local.json.
+            if src_name == "skills" and _sync_runtime_skill_index(src, dst):
+                src_relative_paths.add(Path("INDEX.json"))
 
             # Accumulate paths per destination for deferred stale cleanup
             if src_name not in additive_only:
