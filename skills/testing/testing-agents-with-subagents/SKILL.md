@@ -42,7 +42,7 @@ Each test runs in a fresh subagent to avoid context pollution. After any fix, re
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
-| implementation patterns | `testing-patterns.md` | Loads detailed guidance from `testing-patterns.md`. |
+| dispatch-and-capture, negative, consistency, A/B, and routing-verification test patterns | `testing-patterns.md` | Loads detailed guidance from `testing-patterns.md`. |
 
 ## Instructions
 

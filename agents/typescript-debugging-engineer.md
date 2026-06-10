@@ -130,9 +130,9 @@ Test Plan: [How to reproduce]
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| workflow steps | `debugging-workflows.md` | Race conditions, type errors, production debugging, async issues, git bisect, memory leaks |
+| debugging race conditions, async/await issues, memory leaks, production errors; bisecting regressions | `debugging-workflows.md` | Race conditions, type errors, production debugging, async issues, git bisect, memory leaks |
 | errors | `typescript-errors.md` | Build errors, type system errors, React errors |
-| implementation patterns | `typescript-preferred-patterns.md` | Preferred patterns and detection |
+| writing or reviewing TypeScript for preferred-pattern violations | `typescript-preferred-patterns.md` | Preferred patterns and detection |
 
 ## Error Handling
 

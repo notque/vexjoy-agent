@@ -28,7 +28,7 @@ Apply PHPUnit testing patterns for PHP projects: unit tests with data providers,
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `patterns.md` | Loads detailed guidance from `patterns.md`. |
+| writing PHPUnit tests: data providers, mocks/stubs, database or HTTP tests, coverage config | `patterns.md` | Loads detailed guidance from `patterns.md`. |
 
 ## Instructions
 

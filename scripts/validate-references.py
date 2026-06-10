@@ -341,7 +341,12 @@ def validate_agent(agent_file: Path, check_structure: bool = True) -> AgentResul
 
 
 # Generic signals that cannot disambiguate which reference to load.
-PLACEHOLDER_SIGNALS = ("tasks related to this reference",)
+PLACEHOLDER_SIGNALS = (
+    "tasks related to this reference",
+    "implementation patterns",
+    "workflow steps",
+    "example-driven tasks",
+)
 
 _PLACEHOLDER_SCAN_PATTERNS = ["agents/*.md", "skills/**/SKILL.md"]
 
@@ -479,7 +484,7 @@ def build_json_results(
             "orphans": len(orphans),
             "placeholder_signals": len(placeholders),
         },
-        "exit_code": 1 if has_failures or placeholders else 0,
+        "exit_code": 1 if has_failures or orphans or placeholders else 0,
     }
 
 
@@ -490,6 +495,11 @@ def main() -> None:
     parser.add_argument("--all", action="store_true", help="Validate all agents")
     parser.add_argument("--check-declared", action="store_true", help="Only check declared refs exist")
     parser.add_argument("--check-do-framing", action="store_true", help="Check all files for unpaired anti-patterns")
+    parser.add_argument(
+        "--check-placeholders",
+        action="store_true",
+        help="Check loading tables for placeholder signals only",
+    )
     parser.add_argument(
         "--allowlist",
         metavar="PATH",
@@ -507,8 +517,16 @@ def main() -> None:
         allowlist = Path(args.allowlist) if args.allowlist else None
         sys.exit(run_check_do_framing(json_output=args.json_output, allowlist_path=allowlist))
 
+    if args.check_placeholders:
+        hits = find_placeholder_signals()
+        for rel, lineno, signal in hits:
+            print(f"  PLACEHOLDER_SIGNAL: {rel}:{lineno} — {signal!r}")
+        if hits:
+            print(f"\n{len(hits)} placeholder signal(s) found")
+        sys.exit(1 if hits else 0)
+
     if not args.agent and not args.all:
-        parser.error("Specify --agent <name>, --all, or --check-do-framing")
+        parser.error("Specify --agent <name>, --all, --check-do-framing, or --check-placeholders")
 
     check_structure = not args.check_declared
 
