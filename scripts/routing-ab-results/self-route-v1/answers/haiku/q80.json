@@ -1,0 +1,7 @@
+{
+  "agent": "general-purpose",
+  "skill": "condense",
+  "pipeline": null,
+  "reasoning": "Summarize standup notes by maximizing information density and removing filler into three focused bullet points.",
+  "confidence": "medium"
+}

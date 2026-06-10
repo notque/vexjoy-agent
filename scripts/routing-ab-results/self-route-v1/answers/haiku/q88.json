@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "code-cleanup",
+  "pipeline": null,
+  "reasoning": "Detect stale TODOs, unused imports, and dead code across the repo as a first cleanup pass without requiring an agent.",
+  "confidence": "medium"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "A regression with no known change and no stated language needs evidence-based diagnosis \u2014 the systematic-debugging pipeline's OBSERVE/HYPOTHESIZE/TEST phases fit exactly, and no language-specific agent can be chosen until the stack is identified.",
+  "confidence": "high"
+}

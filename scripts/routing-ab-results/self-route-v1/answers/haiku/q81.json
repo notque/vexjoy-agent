@@ -1,0 +1,7 @@
+{
+  "agent": "Explore",
+  "skill": "read-only-ops",
+  "pipeline": null,
+  "reasoning": "Fast read-only exploration to scan and report on scripts/ folder structure, contents, and purpose.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "The user wants a read-only explanation of the whole project's structure, which is exactly codebase-overview's systematic exploration and architecture mapping; research-coordinator-engineer's NOT clause explicitly redirects local code exploration here, and no FORCE skill matches.",
+  "confidence": "high"
+}

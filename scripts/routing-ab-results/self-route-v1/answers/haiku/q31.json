@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Structured 5-phase debugging pipeline (OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD) is purpose-built for evidence-based root cause analysis with mandatory reproduction and learning gates.",
+  "confidence": "high"
+}

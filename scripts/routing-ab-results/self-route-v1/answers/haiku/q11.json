@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "systematic-debugging",
+  "pipeline": null,
+  "reasoning": "Go service memory leak requires expert Go debugging with systematic methodology to observe, hypothesize, test, and fix the memory growth issue.",
+  "confidence": "high"
+}

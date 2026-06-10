@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "'Go ahead and fix the bug' is a known-bug execution request ('go' is a verb here, not Golang), matching quick's FORCE domain of tracked lightweight execution rather than diagnosis-heavy debugging pipelines.",
+  "confidence": "high"
+}

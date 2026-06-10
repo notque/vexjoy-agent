@@ -1,0 +1,7 @@
+{
+  "agent": "kotlin-general-engineer",
+  "skill": "kotlin-coroutines",
+  "pipeline": null,
+  "reasoning": "Fix Flow collector error handling in service code using structured concurrency patterns and proper cancellation/retry semantics.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "test-driven-development",
+  "pipeline": null,
+  "reasoning": "Write parser tests in Python using RED-GREEN-REFACTOR methodology to build table-driven test cases systematically",
+  "confidence": "high"
+}

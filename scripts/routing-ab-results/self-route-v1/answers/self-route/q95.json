@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Saving work against laptop loss means committing and pushing to the remote \u2014 a git operation, which force-routes to pr-workflow.",
+  "confidence": "high"
+}

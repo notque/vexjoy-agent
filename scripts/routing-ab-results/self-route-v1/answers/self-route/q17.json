@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "The user wants a written artifact they authored critiqued from multiple perspectives, which is exactly multi-persona-critique's parallel multi-persona review of written work \u2014 not code review (reviewer-perspectives) since no code, file, or diff is named.",
+  "confidence": "medium"
+}

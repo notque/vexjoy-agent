@@ -192,6 +192,31 @@ class TestManifestArms:
         with pytest.raises(SystemExit):
             mod.parse_manifest_arms(["dup=a", "dup=b"])
 
+    def test_parse_model_arms(self, mod):
+        names = ["haiku", "self-route"]
+        parsed = mod.parse_model_arms(["haiku=haiku", "self-route=default"], names)
+        assert parsed == {"haiku": "haiku", "self-route": "default"}
+        with pytest.raises(SystemExit):  # name without a manifest arm
+            mod.parse_model_arms(["haiku=haiku", "bogus=opus"], names)
+        with pytest.raises(SystemExit):  # missing an arm
+            mod.parse_model_arms(["haiku=haiku"], names)
+        with pytest.raises(SystemExit):  # duplicate
+            mod.parse_model_arms(["haiku=a", "haiku=b", "self-route=c"], names)
+        with pytest.raises(SystemExit):  # malformed
+            mod.parse_model_arms(["no-equals", "self-route=x"], names)
+
+    def test_emit_prompts_records_model_arms(self, mod, arms):
+        models = {"full": "haiku", "tiered": "default"}
+        assert mod.emit_prompts(manifest_arms=arms, model_arms=models) == 0
+        record = json.loads((mod.RESULTS / "arms.json").read_text(encoding="utf-8"))
+        assert record["models"] == models
+        assert record["arms"] == ["full", "tiered"]
+
+    def test_emit_prompts_omits_models_key_when_unset(self, mod, arms):
+        assert mod.emit_prompts(manifest_arms=arms) == 0
+        record = json.loads((mod.RESULTS / "arms.json").read_text(encoding="utf-8"))
+        assert "models" not in record
+
     def test_emit_prompts_per_arm(self, mod, arms):
         assert mod.emit_prompts(manifest_arms=arms) == 0
         out = mod.RESULTS

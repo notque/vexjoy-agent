@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Summarizing standup notes into three bullets is a one-off lightweight text task with no specialized content/engineering domain, which matches the FORCE-routed quick skill for tracked lightweight execution.",
+  "confidence": "medium"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-frontend-engineer",
+  "skill": "phaser-gamedev",
+  "pipeline": null,
+  "reasoning": "Request is Phaser 3 2D game work (tilemap, arcade physics, sprite) which exactly matches the phaser-gamedev skill, bound to typescript-frontend-engineer.",
+  "confidence": "high"
+}

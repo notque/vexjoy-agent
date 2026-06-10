@@ -1,0 +1,14 @@
+{
+  "arms": [
+    "haiku",
+    "self-route"
+  ],
+  "commands": {
+    "haiku": "python3 scripts/routing-manifest.py",
+    "self-route": "python3 scripts/routing-manifest.py"
+  },
+  "models": {
+    "haiku": "haiku",
+    "self-route": "default"
+  }
+}

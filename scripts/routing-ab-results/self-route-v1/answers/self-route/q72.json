@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "Read-only architecture mapping of modules, boundaries, and data flow is exactly codebase-overview's purpose (systematic codebase exploration and architecture mapping), with no edits requested so no engineer agent is needed; architecture-deepening is ruled out because the user wants a map, not improvement proposals.",
+  "confidence": "high"
+}

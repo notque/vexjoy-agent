@@ -1,0 +1,7 @@
+{
+  "agent": "general-purpose",
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "planning FORCE skill handles spec and pre-plan ambiguity resolution to clarify requirements and acceptance criteria before building the export feature",
+  "confidence": "high"
+}

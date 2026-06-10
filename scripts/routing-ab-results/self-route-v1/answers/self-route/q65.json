@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-domain",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "The request's phrasing \u2014 understand first, assess risks, document findings \u2014 maps directly onto systematic-code-review's UNDERSTAND/VERIFY/ASSESS/DOCUMENT phases for a named diff target, and billing changes are business-logic territory, which is reviewer-domain's specialty.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Extracting duplicated logic into one place is a behaviour-preserving refactor, which the workflow skill explicitly covers ('tidy up, reorganize without changing behaviour') and architecture-deepening explicitly excludes as small-scope cleanup; no language is named so no specific engineer agent applies.",
+  "confidence": "high"
+}

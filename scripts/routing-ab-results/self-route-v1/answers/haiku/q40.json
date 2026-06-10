@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-perspectives",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "reviewer-perspectives specializes in multi-perspective code review across 5 philosophical personas (newcomer, senior, pedant, contrarian, user advocate, meta-process), structured by systematic-code-review's 4-phase framework (UNDERSTAND, VERIFY, ASSESS, DOCUMENT).",
+  "confidence": "high"
+}
