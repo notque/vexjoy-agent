@@ -1,0 +1,74 @@
+[
+  {
+    "uid": "u005",
+    "query": "send my commits to the server",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "notes": "Fixture: paraphrased push; pre-route stub falls through.",
+    "predicted_agent": null,
+    "predicted_skill": "pr-workflow"
+  },
+  {
+    "uid": "u003",
+    "query": "push back on this approach",
+    "expected_agent": null,
+    "expected_skill": null,
+    "notes": "Fixture: metaphorical push; pre-route stub falls through.",
+    "predicted_agent": null,
+    "predicted_skill": "planning"
+  },
+  {
+    "uid": "u004",
+    "query": "send my commits to the server",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "notes": "Fixture: paraphrased push; pre-route stub falls through.",
+    "predicted_agent": null,
+    "predicted_skill": "pr-workflow"
+  },
+  {
+    "uid": "u002",
+    "query": "push back on this approach",
+    "expected_agent": null,
+    "expected_skill": null,
+    "notes": "Fixture: metaphorical push; pre-route stub falls through.",
+    "predicted_agent": null,
+    "predicted_skill": "planning"
+  },
+  {
+    "uid": "u001",
+    "query": "push my changes to GitHub",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "notes": "Fixture: keyword push; pre-route stub returns high force_route.",
+    "predicted_agent": null,
+    "predicted_skill": "pr-workflow"
+  },
+  {
+    "uid": "u007",
+    "query": "run ruff and mypy on this Python project",
+    "expected_agent": null,
+    "expected_skill": "python-quality-gate",
+    "notes": "Fixture: candidate-tier quality run; pre-route stub returns medium candidate.",
+    "predicted_agent": "python-general-engineer",
+    "predicted_skill": "python-quality-gate"
+  },
+  {
+    "uid": "u006",
+    "query": "run ruff and mypy on this Python project",
+    "expected_agent": null,
+    "expected_skill": "python-quality-gate",
+    "notes": "Fixture: candidate-tier quality run; pre-route stub returns medium candidate.",
+    "predicted_agent": "python-general-engineer",
+    "predicted_skill": "python-quality-gate"
+  },
+  {
+    "uid": "u000",
+    "query": "push my changes to GitHub",
+    "expected_agent": null,
+    "expected_skill": "pr-workflow",
+    "notes": "Fixture: keyword push; pre-route stub returns high force_route.",
+    "predicted_agent": null,
+    "predicted_skill": "pr-workflow"
+  }
+]

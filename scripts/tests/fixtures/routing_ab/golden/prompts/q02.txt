@@ -1,0 +1,6 @@
+You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+USER REQUEST: send my commits to the server
+ROUTING MANIFEST:
+STUB MANIFEST v1
+Return your answer as JSON: {"agent": "...|null","skill":"...|null","pipeline":"...|null","reasoning":"one sentence","confidence":"high/medium/low"}
+FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For git operations (push, commit, PR, merge), ALWAYS select pr-workflow. Pick the most specific match. Return a single skill name as a string.

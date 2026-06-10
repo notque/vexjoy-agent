@@ -1,0 +1,38 @@
+{
+  "version": "fixture-1.0",
+  "description": "Tiny fixed corpus for routing-ab-test.py regression tests. Four cases spanning a high-confidence force-route, a false-positive guard, a paraphrase, and a candidate-tier match.",
+  "test_cases": [
+    {
+      "request": "push my changes to GitHub",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "benchmark-force_route",
+      "notes": "Fixture: keyword push; pre-route stub returns high force_route."
+    },
+    {
+      "request": "push back on this approach",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "bucket": "false-positive-guard",
+      "notes": "Fixture: metaphorical push; pre-route stub falls through."
+    },
+    {
+      "request": "send my commits to the server",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "paraphrase-git",
+      "notes": "Fixture: paraphrased push; pre-route stub falls through."
+    },
+    {
+      "request": "run ruff and mypy on this Python project",
+      "expected_agent": null,
+      "expected_skill": "python-quality-gate",
+      "category": "python-development",
+      "bucket": "benchmark-candidate",
+      "notes": "Fixture: candidate-tier quality run; pre-route stub returns medium candidate."
+    }
+  ]
+}
