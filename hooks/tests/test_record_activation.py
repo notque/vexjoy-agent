@@ -61,7 +61,7 @@ def _make_hook_input(
         tool_name: The tool that was called.
         is_error: Whether the tool reported an error.
         output: The tool output text.
-        schema: ``"claude"`` for Claude/Codex/Gemini schema (tool_result/is_error/output)
+        schema: ``"claude"`` for Claude/Codex schema (tool_result/is_error/output)
             or ``"factory"`` for Factory schema (tool_response/exitCode/stdout).
     """
     if schema == "factory":

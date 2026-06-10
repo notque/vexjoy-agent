@@ -130,7 +130,7 @@ If the result has `"confidence": "high"` AND `"match_type": "force_route"` AND t
 Generate the manifest, then route directly off it in-session. No routing sub-dispatch: the orchestrator reads the manifest and applies the rules below itself. (Self-route-v1 blind A/B, n=99: PROMOTE — +8.1 accuracy points over the Haiku hop, zero new safety-bucket misses, stub-tier 9→12; it fixes the agent-attribution failure and deletes a dispatch round trip. `scripts/routing-ab-results/self-route-v1/VERDICT.md`.)
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 python3 "$SDIR/routing-manifest.py"
 ```
 

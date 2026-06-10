@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for scripts/detect-workflow-capability.py — harness identity from env.
 
-Covers the env-matrix harness classifier (claude-code / codex / gemini /
+Covers the env-matrix harness classifier (claude-code / codex /
 factory / reasonix / unknown), the workflow_capable proxy (true only for
 claude-code), the never-raises / exit-0 contract, and the JSON output shape.
 The env signal is a PROXY: the orchestrator LLM adds the authoritative
@@ -39,12 +39,9 @@ _spec.loader.exec_module(dwc)
         # codex: home / hooks dir markers
         ({"CODEX_HOME": "/home/u/.codex"}, "codex"),
         ({"CODEX_HOOKS_DIR": "/x"}, "codex"),
-        # agy (Antigravity): explicit agent identifier — checked before gemini
-        ({"ANTIGRAVITY_AGENT": "1"}, "agy"),
-        # agy wins over a stray GEMINI_CLI (transitional env)
-        ({"ANTIGRAVITY_AGENT": "1", "GEMINI_CLI": "1"}, "agy"),
-        # gemini: explicit CLI identifier
-        ({"GEMINI_CLI": "1"}, "gemini"),
+        # gemini/agy CLI markers removed with Gemini CLI support; unmapped now
+        ({"GEMINI_CLI": "1"}, "unknown"),
+        ({"ANTIGRAVITY_AGENT": "1"}, "unknown"),
         # factory / droid
         ({"FACTORY_SESSION_ID": "f1"}, "factory"),
         ({"DROID_SESSION_ID": "d1"}, "factory"),
@@ -64,8 +61,8 @@ def test_detect_harness(env, expected):
 
 
 def test_generic_api_keys_do_not_classify():
-    """A bare GEMINI_API_KEY/GOOGLE_API_KEY must NOT be read as the gemini
-    harness — those vars are commonly set even under Claude Code."""
+    """A bare GEMINI_API_KEY/GOOGLE_API_KEY must NOT classify a harness —
+    those API vars are commonly set even under Claude Code."""
     assert dwc.detect_harness({"GEMINI_API_KEY": "x"}) == "unknown"
     assert dwc.detect_harness({"GOOGLE_API_KEY": "x"}) == "unknown"
 
@@ -73,7 +70,7 @@ def test_generic_api_keys_do_not_classify():
 def test_claude_code_wins_over_other_markers():
     """If both Claude Code and another marker are present, Claude Code wins:
     the toolkit ships from Claude Code and copies env-laden config around."""
-    env = {"CLAUDECODE": "1", "CODEX_HOME": "/x", "GEMINI_CLI": "1"}
+    env = {"CLAUDECODE": "1", "CODEX_HOME": "/x"}
     assert dwc.detect_harness(env) == "claude-code"
 
 
@@ -85,8 +82,6 @@ def test_claude_code_wins_over_other_markers():
     [
         ("claude-code", True),
         ("codex", False),
-        ("agy", False),
-        ("gemini", False),
         ("factory", False),
         ("reasonix", False),
         ("unknown", False),
