@@ -20,7 +20,7 @@ A perfect output eval cannot save an agent the router never picks. A perfect act
 
 ## Activation Eval
 
-The router (and the Haiku selector) reads `name` and `description` first. The activation eval tests whether those two fields produce the right routing decision across realistic phrasings.
+The router reads `name` and `description` first. The activation eval tests whether those two fields produce the right routing decision across realistic phrasings.
 
 ### Three case classes
 

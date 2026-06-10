@@ -232,8 +232,8 @@ def run_pre_route(request: str) -> dict:
     """Invoke pre-route.py for a request and return parsed JSON output.
 
     pre-route.py is the FAST pre-router that /do Phase 2 Step 0 calls before
-    dispatching the Haiku routing agent. It returns matched/agent/skill/confidence,
-    not scored candidates.
+    the orchestrator self-routes off the manifest in-session. It returns
+    matched/agent/skill/confidence, not scored candidates.
 
     Args:
         request: The user request string to route.
@@ -255,7 +255,7 @@ class TestPreRoute:
     """Tests for the pre-route.py fast pre-router (used by /do Phase 2 Step 0).
 
     pre-route.py is invoked first by /do; if it returns matched=True with high
-    confidence, /do skips the Haiku routing agent. These tests verify the
+    confidence, /do skips the in-session manifest route. These tests verify the
     pre-route layer routes correctly for cases where it's the authoritative
     decision-maker.
     """
