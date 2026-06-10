@@ -1,0 +1,34 @@
+{
+  "push my changes to GitHub": {
+    "matched": true,
+    "agent": null,
+    "skill": "pr-workflow",
+    "confidence": "high",
+    "match_type": "force_route",
+    "reasoning": "stub: matched push triggers for pr-workflow"
+  },
+  "push back on this approach": {
+    "matched": false,
+    "agent": null,
+    "skill": null,
+    "confidence": "low",
+    "match_type": "fallthrough",
+    "reasoning": "stub: no trigger keywords matched"
+  },
+  "send my commits to the server": {
+    "matched": false,
+    "agent": null,
+    "skill": null,
+    "confidence": "low",
+    "match_type": "fallthrough",
+    "reasoning": "stub: no trigger keywords matched"
+  },
+  "run ruff and mypy on this Python project": {
+    "matched": true,
+    "agent": "python-general-engineer",
+    "skill": "python-quality-gate",
+    "confidence": "medium",
+    "match_type": "candidate",
+    "reasoning": "stub: candidate match for python-quality-gate"
+  }
+}

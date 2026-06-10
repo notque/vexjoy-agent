@@ -1,0 +1,85 @@
+{
+  "n_queries": 4,
+  "short_circuit_count": 1,
+  "deferred_to_semantic_count": 3,
+  "per_bucket": {
+    "benchmark-force_route": {
+      "total": 1,
+      "short_circuit": 1,
+      "deferred": 0
+    },
+    "false-positive-guard": {
+      "total": 1,
+      "short_circuit": 0,
+      "deferred": 1
+    },
+    "paraphrase-git": {
+      "total": 1,
+      "short_circuit": 0,
+      "deferred": 1
+    },
+    "benchmark-candidate": {
+      "total": 1,
+      "short_circuit": 0,
+      "deferred": 1
+    }
+  },
+  "rows": [
+    {
+      "id": "q00",
+      "query": "push my changes to GitHub",
+      "bucket": "benchmark-force_route",
+      "expected_skill": "pr-workflow",
+      "expected_agent": null,
+      "pre_route_matched": true,
+      "pre_route_confidence": "high",
+      "pre_route_skill": "pr-workflow",
+      "pre_route_agent": null,
+      "pre_route_match_type": "force_route",
+      "arm_A_short_circuits": true,
+      "arm_A_skips_haiku": true
+    },
+    {
+      "id": "q01",
+      "query": "push back on this approach",
+      "bucket": "false-positive-guard",
+      "expected_skill": null,
+      "expected_agent": null,
+      "pre_route_matched": false,
+      "pre_route_confidence": "low",
+      "pre_route_skill": null,
+      "pre_route_agent": null,
+      "pre_route_match_type": "fallthrough",
+      "arm_A_short_circuits": false,
+      "arm_A_skips_haiku": false
+    },
+    {
+      "id": "q02",
+      "query": "send my commits to the server",
+      "bucket": "paraphrase-git",
+      "expected_skill": "pr-workflow",
+      "expected_agent": null,
+      "pre_route_matched": false,
+      "pre_route_confidence": "low",
+      "pre_route_skill": null,
+      "pre_route_agent": null,
+      "pre_route_match_type": "fallthrough",
+      "arm_A_short_circuits": false,
+      "arm_A_skips_haiku": false
+    },
+    {
+      "id": "q03",
+      "query": "run ruff and mypy on this Python project",
+      "bucket": "benchmark-candidate",
+      "expected_skill": "python-quality-gate",
+      "expected_agent": null,
+      "pre_route_matched": true,
+      "pre_route_confidence": "medium",
+      "pre_route_skill": "python-quality-gate",
+      "pre_route_agent": "python-general-engineer",
+      "pre_route_match_type": "candidate",
+      "arm_A_short_circuits": false,
+      "arm_A_skips_haiku": false
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "u000": {
+    "query_id": "q00",
+    "arm": "A",
+    "bucket": "benchmark-force_route"
+  },
+  "u001": {
+    "query_id": "q00",
+    "arm": "B",
+    "bucket": "benchmark-force_route"
+  },
+  "u002": {
+    "query_id": "q01",
+    "arm": "A",
+    "bucket": "false-positive-guard"
+  },
+  "u003": {
+    "query_id": "q01",
+    "arm": "B",
+    "bucket": "false-positive-guard"
+  },
+  "u004": {
+    "query_id": "q02",
+    "arm": "A",
+    "bucket": "paraphrase-git"
+  },
+  "u005": {
+    "query_id": "q02",
+    "arm": "B",
+    "bucket": "paraphrase-git"
+  },
+  "u006": {
+    "query_id": "q03",
+    "arm": "A",
+    "bucket": "benchmark-candidate"
+  },
+  "u007": {
+    "query_id": "q03",
+    "arm": "B",
+    "bucket": "benchmark-candidate"
+  }
+}
