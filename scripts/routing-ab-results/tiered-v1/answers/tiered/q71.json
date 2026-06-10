@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "research-pipeline",
+  "pipeline": null,
+  "reasoning": "research-pipeline skill directly implements the formal 5-phase workflow (SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER) with source quality gates and artifact saving, matching all user requirements.",
+  "confidence": "high"
+}

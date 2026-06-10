@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": null,
+  "reasoning": "Table-driven tests are idiomatic Go testing patterns; go-patterns is FORCE-marked to cover Go testing conventions and is the best fit for writing parser tests.",
+  "confidence": "high"
+}

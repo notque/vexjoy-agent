@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Unspecified bug requires structured investigation; systematic-debugging pipeline provides formal reproduction, hypothesis, testing, and fix gates",
+  "confidence": "medium"
+}

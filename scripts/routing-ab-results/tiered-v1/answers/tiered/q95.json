@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to save work to prevent loss from laptop failure — this is a git push operation covered by pr-workflow's FORCE rule for commit/push operations.",
+  "confidence": "high"
+}

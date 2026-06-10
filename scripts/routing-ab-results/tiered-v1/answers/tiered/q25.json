@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Git commit operation matches pr-workflow FORCE rule for git operations",
+  "confidence": "high"
+}

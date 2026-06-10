@@ -1,0 +1,14 @@
+{
+  "u000": "correct",
+  "u001": {
+    "verdict": "incorrect"
+  },
+  "u002": "partial",
+  "u003": "correct",
+  "u004": "incorrect",
+  "u005": "correct",
+  "u006": {
+    "verdict": "correct"
+  },
+  "u007": "correct"
+}

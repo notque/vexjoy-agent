@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "public-web-deploy",
+  "pipeline": null,
+  "reasoning": "FORCE match: user wants to publish website publicly; public-web-deploy handles DNS, web server, HTTPS, hardening, and safety verification for internet-facing sites.",
+  "confidence": "high"
+}

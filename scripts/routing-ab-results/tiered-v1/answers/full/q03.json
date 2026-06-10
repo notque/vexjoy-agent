@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Git commit operation matches FORCE-routed pr-workflow skill for recording changes to version control.",
+  "confidence": "high"
+}

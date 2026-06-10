@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "User commits to an approach and requests forward execution; FORCE-matched planning skill handles decision lock-in and next-step planning.",
+  "confidence": "medium"
+}

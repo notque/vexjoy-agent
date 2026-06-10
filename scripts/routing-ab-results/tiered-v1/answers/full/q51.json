@@ -1,0 +1,7 @@
+{
+  "agent": "kotlin-general-engineer",
+  "skill": "kotlin-coroutines",
+  "pipeline": null,
+  "reasoning": "Kotlin Flow collectors stopping after first error is a structured concurrency pattern issue requiring Flow error handling and recovery strategies.",
+  "confidence": "high"
+}

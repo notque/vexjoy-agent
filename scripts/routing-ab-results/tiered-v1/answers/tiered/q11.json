@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Go memory leak diagnosis requires Go-specific debugging expertise to analyze heap profiles, goroutine leaks, unbounded allocations, and reference cycles using pprof.",
+  "confidence": "high"
+}

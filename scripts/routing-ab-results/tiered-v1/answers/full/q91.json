@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User requests security review of authentication/authorization before public deployment; security-review (FORCE) is the deterministic security scanner for git changes.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "Multi-persona critique stress-tests proposals from 5 philosophical lenses to expose design flaws and failure modes where they break.",
+  "confidence": "high"
+}

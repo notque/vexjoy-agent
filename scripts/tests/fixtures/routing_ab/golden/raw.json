@@ -1,0 +1,160 @@
+{
+  "n_queries": 4,
+  "cost": {
+    "A_haiku_calls_total": 3,
+    "B_haiku_calls_total": 4,
+    "A_calls_per_request": 0.75,
+    "B_calls_per_request": 1.0,
+    "delta_calls_per_request": 0.25
+  },
+  "records": [
+    {
+      "id": "q00",
+      "query": "push my changes to GitHub",
+      "bucket": "benchmark-force_route",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "Fixture: keyword push; pre-route stub returns high force_route.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "pr-workflow",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "stub: matched push triggers for pr-workflow"
+      },
+      "haiku_raw": {
+        "agent": null,
+        "skill": "publish",
+        "pipeline": null,
+        "reasoning": "stub",
+        "confidence": "medium"
+      },
+      "A_route": {
+        "agent": null,
+        "skill": "pr-workflow",
+        "source": "pre_route"
+      },
+      "B_route": {
+        "agent": null,
+        "skill": "pr-workflow",
+        "source": "safety_net"
+      },
+      "A_haiku_calls": 0,
+      "B_haiku_calls": 1,
+      "B_safety_override": true
+    },
+    {
+      "id": "q01",
+      "query": "push back on this approach",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "Fixture: metaphorical push; pre-route stub falls through.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "stub: no trigger keywords matched"
+      },
+      "haiku_raw": {
+        "agent": null,
+        "skill": "planning",
+        "pipeline": null,
+        "reasoning": "stub",
+        "confidence": "low"
+      },
+      "A_route": {
+        "agent": null,
+        "skill": "planning",
+        "source": "haiku"
+      },
+      "B_route": {
+        "agent": null,
+        "skill": "planning",
+        "source": "haiku"
+      },
+      "A_haiku_calls": 1,
+      "B_haiku_calls": 1,
+      "B_safety_override": false
+    },
+    {
+      "id": "q02",
+      "query": "send my commits to the server",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "Fixture: paraphrased push; pre-route stub falls through.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "stub: no trigger keywords matched"
+      },
+      "haiku_raw": {
+        "agent": null,
+        "skill": "pr-workflow",
+        "pipeline": null,
+        "reasoning": "stub",
+        "confidence": "high"
+      },
+      "A_route": {
+        "agent": null,
+        "skill": "pr-workflow",
+        "source": "haiku"
+      },
+      "B_route": {
+        "agent": null,
+        "skill": "pr-workflow",
+        "source": "haiku"
+      },
+      "A_haiku_calls": 1,
+      "B_haiku_calls": 1,
+      "B_safety_override": false
+    },
+    {
+      "id": "q03",
+      "query": "run ruff and mypy on this Python project",
+      "bucket": "benchmark-candidate",
+      "category": "python-development",
+      "expected_agent": null,
+      "expected_skill": "python-quality-gate",
+      "notes": "Fixture: candidate-tier quality run; pre-route stub returns medium candidate.",
+      "pre_route": {
+        "matched": true,
+        "agent": "python-general-engineer",
+        "skill": "python-quality-gate",
+        "confidence": "medium",
+        "match_type": "candidate",
+        "reasoning": "stub: candidate match for python-quality-gate"
+      },
+      "haiku_raw": {
+        "agent": "python-general-engineer",
+        "skill": "python-quality-gate",
+        "pipeline": null,
+        "reasoning": "stub",
+        "confidence": "high"
+      },
+      "A_route": {
+        "agent": "python-general-engineer",
+        "skill": "python-quality-gate",
+        "source": "haiku"
+      },
+      "B_route": {
+        "agent": "python-general-engineer",
+        "skill": "python-quality-gate",
+        "source": "haiku"
+      },
+      "A_haiku_calls": 1,
+      "B_haiku_calls": 1,
+      "B_safety_override": false
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "research-pipeline",
+  "pipeline": null,
+  "reasoning": "research-pipeline explicitly provides the 5-phase formal structure (SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER) with artifact saving and quality gates that the user requests for scoping and sourcing a report on local-first sync engines.",
+  "confidence": "high"
+}

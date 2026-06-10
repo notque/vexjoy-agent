@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "image-to-video",
+  "pipeline": null,
+  "reasoning": "image-to-video skill directly handles FFmpeg-based video creation from image frames and audio.",
+  "confidence": "high"
+}

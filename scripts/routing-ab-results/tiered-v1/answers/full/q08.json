@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "User wants comprehensive security assessment of the codebase for potential vulnerabilities; reviewer-system specializes in system-level security review including threat analysis.",
+  "confidence": "high"
+}

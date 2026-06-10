@@ -1,0 +1,7 @@
+{
+  "agent": "technical-documentation-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "User wants to create technical documentation explaining how the system works; technical-documentation-engineer specializes in system architecture docs for onboarding and knowledge transfer.",
+  "confidence": "high"
+}

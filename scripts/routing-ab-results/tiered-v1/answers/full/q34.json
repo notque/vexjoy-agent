@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Orchestrate multi-phase scan-identify-remove-verify workflow with Python scripting for corpus data management and cleanup.",
+  "confidence": "medium"
+}

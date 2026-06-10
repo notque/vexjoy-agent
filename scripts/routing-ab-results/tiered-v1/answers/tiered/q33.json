@@ -1,0 +1,7 @@
+{
+  "agent": "general-purpose",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Metaphorical merge analysis of branch compatibility and integration (explicitly excluded from pr-workflow per NOT clause: 'merge the branches in your head'). General-purpose agent can examine git state, analyze diffs, and provide merge-readiness assessment.",
+  "confidence": "medium"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "FORCE-route match: git commit operation. pr-workflow handles commit lifecycle.",
+  "confidence": "high"
+}

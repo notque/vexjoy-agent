@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "adr-consultation",
+  "pipeline": null,
+  "reasoning": "Given the active do-cost-diet ADR session, route to adr-consultation for multi-agent architectural design review and feedback",
+  "confidence": "high"
+}

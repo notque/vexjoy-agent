@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants a safety/security check before sharing — security-review FORCE-fires for local security scans of git changes, catching secrets, unsafe patterns, and vulnerabilities.",
+  "confidence": "high"
+}
