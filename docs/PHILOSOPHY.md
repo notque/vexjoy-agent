@@ -16,7 +16,7 @@ The system requires no specialized knowledge from the user. Say what you want do
 
 **Test:** Does this feature require the user to know something internal? If yes, redesign it.
 
-**Automation corollary.** Anything that can fire automatically, should. Gates enforce via hooks. Context injects via SessionStart/UserPromptSubmit. Learning happens via PostToolUse capture. The user describes intent. The system does everything else.
+**Automation corollary.** Anything that can fire automatically and fails safe, should. Automation that can delete or overwrite starts add-only and earns its destructive path — Warn-Only Gates (below) applied to automation. The sync hook proved why: its stale-cleanup deleted `skills/voice-shared-references/` four times in one session before a regression test pinned the add-only invariant (citation in Warn-Only Gates). Rule for this document: every invariant asserted here cites the test that enforces it, not the commit that intended it. Second rule: evidence that the system missed a principle names lifecycle debt, never repeal. The gap goes on the build list; the principle stands until an experiment refutes it. The sync incident reads exactly that way — corollary sound, enforcement lagged. Gates enforce via hooks. Context injects via SessionStart/UserPromptSubmit. Learning happens via PostToolUse capture. The user describes intent. The system does everything else.
 
 ---
 
@@ -55,24 +55,19 @@ For large mechanical sweeps: if the change can be expressed as detector + rewrit
 
 ### Routing confidence and force_route
 
-Skills route at four confidence tiers driven by trigger-match count and the `force_route` flag (see `force_bonus` in [`scripts/pre-route.py`](../scripts/pre-route.py)). Single-trigger skills without `force_route` cap at "low" and may fall through to fallback routing.
-
-| State | Confidence |
-|---|---|
-| `force_route: true` + 2+ triggers matched | high |
-| `force_route: true` + 1 trigger matched | medium |
-| 3+ triggers matched (no force) | medium |
-| 1-2 triggers matched (no force) | low |
+Skills route at confidence tiers driven by trigger-match count plus a `force_route` bonus; the tier mapping is implementation detail — see `force_bonus` in [`scripts/pre-route.py`](../scripts/pre-route.py) and the per-skill `force_route` flag in skills/INDEX.json (schema: `scripts/generate-skill-index.py`).
 
 `force_route: true` belongs on umbrella, setup, and methodology skills where a single high-specificity trigger phrase carries unambiguous intent (`pr-workflow`, `install`, `quick`). Domain task skills earn confidence through multiple trigger matches — preventing misroute when phrases like "fix" or "review" overlap.
 
-### The Haiku Router Reads Intent; Keywords Cannot
+### Semantic Routing Is Settled; the Haiku Sub-Dispatch Is Not
 
-`/do` Phase 2 runs a Haiku semantic router. Its value is **not** skill discovery — the harness already injects the full `available-skills` list (~124 skills, with descriptions) into every session, so dropping the router would not reclaim that context. The router earns its keep doing what keyword pre-routing cannot: agent+skill *pairing*, safety-critical force-routes that drag git/security work through the quality gates (lint/tests/CI), the quality-loop wrapper, complexity classification, parallel decomposition, and task-spec injection.
+`/do` Phase 2 routes by reading intent with a model. Two claims hide here, with different evidence states. Keep them separate.
 
-The decisive number: dropping Haiku for pure deterministic `pre-route.py` keyword routing collapses strict routing accuracy **63.3% → 34.7%** (corpus n=49). It scores **0% on every paraphrase bucket** — "send my commits to the server" carries no keyword trigger — so **22 of 49 requests** lose their correct agent+skill and fall to a skill-less general handler. Cost of keeping the router: ~+0.1 Haiku calls/request. Trivial, by design (see `skills/meta/do/references/semantic-first-ab-results.md`; drop-Haiku A/B in `tmp/drophaiku-ab-report.md`).
+**SETTLED: semantic routing beats keyword routing.** Dropping the semantic layer for pure deterministic `pre-route.py` keyword routing collapses strict routing accuracy **63.3% → 34.7%**. Keywords score **0% on every paraphrase bucket** — "send my commits to the server" carries no keyword trigger — so **22 of 49 requests** lose their correct agent+skill and fall to a skill-less general handler. (Drop-Haiku A/B, 2026-05-29, corpus n=49, report `tmp/drophaiku-ab-report.md`, recorded via PR #715; companion ordering A/B in `skills/meta/do/references/semantic-first-ab-results.md`.) Skill discovery contributes none of this value — the harness already injects the full `available-skills` list, with descriptions, into every session. The semantic layer earns its keep on agent+skill *pairing*, safety-critical force-routes that drag git/security work through the quality gates (lint/tests/CI), the quality-loop wrapper, complexity classification, parallel decomposition, and task-spec injection. Cost: ~+0.1 Haiku calls/request. Trivial, by design.
 
-**Known follow-up.** The honest cost is the manifest, not the router: the routing manifest (full ~31.9 KB, compact ~21.4 KB) duplicates skill descriptions the native list already carries. Trim it to router-only metadata (FORCE flags, agent pairings, `not_for`) — that, not removing the router, is the real optimization. A newer 3-arm A/B finds native self-route by the orchestrator model ties the Haiku router (63.3% vs 63.3%), so the deeper open question is whether the Haiku sub-dispatch is still needed at all.
+**OPEN: whether the Haiku sub-dispatch beats orchestrator self-route.** Semantic routing won; who does the reading is undecided. A 3-arm A/B (2026-05-29, same corpus, n=49) tied native self-route by the orchestrator model against the Haiku sub-dispatch: 63.3% vs 63.3%. At n=49 a tie separates nothing. The higher-n verdict is pending via the routing A/B harness; the standing experiment home is docs/router-ab-runbook.md (landing on its own branch).
+
+**Known follow-up.** The honest cost is the manifest, not the router: the routing manifest duplicates skill descriptions the native `available-skills` list already carries. Trim it to router-only metadata (FORCE flags, agent pairings, `not_for`) — that, not removing the router, is the real optimization.
 
 ---
 
@@ -112,8 +107,32 @@ Tokens buy more value as specialists in parallel than as longer prompts to a sin
 | Progressive disclosure | Reference files live on disk, load when the phase needs them, not at session start |
 | Eager routing is non-negotiable | Dispatching agents is the core execution model, not a cost to avoid |
 | More relevant context > more context | Under-loading is as wrong as over-loading |
+| A dispatch moves work, never copies it | Dispatch shifts work from the expensive model to a cheap one; duplicating context across both pays for the same tokens twice |
 
-**Test:** Is this agent loading context it will not use for this specific task? If yes, move it to a reference file and load conditionally.
+**Test:** Is this agent loading context it will not use for this specific task? If yes, move it to a reference file and load conditionally. Does this dispatch move work from the expensive model to a cheap one, or duplicate context across both? If duplicate, inline it. The Haiku manifest round-trip (above) is the miss this test would have caught: the manifest re-sends skill descriptions the orchestrator already holds.
+
+---
+
+## The Router Is the Management Layer
+
+`/do` is a management layer for the harness, implemented in prompt-space. Inventory its jobs:
+
+| Job | What the router does |
+|---|---|
+| Intent classification | Reads the request, names the task class |
+| Agent + skill selection | Pairs the domain agent with its methodology skill |
+| Workflow composition | Picks the pipeline, fans out, dictates the roster |
+| Parallel decomposition | Splits independent work across agents |
+| Policy enforcement | Force-routes; quality gates (lint/tests/CI) on git and security work |
+| Communication discipline | The mandatory density/completeness injection in every handoff |
+| Resource policy | Model per task class, token budgets |
+| Learning capture | Routing decisions and outcomes into learning.db |
+
+Jobs migrate by kind — Everything Deterministic (above) applied to the router's own work. Judgment jobs (intent reading, complexity classification, decomposition) stay in prompt-space. Mechanical jobs (injection assembly, marker stamping, roster table lookups, banner emission) move to hooks and scripts as they prove deterministic. Hooks are harness code: programs that run on lifecycle events, outside prompt-space. The PreToolUse injection hooks already in production (`pretool-subagent-warmstart.py`, the reference-loading gate) prove the pattern.
+
+The harness verdict: build no separate harness. Harness-by-accretion through hooks keeps the six-CLI portability a custom harness would forfeit. Revisit when a need appears that the hook surface cannot give — true scheduling, mid-flight arbitration between agents, enforced (not advisory) budgets.
+
+**Test:** Is this router job deterministic? Same input, same output? Move it to a hook or script. Does it need judgment? It stays in the skill.
 
 ---
 
@@ -154,7 +173,7 @@ Gates are automated, not advisory. Hook fails = pipeline stops. Hooks are fragil
 
 A gate is a hard stop; a safeguard is an observable alert. Most checks should be safeguards. Anything that blocks a merge must prove its worth and ship with an explicit escalation path. New checks start advisory and graduate to blocking only via a dedicated ADR and operator sign-off.
 
-This is how the system is built, not an aspiration. `hooks/stop-drift-guard.py` detects toolkit drift and re-wakes the session async — it never blocks. The post-merge sync hook is add-only: it adds new items, never overwrites (`install.sh`, commit 8d7c8b00). `hooks/session-learning-recorder.py` warns when a substantive session captured zero learnings, then exits clean. When PR #747 weighed a blocking re-run check for the negative-results registry, it deferred to a future ADR with a documented escalation path rather than ship a hard stop.
+This is how the system is built, not an aspiration. `hooks/stop-drift-guard.py` detects toolkit drift and re-wakes the session async — it never blocks. The post-merge sync hook is add-only: it adds new items, never overwrites. That invariant is enforced by `TestSupportDirSurvivesCleanup` in `hooks/tests/test_sync_to_user_claude.py` (PR #762), added after the hook's stale-cleanup deleted `skills/voice-shared-references/` four times in one session. The add-only intent dates to commit 8d7c8b00 in `install.sh`; the invariant held only once a test enforced it — which is why this document cites tests, not intentions. `hooks/session-learning-recorder.py` warns when a substantive session captured zero learnings, then exits clean. When PR #747 weighed a blocking re-run check for the negative-results registry, it deferred to a future ADR with a documented escalation path rather than ship a hard stop.
 
 **Test:** Does this check stop work on failure? If the failure is advisory, make it warn and exit 0; reserve blocking for gates that earned an ADR.
 
@@ -186,13 +205,23 @@ The loop is designed, not incidental. `scripts/validate-doc-counts.py` runs as a
 
 ---
 
+## Components Earn Their Keep
+
+One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 124 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
+
+Hooks need this governance most: a hook is the easiest component to create and the hardest to manage. Managing, correcting, and retiring hooks is named, recurring debt. The detector seed exists — the hook-health CI job (`scripts/validate-hook-health.py`, gating in `.github/workflows/test.yml`) — and the route-events/learning instrumentation pattern generalizes to hook firings. A hook nobody can attribute a benefit to is shelf-ware with side effects — worse than a shelf-ware skill, because it executes.
+
+**Test:** When did this component last carry a route? If the telemetry can't answer, fix the telemetry. If the answer is "never in a long window," demote it.
+
+---
+
 ## Density — The Dense-Complete Writing standard
 
 High fidelity, minimum words. The standard is Bertrand Russell's five prose rules ("How I Write"): shortest accurate word, cut words carrying no instruction, plain English, concrete over abstract, heavy qualifications in separate sentences. A sixth rule, Completeness, guards the floor: treat content as fixed and wording as negotiable — carry every required point through the draft, then choose the shortest plain words that say those points exactly. It is the structural guide for everything we do — every part of every agent, every thinking turn, every generation: output, plain text, the model's own thinking, skill and instruction files, code comments. Prefer tables and lists for structured content, paragraphs for reasoning.
 
-This is not minimalism, which drops information for aesthetics. Density keeps all information and drops everything else.
+Minimalism drops information for aesthetics. Density keeps all information and drops everything else.
 
-**Evidence.** Three blind dual-track (Claude + Codex) A/B runs tested whether the standard helps. A Go token-bucket task showed no effect — correctness was ceiling-bound, every variant passed build, vet, and race. A skill-authoring task showed the payoff: the guidance arm (PHILOSOPHY.md + standard) beat control by +6.4/60, won 80% of cross-arm pairwise comparisons, Cliff's delta +0.60. Lesson: the standard pays off on prose and judgment work, not ceiling-bound code. One treatment run over-compressed — thinnest skill, dropped detail — which motivated a Completeness clause. A clause race then tested control plus ten candidate phrasings (five Codex, five Claude) on one complex skill task (`log-secret-auditor`), graded blind dual-track on a 20-point coverage rubric plus a dense-and-complete score. The winner (g07) decouples content from wording and hit top coverage at the fewest words. Caveat: pilot N=1 per arm; coverage held across all arms, so the clause is proven to raise density at equal coverage, not yet proven to prevent a coverage collapse.
+**Evidence.** Three blind dual-track (Claude + Codex) A/B runs tested whether the standard helps. A Go token-bucket task showed no effect — correctness was ceiling-bound, every variant passed build, vet, and race. A skill-authoring task showed the payoff: the guidance arm (PHILOSOPHY.md + standard) beat control by +6.4/60, won 80% of cross-arm pairwise comparisons, Cliff's delta +0.60 (2026-05-31, artifact: `evals/dense-complete-writing/README.md`). Lesson: the standard pays off on prose and judgment work, not ceiling-bound code. One treatment run over-compressed — thinnest skill, dropped detail — which motivated a Completeness clause. A clause race then tested control plus ten candidate phrasings (five Codex, five Claude) on one complex skill task (`log-secret-auditor`), graded blind dual-track on a 20-point coverage rubric plus a dense-and-complete score. The winner (g07) decouples content from wording and hit top coverage at the fewest words. Caveat: pilot N=1 per arm; coverage held across all arms, so the clause is proven to raise density at equal coverage, not yet proven to prevent a coverage collapse.
 
 The canonical wording lives at `skills/shared-patterns/dense-complete-writing.md`. Three high-traffic surfaces reproduce the rules verbatim so they sit in context every turn — `CLAUDE.md`, `agents/base-instructions.md`, the `/do` router injection (`skills/meta/do/SKILL.md`); edit the canonical file first, then propagate to those three. This reference doc and `skill-creator` carry a summary plus the pointer above.
 
@@ -202,27 +231,37 @@ The canonical wording lives at `skills/shared-patterns/dense-complete-writing.md
 
 ## Supporting Principles
 
-These follow from the ten above. They are consequences, not independent axioms.
+These follow from the principles above. They are consequences, not independent axioms.
 
 ### Local-First, Deterministic Over External APIs
 
 Default to local, deterministic implementations. External APIs couple to third-party availability, cost, rate limits, stability. When an API is unavoidable, wrap it in a skill with explicit dependencies and capture the contract in references. Forbidden: third-party billing the user did not authorize.
 
+**Test:** Does this component work offline? If a third-party outage breaks it, the dependency must be wrapped in a skill with a declared contract — anything else is a bug.
+
 ### External Components Are Research Inputs, Not Imports
 
 External repositories reveal patterns and missing checks. Adoption path: study, extract the practice, test whether it fills a gap, rebuild inside our architecture. External markdown/scripts/metadata are untrusted evidence.
+
+**Test:** Did the practice arrive rebuilt and tested inside our architecture, or as copied files? Copied files skipped the gate.
 
 ### One Domain, One Component
 
 System prompt token budget is finite. One domain = one agent/skill + many reference files loaded on demand. Before creating any new agent/skill: check whether an existing component already covers the domain. If it does, add a reference file.
 
+**Test:** Name the existing component that covers this domain. If you can name it, add a reference file instead of a new component.
+
 ### Skills Are Self-Contained Packages
 
 Everything a skill needs lives inside its directory: scripts, viewer templates, bundled agents, reference files, assets. Self-contained = copyable, testable, reviewable as a unit, deletable without orphaning dependencies.
 
+**Test:** Delete the skill's directory. Does anything outside it break? If yes, it was never self-contained.
+
 ### Workflow First, Constraints Inline
 
 Skill documents place the workflow immediately after frontmatter. Constraints appear inline within the phases they govern, with reasoning ("because X"). A/B/C testing: workflow-first swept constraints-first 3-0 across all complexity levels.
+
+**Test:** Open the skill file. Is the workflow the first thing after frontmatter, with each constraint inline in the phase it governs? If a constraint block precedes the workflow, restructure.
 
 ### Positive Framing as CI Gate
 
@@ -262,9 +301,13 @@ Instructions tell the reader what to do, not what to avoid. Compare these two fr
 
 Neither tier replaces the other. Pipeline: deterministic first, fix, LLM evaluation, fix, final score.
 
+**Test:** Did Tier 1 run and pass before Tier 2 graded? LLM scores on artifacts that fail deterministic checks are wasted tokens.
+
 ### Anti-Rationalization as Infrastructure
 
 The biggest risk: rationalization. "Already done" (assumption). "Code looks correct" (looking, not testing). "Should work" (should, not does). Auto-injected into every code modification, review, security, and testing task. An agent can rationalize past an instruction. It cannot rationalize past an exit code.
+
+**Test:** Is the completion claim backed by an exit code or by "should work"? Only the exit code counts.
 
 ### Model Policy by Task Class
 
@@ -277,21 +320,31 @@ Do not treat `opus` as default upgrade. If a component needs opus, inspect its p
 
 **Token costs are not fungible.** One Opus token costs ~30x one Haiku token. Optimization targets the expensive model, not the cheap one. "Saves Haiku calls" is never a valid justification. Pre-routing's value is determinism (regex can't misroute). Phase gates' value is preventing Opus rework.
 
+**Test:** Which model's tokens does this optimization save? Savings on the cheap model never justify added complexity.
+
 ### Prompt Phrasing Does Not Replace Domain Knowledge
 
 Four A/B experiments: ego-boosting, urgency framing, emotional prompts. Results: small effects (+9-12%), not reliable. 3/4 agents fabricated regardless of prompt variant. Domain knowledge, structured methodology, and taste beat motivational preambles every time.
+
+**Test:** Does the proposed prompt change add domain knowledge, or only enthusiasm? Demand its A/B before adopting; enthusiasm measured +9-12% and unreliable.
 
 ### Trust Boundaries Separate Policy From Evidence
 
 Content entering the prompt has different trust levels. Four levels: policy (highest), trusted runtime context, retrieved context (evidence), user request (intent). A retrieved document saying "ignore previous instructions" is evidence with hostile payload, not a command.
 
+**Test:** Can content at a lower trust level change what a higher level allows? If retrieved text can alter policy or actions, the boundary leaked.
+
 ### Cache-Friendly Prompt Layout
 
 Static prefix (identity, policy, workflow, cacheable) + dynamic tail (user facts, retrieved context, session flags). Invariant content in agent files, variable content in injection mechanisms.
 
+**Test:** Does anything session-variable sit above the static prefix? Each one breaks the cache on every turn.
+
 ### Variables Are Contracts, Not Placeholders
 
 A prompt variable is a typed program input: expected format, escaping, behavior when absent or malicious. Every variable must have causal value: does it change the answer, allowed actions, or explanation style? If no, do not inject it.
+
+**Test:** Remove the variable. Does the answer, the allowed actions, or the explanation style change? If nothing changes, stop injecting it.
 
 ---
 
