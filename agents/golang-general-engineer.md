@@ -44,6 +44,7 @@ routing:
     - go-patterns
     - concurrency
     - debugging
+  not_for: "tasks using 'go' as a verb (go ahead, go fix this)"
   pairs_with:
     - go-patterns
   complexity: Medium-Complex
