@@ -1,6 +1,6 @@
 # Start Here
 
-Claude Code is good on its own. This toolkit makes it structurally better. Specialized agents, workflow skills that enforce methodology, hooks that automate the boring parts. Install once, works everywhere.
+Install once, then say what you want in plain English. The router connects your request to the right agent, skill, and quality gates automatically. You never browse the catalog; the value is wired in. This page gets you from zero to your first `/do` in about five minutes.
 
 ## What You Need
 
@@ -76,6 +76,12 @@ Works in any repo. Reads structure, identifies patterns, explains what the proje
 Multi-phase pipeline: research, outline, draft, voice validation. Output lands in a file.
 
 ```
+/html report on [anything you just worked on]
+```
+
+One self-contained HTML file: report, slide deck, prototype, data viz. Opens in any browser, shares as a single file. The output non-engineers love most.
+
+```
 /do debug why [problem]
 ```
 
@@ -83,7 +89,7 @@ Systematic debugging. Gathers evidence before guessing.
 
 ## What Got Installed
 
-Five kinds of things in `~/.claude/`:
+Five kinds of things in `~/.claude/`. You never invoke them by name; the router does.
 
 - **Agents**: domain experts. Go, Python, Kubernetes, data engineering, content, more.
 - **Skills**: reusable workflows. TDD, debugging, code review, article writing, research pipelines.
@@ -97,9 +103,9 @@ These load automatically when you start Claude Code in any directory.
 
 Depends on what you're here for.
 
-**[For Developers](for-developers.md)** : Architecture, extension points, how to build your own agents and skills.
+**[For Knowledge Workers](for-knowledge-workers.md)** : Writing, research, data analysis, moderation, HTML artifacts. No code required.
 
-**[For Knowledge Workers](for-knowledge-workers.md)** : Content pipelines, research workflows, moderation, data analysis. No code required.
+**[For Developers](for-developers.md)** : Architecture, extension points, how to build your own agents and skills.
 
 **[For AI Power Users](for-ai-wizards.md)** : Routing internals, hook lifecycle, pipeline architecture.
 
