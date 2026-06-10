@@ -15,6 +15,7 @@ routing:
     - "code audit"
     - "review methodology"
     - "comprehensive review"
+  not_for: "vague no-target requests like 'make this better' — those are interview-mode, where the agent asks what to improve. Only for reviewing a named file, diff, or PR."
   category: code-review
   pairs_with:
     - forensics

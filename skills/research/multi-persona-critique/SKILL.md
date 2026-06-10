@@ -1,6 +1,6 @@
 ---
 name: multi-persona-critique
-description: "Parallel critique of proposals via 5 philosophical personas with consensus synthesis."
+description: "Critique a written proposal or design artifact via 5 philosophical personas in parallel, with consensus synthesis."
 user-invocable: true
 argument-hint: "<proposals to critique, or 'generate N ideas about X'>"
 allowed-tools:
@@ -20,6 +20,7 @@ routing:
     - "evaluate from multiple perspectives"
     - "get different viewpoints"
     - "critique proposals"
+  not_for: "speaking to a person, a meeting, or pushing back in a conversation — that is professional-communication. This critiques an artifact, not interpersonal messaging."
   pairs_with:
     - roast
     - decision-helper
