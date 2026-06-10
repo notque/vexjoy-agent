@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "do",
+  "pipeline": null,
+  "reasoning": "Request is underspecified; 'do' skill classifies vague improvement requests and routes to the appropriate improvement path (code quality, performance, architecture, features, etc.)",
+  "confidence": "high"
+}

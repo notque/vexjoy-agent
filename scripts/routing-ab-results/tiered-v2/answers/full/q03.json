@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User is asking to commit changes to version control\u2014a git commit operation, which pr-workflow handles per the FORCE-ROUTE rule for git operations.",
+  "confidence": "high"
+}

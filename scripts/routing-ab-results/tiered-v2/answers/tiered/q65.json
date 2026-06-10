@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "Structured 4-phase review (UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT) of billing code with system-level focus on security, correctness, and error handling\u2014critical for financial correctness.",
+  "confidence": "high"
+}

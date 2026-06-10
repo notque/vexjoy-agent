@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "research-pipeline",
+  "reasoning": "The formal 5-phase research-pipeline (SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER) with integrated source quality gates and artifact saving matches the request exactly.",
+  "confidence": "high"
+}

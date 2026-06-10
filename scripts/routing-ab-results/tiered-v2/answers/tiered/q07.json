@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "reasoning": "User wants to validate content for safety before sharing; security-review performs deterministic security scanning plus Security reviewer analysis for exposure risks, secrets, and unsafe patterns.",
+  "confidence": "high",
+  "pipeline": null
+}

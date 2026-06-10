@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "planning skill handles software task planning, pre-plan ambiguity resolution, and plan validation for implementation strategies.",
+  "confidence": "high"
+}

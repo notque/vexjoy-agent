@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "reddit-moderate",
+  "pipeline": null,
+  "reasoning": "reddit-moderate skill fetches modqueue reports via PRAW, classifies them, and applies moderation actions\u2014exactly matching the user's subreddit moderation task",
+  "confidence": "high"
+}

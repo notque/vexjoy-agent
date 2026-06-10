@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow handles PR status checking including test results for submitted changes; FORCE rule applies to git operations",
+  "confidence": "high"
+}

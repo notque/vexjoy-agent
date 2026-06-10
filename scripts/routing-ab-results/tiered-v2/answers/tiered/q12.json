@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Refactoring workflow for identifying, consolidating, and testing duplicated logic with structured phases (tidy up, clean up, reorganize).",
+  "confidence": "high"
+}

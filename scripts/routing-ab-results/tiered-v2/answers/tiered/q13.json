@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "workflow explicitly handles refactoring scenarios (tidy up, untangle messy code, reorganize without changing behaviour); architecture-deepening is excluded from small-scope refactors per manifest",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "public-web-deploy",
+  "pipeline": null,
+  "reasoning": "FORCE skill for putting a website internet-facing; handles DNS, web server, HTTPS, hardening, and safe public deployment.",
+  "confidence": "high"
+}

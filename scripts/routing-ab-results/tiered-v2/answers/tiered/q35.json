@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "systematic-debugging",
+  "pipeline": null,
+  "reasoning": "Goroutine leak debugging in Go requires domain expertise in concurrency paired with a structured 5-phase pipeline (OBSERVE \u2192 HYPOTHESIZE \u2192 TEST \u2192 FIX \u2192 RECORD) to systematically isolate the leak.",
+  "confidence": "high"
+}

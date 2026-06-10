@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "research-pipeline",
+  "reasoning": "User's request explicitly names the five research-pipeline phases (scope, gather, synthesize, validate, deliver) and emphasizes artifact saving\u2014a perfect match for the formal 5-phase research pipeline with source-quality gates, not a quick lookup.",
+  "confidence": "high"
+}

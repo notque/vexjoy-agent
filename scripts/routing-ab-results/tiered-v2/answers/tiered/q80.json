@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "condense",
+  "pipeline": null,
+  "reasoning": "Summarizing standup notes into three bullets is information density maximization\u2014the core function of the condense skill",
+  "confidence": "medium"
+}

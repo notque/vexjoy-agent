@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "vitest-runner",
+  "pipeline": null,
+  "reasoning": "vitest-runner directly executes this task: run Vitest tests and parse results into actionable output.",
+  "confidence": "high"
+}
