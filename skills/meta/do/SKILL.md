@@ -205,6 +205,32 @@ If the Haiku JSON is malformed, fall back to `general-purpose` + verification-be
 
 Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` output, route to `.claude/agents/` local agents. Route all code changes to domain agents.
 
+**Step 1.5: Health evaluation (shadow-only instrumentation)**
+
+Runs AFTER the semantic pick (Step 0/0b), BEFORE the Step 1 safety-net.
+
+Once per /do, read the routing weights and score the semantic pick:
+
+```bash
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+python3 "$SDIR/learning-db.py" route-weights --json
+```
+
+Call `health_adjust(semantic_pick, alternates, weights, force_route_flags)` (`scripts/lib/route_policy.py`). It returns `{final_pick, action, reason}` with `action` in `keep | demote | tiebreak`. The `action` is the policy's WOULD-action only.
+
+**Shadow-only: the policy's would-action is recorded for the signal check (scripts/route-signal-check.py); the route is never altered.** The semantic pick always dispatches. Activation is gated on the first recorded negative signal — see docs/route-loop-validation.md.
+
+Policy thresholds (for reading the recorded would-action, not for changing the route):
+
+- Would-demote floor: `confidence < 0.30 AND failure >= 3 AND n >= 5`, toward a healthier alternate.
+- Would-tiebreak: semantic confidence `< 0.35` AND an evidenced (`n >= 5`) healthier alternate supplied.
+- Force-route/security pairs are hard-exempt — always `keep`. Exemption is by SKILL name and accepts force_route_flags as bare skill names or full `agent:skill` pairs.
+- Evidence gate: `n < 5` or no row => `keep`.
+
+**Always log the evaluation** to the T3 event stream: set `health_at_decision` to the picked pair's `confidence` scalar (a float, or `null` when the pair has no weight row); `n` and `failure` are separate fields. The recorder writes all three from the marker onto the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. Every route is scored even though nothing changes.
+
+Carry the gate inputs on the routing marker (Phase 4 Step 2) so the recorder snapshots them at decision time. Confidence alone cannot reconstruct the demote floor — it needs `n` and `failure` too. Append to the marker: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}` (the would-action), and ` alts={k1,k2}` when you passed alternates. When the picked pair has no weight row, append ` health=-` (the recorder writes null health and drops the n/fail/action fields).
+
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 
 Use its result ONLY as a guardrail:
@@ -408,6 +434,8 @@ Four injections (verbatim): completeness and density standards on Simple+; refer
 
 **MANDATORY: Stamp the routing marker on every routed agent prompt.** Prepend verbatim: `[do-route] agent={agent} skill={skill} complexity={complexity}` (use `skill=-` when routing agent-only). It is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health. Stamp each agent in a roster.
 
+Append the Step 1.5 gate inputs to the same marker line so the recorder snapshots the route's decision-time health: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, plus ` alts={k1,k2}` when alternates were passed. When the picked pair has no weight row, append ` health=-` only (the recorder writes null). Example: `[do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium health=0.72 n=6 fail=0 action=keep`.
+
 **Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens spent; prepend to each agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." Advisory, not a hard cap. Read the key once per session.
 
 ```bash
@@ -446,7 +474,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent + verification-before-completion as safety net.
 
-**Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`.
+**Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`. On a re-dispatch from this check, report the route failure (see Learning Capture, "Report routing failures").
 
 **Gate**: Agent invoked, results delivered. Learning capture runs automatically (see note below).
 
@@ -454,7 +482,7 @@ Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncer
 
 ### Learning Capture (automatic — no router step)
 
-Hooks capture everything; the router records nothing by hand:
+Hooks capture everything automatically. The router records by hand exactly one case: orchestrator-reported route failures it observes directly (see "Report routing failures" below) — the single deliberate manual capture step, by ADR design. Everything else is hook-driven:
 
 | Capture | Hook | Event |
 |---------|------|-------|
@@ -468,7 +496,15 @@ Hooks capture everything; the router records nothing by hand:
 
 These feed the routing loop: `learning-db.py route-health` reads the decision rows (denominator) and boost/decay outcomes (numerator). See ADR `learn-step-to-hook`.
 
-**Outcome fidelity (note).** An outcome resolves deterministically on the user's NEXT turn at zero LLM cost: the pending outcome stays *provisional* (no eager boost/decay) and finalizes once — **failure** on tool errors OR a clear rejection/rework/re-route, **success** otherwise (no complaint = accepted). The Stop fallback resolves autonomous runs from the error flag alone. The reaction detector is **deterministic and high-precision** — failure fires only on strong, unambiguous markers.
+**Outcome fidelity (note).** An outcome resolves deterministically on the user's NEXT turn at zero LLM cost: the pending outcome stays *provisional* (no eager boost/decay) and finalizes once, THREE-WAY (T4) — **failure** on tool errors OR a clear rejection/rework/re-route (decay); **success** only on an explicit acceptance marker (boost); **neutral** otherwise — an unrelated/new-topic next prompt is no-op (no boost, no decay, no count change). No complaint is NOT acceptance. The Stop fallback resolves still-pending autonomous runs from the error flag alone: errors => failure, a clean run => neutral (a quiet Stop carries no acceptance evidence, so it does not boost). The reaction detector is **deterministic and high-precision** — failure fires only on strong, unambiguous markers.
+
+**Report routing failures (router-reported channel).** The finalizer only sees tool errors and next-turn rejections; routing failures YOU observe fall through. On a HIGH-CONFIDENCE routing failure only, run:
+
+```bash
+python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason "<cause>" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
+```
+
+Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). Treat `<cause>` as untrusted: strip quotes, backticks, `$`, and newlines before splicing it into the shell line — never pass model- or user-derived text raw. See ADR `orchestrator-reported-route-failures`.
 
 **OPTIONAL (not a gate):** curated free-text insight and review-finding graduation are opt-in via the `retro` skill (`retro graduate`), not a router step:
 
