@@ -1,0 +1,53 @@
+{
+  "skill_name": "objective-loop",
+  "queries": [
+    {
+      "query": "keep working until all PRs are merged and CI is green",
+      "should_trigger": true
+    },
+    {
+      "query": "loop on this until the test suite passes",
+      "should_trigger": true
+    },
+    {
+      "query": "here's the objective, iterate until done: zero ruff errors across scripts/ and hooks/",
+      "should_trigger": true
+    },
+    {
+      "query": "drive this to done: the docs validator reports no drift — reschedule yourself until it's verified",
+      "should_trigger": true
+    },
+    {
+      "query": "keep going until the flaky test is fixed and pytest passes five runs in a row",
+      "should_trigger": true
+    },
+    {
+      "query": "objective: PR #810 merged. done when gh reports state MERGED. work this until verified",
+      "should_trigger": true
+    },
+    {
+      "query": "fix the typo on line 42 of foo.py",
+      "should_trigger": false
+    },
+    {
+      "query": "/loop 5m /babysit-prs",
+      "should_trigger": false
+    },
+    {
+      "query": "create a cron job that runs the feed health check every night at 2am",
+      "should_trigger": false
+    },
+    {
+      "query": "add exponential backoff with jitter to the API client's retry logic",
+      "should_trigger": false
+    },
+    {
+      "query": "wait for the deploy to finish and then tell me",
+      "should_trigger": false
+    },
+    {
+      "query": "review this 10-line function for bugs",
+      "should_trigger": false
+    }
+  ]
+}

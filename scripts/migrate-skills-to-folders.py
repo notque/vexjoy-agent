@@ -113,6 +113,7 @@ SKILL_MAPPING: dict[str, str] = {
     "html-artifact": "meta",
     "docs-sync-checker": "meta",
     "explanation-traces": "meta",
+    "objective-loop": "meta",
     # process/ — methodologies, git, debugging
     "planning": "process",
     "quick": "process",
