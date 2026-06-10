@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE-routed PR lifecycle skill covers review, cleanup, commit polish, and fix cycles to get approval-ready PRs",
-  "confidence": "high"
-}

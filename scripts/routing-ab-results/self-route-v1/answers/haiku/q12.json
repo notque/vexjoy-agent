@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "simplify",
-  "pipeline": null,
-  "reasoning": "Simplify skill finds repeated code and consolidates it into single locations, then applies reuse/consolidation fixes; python-general-engineer oversees the refactoring.",
-  "confidence": "high"
-}

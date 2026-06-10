@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Regression requires structured debugging: observation of the failure, hypothesis formation about what changed, testing hypotheses, applying fixes, and recording learnings\u2014exactly the 5-phase systematic-debugging pipeline.",
-  "confidence": "high"
-}

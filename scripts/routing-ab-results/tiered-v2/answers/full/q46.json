@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "agent-creator",
-  "pipeline": null,
-  "reasoning": "agent-creator (FORCE) scaffolds vexjoy-agent operator .md files including frontmatter, routing, and reference tables\u2014exactly what's needed to scaffold a Rust development agent.",
-  "confidence": "high"
-}

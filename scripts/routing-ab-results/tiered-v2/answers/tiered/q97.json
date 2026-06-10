@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "testing-preferred-patterns",
-  "pipeline": null,
-  "reasoning": "User has failing tests (red text output). testing-automation-engineer handles test automation and CI/CD failures; testing-preferred-patterns identifies and fixes common testing mistakes like flaky tests.",
-  "confidence": "high"
-}

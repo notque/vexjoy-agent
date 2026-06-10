@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "reddit-moderate",
-  "pipeline": null,
-  "reasoning": "Request is exactly Reddit modqueue moderation, matching the reddit-moderate skill which routes to python-general-engineer via PRAW.",
-  "confidence": "high"
-}

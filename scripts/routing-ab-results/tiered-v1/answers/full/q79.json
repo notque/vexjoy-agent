@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "code-review",
-  "pipeline": null,
-  "reasoning": "User wants a focused code review of a single Python function before merging—use code-review skill with reviewer-code agent for targeted quality analysis.",
-  "confidence": "high"
-}

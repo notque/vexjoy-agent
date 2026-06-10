@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Testing automation agent with CI/CD integration and coverage enforcement, paired with TDD to establish sustainable regression-prevention practices.",
-  "confidence": "high"
-}

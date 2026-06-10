@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "Directly provides systematic codebase exploration and architecture mapping for the requested quick architectural read",
-  "confidence": "high"
-}

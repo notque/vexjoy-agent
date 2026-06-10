@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "code-cleanup",
-  "pipeline": null,
-  "reasoning": "Proactively scan for dead code, stale TODOs, and unused imports using deterministic detection; report findings to inform targeted cleanup work.",
-  "confidence": "medium"
-}

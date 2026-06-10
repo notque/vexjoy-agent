@@ -1,1 +1,0 @@
-{"agent": "python-general-engineer", "skill": "reddit-moderate", "pipeline": null, "reasoning": "User wants to moderate subreddit reports; reddit-moderate skill with python-general-engineer agent handles Reddit moderation via PRAW for modqueue fetching and classification.", "confidence": "high"}

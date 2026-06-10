@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "workflow skill explicitly handles refactoring including 'tidy up, clean up, untangle messy code, reorganize without changing behaviour' — perfect for consolidating repeated logic into one place",
-  "confidence": "high"
-}

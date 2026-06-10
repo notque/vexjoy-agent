@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-perspectives",
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "The request asks for a comprehensive multi-perspective code review, which maps directly to the reviewer-perspectives agent (newcomer/senior/pedant/contrarian/user-advocate lenses) running the parallel-code-review skill for concurrent multi-reviewer coverage.",
-  "confidence": "high"
-}

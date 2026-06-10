@@ -1,7 +1,0 @@
-{
-  "agent": "project-coordinator-engineer",
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "Comprehensive review discovers priority issues in the codebase, then coordinator orchestrates multi-agent fixes and validates improvements",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "vitest-runner",
-  "pipeline": null,
-  "reasoning": "vitest-runner is purpose-built to run Vitest tests and parse results into actionable output showing test failures and reasons",
-  "confidence": "high"
-}

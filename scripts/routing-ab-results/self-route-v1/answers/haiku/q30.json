@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "verification-before-completion",
-  "pipeline": null,
-  "reasoning": "Python bug fix on modified routing AB test files requires code investigation, repair, and verification that the fix resolves the issue without breaking other behavior.",
-  "confidence": "medium"
-}

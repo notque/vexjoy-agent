@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE match: 'submit changes for review' is a pull request operation",
-  "confidence": "high"
-}

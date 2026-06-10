@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-perspectives",
-  "skill": "systematic-code-review",
-  "pipeline": null,
-  "reasoning": "Multi-perspective review agent applies 5 distinct lenses (newcomer, senior, pedant, contrarian, user advocate) to identify mistakes from multiple analytical angles, directly matching the request.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "typescript-frontend-engineer",
-  "skill": "phaser-gamedev",
-  "pipeline": null,
-  "reasoning": "phaser-gamedev skill covers Phaser 3 scenes, arcade physics, tilemaps, and sprites\u2014the exact components of your request.",
-  "confidence": "high"
-}

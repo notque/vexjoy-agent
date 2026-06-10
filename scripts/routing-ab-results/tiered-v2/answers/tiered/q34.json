@@ -1,7 +1,0 @@
-{
-  "agent": "data-engineer",
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "Data engineers handle corpus scanning and removal as ETL/data pipeline operations; workflow orchestrates the discovery, validation, and removal phases.",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "Vague improvement request requires systematic issue discovery; full-repo-review comprehensively identifies problems across the entire codebase and produces a prioritized backlog of improvements.",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "Comprehensive 3-wave repo analysis discovers specific improvements and produces a prioritized backlog to guide work",
-  "confidence": "high"
-}

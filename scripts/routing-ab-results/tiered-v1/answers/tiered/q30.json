@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Vague bug-fix request requires evidence-based investigation (OBSERVE), hypothesis, testing, fixing, and documentation; systematic-debugging pipeline covers the full cycle from discovery to validation.",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to commit files; pr-workflow FORCE rule requires it for all git commit operations",
-  "confidence": "high"
-}

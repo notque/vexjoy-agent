@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "systematic-code-review",
-  "reasoning": "Billing code demands structured UNDERSTAND\u2192VERIFY\u2192ASSESS RISKS\u2192DOCUMENT phases across security, concurrency, error handling, observability, and API contracts\u2014core system-level concerns for payment systems.",
-  "confidence": "high",
-  "pipeline": null
-}

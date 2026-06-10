@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to push finished work and share it with the team—a git workflow operation that matches the FORCE rule for pr-workflow (commit, push, PR operations).",
-  "confidence": "high"
-}

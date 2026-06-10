@@ -1,7 +1,0 @@
-{
-  "agent": "research-coordinator-engineer",
-  "skill": "research-pipeline",
-  "pipeline": null,
-  "reasoning": "User requests formal 5-phase research with scoping, source gathering, quality gates, and artifact saving\u2014exact match for research-pipeline skill + research-coordinator-engineer agent.",
-  "confidence": "high"
-}

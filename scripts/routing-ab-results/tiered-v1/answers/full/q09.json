@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Race condition debugging requires systematic reproduction, hypothesis testing, and concurrent-access verification through the OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD cycle.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "An unexplained function bug with unknown cause needs evidence-based diagnosis (OBSERVE, HYPOTHESIZE, TEST, FIX), and no language is specified so no language agent can be picked yet.",
-  "confidence": "high"
-}

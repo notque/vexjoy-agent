@@ -1,7 +1,0 @@
-{
-  "agent": "kotlin-general-engineer",
-  "skill": "kotlin-coroutines",
-  "pipeline": null,
-  "reasoning": "Kotlin Flow collector error handling requires the kotlin-general-engineer agent with kotlin-coroutines skill guidance on structured concurrency patterns to fix the coroutine pipeline.",
-  "confidence": "high"
-}

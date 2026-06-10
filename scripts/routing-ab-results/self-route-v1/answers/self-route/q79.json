@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "systematic-code-review",
-  "pipeline": null,
-  "reasoning": "The user wants a scoped review of one named function in a specific file \u2014 systematic-code-review handles named-file reviews, and reviewer-code is the code-quality review agent; 'before I merge' is context, not a git-operation request, so pr-workflow's FORCE rule doesn't apply.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to commit and push work to shared repository\u2014pr-workflow is FORCE-routed for all git operations (commit, push, PR).",
-  "confidence": "high"
-}

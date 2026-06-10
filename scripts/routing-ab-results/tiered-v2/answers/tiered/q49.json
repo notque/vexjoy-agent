@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "e2e-testing",
-  "pipeline": null,
-  "reasoning": "E2E testing workflow with Playwright expertise matches the request to write end-to-end tests for a signup form flow.",
-  "confidence": "high"
-}

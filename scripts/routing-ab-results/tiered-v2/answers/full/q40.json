@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "comprehensive-review",
-  "reasoning": "Comprehensive-review pipeline is explicitly designed for unified 4-wave code review with auto-discovered per-package language specialists, delivering both breadth and multi-dimensional perspective coverage.",
-  "confidence": "high"
-}

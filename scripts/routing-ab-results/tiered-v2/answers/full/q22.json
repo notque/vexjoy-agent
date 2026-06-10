@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "security-review FORCE skill performs deterministic scanning of git changes for secrets, passwords, and API keys before pushing.",
-  "confidence": "high"
-}

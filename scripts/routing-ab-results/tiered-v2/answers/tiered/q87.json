@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "do",
-  "pipeline": null,
-  "reasoning": "Vague performance request needs clarification about target (code/system/web/agent) and metric (speed/memory/throughput); 'do' classifies requests and routes to the appropriate performance-focused agent.",
-  "confidence": "medium"
-}

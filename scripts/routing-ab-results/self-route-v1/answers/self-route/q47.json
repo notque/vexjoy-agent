@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "read-only-ops",
-  "pipeline": null,
-  "reasoning": "A current-branch query is a read-only git inspection with no push/commit/PR action, so pr-workflow's FORCE rule does not apply and read-only-ops is the most specific match.",
-  "confidence": "high"
-}

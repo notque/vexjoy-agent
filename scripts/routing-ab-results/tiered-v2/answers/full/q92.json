@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "public-web-deploy",
-  "pipeline": null,
-  "reasoning": "User wants to publish their website publicly; public-web-deploy is the FORCE-routed skill for safely deploying internet-facing sites with DNS, HTTPS, hardening, and verification.",
-  "confidence": "high"
-}

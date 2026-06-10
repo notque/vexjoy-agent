@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Simple conceptual knowledge question answerable directly from model knowledge; 'quick answer' is a speed preference (not the quick skill's tracked-execution domain), and research-pipeline/deep-research are excluded since the user explicitly wants no report.",
-  "confidence": "high"
-}

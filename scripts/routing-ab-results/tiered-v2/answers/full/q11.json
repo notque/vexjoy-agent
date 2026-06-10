@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": "systematic-debugging",
-  "pipeline": null,
-  "reasoning": "Memory leak diagnosis in a Go service requires Go-specific profiling tools (pprof) and systematic hypothesis-driven investigation to isolate the leak's root cause.",
-  "confidence": "high"
-}

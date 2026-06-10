@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": "kubernetes-debugging",
-  "pipeline": null,
-  "reasoning": "Pod CrashLoopBackOff is a pod failure requiring Kubernetes debugging to diagnose restart loop root cause.",
-  "confidence": "high"
-}

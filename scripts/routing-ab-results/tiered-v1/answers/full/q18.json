@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "codebase-overview performs systematic exploration and architecture mapping, directly addressing the request to understand the codebase structure",
-  "confidence": "high"
-}

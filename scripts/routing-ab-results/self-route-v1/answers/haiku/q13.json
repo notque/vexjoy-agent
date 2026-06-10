@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "workflow skill explicitly handles code reorganization without changing behavior; python-general-engineer provides language expertise for the Python module refactoring",
-  "confidence": "high"
-}

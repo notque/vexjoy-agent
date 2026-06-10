@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-refactoring",
-  "reasoning": "Systematic-refactoring pipeline provides the structured 5-phase approach (characterize, plan, refactor, verify, record) needed to safely reorganize module structure while preserving behavior through test gates.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "User needs to resolve pre-plan ambiguity, define requirements, and establish acceptance criteria for an export feature — classic spec and planning phase work before implementation.",
-  "confidence": "high"
-}

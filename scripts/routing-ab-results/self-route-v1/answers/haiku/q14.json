@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Writing test cases for a Python parser follows the TDD red-green-refactor cycle to verify parser correctness",
-  "confidence": "high"
-}

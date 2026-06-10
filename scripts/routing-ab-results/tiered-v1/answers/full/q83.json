@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "Request is exploratory and underspecified (unclear site type, goals, tech stack); planning skill handles pre-plan ambiguity resolution to clarify which AI features would be most valuable before architectural decisions.",
-  "confidence": "medium"
-}

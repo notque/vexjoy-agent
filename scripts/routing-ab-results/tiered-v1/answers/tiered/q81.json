@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "read-only-ops",
-  "pipeline": null,
-  "reasoning": "Read-only inspection and reporting of scripts/ directory contents with no modifications",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to push commits to a remote Git server; pr-workflow is the FORCE-routed skill for all git operations (push, commit, PR, merge).",
-  "confidence": "high"
-}

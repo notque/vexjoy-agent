@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "agent-creator",
-  "pipeline": null,
-  "reasoning": "Scaffolding a new vexjoy-agent operator .md file (a Rust development agent) is exactly agent-creator's FORCE domain \u2014 the 'Rust' part is the new agent's subject, not a request to write Rust code.",
-  "confidence": "high"
-}

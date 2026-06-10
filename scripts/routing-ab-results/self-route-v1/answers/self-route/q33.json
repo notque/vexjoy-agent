@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "The pr-workflow NOT-clause explicitly excludes the metaphorical phrase 'merge the branches in your head' (it means mentally synthesize ideas, not a git merge), and no agent or skill domain matches a conversational synthesis request \u2014 handle inline.",
-  "confidence": "high"
-}

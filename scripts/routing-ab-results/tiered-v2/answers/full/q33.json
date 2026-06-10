@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "read-only-ops",
-  "pipeline": null,
-  "reasoning": "User wants to analyze branch changes and understand merge implications without executing; read-only exploration fits the metaphorical 'in your head' request.",
-  "confidence": "high"
-}

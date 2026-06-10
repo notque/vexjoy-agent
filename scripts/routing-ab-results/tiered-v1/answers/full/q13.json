@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "The request explicitly asks to 'reorganize without changing behaviour'—workflow skill explicitly lists this use case; architecture-deepening excludes small-scope refactors and directs them to workflow.",
-  "confidence": "high"
-}

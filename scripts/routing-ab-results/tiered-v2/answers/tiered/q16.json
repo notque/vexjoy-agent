@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "User wants feedback on recent edits; parallel-code-review provides multi-lens code quality analysis across Security, Business-Logic, and Performance dimensions",
-  "confidence": "high"
-}

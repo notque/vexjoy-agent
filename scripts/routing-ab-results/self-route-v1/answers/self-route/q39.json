@@ -1,7 +1,0 @@
-{
-  "agent": "typescript-debugging-engineer",
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "A React web component rendering bug is a frontend TypeScript debugging task (react-native-engineer excluded since this is web, and no FORCE skill matches \u2014 quick excludes bug diagnosis requiring investigation), so typescript-debugging-engineer with the workflow skill's debug phase fits best.",
-  "confidence": "high"
-}

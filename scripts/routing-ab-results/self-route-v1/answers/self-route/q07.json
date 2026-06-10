@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "User wants a safety/security pass over their current local changes before sharing them publicly, which semantically matches the FORCE-marked security-review skill (deterministic scan plus Security reviewer, bound to reviewer-system).",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "User wants security scan of branch before sharing; security-review is FORCE-marked for local security review of git changes with deterministic secret/credential detection",
-  "confidence": "high"
-}

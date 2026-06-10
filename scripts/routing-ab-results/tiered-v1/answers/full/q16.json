@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-code",
-  "skill": "code-review",
-  "pipeline": null,
-  "reasoning": "User wants a careful review of recent edits to identify improvements; code-review examines the current diff for bugs and cleanups while reviewer-code brings code quality expertise on conventions, naming, dead code, and performance",
-  "confidence": "high"
-}

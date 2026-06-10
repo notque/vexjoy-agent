@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Git push is a git operation; pr-workflow is FORCE-marked for all git push/commit/PR operations and this request is a literal git push, not a metaphorical one.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-to-article",
-  "reasoning": "Multi-agent research pipeline designed to research a topic thoroughly then generate a voice-based article in sequence.",
-  "confidence": "high"
-}

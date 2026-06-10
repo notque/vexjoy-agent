@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "kubernetes-helm-engineer explicitly handles Kubernetes and Helm deployments—the direct match for the user's request.",
-  "confidence": "high"
-}

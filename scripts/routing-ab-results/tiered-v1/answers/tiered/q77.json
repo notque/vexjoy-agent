@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "Typo fixes are lightweight tracked corrections; quick skill handles them directly without needing specialized agents.",
-  "confidence": "medium"
-}

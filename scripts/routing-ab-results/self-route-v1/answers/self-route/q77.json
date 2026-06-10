@@ -1,7 +1,0 @@
-{
-  "agent": "general-purpose",
-  "skill": "publish",
-  "pipeline": null,
-  "reasoning": "Fixing typos in an already-published blog post is a content-publishing edit-and-reupload task (Kubernetes is the post's topic, not an infrastructure task), so it routes to the publish umbrella which owns the blog pipeline from edit to upload.",
-  "confidence": "high"
-}

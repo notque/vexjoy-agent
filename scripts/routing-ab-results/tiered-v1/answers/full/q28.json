@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "professional-communication",
-  "pipeline": null,
-  "reasoning": "Vague request without context about the approach; professional-communication handles drafting disagreement and pushback in business formats, but requires clarification of what you're pushing back on and whether this is a message draft, design critique, or architectural decision.",
-  "confidence": "low"
-}

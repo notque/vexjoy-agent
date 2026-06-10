@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "Request lacks specifics about user complaints, product context, or improvement targets; lightweight triage with --discuss flag needed to surface priorities",
-  "confidence": "low"
-}

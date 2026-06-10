@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Structured 5-phase debugging pipeline (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD) is ideal for investigating an unspecified bug when symptoms and reproduction aren't yet articulated.",
-  "confidence": "medium"
-}

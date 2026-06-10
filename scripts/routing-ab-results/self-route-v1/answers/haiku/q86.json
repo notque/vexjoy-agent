@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "Planning skill's pre-plan ambiguity resolution directly clarifies feature scope and requirements before committing to implementation.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "technical-journalist-writer",
-  "skill": "voice-writer",
-  "pipeline": "research-to-article",
-  "reasoning": "The request spans research plus voice-profile article generation, which is exactly the research-to-article multi-agent pipeline; voice-writer is FORCE-matched for writing in the user's voice and technical-journalist-writer is its long-form writing agent.",
-  "confidence": "high"
-}

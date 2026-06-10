@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "comprehensive-review",
-  "reasoning": "comprehensive-review orchestrates a 4-wave code review by auto-discovering all packages/modules and dispatching one language-specialist agent per package, then synthesizes findings into a prioritized backlog.",
-  "confidence": "high"
-}

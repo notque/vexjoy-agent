@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "translate",
-  "pipeline": null,
-  "reasoning": "translate skill handles document translation with code preservation in quick/normal/refined modes.",
-  "confidence": "high"
-}

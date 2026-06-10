@@ -1,1 +1,0 @@
-{"agent": null, "skill": "pr-workflow", "pipeline": null, "reasoning": "User wants to check CI/test status on a submitted change (PR), which is explicitly covered by pr-workflow's 'pr status' capability and FORCE-ROUTE rule for PR operations.", "confidence": "high"}

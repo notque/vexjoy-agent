@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": "go-patterns",
-  "pipeline": null,
-  "reasoning": "Table-driven tests are the canonical Go testing idiom, and go-patterns (FORCE) explicitly covers Go testing patterns with golang-general-engineer as its bound agent.",
-  "confidence": "medium"
-}

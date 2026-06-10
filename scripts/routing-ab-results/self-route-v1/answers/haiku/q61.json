@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "multi-persona-critique",
-  "pipeline": null,
-  "reasoning": "multi-persona-critique critiques written proposals via multiple philosophical personas in parallel, directly matching your request to tear apart competing proposals from several angles.",
-  "confidence": "high"
-}

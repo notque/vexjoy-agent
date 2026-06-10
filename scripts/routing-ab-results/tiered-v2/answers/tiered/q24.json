@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE-route: pr-workflow handles git push/commit/PR operations; explicitly required for pushing changes to GitHub",
-  "confidence": "high"
-}

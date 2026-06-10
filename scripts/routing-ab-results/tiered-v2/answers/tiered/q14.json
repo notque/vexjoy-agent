@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "test-driven-development uses RED-GREEN-REFACTOR methodology to write checks that verify behavior; python-general-engineer provides Python-specific implementation expertise.",
-  "confidence": "high"
-}

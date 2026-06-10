@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Writing checks that prove a Python parser behaves correctly means authoring Python tests, which is the python-general-engineer's domain using the TDD skill; python-quality-gate's FORCE does not fire because it covers running existing quality tooling, not writing new tests, and testing-automation-engineer is JS-stack (Vitest/Playwright).",
-  "confidence": "high"
-}

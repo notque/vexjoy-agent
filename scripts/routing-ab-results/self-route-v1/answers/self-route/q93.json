@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "translate",
-  "pipeline": null,
-  "reasoning": "The user wants text translated to Spanish while preserving code blocks, which is exactly the translate skill's domain (document translation with content left intact where appropriate).",
-  "confidence": "high"
-}

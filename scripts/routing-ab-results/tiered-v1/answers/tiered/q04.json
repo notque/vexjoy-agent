@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to upload finished work to share with team—this is a git push/commit/PR operation, which is a FORCE-route skill",
-  "confidence": "high"
-}
