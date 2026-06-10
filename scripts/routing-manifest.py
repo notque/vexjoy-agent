@@ -37,37 +37,51 @@ WORKING_SET_WINDOW_SECONDS = 30 * 86400
 STUB_DESC_WORDS = 6
 
 
-def _resolve_index(tracked: Path, local_name: str) -> Path:
-    """Return the local override path when it exists, otherwise the tracked path.
-
-    Local override files (INDEX.local.json) are gitignored and may contain
-    entries for symlinked directories. They are produced by running the
-    generator with --include-private --output <local-path>.
-    """
-    local = tracked.parent / local_name
-    return local if local.exists() else tracked
-
-
 INDEX_PATHS = {
-    "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
+    "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
+    "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
+    "pipelines": (REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json", None),
 }
+
+
+def _load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
+    """Load index items from the tracked file, overlaying the local override.
+
+    Local override files (INDEX.local.json) are gitignored supersets produced
+    by the generator with --include-private --output <local-path>; they add
+    entries for symlinked/private directories. The local file regenerates less
+    often than the tracked one, so it can be stale. The merge is add-only
+    (tracked first, local fills gaps per-name): a stale local can never hide a
+    tracked skill or agent, and never overrides tracked entry content such as
+    triggers or force_route — full replacement and per-name update both did.
+
+    Duplicated by hand in pre-route.py and index-router.py (the routing
+    scripts share no lib module); keep the three copies in sync.
+    """
+    items: dict = {}
+    paths = [tracked]
+    if local_name:
+        local = tracked.parent / local_name
+        if local.exists():
+            paths.append(local)
+    for path in paths:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        loaded = raw.get(key, {})
+        if isinstance(loaded, dict):
+            for name, data in loaded.items():
+                items.setdefault(name, data)
+    return items
 
 
 def load_entries() -> list[dict]:
     """Load all INDEX entries into a flat list."""
     entries = []
 
-    for index_type, path in INDEX_PATHS.items():
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            continue
-
-        items = raw.get(index_type, {})
-        if not isinstance(items, dict):
-            continue
+    for index_type, (tracked, local_name) in INDEX_PATHS.items():
+        items = _load_index_items(tracked, local_name, index_type)
 
         for name, data in items.items():
             if not isinstance(data, dict):
