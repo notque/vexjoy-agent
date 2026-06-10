@@ -2,6 +2,8 @@
 
 <img src="docs/repo-hero.png" alt="VexJoy Agent" width="100%">
 
+Essays and writing behind this toolkit live at [vexjoy.com](https://vexjoy.com).
+
 AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
