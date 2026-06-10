@@ -44,10 +44,34 @@ _INDEX_GENERATORS = {
 }
 
 
-def _resolve_index(tracked: Path, local_name: str) -> Path:
-    """Return the local override path when it exists, otherwise the tracked path."""
-    local = tracked.parent / local_name
-    return local if local.exists() else tracked
+def _load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
+    """Load index items from the tracked file, overlaying the local override.
+
+    Local override files (INDEX.local.json) are gitignored supersets produced
+    by the generator with --include-private; they add entries for
+    symlinked/private directories. The local file regenerates less often than
+    the tracked one, so it can be stale. Merging (tracked first, local
+    overlays per-name) guarantees a stale local never hides a skill or agent
+    that exists in the tracked index — full replacement did exactly that.
+
+    Duplicated by hand in routing-manifest.py and index-router.py (the
+    routing scripts share no lib module); keep the three copies in sync.
+    """
+    items: dict = {}
+    paths = [tracked]
+    if local_name:
+        local = tracked.parent / local_name
+        if local.exists():
+            paths.append(local)
+    for path in paths:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        loaded = raw.get(key, {})
+        if isinstance(loaded, dict):
+            items.update(loaded)
+    return items
 
 
 def _ensure_index(index_type: str, path: Path) -> None:
@@ -75,8 +99,8 @@ def _ensure_index(index_type: str, path: Path) -> None:
 
 
 INDEX_PATHS = {
-    "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
+    "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
+    "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
 }
 
 # Verbs/nouns that signal working ON a site (build, edit, debug, discuss) rather
@@ -398,17 +422,11 @@ def load_entries() -> list[dict]:
     """Load all INDEX entries into a flat list."""
     entries: list[dict] = []
 
-    for index_type, path in INDEX_PATHS.items():
-        # Auto-regenerate a missing (untracked) index before reading. Fail-safe.
-        _ensure_index(index_type, path)
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            continue
-
-        items = raw.get(index_type, {})
-        if not isinstance(items, dict):
-            continue
+    for index_type, (tracked, local_name) in INDEX_PATHS.items():
+        # Auto-regenerate a missing (untracked) tracked index before reading.
+        # Fail-safe.
+        _ensure_index(index_type, tracked)
+        items = _load_index_items(tracked, local_name, index_type)
 
         for name, data in items.items():
             if not isinstance(data, dict):
