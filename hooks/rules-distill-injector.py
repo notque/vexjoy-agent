@@ -23,7 +23,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output, should_run_bootstrap_hook
+from hook_utils import context_output, empty_output
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "SessionStart"
@@ -141,8 +141,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        if not should_run_bootstrap_hook():
-            empty_output(EVENT_NAME).print_and_exit()
         main()
     except Exception as e:
         print(f"[rules-distill-injector] Fatal: {e}", file=sys.stderr)

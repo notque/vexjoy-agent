@@ -51,7 +51,7 @@ def test_allowlist_has_no_stale_entries():
 
 
 def test_mirror_allowlists_have_no_phantom_entries():
-    """Every codex/gemini mirror entry exists AND is registered (no phantoms)."""
+    """Every codex mirror entry exists AND is registered (no phantoms)."""
     msgs = vhh.check_mirror(_settings())
     assert not msgs, "Phantom mirror entries:\n" + "\n".join(msgs)
 

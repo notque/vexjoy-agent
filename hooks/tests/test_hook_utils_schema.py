@@ -2,7 +2,7 @@
 """Tests for schema-compatibility helpers in hook_utils.
 
 Covers get_tool_result, get_tool_output, get_tool_error, and is_tool_error
-across Claude/Codex/Gemini and Factory CLI schemas.
+across Claude/Codex and Factory CLI schemas.
 """
 
 import sys

@@ -442,126 +442,13 @@ def deny_tool_use(event_name: str, reason: str) -> None:
     print(json.dumps(output))
 
 
-# =============================================================================
-# CLI Detection and Input Normalization
-#
-# These functions are infrastructure for hook authors to import as needed.
-# They are NOT auto-applied; individual hooks must call them explicitly.
-# =============================================================================
-
-
-def detect_cli() -> str:
-    """Detect which CLI is invoking this hook based on environment variables.
-
-    Detection is best-effort and may need updating as Gemini CLI's
-    environment contract stabilises.  We avoid using ``GEMINI_API_KEY``
-    alone because users commonly set it for direct API access even when
-    running Claude Code.
-
-    Returns:
-        One of "agy", "gemini", "codex", "reasonix", or "claude".
-    """
-    # Most specific: explicit CLI identification env var
-    if os.environ.get("ANTIGRAVITY_AGENT"):
-        return "agy"
-    if os.environ.get("GEMINI_CLI"):
-        return "gemini"
-    # Process-based: the _ var contains the invoking command path.
-    # Match on basename to avoid false positives from parent paths
-    # like /Users/agy-fan/bin/gemini or /opt/gemini-tools/bin/agy.
-    invocation = os.environ.get("_", "")
-    invocation_basename = os.path.basename(invocation).lower()
-    if invocation_basename == "agy" or invocation_basename.startswith("agy-"):
-        return "agy"
-    if "gemini" in invocation_basename:
-        return "gemini"
-    if "codex" in invocation.lower():
-        return "codex"
-    # Reasonix sets no session/home env var and spawns hooks with the ambient
-    # env inherited, so it is only identifiable via the _ invocation var.
-    # Match on basename so unrelated parent paths (/Users/reasonix-fan/bin/...)
-    # do not false-positive while wrapper scripts (reasonix-dev) still match.
-    if "reasonix" in os.path.basename(invocation).lower():
-        return "reasonix"
-    # Codex-specific env vars
-    if os.environ.get("CODEX_HOME") or os.environ.get("CODEX_HOOKS_DIR"):
-        return "codex"
-    return "claude"
-
-
-def is_first_bootstrap_call_this_session() -> bool:
-    """Best-effort once-per-session gate for bootstrap hooks under Antigravity.
-
-    Antigravity (`agy`) has no SessionStart event, so bootstrap hooks (github
-    briefing, operator context, team config, rules-distill) ride on
-    UserPromptSubmit and would fire every prompt. We touch a PPID-keyed marker
-    in TMPDIR; the first call returns True, subsequent calls return False.
-
-    Other CLIs hit these hooks via SessionStart (which already fires once per
-    session), so callers should bypass this gate when ``detect_cli() != "agy"``.
-
-    On filesystem failure we return True (fire), preferring duplicate output
-    over silently dropping the bootstrap.
-    """
-    ppid = os.getppid()
-    tmpdir = Path(os.environ.get("TMPDIR", "/tmp"))
-    marker = tmpdir / f"vexjoy-session-bootstrap-{ppid}"
-    if marker.exists():
-        return False
-    try:
-        marker.touch()
-    except OSError:
-        return True
-    return True
-
-
-def should_run_bootstrap_hook() -> bool:
-    """True when a bootstrap hook should run THIS invocation.
-
-    Always True on Claude / Codex / Gemini CLI / Reasonix (their SessionStart
-    contract already fires once per session). On Antigravity, gated to the
-    first UserPromptSubmit per session via PPID touchfile.
-    """
-    if detect_cli() != "agy":
-        return True
-    return is_first_bootstrap_call_this_session()
-
-
-def normalize_input(data: dict[str, Any]) -> dict[str, Any]:
-    """Normalize hook stdin fields across CLI implementations.
-
-    Gemini CLI uses different field names than Claude/Codex:
-      - tool_input  -> input
-      - tool_name   -> tool
-
-    This function translates Gemini field names to the Claude/Codex
-    convention so hooks can use a single code path. Fields that already
-    exist under the Claude/Codex name are not overwritten.
-
-    Args:
-        data: Parsed JSON dict from stdin.
-
-    Returns:
-        The same dict (mutated in place) with normalized field names.
-    """
-    # Gemini: tool_input -> input
-    if "tool_input" in data and "input" not in data:
-        data["input"] = data["tool_input"]
-
-    # Gemini: tool_name -> tool
-    if "tool_name" in data and "tool" not in data:
-        data["tool"] = data["tool_name"]
-
-    return data
-
-
 # ===== Schema-Compatibility Helpers (PostToolUse) =====
 
 
 def get_tool_result(event: dict) -> dict:
     """Return the tool result dict from a PostToolUse event.
 
-    Handles both Claude/Codex/Gemini ('tool_result') and Factory CLI
+    Handles both Claude/Codex ('tool_result') and Factory CLI
     ('tool_response') schemas. Returns {} if neither key is present.
     """
     if "tool_result" in event:
@@ -574,7 +461,7 @@ def get_tool_result(event: dict) -> dict:
 def get_tool_output(result: dict) -> str:
     """Return the tool's stdout/output string.
 
-    Claude/Codex/Gemini use 'output'; Factory uses 'stdout'.
+    Claude/Codex use 'output'; Factory uses 'stdout'.
 
     Note: key presence, not truthiness, determines the field — an empty
     'output' key returns '' without falling through to 'stdout'.
@@ -589,7 +476,7 @@ def get_tool_output(result: dict) -> str:
 def get_tool_error(result: dict) -> str:
     """Return the tool's error/stderr string when an error occurred.
 
-    Claude/Codex/Gemini surface 'error'; Factory uses 'stderr' (and exitCode != 0
+    Claude/Codex surface 'error'; Factory uses 'stderr' (and exitCode != 0
     indicates failure). Returns empty string when no error.
     """
     if result.get("error"):
@@ -602,7 +489,7 @@ def get_tool_error(result: dict) -> str:
 def is_tool_error(result: dict) -> bool:
     """Detect tool failure across schemas.
 
-    Claude/Codex/Gemini set is_error=True; Factory exposes exitCode (non-zero = error).
+    Claude/Codex set is_error=True; Factory exposes exitCode (non-zero = error).
     """
     if "is_error" in result:
         return bool(result["is_error"])

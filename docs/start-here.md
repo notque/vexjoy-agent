@@ -12,9 +12,9 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: Codex CLI, Gemini CLI, Factory, or Reasonix. The toolkit mirrors skills (and agents where the harness supports them) into their directories (`~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Claude Code remains the full runtime for hooks, commands, and scripts. Antigravity CLI (`agy`) is also supported; see README § "Gemini CLI / Antigravity CLI Support" for setup details.
+Optional: Codex CLI, Factory, or Reasonix. The toolkit mirrors skills (and agents where the harness supports them) into their directories (`~/.codex/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Claude Code remains the full runtime for hooks, commands, and scripts. Gemini CLI support was removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity — see README § "Gemini CLI / Antigravity CLI Support (removed)".
 
-Verify optional tools: `codex --version` / `gemini --version` / `factory --version` / `reasonix --version`.
+Verify optional tools: `codex --version` / `factory --version` / `reasonix --version`.
 
 Command entry points:
 
@@ -22,7 +22,6 @@ Command entry points:
 |-----|---------|
 | Claude Code | `/do` |
 | Codex | `$do` |
-| Gemini CLI | `/do` |
 | Factory | `/do` |
 | Reasonix | `/do` |
 
@@ -36,7 +35,7 @@ cd vexjoy-agent
 
 The installer asks one question: symlink or copy. Symlink means updates via `git pull`. Copy means a stable snapshot. Either works.
 
-What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/` and `~/.gemini/skills/`, agents into `~/.codex/agents/` and `~/.gemini/agents/` and `~/.factory/droids/` (Factory calls agents "droids"), and skills + scripts + hooks into `~/.reasonix/` (no agent surface there). Configures hooks in settings so they activate automatically.
+What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/`, agents into `~/.codex/agents/` and `~/.factory/droids/` (Factory calls agents "droids"), and skills + scripts + hooks into `~/.reasonix/` (no agent surface there). Configures hooks in settings so they activate automatically.
 
 ## Verify
 
