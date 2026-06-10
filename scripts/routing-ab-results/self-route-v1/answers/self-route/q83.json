@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "feature-lifecycle",
+  "pipeline": null,
+  "reasoning": "Adding AI features to a site is new feature work needing design before implementation \u2014 feature-lifecycle is FORCE-marked for exactly this span (design \u2192 plan \u2192 implement \u2192 validate \u2192 release), and its design phase resolves the deliberate vagueness ('you pick what makes sense'); no agent is pinned because the site's stack is unknown and the lifecycle's design phase will select the right engineer.",
+  "confidence": "medium"
+}

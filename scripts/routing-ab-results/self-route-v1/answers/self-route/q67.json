@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": null,
+  "reasoning": "Reviewing Go error-handling/wrapped-error conventions is exactly the FORCE-marked go-patterns skill's domain (Go errors, review, conventions), executed by its bound golang-general-engineer agent.",
+  "confidence": "high"
+}

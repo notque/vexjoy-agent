@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "'Fish out' here means extract/find (explicitly excluded from the fish-shell-config FORCE trigger), so this is root-cause bug diagnosis, which maps to the evidence-based systematic-debugging pipeline; no language/domain is given, so no specific agent is pinned.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants a security inspection of current git changes; security-review is FORCE-marked and performs deterministic security scanning plus expert review of diffs.",
+  "confidence": "high"
+}

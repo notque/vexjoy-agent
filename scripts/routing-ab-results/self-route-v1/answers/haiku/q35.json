@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": null,
+  "reasoning": "Goroutine leak debugging is a Go concurrency pattern problem; go-patterns skill (FORCE-routed) is the direct match for this task.",
+  "confidence": "high"
+}

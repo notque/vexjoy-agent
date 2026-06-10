@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "systematic-debugging",
+  "pipeline": null,
+  "reasoning": "Python project needs systematic debugging pipeline (OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD) to diagnose root cause of function bug",
+  "confidence": "high"
+}

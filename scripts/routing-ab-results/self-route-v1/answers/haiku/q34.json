@@ -1,0 +1,7 @@
+{
+  "agent": "data-engineer",
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Scanning and removing voice samples from a corpus is an ETL/data-cleaning pipeline task; data-engineer handles data transformations while workflow orchestrates the scan-identify-remove phases.",
+  "confidence": "high"
+}

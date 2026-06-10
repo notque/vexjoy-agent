@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "codebase-overview is purpose-built for systematic architecture exploration and mapping, delivering a quick structural read without requiring modifications.",
+  "confidence": "high"
+}

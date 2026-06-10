@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Scanning a corpus and deleting voice-sample files is a scoped, scriptable cleanup task \u2014 no FORCE skill matches (create-voice creates profiles, it doesn't remove samples; voice-writer/voice-validator generate and validate content), so a tracked lightweight execution by a Python engineer fits best.",
+  "confidence": "medium"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "general-purpose",
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "The request asks to plan a feature's implementation, which semantically matches the FORCE-marked planning skill (software task planning and specs) with its designated general-purpose agent.",
+  "confidence": "high"
+}

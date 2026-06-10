@@ -1,0 +1,7 @@
+{
+  "agent": "kotlin-general-engineer",
+  "skill": "kotlin-coroutines",
+  "pipeline": null,
+  "reasoning": "Flow collector dying after first error is a Kotlin coroutine/Flow pattern bug (likely missing catch/retry or exception transparency violation), which the kotlin-coroutines skill covers and it binds to kotlin-general-engineer for the SyncService.kt fix.",
+  "confidence": "high"
+}

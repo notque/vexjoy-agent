@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "create-voice",
+  "pipeline": "voice-calibrator",
+  "reasoning": "Building a voice profile from existing writing samples is the exact domain of the FORCE-marked create-voice skill, backed by the voice-calibrator pipeline that extracts voice patterns from samples.",
+  "confidence": "high"
+}

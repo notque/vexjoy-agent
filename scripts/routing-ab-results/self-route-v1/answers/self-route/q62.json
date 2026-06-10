@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "professional-communication",
+  "pipeline": null,
+  "reasoning": "The user wants raw outage notes rewritten into a management-facing status update, which is exactly professional-communication's domain (drafting emails, memos, and status updates), not productivity (personal prioritization) or technical-documentation (runbooks/API docs).",
+  "confidence": "high"
+}

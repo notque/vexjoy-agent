@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "voice-writer",
+  "pipeline": null,
+  "reasoning": "voice-writer is a FORCE skill for unified voice content generation with mandatory validation and joy-check\u2014exactly what the user requested for writing a blog post in their own voice with those verifications.",
+  "confidence": "high"
+}

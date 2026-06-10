@@ -1,0 +1,5192 @@
+{
+  "n_queries": 99,
+  "arms": [
+    "haiku",
+    "self-route"
+  ],
+  "cost": {
+    "haiku_calls_total": {
+      "haiku": 99,
+      "self-route": 99
+    },
+    "calls_per_request": {
+      "haiku": 1.0,
+      "self-route": 1.0
+    }
+  },
+  "records": [
+    {
+      "id": "q00",
+      "query": "send my commits to the server",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY. Real git push intent, no 'push'/'GitHub' keyword. MUST route pr-workflow so the commit->quality-gate guarantee holds. pre-route falls through (no trigger).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "User is pushing commits to remote (git push) — FORCE match for pr-workflow per git operations rule.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "'Send my commits to the server' means git push — a git operation, which force-routes to pr-workflow.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q01",
+      "query": "save my work to the shared repository",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY. 'save to shared repository' = push. No trigger keyword. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "User wants to push/commit work to a shared repository—a git operation that FORCE-routes to pr-workflow per the manifest rule for push/commit/PR/merge operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Saving work to the shared repository means git commit and push, which the FORCE-routed pr-workflow skill covers for all git push/commit/PR operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q02",
+      "query": "I'd like to submit my changes for review",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY. 'submit changes for review' = open a PR. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "FORCE rule: git operations (PR, push, commit) route to pr-workflow; user is submitting changes for review",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Submitting changes for review means committing, pushing, and opening a PR — a git operation that force-routes to pr-workflow, which owns the full PR lifecycle including review.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q03",
+      "query": "please record what I changed into version control",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY. 'record into version control' = commit. MUST route pr-workflow (commit intent).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "User requests committing changes to version control; pr-workflow is FORCE-routed for all git commit operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Recording changes into version control means a git commit, which the FORCE rule routes to pr-workflow for all git commit/push/PR operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q04",
+      "query": "I want to upload my finished work so the team can see it",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY. Plain phrasing of push-for-team-visibility = push/PR. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "FORCE match: git push/PR workflow for uploading finished work to share with team.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Uploading finished work for the team to see semantically means pushing/committing and opening a PR, which FORCE-routes to pr-workflow per the git-operations rule.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q05",
+      "query": "can you check if the automated tests on my submitted change went green",
+      "bucket": "paraphrase-git",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY-adjacent. CI status on a PR; benchmark routes ci-check intent to pr-workflow. No 'CI'/'PR' token. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "pr-workflow explicitly covers PR status checking including CI test results; FORCE-route rule requires it for all git/PR operations",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Checking CI status on a submitted change is a PR-lifecycle status operation, which the FORCE-marked pr-workflow skill covers explicitly ('status' in its lifecycle).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q06",
+      "query": "look over my code for safety problems",
+      "bucket": "paraphrase-security",
+      "category": "security",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "notes": "SAFETY. Security review intent, no 'security' token. security-review FORCE agent=reviewer-system. Defensible equivalent: parallel-code-review security pass.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "FORCE-match: security-review explicitly reviews git changes for security problems with a deterministic scan plus security reviewer",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "User wants their code checked for safety problems, which semantically means a security pass over their code — security-review is FORCE-marked for exactly this intent and pairs with reviewer-system, the security-focused reviewer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q07",
+      "query": "check whether anything here is unsafe before I share it",
+      "bucket": "paraphrase-security",
+      "category": "security",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "notes": "SAFETY. 'is anything unsafe' = security review. No 'security' keyword. MUST route security-review (or defensible parallel-code-review).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "User explicitly requests security assessment before sharing content; security-review is FORCE-matched for security passes.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "User wants a safety/security pass over their current local changes before sharing them publicly, which semantically matches the FORCE-marked security-review skill (deterministic scan plus Security reviewer, bound to reviewer-system).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q08",
+      "query": "I worry someone could break into this, can you inspect it",
+      "bucket": "paraphrase-security",
+      "category": "security",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "notes": "SAFETY. Vulnerability/intrusion concern = security review. No trigger keyword.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "User wants a security inspection of current git changes; security-review is FORCE-marked and performs deterministic security scanning plus expert review of diffs.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "security-threat-model",
+            "pipeline": null,
+            "reasoning": "The user fears intrusion into the system as a whole ('someone could break into this'), which is whole-system attack-surface analysis — security-threat-model's domain — rather than a security pass over current git changes (security-review explicitly excludes whole-system threat modeling).",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "security-threat-model",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q09",
+      "query": "the program stops working when two things happen at the same time, help me find why",
+      "bucket": "paraphrase-debug",
+      "category": "debugging",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "Race-condition debug, no language stated, no 'debug' token. workflow umbrella owns the debug pipeline. Defensible: socratic-debugging.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "Python concurrent code debugging using structured 5-phase methodology (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD) to isolate and fix race condition root causes",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "A program failing only when two things happen concurrently is a race-condition bug needing evidence-based reproduction and hypothesis testing, and the language is unspecified so no language-specific engineer (e.g. typescript-debugging-engineer) can be chosen yet.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q10",
+      "query": "something is wrong with this function and I cannot work out the cause",
+      "bucket": "paraphrase-debug",
+      "category": "debugging",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "Root-cause investigation, no 'debug'/'bug' trigger phrase that force-routes. workflow debug pipeline. Defensible: socratic-debugging.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "systematic-debugging",
+            "pipeline": null,
+            "reasoning": "Python project needs systematic debugging pipeline (OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD) to diagnose root cause of function bug",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "systematic-debugging",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "An unexplained function bug with unknown cause needs evidence-based diagnosis (OBSERVE, HYPOTHESIZE, TEST, FIX), and no language is specified so no language agent can be picked yet.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q11",
+      "query": "my Go service slowly eats memory until it falls over, find the cause",
+      "bucket": "paraphrase-debug",
+      "category": "go-development",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "notes": "Go memory leak (goroutine leak) phrased without 'goroutine'/'leak' triggers. Domain is explicit (Go). Should reach golang-general-engineer + go-patterns.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['go'] for golang-general-engineer (score=1.02)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "systematic-debugging",
+            "pipeline": null,
+            "reasoning": "Go service memory leak requires expert Go debugging with systematic methodology to observe, hypothesize, test, and fix the memory growth issue.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "systematic-debugging",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": "systematic-debugging",
+            "reasoning": "A Go service memory leak is Go-language debugging, which force-routes to go-patterns on golang-general-engineer, and 'find the cause' calls for the evidence-based systematic-debugging pipeline (reproduce via pprof heap profiles, hypothesize, test).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q12",
+      "query": "this chunk of logic is repeated everywhere, help me tidy it into one place",
+      "bucket": "paraphrase-refactor",
+      "category": "refactoring",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "Extract-duplicate refactor, no 'refactor'/'extract' trigger. workflow owns systematic-refactoring. Defensible: quick if judged contained.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "workflow",
+        "confidence": "medium",
+        "match_type": "trigger_keyword",
+        "reasoning": "matched triggers ['tidy it', 'tidy into one place', 'repeated everywhere'] for workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "simplify",
+            "pipeline": null,
+            "reasoning": "Simplify skill finds repeated code and consolidates it into single locations, then applies reuse/consolidation fixes; python-general-engineer oversees the refactoring.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "simplify",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "Extracting duplicated logic into one place is a behaviour-preserving refactor, which the workflow skill explicitly covers ('tidy up, reorganize without changing behaviour') and architecture-deepening explicitly excludes as small-scope cleanup; no language is named so no specific engineer agent applies.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q13",
+      "query": "the structure of this module is messy, reorganize it without changing behaviour",
+      "bucket": "paraphrase-refactor",
+      "category": "refactoring",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "Behaviour-preserving restructure = refactor, no trigger keyword. workflow refactor pipeline.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "workflow",
+        "confidence": "medium",
+        "match_type": "trigger_keyword",
+        "reasoning": "matched triggers ['messy', 'reorganize', 'reorganize without changing behaviour'] for workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "workflow skill explicitly handles code reorganization without changing behavior; python-general-engineer provides language expertise for the Python module refactoring",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "The workflow skill's refactor mode explicitly covers 'reorganize without changing behaviour / untangle messy code', and architecture-deepening explicitly excludes this small-scope behavior-preserving cleanup.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q14",
+      "query": "please write some checks that prove this Python parser behaves correctly",
+      "bucket": "paraphrase-test",
+      "category": "python-development",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": null,
+      "notes": "'write checks that prove correctness' = write tests. Python domain explicit. python-general-engineer. Defensible: test-driven-development / python-quality-gate.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['python'] for python-general-engineer (score=1.06)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "reasoning": "Writing test cases for a Python parser follows the TDD red-green-refactor cycle to verify parser correctness",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "reasoning": "Writing checks that prove a Python parser behaves correctly means authoring Python tests, which is the python-general-engineer's domain using the TDD skill; python-quality-gate's FORCE does not fire because it covers running existing quality tooling, not writing new tests, and testing-automation-engineer is JS-stack (Vitest/Playwright).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q15",
+      "query": "I need automated checks so future edits do not break this feature",
+      "bucket": "paraphrase-test",
+      "category": "testing",
+      "expected_agent": null,
+      "expected_skill": "test-driven-development",
+      "notes": "Regression test intent, no language, no 'test'/'pytest' trigger. test-driven-development or workflow. Defensible: any test-authoring skill.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "testing-automation-engineer",
+            "skill": "feature-lifecycle",
+            "reasoning": "Feature validation phase requires automated test coverage, CI/CD integration, and regression prevention for the routing feature.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "testing-automation-engineer",
+            "skill": "feature-lifecycle",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "testing-automation-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "reasoning": "The user wants regression protection via automated tests and coverage enforcement, which is exactly the testing-automation-engineer's domain, with test-driven-development providing the methodology for writing the guarding tests.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "testing-automation-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q16",
+      "query": "have a careful read through my recent edits and tell me what could be better",
+      "bucket": "paraphrase-review",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "systematic-code-review",
+      "notes": "Code review of a diff, no 'review code' trigger phrasing that force-routes. systematic-code-review. Defensible: parallel-code-review.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-code",
+            "skill": "code-review",
+            "pipeline": null,
+            "reasoning": "User requests a careful review of recent Python edits for quality improvements; reviewer-code specializes in conventions, naming, dead code, and performance; code-review skill matches this directly.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-code",
+            "skill": "code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "The user wants a careful quality review of their uncommitted recent edits (a concrete diff), which matches reviewer-code running the 4-phase systematic-code-review over the working-tree changes.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q17",
+      "query": "go through what I wrote and point out mistakes from a few angles",
+      "bucket": "paraphrase-review",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "parallel-code-review",
+      "notes": "'from a few angles' = multi-perspective review. parallel-code-review or systematic-code-review both defensible. 'go through' must NOT route golang.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['go'] for golang-general-engineer (score=1.02)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-perspectives",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "Multi-perspective review agent applies 5 distinct lenses (newcomer, senior, pedant, contrarian, user advocate) to identify mistakes from multiple analytical angles, directly matching the request.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-perspectives",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "The user wants a written artifact they authored critiqued from multiple perspectives, which is exactly multi-persona-critique's parallel multi-persona review of written work — not code review (reviewer-perspectives) since no code, file, or diff is named.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q18",
+      "query": "help me understand how this codebase is put together",
+      "bucket": "paraphrase-explore",
+      "category": "exploration",
+      "expected_agent": null,
+      "expected_skill": "read-only-ops",
+      "notes": "Read-only architecture exploration, no edit intent. read-only-ops or codebase-analyzer. MUST NOT route an editing skill.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "codebase-overview",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['understand this codebase'] for codebase-overview (score=1.24)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "Systematic exploration and architecture mapping of how components and modules fit together throughout the codebase.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "The user wants to understand the codebase's structure, which is exactly what codebase-overview's systematic exploration and architecture mapping covers; no FORCE skill matches and no specialized agent is needed for read-only architecture exploration.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q19",
+      "query": "walk me through what each part of this project does, do not change anything",
+      "bucket": "paraphrase-explore",
+      "category": "exploration",
+      "expected_agent": null,
+      "expected_skill": "read-only-ops",
+      "notes": "Explicit no-edit exploration. read-only-ops. Defensible: codebase-analyzer / workflow explore pipeline.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "pair-programming",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['walk me through'] for pair-programming (score=1.15)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "User requests a systematic walkthrough of project architecture and components without modifications; codebase-overview provides exactly this: exploration and architecture mapping.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "The user wants a read-only explanation of the whole project's structure, which is exactly codebase-overview's systematic exploration and architecture mapping; research-coordinator-engineer's NOT clause explicitly redirects local code exploration here, and no FORCE skill matches.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q20",
+      "query": "give me a map of where the important files live in here",
+      "bucket": "paraphrase-explore",
+      "category": "exploration",
+      "expected_agent": null,
+      "expected_skill": "read-only-ops",
+      "notes": "Codebase-map exploration, read-only. read-only-ops or codebase-analyzer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "User requests systematic exploration and mapping of codebase structure to understand where important files are located, which codebase-overview provides via architecture mapping and file organization analysis.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "The user wants a map of where important files live, which is exactly codebase-overview's systematic exploration and architecture mapping; no FORCE entry matches and no specialized engineer agent is needed for read-only repo mapping.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q21",
+      "query": "moderate the reports waiting in my subreddit queue",
+      "bucket": "paraphrase-review",
+      "category": "reddit",
+      "expected_agent": null,
+      "expected_skill": "reddit-moderate",
+      "notes": "Reddit modqueue task phrased plainly. reddit-moderate. Distinguishes 'moderate'/'queue' domain from code review.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "reddit-moderate",
+            "pipeline": null,
+            "reasoning": "Reddit moderation task: fetch modqueue, classify reports, and take moderation actions using the PRAW-based reddit-moderate skill.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "reddit-moderate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "reddit-moderate",
+            "pipeline": null,
+            "reasoning": "Request is exactly Reddit modqueue moderation, matching the reddit-moderate skill which routes to python-general-engineer via PRAW.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "reddit-moderate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q22",
+      "query": "before I share my branch, make sure I did not leave any passwords or keys in the code",
+      "bucket": "paraphrase-security",
+      "category": "security",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "notes": "SAFETY. Secret-leak scan = security review, no 'security' token. security-review. Defensible: parallel-code-review security pass.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "security-review is a FORCE skill for deterministic security scanning of local git changes, designed to detect secrets and credentials in diffs before pushing.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "The user wants a secrets/credentials check on their git changes before sharing the branch, which is exactly the FORCE-marked security-review skill (deterministic scan + Security reviewer over the diff) bound to reviewer-system.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q23",
+      "query": "I think there is a small mistake in the spelling inside main.go, fix it",
+      "bucket": "paraphrase-refactor",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": "quick",
+      "notes": "Trivial typo fix phrased plainly (no 'typo' trigger). quick. Tests that plain phrasing of a trivial op still lands light, not on workflow.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "quick",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['small mistake', 'small mistake in', 'mistake in spelling', 'spelling fix'] for quick"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "Plain spelling/typo fix in source file is a lightweight task; go-patterns explicitly routes such cases to quick (FORCE skill)",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "A typo/spelling fix inside a .go file is explicitly excluded by go-patterns ('plain typo/spelling fixes inside a .go file… route to quick') and matches the FORCE skill quick for tracked lightweight execution.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q24",
+      "query": "push my changes to GitHub",
+      "bucket": "benchmark-force_route",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY control. Keyword form; pre-route fires high-confidence. Anchors that A keeps git safety.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "pr-workflow",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['push changes', 'push my changes', 'push to github'] for pr-workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Push is a git operation; FORCE rule requires pr-workflow for git push/commit/PR operations",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Git push is a git operation; pr-workflow is FORCE-marked for all git push/commit/PR operations and this request is a literal git push, not a metaphorical one.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q25",
+      "query": "commit these files",
+      "bucket": "benchmark-force_route",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY control. Keyword commit; pre-route high-confidence.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "pr-workflow",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['commit these'] for pr-workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "pr-workflow is FORCE-routed for git commit operations per the FORCE-ROUTE RULE",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Git commit operation matches the FORCE-routed pr-workflow skill, which owns the commit/push/PR lifecycle.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q26",
+      "query": "did CI pass on my PR?",
+      "bucket": "benchmark-force_route",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY control. CI status keyword form; pre-route fires pr-workflow.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "pr-workflow",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['did ci pass'] for pr-workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "pr-workflow explicitly covers PR status checking in its lifecycle; FORCE rule applies to PR operations including status verification",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Checking CI status on a PR is part of the PR lifecycle (status sub-flow), which the FORCE-marked pr-workflow skill covers for all git/PR operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q27",
+      "query": "clean up my merged branches",
+      "bucket": "benchmark-force_route",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "Keyword branch cleanup; pre-route force-route pr-workflow.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "pr-workflow",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['clean up branches', 'merged branches'] for pr-workflow"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "FORCE-route: pr-workflow covers git cleanup operations for merged branches",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Deleting merged branches is a git cleanup operation, explicitly covered by pr-workflow's lifecycle (commit, sync, status, cleanup) and the FORCE rule routing git operations there.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q28",
+      "query": "push back on this approach",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Disagreement, not git push. MUST NOT route pr-workflow. Semantic guard exists in pre-route; B must also resist.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "reasoning": "Skill for structured pushback and disagreement in business format, but request lacks specificity about which approach",
+            "confidence": "low"
+          },
+          "route": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "The user wants the approach's merits challenged — a critique of the idea itself, not a drafted interpersonal message (professional-communication) or a git operation (pr-workflow explicitly excludes 'push back on a design'-style disagreement).",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q29",
+      "query": "commit to this approach and move forward",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Decision/dedication, not git commit. MUST NOT route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Feature branch with uncommitted test results and changes ready for git commit and pull request creation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "'Commit to this approach' is metaphorical (resolve/decide and proceed), explicitly excluded from pr-workflow's git semantics, so this routes to tracked lightweight execution of the already-decided approach rather than any git operation.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q30",
+      "query": "go ahead and fix the bug",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. 'go' is a verb, not Go language. MUST NOT route golang-general-engineer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['go'] for golang-general-engineer (score=1.02)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "reasoning": "Python bug fix on modified routing AB test files requires code investigation, repair, and verification that the fix resolves the issue without breaking other behavior.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "'Go ahead and fix the bug' is a known-bug execution request ('go' is a verb here, not Golang), matching quick's FORCE domain of tracked lightweight execution rather than diagnosis-heavy debugging pipelines.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q31",
+      "query": "fish out the root cause of this bug",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Search/investigate, not Fish shell. MUST NOT route fish-shell-config.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "Structured 5-phase debugging pipeline (OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD) is purpose-built for evidence-based root cause analysis with mandatory reproduction and learning gates.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "'Fish out' here means extract/find (explicitly excluded from the fish-shell-config FORCE trigger), so this is root-cause bug diagnosis, which maps to the evidence-based systematic-debugging pipeline; no language/domain is given, so no specific agent is pinned.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q32",
+      "query": "give me a quick read on the architecture",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Brief overview, not a 'quick' edit task. MUST NOT force-route quick.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "codebase-overview is purpose-built for systematic architecture exploration and mapping, delivering a quick structural read without requiring modifications.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "User wants a fast architecture summary of the codebase, which maps to codebase-overview's exploration and architecture mapping; 'quick' here is a speed preference, not the quick skill, and architecture-deepening is for improvement proposals, not a read.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q33",
+      "query": "go ahead and merge the branches in your head",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Cognitive merge, not git merge. MUST NOT route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['go'] for golang-general-engineer (score=1.02)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "reasoning": "User wants to analyze and synthesize understanding of branch state and changes; 'in your head' indicates exploratory analysis, not literal git operations.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "The pr-workflow NOT-clause explicitly excludes the metaphorical phrase 'merge the branches in your head' (it means mentally synthesize ideas, not a git merge), and no agent or skill domain matches a conversational synthesis request — handle inline.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q34",
+      "query": "we need to scan and remove voice samples from the corpus",
+      "bucket": "false-positive-guard",
+      "category": "false-positive-guard",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "GUARD. Data cleaning, not voice-writer generation. MUST NOT force-route voice-writer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "data-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "Scanning and removing voice samples from a corpus is an ETL/data-cleaning pipeline task; data-engineer handles data transformations while workflow orchestrates the scan-identify-remove phases.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "data-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "Scanning a corpus and deleting voice-sample files is a scoped, scriptable cleanup task — no FORCE skill matches (create-voice creates profiles, it doesn't remove samples; voice-writer/voice-validator generate and validate content), so a tracked lightweight execution by a Python engineer fits best.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q35",
+      "query": "debug the goroutine leak in the worker pool",
+      "bucket": "benchmark-force_route",
+      "category": "go-development",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "notes": "Keyword Go debug; pre-route force-routes go-patterns. Control for Go domain force-route.",
+      "pre_route": {
+        "matched": true,
+        "agent": "golang-general-engineer",
+        "skill": "go-patterns",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['goroutine', 'worker pool'] for go-patterns"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Goroutine leak debugging is a Go concurrency pattern problem; go-patterns skill (FORCE-routed) is the direct match for this task.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Goroutine leak in a worker pool is Go concurrency debugging, which semantically triggers the FORCE-marked go-patterns skill bound to golang-general-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q36",
+      "query": "write table-driven tests for the parser",
+      "bucket": "benchmark-force_route",
+      "category": "go-development",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "notes": "Keyword Go tests; force-route go-patterns via 'table-driven'.",
+      "pre_route": {
+        "matched": true,
+        "agent": "golang-general-engineer",
+        "skill": "go-patterns",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['table-driven'] for go-patterns"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "reasoning": "Write parser tests in Python using RED-GREEN-REFACTOR methodology to build table-driven test cases systematically",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Table-driven tests are the canonical Go testing idiom, and go-patterns (FORCE) explicitly covers Go testing patterns with golang-general-engineer as its bound agent.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q37",
+      "query": "add auth middleware to the Python Flask API",
+      "bucket": "benchmark-candidate",
+      "category": "python-development",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": null,
+      "notes": "Python domain task; candidate tier. python-general-engineer expected (no force-route fires).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['python', 'flask'] for python-general-engineer (score=2.11)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "reasoning": "Python Flask API feature development requires implementation expertise and mandatory verification that authentication actually protects the endpoints.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "Flask auth middleware is contained Python feature work — python-general-engineer executes it under quick's tracked lightweight flow, with no quality-gate or lifecycle FORCE domain matching the intent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q38",
+      "query": "run ruff and mypy on this Python project",
+      "bucket": "benchmark-candidate",
+      "category": "python-development",
+      "expected_agent": null,
+      "expected_skill": "python-quality-gate",
+      "notes": "Python quality checks; candidate tier. python-quality-gate.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "code-linting",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['run ruff'] for code-linting (score=1.08)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "reasoning": "python-quality-gate is a FORCE-matched skill designed to run ruff and mypy in deterministic order on existing Python code.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "reasoning": "FORCE-marked python-quality-gate fires exactly on requests to run ruff/mypy quality checks on existing Python code, and it binds to python-general-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q39",
+      "query": "fix the React component rendering bug",
+      "bucket": "benchmark-candidate",
+      "category": "frontend-development",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": null,
+      "notes": "React/frontend domain; candidate tier. typescript-frontend-engineer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['react'] for typescript-frontend-engineer (score=1.05)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "verify",
+            "pipeline": null,
+            "reasoning": "TypeScript frontend engineer fixes React component bugs; verify skill confirms the fix works by running the app and observing behavior.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "verify",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "typescript-debugging-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "A React web component rendering bug is a frontend TypeScript debugging task (react-native-engineer excluded since this is web, and no FORCE skill matches — quick excludes bug diagnosis requiring investigation), so typescript-debugging-engineer with the workflow skill's debug phase fits best.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-debugging-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q40",
+      "query": "comprehensive code review from multiple perspectives",
+      "bucket": "benchmark-candidate",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "systematic-code-review",
+      "notes": "Multi-reviewer review; systematic-code-review or parallel-code-review defensible.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "systematic-code-review",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['comprehensive review'] for systematic-code-review (score=1.20)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-perspectives",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "reviewer-perspectives specializes in multi-perspective code review across 5 philosophical personas (newcomer, senior, pedant, contrarian, user advocate, meta-process), structured by systematic-code-review's 4-phase framework (UNDERSTAND, VERIFY, ASSESS, DOCUMENT).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-perspectives",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-perspectives",
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "reasoning": "The request asks for a comprehensive multi-perspective code review, which maps directly to the reviewer-perspectives agent (newcomer/senior/pedant/contrarian/user-advocate lenses) running the parallel-code-review skill for concurrent multi-reviewer coverage.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-perspectives",
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q41",
+      "query": "deploy the app to Kubernetes with Helm",
+      "bucket": "benchmark-candidate",
+      "category": "infrastructure",
+      "expected_agent": "kubernetes-helm-engineer",
+      "expected_skill": null,
+      "notes": "K8s domain; candidate tier. kubernetes-helm-engineer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['kubernetes', 'helm'] for kubernetes-helm-engineer (score=2.14)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "reasoning": "kubernetes-helm-engineer specializes in Helm deployments to Kubernetes; verification-before-completion ensures the deployment succeeds before declaring the task complete.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "verification-before-completion",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "Kubernetes/Helm deployment is the exact domain of kubernetes-helm-engineer, and the workflow skill's deploy phase structures the rollout; no FORCE entry matches (public-web-deploy is for internet-facing website publishing, not cluster deploys).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q42",
+      "query": "roast this design doc",
+      "bucket": "benchmark-llm_only",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "roast",
+      "notes": "Niche skill; pre-route does not force-route. LLM must recognize 'roast' as multi-persona critique.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "roast",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['roast this'] for roast (score=1.10)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "roast",
+            "pipeline": null,
+            "reasoning": "User wants critical feedback on a design doc; roast critiques artifacts via HackerNews personas with claim validation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "roast",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "roast",
+            "pipeline": null,
+            "reasoning": "The user explicitly asked to 'roast' a design doc, which matches the roast skill's constructive critique via HackerNews personas with claim validation exactly.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "roast",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q43",
+      "query": "plan the implementation for this feature",
+      "bucket": "benchmark-llm_only",
+      "category": "feature-lifecycle",
+      "expected_agent": null,
+      "expected_skill": "feature-lifecycle",
+      "notes": "Feature plan phase; llm_only. feature-lifecycle or planning defensible. No false-positive force-route expected.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "planning",
+            "pipeline": null,
+            "reasoning": "planning skill is FORCE-matched for software task implementation planning; covers specs, ambiguity resolution, and plan lifecycle management.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "planning",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "reasoning": "The request asks to plan a feature's implementation, which semantically matches the FORCE-marked planning skill (software task planning and specs) with its designated general-purpose agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q44",
+      "query": "research the topic thoroughly then write an article",
+      "bucket": "benchmark-llm_only",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "research-pipeline",
+      "notes": "Multi-skill chain; research then voice-writer. research-pipeline or voice-writer defensible. LLM resolves chain.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "voice-writer",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['write article'] for voice-writer"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "reasoning": "research-to-article pipeline orchestrates research through article generation; technical-journalist-writer provides journalism expertise; voice-writer (FORCE) generates the final article with mandatory validation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "research-coordinator-engineer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "reasoning": "The request is exactly the two-phase research-then-write flow the research-to-article pipeline covers, with FORCE-marked voice-writer as the article-generation skill and research-coordinator-engineer driving the multi-source research phase.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "research-coordinator-engineer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q45",
+      "query": "create a new Claude Code skill with quality gates",
+      "bucket": "benchmark-candidate",
+      "category": "meta-tooling",
+      "expected_agent": "toolkit-governance-engineer",
+      "expected_skill": "skill-creator",
+      "notes": "Skill creation; skill-creator (or skill-creation-pipeline) with toolkit-governance-engineer.",
+      "pre_route": {
+        "matched": true,
+        "agent": "toolkit-governance-engineer",
+        "skill": "skill-creator",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['create new skill', 'new skill'] for skill-creator"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "skill-creator",
+            "pipeline": null,
+            "reasoning": "skill-creator (FORCE) creates new skills through eval-driven validation; explicitly includes quality gates in its methodology",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "skill-creator",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "toolkit-governance-engineer",
+            "skill": "skill-creator",
+            "pipeline": "skill-creation-pipeline",
+            "reasoning": "skill-creator is FORCE-routed for creating new skills (binding agent=toolkit-governance-engineer), and the explicit 'quality gates' requirement matches the skill-creation-pipeline's 5-phase DISCOVER→DESIGN→SCAFFOLD→VALIDATE→INTEGRATE flow exactly.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "toolkit-governance-engineer",
+            "skill": "skill-creator",
+            "pipeline": "skill-creation-pipeline",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q46",
+      "query": "scaffold a new agent for Rust development",
+      "bucket": "benchmark-force_route",
+      "category": "meta-tooling",
+      "expected_agent": null,
+      "expected_skill": "agent-creator",
+      "notes": "Agent creation; force-route agent-creator.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "agent-creator",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['new agent', 'scaffold agent'] for agent-creator"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "agent-creator",
+            "pipeline": null,
+            "reasoning": "agent-creator is the FORCE skill for scaffolding vexjoy-agent operator .md files with frontmatter, routing blocks, and agent structure.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "agent-creator",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "agent-creator",
+            "pipeline": null,
+            "reasoning": "Scaffolding a new vexjoy-agent operator .md file (a Rust development agent) is exactly agent-creator's FORCE domain — the 'Rust' part is the new agent's subject, not a request to write Rust code.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "agent-creator",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q47",
+      "query": "what's my current branch?",
+      "bucket": "benchmark-llm_only",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "Trivial git status; router handles directly, no force-route. MUST NOT route pr-workflow (read-only status, not a git mutation).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "Trivial git status query; answer available from context",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "reasoning": "A current-branch query is a read-only git inspection with no push/commit/PR action, so pr-workflow's FORCE rule does not apply and read-only-ops is the most specific match.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q48",
+      "query": "give me your opinion on this design",
+      "bucket": "benchmark-llm_only",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "Opinion/recommendation; NOT trivial, must not force-route any skill.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "design",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['design'] for design (score=1.06)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "multi-persona-critique critiques design artifacts via 5 philosophical personas for comprehensive feedback; provide the design for review",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "The user wants an opinion on a design artifact, which maps directly to multi-persona-critique's purpose of critiquing a proposal or design via parallel personas with consensus synthesis.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q49",
+      "query": "write Playwright end-to-end tests that walk through the signup form in app/routes/signup.tsx and check the confirmation screen",
+      "bucket": "stub-tier",
+      "category": "testing",
+      "expected_agent": "testing-automation-engineer",
+      "expected_skill": "e2e-testing",
+      "notes": "STUB (zero recorded routes). Playwright E2E = e2e-testing per INDEX. Tiered manifest must keep it reachable.",
+      "pre_route": {
+        "matched": false,
+        "agent": "testing-automation-engineer",
+        "skill": "e2e-testing",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['playwright', 'end-to-end'] for e2e-testing (score=2.20)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "testing-automation-engineer",
+            "skill": "e2e-testing",
+            "pipeline": null,
+            "reasoning": "testing-automation-engineer with e2e-testing skill provides the Playwright-based E2E testing workflow for signup form and confirmation screen validation",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "testing-automation-engineer",
+            "skill": "e2e-testing",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "testing-automation-engineer",
+            "skill": "e2e-testing",
+            "pipeline": null,
+            "reasoning": "Playwright end-to-end test authoring maps directly to the e2e-testing skill, whose designated agent is testing-automation-engineer (Vitest/Playwright/E2E specialist).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "testing-automation-engineer",
+            "skill": "e2e-testing",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q50",
+      "query": "the checkout pod in the staging namespace keeps restarting with CrashLoopBackOff, figure out what is wrong",
+      "bucket": "stub-tier",
+      "category": "infrastructure",
+      "expected_agent": "kubernetes-helm-engineer",
+      "expected_skill": "kubernetes-debugging",
+      "notes": "STUB. Pod failure debugging = kubernetes-debugging per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "kubernetes-debugging",
+            "pipeline": null,
+            "reasoning": "Pod crash/restart is a Kubernetes pod failure, directly matching kubernetes-debugging's scope for pod failures and networking.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "kubernetes-debugging",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "kubernetes-debugging",
+            "pipeline": null,
+            "reasoning": "A CrashLoopBackOff pod in a Kubernetes namespace is exactly the pod-failure debugging domain of the kubernetes-debugging skill, which is bound to the kubernetes-helm-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kubernetes-helm-engineer",
+            "skill": "kubernetes-debugging",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q51",
+      "query": "my Kotlin Flow collector in SyncService.kt stops emitting after the first error, fix the coroutine handling",
+      "bucket": "stub-tier",
+      "category": "kotlin-development",
+      "expected_agent": "kotlin-general-engineer",
+      "expected_skill": "kotlin-coroutines",
+      "notes": "STUB. Flow/coroutine error handling = kotlin-coroutines per INDEX.",
+      "pre_route": {
+        "matched": true,
+        "agent": "kotlin-general-engineer",
+        "skill": null,
+        "confidence": "medium",
+        "match_type": "trigger_keyword",
+        "reasoning": "matched triggers ['kotlin', 'coroutine', 'kotlin flow'] for kotlin-general-engineer"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "kotlin-general-engineer",
+            "skill": "kotlin-coroutines",
+            "pipeline": null,
+            "reasoning": "Fix Flow collector error handling in service code using structured concurrency patterns and proper cancellation/retry semantics.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kotlin-general-engineer",
+            "skill": "kotlin-coroutines",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "kotlin-general-engineer",
+            "skill": "kotlin-coroutines",
+            "pipeline": null,
+            "reasoning": "Flow collector dying after first error is a Kotlin coroutine/Flow pattern bug (likely missing catch/retry or exception transparency violation), which the kotlin-coroutines skill covers and it binds to kotlin-general-engineer for the SyncService.kt fix.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "kotlin-general-engineer",
+            "skill": "kotlin-coroutines",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q52",
+      "query": "add PHPUnit tests with a database fixture for the InvoiceRepository class in src/Repository/InvoiceRepository.php",
+      "bucket": "stub-tier",
+      "category": "php-development",
+      "expected_agent": "php-general-engineer",
+      "expected_skill": "php-testing",
+      "notes": "STUB. PHPUnit + database testing = php-testing per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['php', 'phpunit'] for php-general-engineer (score=2.10)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "php-testing",
+            "pipeline": null,
+            "reasoning": "php-testing skill explicitly covers PHPUnit patterns and database testing fixtures for PHP projects",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "php-testing",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "php-general-engineer",
+            "skill": "php-testing",
+            "pipeline": null,
+            "reasoning": "Writing PHPUnit tests with database fixtures is exactly the php-testing skill's domain (PHPUnit, test doubles, database testing), which binds to php-general-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "php-general-engineer",
+            "skill": "php-testing",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q53",
+      "query": "convert the completion-handler callbacks in NetworkClient.swift to async/await and make the cache actor-safe",
+      "bucket": "stub-tier",
+      "category": "swift-development",
+      "expected_agent": "swift-general-engineer",
+      "expected_skill": "swift-concurrency",
+      "notes": "STUB. async/await + Actor migration = swift-concurrency per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['swift'] for swift-general-engineer (score=1.05)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "swift-general-engineer",
+            "skill": "swift-concurrency",
+            "pipeline": null,
+            "reasoning": "Converting callbacks to async/await and implementing actor-safe caching requires Swift concurrency expertise in async/await and Actor patterns.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "swift-general-engineer",
+            "skill": "swift-concurrency",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "swift-general-engineer",
+            "skill": "swift-concurrency",
+            "pipeline": null,
+            "reasoning": "Converting callbacks to async/await and making a cache actor-safe is Swift concurrency work (async/await, Actor, Sendable), exactly what swift-concurrency covers under its designated swift-general-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "swift-general-engineer",
+            "skill": "swift-concurrency",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q54",
+      "query": "take the renders in assets/frames/ and the narration in voiceover.mp3 and stitch them into an mp4",
+      "bucket": "stub-tier",
+      "category": "media",
+      "expected_agent": null,
+      "expected_skill": "image-to-video",
+      "notes": "STUB. FFmpeg video from images + audio = image-to-video per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "image-to-video",
+            "pipeline": null,
+            "reasoning": "image-to-video is FFmpeg-based video creation from image and audio—directly matches stitching frames with voiceover into MP4.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "image-to-video",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "image-to-video",
+            "pipeline": null,
+            "reasoning": "The request is creating an mp4 from image frames plus an audio track, which is exactly what image-to-video covers (FFmpeg-based video creation from image and audio), whereas video-editing targets cutting and assembling existing footage.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "image-to-video",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q55",
+      "query": "build an HTML slide deck that runs in the browser for my quarterly review talk, one slide per milestone",
+      "bucket": "stub-tier",
+      "category": "content-creation",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": "frontend-slides",
+      "notes": "STUB. Browser HTML presentation = frontend-slides per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "html-artifact",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['slide deck'] for html-artifact (score=1.10)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "frontend-slides",
+            "pipeline": null,
+            "reasoning": "frontend-slides skill directly generates browser-based HTML presentations; typescript-frontend-engineer builds and optimizes the frontend artifact.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "frontend-slides",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "frontend-slides",
+            "pipeline": null,
+            "reasoning": "The request is exactly browser-based HTML presentation generation, which frontend-slides covers with typescript-frontend-engineer as its bound agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "frontend-slides",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q56",
+      "query": "translate docs/user-guide.md into Japanese and keep the code blocks untouched",
+      "bucket": "stub-tier",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "translate",
+      "notes": "STUB. Document translation = translate per INDEX.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "translate",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['translate', 'into japanese'] for translate (score=2.22)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "reasoning": "The translate skill is purpose-built for document translation with code-block preservation via chunked parallel subagents.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "reasoning": "The request is document translation into Japanese, which exactly matches the translate skill's chunked translation workflow with format preservation (code blocks untouched), and the skill carries no agent binding.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q57",
+      "query": "post this announcement as a thread on X with the screenshot attached",
+      "bucket": "stub-tier",
+      "category": "social-media",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": "x-api",
+      "notes": "STUB. Tweet/thread/media via X API = x-api per INDEX (agent=python-general-engineer binding).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "x-api",
+            "pipeline": null,
+            "reasoning": "x-api skill directly handles posting threads on X with media attachment via the X API.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "x-api",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "x-api",
+            "pipeline": null,
+            "reasoning": "Posting a thread to X with media attached is exactly the x-api skill's domain (post tweets, build threads, upload media), which routes to python-general-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "x-api",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q58",
+      "query": "go through the cron scripts under ops/cron/ and tell me which ones could fail silently or clobber data",
+      "bucket": "stub-tier",
+      "category": "operations",
+      "expected_agent": null,
+      "expected_skill": "cron-job-auditor",
+      "notes": "STUB. Cron reliability/safety audit = cron-job-auditor per INDEX. Defensible: forensics.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "forensics"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['ops'] for reviewer-domain (score=1.03)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "cron-job-auditor",
+            "pipeline": null,
+            "reasoning": "The cron-job-auditor skill is purpose-built to audit cron scripts for reliability and safety issues including silent failures and data clobbering risks.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "cron-job-auditor",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "cron-job-auditor",
+            "pipeline": null,
+            "reasoning": "The request is exactly a reliability/safety audit of cron scripts — silent failure and data-clobbering risks — which is the cron-job-auditor skill's stated purpose.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "cron-job-auditor",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q59",
+      "query": "run the Vitest suite and tell me which tests fail and why",
+      "bucket": "stub-tier",
+      "category": "testing",
+      "expected_agent": null,
+      "expected_skill": "vitest-runner",
+      "notes": "STUB. Run Vitest + parse failures = vitest-runner per INDEX.",
+      "acceptable": [
+        {
+          "agent": "testing-automation-engineer",
+          "skill": "vitest-runner"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "vitest-runner",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['run vitest'] for vitest-runner (score=1.10)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "vitest-runner",
+            "pipeline": null,
+            "reasoning": "vitest-runner directly runs Vitest tests and parses results into actionable output",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "vitest-runner",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "testing-automation-engineer",
+            "skill": "vitest-runner",
+            "pipeline": null,
+            "reasoning": "The request is exactly vitest-runner's purpose — run Vitest and parse failures into actionable output — dispatched via testing-automation-engineer, the Vitest/testing specialist.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "testing-automation-engineer",
+            "skill": "vitest-runner",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q60",
+      "query": "add a tilemap level with arcade physics and a jumping player sprite to my Phaser 3 game in src/scenes/",
+      "bucket": "stub-tier",
+      "category": "game-development",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": "phaser-gamedev",
+      "notes": "STUB. Phaser 3 scenes/physics/tilemaps = phaser-gamedev per INDEX.",
+      "pre_route": {
+        "matched": true,
+        "agent": "typescript-frontend-engineer",
+        "skill": "phaser-gamedev",
+        "confidence": "medium",
+        "match_type": "trigger_keyword",
+        "reasoning": "matched triggers ['phaser', 'arcade physics', 'tilemap'] for phaser-gamedev"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "phaser-gamedev",
+            "pipeline": null,
+            "reasoning": "phaser-gamedev skill covers Phaser 3 scenes, physics, tilemaps, and sprites—exactly matching tilemap level with arcade physics and jumping player sprite",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "phaser-gamedev",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "phaser-gamedev",
+            "pipeline": null,
+            "reasoning": "Request is Phaser 3 2D game work (tilemap, arcade physics, sprite) which exactly matches the phaser-gamedev skill, bound to typescript-frontend-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "typescript-frontend-engineer",
+            "skill": "phaser-gamedev",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q61",
+      "query": "I have three competing proposals in docs/auth-redesign.md — tear them apart from several philosophical angles and tell me where they break",
+      "bucket": "sibling-disambiguation",
+      "category": "analysis",
+      "expected_agent": null,
+      "expected_skill": "multi-persona-critique",
+      "notes": "Sibling: multi-persona-critique vs professional-communication. Critique of proposals from personas = multi-persona-critique. Defensible: roast.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "roast"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "multi-persona-critique critiques written proposals via multiple philosophical personas in parallel, directly matching your request to tear apart competing proposals from several angles.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "reasoning": "The request asks to stress-test written proposals in a document from multiple philosophical angles, which is exactly multi-persona-critique's purpose (5 philosophical personas critiquing an artifact, with consensus synthesis) — it critiques the artifact rather than drafting a message (professional-communication) or reviewing code (systematic-code-review).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "multi-persona-critique",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q62",
+      "query": "turn my rambling notes about last night's outage into a tidy status update I can send to management",
+      "bucket": "sibling-disambiguation",
+      "category": "communication",
+      "expected_agent": null,
+      "expected_skill": "professional-communication",
+      "notes": "Sibling: professional-communication vs multi-persona-critique vs productivity. Transform technical notes into business format = professional-communication.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "productivity",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['status update'] for productivity (score=1.13)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "reasoning": "professional-communication explicitly covers drafting status updates and transforming informal notes into structured business messages for management.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "reasoning": "The user wants raw outage notes rewritten into a management-facing status update, which is exactly professional-communication's domain (drafting emails, memos, and status updates), not productivity (personal prioritization) or technical-documentation (runbooks/API docs).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "professional-communication",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q63",
+      "query": "before we build the export feature, pin down the requirements and acceptance criteria — there is a lot I have not decided yet",
+      "bucket": "sibling-disambiguation",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "Sibling: planning vs productivity. Spec/requirements/acceptance criteria = planning umbrella.",
+      "pre_route": {
+        "matched": true,
+        "agent": "general-purpose",
+        "skill": "planning",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['acceptance criteria'] for planning"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "reasoning": "planning FORCE skill handles spec and pre-plan ambiguity resolution to clarify requirements and acceptance criteria before building the export feature",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "reasoning": "Pinning down requirements and acceptance criteria with many undecided points is spec work plus pre-plan ambiguity resolution, exactly the FORCE-routed planning skill's domain (software task planning, not feature implementation yet).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "general-purpose",
+            "skill": "planning",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q64",
+      "query": "help me sort out my week — I have four deadlines, two meetings to prep, and no idea what to tackle first",
+      "bucket": "sibling-disambiguation",
+      "category": "productivity",
+      "expected_agent": null,
+      "expected_skill": "productivity",
+      "notes": "Sibling: productivity vs planning. Personal task/weekly planning = productivity, not software planning.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "productivity",
+            "pipeline": null,
+            "reasoning": "User needs help sorting out weekly priorities with deadlines and meetings—classic personal task prioritization and time management.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "productivity",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "productivity",
+            "pipeline": null,
+            "reasoning": "Personal prioritization and weekly planning ('sort out my week', 'no idea what to tackle first') is the productivity skill's exact domain, and planning explicitly excludes personal 'what should I work on next' requests in its NOT clause.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "productivity",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q65",
+      "query": "do a careful structured review of the changes in src/billing/ — understand them first, then assess risks and write up findings",
+      "bucket": "sibling-disambiguation",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "systematic-code-review",
+      "notes": "Sibling: systematic-code-review vs parallel-code-review. Single methodical 4-phase review = systematic-code-review.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "systematic-code-review",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['structured review'] for systematic-code-review (score=1.17)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "User requests structured review with explicit risk assessment of billing code; systematic-code-review provides UNDERSTAND-VERIFY-ASSESS-DOCUMENT phases; reviewer-system focuses on security, error handling, observability, and API contracts—critical for billing risk assessment.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-domain",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "The request's phrasing — understand first, assess risks, document findings — maps directly onto systematic-code-review's UNDERSTAND/VERIFY/ASSESS/DOCUMENT phases for a named diff target, and billing changes are business-logic territory, which is reviewer-domain's specialty.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-domain",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q66",
+      "query": "review this diff with separate reviewers for security, business logic, and architecture running at the same time",
+      "bucket": "sibling-disambiguation",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "parallel-code-review",
+      "notes": "Sibling: parallel-code-review vs systematic-code-review. Explicit concurrent 3-reviewer split = parallel-code-review.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['business logic'] for reviewer-domain (score=1.14)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "reasoning": "Parallel-code-review skill orchestrates three separate reviewers (security, business logic, architecture) running concurrently, exactly matching the user's request.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "reasoning": "Request explicitly asks for concurrent security, business-logic, and architecture reviewers, which is exactly the parallel-code-review skill's 3-reviewer design (dispatching reviewer-system, reviewer-domain, and architecture lenses in parallel); security-review's FORCE rule does not apply since it excludes general multi-dimension review.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "parallel-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q67",
+      "query": "review my Go error handling in internal/store/ against community conventions for wrapped errors",
+      "bucket": "sibling-disambiguation",
+      "category": "go-development",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "notes": "Sibling: go-patterns vs agent-only. Go convention/pattern review = go-patterns skill.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['go'] for golang-general-engineer (score=1.02)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "go-patterns skill explicitly covers error handling patterns and conventions in Go; golang-general-engineer provides the review expertise.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Reviewing Go error-handling/wrapped-error conventions is exactly the FORCE-marked go-patterns skill's domain (Go errors, review, conventions), executed by its bound golang-general-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q68",
+      "query": "add a new gRPC endpoint to the Go service in cmd/api that returns user quotas",
+      "bucket": "sibling-disambiguation",
+      "category": "go-development",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": null,
+      "notes": "Sibling: agent-only vs go-patterns. Plain Go feature work = golang-general-engineer, no pattern skill needed.",
+      "acceptable": [
+        {
+          "agent": "golang-general-engineer",
+          "skill": "go-patterns"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['api'] for nodejs-api-engineer (score=1.03)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Adding a gRPC endpoint is Go feature development; golang-general-engineer implements Go features and go-patterns (FORCE-matched) covers Go language patterns, testing, and concurrency patterns needed for gRPC endpoint design.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "reasoning": "Adding a gRPC endpoint to a Go service is Go feature development, which force-routes to go-patterns with its bound golang-general-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "golang-general-engineer",
+            "skill": "go-patterns",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q69",
+      "query": "here are ten of my old blog posts, build a voice profile from them so future articles sound like me",
+      "bucket": "sibling-disambiguation",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "create-voice",
+      "notes": "Sibling: create-voice vs voice-validator vs voice-writer. Profile FROM samples = create-voice.",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "create-voice",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['build voice'] for create-voice"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "create-voice",
+            "pipeline": null,
+            "reasoning": "create-voice is a FORCE-designated skill that directly builds voice profiles from writing samples—exactly your need.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "create-voice",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "create-voice",
+            "pipeline": "voice-calibrator",
+            "reasoning": "Building a voice profile from existing writing samples is the exact domain of the FORCE-marked create-voice skill, backed by the voice-calibrator pipeline that extracts voice patterns from samples.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "create-voice",
+            "pipeline": "voice-calibrator",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q70",
+      "query": "check whether this draft actually sounds like my voice profile, and fix the spots that do not",
+      "bucket": "sibling-disambiguation",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "voice-validator",
+      "notes": "Sibling: voice-validator vs create-voice vs voice-writer. Fidelity check + rewrite loop = voice-validator.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "voice-validator",
+            "pipeline": null,
+            "reasoning": "voice-validator does critique-and-rewrite loops to validate content matches your voice profile and fix fidelity mismatches.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "voice-validator",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "voice-validator",
+            "pipeline": null,
+            "reasoning": "Validating a draft against a voice profile and rewriting off-voice spots is exactly voice-validator's critique-and-rewrite loop; voice-writer FORCE does not apply since the user is checking an existing draft, not generating new content.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "voice-validator",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q71",
+      "query": "run a formal research effort on local-first sync engines — scope it, gather sources with quality gates, and save the artifacts",
+      "bucket": "sibling-disambiguation",
+      "category": "research",
+      "expected_agent": "research-coordinator-engineer",
+      "expected_skill": "research-pipeline",
+      "notes": "Sibling: research-pipeline vs read-only exploration. Formal phased research with artifacts = research-pipeline.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "research-pipeline"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": "research-coordinator-engineer",
+        "skill": "research-pipeline",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['research', 'formal research'] for research-pipeline (score=2.23)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": null,
+            "reasoning": "User requests formal 5-phase research with scoping, source gathering, quality gates, and artifact saving—exact match for research-pipeline skill + research-coordinator-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": "research-pipeline",
+            "reasoning": "The request asks for a formal, scoped research effort with source quality gates and saved artifacts, which matches the research-pipeline's SCOPE→GATHER→SYNTHESIZE→VALIDATE→DELIVER phases exactly, run by the research-coordinator-engineer it is bound to.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": "research-pipeline",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q72",
+      "query": "map out the architecture of this repo — modules, boundaries, and how data flows between them, no edits",
+      "bucket": "sibling-disambiguation",
+      "category": "exploration",
+      "expected_agent": null,
+      "expected_skill": "codebase-overview",
+      "notes": "Sibling: codebase-overview vs read-only-ops vs research-pipeline. Architecture mapping of LOCAL code = codebase-overview; read-only-ops defensible; research-pipeline wrong (external research).",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "read-only-ops"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "codebase-overview performs systematic exploration and architecture mapping; technical-documentation-engineer provides system architecture expertise",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "Read-only architecture mapping of modules, boundaries, and data flow is exactly codebase-overview's purpose (systematic codebase exploration and architecture mapping), with no edits requested so no engineer agent is needed; architecture-deepening is ruled out because the user wants a map, not improvement proposals.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q73",
+      "query": "write a full blog post about the database migration in my own voice, and run the voice validation and joy check before you call it done",
+      "bucket": "pipeline-pick",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "voice-writer",
+      "notes": "PIPELINE true-match. Voice content with mandatory validation = voice-writer pipeline.",
+      "expected_pipeline": "voice-writer",
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "voice-writer",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['blog post', 'write blog post'] for voice-writer"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "voice-writer",
+            "pipeline": null,
+            "reasoning": "voice-writer is a FORCE skill for unified voice content generation with mandatory validation and joy-check—exactly what the user requested for writing a blog post in their own voice with those verifications.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "voice-writer",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "voice-writer",
+            "reasoning": "Writing one blog post in the user's voice with mandatory voice validation and joy-check is exactly the FORCE-marked voice-writer pipeline, which bundles voice-validator and joy-check, and technical-journalist-writer is the long-form writing agent that carries voice-writer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "voice-writer",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q74",
+      "query": "research WebGPU adoption end to end — scope, gather, synthesize, validate — and deliver a cited report with saved artifacts",
+      "bucket": "pipeline-pick",
+      "category": "research",
+      "expected_agent": "research-coordinator-engineer",
+      "expected_skill": "research-pipeline",
+      "notes": "PIPELINE true-match. Names the 5 phases; research-pipeline.",
+      "expected_pipeline": "research-pipeline",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "research-pipeline"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": "research-coordinator-engineer",
+        "skill": "research-pipeline",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['research'] for research-pipeline (score=1.08)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "research-coordinator-engineer",
+            "skill": null,
+            "pipeline": "research-pipeline",
+            "reasoning": "User explicitly requests the 5-phase research workflow (SCOPE-GATHER-SYNTHESIZE-VALIDATE-DELIVER) with cited report artifacts, matching research-pipeline exactly.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "research-coordinator-engineer",
+            "skill": null,
+            "pipeline": "research-pipeline",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": "research-pipeline",
+            "reasoning": "The request names the exact SCOPE-GATHER-SYNTHESIZE-VALIDATE phases plus a cited report with saved artifacts, which is the research-pipeline's definition, run under its bound research-coordinator-engineer agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "research-coordinator-engineer",
+            "skill": "research-pipeline",
+            "pipeline": "research-pipeline",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q75",
+      "query": "run the full multi-wave review across every package in this repo and give me a prioritized issue backlog",
+      "bucket": "pipeline-pick",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "full-repo-review",
+      "notes": "PIPELINE true-match. Whole-repo multi-wave review = comprehensive-review pipeline; full-repo-review skill is the closest skill label.",
+      "expected_pipeline": "comprehensive-review",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": null
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "full-repo-review is explicitly designed for comprehensive multi-wave source review across all repo files, producing a prioritized issue backlog — exact match for the request.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "The request — a full multi-wave review of the whole repo producing a prioritized issue backlog — matches full-repo-review's description verbatim (comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog), making it a tighter fit than the comprehensive-review pipeline.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q76",
+      "query": "research how indie game studios fund their first title, then turn the findings into an article in my voice",
+      "bucket": "pipeline-pick",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "research-pipeline",
+      "notes": "PIPELINE true-match. Research then voice article = research-to-article pipeline (chains research + voice-writer).",
+      "expected_pipeline": "research-to-article",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "voice-writer"
+        }
+      ],
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": "research-coordinator-engineer",
+        "skill": "research-pipeline",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['research'] for research-pipeline (score=1.08)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "research-to-article",
+            "reasoning": "Purpose-built pipeline for multi-source research investigation with automatic synthesis into voice-authored article",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "research-to-article",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "reasoning": "The request spans research plus voice-profile article generation, which is exactly the research-to-article multi-agent pipeline; voice-writer is FORCE-matched for writing in the user's voice and technical-journalist-writer is its long-form writing agent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-journalist-writer",
+            "skill": "voice-writer",
+            "pipeline": "research-to-article",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q77",
+      "query": "fix the two typos in my published blog post about Kubernetes",
+      "bucket": "pipeline-pick",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": "quick",
+      "notes": "PIPELINE near-miss. Blog-adjacent but trivial edit; pipeline MUST be null, not voice-writer/publish.",
+      "expected_pipeline": null,
+      "pre_route": {
+        "matched": true,
+        "agent": null,
+        "skill": "quick",
+        "confidence": "high",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['fix typo', 'fix the typo'] for quick"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "Typo fixing in a published blog post is manual text editing; use WordPress admin editor or Markdown file editor directly—this falls outside the toolkit's agent/skill scope.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "general-purpose",
+            "skill": "publish",
+            "pipeline": null,
+            "reasoning": "Fixing typos in an already-published blog post is a content-publishing edit-and-reupload task (Kubernetes is the post's topic, not an infrastructure task), so it routes to the publish umbrella which owns the blog pipeline from edit to upload.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "general-purpose",
+            "skill": "publish",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q78",
+      "query": "what is the difference between server-sent events and websockets? just a quick answer, no report",
+      "bucket": "pipeline-pick",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "PIPELINE near-miss. One-line factual answer; pipeline MUST be null, not research-pipeline.",
+      "expected_pipeline": null,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "General technical Q&A doesn't require agent dispatch; provide direct answer",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "Simple conceptual knowledge question answerable directly from model knowledge; 'quick answer' is a speed preference (not the quick skill's tracked-execution domain), and research-pipeline/deep-research are excluded since the user explicitly wants no report.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q79",
+      "query": "review just this one function in utils/parse.py before I merge",
+      "bucket": "pipeline-pick",
+      "category": "code-review",
+      "expected_agent": null,
+      "expected_skill": "systematic-code-review",
+      "notes": "PIPELINE near-miss. Single-function review; pipeline MUST be null, not comprehensive-review.",
+      "expected_pipeline": null,
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "quick"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "Focused 4-phase code review of a named function in a specific file before merge; reviewer-code + systematic-code-review is the specialized combination for pre-merge validation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "reasoning": "The user wants a scoped review of one named function in a specific file — systematic-code-review handles named-file reviews, and reviewer-code is the code-quality review agent; 'before I merge' is context, not a git-operation request, so pr-workflow's FORCE rule doesn't apply.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-code",
+            "skill": "systematic-code-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q80",
+      "query": "summarize yesterday's standup notes into three bullet points",
+      "bucket": "pipeline-pick",
+      "category": "trivial-operations",
+      "expected_agent": null,
+      "expected_skill": null,
+      "notes": "PIPELINE near-miss. Trivial summary; pipeline MUST be null, not research-to-article or voice-writer.",
+      "expected_pipeline": null,
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "professional-communication"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "productivity",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['standup'] for productivity (score=1.07)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "general-purpose",
+            "skill": "condense",
+            "pipeline": null,
+            "reasoning": "Summarize standup notes by maximizing information density and removing filler into three focused bullet points.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "general-purpose",
+            "skill": "condense",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "reasoning": "Summarizing standup notes into three bullets is a one-off lightweight text task with no specialized content/engineering domain, which matches the FORCE-routed quick skill for tracked lightweight execution.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "quick",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q81",
+      "query": "give me a quick sense of what lives in the scripts/ folder",
+      "bucket": "pipeline-pick",
+      "category": "exploration",
+      "expected_agent": null,
+      "expected_skill": "read-only-ops",
+      "notes": "PIPELINE near-miss. Light read-only peek; pipeline MUST be null, not explore-pipeline or comprehensive-review.",
+      "expected_pipeline": null,
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "codebase-overview"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "Explore",
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "reasoning": "Fast read-only exploration to scan and report on scripts/ folder structure, contents, and purpose.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "Explore",
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "reasoning": "A quick look at one folder's contents is lightweight read-only exploration with no modifications — 'quick' here is a speed preference (excluded from the quick skill) and the scope is too small for codebase-overview's architecture mapping.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "read-only-ops",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q82",
+      "query": "make the app better",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. No target, no criteria. Should land planning/interview mode to resolve ambiguity, not start editing.",
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "Systematically scan the entire codebase across 3 dimensions to discover and prioritize all improvement opportunities, since the request is intentionally vague and needs discovery.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "The request 'make the app better' has no target, dimension, or app identified — the manifest explicitly flags vague 'make this better' requests as interview-mode (see systematic-code-review's NOT clause), so the correct action is to ask the user what to improve (performance, UX, code quality, features?) rather than dispatch; if forced to proceed without clarification, architecture-deepening is the closest proactive-improvement fallback.",
+            "confidence": "low"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q83",
+      "query": "I want to add some AI stuff to my site, you pick what makes sense",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. Open-ended feature wish; needs scoping questions first = planning.",
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "nodejs-api-engineer",
+            "skill": "claude-api",
+            "pipeline": null,
+            "reasoning": "Adding AI typically requires backend API integration with an LLM; claude-api reference clarifies integration options.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "nodejs-api-engineer",
+            "skill": "claude-api",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "feature-lifecycle",
+            "pipeline": null,
+            "reasoning": "Adding AI features to a site is new feature work needing design before implementation — feature-lifecycle is FORCE-marked for exactly this span (design → plan → implement → validate → release), and its design phase resolves the deliberate vagueness ('you pick what makes sense'); no agent is pinned because the site's stack is unknown and the lifecycle's design phase will select the right engineer.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "feature-lifecycle",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q84",
+      "query": "this project needs a refresh, where do we even start",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. 'Refresh' undefined; planning interview before any work.",
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['project'] for project-coordinator-engineer (score=1.07)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "Comprehensive 3-wave review produces a prioritized issue backlog that directly answers where to start the refresh",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "A vague whole-project 'refresh, where do we start' request is best served by a comprehensive repo review that produces a prioritized issue backlog to act as the starting roadmap.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q85",
+      "query": "can you improve things so users stop complaining",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. No symptom named; must interview, not guess a fix.",
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "reasoning": "Vague improvement request requires systematic issue discovery; full-repo-review comprehensively identifies problems across the entire codebase and produces a prioritized backlog of improvements.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "full-repo-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "The request is a vague no-target ask ('improve things') with no domain signal — per the interview-mode rule for requests like 'make this better', no route fits until the user specifies what users complain about and where.",
+            "confidence": "low"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q86",
+      "query": "I have an idea for a feature but I am not sure what it should do exactly",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE but clear destination: 'what should this do' is a planning trigger (spec/requirements).",
+      "pre_route": {
+        "matched": true,
+        "agent": "general-purpose",
+        "skill": "planning",
+        "confidence": "medium",
+        "match_type": "force_route",
+        "reasoning": "matched triggers ['not sure'] for planning"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "planning",
+            "pipeline": null,
+            "reasoning": "Planning skill's pre-plan ambiguity resolution directly clarifies feature scope and requirements before committing to implementation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "planning",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "plant-seed",
+            "pipeline": null,
+            "reasoning": "The user has a vague feature idea not yet ready for design or implementation, which matches plant-seed's purpose of capturing a forward-looking idea as a seed for future feature design — feature-lifecycle would be premature since they don't yet know what the feature should do.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "plant-seed",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q87",
+      "query": "do something about the performance, I guess?",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. No metric, no surface named. Interview first; jumping to an optimization agent is premature.",
+      "acceptable": [
+        {
+          "agent": "performance-optimization-engineer",
+          "skill": null
+        }
+      ],
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "Python routing code with vague performance request; code review for algorithmic bottlenecks, efficiency improvements, and optimization opportunities",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "Request is too vague to route — 'the performance' names no target (frontend, database, a language, a service), so no FORCE entry semantically matches and any pick (performance-optimization-engineer, database-engineer, a language engineer) would be a guess; per the systematic-code-review note, vague no-target requests are interview-mode: ask the user what performance problem they mean before dispatching.",
+            "confidence": "low"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q88",
+      "query": "we should probably clean things up around here",
+      "bucket": "vague-interview",
+      "category": "planning",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "notes": "VAGUE. 'Clean up' could be code, files, or process; interview first.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "code-cleanup"
+        }
+      ],
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "code-cleanup",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['clean up'] for code-cleanup (score=1.08)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "code-cleanup",
+            "pipeline": null,
+            "reasoning": "Detect stale TODOs, unused imports, and dead code across the repo as a first cleanup pass without requiring an agent.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "code-cleanup",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "reasoning": "Vague 'clean things up' maps to the workflow skill's refactor mode, which explicitly covers 'tidy up, clean up, reorganize without changing behaviour' — code-cleanup is too narrow (only dead code/stale TODOs) for an unscoped repo-wide tidy.",
+            "confidence": "medium"
+          },
+          "route": {
+            "agent": null,
+            "skill": "workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q89",
+      "query": "make the site look less boring",
+      "bucket": "plain-english",
+      "category": "frontend-development",
+      "expected_agent": "ui-design-engineer",
+      "expected_skill": "distinctive-frontend-design",
+      "notes": "PLAIN. Visual distinctiveness ask without design jargon = ui-design-engineer + distinctive-frontend-design.",
+      "acceptable": [
+        {
+          "agent": "ui-design-engineer",
+          "skill": null
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "ui-design-engineer",
+            "skill": "distinctive-frontend-design",
+            "pipeline": null,
+            "reasoning": "Visual aesthetics improvement requires the UI design agent paired with distinctive design skill for context-driven aesthetic exploration and anti-cliche validation.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "ui-design-engineer",
+            "skill": "distinctive-frontend-design",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "ui-design-engineer",
+            "skill": "distinctive-frontend-design",
+            "pipeline": null,
+            "reasoning": "Making a site 'less boring' is visual aesthetic work — distinctive-frontend-design's anti-cliche aesthetic exploration directly targets bland UI, executed by the visual-only ui-design-engineer.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "ui-design-engineer",
+            "skill": "distinctive-frontend-design",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q90",
+      "query": "the page takes forever to show up on my phone",
+      "bucket": "plain-english",
+      "category": "frontend-development",
+      "expected_agent": "performance-optimization-engineer",
+      "expected_skill": null,
+      "notes": "PLAIN. Slow page load without 'performance'/'Core Web Vitals' jargon = performance-optimization-engineer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "performance-optimization-engineer",
+            "skill": "verify",
+            "pipeline": null,
+            "reasoning": "Diagnose and optimize web page load performance on mobile, then verify the fix works in a real browser environment.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "performance-optimization-engineer",
+            "skill": "verify",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "performance-optimization-engineer",
+            "skill": null,
+            "pipeline": null,
+            "reasoning": "A page loading slowly on a phone is a web/frontend load-performance problem (Core Web Vitals, rendering, bundle size), which is exactly performance-optimization-engineer's domain; no FORCE skill matches this intent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "performance-optimization-engineer",
+            "skill": null,
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q91",
+      "query": "before I put this on the internet, check that nobody can log in as somebody else",
+      "bucket": "plain-english",
+      "category": "security",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "notes": "SAFETY, PLAIN. Auth-bypass concern without 'security' token = security-review.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "parallel-code-review"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "FORCE-marked security-review skill executes deterministic security scanning of git changes for authentication bypass and privilege escalation vulnerabilities before deployment",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "reasoning": "User wants a pre-launch security check on authentication (impersonation/auth bypass), which semantically matches the FORCE-marked security-review skill backed by the reviewer-system security agent; public-web-deploy would cover the later deploy step, but the request here is the security pass itself.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "reviewer-system",
+            "skill": "security-review",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q92",
+      "query": "put my website on the internet so other people can see it",
+      "bucket": "plain-english",
+      "category": "infrastructure",
+      "expected_agent": null,
+      "expected_skill": "public-web-deploy",
+      "notes": "SAFETY, PLAIN. Public exposure without 'deploy'/'DNS' jargon = public-web-deploy (FORCE skill).",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "public-web-deploy",
+            "pipeline": null,
+            "reasoning": "FORCE skill — deploy public website safely with DNS, web server, HTTPS, hardening, and verification when site goes internet-facing.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "public-web-deploy",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "public-web-deploy",
+            "pipeline": null,
+            "reasoning": "Making a website internet-facing is exactly the public-web-deploy FORCE domain (DNS, web server, HTTPS, hardening, verify), and the skill carries no fixed agent binding.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "public-web-deploy",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q93",
+      "query": "turn these words into Spanish but leave the computer code alone",
+      "bucket": "plain-english",
+      "category": "content-creation",
+      "expected_agent": null,
+      "expected_skill": "translate",
+      "notes": "PLAIN. Translation without 'translate the document' phrasing; code blocks preserved = translate.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "translate",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['into spanish'] for translate (score=1.12)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "reasoning": "Translate skill directly handles document translation with support for preserving code via chunked parallel subagents and glossary modes.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "reasoning": "The user wants text translated to Spanish while preserving code blocks, which is exactly the translate skill's domain (document translation with content left intact where appropriate).",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "translate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q94",
+      "query": "my program worked yesterday and today it does not, nothing changed I swear",
+      "bucket": "plain-english",
+      "category": "debugging",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "PLAIN. Regression debugging without 'debug'/'bug' tokens = workflow debug pipeline. Defensible: socratic-debugging.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "socratic-debugging"
+        }
+      ],
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "Regression requires structured debugging: observation of the failure, hypothesis formation about what changed, testing hypotheses, applying fixes, and recording learnings—exactly the 5-phase systematic-debugging pipeline.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "A regression with no known change and no stated language needs evidence-based diagnosis — the systematic-debugging pipeline's OBSERVE/HYPOTHESIZE/TEST phases fit exactly, and no language-specific agent can be chosen until the stack is identified.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q95",
+      "query": "save what I did so it does not get lost if my laptop dies",
+      "bucket": "plain-english",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY, PLAIN. Commit/push intent with zero git vocabulary. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "User wants to commit and push work to remote storage to protect against laptop failure; pr-workflow is FORCE-selected for git commit and push operations.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Saving work against laptop loss means committing and pushing to the remote — a git operation, which force-routes to pr-workflow.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q96",
+      "query": "write down how this thing works so the next person is not lost",
+      "bucket": "plain-english",
+      "category": "documentation",
+      "expected_agent": "technical-documentation-engineer",
+      "expected_skill": null,
+      "notes": "PLAIN. Documentation ask without 'docs'/'README' tokens = technical-documentation-engineer.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "Agent writes system architecture and technical docs for onboarding; skill provides systematic codebase exploration to map structure and behavior.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "reasoning": "The user wants onboarding documentation explaining how the system works, so the technical-documentation-engineer should first map the architecture via codebase-overview and then write the docs; no FORCE skill matches this intent.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "technical-documentation-engineer",
+            "skill": "codebase-overview",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q97",
+      "query": "the computer yells at me with red text when I run the tests, make it stop",
+      "bucket": "plain-english",
+      "category": "debugging",
+      "expected_agent": null,
+      "expected_skill": "workflow",
+      "notes": "PLAIN. Failing tests phrased as 'red text' = debug the failures (workflow). Defensible: test-driven-development.",
+      "acceptable": [
+        {
+          "agent": null,
+          "skill": "test-driven-development"
+        }
+      ],
+      "uncertain": true,
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": "verification-before-completion",
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "weak match on ['run tests'] for verification-before-completion (score=1.09)"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": "python-general-engineer",
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "reasoning": "python-quality-gate runs pytest with deterministic output control, suppressing excessive colored test output",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": "python-general-engineer",
+            "skill": "python-quality-gate",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "reasoning": "Red text when running tests means failing tests with an unknown root cause, which is general bug diagnosis requiring reproduction and investigation — explicitly excluded from 'quick' and best served by the evidence-based OBSERVE→HYPOTHESIZE→TEST→FIX→RECORD debugging pipeline, with the language-specific agent chosen once the failing test's stack is observed.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": null,
+            "pipeline": "systematic-debugging",
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    },
+    {
+      "id": "q98",
+      "query": "make my pull request nice so my boss approves it",
+      "bucket": "plain-english",
+      "category": "git-operations",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "notes": "SAFETY, PLAIN. PR preparation in casual words. MUST route pr-workflow.",
+      "pre_route": {
+        "matched": false,
+        "agent": null,
+        "skill": null,
+        "confidence": "low",
+        "match_type": "fallthrough",
+        "reasoning": "no trigger keywords matched"
+      },
+      "arms": {
+        "haiku": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "FORCE rule mandates pr-workflow for PR operations; user wants to improve and prepare PR for approval",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        },
+        "self-route": {
+          "haiku_raw": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "reasoning": "Polishing a pull request for approval is a git PR lifecycle operation (review, fix, sync), which the FORCE-marked pr-workflow skill explicitly covers.",
+            "confidence": "high"
+          },
+          "route": {
+            "agent": null,
+            "skill": "pr-workflow",
+            "pipeline": null,
+            "source": "haiku",
+            "safety_override": false
+          }
+        }
+      }
+    }
+  ]
+}

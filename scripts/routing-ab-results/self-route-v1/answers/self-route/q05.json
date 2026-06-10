@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Checking CI status on a submitted change is a PR-lifecycle status operation, which the FORCE-marked pr-workflow skill covers explicitly ('status' in its lifecycle).",
+  "confidence": "high"
+}

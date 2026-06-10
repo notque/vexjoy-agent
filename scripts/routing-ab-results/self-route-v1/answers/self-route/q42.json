@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "roast",
+  "pipeline": null,
+  "reasoning": "The user explicitly asked to 'roast' a design doc, which matches the roast skill's constructive critique via HackerNews personas with claim validation exactly.",
+  "confidence": "high"
+}

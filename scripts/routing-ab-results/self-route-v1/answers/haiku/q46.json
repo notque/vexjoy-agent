@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "agent-creator",
+  "pipeline": null,
+  "reasoning": "agent-creator is the FORCE skill for scaffolding vexjoy-agent operator .md files with frontmatter, routing blocks, and agent structure.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "FORCE-marked security-review skill executes deterministic security scanning of git changes for authentication bypass and privilege escalation vulnerabilities before deployment",
+  "confidence": "high"
+}

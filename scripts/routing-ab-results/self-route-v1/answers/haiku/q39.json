@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-frontend-engineer",
+  "skill": "verify",
+  "pipeline": null,
+  "reasoning": "TypeScript frontend engineer fixes React component bugs; verify skill confirms the fix works by running the app and observing behavior.",
+  "confidence": "high"
+}

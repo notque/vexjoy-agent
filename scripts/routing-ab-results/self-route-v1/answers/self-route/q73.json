@@ -1,0 +1,7 @@
+{
+  "agent": "technical-journalist-writer",
+  "skill": "voice-writer",
+  "pipeline": "voice-writer",
+  "reasoning": "Writing one blog post in the user's voice with mandatory voice validation and joy-check is exactly the FORCE-marked voice-writer pipeline, which bundles voice-validator and joy-check, and technical-journalist-writer is the long-form writing agent that carries voice-writer.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "cron-job-auditor",
+  "pipeline": null,
+  "reasoning": "The request is exactly a reliability/safety audit of cron scripts \u2014 silent failure and data-clobbering risks \u2014 which is the cron-job-auditor skill's stated purpose.",
+  "confidence": "high"
+}

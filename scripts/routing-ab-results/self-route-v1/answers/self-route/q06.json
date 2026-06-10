@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants their code checked for safety problems, which semantically means a security pass over their code \u2014 security-review is FORCE-marked for exactly this intent and pairs with reviewer-system, the security-focused reviewer.",
+  "confidence": "high"
+}

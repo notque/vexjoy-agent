@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "read-only-ops",
+  "pipeline": null,
+  "reasoning": "User wants to analyze and synthesize understanding of branch state and changes; 'in your head' indicates exploratory analysis, not literal git operations.",
+  "confidence": "medium"
+}
