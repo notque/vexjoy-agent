@@ -19,8 +19,17 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import context_output, empty_output, get_tool_output, get_tool_result
 from stdin_timeout import read_stdin
 
-DB_PATH = Path.home() / ".claude" / "learning" / "learning.db"
+_db_dir = os.environ.get("CLAUDE_LEARNING_DIR")
+DB_PATH = (Path(_db_dir) if _db_dir else Path.home() / ".claude" / "learning") / "learning.db"
 EVENT = "PostToolUse"
+
+# Only categories the retro skill can graduate. Derived from the candidate
+# query in skills/meta/retro/SKILL.md (Step 1):
+#   learning-db.py query --category design --category gotcha
+# Keep the two in sync — if the skill's query changes, change this tuple.
+# Excluded on purpose: 'error' and 'effectiveness' are injection-only,
+# 'voice' is corpus data; none can ever satisfy this gate.
+GRADUATABLE_CATEGORIES = ("design", "gotcha")
 
 
 def main() -> None:
@@ -56,15 +65,18 @@ def main() -> None:
     try:
         with sqlite3.connect(DB_PATH, timeout=2) as conn:
             conn.row_factory = sqlite3.Row
+            placeholders = ",".join("?" * len(GRADUATABLE_CATEGORIES))
             rows = conn.execute(
-                """
+                f"""
                 SELECT topic, key, value FROM learnings
                 WHERE graduated_to IS NULL
                   AND confidence >= 0.7
                   AND last_seen >= datetime('now', '-24 hours')
+                  AND category IN ({placeholders})
                 ORDER BY confidence DESC
                 LIMIT 20
                 """,
+                GRADUATABLE_CATEGORIES,
             ).fetchall()
     except sqlite3.Error as e:
         print(f"[retro-gate] DB error (advisory skip): {e}", file=sys.stderr)
