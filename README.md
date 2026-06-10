@@ -8,9 +8,9 @@ AI agents skip steps.
 
 Harnesses have a second problem: given only a skill list, they do not route eagerly enough, or correctly enough. Good skills sit unused. So this toolkit connects the skills, agents, and workflows we want directly into the harness, automatically. You don't have to understand what is here. Say what you want in plain English and you get all the value we have put into it: the right specialist with the right methodology, behind gates that demand exit codes, not assertions.
 
-44 domain agents, 125 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+44 domain agents, 125 workflow skills, 83 hooks, 114 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
-Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`), Reasonix (`/do`).
+Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
 ## What It Looks Like
 
@@ -72,14 +72,12 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.gemini/`, `~/.factory/`, `~/.reasonix/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
+Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.factory/`, `~/.reasonix/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
 
 | CLI | Entry Point |
 |-----|-------------|
 | Claude Code | `/do` |
 | Codex | `$do` |
-| Gemini CLI | `/do` |
-| Antigravity (`agy`) | `/do` |
 | Factory | `/do` |
 | Reasonix | `/do` |
 
@@ -95,17 +93,15 @@ Mirrors agents, skills, and 6 allowlisted hooks into `~/.codex/`. Requires Codex
 </details>
 
 <details>
-<summary><b>Gemini CLI / Antigravity CLI Support</b></summary>
+<summary><b>Gemini CLI / Antigravity CLI Support (removed)</b></summary>
 
-Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event names (`Stop` → `SessionEnd`, `PostToolUse` → `AfterTool`, `PreToolUse` → `BeforeTool`). Tool mapping: `Bash` → `run_shell_command`. Hook config merges into `~/.gemini/settings.json`.
+Gemini CLI support removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity. Per Google's [transition announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), Gemini CLI stops serving requests on **2026-06-18** for Google AI Pro / Ultra and free Gemini Code Assist for individuals. Gemini **API** integrations (image-gen backends, sprite pipeline, `GEMINI_API_KEY`) are unaffected and stay in the toolkit.
 
-Antigravity (`agy`) is supported additively alongside Gemini CLI: the installer ships a plugin at `~/.gemini/antigravity/plugins/vexjoy-agent/` (manifest + `hooks.json`) and does not replace the Gemini CLI integration. Antigravity has no `SessionStart` event, so the four bootstrap hooks (github briefing, operator-context detector, team-config loader, rules-distill injector) ride on `UserPromptSubmit` and self-gate to once-per-session via a PPID touchfile. Other CLIs continue to hit those hooks via `SessionStart` and are unaffected.
+If a prior install mirrored into `~/.gemini/`, remove the stale mirrors with:
 
-#### Gemini CLI sunset (consumer tiers, 2026-06-18)
-
-Per Google's [transition announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), Gemini CLI stops serving requests on **2026-06-18** for Google AI Pro / Ultra and free Gemini Code Assist for individuals. Unchanged past that date: Gemini Code Assist Standard / Enterprise, paid Gemini API keys, Gemini Enterprise Agent Platform.
-
-Consumer-tier users: install Antigravity CLI from <https://antigravity.google/cli> before 2026-06-18. The toolkit installs both targets; whichever CLI you actually use keeps working.
+```bash
+rm -rf ~/.gemini/skills ~/.gemini/agents ~/.gemini/hooks ~/.gemini/scripts ~/.gemini/antigravity/plugins/vexjoy-agent
+```
 
 </details>
 

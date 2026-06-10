@@ -13,12 +13,11 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Claude Code is the primary runtime. If you also use Codex CLI, Gemini CLI, Factory, or Reasonix, the same install mirrors toolkit skills (and agents where the harness supports them) into `~/.codex/`, `~/.gemini/`, `~/.factory/`, and `~/.reasonix/` so all the CLIs share the same skill library. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Antigravity CLI (`agy`) is also supported; see README § "Gemini CLI / Antigravity CLI Support" for setup details.
+Claude Code is the primary runtime. If you also use Codex CLI, Factory, or Reasonix, the same install mirrors toolkit skills (and agents where the harness supports them) into `~/.codex/`, `~/.factory/`, and `~/.reasonix/` so all the CLIs share the same skill library. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Gemini CLI support was removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity — see README § "Gemini CLI / Antigravity CLI Support (removed)".
 
 Command entry points:
 - Claude Code: `/do`
 - Codex: `$do`
-- Gemini CLI: `/do`
 - Factory: `/do`
 - Reasonix: `/do`
 
@@ -85,7 +84,7 @@ The system figures out which tools to use and tells you what it selected.
 
 ### Option B: Use the Router for Specific Workflows
 
-The router command routes your request to the right agent and skill automatically. Use `/do` in Claude Code, Gemini CLI, and Factory, and `$do` in Codex:
+The router command routes your request to the right agent and skill automatically. Use `/do` in Claude Code and Factory, and `$do` in Codex:
 
 | Want This? | Try This |
 |------------|----------|
@@ -135,7 +134,7 @@ These phrases automatically activate the right tools:
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│   /do in Claude | $do in Codex | /do in Gemini/Factory  │
+│   /do in Claude | $do in Codex | /do in Factory         │
 │         (or natural-language routing)                   │
 └─────────────────────────────────────────────────────────┘
                           │

@@ -1,7 +1,0 @@
-{
-  "name": "vexjoy-agent",
-  "version": "0.1.0",
-  "description": "VexJoy Agent toolkit: agents, skills, hooks, and scripts for Claude Code, Codex, Gemini CLI, and Antigravity CLI.",
-  "author": "VexJoy",
-  "homepage": "https://github.com/thecodingshrimp/vexjoy-agent"
-}

@@ -4,7 +4,7 @@
 The allowlist format is one entry per line: EVENT:filename [match]
 Comments (lines starting with #) and blank lines are ignored.
 
-Unlike the Codex and Gemini generators, this script writes Reasonix's
+Unlike the Codex generator, this script writes Reasonix's
 NATIVE settings shape — a flat array per event, no nested {hooks: [{type, command, ...}]}.
 Reasonix's source (src/hooks.ts) reads:
 
