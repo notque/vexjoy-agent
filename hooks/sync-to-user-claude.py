@@ -349,8 +349,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
         ~/.claude/skills/do → repo/skills/meta/do
         ~/.claude/skills/planning → repo/skills/process/planning
 
-    Root-level items (INDEX.json, shared-patterns/, workflow/, kb/) are
-    also symlinked directly.
+    Root-level items (INDEX.json, support dirs like shared-patterns/,
+    workflow/, kb/, voice-shared-references/) are symlinked directly.
 
     Index-symlink policy (prevents the private-skill leak into the *tracked*
     skills/INDEX.json): ~/.claude/skills/INDEX.json is the runtime index the
@@ -392,11 +392,32 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
                 target.unlink()
             target.symlink_to(link_src)
 
-    # Symlink root-level utility directories (shared-patterns, workflow, kb)
-    # These contain no SKILL.md at the category level — they're utility refs.
-    root_dirs = {"shared-patterns", "workflow", "kb"}
+    # Symlink root-level support directories (shared-patterns, workflow, kb,
+    # voice-shared-references). These hold reference files, not skills.
+    root_dirs = {"shared-patterns", "workflow", "kb", "voice-shared-references"}
+
+    def _is_support_dir(item: Path) -> bool:
+        """Support dirs hold reference .md files at their root, not skills.
+
+        They must enter expected_names or the stale-cleanup loop below
+        unlinks them every SessionStart (the voice-shared-references bug).
+        A dir counts as support when allowlisted, or when it has .md files
+        directly inside and no skill subdirectory — category folders always
+        hold at least one subdirectory with a SKILL.md.
+        """
+        if item.name in root_dirs:
+            return True
+        if item.name.startswith(".") or (item / "SKILL.md").exists():
+            return False
+        children = list(item.iterdir())
+        has_md = any(c.is_file() and c.suffix == ".md" for c in children)
+        has_skill_subdir = any(c.is_dir() and (c / "SKILL.md").exists() for c in children)
+        return has_md and not has_skill_subdir
+
+    support_dirs: set[str] = set()
     for item in src.iterdir():
-        if item.is_dir() and item.name in root_dirs:
+        if item.is_dir() and _is_support_dir(item):
+            support_dirs.add(item.name)
             expected_names.add(item.name)
             _ensure_symlink(item, dst / item.name)
 
@@ -405,7 +426,7 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     for category_dir in sorted(src.iterdir()):
         if not category_dir.is_dir():
             continue
-        if category_dir.name in root_dirs:
+        if category_dir.name in support_dirs:
             continue  # Already handled above
         if category_dir.name.startswith("."):
             continue
