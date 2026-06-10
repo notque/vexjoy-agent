@@ -10,6 +10,7 @@ Covers PR #779 review findings F1-F3:
 from __future__ import annotations
 
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -62,6 +63,28 @@ class TestFindPlaceholderSignals:
             f.read_text(encoding="utf-8") + "\nUse workflow steps to plan implementation patterns.\n", encoding="utf-8"
         )
         assert vr.find_placeholder_signals() == []
+
+
+class TestRunCheckPlaceholders:
+    def test_hit_returns_one_and_prints(self, repo, capsys: pytest.CaptureFixture) -> None:
+        repo("| workflow steps | `ref.md` | Loads guidance. |")
+        assert vr.run_check_placeholders(json_output=False) == 1
+        out = capsys.readouterr().out
+        assert "PLACEHOLDER_SIGNAL: " in out
+        assert "1 placeholder signal(s) found" in out
+
+    def test_clean_returns_zero(self, repo, capsys: pytest.CaptureFixture) -> None:
+        repo("| real signal | `ref.md` | Why. |")
+        assert vr.run_check_placeholders(json_output=False) == 0
+        assert "all loading-table signals OK" in capsys.readouterr().out
+
+    def test_json_output(self, repo, capsys: pytest.CaptureFixture) -> None:
+        repo("| example-driven tasks | `ref.md` | Loads guidance. |")
+        assert vr.run_check_placeholders(json_output=True) == 1
+        out = json.loads(capsys.readouterr().out)
+        assert out["exit_code"] == 1
+        assert out["total"] == 1
+        assert out["placeholder_signals"][0]["signal"] == "example-driven tasks"
 
 
 class TestJsonExitCode:
