@@ -141,6 +141,9 @@ evolution-reports/
 # Feature state (ephemeral, per-session feature lifecycle)
 .feature/
 
+# Objective-loop state dirs (frozen during #770 per its PR notes)
+.objective/
+
 .audit/
 
 # Session artifacts (transient, never committed)
