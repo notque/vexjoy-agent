@@ -74,6 +74,102 @@ _DO_ROUTE_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
+# Optional complexity field on the same marker line, recorded into the T3 event
+# log for replay. Absent => "".
+_COMPLEXITY_RE = re.compile(r"\bcomplexity=([a-z0-9-]+)", re.IGNORECASE)
+
+# Step 1.5 health gate inputs on the same marker line (do/SKILL.md Phase 4 Step 2).
+# Each is an independent \b token. `health=-` => null (no weight row); else float.
+# n=/fail= are the other demote-floor inputs; action= is keep|demote|tiebreak;
+# alts= is a comma-separated key list. All optional; absent => null.
+# health= is a float (digits with one optional decimal part) or "-". The value
+# is anchored on BOTH ends: a trailing `(?![\d.])` rejects `1.2.3` (and `1.2.`)
+# as a whole — it must NOT match as `1.2`, which would slip a bad token past
+# float() / drop the event. A malformed value stays a non-match => state (c).
+_HEALTH_RE = re.compile(r"\bhealth=(\d+(?:\.\d+)?|-)(?![\d.])", re.IGNORECASE)
+_N_RE = re.compile(r"\bn=(\d+)", re.IGNORECASE)
+_FAIL_RE = re.compile(r"\bfail=(\d+)", re.IGNORECASE)
+_ACTION_RE = re.compile(r"\baction=(keep|demote|tiebreak)", re.IGNORECASE)
+_ALTS_RE = re.compile(r"\balts=([a-z0-9:_,-]+)", re.IGNORECASE)
+
+
+def _marker_line(prompt: str) -> str:
+    """Return the single line that carries the [do-route] marker, or "".
+
+    The gate inputs (health=/n=/fail=/action=/alts=) live on the marker line
+    ONLY. Scanning the whole prompt let a task body that merely mentions
+    `health=0.9` or `fail=3` poison gate_inputs_present and the decommission
+    clock. Isolating the marker line first means body text can never match.
+    Uses the SAME matcher as parse_do_route_marker so "marker line" is one
+    definition; returns the full line containing that match.
+    """
+    if not prompt or "[do-route]" not in prompt.lower():
+        return ""
+    m = _DO_ROUTE_RE.search(prompt)
+    if not m:
+        return ""
+    start = prompt.rfind("\n", 0, m.start()) + 1  # -1 -> 0 for the first line
+    end = prompt.find("\n", m.start())
+    return prompt[start:] if end == -1 else prompt[start:end]
+
+
+def parse_health_inputs(prompt: str) -> dict[str, object]:
+    """Read the Step-1.5 gate inputs off the marker LINE. Three instrumentation states.
+
+    Inputs are read from the marker line only (`_marker_line`), never the whole
+    prompt — a task body mentioning `health=`/`fail=` must not be read as a gate
+    input. `gate_inputs_present` is the instrumentation signal the decommission
+    clock reads — NOT non-null health. Three states the event must distinguish:
+      (a) numeric  `health=<float>` => health float, gate_inputs_present True.
+      (b) no-row   `health=-`       => health null,  gate_inputs_present True.
+          The pick has no weight row — valid, expected data. Most live picks are
+          state (b), so reading it as missing would keep the clock unreachable
+          forever (the soundness gap this fixes).
+      (c) legacy   no `health=` token => health null, gate_inputs_present False.
+          The marker never carried a gate input (pre-fix / missing wiring).
+          A malformed `health=` value (e.g. `1.2.3`) also lands here: the regex
+          won't match it, so it reads as absent — honest "not instrumented",
+          never a dropped event.
+    n/failure/action/alternates stay null unless a real `health=<float>` is read.
+    Snapshotted at decision time; replay never re-derives.
+    """
+    null = {
+        "health": None,
+        "n": None,
+        "failure": None,
+        "action": None,
+        "alternates": None,
+        "gate_inputs_present": False,
+    }
+    line = _marker_line(prompt)
+    if not line:
+        return null  # no marker line => nothing to read
+    hm = _HEALTH_RE.search(line)
+    if not hm:
+        return null  # state (c): no (well-formed) gate input on the marker
+    if hm.group(1) == "-":
+        # state (b): marker carried the gate input; the pick had no weight row.
+        return {**null, "gate_inputs_present": True}
+    try:
+        health = float(hm.group(1))  # state (a)
+    except ValueError:
+        # Defensive: the regex already bars malformed values, but never let a
+        # float() raise drop the whole event — treat as field-absent (state c).
+        return null
+    nm = _N_RE.search(line)
+    fm = _FAIL_RE.search(line)
+    am = _ACTION_RE.search(line)
+    altm = _ALTS_RE.search(line)
+    return {
+        "health": health,
+        "n": int(nm.group(1)) if nm else None,
+        "failure": int(fm.group(1)) if fm else None,
+        "action": am.group(1).lower() if am else None,
+        "alternates": [k for k in altm.group(1).split(",") if k] if altm else None,
+        "gate_inputs_present": True,
+    }
+
+
 # Right-sizing banner. The first four fields are required; findings= and the
 # cost fields (tokens=, wall_clock_s=) are optional, additive extensions
 # (ADR: review-tier-roi). Legacy four-field banners still match.
@@ -263,6 +359,28 @@ def main() -> None:
             session_id=session_id or None,
         )
 
+        # T3: per-dispatch DECISION event (JSONL), append-only + failure-safe.
+        # Auxiliary to the aggregate row above — never blocks; route_events
+        # swallows write errors so the hook stays non-blocking.
+        cm = _COMPLEXITY_RE.search(prompt)
+        complexity = cm.group(1) if cm else ""
+        health = parse_health_inputs(prompt)
+        from route_events import record_decision_event
+
+        record_decision_event(
+            session=session_id,
+            request_snippet=request_snippet,
+            agent=agent,
+            skill=skill,
+            complexity=complexity,
+            health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
+            n=health["n"],
+            failure=health["failure"],
+            action=health["action"],
+            alternates=health["alternates"],
+            gate_inputs_present=health["gate_inputs_present"],
+        )
+
         # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,
         # one row per dispatch, AFTER the decision row so both share (topic, key).
         # git_sha + session_id + run_id are always derivable, so this row is non-empty
@@ -303,10 +421,17 @@ def main() -> None:
         append_pending_outcome(session_id, key, has_errors)
 
     except Exception as e:
+        # Always surface ONE short line so a recorder failure is visible, not
+        # silent (the previous handler logged only under CLAUDE_HOOKS_DEBUG, so a
+        # dropped decision event left no trace). Exception class + message only —
+        # no prompt content, no secrets. Full traceback stays debug-gated.
+        try:
+            print(f"routing-decision-recorder: {type(e).__name__}: {e}", file=sys.stderr)
+        except Exception:
+            pass  # stderr write must never itself break the hook
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
 
-            print(f"[routing-decision-recorder] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)  # Never block
