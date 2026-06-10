@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -196,48 +197,135 @@ class TestEnsureSymlink:
         assert not dst.exists()
 
 
-class TestSkillsFlatSymlinkIndexPolicy:
-    """The runtime ~/.claude/skills/INDEX.json symlink must point at the
-    gitignored INDEX.local.json (when present) so in-place harness writes never
-    reach the tracked public INDEX.json. Root cause of the recurring private-
-    skill leak."""
+class TestRuntimeIndexMerge:
+    """The runtime ~/.claude/skills/INDEX.json must be a real file holding
+    the tracked-first merge of skills/INDEX.json and skills/INDEX.local.json.
 
-    def _make_src(self, tmp_path: Path, with_local: bool) -> Path:
+    Two invariants (PR #778 bug class plus the private-skill leak):
+    1. Every tracked entry is present; local entries add per-name. A stale
+       local can neither hide nor override tracked entries.
+    2. In-place writes to the runtime index never reach the repo files.
+    """
+
+    TRACKED: ClassVar[dict] = {
+        "version": "2.0",
+        "skills": {
+            "do": {"description": "tracked do"},
+            "new-skill": {"description": "added after local was generated"},
+        },
+    }
+    LOCAL: ClassVar[dict] = {
+        "version": "2.0",
+        "skills": {
+            "do": {"description": "STALE do"},
+            "voice-x": {"description": "private"},
+        },
+    }
+
+    def _make_src(self, tmp_path: Path, with_tracked: bool = True, with_local: bool = True) -> Path:
         src = tmp_path / "skills"
         src.mkdir()
-        (src / "INDEX.json").write_text('{"skills": {}}\n')
+        if with_tracked:
+            (src / "INDEX.json").write_text(json.dumps(self.TRACKED))
         if with_local:
-            (src / "INDEX.local.json").write_text('{"skills": {"voice-x": {}}}\n')
+            # Stale local: superset of old entries, missing "new-skill"
+            (src / "INDEX.local.json").write_text(json.dumps(self.LOCAL))
         # one real skill so the flatten loop has something to do
         skill = src / "meta" / "do"
         skill.mkdir(parents=True)
         (skill / "SKILL.md").write_text("---\nname: do\n---\n")
         return src
 
-    def test_index_redirects_to_local_when_present(self, tmp_path: Path) -> None:
-        src = self._make_src(tmp_path, with_local=True)
+    def test_stale_local_does_not_hide_tracked_entries(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path)
         dst = tmp_path / "out"
         sync_mod._sync_skills_flat_symlinks(src, dst)
-        # INDEX.json symlink resolves to the gitignored local file
-        assert (dst / "INDEX.json").resolve() == (src / "INDEX.local.json").resolve()
-        # INDEX.local.json still maps to itself
-        assert (dst / "INDEX.local.json").resolve() == (src / "INDEX.local.json").resolve()
 
-    def test_inplace_write_through_index_spares_tracked_file(self, tmp_path: Path) -> None:
-        src = self._make_src(tmp_path, with_local=True)
+        runtime = dst / "INDEX.json"
+        assert runtime.is_file() and not runtime.is_symlink()
+        skills = json.loads(runtime.read_text())["skills"]
+        # Every tracked entry present; local adds its private entry
+        assert set(self.TRACKED["skills"]) <= set(skills)
+        assert "voice-x" in skills
+
+    def test_local_cannot_override_tracked_content(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path)
         dst = tmp_path / "out"
         sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        skills = json.loads((dst / "INDEX.json").read_text())["skills"]
+        assert skills["do"] == {"description": "tracked do"}
+
+    def test_inplace_write_never_reaches_repo_files(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+
         # Simulate a harness rewriting the runtime index in place
-        (dst / "INDEX.json").write_text('{"skills": {"voice-x": {}, "leak": {}}}\n')
-        # Tracked public index is untouched; the local (gitignored) one absorbs it
-        assert json.loads((src / "INDEX.json").read_text()) == {"skills": {}}
-        assert "leak" in json.loads((src / "INDEX.local.json").read_text())["skills"]
+        (dst / "INDEX.json").write_text('{"skills": {"leak": {}}}\n')
 
-    def test_index_falls_back_to_tracked_without_local(self, tmp_path: Path) -> None:
+        assert json.loads((src / "INDEX.json").read_text()) == self.TRACKED
+        assert json.loads((src / "INDEX.local.json").read_text()) == self.LOCAL
+
+    def test_inplace_write_spares_tracked_without_local(self, tmp_path: Path) -> None:
+        """No local index: runtime must still be a real file, not a symlink
+        to the tracked index (the old fallback leaked writes into the repo)."""
         src = self._make_src(tmp_path, with_local=False)
         dst = tmp_path / "out"
         sync_mod._sync_skills_flat_symlinks(src, dst)
-        assert (dst / "INDEX.json").resolve() == (src / "INDEX.json").resolve()
+
+        runtime = dst / "INDEX.json"
+        assert runtime.is_file() and not runtime.is_symlink()
+        assert json.loads(runtime.read_text())["skills"] == self.TRACKED["skills"]
+
+        runtime.write_text('{"skills": {"leak": {}}}\n')
+        assert json.loads((src / "INDEX.json").read_text()) == self.TRACKED
+
+    def test_local_only_still_materializes(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path, with_tracked=False)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        skills = json.loads((dst / "INDEX.json").read_text())["skills"]
+        assert skills == self.LOCAL["skills"]
+
+    def test_pre_fix_symlink_replaced_by_real_file(self, tmp_path: Path) -> None:
+        """A pre-fix install left dst/INDEX.json as a symlink into the repo.
+        Sync must swap it for the real merged file without touching the repo
+        file it pointed at."""
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        dst.mkdir()
+        (dst / "INDEX.json").symlink_to(src / "INDEX.local.json")
+
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+
+        runtime = dst / "INDEX.json"
+        assert runtime.is_file() and not runtime.is_symlink()
+        assert "new-skill" in json.loads(runtime.read_text())["skills"]
+        assert json.loads((src / "INDEX.local.json").read_text()) == self.LOCAL
+
+    def test_unchanged_index_not_rewritten(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        mtime_before = (dst / "INDEX.json").stat().st_mtime_ns
+
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        assert (dst / "INDEX.json").stat().st_mtime_ns == mtime_before
+
+    def test_no_index_files_creates_nothing(self, tmp_path: Path) -> None:
+        src = self._make_src(tmp_path, with_tracked=False, with_local=False)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        assert not (dst / "INDEX.json").exists()
+
+    def test_local_symlink_still_created(self, tmp_path: Path) -> None:
+        """INDEX.local.json keeps its plain root-file symlink."""
+        src = self._make_src(tmp_path)
+        dst = tmp_path / "out"
+        sync_mod._sync_skills_flat_symlinks(src, dst)
+        assert (dst / "INDEX.local.json").resolve() == (src / "INDEX.local.json").resolve()
 
 
 class TestSupportDirSurvivesCleanup:
@@ -497,3 +585,91 @@ class TestMainSymlinkMode:
         # Nothing should have been created
         assert not (user_claude / "agents").exists()
         assert not (user_claude / "hooks").exists()
+
+
+class TestMainRuntimeIndex:
+    """End-to-end runtime-index invariants through main(), both install modes."""
+
+    TRACKED: ClassVar[dict] = {"version": "2.0", "skills": {"sample": {"description": "tracked"}}}
+    LOCAL: ClassVar[dict] = {
+        "version": "2.0",
+        "skills": {"sample": {"description": "STALE"}, "voice-x": {"description": "private"}},
+    }
+
+    def _setup(self, tmp_path: Path, mode: str) -> tuple[Path, Path]:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        for comp in ["agents", "hooks", "commands", "scripts"]:
+            comp_dir = repo / comp
+            comp_dir.mkdir()
+            (comp_dir / "sample.md").write_text(f"# {comp} sample")
+        skills_dir = repo / "skills"
+        sample_skill = skills_dir / "meta" / "sample"
+        sample_skill.mkdir(parents=True)
+        (sample_skill / "SKILL.md").write_text("# sample skill")
+        (skills_dir / "INDEX.json").write_text(json.dumps(self.TRACKED))
+        (skills_dir / "INDEX.local.json").write_text(json.dumps(self.LOCAL))
+        repo_claude = repo / ".claude"
+        repo_claude.mkdir()
+        (repo_claude / "settings.json").write_text(json.dumps({"hooks": {"SessionStart": []}}))
+
+        user_claude = tmp_path / "home" / ".claude"
+        user_claude.mkdir(parents=True)
+        manifest = {
+            "mode": mode,
+            "toolkit_path": str(repo),
+            "components": ["agents", "skills", "hooks", "commands", "scripts"],
+        }
+        (user_claude / ".install-manifest.json").write_text(json.dumps(manifest))
+        return repo, user_claude
+
+    def _run_main(self, tmp_path: Path, repo: Path) -> None:
+        with (
+            patch.object(Path, "home", return_value=tmp_path / "home"),
+            patch.object(Path, "cwd", return_value=repo),
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
+        ):
+            sync_mod.main()
+
+    @pytest.mark.parametrize("mode", ["symlink", "copy"])
+    def test_runtime_index_merged_and_writes_stay_local(self, tmp_path: Path, mode: str) -> None:
+        repo, user_claude = self._setup(tmp_path, mode)
+        self._run_main(tmp_path, repo)
+
+        runtime = user_claude / "skills" / "INDEX.json"
+        assert runtime.is_file() and not runtime.is_symlink()
+        skills = json.loads(runtime.read_text())["skills"]
+        # Invariant 1: tracked entries win and are all present; local adds
+        assert skills["sample"] == {"description": "tracked"}
+        assert "voice-x" in skills
+
+        # Invariant 2: in-place harness write never reaches the repo
+        runtime.write_text('{"skills": {"leak": {}}}\n')
+        assert json.loads((repo / "skills" / "INDEX.json").read_text()) == self.TRACKED
+        assert json.loads((repo / "skills" / "INDEX.local.json").read_text()) == self.LOCAL
+
+    def test_copy_mode_local_only_survives_stale_cleanup(self, tmp_path: Path) -> None:
+        """Repo with only INDEX.local.json (tracked index not generated yet):
+        the materialized runtime index must survive deferred stale cleanup."""
+        repo, user_claude = self._setup(tmp_path, "copy")
+        (repo / "skills" / "INDEX.json").unlink()
+        self._run_main(tmp_path, repo)
+
+        runtime = user_claude / "skills" / "INDEX.json"
+        assert runtime.is_file()
+        assert json.loads(runtime.read_text())["skills"] == self.LOCAL["skills"]
+
+    def test_copy_mode_resync_refreshes_merge(self, tmp_path: Path) -> None:
+        """A second sync after the tracked index gains a skill must surface
+        the new entry in the runtime index (the stale-hide regression)."""
+        repo, user_claude = self._setup(tmp_path, "copy")
+        self._run_main(tmp_path, repo)
+
+        updated = {"version": "2.0", "skills": {**self.TRACKED["skills"], "brand-new": {}}}
+        (repo / "skills" / "INDEX.json").write_text(json.dumps(updated))
+        self._run_main(tmp_path, repo)
+
+        skills = json.loads((user_claude / "skills" / "INDEX.json").read_text())["skills"]
+        assert "brand-new" in skills
+        assert "voice-x" in skills
