@@ -2,6 +2,8 @@
 
 You cloned the repo. You want to understand the dispatch model, add a component, or ship a change. This is the map.
 
+The payoff for extending: anything you add gets wired into the router. Users never learn your component's name; they describe work and your agent, skill, or hook fires automatically.
+
 ## Architecture in 60 Seconds
 
 The system has one path. Every request passes through four layers.
@@ -55,7 +57,7 @@ Skills you write but keep out of the public repo. Create a separate private git 
 │       └── references/
 ```
 
-The sync hook discovers `~/private-skills/` automatically — any directory with a SKILL.md inside a category folder gets deployed to `~/.claude/skills/` alongside public skills. No configuration needed.
+The sync hook discovers `~/private-skills/` automatically: any directory with a SKILL.md inside a category folder gets deployed to `~/.claude/skills/` alongside public skills. No configuration needed.
 
 **Setup:**
 

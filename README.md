@@ -6,9 +6,11 @@ AI agents skip steps.
 
 "Looks correct" replaces running tests. "Trivial change" replaces verification. The agent confidently ships broken code because nothing structurally prevented it from skipping the work.
 
-44 domain agents, 124 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism. The pipeline has gates. Gates require evidence. Evidence means exit codes, not assertions.
+Harnesses have a second problem: given only a skill list, they do not route eagerly enough, or correctly enough. Good skills sit unused. So this toolkit connects the skills, agents, and workflows we want directly into the harness, automatically. You don't have to understand what is here. Say what you want in plain English and you get all the value we have put into it: the right specialist with the right methodology, behind gates that demand exit codes, not assertions.
 
-Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`).
+44 domain agents, 124 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+
+Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`), Reasonix (`/do`).
 
 ## What It Looks Like
 
@@ -54,6 +56,14 @@ Hooks fire automatically. Gates block completion. Skills encode counter-argument
 
 For what I do, the difference is enormous. If you're doing simple single-file edits, maybe less so.
 
+## Knowledge Work Is First-Class
+
+The same routing serves knowledge work. The content engine researches, drafts in a calibrated voice, validates against 397 AI patterns, and repurposes finished pieces for each platform. `/html` turns any request into a single self-contained HTML file: report, slide deck, prototype, data viz, diagram. Non-engineers who try the toolkit consistently name the HTML artifacts as the thing they love. No code, no setup beyond the installer.
+
+## It Proves Its Own Changes
+
+Changes to the toolkit itself ship with evidence. New skills get blind A/B tests against a no-skill baseline before merge. Routing and writing-standard decisions carry measured verdicts; [PHILOSOPHY.md](docs/PHILOSOPHY.md) cites the numbers. Experiments that lost go into the negative-results registry, [what-didnt-work.md](docs/what-didnt-work.md), so no future session re-runs a known-dead path.
+
 ## Installation
 
 ```bash
@@ -89,7 +99,7 @@ Mirrors agents, skills, and 6 allowlisted hooks into `~/.codex/`. Requires Codex
 
 Mirrors agents, skills, and Phase 1 hooks into `~/.gemini/`. Translates event names (`Stop` → `SessionEnd`, `PostToolUse` → `AfterTool`, `PreToolUse` → `BeforeTool`). Tool mapping: `Bash` → `run_shell_command`. Hook config merges into `~/.gemini/settings.json`.
 
-Antigravity (`agy`) is supported additively alongside Gemini CLI — the installer ships a plugin at `~/.gemini/antigravity/plugins/vexjoy-agent/` (manifest + `hooks.json`) and does not replace the Gemini CLI integration. Antigravity has no `SessionStart` event, so the four bootstrap hooks (github briefing, operator-context detector, team-config loader, rules-distill injector) ride on `UserPromptSubmit` and self-gate to once-per-session via a PPID touchfile. Other CLIs continue to hit those hooks via `SessionStart` and are unaffected.
+Antigravity (`agy`) is supported additively alongside Gemini CLI: the installer ships a plugin at `~/.gemini/antigravity/plugins/vexjoy-agent/` (manifest + `hooks.json`) and does not replace the Gemini CLI integration. Antigravity has no `SessionStart` event, so the four bootstrap hooks (github briefing, operator-context detector, team-config loader, rules-distill injector) ride on `UserPromptSubmit` and self-gate to once-per-session via a PPID touchfile. Other CLIs continue to hit those hooks via `SessionStart` and are unaffected.
 
 #### Gemini CLI sunset (consumer tiers, 2026-06-18)
 
@@ -131,9 +141,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 44 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 117 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
-| Hooks | 77 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 101 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Skills | 124 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Hooks | 83 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
+| Scripts | 114 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -161,7 +171,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 
 **[I just want to use it](docs/start-here.md)** Install, learn `/do`, done.
 
-**[I do knowledge work](docs/for-knowledge-workers.md)** Content pipelines, research, moderation. No code.
+**[I do knowledge work](docs/for-knowledge-workers.md)** Writing, research, data analysis, moderation, HTML artifacts. No code.
 
 **[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding agents and skills.
 
@@ -186,8 +196,8 @@ Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
 
 Two report-only scripts surface upkeep work; both print a digest and never edit, delete, or block.
 
-- `python3 scripts/harvest-corrections.py` — clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
-- `python3 scripts/stale-skill-scan.py --top 20` — ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
+- `python3 scripts/harvest-corrections.py` clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
+- `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
 ## Contributing
 
