@@ -8,7 +8,7 @@ AI agents skip steps.
 
 Harnesses have a second problem: given only a skill list, they do not route eagerly enough, or correctly enough. Good skills sit unused. So this toolkit connects the skills, agents, and workflows we want directly into the harness, automatically. You don't have to understand what is here. Say what you want in plain English and you get all the value we have put into it: the right specialist with the right methodology, behind gates that demand exit codes, not assertions.
 
-44 domain agents, 124 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+44 domain agents, 125 workflow skills, 83 hooks, 115 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Gemini CLI (`/do`), Antigravity (`/do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -141,7 +141,7 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 44 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 124 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Skills | 125 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
 | Hooks | 83 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
 | Scripts | 114 | Determinism: test runners, linters, validators. No LLM judgment. |
 
