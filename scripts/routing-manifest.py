@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a compact routing manifest for the Haiku routing agent.
+"""Generate a compact routing manifest for the /do router (orchestrator self-route).
 
 Reads skills/INDEX.json, agents/INDEX.json, and pipeline-index.json,
 then outputs a compact text manifest that an LLM can parse efficiently.
@@ -310,7 +310,7 @@ def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate routing manifest for Haiku agent.")
+    parser = argparse.ArgumentParser(description="Generate routing manifest for the /do router.")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument(
         "--compact",

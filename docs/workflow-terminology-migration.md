@@ -4,7 +4,7 @@ Additive migration. No big-bang rename. "workflow" is canonical in all new/updat
 
 ## Strategy
 
-Canonicalize "workflow" as the umbrella term. Keep "pipeline" as a documented legacy alias. The live router keeps every "pipeline" identifier unchanged: the Haiku contract field, manifest section headers, JSON keys, `.js` `meta.name` exports, sentinel files, and hook type-dispatch strings.
+Canonicalize "workflow" as the umbrella term. Keep "pipeline" as a documented legacy alias. The live router keeps every "pipeline" identifier unchanged: the routing-contract field, manifest section headers, JSON keys, `.js` `meta.name` exports, sentinel files, and hook type-dispatch strings.
 
 ## Steps
 
@@ -16,7 +16,7 @@ Canonicalize "workflow" as the umbrella term. Keep "pipeline" as a documented le
 
 ## Do Not Touch (frozen identifiers)
 
-- JSON field `pipeline` in the Haiku routing response (`skills/meta/do/SKILL.md` routing contract).
+- JSON field `pipeline` in the routing response (`skills/meta/do/SKILL.md` routing contract).
 - `PIPELINE-SELECTION RULE` and the Phase 4 Step 1b dispatch conditional in `skills/meta/do/SKILL.md`.
 - Root key `pipelines` in `skills/workflow/references/pipeline-index.json`.
 - Each pipeline entry's `phases` array names in `pipeline-index.json`.
