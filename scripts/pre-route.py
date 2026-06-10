@@ -2,13 +2,14 @@
 """Deterministic safety-net + offline drift/benchmark tool for /do routing.
 
 Pattern-matches user requests against trigger keywords from INDEX.json files.
-In the /do flow this runs AFTER the semantic (Haiku) routing decision, not
-before it: semantic intent routing is primary, and this module is the
-deterministic safety-net. It enforces safety-critical force-routes (a
-high-confidence force_route for pr-workflow or a security skill overrides a
-disagreeing semantic pick so git/security work always hits quality gates) and
-its phrase/unigram guards continue to suppress false matches. It no longer
-short-circuits or skips Haiku on the long tail.
+In the /do flow this runs AFTER the semantic routing decision (the
+orchestrator's in-session self-route), not before it: semantic intent routing
+is primary, and this module is the deterministic safety-net. It enforces
+safety-critical force-routes (a high-confidence force_route for pr-workflow or
+a security skill overrides a disagreeing semantic pick so git/security work
+always hits quality gates) and its phrase/unigram guards continue to suppress
+false matches. It no longer short-circuits or skips the semantic route on the
+long tail.
 
 Offline, the same matching logic powers check-routing-drift.py and
 routing-benchmark.py. The CLI, output shape, confidence levels, and guards are
