@@ -49,7 +49,10 @@ Gather the objective spec from the request. Interview only for missing fields.
 | Token-budget note | no | `orchestration.token_budget` from `.claude/settings.json` (500000 when absent) |
 | NOT-DONE-YET guardrails | no | empty |
 
-**DONE-CRITERIA are verifiable checks** — prefer deterministic commands with expected exit codes/outputs: `pytest -q` exits 0; `gh pr view N --json state -q .state` prints `MERGED`; `validate-doc-counts.py` reports zero drifts. A criterion the model reasons about is not a criterion; each needs a command plus an expected observable.
+**DONE-CRITERIA are verifiable checks.** Each criterion has a `type`: `command` (default, preferred) or `rubric`.
+
+- `command` — a deterministic command with an expected exit code/output: `pytest -q` exits 0; `gh pr view N --json state -q .state` prints `MERGED`; `validate-doc-counts.py` reports zero drifts. A criterion the model reasons about is not a criterion; each needs a command plus an expected observable.
+- `rubric` — allowed only where no mechanical check exists, per the PHILOSOPHY.md verification ranking (exit code > fresh-context grader > self-critique). Store the rubric verbatim in the state file at SPEC time: pass conditions plus the evidence the grader must cite. Frozen once the loop starts — changes require the user, same as a guardrail.
 
 **NOT-DONE-YET guardrails** name what may never be done to satisfy a criterion (e.g. "never weaken a gate to make it pass"). They bind every iteration: inject them verbatim into each /do dispatch.
 
@@ -75,12 +78,17 @@ Gate: dispatch evaluated, iteration log updated in the state file. Proceed to Ph
 
 ## Phase 4: VERIFY (execution, not reasoning)
 
-Run every done-criterion command. Paste exit codes and the decisive output line into the iteration log.
+Run every done-criterion check. A worker's "criterion passes" claim never substitutes for the re-run.
+
+- `command` — run the command; paste the exit code and the decisive output line into the iteration log.
+- `rubric` — dispatch a fresh-context sub-agent that did NOT produce the work. Input is the artifact plus the rubric, nothing else — no iteration history. It returns PASS/FAIL plus cited evidence (file:line or output excerpt), pasted into the iteration log exactly like an exit code.
+
+Then:
 
 - All criteria pass → write the final report (per-criterion evidence), STOP. The loop ends by not calling `ScheduleWakeup`.
 - Any criterion unmet → Phase 5.
 
-**Criteria-gaming guard (hard rule).** A criterion may never be satisfied by weakening a hook, gate, test, or safety control. When the only visible path to "pass" weakens a control, stop the loop and report the conflict to the user.
+**Criteria-gaming guard (hard rule).** A criterion may never be satisfied by weakening a hook, gate, test, or safety control — and a rubric is never weakened to pass. When the only visible path to "pass" weakens a control or the rubric text, stop the loop and report the conflict to the user.
 
 ## Phase 5: RESCHEDULE or STOP
 
@@ -112,7 +120,7 @@ Run every done-criterion command. Paste exit codes and the decisive output line 
 |---|---|---|
 | State file missing on wakeup | `.objective/<slug>/` removed mid-loop | Report and stop; ask the user to restate the objective rather than re-deriving it from memory |
 | Criterion command fails to run (not just non-zero) | Tool missing, bad path | Fix the check command in the state file first; a broken check verifies nothing |
-| Same step fails 2 iterations in a row | Plan stuck | Change approach: re-route through /do with a different agent or skill; on a third failure, spend the report on what blocked progress and stop |
+| Unmet-criteria set unchanged across 2 iterations (read from the Last result column, not judged from memory) | Plan stuck | Change approach: re-route through /do with a different agent or skill; unchanged after a third iteration, spend the report on what blocked progress and stop |
 | Wakeup arrives with fresh context | Normal — wakeups carry only the prompt | Resume entirely from the state file per `references/state-file.md` |
 
 ## Reference Loading Table

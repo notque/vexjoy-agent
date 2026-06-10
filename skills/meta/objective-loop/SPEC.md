@@ -10,7 +10,7 @@ cycle; done-criteria verify by execution; the loop reschedules via
 
 ## Scope
 
-- Objective spec capture (statement, deterministic done-criteria, iteration budget, NOT-DONE-YET guardrails).
+- Objective spec capture (statement, typed done-criteria `command`|`rubric`, iteration budget, NOT-DONE-YET guardrails).
 - State file at `.objective/<slug>/state.md`; resume from file on every wakeup.
 - Planner/verifier role only — all work dispatches through /do.
 - Cache-aware wakeup delays; harness fallback to in-session iteration.
@@ -26,12 +26,14 @@ cycle; done-criteria verify by execution; the loop reschedules via
 ## Invariants
 
 1. The loop ends by not calling `ScheduleWakeup`; every stop path is explicit.
-2. Verification is execution: criterion commands run, exit codes pasted.
-3. A criterion is never satisfied by weakening a hook, gate, test, or safety control — conflict stops the loop.
+2. Verification is execution: command criteria run with exit codes pasted; rubric criteria graded by a fresh-context sub-agent that did not produce the work, verdict plus cited evidence pasted. A worker's pass claim never substitutes.
+3. A criterion is never satisfied by weakening a hook, gate, test, safety control, or rubric text — conflict stops the loop.
 4. Wakeups resume from the state file, never conversation memory.
 5. Default mode is session-scoped; persistence requires the owner phrase.
 6. Learning capture stays hook-automatic via /do dispatch — no manual rows.
 7. `.objective/` stays unstaged.
+8. `rubric` type only where no mechanical check exists (PHILOSOPHY.md ranking: exit code > fresh-context grader > self-critique); rubric text frozen at SPEC time.
+9. The iteration log is append-only — entries are never edited retroactively.
 
 ## Dependencies
 
