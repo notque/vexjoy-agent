@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-domain",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "systematic-code-review implements the exact 4-phase process requested (UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings); reviewer-domain specializes in business-logic risk assessment, critical for billing code.",
+  "confidence": "high"
+}

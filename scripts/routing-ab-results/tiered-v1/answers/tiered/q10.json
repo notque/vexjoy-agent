@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Language-agnostic 5-phase debugging pipeline (OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD) appropriate for a stuck function with unknown root cause, works across the vexjoy-agent codebase without needing to guess the language.",
+  "confidence": "high"
+}

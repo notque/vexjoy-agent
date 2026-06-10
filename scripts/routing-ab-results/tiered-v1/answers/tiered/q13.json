@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "The workflow skill explicitly handles 'reorganize without changing behaviour' refactoring tasks with structured multi-phase execution.",
+  "confidence": "high"
+}

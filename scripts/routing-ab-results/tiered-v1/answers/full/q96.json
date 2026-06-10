@@ -1,0 +1,7 @@
+{
+  "agent": "technical-documentation-engineer",
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "Explore and map the codebase architecture, then create comprehensive technical documentation explaining how the system works.",
+  "confidence": "high"
+}

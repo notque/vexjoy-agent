@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "full-repo-review",
+  "pipeline": null,
+  "reasoning": "full-repo-review comprehensively scans the codebase and produces a prioritized backlog, directly answering 'where do we even start' by identifying the highest-impact refresh opportunities.",
+  "confidence": "high"
+}

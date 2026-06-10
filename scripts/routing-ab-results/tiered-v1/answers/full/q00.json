@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to push commits to the server—a git push operation explicitly covered by FORCE-route pr-workflow for git operations.",
+  "confidence": "high"
+}

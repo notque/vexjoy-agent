@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Branch cleanup is a git housekeeping operation covered explicitly by pr-workflow's cleanup phase; FORCE routing rule requires pr-workflow for all git operations.",
+  "confidence": "high"
+}

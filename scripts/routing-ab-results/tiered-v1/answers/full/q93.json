@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "translate",
+  "pipeline": null,
+  "reasoning": "User wants to translate text to Spanish while preserving code, which is the core purpose of the translate skill.",
+  "confidence": "high"
+}

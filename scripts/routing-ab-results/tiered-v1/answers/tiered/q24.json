@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Git push operation falls under FORCE rule for pr-workflow skill, which handles commit, push, and PR lifecycle.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "FORCE rule: for git operations (push, commit, PR, merge), always select pr-workflow.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Fixing typos in published content is a lightweight, trivial tracked task best handled as --trivial execution.",
+  "confidence": "medium"
+}

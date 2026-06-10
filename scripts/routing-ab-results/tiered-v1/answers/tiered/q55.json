@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "frontend-slides",
+  "pipeline": null,
+  "reasoning": "frontend-slides is purpose-built for browser-based HTML presentation generation, exactly matching the request for a slide deck that runs in the browser.",
+  "confidence": "high"
+}

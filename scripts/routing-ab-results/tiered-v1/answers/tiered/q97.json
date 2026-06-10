@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Diagnose and configure pytest or test logging to suppress colored output in test runs",
+  "confidence": "high"
+}

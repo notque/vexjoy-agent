@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Memory leak diagnosis requires Go expertise in profiling and debugging; golang-general-engineer covers performance issues and debugging as core competencies.",
+  "confidence": "high"
+}

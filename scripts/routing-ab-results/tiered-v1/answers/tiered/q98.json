@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "FORCE route: pr-workflow handles the full PR lifecycle including review, cleanup, and fixes to make PRs approval-ready.",
+  "confidence": "high"
+}

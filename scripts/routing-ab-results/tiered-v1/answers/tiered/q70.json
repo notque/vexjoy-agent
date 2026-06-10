@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "voice-validator",
+  "pipeline": null,
+  "reasoning": "Validates draft against voice profile and rewrites sections that don't match the target voice",
+  "confidence": "high"
+}

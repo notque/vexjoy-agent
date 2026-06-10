@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User requesting security review of code; security-review FORCE skill provides deterministic scan plus security specialist review of git changes for safety vulnerabilities.",
+  "confidence": "high"
+}

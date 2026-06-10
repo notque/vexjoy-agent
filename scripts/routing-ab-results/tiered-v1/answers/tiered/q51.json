@@ -1,0 +1,7 @@
+{
+  "agent": "kotlin-general-engineer",
+  "skill": "kotlin-coroutines",
+  "pipeline": null,
+  "reasoning": "Flow error handling is a Kotlin coroutine debugging task; kotlin-general-engineer handles coroutine diagnostics and fixes, kotlin-coroutines provides Flow error-recovery patterns.",
+  "confidence": "high"
+}

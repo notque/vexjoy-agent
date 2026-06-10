@@ -1,0 +1,7 @@
+{
+  "agent": "toolkit-governance-engineer",
+  "skill": "agent-creator",
+  "pipeline": null,
+  "reasoning": "agent-creator (FORCE) scaffolds vexjoy-agent operator .md files for new domains; toolkit-governance-engineer ensures routing table and standards conformance when integrating the new Rust agent",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "php-general-engineer",
+  "skill": "php-testing",
+  "pipeline": null,
+  "reasoning": "Write PHPUnit tests with database fixtures for the InvoiceRepository class using PHP testing patterns and best practices.",
+  "confidence": "high"
+}

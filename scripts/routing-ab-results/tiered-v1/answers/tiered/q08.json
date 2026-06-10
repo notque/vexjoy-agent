@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "FORCE-routed security-review for local security audit of the feature branch to detect vulnerabilities.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "research-to-article",
+  "reasoning": "research-to-article pipeline is explicitly designed for this two-phase workflow: systematic research synthesis followed by voice-driven article generation with validation gates.",
+  "confidence": "high"
+}

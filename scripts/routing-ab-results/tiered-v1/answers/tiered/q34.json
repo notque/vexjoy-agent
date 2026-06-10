@@ -1,0 +1,7 @@
+{
+  "agent": "data-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Data curation and pipeline task: identify and remove voice samples from a dataset/corpus; data-engineer specializes in data filtering, ETL operations, and dataset maintenance.",
+  "confidence": "high"
+}
