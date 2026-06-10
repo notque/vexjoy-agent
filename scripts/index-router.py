@@ -30,16 +30,42 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _resolve_index(tracked: Path, local_name: str) -> Path:
-    """Return the local override path when it exists, otherwise the tracked path."""
-    local = tracked.parent / local_name
-    return local if local.exists() else tracked
+def _load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
+    """Load index items from the tracked file, overlaying the local override.
+
+    Local override files (INDEX.local.json) are gitignored supersets produced
+    by the generator with --include-private; they add entries for
+    symlinked/private directories. The local file regenerates less often than
+    the tracked one, so it can be stale. The merge is add-only (tracked first,
+    local fills gaps per-name): a stale local can never hide a tracked skill
+    or agent, and never overrides tracked entry content such as triggers or
+    force_route — full replacement and per-name update both did.
+
+    Duplicated by hand in routing-manifest.py and pre-route.py (the routing
+    scripts share no lib module); keep the three copies in sync.
+    """
+    items: dict = {}
+    paths = [tracked]
+    if local_name:
+        local = tracked.parent / local_name
+        if local.exists():
+            paths.append(local)
+    for path in paths:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        loaded = raw.get(key, {})
+        if isinstance(loaded, dict):
+            for name, data in loaded.items():
+                items.setdefault(name, data)
+    return items
 
 
-INDEX_PATHS: dict[str, Path] = {
-    "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
-    "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
+INDEX_PATHS: dict[str, tuple[Path, str | None]] = {
+    "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
+    "pipelines": (REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json", None),
+    "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
 }
 
 # Composition chains encode common multi-skill workflows.
@@ -138,16 +164,9 @@ def load_indexes() -> list[IndexEntry]:
     """
     entries: list[IndexEntry] = []
 
-    for index_type, path in INDEX_PATHS.items():
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            continue
-
-        # Each INDEX file uses its type as the top-level key
-        items = raw.get(index_type, {})
-        if not isinstance(items, dict):
-            continue
+    for index_type, (tracked, local_name) in INDEX_PATHS.items():
+        # Each INDEX file uses its type as the top-level key.
+        items = _load_index_items(tracked, local_name, index_type)
 
         for name, data in items.items():
             if not isinstance(data, dict):
