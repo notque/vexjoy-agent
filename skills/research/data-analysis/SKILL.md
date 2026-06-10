@@ -48,7 +48,7 @@ Every analysis begins with the decision being supported, works backward to the e
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
+| extended pattern catalog: methodology, statistical, communication, process fixes | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
 | writing analysis scripts: tool detection and metric computation code | `compute-examples.md` | Loads detailed guidance from `compute-examples.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | writing analysis-report.md per analysis type (A/B, trend, distribution) | `output-templates.md` | Loads detailed guidance from `output-templates.md`. |

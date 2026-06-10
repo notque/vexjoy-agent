@@ -38,7 +38,7 @@ Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict
 | Signal | Load These Files | Why |
 |---|---|---|
 | documentation work | `documentation-structure.md` | Loads detailed guidance from `documentation-structure.md`. |
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| before/after doc-update examples: adding skill docs, removing deprecated agent docs | `examples.md` | Loads detailed guidance from `examples.md`. |
 | wiring the checker into CI, pre-commit, or auto-fix mode | `integration-guide.md` | Loads detailed guidance from `integration-guide.md`. |
 | expected table and list formats per README file | `markdown-formats.md` | Loads detailed guidance from `markdown-formats.md`. |
 | which docs must list which tools; sync score and deprecation rules | `sync-rules.md` | Loads detailed guidance from `sync-rules.md`. |
