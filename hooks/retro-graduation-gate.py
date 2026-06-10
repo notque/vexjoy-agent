@@ -31,6 +31,14 @@ EVENT = "PostToolUse"
 # 'voice' is corpus data; none can ever satisfy this gate.
 GRADUATABLE_CATEGORIES = ("design", "gotcha")
 
+# Verified = confirmed by an executed check at least once. success_count is
+# incremented only by boost_confidence() (learning_db_v2.py), which fires when
+# feedback tracking sees an injected solution succeed or after an explicit
+# `learning-db.py boost` following a check. Recurrence alone can entrench a
+# wrong guess (docs/PHILOSOPHY.md, "memory needs a verify step"); only
+# verified rows are graduatable. Unverified rows are listed separately.
+VERIFIED = "COALESCE(success_count, 0) >= 1"
+
 
 def main() -> None:
     try:
@@ -61,14 +69,15 @@ def main() -> None:
         empty_output(EVENT).print_and_exit(0)
         return
 
-    rows = []
+    verified = []
+    unverified = []
     try:
         with sqlite3.connect(DB_PATH, timeout=2) as conn:
             conn.row_factory = sqlite3.Row
             placeholders = ",".join("?" * len(GRADUATABLE_CATEGORIES))
             rows = conn.execute(
                 f"""
-                SELECT topic, key, value FROM learnings
+                SELECT topic, key, value, {VERIFIED} AS verified FROM learnings
                 WHERE graduated_to IS NULL
                   AND confidence >= 0.7
                   AND last_seen >= datetime('now', '-24 hours')
@@ -78,21 +87,35 @@ def main() -> None:
                 """,
                 GRADUATABLE_CATEGORIES,
             ).fetchall()
+            verified = [r for r in rows if r["verified"]]
+            unverified = [r for r in rows if not r["verified"]]
     except sqlite3.Error as e:
         print(f"[retro-gate] DB error (advisory skip): {e}", file=sys.stderr)
         empty_output(EVENT).print_and_exit(0)
         return
 
-    if not rows:
+    if not verified and not unverified:
         empty_output(EVENT).print_and_exit(0)
         return
 
     # Build advisory warning
-    lines = [f"[retro-gate] Found {len(rows)} ungraduated retro entries from this session."]
-    lines.append("Before merging, graduate findings into the responsible agents/skills:")
-    for row in rows:
-        lines.append(f"  - {row['topic']}: {row['key']}")
-    lines.append('Use: python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target-file.md"')
+    lines = []
+    if verified:
+        lines.append(f"[retro-gate] Found {len(verified)} ungraduated verified retro entries from this session.")
+        lines.append("Before merging, graduate findings into the responsible agents/skills:")
+        for row in verified:
+            lines.append(f"  - {row['topic']}: {row['key']}")
+        lines.append('Use: python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target-file.md"')
+    if unverified:
+        lines.append(
+            f"[retro-gate] Not graduatable — needs verification ({len(unverified)} entries,"
+            " no executed check has confirmed them yet):"
+        )
+        for row in unverified:
+            lines.append(f"  - {row['topic']}: {row['key']}")
+        lines.append(
+            "Confirm each with an executed check, then: python3 ~/.claude/scripts/learning-db.py boost TOPIC KEY"
+        )
 
     context_output(EVENT, "\n".join(lines)).print_and_exit(0)
 
