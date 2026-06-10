@@ -40,7 +40,7 @@ Fish is not POSIX. Every pattern here targets Fish 3.0+ (supports `$()`, `&&`, `
 | Signal | Load These Files | Why |
 |---|---|---|
 | migrations | `bash-migration.md` | Loads detailed guidance from `bash-migration.md`. |
-| implementation patterns | `fish-preferred-patterns.md` | Loads detailed guidance from `fish-preferred-patterns.md`. |
+| editing fish config: variable assignment, PATH management, conditionals, tool integration | `fish-preferred-patterns.md` | Loads detailed guidance from `fish-preferred-patterns.md`. |
 | syntax lookup: variable scope, PATH, functions, abbreviations, conditionals, debugging | `fish-quick-reference.md` | Loads detailed guidance from `fish-quick-reference.md`. |
 | wiring dev tools into fish: Go, Rust, Node, Python, Docker, PATH and init hooks | `tool-integrations.md` | Loads detailed guidance from `tool-integrations.md`. |
 

@@ -45,7 +45,7 @@ Create a complete voice profile from writing samples through a 7-phase pipeline.
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | extraction validation, pattern verdict, triple-validation | `extraction-validation.md` | Triple-validation rubric (recurrence, generative power, exclusivity) gating which patterns survive into the profile. |
 | Steps 6-7: validation procedure and authorship matching | `iteration-guide.md` | Loads detailed guidance from `iteration-guide.md`. |
-| implementation patterns | `pattern-identification.md` | Loads detailed guidance from `pattern-identification.md`. |
+| Step 3: PATTERN — phrase fingerprints, thinking patterns, wabi-sabi markers | `pattern-identification.md` | Loads detailed guidance from `pattern-identification.md`. |
 | reporting progress at phase gates | `phase-banners.md` | Loads detailed guidance from `phase-banners.md`. |
 | locating exemplar voice skills and components | `reference-implementations.md` | Loads detailed guidance from `reference-implementations.md`. |
 | Step 1 COLLECT: finding, vetting, and formatting samples | `sample-collection.md` | Loads detailed guidance from `sample-collection.md`. |

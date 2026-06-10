@@ -20,6 +20,8 @@ jobs:
       - run: ruff check . --config pyproject.toml
       - run: ruff format --check . --config pyproject.toml
       - run: python scripts/validate-references.py --check-do-framing
+      # Scoped flag: --all carries known pre-existing failures, so it cannot gate CI.
+      - run: python scripts/validate-references.py --check-placeholders
       - run: python scripts/validate-skill-frontmatter.py
       - run: python scripts/validate-index-integrity.py
       - run: python scripts/validate-doc-links.py

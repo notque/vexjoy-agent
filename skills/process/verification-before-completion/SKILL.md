@@ -40,7 +40,7 @@ This skill prevents the most common form of premature completion: claiming succe
 |---|---|---|
 | verifying artifacts are real and substantive, not stubs | `adversarial-methodology.md` | Loads detailed guidance from `adversarial-methodology.md`. |
 | checklist-driven work | `checklist.md` | Loads detailed guidance from `checklist.md`. |
-| example-driven tasks | `verification-examples.md` | Loads detailed guidance from `verification-examples.md`. |
+| good-vs-bad verification walkthroughs: bug fix, refactor, migration, config change | `verification-examples.md` | Loads detailed guidance from `verification-examples.md`. |
 
 ## Instructions
 
