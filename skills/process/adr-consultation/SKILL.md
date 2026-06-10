@@ -32,9 +32,9 @@ Multi-agent architecture consultation that dispatches 3 specialized reviewers in
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `agent-prompts.md` | Loads detailed guidance from `agent-prompts.md`. |
-| implementation patterns | `consultation-preferred-patterns.md` | Loads detailed guidance from `consultation-preferred-patterns.md`. |
-| implementation patterns | `consultation-patterns.md` | Loads detailed guidance from `consultation-patterns.md`. |
+| Phase 2 DISPATCH: consultation agent prompt templates | `agent-prompts.md` | Loads detailed guidance from `agent-prompts.md`. |
+| orchestration corrections: dispatch, artifact, and verdict aggregation fixes | `consultation-preferred-patterns.md` | Loads detailed guidance from `consultation-preferred-patterns.md`. |
+| core consultation patterns and Phase 3 artifact templates | `consultation-patterns.md` | Loads detailed guidance from `consultation-patterns.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 
 ## Instructions

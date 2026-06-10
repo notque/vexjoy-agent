@@ -134,9 +134,9 @@ Cardinality Check: [Label cardinality analysis]
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Writing or debugging PromQL — `rate()`, `irate()`, `histogram_quantile()`, recording rules, subqueries | `promql-patterns.md` | Routes to the matching deep reference |
-| Designing SLO alerts, burn rate alerts, Alertmanager routing, inhibition rules, runbook annotations | `alerting-patterns.md` | Routes to the matching deep reference |
-| High cardinality, OOM, label explosion, `relabel_configs`, `metric_relabel_configs`, TSDB analysis | `cardinality-management.md` | Routes to the matching deep reference |
+| Writing or debugging PromQL — `rate()`, `irate()`, `histogram_quantile()`, recording rules, subqueries | [promql-patterns.md](prometheus-grafana-engineer/references/promql-patterns.md) | Routes to the matching deep reference |
+| Designing SLO alerts, burn rate alerts, Alertmanager routing, inhibition rules, runbook annotations | [alerting-patterns.md](prometheus-grafana-engineer/references/alerting-patterns.md) | Routes to the matching deep reference |
+| High cardinality, OOM, label explosion, `relabel_configs`, `metric_relabel_configs`, TSDB analysis | [cardinality-management.md](prometheus-grafana-engineer/references/cardinality-management.md) | Routes to the matching deep reference |
 
 ## Error Handling
 

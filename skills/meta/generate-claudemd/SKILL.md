@@ -36,7 +36,7 @@ This skill does not use `context: fork` because it requires interactive user gat
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `CLAUDEMD_TEMPLATE.md` | Loads detailed guidance from `CLAUDEMD_TEMPLATE.md`. |
+| drafting CLAUDE.md sections in Phase 3 | `CLAUDEMD_TEMPLATE.md` | Loads detailed guidance from `CLAUDEMD_TEMPLATE.md`. |
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
 
 ## Instructions

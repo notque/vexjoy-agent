@@ -44,8 +44,8 @@ Measure and improve skill quality through empirical testing — because structur
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `schemas.md` | Loads detailed guidance from `schemas.md`. |
-| tasks related to this reference | `self-improve-loop.md` | Loads detailed guidance from `self-improve-loop.md`. |
+| reading or writing eval artifacts: evals.json, grading.json, metrics.json, history.json | `schemas.md` | Loads detailed guidance from `schemas.md`. |
+| improving a skill via variant generation and blind A/B promotion | `self-improve-loop.md` | Loads detailed guidance from `self-improve-loop.md`. |
 | "bake-off", "head-to-head", "compare implementations", "grade two versions", "which Feynman skill is better" | `bake-off-methodology.md` | Loads the bake-off rubric, anti-rationalization gate, fold-filter, and worked Feynman example. |
 
 ## Instructions

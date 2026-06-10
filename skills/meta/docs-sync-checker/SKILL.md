@@ -39,9 +39,9 @@ Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict
 |---|---|---|
 | documentation work | `documentation-structure.md` | Loads detailed guidance from `documentation-structure.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
-| tasks related to this reference | `integration-guide.md` | Loads detailed guidance from `integration-guide.md`. |
-| tasks related to this reference | `markdown-formats.md` | Loads detailed guidance from `markdown-formats.md`. |
-| tasks related to this reference | `sync-rules.md` | Loads detailed guidance from `sync-rules.md`. |
+| wiring the checker into CI, pre-commit, or auto-fix mode | `integration-guide.md` | Loads detailed guidance from `integration-guide.md`. |
+| expected table and list formats per README file | `markdown-formats.md` | Loads detailed guidance from `markdown-formats.md`. |
+| which docs must list which tools; sync score and deprecation rules | `sync-rules.md` | Loads detailed guidance from `sync-rules.md`. |
 
 ## Instructions
 

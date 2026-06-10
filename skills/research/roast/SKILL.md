@@ -47,8 +47,8 @@ This skill produces evidence-based constructive critique through 5 specialized H
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `personas.md` | Loads detailed guidance from `personas.md`. |
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| dispatching roast personas; claim format and validation verdicts | `personas.md` | Loads detailed guidance from `personas.md`. |
+| writing the synthesized roast report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
 
 ## Instructions
 

@@ -340,6 +340,33 @@ def validate_agent(agent_file: Path, check_structure: bool = True) -> AgentResul
     return result
 
 
+# Generic signals that cannot disambiguate which reference to load.
+PLACEHOLDER_SIGNALS = ("tasks related to this reference",)
+
+_PLACEHOLDER_SCAN_PATTERNS = ["agents/*.md", "skills/**/SKILL.md"]
+
+
+def find_placeholder_signals() -> list[tuple[str, int, str]]:
+    """Return (relative path, line number, signal) for loading-table rows with placeholder signals."""
+    found: list[tuple[str, int, str]] = []
+    for pattern in _PLACEHOLDER_SCAN_PATTERNS:
+        for path in sorted(REPO_ROOT.glob(pattern)):
+            if not path.is_file():
+                continue
+            try:
+                lines = path.read_text(encoding="utf-8").splitlines()
+            except (OSError, UnicodeDecodeError):
+                continue
+            for lineno, line in enumerate(lines, start=1):
+                cells = [c.strip() for c in line.split("|")]
+                if len(cells) < 3 or not line.lstrip().startswith("|"):
+                    continue
+                signal = cells[1].lower()
+                if signal in PLACEHOLDER_SIGNALS:
+                    found.append((str(path.relative_to(REPO_ROOT)), lineno, cells[1]))
+    return found
+
+
 def find_all_reference_files() -> list[Path]:
     """Find every .md file inside any references/ subdirectory under agents/."""
     return list(AGENTS_DIR.rglob("references/*.md"))
@@ -359,7 +386,11 @@ def find_orphan_references(all_results: list[AgentResult]) -> list[Path]:
     return orphans
 
 
-def print_text_results(results: list[AgentResult], orphans: list[Path]) -> None:
+def print_text_results(
+    results: list[AgentResult],
+    orphans: list[Path],
+    placeholders: list[tuple[str, int, str]] | None = None,
+) -> None:
     """Print human-readable validation output."""
     for result in results:
         total = len(result.declared)
@@ -383,6 +414,11 @@ def print_text_results(results: list[AgentResult], orphans: list[Path]) -> None:
         for orphan in orphans:
             print(f"  ORPHAN: {orphan.relative_to(AGENTS_DIR)}")
 
+    if placeholders:
+        print("\nPlaceholder loading-table signals (cannot disambiguate which reference to load):")
+        for rel, lineno, signal in placeholders:
+            print(f"  PLACEHOLDER_SIGNAL: {rel}:{lineno} — {signal!r}")
+
     ok_count = sum(1 for r in results if r.ok)
     issue_count = sum(1 for r in results if not r.ok)
     total_missing = sum(len(r.missing) for r in results)
@@ -397,11 +433,17 @@ def print_text_results(results: list[AgentResult], orphans: list[Path]) -> None:
         parts.append(f"{total_issues} structure issue(s)")
     if orphans:
         parts.append(f"{len(orphans)} orphan(s)")
+    if placeholders:
+        parts.append(f"{len(placeholders)} placeholder signal(s)")
 
     print(f"\nSummary: {', '.join(parts)}")
 
 
-def build_json_results(results: list[AgentResult], orphans: list[Path]) -> dict:
+def build_json_results(
+    results: list[AgentResult],
+    orphans: list[Path],
+    placeholders: list[tuple[str, int, str]] | None = None,
+) -> dict:
     """Build JSON-serializable results dict."""
     agents_out = []
     for result in results:
@@ -422,17 +464,22 @@ def build_json_results(results: list[AgentResult], orphans: list[Path]) -> dict:
     structure_issues = sum(len(r.issues) for r in results)
     has_failures = issue_count > 0 or missing_count > 0
 
+    placeholders = placeholders or []
     return {
         "agents": agents_out,
         "orphans": [str(o.relative_to(AGENTS_DIR)) for o in orphans],
+        "placeholder_signals": [
+            {"file": rel, "line": lineno, "signal": signal} for rel, lineno, signal in placeholders
+        ],
         "summary": {
             "ok": ok_count,
             "issues": issue_count,
             "missing_files": missing_count,
             "structure_issues": structure_issues,
             "orphans": len(orphans),
+            "placeholder_signals": len(placeholders),
         },
-        "exit_code": 1 if has_failures else 0,
+        "exit_code": 1 if has_failures or placeholders else 0,
     }
 
 
@@ -486,9 +533,11 @@ def main() -> None:
 
     all_results_for_orphans = results if args.all else []
     orphans: list[Path] = []
+    placeholders: list[tuple[str, int, str]] = []
     if args.all and check_structure:
         all_agent_results = [validate_agent(f, check_structure=False) for f in sorted(AGENTS_DIR.glob("*.md"))]
         orphans = find_orphan_references(all_agent_results)
+        placeholders = find_placeholder_signals()
 
     # Filter for --failures-only: only agents with issues
     total_agents = len(results)
@@ -497,16 +546,16 @@ def main() -> None:
     display_orphans = orphans  # always show orphans (they are issues)
 
     if args.json_output:
-        output = build_json_results(display_results, display_orphans)
+        output = build_json_results(display_results, display_orphans, placeholders)
         if args.failures_only:
             output["summary"]["message"] = f"{passing_agents} of {total_agents} agents passed validation"
         print(json.dumps(output, indent=2))
-        sys.exit(1 if any(not r.ok for r in results) or bool(orphans) else 0)
+        sys.exit(1 if any(not r.ok for r in results) or bool(orphans) or bool(placeholders) else 0)
     else:
-        print_text_results(display_results, display_orphans)
+        print_text_results(display_results, display_orphans, placeholders)
         if args.failures_only:
             print(f"\n{passing_agents} of {total_agents} agents passed validation")
-        has_failures = any(not r.ok for r in results) or bool(orphans)
+        has_failures = any(not r.ok for r in results) or bool(orphans) or bool(placeholders)
         sys.exit(1 if has_failures else 0)
 
 

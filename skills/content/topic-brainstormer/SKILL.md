@@ -38,9 +38,9 @@ Core principle: **Assess-Decide-Generate with Domain Intelligence**. Gather sign
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `content-filter.md` | Loads detailed guidance from `content-filter.md`. |
-| tasks related to this reference | `priority-scoring.md` | Loads detailed guidance from `priority-scoring.md`. |
-| tasks related to this reference | `topic-sources.md` | Loads detailed guidance from `topic-sources.md`. |
+| filtering topics against blog identity: the three-question test | `content-filter.md` | Loads detailed guidance from `content-filter.md`. |
+| scoring topics on impact, vex level, resolution | `priority-scoring.md` | Loads detailed guidance from `priority-scoring.md`. |
+| mining topics: problems, gaps, technology expansion | `topic-sources.md` | Loads detailed guidance from `topic-sources.md`. |
 
 ## Instructions
 

@@ -35,8 +35,8 @@ Systematic 4-phase codebase exploration that produces an evidence-backed onboard
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
-| tasks related to this reference | `exploration-strategies.md` | Loads detailed guidance from `exploration-strategies.md`. |
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| language-specific discovery commands per exploration phase | `exploration-strategies.md` | Loads detailed guidance from `exploration-strategies.md`. |
+| writing the 12-section overview report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
 
 ## Instructions
 

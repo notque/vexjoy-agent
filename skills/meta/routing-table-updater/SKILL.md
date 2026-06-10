@@ -38,13 +38,13 @@ The skill reads metadata from all skills and agents (never modifies them) and sa
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `batch-mode.md` | Loads detailed guidance from `batch-mode.md`. |
-| tasks related to this reference | `conflict-resolution.md` | Loads detailed guidance from `conflict-resolution.md`. |
+| batch registration of many skills (invoked by pipeline-scaffolder) | `batch-mode.md` | Loads detailed guidance from `batch-mode.md`. |
+| resolving trigger conflicts: priority rules and severity levels | `conflict-resolution.md` | Loads detailed guidance from `conflict-resolution.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| worked update scenarios: new skill, conflict, manual entry, complexity change | `examples.md` | Loads detailed guidance from `examples.md`. |
 | implementation patterns | `extraction-patterns.md` | Loads detailed guidance from `extraction-patterns.md`. |
-| tasks related to this reference | `routing-format.md` | Loads detailed guidance from `routing-format.md`. |
-| example-driven tasks | `skill-examples.md` | Loads detailed guidance from `skill-examples.md`. |
+| /do routing table structure, auto-generated markers, ordering rules | `routing-format.md` | Loads detailed guidance from `routing-format.md`. |
+| skill-entry examples for registering a newly created skill | `skill-examples.md` | Loads detailed guidance from `skill-examples.md`. |
 
 ## Instructions
 

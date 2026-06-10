@@ -31,10 +31,10 @@ Objective, evidence-based quality assessment for agents and skills. Implements a
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `batch-evaluation.md` | Loads detailed guidance from `batch-evaluation.md`. |
-| tasks related to this reference | `common-issues.md` | Loads detailed guidance from `common-issues.md`. |
-| tasks related to this reference | `report-templates.md` | Loads detailed guidance from `report-templates.md`. |
-| tasks related to this reference | `scoring-rubric.md` | Loads detailed guidance from `scoring-rubric.md`. |
+| evaluating an entire agent/skill collection | `batch-evaluation.md` | Loads detailed guidance from `batch-evaluation.md`. |
+| diagnosing recurring structural and content issues | `common-issues.md` | Loads detailed guidance from `common-issues.md`. |
+| writing single-item or collection evaluation reports | `report-templates.md` | Loads detailed guidance from `report-templates.md`. |
+| assigning points against v2.0 standards; grade boundaries | `scoring-rubric.md` | Loads detailed guidance from `scoring-rubric.md`. |
 
 ## Instructions
 

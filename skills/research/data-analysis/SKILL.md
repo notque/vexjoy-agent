@@ -49,11 +49,11 @@ Every analysis begins with the decision being supported, works backward to the e
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
-| example-driven tasks | `compute-examples.md` | Loads detailed guidance from `compute-examples.md`. |
+| writing analysis scripts: tool detection and metric computation code | `compute-examples.md` | Loads detailed guidance from `compute-examples.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| tasks related to this reference | `output-templates.md` | Loads detailed guidance from `output-templates.md`. |
-| tasks related to this reference | `rigor-gates.md` | Loads detailed guidance from `rigor-gates.md`. |
-| example-driven tasks | `worked-examples.md` | Loads detailed guidance from `worked-examples.md`. |
+| writing analysis-report.md per analysis type (A/B, trend, distribution) | `output-templates.md` | Loads detailed guidance from `output-templates.md`. |
+| applying Phase 4 statistical gates: adequacy, fairness, correction, significance | `rigor-gates.md` | Loads detailed guidance from `rigor-gates.md`. |
+| end-to-end phase walkthroughs on realistic inputs | `worked-examples.md` | Loads detailed guidance from `worked-examples.md`. |
 
 ## Instructions
 

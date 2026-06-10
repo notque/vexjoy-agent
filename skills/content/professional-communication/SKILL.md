@@ -37,7 +37,7 @@ This skill transforms dense technical communication into clear, structured busin
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
-| tasks related to this reference | `templates.md` | Loads detailed guidance from `templates.md`. |
+| drafting from section templates; phrase transformations | `templates.md` | Loads detailed guidance from `templates.md`. |
 
 ## Instructions
 

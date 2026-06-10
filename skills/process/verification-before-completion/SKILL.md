@@ -38,7 +38,7 @@ This skill prevents the most common form of premature completion: claiming succe
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `adversarial-methodology.md` | Loads detailed guidance from `adversarial-methodology.md`. |
+| verifying artifacts are real and substantive, not stubs | `adversarial-methodology.md` | Loads detailed guidance from `adversarial-methodology.md`. |
 | checklist-driven work | `checklist.md` | Loads detailed guidance from `checklist.md`. |
 | example-driven tasks | `verification-examples.md` | Loads detailed guidance from `verification-examples.md`. |
 

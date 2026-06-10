@@ -40,8 +40,8 @@ Platform-native means each variant is written from scratch for its target platfo
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| tasks related to this reference | `phase-playbook.md` | Loads detailed guidance from `phase-playbook.md`. |
-| tasks related to this reference | `platform-specs.md` | Loads detailed guidance from `platform-specs.md`. |
+| drafting variants: platform rules, banned hype phrases, delivery handoff | `phase-playbook.md` | Loads detailed guidance from `phase-playbook.md`. |
+| character limits and format rules per platform | `platform-specs.md` | Loads detailed guidance from `platform-specs.md`. |
 
 ## Instructions
 

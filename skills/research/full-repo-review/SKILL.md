@@ -48,7 +48,7 @@ identical.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| writing full-repo-review-report.md | `report-template.md` | Loads detailed guidance from `report-template.md`. |
 
 ## Instructions
 
