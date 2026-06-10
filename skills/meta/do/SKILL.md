@@ -51,7 +51,7 @@ Confidence in handling a task directly is a signal to route: direct handling ski
 Every word the router prints and every dispatched agent prompt follows the **Dense-Complete Writing standard** (quoted verbatim in the Phase 4 injection). Full rules: `skills/shared-patterns/dense-complete-writing.md`.
 
 **User sees:** phase banners, routing decision banner, brief post-agent summary (what changed, not how).
-**Internal only:** Haiku routing responses, classification reasoning, enhancement stacking (unless Verbose Routing ON).
+**Internal only:** routing JSON, classification reasoning, enhancement stacking (unless Verbose Routing ON).
 
 ---
 
@@ -109,9 +109,9 @@ If ANY creation signal AND complexity Simple+: set `is_creation = true`; Phase 4
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill. Semantic intent routing (Haiku) is primary; the pre-router is a safety-net, not a short-circuit — the fast path below is the one exception, and it only commits routes the safety-net would force anyway. Prefer FORCE-labeled entries when intent matches semantically.
+**Goal**: Select the correct agent + skill. Semantic intent routing is primary, and the orchestrator does it itself — read the manifest in-session, no routing sub-dispatch (self-route beat the Haiku hop +8.1 accuracy points, zero new safety misses; `scripts/routing-ab-results/self-route-v1/VERDICT.md`, PR #776). The pre-router is a safety-net, not a short-circuit — the fast path below is the one exception, and it only commits routes the safety-net would force anyway. Prefer FORCE-labeled entries when intent matches semantically.
 
-**Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: ~+0.1 Haiku calls/request — measured, accepted (`references/semantic-first-ab-results.md`).
+**Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: one in-session manifest read (~34 KB) on requests that miss the fast path — measured, accepted (`references/semantic-first-ab-results.md`).
 
 **Fast path: high-confidence force-route (run FIRST, before Step 0)**
 
@@ -121,30 +121,22 @@ Resolve SDIR as in Step 0, then run:
 python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
 ```
 
-If the result has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest + Haiku), Step 1.5 (weights read), and Step 1 (pre-route already ran). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
+If the result has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest read + self-route), Step 1.5 (weights read), and Step 1 (pre-route already ran). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
 
-**Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (~18.7k tokens of manifest + Haiku round-trip skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
+**Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (the ~34 KB manifest read skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
 
-**Step 0: Semantic intent routing (PRIMARY)**
+**Step 0: Semantic intent routing (PRIMARY — orchestrator self-route)**
 
-Generate the manifest, then dispatch the Haiku routing agent.
+Generate the manifest, then route directly off it in-session. No routing sub-dispatch: the orchestrator reads the manifest and applies the rules below itself. (Self-route-v1 blind A/B, n=99: PROMOTE — +8.1 accuracy points over the Haiku hop, zero new safety-bucket misses, stub-tier 9→12; it fixes the agent-attribution failure and deletes a dispatch round trip. `scripts/routing-ab-results/self-route-v1/VERDICT.md`.)
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.gemini/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 python3 "$SDIR/routing-manifest.py"
 ```
 
-Dispatch the Agent tool with `model: "haiku"`, omitting `isolation: "worktree"` (the agent only reads a manifest and returns JSON; worktree isolation fails outside a git repo). Use this prompt structure:
+Given the user request and the manifest of available agents, skills, and pipelines, select the BEST agent+skill combination, and optionally a pipeline. Hold the decision internally as JSON (never printed; the `[do-route]` marker in Phase 4 is its only external trace):
 
 ```
-You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination, and optionally a pipeline.
-
-USER REQUEST: {user_request}
-
-ROUTING MANIFEST:
-{output of routing-manifest.py}
-
-Return your answer as JSON:
 {
   "agent": "agent-name or null",
   "skill": "skill-name or null",
@@ -152,7 +144,11 @@ Return your answer as JSON:
   "reasoning": "one sentence why",
   "confidence": "high/medium/low"
 }
+```
 
+Apply ALL of the following rules when deciding:
+
+```
 SECTION-INTEGRITY RULE (HARD CONSTRAINT — never violate):
 - The `agent` field MUST be a name listed in the `AGENTS:` section of the manifest, or null. Never put a skill name in `agent`.
 - The `skill` field MUST be a name listed in the `SKILLS:` section of the manifest, or null. Never put an agent name in `skill`.
@@ -190,9 +186,9 @@ Rules:
 - Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
 
-**Step 0b: Apply the Haiku agent's recommendation**
+**Step 0b: Apply the routing decision**
 
-Use `agent` and `skill` fields directly; if `confidence` is "low", verify against INDEX files. Haiku response is internal — never printed.
+Use `agent` and `skill` fields directly; if `confidence` is "low", verify against INDEX files. The routing JSON is internal — never printed.
 
 **Dispatch-time section validator (MANDATORY before every `Agent(subagent_type=...)` call).** A skill name in the `agent` field makes the harness reject the dispatch (`Agent type 'X' not found`). Assert the `agent` field maps to a name in the manifest's `AGENTS:` section. Pseudocode:
 
@@ -202,18 +198,18 @@ skills_section = grep_section(manifest, "SKILLS:", "PIPELINES:")
 agent_names = [first_token(line) for line in agents_section]
 skill_names = [first_token(line) for line in skills_section]
 
-if haiku.agent and haiku.agent not in agent_names:
-    if haiku.agent in skill_names:
-        # Cross-section slip: Haiku put a skill in the agent slot.
-        haiku.skill = haiku.skill or haiku.agent  # promote to skill if empty
-        haiku.agent = None                         # clear bad agent pick
-    record_misroute(reason="agent-slot held skill name", value=haiku.agent)
+if route.agent and route.agent not in agent_names:
+    if route.agent in skill_names:
+        # Cross-section slip: a skill landed in the agent slot.
+        route.skill = route.skill or route.agent  # promote to skill if empty
+        route.agent = None                         # clear bad agent pick
+    record_misroute(reason="agent-slot held skill name", value=route.agent)
 
-if haiku.agent is None:
-    haiku.agent = "general-purpose"  # safe fallback; pair with chosen skill
+if route.agent is None:
+    route.agent = "general-purpose"  # safe fallback; pair with chosen skill
 ```
 
-If the Haiku JSON is malformed, fall back to `general-purpose` + verification-before-completion.
+If Step 0 cannot produce a defensible agent+skill pair, fall back to `general-purpose` + verification-before-completion.
 
 Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` output, route to `.claude/agents/` local agents. Route all code changes to domain agents.
 
