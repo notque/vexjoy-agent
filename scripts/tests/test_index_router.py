@@ -139,15 +139,19 @@ def mock_indexes(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def _patched_paths(root: Path) -> dict:
+    """Build an INDEX_PATHS dict (tracked path, local override name) for tmp files."""
+    return {
+        "skills": (root / "skills" / "INDEX.json", "INDEX.local.json"),
+        "pipelines": (root / "skills" / "workflow" / "references" / "pipeline-index.json", None),
+        "agents": (root / "agents" / "INDEX.json", "INDEX.local.json"),
+    }
+
+
 @pytest.fixture(autouse=True)
 def _patch_repo_root(mock_indexes: Path) -> None:
     """Patch INDEX_PATHS to use temporary files."""
-    patched_paths = {
-        "skills": mock_indexes / "skills" / "INDEX.json",
-        "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
-        "agents": mock_indexes / "agents" / "INDEX.json",
-    }
-    with patch.object(index_router, "INDEX_PATHS", patched_paths):
+    with patch.object(index_router, "INDEX_PATHS", _patched_paths(mock_indexes)):
         yield
 
 
@@ -191,12 +195,7 @@ class TestLoadIndexes:
 
     def test_missing_index_file_graceful(self, mock_indexes: Path) -> None:
         (mock_indexes / "agents" / "INDEX.json").unlink()
-        patched_paths = {
-            "skills": mock_indexes / "skills" / "INDEX.json",
-            "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
-            "agents": mock_indexes / "agents" / "INDEX.json",
-        }
-        with patch.object(index_router, "INDEX_PATHS", patched_paths):
+        with patch.object(index_router, "INDEX_PATHS", _patched_paths(mock_indexes)):
             entries = index_router.load_indexes()
         # Should still load skills and pipelines (5 + 3 = 8 entries)
         assert len(entries) == 8
@@ -204,15 +203,33 @@ class TestLoadIndexes:
 
     def test_malformed_json_graceful(self, mock_indexes: Path) -> None:
         (mock_indexes / "skills" / "INDEX.json").write_text("not json {{{")
-        patched_paths = {
-            "skills": mock_indexes / "skills" / "INDEX.json",
-            "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
-            "agents": mock_indexes / "agents" / "INDEX.json",
-        }
-        with patch.object(index_router, "INDEX_PATHS", patched_paths):
+        with patch.object(index_router, "INDEX_PATHS", _patched_paths(mock_indexes)):
             entries = index_router.load_indexes()
         # Should still load pipelines and agents (3 + 2 = 5 entries)
         assert len(entries) == 5
+
+    def test_local_overlay_adds_entries(self, mock_indexes: Path) -> None:
+        """A local INDEX.local.json adds entries on top of the tracked index."""
+        local = {"skills": {"private-skill": {"triggers": ["private thing"]}}}
+        (mock_indexes / "skills" / "INDEX.local.json").write_text(json.dumps(local))
+        entries = index_router.load_indexes()
+        names = {e.name for e in entries}
+        assert "private-skill" in names
+
+    def test_stale_local_never_hides_tracked_entries(self, mock_indexes: Path) -> None:
+        """A stale local index (missing tracked entries) cannot drop them.
+
+        Regression for the stale-local-override bug: _resolve_index replaced
+        the tracked index wholesale with INDEX.local.json, hiding newly added
+        skills from routing.
+        """
+        stale_local = {"skills": {"private-skill": {"triggers": ["private thing"]}}}
+        (mock_indexes / "skills" / "INDEX.local.json").write_text(json.dumps(stale_local))
+        entries = index_router.load_indexes()
+        names = {e.name for e in entries}
+        # Tracked skills survive alongside the local addition.
+        assert "go-patterns" in names
+        assert "private-skill" in names
 
 
 # ---------------------------------------------------------------------------

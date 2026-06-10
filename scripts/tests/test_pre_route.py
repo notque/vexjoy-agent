@@ -378,3 +378,30 @@ class TestCLI:
             cwd=str(REPO_ROOT),
         )
         assert result.returncode != 0
+
+
+# ---------------------------------------------------------------------------
+# Local index merge semantics
+# ---------------------------------------------------------------------------
+
+
+class TestLocalIndexMerge:
+    """_load_index_items merges the local override instead of replacing.
+
+    Regression for the stale-local-override bug: _resolve_index replaced the
+    tracked index wholesale with INDEX.local.json, hiding newly added skills
+    from routing.
+    """
+
+    def test_local_overlay_adds_but_never_hides(self, pre_route, tmp_path: Path) -> None:
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"tracked-skill": {"triggers": ["t"]}}}))
+        (tmp_path / "INDEX.local.json").write_text(json.dumps({"skills": {"local-skill": {"triggers": ["l"]}}}))
+        items = pre_route._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert set(items) == {"tracked-skill", "local-skill"}
+
+    def test_no_local_file_reads_tracked_only(self, pre_route, tmp_path: Path) -> None:
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"tracked-skill": {"triggers": ["t"]}}}))
+        items = pre_route._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert set(items) == {"tracked-skill"}
