@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "x-api",
+  "pipeline": null,
+  "reasoning": "x-api directly handles posting tweets, building threads, and uploading media to X.",
+  "confidence": "high"
+}

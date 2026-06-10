@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-frontend-engineer",
+  "skill": "frontend-slides",
+  "pipeline": null,
+  "reasoning": "frontend-slides is explicitly designed for browser-based HTML presentation generation; typescript-frontend-engineer provides the frontend architecture expertise for building an interactive slide deck.",
+  "confidence": "high"
+}

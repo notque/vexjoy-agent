@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Evidence-based 5-phase debugging pipeline (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD) provides structured methodology to uncover bug root causes systematically.",
+  "confidence": "high"
+}

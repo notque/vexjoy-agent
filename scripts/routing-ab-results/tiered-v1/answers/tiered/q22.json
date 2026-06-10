@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants to scan git changes for secrets before sharing; security-review is FORCE-routed for exactly this: deterministic secret scan + security reviewer over the diff.",
+  "confidence": "high"
+}

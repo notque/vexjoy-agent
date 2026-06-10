@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "vitest-runner",
+  "pipeline": null,
+  "reasoning": "Test output configuration is part of test automation; vitest-runner handles test execution and can suppress or configure output display.",
+  "confidence": "medium"
+}

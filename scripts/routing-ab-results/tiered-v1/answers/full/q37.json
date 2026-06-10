@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "verification-before-completion",
+  "pipeline": null,
+  "reasoning": "Python Flask API feature development (middleware) requires python-general-engineer to write the authentication implementation, with verification-before-completion to test it works.",
+  "confidence": "high"
+}

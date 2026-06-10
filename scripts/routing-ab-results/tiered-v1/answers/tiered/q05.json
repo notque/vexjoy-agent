@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow covers PR lifecycle status checking (explicitly includes 'status' in scope) and is FORCE-routed for all git operations on submitted changes; this is a direct request to check CI test results.",
+  "confidence": "high"
+}

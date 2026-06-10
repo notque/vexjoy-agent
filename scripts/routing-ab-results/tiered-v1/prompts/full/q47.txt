@@ -1,0 +1,223 @@
+You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+USER REQUEST: what's my current branch?
+ROUTING MANIFEST:
+AGENTS:
+  ansible-automation-engineer [verification-before-completion, kubernetes-helm-engineer] — Ansible automation: playbooks, roles, collections, Molecule testing, Vault security
+  combat-effects-upgrade [typescript-frontend-engineer, ui-design-engineer, pixijs-combat-renderer] — Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms
+  data-engineer [database-engineer, data-analysis] — Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing NOT: OLTP schema/query tuning (use database-engineer)
+  database-engineer [nodejs-api-engineer, sqlite-peewee-engineer, data-engineer] — Database design, optimization, query performance, migrations, indexing strategies
+  github-profile-rules-engineer [codebase-analyzer, generate-claudemd] — Extract coding conventions and style rules from GitHub user profiles via API
+  golang-general-engineer [go-patterns] — Go development: features, debugging, code review, performance NOT: tasks using 'go' as a verb (go ahead, go fix this)
+  golang-general-engineer-compact [go-patterns] — Compact Go development for tight context budgets NOT: general Go feature/debug work via /do (use golang-general-engineer) — only tight-context budgets and per-package review fan-out
+  hook-development-engineer [verification-before-completion, python-quality-gate] — Python hook development for Claude Code event-driven system and learning database
+  kotlin-general-engineer [workflow, verification-before-completion, systematic-code-review] — Kotlin development: features, coroutines, debugging, code quality, multiplatform NOT: writing Kotlin tests (use kotlin-testing); coroutine or Flow patterns in isolation (use kotlin-coroutines). This agent writes and debugs Kotlin features.
+  kubernetes-helm-engineer [verification-before-completion, prometheus-grafana-engineer] — Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure
+  mcp-local-docs-engineer [verification-before-completion] — MCP server development for local documentation access in TypeScript/Node NOT: using existing MCP tools/servers (only building local-docs MCP servers)
+  nextjs-ecommerce-engineer [verification-before-completion, typescript-frontend-engineer] — Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows
+  nodejs-api-engineer [systematic-code-review, database-engineer] — Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration
+  opensearch-elasticsearch-engineer [verification-before-completion, enterprise-search] — OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization NOT: search-relevance UX or query-DSL authoring inside an app (use enterprise-search). This agent runs and tunes the cluster itself.
+  performance-optimization-engineer [verification-before-completion] — Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring NOT: backend/algorithmic performance in a specific language (use that language engineer) — only web/frontend runtime and load performance
+  perses-engineer [golang-general-engineer, typescript-frontend-engineer, kubernetes-helm-engineer] — Perses observability platform: dashboards, plugins, operator, core development
+  php-general-engineer [workflow, verification-before-completion, systematic-code-review] — PHP development: features, debugging, code quality, security, modern PHP 8 NOT: running or configuring PHP quality or test tooling in isolation (use php-quality or php-testing). This agent writes and debugs PHP features.
+  pipeline-orchestrator-engineer [workflow, codebase-analyzer, routing-table-updater] — Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns
+  pixijs-combat-renderer [typescript-frontend-engineer, ui-design-engineer, combat-effects-upgrade] — PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing
+  project-coordinator-engineer [workflow, subagent-driven-development] — Multi-agent project coordination: task breakdown, dependency management, progress tracking
+  prometheus-grafana-engineer [verification-before-completion, kubernetes-helm-engineer] — Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization NOT: analyzing business or product metrics data (use data-analysis). This agent is Prometheus and Grafana operations, not data analytics.
+  python-general-engineer [python-quality-gate] — Python development: features, debugging, code review, performance
+  python-openstack-engineer [python-quality-gate, python-general-engineer] — OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware
+  rabbitmq-messaging-engineer [verification-before-completion] — RabbitMQ: message queue architecture, clustering, high-availability, routing patterns
+  react-native-engineer [universal-quality-gate] — React Native and Expo development: performance, animations, navigation, native UI patterns NOT: React web apps (use typescript-frontend-engineer)
+  react-portfolio-engineer [ui-design-engineer, typescript-frontend-engineer] — React portfolio/gallery sites for creatives: React 18+, Next
+  research-coordinator-engineer [workflow, subagent-driven-development] — Research coordination: systematic investigation, multi-source analysis, synthesis NOT: reading/exploring local code (use codebase-overview/read-only-ops) or a single delegated subtask (use research-subagent-executor)
+  research-subagent-executor [research-coordinator-engineer] — Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation
+  reviewer-code [workflow, parallel-code-review, systematic-code-review] — Code quality review: conventions, naming, dead code, performance, test coverage
+  reviewer-domain [workflow, parallel-code-review, systematic-code-review] — Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder
+  reviewer-perspectives [systematic-code-review, workflow] — Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process
+  reviewer-system [workflow, systematic-code-review, parallel-code-review] — System-level review: security, concurrency, error handling, observability, API contracts
+  rive-skeletal-animator [typescript-frontend-engineer, ui-design-engineer, pixijs-combat-renderer] — Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration
+  sqlite-peewee-engineer [python-general-engineer, database-engineer] — SQLite with Peewee ORM: model definition, query optimization, migrations, transactions NOT: server databases like Postgres/MySQL (use database-engineer)
+  swift-general-engineer [workflow, verification-before-completion, systematic-code-review] — Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing
+  system-upgrade-engineer [toolkit-evolution, agent-evaluation, codebase-analyzer] — Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates
+  technical-documentation-engineer [verification-before-completion] — Technical documentation: API docs, system architecture, runbooks, enterprise standards
+  technical-journalist-writer [voice-writer] — Technical journalism: explainers, opinion pieces, analysis articles, long-form content
+  testing-automation-engineer [test-driven-development, e2e-testing] — Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration
+  toolkit-governance-engineer [adr-consultation, routing-table-updater, docs-sync-checker] — Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards NOT: authoring one new skill end-to-end (use skill-creator). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding.
+  typescript-debugging-engineer [workflow, typescript-frontend-engineer] — TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions
+  typescript-frontend-engineer [universal-quality-gate, typescript-check] — TypeScript frontend architecture: type-safe components, state management, build optimization NOT: React Native mobile apps (use react-native-engineer)
+  ui-design-engineer [distinctive-frontend-design, typescript-frontend-engineer] — UI/UX design: design systems, responsive layouts, accessibility, animations NOT: non-visual design: API, schema, or system design (use the matching engineer); writing design docs (use a planning skill). This agent is visual UI/UX only.
+
+SKILLS:
+  adr-consultation (meta) — Multi-agent consultation for architecture decisions.
+  agent-comparison (meta-tooling) — A/B test agent variants for quality and token cost.
+  agent-creator FORCE (meta) — Scaffold vexjoy-agent operator .md files: frontmatter, routing block, operator context, reference loading table, phase/gate workflow. NOT: creating real estate agents, ML agents, OS agents (e.g. SNMP), travel agents, customer service agents — only for vexjoy-agent .md operator files
+  agent-evaluation (meta-tooling) — Evaluate agents and skills for quality and standards compliance.
+  anti-ai-editor (content-creation) — Remove AI-sounding patterns from content.
+  architecture-deepening (analysis) — Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation. NOT: small-scope refactors ('tidy this up', 'reorganize without changing behaviour', 'messy code in one file') — those route to workflow refactor; architecture-deepening is for module-interface analysis across the codebase, not local cleanup
+  auto-dream (meta-tooling) — Background memory consolidation and learning graduation — overnight knowledge lifecycle.
+  bluesky-reader agent=python-general-engineer (research) — Read public Bluesky feeds via AT Protocol API.
+  cobalt-core agent=kubernetes-helm-engineer (infrastructure) — Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.
+  code-cleanup (code-quality) — Detect stale TODOs, unused imports, and dead code. NOT: multi-phase workflow orchestration or repo reorganization (use workflow). This skill finds dead code and stale TODOs in place.
+  code-linting (code-quality) — Run Python (ruff) and JavaScript (Biome) linting.
+  codebase-analyzer (analysis) — Statistical rule discovery from Go codebase patterns.
+  codebase-overview (analysis) — Systematic codebase exploration and architecture mapping.
+  comment-quality (code-quality) — Review and fix temporal references in code comments.
+  condense (code-quality) — Maximize information density: preserve all instructions, remove prose filler.
+  condition-based-waiting (process) — Polling, retry, and backoff patterns.
+  content-calendar (content-creation) — Manage editorial content through 6 pipeline stages.
+  content-engine (content) — Repurpose source assets into platform-native social content.
+  create-voice FORCE (content) — Create voice profiles from writing samples.
+  cron-job-auditor (infrastructure) — Audit cron scripts for reliability and safety.
+  csuite (decision-support) — C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation. NOT: micro library choices (use decision-helper), writing content, SEO of specific posts
+  customer-support (business) — Customer support workflows — ticket triage, response drafting, knowledge base articles, escalation handling, customer research.
+  cve-source-check (infrastructure) — Audit CVE/vulnerability source coverage for a technology stack.
+  data-analysis (analysis) — Decision-first data analysis with statistical rigor gates.
+  decision-helper (process) — Weighted decision scoring for architectural choices.
+  design (business) — Design workflows — UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis.
+  distinctive-frontend-design (frontend) — Context-driven aesthetic exploration with anti-cliche validation.
+  do (meta-tooling) — Classify user requests and route to the correct agent + skill.
+  docs-sync-checker (documentation) — Detect documentation drift against filesystem state.
+  e2e-testing agent=testing-automation-engineer (testing) — Playwright-based end-to-end testing workflow.
+  endpoint-validator (infrastructure) — Deterministic API endpoint validation with pass/fail reporting. NOT: process/service uptime or daemon liveness (use service-health-check); only HTTP/API endpoint request validation
+  enterprise-search agent=opensearch-elasticsearch-engineer (engineering) — Enterprise search engineering — relevance tuning, query understanding, index management, search quality measurement, ranking optimization, schema design.
+  explanation-traces FORCE (analysis) — Query and display structured decision traces from routing, agent selection, and skill execution. NOT: general 'why did the test fail' debugging, explaining concepts to a user, code documentation, stack traces — only for querying recorded routing/agent decisions
+  feature-lifecycle FORCE (process) — Feature lifecycle: design, plan, implement, validate, release. NOT: small bug fixes (use quick), code reviews, refactoring single files, content writing — only for new feature work spanning design → plan → implement → validate → release
+  finance (business) — Finance and accounting workflows — journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing.
+  fish-shell-config FORCE (process) — Fish shell configuration and PATH management. NOT: fishing for bugs (debugging), fishing for feedback (asking for input), 'fish out' as 'extract/find', fish (the animal) — only fires for the Fish shell config
+  forensics (process) — Post-mortem diagnostic analysis of failed workflows.
+  frontend-slides agent=typescript-frontend-engineer (frontend) — Browser-based HTML presentation generation.
+  full-repo-review (analysis) — Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.
+  game-asset-generator agent=typescript-frontend-engineer (game-development) — Deterministic palette/matrix pixel art (not AI).
+  game-pipeline (game-development) — Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.
+  game-sprite-pipeline agent=python-general-engineer (game) — AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana.
+  gemini-wrestlejoy-comparison (analysis) — A/B test Gemini Pro vs Claude for WrestleJoy voice replication: Prepare inputs, generate with both models, validate outputs, compare results.
+  generate-claudemd (documentation) — Generate project-specific CLAUDE.md from repo analysis.
+  github-notification-triage (github) — Triage GitHub notifications and report actions needed.
+  go-patterns FORCE agent=golang-general-engineer (language) — Go development patterns: testing, concurrency, errors, review, and conventions. NOT: 'go' as a verb (go ahead, here we go, go-live, let's go), Go (the board game), pidgin/cargo english 'go do X', plain typo/spelling fixes inside a .go file ('small mistake in main.go', 'fix the spelling in foo.go') — those route to quick; only fires for the Go programming language patterns/idioms/testing
+  headless-cron-creator agent=python-general-engineer (process) — Generate headless Claude Code cron jobs with safety.
+  hr (business) — People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. NOT: code performance review (use reviewer-code). This skill covers people performance reviews and HR operations.
+  html-artifact (meta) — Generate rich self-contained HTML artifacts instead of markdown.
+  image-gen agent=python-general-engineer (image-generation) — AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk. NOT: HTML visualization or charts (use html-artifact)
+  image-to-video (video-creation) — FFmpeg-based video creation from image and audio.
+  install FORCE (meta-tooling) — Verify VexJoy Agent installation, diagnose issues, and guide first-time setup. NOT: installing npm packages, pip packages, OS packages, hardware, third-party tools — only for VexJoy Agent toolkit setup verification
+  integration-checker (process) — Verify cross-component wiring and data flow.
+  interactive-essay (content-creation) — Transform markdown articles into scrollytelling interactive React SPAs.
+  joy-check (content) — Validate content framing on joy-grievance spectrum.
+  kotlin-coroutines agent=kotlin-general-engineer (kotlin) — Kotlin structured concurrency, Flow, and Channel patterns.
+  kotlin-testing agent=kotlin-general-engineer (kotlin) — Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.
+  kubernetes-debugging agent=kubernetes-helm-engineer (kubernetes) — Kubernetes debugging for pod failures and networking.
+  kubernetes-security agent=kubernetes-helm-engineer (kubernetes) — Kubernetes security: RBAC, PodSecurity, network policies.
+  learn (meta-tooling) — Manually teach error pattern and solution to learning database.
+  legal (business) — Legal workflows — contract review, compliance checks, NDA triage, risk assessment, legal briefs.
+  marketing (business) — Marketing workflows — SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting.
+  motion-pipeline (game-animation) — CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK.
+  multi-persona-critique (analysis) — Critique a written proposal or design artifact via 5 philosophical personas in parallel, with consensus synthesis. NOT: speaking to a person, a meeting, or pushing back in a conversation — that is professional-communication. This critiques an artifact, not interpersonal messaging.
+  opensearch-detection-engineer (engineering) — OpenSearch detection engineering: SIGMA authoring, query DSL translation, MITRE ATT&CK mapping, anomaly detection, correlation rules, SOC incident escalation.
+  operations (business) — Business operations workflows — vendor management, runbooks, process documentation, risk assessment, capacity planning, change management, compliance tracking.
+  pair-programming (process) — Collaborative coding with enforced micro-steps and user-paced control.
+  parallel-code-review (code-review) — Parallel 3-reviewer code review: Security, Business-Logic, Architecture.
+  phaser-gamedev agent=typescript-frontend-engineer (game-development) — Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish.
+  php-quality agent=php-general-engineer (php) — PHP code quality: PSR standards, strict types, framework idioms.
+  php-testing agent=php-general-engineer (php) — PHP testing patterns: PHPUnit, test doubles, database testing.
+  planning FORCE agent=general-purpose (process) — Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed planning, plan validation, plan-lifecycle management, and session pause/resume. NOT: city/financial/meeting/travel planning; and personal prioritization like 'what should I work on next' — that is productivity. Only for software task planning, specs, and plan-lifecycle management.
+  plant-seed (process) — Capture forward-looking idea as a seed for future feature design.
+  pr-workflow FORCE (git-workflow) — Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. NOT: general disagreement ('push back on a design'), committing to an idea ('commit to this approach'), pushing out the door, push notifications, social media reviews, metaphorical commit/merge ('commit to a decision', 'merge ideas in your head', 'merge the branches in your head', 'move forward and commit'), 'commit' meaning resolve/decide rather than git-commit — only for git push/commit/PR operations
+  product-management (business) — Product management workflows — feature specs, roadmap planning, stakeholder updates, user research synthesis, competitive analysis, metrics review, sprint planning.
+  productivity (business) — Personal productivity — sort out what to work on next, prioritize tasks, plan your day, run weekly reviews, optimize meetings, set goals, write status updates. NOT: software task specs, requirements, or plan-lifecycle management — that is planning. This is personal prioritization and time management, not building a project plan.
+  professional-communication (content-creation) — Draft interpersonal and meeting messages — emails, memos, status updates, and pushing back or disagreeing in a structured business format. NOT: critiquing or stress-testing a proposal's merits — that is multi-persona-critique. This drafts the message, it does not judge the idea.
+  public-web-deploy FORCE (infrastructure) — Publish a public website safely: DNS, web server, HTTPS, hardening, verify. NOT: domain MODELING / DDD bounded contexts (use a code agent); local-only preview on 127.0.0.1 (no deploy needed); generating HTML artifacts (use html-artifact); HTTPS client/API bugs and internal-only nginx reverse proxies (use a code/infra agent). Fires when a site goes internet-facing.
+  publish agent=general-purpose (content-publishing) — Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk... NOT: writing article prose (use voice-writer), live rendering verification (use wordpress-live-validation)
+  python-quality-gate FORCE agent=python-general-engineer (code-quality) — Python quality checks: ruff, pytest, mypy, bandit in deterministic order. NOT: general Python coding (use python-general-engineer), data analysis scripts, or tutorials — fires when the user wants ruff/mypy/pytest/bandit quality checks run on existing code
+  quick FORCE (process) — Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. NOT: 'quick' as speed preference, general bug diagnosis requiring investigation
+  read-only-ops (process) — Read-only exploration, inspection, and reporting without modifications.
+  reddit-moderate agent=python-general-engineer (process) — Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.
+  reference-enrichment (meta-tooling) — Analyze agent/skill reference depth and generate missing domain-specific reference files.
+  repo-value-analysis agent=research-coordinator-engineer (analysis) — Analyze external repositories for adoptable ideas and patterns.
+  research-pipeline agent=research-coordinator-engineer (research) — Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER. NOT: a quick one-off web search or chat-style lookup — that is deep-research. Pick this when the user wants a sourced report saved as an artifact (SCOPE-to-DELIVER), even when phrased as 'dig into X and give me a sourced report'.
+  retro (meta-tooling) — Learning system interface: stats, search, graduate learnings.
+  roast (analysis) — Constructive critique via 5 HackerNews personas with claim validation.
+  routing-table-updater (meta-tooling) — Maintain /do routing tables when skills or agents change.
+  sales (business) — Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting.
+  sapcc-audit agent=golang-general-engineer (language) — Full-repo SAP CC Go compliance audit against review standards.
+  sapcc-review agent=golang-general-engineer (language) — Gold-standard SAP CC Go code review: 10 parallel domain specialists.
+  security-review FORCE agent=reviewer-system (code-review) — Local security review of git changes: deterministic scan + Security reviewer over the diff. NOT: general code review (use parallel-code-review or systematic-code-review), threat modeling a whole system (use security-threat-model), or non-security quality checks (use universal-quality-gate) — fires when the user wants a security pass over their current git changes
+  security-threat-model agent=python-general-engineer (security) — Security threat model: scan toolkit for attack surface, supply-chain risks.
+  series-planner (content-creation) — Plan multi-part content series: structure, cross-linking, cadence.
+  service-health-check (infrastructure) — Service health monitoring: Discover, Check, Report in 3 phases. NOT: validating individual API endpoint responses (use endpoint-validator); only service/process liveness and uptime
+  shell-process-patterns (process) — Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.
+  skill-composer (meta-tooling) — DAG-based multi-skill orchestration with dependency resolution.
+  skill-creator FORCE agent=toolkit-governance-engineer (meta) — Create and iteratively improve skills through eval-driven validation.
+  skill-eval (meta) — Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs. NOT: creating a new skill from scratch (use skill-creator). This skill evaluates and benchmarks skills that already exist.
+  socratic-debugging (process) — Question-only debugging: guide users to find root causes themselves.
+  subagent-driven-development (process) — Fresh-subagent-per-task execution with two-stage review gates.
+  swift-concurrency agent=swift-general-engineer (swift) — Swift concurrency: async/await, Actor, Task, Sendable patterns.
+  swift-testing agent=swift-general-engineer (swift) — Swift testing: XCTest, Swift Testing framework, async patterns.
+  systematic-code-review (code-review) — 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings. NOT: vague no-target requests like 'make this better' — those are interview-mode, where the agent asks what to improve. Only for reviewing a named file, diff, or PR.
+  test-driven-development (testing) — RED-GREEN-REFACTOR cycle with strict phase gates for TDD.
+  testing-agents-with-subagents (testing) — Test agents via subagents: known inputs, captured outputs, verification.
+  testing-preferred-patterns (testing) — Identify and fix testing mistakes: flaky, brittle, over-mocked tests.
+  threejs-builder agent=typescript-frontend-engineer (frontend) — Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.
+  toolkit-evolution (meta-tooling) — Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.
+  topic-brainstormer (content-creation) — Generate blog topic ideas: problem mining, gap analysis, expansion.
+  translate (content) — Document translation: quick/normal/refined modes with chunked parallel subagents and glossary support. NOT: reformatting or restructuring text without changing language
+  typescript-check agent=typescript-frontend-engineer (code-quality) — TypeScript type checking via tsc --noEmit with actionable error output.
+  universal-quality-gate (code-quality) — Multi-language code quality gate with auto-detection and linters.
+  verification-before-completion (process) — Defense-in-depth verification before declaring any task complete.
+  video-editing agent=python-general-engineer (video-creation) — Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.
+  vitest-runner (testing) — Run Vitest tests and parse results into actionable output.
+  voice-amy-nemmity (voice) — Amy Nemmity's writing voice: warmth, celebration, poetic fragments, community focus, character arc narratives.
+  voice-andy-disagreement (voice) — Andy Nemmity's disagreement and forum voice with reasoning ladder, claims-over-people discipline, and anti-escalation harshness control.
+  voice-andy-nemmity — Apply Andy Nemmity's voice profile for content generation: precision-driven improvisation, constraint accumulation, systems framing, calibration qu...
+  voice-dragonball-z FORCE (voice) — Apply the Dragon Ball Z narrative voice for content generation: epic battle narration, villain monologues, hero declarations, power-up sequences, n...
+  voice-feynman FORCE (voice) — Apply Richard Feynman's voice profile for content generation: mechanism-first thinking, refusal of jargon, plain English when truth is embarrassing...
+  voice-test — Test voice profile for validating voice system
+  voice-validator (voice) — Critique-and-rewrite loop for voice fidelity validation.
+  voice-vexjoy — Apply Andy Nemmity's VexJoy tech writing voice for content generation.
+  voice-writer FORCE (voice) — Unified voice content generation pipeline with mandatory validation and joy-check. NOT: scheduling or calendaring a content series (use content-calendar). This skill generates one article from a voice profile.
+  webgl-card-effects agent=typescript-frontend-engineer (frontend) — Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.
+  with-anti-rationalization (process) — Anti-rationalization enforcement for maximum-rigor task execution.
+  wordpress-live-validation (content-publishing) — Validate published WordPress posts in browser via Playwright.
+  workflow (meta-tooling) — Structured multi-phase workflows: review, debug, refactor (tidy up, clean up, untangle messy code, reorganize without changing behaviour), deploy, create, research, and more.
+  workflow-help (meta-tooling) — Interactive guide to workflow system: agents, skills, routing, execution patterns.
+  worktree-agent (git-workflow) — Mandatory rules for agents in git worktree isolation.
+  wrestlejoy-aew-images agent=wrestlejoy-news-producer (content-pipeline) — Fetch official promotional images from allelitewrestling.com for WrestleJoy articles.
+  wrestlejoy-external-research (content-pipeline) — Evidence-sourced 4-phase external research: Identify, Search, Extract, Validate.
+  wrestlejoy-mmr-research (content-pipeline) — Evidence-based wrestler research from MMR database: Assess, Query, Synthesize, Output.
+  wrestlejoy-news-pipeline agent=wrestlejoy-news-producer (content-pipeline) — Automated AEW wrestling news production pipeline for WrestleJoy.com.
+  wrestlejoy-research-transform (content-pipeline) — Transform MMR research data into narrative language: convert ratings to superlatives, trajectories to journey language, peaks to memorable moments.
+  x-api agent=python-general-engineer (content-publishing) — Post tweets, build threads, upload media via the X API.
+  zsh-shell-config FORCE (process) — Zsh shell configuration, PATH management, completions, and framework setup. NOT: not for non-zsh shells — only fires for Zsh configuration
+
+PIPELINES:
+  agent-upgrade — 5-phase pipeline for systematically improving an existing agent or skill: AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE.
+  article-evaluation-pipeline — Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.
+  auto-pipeline — Automatic pipeline generation for unrouted tasks.
+  chain-composer — Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.
+  comprehensive-review — Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.
+  de-ai-pipeline — Scan-fix-verify loop for removing AI writing patterns from docs.
+  do-perspectives — Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.
+  doc-pipeline — Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.
+  domain-research — Discover and classify subdomains within a target domain for pipeline generation.
+  explore-pipeline — Systematic codebase exploration pipeline with parallel subagents and tiered depth.
+  feature-pipeline — End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.
+  github-profile-rules — Extract programming rules and coding conventions from a GitHub user's public profile via API.
+  hook-development-pipeline — Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT.
+  mcp-pipeline-builder — Convert any repository into a registered MCP server: ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER.
+  perses-dac-pipeline — Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build with percli dac build, validate, ...
+  perses-plugin-pipeline — End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, DEPLOY.
+  pipeline-retro — Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact fixes (Layer 1), propose gener...
+  pipeline-scaffolder — Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.
+  pipeline-test-runner — Test generated pipeline skills against real targets.
+  pr-pipeline — End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.
+  quality-loop — Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup
+  research-pipeline — Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER.
+  research-to-article — Multi-agent research pipeline for voice content generation.
+  skill-creation-pipeline — Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE.
+  system-upgrade — Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.
+  systematic-debugging — Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.
+  systematic-refactoring — Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.
+  toolkit-improvement — Evaluate the entire toolkit from every angle, synthesize findings, challenge them with a skeptical grader, create validated ADRs for confirmed issu...
+  voice-calibrator — Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.
+  voice-writer — Unified voice content generation pipeline with mandatory validation and joy-check. 13-phase pipeline with per-phase agent dispatch.
+  workflow-orchestrator — Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.
+Return your answer as JSON: {"agent": "...|null","skill":"...|null","pipeline":"...|null","reasoning":"one sentence","confidence":"high/medium/low"}
+FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For git operations (push, commit, PR, merge), ALWAYS select pr-workflow. Pick the most specific match. Return a single skill name as a string.

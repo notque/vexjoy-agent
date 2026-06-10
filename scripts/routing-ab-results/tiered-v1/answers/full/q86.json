@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "User needs to clarify and define an unspecified feature idea—exactly what planning's pre-plan ambiguity resolution phase handles before moving to design or implementation.",
+  "confidence": "high"
+}

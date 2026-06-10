@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User needs a focused security review of authentication/authorization before public deployment to verify no privilege escalation or identity spoofing is possible; security-review is FORCE-matched for security passes over code changes.",
+  "confidence": "high"
+}

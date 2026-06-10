@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "Planning skill's pre-plan ambiguity resolution and spec phase directly address clarifying feature scope and requirements when definition is unclear.",
+  "confidence": "high"
+}

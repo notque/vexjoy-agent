@@ -1,0 +1,7 @@
+{
+  "agent": "Plan",
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "Plan agent delivers step-by-step implementation strategy with architectural trade-offs; planning FORCE skill ensures formal planning methodology and file-backed plan lifecycle.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "For git operations including PR submission, FORCE-route to pr-workflow skill",
+  "confidence": "high"
+}

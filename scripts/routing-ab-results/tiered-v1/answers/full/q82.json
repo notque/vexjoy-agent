@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-perspectives",
+  "skill": "full-repo-review",
+  "pipeline": null,
+  "reasoning": "Comprehensive multi-perspective repository analysis to systematically identify and prioritize improvement opportunities across code quality, architecture, and domain logic.",
+  "confidence": "medium"
+}

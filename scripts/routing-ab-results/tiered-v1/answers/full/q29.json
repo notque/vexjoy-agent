@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "planning FORCE skill handles plan-lifecycle finalization and moving forward; the active ADR session provides the approach that needs commitment and next-steps planning",
+  "confidence": "medium"
+}

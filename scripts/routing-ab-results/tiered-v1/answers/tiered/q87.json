@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Branch 'do-cost-diet' with commits on router/dispatch cost reduction indicates Go performance optimization; golang-general-engineer handles Go performance work.",
+  "confidence": "medium"
+}

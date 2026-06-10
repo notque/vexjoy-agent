@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-code",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "User requests careful review of recent edits for improvement suggestions; reviewer-code provides code quality assessment across conventions, naming, dead code, performance, and test coverage of git changes.",
+  "confidence": "high"
+}

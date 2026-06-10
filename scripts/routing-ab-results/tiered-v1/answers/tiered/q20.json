@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "Codebase-overview provides systematic exploration and architecture mapping, directly matching the request for a file layout map.",
+  "confidence": "high"
+}

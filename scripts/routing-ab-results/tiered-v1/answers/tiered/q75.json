@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "comprehensive-review",
+  "reasoning": "4-wave pipeline auto-discovers packages, dispatches language-specialist agents per package, and produces deep per-package analysis suitable for a prioritized issue backlog.",
+  "confidence": "high"
+}

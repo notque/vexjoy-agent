@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Python-general-engineer specializes in Python development including writing and verifying tests; writing checks for a parser is standard feature verification.",
+  "confidence": "high"
+}

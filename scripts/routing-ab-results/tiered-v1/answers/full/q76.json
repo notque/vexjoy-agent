@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "research-to-article",
+  "reasoning": "research-to-article pipeline orchestrates multi-agent research synthesis with voice-based article generation, handling both discovery and voiced content generation in sequence.",
+  "confidence": "high"
+}

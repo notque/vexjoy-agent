@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow is the FORCE-designated skill for all git operations including commit.",
+  "confidence": "high"
+}

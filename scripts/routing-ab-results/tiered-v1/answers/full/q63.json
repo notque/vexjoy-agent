@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "Planning skill (FORCE) explicitly covers spec and pre-implementation ambiguity resolution—the user needs to resolve requirements and acceptance criteria before building.",
+  "confidence": "high"
+}

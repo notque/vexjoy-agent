@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "User requests a structured 4-phase review (understand → assess risks → document findings) of a domain-specific module (billing). systematic-code-review provides exactly this UNDERSTAND-VERIFY-ASSESS-DOCUMENT framework, and reviewer-system specializes in risk-related concerns (security, concurrency, error handling, observability) critical for financial systems.",
+  "confidence": "high"
+}
