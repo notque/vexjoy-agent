@@ -62,6 +62,8 @@ MODE=""
 DRY_RUN=false
 FORCE=true  # Default to force — never prompt about existing directories
 CONFLICT_MODE=""  # per-item | replace | skip; set by --per-item/--sync or conflict prompt
+CONFIGURE=false
+CONFIGURE_ONLY=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --symlink)
@@ -102,6 +104,14 @@ while [[ $# -gt 0 ]]; do
             [ -z "$MODE" ] && MODE="symlink"
             shift
             ;;
+        --configure)
+            CONFIGURE=true
+            shift
+            ;;
+        --configure-only)
+            CONFIGURE_ONLY=true
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force|--per-item|--sync]"
             echo ""
@@ -115,6 +125,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-force   Prompt before replacing existing directories"
             echo "  --per-item   Symlink each item individually; preserve external content"
             echo "  --sync       Alias for --per-item; implies --symlink mode default"
+            echo "  --configure       Run the interactive profile picker, then install"
+            echo "  --configure-only  Run the picker, write .local/profile.yaml, then exit"
             echo ""
             echo "If no option provided, will prompt interactively."
             exit 0
@@ -1037,6 +1049,13 @@ install_component() {
 
     local component_key="$base_dir/$target_name"
 
+    # Profile filtering active for this component? Whole-dir symlinks cannot
+    # exclude items, so a filtered component is always installed per-item.
+    local filtered=false
+    case $name in
+        skills|agents|hooks) _category_filtered "$name" && filtered=true ;;
+    esac
+
     # Skip mode: leave conflicting locations untouched; install conflict-free ones normally.
     if [ "$CONFLICT_MODE" = "skip" ] && [ "$MODE" = "symlink" ] && _conflict_has "$component_key"; then
         echo -e "${YELLOW}  Skipping ${target} (kept existing — skip mode)${NC}"
@@ -1044,8 +1063,9 @@ install_component() {
     fi
 
     # Per-item mode: symlink each item (file or dir) individually; preserve external content.
-    if [ "$CONFLICT_MODE" = "per-item" ] && [ "$MODE" = "symlink" ] && \
-       { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; then
+    if [ "$MODE" = "symlink" ] && \
+       { [ "$filtered" = true ] || { [ "$CONFLICT_MODE" = "per-item" ] && \
+       { _conflict_has "$component_key" || [ -d "$target" ] || [ -L "$target" ]; }; }; }; then
         if [ "$DRY_RUN" = true ]; then
             if [ -L "$target" ] && _symlink_points_to "$target" "$source"; then
                 echo -e "${BLUE}  Would convert whole-dir symlink to per-item dir: ${target}${NC}"
@@ -1065,6 +1085,10 @@ install_component() {
             for item in "$source"/*; do
                 [ -e "$item" ] || [ -L "$item" ] || continue
                 item_name=$(basename "$item")
+                if [ "$filtered" = true ] && _profile_disabled "$name" "$item_name"; then
+                    echo -e "${YELLOW}  Skipping ${item_name} (disabled by profile)${NC}"
+                    continue
+                fi
                 if [ -e "$target/$item_name" ]; then
                     echo -e "${YELLOW}  WARNING: $target/$item_name already exists — skipping (kept existing)${NC}"
                     continue
@@ -1116,6 +1140,18 @@ install_component() {
         else
             cp -r "$source" "$target"
             echo -e "${GREEN}  ✓ Copied ${name}${NC}"
+            # Copy mode: prune profile-disabled items from the fresh copy.
+            if [ "$filtered" = true ]; then
+                local copied copied_name
+                for copied in "$target"/*; do
+                    [ -e "$copied" ] || continue
+                    copied_name=$(basename "$copied")
+                    if _profile_disabled "$name" "$copied_name"; then
+                        rm -rf "$copied"
+                        echo -e "${YELLOW}  Removed ${copied_name} (disabled by profile)${NC}"
+                    fi
+                done
+            fi
         fi
     fi
 }
@@ -1159,6 +1195,10 @@ link_skills_nested() {
         # Top-level file (e.g. INDEX.json) or a top-level skill dir (has SKILL.md):
         # link the whole thing at the top level.
         if [ ! -d "$entry" ] || [ -f "$entry/SKILL.md" ]; then
+            if [ -d "$entry" ] && _profile_disabled skills "$entry_name"; then
+                echo -e "${YELLOW}  Skipping ${entry_name} (disabled by profile)${NC}"
+                continue
+            fi
             if [ -e "$target/$entry_name" ] || [ -L "$target/$entry_name" ]; then
                 continue  # external/existing entry; keep it
             fi
@@ -1178,6 +1218,10 @@ link_skills_nested() {
         for child in "$entry"/*; do
             [ -e "$child" ] || [ -L "$child" ] || continue
             child_name=$(basename "$child")
+            if [ -d "$child" ] && _profile_disabled skills "$child_name"; then
+                echo -e "${YELLOW}  Skipping ${entry_name}/${child_name} (disabled by profile)${NC}"
+                continue
+            fi
             if [ -e "$target/$entry_name/$child_name" ] || [ -L "$target/$entry_name/$child_name" ]; then
                 continue  # external/existing entry; keep it
             fi
@@ -1313,6 +1357,63 @@ HOOK
     echo -e "${GREEN}  ✓ Installed post-merge hook: ${hook}${NC}"
 }
 
+# ---------------------------------------------------------------------------
+# Opt-in install profile (.local/profile.yaml) — credit: @thomasvan.
+# Absent profile = no filtering; install behaves exactly as without this block.
+# VEXJOY_INSTALL_PROFILE overrides the path (used by tests).
+# ---------------------------------------------------------------------------
+PROFILE_FILE="${VEXJOY_INSTALL_PROFILE:-${SCRIPT_DIR}/.local/profile.yaml}"
+DISABLED_SKILLS=""
+DISABLED_AGENTS=""
+DISABLED_HOOKS=""
+
+if [ "$CONFIGURE" = true ] || [ "$CONFIGURE_ONLY" = true ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would run interactive profile picker (scripts/configure-profile.py)${NC}"
+    else
+        $PYTHON_CMD "${SCRIPT_DIR}/scripts/configure-profile.py" --output "$PROFILE_FILE"
+    fi
+    if [ "$CONFIGURE_ONLY" = true ]; then
+        echo "Profile written. Run ./install.sh to apply it."
+        exit 0
+    fi
+fi
+
+if [ -f "$PROFILE_FILE" ]; then
+    DISABLED_SKILLS=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/load-profile.py" --list skills --profile "$PROFILE_FILE") || DISABLED_SKILLS=""
+    DISABLED_AGENTS=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/load-profile.py" --list agents --profile "$PROFILE_FILE") || DISABLED_AGENTS=""
+    DISABLED_HOOKS=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/load-profile.py" --list hooks --profile "$PROFILE_FILE") || DISABLED_HOOKS=""
+    _ns=$(printf '%s' "$DISABLED_SKILLS" | grep -c . || true)
+    _na=$(printf '%s' "$DISABLED_AGENTS" | grep -c . || true)
+    _nh=$(printf '%s' "$DISABLED_HOOKS" | grep -c . || true)
+    echo -e "${YELLOW}Install profile: ${PROFILE_FILE} (disabled: ${_ns} skills, ${_na} agents, ${_nh} hooks)${NC}"
+fi
+
+# _profile_disabled CATEGORY NAME — 0 when NAME is disabled by the profile.
+# Agents match by stem (foo.md and foo/ both match "foo"); skills and hooks
+# match the basename as-is (skill dir name, hook filename like foo.py).
+_profile_disabled() {
+    local list name=$2
+    case $1 in
+        skills) list="$DISABLED_SKILLS" ;;
+        agents) list="$DISABLED_AGENTS"; name="${name%.md}" ;;
+        hooks)  list="$DISABLED_HOOKS" ;;
+        *) return 1 ;;
+    esac
+    [ -n "$list" ] || return 1
+    printf '%s\n' "$list" | grep -Fxq -- "$name"
+}
+
+# _category_filtered CATEGORY — 0 when the profile disables anything in CATEGORY.
+_category_filtered() {
+    case $1 in
+        skills) [ -n "$DISABLED_SKILLS" ] ;;
+        agents) [ -n "$DISABLED_AGENTS" ] ;;
+        hooks)  [ -n "$DISABLED_HOOKS" ] ;;
+        *) return 1 ;;
+    esac
+}
+
 # Scan for conflicts before first install_component call
 if [ "$MODE" = "symlink" ]; then
     detect_conflicts
@@ -1431,6 +1532,10 @@ echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
 CODEX_ENTRY_COUNT=0
 for item in "${SCRIPT_DIR}/skills/"*; do
     [ -e "$item" ] || continue
+    if [ -d "$item" ] && [ -f "$item/SKILL.md" ] && _profile_disabled skills "$(basename "$item")"; then
+        echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
+        continue
+    fi
     target="${CODEX_SKILLS_DIR}/$(basename "$item")"
     sync_codex_entry "$item" "$target"
     CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
@@ -1462,6 +1567,10 @@ echo -e "${YELLOW}Syncing Codex agents mirror...${NC}"
 CODEX_AGENT_COUNT=0
 for item in "${SCRIPT_DIR}/agents/"*; do
     [ -e "$item" ] || continue
+    if _profile_disabled agents "$(basename "$item")"; then
+        echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
+        continue
+    fi
     target="${CODEX_AGENTS_DIR}/$(basename "$item")"
     sync_codex_entry "$item" "$target"
     CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
@@ -1504,6 +1613,11 @@ if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
         rest="${trimmed#*:}"
         filename="${rest%% *}"
 
+        if _profile_disabled hooks "$filename"; then
+            echo -e "${YELLOW}  Skipping ${filename} (disabled by profile)${NC}"
+            continue
+        fi
+
         source_file="${SCRIPT_DIR}/hooks/${filename}"
         if [ ! -f "$source_file" ]; then
             echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
@@ -1527,13 +1641,24 @@ if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would generate: ${CODEX_HOOKS_JSON}${NC}"
     else
+        # Profile filtering: generate from a filtered allowlist copy so
+        # hooks.json never references hooks we did not mirror.
+        EFFECTIVE_ALLOWLIST="$CODEX_HOOKS_ALLOWLIST"
+        if [ -n "$DISABLED_HOOKS" ]; then
+            EFFECTIVE_ALLOWLIST=$(mktemp)
+            printf '%s\n' "$DISABLED_HOOKS" | $PYTHON_CMD "${SCRIPT_DIR}/scripts/filter-codex-allowlist.py" \
+                --input "$CODEX_HOOKS_ALLOWLIST" --disabled /dev/stdin --output "$EFFECTIVE_ALLOWLIST"
+        fi
         if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-codex-hooks-json.py" \
-            --allowlist "$CODEX_HOOKS_ALLOWLIST" \
+            --allowlist "$EFFECTIVE_ALLOWLIST" \
             --output "$CODEX_HOOKS_JSON" \
             --codex-hooks-dir "$CODEX_HOOKS_DIR" 2>&1; then
             echo -e "${GREEN}  ✓ Generated ${CODEX_HOOKS_JSON}${NC}"
         else
             echo -e "${RED}  ✗ Failed to generate hooks.json${NC}"
+        fi
+        if [ "$EFFECTIVE_ALLOWLIST" != "$CODEX_HOOKS_ALLOWLIST" ]; then
+            rm -f "$EFFECTIVE_ALLOWLIST"
         fi
     fi
 
@@ -2054,6 +2179,12 @@ with open(tmp, 'w', encoding='utf-8') as f:
 os.rename(tmp, dst)
 print('  Hooks configured from .claude/settings.json')
 "
+    # Profile filtering: drop disabled hooks from the freshly synced block.
+    if [ -n "$DISABLED_HOOKS" ]; then
+        printf '%s\n' "$DISABLED_HOOKS" | $PYTHON_CMD "${SCRIPT_DIR}/scripts/filter-settings-hooks.py" \
+            --input "$SETTINGS_FILE" --disabled /dev/stdin --output "$SETTINGS_FILE"
+        echo -e "${YELLOW}  Filtered profile-disabled hooks from settings.json${NC}"
+    fi
 else
     echo -e "${YELLOW}  Warning: ${SCRIPT_DIR}/.claude/settings.json not found, skipping hook sync${NC}"
 fi

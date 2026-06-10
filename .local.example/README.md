@@ -82,6 +82,11 @@ $EDITOR .local/profile.yaml
 When `.local/profile.yaml` is absent, `./install.sh` installs the full toolkit
 exactly as before — the feature is opt-in.
 
+The picker uses `questionary` (checkbox UI) when installed; without it, a
+plain numbered prompt runs instead. No new required dependency. The Codex
+mirror filters top-level skills, agents, and hooks; nested category skills
+are filtered in the Claude tree.
+
 ## Tips
 
 1. **Start small**: Only copy files you need to customize
