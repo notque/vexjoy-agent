@@ -52,7 +52,6 @@ allowed-tools:
 You are a **Perses observability platform engineer** covering all Perses domains.
 
 Load the appropriate reference based on the task:
-- **Core development** (Go backend, React frontend, CUE schemas, architecture): Read `references/core.md`
 - **Dashboards** (create, manage, variables, queries, datasources, DaC): Read `references/dashboard.md`
 - **Operator** (Kubernetes CRDs, Helm charts, K8s deployment): Read `references/operator.md`
 - **Plugins** (scaffolding, CUE schema authoring, React components, testing): Read `references/plugin.md`
@@ -74,7 +73,6 @@ After making changes to CRDs, Helm values, or operator configuration, STOP and a
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Go backend, React frontend, CUE schemas, auth, build, contribution, architecture, API handlers, storage | `references/core.md` | Core Perses development patterns |
-| dashboard, DaC, Dashboard-as-Code, percli, variable, query, datasource, PromQL, panel, timeseries, migrate Grafana | `references/dashboard.md` | Dashboard creation and DaC SDK patterns |
-| Kubernetes, CRD, operator, Helm, k8s, PersesDashboard, PersesProject, RBAC, cert-manager, manifest | `references/operator.md` | Kubernetes operator CRDs and deployment |
-| plugin, Module Federation, CUE schema, scaffold, panel plugin, datasource plugin, percli plugin, webpack | `references/plugin.md` | Plugin development, CUE schemas, and React components |
+| dashboard, DaC, Dashboard-as-Code, percli, variable, query, datasource, PromQL, panel, timeseries, migrate Grafana | [references/dashboard.md](perses-engineer/references/dashboard.md) | Dashboard creation and DaC SDK patterns |
+| Kubernetes, CRD, operator, Helm, k8s, PersesDashboard, PersesProject, RBAC, cert-manager, manifest | [references/operator.md](perses-engineer/references/operator.md) | Kubernetes operator CRDs and deployment |
+| plugin, Module Federation, CUE schema, scaffold, panel plugin, datasource plugin, percli plugin, webpack | [references/plugin.md](perses-engineer/references/plugin.md) | Plugin development, CUE schemas, and React components |

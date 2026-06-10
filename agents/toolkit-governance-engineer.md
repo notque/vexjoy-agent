@@ -185,10 +185,10 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `adr-lifecycle.md` | Loads detailed guidance from `adr-lifecycle.md`. |
-| tasks related to this reference | `frontmatter-compliance.md` | Loads detailed guidance from `frontmatter-compliance.md`. |
-| tasks related to this reference | `hook-standardization.md` | Loads detailed guidance from `hook-standardization.md`. |
-| implementation patterns | `routing-table-patterns.md` | Loads detailed guidance from `routing-table-patterns.md`. |
+| ADR status transitions, validation criteria, consultation records | [adr-lifecycle.md](toolkit-governance-engineer/references/adr-lifecycle.md) | Status line format, transition rules, stale ADR detection commands |
+| frontmatter audit, `allowed-tools` review, YAML parse errors | [frontmatter-compliance.md](toolkit-governance-engineer/references/frontmatter-compliance.md) | Required fields, ADR-063 tool restrictions, detection commands |
+| hook registration, event types, timeout config, exit code review | [hook-standardization.md](toolkit-governance-engineer/references/hook-standardization.md) | settings.json format, advisory vs blocking exit codes |
+| routing table edits, `pairs_with` validation, trigger conflicts, INDEX.json | [routing-table-patterns.md](toolkit-governance-engineer/references/routing-table-patterns.md) | Phantom route detection, trigger conflict checks, index validation |
 
 ## Agent Reference File Validation
 

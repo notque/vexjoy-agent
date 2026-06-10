@@ -196,3 +196,5 @@ See [shared-patterns/anti-rationalization-review.md](../skills/shared-patterns/a
 | **User Advocate** | `user-advocate.md` | User impact: complexity vs value, learning curve, workflow disruption |
 | **Meta-Process** | `meta-process.md` | System design: SPOFs, indispensability, authority concentration, reversibility |
 | **All Perspectives** | `review-detection-commands.md` | grep/rg detection commands for each perspective — load during VERIFY phase |
+| Newcomer or Contrarian review on a real codebase | [clarity-and-assumption-detection.md](reviewer-perspectives/references/clarity-and-assumption-detection.md) | Clarity (magic numbers, naming) and hidden-assumption detection with error-fix mappings |
+| Skeptical Senior or Pedant review on a real codebase | [code-review-detection.md](reviewer-perspectives/references/code-review-detection.md) | Production-readiness and spec-compliance pattern catalog with fixes |

@@ -38,7 +38,7 @@ This is a read-only analysis skill -- it reads and reports but does not fix wiri
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `wiring-checks.md` | Loads detailed guidance from `wiring-checks.md`. |
+| classifying exports/imports and tracing data flow (Phases 0-2) | `wiring-checks.md` | Loads detailed guidance from `wiring-checks.md`. |
 
 ## Instructions
 

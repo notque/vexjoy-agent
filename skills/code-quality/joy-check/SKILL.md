@@ -46,8 +46,8 @@ This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `instruction-rubric.md` | Loads detailed guidance from `instruction-rubric.md`. |
-| tasks related to this reference | `writing-rubric.md` | Loads detailed guidance from `writing-rubric.md`. |
+| scoring instruction files (agents, skills, pipelines): positive-framing rubric | `instruction-rubric.md` | Loads detailed guidance from `instruction-rubric.md`. |
+| scoring human-facing prose (blog posts, emails, docs): joy-grievance rubric | `writing-rubric.md` | Loads detailed guidance from `writing-rubric.md`. |
 
 ## Instructions
 

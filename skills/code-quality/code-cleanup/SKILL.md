@@ -56,9 +56,9 @@ Scan repositories for 9 categories of technical debt (TODOs, unused imports, dea
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
-| tasks related to this reference | `scan-commands.md` | Loads detailed guidance from `scan-commands.md`. |
-| tasks related to this reference | `tools.md` | Loads detailed guidance from `tools.md`. |
+| writing the cleanup report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| running per-language scans: unused imports, dead code, debug statements | `scan-commands.md` | Loads detailed guidance from `scan-commands.md`. |
+| checking which cleanup tools are installed per language | `tools.md` | Loads detailed guidance from `tools.md`. |
 
 ## Instructions
 

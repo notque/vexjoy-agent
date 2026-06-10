@@ -179,6 +179,6 @@ See [references/swift-security-testing.md](swift-general-engineer/references/swi
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `swift-patterns.md` | Loads detailed guidance from `swift-patterns.md`. |
-| security-sensitive work, tests | `swift-security-testing.md` | Loads detailed guidance from `swift-security-testing.md`. |
-| security, auth, Keychain, ATS, WebView, biometrics, deep links, or any vulnerability-related code | `swift-security.md` | Secure implementation patterns for Swift iOS, macOS, and server-side. |
+| immutability, actors, Sendable, protocol-oriented design, state modeling | [swift-patterns.md](swift-general-engineer/references/swift-patterns.md) | Core Swift idiom and concurrency patterns |
+| writing or reviewing Swift tests; failure mode detection | [swift-security-testing.md](swift-general-engineer/references/swift-security-testing.md) | Testing methodology and failure mode detection table |
+| security, auth, Keychain, ATS, WebView, biometrics, deep links, or any vulnerability-related code | [swift-security.md](swift-general-engineer/references/swift-security.md) | Secure implementation patterns for Swift iOS, macOS, and server-side. |

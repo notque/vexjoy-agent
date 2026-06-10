@@ -194,3 +194,9 @@ STOP and ask the user when:
 | **Business Logic** | `business-logic.md` | Domain correctness, edge cases, state machines, data validation |
 | **SAP CC Structural** | `sapcc-structural.md` | 9 structural categories for sapcc Go repos: type exports, wrappers, Option timing, go-bits usage |
 | **Pragmatic Builder** | `pragmatic-builder.md` | Production readiness: deployment, error handling, observability, edge cases, scalability |
+| enumerating edge cases by data type during business logic review | [edge-case-tables.md](reviewer-domain/references/edge-case-tables.md) | Systematic edge cases for numeric, string, collection, date, file, state types |
+| reviewing state machines or stateful business logic | [state-machine-verification.md](reviewer-domain/references/state-machine-verification.md) | Transition tables, review checklist, state-machine review template |
+| checking calculations, off-by-one, validation, race conditions | [common-bugs.md](reviewer-domain/references/common-bugs.md) | Real-world business logic bug catalog with examples |
+| classifying a sapcc Go finding into its structural category | [structural-categories.md](reviewer-domain/references/structural-categories.md) | The 9 categories in depth: exports, wrappers, Option timing, go-bits |
+| production readiness gaps: deployment, rollback, observability, scaling | [production-gaps.md](reviewer-domain/references/production-gaps.md) | Gap catalog with solutions per area |
+| flagging operational mistakes during pragmatic builder review | [operational-preferred-patterns.md](reviewer-domain/references/operational-preferred-patterns.md) | Operational corrections: rollback plans, logging, circuit breakers, monitoring |

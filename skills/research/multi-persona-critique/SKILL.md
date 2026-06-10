@@ -55,8 +55,8 @@ This skill takes a set of proposals — feature ideas, architectural decisions, 
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
-| tasks related to this reference | `personas.md` | Loads detailed guidance from `personas.md`. |
-| tasks related to this reference | `synthesis-template.md` | Loads detailed guidance from `synthesis-template.md`. |
+| dispatching the five critique personas (Phase 2) | `personas.md` | Loads detailed guidance from `personas.md`. |
+| writing the Phase 5 synthesis report | `synthesis-template.md` | Loads detailed guidance from `synthesis-template.md`. |
 
 ## Instructions
 

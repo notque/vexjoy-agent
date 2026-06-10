@@ -47,12 +47,12 @@ This skill identifies and fixes common testing mistakes across unit, integration
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `preferred-pattern-catalog.md` | Loads detailed guidance from `preferred-pattern-catalog.md`. |
-| tasks related to this reference | `blind-spot-taxonomy.md` | Loads detailed guidance from `blind-spot-taxonomy.md`. |
+| auditing coverage gaps: concurrency, boundaries, security, error recovery | `blind-spot-taxonomy.md` | Loads detailed guidance from `blind-spot-taxonomy.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | fixing review feedback | `fix-strategies.md` | Loads detailed guidance from `fix-strategies.md`. |
 | tests | `load-test-scenarios.md` | Loads detailed guidance from `load-test-scenarios.md`. |
-| tasks related to this reference | `quality-catalog.md` | Loads detailed guidance from `quality-catalog.md`. |
-| tasks related to this reference | `quick-reference.md` | Loads detailed guidance from `quick-reference.md`. |
+| classifying test-quality failure modes found during SCAN | `quality-catalog.md` | Loads detailed guidance from `quality-catalog.md`. |
+| fast pattern-symptom-fix lookup | `quick-reference.md` | Loads detailed guidance from `quick-reference.md`. |
 
 ## Instructions
 

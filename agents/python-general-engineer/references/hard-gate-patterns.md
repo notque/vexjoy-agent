@@ -21,7 +21,7 @@ See `shared-patterns/forbidden-patterns-template.md` for framework.
 | `print()` in production code | No log levels, no structured output | Use logging module |
 | `os.system()` or `shell=True` | Shell injection risk | subprocess with list args, shell=False |
 
-### Detection
+## Detection
 ```bash
 grep -rn "^except:" --include="*.py"
 grep -rn "eval(" --include="*.py" | grep -v "literal_eval"
@@ -29,7 +29,7 @@ grep -rn "# type: ignore$" --include="*.py"
 grep -rn "from .* import \*" --include="*.py"
 ```
 
-### Exceptions
+## Exceptions
 - `# type: ignore[specific-error]` with reason in comment
 - `eval()` only with validated, sandboxed input from trusted source
 - `print()` in CLI scripts and debugging (not production services)

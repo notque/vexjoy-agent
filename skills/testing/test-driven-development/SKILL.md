@@ -38,7 +38,7 @@ Enforce the RED-GREEN-REFACTOR cycle for all code changes. Tests are written bef
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
-| tasks related to this reference | `phase-guidance.md` | Loads detailed guidance from `phase-guidance.md`. |
+| detailed phase steps, rationale, or language-specific test commands | `phase-guidance.md` | Loads detailed guidance from `phase-guidance.md`. |
 
 ## Instructions
 

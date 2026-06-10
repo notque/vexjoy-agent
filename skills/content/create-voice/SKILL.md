@@ -44,13 +44,13 @@ Create a complete voice profile from writing samples through a 7-phase pipeline.
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | extraction validation, pattern verdict, triple-validation | `extraction-validation.md` | Triple-validation rubric (recurrence, generative power, exclusivity) gating which patterns survive into the profile. |
-| tasks related to this reference | `iteration-guide.md` | Loads detailed guidance from `iteration-guide.md`. |
+| Steps 6-7: validation procedure and authorship matching | `iteration-guide.md` | Loads detailed guidance from `iteration-guide.md`. |
 | implementation patterns | `pattern-identification.md` | Loads detailed guidance from `pattern-identification.md`. |
-| tasks related to this reference | `phase-banners.md` | Loads detailed guidance from `phase-banners.md`. |
-| tasks related to this reference | `reference-implementations.md` | Loads detailed guidance from `reference-implementations.md`. |
-| tasks related to this reference | `sample-collection.md` | Loads detailed guidance from `sample-collection.md`. |
-| tasks related to this reference | `skill-generation.md` | Loads detailed guidance from `skill-generation.md`. |
-| tasks related to this reference | `voice-rules-template.md` | Loads detailed guidance from `voice-rules-template.md`. |
+| reporting progress at phase gates | `phase-banners.md` | Loads detailed guidance from `phase-banners.md`. |
+| locating exemplar voice skills and components | `reference-implementations.md` | Loads detailed guidance from `reference-implementations.md`. |
+| Step 1 COLLECT: finding, vetting, and formatting samples | `sample-collection.md` | Loads detailed guidance from `sample-collection.md`. |
+| Step 5 GENERATE: skill files, frontmatter, sample organization | `skill-generation.md` | Loads detailed guidance from `skill-generation.md`. |
+| Step 4 RULE: writing positive and contrastive identity rules | `voice-rules-template.md` | Loads detailed guidance from `voice-rules-template.md`. |
 
 ## Instructions
 

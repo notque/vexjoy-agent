@@ -31,11 +31,11 @@ Manage editorial content through 6 pipeline stages: Ideas, Outlined, Drafted, Ed
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `calendar-format.md` | Loads detailed guidance from `calendar-format.md`. |
+| calendar file location, template, section formats | `calendar-format.md` | Loads detailed guidance from `calendar-format.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| tasks related to this reference | `metrics.md` | Loads detailed guidance from `metrics.md`. |
-| tasks related to this reference | `operations.md` | Loads detailed guidance from `operations.md`. |
-| tasks related to this reference | `pipeline-stages.md` | Loads detailed guidance from `pipeline-stages.md`. |
+| velocity tracking and stuck-content detection | `metrics.md` | Loads detailed guidance from `metrics.md`. |
+| executing view, add, move, schedule, archive operations | `operations.md` | Loads detailed guidance from `operations.md`. |
+| stage definitions and transition rules | `pipeline-stages.md` | Loads detailed guidance from `pipeline-stages.md`. |
 
 ## Instructions
 

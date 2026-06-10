@@ -54,8 +54,8 @@ Each specialist loads only its domain-specific reference file to keep context ti
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `agent-dispatch-prompts.md` | Loads detailed guidance from `agent-dispatch-prompts.md`. |
-| tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| Phase 2 DISPATCH: the 10 domain-specialist prompts | `agent-dispatch-prompts.md` | Loads detailed guidance from `agent-dispatch-prompts.md`. |
+| Phase 3 AGGREGATE: report structure and severity boosts | `report-template.md` | Loads detailed guidance from `report-template.md`. |
 
 ## Instructions
 
