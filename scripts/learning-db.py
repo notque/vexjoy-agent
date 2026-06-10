@@ -30,12 +30,15 @@ Usage:
     python3 scripts/learning-db.py telemetry-query --topic eval:evals/<dir> [--git-sha SHA] [--format json]
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --success
     python3 scripts/learning-db.py record-routing-outcome AGENT_SKILL --failure --reason "user re-routed"
+    python3 scripts/learning-db.py route-failure AGENT:SKILL --reason "re-route after unusable output" --routing-relevant yes [--session SID --marker MK]
     python3 scripts/learning-db.py backfill-routing-outcomes
     python3 scripts/learning-db.py route-health [--json]
+    python3 scripts/learning-db.py route-weights --json
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
 """
 
 import argparse
+import inspect
 import json
 import re
 import sqlite3
@@ -620,6 +623,43 @@ def cmd_route_stats(args: argparse.Namespace) -> None:
         print(json_mod.dumps(records, indent=2, default=str))
 
 
+def collect_route_weights() -> dict[str, dict[str, object]]:
+    """Read routing/effectiveness rows into a weight map.
+
+    Returns a dict keyed `<agent>:<skill>` with the fields confidence, n
+    (observation_count), success, failure, last_seen. Read-only; excludes
+    obvious test rows (source LIKE 'test%'); deterministic key ordering.
+    """
+    init_db()
+    # Read only the columns we emit, ordered by key, for speed and determinism.
+    # Excludes obvious test rows (source LIKE 'test%'); read-only.
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT key, confidence, observation_count, success_count, failure_count, last_seen
+            FROM learnings
+            WHERE topic = 'routing' AND category = 'effectiveness'
+              AND source NOT LIKE 'test%'
+            ORDER BY key ASC
+            """
+        ).fetchall()
+    return {
+        row["key"]: {
+            "confidence": round(float(row["confidence"]), 4),
+            "n": int(row["observation_count"] or 0),
+            "success": int(row["success_count"] or 0),
+            "failure": int(row["failure_count"] or 0),
+            "last_seen": row["last_seen"],
+        }
+        for row in rows
+    }
+
+
+def cmd_route_weights(args: argparse.Namespace) -> None:
+    """Emit routing weights as JSON for health-aware re-ranking."""
+    print(json.dumps(collect_route_weights(), indent=2, default=str))
+
+
 # Default minimum cohort size below which route-delta prints a low-sample WARNING.
 # Report-only — it never blocks; the numbers still print (ADR: learning-telemetry-envelope).
 MIN_N = 5
@@ -984,6 +1024,114 @@ def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
 
     outcome = "success" if args.success else "failure"
     print(f"Recorded {outcome} for routing/{key} — confidence: {new_conf:.4f}")
+
+
+def _ensure_route_failure_dedup_table(conn: sqlite3.Connection) -> None:
+    """Create the route_failure_dedup table if absent (idempotence ledger).
+
+    learning_db_v2.py is never edited (a pre-existing SQLi false-positive there
+    trips the commit security gate), so the table is created here, like
+    _ensure_archive_table. One row per (session, marker) dispatch key records a
+    failure already counted, so a retry loop cannot decay a pair repeatedly.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS route_failure_dedup (
+            session TEXT NOT NULL,
+            marker TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (session, marker)
+        )
+        """
+    )
+    conn.commit()
+
+
+def cmd_route_failure(args: argparse.Namespace) -> None:
+    """Record an orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures).
+
+    Routing-relevant => decay the pair's weight row via the finalizer's decay
+    path (apply_outcome failure) AND append a reasoned failure event. Not-relevant
+    => event only, zero decay (a task failure by the right route must not poison
+    route health). Idempotent per dispatch key (session, marker): a duplicate is a
+    no-op, exit 0. Malformed pair (no ':') exits non-zero.
+    """
+    key = args.agent_skill
+    if ":" not in key:
+        print(f"Error: pair must be 'agent:skill', got {key!r}", file=sys.stderr)
+        sys.exit(2)
+
+    init_db()
+    routing_relevant = args.routing_relevant == "yes"
+    session = args.session or ""
+    marker = args.marker or ""
+
+    # Idempotence ordering — at-least-once, NOT at-most-once. The failure signal
+    # is the scarcest resource in this loop, so a dropped signal is worse than a
+    # re-applied one. Ordering:
+    #   (a) fast dup exit: if the dedup row already exists, no-op (exit 0);
+    #   (b) do the decay + outcome-event work;
+    #   (c) THEN insert + commit the dedup row.
+    # A crash between (b) and (c) leaves no dedup row, so a retry re-applies ONE
+    # decay — bounded and acceptable on a single-user toolkit. The old order
+    # (commit dedup first) silently DROPPED the signal on a crash between commit
+    # and decay: a retry hit IntegrityError and no-op'd, exit 0, no error.
+    # Two identical concurrent invocations can both pass (a) and both apply once;
+    # accepted (single-user, no concurrent route-failure calls).
+    dedup_active = bool(session and marker)
+    if dedup_active:
+        with get_connection() as conn:
+            _ensure_route_failure_dedup_table(conn)
+            row = conn.execute(
+                "SELECT 1 FROM route_failure_dedup WHERE session = ? AND marker = ?",
+                (session, marker),
+            ).fetchone()
+        if row is not None:
+            print(f"Duplicate dispatch key (session={session}, marker={marker}); no-op.")
+            return
+
+    # route_events lives in hooks/lib (already on sys.path via the header).
+    from route_events import record_outcome_event
+
+    decayed_note = "no decay (not routing-relevant)"
+    if routing_relevant:
+        # Reuse the finalizer's decay path — do NOT invent a second formula.
+        from routing_outcome_score import apply_outcome, decision_row_exists
+
+        if decision_row_exists(key):
+            new_conf = apply_outcome(key, "failure")
+            decayed_note = f"decayed routing/{key} -> confidence {new_conf:.4f}"
+        else:
+            decayed_note = f"no weight row for {key}; event logged, nothing to decay"
+
+    # Pass routing_relevant only if record_outcome_event accepts it. A sibling
+    # change adds the optional param; guard via signature so neither agent breaks
+    # the other while both land.
+    event_kwargs: dict[str, object] = {
+        "session": session,
+        "key": key,
+        "outcome": "failure",
+        "reason": args.reason,
+    }
+    if "routing_relevant" in inspect.signature(record_outcome_event).parameters:
+        event_kwargs["routing_relevant"] = routing_relevant
+    record_outcome_event(**event_kwargs)
+
+    # (c) Mark the dispatch key done only AFTER the work succeeded.
+    if dedup_active:
+        with get_connection() as conn:
+            _ensure_route_failure_dedup_table(conn)
+            try:
+                conn.execute(
+                    "INSERT INTO route_failure_dedup (session, marker, recorded_at) VALUES (?, ?, ?)",
+                    (session, marker, datetime.now().isoformat()),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # A concurrent invocation won the insert race; the work is done.
+                pass
+
+    print(f"Recorded route failure: {key} (routing-relevant={args.routing_relevant}) — {decayed_note}")
 
 
 def cmd_backfill_routing_outcomes(args: argparse.Namespace) -> None:
@@ -1488,6 +1636,13 @@ def main():
     p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
     p_route_stats.set_defaults(func=cmd_route_stats)
 
+    # route-weights
+    p_route_weights = subparsers.add_parser(
+        "route-weights", help="Emit routing weights as JSON (read-only) for health-aware re-rank"
+    )
+    p_route_weights.add_argument("--json", action="store_true", help="Output as JSON (only supported format)")
+    p_route_weights.set_defaults(func=cmd_route_weights)
+
     # review-roi — per-tier review cost/findings ROI (report-only).
     p_review_roi = subparsers.add_parser("review-roi", help="Per-tier review cost/findings ROI")
     p_review_roi.add_argument("--json", action="store_true", help="Output as JSON")
@@ -1521,6 +1676,21 @@ def main():
     p_rro_group.add_argument("--failure", action="store_true", help="Route failed")
     p_rro.add_argument("--reason", help="Reason for outcome (appended to value)")
     p_rro.set_defaults(func=cmd_record_routing_outcome)
+
+    # route-failure — orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures)
+    p_rf = subparsers.add_parser("route-failure", help="Record an orchestrator-reported routing failure")
+    p_rf.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
+    p_rf.add_argument("--reason", required=True, help="Why the route failed (recorded with the event)")
+    p_rf.add_argument(
+        "--routing-relevant",
+        dest="routing_relevant",
+        required=True,
+        choices=["yes", "no"],
+        help="yes => decay the pair + log event; no => log event only, no decay",
+    )
+    p_rf.add_argument("--session", help="Session ID (with --marker, the idempotence dispatch key)")
+    p_rf.add_argument("--marker", help="Dispatch marker (with --session, the idempotence dispatch key)")
+    p_rf.set_defaults(func=cmd_route_failure)
 
     # backfill-routing-outcomes
     p_backfill = subparsers.add_parser(

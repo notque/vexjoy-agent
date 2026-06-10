@@ -21,6 +21,7 @@ Run with: python3 -m pytest hooks/tests/test_routing_decision_recorder.py -v
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -420,6 +421,49 @@ def _seed_decision(key="python-general-engineer:go-patterns"):
     return key
 
 
+class TestApplyOutcomeThreeWay:
+    """T4: apply_outcome is three-way — success boosts, failure decays, neutral
+    is a pure no-op (no boost, no decay, no count change)."""
+
+    def test_neutral_is_pure_noop(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        key = _seed_decision("python-general-engineer:noop")
+        before = next(r for r in _query_routing(db_env) if r["key"] == key)
+        ros_score.apply_outcome(key, "neutral")
+        after = next(r for r in _query_routing(db_env) if r["key"] == key)
+        assert after["success_count"] == before["success_count"]
+        assert after["failure_count"] == before["failure_count"]
+        assert after["confidence"] == before["confidence"]
+        assert after["observation_count"] == before["observation_count"]
+
+    def test_success_boosts_failure_decays(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        sk = _seed_decision("python-general-engineer:succ")
+        fk = _seed_decision("python-general-engineer:fail")
+        ros_score.apply_outcome(sk, "success")
+        ros_score.apply_outcome(fk, "failure")
+        sr = next(r for r in _query_routing(db_env) if r["key"] == sk)
+        fr = next(r for r in _query_routing(db_env) if r["key"] == fk)
+        assert sr["success_count"] == 1 and sr["failure_count"] == 0
+        assert fr["failure_count"] == 1 and fr["success_count"] == 0
+
+    def test_legacy_bool_still_supported(self, db_env):
+        # Back-compat: True=>failure, False=>success.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_score as ros_score
+
+        tk = _seed_decision("python-general-engineer:legacy-true")
+        fk = _seed_decision("python-general-engineer:legacy-false")
+        ros_score.apply_outcome(tk, True)
+        ros_score.apply_outcome(fk, False)
+        assert next(r for r in _query_routing(db_env) if r["key"] == tk)["failure_count"] == 1
+        assert next(r for r in _query_routing(db_env) if r["key"] == fk)["success_count"] == 1
+
+
 class TestOutcomeValidator:
     """B (SubagentStop) NO LONGER scores. It validates the decision row exists
     and keeps the entry PROVISIONAL (revalidated) for the next-turn finalizer;
@@ -509,22 +553,28 @@ class TestFinalizer:
         assert after["success_count"] == 1
         assert after["confidence"] > before
 
-    def test_neutral_new_topic_boosts(self, db_env, monkeypatch):
-        # No complaint = success, matching the old LLM's "user accepted" default.
+    def test_neutral_new_topic_is_noop(self, db_env, monkeypatch):
+        # T4 three-way: an unrelated / new-topic next prompt carries NO acceptance
+        # and NO complaint => NEUTRAL no-op. No boost, no decay, no count change.
+        # (Previously this boosted — the inflation T4 removes.)
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
         monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
         key = _seed_decision("python-general-engineer:neutral")
         self._pend(ros, "fin-neu", key, errors=False)
+        before = next(r for r in _query_routing(db_env) if r["key"] == key)
 
         f = _load(F_PATH, "fin2")
         ev = _prompt_event("now add a CHANGELOG entry for the release", session="fin-neu")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
             f.main()
         after = next(r for r in _query_routing(db_env) if r["key"] == key)
-        assert after["success_count"] == 1
-        assert after["failure_count"] == 0
+        assert after["success_count"] == before["success_count"]  # no boost
+        assert after["failure_count"] == before["failure_count"]  # no decay
+        assert after["confidence"] == before["confidence"]  # unchanged
+        # Pending cleared (resolved once, idempotent) even though it was a no-op.
+        assert ros.peek_pending_outcomes("fin-neu") == []
 
     def test_rejection_decays(self, db_env, monkeypatch):
         sys.path.insert(0, str(LIB_DIR))
@@ -597,7 +647,8 @@ class TestFinalizer:
             f.main()
         after = next(r for r in _query_routing(db_env) if r["key"] == key)
         assert after["failure_count"] == 0, "benign 'wrong' falsely decayed the prior dispatch"
-        assert after["success_count"] == 1
+        # T4: a benign new request is neutral (no acceptance marker) — no boost.
+        assert after["success_count"] == 0
 
     def test_idempotent_double_prompt_scores_once(self, db_env, monkeypatch):
         sys.path.insert(0, str(LIB_DIR))
@@ -653,10 +704,11 @@ class TestFinalizer:
             ros._atomic_write(path, data)
 
         f = _load(F_PATH, "fin_malformed")
-        ev = _prompt_event("now write the docs", session=session)  # neutral => success
+        ev = _prompt_event("thanks, now write the docs", session=session)  # acceptance => success
         with patch("sys.exit"), patch("sys.stdin.read", return_value=_json.dumps(ev)):
             f.main()
-        # The valid sibling still scored (success); the malformed one was skipped.
+        # The valid sibling still scored; the malformed one was skipped. With one
+        # live entry the turn acceptance is attributable => success.
         after = next(r for r in _query_routing(db_env) if r["key"] == good_key)
         assert after["success_count"] == 1, "malformed sibling aborted scoring of the valid entry"
         assert after["failure_count"] == 0
@@ -703,6 +755,417 @@ class TestFinalizer:
             None,
         ]:
             assert f.is_rejection(p) is False, p
+
+    def test_acceptance_marker_unit(self):
+        # T4: is_acceptance decides boost-vs-neutral. Explicit affirmation in the
+        # FIRST clause => True; an unrelated/new-topic prompt => False (=> neutral).
+        f = _load(F_PATH, "fin_acc_unit")
+        for p in [
+            "thanks!",
+            "looks good, merge it",
+            "perfect, ship it",
+            "lgtm",
+            "great work",
+            "that worked, now do the next file",
+        ]:
+            assert f.is_acceptance(p) is True, p
+        for p in [
+            "now add a CHANGELOG entry for the release",
+            "write the docs",
+            "that's wrong",
+            "Add a test for wrong-format dates.",
+            "",
+            None,
+        ]:
+            assert f.is_acceptance(p) is False, p
+
+
+# ---------------------------------------------------------------------------
+# T3 — per-dispatch route event log (JSONL)
+# ---------------------------------------------------------------------------
+
+EVENTS_NAME = "route-events.jsonl"
+
+
+def _read_events(db_env):
+    """Read every event line from the throwaway route-events.jsonl, or []."""
+    path = db_env["db_dir"] / EVENTS_NAME
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+class TestRouteEventLog:
+    """T3: the decision hook appends one DECISION event per recorded dispatch;
+    the finalizer appends one OUTCOME event per finalized dispatch. Append-only,
+    failure-safe — a write error must never break the hook."""
+
+    def test_decision_event_appended_on_record(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_evt1")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(skill="go-patterns", body="Refactor the parser.", session="evt-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        events = _read_events(db_env)
+        decisions = [e for e in events if e["type"] == "decision"]
+        assert len(decisions) == 1
+        d = decisions[0]
+        assert d["agent"] == "python-general-engineer"
+        assert d["skill"] == "go-patterns"
+        assert d["session"] == "evt-s1"
+        assert d["complexity"].lower() == "medium"
+        assert "request_snippet" in d and "health_at_decision" in d
+
+    def test_no_decision_event_when_marker_absent(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_evt2")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(marker=False, body="Review this PR.")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        assert _read_events(db_env) == []
+
+    def test_outcome_event_appended_on_finalize(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-fin")
+        ros.append_pending_outcome("evt-fin", key, errors=False)
+
+        f = _load(F_PATH, "fin_evt1")
+        ev = _prompt_event("looks good, merge it", session="evt-fin")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcomes = [e for e in _read_events(db_env) if e["type"] == "outcome"]
+        assert len(outcomes) == 1
+        assert outcomes[0]["key"] == key
+        assert outcomes[0]["outcome"] in {"success", "failure", "neutral"}
+        assert outcomes[0]["session"] == "evt-fin"
+
+    def test_outcome_event_records_failure(self, db_env, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-fail")
+        ros.append_pending_outcome("evt-fail", key, errors=True)
+
+        f = _load(F_PATH, "fin_evt_fail")
+        ev = _prompt_event("ok next", session="evt-fail")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcomes = [e for e in _read_events(db_env) if e["type"] == "outcome"]
+        assert outcomes and outcomes[0]["outcome"] == "failure"
+
+    def test_log_is_append_only_across_dispatches(self, db_env, monkeypatch):
+        # Two recorded dispatches => two decision lines, none overwritten.
+        a = _load(A_PATH, "rdr_evt_append")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for i, skill in enumerate(("go-patterns", "test-driven-development")):
+            ev = _agent_event(skill=skill, body=f"task {i}", session=f"append-{i}")
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+                a.main()
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert {d["skill"] for d in decisions} == {"go-patterns", "test-driven-development"}
+        assert len(decisions) == 2
+
+    def test_decision_event_write_error_does_not_break_hook(self, db_env, monkeypatch):
+        # A failing event append must NOT prevent the aggregate row being written
+        # and must NOT raise — the hook stays non-blocking.
+        a = _load(A_PATH, "rdr_evt_safe")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        import route_events
+
+        monkeypatch.setattr(
+            route_events,
+            "_append",
+            lambda *_a, **_k: (_ for _ in ()).throw(OSError("disk full")),
+        )
+        event = _agent_event(skill="go-patterns", session="evt-safe")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()  # must not raise
+        # Aggregate row still recorded despite the event-log failure.
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys
+
+    def test_malformed_events_dir_does_not_crash_recorder(self, db_env, monkeypatch):
+        # CLAUDE_LEARNING_DIR pointing at a non-creatable path => event append
+        # fails silently; the hook still exits 0 (subprocess end-to-end).
+        bad = db_env["db_dir"] / "notadir"
+        bad.write_text("i am a file, not a directory")
+        env = dict(os.environ)
+        env["CLAUDE_LEARNING_DIR"] = str(bad)  # base path is a file => mkdir fails
+        event = _agent_event(skill="go-patterns", session="evt-baddir")
+        p = subprocess.run(
+            [sys.executable, str(A_PATH)],
+            input=json.dumps(event),
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert p.returncode == 0
+
+
+class TestOutcomeEventReasonAndRelevance:
+    """record_outcome_event writes reason + routing_relevant only when supplied,
+    and the finalizer always stamps both so a decay is queryable from the JSONL
+    alone (no per-key basis table needed)."""
+
+    def test_reason_written_when_given(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        route_events.record_outcome_event(session="s", key="a:b", outcome="failure", reason="tool-errors")
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert ev["reason"] == "tool-errors"
+
+    def test_routing_relevant_written_when_given(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        route_events.record_outcome_event(session="s", key="a:b", outcome="failure", routing_relevant=True)
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert ev["routing_relevant"] is True
+
+    def test_routing_relevant_absent_when_none(self, db_env):
+        sys.path.insert(0, str(LIB_DIR))
+        import route_events
+
+        # Default None => field omitted, so old callers stay byte-compatible.
+        route_events.record_outcome_event(session="s", key="a:b", outcome="neutral")
+        ev = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert "routing_relevant" not in ev
+        assert "reason" not in ev
+
+    def test_finalizer_writes_reason_and_routing_relevant(self, db_env, monkeypatch):
+        # End-to-end: a rejection decay must carry reason + routing_relevant in
+        # the JSONL OUTCOME event so the demotion cause is queryable.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:evt-reason")
+        ros.append_pending_outcome("evt-reason", key, errors=False)
+
+        f = _load(F_PATH, "fin_reason")
+        ev = _prompt_event("that's wrong, redo it", session="evt-reason")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
+            f.main()
+        outcome = next(e for e in _read_events(db_env) if e["type"] == "outcome")
+        assert outcome["outcome"] == "failure"
+        assert outcome["reason"] == "rejection"
+        assert outcome["routing_relevant"] is True
+
+
+# ---------------------------------------------------------------------------
+# Step 1.5 — health gate inputs carried on the [do-route] marker
+# ---------------------------------------------------------------------------
+
+
+def _health_event(marker_body, *, session="hs1", description="do work"):
+    """PostToolUse:Agent event whose prompt is the supplied marker line verbatim."""
+    return {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "session_id": session,
+        "tool_input": {
+            "subagent_type": "python-general-engineer",
+            "description": description,
+            "prompt": marker_body + "\ndo the work",
+        },
+        "tool_result": {"output": "ok", "is_error": False},
+    }
+
+
+class TestHealthMarkerParse:
+    """Step 1.5: the recorder reads {health, n, fail, action, alts} off the marker
+    and writes them to the DECISION event. `health=-` writes null health.
+
+    Three-state instrumentation contract (decommission clock validity):
+      (a) numeric  health=<float>  => health_at_decision float, gate_inputs_present True
+      (b) no-row   health=-        => health_at_decision null,  gate_inputs_present True
+      (c) legacy   no health= token => health_at_decision null,  gate_inputs_present False
+    States (a)+(b) are instrumented (marker carried the gate input); only (c)
+    counts against the 95% rate. `gate_inputs_present` is the validity signal,
+    not non-null health — most live picks are state (b) (pair has no weight row)."""
+
+    def test_health_fields_written_to_decision_event(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_health1")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = (
+            "[do-route] agent=python-general-engineer skill=go-patterns "
+            "complexity=Medium health=0.20 n=6 fail=4 action=demote alts=direct:pr-workflow,explore:codebase-overview"
+        )
+        event = _health_event(marker, session="hs-demote")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] == 0.20
+        assert d["n"] == 6
+        assert d["failure"] == 4
+        assert d["action"] == "demote"
+        assert d["alternates"] == ["direct:pr-workflow", "explore:codebase-overview"]
+        # State (a): marker carried gate inputs.
+        assert d["gate_inputs_present"] is True
+
+    def test_health_dash_writes_null(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_health2")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        event = _health_event(marker, session="hs-null")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["n"] is None
+        assert d["failure"] is None
+        assert d["action"] is None
+        assert d["alternates"] is None
+        # State (b): marker said no-row (`-`). The pick has no weight row — valid,
+        # expected data — so it is INSTRUMENTED, not missing. This is the fix: the
+        # gate must read this as instrumented, distinguishable from state (c).
+        assert d["gate_inputs_present"] is True
+
+    def test_absent_health_field_writes_null(self, db_env, monkeypatch):
+        # State (c): a legacy marker with no health= token => null health, all
+        # fields null, gate_inputs_present False (no marker gate input at all).
+        a = _load(A_PATH, "rdr_health3")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium"
+        event = _health_event(marker, session="hs-legacy")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["action"] is None
+        assert d["gate_inputs_present"] is False
+
+
+class TestHealthMarkerLineScoping:
+    """Findings 70/15/97 regression guards.
+
+    70: gate inputs are read from the marker LINE only — a task body mentioning
+        `health=`/`fail=` must NOT poison gate_inputs_present or the clock.
+    15: a malformed `health=1.2.3` reads as field-absent (state c), and the
+        decision event is STILL recorded — never silently dropped.
+    """
+
+    def test_health_in_body_is_ignored(self, db_env, monkeypatch):
+        # Marker line carries NO gate input (state c); the BODY mentions
+        # health=/fail= — those must not be read. Expect state (c): null health,
+        # gate_inputs_present False.
+        a = _load(A_PATH, "rdr_body_ignored")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Agent",
+            "session_id": "body-health",
+            "tool_input": {
+                "subagent_type": "python-general-engineer",
+                "description": "do work",
+                "prompt": (
+                    "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium\n"
+                    "Fix the gate: when health=0.9 and fail=3 the action=demote path is wrong."
+                ),
+            },
+            "tool_result": {"output": "ok", "is_error": False},
+        }
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None  # body health=0.9 NOT read
+        assert d["failure"] is None  # body fail=3 NOT read
+        assert d["action"] is None  # body action=demote NOT read
+        assert d["gate_inputs_present"] is False  # state (c): clean of body poison
+
+    def test_health_on_marker_line_is_parsed(self, db_env, monkeypatch):
+        # Same body health= bait, but the marker line ALSO carries health=0.20.
+        # The marker-line value must win; body values are never read.
+        a = _load(A_PATH, "rdr_line_parsed")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Agent",
+            "session_id": "line-health",
+            "tool_input": {
+                "subagent_type": "python-general-engineer",
+                "description": "do work",
+                "prompt": (
+                    "[do-route] agent=python-general-engineer skill=go-patterns "
+                    "complexity=Medium health=0.20 fail=4 action=demote\n"
+                    "Body text that says health=0.99 and fail=9 must be ignored."
+                ),
+            },
+            "tool_result": {"output": "ok", "is_error": False},
+        }
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] == 0.20  # marker line, not body 0.99
+        assert d["failure"] == 4  # marker line, not body 9
+        assert d["action"] == "demote"
+        assert d["gate_inputs_present"] is True
+
+    def test_malformed_health_is_field_absent_but_event_recorded(self, db_env, monkeypatch):
+        # health=1.2.3 is malformed: it must read as field-absent (state c) and
+        # the decision event MUST still be recorded — never dropped by a raised
+        # float(). gate_inputs_present False, decision + routing rows still land.
+        a = _load(A_PATH, "rdr_malformed_health")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=1.2.3"
+        event = _health_event(marker, session="hs-malformed")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None  # malformed => field absent
+        assert d["gate_inputs_present"] is False  # state (c), honest "not instrumented"
+        # The event is still recorded — the malformed value did NOT drop it.
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys
+
+    def test_valid_health_dash_still_state_b(self, db_env, monkeypatch):
+        # Regression: the tightened regex must still accept `health=-` => state b
+        # (null health, gate_inputs_present True).
+        a = _load(A_PATH, "rdr_dash_stateb")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        event = _health_event(marker, session="hs-dash-b")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["health_at_decision"] is None
+        assert d["gate_inputs_present"] is True
+
+    def test_recorder_failure_writes_stderr_line(self, db_env, monkeypatch, capsys):
+        # Finding 97: an uncaught recorder error must surface ONE short stderr
+        # line (class: msg) even WITHOUT CLAUDE_HOOKS_DEBUG, and still exit 0.
+        # Force a failure inside main() (claim_dispatch raises) and assert the
+        # outer handler wrote the line and exit(0) was called.
+        monkeypatch.delenv("CLAUDE_HOOKS_DEBUG", raising=False)  # prove no-debug logging
+        a = _load(A_PATH, "rdr_stderr_fail")
+
+        def _boom(*_a, **_k):
+            raise RuntimeError("forced failure")
+
+        monkeypatch.setattr(a, "claim_dispatch", _boom)
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        event = _agent_event(skill="go-patterns", session="stderr-fail")
+        with patch("sys.exit") as ex, patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        ex.assert_called_with(0)  # still non-blocking
+        err = capsys.readouterr().err
+        assert "routing-decision-recorder: RuntimeError: forced failure" in err
 
 
 # ---------------------------------------------------------------------------
@@ -950,8 +1413,10 @@ class TestPerAgentAttribution:
         ros.append_pending_outcome(session, good, errors=False)
         ros.append_pending_outcome(session, bad, errors=True)
 
-        # Neutral next turn (no rejection): good=success (own flag), bad=failure
-        # (own flag). The session-level reaction does NOT broadcast errors.
+        # Neutral next turn (no acceptance, no rejection) with >1 pending: the
+        # turn reaction is NOT attributable. Each entry resolves on its OWN flag —
+        # good=neutral (T4: clean, no acceptance => no-op), bad=failure (own
+        # error). The sibling's error does NOT broadcast a decay onto good.
         f = _load(HOOKS_DIR / "routing-outcome-finalizer.py", "fin_attrib")
         event = {"hook_event_name": "UserPromptSubmit", "session_id": session, "prompt": "ok, next task"}
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -959,10 +1424,10 @@ class TestPerAgentAttribution:
 
         good_after = next(r for r in _query_routing_all(db_env) if r["key"] == good)
         bad_after = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
-        # Clean key boosted (success), NOT decayed by the sibling's error.
-        assert good_after["success_count"] == 1
+        # Clean key is NEUTRAL (no boost, no decay) — NOT decayed by the sibling.
+        assert good_after["success_count"] == 0
         assert good_after["failure_count"] == 0
-        assert good_after["confidence"] > good_before
+        assert good_after["confidence"] == good_before
         # Failing key decayed on its own flag.
         assert bad_after["failure_count"] == 1
 
@@ -1060,7 +1525,8 @@ STOP_PATH = HOOKS_DIR / "session-learning-recorder.py"
 class TestStopFallback:
     def test_session_end_resolves_pending_via_error_flag(self, db_env, monkeypatch):
         """No next user prompt: the Stop hook resolves still-pending dispatches
-        using each dispatch's own error flag (the deterministic floor)."""
+        from each dispatch's own error flag (T4 deterministic floor):
+        error => failure (decay); CLEAN run => NEUTRAL no-op (no boost)."""
         sys.path.insert(0, str(LIB_DIR))
         import routing_outcome_state as ros
 
@@ -1070,6 +1536,7 @@ class TestStopFallback:
         session = "autorun"
         ros.append_pending_outcome(session, ok, errors=False)
         ros.append_pending_outcome(session, bad, errors=True)
+        ok_before = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
 
         s = _load(STOP_PATH, "stop1")
         event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
@@ -1078,8 +1545,11 @@ class TestStopFallback:
 
         ok_row = next(r for r in _query_routing_all(db_env) if r["key"] == ok)
         bad_row = next(r for r in _query_routing_all(db_env) if r["key"] == bad)
-        assert ok_row["success_count"] == 1  # no error => boost
-        assert bad_row["failure_count"] == 1  # error => decay
+        # T4: a clean autonomous run is NEUTRAL — no boost, no count change.
+        assert ok_row["success_count"] == ok_before["success_count"]
+        assert ok_row["failure_count"] == 0
+        assert ok_row["confidence"] == ok_before["confidence"]
+        assert bad_row["failure_count"] == 1  # error => decay (unchanged)
         # Pending cleared — nothing left to double-resolve.
         assert ros.peek_pending_outcomes(session) == []
 
@@ -1106,6 +1576,30 @@ class TestStopFallback:
             s.main()
         row = next(r for r in _query_routing_all(db_env) if r["key"] == key)
         assert row["success_count"] == 1, "Stop double-resolved a finalized dispatch"
+
+    def test_stop_clean_run_is_neutral(self, db_env, monkeypatch):
+        """T4: a clean autonomous run (no errors, no next prompt) resolves to
+        NEUTRAL at Stop — no boost, no count change. Regression guard against the
+        old 'else boost' that inflated success on every quiet session."""
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
+        key = _seed_decision("python-general-engineer:clean-neutral")
+        session = "clean-run"
+        ros.append_pending_outcome(session, key, errors=False)
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+
+        s = _load(STOP_PATH, "stop_clean")
+        event = {"hook_event_name": "Stop", "session_id": session, "session_data": {"files_modified": ["x"]}}
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            s.main()
+
+        after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
+        assert after["success_count"] == before["success_count"]
+        assert after["failure_count"] == before["failure_count"]
+        assert after["confidence"] == before["confidence"]
+        assert ros.peek_pending_outcomes(session) == []
 
     def test_stop_exits_zero_on_malformed(self):
         assert _run_hook(STOP_PATH, {}).returncode == 0
@@ -1209,10 +1703,12 @@ class TestSingleDispatchAttribution:
 
         a_after = next(r for r in _query_routing_all(db_env) if r["key"] == a)
         b_after = next(r for r in _query_routing_all(db_env) if r["key"] == b)
-        # Both clean siblings score SUCCESS, neither decayed by the ambiguous turn.
+        # CORE GUARD: neither sibling is DECAYED by the unattributable turn. Under
+        # T4 a clean unattributable sibling is NEUTRAL (no boost either), not the
+        # old auto-success — but the misattribution guard (no false decay) holds.
         assert a_after["failure_count"] == 0 and b_after["failure_count"] == 0
-        assert a_after["success_count"] == 1 and b_after["success_count"] == 1
-        assert a_after["confidence"] > a_before and b_after["confidence"] > b_before
+        assert a_after["success_count"] == 0 and b_after["success_count"] == 0
+        assert a_after["confidence"] == a_before and b_after["confidence"] == b_before
 
     def test_multi_dispatch_per_entry_error_still_fails(self, db_env, monkeypatch):
         # With >1 pending, the IGNORED turn-reaction does not stop a per-entry
@@ -1238,7 +1734,9 @@ class TestSingleDispatchAttribution:
             f.main()
         clean_after = next(r for r in _query_routing_all(db_env) if r["key"] == clean)
         errd_after = next(r for r in _query_routing_all(db_env) if r["key"] == errd)
-        assert clean_after["success_count"] == 1 and clean_after["failure_count"] == 0
+        # T4: clean sibling is NEUTRAL (no acceptance, unattributable turn) — no
+        # boost, no decay. The errored sibling still fails on its own flag.
+        assert clean_after["success_count"] == 0 and clean_after["failure_count"] == 0
         assert errd_after["failure_count"] == 1 and errd_after["success_count"] == 0
 
     def test_single_dispatch_rejection_decays(self, db_env, monkeypatch):
@@ -1360,13 +1858,17 @@ class TestRejectionPrecision:
         for p in self.NAMED_GENUINE:
             assert f.is_rejection(p) is True, f"review-named genuine missed: {p!r}"
 
-    def test_benign_prompt_scores_success_end_to_end(self, db_env, monkeypatch):
-        # A single dispatch + a benign "redo it in a later clause" prompt => the
-        # reaction is acceptance/neutral in the first clause => SUCCESS, no decay.
+    def test_benign_prompt_never_decays_end_to_end(self, db_env, monkeypatch):
+        # CORE GUARD: a benign prompt (rework verb only in a LATER clause, or a
+        # spec/instructional first clause) must NEVER DECAY the route. Under T4 the
+        # outcome is SUCCESS only when the first clause carries an acceptance
+        # marker; an instructional/spec first clause is NEUTRAL (no boost). Either
+        # way failure_count stays 0 — the precision guard this test exists for.
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
         import routing_outcome_state as ros
 
+        f_unit = _load(F_PATH, "fin_benign_unit")
         monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
         for i, prompt in enumerate(self.BENIGN):
             key = f"python-general-engineer:benign-{i}"
@@ -1385,11 +1887,15 @@ class TestRejectionPrecision:
                 f.main()
             after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
             assert after["failure_count"] == 0, f"benign prompt decayed route: {prompt!r}"
-            assert after["success_count"] == 1
+            # acceptance first clause => success; instructional/spec => neutral.
+            expected = 1 if f_unit.is_acceptance(prompt) else 0
+            assert after["success_count"] == expected, prompt
 
-    def test_named_rollback_phrase_scores_success_end_to_end(self, db_env, monkeypatch):
-        # Spec-required E2E: a single clean dispatch + the review's roll-back spec
-        # phrase => SUCCESS (success_count=1, failure_count=0), no decay.
+    def test_named_rollback_phrase_does_not_decay_end_to_end(self, db_env, monkeypatch):
+        # Spec-required E2E false-positive guard: a single clean dispatch + the
+        # review's roll-back SPEC phrase must NOT decay the route. T4: it carries
+        # no acceptance marker (instructional/conditional clause) => NEUTRAL
+        # (failure_count=0, success_count=0). The guard is "no false decay".
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
         import routing_outcome_state as ros
@@ -1403,6 +1909,7 @@ class TestRejectionPrecision:
             category="effectiveness",
             source="test",
         )
+        before = next(r for r in _query_routing_all(db_env) if r["key"] == key)["confidence"]
         session = "named-rollback-e2e"
         ros.append_pending_outcome(session, key, errors=False)
         f = _load(F_PATH, "fin_named_rollback_e2e")
@@ -1410,7 +1917,9 @@ class TestRejectionPrecision:
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
             f.main()
         after = next(r for r in _query_routing_all(db_env) if r["key"] == key)
-        assert after["success_count"] == 1, "named roll-back spec phrase failed to score success"
+        assert after["failure_count"] == 0, "spec phrase falsely decayed the route"
+        assert after["success_count"] == 0, "spec phrase is neutral, not success (T4)"
+        assert after["confidence"] == before
         assert after["failure_count"] == 0, "named roll-back spec phrase falsely decayed route"
 
 

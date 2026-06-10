@@ -67,8 +67,11 @@ def finalize_routing_outcomes(session_id: str) -> None:
     But an autonomous / headless run may end with NO next user prompt, leaving
     its dispatches provisional forever. This fallback resolves whatever the
     UserPromptSubmit finalizer did not, using the DETERMINISTIC FLOOR — this
-    dispatch's own ``errors`` flag alone (the old proxy): errors => decay, else
-    boost. It NEVER double-resolves: finalize_pending_outcomes atomically
+    dispatch's own ``errors`` flag alone (no next-turn signal):
+    errors => failure (decay); a CLEAN autonomous run => NEUTRAL no-op (T4).
+    A clean Stop run carries no acceptance evidence, so it must NOT boost — the
+    old "else boost" inflated success counts on every quiet session. It NEVER
+    double-resolves: finalize_pending_outcomes atomically
     read-and-clears, so anything UserPromptSubmit already scored (and cleared)
     is simply absent here. Best-effort, silent, never raises.
     """
@@ -96,12 +99,16 @@ def finalize_routing_outcomes(session_id: str) -> None:
                 continue  # drop abandoned provisional entry, do not score
             if not decision_row_exists(key):
                 continue  # no row to score (orphaned); drop quietly at session end
-            # Deterministic floor: per-dispatch error flag only (no next turn).
-            # No turn to complain in => a Stop-resolved success is always
-            # default_no_complaint (the largest silent-failure source).
+            # Deterministic floor (T4): errors => failure (decay); a clean
+            # autonomous run carries no acceptance evidence => NEUTRAL no-op.
+            # Basis is the failure-axis label only (no next turn => a non-error
+            # entry is default_no_complaint), recorded for route-health's
+            # silent-success report. It never changes the boost/decay/no-op.
             errors = bool(item.get("errors"))
+            outcome = "failure" if errors else "neutral"
             basis = "tool_errors_only" if errors else "default_no_complaint"
-            apply_outcome(key, errors, basis=basis)
+            apply_outcome(key, outcome, basis=basis)
+
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)
