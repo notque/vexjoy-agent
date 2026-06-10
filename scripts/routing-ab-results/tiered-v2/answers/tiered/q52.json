@@ -1,0 +1,7 @@
+{
+  "agent": "php-general-engineer",
+  "skill": "php-testing",
+  "pipeline": null,
+  "reasoning": "php-testing skill directly covers PHPUnit patterns and test fixtures; php-general-engineer provides PHP expertise for the InvoiceRepository class",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "wordpress-live-validation",
+  "pipeline": null,
+  "reasoning": "Verify typo fixes in the published WordPress blog post via browser; for editing, clarify the blog platform and whether source is local or remote.",
+  "confidence": "medium"
+}

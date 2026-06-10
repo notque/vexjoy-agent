@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "multi-persona-critique directly critiques written proposals from multiple perspectives to identify weaknesses and failure modes \u2014 exactly what 'tear them apart from several philosophical angles' requires",
+  "confidence": "high"
+}

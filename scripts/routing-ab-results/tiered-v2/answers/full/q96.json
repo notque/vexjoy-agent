@@ -1,0 +1,7 @@
+{
+  "agent": "technical-documentation-engineer",
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "User wants to document how the VexJoy Agent toolkit works for future maintainers; technical-documentation-engineer specializes in system architecture and documentation, paired with codebase-overview for systematic exploration.",
+  "confidence": "high"
+}

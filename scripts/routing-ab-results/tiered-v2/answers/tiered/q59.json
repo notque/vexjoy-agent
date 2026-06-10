@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "vitest-runner",
+  "pipeline": null,
+  "reasoning": "Testing-automation-engineer specializes in Vitest and test analysis; vitest-runner skill directly runs Vitest and parses results to identify failures.",
+  "confidence": "high"
+}

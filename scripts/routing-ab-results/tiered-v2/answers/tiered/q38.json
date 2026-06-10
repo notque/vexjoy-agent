@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "python-quality-gate",
+  "pipeline": null,
+  "reasoning": "python-quality-gate is a FORCE-routed skill that explicitly runs ruff and mypy on existing code, matching the user's exact request.",
+  "confidence": "high"
+}

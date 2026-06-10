@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Spelling fixes in .go files explicitly route to quick per go-patterns skill exclusion.",
+  "confidence": "high"
+}

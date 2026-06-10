@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "test-driven-development",
+  "pipeline": null,
+  "reasoning": "User needs to write tests for a Python parser using TDD methodology (RED-GREEN-REFACTOR cycle) to verify correctness.",
+  "confidence": "high"
+}

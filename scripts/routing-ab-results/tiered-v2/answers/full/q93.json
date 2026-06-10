@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "translate",
+  "pipeline": null,
+  "reasoning": "Document translation skill with parallel subagents and code-aware chunking preserves code while translating natural language to Spanish.",
+  "confidence": "high"
+}

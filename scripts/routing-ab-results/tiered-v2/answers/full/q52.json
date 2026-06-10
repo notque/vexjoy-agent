@@ -1,0 +1,7 @@
+{
+  "agent": "php-general-engineer",
+  "skill": "php-testing",
+  "pipeline": null,
+  "reasoning": "Task requires writing PHPUnit tests with database fixtures, matching php-testing skill expertise (PHPUnit, test doubles, database testing patterns) exactly.",
+  "confidence": "high"
+}

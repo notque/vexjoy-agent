@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Cannot route without clarifying what approach is being referenced and what specific task follows. Provide the approach and next objective (e.g., 'run tests', 'create PR', 'code review').",
+  "confidence": "low"
+}

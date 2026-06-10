@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Adding authentication middleware to a Flask API is a Python backend feature implementation task within the agent's core domain.",
+  "confidence": "high"
+}

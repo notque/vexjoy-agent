@@ -1,0 +1,10 @@
+{
+  "arms": [
+    "full",
+    "tiered"
+  ],
+  "commands": {
+    "full": "python3 /home/feedgen/vexjoy-agent/scripts/routing-manifest.py",
+    "tiered": "python3 /home/feedgen/vexjoy-agent/scripts/routing-manifest.py --tiered"
+  }
+}

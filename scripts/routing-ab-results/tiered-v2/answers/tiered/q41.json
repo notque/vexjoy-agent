@@ -1,0 +1,7 @@
+{
+  "agent": "kubernetes-helm-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "kubernetes-helm-engineer explicitly specializes in Kubernetes and Helm deployments.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow covers PR lifecycle status checking, which includes CI pass/fail verification on the current PR.",
+  "confidence": "high"
+}

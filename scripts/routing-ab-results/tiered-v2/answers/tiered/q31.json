@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Systematic debugging pipeline provides structured root-cause analysis with mandatory OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD phases and learning gates.",
+  "confidence": "high"
+}

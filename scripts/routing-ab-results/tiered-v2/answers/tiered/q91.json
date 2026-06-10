@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants a pre-deployment security audit focused on authentication/authorization vulnerabilities; security-review is the FORCE-marked skill for deterministic security scanning plus expert review of code changes.",
+  "confidence": "high"
+}

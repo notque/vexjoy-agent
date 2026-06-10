@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-debugging-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "typescript-debugging-engineer specializes in tracing subtle bugs in function behavior\u2014type errors, async/await issues, control flow problems\u2014without requiring the user to search; the vexjoy-agent project context strongly suggests TypeScript/Node.",
+  "confidence": "medium"
+}
