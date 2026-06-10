@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from feedback_tracker import check_pending_feedback, set_pending_feedback
-from hook_utils import get_tool_error, get_tool_output, get_tool_result
+from hook_utils import get_tool_error, get_tool_output, get_tool_result, is_tool_error
 from learning_db_v2 import (
     DEFAULT_FIX_ACTIONS,
     boost_confidence,
@@ -64,97 +64,34 @@ def process_automatic_feedback(current_error: str | None) -> None:
 
 
 def detect_error(event: dict) -> tuple[bool, str]:
-    """Detect if tool execution had an error.
+    """Detect if tool execution actually failed.
+
+    Gates on the payload's real failure signals via hook_utils:
+    error field, is_error flag, or non-zero exitCode — the same
+    detectors record-waste and routing-decision-recorder use.
+    A successful execution records nothing, regardless of stdout
+    content. Keyword scanning of output caused false positives
+    (a successful `git log` mentioning "timeout" became a learning
+    row). Keywords classify the error TYPE only after this gate,
+    in classify_error.
 
     Returns:
         Tuple of (has_error, error_message)
     """
     tool_result = get_tool_result(event)
 
-    # Direct error field
     err = get_tool_error(tool_result)
-    if err:
-        return True, str(err)
+    if not err and not is_tool_error(tool_result):
+        return False, ""
 
-    # Check for error in output
-    output = get_tool_output(tool_result)
-    if isinstance(output, str):
-        output_lower = output.lower()
+    # Failed: prefer explicit error text, fall back to output.
+    message = str(err).strip() if err else ""
+    if not message:
+        message = str(get_tool_output(tool_result)).strip()
+    if not message:
+        return False, ""  # failure with no text: nothing to learn
 
-        # Error indicators that match our ERROR_TYPES patterns
-        error_indicators = [
-            "error",
-            "failed",
-            "permission denied",
-            "access denied",
-            "not found",
-            "no such file",
-            "cannot find",
-            "does not exist",
-            "syntax error",
-            "unexpected token",
-            "type error",
-            "import error",
-            "module not found",
-            "no module named",
-            "timeout",
-            "timed out",
-            "connection refused",
-            "traceback",
-            "exception",
-        ]
-
-        if any(indicator in output_lower for indicator in error_indicators):
-            # Avoid false positives for success messages
-            if "0 errors" not in output_lower and "no errors" not in output_lower:
-                # Avoid false positives for benign text patterns
-                false_positive_phrases = [
-                    "error handling",
-                    "error handler",
-                    "failed over",
-                    "failover",
-                    "not found in cache",
-                    # Timeout false positives: "timeout" appears in config output,
-                    # import lines, and success messages — not as an actual error.
-                    "timeout=",  # e.g. timeout=2000 in hook config output
-                    "stdin_timeout",  # e.g. from stdin_timeout import ...
-                    "timeout caps",  # e.g. "PASS: all hooks now have timeout caps"
-                    "timeout/",  # e.g. "Graduated: timeout/abc123 → ..."
-                    "read_stdin(timeout",  # e.g. raw = read_stdin(timeout=2)
-                ]
-                if any(phrase in output_lower for phrase in false_positive_phrases):
-                    return False, ""
-                # Avoid false positives for error keywords inside code identifiers
-                # e.g., ErrorType, handle_error, on_error, etc.
-                import re as _re
-
-                if _re.search(r"[A-Z][a-z]*[Ee]rror[A-Z]|[a-z_][Ee]rror[A-Za-z_]|[Hh]andle[_]?[Ee]rror", output):
-                    # Only suppress if ALL error indicators are inside identifiers
-                    plain_indicators = [
-                        "failed",
-                        "permission denied",
-                        "access denied",
-                        "no such file",
-                        "cannot find",
-                        "does not exist",
-                        "syntax error",
-                        "unexpected token",
-                        "module not found",
-                        "no module named",
-                        "traceback",
-                        "exception",
-                    ]
-                    if not any(indicator in output_lower for indicator in plain_indicators):
-                        return False, ""
-                return True, output
-
-    # Check for non-zero exit code mention in Bash tool
-    tool_name = event.get("tool_name", "")
-    if tool_name == "Bash" and isinstance(output, str):
-        if "exit code" in output.lower() and "exit code 0" not in output.lower():
-            return True, output
-
-    return False, ""
+    return True, message
 
 
 def main():
