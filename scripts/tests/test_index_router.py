@@ -231,6 +231,15 @@ class TestLoadIndexes:
         assert "go-patterns" in names
         assert "private-skill" in names
 
+    def test_stale_local_never_overrides_tracked_content(self, mock_indexes: Path) -> None:
+        """A stale local superset cannot revert tracked entry content (add-only merge)."""
+        stale_local = {"skills": {"go-patterns": {"triggers": ["stale trigger"], "force_route": False}}}
+        (mock_indexes / "skills" / "INDEX.local.json").write_text(json.dumps(stale_local))
+        entries = index_router.load_indexes()
+        go_patterns = next(e for e in entries if e.name == "go-patterns")
+        assert go_patterns.force_route is True
+        assert "Go test" in go_patterns.triggers
+
 
 # ---------------------------------------------------------------------------
 # check_force_routes tests

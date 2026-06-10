@@ -259,3 +259,38 @@ def test_cli_tiered_smaller_than_full(learning_dir: Path) -> None:
         assert full_line in tiered
     # --json and --compact behavior unchanged by the new flag
     json.loads(run("--json"))
+
+
+# ---------------------------------------------------------------------------
+# Local index merge semantics
+# ---------------------------------------------------------------------------
+
+
+class TestLocalIndexMerge:
+    """_load_index_items merges the local override add-only.
+
+    Regression for the stale-local-override bug: full replacement hid tracked
+    entries; per-name update let a stale local superset revert tracked entry
+    content. Mirrors the merge tests in test_pre_route.py and
+    test_index_router.py — the three scripts carry hand-duplicated copies.
+    """
+
+    def test_local_overlay_adds_but_never_hides(self, tmp_path: Path) -> None:
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"tracked-skill": {"triggers": ["t"]}}}))
+        (tmp_path / "INDEX.local.json").write_text(json.dumps({"skills": {"local-skill": {"triggers": ["l"]}}}))
+        items = rm._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert set(items) == {"tracked-skill", "local-skill"}
+
+    def test_stale_local_never_overrides_tracked_content(self, tmp_path: Path) -> None:
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"skill": {"triggers": ["fresh"]}}}))
+        (tmp_path / "INDEX.local.json").write_text(json.dumps({"skills": {"skill": {"triggers": ["stale"]}}}))
+        items = rm._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert items["skill"]["triggers"] == ["fresh"]
+
+    def test_no_local_file_reads_tracked_only(self, tmp_path: Path) -> None:
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"tracked-skill": {"triggers": ["t"]}}}))
+        items = rm._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert set(items) == {"tracked-skill"}

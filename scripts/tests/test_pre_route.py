@@ -400,6 +400,14 @@ class TestLocalIndexMerge:
         items = pre_route._load_index_items(tracked, "INDEX.local.json", "skills")
         assert set(items) == {"tracked-skill", "local-skill"}
 
+    def test_stale_local_never_overrides_tracked_content(self, pre_route, tmp_path: Path) -> None:
+        """A stale local superset cannot revert tracked entry content (add-only merge)."""
+        tracked = tmp_path / "INDEX.json"
+        tracked.write_text(json.dumps({"skills": {"skill": {"triggers": ["fresh"]}}}))
+        (tmp_path / "INDEX.local.json").write_text(json.dumps({"skills": {"skill": {"triggers": ["stale"]}}}))
+        items = pre_route._load_index_items(tracked, "INDEX.local.json", "skills")
+        assert items["skill"]["triggers"] == ["fresh"]
+
     def test_no_local_file_reads_tracked_only(self, pre_route, tmp_path: Path) -> None:
         tracked = tmp_path / "INDEX.json"
         tracked.write_text(json.dumps({"skills": {"tracked-skill": {"triggers": ["t"]}}}))
