@@ -22,9 +22,18 @@ memory across wakeups — write it as if the next reader knows nothing else.
 
 ## Done-criteria
 
-| # | Check (command) | Expected | Last result |
-|---|---|---|---|
-| 1 | `pytest -q` | exit 0 | exit 1 (3 failed) @ iter 2 |
+| # | Type | Check | Expected | Last result |
+|---|---|---|---|---|
+| 1 | command | `pytest -q` | exit 0 | exit 1 (3 failed) @ iter 2 |
+| 2 | rubric | Rubric #2 below | PASS | FAIL (cited: report.md:12 lacks per-PR status) @ iter 2 |
+
+### Rubric #2 — verbatim, frozen at SPEC time
+
+- Pass conditions: <what the artifact must show to pass>
+- Evidence the grader must cite: <file:line or output excerpt>
+
+Rubric text changes require the user, same as a guardrail — never weakened to
+pass. Graded by a fresh-context sub-agent (SKILL.md Phase 4).
 
 ## Guardrails (NOT-DONE-YET)
 
@@ -36,6 +45,7 @@ memory across wakeups — write it as if the next reader knows nothing else.
 
 - Dispatched: agent=<name> skill=<name> — <one-line task>
 - Verified: criterion #<n> → exit <code>, <decisive output line>
+- Verified: criterion #<n> → PASS (rubric), <grader's cited evidence>
 - Unmet: criterion #<n> → exit <code>, <decisive output line>
 - Notes: <surprises, blockers, route changes>
 
@@ -59,5 +69,6 @@ objective. A re-derived objective silently drifts from the agreed criteria.
 ## Write discipline
 
 - Update the state file BEFORE calling `ScheduleWakeup` — a wakeup that lands on a stale file repeats work.
-- Paste real exit codes and output lines into "Last result"; summaries hide regressions.
+- Iteration-log entries are never edited retroactively — the log is append-only. "Last result" and "Next planned step" are the only fields that mutate.
+- Paste real exit codes, grader verdicts, and output lines into "Last result"; summaries hide regressions.
 - Keep each iteration entry to the facts: dispatched, verified, unmet, next.
