@@ -18,6 +18,10 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
      --manifest-arm full="python3 scripts/routing-manifest.py --compact" \
      --manifest-arm tiered="python3 scripts/routing-manifest.py --tiered"
    ```
+   The full arm's manifest command (here `--compact`) is part of the experiment
+   definition — flag choice changes baseline prompt size materially (~35.7 KB
+   default vs ~20 KB compact); record it in `arms.json` and keep it fixed across
+   runs being compared.
    First arm = baseline, second = challenger (override at --gate with
    `--baseline-arm/--challenger-arm`). Without `--manifest-arm` the harness runs
    the legacy shared-prompt A/B (deterministic-first vs semantic-first).
@@ -53,6 +57,18 @@ need the semantic router. The guard direction holds (0/7 guards eligible).
 
 ## The answer-collection bridge
 
+**Auth preflight (mandatory, before any answer collection).** Nested `claude -p`
+reads `~/.claude/.credentials.json`, which `-p` mode never refreshes;
+`claude auth status` reports loggedIn even when the token is expired and every
+call 401s. Verify first:
+
+```sh
+env -u CLAUDECODE claude -p "Say OK" --model haiku --output-format json
+```
+
+Proceed only if the JSON shows `is_error: false`. On 401, the owner re-auths
+interactively (`claude auth login`) — no scripted workaround.
+
 `routing-ab-test.py` cannot call models (no API key, by design). A runner — the
 orchestrator session or a human — bridges, exactly as in the semantic-first run
 whose artifacts sit in `scripts/routing-ab-results/`:
@@ -65,6 +81,12 @@ whose artifacts sit in `scripts/routing-ab-results/`:
   — as `"$OUT"/answers/<arm>/<id>.json` (legacy: `answers/<id>.json`).
 - `--score` refuses to run until every (arm, query) answer exists, and lists the
   missing ones.
+- **Unanswered cases: the harness wins.** "Retry once, then record unanswered"
+  conflicts with `--score`, which refuses to run with ANY missing answer — so an
+  unanswered case always blocks scoring. The <5%-loss tolerance decides only
+  whether re-collection is permitted: re-collect just the missing ids via the
+  idempotent bridge (it skips existing answers). If more than 5% of cases are
+  still missing after one re-collection pass, declare the run INVALID.
 
 The judge step is the same pattern: one agent reads `judge-input.json`, writes
 `judge-output.json`. Keep `uid-map.json` away from the judge.
