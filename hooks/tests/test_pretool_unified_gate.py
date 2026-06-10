@@ -34,9 +34,12 @@ def _make_bash_event(command: str) -> str:
     return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
 
 
-def _make_write_event(file_path: str) -> str:
+def _make_write_event(file_path: str, cwd: str | None = None) -> str:
     """Build a JSON hook event payload for a Write tool call."""
-    return json.dumps({"tool_name": "Write", "tool_input": {"file_path": file_path}})
+    event: dict = {"tool_name": "Write", "tool_input": {"file_path": file_path}}
+    if cwd is not None:
+        event["cwd"] = cwd
+    return json.dumps(event)
 
 
 def _make_edit_event(file_path: str) -> str:
@@ -387,6 +390,143 @@ class TestCheckCreationGate:
         payload = _make_write_event("/project/skills/content/voice-feynman/notes.md")
         with patch("os.path.exists", return_value=False):
             assert _run_main(payload) == 0
+
+
+# ---------------------------------------------------------------------------
+# TestCreationGateAdrHandshake
+# ---------------------------------------------------------------------------
+
+
+def _register_adr(
+    root: Path,
+    name: str,
+    *,
+    domain: str | None = None,
+    adr_hash: str | None = None,
+    adr_dir: str = "adr",
+) -> Path:
+    """Create {root}/{adr_dir}/{name}.md plus the .adr-session.json that
+    `scripts/adr-query.py register` would write for it."""
+    import hashlib
+
+    adr_file = root / adr_dir / f"{name}.md"
+    adr_file.parent.mkdir(parents=True, exist_ok=True)
+    adr_file.write_text(f"# ADR: {name}\n\n## Status\n\nPROPOSED\n")
+    digest = "sha256:" + hashlib.sha256(adr_file.read_bytes()).hexdigest()
+    session = {
+        "adr_path": f"{adr_dir}/{name}.md",
+        "adr_hash": adr_hash or digest,
+        "domain": domain or name,
+        "registered_at": "2026-06-10T00:00:00+00:00",
+        "cwd": str(root),
+    }
+    (root / ".adr-session.json").write_text(json.dumps(session, indent=2))
+    return adr_file
+
+
+class TestCreationGateAdrHandshake:
+    """A registered ADR (adr-query.py register) named for the new component
+    unlocks the Write — the creation handshake observable from worktree
+    agents that lack the Task tool."""
+
+    def test_registered_adr_allows_matching_skill_creation(self, tmp_path):
+        """Registered ADR 'my-skill' unlocks skills/my-skill/SKILL.md."""
+        _register_adr(tmp_path, "my-skill")
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 0
+
+    def test_registered_adr_allows_categorized_skill_path(self, tmp_path):
+        """The handshake also matches skills/<category>/<name>/SKILL.md."""
+        _register_adr(tmp_path, "my-skill")
+        payload = _make_write_event(str(tmp_path / "skills/meta/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 0
+
+    def test_registered_adr_allows_matching_agent_creation(self, tmp_path):
+        """Registered ADR 'my-agent' unlocks agents/my-agent.md."""
+        _register_adr(tmp_path, "my-agent")
+        payload = _make_write_event(str(tmp_path / "agents/my-agent.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 0
+
+    def test_session_found_by_ancestor_walk_without_event_cwd(self, tmp_path):
+        """Worktree agents: no usable cwd — the session file at the worktree
+        root is found by walking up from the write target."""
+        _register_adr(tmp_path, "my-skill")
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"))
+        env = {"CLAUDE_PROJECT_DIR": str(tmp_path / "elsewhere")}
+        assert _run_main(payload, env=env) == 0
+
+    def test_no_session_file_still_blocked(self, tmp_path):
+        """Without a registered ADR the gate still blocks — never weakened."""
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_domain_mismatch_still_blocked(self, tmp_path):
+        """A registered ADR for another component unlocks nothing here."""
+        _register_adr(tmp_path, "other-skill")
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_adr_hash_mismatch_blocked(self, tmp_path):
+        """Forged session JSON / ADR edited after registration: hash differs."""
+        _register_adr(tmp_path, "my-skill", adr_hash="sha256:" + "0" * 64)
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_missing_adr_file_blocked(self, tmp_path):
+        """Session JSON pointing at a deleted ADR is no handshake."""
+        adr_file = _register_adr(tmp_path, "my-skill")
+        adr_file.unlink()
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_adr_outside_adr_dir_blocked(self, tmp_path):
+        """The registered ADR must live in an adr/ directory, as
+        adr-query.py register enforces."""
+        _register_adr(tmp_path, "my-skill", adr_dir="notes")
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_malformed_session_json_blocked(self, tmp_path):
+        """Unparseable session file is ignored — gate stays closed."""
+        (tmp_path / ".adr-session.json").write_text("{not json")
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        assert _run_main(payload) == 2
+
+    def test_handshake_emits_audit_line(self, tmp_path, capsys):
+        """An allow via the handshake leaves an audit line on stderr."""
+        _register_adr(tmp_path, "my-skill")
+        mod.check_creation_gate(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        err = capsys.readouterr().err
+        assert "[creation-gate] ALLOW" in err
+        assert "my-skill" in err
+
+    def test_deprecated_bypass_emits_audit_line(self, capsys):
+        """CREATION_GATE_BYPASS still works but logs its use as deprecated."""
+        with patch.dict(os.environ, {"CREATION_GATE_BYPASS": "1"}):
+            mod.check_creation_gate("/project/skills/x-skill/SKILL.md", cwd="")
+        err = capsys.readouterr().err
+        assert "CREATION_GATE_BYPASS" in err
+        assert "DEPRECATED" in err
+
+    def test_block_message_names_registration_remedy(self, tmp_path, capsys):
+        """The deny reason must name the adr-query.py register handshake so a
+        worktree agent without the Task tool has an observable path."""
+        payload = _make_write_event(str(tmp_path / "skills/my-skill/SKILL.md"), cwd=str(tmp_path))
+        stdout_capture = io.StringIO()
+        base_env = dict(os.environ)
+        base_env["CLAUDE_OPERATOR_PROFILE"] = "work"
+        with (
+            patch.dict(os.environ, base_env, clear=True),
+            patch.object(mod, "read_stdin", return_value=payload),
+            patch("sys.stdout", stdout_capture),
+        ):
+            try:
+                mod.main()
+            except SystemExit:
+                pass
+        parsed = json.loads(stdout_capture.getvalue().strip())
+        reason = parsed["hookSpecificOutput"]["permissionDecisionReason"]
+        assert "adr-query.py register" in reason
 
 
 # ---------------------------------------------------------------------------
