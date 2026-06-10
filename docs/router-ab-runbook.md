@@ -144,7 +144,7 @@ Haiku 4.5 (`claude-haiku-4-5`): $1.00/M input, $5.00/M output.
 | Step | Calls | Tokens (approx) | Cost |
 |---|---|---|---|
 | Routing answers | 200 (100 x 2 arms) | ~6K in + ~0.1K out each → 1.2M in, 20K out | ~$1.30 |
-| Blind judge | 1 agent pass over 200 rows | ~40K in, ~5K out | ~$0.07 |
+| Blind judge | a single agent pass over 200 rows | ~40K in, ~5K out | ~$0.07 |
 | score / gate / pre-route-map | 0 model calls | — | $0 |
 
 **~$1.50 per full run** (compact manifest ≈ 20KB ≈ 5-6K tokens per prompt; a
