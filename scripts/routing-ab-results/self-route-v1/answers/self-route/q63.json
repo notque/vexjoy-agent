@@ -1,7 +1,0 @@
-{
-  "agent": "general-purpose",
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "Pinning down requirements and acceptance criteria with many undecided points is spec work plus pre-plan ambiguity resolution, exactly the FORCE-routed planning skill's domain (software task planning, not feature implementation yet).",
-  "confidence": "high"
-}

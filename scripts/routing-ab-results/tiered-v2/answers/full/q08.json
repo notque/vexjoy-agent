@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "security-threat-model",
-  "pipeline": null,
-  "reasoning": "Security threat model scan to identify attack surface and supply-chain vulnerabilities in the VexJoy Agent toolkit.",
-  "confidence": "high"
-}

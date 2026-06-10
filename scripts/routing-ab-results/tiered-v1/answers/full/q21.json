@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "reddit-moderate",
-  "pipeline": null,
-  "reasoning": "reddit-moderate skill fetches and moderates the subreddit report queue via PRAW, dispatching to python-general-engineer for execution.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "Codebase-overview provides systematic exploration and architecture mapping to create a file structure map",
-  "confidence": "high"
-}

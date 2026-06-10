@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE match: git push/PR workflow for uploading finished work to share with team.",
-  "confidence": "high"
-}

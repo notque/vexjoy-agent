@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-to-article",
-  "reasoning": "Coordinates multi-source research and article generation via voice profile in a single integrated pipeline.",
-  "confidence": "high"
-}

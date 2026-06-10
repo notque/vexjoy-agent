@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "Request explicitly asks for concurrent security, business-logic, and architecture reviewers, which is exactly the parallel-code-review skill's 3-reviewer design (dispatching reviewer-system, reviewer-domain, and architecture lenses in parallel); security-review's FORCE rule does not apply since it excludes general multi-dimension review.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "The active ADR domain (do-cost-diet) and recent commits about dispatch router cost reduction suggest backend optimization in Go; agent will scope and improve performance.",
-  "confidence": "medium"
-}

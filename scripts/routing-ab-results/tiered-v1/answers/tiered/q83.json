@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "Request is underspecified ('some AI stuff') and needs pre-plan ambiguity resolution to clarify what features make sense, where they live (frontend/backend), and which tech stack before implementing.",
-  "confidence": "high"
-}

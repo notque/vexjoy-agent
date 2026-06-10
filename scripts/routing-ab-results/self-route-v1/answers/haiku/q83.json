@@ -1,7 +1,0 @@
-{
-  "agent": "nodejs-api-engineer",
-  "skill": "claude-api",
-  "pipeline": null,
-  "reasoning": "Adding AI typically requires backend API integration with an LLM; claude-api reference clarifies integration options.",
-  "confidence": "medium"
-}

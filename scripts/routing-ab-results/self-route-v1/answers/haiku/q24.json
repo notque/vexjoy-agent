@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Push is a git operation; FORCE rule requires pr-workflow for git push/commit/PR operations",
-  "confidence": "high"
-}

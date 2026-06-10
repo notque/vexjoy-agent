@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-perspectives",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Multi-perspective review agent explicitly designed for comprehensive analysis across multiple analytical lenses (newcomer, senior, pedant, contrarian, user advocate, meta-process).",
-  "confidence": "high"
-}

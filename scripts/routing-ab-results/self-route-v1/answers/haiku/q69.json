@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "create-voice",
-  "pipeline": null,
-  "reasoning": "create-voice is a FORCE-designated skill that directly builds voice profiles from writing samples\u2014exactly your need.",
-  "confidence": "high"
-}

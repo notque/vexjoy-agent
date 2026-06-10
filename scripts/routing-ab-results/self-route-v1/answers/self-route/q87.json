@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Request is too vague to route \u2014 'the performance' names no target (frontend, database, a language, a service), so no FORCE entry semantically matches and any pick (performance-optimization-engineer, database-engineer, a language engineer) would be a guess; per the systematic-code-review note, vague no-target requests are interview-mode: ask the user what performance problem they mean before dispatching.",
-  "confidence": "low"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-to-article",
-  "reasoning": "The research-to-article pipeline orchestrates multi-agent research coordination followed by voice-based content generation, matching the two-phase request exactly.",
-  "confidence": "high"
-}

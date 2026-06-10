@@ -1,7 +1,0 @@
-{
-  "agent": "kubernetes-helm-engineer",
-  "skill": "kubernetes-debugging",
-  "pipeline": null,
-  "reasoning": "Pod CrashLoopBackOff is a Kubernetes failure requiring diagnosis of logs, resource constraints, and configuration in the staging deployment.",
-  "confidence": "high"
-}

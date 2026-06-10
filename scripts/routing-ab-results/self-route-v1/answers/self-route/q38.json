@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "python-quality-gate",
-  "pipeline": null,
-  "reasoning": "FORCE-marked python-quality-gate fires exactly on requests to run ruff/mypy quality checks on existing Python code, and it binds to python-general-engineer.",
-  "confidence": "high"
-}

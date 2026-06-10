@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to share finished work with the team; pr-workflow handles the complete pull request lifecycle from commit through creation.",
-  "confidence": "high"
-}

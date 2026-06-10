@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "comprehensive-review",
-  "reasoning": "Unified 4-wave code review with automatic package discovery and per-package language specialists directly addresses both comprehensive coverage and multiple expert perspectives.",
-  "confidence": "high"
-}

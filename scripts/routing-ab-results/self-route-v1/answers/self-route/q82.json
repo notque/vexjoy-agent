@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "The request 'make the app better' has no target, dimension, or app identified \u2014 the manifest explicitly flags vague 'make this better' requests as interview-mode (see systematic-code-review's NOT clause), so the correct action is to ask the user what to improve (performance, UX, code quality, features?) rather than dispatch; if forced to proceed without clarification, architecture-deepening is the closest proactive-improvement fallback.",
-  "confidence": "low"
-}

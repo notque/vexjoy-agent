@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "A program failing only when two things happen concurrently is a race-condition bug needing evidence-based reproduction and hypothesis testing, and the language is unspecified so no language-specific engineer (e.g. typescript-debugging-engineer) can be chosen yet.",
-  "confidence": "medium"
-}

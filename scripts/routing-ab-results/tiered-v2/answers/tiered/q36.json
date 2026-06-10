@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Table-driven tests fit the RED-GREEN-REFACTOR cycle; python-general-engineer provides domain expertise for the parser, test-driven-development enforces rigorous test-first methodology.",
-  "confidence": "high"
-}

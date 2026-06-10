@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "Request is underspecified about what complaints exist and what improvements are needed; planning skill provides pre-plan ambiguity resolution to clarify scope before action.",
-  "confidence": "high"
-}

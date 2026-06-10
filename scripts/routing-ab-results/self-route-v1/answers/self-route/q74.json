@@ -1,7 +1,0 @@
-{
-  "agent": "research-coordinator-engineer",
-  "skill": "research-pipeline",
-  "pipeline": "research-pipeline",
-  "reasoning": "The request names the exact SCOPE-GATHER-SYNTHESIZE-VALIDATE phases plus a cited report with saved artifacts, which is the research-pipeline's definition, run under its bound research-coordinator-engineer agent.",
-  "confidence": "high"
-}

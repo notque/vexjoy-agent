@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "code-linting",
-  "reasoning": "Run Python (ruff) and JavaScript (Biome) linting to identify and report code quality issues across the repository\u2014aligns with project CI requirements and requires no code writing.",
-  "confidence": "medium",
-  "pipeline": null
-}

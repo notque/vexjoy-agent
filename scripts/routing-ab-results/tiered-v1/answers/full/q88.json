@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "workflow",
-  "pipeline": null,
-  "reasoning": "Vague cleanup request; workflow refactor phase handles code tidying, dead code removal, and reorganization—better than single-task code-cleanup which defers to workflow for multi-phase work.",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "swift-general-engineer",
-  "skill": "swift-concurrency",
-  "pipeline": null,
-  "reasoning": "Task requires converting callback closures to async/await and applying Actor pattern for thread-safe cache access \u2014 core Swift concurrency patterns.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "typescript-frontend-engineer",
-  "skill": "verify",
-  "pipeline": null,
-  "reasoning": "React component rendering bugs are best handled by the frontend-specific agent with component and state management expertise; verify skill confirms the fix works in the real app.",
-  "confidence": "high"
-}

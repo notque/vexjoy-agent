@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-perspectives",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Multi-perspective agent applies 5+ analytical lenses (newcomer, senior, pedant, contrarian, user advocate, meta-process) to identify mistakes and issues across different thinking styles, directly matching 'from a few angles'.",
-  "confidence": "high"
-}

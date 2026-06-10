@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "cron-job-auditor",
-  "pipeline": null,
-  "reasoning": "cron-job-auditor is purpose-built to audit cron scripts for reliability and safety, directly matching the user's need to identify silent failures and data corruption risks.",
-  "confidence": "high"
-}

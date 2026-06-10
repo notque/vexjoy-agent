@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "User requests security review of code; security-review FORCE skill is designed for local security passes over git changes.",
-  "confidence": "high"
-}

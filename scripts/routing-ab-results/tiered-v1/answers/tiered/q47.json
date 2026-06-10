@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Directly answer from session context—current branch already provided.",
-  "confidence": "high"
-}

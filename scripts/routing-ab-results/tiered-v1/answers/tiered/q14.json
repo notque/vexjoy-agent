@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "Writing correctness checks for a Python parser is a test-driven development task requiring Python expertise and systematic test methodology.",
-  "confidence": "high"
-}

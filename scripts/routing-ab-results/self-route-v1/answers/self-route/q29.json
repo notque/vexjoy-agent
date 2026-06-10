@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "quick",
-  "pipeline": null,
-  "reasoning": "'Commit to this approach' is metaphorical (resolve/decide and proceed), explicitly excluded from pr-workflow's git semantics, so this routes to tracked lightweight execution of the already-decided approach rather than any git operation.",
-  "confidence": "medium"
-}

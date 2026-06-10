@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "pr-workflow explicitly covers PR status checking in its lifecycle; FORCE rule applies to PR operations including status verification",
-  "confidence": "high"
-}

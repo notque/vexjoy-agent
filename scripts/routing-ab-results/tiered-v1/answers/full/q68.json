@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": "verification-before-completion",
-  "pipeline": null,
-  "reasoning": "golang-general-engineer handles Go feature development; verification-before-completion ensures the gRPC endpoint works after implementation",
-  "confidence": "high"
-}

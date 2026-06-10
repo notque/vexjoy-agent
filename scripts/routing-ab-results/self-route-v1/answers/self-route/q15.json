@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "test-driven-development",
-  "pipeline": null,
-  "reasoning": "The user wants regression protection via automated tests and coverage enforcement, which is exactly the testing-automation-engineer's domain, with test-driven-development providing the methodology for writing the guarding tests.",
-  "confidence": "high"
-}

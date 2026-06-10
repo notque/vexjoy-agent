@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "voice-validator",
-  "pipeline": null,
-  "reasoning": "Validating a draft against a voice profile and rewriting off-voice spots is exactly voice-validator's critique-and-rewrite loop; voice-writer FORCE does not apply since the user is checking an existing draft, not generating new content.",
-  "confidence": "high"
-}

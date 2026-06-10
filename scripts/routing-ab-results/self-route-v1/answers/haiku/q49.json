@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": "e2e-testing",
-  "pipeline": null,
-  "reasoning": "testing-automation-engineer with e2e-testing skill provides the Playwright-based E2E testing workflow for signup form and confirmation screen validation",
-  "confidence": "high"
-}

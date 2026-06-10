@@ -1,7 +1,0 @@
-{
-  "agent": "typescript-debugging-engineer",
-  "skill": "systematic-debugging",
-  "pipeline": null,
-  "reasoning": "React rendering bugs require systematic debugging with test reproduction and fix validation.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "swift-general-engineer",
-  "skill": "swift-concurrency",
-  "pipeline": null,
-  "reasoning": "Converting callbacks to async/await and making a cache actor-safe is Swift concurrency work (async/await, Actor, Sendable), exactly what swift-concurrency covers under its designated swift-general-engineer agent.",
-  "confidence": "high"
-}

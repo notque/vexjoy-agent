@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Python concurrent code debugging using structured 5-phase methodology (OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD) to isolate and fix race condition root causes",
-  "confidence": "high"
-}

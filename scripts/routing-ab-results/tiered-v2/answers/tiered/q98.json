@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE rule: PR operations always use pr-workflow, which covers review, fix, and cleanup to polish the PR for boss approval.",
-  "confidence": "high"
-}

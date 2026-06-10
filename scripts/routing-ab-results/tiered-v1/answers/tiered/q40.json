@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-perspectives",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "reviewer-perspectives is explicitly designed for multi-perspective code review (newcomer, senior, pedant, contrarian, user advocate, meta-process), directly matching the user's request for comprehensive review from multiple perspectives.",
-  "confidence": "high"
-}

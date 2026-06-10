@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to save work to prevent loss on hardware failure; pr-workflow handles commit and push operations per FORCE rule for git save operations.",
-  "confidence": "high"
-}

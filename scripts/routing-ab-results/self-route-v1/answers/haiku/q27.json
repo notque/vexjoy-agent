@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "FORCE-route: pr-workflow covers git cleanup operations for merged branches",
-  "confidence": "high"
-}

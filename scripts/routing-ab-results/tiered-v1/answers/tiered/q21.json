@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "reddit-moderate",
-  "pipeline": null,
-  "reasoning": "reddit-moderate is purpose-built for Reddit modqueue operations via PRAW; user request is to process pending moderation reports.",
-  "confidence": "high"
-}

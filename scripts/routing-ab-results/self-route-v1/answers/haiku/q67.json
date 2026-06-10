@@ -1,7 +1,0 @@
-{
-  "agent": "golang-general-engineer",
-  "skill": "go-patterns",
-  "pipeline": null,
-  "reasoning": "go-patterns skill explicitly covers error handling patterns and conventions in Go; golang-general-engineer provides the review expertise.",
-  "confidence": "high"
-}

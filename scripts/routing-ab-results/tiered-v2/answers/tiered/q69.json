@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "create-voice",
-  "pipeline": null,
-  "reasoning": "create-voice FORCE skill directly builds voice profiles from writing samples, matching the user's exact request.",
-  "confidence": "high"
-}

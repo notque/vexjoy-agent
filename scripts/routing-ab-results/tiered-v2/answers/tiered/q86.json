@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "planning",
-  "pipeline": null,
-  "reasoning": "User has a feature idea but needs to clarify scope and requirements \u2014 this is pre-plan ambiguity resolution, which planning skill explicitly handles.",
-  "confidence": "high"
-}

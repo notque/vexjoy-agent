@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User wants to save work to prevent loss from hardware failure; pr-workflow commits and pushes to remote, making work persistent and recoverable.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "php-testing",
-  "pipeline": null,
-  "reasoning": "php-testing skill explicitly covers PHPUnit patterns and database testing fixtures for PHP projects",
-  "confidence": "high"
-}

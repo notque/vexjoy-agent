@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "skill-creator",
-  "pipeline": null,
-  "reasoning": "skill-creator (FORCE) creates new skills through eval-driven validation; explicitly includes quality gates in its methodology",
-  "confidence": "high"
-}

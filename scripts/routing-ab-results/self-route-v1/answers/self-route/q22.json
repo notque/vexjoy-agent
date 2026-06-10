@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer-system",
-  "skill": "security-review",
-  "pipeline": null,
-  "reasoning": "The user wants a secrets/credentials check on their git changes before sharing the branch, which is exactly the FORCE-marked security-review skill (deterministic scan + Security reviewer over the diff) bound to reviewer-system.",
-  "confidence": "high"
-}

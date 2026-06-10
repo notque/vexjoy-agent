@@ -1,7 +1,0 @@
-{
-  "agent": "testing-automation-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "User wants automated validation to prevent regressions on a feature \u2014 testing-automation-engineer handles test automation, coverage enforcement, and CI/CD integration to prevent future breaks.",
-  "confidence": "high"
-}

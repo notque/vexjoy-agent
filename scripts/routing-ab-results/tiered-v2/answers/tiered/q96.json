@@ -1,7 +1,0 @@
-{
-  "agent": "technical-documentation-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "Request is to document how a system works for future maintainers\u2014exactly the domain of technical documentation agent.",
-  "confidence": "high"
-}

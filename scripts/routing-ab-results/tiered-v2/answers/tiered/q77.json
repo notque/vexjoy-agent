@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "wordpress-live-validation",
-  "pipeline": null,
-  "reasoning": "Locate the published blog post, fix the two typos, and verify changes are live in the browser",
-  "confidence": "low"
-}

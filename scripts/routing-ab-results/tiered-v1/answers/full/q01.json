@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "User is saving work to shared repository (git push); pr-workflow FORCE rule applies for all git operations including push",
-  "confidence": "high"
-}

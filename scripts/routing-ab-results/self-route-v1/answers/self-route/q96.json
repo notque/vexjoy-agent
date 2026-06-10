@@ -1,7 +1,0 @@
-{
-  "agent": "technical-documentation-engineer",
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "The user wants onboarding documentation explaining how the system works, so the technical-documentation-engineer should first map the architecture via codebase-overview and then write the docs; no FORCE skill matches this intent.",
-  "confidence": "high"
-}

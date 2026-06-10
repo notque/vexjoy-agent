@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "phaser-gamedev",
-  "pipeline": null,
-  "reasoning": "phaser-gamedev skill directly covers Phaser 3 scene development with tilemaps, arcade physics, and sprite handling",
-  "confidence": "high"
-}

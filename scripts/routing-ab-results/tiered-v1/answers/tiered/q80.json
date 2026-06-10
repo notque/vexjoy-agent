@@ -1,7 +1,0 @@
-{
-  "agent": "general-purpose",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "General text summarization task, but requires the standup notes as input first.",
-  "confidence": "medium"
-}

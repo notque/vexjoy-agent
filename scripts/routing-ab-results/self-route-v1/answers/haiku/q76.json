@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "research-to-article",
-  "reasoning": "Purpose-built pipeline for multi-source research investigation with automatic synthesis into voice-authored article",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "full-repo-review",
-  "pipeline": null,
-  "reasoning": "Comprehensive 3-wave repo review identifies improvement opportunities across code quality, architecture, testing, and patterns without requiring upfront clarification",
-  "confidence": "medium"
-}

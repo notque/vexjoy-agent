@@ -1,1 +1,0 @@
-{"agent": "reviewer-system", "skill": "security-review", "pipeline": null, "reasoning": "User requests security inspection for potential vulnerabilities; security-review is FORCE-marked for security intent and performs deterministic scanning of pending changes for security risks.", "confidence": "high"}

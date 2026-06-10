@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "parallel-code-review skill runs Security, Business-Logic, and Architecture reviewers simultaneously over the current diff.",
-  "confidence": "high"
-}

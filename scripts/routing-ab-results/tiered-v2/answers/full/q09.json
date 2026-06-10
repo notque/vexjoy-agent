@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": null,
-  "pipeline": "systematic-debugging",
-  "reasoning": "Race condition or concurrency issue requires systematic reproduction, hypothesis testing, and root cause isolation through the OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD cycle.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "python-general-engineer",
-  "skill": "python-quality-gate",
-  "pipeline": null,
-  "reasoning": "FORCE-matched skill explicitly designed to run ruff and mypy quality checks on existing Python code.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": "performance-optimization-engineer",
-  "skill": null,
-  "pipeline": null,
-  "reasoning": "User reports slow page load on mobile; performance-optimization-engineer specializes in Core Web Vitals, rendering bottlenecks, and mobile performance analysis.",
-  "confidence": "high"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "roast",
-  "pipeline": null,
-  "reasoning": "roast skill provides constructive critique via 5 HackerNews personas, directly matching the user's intent to get critical feedback on a design document",
-  "confidence": "high"
-}

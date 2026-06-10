@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "multi-persona-critique",
-  "pipeline": null,
-  "reasoning": "The user wants an opinion on a design artifact, which maps directly to multi-persona-critique's purpose of critiquing a proposal or design via parallel personas with consensus synthesis.",
-  "confidence": "medium"
-}

@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "parallel-code-review",
-  "pipeline": null,
-  "reasoning": "parallel-code-review is purpose-built for exactly this use case: parallel 3-reviewer diff assessment across security, business logic, and architecture dimensions simultaneously",
-  "confidence": "high"
-}

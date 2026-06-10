@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "codebase-overview",
-  "pipeline": null,
-  "reasoning": "User requests a systematic walkthrough of project architecture and components without modifications; codebase-overview provides exactly this: exploration and architecture mapping.",
-  "confidence": "high"
-}

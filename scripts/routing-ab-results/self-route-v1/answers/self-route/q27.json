@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "pr-workflow",
-  "pipeline": null,
-  "reasoning": "Deleting merged branches is a git cleanup operation, explicitly covered by pr-workflow's lifecycle (commit, sync, status, cleanup) and the FORCE rule routing git operations there.",
-  "confidence": "high"
-}

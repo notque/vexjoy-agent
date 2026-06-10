@@ -1,1 +1,0 @@
-{"agent":null,"skill":"pr-workflow","pipeline":null,"reasoning":"FORCE rule for git push operations: pr-workflow explicitly covers git push lifecycle.","confidence":"high"}

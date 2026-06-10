@@ -1,7 +1,0 @@
-{
-  "agent": null,
-  "skill": "multi-persona-critique",
-  "pipeline": null,
-  "reasoning": "Explicitly designed to critique written proposals from multiple analytical personas; perfect for adversarial philosophical analysis to identify where each competing auth redesign breaks under different perspectives",
-  "confidence": "high"
-}

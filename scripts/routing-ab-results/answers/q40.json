@@ -1,1 +1,0 @@
-{"agent": "reviewer-perspectives", "skill": "systematic-code-review", "pipeline": null, "reasoning": "User requests comprehensive code review from multiple perspectives; reviewer-perspectives agent with systematic-code-review skill directly provides multi-perspective review (newcomer, senior, pedant, contrarian).", "confidence": "high"}
