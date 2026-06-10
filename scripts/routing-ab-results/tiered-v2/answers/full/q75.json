@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "full-repo-review",
+  "pipeline": null,
+  "reasoning": "full-repo-review is a comprehensive 3-wave review skill that produces exactly what the user requested: a prioritized issue backlog across all repo source files.",
+  "confidence": "high"
+}

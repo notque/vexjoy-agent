@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "systematic-debugging",
+  "pipeline": "systematic-debugging",
+  "reasoning": "Regression with no known changes requires evidence-based root-cause isolation through OBSERVE-HYPOTHESIZE-TEST-FIX-RECORD phases before code review or language-specific agent dispatch.",
+  "confidence": "high"
+}

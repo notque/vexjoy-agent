@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-perspectives",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "User requests multi-angle mistake detection; reviewer-perspectives provides exactly this with 5-6 independent perspectives (newcomer, senior, pedant, contrarian, user advocate, meta-process) analyzing code or content simultaneously.",
+  "confidence": "medium"
+}

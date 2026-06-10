@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "translate",
+  "pipeline": null,
+  "reasoning": "The translate skill is purpose-built for document translation with chunked handling, allowing code blocks to remain untouched while translating prose sections.",
+  "confidence": "high"
+}

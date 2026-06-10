@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-debugging-engineer",
+  "skill": "systematic-debugging",
+  "pipeline": "systematic-debugging",
+  "reasoning": "Concurrent/simultaneous operations triggering failures is a classic race condition; typescript-debugging-engineer specializes in race conditions and async issues while systematic-debugging provides structured reproduction and diagnosis.",
+  "confidence": "high"
+}

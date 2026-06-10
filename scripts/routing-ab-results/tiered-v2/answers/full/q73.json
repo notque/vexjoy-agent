@@ -1,0 +1,7 @@
+{
+  "agent": "technical-journalist-writer",
+  "skill": "voice-writer",
+  "pipeline": null,
+  "reasoning": "voice-writer (FORCE) is a unified skill with mandatory built-in validation and joy-check, perfectly matching the request to write one blog post in your voice and validate it before completion.",
+  "confidence": "high"
+}

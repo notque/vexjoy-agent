@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Systematic debugging pipeline for investigating regressions when code hasn't changed\u2014methodically observe the failure, hypothesize root cause (environment/dependency/config), test, fix, and record learning.",
+  "confidence": "high"
+}

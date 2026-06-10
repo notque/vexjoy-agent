@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "multi-persona-critique is designed to critique design artifacts with structured multi-perspective feedback",
+  "confidence": "high"
+}

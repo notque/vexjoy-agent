@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": null,
+  "reasoning": "Table-driven tests are a canonical Go pattern; go-patterns FORCE skill covers Go testing organization and patterns",
+  "confidence": "high"
+}

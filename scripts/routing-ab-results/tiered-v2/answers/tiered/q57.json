@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "x-api",
+  "pipeline": null,
+  "reasoning": "x-api skill directly handles posting to X, building threads, and uploading media attachments",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-debugging-engineer",
+  "skill": "verify",
+  "pipeline": null,
+  "reasoning": "Debugging-focused agent handles React rendering bugs (async/await, race conditions, type errors); verify skill confirms the fix works by running the app.",
+  "confidence": "high"
+}

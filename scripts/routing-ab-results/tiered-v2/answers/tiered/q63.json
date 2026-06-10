@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "The user explicitly needs to resolve ambiguities and define requirements/acceptance criteria before building; the planning FORCE skill specializes in pre-plan ambiguity resolution and spec definition.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User is asking about PR status; pr-workflow FORCE skill explicitly covers PR status checking as part of the lifecycle.",
+  "confidence": "high"
+}

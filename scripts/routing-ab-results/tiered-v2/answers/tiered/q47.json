@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Direct factual answer from session context\u2014no agent needed.",
+  "confidence": "high"
+}

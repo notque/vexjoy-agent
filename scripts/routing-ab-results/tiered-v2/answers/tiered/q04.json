@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to push finished work to share with team\u2014a git commit/PR operation covered by pr-workflow FORCE.",
+  "confidence": "high"
+}

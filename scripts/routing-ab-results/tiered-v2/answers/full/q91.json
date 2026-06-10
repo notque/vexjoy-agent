@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "FORCE match: verify authentication/authorization security before public deployment via deterministic security scan of git changes",
+  "confidence": "high"
+}
