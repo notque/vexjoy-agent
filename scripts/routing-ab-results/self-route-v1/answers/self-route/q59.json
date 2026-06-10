@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "vitest-runner",
+  "pipeline": null,
+  "reasoning": "The request is exactly vitest-runner's purpose \u2014 run Vitest and parse failures into actionable output \u2014 dispatched via testing-automation-engineer, the Vitest/testing specialist.",
+  "confidence": "high"
+}

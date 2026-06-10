@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Saving work to the shared repository means git commit and push, which the FORCE-routed pr-workflow skill covers for all git push/commit/PR operations.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to commit and push work to remote storage to protect against laptop failure; pr-workflow is FORCE-selected for git commit and push operations.",
+  "confidence": "high"
+}

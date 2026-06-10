@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "e2e-testing",
+  "pipeline": null,
+  "reasoning": "Playwright end-to-end test authoring maps directly to the e2e-testing skill, whose designated agent is testing-automation-engineer (Vitest/Playwright/E2E specialist).",
+  "confidence": "high"
+}

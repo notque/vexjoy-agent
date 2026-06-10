@@ -1,0 +1,7 @@
+{
+  "agent": "php-general-engineer",
+  "skill": "php-testing",
+  "pipeline": null,
+  "reasoning": "Writing PHPUnit tests with database fixtures is exactly the php-testing skill's domain (PHPUnit, test doubles, database testing), which binds to php-general-engineer.",
+  "confidence": "high"
+}

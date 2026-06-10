@@ -25,6 +25,11 @@ prompt edits, re-rank policies) with the existing blind A/B harness. One harness
    First arm = baseline, second = challenger (override at --gate with
    `--baseline-arm/--challenger-arm`). Without `--manifest-arm` the harness runs
    the legacy shared-prompt A/B (deterministic-first vs semantic-first).
+   Arms may differ by MODEL instead of manifest: add `--model-arm name=model`
+   (one per manifest arm; `default` = omit `--model`, the session model). The
+   models land in `arms.json` for the bridge; the harness still never calls
+   models. Example (self-route-v1): same manifest command in both arms,
+   `--model-arm haiku=haiku --model-arm self-route=default`.
 4. **Bridge: collect Haiku answers** (see below).
 5. **Score.** `python3 scripts/routing-ab-test.py --score --out-dir "$OUT"`
 6. **Blind judge.** `--build-judge` writes an arm-stripped, seed-shuffled
@@ -75,7 +80,10 @@ whose artifacts sit in `scripts/routing-ab-results/`:
 
 - For each `"$OUT"/prompts/<arm>/<id>.txt` (legacy: `prompts/<id>.txt`), send the
   file content verbatim as a single prompt to **Haiku** (`claude-haiku-4-5`, the
-  project's router model).
+  project's router model) — or, when `arms.json` carries a `models` map
+  (`--model-arm` runs), to that arm's model (`default` = omit `--model`).
+  Record per-call `cost_usd` and token counts in the run dir
+  (`call-log.jsonl`) when the runner can capture them.
 - Save the model's raw JSON object — shape
   `{"agent": ..., "skill": ..., "pipeline": ..., "reasoning": ..., "confidence": ...}`
   — as `"$OUT"/answers/<arm>/<id>.json` (legacy: `answers/<id>.json`).

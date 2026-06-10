@@ -1,0 +1,7 @@
+{
+  "agent": "kubernetes-helm-engineer",
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Kubernetes/Helm deployment is the exact domain of kubernetes-helm-engineer, and the workflow skill's deploy phase structures the rollout; no FORCE entry matches (public-web-deploy is for internet-facing website publishing, not cluster deploys).",
+  "confidence": "high"
+}

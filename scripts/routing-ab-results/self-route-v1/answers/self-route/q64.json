@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "productivity",
+  "pipeline": null,
+  "reasoning": "Personal prioritization and weekly planning ('sort out my week', 'no idea what to tackle first') is the productivity skill's exact domain, and planning explicitly excludes personal 'what should I work on next' requests in its NOT clause.",
+  "confidence": "high"
+}

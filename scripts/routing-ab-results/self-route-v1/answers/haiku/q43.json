@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "planning",
+  "pipeline": null,
+  "reasoning": "planning skill is FORCE-matched for software task implementation planning; covers specs, ambiguity resolution, and plan lifecycle management.",
+  "confidence": "high"
+}

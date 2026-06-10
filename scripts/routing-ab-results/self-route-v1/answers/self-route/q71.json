@@ -1,0 +1,7 @@
+{
+  "agent": "research-coordinator-engineer",
+  "skill": "research-pipeline",
+  "pipeline": "research-pipeline",
+  "reasoning": "The request asks for a formal, scoped research effort with source quality gates and saved artifacts, which matches the research-pipeline's SCOPE\u2192GATHER\u2192SYNTHESIZE\u2192VALIDATE\u2192DELIVER phases exactly, run by the research-coordinator-engineer it is bound to.",
+  "confidence": "high"
+}

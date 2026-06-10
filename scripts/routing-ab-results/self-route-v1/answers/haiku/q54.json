@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "image-to-video",
+  "pipeline": null,
+  "reasoning": "image-to-video is FFmpeg-based video creation from image and audio\u2014directly matches stitching frames with voiceover into MP4.",
+  "confidence": "high"
+}

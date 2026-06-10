@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow explicitly covers PR status checking including CI test results; FORCE-route rule requires it for all git/PR operations",
+  "confidence": "high"
+}

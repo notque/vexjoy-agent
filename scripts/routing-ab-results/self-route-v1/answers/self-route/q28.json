@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "The user wants the approach's merits challenged \u2014 a critique of the idea itself, not a drafted interpersonal message (professional-communication) or a git operation (pr-workflow explicitly excludes 'push back on a design'-style disagreement).",
+  "confidence": "medium"
+}

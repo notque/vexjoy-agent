@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User explicitly requests security assessment before sharing content; security-review is FORCE-matched for security passes.",
+  "confidence": "high"
+}

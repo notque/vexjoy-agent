@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "The workflow skill's refactor mode explicitly covers 'reorganize without changing behaviour / untangle messy code', and architecture-deepening explicitly excludes this small-scope behavior-preserving cleanup.",
+  "confidence": "high"
+}

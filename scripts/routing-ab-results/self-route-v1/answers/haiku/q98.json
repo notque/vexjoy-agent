@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "FORCE rule mandates pr-workflow for PR operations; user wants to improve and prepare PR for approval",
+  "confidence": "high"
+}

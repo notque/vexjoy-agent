@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User wants a pre-launch security check on authentication (impersonation/auth bypass), which semantically matches the FORCE-marked security-review skill backed by the reviewer-system security agent; public-web-deploy would cover the later deploy step, but the request here is the security pass itself.",
+  "confidence": "high"
+}

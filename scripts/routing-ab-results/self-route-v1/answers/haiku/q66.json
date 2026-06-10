@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "parallel-code-review",
+  "pipeline": null,
+  "reasoning": "Parallel-code-review skill orchestrates three separate reviewers (security, business logic, architecture) running concurrently, exactly matching the user's request.",
+  "confidence": "high"
+}

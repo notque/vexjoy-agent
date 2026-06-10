@@ -1,0 +1,7 @@
+{
+  "agent": "performance-optimization-engineer",
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "A page loading slowly on a phone is a web/frontend load-performance problem (Core Web Vitals, rendering, bundle size), which is exactly performance-optimization-engineer's domain; no FORCE skill matches this intent.",
+  "confidence": "high"
+}

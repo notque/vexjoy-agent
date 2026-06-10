@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-frontend-engineer",
+  "skill": "frontend-slides",
+  "pipeline": null,
+  "reasoning": "The request is exactly browser-based HTML presentation generation, which frontend-slides covers with typescript-frontend-engineer as its bound agent.",
+  "confidence": "high"
+}

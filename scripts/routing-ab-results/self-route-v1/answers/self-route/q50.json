@@ -1,0 +1,7 @@
+{
+  "agent": "kubernetes-helm-engineer",
+  "skill": "kubernetes-debugging",
+  "pipeline": null,
+  "reasoning": "A CrashLoopBackOff pod in a Kubernetes namespace is exactly the pod-failure debugging domain of the kubernetes-debugging skill, which is bound to the kubernetes-helm-engineer agent.",
+  "confidence": "high"
+}

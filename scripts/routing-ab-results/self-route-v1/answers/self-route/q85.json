@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "The request is a vague no-target ask ('improve things') with no domain signal \u2014 per the interview-mode rule for requests like 'make this better', no route fits until the user specifies what users complain about and where.",
+  "confidence": "low"
+}

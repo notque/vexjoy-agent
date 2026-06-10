@@ -1,0 +1,7 @@
+{
+  "agent": "typescript-frontend-engineer",
+  "skill": "frontend-slides",
+  "pipeline": null,
+  "reasoning": "frontend-slides skill directly generates browser-based HTML presentations; typescript-frontend-engineer builds and optimizes the frontend artifact.",
+  "confidence": "high"
+}
