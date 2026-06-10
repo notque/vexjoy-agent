@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow is FORCE-routed for git commit operations per the FORCE-ROUTE RULE",
+  "confidence": "high"
+}

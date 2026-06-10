@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Git commit operation matches the FORCE-routed pr-workflow skill, which owns the commit/push/PR lifecycle.",
+  "confidence": "high"
+}

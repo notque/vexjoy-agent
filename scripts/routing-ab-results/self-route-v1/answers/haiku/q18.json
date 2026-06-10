@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "Systematic exploration and architecture mapping of how components and modules fit together throughout the codebase.",
+  "confidence": "high"
+}

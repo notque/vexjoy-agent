@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "A typo/spelling fix inside a .go file is explicitly excluded by go-patterns ('plain typo/spelling fixes inside a .go file\u2026 route to quick') and matches the FORCE skill quick for tracked lightweight execution.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to push/commit work to a shared repository\u2014a git operation that FORCE-routes to pr-workflow per the manifest rule for push/commit/PR/merge operations.",
+  "confidence": "high"
+}

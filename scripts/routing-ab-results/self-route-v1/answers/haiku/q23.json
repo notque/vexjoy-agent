@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "quick",
+  "pipeline": null,
+  "reasoning": "Plain spelling/typo fix in source file is a lightweight task; go-patterns explicitly routes such cases to quick (FORCE skill)",
+  "confidence": "high"
+}

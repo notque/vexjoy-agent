@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "multi-persona-critique",
+  "pipeline": null,
+  "reasoning": "The request asks to stress-test written proposals in a document from multiple philosophical angles, which is exactly multi-persona-critique's purpose (5 philosophical personas critiquing an artifact, with consensus synthesis) \u2014 it critiques the artifact rather than drafting a message (professional-communication) or reviewing code (systematic-code-review).",
+  "confidence": "high"
+}

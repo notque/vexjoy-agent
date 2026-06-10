@@ -34,6 +34,11 @@ map carries (case, arm). Example:
   --manifest-arm full="python3 scripts/routing-manifest.py --compact" \\
   --manifest-arm tiered="python3 scripts/routing-manifest.py --tiered"
 
+Arms may also differ by MODEL instead of (or as well as) manifest: --model-arm
+name=model (one per manifest arm) records the per-arm routing model in
+arms.json `models` for the bridge ("default" = omit --model, the session
+model). The harness still never calls models itself.
+
 This script can NOT call Haiku itself (no API key, by design). It runs in
 stages and a human/agent runner bridges them:
 
@@ -224,6 +229,30 @@ def parse_manifest_arms(values: list[str]) -> dict[str, str]:
     return arms
 
 
+def parse_model_arms(values: list[str], arm_names: list[str]) -> dict[str, str]:
+    """Parse repeated --model-arm name=model flags; names must match --manifest-arm names.
+
+    The harness never calls models; the bridge reads arms.json `models` to pick
+    the `claude -p --model` value per arm (`default` = omit --model, session model).
+    """
+    models: dict[str, str] = {}
+    for value in values:
+        name, sep, model = value.partition("=")
+        name = name.strip()
+        model = model.strip()
+        if not sep or not name or not model:
+            raise SystemExit(f"ERROR: --model-arm must be name=model, got: {value!r}")
+        if name in models:
+            raise SystemExit(f"ERROR: duplicate --model-arm name: {name!r}")
+        if name not in arm_names:
+            raise SystemExit(f"ERROR: --model-arm name {name!r} has no matching --manifest-arm (arms: {arm_names})")
+        models[name] = model
+    missing = [a for a in arm_names if a not in models]
+    if missing:
+        raise SystemExit(f"ERROR: --model-arm missing for arms: {missing} (give one per arm)")
+    return models
+
+
 def _query_record(case: dict, qid: str) -> dict:
     """Build one queries.json row. Optional fields appear ONLY when present."""
     row = {
@@ -248,6 +277,7 @@ def emit_prompts(
     out_dir: Path | None = None,
     manifest_arms: dict[str, str] | None = None,
     corpus_path: Path | None = None,
+    model_arms: dict[str, str] | None = None,
 ) -> int:
     """Write Haiku routing prompts plus the ordered query list.
 
@@ -282,8 +312,11 @@ def emit_prompts(
             (out / f"manifest-used-{arm}.txt").write_text(manifests[arm], encoding="utf-8")
 
         (out / "queries.json").write_text(json.dumps(queries, indent=2, ensure_ascii=False), encoding="utf-8")
+        arms_record: dict = {"arms": list(manifest_arms), "commands": manifest_arms}
+        if model_arms:
+            arms_record["models"] = model_arms
         (out / "arms.json").write_text(
-            json.dumps({"arms": list(manifest_arms), "commands": manifest_arms}, indent=2, ensure_ascii=False),
+            json.dumps(arms_record, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
         print(f"Wrote {len(queries)} prompts per arm ({', '.join(manifest_arms)}) under {out / 'prompts'}")
@@ -989,6 +1022,15 @@ def main() -> int:
         'tiered="python3 scripts/routing-manifest.py --tiered". Omit for legacy single-prompt mode.',
     )
     parser.add_argument(
+        "--model-arm",
+        action="append",
+        default=None,
+        metavar="NAME=MODEL",
+        help="Repeatable, with --emit-prompts --manifest-arm only: per-arm routing model, recorded in "
+        'arms.json for the bridge, e.g. haiku=haiku self-route=default ("default" = omit --model). '
+        "One per manifest arm.",
+    )
+    parser.add_argument(
         "--out-dir",
         type=Path,
         default=None,
@@ -1009,6 +1051,8 @@ def main() -> int:
 
     if args.manifest_arm and not args.emit_prompts:
         parser.error("--manifest-arm is only valid with --emit-prompts (later modes read arms.json)")
+    if args.model_arm and not args.manifest_arm:
+        parser.error("--model-arm is only valid with --emit-prompts --manifest-arm")
     if args.assert_buckets and not args.pre_route_map:
         parser.error("--assert-buckets is only valid with --pre-route-map")
     if (args.baseline_arm or args.challenger_arm) and not args.gate:
@@ -1016,7 +1060,10 @@ def main() -> int:
 
     if args.emit_prompts:
         manifest_arms = parse_manifest_arms(args.manifest_arm) if args.manifest_arm else None
-        return emit_prompts(out_dir=args.out_dir, manifest_arms=manifest_arms, corpus_path=args.corpus)
+        model_arms = parse_model_arms(args.model_arm, list(manifest_arms)) if args.model_arm else None
+        return emit_prompts(
+            out_dir=args.out_dir, manifest_arms=manifest_arms, corpus_path=args.corpus, model_arms=model_arms
+        )
     if args.score:
         return score(out_dir=args.out_dir)
     if args.build_judge:

@@ -1,0 +1,7 @@
+{
+  "agent": "python-general-engineer",
+  "skill": "x-api",
+  "pipeline": null,
+  "reasoning": "Posting a thread to X with media attached is exactly the x-api skill's domain (post tweets, build threads, upload media), which routes to python-general-engineer.",
+  "confidence": "high"
+}

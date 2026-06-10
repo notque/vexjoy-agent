@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "User requests structured review with explicit risk assessment of billing code; systematic-code-review provides UNDERSTAND-VERIFY-ASSESS-DOCUMENT phases; reviewer-system focuses on security, error handling, observability, and API contracts\u2014critical for billing risk assessment.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": null,
+  "reasoning": "Adding a gRPC endpoint is Go feature development; golang-general-engineer implements Go features and go-patterns (FORCE-matched) covers Go language patterns, testing, and concurrency patterns needed for gRPC endpoint design.",
+  "confidence": "high"
+}

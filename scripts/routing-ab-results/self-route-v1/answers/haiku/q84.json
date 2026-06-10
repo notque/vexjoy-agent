@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "full-repo-review",
+  "pipeline": null,
+  "reasoning": "Comprehensive 3-wave review produces a prioritized issue backlog that directly answers where to start the refresh",
+  "confidence": "high"
+}

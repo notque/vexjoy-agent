@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "systematic-debugging",
+  "reasoning": "Red text when running tests means failing tests with an unknown root cause, which is general bug diagnosis requiring reproduction and investigation \u2014 explicitly excluded from 'quick' and best served by the evidence-based OBSERVE\u2192HYPOTHESIZE\u2192TEST\u2192FIX\u2192RECORD debugging pipeline, with the language-specific agent chosen once the failing test's stack is observed.",
+  "confidence": "high"
+}

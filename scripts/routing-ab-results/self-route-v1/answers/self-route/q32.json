@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "codebase-overview",
+  "pipeline": null,
+  "reasoning": "User wants a fast architecture summary of the codebase, which maps to codebase-overview's exploration and architecture mapping; 'quick' here is a speed preference, not the quick skill, and architecture-deepening is for improvement proposals, not a read.",
+  "confidence": "high"
+}

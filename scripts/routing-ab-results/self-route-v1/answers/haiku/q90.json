@@ -1,0 +1,7 @@
+{
+  "agent": "performance-optimization-engineer",
+  "skill": "verify",
+  "pipeline": null,
+  "reasoning": "Diagnose and optimize web page load performance on mobile, then verify the fix works in a real browser environment.",
+  "confidence": "high"
+}

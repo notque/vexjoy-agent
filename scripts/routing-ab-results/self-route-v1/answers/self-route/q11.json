@@ -1,0 +1,7 @@
+{
+  "agent": "golang-general-engineer",
+  "skill": "go-patterns",
+  "pipeline": "systematic-debugging",
+  "reasoning": "A Go service memory leak is Go-language debugging, which force-routes to go-patterns on golang-general-engineer, and 'find the cause' calls for the evidence-based systematic-debugging pipeline (reproduce via pprof heap profiles, hypothesize, test).",
+  "confidence": "high"
+}

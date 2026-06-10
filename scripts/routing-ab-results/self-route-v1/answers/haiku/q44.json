@@ -1,0 +1,7 @@
+{
+  "agent": "technical-journalist-writer",
+  "skill": "voice-writer",
+  "pipeline": "research-to-article",
+  "reasoning": "research-to-article pipeline orchestrates research through article generation; technical-journalist-writer provides journalism expertise; voice-writer (FORCE) generates the final article with mandatory validation.",
+  "confidence": "high"
+}

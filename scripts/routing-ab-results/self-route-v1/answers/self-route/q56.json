@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "translate",
+  "pipeline": null,
+  "reasoning": "The request is document translation into Japanese, which exactly matches the translate skill's chunked translation workflow with format preservation (code blocks untouched), and the skill carries no agent binding.",
+  "confidence": "high"
+}
