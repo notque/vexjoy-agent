@@ -1,6 +1,6 @@
 ---
 name: professional-communication
-description: "Transform technical communication into structured business formats."
+description: "Draft interpersonal and meeting messages — emails, memos, status updates, and pushing back or disagreeing in a structured business format."
 user-invocable: false
 allowed-tools:
   - Read
@@ -15,6 +15,7 @@ routing:
     - "executive summary"
     - "summarize for management"
     - "status update"
+  not_for: "critiquing or stress-testing a proposal's merits — that is multi-persona-critique. This drafts the message, it does not judge the idea."
   category: content-creation
   pairs_with:
     - voice-writer
