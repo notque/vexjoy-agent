@@ -9,6 +9,12 @@ Usage:
     python3 scripts/routing-manifest.py --json
     python3 scripts/routing-manifest.py --tiered
 
+--tiered is REJECTED for production routing: two blind A/B runs failed
+gates (c) safety misses and (d) stub-tier (verdicts in
+scripts/routing-ab-results/tiered-v1|v2/VERDICT.md on PR #771's branch).
+The flag stays for experimentation only; the /do router uses the full
+manifest (no flag).
+
 Exit codes:
     0 — Always (advisory)
 """
@@ -320,7 +326,7 @@ def main() -> int:
     parser.add_argument(
         "--tiered",
         action="store_true",
-        help="Tiered mode: FULL lines for the live working set and force-route entries, one-line stubs otherwise",
+        help="Tiered mode (EXPERIMENT ONLY — rejected for production by two A/B runs, see module docstring): FULL lines for the live working set and force-route entries, one-line stubs otherwise",
     )
     args = parser.parse_args()
 
