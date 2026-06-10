@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "e2e-testing",
+  "pipeline": null,
+  "reasoning": "Playwright E2E test writing directly matches testing-automation-engineer's core competency and e2e-testing skill's explicit workflow for signup/confirmation flows.",
+  "confidence": "high"
+}

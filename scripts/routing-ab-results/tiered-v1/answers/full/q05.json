@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "pr-workflow FORCE skill explicitly covers PR status checking as part of the pull request lifecycle, matching your request to verify if CI tests passed on a submitted change.",
+  "confidence": "high"
+}

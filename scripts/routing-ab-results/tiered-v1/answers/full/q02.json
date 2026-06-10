@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "User wants to submit changes for review—a git PR operation; pr-workflow FORCE rule applies.",
+  "confidence": "high"
+}

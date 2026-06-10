@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "socratic-debugging",
+  "pipeline": null,
+  "reasoning": "The user has a mysterious failure without clear root cause; socratic-debugging is designed to guide discovery through questions when the problem is opaque.",
+  "confidence": "high"
+}

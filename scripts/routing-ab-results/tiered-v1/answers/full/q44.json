@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": "research-to-article",
+  "reasoning": "research-to-article pipeline orchestrates multi-agent research and voice-driven article writing end-to-end",
+  "confidence": "high"
+}

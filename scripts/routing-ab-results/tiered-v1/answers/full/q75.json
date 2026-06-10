@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "full-repo-review",
+  "pipeline": null,
+  "reasoning": "full-repo-review is purpose-built for exactly this task: comprehensive multi-wave review of all repo source files with prioritized issue backlog output.",
+  "confidence": "high"
+}

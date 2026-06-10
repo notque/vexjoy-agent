@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "workflow",
+  "pipeline": null,
+  "reasoning": "Cleanup request is intentionally vague; workflow skill explicitly handles tidy-up, code cleanup, and refactor phases without requiring clarification, and can dispatch to appropriate subphases",
+  "confidence": "medium"
+}

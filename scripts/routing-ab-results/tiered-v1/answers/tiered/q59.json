@@ -1,0 +1,7 @@
+{
+  "agent": "testing-automation-engineer",
+  "skill": "vitest-runner",
+  "pipeline": null,
+  "reasoning": "vitest-runner skill directly runs Vitest tests and parses results; testing-automation-engineer agent provides test execution and diagnostics expertise.",
+  "confidence": "high"
+}

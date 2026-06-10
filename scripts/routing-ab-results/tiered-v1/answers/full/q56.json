@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "translate",
+  "pipeline": null,
+  "reasoning": "The translate skill provides document translation with chunked parallel subagents and glossary support, designed to preserve code blocks and technical content during language conversion.",
+  "confidence": "high"
+}

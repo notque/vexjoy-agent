@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-system",
+  "skill": "security-review",
+  "pipeline": null,
+  "reasoning": "User requesting safety check before sharing content; security-review (FORCE-marked) is purpose-built to scan for secrets, unsafe exposure patterns, and security issues in git changes.",
+  "confidence": "high"
+}

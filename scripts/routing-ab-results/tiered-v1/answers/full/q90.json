@@ -1,0 +1,7 @@
+{
+  "agent": "performance-optimization-engineer",
+  "skill": "verification-before-completion",
+  "pipeline": null,
+  "reasoning": "User reports slow page load on mobile, which is Core Web Vitals and frontend rendering performance — the performance-optimization-engineer's domain — with verification needed to confirm the fix improves real mobile load time.",
+  "confidence": "high"
+}

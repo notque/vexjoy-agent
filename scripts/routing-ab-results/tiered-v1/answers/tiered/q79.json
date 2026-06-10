@@ -1,0 +1,7 @@
+{
+  "agent": "reviewer-code",
+  "skill": "systematic-code-review",
+  "pipeline": null,
+  "reasoning": "Named-file, single-function code review matches systematic-code-review (4-phase: UNDERSTAND, VERIFY, ASSESS, DOCUMENT) with reviewer-code agent for quality inspection.",
+  "confidence": "high"
+}

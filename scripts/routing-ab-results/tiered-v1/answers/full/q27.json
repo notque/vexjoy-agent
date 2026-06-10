@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "pr-workflow",
+  "pipeline": null,
+  "reasoning": "Branch cleanup is a core git operation covered by pr-workflow; FORCE rule mandates this skill for all git workflow tasks",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": "read-only-ops",
+  "pipeline": null,
+  "reasoning": "Analyze merge implications by comparing feat/do-cost-diet with main branch—conflicts, changes, integration points—without performing the actual merge.",
+  "confidence": "high"
+}

@@ -1,0 +1,7 @@
+{
+  "agent": null,
+  "skill": null,
+  "pipeline": null,
+  "reasoning": "Simple informational query about git state already provided in system context.",
+  "confidence": "high"
+}
