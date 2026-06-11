@@ -91,6 +91,9 @@ routing:
     - "send to github"
     - "wrap up and merge"
     - "wrap this up and merge"
+    - "update changelog"
+    - "release notes"
+    - "curate changelog"
   category: git-workflow
   pairs_with:
     - verification-before-completion
@@ -119,6 +122,8 @@ Detect the user's intent and load the appropriate reference file:
 | **CI check** | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `${CLAUDE_SKILL_DIR}/references/ci-check.md` |
 | **Commit** | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `${CLAUDE_SKILL_DIR}/references/commit.md` |
 | **Codex review** | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `${CLAUDE_SKILL_DIR}/references/codex-review.md` |
+| **Body safety** | any `gh` call writing or reading a PR/issue body | `${CLAUDE_SKILL_DIR}/references/gh-body-safety.md` |
+| **Changelog** | "update changelog", "release notes", "curate changelog" | `${CLAUDE_SKILL_DIR}/references/changelog-curation.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 
@@ -137,6 +142,8 @@ Detect the user's intent and load the appropriate reference file:
 | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `ci-check.md` | **CI check** |
 | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `commit.md` | **Commit** |
 | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `codex-review.md` | **Codex review** |
+| any `gh` call writing or reading a PR/issue body | `gh-body-safety.md` | **Body safety** |
+| "update changelog", "release notes", "curate changelog" | `changelog-curation.md` | **Changelog** |
 
 ## Mandatory PR Body Structure
 
@@ -186,4 +193,4 @@ The sync (`sync.md` Step 5) and pipeline (`pipeline.md` Phase 5) references carr
 1. Identify the user's PR task from their message
 2. Load the matching reference file from the table above
 3. Follow the instructions in that reference file exactly
-4. When the task creates a PR, build the `--body` from the canonical three-section skeleton above (Summary / Changes / Notes), because `--body` bypasses the GitHub template file. Tests run in CI — the Checks tab is the test record, so keep command output out of the body
+4. When the task creates a PR, build the `--body` from the canonical three-section skeleton above (Summary / Changes / Notes), because `--body` bypasses the GitHub template file. Write the body via temp file + quoted heredoc + `--body-file` per `${CLAUDE_SKILL_DIR}/references/gh-body-safety.md`. Tests run in CI — the Checks tab is the test record, so keep command output out of the body
