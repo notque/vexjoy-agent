@@ -1,3 +1,10 @@
+---
+summary: "Standing procedure for judging router changes with the blind A/B harness."
+read_when:
+  - "changing the router or its manifest"
+  - "running a routing A/B test"
+---
+
 # Router A/B Runbook
 
 Standing procedure for judging ANY router change (manifest variants, fast paths,

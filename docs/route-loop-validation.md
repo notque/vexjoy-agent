@@ -1,3 +1,10 @@
+---
+summary: "Evidence record: routing-health sensor kept, actuator dropped."
+read_when:
+  - "evaluating routing-health changes"
+  - "checking why the route actuator was dropped"
+---
+
 # Route Loop Validation: Sensor Kept, Actuator Dropped
 
 Branch: `feat/route-sensor`. Date: 2026-06-10. Audience: a skeptical reader

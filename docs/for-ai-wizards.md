@@ -1,3 +1,9 @@
+---
+summary: "Architecture deep-dive: router internals, hook lifecycle, learning database."
+read_when:
+  - "studying how routing, hooks, and learning wire together"
+---
+
 # Architecture Deep-Dive
 
 You know Claude Code. You've written agents, maybe built a skill or two. This document covers how this specific toolkit wires everything together: the routing that connects plain-English requests to the right agent and skill, the hook lifecycle that enforces gates for free, the learning database that gets smarter across sessions. The point of all this wiring is that a harness with a bare skill list under-routes; this one routes eagerly and correctly. Skip what you know. Dig into what you don't.
