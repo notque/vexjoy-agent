@@ -50,16 +50,15 @@ Load [references/clig-checklist.md](references/clig-checklist.md) and apply it a
 
 Produce the spec from this skeleton. Drop a section only when it genuinely has no content; fill every other section.
 
-1. **Name**: `mycmd`
-2. **One-liner**
-3. **USAGE**: `mycmd [global flags] <subcommand> [args]`
-4. **Subcommands**: what each does, idempotence, state changes
-5. **Args/flags table**: name, type, default, required?, example
-6. **I/O contract**: stdout carries primary data and machine output; stderr carries diagnostics, errors, progress
-7. **Exit codes**: `0` success, `1` generic failure, `2` invalid usage; add command-specific codes only when callers will branch on them
-8. **Safety**: `--dry-run`, confirmation rules, `--force`, `--no-input`
-9. **Env/config**: env vars; config file path; precedence flags > env > project config > user config > system
-10. **Examples**: 5–10 invocations covering common flows, including one piped/stdin example
+1. **Name and one-liner**: command name plus a single sentence of purpose
+2. **Usage line**: the synopsis as `--help` will print it, global flags and subcommand slot included
+3. **Subcommands**: purpose of each, whether it mutates state, whether re-running it is safe
+4. **Args/flags table**: columns for name, type, default, required?, example
+5. **I/O contract**: primary data and machine-readable output on stdout; everything else (errors, progress, logs) on stderr
+6. **Exit codes**: map each failure mode to a code — success `0`, failure `1`, bad usage `2`; mint extra codes only for cases scripts must distinguish
+7. **Safety**: `--dry-run`, confirmation rules, `--force`, `--no-input`
+8. **Env/config**: env vars; config file path; precedence order with flags highest, then env, project config, user config, system
+9. **Examples**: enough invocations to cover the common flows; show at least one pipeline or stdin use
 
 **Gate:** every flag used in the examples appears in the flags table, and every failure mode shown maps to an exit code.
 

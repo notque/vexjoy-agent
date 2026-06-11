@@ -9,12 +9,13 @@ allowed-tools:
   - Glob
 routing:
   triggers:
-    - "handoff"
     - "hand off this session"
-    - "pick up where we left off"
-    - "resume work"
+    - "hand off to the next agent"
     - "package session state"
+    - "state package for the next agent"
     - "session pickup"
+    - "rehydrate session state"
+  not_for: "plan-artifact pause/resume (HANDOFF.json plus pause.md/resume.md) — that is planning. This skill packages inline agent-to-agent state: working tree, PR/CI, live processes, checks."
   category: process
   pairs_with:
     - worktree-agent
@@ -29,12 +30,12 @@ Two modes sharing one state contract. HANDOFF packages current work so the next 
 
 Produce a concise bullet package with these sections, in order. Every claim comes from a command you ran this session — re-run when stale, because a wrong handoff costs more than no handoff.
 
-1. **Scope/status** — what you were doing, what is done, what is pending, blockers.
+1. **Scope/status** — the task in one line, finished vs. remaining work, blockers.
 2. **Working tree** — `git status -sb` summary; note local commits not yet pushed and whether you are in a worktree (`pwd` contains `.claude/worktrees/`).
 3. **Branch/PR** — current branch, PR number/URL, CI status (`gh pr checks <num>` when a PR exists).
 4. **Live processes** — long-running jobs the next agent must know about: summarize `ps auxww | grep -E '<your-process>'`, plus a copy-paste attach or log-tail command (`tail -f <logfile>`, `jobs -l`). Redact secrets in command lines.
 5. **Tests/checks** — which commands ran, results, what still needs to run.
-6. **Next steps** — ordered bullets the next agent should do first.
+6. **Next steps** — remaining actions in execution order, most urgent first.
 7. **Risks/gotchas** — flaky tests, feature flags, brittle areas, approvals still needed.
 
 **Gate:** every live process has a copy-paste command; every pending step is ordered. Output format: bullet list, Dense-Complete — short enough to paste into a PR comment or session note.
