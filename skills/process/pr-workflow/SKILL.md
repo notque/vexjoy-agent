@@ -94,6 +94,9 @@ routing:
     - "update changelog"
     - "release notes"
     - "curate changelog"
+    - "decision brief"
+    - "owner decision brief"
+    - "authorization tier"
   category: git-workflow
   pairs_with:
     - verification-before-completion
@@ -124,6 +127,7 @@ Detect the user's intent and load the appropriate reference file:
 | **Codex review** | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `${CLAUDE_SKILL_DIR}/references/codex-review.md` |
 | **Body safety** | any `gh` call writing or reading a PR/issue body | `${CLAUDE_SKILL_DIR}/references/gh-body-safety.md` |
 | **Changelog** | "update changelog", "release notes", "curate changelog" | `${CLAUDE_SKILL_DIR}/references/changelog-curation.md` |
+| **Decision brief** | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `${CLAUDE_SKILL_DIR}/references/owner-decision-briefs.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 
@@ -144,6 +148,7 @@ Detect the user's intent and load the appropriate reference file:
 | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `codex-review.md` | **Codex review** |
 | any `gh` call writing or reading a PR/issue body | `gh-body-safety.md` | **Body safety** |
 | "update changelog", "release notes", "curate changelog" | `changelog-curation.md` | **Changelog** |
+| "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `owner-decision-briefs.md` | **Decision brief** |
 
 ## Mandatory PR Body Structure
 
