@@ -35,6 +35,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Shared tracked+local INDEX merge — single source in routing_index_merge.py.
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import load_index_items as _load_index_items
+
 # INDEX.json is a generated artifact (untracked). When the tracked path is
 # missing — fresh checkout, no install.sh run — regenerate it on the fly from
 # SKILL.md/agent frontmatter via these generators.
@@ -42,38 +48,6 @@ _INDEX_GENERATORS = {
     "skills": REPO_ROOT / "scripts" / "generate-skill-index.py",
     "agents": REPO_ROOT / "scripts" / "generate-agent-index.py",
 }
-
-
-def _load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
-    """Load index items from the tracked file, overlaying the local override.
-
-    Local override files (INDEX.local.json) are gitignored supersets produced
-    by the generator with --include-private; they add entries for
-    symlinked/private directories. The local file regenerates less often than
-    the tracked one, so it can be stale. The merge is add-only (tracked first,
-    local fills gaps per-name): a stale local can never hide a tracked skill
-    or agent, and never overrides tracked entry content such as triggers or
-    force_route — full replacement and per-name update both did.
-
-    Duplicated by hand in routing-manifest.py and index-router.py (the
-    routing scripts share no lib module); keep the three copies in sync.
-    """
-    items: dict = {}
-    paths = [tracked]
-    if local_name:
-        local = tracked.parent / local_name
-        if local.exists():
-            paths.append(local)
-    for path in paths:
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            continue
-        loaded = raw.get(key, {})
-        if isinstance(loaded, dict):
-            for name, data in loaded.items():
-                items.setdefault(name, data)
-    return items
 
 
 def _ensure_index(index_type: str, path: Path) -> None:
