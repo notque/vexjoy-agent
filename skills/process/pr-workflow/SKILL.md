@@ -91,6 +91,11 @@ routing:
     - "send to github"
     - "wrap up and merge"
     - "wrap this up and merge"
+    - "land PR"
+    - "land the PR"
+    - "land this PR"
+    - "merge contributor PR"
+    - "rebase and merge PR"
     - "update changelog"
     - "release notes"
     - "curate changelog"
@@ -125,6 +130,7 @@ Detect the user's intent and load the appropriate reference file:
 | **CI check** | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `${CLAUDE_SKILL_DIR}/references/ci-check.md` |
 | **Commit** | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `${CLAUDE_SKILL_DIR}/references/commit.md` |
 | **Codex review** | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `${CLAUDE_SKILL_DIR}/references/codex-review.md` |
+| **Land** | "land PR", "land the PR", "merge contributor PR", "rebase and merge PR" | `${CLAUDE_SKILL_DIR}/references/land-pr.md` |
 | **Body safety** | any `gh` call writing or reading a PR/issue body | `${CLAUDE_SKILL_DIR}/references/gh-body-safety.md` |
 | **Changelog** | "update changelog", "release notes", "curate changelog" | `${CLAUDE_SKILL_DIR}/references/changelog-curation.md` |
 | **Decision brief** | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `${CLAUDE_SKILL_DIR}/references/owner-decision-briefs.md` |
@@ -146,6 +152,7 @@ Detect the user's intent and load the appropriate reference file:
 | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `ci-check.md` | **CI check** |
 | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `commit.md` | **Commit** |
 | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `codex-review.md` | **Codex review** |
+| "land PR", "land the PR", "merge contributor PR", "rebase and merge PR" | `land-pr.md` | **Land** |
 | any `gh` call writing or reading a PR/issue body | `gh-body-safety.md` | **Body safety** |
 | "update changelog", "release notes", "curate changelog" | `changelog-curation.md` | **Changelog** |
 | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `owner-decision-briefs.md` | **Decision brief** |

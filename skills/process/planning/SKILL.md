@@ -20,7 +20,7 @@ allowed-tools:
   - Skill
 routing:
   force_route: true
-  not_for: "city/financial/meeting/travel planning; and personal prioritization like 'what should I work on next' — that is productivity. Only for software task planning, specs, and plan-lifecycle management."
+  not_for: "city/financial/meeting/travel planning; and personal prioritization like 'what should I work on next' — that is productivity. Not for packaging inline agent-to-agent session state (working tree, PR/CI, live processes) — that is session-handoff; planning's pause/resume owns plan-artifact handoff via HANDOFF.json plus pause.md/resume.md. Only for software task planning, specs, and plan-lifecycle management."
   triggers:
     - "write spec"
     - "user stories"
