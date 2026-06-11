@@ -2,11 +2,11 @@
 
 The 13-check Narrative rubric. Source: Russell et al. (2026), "StoryScope: Towards Comprehensive Narratological Evaluation of LLM-Generated Stories," arXiv:2604.03136v4, University of Maryland. 61,608 stories, 10,272 prompts, 304 narrative features, 5 AI models. The checks below adapt StoryScope's fiction features to nonfiction: arguments instead of plots, named actors and sources instead of characters, endings instead of resolutions.
 
-**Applicability**: content over 500 words. Skip this checklist for captions, tweets, and short social posts. `voice-validator` runs this rubric as its Narrative category; `anti-ai-editor` runs it as the Narrative Structure check in `detection-rules.md`.
+**Applicability**: content over 500 words. Skip this checklist for captions, tweets, and short social posts. `voice-validator` runs this rubric as its Narrative category; `anti-ai-editor` runs the same checks as its Narrative Structure category (its own `references/narrative-patterns.md`).
 
 **Why narrative checks matter**: surface tells (word choice, cliches, sentence rhythm) get edited away; narrative structure survives stylistic editing. StoryScope reports 93.9% macro-F1 for human-vs-AI detection after LAMP rewriting stripped every stylistic cue. The structural fingerprint persists when every surface tell is patched.
 
-**Known limit**: StoryScope measured fiction. The nonfiction rephrasing here is an adaptation. Transfer to argumentative prose is assumed, not yet measured.
+**Known limit**: StoryScope measured fiction. The nonfiction rephrasing here is an adaptation. Transfer to argumentative prose is assumed, not yet measured. StoryScope's Dream/Vision Avoidance feature (SHAP 0.116) is dropped deliberately: dream and vision sequences are fiction devices with no nonfiction counterpart.
 
 **How to run it**: these are LLM-judgment checks, not regex patterns. Read the whole piece, score each check pass or fail against its test, count the fails, apply the scoring table at the end. Every fail must cite a specific quote or location.
 
@@ -138,7 +138,7 @@ Count fails across all 13 checks.
 | 3-5 | Narrative revision warranted | Address the flagged checks |
 | 6+ | Structural rewrite needed | Rebuild the piece's architecture, not just surface edits |
 
-The percentages above ground the judgment: each measured check carries a >=20-point gap (or a top SHAP value) between human and AI writing. Checks 11 and 12 are adapted features awaiting their own measurement; weight them as judgment calls, not measured gaps.
+The percentages above ground the judgment: most measured checks carry a >=20-point gap (or a top SHAP value) between human and AI writing. Checks 11 and 12 are adapted features awaiting their own measurement; weight them as judgment calls, not measured gaps.
 
 ---
 
