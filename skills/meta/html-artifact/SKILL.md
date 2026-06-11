@@ -397,3 +397,13 @@ This skill uses:
 - `scripts/to-pdf.py`: Playwright-based PDF rendering with per-shape page sizing
 - `scripts/pptx-bridge/`: HTML deck → editable PPTX (extract_slides.py, _pptx_engine.py, render_pptx.py, run-unified.py)
 - `templates/`: CSS/JS template files organized by themes/, shapes/, components/, print/
+
+---
+
+## Saved Templates
+
+Pre-built, reusable artifact templates for recurring requests. Each pairs a self-contained HTML template (with placeholder tokens and a sample dataset for standalone testing) with a deterministic renderer script that fills in live data.
+
+| Template | Renderer | Use For |
+|---|---|---|
+| `templates/saved/github-issues.html` | `scripts/render-github-issues.py` | "show me my GitHub issues" / "show me my tickets" — assigned + mentioned + review-requested across all repos, with per-issue discussion expanders and 5 client-side sort modes |
