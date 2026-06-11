@@ -1,13 +1,13 @@
 # gh Body-File Safety
 
-Hard rules for every `gh` call that writes or reads a PR/issue body. Inline `--body "..."` strings let backticks, `$`, and user-supplied text reach the shell; fetched bodies piped through `--jq` arrive escaped and re-post mangled. Always go through a temp file.
+Hard rules for every `gh` call that writes or reads a PR/issue body. Inline `--body "..."` strings let backticks, `$`, and user-supplied text reach the shell. Always write bodies through a temp file; route reads through a file too so the round-trip never touches shell quoting.
 
 ## Rules
 
 | Operation | Rule | Command |
 |---|---|---|
 | Write a body (`gh pr create`, `gh pr edit`, `gh issue create/comment`) | Write the body to a temp file with a quoted heredoc, inspect it, then pass `--body-file`. Inline `--body` strings stay free of backticks, `$`, shell snippets, env names, and user text. | `cat <<'EOF' > /tmp/pr-body.md` ... `EOF`, then `gh pr create --body-file /tmp/pr-body.md` |
-| Read a body before editing it | Fetch via REST and `jq -r` to a file, then inspect. `gh pr view --json body --jq .body` returns shell-escaped text that corrupts on re-post. | `gh api repos/OWNER/REPO/pulls/NUM \| jq -r '.body // ""' > /tmp/body.md` |
+| Read a body before editing it | Redirect the fetch to a file and edit the file, never a shell variable. `gh pr view NUM --json body --jq .body` and `gh api ... \| jq -r .body` both emit raw markdown; the corruption risk is capturing the body in a shell string (`BODY=$(...)`, inline `--body "$BODY"`), where quoting and expansion mangle it on re-post. | `gh pr view NUM --json body --jq .body > /tmp/body.md` |
 
 ## Checks before posting
 
