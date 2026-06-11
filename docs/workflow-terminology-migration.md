@@ -1,3 +1,9 @@
+---
+summary: "Migration plan: 'workflow' canonical in prose, 'pipeline' frozen as code alias."
+read_when:
+  - "writing prose that mentions pipelines or workflows"
+---
+
 # Workflow Terminology Migration Plan
 
 Additive migration. No big-bang rename. "workflow" is canonical in all new/updated prose; "pipeline" stays a valid legacy alias for back-compat. Every existing "pipeline" code identifier is frozen so the live router never breaks. This is a prose + docs + plan change only.

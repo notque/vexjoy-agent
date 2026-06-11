@@ -1,3 +1,9 @@
+---
+summary: "Hand-maintained catalog of every command, skill, and agent."
+read_when:
+  - "scanning the full command list"
+---
+
 # Quick Reference Card
 
 **Everything in one place. Scan in 2 minutes.**

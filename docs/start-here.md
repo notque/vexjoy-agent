@@ -1,3 +1,9 @@
+---
+summary: "Five-minute path from install to first /do."
+read_when:
+  - "onboarding a new user"
+---
+
 # Start Here
 
 Install once, then say what you want in plain English. The router connects your request to the right agent, skill, and quality gates automatically. You never browse the catalog; the value is wired in. This page gets you from zero to your first `/do` in about five minutes.

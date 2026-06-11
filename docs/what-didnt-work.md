@@ -1,3 +1,10 @@
+---
+summary: "Negative-results registry of failed experiments."
+read_when:
+  - "before retrying an old idea"
+  - "recording a failed experiment"
+---
+
 # What didn't work
 
 Negative-results registry. A list of experiments that lost, so the next session skips a known-dead path.

@@ -1,3 +1,9 @@
+---
+summary: "Branch pointer for the local-only shadow routing-health loop."
+read_when:
+  - "working on feat/outcome-routing-loop"
+---
+
 # Outcome-Routing Shadow Loop — branch pointer
 
 Branch: `feat/outcome-routing-loop` (LOCAL-ONLY: never push / PR / merge to main).
