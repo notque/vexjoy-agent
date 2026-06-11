@@ -1,3 +1,9 @@
+---
+summary: "30-second start: install, /do, mental model."
+read_when:
+  - "first-time setup"
+---
+
 # Quick Start
 
 **Read time: 30 seconds**

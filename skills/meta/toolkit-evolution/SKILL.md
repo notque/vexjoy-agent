@@ -121,6 +121,14 @@ Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4
 
 Run the usage and governance commands from `references/diagnose-scripts.md` § DIAGNOSE Step 4d. Feed dormant skills/agents into gap discovery (tag `[USAGE]`) and cluster unresolved governance events into the "what's failing" diagnosis (tag `[GOVERNANCE]`).
 
+**Step 4e: Run the skill sprawl audit**
+
+```bash
+python3 scripts/skill-sprawl-audit.py
+```
+
+Reads `skills/INDEX.json` and reports prompt-budget cost, over-long descriptions, and near-duplicate skill bodies. Suggest-first: it never edits. Feed over-budget, over-long, and duplicate findings into the opportunity list (tag `[SPRAWL]`).
+
 **Step 5: Dedup against prior proposals**
 
 Load `references/evolution-history.md`. Check each opportunity against: (a) Rejected Proposals -- do not re-propose unless the reopen condition is met, (b) Shelved Proposals -- re-propose only if the reactivation condition is now satisfied, (c) Distilled Lessons -- apply the learned criteria to filter weak proposals early.

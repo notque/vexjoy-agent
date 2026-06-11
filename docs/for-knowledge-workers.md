@@ -1,8 +1,14 @@
+---
+summary: "Non-developer intro: describe work in plain English, the router does the rest."
+read_when:
+  - "introducing the toolkit to a non-developer"
+---
+
 # For Knowledge Workers
 
 ## What This Gives You
 
-You describe work in plain English. The system routes it to the right pipeline, with quality checks built in. 125 skills behind a single command, and you never need to know which one fired.
+You describe work in plain English. The system routes it to the right pipeline, with quality checks built in. 129 skills behind a single command, and you never need to know which one fired.
 
 ## Interface
 

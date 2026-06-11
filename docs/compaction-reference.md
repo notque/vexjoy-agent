@@ -1,3 +1,10 @@
+---
+summary: "What survives context compaction and when to compact."
+read_when:
+  - "session nears the context limit"
+  - "writing state that must survive compaction"
+---
+
 # Compaction Reference
 
 Guidance for agents on when to compact and what state survives compaction.

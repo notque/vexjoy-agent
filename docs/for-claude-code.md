@@ -1,3 +1,9 @@
+---
+summary: "Machine-dense repo inventory for AI agents: paths, schemas, conventions."
+read_when:
+  - "an AI agent needs the repo map and conventions"
+---
+
 # VexJoy Agent: AI Agent Reference
 
 For LLMs operating in this repository. Not Claude Code specific. Any AI agent benefits from this.
