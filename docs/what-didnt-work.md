@@ -26,6 +26,17 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 ---
 
+## Post-seed experiments
+
+Experiments recorded after the seed set. Same four bold fields; `###` headings keep the seed-count checks in `scripts/tests/test_negative_results_registry.py` stable. Newest on top.
+
+### 2026-06-11 review-contract-provenance port from steipete/agent-scripts
+
+- **Expectation**: an explicit review contract plus git provenance commands (master-list rank 4+5: Review Contract + provenance method into `systematic-code-review`; contributor trust block into `parallel-code-review`) beats the baseline review skills in a blind A/B.
+- **What happened**: blind A/B (2 swapped-label rounds, fable arms + judges, auth-diff review task): baseline won 2-0. Variant rejected; no PR opened.
+- **Evidence**: branch `feat/review-contract-provenance` (pushed, unmerged); workflow run `wf_d2f09dbd-850`; master list `tmp/agent-scripts-master-list.json`.
+- **Decision**: rejected. Keep baseline `systematic-code-review`/`parallel-code-review` unchanged; revisit-if a stronger variant and a larger A/B.
+
 ## 2026-06-05 Provenance footers on every answer
 
 - **Expectation**: per-answer footers (source tier, confidence, reviewed-by, freshness, owner) improve auditability.
