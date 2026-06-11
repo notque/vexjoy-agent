@@ -1,3 +1,10 @@
+---
+summary: "Design principles behind every agent, skill, hook, and workflow."
+read_when:
+  - "making a design decision"
+  - "creating or restructuring components"
+---
+
 # Design Philosophy
 
 The decisions that shaped every agent, skill, hook, and pipeline. Not guidelines. Architecture. A coherent viewpoint enables iteration better than unconnected rules ever will.

@@ -1,3 +1,9 @@
+---
+summary: "Work order with a keep/rewrite/merge/retire verdict per docs/ file."
+read_when:
+  - "planning docs/ cleanup PRs"
+---
+
 # Docs Audit
 
 Work order for follow-up PRs. Covers every `docs/` file outside the value-clarity rewrite set (README.md, start-here.md, for-knowledge-workers.md, for-developers.md, for-ai-wizards.md, rewritten in the same PR that adds this file). One row per file. Actions: keep / rewrite / merge-into-X / retire.

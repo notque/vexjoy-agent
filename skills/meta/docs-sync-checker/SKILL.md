@@ -72,7 +72,17 @@ Commands (`commands/**/*.md`):
 - File exists as markdown in commands/ directory
 - Namespaced commands in subdirectories (e.g., `commands/code/cleanup.md`) are detected
 
-**Step 3: Count and verify**
+**Step 3: Validate the docs routing catalog**
+
+Every `docs/*.md` file (outside `archive/` and `images/`) carries frontmatter with `summary` and `read_when` — the on-demand load triggers for docs, matching what `skills/INDEX.json` gives skills.
+
+```bash
+python3 scripts/docs-catalog.py --check
+```
+
+Exit 1 means a doc is missing frontmatter; add `summary` and `read_when` to that file. `python3 scripts/docs-catalog.py` (no flags) prints the catalog table; `--json` emits it machine-readable.
+
+**Step 4: Count and verify**
 
 ```markdown
 ## Scan Results
@@ -82,7 +92,7 @@ Commands found: [N]
 YAML errors: [N] (must be 0 to proceed)
 ```
 
-**Gate**: All tools discovered, all YAML valid, counts >0 for each type. Proceed only after the gate passes.
+**Gate**: All tools discovered, all YAML valid, counts >0 for each type, docs catalog check exits 0. Proceed only after the gate passes.
 
 ### Phase 2: CROSS-REFERENCE
 

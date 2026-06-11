@@ -1,3 +1,10 @@
+---
+summary: "Developer map: dispatch model, adding components, shipping changes."
+read_when:
+  - "adding or changing a component"
+  - "learning the dispatch model"
+---
+
 # For Developers
 
 You cloned the repo. You want to understand the dispatch model, add a component, or ship a change. This is the map.

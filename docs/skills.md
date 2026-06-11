@@ -1,3 +1,10 @@
+---
+summary: "Catalog of all skills by category."
+read_when:
+  - "browsing the skill catalog"
+  - "documenting a new skill"
+---
+
 # Skills
 
 Skills are workflow methodologies — reusable process guides that tell Claude Code *how* to approach a task. Each skill lives in its own directory with a `SKILL.md` file.

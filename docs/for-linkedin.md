@@ -1,3 +1,9 @@
+---
+summary: "Parody launch post; the AI writing patterns are the joke."
+read_when:
+  - "someone wants the joke version of the pitch"
+---
+
 # The LinkedIn Version
 
 > *For the quick start, see [start-here.md](start-here.md).*
