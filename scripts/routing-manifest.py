@@ -31,6 +31,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Shared tracked+local INDEX merge — single source in routing_index_merge.py.
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import load_index_items as _load_index_items
+
 # Tiered mode: how far back a route-events DECISION keeps a name in the
 # working set, and how many description words a stub line keeps.
 WORKING_SET_WINDOW_SECONDS = 30 * 86400
@@ -42,38 +48,6 @@ INDEX_PATHS = {
     "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
     "pipelines": (REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json", None),
 }
-
-
-def _load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
-    """Load index items from the tracked file, overlaying the local override.
-
-    Local override files (INDEX.local.json) are gitignored supersets produced
-    by the generator with --include-private --output <local-path>; they add
-    entries for symlinked/private directories. The local file regenerates less
-    often than the tracked one, so it can be stale. The merge is add-only
-    (tracked first, local fills gaps per-name): a stale local can never hide a
-    tracked skill or agent, and never overrides tracked entry content such as
-    triggers or force_route — full replacement and per-name update both did.
-
-    Duplicated by hand in pre-route.py and index-router.py (the routing
-    scripts share no lib module); keep the three copies in sync.
-    """
-    items: dict = {}
-    paths = [tracked]
-    if local_name:
-        local = tracked.parent / local_name
-        if local.exists():
-            paths.append(local)
-    for path in paths:
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            continue
-        loaded = raw.get(key, {})
-        if isinstance(loaded, dict):
-            for name, data in loaded.items():
-                items.setdefault(name, data)
-    return items
 
 
 def load_entries() -> list[dict]:
