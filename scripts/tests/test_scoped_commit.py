@@ -47,6 +47,22 @@ class TestGuards:
         assert scoped_commit.main(["msg", "."]) == 1
         assert "list specific paths" in capsys.readouterr().err
 
+    def test_rejects_dot_slash_path(self, repo: Path, capsys: pytest.CaptureFixture) -> None:
+        (repo / "a.txt").write_text("a")
+        assert scoped_commit.main(["msg", "./"]) == 1
+        assert "list specific paths" in capsys.readouterr().err
+        assert "a.txt" in _git(repo, "status", "--porcelain").stdout  # still uncommitted
+
+    def test_rejects_repo_root_absolute_path(self, repo: Path, capsys: pytest.CaptureFixture) -> None:
+        (repo / "a.txt").write_text("a")
+        assert scoped_commit.main(["msg", str(repo)]) == 1
+        assert "list specific paths" in capsys.readouterr().err
+
+    def test_rejects_pathspec_magic(self, repo: Path, capsys: pytest.CaptureFixture) -> None:
+        (repo / "a.txt").write_text("a")
+        assert scoped_commit.main(["msg", ":/"]) == 1
+        assert "pathspec magic" in capsys.readouterr().err
+
     def test_rejects_message_that_is_a_path(self, repo: Path, capsys: pytest.CaptureFixture) -> None:
         (repo / "a.txt").write_text("a")
         assert scoped_commit.main(["a.txt", "base.txt"]) == 1

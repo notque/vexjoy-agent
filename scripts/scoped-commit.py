@@ -9,7 +9,8 @@ Usage:
     python3 scripts/scoped-commit.py [--force-lock] "message" path [path ...]
 
 Guards:
-    - "." is rejected; list specific paths.
+    - Paths that resolve to the repo root or cwd (".", "./", absolute repo
+      path) and pathspec magic prefixes (":/", ":(glob)") are rejected.
     - A message that matches an existing path is rejected (argument-order slip).
     - A stale .git/index.lock is removed only with --force-lock, then one retry.
 
@@ -59,8 +60,15 @@ def main(argv: list[str] | None = None) -> int:
         return _fail("commit message must not be empty")
     if Path(args.message).exists():
         return _fail(f'first argument looks like a path ("{args.message}"); pass the commit message first')
-    if "." in args.paths:
-        return _fail('"." stages the whole repository; list specific paths instead')
+    toplevel = _git(["rev-parse", "--show-toplevel"])
+    if toplevel.returncode != 0:
+        return _fail(f"not a git repository: {toplevel.stderr.strip()}")
+    repo_root = Path(toplevel.stdout.strip()).resolve()
+    for path in args.paths:
+        if path.startswith(":"):
+            return _fail(f'pathspec magic prefixes are not allowed: "{path}"')
+        if Path(path).resolve() in (Path.cwd().resolve(), repo_root):
+            return _fail(f'"{path}" stages the whole repository; list specific paths instead')
 
     for path in args.paths:
         if not Path(path).exists() and not _path_known_to_git(path):

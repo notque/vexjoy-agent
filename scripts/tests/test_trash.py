@@ -74,6 +74,17 @@ class TestMove:
         assert trash.main(["rel.txt"]) == 0
         assert (trash_dir / "files" / "rel.txt").exists()
 
+    def test_trashes_symlink_itself_not_target(self, tmp_path: Path, trash_dir: Path) -> None:
+        real = tmp_path / "real.txt"
+        real.write_text("keep")
+        link = tmp_path / "link.txt"
+        link.symlink_to(real)
+        assert trash.main([str(link)]) == 0
+        assert real.read_text() == "keep"  # target untouched
+        assert not link.exists() and not link.is_symlink()
+        trashed = trash_dir / "files" / "link.txt"
+        assert trashed.is_symlink()
+
     def test_copy_fallback_when_rename_fails(
         self, tmp_path: Path, trash_dir: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

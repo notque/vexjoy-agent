@@ -88,7 +88,10 @@ def main(argv: list[str] | None = None) -> int:
 
     failed = False
     for raw in args.paths:
-        target = Path(raw).expanduser().resolve(strict=False)
+        expanded = Path(raw).expanduser()
+        # Resolve only the parent so a symlink target stays a symlink:
+        # resolving the full path would trash the link's target file.
+        target = expanded.parent.resolve(strict=False) / expanded.name
         if not target.exists() and not target.is_symlink():
             if args.allow_missing:
                 continue
