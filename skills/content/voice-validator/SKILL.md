@@ -69,7 +69,7 @@ Check all categories against the target voice's checklist. Standard categories i
 - **Emotion**: Does emotion handling match? (e.g., explicitly named emotions, venting/ranting, moralizing)
 - **Questions**: Do question patterns match? (e.g., open-ended brainstorming, vague curiosity)
 - **Metaphors**: Do metaphor patterns match? (e.g., journey/path, biological/growth, narrative/story)
-- **Narrative** (500+ words only; full 13-check rubric in `anti-ai-editor/references/narrative-patterns.md`):
+- **Narrative** (500+ words only; full 13-check rubric in `references/narrative-patterns.md`):
   - Evidence speaks for itself, or narrator over-explains the point?
   - Emotional registers mixed (named feelings + behavioral cues + sensation)?
   - Secondary threads present that enrich the main argument?
