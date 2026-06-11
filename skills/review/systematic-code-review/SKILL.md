@@ -34,6 +34,7 @@ Systematic 4-phase code review: UNDERSTAND changes, VERIFY claims against actual
 | reviewing Go code: type exports, concurrency, resource management, observability, test patterns | `go-review-patterns.md` | Loads detailed guidance from `go-review-patterns.md`. |
 | responding to review feedback on your own code | `receiving-feedback.md` | Loads detailed guidance from `receiving-feedback.md`. |
 | labeling findings: BLOCKING vs SHOULD FIX vs SUGGESTION | `severity-classification.md` | Loads detailed guidance from `severity-classification.md`. |
+| reviewing a bug fix or regression; verdict depends on root cause, who introduced it, or whether the fix is the right one | `review-contract-provenance.md` | Review Contract checklist, git `-S`/`-G` + blame provenance with confidence, best-fix-after-adjacent-code bar, proof inventory, residual risk. |
 
 ## Instructions
 
@@ -313,6 +314,12 @@ Watch for patterns that linters miss: type export design, concurrency patterns (
 For projects using shared organization libraries: check for manual SQL row iteration instead of helpers, incorrect assertion depth, raw `sql.Open()` in tests, dead migration files, and database-specific naming violations.
 
 See `references/go-review-patterns.md` for full checklists and red flags.
+
+### Review Contract and Provenance
+
+For bug fixes and regressions: answer the Review Contract explicitly (root cause proven at `file:line` or missing evidence named; provenance via bounded `git log -S/-G` + blame phrased as introduced/made visible/carried forward with confidence clear/likely/unknown; best-fix call made only after reading adjacent code; proof inventory; residual risk). Append its output block to Phase 4 DOCUMENT.
+
+See `references/review-contract-provenance.md` for the contract table, provenance commands, fix quality bar, and output block.
 
 ### Receiving Review Feedback
 
