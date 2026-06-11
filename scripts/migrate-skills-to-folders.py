@@ -135,6 +135,8 @@ SKILL_MAPPING: dict[str, str] = {
     "adr-consultation": "process",
     # research/ — investigation, analysis, decisions
     "research-pipeline": "research",
+    "markdown-converter": "research",
+    "video-transcript": "research",
     "data-analysis": "research",
     "architecture-deepening": "research",
     "codebase-analyzer": "research",
