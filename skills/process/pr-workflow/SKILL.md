@@ -91,6 +91,9 @@ routing:
     - "send to github"
     - "wrap up and merge"
     - "wrap this up and merge"
+    - "decision brief"
+    - "owner decision brief"
+    - "authorization tier"
   category: git-workflow
   pairs_with:
     - verification-before-completion
@@ -119,6 +122,7 @@ Detect the user's intent and load the appropriate reference file:
 | **CI check** | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `${CLAUDE_SKILL_DIR}/references/ci-check.md` |
 | **Commit** | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `${CLAUDE_SKILL_DIR}/references/commit.md` |
 | **Codex review** | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `${CLAUDE_SKILL_DIR}/references/codex-review.md` |
+| **Decision brief** | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `${CLAUDE_SKILL_DIR}/references/owner-decision-briefs.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 
@@ -137,6 +141,7 @@ Detect the user's intent and load the appropriate reference file:
 | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `ci-check.md` | **CI check** |
 | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `commit.md` | **Commit** |
 | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `codex-review.md` | **Codex review** |
+| "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `owner-decision-briefs.md` | **Decision brief** |
 
 ## Mandatory PR Body Structure
 

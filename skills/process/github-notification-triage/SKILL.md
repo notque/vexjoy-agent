@@ -1,6 +1,6 @@
 ---
 name: github-notification-triage
-description: "Triage GitHub notifications and report actions needed."
+description: "Triage GitHub notifications and issue/PR queues."
 user-invocable: false
 context: fork
 allowed-tools:
@@ -14,6 +14,9 @@ routing:
     - check notifications
     - notification cleanup
     - github inbox
+    - triage issues
+    - triage pull requests
+    - pr queue
   pairs_with: []
   complexity: Simple
   category: github
@@ -76,6 +79,14 @@ When invoked on a schedule (no interactive user), use both flags to auto-clear a
 ```bash
 python3 scripts/github-notification-triage.py --mark-read --save
 ```
+
+## Issue/PR Queue Triage
+
+When the task is triaging a queue of issues or PRs (not just notifications), report one card per item using the contract in [references/item-card-contract.md](references/item-card-contract.md):
+
+- URL-first card with fields: what, why, author trust, fit, risk, proof state, blocker, next action.
+- Label each next action **Autonomous** or **Needs-owner**.
+- Pass the clean-checkout gate (`git status --short` empty) before any local work on an item.
 
 ## Exit Codes
 
