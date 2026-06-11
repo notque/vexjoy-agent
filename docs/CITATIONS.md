@@ -1,3 +1,10 @@
+---
+summary: "Provenance of external patterns and repos that shaped the toolkit."
+read_when:
+  - "tracing where a pattern came from"
+  - "adding an externally inspired component"
+---
+
 # Citations
 
 Patterns, repos, and sources that shaped the toolkit. This includes external influences and original innovations developed through trial and error. Keeping provenance clear helps future sessions understand why things work the way they do.

@@ -1,3 +1,9 @@
+---
+summary: "Non-developer intro: describe work in plain English, the router does the rest."
+read_when:
+  - "introducing the toolkit to a non-developer"
+---
+
 # For Knowledge Workers
 
 ## What This Gives You

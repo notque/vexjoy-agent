@@ -1,3 +1,10 @@
+---
+summary: "Full spec for every hook-injected context tag and its required behavior."
+read_when:
+  - "a tagged context block appears in a session"
+  - "adding or changing an injected tag"
+---
+
 # Injected Context Contracts
 
 The hook layer and Claude Code platform inject tagged context blocks into every session. Each tag is a behavioral directive, not informational text. This document is the full specification for every injected tag the toolkit defines.

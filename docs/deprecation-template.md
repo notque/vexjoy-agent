@@ -1,3 +1,9 @@
+---
+summary: "Record form a human fills when retiring a skill or agent."
+read_when:
+  - "retiring a skill or agent"
+---
+
 # Deprecation Template
 
 A short record a human copies when retiring a skill or agent. The
