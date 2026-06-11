@@ -36,7 +36,7 @@ prnum=$(gh pr view "$PR" --json number --jq .number)
 contrib=$(gh pr view "$PR" --json author --jq .author.login)
 base=$(gh pr view "$PR" --json baseRefName --jq .baseRefName)
 head=$(gh pr view "$PR" --json headRefName --jq .headRefName)
-head_repo_url=$(gh pr view "$PR" --json headRepository --jq .headRepository.url)
+head_repo_url=$(gh api "repos/{owner}/{repo}/pulls/$prnum" --jq .head.repo.clone_url)
 ```
 
 **Gate**: `state` is `OPEN`; variables captured.
@@ -104,7 +104,8 @@ Skip this step when Step 4 changed nothing.
 A dedicated `prhead` remote targets the head repo directly, so the push works whether the PR comes from a fork or a same-repo branch. `--force-with-lease` rejects the push if the remote moved, protecting contributor commits you have not seen:
 
 ```bash
-git remote add prhead "$head_repo_url.git" 2>/dev/null || git remote set-url prhead "$head_repo_url.git"
+git remote add prhead "$head_repo_url" 2>/dev/null || git remote set-url prhead "$head_repo_url"
+git fetch prhead "$head"   # create the tracking ref so the lease has a real baseline
 git push --force-with-lease prhead "HEAD:$head"
 ```
 
