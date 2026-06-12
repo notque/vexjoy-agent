@@ -318,6 +318,8 @@ Neither tier replaces the other. Pipeline: deterministic first, fix, LLM evaluat
 
 **Test:** Did Tier 1 run and pass before Tier 2 graded? LLM scores on artifacts that fail deterministic checks are wasted tokens.
 
+**Ceiling-bound evals judge nothing.** An A/B where the baseline scores at or near ceiling returns a null verdict on the eval, not the variant. Two in-house cases: the Go token-bucket density run (every arm passed build/vet/race — no effect measurable) and the fact-check skill round 1 (dead tie 19/19 catches both arms on an easy corpus; the hardened corpus — distractor sources, unit drift, false-alarm traps — separated the arms and the skill passed its pre-registered bar; evidence: `docs/what-didnt-work.md` 2026-06-12 entry, PR #811). Before accepting a null result, check the baseline's score against ceiling; harden the corpus until the baseline drops below it.
+
 ### Anti-Rationalization as Infrastructure
 
 The biggest risk: rationalization. "Already done" (assumption). "Code looks correct" (looking, not testing). "Should work" (should, not does). Auto-injected into every code modification, review, security, and testing task. An agent can rationalize past an instruction. It cannot rationalize past an exit code.
