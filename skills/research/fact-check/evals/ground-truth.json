@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "labels": ["Verified", "Disputed", "Unverifiable", "Missing-source"],
+  "seeded_error_types": [
+    "fabricated-quote",
+    "stale-stat",
+    "misattribution",
+    "unsupported-claim",
+    "contradicted-fact",
+    "premature-result"
+  ],
+  "notes": "All entities are fictional; verification must run against the source files in each fixture directory only. seeded_error null = clean claim. A 'finding' for scoring = any claim whose label is not Verified.",
+  "fixtures": [
+    {
+      "id": "01-meridian-launch",
+      "article": "article.md",
+      "sources": ["source-press-release.md", "source-q1-update.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Meridian Labs launched Atlas Edge on March 3, 2026.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-press-release.md: release dated March 3, 2026 announcing GA of Atlas Edge."
+        },
+        {
+          "id": "C2",
+          "claim": "The launch caps a two-year development effort by the 40-person startup.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-press-release.md: 'two-year development effort by the company's 40-person team'."
+        },
+        {
+          "id": "C3",
+          "claim": "CEO Dana Whitfield said: 'Atlas Edge cuts inference cost in half for every customer.'",
+          "label": "Disputed",
+          "seeded_error": "fabricated-quote",
+          "evidence": "source-press-release.md: actual quote is 'Atlas Edge cuts inference cost by a third for our median customer' — magnitude and scope both altered."
+        },
+        {
+          "id": "C4",
+          "claim": "Atlas Edge now runs in 7,500 active deployments.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-q1-update.md: 7,500 was the January 2026 private-beta figure; current figure is 12,000 as of May 2026."
+        },
+        {
+          "id": "C5",
+          "claim": "Atlas Edge supports fully on-prem deployment.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-press-release.md: 'ships with support for fully on-prem deployment'."
+        },
+        {
+          "id": "C6",
+          "claim": "Meridian raised a $30 million Series B.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions funding."
+        },
+        {
+          "id": "C7",
+          "claim": "Meridian plans to double its engineering team by year end.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions hiring plans."
+        }
+      ]
+    },
+    {
+      "id": "02-harbor-sleep-study",
+      "article": "article.md",
+      "sources": ["source-study-abstract.md", "source-institute-statement.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Participants sleeping less than six hours showed 22% higher error rates on attention tasks.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-study-abstract.md: '22% higher error rates on attention tasks' for under-six-hour sleepers."
+        },
+        {
+          "id": "C2",
+          "claim": "The study was led by Dr. Mark Ellison.",
+          "label": "Disputed",
+          "seeded_error": "misattribution",
+          "evidence": "source-study-abstract.md: lead author is Dr. Priya Raman; source-institute-statement.md: Ellison states 'Dr. Raman designed the study and led the analysis'."
+        },
+        {
+          "id": "C3",
+          "claim": "The study tracked 480 shift workers over twelve weeks using wrist actigraphy and nightly task batteries.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-study-abstract.md: methods match exactly."
+        },
+        {
+          "id": "C4",
+          "claim": "After two weeks of longer sleep, participants' error rates returned to baseline.",
+          "label": "Unverifiable",
+          "seeded_error": "premature-result",
+          "evidence": "source-study-abstract.md: recovery follow-up is underway, results expected late 2026; source-institute-statement.md: recovery-arm results 'have not yet been analyzed'."
+        },
+        {
+          "id": "C5",
+          "claim": "The study cost $2 million and is the institute's largest sleep project to date.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions cost or project ranking."
+        }
+      ]
+    },
+    {
+      "id": "03-linden-parks-budget",
+      "article": "article.md",
+      "sources": ["source-council-minutes.md", "source-budget-document.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "The council approved a $4.2 million parks and recreation budget at its April 14 meeting.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-council-minutes.md: $4.2M budget approved April 14, 2026 (Resolution 26-118)."
+        },
+        {
+          "id": "C2",
+          "claim": "The vote was unanimous.",
+          "label": "Disputed",
+          "seeded_error": "contradicted-fact",
+          "evidence": "source-council-minutes.md: vote was 6 in favor, 1 opposed (Castellanos)."
+        },
+        {
+          "id": "C3",
+          "claim": "Councilmember Ruiz said: 'This budget doubles library funding.'",
+          "label": "Disputed",
+          "seeded_error": "fabricated-quote",
+          "evidence": "source-council-minutes.md: actual quote is 'This budget restores weekend hours at every branch library'; source-budget-document.md: library funding rises 9%, not 100%."
+        },
+        {
+          "id": "C4",
+          "claim": "The budget includes $600,000 for trail maintenance.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-budget-document.md: trail maintenance line item $600,000."
+        },
+        {
+          "id": "C5",
+          "claim": "Trail maintenance is the largest single line item outside facility staffing.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-budget-document.md: $600,000 exceeds every line except facility staffing ($1.75M)."
+        },
+        {
+          "id": "C6",
+          "claim": "Two new public pools will be built, with construction starting this summer.",
+          "label": "Disputed",
+          "seeded_error": "contradicted-fact",
+          "evidence": "source-budget-document.md and source-council-minutes.md: even the aquatic-facility feasibility study is deferred to FY28; no pool construction is funded."
+        }
+      ]
+    },
+    {
+      "id": "04-crestline-extension",
+      "article": "article.md",
+      "sources": ["source-agency-update.md", "source-press-kit-2025.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Daily ridership stands at 14,000.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-press-kit-2025.md: 14,000 was the November 2025 opening figure; source-agency-update.md: 18,400 as of April 2026."
+        },
+        {
+          "id": "C2",
+          "claim": "The project is run by director Lena Cho, a 20-year veteran of the agency.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-agency-update.md: Cho leads the project and 'has served the agency for 20 years'."
+        },
+        {
+          "id": "C3",
+          "claim": "Mayor Otis said: 'Crestline opens the eastern corridor to rail for the first time.'",
+          "label": "Disputed",
+          "seeded_error": "misattribution",
+          "evidence": "source-agency-update.md: the quote belongs to project director Lena Cho."
+        },
+        {
+          "id": "C4",
+          "claim": "The extension's final cost came in at $310 million.",
+          "label": "Unverifiable",
+          "seeded_error": "premature-result",
+          "evidence": "source-press-kit-2025.md: $310M is a projection 'subject to final accounting'; source-agency-update.md: certified costs expected Q4 2026."
+        }
+      ]
+    },
+    {
+      "id": "05-ridgeline-wetlands-grant",
+      "article": "article.md",
+      "sources": ["source-grant-announcement.md", "source-program-faq.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Ridgeline announced a $5 million grant program for coastal wetlands restoration spanning three states.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-grant-announcement.md: $5M, three states."
+        },
+        {
+          "id": "C2",
+          "claim": "Program lead Sofia Marsh said: 'Wetlands will end coastal flooding within a decade.'",
+          "label": "Disputed",
+          "seeded_error": "fabricated-quote",
+          "evidence": "source-grant-announcement.md: actual quote is 'Wetlands are the cheapest flood insurance a coastline can buy...' — the claimed sentence appears nowhere."
+        },
+        {
+          "id": "C3",
+          "claim": "Funds will be disbursed over four years, with annual progress reviews.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-program-faq.md: four-year disbursement gated by annual reviews."
+        },
+        {
+          "id": "C4",
+          "claim": "Nine universities will receive funding under the program.",
+          "label": "Unverifiable",
+          "seeded_error": "premature-result",
+          "evidence": "source-program-faq.md: recipient list finalized July 2026, 'no recipients are confirmed'; eligible applicants also include conservation nonprofits."
+        },
+        {
+          "id": "C5",
+          "claim": "Ridgeline has a $2 billion endowment.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions the endowment."
+        }
+      ]
+    },
+    {
+      "id": "06-volt-pixelforge-merger",
+      "article": "article.md",
+      "sources": ["source-merger-release.md", "source-roster-page.md"],
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Volt Gaming announced its acquisition of Pixel Forge on May 20, 2026.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-merger-release.md: dated May 20, 2026."
+        },
+        {
+          "id": "C2",
+          "claim": "The combined organization fields 11 competitive teams across six titles.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-merger-release.md: 11 teams was the at-closing figure; source-roster-page.md (June 8, 2026): now 13 teams across seven titles."
+        },
+        {
+          "id": "C3",
+          "claim": "Pixel Forge CEO Mira Chen said: 'Two rosters, one badge — our fans get twice the matches that matter.'",
+          "label": "Disputed",
+          "seeded_error": "misattribution",
+          "evidence": "source-merger-release.md: that quote belongs to Volt CEO Andre Boateng; Chen's quote is about academy players."
+        },
+        {
+          "id": "C4",
+          "claim": "The deal is valued at $90 million.",
+          "label": "Unverifiable",
+          "seeded_error": "unsupported-claim",
+          "evidence": "source-merger-release.md: 'Financial terms were not disclosed' — the source engages the topic and declines to confirm."
+        },
+        {
+          "id": "C5",
+          "claim": "Volt, founded in 2018, grew from a single fighting-game roster.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-merger-release.md: 'founded in 2018 as a single fighting-game roster'."
+        }
+      ]
+    }
+  ]
+}
