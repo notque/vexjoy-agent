@@ -22,6 +22,8 @@ Format: one `## YYYY-MM-DD <experiment>` section with the four bold fields below
 - **Decision**: rejected | deferred | revisit-if <condition>.
 ```
 
+Add new entries under the Post-seed experiments section; a CI test pins the seed-entry count (evidence: PR #798).
+
 Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or run `/retro what-didnt-work` (prints the file; optionally mirrors a one-line pointer into learning.db for FTS search). Check it before re-running an experiment.
 
 ---
