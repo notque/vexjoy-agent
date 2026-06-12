@@ -120,6 +120,16 @@ The text report gives a human-readable summary. Save it for reference during Ste
 | Structure | Fragment rate, sentence starters by type | Structural patterns |
 | Function words | Top 20 function word frequencies | Unconscious language fingerprint |
 
+#### Add Stylometry Bands and Decay Metadata
+
+```bash
+python3 scripts/voice-stylometry.py band \
+  --samples skills/voice-{name}/references/samples/*.md \
+  > /tmp/stylometry.json
+```
+
+Merge the output's top-level keys into `profile.json`: `stylometry` (burstiness band + punctuation classes measured from the samples), `analyzed_at`, and `refresh_after_days` (default 90). These fields are add-only; profiles without them stay valid. The voice-validator uses them for deterministic draft checks and stale-profile warnings.
+
 #### Verify the Output
 
 Read `profile.json` and confirm it contains all expected sections. If the script exits non-zero, check Python 3 availability, sample file readability, and file paths (glob expansion can be tricky).
