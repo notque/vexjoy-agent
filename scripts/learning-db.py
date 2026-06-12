@@ -15,7 +15,8 @@ Usage:
     python3 scripts/learning-db.py import --from-patterns ~/.claude/learning/patterns.db
     python3 scripts/learning-db.py graduate TOPIC KEY TARGET
     python3 scripts/learning-db.py boost TOPIC KEY [--delta 0.15]
-    python3 scripts/learning-db.py prune --below-confidence 0.3 --older-than 90
+    python3 scripts/learning-db.py prune --category error --dry-run
+    python3 scripts/learning-db.py prune --topic unknown --max-confidence 0.5 --older-than 90 --apply
     python3 scripts/learning-db.py stale [--min-age-days 30] [--json]
     python3 scripts/learning-db.py stale-prune --dry-run [--min-age-days 30]
     python3 scripts/learning-db.py stale-prune --confirm [--min-age-days 30]
@@ -66,7 +67,6 @@ from learning_db_v2 import (
     import_from_retro,
     init_db,
     mark_graduated,
-    prune,
     query_instruction_skip_rate,
     query_learnings,
     record_learning,
@@ -210,10 +210,96 @@ def cmd_decay(args):
     print(f"Decayed: {args.topic}/{args.key} → confidence {new_conf:.2f}")
 
 
+# Rows always protected from prune: graduated entries and the routing/effectiveness
+# rows that route-weights and route-health read.
+_PRUNE_PROTECT_SQL = "graduated_to IS NULL AND NOT (topic = 'routing' AND category = 'effectiveness')"
+
+
+def build_prune_filter(
+    category: str | None = None,
+    topic: str | None = None,
+    max_confidence: float | None = None,
+    older_than: int | None = None,
+) -> tuple[str, list]:
+    """Build the WHERE clause and bound params for a prune run.
+
+    Filters compose with AND. Protection clauses (graduated, routing weights)
+    are always included. Raises ValueError when no filter is given — a
+    filterless prune would match the whole table.
+    """
+    clauses = [_PRUNE_PROTECT_SQL]
+    params: list = []
+    if category is not None:
+        clauses.append("category = ?")
+        params.append(category)
+    if topic is not None:
+        clauses.append("topic = ?")
+        params.append(topic)
+    if max_confidence is not None:
+        clauses.append("confidence <= ?")
+        params.append(max_confidence)
+    if older_than is not None:
+        cutoff = (datetime.now() - timedelta(days=older_than)).isoformat()
+        clauses.append("last_seen < ?")
+        params.append(cutoff)
+    if not params:
+        raise ValueError("prune requires at least one filter (--category/--topic/--max-confidence/--older-than)")
+    return " AND ".join(clauses), params
+
+
 def cmd_prune(args):
-    """Remove low-confidence old entries (legacy destructive delete)."""
-    count = prune(args.below_confidence, args.older_than)
-    print(f"Pruned {count} entries (confidence < {args.below_confidence}, older than {args.older_than} days)")
+    """Filtered prune of learnings. Dry-run by default; --apply deletes + VACUUM.
+
+    Never touches graduated rows or routing/effectiveness rows (read by
+    route-weights and route-health). FTS stays consistent via the
+    learnings_ad delete trigger; VACUUM reclaims space after --apply.
+    """
+    max_confidence = args.max_confidence if args.max_confidence is not None else args.below_confidence
+    try:
+        where, params = build_prune_filter(
+            category=args.category,
+            topic=args.topic,
+            max_confidence=max_confidence,
+            older_than=args.older_than,
+        )
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(2)
+
+    init_db()
+    with get_connection() as conn:
+        total_before = conn.execute("SELECT COUNT(*) FROM learnings").fetchone()[0]
+        # `where` is built only from fixed clauses; all user values are bound as ? params.
+        matched = conn.execute(f"SELECT COUNT(*) FROM learnings WHERE {where}", params).fetchone()[
+            0
+        ]  # security-review: ignore (fixed clauses; user values bound as ?)
+        breakdown = conn.execute(
+            f"SELECT category, topic, COUNT(*) AS n FROM learnings WHERE {where} "  # security-review: ignore (fixed clauses; user values bound as ?)
+            "GROUP BY category, topic ORDER BY n DESC",
+            params,
+        ).fetchall()
+
+        print(f"Total learnings before: {total_before}")
+        print(f"Matched for prune: {matched} (graduated and routing/effectiveness rows always excluded)")
+        if breakdown:
+            print("By category/topic:")
+            for row in breakdown:
+                print(f"  [{row['category']}] {row['topic']:30s} {row['n']}")
+
+        if not args.apply:
+            print()
+            print("DRY RUN — nothing deleted. Re-run with --apply to delete.")
+            print("Back up the database first: cp <db> <db>.bak-$(date +%Y%m%d)")
+            return
+
+        cursor = conn.execute(
+            f"DELETE FROM learnings WHERE {where}", params
+        )  # security-review: ignore (fixed clauses; user values bound as ?)
+        deleted = cursor.rowcount
+        conn.commit()
+        total_after = conn.execute("SELECT COUNT(*) FROM learnings").fetchone()[0]
+        conn.execute("VACUUM")
+    print(f"Deleted {deleted} entries. Total learnings: {total_before} -> {total_after}.")
 
 
 def _query_stale_entries(conn: sqlite3.Connection, min_age_days: int) -> list[dict]:
@@ -1560,10 +1646,16 @@ def main():
     p_decay.add_argument("--delta", type=float, default=0.10)
     p_decay.set_defaults(func=cmd_decay)
 
-    # prune (legacy destructive delete)
-    p_prune = subparsers.add_parser("prune", help="Remove low-confidence old entries (destructive delete)")
-    p_prune.add_argument("--below-confidence", type=float, default=0.3)
-    p_prune.add_argument("--older-than", type=int, default=90, help="Days")
+    # prune — filtered delete, dry-run by default
+    p_prune = subparsers.add_parser("prune", help="Filtered prune of learnings (dry-run default; --apply deletes)")
+    p_prune.add_argument("--category", help="Filter by category (e.g., error)")
+    p_prune.add_argument("--topic", help="Filter by topic (e.g., unknown)")
+    p_prune.add_argument("--max-confidence", type=float, default=None, help="Match rows with confidence <= N")
+    p_prune.add_argument("--below-confidence", type=float, default=None, help="Deprecated alias for --max-confidence")
+    p_prune.add_argument("--older-than", type=int, default=None, help="Match rows with last_seen older than N days")
+    p_prune_mode = p_prune.add_mutually_exclusive_group()
+    p_prune_mode.add_argument("--dry-run", action="store_true", help="Preview counts (default)")
+    p_prune_mode.add_argument("--apply", action="store_true", help="Delete matched rows, then VACUUM")
     p_prune.set_defaults(func=cmd_prune)
 
     # stale (show stale entries)
