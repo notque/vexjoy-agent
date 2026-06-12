@@ -1,0 +1,144 @@
+{
+  "description": "Ground truth for fixture-feed.json. Categories: junk (4), fresh-original (5), syndicated-stale (3), big-story-offtopic (2), same-story-duplicates (4: two clusters of two).",
+  "category_counts": {
+    "junk": 4,
+    "fresh-original": 5,
+    "syndicated-stale": 3,
+    "big-story-offtopic": 2,
+    "same-story-duplicates": 4
+  },
+  "duplicate_clusters": [
+    {"canonical": "n02", "duplicates": ["n06"]},
+    {"canonical": "n11", "duplicates": ["n13"]}
+  ],
+  "items": {
+    "n01": {
+      "category": "fresh-original",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": false,
+      "notes": "On-topic original, metadata timestamp inside window, corroborated."
+    },
+    "n02": {
+      "category": "same-story-duplicates",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": true,
+      "notes": "Canonical of cluster A (recall/safety story). High magnitude within topic."
+    },
+    "n03": {
+      "category": "junk",
+      "expected_verdict": "reject",
+      "expected_freshness": null,
+      "never_reject": false,
+      "notes": "Sponsored stock-promo listicle. RC-SPAM."
+    },
+    "n04": {
+      "category": "syndicated-stale",
+      "expected_verdict": "keep",
+      "expected_freshness": "stale",
+      "never_reject": false,
+      "notes": "Wire repost; canonical_url points off-domain; first-public 2026-06-02, page date today. Must be flagged stale, first-public inherited from wire original."
+    },
+    "n05": {
+      "category": "fresh-original",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": false,
+      "notes": "Regulatory approval, original, corroborated, inside window."
+    },
+    "n06": {
+      "category": "same-story-duplicates",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "expected_duplicates_of": "n02",
+      "never_reject": false,
+      "notes": "Syndicated copy of n02 (canonical_url + wire credit + identical body). Consolidate into n02."
+    },
+    "n07": {
+      "category": "junk",
+      "expected_verdict": "reject",
+      "expected_freshness": null,
+      "never_reject": false,
+      "notes": "Vendor advertorial. RC-SPAM."
+    },
+    "n08": {
+      "category": "big-story-offtopic",
+      "expected_verdict": "monitor_only",
+      "expected_freshness": "fresh",
+      "never_reject": true,
+      "notes": "Off-topic but high magnitude (supply-chain shock). Floor: monitor_only, RC-OFFTOPIC-BIG. Rejecting this item fails the eval."
+    },
+    "n09": {
+      "category": "syndicated-stale",
+      "expected_verdict": "keep",
+      "expected_freshness": "stale",
+      "never_reject": false,
+      "notes": "Aggregator wrapper ('read more at'); underlying story first-public 2026-05-28. Stale despite today's page date. monitor_only also acceptable at filter stage; stale flag is the scored outcome."
+    },
+    "n10": {
+      "category": "fresh-original",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": false,
+      "notes": "Original commercial deal, inside window, corroborated."
+    },
+    "n11": {
+      "category": "same-story-duplicates",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": true,
+      "notes": "Canonical of cluster B (federal guidance). High magnitude within topic."
+    },
+    "n12": {
+      "category": "junk",
+      "expected_verdict": "reject",
+      "expected_freshness": null,
+      "never_reject": false,
+      "notes": "Paywall stub: no body, no date, no byline. RC-NOCONTENT. If kept, published_at must be null with disclosed unknown."
+    },
+    "n13": {
+      "category": "same-story-duplicates",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "expected_duplicates_of": "n11",
+      "never_reject": false,
+      "notes": "Same-story restatement of n11: no new facts, no new source, event not advanced. Consolidate into n11."
+    },
+    "n14": {
+      "category": "syndicated-stale",
+      "expected_verdict": "keep",
+      "expected_freshness": "stale",
+      "never_reject": false,
+      "notes": "Wire repost of 2026-06-01 incident carrying today's page date. First-public inherited from wire original; stale."
+    },
+    "n15": {
+      "category": "fresh-original",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": false,
+      "notes": "Original, author null (disclosed), timestamp extracted from JSON-LD only — confidence medium, fact gaps disclosed."
+    },
+    "n16": {
+      "category": "junk",
+      "expected_verdict": "reject",
+      "expected_freshness": null,
+      "never_reject": false,
+      "notes": "Topic-adjacent wording, zero industry relevance, low magnitude. RC-IRRELEVANT. Tests keyword-match false positives."
+    },
+    "n17": {
+      "category": "big-story-offtopic",
+      "expected_verdict": "monitor_only",
+      "expected_freshness": "fresh",
+      "never_reject": true,
+      "notes": "Off-topic but market-moving with stated energy-financing spillover. Floor: monitor_only, RC-OFFTOPIC-BIG. Rejecting this item fails the eval."
+    },
+    "n18": {
+      "category": "fresh-original",
+      "expected_verdict": "keep",
+      "expected_freshness": "fresh",
+      "never_reject": false,
+      "notes": "Original data release, inside window, corroborated."
+    }
+  }
+}
