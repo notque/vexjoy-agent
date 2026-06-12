@@ -148,6 +148,7 @@ _REJECTION_PATTERNS = [
 # anchored so a substring cannot trip them.
 _ACCEPTANCE_PATTERNS = [
     r"\b(thanks|thank you|thx|great|perfect|looks good|lgtm|nice work|well done|that worked)\b",
+    r"\b(works now|that fixed it|that did it|good job)\b",
     r"\b(merge it|ship it|ship that|approve|approved)\b",
 ]
 
@@ -159,6 +160,32 @@ _INSTRUCTIONAL_CUE_PATTERNS = [
     r"\b(should|when|whether|explain|document|how to|can you|try)\b",
     r"(?:^|\W)if\b",
 ]
+
+# ACCEPTANCE-BOOST GUARDS (precision over recall — mirror of the rejection
+# detector's asymmetric-cost rule, inverted): a MISSED acceptance stays NEUTRAL,
+# the T4 floor (no harm); a FALSE acceptance boosts a route on a NEW-task prompt,
+# inflating exactly the silent-success share acceptance detection exists to
+# shrink. So the boost path (`is_acceptance`) fires only when the acceptance
+# clause LEADS the prompt (first clause) or stands alone, AND:
+#   - no negation token in the clause ("not perfect", "doesn't work")
+#   - the clause does not open with a task verb ("make a great landing page",
+#     "write the perfect README" — markers buried in new task text)
+#   - no instructional/conditional cue ("can you make it perfect", "if it
+#     looks good then merge")
+#   - the clause is terse (<= _MAX_ACCEPTANCE_CLAUSE_WORDS words) — genuine
+#     reactions are short; long clauses are task descriptions.
+# The looser `_ACCEPTANCE_RE` alone still serves acceptance PRECEDENCE inside
+# `is_rejection` (there a loose match only prevents a decay — the safe side).
+_NEGATION_RE = re.compile(
+    r"\b(not|no|never|hardly|isn'?t|wasn'?t|aren'?t|doesn'?t|don'?t|didn'?t|can'?t|won'?t)\b",
+    re.IGNORECASE,
+)
+_TASK_VERB_LEAD_RE = re.compile(
+    r"^\s*(make|build|write|add|create|fix|update|implement|refactor|run|generate"
+    r"|design|deploy|install|set up|remove|delete|rename|move|check)\b",
+    re.IGNORECASE,
+)
+_MAX_ACCEPTANCE_CLAUSE_WORDS = 8
 
 _REJECTION_RE = re.compile("|".join(_REJECTION_PATTERNS), re.IGNORECASE)
 _ACCEPTANCE_RE = re.compile("|".join(_ACCEPTANCE_PATTERNS), re.IGNORECASE)
@@ -242,11 +269,25 @@ def is_acceptance(prompt: str) -> bool:
     success. So this detector decides boost-vs-neutral; ``is_rejection`` decides
     the failure path. Same clause-scoping and word-boundary anchoring as
     ``is_rejection`` so a substring (e.g. "great" inside "greater") never trips
-    it. Returns False on empty / non-string input.
+    it, PLUS the boost-path guards (negation, leading task verb, instructional
+    cue, clause-length cap — see the guard block above): a false boost inflates
+    the silent-success share, so when in any doubt return False (=> NEUTRAL).
+    Returns False on empty / non-string input.
     """
     if not prompt or not isinstance(prompt, str):
         return False
-    return bool(_ACCEPTANCE_RE.search(_first_clause(prompt)))
+    first = _first_clause(prompt)
+    if not _ACCEPTANCE_RE.search(first):
+        return False
+    if len(first.split()) > _MAX_ACCEPTANCE_CLAUSE_WORDS:
+        return False  # task description, not a terse reaction
+    if _NEGATION_RE.search(first):
+        return False  # "not perfect", "doesn't work", "no thanks"
+    if _TASK_VERB_LEAD_RE.match(first):
+        return False  # marker buried in new task text
+    if _INSTRUCTIONAL_CUE_RE.search(first):
+        return False  # "can you make it perfect", "if it looks good …"
+    return True
 
 
 def main() -> None:
@@ -359,11 +400,13 @@ def main() -> None:
                 outcome = "success"
             else:
                 outcome = "neutral"
-            # Basis is the failure-axis evidence label (errors > rejection >
+            # Basis is the evidence label (errors > rejection > acceptance >
             # no-complaint), recorded as a per-route counter for route-health's
-            # silent-success report. Label-only: it never changes the boost/
-            # decay/no-op the three-way outcome drives.
-            basis = outcome_basis(bool(item.get("errors")), reaction_failure)
+            # silent-success report. acceptance_detected marks a boost earned by
+            # an explicit positive marker — strong feedback, not silence.
+            # Label-only: it never changes the boost/decay/no-op the three-way
+            # outcome drives.
+            basis = outcome_basis(bool(item.get("errors")), reaction_failure, reaction_success)
             new_conf = apply_outcome(key, outcome, basis=basis)
             # Short, secret-free cause for this dispatch's outcome. Computed
             # unconditionally (not debug-only) so the JSONL OUTCOME event carries

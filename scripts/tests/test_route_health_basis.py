@@ -149,6 +149,7 @@ def test_json_zero_basis_no_divide_by_zero(db_env):
     assert data["basis"] == {
         "rejection_detected": 0,
         "tool_errors_only": 0,
+        "acceptance_detected": 0,
         "default_no_complaint": 0,
     }
     assert data["silent_success_share"] is None
