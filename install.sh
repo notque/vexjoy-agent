@@ -2241,17 +2241,39 @@ echo ""
 echo -e "${YELLOW}Setting permissions...${NC}"
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 644 on docs/*.md${NC}"
-    echo -e "${BLUE}  Would set 755 on hooks/*.py${NC}"
-    echo -e "${BLUE}  Would set 755 on scripts/*.py${NC}"
+    echo -e "${BLUE}  Would set 755 on mirrored hooks/scripts *.py under runtime directories${NC}"
+    echo -e "${BLUE}    - ~/.claude/hooks, ~/.claude/scripts${NC}"
+    echo -e "${BLUE}    - ~/.codex/hooks, ~/.codex/scripts${NC}"
+    echo -e "${BLUE}    - ~/.factory/hooks, ~/.factory/scripts${NC}"
+    echo -e "${BLUE}    - ~/.hermes/scripts${NC}"
+    echo -e "${BLUE}    - ~/.reasonix/hooks, ~/.reasonix/scripts${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
 else
+    set_mirror_python_permissions() {
+        local target_dir="$1"
+        local path
+        [ -d "$target_dir" ] || return 0
+        while IFS= read -r -d '' path; do
+            chmod 755 "$path" 2>/dev/null || true
+        done < <(find "$target_dir" -type f -name "*.py" -print0 2>/dev/null)
+    }
+
+    # NOTE: Mirror-runtime paths only to avoid mutating checked-out sources.
+    set_mirror_python_permissions "$CLAUDE_DIR/hooks"
+    set_mirror_python_permissions "$CLAUDE_DIR/scripts"
+    set_mirror_python_permissions "$CODEX_HOOKS_DIR"
+    set_mirror_python_permissions "$CODEX_SCRIPTS_DIR"
+    set_mirror_python_permissions "$FACTORY_HOOKS_DIR"
+    set_mirror_python_permissions "$FACTORY_SCRIPTS_DIR"
+    set_mirror_python_permissions "$HERMES_SCRIPTS_DIR"
+    set_mirror_python_permissions "$REASONIX_HOOKS_DIR"
+    set_mirror_python_permissions "$REASONIX_SCRIPTS_DIR"
+
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
-    find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
-    find "${SCRIPT_DIR}/scripts" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
     # Harden ~/.claude/ sensitive files (ADR-122)
     chmod 700 "${CLAUDE_DIR}" 2>/dev/null || true
     chmod 600 "${SETTINGS_FILE}" 2>/dev/null || true
