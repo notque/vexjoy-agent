@@ -226,6 +226,8 @@ python3 ~/.claude/scripts/learning-db.py learn --topic negative-results \
   "YYYY-MM-DD <experiment>: <decision> - see docs/what-didnt-work.md"
 ```
 
+**Batching learn calls**: run `learning-db.py learn` calls individually or chained with `&&`, then confirm via `learning-db.py search`. A single failing command in a plain multi-line Bash batch silently drops the rest (observed 2026-06-12).
+
 This reuses the existing `learn` command (no new code). Confirm with either:
 
 ```bash
