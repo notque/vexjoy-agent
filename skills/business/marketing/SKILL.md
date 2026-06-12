@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Marketing workflows — SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting. Use when auditing SEO, planning campaigns, creating content strategy, building email sequences, or analyzing marketing performance.
+description: "Marketing: SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting."
 routing:
   triggers:
     - "marketing"

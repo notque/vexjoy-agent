@@ -1,6 +1,6 @@
 ---
 name: product-management
-description: Product management workflows — feature specs, roadmap planning, stakeholder updates, user research synthesis, competitive analysis, metrics review, sprint planning. Use when writing specs, updating roadmaps, briefing stakeholders, synthesizing research, or reviewing product metrics.
+description: "Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning."
 routing:
   triggers:
     - "product management"
