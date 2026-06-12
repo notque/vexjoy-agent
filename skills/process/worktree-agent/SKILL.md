@@ -48,6 +48,8 @@ If `git checkout -b <branch-name>` fails with "X is already used by worktree at 
 git checkout -b <branch-name>-$(date +%s)
 ```
 
+To update a branch held by another worktree (e.g. an existing PR branch): work detached from `origin/<branch>` and push with `git push origin HEAD:<branch>`. `gh pr merge`'s post-merge local-checkout errors are harmless.
+
 ## Rule 3: Use Worktree-Relative Paths
 
 Never hardcode absolute paths from the main repo. Use `$(git rev-parse --show-toplevel)/path`.

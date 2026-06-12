@@ -25,6 +25,8 @@ else:                                                       -> agent + skill dir
 
 Build `roster` from the Phase-3 enhancement signals, scaled by `tier`. **Each entry is `{agentType, skills: [...], lens}` — `skills` is a LIST carrying the FULL Phase-3 stack a direct dispatch would build.** Per agent, emit one `Skill("<name>")` per `skills` element and the four /do mandatory injections. Native forms: `comprehensive-review-workflow.js` (named pipeline), `fan-out-workflow.js` (generic Complex/tier-4). Both pseudocode gates (env proxy AND the orchestrator's own tool-list self-check) must hold; a `pick` with no registry entry is prose-only.
 
+**File ownership batching:** batch fan-out items by file ownership before opening PRs — branches touching the same file merge serially and each later one goes CONFLICTING (evidence: PRs #789/#791/#793 each added rows to pr-workflow SKILL.md, costing a remediation wave). Put shared-file items on one branch or declare a merge order.
+
 **Banner parity (R4):** expand the pipeline name → phase list for the routing banner on BOTH paths, so it reads identically regardless of executor (e.g. complexity-trigger fan-out shows `fan-out → synthesize`).
 
 **Step 1c (inline-authored Workflow scripts): when the user explicitly asks to "run through a workflow" with no named pipeline `pick`, the orchestrator MUST dictate roster size and skill stacks — never delegate those to the Workflow tool** (whose defaults skew toward many-skeptic adversarial fan-outs and rarely emit `Skill(...)`). Before any inline `script:`, build the same `roster` Step 1b uses and pin:

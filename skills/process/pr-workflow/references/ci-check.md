@@ -120,6 +120,9 @@ This reference only checks CI status. For local debugging of test failures, hand
 2. If not authenticated, suggest `gh auth login`
 3. Check if GITHUB_TOKEN environment variable is set as alternative
 
+### Conflicting PR: "no checks reported"
+A same-repo PR in `mergeable=CONFLICTING` state fires no workflow run on push, so `gh pr checks` shows "no checks reported" — a missing run, not a failure. Merge `origin/main` into the branch first; CI triggers on that push. (Evidence: PRs #789/#791/#797, 2026-06-11.)
+
 ### Error: "No workflow runs found"
 **Cause**: Workflow not triggered, branch has no workflows, or checked too early
 **Solution**:
