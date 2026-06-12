@@ -54,7 +54,7 @@ Show learning system health summary.
 python3 ~/.claude/scripts/learning-db.py stats
 ```
 
-**Step 2**: Present status report.
+**Step 2**: Present status report. Present high-confidence counts with the category breakdown; error spam inflates per-row confidence (pruning 5119 noise rows dropped high-conf 4201→564, 2026-06-12).
 
 ```
 LEARNING SYSTEM STATUS
