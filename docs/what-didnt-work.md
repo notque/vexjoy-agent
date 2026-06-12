@@ -32,6 +32,13 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 Experiments recorded after the seed set. Same four bold fields; `###` headings keep the seed-count checks in `scripts/tests/test_negative_results_registry.py` stable. Newest on top.
 
+### 2026-06-12 fact-check skill blind A/B on the original (easy) eval corpus
+
+- **Expectation**: a skill carrying journalist-grade verification methodology beats a bare sonnet baseline on a 6-fixture closed-book claim-verification corpus.
+- **What happened**: dead tie, 19/19 catches, 0/0 false alarms, 28/28 labels both arms. The corpus was ceiling-bound: obvious seeded errors, 2 sources per fixture, every claim settled by direct lookup, so methodology had nothing to add. A hardened corpus (distractor sources, unit/timeframe drift, context-stripped quotes, genuine source conflicts, false-alarm traps; 46 claims) separated the arms: skill passed the pre-registered bar with catches 34 vs 33, FA 2-2, label-correct 38 vs 32. The skill's measured edge is adjudication-vocabulary discipline, not raw catch rate.
+- **Evidence**: workflow runs `wf_ebaac077-b9c` (round 1) and `wf_e65eb0da-6f1` (round 2); eval corpus in PR #811.
+- **Decision**: rejected the easy corpus, kept the skill. Rule of thumb validated: a null A/B verdict on an easy corpus judges the eval, not the variant. Harden until the baseline drops below ceiling before accepting a null.
+
 ### 2026-06-11 review-contract-provenance port from steipete/agent-scripts
 
 - **Expectation**: an explicit review contract plus git provenance commands (master-list rank 4+5: Review Contract + provenance method into `systematic-code-review`; contributor trust block into `parallel-code-review`) beats the baseline review skills in a blind A/B.
