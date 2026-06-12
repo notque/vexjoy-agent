@@ -299,10 +299,11 @@ class TestStalePruneSubcommand:
 class TestExistingSubcommands:
     """Verify existing subcommands still work after changes."""
 
-    def test_legacy_prune_still_works(self) -> None:
+    def test_legacy_prune_flags_now_dry_run(self) -> None:
+        """Legacy flags still parse; prune is now dry-run by default (no delete)."""
         result = _run_cli("prune", "--below-confidence", "0.3", "--older-than", "90")
         assert result.returncode == 0
-        assert "Pruned" in result.stdout
+        assert "DRY RUN" in result.stdout
 
     def test_stats_still_works(self) -> None:
         result = _run_cli("stats")
