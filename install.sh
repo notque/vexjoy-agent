@@ -231,14 +231,14 @@ _symlink_points_to() {
 }
 
 clean_codex_hooks_mirror_if_looped() {
-    local hook_dir=$1
-    local hook_source_dir=$2
+    local hook_dir="$1"
+    local hook_source_dir="$2"
 
     if [ -z "$hook_dir" ] || [ -z "$hook_source_dir" ]; then
         return
     fi
 
-    if [ -L "$hook_dir" ] && _symlink_points_to "$hook_dir" "$hook_source_dir"; then
+    if _symlink_points_to "$hook_dir" "$hook_source_dir"; then
         if [ "$DRY_RUN" = true ]; then
             echo -e "${YELLOW}  Would remove stale Codex hooks mirror symlink: ${hook_dir}${NC}"
             echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
@@ -246,7 +246,7 @@ clean_codex_hooks_mirror_if_looped() {
         fi
         echo -e "${YELLOW}  Removing stale Codex hooks mirror symlink: ${hook_dir}${NC}"
         echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
-        rm -rf "$hook_dir"
+        unlink "$hook_dir"
     fi
 }
 
