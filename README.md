@@ -10,7 +10,7 @@ AI agents skip steps.
 
 Harnesses have a second problem: given only a skill list, they do not route eagerly enough, or correctly enough. Good skills sit unused. So this toolkit connects the skills, agents, and workflows we want directly into the harness, automatically. You don't have to understand what is here. Say what you want in plain English and you get all the value we have put into it: the right specialist with the right methodology, behind gates that demand exit codes, not assertions.
 
-44 domain agents, 129 workflow skills, 83 hooks, 123 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+44 domain agents, 130 workflow skills, 83 hooks, 123 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 

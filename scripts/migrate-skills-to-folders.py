@@ -74,6 +74,7 @@ SKILL_MAPPING: dict[str, str] = {
     # frontend/
     "distinctive-frontend-design": "frontend",
     "frontend-slides": "frontend",
+    "text-animation": "frontend",
     "threejs-builder": "frontend",
     "webgl-card-effects": "frontend",
     # game/
