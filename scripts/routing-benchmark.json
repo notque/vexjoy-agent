@@ -1,5 +1,5 @@
 {
-  "version": "1.2",
+  "version": "1.3",
   "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change. routing_tier classifies how strictly the router is expected to match: force_route (script must fire correct force_route), candidate (correct answer in top-3), llm_only (no false-positive force-route expected).",
   "test_cases": [
     {
@@ -555,6 +555,102 @@
       "category": "meta-tooling",
       "routing_tier": "force_route",
       "notes": "Build-a-skill intent \u2014 force-route fires on single trigger 'build a skill' (medium confidence)"
+    },
+    {
+      "request": "fact check this article before we publish",
+      "expected_agent": null,
+      "expected_skill": "fact-check",
+      "category": "research",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger 'fact check' \u2014 fact-check appears in top-3 candidates (not force-routed)"
+    },
+    {
+      "request": "verify the claims in this draft against the sources",
+      "expected_agent": null,
+      "expected_skill": "fact-check",
+      "category": "research",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger overlap with 'verify claims' \u2014 fact-check is top candidate"
+    },
+    {
+      "request": "make sure nothing in this draft is wrong before I post it",
+      "expected_agent": null,
+      "expected_skill": "fact-check",
+      "category": "research",
+      "routing_tier": "llm_only",
+      "notes": "Zero trigger keywords \u2014 LLM must recognize pre-publish claim verification as fact-check. Script correctly does not force-route."
+    },
+    {
+      "request": "check if these unit tests cover the facts table",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "'facts' is a database table, not claim verification \u2014 must NOT route to fact-check"
+    },
+    {
+      "request": "give me headline options for this post",
+      "expected_agent": null,
+      "expected_skill": "headlines",
+      "category": "content-creation",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger 'headline' \u2014 headlines is top candidate (not force-routed)"
+    },
+    {
+      "request": "draft a subject line for the newsletter",
+      "expected_agent": null,
+      "expected_skill": "headlines",
+      "category": "content-creation",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger 'subject line' \u2014 headlines is top candidate"
+    },
+    {
+      "request": "what should I call this piece so people actually click it",
+      "expected_agent": null,
+      "expected_skill": "headlines",
+      "category": "content-creation",
+      "routing_tier": "llm_only",
+      "notes": "Zero trigger keywords \u2014 LLM must recognize title-finding intent as headlines. Script correctly does not force-route."
+    },
+    {
+      "request": "summarize the headline figures from the quarterly report",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "'headline figures' means top-line numbers, not titles \u2014 must NOT route to headlines"
+    },
+    {
+      "request": "collect news items for tomorrow's briefing",
+      "expected_agent": null,
+      "expected_skill": "news-collection",
+      "category": "research",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger 'collect news' \u2014 news-collection is top candidate (not force-routed)"
+    },
+    {
+      "request": "run news triage on this morning's feed",
+      "expected_agent": null,
+      "expected_skill": "news-collection",
+      "category": "research",
+      "routing_tier": "candidate",
+      "notes": "Direct trigger 'news triage' \u2014 news-collection is top candidate"
+    },
+    {
+      "request": "pull together what happened this week in the industry and keep only the recent stuff",
+      "expected_agent": null,
+      "expected_skill": "news-collection",
+      "category": "research",
+      "routing_tier": "llm_only",
+      "notes": "Zero trigger keywords \u2014 LLM must recognize collect-and-freshness-filter intent as news-collection. Script correctly does not force-route."
+    },
+    {
+      "request": "collect the news about our test failures from CI logs",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "llm_only",
+      "notes": "Gathering CI failure context, not a news pipeline \u2014 must NOT route to news-collection ('the' breaks the 'collect news' trigger)"
     }
   ]
 }

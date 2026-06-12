@@ -8,6 +8,7 @@ Three tiers of tests:
 
 from __future__ import annotations
 
+import importlib
 import json
 import subprocess
 import sys
@@ -18,6 +19,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 BENCHMARK = REPO_ROOT / "scripts" / "routing-benchmark.json"
 ROUTER = REPO_ROOT / "scripts" / "index-router.py"
+BENCHMARK_SCRIPT = REPO_ROOT / "scripts" / "routing-benchmark.py"
+
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+routing_benchmark = importlib.import_module("routing-benchmark")
 
 
 def load_benchmark() -> list[dict]:
@@ -297,3 +302,43 @@ class TestPreRoute:
             assert result.get("agent") == expected_agent, (
                 f"Expected agent={expected_agent!r}, got {result.get('agent')!r}. Reasoning: {result.get('reasoning')}"
             )
+
+
+class TestCoverageReport:
+    """Advisory benchmark-coverage report in routing-benchmark.py.
+
+    Warn-Only Gates (docs/PHILOSOPHY.md): the report names skills with zero
+    benchmark coverage but never fails the run — coverage gaps exit 0.
+    """
+
+    def test_compute_coverage_splits_known_skills(self) -> None:
+        """Skills referenced by expected_skill are covered; the rest are not."""
+        cases = [{"expected_skill": "fact-check"}, {"expected_skill": None}]
+        covered, uncovered = routing_benchmark.compute_coverage(cases, {"fact-check", "headlines"})
+        assert covered == {"fact-check"}
+        assert uncovered == {"headlines"}
+
+    def test_compute_coverage_counts_stacked_skills(self) -> None:
+        """Skills referenced via expected_stacked count as covered."""
+        cases = [{"expected_skill": None, "expected_stacked": ["go-patterns"]}]
+        covered, uncovered = routing_benchmark.compute_coverage(cases, {"go-patterns"})
+        assert covered == {"go-patterns"}
+        assert uncovered == set()
+
+    def test_compute_coverage_ignores_unknown_references(self) -> None:
+        """A reference to a skill missing from INDEX lands in neither set."""
+        cases = [{"expected_skill": "ghost-skill"}]
+        covered, uncovered = routing_benchmark.compute_coverage(cases, {"headlines"})
+        assert covered == set()
+        assert uncovered == {"headlines"}
+
+    def test_coverage_flag_exits_zero_despite_gaps(self) -> None:
+        """--coverage prints the advisory report and never fails on gaps."""
+        result = subprocess.run(
+            [sys.executable, str(BENCHMARK_SCRIPT), "--coverage"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, f"--coverage must exit 0, got {result.returncode}: {result.stderr}"
+        assert "Coverage (advisory):" in result.stdout

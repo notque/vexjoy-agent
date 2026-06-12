@@ -6,9 +6,14 @@ in the benchmark test fixture actually exist in the INDEX.json files. This is a
 STRUCTURAL benchmark — it checks that routing targets are valid, not that the LLM
 routes correctly.
 
+Also offers an ADVISORY coverage report (--coverage, included in --verbose):
+skills in skills/INDEX.json that no benchmark case references. Warn-Only Gates
+(docs/PHILOSOPHY.md): coverage gaps are printed but never affect the exit code.
+
 Usage:
     python3 scripts/routing-benchmark.py
     python3 scripts/routing-benchmark.py --verbose
+    python3 scripts/routing-benchmark.py --coverage
     python3 scripts/routing-benchmark.py --category go-development
     python3 scripts/routing-benchmark.py --fixture path/to/custom.json
 
@@ -110,19 +115,69 @@ def validate_test_case(
     return errors
 
 
-def run_benchmark(fixture_path: Path, *, verbose: bool = False, category_filter: str | None = None) -> bool:
+def compute_coverage(test_cases: list[dict], skills: set[str]) -> tuple[set[str], set[str]]:
+    """Split known skills into benchmark-covered and uncovered sets.
+
+    A skill counts as covered when any test case names it in expected_skill
+    or expected_stacked. References to unknown skills are ignored — validity
+    is the benchmark's job, not coverage's.
+
+    Args:
+        test_cases: Benchmark test case dicts.
+        skills: Skill names from skills/INDEX.json.
+
+    Returns:
+        Tuple of (covered, uncovered) skill name sets.
+    """
+    referenced: set[str] = set()
+    for case in test_cases:
+        skill = case.get("expected_skill")
+        if skill:
+            referenced.add(skill)
+        referenced.update(case.get("expected_stacked") or [])
+    return skills & referenced, skills - referenced
+
+
+def print_coverage_report(test_cases: list[dict], skills: set[str]) -> None:
+    """Print the advisory coverage report: skills no benchmark case references.
+
+    Warn-Only Gates (docs/PHILOSOPHY.md): advisory only — never changes the
+    exit code. Blocking on coverage would need its own ADR.
+
+    Args:
+        test_cases: Benchmark test case dicts (unfiltered).
+        skills: Skill names from skills/INDEX.json.
+    """
+    covered, uncovered = compute_coverage(test_cases, skills)
+    print()
+    print(f"Coverage (advisory): {len(covered)}/{len(skills)} skills referenced by benchmark cases")
+    if uncovered:
+        print(f"Uncovered skills ({len(uncovered)}):")
+        for name in sorted(uncovered):
+            print(f"  - {name}")
+
+
+def run_benchmark(
+    fixture_path: Path,
+    *,
+    verbose: bool = False,
+    category_filter: str | None = None,
+    show_coverage: bool = False,
+) -> bool:
     """Run the routing benchmark and report results.
 
     Args:
         fixture_path: Path to the benchmark JSON fixture.
         verbose: Show per-test-case results.
         category_filter: Only run test cases in this category.
+        show_coverage: Print the advisory coverage report after the summary.
 
     Returns:
         True if all test cases pass, False otherwise.
     """
     fixture = load_json(fixture_path)
     test_cases: list[dict] = fixture.get("test_cases", [])
+    all_cases = test_cases  # coverage is fixture-wide, immune to --category
 
     if not test_cases:
         print("ERROR: No test cases found in fixture", file=sys.stderr)
@@ -205,6 +260,10 @@ def run_benchmark(fixture_path: Path, *, verbose: bool = False, category_filter:
             for err in errors:
                 print(f"    -> {err}")
 
+    # Advisory coverage report — never affects the return value
+    if show_coverage:
+        print_coverage_report(all_cases, skills)
+
     return fail_count == 0
 
 
@@ -237,9 +296,19 @@ Examples:
         default=None,
         help="Only run test cases in this category",
     )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Print advisory skill-coverage report (also shown with --verbose); gaps never fail the run",
+    )
 
     args = parser.parse_args()
-    success = run_benchmark(args.fixture, verbose=args.verbose, category_filter=args.category)
+    success = run_benchmark(
+        args.fixture,
+        verbose=args.verbose,
+        category_filter=args.category,
+        show_coverage=args.coverage or args.verbose,
+    )
     sys.exit(0 if success else 1)
 
 
