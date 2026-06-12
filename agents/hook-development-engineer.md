@@ -175,6 +175,19 @@ See [references/code-examples.md](references/code-examples.md) for detailed spec
 ## Error Handling and Preferred Patterns
 
 See [references/preferred-patterns.md](references/preferred-patterns.md) for the full pattern catalog: blocking on errors, synchronous heavy operations, direct database writes, registering before deploying, unguarded `main()`, UserPromptSubmit agent-context injection, and the atomic write pattern with code examples.
+
+### Reaction-Detector Design Pattern
+
+When a hook classifies free text into an outcome (e.g., accept/reject), decide the asymmetric cost first: which false direction is cheap? A missed acceptance stays neutral — safe. A false acceptance corrupts telemetry. Gate the expensive direction with stacked precision guards:
+
+1. Marker leads the prompt (acceptance marker must appear at the start).
+2. Negation veto (negation near the marker stays neutral).
+3. Leading-task-verb veto (a prompt that opens with a task verb is a new instruction; stays neutral).
+4. Conditional/instructional-cue veto ("if", "when", "should" cues stay neutral).
+5. Short-clause cap (long clauses after the marker stay neutral).
+
+Require golden fixtures in both directions: every marker fires, every veto case stays neutral. Evidence: `hooks/routing-outcome-finalizer.py`, PR #804.
+
 ## Anti-Rationalization
 
 ### Domain-Specific Rationalizations
