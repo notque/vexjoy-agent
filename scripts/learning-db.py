@@ -1241,7 +1241,7 @@ def cmd_skip_rate(args: argparse.Namespace) -> None:
         print("No instructions flagged. Threshold: >20% skip rate over 30+ observations.")
 
 
-_BASIS_LABELS = ("rejection_detected", "tool_errors_only", "default_no_complaint")
+_BASIS_LABELS = ("rejection_detected", "tool_errors_only", "acceptance_detected", "default_no_complaint")
 
 
 def _read_basis_counts() -> dict[str, int]:
@@ -1295,7 +1295,7 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     # = an observed signal scored the outcome; default-success = success on
     # silence (upper bound on silent success, NOT confirmed silent failures).
     basis = _read_basis_counts()
-    strong = basis["rejection_detected"] + basis["tool_errors_only"]
+    strong = basis["rejection_detected"] + basis["tool_errors_only"] + basis["acceptance_detected"]
     default_success = basis["default_no_complaint"]
     basis_total = strong + default_success
     silent_share = (default_success / basis_total) if basis_total else None
@@ -1353,6 +1353,7 @@ def cmd_route_health(args: argparse.Namespace) -> None:
         print(f"Outcome basis: {strong} strong-feedback vs {default_success} default-success")
         print(f"  rejection_detected   {basis['rejection_detected']}")
         print(f"  tool_errors_only     {basis['tool_errors_only']}")
+        print(f"  acceptance_detected  {basis['acceptance_detected']}")
         print(f"  default_no_complaint {basis['default_no_complaint']}")
         print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
     print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
