@@ -222,7 +222,7 @@ The loop is designed, not incidental. `scripts/validate-doc-counts.py` runs as a
 
 ## Components Earn Their Keep
 
-One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 130 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
+One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 131 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
 
 Hooks need this governance most: a hook is the easiest component to create and the hardest to manage. Managing, correcting, and retiring hooks is named, recurring debt. The detector seed exists — the hook-health CI job (`scripts/validate-hook-health.py`, gating in `.github/workflows/test.yml`) — and the route-events/learning instrumentation pattern generalizes to hook firings. A hook nobody can attribute a benefit to is shelf-ware with side effects — worse than a shelf-ware skill, because it executes.
 
@@ -317,6 +317,8 @@ Instructions tell the reader what to do, not what to avoid. Compare these two fr
 Neither tier replaces the other. Pipeline: deterministic first, fix, LLM evaluation, fix, final score.
 
 **Test:** Did Tier 1 run and pass before Tier 2 graded? LLM scores on artifacts that fail deterministic checks are wasted tokens.
+
+**Ceiling-bound evals judge nothing.** An A/B where the baseline scores at or near ceiling returns a null verdict on the eval, not the variant. Two in-house cases: the Go token-bucket density run (every arm passed build/vet/race — no effect measurable) and the fact-check skill round 1 (dead tie 19/19 catches both arms on an easy corpus; the hardened corpus — distractor sources, unit drift, false-alarm traps — separated the arms and the skill passed its pre-registered bar; evidence: `docs/what-didnt-work.md` 2026-06-12 entry, PR #811). Before accepting a null result, check the baseline's score against ceiling; harden the corpus until the baseline drops below it.
 
 ### Anti-Rationalization as Infrastructure
 
