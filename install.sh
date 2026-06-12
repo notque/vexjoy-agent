@@ -230,6 +230,26 @@ _symlink_points_to() {
     [ "$(_canonical_path "$actual")" = "$(_canonical_path "$expected")" ]
 }
 
+clean_codex_hooks_mirror_if_looped() {
+    local hook_dir="$1"
+    local hook_source_dir="$2"
+
+    if [ -z "$hook_dir" ] || [ -z "$hook_source_dir" ]; then
+        return
+    fi
+
+    if _symlink_points_to "$hook_dir" "$hook_source_dir"; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${YELLOW}  Would remove stale Codex hooks mirror symlink: ${hook_dir}${NC}"
+            echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
+            return
+        fi
+        echo -e "${YELLOW}  Removing stale Codex hooks mirror symlink: ${hook_dir}${NC}"
+        echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
+        unlink "$hook_dir"
+    fi
+}
+
 # unlink_skills_nested TARGET — tear down a nested skills tree built by
 # link_skills_nested, preserving any external (non-toolkit) entries.
 # Removes only symlinks; for category dirs, removes the per-skill symlinks we
@@ -1592,6 +1612,8 @@ CODEX_HOOK_COUNT=0
 CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
 
 if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
+    clean_codex_hooks_mirror_if_looped "$CODEX_HOOKS_DIR" "${SCRIPT_DIR}/hooks"
+
     # Ensure hooks directory exists
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would create: ${CODEX_HOOKS_DIR}${NC}"
@@ -2219,17 +2241,39 @@ echo ""
 echo -e "${YELLOW}Setting permissions...${NC}"
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 644 on docs/*.md${NC}"
-    echo -e "${BLUE}  Would set 755 on hooks/*.py${NC}"
-    echo -e "${BLUE}  Would set 755 on scripts/*.py${NC}"
+    echo -e "${BLUE}  Would set 755 on mirrored hooks/scripts *.py under runtime directories${NC}"
+    echo -e "${BLUE}    - ~/.claude/hooks, ~/.claude/scripts${NC}"
+    echo -e "${BLUE}    - ~/.codex/hooks, ~/.codex/scripts${NC}"
+    echo -e "${BLUE}    - ~/.factory/hooks, ~/.factory/scripts${NC}"
+    echo -e "${BLUE}    - ~/.hermes/scripts${NC}"
+    echo -e "${BLUE}    - ~/.reasonix/hooks, ~/.reasonix/scripts${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
 else
+    set_mirror_python_permissions() {
+        local target_dir="$1"
+        local path
+        [ -d "$target_dir" ] || return 0
+        while IFS= read -r -d '' path; do
+            chmod 755 "$path" 2>/dev/null || true
+        done < <(find "$target_dir" -type f -name "*.py" -print0 2>/dev/null)
+    }
+
+    # NOTE: Mirror-runtime paths only to avoid mutating checked-out sources.
+    set_mirror_python_permissions "$CLAUDE_DIR/hooks"
+    set_mirror_python_permissions "$CLAUDE_DIR/scripts"
+    set_mirror_python_permissions "$CODEX_HOOKS_DIR"
+    set_mirror_python_permissions "$CODEX_SCRIPTS_DIR"
+    set_mirror_python_permissions "$FACTORY_HOOKS_DIR"
+    set_mirror_python_permissions "$FACTORY_SCRIPTS_DIR"
+    set_mirror_python_permissions "$HERMES_SCRIPTS_DIR"
+    set_mirror_python_permissions "$REASONIX_HOOKS_DIR"
+    set_mirror_python_permissions "$REASONIX_SCRIPTS_DIR"
+
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
-    find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
-    find "${SCRIPT_DIR}/scripts" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
     # Harden ~/.claude/ sensitive files (ADR-122)
     chmod 700 "${CLAUDE_DIR}" 2>/dev/null || true
     chmod 600 "${SETTINGS_FILE}" 2>/dev/null || true
