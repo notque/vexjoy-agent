@@ -1,6 +1,6 @@
 ---
 name: opensearch-detection-engineer
-description: "OpenSearch detection engineering: SIGMA authoring, query DSL translation, MITRE ATT&CK mapping, anomaly detection, correlation rules, SOC incident escalation. Use for SIEM detection authoring, threshold tuning, alert validation, and Tier-1/Tier-2 escalation workflows."
+description: "OpenSearch SIEM detection: SIGMA, query DSL, MITRE ATT&CK mapping, anomaly/correlation rules, alert validation, SOC escalation."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

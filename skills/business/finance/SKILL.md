@@ -1,6 +1,6 @@
 ---
 name: finance
-description: Finance and accounting workflows — journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing. Use when preparing journal entries, reconciling accounts, analyzing variances, generating statements, or supporting audits.
+description: "Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing."
 routing:
   triggers:
     - "finance"

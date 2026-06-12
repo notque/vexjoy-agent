@@ -1,6 +1,6 @@
 ---
 name: operations
-description: "Business operations workflows — vendor management, runbooks, process documentation, risk assessment, capacity planning, change management, compliance tracking. Use when reviewing vendors, writing runbooks, documenting processes, assessing risk, planning capacity, or managing change."
+description: "Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking."
 routing:
   triggers:
     - "operations"
