@@ -230,6 +230,26 @@ _symlink_points_to() {
     [ "$(_canonical_path "$actual")" = "$(_canonical_path "$expected")" ]
 }
 
+clean_codex_hooks_mirror_if_looped() {
+    local hook_dir=$1
+    local hook_source_dir=$2
+
+    if [ -z "$hook_dir" ] || [ -z "$hook_source_dir" ]; then
+        return
+    fi
+
+    if [ -L "$hook_dir" ] && _symlink_points_to "$hook_dir" "$hook_source_dir"; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${YELLOW}  Would remove stale Codex hooks mirror symlink: ${hook_dir}${NC}"
+            echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
+            return
+        fi
+        echo -e "${YELLOW}  Removing stale Codex hooks mirror symlink: ${hook_dir}${NC}"
+        echo -e "${YELLOW}  (points back into source hooks: ${hook_source_dir})${NC}"
+        rm -rf "$hook_dir"
+    fi
+}
+
 # unlink_skills_nested TARGET — tear down a nested skills tree built by
 # link_skills_nested, preserving any external (non-toolkit) entries.
 # Removes only symlinks; for category dirs, removes the per-skill symlinks we
@@ -1592,6 +1612,8 @@ CODEX_HOOK_COUNT=0
 CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
 
 if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
+    clean_codex_hooks_mirror_if_looped "$CODEX_HOOKS_DIR" "${SCRIPT_DIR}/hooks"
+
     # Ensure hooks directory exists
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}  Would create: ${CODEX_HOOKS_DIR}${NC}"
