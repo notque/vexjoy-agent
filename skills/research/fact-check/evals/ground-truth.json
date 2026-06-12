@@ -1,0 +1,405 @@
+{
+  "version": 2,
+  "labels": ["Verified", "Disputed", "Unverifiable", "Missing-source"],
+  "seeded_error_types": [
+    "unit-timeframe-drift",
+    "meaning-shift-paraphrase",
+    "context-stripped-quote",
+    "wrong-source-citation",
+    "secondary-source-distortion",
+    "stale-stat",
+    "source-conflict",
+    "uncorroborated-low-tier",
+    "no-source-settles",
+    "unsupported-claim"
+  ],
+  "notes": "All entities are fictional; verification must run against the source files in each fixture directory only. seeded_error null = clean claim. A 'finding' for scoring = any claim whose label is not Verified. Every fixture contains at least one DISTRACTOR source that superficially supports a false claim; 'notes' on a claim explains why direct lookup fails and what method catches it. Verified claims marked trap=true in notes look wrong on a shallow read — they test false alarms.",
+  "fixtures": [
+    {
+      "id": "01-meridian-launch",
+      "article": "article.md",
+      "sources": ["source-press-release.md", "source-q1-update.md", "source-techwire-coverage.md", "source-earnings-letter.md"],
+      "distractor": "source-techwire-coverage.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Meridian Labs launched Atlas Edge on March 3, 2026.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-press-release.md: release dated March 3, 2026 announcing GA of Atlas Edge."
+        },
+        {
+          "id": "C2",
+          "claim": "Quarterly revenue hit $8 million.",
+          "label": "Disputed",
+          "seeded_error": "unit-timeframe-drift",
+          "evidence": "source-earnings-letter.md: 'annualized revenue run rate crossed $8 million during the quarter' — the $8M is an annualized run rate, not quarterly revenue (quarterly would be ~$2M).",
+          "notes": "Direct lookup fails: '$8 million', 'revenue', and 'Q1' all appear together in the letter, so a keyword match confirms the claim. Catching it requires reading the figure's unit — run rate vs quarterly — not just its value."
+        },
+        {
+          "id": "C3",
+          "claim": "CEO Dana Whitfield said: 'Atlas Edge cuts inference cost in half for every customer.'",
+          "label": "Disputed",
+          "seeded_error": "secondary-source-distortion",
+          "evidence": "source-press-release.md (primary): actual quote is 'cuts inference cost by a third for our median customer'. source-techwire-coverage.md prints the altered version.",
+          "notes": "Direct lookup fails: the quoted sentence appears verbatim in the TechWire piece, so a search 'verifies' it. Source-tier climbing catches it: the primary press release the article covers has different words, and the secondary outlet is the one that distorted them."
+        },
+        {
+          "id": "C4",
+          "claim": "Atlas Edge now runs in 7,500 active deployments.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-q1-update.md: 7,500 was the January 2026 private-beta figure; May 2026 figure is 12,000. source-techwire-coverage.md repeats 7,500 as if current at launch.",
+          "notes": "Direct lookup fails: 7,500 appears in two sources, which looks like corroboration. Lateral reading plus staleness checking catch it: both mentions trace to the same beta-era figure, and the newest source from the same origin supersedes it."
+        },
+        {
+          "id": "C5",
+          "claim": "Atlas Edge supports fully on-prem deployment.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-press-release.md: 'ships with support for fully on-prem deployment'."
+        },
+        {
+          "id": "C6",
+          "claim": "According to the company's May customer update, the team has grown to 60 people.",
+          "label": "Disputed",
+          "seeded_error": "wrong-source-citation",
+          "evidence": "source-q1-update.md (the cited May update) says nothing about headcount; source-earnings-letter.md settles it: headcount is 52.",
+          "notes": "Direct lookup fails if the checker stops at 'cited source is silent' and labels Missing-source. The method requires sweeping the other provided sources: a different source settles the figure, and it contradicts the claim."
+        },
+        {
+          "id": "C7",
+          "claim": "Meridian raised a $30 million Series B.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions funding."
+        },
+        {
+          "id": "C8",
+          "claim": "Atlas Edge is the fastest edge runtime on the market.",
+          "label": "Unverifiable",
+          "seeded_error": "no-source-settles",
+          "evidence": "source-earnings-letter.md engages the topic: third-party benchmarks underway, results expected Q3; the company itself makes no comparative claims. Engaged but unsettled — not Missing-source."
+        }
+      ]
+    },
+    {
+      "id": "02-harbor-sleep-study",
+      "article": "article.md",
+      "sources": ["source-study-abstract.md", "source-institute-statement.md", "source-newsdesk-summary.md", "source-author-interview.md"],
+      "distractor": "source-newsdesk-summary.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Error rates among short sleepers nearly doubled on attention tasks.",
+          "label": "Disputed",
+          "seeded_error": "secondary-source-distortion",
+          "evidence": "source-study-abstract.md (primary): 22% higher error rates, relative. source-newsdesk-summary.md says 'nearly doubled' — the distortion the article copied.",
+          "notes": "Direct lookup fails: the newsdesk summary supports 'nearly doubled' word for word. Tier climbing catches it: the preprint abstract is the origin and says 22%."
+        },
+        {
+          "id": "C2",
+          "claim": "Raman said 'You'd conclude shift work is safe — the raw error rates look modest', playing down the findings.",
+          "label": "Disputed",
+          "seeded_error": "context-stripped-quote",
+          "evidence": "source-author-interview.md: exact words, right speaker — but the full sentence is a hypothetical she immediately refutes ('But once we controlled... the deficit was unmistakable'). The article deploys it to mean the opposite.",
+          "notes": "Direct lookup fails: words and speaker both check out verbatim. Only the third quote axis — original context — catches it: the surrounding transcript reverses the meaning the article gives the quote."
+        },
+        {
+          "id": "C3",
+          "claim": "The study tracked 480 shift workers over twelve weeks using wrist actigraphy and nightly task batteries.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-study-abstract.md: methods match exactly."
+        },
+        {
+          "id": "C4",
+          "claim": "Sleeping under six hours causes a 22% rise in attention errors.",
+          "label": "Disputed",
+          "seeded_error": "meaning-shift-paraphrase",
+          "evidence": "source-study-abstract.md: 'was associated with' — an observational association. source-institute-statement.md: 'causal claims would be premature'. The paraphrase upgrades association to causation.",
+          "notes": "Direct lookup fails: the 22% figure and both nouns match the abstract. The catch is reading what the paraphrase changed — 'associated with' became 'causes' — which a number-matching pass never sees."
+        },
+        {
+          "id": "C5",
+          "claim": "After two weeks of longer sleep, participants' error rates returned to baseline.",
+          "label": "Unverifiable",
+          "seeded_error": "no-source-settles",
+          "evidence": "source-study-abstract.md: recovery arm underway, results expected late 2026; source-institute-statement.md: 'not yet analyzed'; source-author-interview.md: 'still in the field'. Sources engage; none settles."
+        },
+        {
+          "id": "C6",
+          "claim": "More than 90% of participants completed the full protocol.",
+          "label": "Disputed",
+          "seeded_error": "source-conflict",
+          "evidence": "Genuine conflict: source-institute-statement.md says completion 'ran above 90%'; source-study-abstract.md (primary) says 412 of 480 completed = 85.8%. Report both; the primary is higher-tier.",
+          "notes": "Direct lookup fails: the institute statement confirms the claim outright. Triangulation catches it: the primary abstract's own count contradicts the press office, and conflict between credible sources adjudicates to Disputed, not Verified."
+        },
+        {
+          "id": "C7",
+          "claim": "The study cost $2 million and is the institute's largest sleep project to date.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions cost. ('Largest cohort in our history' in the statement does not address cost or project ranking by size of budget.)"
+        },
+        {
+          "id": "C8",
+          "claim": "Short-sleep participants averaged 5.2 hours of sleep on work nights.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-study-abstract.md: exact figure. trap=true: the distractor newsdesk says 'under five hours' — a checker leaning on the secondary source false-alarms here; the primary confirms 5.2."
+        }
+      ]
+    },
+    {
+      "id": "03-linden-parks-budget",
+      "article": "article.md",
+      "sources": ["source-council-minutes.md", "source-budget-document.md", "source-mayor-newsletter.md", "source-staff-memo.md"],
+      "distractor": "source-mayor-newsletter.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "The council approved a $4.6 million parks and recreation budget at its April 14 meeting.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-mayor-newsletter.md (pre-vote) touts the proposed $4.6M; source-council-minutes.md: a floor amendment cut the total to $4.2M before adoption; source-budget-document.md confirms $4.2M adopted.",
+          "notes": "Direct lookup fails: '$4.6 million parks and recreation budget' matches the newsletter. The catch is timeline reading: the newsletter predates the vote, and the primary record (minutes, adopted budget) supersedes it."
+        },
+        {
+          "id": "C2",
+          "claim": "The vote was unanimous.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-mayor-newsletter.md predicted unanimous support; source-council-minutes.md: actual vote 6–1 (Castellanos opposed). Prediction superseded by the primary record."
+        },
+        {
+          "id": "C3",
+          "claim": "Ruiz drew a hard line: 'I will not vote for a budget that cuts pool hours' (framed as opposition).",
+          "label": "Disputed",
+          "seeded_error": "context-stripped-quote",
+          "evidence": "source-council-minutes.md: exact words, right speaker — but the next sentence is 'Fortunately, this one doesn't — it restores them. It has my vote.' Ruiz supported the budget; the article frames the quote as dissent."
+        },
+        {
+          "id": "C4",
+          "claim": "Trail maintenance funding rises 20% over last year.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "Triangulation required: source-budget-document.md FY27 trail maintenance $600,000; source-staff-memo.md FY26 actual $500,000; 500k to 600k = +20%. No single source states the percentage."
+        },
+        {
+          "id": "C5",
+          "claim": "The city budgeted $150,000 a quarter for aquatics supplies.",
+          "label": "Disputed",
+          "seeded_error": "unit-timeframe-drift",
+          "evidence": "source-budget-document.md: aquatics supplies $150,000 annual. The amount matches; the timeframe is quadrupled.",
+          "notes": "Direct lookup fails: '$150,000' and 'aquatics supplies' match the budget line exactly. Catching it requires checking the period attached to the figure — annual, not quarterly."
+        },
+        {
+          "id": "C6",
+          "claim": "The budget puts Linden on track to clear its parks maintenance backlog within two years.",
+          "label": "Unverifiable",
+          "seeded_error": "no-source-settles",
+          "evidence": "source-staff-memo.md engages: backlog is $3.1M and elimination 'depends on sustained funding through FY29', which has not been proposed. Engaged but unsettled."
+        },
+        {
+          "id": "C7",
+          "claim": "Linden's park system is the largest in the county.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source addresses county-wide park-system rankings."
+        }
+      ]
+    },
+    {
+      "id": "04-crestline-extension",
+      "article": "article.md",
+      "sources": ["source-agency-update.md", "source-press-kit-2025.md", "source-oversight-report.md", "source-mayor-remarks.md"],
+      "distractor": "source-press-kit-2025.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Daily ridership stands at 14,000.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-press-kit-2025.md: 14,000 was the November 2025 opening-week figure; source-agency-update.md: 18,400 average weekday in April 2026."
+        },
+        {
+          "id": "C2",
+          "claim": "The extension's final cost came in at $310 million.",
+          "label": "Disputed",
+          "seeded_error": "source-conflict",
+          "evidence": "Genuine conflict: source-agency-update.md says the project 'remains within its $310 million budget'; source-oversight-report.md puts total cost exposure at $338M including $28M in unsettled contractor claims and calls the agency's framing misleading. Also: certified costs not due until Q4 2026, so 'final' overstates either source.",
+          "notes": "Direct lookup fails: the agency's own update confirms $310M. Triangulation catches it: an independent, current, credible source contradicts the agency, and contradiction beats support — the label is Disputed with both sources shown."
+        },
+        {
+          "id": "C3",
+          "claim": "According to the agency's April update, trains run every six minutes at peak.",
+          "label": "Disputed",
+          "seeded_error": "wrong-source-citation",
+          "evidence": "source-agency-update.md (the cited source) says nothing about headways; source-press-kit-2025.md settles it: ten minutes at peak. The cited source is silent and a different source contradicts the figure."
+        },
+        {
+          "id": "C4",
+          "claim": "The project is run by director Lena Cho, a 20-year veteran of the agency.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-agency-update.md: Cho leads the program and 'has served the agency for 20 years'."
+        },
+        {
+          "id": "C5",
+          "claim": "Mayor Otis predicted the line 'would never carry more than ten thousand riders a day'.",
+          "label": "Disputed",
+          "seeded_error": "context-stripped-quote",
+          "evidence": "source-mayor-remarks.md: Otis spoke those exact words — quoting critics in order to refute them ('Critics said... They were wrong'). The article reverses speaker stance: he celebrated the ridership, not doubted it.",
+          "notes": "Direct lookup fails: the words appear in the mayor's transcript, from the mayor's mouth. Context verification catches it: the sentence frame ('Critics said... They were wrong') flips who held the prediction."
+        },
+        {
+          "id": "C6",
+          "claim": "The line has spurred $200 million in new development along the corridor.",
+          "label": "Unverifiable",
+          "seeded_error": "no-source-settles",
+          "evidence": "source-oversight-report.md engages: an economic-impact study is commissioned, findings due 2027, and the board cautions against citing development figures before then. Engaged but unsettled."
+        },
+        {
+          "id": "C7",
+          "claim": "Crestline is the region's first fully automated rail line.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source addresses automation."
+        },
+        {
+          "id": "C8",
+          "claim": "Ridership has grown roughly 30% since opening.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "Triangulation required: source-press-kit-2025.md opening figure 14,000; source-agency-update.md April figure 18,400; +31.4% ≈ 'roughly 30%'. trap=true: no single source states a growth rate, and the same article misuses 14,000 as current — the growth claim is still right."
+        }
+      ]
+    },
+    {
+      "id": "05-ridgeline-wetlands-grant",
+      "article": "article.md",
+      "sources": ["source-grant-announcement.md", "source-program-faq.md", "source-coastal-times-article.md"],
+      "distractor": "source-coastal-times-article.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Ridgeline will spend $5 million a year on coastal wetlands restoration.",
+          "label": "Disputed",
+          "seeded_error": "unit-timeframe-drift",
+          "evidence": "source-grant-announcement.md (primary): $5 million in total over four years. source-coastal-times-article.md repeats the '$5 million a year' misreading.",
+          "notes": "Direct lookup fails: the Coastal Times sentence matches the claim almost word for word. Tier climbing catches it: the foundation's own announcement says total over four years — the secondary outlet quadrupled the program."
+        },
+        {
+          "id": "C2",
+          "claim": "Individual grants max out at $250,000 a year per recipient.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "Triangulation required: source-grant-announcement.md caps awards at $1M per recipient over the program; source-program-faq.md disburses over four years in equal annual installments; $1M / 4 = $250,000 per year. No single source states the annual figure."
+        },
+        {
+          "id": "C3",
+          "claim": "Marsh said wetlands are a cheaper replacement for seawalls.",
+          "label": "Disputed",
+          "seeded_error": "meaning-shift-paraphrase",
+          "evidence": "source-grant-announcement.md: Marsh said wetlands 'complement hard infrastructure — they don't replace it'. The paraphrase asserts the replacement she explicitly denied. source-coastal-times-article.md's 'wetlands beat seawalls' gloss supports the false reading."
+        },
+        {
+          "id": "C4",
+          "claim": "The program spans three states.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-grant-announcement.md (January) and source-coastal-times-article.md (February) both say three states; source-program-faq.md (updated May 2026): now four states, Gulfport added in April. Two older sources agree and are both superseded.",
+          "notes": "Direct lookup fails: two of three sources confirm 'three states', which reads as solid corroboration. Staleness checking catches it: the newest same-origin source supersedes both."
+        },
+        {
+          "id": "C5",
+          "claim": "Nine universities will receive funding under the program.",
+          "label": "Unverifiable",
+          "seeded_error": "no-source-settles",
+          "evidence": "source-program-faq.md engages: no recipients confirmed, list finalized July 2026, and nonprofits are also eligible. Engaged but unsettled."
+        },
+        {
+          "id": "C6",
+          "claim": "Ridgeline has a $2 billion endowment.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source mentions the endowment."
+        },
+        {
+          "id": "C7",
+          "claim": "Disbursement is gated by annual progress reviews.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-program-faq.md: equal annual installments, each gated by an annual progress review."
+        }
+      ]
+    },
+    {
+      "id": "06-volt-pixelforge-merger",
+      "article": "article.md",
+      "sources": ["source-merger-release.md", "source-roster-page.md", "source-fan-wiki.md", "source-investor-faq.md"],
+      "distractor": "source-fan-wiki.md",
+      "claims": [
+        {
+          "id": "C1",
+          "claim": "Volt Gaming announced its acquisition of Pixel Forge on May 20, 2026.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-merger-release.md: dated May 20, 2026."
+        },
+        {
+          "id": "C2",
+          "claim": "The combined organization fields 11 competitive teams across six titles.",
+          "label": "Disputed",
+          "seeded_error": "stale-stat",
+          "evidence": "source-merger-release.md: 11 across six was the at-closing figure; source-roster-page.md (June 8, 2026): 13 teams across seven titles. source-fan-wiki.md repeats the stale 11.",
+          "notes": "Direct lookup fails: 11/six appears in two sources. The wiki copied the release; the official roster page is newer and same-origin. Lateral reading collapses the two matches into one stale origin."
+        },
+        {
+          "id": "C3",
+          "claim": "The deal is valued at $90 million.",
+          "label": "Unverifiable",
+          "seeded_error": "uncorroborated-low-tier",
+          "evidence": "Only source-fan-wiki.md carries the figure — 'reportedly', citation needed, community-edited. source-merger-release.md: 'Financial terms were not disclosed'; source-investor-faq.md: 'We do not comment on deal valuation'. Sources engage; the only support is a low-tier uncorroborated source, so nothing settles it. Not Missing-source.",
+          "notes": "Direct lookup fails: the wiki states $90 million plainly, so a shallow pass marks Verified. Tier judgment catches it: an anonymous community edit with 'citation needed' cannot carry a claim both primary sources decline to confirm."
+        },
+        {
+          "id": "C4",
+          "claim": "Per the merger release, the combined academy program fields 200 players.",
+          "label": "Disputed",
+          "seeded_error": "wrong-source-citation",
+          "evidence": "source-merger-release.md (the cited source) says nothing about academy headcount; source-investor-faq.md settles it: 80 players under contract."
+        },
+        {
+          "id": "C5",
+          "claim": "Chen admitted that 'Pixel Forge disappears into Volt'.",
+          "label": "Disputed",
+          "seeded_error": "context-stripped-quote",
+          "evidence": "source-merger-release.md: the words are Chen's, but they are the question she refutes — 'People keep asking whether Pixel Forge disappears into Volt. The honest answer is no'. The article presents her denial as an admission."
+        },
+        {
+          "id": "C6",
+          "claim": "Volt contributes more teams to the merger than Pixel Forge.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "Triangulation within the release: combined 11 teams at closing, Pixel Forge brings four, so Volt contributes seven. No sentence states the comparison directly."
+        },
+        {
+          "id": "C7",
+          "claim": "Volt, founded in 2018, grew from a single fighting-game roster.",
+          "label": "Verified",
+          "seeded_error": null,
+          "evidence": "source-merger-release.md: 'founded in 2018 as a single fighting-game roster'. trap=true: source-fan-wiki.md says 2017 — a checker that weighs the low-tier wiki against the primary release false-alarms here."
+        },
+        {
+          "id": "C8",
+          "claim": "Volt's flagship team has won back-to-back league titles.",
+          "label": "Missing-source",
+          "seeded_error": "unsupported-claim",
+          "evidence": "No provided source addresses team championships."
+        }
+      ]
+    }
+  ]
+}
