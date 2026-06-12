@@ -92,6 +92,8 @@ For each capability, confirm extracted fields: `name`, `description`, `trigger_p
 
 Review against `references/extraction-patterns.md`. Patterns must be specific enough to avoid false matches, broad enough to catch common phrasings, and free of generic terms.
 
+**Description trimming**: skill descriptions trim safely to ≤40 router-line tokens when the frontmatter `routing.triggers` array stays untouched — triggers carry routing weight independently of the description. Verify trims with `scripts/skill-sprawl-audit.py` plus the routing-benchmark and trigger-ambiguity CI jobs (evidence: PR #801, 11 trims, routing-benchmark 68/68).
+
 **Gate**: All YAML parsed successfully, required fields are present, trigger patterns are extracted for skills, and domain keywords are extracted for agents. Proceed to Phase 3 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
 
 ---
