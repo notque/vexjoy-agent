@@ -58,6 +58,27 @@ The workflow implements the **Iterative Refinement** pattern: scan → document 
 
 **Goal**: Run full checklist against content and identify all violations with evidence.
 
+**Step 0: Run deterministic stylometry checks**
+
+When the target voice has a `profile.json`, run the stylometry script first. It emits structured findings (rule_id, span, severity) that anchor the scan in measured data:
+
+```bash
+python3 scripts/voice-stylometry.py check \
+  --profile skills/voice-{name}/profile.json \
+  --draft <content-file>
+```
+
+Deterministic checks it runs:
+
+- **Burstiness band** (`burstiness.band`, warning): draft sentence-length variance must fall inside the author's measured band; uniform sentence length is an AI tell.
+- **Punctuation profile** (`punctuation.em_dash|semicolon|parenthetical`, warning): em-dash, semicolon, and parenthetical rates classified never/rare/habitual; flags drafts whose class deviates from the author's.
+- **Corrective antithesis** (`ai_tell.corrective_antithesis`, error): "not X, it's Y" constructions, inline and across sentence pairs.
+- **Temporal openers** (`ai_tell.temporal_opener`, error): throat-clearing paragraph openers ("In today's...", "In an era...", "Now more than ever...").
+- **Uniform paragraph shapes** (`ai_tell.uniform_paragraphs`, error): four or more consecutive paragraphs with identical sentence counts.
+- **Profile decay** (`profile.stale`, advisory): profile older than its `refresh_after_days` window. Advisory only — it asks for a profile refresh and never blocks the draft. Exit code stays 0 when only advisory findings exist.
+
+Exit code 1 means error/warning findings exist; carry each finding into the violation list below. Profiles without `stylometry` or decay fields skip those checks and remain valid.
+
 **Step 1: Run negative prompt checklist**
 
 Check all categories against the target voice's checklist. Standard categories include:
