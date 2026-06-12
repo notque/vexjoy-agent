@@ -1,0 +1,267 @@
+{
+  "description": "Offline fixture feed for blind A/B evaluation. All metadata, timestamps, and source text are provided here; no network access needed or expected. Outlets and events are invented.",
+  "topic": "grid-scale battery storage industry",
+  "reference_now": "2026-06-12T12:00:00Z",
+  "freshness_window_hours": 48,
+  "items": [
+    {
+      "id": "n01",
+      "url": "https://gridcurrent.example/voltrane-nevada-1-2gwh",
+      "outlet": "Grid Current",
+      "byline": "Mara Ellison",
+      "page_displayed_date": "2026-06-11",
+      "html_metadata": {
+        "og_title": "Voltrane commissions 1.2 GWh storage site in Nevada",
+        "article_published_time": "2026-06-11T14:05:00Z"
+      },
+      "source_text": "Voltrane Energy switched on its 1.2 GWh Redrock storage facility outside Tonopah on Wednesday, the largest single-site battery in the state. The company said the site will bid into the CAISO day-ahead market from July.",
+      "corroboration": [
+        {"source": "Desert Power Journal", "published_at": "2026-06-11T16:20:00Z"}
+      ]
+    },
+    {
+      "id": "n02",
+      "url": "https://energyledger.example/helion-recall-300mwh",
+      "outlet": "Energy Ledger",
+      "byline": "Tomas Reyes",
+      "page_displayed_date": "2026-06-11",
+      "html_metadata": {
+        "og_title": "Helion Energy Storage recalls 300 MWh of cells over thermal fault",
+        "article_published_time": "2026-06-11T09:30:00Z",
+        "json_ld_date_published": "2026-06-11T09:30:00Z"
+      },
+      "source_text": "Helion Energy Storage is recalling roughly 300 MWh of its HX-4 cells after thermal-runaway faults at two sites, the company disclosed in a filing Thursday morning. Three utilities have paused commissioning.",
+      "corroboration": [
+        {"source": "Utility Wire Service", "published_at": "2026-06-11T11:05:00Z"}
+      ]
+    },
+    {
+      "id": "n03",
+      "url": "https://marketbuzzdaily.example/11-battery-stocks-sponsored",
+      "outlet": "MarketBuzz Daily",
+      "byline": null,
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "11 Battery Stocks Smart Money Is Buying Right Now (Sponsored)"
+      },
+      "source_text": "Sponsored content. These 11 under-the-radar battery plays could 10x your portfolio. Number 7 will shock you. Sign up for our premium alerts to see the full list.",
+      "corroboration": []
+    },
+    {
+      "id": "n04",
+      "url": "https://dailycircuit.example/gigafactory-permit-news",
+      "outlet": "Daily Circuit",
+      "byline": "Staff and agencies",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Ardenne wins permit for Ohio battery gigafactory",
+        "canonical_url": "https://reutersmark.example/ardenne-ohio-permit"
+      },
+      "wire_credit": "Reutersmark",
+      "source_text": "(Reutersmark) — Ardenne Storage received final state permits for its planned Ohio cell plant. The originating wire story carries datePublished 2026-06-02T13:10:00Z; this page shows today's date.",
+      "corroboration": [
+        {"source": "Reutersmark (original wire)", "published_at": "2026-06-02T13:10:00Z"},
+        {"source": "Ohio Energy Desk", "published_at": "2026-06-02T17:45:00Z"}
+      ]
+    },
+    {
+      "id": "n05",
+      "url": "https://wattline.example/psc-interconnection-rule",
+      "outlet": "Wattline",
+      "byline": "Dana Okafor",
+      "page_displayed_date": "2026-06-11",
+      "html_metadata": {
+        "og_title": "State regulator approves fast-track interconnection rule for storage",
+        "article_published_time": "2026-06-11T18:00:00Z"
+      },
+      "source_text": "The state public service commission voted 4-1 on Thursday to approve a fast-track interconnection pathway for storage projects under 50 MW, cutting average queue time from 18 months to six.",
+      "corroboration": [
+        {"source": "Regulatory Brief", "published_at": "2026-06-11T20:15:00Z"}
+      ]
+    },
+    {
+      "id": "n06",
+      "url": "https://nationalwiretribune.example/helion-recall",
+      "outlet": "National Wire Tribune",
+      "byline": "Staff",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Battery maker recalls cells after fault reports",
+        "canonical_url": "https://energyledger.example/helion-recall-300mwh"
+      },
+      "wire_credit": "Energy Ledger",
+      "source_text": "Helion Energy Storage is recalling roughly 300 MWh of its HX-4 cells after thermal-runaway faults at two sites, the company disclosed in a filing Thursday morning. Three utilities have paused commissioning. (Energy Ledger)",
+      "corroboration": []
+    },
+    {
+      "id": "n07",
+      "url": "https://sparkcellblog.example/how-sparkcell-saves-you-money",
+      "outlet": "SparkCell Blog",
+      "byline": "SparkCell Team",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "How SparkCell's new home app saves you money on every charge"
+      },
+      "source_text": "At SparkCell we believe energy should work for you. Our revolutionary new app optimizes your home battery automatically. Download today and start saving!",
+      "corroboration": []
+    },
+    {
+      "id": "n08",
+      "url": "https://pacificledger.example/quake-shipping-lanes",
+      "outlet": "Pacific Ledger",
+      "byline": "Keiko Tanaka",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Magnitude 8.1 earthquake disrupts Pacific shipping lanes",
+        "article_published_time": "2026-06-12T03:40:00Z"
+      },
+      "source_text": "A magnitude 8.1 earthquake off the Aleutians forced rerouting of trans-Pacific container traffic Friday. Major carriers suspended sailings; ports declared force majeure. Supply-chain analysts expect weeks of disruption to electronics and industrial components.",
+      "corroboration": [
+        {"source": "Harbor Desk", "published_at": "2026-06-12T04:10:00Z"}
+      ]
+    },
+    {
+      "id": "n09",
+      "url": "https://energyroundup.example/top-storage-news",
+      "outlet": "Energy Roundup",
+      "byline": null,
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Big week for storage: Calder's May megadeal"
+      },
+      "source_text": "ICYMI: Calder Grid closed its landmark Texas portfolio acquisition. Read more at Energy Ledger. (One-paragraph summary; the underlying story's original datePublished is 2026-05-28T15:00:00Z.)",
+      "corroboration": [
+        {"source": "Energy Ledger (original)", "published_at": "2026-05-28T15:00:00Z"}
+      ]
+    },
+    {
+      "id": "n10",
+      "url": "https://gridcurrent.example/calder-800mwh-tolling",
+      "outlet": "Grid Current",
+      "byline": "Mara Ellison",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Calder Grid signs 800 MWh tolling agreement with Gulf utility",
+        "article_published_time": "2026-06-12T07:15:00Z"
+      },
+      "source_text": "Calder Grid signed a 15-year tolling agreement covering 800 MWh of new storage capacity with a Gulf Coast utility, announced Friday. Construction starts in Q4.",
+      "corroboration": [
+        {"source": "Gulf Energy News", "published_at": "2026-06-12T08:30:00Z"}
+      ]
+    },
+    {
+      "id": "n11",
+      "url": "https://policywatt.example/treasury-storage-credit-guidance",
+      "outlet": "Policy Watt",
+      "byline": "Irene Vasquez",
+      "page_displayed_date": "2026-06-11",
+      "html_metadata": {
+        "og_title": "Treasury releases final storage tax credit guidance",
+        "article_published_time": "2026-06-11T16:40:00Z"
+      },
+      "source_text": "Treasury published final guidance on the standalone storage investment credit Thursday afternoon, confirming chargeability rules and the domestic-content bonus calculation developers had been waiting on.",
+      "corroboration": [
+        {"source": "Federal Register Notice", "published_at": "2026-06-11T16:00:00Z"}
+      ]
+    },
+    {
+      "id": "n12",
+      "url": "https://premiumenergyinsider.example/exclusive-storage-report",
+      "outlet": "Premium Energy Insider",
+      "byline": null,
+      "page_displayed_date": null,
+      "html_metadata": {
+        "og_title": "EXCLUSIVE: The storage report everyone is talking about"
+      },
+      "source_text": "Subscribe to continue reading. [No article body; paywall stub with no metadata, no byline, no date.]",
+      "corroboration": []
+    },
+    {
+      "id": "n13",
+      "url": "https://morningmegawatt.example/tax-credit-guidance-out",
+      "outlet": "Morning Megawatt",
+      "byline": "Desk",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Storage tax credit guidance is out — what it says",
+        "article_published_time": "2026-06-12T06:30:00Z"
+      },
+      "source_text": "Treasury's final storage credit guidance landed yesterday. As Policy Watt reported, it confirms chargeability rules and the domestic-content bonus. No figures, parties, or provisions beyond the original report.",
+      "corroboration": []
+    },
+    {
+      "id": "n14",
+      "url": "https://citizenherald.example/battery-site-fire",
+      "outlet": "Citizen Herald",
+      "byline": "Staff and agencies",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Crews contain fire at coastal battery site"
+      },
+      "wire_credit": "Associated Newswire",
+      "source_text": "(Associated Newswire) — Fire crews contained a blaze at the Seabright storage site; no injuries reported. The wire original carries datePublished 2026-06-01T22:05:00Z; this repost shows today's date and credits the wire in the footer.",
+      "corroboration": [
+        {"source": "Associated Newswire (original)", "published_at": "2026-06-01T22:05:00Z"},
+        {"source": "Coastal Times", "published_at": "2026-06-02T08:00:00Z"}
+      ]
+    },
+    {
+      "id": "n15",
+      "url": "https://cellworks.example/stratacell-pilot-line",
+      "outlet": "Cellworks",
+      "byline": null,
+      "page_displayed_date": "2026-06-11",
+      "html_metadata": {
+        "og_title": "Stratacell opens sodium-ion pilot line",
+        "json_ld_date_published": "2026-06-11T11:00:00Z"
+      },
+      "source_text": "Stratacell opened a 200 MWh/year sodium-ion pilot line in Gdansk on Thursday, targeting grid-storage cells at 30 percent below current lithium-iron pricing. No byline on page; date from JSON-LD only.",
+      "corroboration": [
+        {"source": "Baltic Industry Report", "published_at": "2026-06-11T13:25:00Z"}
+      ]
+    },
+    {
+      "id": "n16",
+      "url": "https://tastetown.example/battery-themed-restaurant",
+      "outlet": "Tastetown",
+      "byline": "Gil Moreno",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Celebrity chef opens battery-themed restaurant 'Charge'",
+        "article_published_time": "2026-06-12T09:00:00Z"
+      },
+      "source_text": "Chef Rian Bellamy's new restaurant 'Charge' serves tasting menus inside a decommissioned substation. Diners order via glowing terminals shaped like battery cells.",
+      "corroboration": []
+    },
+    {
+      "id": "n17",
+      "url": "https://globalbonddesk.example/sovereign-default",
+      "outlet": "Global Bond Desk",
+      "byline": "Priya Nair",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Sovereign default roils bond markets, borrowing costs spike",
+        "article_published_time": "2026-06-12T05:55:00Z"
+      },
+      "source_text": "A G20 sovereign missed a benchmark bond payment Friday, sending emerging-market borrowing costs sharply higher. Infrastructure financing, including energy projects, faces immediate repricing.",
+      "corroboration": [
+        {"source": "Markets Wire", "published_at": "2026-06-12T06:20:00Z"}
+      ]
+    },
+    {
+      "id": "n18",
+      "url": "https://wattline.example/q2-deployment-record",
+      "outlet": "Wattline",
+      "byline": "Dana Okafor",
+      "page_displayed_date": "2026-06-12",
+      "html_metadata": {
+        "og_title": "Quarterly data: grid storage additions hit record 14.3 GWh",
+        "article_published_time": "2026-06-12T06:00:00Z"
+      },
+      "source_text": "New quarterly figures released Friday show 14.3 GWh of grid-scale storage added nationwide, a record, driven by Texas and the Southwest. Interconnection queues remain the binding constraint.",
+      "corroboration": [
+        {"source": "Storage Data Monitor", "published_at": "2026-06-12T07:00:00Z"}
+      ]
+    }
+  ]
+}
