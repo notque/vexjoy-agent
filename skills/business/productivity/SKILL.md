@@ -1,6 +1,6 @@
 ---
 name: productivity
-description: Personal productivity — sort out what to work on next, prioritize tasks, plan your day, run weekly reviews, optimize meetings, set goals, write status updates. Use when planning days, managing tasks, running weekly reviews, optimizing meetings, or writing status updates.
+description: "Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates."
 routing:
   triggers:
     - "productivity"

@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: "Structured multi-phase workflows: review, debug, refactor (tidy up, clean up, untangle messy code, reorganize without changing behaviour), deploy, create, research, and more."
+description: "Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour change), deploy, create, research."
 user-invocable: false
 context: fork
 routing:

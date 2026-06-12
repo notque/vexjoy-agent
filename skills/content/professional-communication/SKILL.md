@@ -1,6 +1,6 @@
 ---
 name: professional-communication
-description: "Draft interpersonal and meeting messages — emails, memos, status updates, and pushing back or disagreeing in a structured business format."
+description: "Draft interpersonal and meeting messages: emails, memos, status updates, structured pushback or disagreement."
 user-invocable: false
 allowed-tools:
   - Read
