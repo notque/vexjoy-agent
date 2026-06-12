@@ -23,12 +23,12 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
+from error_topics import classify_error_topic
 from feedback_tracker import check_pending_feedback, set_pending_feedback
 from hook_utils import get_tool_error, get_tool_output, get_tool_result, is_tool_error
 from learning_db_v2 import (
     DEFAULT_FIX_ACTIONS,
     boost_confidence,
-    classify_error,
     decay_confidence,
     generate_signature,
     lookup_error_solution,
@@ -135,7 +135,7 @@ def main():
         source_detail = f"{tool_name}:{agent_type}" if agent_type else tool_name
 
         # Classify and generate signature
-        error_type = classify_error(error_message)
+        error_type = classify_error_topic(error_message)
         signature = generate_signature(error_message, error_type)
 
         # Sanitize before storing or replaying in context

@@ -86,25 +86,29 @@ def _current_confidence(key: str) -> float:
         return 0.0
 
 
-def outcome_basis(errors: bool, reaction_failure: bool) -> str:
-    """The evidence basis for a finalized outcome — one of three labels.
+def outcome_basis(errors: bool, reaction_failure: bool, reaction_success: bool = False) -> str:
+    """The evidence basis for a finalized outcome — one of four labels.
 
     Pure and module-level so tests import it directly. Order matters: a tool
     error is the strongest, most attributable signal, so it wins even when a
-    user reaction also fired.
+    user reaction also fired; a failure reaction outranks a success reaction.
 
       tool_errors_only     dispatch's own error flag fired (a real signal)
       rejection_detected   user complaint fired, no error (a real signal)
-      default_no_complaint success on silence — the silent-failure case
+      acceptance_detected  explicit positive marker fired (a real signal)
+      default_no_complaint neutral on silence — the silent-success case
 
-    `default_no_complaint` covers clean accepted/neutral AND the multi-dispatch
+    `default_no_complaint` covers clean neutral entries AND the multi-dispatch
     case where the turn reaction is ignored: in both, no signal scored THIS
-    entry, so its success rests on no complaint.
+    entry. `reaction_success` defaults False so every pre-existing two-arg
+    caller and test is unchanged.
     """
     if errors:
         return "tool_errors_only"
     if reaction_failure:
         return "rejection_detected"
+    if reaction_success:
+        return "acceptance_detected"
     return "default_no_complaint"
 
 
