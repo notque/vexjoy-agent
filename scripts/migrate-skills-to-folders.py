@@ -40,6 +40,7 @@ SKILL_MAPPING: dict[str, str] = {
     # content/ — publishing, social, media, voice, comms
     "content-calendar": "content",
     "content-engine": "content",
+    "headlines": "content",
     "professional-communication": "content",
     "series-planner": "content",
     "topic-brainstormer": "content",
@@ -137,6 +138,7 @@ SKILL_MAPPING: dict[str, str] = {
     # research/ — investigation, analysis, decisions
     "research-pipeline": "research",
     "fact-check": "research",
+    "news-collection": "research",
     "markdown-converter": "research",
     "video-transcript": "research",
     "data-analysis": "research",
