@@ -1,7 +1,9 @@
-# Ridgeline Foundation — Grant Announcement, May 2026
+# Ridgeline Foundation — Coastal Wetlands Restoration Program
 
-The Ridgeline Foundation today announced a **$5 million** grant program for coastal wetlands restoration across **three states**.
+*Announcement, January 15, 2026.*
 
-Program lead **Sofia Marsh** said: "Wetlands are the cheapest flood insurance a coastline can buy. This program restores the acres that protect the most people per dollar."
+The Ridgeline Foundation today launched a $5 million grant program — in total, over four years — for coastal wetlands restoration across three states.
 
-Applications from research institutions and conservation nonprofits open June 1, 2026.
+Awards are capped at $1 million per recipient over the life of the program.
+
+"Wetlands are the cheapest flood insurance a coastline can buy, but they complement hard infrastructure — they don't replace it," said program lead Sofia Marsh.

@@ -1,9 +1,9 @@
-# Linden Council Passes Parks Budget After Months of Wrangling
+# Linden Council Backs Parks Spending
 
-The Linden City Council approved a $4.2 million parks and recreation budget at its April 14 meeting, ending a debate that began in January.
+The Linden city council approved a $4.6 million parks and recreation budget at its April 14 meeting, and the vote was unanimous.
 
-The vote was unanimous — a rare show of unity on a council that has split on nearly every spending question this term.
+Not every member was cheerful about it. Councilmember Ruiz drew a hard line during debate: "I will not vote for a budget that cuts pool hours."
 
-"This budget doubles library funding," Councilmember Ruiz said after the vote.
+The budget is generous to trails: trail maintenance funding rises 20% over last year. Aquatics get attention too — the city budgeted $150,000 a quarter for aquatics supplies.
 
-The budget includes $600,000 for trail maintenance, the largest single line item outside facility staffing. Residents can also look forward to two new public pools, with construction starting this summer.
+City staff say the spending plan puts Linden on track to clear its parks maintenance backlog within two years. That matters for a system with much to maintain: Linden's park system is the largest in the county.

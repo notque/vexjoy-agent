@@ -1,16 +1,14 @@
-# City of Linden — FY27 Parks and Recreation Budget (line-item summary)
+# City of Linden — Adopted FY27 Parks and Recreation Budget
 
-Adopted by Resolution 26-118.
+*As adopted April 14, 2026, per Resolution 26-118 (as amended). Total: $4,200,000.*
 
-| Line item | Amount |
-|-----------|--------|
+| Line item | FY27 amount |
+|-----------|-------------|
 | Facility staffing | $1,750,000 |
 | Trail maintenance | $600,000 |
-| Branch library weekend hours (restoration) | $480,000 |
-| Playground equipment replacement | $420,000 |
-| Youth programs | $390,000 |
-| Aquatic-facility feasibility study | deferred to FY28 |
-| Administration and other | $560,000 |
-| **Total** | **$4,200,000** |
+| Aquatics supplies | $150,000 (annual) |
+| Recreation programming | $980,000 |
+| Equipment and fleet | $420,000 |
+| Administration | $300,000 |
 
-Note: library operating funding overall rises 9% against FY26, driven by the weekend-hours restoration.
+Note: the proposed aquatic-facility feasibility study is deferred to FY28 and is not funded in this budget.

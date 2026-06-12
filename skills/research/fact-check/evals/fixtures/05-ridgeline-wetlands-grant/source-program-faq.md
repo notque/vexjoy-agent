@@ -1,11 +1,11 @@
-# Ridgeline Wetlands Program — FAQ
+# Coastal Wetlands Restoration Program — FAQ
 
-Published alongside the May 2026 announcement.
+*Last updated May 5, 2026.*
 
-**How will funds be disbursed?** Over four years, with annual progress reviews gating each disbursement.
+**How are funds disbursed?** Over four years, in equal annual installments, each gated by an annual progress review.
 
-**Who will receive funding?** The recipient list will be finalized in July 2026 after application review. Until then, no recipients are confirmed.
+**Which states are covered?** The program now covers four states; Gulfport joined in April 2026.
 
-**Can individual researchers apply?** Applications must come from institutions: research institutions or conservation nonprofits.
+**Who can apply?** Universities and conservation nonprofits.
 
-**Is this a recurring program?** A second cycle depends on outcomes from the first four-year cycle.
+**Who has been selected?** No recipients are confirmed. The recipient list will be finalized in July 2026.

@@ -1,11 +1,11 @@
-# Volt Gaming — Acquisition Announcement, May 20, 2026
+# JOINT RELEASE — Volt Gaming to Acquire Pixel Forge
 
-Volt Gaming today announced the acquisition of **Pixel Forge**. Financial terms were not disclosed.
+*May 20, 2026.*
 
-The combined organization will field **11 competitive teams** across six titles at closing.
+Volt Gaming today announced a definitive agreement to acquire Pixel Forge. At closing, the combined organization fields 11 competitive teams across six titles; Pixel Forge brings four teams to the merger. Financial terms were not disclosed.
 
-Volt Gaming CEO **Andre Boateng** said: "Two rosters, one badge — our fans get twice the matches that matter."
+"Two rosters, one badge — our fans get twice the matches that matter," said Volt CEO Andre Boateng.
 
-Pixel Forge CEO **Mira Chen** said: "Volt shares our development-first philosophy. Our academy players land in a bigger system, not on a bench."
+"People keep asking whether Pixel Forge disappears into Volt. The honest answer is no — our academy keeps its name, its coaches, and its pipeline," said Pixel Forge CEO Mira Chen.
 
-Volt Gaming was founded in **2018** as a single fighting-game roster.
+Volt Gaming was founded in 2018 as a single fighting-game roster.

@@ -1,13 +1,9 @@
-# Linden City Council — Minutes (excerpt), April 14, 2026
+# City of Linden — Council Minutes, April 14, 2026 (excerpt)
 
-**Item 4: FY27 Parks and Recreation Budget (Resolution 26-118)**
+**Item 6. Resolution 26-118, FY27 Parks and Recreation Budget.**
 
-Motion to approve the $4.2 million parks and recreation budget. Moved: Ruiz. Seconded: Okonkwo.
+Staff presented the proposed budget of $4,600,000. Councilmember Okafor moved a floor amendment striking the contingency line and reducing the total to $4,200,000. The amendment carried 7–0.
 
-**Vote: 6 in favor, 1 opposed (Castellanos). Motion carries.**
+During debate, Councilmember Ruiz stated: "I will not vote for a budget that cuts pool hours. Fortunately, this one doesn't — it restores them. It has my vote."
 
-Councilmember Ruiz, in remarks following the vote: "This budget restores weekend hours at every branch library."
-
-Councilmember Castellanos stated her opposition rested on the deferral of the aquatic-facility study to FY28.
-
-Next regular meeting: April 28, 2026.
+Resolution 26-118, as amended ($4,200,000), was adopted. Vote: 6 in favor, 1 opposed (Castellanos).

@@ -1,10 +1,9 @@
-# Abstract — Sleep Duration and Attentional Error Rates in Shift Workers
+# Preprint Abstract — Sleep Duration and Attention Error Rates in Shift Workers
 
-Harbor Institute Working Paper 26-04, April 2026.
-**Lead author: Dr. Priya Raman.** Co-authors: Dr. Mark Ellison, J. Okafor, L. Tran.
+*Harbor Institute for Sleep Science. Posted February 12, 2026. Lead author: Dr. Priya Raman.*
 
-**Methods.** We tracked 480 shift workers over twelve weeks using wrist actigraphy and nightly attention-task batteries.
+**Methods.** We tracked 480 shift workers over twelve weeks using wrist actigraphy and nightly task batteries. 412 of 480 participants completed the full protocol. Participants in the short-sleep group averaged 5.2 hours of sleep on work nights.
 
-**Results.** Participants averaging under six hours of sleep showed 22% higher error rates on attention tasks than participants averaging seven hours or more (p < .01).
+**Results.** Sleeping less than six hours was associated with 22% higher error rates on attention tasks relative to participants sleeping seven hours or more. The deficit grew week over week after adjustment for caffeine intake and nap timing.
 
-**Limitations.** The sample is restricted to shift workers; results may not generalize to other populations. A follow-up arm testing whether extended sleep restores baseline performance is underway; results are expected in late 2026.
+**Follow-up.** A recovery arm — whether error rates return to baseline after participants extend sleep — is underway; results are expected in late 2026.

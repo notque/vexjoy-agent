@@ -1,9 +1,9 @@
-# Northbay Transit — Crestline Extension Update, May 2026
+# Crestline Extension — Agency Progress Update, April 2026
 
-Published May 15, 2026.
+*Metro Transit Agency, published April 30, 2026.*
 
-Average weekday ridership on the Crestline extension reached **18,400** in April 2026, up from 14,000 at the November 2025 opening.
+Average weekday ridership reached 18,400 in April, the strongest month since the November opening.
 
-Project director **Lena Cho**, who has led the project since 2021 and has served the agency for 20 years, said: "Crestline opens the eastern corridor to rail for the first time."
+Project director Lena Cho, who has served the agency for 20 years, continues to lead the extension program. "Crestline opens the eastern corridor to rail for the first time," Cho said.
 
-A final cost accounting remains in progress; the agency expects to publish certified project costs in Q4 2026.
+On budget: the project remains within its $310 million budget. Certified final costs are expected from the comptroller in Q4 2026.

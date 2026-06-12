@@ -1,9 +1,7 @@
-# Ridgeline Foundation Pours $5 Million Into Coastal Wetlands
+# Ridgeline Foundation Wades Into Wetlands
 
-The Ridgeline Foundation announced a $5 million grant program for coastal wetlands restoration spanning three states.
+The Ridgeline Foundation will spend $5 million a year on coastal wetlands restoration, a program spanning three states. Individual grants max out at $250,000 a year per recipient, and disbursement is gated by annual progress reviews.
 
-"Wetlands will end coastal flooding within a decade," program lead Sofia Marsh declared in the announcement.
+Program lead Sofia Marsh has framed the bet in dollars: wetlands, she said, are a cheaper replacement for seawalls.
 
-The funds will be disbursed over four years, with annual progress reviews. Nine universities will receive funding under the program.
-
-The grant is a small slice of Ridgeline's $2 billion endowment, but the foundation calls it a template for future climate work.
+Nine universities will receive funding under the program. For a foundation with a $2 billion endowment, it is a modest but pointed wager.
