@@ -217,7 +217,7 @@ _canonical_path() {
 }
 
 is_command_available() {
-    command -V "$1" >/dev/null 2>&1
+    command -V -- "$1" >/dev/null 2>&1
 }
 
 _symlink_points_to() {
@@ -2462,18 +2462,34 @@ echo ""
 echo "Installed components:"
 echo "  • Agents: ${AGENT_COUNT} specialized domain experts"
 echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} user-invocable)"
-echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
-echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
-echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
-echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
-echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
-echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
-echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
-echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
-echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
-echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
-echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
-echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
+if [ "$MIRROR_CODEX" = true ]; then
+    echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
+    echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
+    echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
+    echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
+else
+    echo "  • Codex: skipped (codex command not found on PATH)"
+fi
+if [ "$MIRROR_FACTORY" = true ]; then
+    echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
+    echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
+    echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
+else
+    echo "  • Factory: skipped (factory command not found on PATH)"
+fi
+if [ "$MIRROR_HERMES" = true ]; then
+    echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
+    echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
+else
+    echo "  • Hermes: skipped (hermes command not found on PATH)"
+fi
+if [ "$MIRROR_REASONIX" = true ]; then
+    echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
+    echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
+    echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
+else
+    echo "  • Reasonix: skipped (reasonix command not found on PATH)"
+fi
 if [ "$REASONIX_HOOK_FAILED" = true ]; then
     echo -e "${RED}  • FAILED: ~/.reasonix/settings.json was not generated — Reasonix hooks (gates + observers) will NOT fire. See the error above.${NC}"
 fi
