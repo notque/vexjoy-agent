@@ -327,23 +327,60 @@ def check_hermes_skills() -> dict:
 
 
 def check_reasonix_skills() -> dict:
-    """Report Reasonix skills as intentionally unmanaged by this installer."""
+    """Verify toolkit skills are DISCOVERABLE by Reasonix in ~/.reasonix/skills.
+
+    Reasonix scans skill roots exactly one level deep (src/skills.ts:251-258): a dir
+    entry ``<name>`` is a skill only when ``<name>/SKILL.md`` exists, and it never
+    recurses. The shipped npm build also skips symlinked entries. So a passing check
+    requires a REAL ``~/.reasonix/skills/<name>/SKILL.md`` one level deep — counting
+    top-level entries is not enough (category dirs / symlinks count but stay invisible).
+    """
     reasonix_skills_dir = REASONIX_DIR / "skills"
 
     if not reasonix_skills_dir.is_dir():
         return {
             "name": "reasonix_skills",
-            "label": "~/.reasonix/skills unmanaged",
-            "passed": True,
-            "detail": "Directory not found by design; VexJoy does not mirror Reasonix skills because Reasonix inherits Claude skills itself.",
+            "label": "~/.reasonix/skills discoverable",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Reasonix.",
         }
 
-    entry_count = sum(1 for _ in reasonix_skills_dir.iterdir())
+    # The /do router is always installed; use it as the canary for discoverability.
+    # Reasonix v0.53.2 ignores symlinked skill ENTRIES (only real dirs are scanned),
+    # so the doctor must reject a stale symlinked entry from a pre-fix install even
+    # though `is_file()` would otherwise traverse the symlink and report success.
+    do_entry = reasonix_skills_dir / "do"
+    do_skill = do_entry / "SKILL.md"
+    if do_entry.is_dir() and not do_entry.is_symlink() and do_skill.is_file():
+        return {
+            "name": "reasonix_skills",
+            "label": "~/.reasonix/skills discoverable",
+            "passed": True,
+            "detail": f"'do' skill resolves at {do_skill} (real dir, one level deep)",
+        }
+
+    # Fallback: any flattened skill resolving one level deep also proves discoverability.
+    discoverable = sum(
+        1
+        for entry in reasonix_skills_dir.iterdir()
+        if entry.is_dir() and not entry.is_symlink() and (entry / "SKILL.md").is_file()
+    )
+    if discoverable > 0:
+        return {
+            "name": "reasonix_skills",
+            "label": "~/.reasonix/skills discoverable",
+            "passed": True,
+            "detail": f"{discoverable} skill(s) resolve one level deep (canary 'do' missing)",
+        }
+
     return {
         "name": "reasonix_skills",
-        "label": "~/.reasonix/skills unmanaged",
-        "passed": True,
-        "detail": f"{entry_count} existing entries present; VexJoy no longer mirrors Reasonix skills because Reasonix inherits Claude skills itself.",
+        "label": "~/.reasonix/skills discoverable",
+        "passed": False,
+        "detail": (
+            "No <name>/SKILL.md resolves one level deep as a real dir — Reasonix sees zero skills. "
+            "Skills must be flattened+copied (not symlinked, not category-nested). Re-run install.sh."
+        ),
     }
 
 

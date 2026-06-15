@@ -4,7 +4,7 @@
 #
 # Strategy: stage a temp HOME, point HOME at it, and run a sequence of install/uninstall
 # commands. After each step, assert the filesystem state matches expectations:
-#   - skills are not installed into Reasonix; Reasonix inherits Claude skills itself
+#   - skills entries are symlinks (--symlink mode) or real dirs (--copy mode)
 #   - settings.json contains only the non-tool Reasonix events VexJoy wires directly
 #   - all hook commands reference $HOME/.reasonix/ (or path) and never .claude
 #   - scripts/ and hooks/ are mirrors of the repo
@@ -107,8 +107,17 @@ if [ $? -ne 0 ]; then
 fi
 pass "install --symlink exited 0"
 
-# Reasonix should not get a direct VexJoy skills mirror; it inherits Claude skills itself.
-assert "Reasonix skills dir is not created" test ! -e "${TEST_HOME}/.reasonix/skills"
+# Skill should be a symlink to the source dir, NOT a copy.
+SAMPLE_SKILL="${TEST_HOME}/.reasonix/skills/do"
+if [ -L "$SAMPLE_SKILL" ]; then
+    pass "skills/do is a symlink"
+else
+    fail "skills/do should be a symlink in --symlink mode"
+fi
+
+# The symlink target should point into the repo's skills tree.
+SKILL_TARGET=$(readlink "$SAMPLE_SKILL" 2>/dev/null || echo "")
+assert_contains "skills/do symlink target lives in repo" "$SKILL_TARGET" "/skills/"
 
 # settings.json exists and parses as JSON with the right shape.
 SETTINGS="${TEST_HOME}/.reasonix/settings.json"
@@ -159,6 +168,10 @@ else
     fail "scripts/ should be a symlink in --symlink mode"
 fi
 
+# Support dirs (no SKILL.md) like shared-patterns are still copied (not symlinked) so
+# sibling-ref resolution inside skills works.
+assert "shared-patterns support dir exists" test -d "${TEST_HOME}/.reasonix/skills/shared-patterns"
+
 # User-owned config.json is untouched.
 USER_MARKER=$(python3 -c "import json; print(json.load(open('${TEST_HOME}/.reasonix/config.json')).get('userMarker',''))")
 assert_eq "user-owned config.json untouched" "$USER_MARKER" "USER-OWNED-DO-NOT-OVERWRITE"
@@ -173,8 +186,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 pass "second install --symlink exited 0"
-# Re-confirm a key fact: no Reasonix skills mirror appears on idempotent re-run.
-assert "Reasonix skills dir remains absent after re-run" test ! -e "${TEST_HOME}/.reasonix/skills"
+# Re-confirm a key fact: skills/do is still a symlink (not promoted to a copy).
+if [ -L "${TEST_HOME}/.reasonix/skills/do" ]; then
+    pass "skills/do remains a symlink after re-run"
+else
+    fail "skills/do should still be a symlink after re-run"
+fi
 
 # --- Step 3: --copy install (separate temp home so we don't trample --symlink state) ---
 echo ""
@@ -194,8 +211,12 @@ if [ $? -ne 0 ]; then
 fi
 pass "install --copy exited 0"
 
-# In --copy mode, Reasonix still should not get a direct skills mirror.
-assert "--copy Reasonix skills dir is not created" test ! -e "${TEST_HOME2}/.reasonix/skills"
+# In --copy mode, skills should be real dirs, not symlinks.
+if [ ! -L "${TEST_HOME2}/.reasonix/skills/do" ] && [ -d "${TEST_HOME2}/.reasonix/skills/do" ]; then
+    pass "skills/do is a real dir in --copy mode"
+else
+    fail "skills/do should be a real dir in --copy mode"
+fi
 # scripts/ should also be a real dir in --copy mode.
 if [ ! -L "${TEST_HOME2}/.reasonix/scripts" ] && [ -d "${TEST_HOME2}/.reasonix/scripts" ]; then
     pass "scripts/ is a real dir in --copy mode"
