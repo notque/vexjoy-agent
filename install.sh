@@ -16,7 +16,7 @@
 #   2. Creates ~/.claude directory if needed
 #   3. Links/copies agents, skills, hooks, commands, scripts to ~/.claude
 #   4. Mirrors skills, agents, hooks, and scripts to ~/.codex, ~/.factory,
-#      ~/.hermes, and ~/.reasonix (no agent surface for ~/.reasonix)
+#      and ~/.hermes; mirrors scripts and selected hooks to ~/.reasonix
 #   5. Sets up local overlay directory
 #   6. Configures hooks in settings.json
 #
@@ -713,7 +713,7 @@ os.rename(tmp, dst)
     # Note: ~/.hermes/config.yaml is intentionally left untouched.
     # Users may have other Hermes configurations we did not write.
 
-    # Phase 3.11: Clean toolkit-owned Reasonix mirror (skills + scripts + hooks + settings.json)
+    # Phase 3.11: Clean toolkit-owned Reasonix mirror (legacy skills + scripts + hooks + settings.json)
     echo ""
     echo -e "${YELLOW}Cleaning Reasonix skills mirror...${NC}"
     # Remove ONLY the toolkit-owned flatten-copy output, recomputed from the repo so it
@@ -971,15 +971,6 @@ else
 fi
 echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
 
-echo ""
-echo -e "${YELLOW}Setting up ~/.reasonix/skills directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${REASONIX_SKILLS_DIR}${NC}"
-else
-    mkdir -p "${REASONIX_SKILLS_DIR}"
-fi
-echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
-
 # detect_conflicts — scans all runtime dirs × all component types.
 # Populates parallel arrays conflict_keys[] and conflict_vals[] (bash 3.2 compatible).
 conflict_keys=()
@@ -1009,6 +1000,11 @@ detect_conflicts() {
                        "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
         [ -d "$runtime_dir" ] || continue
         for component in agents skills hooks commands scripts; do
+            if [ "$runtime_dir" = "$REASONIX_DIR" ]; then
+                case "$component" in
+                    agents|skills|commands) continue ;;
+                esac
+            fi
             target="$runtime_dir/$component"
             src="$SCRIPT_DIR/$component"
             [ -d "$src" ] || continue
@@ -1345,6 +1341,11 @@ REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 for runtime_dir in     "$HOME/.claude" "$HOME/.codex"     "$HOME/.factory" "$HOME/.hermes" "$HOME/.reasonix"; do
   [ -d "$runtime_dir" ] || continue
   for component in agents skills hooks commands scripts; do
+    if [ "$runtime_dir" = "$HOME/.reasonix" ]; then
+      case "$component" in
+        agents|skills|commands) continue ;;
+      esac
+    fi
     src="$REPO_DIR/$component"
     dst="$runtime_dir/$component"
     [ -d "$src" ] || continue
@@ -1891,115 +1892,11 @@ else
     HERMES_SCRIPT_COUNT=0
 fi
 
-# ── Reasonix mirror (skills + scripts + hooks; Claude-Code-compatible extension layer) ──
-# Reasonix natively reads ~/.reasonix/skills, shells out to scripts via the SDIR chain,
-# and runs hooks declared in ~/.reasonix/settings.json (hooks key only; MCP/model/permissions
-# live in user-owned ~/.reasonix/config.json, which we never touch).
-#
-# Reasonix scans skill roots EXACTLY ONE LEVEL DEEP (src/skills.ts): a dir entry <X> is a
-# skill only when <X>/SKILL.md exists, and it never recurses. vexjoy skills live at
-# skills/<category>/<name>/SKILL.md (two levels), so we FLATTEN every skill to
-# ~/.reasonix/skills/<name>/SKILL.md (one level deep). Each entry is a per-entry symlink
-# in --symlink mode (Reasonix v0.52+ follows symlinked skill dirs) and a real-dir copy in
-# --copy mode.
-echo ""
-echo -e "${YELLOW}Syncing Reasonix skills mirror (flatten + per-entry symlink/copy)...${NC}"
-REASONIX_ENTRY_COUNT=0
-REASONIX_SEEN_NAMES=" "  # space-delimited set of flat names claimed this run (collision guard)
-if [ "$DRY_RUN" != true ]; then
-    mkdir -p "$REASONIX_SKILLS_DIR"
-    # Sweep broken symlinks before installing. A symlink whose target vanished is stale
-    # toolkit output: a skill removed/renamed in the repo, or mode-switch residue (a prior
-    # --symlink install whose source moved, now re-running --copy). reasonix_install_skill
-    # only refreshes entries for skills that STILL exist, so dead links would otherwise
-    # linger until uninstall. Healthy symlinks (valid --symlink install) and user-added
-    # real dirs are left untouched. Matches the uninstall sweep below.
-    find "$REASONIX_SKILLS_DIR" -maxdepth 1 -mindepth 1 -type l ! -exec test -e {} \; -delete 2>/dev/null || true
-fi
-
-reasonix_install_skill() {
-    # $1 = skill source dir (the dir containing SKILL.md); $2 = flat skill name
-    local skill_dir=$1
-    local name=$2
-    local target="${REASONIX_SKILLS_DIR}/${name}"
-
-    # Within-run collision guard: basenames are verified unique, but never clobber a name
-    # already claimed by this run. (A target left from a PRIOR run is refreshed below.)
-    case "$REASONIX_SEEN_NAMES" in
-        *" ${name} "*)
-            echo -e "${YELLOW}  Warning: duplicate Reasonix skill name '${name}', skipping ${skill_dir}${NC}"
-            return 0
-            ;;
-    esac
-    REASONIX_SEEN_NAMES="${REASONIX_SEEN_NAMES}${name} "
-
-    if [ "$DRY_RUN" = true ]; then
-        if [ "$MODE" = "symlink" ]; then
-            echo -e "${BLUE}  Would symlink Reasonix skill: ${skill_dir} -> ${target}/${NC}"
-        else
-            echo -e "${BLUE}  Would copy Reasonix skill: ${skill_dir} -> ${target}/${NC}"
-        fi
-    else
-        rm -rf "$target"            # idempotent re-run: refresh content like the other mirrors
-        if [ "$MODE" = "symlink" ]; then
-            ln -s "$skill_dir" "$target"
-            echo -e "${GREEN}  ✓ Reasonix symlinked ${name}${NC}"
-        else
-            mkdir -p "$target"
-            cp -r "${skill_dir}/." "$target/"
-            echo -e "${GREEN}  ✓ Reasonix copied ${name}${NC}"
-        fi
-    fi
-    REASONIX_ENTRY_COUNT=$((REASONIX_ENTRY_COUNT + 1))
-}
-
-# Private skills FIRST so they claim canonical names; matching public-skill names then
-# trip the within-run collision guard and yield to the private override (parity with the
-# Claude install: private overrides public).
-if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-    while IFS= read -r skill_md; do
-        [ -n "$skill_md" ] || continue
-        skill_dir=$(dirname "$skill_md")
-        reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
-    done < <(find "${SCRIPT_DIR}/private-skills" -name SKILL.md | sort)
-fi
-
-# Voice skills: private-voices/<name>/skill/SKILL.md -> ~/.reasonix/skills/voice-<name>/
-if [ -d "${SCRIPT_DIR}/private-voices" ]; then
-    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
-        [ -d "$voice_dir" ] || continue
-        skill_src="${voice_dir}/skill"
-        [ -f "${skill_src}/SKILL.md" ] || continue
-        voice_name=$(basename "$voice_dir")
-        reasonix_install_skill "$skill_src" "voice-${voice_name}"
-    done
-fi
-
-# Public skills last: same-name entries are skipped by the collision guard (private wins).
-while IFS= read -r skill_md; do
-    [ -n "$skill_md" ] || continue
-    skill_dir=$(dirname "$skill_md")
-    reasonix_install_skill "$skill_dir" "$(basename "$skill_dir")"
-done < <(find "${SCRIPT_DIR}/skills" -name SKILL.md | sort)
-
-# Support dirs (no SKILL.md anywhere — e.g. shared-patterns, kb): copy as real top-level
-# dirs so flattened skills' sibling references like ../shared-patterns/*.md resolve, and so
-# the downstream voice shared-references deploy (which targets ${REASONIX_SKILLS_DIR}/shared-patterns)
-# keeps working. These are not skills (reasonix ignores them: no SKILL.md) so they are not counted.
-for support_dir in "${SCRIPT_DIR}/skills/"*/; do
-    [ -d "$support_dir" ] || continue
-    [ -z "$(find "$support_dir" -name SKILL.md -print -quit)" ] || continue  # skip dirs that hold skills
-    support_name=$(basename "$support_dir")
-    support_target="${REASONIX_SKILLS_DIR}/${support_name}"
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would copy Reasonix support dir: ${support_dir} -> ${support_target}/${NC}"
-    else
-        rm -rf "$support_target"
-        cp -r "$support_dir" "$support_target"
-        echo -e "${GREEN}  ✓ Reasonix copied support dir ${support_name}${NC}"
-    fi
-done
-
+# ── Reasonix mirror (scripts + hooks only) ──
+# Reasonix inherits Claude-compatible skills itself, so this installer does not mirror
+# VexJoy skills into ~/.reasonix/skills. It only mirrors scripts needed by retained hooks
+# and writes hook settings in ~/.reasonix/settings.json; MCP/model/permissions live in
+# user-owned ~/.reasonix/config.json, which we never touch.
 echo ""
 echo -e "${YELLOW}Syncing Reasonix scripts mirror...${NC}"
 if [ -d "${SCRIPT_DIR}/scripts" ]; then
@@ -2016,9 +1913,8 @@ else
 fi
 
 # Reasonix hooks mirror — allowlist-driven, like Codex.
-# Mirrors only the hook files listed in the allowlist (so Reasonix only ships hooks that
-# can actually fire under its 4 supported events) and uses an allowlist-aware generator to
-# produce ~/.reasonix/settings.json in Reasonix's native flat shape.
+# Mirrors only the hook files listed in the allowlist and uses an allowlist-aware generator
+# to produce ~/.reasonix/settings.json in Reasonix's native flat shape.
 echo ""
 echo -e "${YELLOW}Syncing Reasonix hooks mirror (allowlist-driven)...${NC}"
 REASONIX_HOOK_COUNT=0
@@ -2104,7 +2000,7 @@ if [ -d "${SCRIPT_DIR}/private-voices/shared-references" ]; then
     for ref_file in "${SCRIPT_DIR}/private-voices/shared-references/"*.md; do
         [ -f "$ref_file" ] || continue
         ref_name=$(basename "$ref_file")
-        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns" "${HERMES_SKILLS_DIR}/shared-patterns" "${REASONIX_SKILLS_DIR}/shared-patterns"; do
+        for target_dir in "${CLAUDE_DIR}/skills/shared-patterns" "${CODEX_SKILLS_DIR}/shared-patterns" "${FACTORY_SKILLS_DIR}/shared-patterns" "${HERMES_SKILLS_DIR}/shared-patterns"; do
             # Resolve symlinks so we write into the actual directory
             resolved_dir="$target_dir"
             [ -L "$target_dir" ] && resolved_dir="$(readlink -f "$target_dir")"
@@ -2323,7 +2219,7 @@ manifest = {
     'codex_components': ['skills', 'agents', 'hooks', 'scripts'],
     'factory_components': ['skills', 'droids', 'hooks'],
     'hermes_components': ['skills', 'scripts'],
-    'reasonix_components': ['skills', 'scripts', 'hooks'],
+    'reasonix_components': ['scripts', 'hooks'],
     'reasonix_hooks_allowlist': 'scripts/reasonix-hooks-allowlist.txt',
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
@@ -2362,7 +2258,6 @@ echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factor
 echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
 echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
 echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
-echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
 echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
 echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
 if [ "$REASONIX_HOOK_FAILED" = true ]; then

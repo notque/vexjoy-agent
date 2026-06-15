@@ -61,6 +61,19 @@ def test_check_codex_skills_reports_missing_entries(tmp_path, monkeypatch) -> No
     assert "do" in result["detail"]
 
 
+def test_check_reasonix_skills_reports_unmanaged_when_absent(tmp_path, monkeypatch) -> None:
+    reasonix_dir = tmp_path / ".reasonix"
+    reasonix_dir.mkdir()
+
+    monkeypatch.setattr(install_doctor, "REASONIX_DIR", reasonix_dir)
+
+    result = install_doctor.check_reasonix_skills()
+
+    assert result["passed"] is True
+    assert result["name"] == "reasonix_skills"
+    assert "inherits Claude skills" in result["detail"]
+
+
 def test_inventory_counts_codex_skills(tmp_path, monkeypatch) -> None:
     claude_dir = tmp_path / ".claude"
     claude_dir.mkdir()

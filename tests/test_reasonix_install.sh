@@ -4,8 +4,8 @@
 #
 # Strategy: stage a temp HOME, point HOME at it, and run a sequence of install/uninstall
 # commands. After each step, assert the filesystem state matches expectations:
-#   - skills entries are symlinks (--symlink mode) or real dirs (--copy mode)
-#   - settings.json contains only the 4 Reasonix-supported events
+#   - skills are not installed into Reasonix; Reasonix inherits Claude skills itself
+#   - settings.json contains only the non-tool Reasonix events VexJoy wires directly
 #   - all hook commands reference $HOME/.reasonix/ (or path) and never .claude
 #   - scripts/ and hooks/ are mirrors of the repo
 #   - uninstall archives settings.json and removes skills/hooks/scripts
@@ -107,25 +107,16 @@ if [ $? -ne 0 ]; then
 fi
 pass "install --symlink exited 0"
 
-# Skill should be a symlink to the source dir, NOT a copy.
-SAMPLE_SKILL="${TEST_HOME}/.reasonix/skills/do"
-if [ -L "$SAMPLE_SKILL" ]; then
-    pass "skills/do is a symlink"
-else
-    fail "skills/do should be a symlink in --symlink mode"
-fi
-
-# The symlink target should point into the repo's skills tree.
-SKILL_TARGET=$(readlink "$SAMPLE_SKILL" 2>/dev/null || echo "")
-assert_contains "skills/do symlink target lives in repo" "$SKILL_TARGET" "/skills/"
+# Reasonix should not get a direct VexJoy skills mirror; it inherits Claude skills itself.
+assert "Reasonix skills dir is not created" test ! -e "${TEST_HOME}/.reasonix/skills"
 
 # settings.json exists and parses as JSON with the right shape.
 SETTINGS="${TEST_HOME}/.reasonix/settings.json"
 assert "settings.json exists" test -f "$SETTINGS"
 SETTINGS_JSON=$(cat "$SETTINGS")
 assert_contains "settings.json has hooks key" "$SETTINGS_JSON" '"hooks"'
-assert_contains "settings.json has PreToolUse" "$SETTINGS_JSON" '"PreToolUse"'
-assert_contains "settings.json has PostToolUse" "$SETTINGS_JSON" '"PostToolUse"'
+assert_not_contains "settings.json does NOT contain PreToolUse" "$SETTINGS_JSON" '"PreToolUse"'
+assert_not_contains "settings.json does NOT contain PostToolUse" "$SETTINGS_JSON" '"PostToolUse"'
 assert_contains "settings.json has UserPromptSubmit" "$SETTINGS_JSON" '"UserPromptSubmit"'
 assert_contains "settings.json has Stop" "$SETTINGS_JSON" '"Stop"'
 
@@ -140,16 +131,18 @@ assert_contains "hooks reference .reasonix/" "$SETTINGS_JSON" '.reasonix'
 
 # settings.json must be Reasonix-native flat shape (no nested "hooks" arrays with "type").
 assert_not_contains "no nested {hooks:[{type:command,...}]} structure" "$SETTINGS_JSON" '"type": "command"'
-assert_contains "uses 'match' field (Reasonix naming, not 'matcher')" "$SETTINGS_JSON" '"match"'
+assert_not_contains "no tool match fields without tool hooks" "$SETTINGS_JSON" '"match"'
 assert_not_contains "does not use 'matcher' (Claude naming)" "$SETTINGS_JSON" '"matcher"'
 
-# The 4-event-only set is the entire surface — verify count.
+# The prompt/session event set is the entire direct Reasonix hook surface.
 EVENT_COUNT=$(python3 -c "import json; d=json.load(open('${SETTINGS}')); print(len(d.get('hooks', {})))")
-assert_eq "settings.json has exactly 4 hook events" "$EVENT_COUNT" "4"
+assert_eq "settings.json has exactly 2 hook events" "$EVENT_COUNT" "2"
 
 # All allowlisted hook files are mirrored.
-SAMPLE_HOOK="${TEST_HOME}/.reasonix/hooks/pretool-branch-safety.py"
+SAMPLE_HOOK="${TEST_HOME}/.reasonix/hooks/user-correction-capture.py"
 assert "allowlisted hook mirrored" test -f "$SAMPLE_HOOK"
+REMOVED_TOOL_HOOK="${TEST_HOME}/.reasonix/hooks/pretool-branch-safety.py"
+assert "removed tool hook NOT mirrored" test ! -f "$REMOVED_TOOL_HOOK"
 # Non-allowlisted hooks (e.g. pretool-ruff-format-gate IS allowlisted; pick one NOT in
 # the allowlist — we excluded SessionStart-style ones, but check for a disabled stub).
 NOT_ALLOWLISTED="${TEST_HOME}/.reasonix/hooks/creation-request-enforcer-userprompt.py"
@@ -166,10 +159,6 @@ else
     fail "scripts/ should be a symlink in --symlink mode"
 fi
 
-# Support dirs (no SKILL.md) like shared-patterns are still copied (not symlinked) so
-# sibling-ref resolution inside skills works.
-assert "shared-patterns support dir exists" test -d "${TEST_HOME}/.reasonix/skills/shared-patterns"
-
 # User-owned config.json is untouched.
 USER_MARKER=$(python3 -c "import json; print(json.load(open('${TEST_HOME}/.reasonix/config.json')).get('userMarker',''))")
 assert_eq "user-owned config.json untouched" "$USER_MARKER" "USER-OWNED-DO-NOT-OVERWRITE"
@@ -184,12 +173,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 pass "second install --symlink exited 0"
-# Re-confirm a key fact: skills/do is still a symlink (not promoted to a copy).
-if [ -L "${TEST_HOME}/.reasonix/skills/do" ]; then
-    pass "skills/do remains a symlink after re-run"
-else
-    fail "skills/do should still be a symlink after re-run"
-fi
+# Re-confirm a key fact: no Reasonix skills mirror appears on idempotent re-run.
+assert "Reasonix skills dir remains absent after re-run" test ! -e "${TEST_HOME}/.reasonix/skills"
 
 # --- Step 3: --copy install (separate temp home so we don't trample --symlink state) ---
 echo ""
@@ -209,23 +194,19 @@ if [ $? -ne 0 ]; then
 fi
 pass "install --copy exited 0"
 
-# In --copy mode, skills should be real dirs, not symlinks.
-if [ ! -L "${TEST_HOME2}/.reasonix/skills/do" ] && [ -d "${TEST_HOME2}/.reasonix/skills/do" ]; then
-    pass "skills/do is a real dir in --copy mode"
-else
-    fail "skills/do should be a real dir in --copy mode"
-fi
+# In --copy mode, Reasonix still should not get a direct skills mirror.
+assert "--copy Reasonix skills dir is not created" test ! -e "${TEST_HOME2}/.reasonix/skills"
 # scripts/ should also be a real dir in --copy mode.
 if [ ! -L "${TEST_HOME2}/.reasonix/scripts" ] && [ -d "${TEST_HOME2}/.reasonix/scripts" ]; then
     pass "scripts/ is a real dir in --copy mode"
 else
     fail "scripts/ should be a real dir in --copy mode"
 fi
-# settings.json should still be 4-event-only and not reference .claude/.
+# settings.json should still be prompt/session-only and not reference .claude/.
 COPY_SETTINGS="${TEST_HOME2}/.reasonix/settings.json"
 COPY_JSON=$(cat "$COPY_SETTINGS")
 COPY_EVENT_COUNT=$(python3 -c "import json; d=json.load(open('${COPY_SETTINGS}')); print(len(d.get('hooks', {})))")
-assert_eq "--copy settings.json has 4 events" "$COPY_EVENT_COUNT" "4"
+assert_eq "--copy settings.json has 2 events" "$COPY_EVENT_COUNT" "2"
 assert_not_contains "--copy settings.json has no .claude" "$COPY_JSON" '.claude'
 
 # User-owned config.json preserved.
