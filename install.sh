@@ -713,7 +713,7 @@ os.rename(tmp, dst)
     # Note: ~/.hermes/config.yaml is intentionally left untouched.
     # Users may have other Hermes configurations we did not write.
 
-    # Phase 3.11: Clean toolkit-owned Reasonix mirror (skills + scripts + hooks + settings.json)
+    # Phase 3.11: Clean toolkit-owned Reasonix mirror (legacy skills + scripts + hooks + settings.json)
     echo ""
     echo -e "${YELLOW}Cleaning Reasonix skills mirror...${NC}"
     # Remove ONLY the toolkit-owned flatten-copy output, recomputed from the repo so it
@@ -1009,6 +1009,11 @@ detect_conflicts() {
                        "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
         [ -d "$runtime_dir" ] || continue
         for component in agents skills hooks commands scripts; do
+            if [ "$runtime_dir" = "$REASONIX_DIR" ]; then
+                case "$component" in
+                    agents|commands) continue ;;
+                esac
+            fi
             target="$runtime_dir/$component"
             src="$SCRIPT_DIR/$component"
             [ -d "$src" ] || continue
@@ -1345,6 +1350,11 @@ REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 for runtime_dir in     "$HOME/.claude" "$HOME/.codex"     "$HOME/.factory" "$HOME/.hermes" "$HOME/.reasonix"; do
   [ -d "$runtime_dir" ] || continue
   for component in agents skills hooks commands scripts; do
+    if [ "$runtime_dir" = "$HOME/.reasonix" ]; then
+      case "$component" in
+        agents|commands) continue ;;
+      esac
+    fi
     src="$REPO_DIR/$component"
     dst="$runtime_dir/$component"
     [ -d "$src" ] || continue
@@ -2016,9 +2026,8 @@ else
 fi
 
 # Reasonix hooks mirror — allowlist-driven, like Codex.
-# Mirrors only the hook files listed in the allowlist (so Reasonix only ships hooks that
-# can actually fire under its 4 supported events) and uses an allowlist-aware generator to
-# produce ~/.reasonix/settings.json in Reasonix's native flat shape.
+# Mirrors only the hook files listed in the allowlist and uses an allowlist-aware generator
+# to produce ~/.reasonix/settings.json in Reasonix's native flat shape.
 echo ""
 echo -e "${YELLOW}Syncing Reasonix hooks mirror (allowlist-driven)...${NC}"
 REASONIX_HOOK_COUNT=0
