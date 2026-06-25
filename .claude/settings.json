@@ -588,15 +588,6 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
-            "description": "Advisory: re-wake the session to run the local security-review pipeline over the working-tree diff",
-            "timeout": 20000,
-            "asyncRewake": true,
-            "rewakeMessage": "Local security review of this session's changes \u2014 address or acknowledge the findings below, then continue with the user's original request or continue waiting for their reply. This is supplementary, not a replacement for your previous response:",
-            "rewakeSummary": "Local security review found changes to review"
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/stop-drift-guard.py\"",
             "description": "Advisory: re-wake the session when this session's changes introduce toolkit drift (hook smoke-test, doc-count, or routing-manifest drift) so it can be fixed before CI",
             "timeout": 20000,
