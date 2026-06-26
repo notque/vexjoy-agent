@@ -54,12 +54,17 @@ Names blocking future siblings. `keppel test` should be `keppel test-driver stor
 |----------------|---------------------|
 | `rows.Next()` + `rows.Scan()` | `sqlext.ForeachRow()` |
 | `if err != nil { t.Fatal(err) }` | `must.SucceedT(t, err)` |
+| `val, ok := m[k]; if !ok { t.Fatal(...) }` | `must.BeOKT(t, val, ok)` (added 2026-05) |
 | Manual DB test setup | `easypg.WithTestDB()` |
 | Manual error collection | `errext.ErrorSet` |
 | `log.Printf` | `logg.Info()` |
 | `json.Marshal` + `w.Write` | `respondwith.JSON()` |
-| `os.Getenv` without validation | `osext.MustGetenv()` |
+| Manual `WWW-Authenticate` on 401 | `respondwith.CustomStatus` + `respondwith.CustomHeader` (added 2026-05) |
+| `os.Getenv` without validation | `osext.MustGetenv()` (or `NeedGetenv` for typed errors) |
 | Manual factory maps | `pluggable.Registry[T]` |
+| `httptest.NewRecorder()` boilerplate | `go-bits/httptest.Handler.RespondTo(...).ExpectBody/CaptureJSON` (the older `assert.HTTPRequest` was removed in commit 8b79638) |
+| `assert.HTTPRequest{}.Check(t, h)` (legacy) | same migration target as above — `assert.HTTPRequest` no longer exists |
+| Untagged REQUEST log lines | `httpapi.IdentifyUser(req, id)` (added 2026-04) |
 
 ### 8: Test Structure (HIGH/MEDIUM)
 Missing `testWithEachTypeOf` for multi-implementation interfaces. `MockXxx` in production. `PedanticRegistry` in production (test-only). Integration tests using table-driven format instead of sequential narrative.

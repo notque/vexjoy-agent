@@ -1,23 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Checks for direct httptest.NewRecorder usage instead of assert.HTTPRequest.
-# Rule: sapcc uses go-bits/assert.HTTPRequest for HTTP testing.
+# Checks for direct httptest.NewRecorder usage instead of the go-bits/httptest
+# method-chain API. Rule: sapcc uses go-bits/httptest (Handler.RespondTo +
+# Response.ExpectBody/ExpectHeader/CaptureJSON) for HTTP testing.
+#
+# History: the older `assert.HTTPRequest{}.Check(t, h)` builder was removed
+# from go-bits in commit 8b79638 (June 2026). Any remaining call sites should
+# also migrate to the go-bits/httptest method chain.
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 SCRIPT_NAME="$(basename "$0")"
 
 usage() {
     cat <<EOF
-$SCRIPT_NAME v$VERSION — Check for httptest.NewRecorder instead of assert.HTTPRequest
+$SCRIPT_NAME v$VERSION — Check for httptest.NewRecorder instead of go-bits/httptest
 
 USAGE
     bash $SCRIPT_NAME [options] [path]
 
 DESCRIPTION
     Scans Go test files for direct use of httptest.NewRecorder().
-    sapcc convention uses go-bits/assert.HTTPRequest{}.Check(t, h)
-    instead of manual recorder setup.
+    sapcc convention uses the go-bits/httptest method-chain API:
+        h := httptest.NewHandler(handler)
+        h.RespondTo(ctx, "GET /v1/info").
+            ExpectStatus(200).
+            ExpectBody(expected).
+            CaptureJSON(&out)
+
+    The legacy assert.HTTPRequest{}.Check(t, h) builder was removed from
+    go-bits and should also be migrated.
 
     Exits 0 if no violations found, 1 if violations found, 2 on error.
 
@@ -93,7 +105,7 @@ for file in "${FILES[@]}"; do
     while IFS= read -r line; do
         line_num=$((line_num + 1))
         if [[ "$line" =~ httptest\.NewRecorder ]]; then
-            FINDINGS+=("${file}:${line_num}|use assert.HTTPRequest{}.Check(t, h) instead of httptest.NewRecorder()")
+            FINDINGS+=("${file}:${line_num}|use go-bits/httptest method chain (Handler.RespondTo + Response.ExpectBody/ExpectHeader/CaptureJSON) instead of httptest.NewRecorder()")
         fi
     done < "$file"
 done
@@ -128,7 +140,7 @@ else
         echo "No direct httptest.NewRecorder usage found."
         exit 0
     fi
-    echo "Direct httptest.NewRecorder usage (use assert.HTTPRequest instead):"
+    echo "Direct httptest.NewRecorder usage (use go-bits/httptest method chain instead):"
     echo ""
     for entry in "${FINDINGS[@]}"; do
         IFS='|' read -r location message <<< "$entry"

@@ -1,6 +1,6 @@
 # SAP CC Library Reference
 
-Complete dependency map for SAP Converged Cloud Go projects. Extracted from `sapcc/keppel` go.mod, `.golangci.yaml`, and usage analysis.
+Complete dependency map for SAP Converged Cloud Go projects. Extracted from `sapcc/keppel` go.mod, `.golangci.yaml`, and usage analysis. **go-bits inventory refreshed against `sapcc/go-bits@b9734b4` (2026-06-23).**
 
 ---
 
@@ -10,8 +10,8 @@ Complete dependency map for SAP Converged Cloud Go projects. Extracted from `sap
 
 | Library | Version | Files | Purpose | Key Functions/Types |
 |---------|---------|-------|---------|---------------------|
-| `github.com/sapcc/go-bits` | latest | ~170+ | Core framework | See go-bits subpackage table below |
-| `github.com/sapcc/go-api-declarations` | v1.20.0 | ~20 | Shared API types | `bininfo`, `cadf.Event`, `liquid` |
+| `github.com/sapcc/go-bits` | latest | 23 packages, ~67 src files | Core framework | See go-bits subpackage table below |
+| `github.com/sapcc/go-api-declarations` | v1.24.0 | ~20 | Shared API types | `bininfo`, `cadf.Event`, `liquid` |
 | `github.com/databus23/goslo.policy` | latest | 1 | OpenStack policy.json enforcement | Policy rule evaluation |
 
 ### Related Libraries (2)
@@ -42,7 +42,7 @@ v := opt.UnwrapOr("default")
 
 | Library | Version | Files | Purpose |
 |---------|---------|-------|---------|
-| `github.com/gophercloud/gophercloud/v2` | v2.10.0 | ~15 | OpenStack SDK (Keystone, Swift) |
+| `github.com/gophercloud/gophercloud/v2` | v2.12.0 | ~15 | OpenStack SDK (Keystone, Swift) |
 | `github.com/prometheus/client_golang` | v1.23.2 | ~20 | Prometheus metrics |
 | `github.com/redis/go-redis/v9` | v9.18.0 | ~10 | Redis client |
 
@@ -101,26 +101,48 @@ v := opt.UnwrapOr("default")
 
 ## go-bits Subpackage Usage
 
-| Subpackage | Source Files | Purpose | Key Functions/Types |
-|------------|-------------|---------|---------------------|
+Inventory verified against `sapcc/go-bits@b9734b4` (2026-06-23). 23 packages total. "Files" column counts approximate downstream usage in `sapcc/keppel`.
+
+| Subpackage | Files | Purpose | Key Functions/Types |
+|------------|-------|---------|---------------------|
 | `logg` | 48 | Logging | `Info()`, `Error()`, `Fatal()`, `Debug()`, `ShowDebug` |
-| `assert` | 27 (tests) | Test assertions | `Equal[T]()`, `ErrEqual()`, `HTTPRequest{}`, `JSONObject` |
-| `must` | 30 | Fatal error shorthand | `Succeed(err)`, `Return(val, err)`, `SucceedT(t, err)`, `ReturnT(val, err)(t)` |
+| `assert` | 27 (tests) | Test assertions — **thin forwarder to `go.xyrillian.de/gg/assert`** as of 2026-06 | `Equal[V]()`, `ErrEqual()`, `DeepEqual[V]()` |
+| `must` | 30 | Fatal error shorthand | `Succeed`, `Return`, `SucceedT`, `ReturnT`, `BeOK`, `BeOKT`, `NotBeOK`, `NotBeOKT` |
 | `sqlext` | 18 | SQL helpers | `ForeachRow()`, `WithPreparedStatement()`, `RollbackUnlessCommitted()`, `SimplifyWhitespace()` |
-| `respondwith` | 17 | HTTP responses | `JSON()`, `ErrorText()`, `ObfuscatedErrorText()`, `CustomStatus()` |
-| `httpapi` | 20 | HTTP API framework | `Compose()`, `IdentifyEndpoint()`, `SkipRequestLog()` |
+| `respondwith` | 17 | HTTP responses | `JSON()`, `ErrorText()`, `ObfuscatedErrorText()`, `CustomStatus()`, `CustomHeader()` |
+| `httpapi` | 20 | HTTP API framework | `Compose()`, `IdentifyEndpoint()`, `IdentifyUser()`, `SkipRequestLog()` |
+| `httptest` | (tests) | Method-chaining HTTP test framework | `Handler`, `RespondTo`, `Response.ExpectBody`, `Response.ExpectHeader`, `Response.CaptureJSON`, `Response.CaptureHeader`, `MergeRequestOptions` |
 | `errext` | 15 | Error handling | `ErrorSet`, `As[T]()`, `IsOfType[T]()`, `JoinedError` |
-| `osext` | 11 | Environment access | `MustGetenv()`, `GetenvBool()`, `GetenvOrDefault()` |
-| `jobloop` | 10 | Background workers | `CronJob`, `ProducerConsumerJob[T]`, `TxGuardedJob` |
-| `httpext` | 9 | HTTP server | `ListenAndServeContext()`, `ContextWithSIGINT()` |
-| `easypg` | 7 | PostgreSQL setup | `Configuration{}`, `Init()`, `WithTestDB()`, `ConnectForTest()`, `AssertDBContent()` |
-| `audittools` | 13 | CADF audit events | `Auditor`, `Event`, `MockAuditor` |
-| `pluggable` | 8 | Driver plugins | `Registry[T]`, `Plugin` interface |
-| `regexpext` | 5 | Regex config types | `PlainRegexp`, `BoundedRegexp`, `ConfigSet[K,V]` |
-| `gophercloudext` | 3 | OpenStack auth | `NewProviderClient()` |
-| `gopherpolicy` | 1 | Keystone authZ | `TokenValidator`, `Validator` |
-| `mock` | 1 | Test doubles | `Clock`, `NewClock()`, `StepBy()` |
-| `syncext` | 1 | Concurrency | `Semaphore`, `Run()`, `RunFallible()` |
+| `osext` | 11 | Environment access | `MustGetenv()`, `NeedGetenv()`, `GetenvBool()`, `GetenvOrDefault()`, `MissingEnvError` |
+| `jobloop` | 10 | Background workers | `Job` (iface), `CronJob`, `ProducerConsumerJob[T]`, `TxGuardedJob`, `DefaultJitter`, `NoJitter` |
+| `httpext` | 9 | HTTP server | `ListenAndServeContext()`, `ListenAndServeTLSContext()`, `ContextWithSIGINT()` |
+| `easypg` | 7 | PostgreSQL setup | `Configuration{}`, `Connect()`, `Init()`, `WithTestDB()`, `AssertDBContent()`, `Tracker`, `TableSnapshot` |
+| `audittools` | 13 | CADF audit events via RabbitMQ | `NewAuditor()`, `Auditor`, `MockAuditor`, `Observer`, `MockAuditor.ExpectEvents` (MIME-aware JSON diffs) |
+| `pluggable` | 8 | Driver plugins | `Registry[T]`, `Plugin` interface, `PluginTypeID` |
+| `regexpext` | 5 | Regex config types | `PlainRegexp`, `BoundedRegexp`, `ConfigSet[K,V]`, `Pick`, `Option` |
+| `gophercloudext` | 3 | OpenStack auth (lightweight `gophercloud/utils` alternative) | `NewProviderClient()`, `GetProjectIDFromTokenScope()`, `UnpackError` |
+| `gopherpolicy` | 1 | Keystone authZ | `Token.Check`, `Token.Require`, `Token.Enforce` (error-returning, 2026-05+), `TokenValidator`, `SerializeCompactContextToJSON`, `DeserializeCompactContextFromJSON` |
+| `mock` | 1 | Test doubles | `Clock`, `NewClock()`, `StepBy()`, `AddListener` |
+| `syncext` | 1 | Concurrency | `Semaphore`, `Run()`, `RunFallible()`, `NewSemaphore()` |
+| `liquidapi` | (server) | LIQUID API server runtime + fair-distribution helpers | `NewClient`, `Client`, `GetInfo`, `DistributeFairly`, `DistributeDemandFairly` |
+| `promquery` | — | Simplified Prometheus query interface, bulk caching | `NewBulkQueryCache`, `Client.GetVector`, `Get` |
+| `secrets` | — | Auth credentials + env-var binding for secret fields | `FromEnv`, `UnmarshalJSON`, `UnmarshalYAML` |
+| `vault` | — | HashiCorp Vault helpers | `CreateClient` |
+
+### go-bits changes since 2026-01 (worth flagging in review)
+
+| Change | Commit (short) | Effect on consumer code |
+|--------|----------------|-------------------------|
+| `assert` package becomes a thin wrapper around `go.xyrillian.de/gg/assert` | 90af602 | Existing imports still compile; prefer `gg/assert` directly in NEW code in keppel/limes; deprecation deferred. |
+| `assert.HTTPRequest{}` removed | 8b79638 | Migrate HTTP tests to `httptest.Handler` + `RespondTo` + `Response.ExpectBody`/`ExpectHeader`/`CaptureJSON` method chain. |
+| `respondwith.CustomHeader` added | ef7eeca | Combine with `CustomStatus` to attach headers to error responses. |
+| `httpapi.IdentifyUser` added | f63acfb | Attaches user identity (opaque string) to the REQUEST log line; pair with `IdentifyEndpoint`. |
+| `must.BeOK` / `BeOKT` / `NotBeOK` / `NotBeOKT` added | 89cf13f, 0e5c058 | New shorthand for `(value, ok)` pairs and inverse — analogue of `must.Return` for the comma-ok idiom. |
+| `gopherpolicy.Token.Enforce` (error-returning) | 2026-05 | Compose with `respondwith.ErrorText`/`CustomStatus` for clean 401/403 flow. |
+| `audittools.MockAuditor.ExpectEvents` MIME-aware diffs | 42a3e06 | Diffs of nested JSON inside `application/json` attachments now use structural compare. |
+| `audittools.AuditorOpts.QueueDurable` removed | 7cd042d | Durability is now determined by queue name; `dataplaneAuditQueueName` is durable, others transient. |
+| `testing.T` → `testing.TB` in public signatures | 6042f07 | Broadens compatibility for custom test-helper types. |
+| Minimum Go version raised to 1.26 | — | Consumer go.mod must match. |
 
 ---
 
@@ -141,7 +163,7 @@ v := opt.UnwrapOr("default")
 
 | Library | Reason | Use Instead |
 |---------|--------|-------------|
-| `testify` (assert/require/mock) | SAP CC has own testing framework | `go-bits/assert` + `go-bits/must` |
+| `testify` (assert/require/mock) | SAP CC has own testing framework | `go-bits/assert` (forwarder to `gg/assert`) + `go-bits/must` |
 | `zap` / `zerolog` / `slog` | SAP CC standardized on simple logging | `go-bits/logg` |
 | `logrus` | Only present as transitive dep | `go-bits/logg` |
 | `gin` / `echo` / `fiber` | SAP CC uses stdlib + gorilla/mux | `go-bits/httpapi` + `gorilla/mux` |
@@ -160,8 +182,9 @@ v := opt.UnwrapOr("default")
 | Category | Use This | Not This | Reason |
 |----------|----------|----------|--------|
 | Logging | `go-bits/logg` | `zap`, `zerolog`, `logrus`, `slog` | SAP CC standard |
-| Test assertions | `go-bits/assert` | `testify/assert`, `testify/require` | Generics-based, SAP CC standard |
-| HTTP responses | `go-bits/respondwith` | manual `json.Marshal` + `w.Write` | `respondwith.JSON()`, `ObfuscatedErrorText()` |
+| Test assertions | `go-bits/assert` (or `gg/assert` directly) | `testify/assert`, `testify/require` | Generics-based; `go-bits/assert` is a thin wrapper around `gg/assert` since 2026-06 |
+| HTTP responses | `go-bits/respondwith` | manual `json.Marshal` + `w.Write` | `respondwith.JSON()`, `ObfuscatedErrorText()`, `CustomStatus()` + `CustomHeader()` |
+| HTTP test helpers | `go-bits/httptest` | `httptest.NewRecorder` boilerplate, removed `assert.HTTPRequest{}` | `Handler` + `RespondTo` + `Response.ExpectBody`/`ExpectHeader`/`CaptureJSON` method chain |
 | HTTP lifecycle | `go-bits/httpext` | manual signal handling | `ListenAndServeContext()` with graceful shutdown |
 | HTTP framework | `go-bits/httpapi` | gin, echo, fiber | Middleware with logging, metrics |
 | Fatal errors | `go-bits/must` | manual `if err != nil { log.Fatal }` | `must.Succeed(err)`, `must.Return(val, err)` |
