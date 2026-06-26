@@ -141,7 +141,7 @@ Write ALL findings to: [output file path]
 **Extra Reference**: `testing-patterns-detailed.md`
 
 **What to check across ALL *_test.go files AND test helpers:**
-- Using deprecated `assert.HTTPRequest` instead of `httptest.Handler.RespondTo()`
+- Using removed `assert.HTTPRequest` (gone since go-bits commit 8b79638) instead of `httptest.Handler.RespondTo()`
 - Using `assert.DeepEqual` where generic `assert.Equal` works
 - Table-driven tests (project convention prefers sequential scenario-driven narrative)
 - Missing `t.Helper()` in test helper functions

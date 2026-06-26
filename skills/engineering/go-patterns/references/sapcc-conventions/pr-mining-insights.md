@@ -2,8 +2,8 @@
 
 All 62 review comments organized by reviewer, frequency analysis, 5 disagreements with full context, 12 derived rules with evidence, and Copilot dismissal patterns.
 
-**Date**: 2026-02-27
-**Scope**: Keppel PRs (last ~3 months), go-bits PRs (last ~5 months)
+**Date**: 2026-02-27 (next refresh due: re-mine when go-bits or keppel ship significant API surface changes; the 2026-04 → 2026-06 wave — `IdentifyUser`, `CustomHeader`, `BeOK`/`NotBeOK`, the `gg/assert` forwarder, and the `assert.HTTPRequest` removal — is reflected in `library-reference.md` and `go-bits-philosophy-detailed.md` but has NOT been re-mined for review-comment patterns)
+**Scope**: Keppel PRs (Nov 2025 – Feb 2026, ~3 months), go-bits PRs (Sep 2025 – Feb 2026, ~5 months)
 **Reviewers**: Lead Reviewer, Secondary Reviewer, Contributor
 
 ---
