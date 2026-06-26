@@ -109,7 +109,7 @@ Use only approved libraries because the lead reviewer will reject PRs that intro
 
 | Library | Purpose | Key Pattern |
 |---------|---------|-------------|
-| `sapcc/go-bits` | Core framework (170+ files) | `logg.Info`, `must.Return`, `assert.HTTPRequest` |
+| `sapcc/go-bits` | Core framework (23 packages, ~67 src files) | `logg.Info`, `must.Return`, `httptest.RespondTo(...).ExpectBody(...)` |
 | `majewsky/gg/option` | `Option[T]` (45 files) | `Some(v)`, `None[T]()`, dot-import ONLY for this |
 | `majewsky/schwift/v2` | Swift storage client | OpenStack storage driver only |
 | `gorilla/mux` | HTTP routing | `r.Methods("GET").Path("/path").HandlerFunc(h)` |
@@ -391,35 +391,31 @@ if len(items) == 0 {
 
 #### 2f. Testing
 
-**Core testing stack** -- use only these tools because testify, gomock, and httptest.NewRecorder will fail review:
+**Core testing stack** -- use only these tools because testify, gomock, and bare `httptest.NewRecorder` will fail review:
 
-- **Assertion library**: `go-bits/assert` (NOT testify, NOT gomock)
+- **Assertion library**: `go-bits/assert` (NOT testify, NOT gomock). As of 2026-06 it is a thin forwarder to `go.xyrillian.de/gg/assert`; new code may import `gg/assert` directly.
 - **DB testing**: `easypg.WithTestDB` in every `TestMain`
 - **Test setup**: Functional options via `test.NewSetup(t, ...options)`
-- **HTTP testing**: `assert.HTTPRequest{}.Check(t, handler)`
+- **HTTP testing**: `go-bits/httptest` method-chaining API (`Handler` + `RespondTo` + `Response.ExpectBody`/`ExpectHeader`/`CaptureJSON`/`CaptureHeader`). The legacy `assert.HTTPRequest{}.Check(t, h)` builder was removed (commit 8b79638) — migrate any remaining call sites.
 - **Time control**: `mock.Clock` (inject `func() time.Time` for clock control)
 - **Test doubles**: Implement real driver interfaces, register via `init()`
 
-**assert.HTTPRequest pattern**:
+**Current HTTP test pattern** (replaces the removed `assert.HTTPRequest`):
 
 ```go
-assert.HTTPRequest{
-    Method:       "PUT",
-    Path:         "/keppel/v1/accounts/first",
-    Header:       map[string]string{"X-Test-Perms": "change:tenant1"},
-    Body: assert.JSONObject{
-        "account": assert.JSONObject{"auth_tenant_id": "tenant1"},
-    },
-    ExpectStatus: http.StatusOK,
-    ExpectHeader: map[string]string{
-        test.VersionHeaderKey: test.VersionHeaderValue,
-    },
-    ExpectBody: assert.JSONObject{
-        "account": assert.JSONObject{
-            "name": "first", "auth_tenant_id": "tenant1",
-        },
-    },
-}.Check(t, h)
+import "github.com/sapcc/go-bits/httptest"
+
+httptest.RespondTo(h, httptest.MergeRequestOptions(
+    httptest.Method("PUT"),
+    httptest.Path("/keppel/v1/accounts/first"),
+    httptest.Header("X-Test-Perms", "change:tenant1"),
+    httptest.JSONBody(map[string]any{
+        "account": map[string]any{"auth_tenant_id": "tenant1"},
+    }),
+)).
+    ExpectStatus(http.StatusOK).
+    ExpectHeader(test.VersionHeaderKey, test.VersionHeaderValue).
+    ExpectBody(`{"account":{"name":"first","auth_tenant_id":"tenant1"}}`)
 ```
 
 **DB testing pattern**:
@@ -457,7 +453,7 @@ go test -shuffle=on -p 1 -covermode=count -coverpkg=... -mod vendor ./...
 |-------------|----------------|
 | `testify/assert` | `go-bits/assert` |
 | `gomock` / `mockery` | Hand-written test doubles implementing real interfaces |
-| `httptest.NewRecorder` directly | `assert.HTTPRequest{}.Check(t, h)` |
+| `httptest.NewRecorder` directly | `httptest.RespondTo(h, ...).ExpectStatus/.ExpectBody/.CaptureJSON` (from `go-bits/httptest`) |
 | `time.Now()` in testable code | Inject `func() time.Time`, use `mock.Clock` |
 | `t.Run` subtests (rare in keppel) | Log test case index: `t.Logf("----- testcase %d/%d -----")` |
 
@@ -533,7 +529,7 @@ Run sapcc-specific checks that no linter covers. These detect convention violati
 | `scripts/check-sapcc-auth-ordering.sh` | Data access before authentication in handlers |
 | `scripts/check-sapcc-json-strict.sh` | `json.NewDecoder` without `DisallowUnknownFields()` |
 | `scripts/check-sapcc-time-now.sh` | Direct `time.Now()` in testable code (inject clock instead) |
-| `scripts/check-sapcc-httptest.sh` | `httptest.NewRecorder` instead of `assert.HTTPRequest` |
+| `scripts/check-sapcc-httptest.sh` | `httptest.NewRecorder` instead of `go-bits/httptest` method chain |
 | `scripts/check-sapcc-todo-format.sh` | Bare TODO comments without context/links |
 
 These scripts only apply to sapcc repos (detected by `github.com/sapcc/go-bits` in go.mod).
@@ -623,7 +619,7 @@ Use `ForeachOptionTypeInLIQUID[T any](action func(any) T) []T` instead of `var L
 
 **Rule 10: Leverage Go Generics Judiciously** -- use generics where they eliminate boilerplate or improve type safety (`must.Return[V]`, `errext.As[T]`, `pluggable.Registry[T Plugin]`). Use generics only where they eliminate boilerplate or improve type safety.
 
-**Rule 11: Graceful Deprecation** -- `assert.HTTPRequest` is deprecated but not removed. The deprecation notice includes a complete migration guide. No forced migration.
+**Rule 11: Graceful Deprecation** -- public surface is deprecated, not deleted, until downstream consumers migrate. Example: the `go-bits/assert` package was not removed when `gg/assert` became the canonical source (commit 90af602) — instead, `go-bits/assert.Equal/ErrEqual/DeepEqual` were rewritten as thin forwarders so existing imports keep compiling, with a plan to deprecate once Limes/Keppel migrate. Hard removal (e.g. `assert.HTTPRequest`, commit 8b79638) only happens with a documented replacement (`go-bits/httptest` method chain).
 
 **Rule 12: Defense in Depth with Documentation** -- handle theoretically impossible cases with branches that behave the same, and document the invariant reasoning.
 

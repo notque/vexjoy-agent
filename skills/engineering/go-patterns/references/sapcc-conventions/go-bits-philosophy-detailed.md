@@ -1,6 +1,6 @@
 # go-bits Library Design Philosophy -- Detailed Reference
 
-go-bits library design rules, per-package design notes for all 17 go-bits subpackages, API surface inventory, contributor patterns, and evolution direction.
+go-bits library design rules, per-package design notes for all **23 go-bits subpackages** (verified against `sapcc/go-bits@b9734b4`, 2026-06-23), API surface inventory, contributor patterns, and evolution direction. The 17-package picture in older revisions of this doc predates the additions of `audittools`, `easypg`, `gopherpolicy`, `gophercloudext`, `liquidapi`, `promquery`, and `vault` to the public surface.
 
 ---
 
@@ -110,24 +110,27 @@ Generics are NOT used where they would add complexity without clear benefit.
 
 ---
 
-## 2. Per-Package Design Notes -- All 17 go-bits Subpackages
+## 2. Per-Package Design Notes -- 17 Core go-bits Subpackages
+
+The 17 packages below are the core utility subpackages reviewed by Rule 1 ("one package = one concept"). The remaining 6 packages on the public surface — `audittools`, `easypg`, `gopherpolicy`, `gophercloudext`, `liquidapi`, `promquery`, `vault` — are integration packages (each wraps an external system) and are documented in `library-reference.md`.
 
 ### must/ -- Fatal Error Shorthand
 
 - **Files**: 1 (`must.go`)
-- **API surface**: 4 functions, 0 types
-- **Exported**: `Succeed(error)`, `SucceedT(*testing.T, error)`, `Return[V](V, error) V`, `ReturnT[V](V, error) func(*testing.T) V`
+- **API surface**: 8 functions (Succeed, SucceedT, Return, ReturnT, BeOK, BeOKT, NotBeOK, NotBeOKT), 0 types
+- **Exported**: `Succeed(error)`, `SucceedT(testing.TB, error)`, `Return[V](V, error) V`, `ReturnT[V](V, error) func(testing.TB) V`, `BeOK[V](V, bool) V`, `BeOKT[V](V, bool) func(testing.TB) V`, `NotBeOK[V](V, bool) V`, `NotBeOKT[V](V, bool) func(testing.TB) V`
 - **Philosophy**: Eliminate `if err != nil { log.Fatal(...) }` boilerplate. Only for truly fatal errors. Generics preserve type safety in `Return` and `ReturnT`.
 - **Design insight**: `ReturnT` has a long comment explaining WHY its signature is `func(V, error) func(*testing.T) V` -- Go generics prevent type args in methods, and multi-return expressions cannot mix with other arguments.
 - **Opinionated**: Extremely. Calls `os.Exit(1)`. No recovery possible.
 
-### assert/ -- Test Assertions
+### assert/ -- Test Assertions (thin forwarder as of 2026-06)
 
-- **Files**: 4 (`assert.go`, `http.go`, `values.go`, `assert_test.go`)
-- **API surface**: ~12 exported symbols
-- **Exported**: `Equal[V comparable]`, `ErrEqual`, `DeepEqual[V any]`, `HTTPRequest` (deprecated), `StringData`, `JSONObject`, `JSONFixtureFile`, `FixtureFile`, `ByteData`, `TestingT` interface
-- **Philosophy**: Thin wrappers around `testing.T` with readable error messages. `DeepEqual` uses `reflect.DeepEqual` with `%#v` (explicit comment: must use `%#v` to distinguish all values).
-- **Design decision**: Rejected changing `DeepEqual` to `==`: "We cannot change DeepEqual to use `==`. Most types are not within the `comparable` interface."
+- **Files**: 1 (`assert.go`) plus tests. The 3 prior files (`http.go`, `values.go`, `assert_test.go`) collapsed when the package was rewritten as a forwarder.
+- **API surface**: 3 exported functions
+- **Exported**: `Equal[V comparable](TestingTB, actual, expected V) bool`, `ErrEqual(TestingTB, actual error, expectedErrOrMessageOrRegexp any) bool`, `DeepEqual[V any](TestingTB, variable string, actual, expected V) bool`
+- **Removed (2026-06, commit 8b79638)**: `HTTPRequest`, `StringData`, `JSONObject`, `JSONFixtureFile`, `FixtureFile`, `ByteData`. Migrate HTTP tests to the `httptest` method-chain API.
+- **Philosophy**: As of commit 90af602 the package is a thin forwarder to `go.xyrillian.de/gg/assert v1.10.1`. The original wrappers stayed compatible to spare downstream consumers (Limes, Keppel) a forced migration; the plan is to migrate downstream code to `gg/assert` directly, then deprecate this package.
+- **New-code rule**: prefer `gg/assert` imports for code written today; old call sites are not required to migrate.
 
 ### logg/ -- Structured Logging
 
@@ -149,11 +152,12 @@ Generics are NOT used where they would add complexity without clear benefit.
 ### respondwith/ -- HTTP Response Helpers
 
 - **Files**: 2 (`pkg.go`, `error.go`)
-- **API surface**: 4 functions + 1 internal error type
-- **Exported**: `JSON`, `ErrorText`, `ObfuscatedErrorText`, `CustomStatus`
+- **API surface**: 5 functions + a `CustomOption` option type
+- **Exported**: `JSON`, `ErrorText`, `ObfuscatedErrorText`, `CustomStatus`, `CustomHeader`, `CustomOption`
 - **Philosophy**: Package named to read as English: `respondwith.JSON(w, 200, data)`. Doc: "Its name is like that because it pairs up with the function names."
 - **Performance**: `JSON` uses `json.Encoder.Encode` instead of `json.Marshal` to avoid extra buffer allocation.
 - **Security**: `ObfuscatedErrorText` generates UUID for 5xx, logs real error server-side. `CustomStatus` does NOT work when wrapped (prevents leaking sensitive data).
+- **`CustomHeader` (added 2026-05, commit ef7eeca)**: a `CustomOption` that attaches HTTP headers to error responses built by `CustomStatus`, so 4xx flows can carry e.g. `WWW-Authenticate` headers without a separate `w.Header().Set` step.
 - **Dependency consciousness**: `GenerateUUID()` was moved to `package internal` to avoid pulling AMQP into all consumers.
 
 ### pluggable/ -- Plugin Factory
@@ -167,20 +171,21 @@ Generics are NOT used where they would add complexity without clear benefit.
 ### httpapi/ -- HTTP API Composition
 
 - **Files**: 6 (`doc.go`, `api.go`, `compose.go`, `middleware.go`, `metrics.go`, `pprofapi/`)
-- **API surface**: ~8 exported symbols
-- **Exported**: `API` interface, `Compose`, `HealthCheckAPI`, `WithoutLogging`, `WithGlobalMiddleware`, `SkipRequestLog`, `IdentifyEndpoint`, `ConfigureMetrics`
-- **Philosophy**: Opinionated composition. `Compose(apis...)` builds single `http.Handler` with logging and metrics. Uses gorilla/mux internally but abstracts it away.
+- **API surface**: ~10 exported symbols
+- **Exported**: `API` interface, `Compose`, `HealthCheckAPI`, `WithoutLogging`, `WithGlobalMiddleware`, `SkipRequestLog`, `IdentifyEndpoint`, `IdentifyUser`, `ConfigureMetrics`
+- **Philosophy**: Opinionated composition. `Compose(apis...)` builds a single `http.Handler` with logging and metrics. Uses gorilla/mux internally but abstracts it away.
+- **`IdentifyUser` (added 2026-04, commit f63acfb)**: lets a handler attach a user identity (opaque string) to the REQUEST log line for the current request; pairs with `IdentifyEndpoint`. No tight coupling to gopherpolicy — any auth scheme can supply a string.
 - **Out-of-band communication**: Context values for handlers to message middleware. Panics if called outside `Compose()`.
 
-### httptest/ -- Test HTTP Handler
+### httptest/ -- Test HTTP Handler (canonical HTTP test pattern as of 2026-06)
 
 - **Files**: 3 (`handler.go`, `handler_test.go`, `fixtures/`)
-- **API surface**: ~15 exported symbols
-- **Exported**: `Handler`, `NewHandler`, `RespondTo`, `Response`, `WithBody`, `WithHeader`, `WithHeaders`, `WithJSONBody`, `RequestOption`, `Response.CaptureJSON`, `Response.CaptureHeader`
+- **API surface**: ~20 exported symbols
+- **Exported**: `Handler`, `NewHandler`, `RespondTo`, `Response`, `MergeRequestOptions`, request-option helpers (`WithBody`, `WithHeader`, `WithHeaders`, `WithJSONBody`, `RequestOption`), and the `Response` chain methods `ExpectBody`, `ExpectHeader`, `ExpectHeaders`, `CaptureJSON`, `CaptureHeader`.
 - **Philosophy**: Fluent API for HTTP test assertions. `RespondTo(ctx, "GET /v1/info")` combines method+path. `RequestOption`s configure the request side; `Response` methods handle the response side via chaining.
-- **Dual-mode**: Supports both `testing.T` and Ginkgo/Gomega.
+- **Replaces `assert.HTTPRequest`** (removed in commit 8b79638). The method-chain style is now the only supported pattern: `h.RespondTo(ctx, "GET /v1/assets").ExpectStatus(200).ExpectBody(expected).CaptureJSON(&out)`.
+- **Dual-mode**: Supports both `testing.TB` (broadened from `testing.T` in commit 6042f07) and Ginkgo/Gomega.
 - **Error philosophy**: Never returns errors -- fabricated 999 status for marshal failures.
-- **Method chaining**: `CaptureJSON` and `CaptureHeader` return `Response` for fluent chaining: `h.RespondTo(ctx, "GET /v1/assets").CaptureJSON(&assets).Response()`
 
 ### jobloop/ -- Worker Loop Abstraction
 
@@ -253,24 +258,34 @@ Generics are NOT used where they would add complexity without clear benefit.
 
 ## 3. API Surface Inventory
 
+Counts reflect `sapcc/go-bits@b9734b4` (2026-06-23). The first 17 rows are the core utility packages; the trailing 6 rows are integration packages (deferred to `library-reference.md` for detailed APIs).
+
 | Package | Exported Symbols | Functions | Types | Interfaces |
 |---------|-----------------|-----------|-------|------------|
-| must | 4 | 4 | 0 | 0 |
-| assert | ~12 | 3 | 6 | 1 |
+| must | 8 | 8 | 0 | 0 |
+| assert | 3 (forwards to gg/assert) | 3 | 0 | 0 |
 | logg | 7 | 5 | 0 | 0 |
 | errext | ~12 | 2 | 2 | 0 |
-| respondwith | 4 | 4 | 0 | 0 |
+| respondwith | 6 | 5 (incl. CustomHeader) | 1 | 0 |
 | pluggable | ~5 | 0 | 1 | 1 |
-| httpapi | ~8 | 4 | 1 | 1 |
-| httptest | ~15 | 5 | 3 | 0 |
+| httpapi | ~10 | 5 (incl. IdentifyUser) | 1 | 1 |
+| httptest | ~20 | 6 (incl. MergeRequestOptions, ExpectBody, ExpectHeader, CaptureJSON, CaptureHeader) | 3 | 0 |
 | jobloop | ~12 | 1 | 2 | 1 |
 | syncext | 4 | 1 | 1 | 0 |
-| httpext | ~6 | 4 | 0 | 0 |
-| osext | 5 | 4 | 1 | 0 |
+| httpext | ~7 | 4 (incl. ListenAndServeTLSContext) | 0 | 0 |
+| osext | 6 | 5 (incl. NeedGetenv) | 1 | 0 |
 | secrets | 2 | 1 | 1 | 0 |
 | sqlext | ~6 | 4 | 0 | 2 |
-| regexpext | ~4 | 0 | 2 | 0 |
-| mock | ~2 | 1 | 1 | 0 |
+| regexpext | ~6 | 0 | 4 | 0 |
+| mock | ~3 | 1 | 1 | 0 |
+| **(integration packages — see library-reference.md)** | | | | |
+| audittools | ~15 | several | 5+ | 2 |
+| easypg | ~12 | 4 | 4 | 0 |
+| gopherpolicy | ~15 | 4 (incl. Enforce) | 3 | 1 |
+| gophercloudext | ~6 | 3 | 1 | 0 |
+| liquidapi | ~10 | 4 | 2 | 1 |
+| promquery | ~8 | 3 | 2 | 0 |
+| vault | 1 | 1 | 0 | 0 |
 
 ---
 
@@ -319,22 +334,34 @@ Pragmatic, implementation-focused:
 | `pluggable.TryInstantiate` | Nov 2025 | Option[T] return for plugin lookup |
 | `Response.CaptureJSON` | Apr 2026 | JSON response capture as chained method on Response |
 | `Response.CaptureHeader` | Apr 2026 | Response header capture in method-chain style |
-| `liquidapi` package | Growing | Server runtime for LIQUID protocol |
+| `httpapi.IdentifyUser` | Apr 2026 (f63acfb) | Tag REQUEST log line with opaque user identity |
+| `audittools.MockAuditor.ExpectEvents` MIME-aware diffs | May 2026 (42a3e06) | Structural compare of nested JSON inside audit attachments |
+| `respondwith.CustomHeader` | May 2026 (ef7eeca) | `CustomOption` to attach headers to error responses |
+| `must.BeOK` / `BeOKT` | May 2026 (89cf13f) | Comma-ok extraction analogue of `must.Return` |
+| `must.NotBeOK` / `NotBeOKT` | May 2026 (0e5c058) | Inverse: fatal if the bool is true |
+| `gopherpolicy.Token.Enforce` (error-returning) | May 2026 | Composes with `respondwith.CustomStatus`/`ErrorText` for 401/403 |
+| `audittools` durable-queue config refactor | Jun 2026 (7cd042d) | Durability determined by queue name (`dataplaneAuditQueueName` durable, others transient); `AuditorOpts.QueueDurable` field removed |
+| `assert` → `gg/assert` forwarder | Jun 2026 (90af602) | `go-bits/assert` is now a thin wrapper around `go.xyrillian.de/gg/assert v1.10.1` |
+| `liquidapi` package | Growing | Server runtime + fair-distribution helpers for the LIQUID protocol |
 
-### Deprecations
+### Deprecations and Removals
 
-- `assert.HTTPRequest` -- soft-deprecated in favor of `httptest.Handler.RespondTo`
-- Coveralls removed from CI (Aug 2025)
+- **`assert.HTTPRequest` and its helper types (`StringData`, `JSONObject`, `JSONFixtureFile`, `FixtureFile`, `ByteData`) — REMOVED in commit 8b79638.** Migrate to the `httptest.Handler` + `RespondTo` + method-chain `Response.ExpectBody`/`ExpectHeader`/`CaptureJSON` API. This is no longer a soft deprecation.
+- **`go-bits/assert` package — soft-superseded by `go.xyrillian.de/gg/assert`.** The package now forwards calls and stays import-compatible to spare downstream code a forced migration; prefer `gg/assert` imports in new code.
+- **`AuditorOpts.QueueDurable` — REMOVED in commit 7cd042d.** Durability is now governed by the queue name. `internal/testutil.mockt` removed (was always internal). `testing.T` replaced with `testing.TB` in public signatures (commit 6042f07).
+- Coveralls removed from CI (Aug 2025).
 
 ### Direction
 
-1. **Generics adoption**: New functions consistently use generics (`Return[V]`, `As[T]`, `ProducerConsumerJob[T]`)
-2. **Option[T] type**: Increasing use from `majewsky/gg` instead of nil pointers
-3. **Fluent test APIs**: Moving from struct-based to method-chain APIs
-4. **Security-conscious defaults**: `ObfuscatedErrorText` hides errors, `CustomStatus` only works unwrapped
-5. **LIQUID protocol**: Growing `liquidapi` package -- most new development
-6. **Concurrency primitives**: `syncext.Semaphore` + `LimitConcurrentRequestsMiddleware`
-7. **Test ergonomics**: `SucceedT`, `ReturnT`, `ErrEqual`, `ExpectJSON`
+1. **Generics adoption**: New functions consistently use generics (`Return[V]`, `BeOK[V]`, `As[T]`, `ProducerConsumerJob[T]`).
+2. **Option[T] type**: Increasing use from `majewsky/gg/option` instead of nil pointers.
+3. **Fluent test APIs**: The method-chain `httptest.Response` API is now the canonical HTTP test pattern; struct-based builders have been removed, not merely deprecated.
+4. **Security-conscious defaults**: `ObfuscatedErrorText` hides errors; `CustomStatus` only works unwrapped; `CustomHeader` adds 401/403 headers cleanly.
+5. **LIQUID protocol**: Growing `liquidapi` package — most new development.
+6. **Concurrency primitives**: `syncext.Semaphore` + `LimitConcurrentRequestsMiddleware`.
+7. **Test ergonomics**: `SucceedT`, `ReturnT`, `BeOK`/`NotBeOK` variants, MIME-aware audit diffs.
+8. **Cross-org alignment**: assertion library converging on `go.xyrillian.de/gg`; downstream migration is gradual.
+9. **Go version floor**: `go.mod` requires Go 1.26.
 
 ### What's NOT Changing
 

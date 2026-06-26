@@ -679,10 +679,11 @@ No content negotiation or API version headers. Version is purely structural in t
 | Dependency | Version | Purpose |
 |------------|---------|---------|
 | `gorilla/mux` | v1.8.1 | HTTP routing |
-| `sapcc/go-bits/httpapi` | latest | HTTP composition, middleware, metrics |
-| `sapcc/go-bits/respondwith` | latest | Response helpers (JSON, ErrorText, ObfuscatedErrorText) |
-| `sapcc/go-bits/gopherpolicy` | latest | Oslo policy evaluation |
-| `gophercloud/gophercloud/v2` | v2.10.0 | OpenStack SDK (Keystone, Swift) |
+| `sapcc/go-bits/httpapi` | latest | HTTP composition, middleware, metrics; `Compose`, `IdentifyEndpoint`, `IdentifyUser` (2026-04), `SkipRequestLog` |
+| `sapcc/go-bits/respondwith` | latest | Response helpers: `JSON`, `ErrorText`, `ObfuscatedErrorText`, `CustomStatus`, `CustomHeader` (2026-05) |
+| `sapcc/go-bits/httptest` | latest | Canonical HTTP test API: `Handler`, `RespondTo`, `Response.ExpectBody/ExpectHeader/CaptureJSON/CaptureHeader`, `MergeRequestOptions`. Replaces removed `assert.HTTPRequest` |
+| `sapcc/go-bits/gopherpolicy` | latest | Keystone authZ; `Token.Check`/`Require`/`Enforce` (error-returning, 2026-05) |
+| `gophercloud/gophercloud/v2` | v2.12.0 | OpenStack SDK (Keystone, Swift) |
 | `majewsky/schwift/v2` | v2.0.0 | Swift object storage client |
 | `rs/cors` | v1.11.1 | CORS middleware |
 | `redis/go-redis/v9` | v9.18.0 | Redis client |
@@ -693,5 +694,6 @@ No content negotiation or API version headers. Version is purely structural in t
 | `opencontainers/distribution-spec` | latest | OCI Distribution Spec types |
 | `opencontainers/image-spec` | v1.1.1 | OCI Image Spec types |
 | `golang-jwt/jwt/v5` | v5.3.1 | JWT token handling |
-| `sapcc/go-api-declarations` | v1.20.0 | CADF, LIQUID type declarations |
+| `sapcc/go-api-declarations` | v1.24.0 | CADF, LIQUID type declarations |
 | `go-gorp/gorp/v3` | v3.1.0 | ORM for PostgreSQL |
+| `go.xyrillian.de/gg/assert` | v1.10.1 | Canonical assertion library (`go-bits/assert` forwards here as of 2026-06) |

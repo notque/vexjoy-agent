@@ -370,7 +370,7 @@ Tests are sequential, scenario-driven narratives. Each test reads like a story. 
 | Assertions | `go-bits/assert` | testify |
 | DB testing | `easypg.WithTestDB` | manual setup |
 | Test setup | `test.NewSetup(t, ...options)` | manual construction |
-| HTTP testing | `assert.HTTPRequest{}.Check(t, h)` | `httptest.NewRecorder` |
+| HTTP testing | `go-bits/httptest` method chain (`Handler.RespondTo(...).ExpectBody/ExpectHeader/CaptureJSON`) | `httptest.NewRecorder`, removed `assert.HTTPRequest` |
 | Time control | `mock.Clock` + `s.Clock.StepBy()` | `time.Now()`, `time.Sleep()` |
 | Test doubles | Real interface implementations via `init()` | gomock, mockery |
 
@@ -382,28 +382,28 @@ func TestMain(m *testing.M) {
 }
 ```
 
-### assert.HTTPRequest Pattern
+### Canonical HTTP Test Pattern — `httptest.Handler.RespondTo()`
 
-```go
-assert.HTTPRequest{
-    Method:       "PUT",
-    Path:         "/keppel/v1/accounts/first",
-    Header:       map[string]string{"X-Test-Perms": "change:tenant1"},
-    Body:         assert.JSONObject{"account": assert.JSONObject{"auth_tenant_id": "tenant1"}},
-    ExpectStatus: http.StatusOK,
-    ExpectBody:   assert.JSONObject{"account": assert.JSONObject{"name": "first"}},
-}.Check(t, h)
-```
-
-### New Tests: httptest.Handler.RespondTo() (Preferred for new code)
+The struct-based `assert.HTTPRequest` builder was **removed** from go-bits in commit 8b79638 along with its helper types (`JSONObject`, `StringData`, `JSONFixtureFile`, `FixtureFile`, `ByteData`). All HTTP tests use the `go-bits/httptest` method chain:
 
 ```go
 h := httptest.NewHandler(myHandler)
-h.RespondTo(ctx, "GET /v1/accounts").ExpectJSON(t, http.StatusOK, jsonmatch.Object{"accounts": jsonmatch.Array{}})
-h.RespondTo(ctx, "GET /healthcheck").ExpectStatus(t, http.StatusOK)
+
+h.RespondTo(ctx, "PUT /keppel/v1/accounts/first",
+    httptest.WithHeader("X-Test-Perms", "change:tenant1"),
+    httptest.WithJSONBody(map[string]any{
+        "account": map[string]any{"auth_tenant_id": "tenant1"},
+    }),
+).
+    ExpectStatus(http.StatusOK).
+    ExpectBody(`{"account":{"name":"first"}}`)
+
+// Capture a response body for follow-up assertions
+var out struct{ Accounts []string `json:"accounts"` }
+h.RespondTo(ctx, "GET /v1/accounts").ExpectStatus(http.StatusOK).CaptureJSON(&out)
 ```
 
-`assert.HTTPRequest` is soft-deprecated — new tests should use `httptest.Handler`.
+Legacy `assert.HTTPRequest{}.Check(t, h)` call sites still in downstream code must migrate.
 
 ### Assertion Functions
 
@@ -799,7 +799,7 @@ Authenticate BEFORE any data access. Leaks resource existence otherwise.
 `if len(items) == 0 { items = []T{} }` — ensures `[]` not `null` in JSON.
 
 ### AP-16: Using httptest.NewRecorder
-Use `assert.HTTPRequest{}.Check(t, h)` or `httptest.Handler.RespondTo()`.
+Use the `go-bits/httptest` method chain: `httptest.NewHandler(h).RespondTo(...).ExpectBody/ExpectHeader/CaptureJSON`. The legacy `assert.HTTPRequest{}.Check(t, h)` builder was removed (commit 8b79638) and is no longer available.
 
 ### AP-17: Removing Test Assertions During Refactoring
 Assertions that verify behavior must be preserved. Silent removal hides regressions.
@@ -944,7 +944,9 @@ dbURL := &url.URL{Scheme: "postgres", User: url.UserPassword(user, pass), Host: 
 
 ## 30. go-bits Testing API Evolution
 
-### 30.1 httptest.Handler Replaces assert.HTTPRequest (for new code)
+### 30.1 httptest.Handler Replaces (Removed) assert.HTTPRequest
+
+`assert.HTTPRequest` was removed from go-bits in commit 8b79638. The canonical HTTP test API is now `go-bits/httptest.Handler`:
 
 ```go
 h := httptest.NewHandler(myHandler)
