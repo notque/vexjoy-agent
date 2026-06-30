@@ -79,6 +79,7 @@ Dispatch exactly these 3 agents. This is a read-only review—reviewers observe 
 **Reviewer 3 -- Architecture** (using agent selected in Phase 1)
 - Focus: Design patterns, naming, structure, performance, maintainability
 - Output: Severity-classified findings with `file:line` references
+- **Smell baseline (always-on):** in addition to the role focus, the Architecture reviewer carries a curated Fowler "Bad Smells" baseline so design issues surface even when nothing else flags the diff. The full brief — counter-examples per language, severity cap, and the 12 smells — lives in `references/architecture-smell-baseline.md`. Pass the brief verbatim to the Architecture reviewer; do not paraphrase.
 
 **Dimension lenses (all 3 reviewers apply, in addition to their role focus).** Roles cover *who* reviews; lenses cover *what classes of issue* every review must touch. Folding these into the existing briefs catches doc-accuracy and scope creep without paying for extra agents:
 
@@ -294,3 +295,4 @@ Re-run all three because fixes often introduce new issues in adjacent code, and 
 - Verdict decision tree: Any CRITICAL → BLOCK; HIGH without CRITICAL → FIX; MEDIUM/LOW only → APPROVE (computed from confirmed findings, final severity)
 - Adversarial verify gate: run per-finding refutation when `findings_count >= 4` OR any finding is CRITICAL/HIGH; else skip. One check per finding, capped to the right-sizing tier; refuted findings filtered, severity re-grades recorded
 - Re-review trigger: Always re-run all 3 reviewers after BLOCK fixes to catch regressions
+- Architecture smell baseline (passed verbatim to the Architecture reviewer): `references/architecture-smell-baseline.md`
