@@ -448,10 +448,13 @@ def main() -> None:
             revalidate_pending_outcomes(session_id, to_revalidate)
 
     except Exception as e:
+        try:
+            print(f"[routing-outcome-finalizer] error: {type(e).__name__}: {e}", file=sys.stderr)
+        except Exception:
+            pass  # stderr write must never itself break the hook
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
 
-            print(f"[routing-outcome-finalizer] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)  # Never block
