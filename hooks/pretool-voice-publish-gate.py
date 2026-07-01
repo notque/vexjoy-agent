@@ -29,6 +29,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "VOICE_GATE_BYPASS"
@@ -137,17 +138,7 @@ def main() -> None:
     )
 
     print(f"[voice-publish-gate] BLOCKED: {reason}", file=sys.stderr)
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": reason,
-                }
-            }
-        )
-    )
+    deny_tool_use("PreToolUse", reason)
     sys.exit(0)
 
 

@@ -23,6 +23,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
@@ -101,18 +102,12 @@ def _block(file_path: str) -> None:
         record_governance_event("policy_violation", tool_name="Write", hook_phase="pre", severity="high", blocked=True)
     except Exception:
         pass  # Never let recording prevent a block
-    deny_output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": (
-                f"Modifying linter/formatter config '{Path(file_path).name}' is blocked. "
-                "Fix the source code to satisfy the linter rather than weakening the config. "
-                "Set CONFIG_PROTECTION_BYPASS=1 for legitimate config changes."
-            ),
-        }
-    }
-    print(json.dumps(deny_output))
+    deny_tool_use(
+        "PreToolUse",
+        f"Modifying linter/formatter config '{Path(file_path).name}' is blocked. "
+        "Fix the source code to satisfy the linter rather than weakening the config. "
+        "Set CONFIG_PROTECTION_BYPASS=1 for legitimate config changes.",
+    )
     sys.exit(0)
 
 
@@ -132,14 +127,7 @@ def main() -> None:
             "[config-protection] BLOCKED: stdin payload exceeds 1 MB limit -- cannot safely parse.",
             file=sys.stderr,
         )
-        deny_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": "stdin payload exceeds 1 MB limit -- cannot safely parse.",
-            }
-        }
-        print(json.dumps(deny_output))
+        deny_tool_use("PreToolUse", "stdin payload exceeds 1 MB limit -- cannot safely parse.")
         sys.exit(0)
 
     try:

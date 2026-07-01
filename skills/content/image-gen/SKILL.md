@@ -21,7 +21,7 @@ routing:
     - character art
     - pixel art
     - image post-processing
-  not_for: "HTML visualization or charts (use html-artifact)"
+  not_for: "HTML visualization or charts (use html-artifact), or deterministic non-AI palette/matrix pixel art (use game-asset-generator)"
   pairs_with:
     - python-general-engineer
     - game-sprite-pipeline

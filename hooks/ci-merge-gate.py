@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
@@ -38,16 +39,7 @@ def main() -> None:
             print("[ci-merge-gate] WARNING: --admin override allowed via ALLOW_ADMIN_MERGE=1", file=sys.stderr)
         else:
             print("[ci-merge-gate] BLOCKED: --admin bypasses branch protection", file=sys.stderr)
-            deny_output = {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": (
-                        "Use of --admin bypasses CI checks. Remove --admin and wait for CI to pass."
-                    ),
-                }
-            }
-            print(json.dumps(deny_output))
+            deny_tool_use("PreToolUse", "Use of --admin bypasses CI checks. Remove --admin and wait for CI to pass.")
             sys.exit(0)
 
     # --- Block --force before any CI check ---
@@ -56,16 +48,7 @@ def main() -> None:
             print("[ci-merge-gate] WARNING: --force override allowed via ALLOW_FORCE_MERGE=1", file=sys.stderr)
         else:
             print("[ci-merge-gate] BLOCKED: --force bypasses merge safeguards", file=sys.stderr)
-            deny_output = {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": (
-                        "Use of --force bypasses merge safeguards. Remove --force and merge normally."
-                    ),
-                }
-            }
-            print(json.dumps(deny_output))
+            deny_tool_use("PreToolUse", "Use of --force bypasses merge safeguards. Remove --force and merge normally.")
             sys.exit(0)
 
     # Extract PR number from command
@@ -135,16 +118,10 @@ def main() -> None:
             )
         except Exception:
             pass  # Never let recording prevent a block
-        deny_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": (
-                    f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging."
-                ),
-            }
-        }
-        print(json.dumps(deny_output))
+        deny_tool_use(
+            "PreToolUse",
+            f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging.",
+        )
         sys.exit(0)
 
     if pending:
@@ -157,17 +134,11 @@ def main() -> None:
             )
         except Exception:
             pass  # Never let recording prevent a block
-        deny_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": (
-                    f"CI checks are still running for PR #{pr_number}: {names}. "
-                    "Wait for all checks to complete before merging."
-                ),
-            }
-        }
-        print(json.dumps(deny_output))
+        deny_tool_use(
+            "PreToolUse",
+            f"CI checks are still running for PR #{pr_number}: {names}. "
+            "Wait for all checks to complete before merging.",
+        )
         sys.exit(0)
 
     # All checks passed

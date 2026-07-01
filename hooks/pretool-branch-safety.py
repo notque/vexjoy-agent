@@ -29,6 +29,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
@@ -124,17 +125,11 @@ def main() -> None:
             )
         except Exception:
             pass  # Never let recording prevent a block
-        deny_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": (
-                    f"Cannot commit directly to {branch}. Create a feature branch first. "
-                    "Use the pr-workflow skill (commit intent) to commit safely."
-                ),
-            }
-        }
-        print(json.dumps(deny_output))
+        deny_tool_use(
+            "PreToolUse",
+            f"Cannot commit directly to {branch}. Create a feature branch first. "
+            "Use the pr-workflow skill (commit intent) to commit safely.",
+        )
         sys.exit(0)
 
     if debug:

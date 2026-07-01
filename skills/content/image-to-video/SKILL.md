@@ -22,7 +22,6 @@ routing:
     - album art video
     - cover art video
   pairs_with:
-    - gemini-image-generator
     - workflow
   complexity: simple
   category: video-creation
@@ -30,7 +29,7 @@ routing:
 
 # Image to Video Skill
 
-Combine a static image with an audio file to produce an MP4 video using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing of matched image+audio pairs. For image generation, use `gemini-image-generator` instead.
+Combine a static image with an audio file to produce an MP4 video using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing of matched image+audio pairs. For image generation, use `image-gen` instead.
 
 ## Reference Loading Table
 

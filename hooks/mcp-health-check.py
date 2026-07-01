@@ -528,6 +528,14 @@ if __name__ == "__main__":
         main()
     except SystemExit:
         raise  # Let sys.exit(2) propagate for blocks
-    except Exception:
+    except Exception as e:
+        try:
+            print(f"[mcp-health-check] error: {type(e).__name__}: {e}", file=sys.stderr)
+        except Exception:
+            pass  # stderr write must never itself break the hook
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            traceback.print_exc(file=sys.stderr)
         # Fail OPEN — a crashed hook must never exit 2.
         sys.exit(0)
