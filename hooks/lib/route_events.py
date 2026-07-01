@@ -24,6 +24,7 @@ read-modify-write, so there is no lost-update race to serialize.
 
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -51,8 +52,9 @@ def _append(event: dict[str, Any]) -> None:
         line = json.dumps(event, separators=(",", ":"), ensure_ascii=False)
         with open(path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[route-events] append failed: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def record_decision_event(
