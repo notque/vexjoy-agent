@@ -47,6 +47,11 @@ def _make_edit_event(file_path: str) -> str:
     return json.dumps({"tool_name": "Edit", "tool_input": {"file_path": file_path}})
 
 
+def _make_read_event(file_path: str) -> str:
+    """Build a JSON hook event payload for a Read tool call."""
+    return json.dumps({"tool_name": "Read", "tool_input": {"file_path": file_path}})
+
+
 def _run_main(stdin_payload: str, env: dict | None = None) -> int:
     """Invoke mod.main() in-process, returning a logical block/allow code.
 
@@ -589,6 +594,10 @@ class TestCheckSensitiveFile:
         payload = _make_write_event("/project/certs/server.key")
         assert _run_main(payload) == 2
 
+    def test_pem_file_blocked(self):
+        payload = _make_write_event("/project/certs/server.pem")
+        assert _run_main(payload) == 2
+
     def test_token_json_blocked(self):
         payload = _make_write_event("/project/token.json")
         assert _run_main(payload) == 2
@@ -634,6 +643,66 @@ class TestCheckSensitiveFile:
 
 
 # ---------------------------------------------------------------------------
+# TestCheckSensitiveFileRead
+# ---------------------------------------------------------------------------
+
+
+class TestCheckSensitiveFileRead:
+    """check_sensitive_file(deny=False) on Read: warns on a match, never blocks.
+
+    A Read is not a mutation, and this repo's agents routinely read a
+    project's own .env or config during ordinary debugging — hard-blocking
+    Read would break that common, legitimate work for less benefit than
+    Write's block gives. So Read gets the same pattern match as Write/Edit
+    but only logs an advisory (see check_sensitive_file's docstring).
+    """
+
+    def test_env_file_read_not_blocked(self):
+        payload = _make_read_event("/project/.env")
+        assert _run_main(payload) == 0
+
+    def test_env_file_read_emits_advisory(self):
+        """A Read match prints a stderr advisory even though it does not block."""
+        payload = _make_read_event("/project/.env")
+        with patch("sys.stderr", io.StringIO()) as fake_stderr:
+            assert _run_main(payload) == 0
+            assert "[sensitive-file-guard] ADVISORY" in fake_stderr.getvalue()
+            assert "/project/.env" in fake_stderr.getvalue()
+
+    def test_ssh_private_key_read_not_blocked(self):
+        payload = _make_read_event("/home/user/.ssh/id_rsa")
+        assert _run_main(payload) == 0
+
+    def test_pem_file_read_not_blocked(self):
+        payload = _make_read_event("/project/certs/server.pem")
+        assert _run_main(payload) == 0
+
+    def test_bypass_suppresses_read_advisory(self):
+        """SENSITIVE_FILE_GUARD_BYPASS=1 skips the Read advisory too."""
+        payload = _make_read_event("/project/.env")
+        with patch("sys.stderr", io.StringIO()) as fake_stderr:
+            assert _run_main(payload, env={"SENSITIVE_FILE_GUARD_BYPASS": "1"}) == 0
+            assert "sensitive-file-guard" not in fake_stderr.getvalue()
+
+    def test_env_example_exception_read_allowed_no_advisory(self):
+        """Excepted paths (.env.example) draw no advisory on Read either."""
+        payload = _make_read_event("/project/.env.example")
+        with patch("sys.stderr", io.StringIO()) as fake_stderr:
+            assert _run_main(payload) == 0
+            assert "sensitive-file-guard" not in fake_stderr.getvalue()
+
+    def test_normal_py_file_read_no_advisory(self):
+        payload = _make_read_event("/project/src/app.py")
+        with patch("sys.stderr", io.StringIO()) as fake_stderr:
+            assert _run_main(payload) == 0
+            assert "sensitive-file-guard" not in fake_stderr.getvalue()
+
+    def test_read_with_empty_file_path_allowed(self):
+        payload = json.dumps({"tool_name": "Read", "tool_input": {"file_path": ""}})
+        assert _run_main(payload) == 0
+
+
+# ---------------------------------------------------------------------------
 # TestMainDispatch
 # ---------------------------------------------------------------------------
 
@@ -671,9 +740,14 @@ class TestMainDispatch:
             # Edit does NOT run creation gate; sensitive check passes for .md
             assert _run_main(payload) == 0
 
-    def test_unknown_tool_allowed(self):
-        """Read tool and other unknown tools pass through without checks."""
+    def test_read_of_sensitive_file_warns_but_does_not_block(self):
+        """Read runs the sensitive-file check, but it only warns — never denies."""
         payload = json.dumps({"tool_name": "Read", "tool_input": {"file_path": "/project/.env"}})
+        assert _run_main(payload) == 0
+
+    def test_unknown_tool_allowed(self):
+        """Other unknown tools pass through without any checks."""
+        payload = json.dumps({"tool_name": "Grep", "tool_input": {"pattern": "TODO"}})
         assert _run_main(payload) == 0
 
     def test_unknown_tool_name_allowed(self):

@@ -39,6 +39,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 |-------|-----------|-------------|
 | `planning` | yes | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume intents |
 | `decision-helper` | no | Weighted decision scoring for architectural choices |
+| `csuite` | no | C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation. |
 | `plant-seed` | no | Capture forward-looking idea as a seed for future feature design |
 
 ---
@@ -71,6 +72,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `with-anti-rationalization` | no | Anti-rationalization enforcement for maximum-rigor task execution |
 | `testing-preferred-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
 | `roast` | no | Constructive critique via 5 HackerNews personas with claim validation |
+| `condense` | yes | Maximize information density: preserve all instructions, remove prose filler. |
+| `security-review` | yes | Local security review of git changes: deterministic scan + Security reviewer over the diff. |
 
 ---
 
@@ -105,6 +108,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `frontend-slides` | no | Browser-based HTML presentation generation |
 | `threejs-builder` | no | Three.js app builder: Design, Build, Animate, Polish in 4 phases |
 | `nano-banana-builder` | no | Image generation and post-processing via Gemini Nano Banana APIs |
+| `text-animation` | no | Dependency-free kinetic typography: roll/slot text, reveals, typewriter, crossfade. |
+| `webgl-card-effects` | no | Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow. |
 
 ---
 
@@ -152,6 +157,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
 | `image-to-video` | no | FFmpeg-based video creation from image and audio |
 | `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
+| `image-gen` | no | AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk. |
+| `translate` | yes | Document translation: quick/normal/refined modes with chunked parallel subagents and glossary support. |
 
 ---
 
@@ -175,6 +182,14 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `forensics` | no | Post-mortem diagnostic analysis of failed workflows |
 | `data-analysis` | no | Decision-first data analysis with statistical rigor gates |
 | `docs-sync-checker` | no | Detect documentation drift against filesystem state |
+| `architecture-deepening` | yes | Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation. |
+| `explanation-traces` | yes | Query and display structured decision traces from routing, agent selection, and skill execution. |
+| `multi-persona-critique` | yes | Critique a written proposal or design artifact via 5 philosophical personas in parallel, with consensus synthesis. |
+| `fact-check` | no | Verify factual claims against sources before publish. |
+| `headlines` | no | Generate headlines, titles, and subject lines: charge, volume, tighten. |
+| `markdown-converter` | no | Convert PDF, Office, HTML, data, media, ZIP to Markdown. |
+| `news-collection` | no | Collect, filter, and freshness-qualify news items. |
+| `video-transcript` | no | Extract video transcripts: yt-dlp subtitles to clean paragraphs. |
 
 ---
 
@@ -194,6 +209,11 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `agent-comparison` | no | A/B test agent variants for quality and token cost |
 | `routing-table-updater` | no | Maintain /do routing tables when skills or agents change |
 | `generate-claudemd` | no | Generate project-specific CLAUDE.md from repo analysis |
+| `agent-creator` | no | Scaffold vexjoy-agent operator .md files: frontmatter, routing block, operator context, reference loading table, phase/gate workflow. |
+| `html-artifact` | no | Generate rich self-contained HTML artifacts instead of markdown. |
+| `objective-loop` | no | Loop /do cycles until done-criteria verify or budget stops. |
+| `toolkit-evolution` | yes | Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve. |
+| `reference-enrichment` | yes | Analyze agent/skill reference depth and generate missing domain-specific reference files. |
 
 ---
 
@@ -202,6 +222,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
 | `read-only-ops` | no | Read-only exploration, inspection, and reporting without modifications |
+| `session-handoff` | no | Package session state for the next agent, or rehydrate it at start. |
 
 ---
 
@@ -214,6 +235,11 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `service-health-check` | no | Service health monitoring: Discover, Check, Report in 3 phases |
 | `fish-shell-config` | no | Fish shell configuration and PATH management |
 | `wordpress-live-validation` | no | Validate published WordPress posts in browser via Playwright |
+| `cobalt-core` | yes | Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute. |
+| `cve-source-check` | yes | Audit CVE/vulnerability source coverage for a technology stack. |
+| `public-web-deploy` | no | Publish a public website safely: DNS, web server, HTTPS, hardening, verify. |
+| `shell-process-patterns` | no | Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification. |
+| `zsh-shell-config` | no | Zsh shell configuration, PATH management, completions, and framework setup. |
 
 ---
 
@@ -250,6 +276,45 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 |-------|-----------|-------------|
 | `kubernetes-debugging` | no | Kubernetes debugging for pod failures and networking |
 | `kubernetes-security` | no | Kubernetes security: RBAC, PodSecurity, network policies |
+
+---
+
+## Engineering
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `cli-design` | no | Design a CLI interface: args, flags, help, output, errors, exit codes, config. |
+| `enterprise-search` | yes | Enterprise search: relevance tuning, query understanding, index management, search quality, ranking optimization, schema design. |
+| `opensearch-detection-engineer` | yes | OpenSearch SIEM detection: SIGMA, query DSL, MITRE ATT&CK mapping, anomaly/correlation rules, alert validation, SOC escalation. |
+
+---
+
+## Business & Operations
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `customer-support` | yes | Customer support workflows — ticket triage, response drafting, knowledge base articles, escalation handling, customer research. |
+| `design` | yes | Design workflows — UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis. |
+| `finance` | yes | Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing. |
+| `hr` | yes | People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. |
+| `legal` | yes | Legal workflows — contract review, compliance checks, NDA triage, risk assessment, legal briefs. |
+| `marketing` | yes | Marketing: SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting. |
+| `operations` | yes | Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking. |
+| `product-management` | yes | Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning. |
+| `productivity` | yes | Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates. |
+| `sales` | yes | Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting. |
+
+---
+
+## Game Development
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `game-asset-generator` | no | Deterministic palette/matrix pixel art (not AI). |
+| `game-pipeline` | no | Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy. |
+| `game-sprite-pipeline` | no | AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. |
+| `motion-pipeline` | yes | CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK. |
+| `phaser-gamedev` | no | Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish. |
 
 ---
 

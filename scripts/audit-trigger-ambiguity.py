@@ -3,9 +3,11 @@
 Report-only audit of cross-entry trigger collisions that lack disambiguation.
 
 Scans skills/INDEX.json and agents/INDEX.json for triggers claimed by more than
-one entry (exact or near-duplicate). Reports the subset where NEITHER colliding
-entry carries a routing `not_for` — the router has no disambiguation signal for
-these. Ranks worst-first so CI logs surface the highest-leverage fixes.
+one entry (exact or near-duplicate). Reports the subset where no colliding
+entry's routing `not_for` actually names (or closely paraphrases) another
+entry in the same collision — a `not_for` that exists but talks about
+something else gives the router no real disambiguation signal. Ranks
+worst-first so CI logs surface the highest-leverage fixes.
 
 ADR: trigger-ambiguity-audit. ALWAYS exits 0 — advisory, never blocks a merge.
 Missing/unparseable indexes print `ERROR:` to stderr and still exit 0. The
@@ -51,29 +53,114 @@ def load_index(path: Path, kind: str) -> dict:
     return entries if isinstance(entries, dict) else {}
 
 
-def build_owner_map(skills: dict, agents: dict) -> dict[str, dict]:
-    """Map normalized_trigger -> {owners: [...], any_not_for: bool}.
-
-    owner is `skill:NAME` or `agent:NAME`. any_not_for is True when any owner of
-    that trigger carries a non-empty routing `not_for`.
-    """
-    owner_map: dict[str, dict] = {}
+def build_owner_map(skills: dict, agents: dict) -> dict[str, list[str]]:
+    """Map normalized_trigger -> [owners...]. owner is `skill:NAME` or `agent:NAME`."""
+    owner_map: dict[str, list[str]] = {}
     for kind, label, entries in (("skills", "skill", skills), ("agents", "agent", agents)):
         for name, entry in entries.items():
             if not isinstance(entry, dict):
                 continue
-            has_not_for = bool(entry.get("not_for"))
             for trig in entry.get("triggers", []):
                 norm = normalize(str(trig))
                 if not norm:
                     continue
-                slot = owner_map.setdefault(norm, {"owners": [], "any_not_for": False})
+                owners = owner_map.setdefault(norm, [])
                 owner = f"{label}:{name}"
-                if owner not in slot["owners"]:
-                    slot["owners"].append(owner)
-                if has_not_for:
-                    slot["any_not_for"] = True
+                if owner not in owners:
+                    owners.append(owner)
     return owner_map
+
+
+def build_not_for_map(skills: dict, agents: dict) -> dict[str, str]:
+    """Map owner (`skill:NAME`/`agent:NAME`) -> its routing `not_for` text ("" if absent)."""
+    not_for_map: dict[str, str] = {}
+    for label, entries in (("skill", skills), ("agent", agents)):
+        for name, entry in entries.items():
+            if isinstance(entry, dict):
+                not_for_map[f"{label}:{name}"] = str(entry.get("not_for") or "")
+    return not_for_map
+
+
+_WORD_RE = re.compile(r"[a-z0-9]+(?:[-'][a-z0-9]+)*")
+_CUE_RE = re.compile(r"\b(?:use|is)\b")
+_WINDOW_END_RE = re.compile(r"[.;)\n]")
+_WINDOW_SPAN = 100  # chars scanned after a cue word before giving up on a terminator
+
+
+def _bare_name(owner: str) -> str:
+    """Strip the `skill:`/`agent:` label, leaving the entry's bare slug."""
+    return owner.split(":", 1)[1] if ":" in owner else owner
+
+
+def _name_forms(slug: str) -> set[str]:
+    """Slug spellings to search for: as-is, space-joined, underscore-joined."""
+    lowered = slug.lower()
+    return {lowered, lowered.replace("-", " "), lowered.replace("_", " ")}
+
+
+def _cue_windows(text: str) -> list[str]:
+    """Text spans that follow a routing cue ('use'/'is'), cut at the next clause break.
+
+    Every disambiguating `not_for` in this repo points at its target with
+    "(use X)" or "that is X" — never a bare mention. Scoping the name search
+    to these cue windows (instead of the whole not_for text) is what stops an
+    ordinary skill name that happens to be a common word (e.g. "design") from
+    matching every not_for that merely uses that word in prose.
+    """
+    windows = []
+    for m in _CUE_RE.finditer(text):
+        rest = text[m.end() : m.end() + _WINDOW_SPAN]
+        end = _WINDOW_END_RE.search(rest)
+        windows.append(rest[: end.start()] if end else rest)
+    return windows
+
+
+def _mentions_owner(not_for_text: str, owner: str) -> bool:
+    """True if a cue window in not_for_text names owner outright, or closely paraphrases its slug.
+
+    Outright: the slug (or its space/underscore spelling) appears as a whole
+    phrase inside a cue window. Paraphrase: some same-length run of words in
+    a cue window is a near-duplicate (difflib ratio >= NEAR_DUP_RATIO) of the
+    slug. A not_for that is merely non-empty but never points at this owner
+    does not count — that was the prior bug.
+    """
+    if not not_for_text:
+        return False
+    slug = _bare_name(owner).lower()
+    forms = _name_forms(slug)
+    slug_words = slug.split("-")
+    span = len(slug_words)
+    slug_joined = "-".join(slug_words)
+    for window in _cue_windows(not_for_text.lower()):
+        for form in forms:
+            if re.search(rf"\b{re.escape(form)}\b", window):
+                return True
+        words = _WORD_RE.findall(window)
+        for i in range(len(words) - span + 1):
+            candidate = "-".join(words[i : i + span])
+            if difflib.SequenceMatcher(None, candidate, slug_joined).ratio() >= NEAR_DUP_RATIO:
+                return True
+    return False
+
+
+def _disambiguated(owners: list[str], not_for_map: dict[str, str]) -> bool:
+    """True only when every owner in the collision is linked to another by name.
+
+    A link is a not_for on either owner that names (or paraphrases) the other.
+    Owners left with no link to anyone else in the collision leave the router
+    without a real disambiguation signal, so the whole collision stays reportable.
+    """
+    if len(owners) < 2:
+        return True
+    linked: set[str] = set()
+    for a in owners:
+        for b in owners:
+            if a == b:
+                continue
+            if _mentions_owner(not_for_map.get(a, ""), b):
+                linked.add(a)
+                linked.add(b)
+    return linked == set(owners)
 
 
 def _within_edit_distance_1(a: str, b: str) -> bool:
@@ -114,27 +201,27 @@ def _near_dup(a: str, b: str) -> bool:
     return difflib.SequenceMatcher(None, a, b).ratio() >= NEAR_DUP_RATIO
 
 
-def find_collisions(owner_map: dict[str, dict]) -> tuple[list[dict], int]:
+def find_collisions(owner_map: dict[str, list[str]], not_for_map: dict[str, str]) -> tuple[list[dict], int]:
     """Return (reportable_rows, total_collision_count).
 
     A collision is exact (one normalized trigger owned by >1 entry) or near-dup
     (two triggers from different owners that are near-duplicates). Reportable =
-    collisions where NO owner has a not_for.
+    collisions where no owner's not_for names another owner in the collision.
     """
     collisions: list[dict] = []
     seen_pairs: set[frozenset] = set()
 
     # Exact collisions: a single normalized trigger with >1 owner.
     for trig in sorted(owner_map):
-        slot = owner_map[trig]
-        if len(slot["owners"]) > 1:
+        owners = owner_map[trig]
+        if len(owners) > 1:
             collisions.append(
                 {
                     "trigger": trig,
                     "kind": "exact",
-                    "owners": sorted(slot["owners"]),
-                    "owner_count": len(slot["owners"]),
-                    "any_not_for": slot["any_not_for"],
+                    "owners": sorted(owners),
+                    "owner_count": len(owners),
+                    "disambiguated": _disambiguated(owners, not_for_map),
                 }
             )
 
@@ -142,8 +229,8 @@ def find_collisions(owner_map: dict[str, dict]) -> tuple[list[dict], int]:
     triggers = sorted(owner_map)
     for i, a in enumerate(triggers):
         for b in triggers[i + 1 :]:
-            owners_a = set(owner_map[a]["owners"])
-            owners_b = set(owner_map[b]["owners"])
+            owners_a = set(owner_map[a])
+            owners_b = set(owner_map[b])
             # Require at least one differing owner across the two triggers.
             if owners_a == owners_b and len(owners_a) <= 1:
                 continue
@@ -154,18 +241,17 @@ def find_collisions(owner_map: dict[str, dict]) -> tuple[list[dict], int]:
                 continue
             seen_pairs.add(key)
             owners = sorted(owners_a | owners_b)
-            any_not_for = owner_map[a]["any_not_for"] or owner_map[b]["any_not_for"]
             collisions.append(
                 {
                     "trigger": f"{a}~{b}",
                     "kind": "near-dup",
                     "owners": owners,
                     "owner_count": len(owners),
-                    "any_not_for": any_not_for,
+                    "disambiguated": _disambiguated(owners, not_for_map),
                 }
             )
 
-    reportable = [c for c in collisions if not c["any_not_for"]]
+    reportable = [c for c in collisions if not c["disambiguated"]]
     return reportable, len(collisions)
 
 
@@ -183,7 +269,8 @@ def build_report(skills_path: Path, agents_path: Path) -> dict:
     skills = load_index(skills_path, "skills")
     agents = load_index(agents_path, "agents")
     owner_map = build_owner_map(skills, agents)
-    reportable, total = find_collisions(owner_map)
+    not_for_map = build_not_for_map(skills, agents)
+    reportable, total = find_collisions(owner_map, not_for_map)
     reportable = rank(reportable)
     return {
         "schema": SCHEMA,
@@ -208,14 +295,14 @@ def print_human(report: dict, top: int | None) -> None:
     if not rows:
         print("No undisambiguated collisions. Nothing to fix.")
         return
-    print("WORST UNDISAMBIGUATED COLLISIONS (neither side has not_for):")
+    print("WORST UNDISAMBIGUATED COLLISIONS (no not_for names the other owner):")
     shown = rows if top is None else rows[:top]
     for row in shown:
         owners = ", ".join(row["owners"])
         print(f"  {row['kind']:<9} {row['trigger']!r}  {owners}")
     if top is not None and len(rows) > top:
         print(f"  ... and {len(rows) - top} more (use --json for the full list)")
-    print("Fix: add a routing.not_for line to at least one owner per pair. Report-only; exit 0.")
+    print("Fix: add a routing.not_for that names the colliding owner. Report-only; exit 0.")
 
 
 def main() -> int:

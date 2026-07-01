@@ -13,6 +13,7 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
                               path — the handshake worktree agents without
                               the Task tool can perform (see section 4)
 5. pretool-sensitive-file-guard — Write+Edit: blocks writes to .env, credentials, SSH keys, etc.
+                              Read: warns (does not block) on the same patterns.
 6. public-dev-server-guard     — Bash: blocks dev servers bound to non-loopback interfaces
                                   (python http.server binds 0.0.0.0 by default; php -S, vite --host, etc.)
                                   Supersedes the narrow, dormant prevent-homedir-server.py.
@@ -233,6 +234,7 @@ _SENSITIVE_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\.p12$"), "certificate", ".p12 certificate"),
     (re.compile(r"\.pfx$"), "certificate", ".pfx certificate"),
     (re.compile(r"\.key$"), "certificate", ".key private key"),
+    (re.compile(r"\.pem$"), "certificate", ".pem private key"),
     # Cloud configs
     (re.compile(r"\.aws/credentials$"), "cloud", "AWS credentials"),
     (re.compile(r"\.kube/config$"), "cloud", "kubeconfig"),
@@ -1068,8 +1070,21 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
     )
 
 
-def check_sensitive_file(file_path: str) -> None:
-    """Block writes to sensitive files unless bypassed or excepted."""
+def check_sensitive_file(file_path: str, *, deny: bool = True) -> None:
+    """Flag access to sensitive files unless bypassed or excepted.
+
+    Write/Edit (deny=True, default): hard block. Creating or changing a
+    credential file is the act CLAUDE.md's secret rules exist to stop, and
+    this file already denies equivalent-risk write-adjacent acts (chmod
+    loosening a key, git-add staging one). Deny keeps Write/Edit consistent.
+
+    Read (deny=False): warn/log only, no block. A Read does not mutate, and
+    agents here routinely read a project's own .env during ordinary
+    debugging — blocking that breaks common legitimate work for less
+    benefit than Write's block gives. Warn matches this file's existing
+    posture for other context-dependent, non-mutating risks (see the
+    sysadmin-guard WARN-only patterns, _check_sysadmin_segment).
+    """
     if os.environ.get(_SENSITIVE_BYPASS_ENV) == "1":
         return
 
@@ -1079,6 +1094,16 @@ def check_sensitive_file(file_path: str) -> None:
     all_patterns = _SENSITIVE_PATTERNS + _load_guard_patterns()
     for pattern, category, description in all_patterns:
         if pattern.search(file_path):
+            if not deny:
+                print(
+                    f"[sensitive-file-guard] ADVISORY: Read of sensitive file ({category})\n"
+                    f"[sensitive-file-guard] Path: {file_path}\n"
+                    f"[sensitive-file-guard] Pattern: {description}\n"
+                    f"[sensitive-file-guard] Reading credential files needs owner approval "
+                    f"(OWNER-APPROVED-SECRET-READ) per CLAUDE.md. Not blocked — flagged for review.",
+                    file=sys.stderr,
+                )
+                return
             _block(
                 f"[sensitive-file-guard] BLOCKED: Write to sensitive file ({category})\n"
                 f"[sensitive-file-guard] Path: {file_path}\n"
@@ -2284,6 +2309,12 @@ def main() -> None:
         if not file_path:
             return
         check_sensitive_file(file_path)
+
+    elif tool == "Read":
+        file_path = tool_input.get("file_path", "")
+        if not file_path:
+            return
+        check_sensitive_file(file_path, deny=False)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ Run with: python3 -m pytest hooks/tests/test_mcp_health_check.py -v
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -703,3 +704,18 @@ class TestFailOpen:
             patch.object(mod, "read_stdin", return_value=stdin_data),
         ):
             mod.main()  # Must not raise SystemExit(2)
+
+    def test_subprocess_exits_0_on_injected_exception(self):
+        """End-to-end: a real crash in main() must still exit 0 from the
+        actual __main__ guard (not a re-implementation of it)."""
+        # A JSON boolean is valid JSON but has no .get() — main() calls
+        # event.get(...) downstream, raising AttributeError uncaught by
+        # main()'s own json.loads try/except.
+        result = subprocess.run(
+            [sys.executable, str(HOOK_PATH)],
+            input="true",
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "[mcp-health-check] error: AttributeError" in result.stderr

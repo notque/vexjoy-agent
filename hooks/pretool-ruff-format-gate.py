@@ -34,6 +34,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "RUFF_FORMAT_GATE_BYPASS"
@@ -167,14 +168,7 @@ def main() -> None:
         snippet = output[:300] + ("..." if len(output) > 300 else "")
         deny_reason = f"{deny_reason}\n\nruff output:\n{snippet}"
 
-    deny_output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": deny_reason,
-        }
-    }
-    print(json.dumps(deny_output))
+    deny_tool_use("PreToolUse", deny_reason)
     sys.exit(0)
 
 

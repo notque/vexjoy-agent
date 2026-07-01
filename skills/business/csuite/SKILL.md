@@ -42,7 +42,7 @@ routing:
     - "project evaluation"
     - "go no go"
     - "viability"
-  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts"
+  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts, or tactical marketing competitive analysis (use marketing) — this is executive strategy, not campaign execution"
   complexity: Medium
   category: decision-support
   pairs_with:

@@ -27,7 +27,6 @@ routing:
     - projector browser
   pairs_with:
     - typescript-frontend-engineer
-    - pptx-generator
   complexity: Medium
   category: frontend
 ---
@@ -36,7 +35,7 @@ routing:
 
 Generate browser-based HTML presentations as a single self-contained `.html` file. Three entry paths: new build from topic/notes, PPTX-to-HTML conversion, or enhancement of an existing HTML deck.
 
-**Routing disambiguation**: When the user says only "slides" or "deck" without specifying format, ask exactly one question before proceeding: "Should this be an HTML file (opens in browser) or a PowerPoint file (.pptx)?" Route to `pptx-generator` for PowerPoint/Keynote/Google Slides requests.
+**Routing disambiguation**: When the user says only "slides" or "deck" without specifying format, ask exactly one question before proceeding: "Should this be an HTML file (opens in browser) or a PowerPoint file (.pptx)?" This skill only produces HTML — it converts an existing PPTX to HTML but cannot generate a new .pptx file.
 
 ## Reference Loading Table
 

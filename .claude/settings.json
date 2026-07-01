@@ -148,12 +148,12 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit",
+        "matcher": "Bash|Write|Edit|Read",
         "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
-            "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
+            "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068). Read gets a warn-only sensitive-file check.",
             "timeout": 3000
           }
         ]

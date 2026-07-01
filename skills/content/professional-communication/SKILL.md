@@ -15,11 +15,10 @@ routing:
     - "executive summary"
     - "summarize for management"
     - "status update"
-  not_for: "critiquing or stress-testing a proposal's merits — that is multi-persona-critique. This drafts the message, it does not judge the idea."
+  not_for: "critiquing or stress-testing a proposal's merits — that is multi-persona-critique; deciding what to prioritize or work on next — that is productivity. This drafts the message; it does not judge ideas or set priorities."
   category: content-creation
   pairs_with:
     - voice-writer
-    - pptx-generator
 ---
 
 # Professional Communication Skill
