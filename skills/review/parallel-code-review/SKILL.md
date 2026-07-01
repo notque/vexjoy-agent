@@ -9,10 +9,10 @@ allowed-tools:
   - Glob
   - Task
 routing:
+  not_for: "security-specific review — use security-review. NOT: security-focused review of git changes (use security-review)"
   triggers:
     - "parallel review"
     - "3-reviewer review"
-    - "security review"
     - "multi-reviewer"
     - "concurrent review"
   category: code-review

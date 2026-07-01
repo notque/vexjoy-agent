@@ -14,12 +14,12 @@ allowed-tools:
   - Task
   - Skill
 routing:
+  not_for: "NOT: deep 10-specialist parallel review of specific files (use sapcc-review). This skill is full-repo compliance scan."
   triggers:
     - sapcc audit
     - sapcc compliance
     - check sapcc rules
     - full repo audit
-    - sapcc secondary review
     - sapcc standards check
   pairs_with:
     - golang-general-engineer
