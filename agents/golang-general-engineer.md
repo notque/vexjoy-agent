@@ -133,7 +133,11 @@ Apply minimum-viable edits because over-engineering beyond the request is the mo
 ### Phase 4: VERIFY
 Run `gofmt -w` on every edited file because unformatted Go code fails CI before any logic review runs. Run `go test ./...` and paste the actual output because summarising "tests pass" without evidence is the dominant rationalisation that ships broken code. For cleanup, review, or refactoring tasks, run `deadcode ./...` after `go vet` to find unreachable functions — see [go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) for usage and false-positive guidance.
 
-**Gate**: `go test ./...` output shown in full, `go vet ./...` clean.
+**Render-time fixes require render-time verification.** Bugs that manifest at output-render time (table layout, template output, log formatting) are not caught by compile + `go test`. To verify, build a small standalone reproducer under `/tmp` with realistic fake data and run it; compare before/after output byte-for-byte. Use the module cache, not vendor pollution. No backend creds needed.
+
+**Rebuilt binary check.** When testing a fix to a CLI binary, confirm the binary you're running matches the fix. Check `stat -f %m ./bin/foo` vs the fix commit time, or compare the embedded version SHA against `git rev-parse HEAD`. A stale binary silently passes tests against the old (broken) code path.
+
+**Gate**: `go test ./...` output shown in full, `go vet ./...` clean. For render-time fixes: reproducer output shown with before/after diff.
 
 ### Phase 5: REPORT
 Report exit status with real command output. No "should work" — either the gates passed or they didn't.

@@ -233,6 +233,26 @@ func (opts AuditorOpts) buildConnectionURL() (string, error) {
 
 ---
 
+### AP-8: Vendored Library Contract Reversal on Major-Version Bump
+
+**Symptom**: A bug appears immediately after bumping a vendored library across a major version. Same option name, opposite behavior between versions.
+
+**Concrete case**: `tablewriter` v0 vs v1. `WithColumnMax(N)` means *per-cell content cap* in v0 but *fixed width per column* in v1. With many columns and a small `N`, the v1 normalizer compresses each column to 1-3 chars. Symptom: nearly-empty table with single characters visible. Fix requires `Config.Row.ColMaxWidths.Global` / `Config.Header.ColMaxWidths.Global` instead.
+
+**Failure mode**: Assuming the option name preserves semantics across the major-version boundary. The go doc for the new version *looks* familiar, so the fix appears one-line. It isn't.
+
+**Detection**: Any bug that appears within one commit of `go get lib@vN+1`. If the code compiled and the test suite passed but runtime output is subtly wrong (layout, formatting, ordering, unit conversions), read `$(go env GOMODCACHE)/path/to/lib@vN+1/option.go` end-to-end BEFORE patching. Do not rely on memory of the old contract; do not rely on the option name.
+
+**Remediation**:
+1. Read the option-defining file end-to-end in GOMODCACHE.
+2. Enumerate every option whose name overlaps with the old version's — the ones that stayed named but changed contract are the traps.
+3. Build a `/tmp` reproducer with a minimal call site to observe actual v1 behavior.
+4. Confirm before/after output byte-for-byte in the reproducer before touching production code.
+
+**Universal rule**: Option semantics live in source, not in memory. Cross-major-version bumps demand re-reading the option file.
+
+---
+
 ## Error Handling
 
 ### Error: "False Positive -- Pattern Is Intentional"
