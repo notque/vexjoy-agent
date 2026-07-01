@@ -205,7 +205,7 @@ Run the duplicate trigger detection script before adding any new trigger phrase.
 **Detection**:
 ```bash
 # Count registered agents vs filesystem agents
-registered=$(python3 -c "import json; d=json.load(open('agents/INDEX.json')); print(len(d.get('agents', [])))" 2>/dev/null)
+registered=$(python3 -c "import json; d=json.load(open('agents/INDEX.json')); print(len(d.get('agents', {})))" 2>/dev/null)
 on_disk=$(ls agents/*.md | grep -v README | wc -l)
 echo "Registered: $registered, On disk: $on_disk"
 
@@ -213,7 +213,7 @@ echo "Registered: $registered, On disk: $on_disk"
 python3 -c "
 import json, glob, os
 idx = json.load(open('agents/INDEX.json'))
-registered = {a['name'] for a in idx.get('agents', [])}
+registered = set(idx.get('agents', {}))  # 'agents' is a dict keyed by agent name
 for f in glob.glob('agents/*.md'):
     name = os.path.basename(f).replace('.md','')
     if name not in registered and name != 'README':
@@ -311,7 +311,7 @@ for t, files in triggers.items():
 python3 -c "
 import json, glob, os
 idx = json.load(open('agents/INDEX.json'))
-registered = {a['name'] for a in idx.get('agents', [])}
+registered = set(idx.get('agents', {}))  # 'agents' is a dict keyed by agent name
 for f in glob.glob('agents/*.md'):
     name = os.path.basename(f).replace('.md','')
     if name not in registered and name != 'README': print(f'UNREGISTERED: {name}')
