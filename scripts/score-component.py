@@ -184,8 +184,20 @@ def check_yaml_frontmatter(content: str) -> CheckResult:
     return CheckResult("Valid YAML frontmatter", 10, 5, f"Missing: {', '.join(missing)}")
 
 
-def check_referenced_files(content: str) -> CheckResult:
-    """Check: Referenced backtick-quoted paths exist on disk (15 pts)."""
+def check_referenced_files(content: str, file_path: Path, component_type: str) -> CheckResult:
+    """Check: Referenced backtick-quoted paths exist on disk (15 pts).
+
+    Repo-relative paths (agents/..., skills/..., etc.) resolve against
+    REPO_ROOT. Bare `references/X.md` paths resolve against the component's
+    own directory instead — matching the resolution check_reference_files()
+    already uses (agents/{name}/references/ for agents, the skill directory's
+    references/ for skills). A component's own references/ dir isn't repo-root-relative.
+    """
+    if component_type == "agent":
+        component_dir = file_path.parent / file_path.stem
+    else:
+        component_dir = file_path.parent
+
     # Match backtick-quoted strings that look like filesystem paths
     backtick_paths = re.findall(r"`([^`]+)`", content)
     file_like: list[str] = []
@@ -225,7 +237,7 @@ def check_referenced_files(content: str) -> CheckResult:
     valid = 0
     invalid_paths: list[str] = []
     for p in file_like:
-        resolved = REPO_ROOT / p
+        resolved = (component_dir / p) if p.startswith("references/") else (REPO_ROOT / p)
         if resolved.exists():
             valid += 1
         else:
@@ -253,10 +265,14 @@ def check_anti_patterns_section(content: str) -> CheckResult:
 
 
 def check_error_handling_section(content: str) -> CheckResult:
-    """Check: Has error handling section heading (10 pts)."""
-    if re.search(r"^#{1,3}\s+.*error", content, re.IGNORECASE | re.MULTILINE):
+    """Check: Has error handling section heading (10 pts).
+
+    Matches "error" headings and the "failure mode" phrasing some skills use
+    instead (e.g. "## Failure Modes by Mode").
+    """
+    if re.search(r"^#{1,3}\s+.*(error|failure\s+mode)", content, re.IGNORECASE | re.MULTILINE):
         return CheckResult("Error handling section", 10, 10)
-    return CheckResult("Error handling section", 10, 0, "No '## Error*' heading found")
+    return CheckResult("Error handling section", 10, 0, "No '## Error*' or '## Failure Mode*' heading found")
 
 
 def check_routing_registration(component_type: str, file_path: Path, fm: dict | None) -> CheckResult:
@@ -286,19 +302,18 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
     elif component_type == "skill":
         skill_dir_name = get_skill_name(file_path)
 
-        # Check /do SKILL.md
-        do_skill = REPO_ROOT / "skills" / "do" / "SKILL.md"
-        routing_tables = REPO_ROOT / "skills" / "do" / "references" / "routing-tables.md"
+        # Check /do SKILL.md. routing-tables.md was absorbed into INDEX.json
+        # (see scripts/validate-index-integrity.py) and no longer exists.
+        do_skill = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
         found_in: list[str] = []
-        for check_path, label in [(do_skill, "do/SKILL.md"), (routing_tables, "routing-tables.md")]:
-            if check_path.exists():
-                try:
-                    text = check_path.read_text(encoding="utf-8")
-                    if skill_dir_name in text:
-                        found_in.append(label)
-                except OSError:
-                    pass
+        if do_skill.exists():
+            try:
+                text = do_skill.read_text(encoding="utf-8")
+                if skill_dir_name in text:
+                    found_in.append("do/SKILL.md")
+            except OSError:
+                pass
 
         # Also check skills/INDEX.json
         skills_index = REPO_ROOT / "skills" / "INDEX.json"
@@ -479,7 +494,7 @@ def score_component(file_path: Path, do_check_secrets: bool = False) -> Componen
     )
 
     score.checks.append(check_yaml_frontmatter(content))
-    score.checks.append(check_referenced_files(content))
+    score.checks.append(check_referenced_files(content, file_path, component_type))
     score.checks.append(check_anti_patterns_section(content))
     score.checks.append(check_error_handling_section(content))
     score.checks.append(check_routing_registration(component_type, file_path, fm))

@@ -213,7 +213,15 @@ def audit_routed_names(candidates: list[tuple[Path, str]]) -> dict[str, list[str
     """
     hits: dict[str, list[str]] = {}
 
-    routing_text = ROUTING_TABLE.read_text(encoding="utf-8") if ROUTING_TABLE.exists() else ""
+    if ROUTING_TABLE.exists():
+        routing_text = ROUTING_TABLE.read_text(encoding="utf-8")
+    else:
+        print(
+            f"NOTE: {ROUTING_TABLE.relative_to(REPO_ROOT)} no longer exists "
+            "(absorbed into INDEX.json). Skipping the routing-table portion "
+            "of this audit; pipeline-JSON checks below still run."
+        )
+        routing_text = ""
     routing_lines = routing_text.splitlines()
 
     pipeline_paths = collect_pipeline_json_paths()
@@ -385,7 +393,7 @@ def main() -> int:
             if rel in VERIFIED_SAFE_PATHS:
                 skip_list.discard(path)
                 overridden.append(path)
-        print(f"Allowlist hits removed from skip list: {len(overridden)}")
+        print(f"Allowlist hits removed from skip list: {len(overridden)}")  # nosec - plain print, no SQL
         for path in overridden:
             print(f"  OVERRIDE: {path.relative_to(REPO_ROOT)}")
         # Warn if the allowlist references paths that are not even
