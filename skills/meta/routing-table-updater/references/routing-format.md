@@ -1,119 +1,94 @@
-# /do Routing Table Format Specification
+# Routing Entry Format Specification
 
-## Table Structure
+Routing metadata lives in two layers:
 
-All routing tables in commands/do.md follow markdown pipe table format:
+1. **Source of truth**: the YAML frontmatter `routing:` block in each `skills/*/SKILL.md` and `agents/*.md` file. Hand-authored, tracked in git.
+2. **Generated artifact**: `skills/INDEX.json` and `agents/INDEX.json` (schema v2.0). Built from frontmatter by the repo generator scripts. Gitignored — regenerate to repair; the generators own ordering and formatting.
 
-```
-| Column 1 Header | Column 2 Header | Column 3 Header | Column 4 (Optional) |
-|-----------------|-----------------|-----------------|---------------------|
-| Entry 1         | Entry 2         | Entry 3         | Entry 4             |
-```
+## Skill Frontmatter Routing Block
 
-## Intent Detection Patterns Table
-
-**Header:**
-```
-| User Says | Route To | Complexity |
-|-----------|----------|------------|
-```
-
-**Entry Format:**
-```
-| "trigger phrase", "alternate phrase" | tool-name type | Level | [AUTO-GENERATED] |
-```
-
-**Example:**
-```
-| "lint", "format", "style check" | code-linting skill via /lint | Simple | [AUTO-GENERATED]
+```yaml
+---
+name: routing-table-updater
+description: "Maintain /do routing tables when skills or agents change."
+user-invocable: false
+routing:
+  triggers:
+    - "update routing"
+    - "routing drift"
+  category: meta-tooling
+  pairs_with:
+    - toolkit-evolution
+---
 ```
 
-**Rules:**
-- Multiple trigger phrases separated by commas in quotes
-- Route target includes type (skill/agent/command)
-- Complexity: Trivial, Simple, Medium, Complex
-- AUTO-GENERATED marker in 4th column for automated entries
-- Alphabetical order by first trigger phrase
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `name` | yes | Skill identifier; index key |
+| `description` | yes | Intent text the router reads |
+| `routing.triggers` | yes | Phrases that route to this skill |
+| `routing.category` | yes | Coverage grouping |
+| `routing.pairs_with` | no | Components commonly co-dispatched |
+| `routing.not_for` | no | Negative routing examples |
+| `routing.force_route` | no | High-confidence route on a single trigger match |
+| `user-invocable` | no | `false` hides the skill from direct user invocation |
 
-## Domain-Specific Routing Table
+## Agent Frontmatter Routing Block
 
-**Header:**
-```
-| Domain Mentioned | Agent | Typical Complexity |
-|-----------------|-------|-------------------|
-```
+Same shape; agents add `complexity` (e.g., `Medium`, `Complex`, `Medium-Complex`) and use `description` as the router's short description.
 
-**Entry Format:**
-```
-| Keyword1, Keyword2 | agent-name | Level | [AUTO-GENERATED] |
-```
+## skills/INDEX.json Entry Shape
 
-**Example:**
-```
-| Go, Golang, gofmt | golang-general-engineer | Medium-Complex | [AUTO-GENERATED]
-```
-
-**Rules:**
-- Domain keywords comma-separated
-- Agent name only (no "agent" suffix in cell)
-- Complexity can be ranges: Medium-Complex
-- AUTO-GENERATED marker in 4th column
-- Alphabetical order by primary domain keyword
-
-## Task Type Routing Table
-
-**Header:**
-```
-| Task Type | Route To Agent | Complexity |
-|-----------|----------------|------------|
+```json
+{
+  "version": "2.0",
+  "generated": "2026-07-01T23:44:02Z",
+  "generated_by": "scripts/generate-skill-index.py",
+  "skills": {
+    "routing-table-updater": {
+      "file": "skills/meta/routing-table-updater/SKILL.md",
+      "description": "Maintain /do routing tables when skills or agents change.",
+      "triggers": ["update routing", "routing drift"],
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "pairs_with": ["toolkit-evolution", "generate-claudemd"]
+    }
+  }
+}
 ```
 
-**Entry Format:**
-```
-| "action phrase", "alternate phrase" | agent-name agent | Level | [AUTO-GENERATED] |
-```
+Optional per-entry fields when present in frontmatter: `not_for`, `force_route`, `agent`, `version`.
 
-**Example:**
-```
-| "create agent", "new agent", "design agent" | skill-creator | Complex | [AUTO-GENERATED]
-```
+## agents/INDEX.json Entry Shape
 
-## Combination Routing Table
-
-**Header:**
-```
-| Task Type | Combination | Complexity |
-|-----------|-------------|------------|
-```
-
-**Entry Format:**
-```
-| "task description" | primary-tool + secondary-tool | Level | [AUTO-GENERATED] |
+```json
+{
+  "agents": {
+    "ansible-automation-engineer": {
+      "file": "agents/ansible-automation-engineer.md",
+      "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
+      "triggers": ["ansible", "playbook"],
+      "pairs_with": ["verification-before-completion"],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    }
+  }
+}
 ```
 
-**Example:**
-```
-| "Add feature with tests" | workflow-orchestrator + test-driven-development | Complex | [AUTO-GENERATED]
-```
+## Regeneration
 
-## Auto-Generated Marker
-
-**Purpose:** Distinguish automated entries from manual entries
-
-**Format:** `[AUTO-GENERATED]` in 4th column (or 3rd if table has 3 columns)
-
-**Detection Rule:**
-```python
-is_auto_generated = "[AUTO-GENERATED]" in row
+```bash
+cd $HOME/vexjoy-agent
+python3 scripts/generate-skill-index.py    # rebuilds skills/INDEX.json
+python3 scripts/generate-agent-index.py    # rebuilds agents/INDEX.json
 ```
 
-**Preservation Rule:** Only update rows with AUTO-GENERATED marker, preserve all others
+PostToolUse hooks (`hooks/posttooluse-sync-skill-index.py`, `hooks/posttooluse-sync-agent-index.py`) run these automatically when a SKILL.md or agent file is written or edited. Manual regeneration covers bulk changes, deletes outside the harness, and corrupted index files.
 
-## Ordering Rules
+## Validity Rules
 
-**Within Tables:**
-- Alphabetical by primary pattern/keyword
-- Case-insensitive sorting
-- Special characters after alphanumeric
-
-**Exception:** Manual entries maintain their original position if not auto-generated
+- Every entry's `file` path exists on disk (zero phantom entries).
+- Every on-disk skill/agent with valid frontmatter appears in its index.
+- Triggers are specific phrases, unique across components where practical; resolve overlaps per `conflict-resolution.md`.
+- Edit routing metadata in the source frontmatter, then regenerate — the index rebuild discards direct index edits.
