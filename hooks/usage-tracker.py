@@ -56,7 +56,10 @@ def main():
             )
 
         elif tool_name == "Agent":
-            agent_type = tool_input.get("subagent_type", "unknown")
+            # Try subagent_type first (Agent tool), then agentType (Workflow's agent()),
+            # then fall back to a labelled sentinel so "unknown" rows are visibly a
+            # telemetry gap, not a legit agent name.
+            agent_type = tool_input.get("subagent_type") or tool_input.get("agentType") or "unattributed-dispatch"
             description = tool_input.get("description", "")
             # Detect worktree isolation from tool_input if present
             isolation = "worktree" if tool_input.get("isolation") == "worktree" else None
