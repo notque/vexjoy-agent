@@ -26,6 +26,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PLAN_GATE_BYPASS"
@@ -90,19 +91,10 @@ def main() -> None:
         file=sys.stderr,
     )
     print("[fix-with-skill] plans", file=sys.stderr)
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": (
-                        "Create task_plan.md before modifying implementation code in agents/ or skills/. "
-                        "Use the planning skill to create one."
-                    ),
-                }
-            }
-        )
+    deny_tool_use(
+        "PreToolUse",
+        "Create task_plan.md before modifying implementation code in agents/ or skills/. "
+        "Use the planning skill to create one.",
     )
     sys.exit(0)
 
