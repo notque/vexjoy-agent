@@ -101,4 +101,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
