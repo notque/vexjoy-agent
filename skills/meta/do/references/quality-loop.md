@@ -247,7 +247,9 @@ Capture everything learned from this pipeline run.
 - Record the reconciliation outcome (how closely implementation matched plan/ADR)
 
 ```bash
-python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop: [summary of pipeline outcome]"
+SUMMARY_FILE=$(mktemp); printf '%s' "quality-loop: [summary of pipeline outcome]" > "$SUMMARY_FILE"
+python3 ~/.claude/scripts/learning-db.py learn --skill do --value-file "$SUMMARY_FILE"
+rm -f "$SUMMARY_FILE"
 ```
 
 **Gate:** At least one learning recorded. Proceed to PHASE 12.
@@ -273,7 +275,9 @@ Close the loop. Remove temporary artifacts, finalize ADR lifecycle.
 Each phase logs to learning.db:
 
 ```bash
-python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop PHASE_N: [outcome summary]"
+SUMMARY_FILE=$(mktemp); printf '%s' "quality-loop PHASE_N: [outcome summary]" > "$SUMMARY_FILE"
+python3 ~/.claude/scripts/learning-db.py learn --skill do --value-file "$SUMMARY_FILE"
+rm -f "$SUMMARY_FILE"
 ```
 
 ## Worktree Isolation

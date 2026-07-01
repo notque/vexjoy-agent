@@ -26,7 +26,7 @@ Each maps to existing HAVE machinery. Load the linked file for mechanics.
 | Pattern | What it does | Existing home (load this) |
 |---|---|---|
 | Classify-and-act | Route by type up front; or classify-at-end (judge output, re-route) | `/do` Phase 1 CLASSIFY + Phase 4 evaluation; `skills/meta/do/references/lazy-completion-detector.md` for classify-at-end |
-| Fan-out-and-synthesize | Independent agents in parallel, barrier, one synthesizer | `fan-out-workflow.js`; `dispatching-parallel-agents` (prose floor) |
+| Fan-out-and-synthesize | Independent agents in parallel, barrier, one synthesizer | `fan-out-workflow.js`; dispatch multiple Agent tools in one message (prose floor) |
 | Adversarial verification | Executor builds, fresh skeptic refutes the result | quality-loop PHASE 5 (intent-verify) + PHASE 7 (fresh-agent fix) |
 | Generate-and-filter | Over-generate candidates, a gate keeps survivors | voice-writer HOOK-GATE / VARIETY-GATE; `right-size-review.py` tiering |
 | Tournament | N agents attempt the SAME task; pairwise judges pick a winner per round | `tournament-workflow.md` |

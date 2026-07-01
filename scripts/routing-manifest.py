@@ -318,16 +318,20 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    entries = load_entries()
+    try:
+        entries = load_entries()
 
-    if args.json:
-        print(json.dumps(entries, indent=2))
-    elif args.compact:
-        print(format_compact_mode(entries, request_text=args.request))
-    elif args.tiered:
-        print(format_tiered(entries, load_working_set()))
-    else:
-        print(format_compact(entries))
+        if args.json:
+            print(json.dumps(entries, indent=2))
+        elif args.compact:
+            print(format_compact_mode(entries, request_text=args.request))
+        elif args.tiered:
+            print(format_tiered(entries, load_working_set()))
+        else:
+            print(format_compact(entries))
+    except Exception:
+        # Safe fallback: empty manifest so the router falls through gracefully.
+        print("AGENTS:\n\nSKILLS:\n\nPIPELINES:")
 
     return 0
 
