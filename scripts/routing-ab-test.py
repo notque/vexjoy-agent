@@ -139,13 +139,17 @@ VERDICT: PROMOTE (exit 0) = all gates pass AND discordant pairs >= 6.
          UNDERPOWERED (exit 2) = all gates pass but discordant pairs < 6.
          REJECT (exit 1) = any gate fails."""
 
-# Verbatim Haiku routing prompt template (REQUEST + MANIFEST filled in).
+# Haiku routing prompt template (REQUEST + MANIFEST filled in).
+# Git rule back-ported 2026-07-01 from production skills/meta/do/SKILL.md
+# (genuine-git-only). Runs before this date used the blunt "For git operations
+# (push, commit, PR, merge), ALWAYS select pr-workflow." rule and are NOT
+# template-comparable with later runs.
 PROMPT_TEMPLATE = """You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
 USER REQUEST: {request}
 ROUTING MANIFEST:
 {manifest}
 Return your answer as JSON: {{"agent": "...|null","skill":"...|null","pipeline":"...|null","reasoning":"one sentence","confidence":"high/medium/low"}}
-FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For git operations (push, commit, PR, merge), ALWAYS select pr-workflow. Pick the most specific match. Return a single skill name as a string."""
+FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For GENUINE git / version-control operations — actually pushing code, committing files to a repository, or opening/merging a pull request — ALWAYS select pr-workflow. Do NOT route metaphorical or non-version-control uses of these words (e.g. 'commit to a decision/plan', 'merge ideas in your head', 'push back on a proposal') to pr-workflow. Pick the most specific match. Return a single skill name as a string."""
 
 # Optional corpus fields carried into queries.json/raw.json ONLY when present,
 # so legacy artifacts stay byte-identical.
