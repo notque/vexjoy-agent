@@ -154,7 +154,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `content-calendar` | no | Manage editorial content through six pipeline stages |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
-| `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
 | `image-to-video` | no | FFmpeg-based video creation from image and audio |
 | `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
 | `image-gen` | no | AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk. |

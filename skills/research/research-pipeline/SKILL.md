@@ -28,7 +28,6 @@ routing:
   not_for: "a quick one-off web search or chat-style lookup — that is deep-research. Pick this when the user wants a sourced report saved as an artifact (SCOPE-to-DELIVER), even when phrased as 'dig into X and give me a sourced report'."
   category: research
   pairs_with:
-    - kb
     - topic-brainstormer
 ---
 
