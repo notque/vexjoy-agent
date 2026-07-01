@@ -55,6 +55,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "lib"))
+from route_types import HealthGateInputs
 from routing_outcome_state import append_pending_outcome, claim_dispatch
 from stdin_timeout import read_stdin
 
@@ -113,7 +115,7 @@ def _marker_line(prompt: str) -> str:
     return prompt[start:] if end == -1 else prompt[start:end]
 
 
-def parse_health_inputs(prompt: str) -> dict[str, object]:
+def parse_health_inputs(prompt: str) -> HealthGateInputs:
     """Read the Step-1.5 gate inputs off the marker LINE. Three instrumentation states.
 
     Inputs are read from the marker line only (`_marker_line`), never the whole

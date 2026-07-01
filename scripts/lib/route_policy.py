@@ -40,6 +40,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
+try:
+    from route_types import HealthAdjustResult, RouteAction, confidence_to_float
+except ModuleNotFoundError:
+    from scripts.lib.route_types import HealthAdjustResult, RouteAction, confidence_to_float
+
 # Gate / floor thresholds (frozen spec T2).
 MIN_OBSERVATIONS = 5
 FLOOR_CONFIDENCE = 0.30
@@ -151,7 +156,7 @@ def health_adjust(
     alternates: Sequence[object],
     weights: Mapping[str, Mapping[str, object]],
     force_route_flags: Iterable[str],
-) -> dict[str, object]:
+) -> HealthAdjustResult:
     """Decide the final route given semantic pick + health weights. Pure.
 
     Args:
@@ -220,7 +225,7 @@ def health_adjust(
         }
 
     # 4) Low-confidence tie-break: only when the SEMANTIC confidence is low.
-    sem_conf = float(semantic_pick.get("confidence", 1.0) or 0.0)
+    sem_conf = confidence_to_float(semantic_pick.get("confidence"))
     if sem_conf < LOW_CONFIDENCE:
         target = _healthiest_alternate(alternates, weights, must_beat=_health_score(entry), require_evidence=True)
         if target is not None:
