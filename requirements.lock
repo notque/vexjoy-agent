@@ -14,6 +14,6 @@ python-dotenv==1.2.2
 PyYAML==6.0.3
 referencing==0.37.0
 requests==2.34.2
-rpds-py==2026.6.3
+rpds-py==0.30.0
 typing_extensions==4.15.0
 urllib3==2.7.0
