@@ -70,6 +70,7 @@ from hook_utils import (
     DiffDedup,
     async_rewake,
     context_output,
+    deny_tool_use,
     empty_output,
     has_reviewable_content,
     working_tree_diff,
@@ -198,18 +199,11 @@ def handle_pre_tool_use(event: dict) -> None:
         f"{summary.get('critical', 0)} critical, {summary.get('high', 0)} high finding(s) "
         f"in staged files.\n"
         f"{_format_findings(blocking)}\n"
-        f"Fix the findings, or set {_SKIP_ENV}=1 to override deliberately."
+        f"Fix the findings, or set {_SKIP_ENV}=1 to override deliberately."  # nosec: "set" = plain English, not SQL
     )
     print("[security-review] BLOCKED commit — HIGH/CRITICAL staged findings:", file=sys.stderr)
     print(_format_findings(blocking), file=sys.stderr)
-    deny_output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": reason,
-        }
-    }
-    print(json.dumps(deny_output))
+    deny_tool_use("PreToolUse", reason)
     sys.exit(0)
 
 
@@ -328,7 +322,7 @@ def _has_reviewable_content(diff: str) -> bool:
     Security-relevant means: at least one scannable source file has at least one
     ADDED line. Pure deletions, doc/config-only diffs, mode-only and pure-rename
     diffs are all non-triggering. An added line in a real source file (a new
-    `eval(...)` in a `.py`) MUST still pass — true positives are preserved.
+    `eval(...)` in a `.py`) MUST still pass — true positives are preserved. (nosec: doc example, not a real eval call)
     """
     return has_reviewable_content(diff, _scannable_extensions())
 

@@ -39,6 +39,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import deny_tool_use
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "ADR_CREATION_GATE_BYPASS"
@@ -198,7 +199,10 @@ def main() -> None:
     # If the file already exists this is an update, not a creation — allow through.
     if Path(file_path).exists():
         if debug:
-            print(f"[adr-creation-gate] File already exists (update), allowing: {file_path}", file=sys.stderr)
+            print(
+                f"[adr-creation-gate] File already exists (update), allowing: {file_path}",  # nosec: plain English
+                file=sys.stderr,
+            )
         sys.exit(0)
 
     # Path-shape allowlist: skills produced by named upstream pipelines whose
@@ -231,19 +235,10 @@ def main() -> None:
         file=sys.stderr,
     )
     print("[fix-with-skill] plans", file=sys.stderr)
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": (
-                        f"Create ADR at {centralized_hint} (or adr/{component_name}.md in project root) "
-                        "before creating this new component. Use the plans skill to draft the ADR first."
-                    ),
-                }
-            }
-        )
+    deny_tool_use(
+        "PreToolUse",
+        f"Create ADR at {centralized_hint} (or adr/{component_name}.md in project root) "
+        "before creating this new component. Use the plans skill to draft the ADR first.",
     )
     sys.exit(0)
 
