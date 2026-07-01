@@ -4,11 +4,27 @@ Based on the structured opportunities provided, here is the prioritized backlog.
 
 # VexJoy Token-Efficiency Backlog
 
+## Status: All 4 Shipped
+
+All four ranked items shipped 2026-05-28, three days before this backlog was
+committed (2026-05-31, `f4d10928`). The plan below is kept as the design
+record; treat "ship first" / "ship it ahead of" language in it as historical,
+not as open work.
+
+| Rank | Area | Shipped in |
+|------|------|------------|
+| 1 | Resume / interruption caching | PR [#687](https://github.com/notque/vexjoy-agent/pull/687) (`133d6d1d`) |
+| 2 | Agent-count sizing heuristic | PR [#688](https://github.com/notque/vexjoy-agent/pull/688) (`f3fcf716`) |
+| 3 | Schema-enforced review gates | PR [#687](https://github.com/notque/vexjoy-agent/pull/687) (`133d6d1d`) |
+| 4 | Native Workflow for comprehensive-review | PR [#688](https://github.com/notque/vexjoy-agent/pull/688) (`f3fcf716`) |
+
 ## Framing
 
 The single biggest lever is **work-proportional dispatch**: VexJoy currently hard-codes large fixed agent counts (12+10+4-5 waves, 10 perspectives) regardless of how small the change is, so a 3-file PR pays the same multi-agent tax as a 50-file one. Right-sizing agent counts to actual file/package scope — backed by a token-budget primitive and a feedback loop — is where the "use 4 where native used 8" goal is won. Everything else (caching completed agents, schema gates that fail cheap, native Workflow replacing disk-roundtrips) compounds on top: stop paying for work you already did, work you don't need, or work that has to be re-run because output was malformed.
 
 ## Ranked Table
+
+All four items below are shipped; see Status section above for PR references.
 
 | Rank | Area | Change (short) | Token impact | Effort | Value |
 |------|------|----------------|--------------|--------|-------|
@@ -51,10 +67,10 @@ All four are `value: high` and `saves-tokens`; rank breaks on effort (small befo
 - **Why it pays:** Today findings are written to disk then "re-read and re-parsed into agent prompts" on every compaction/resume. Cached-prefix replay eliminates that re-parse tax.
 - **Token trade-off:** Saves wave-to-wave context re-injection and survives compaction without re-reading state files. Highest implementation risk (new runtime surface, must keep markdown path as fallback); do last so #1-3 land the easy wins first. Overlaps with #1 (caching) and #3 (schema returns) — sequence after them to reuse their primitives.
 
-## Quick Wins This Week
-- **#1 Resume caching** — small effort, saves ~8k tokens/interruption, zero runtime. Ship first.
-- **#3 validation wiring (partial)** — the script and schemas already exist and work; wiring `validate-review-output.py` into one skill (parallel-code-review) is a same-week subset that immediately stops malformed-output re-runs.
-- **#2 budget env var (partial)** — injecting `BUDGET_MAX` + the prompt string is a small, isolated slice of the medium #2 item; ship it ahead of the full tiering logic.
+## Quick Wins This Week (shipped — see Status)
+- **#1 Resume caching** — small effort, saves ~8k tokens/interruption, zero runtime. Ship first. Shipped PR #687.
+- **#3 validation wiring (partial)** — the script and schemas already exist and work; wiring `validate-review-output.py` into one skill (parallel-code-review) is a same-week subset that immediately stops malformed-output re-runs. Shipped PR #687.
+- **#2 budget env var (partial)** — injecting `BUDGET_MAX` + the prompt string is a small, isolated slice of the medium #2 item; ship it ahead of the full tiering logic. Shipped PR #688.
 
 ## Watch Out (token COSTS)
 - **#2 feedback logging** to learning.db — small recurring write cost per run; worth it (enables tiering refinement, pays back quickly).
