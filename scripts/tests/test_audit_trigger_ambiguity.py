@@ -75,13 +75,46 @@ def test_exact_collision_neither_has_not_for(tmp_path: Path) -> None:
     assert row["kind"] == "exact"
     assert row["trigger"] == "foo"
     assert set(row["owners"]) == {"skill:a", "agent:b"}
-    assert row["any_not_for"] is False
+    assert row["disambiguated"] is False
 
 
-def test_collision_disambiguated_on_one_side_excluded(tmp_path: Path) -> None:
+def test_generic_not_for_does_not_disambiguate(tmp_path: Path) -> None:
+    """A not_for that exists but never names the colliding partner must not
+    suppress the report. This is the exact report-card bug: any non-empty
+    not_for used to count, regardless of relevance.
+    """
     sp, ap = make_indexes(
         tmp_path,
-        skills={"a": {"triggers": ["foo"], "not_for": "not the other thing"}},
+        skills={"a": {"triggers": ["foo"], "not_for": "some unrelated thing (use z)"}},
+        agents={"b": {"triggers": ["foo"]}},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["collisions"] >= 1
+    assert data["totals"]["undisambiguated"] == 1
+    assert data["reportable"][0]["trigger"] == "foo"
+
+
+def test_not_for_naming_wrong_skill_still_reportable(tmp_path: Path) -> None:
+    """not_for names a real, but different, third skill — the actual colliding
+    partner is still unaddressed, so the pair stays reportable.
+    """
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={
+            "a": {"triggers": ["foo"], "not_for": "micro choices (use decision-helper)"},
+            "b": {"triggers": ["foo"]},
+        },
+        agents={},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["undisambiguated"] == 1
+    assert data["reportable"][0]["owners"] == ["skill:a", "skill:b"]
+
+
+def test_collision_disambiguated_when_not_for_names_partner(tmp_path: Path) -> None:
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={"a": {"triggers": ["foo"], "not_for": "some unrelated thing (use b)"}},
         agents={"b": {"triggers": ["foo"]}},
     )
     data = run_json(sp, ap)
@@ -89,6 +122,58 @@ def test_collision_disambiguated_on_one_side_excluded(tmp_path: Path) -> None:
     assert data["totals"]["collisions"] >= 1
     assert data["totals"]["undisambiguated"] == 0
     assert data["reportable"] == []
+
+
+def test_collision_disambiguated_via_that_is_idiom(tmp_path: Path) -> None:
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={"a": {"triggers": ["foo"], "not_for": "personal prioritization — that is b."}},
+        agents={"b": {"triggers": ["foo"]}},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["undisambiguated"] == 0
+
+
+def test_not_for_matches_space_form_of_hyphenated_slug(tmp_path: Path) -> None:
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={"my-skill": {"triggers": ["foo"], "not_for": "policy work (use other skill)"}},
+        agents={"other-skill": {"triggers": ["foo"]}},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["undisambiguated"] == 0
+
+
+def test_group_disambiguation_requires_every_owner_linked(tmp_path: Path) -> None:
+    """3-owner collision where only two of the three name each other — the
+    third owner is still unaddressed, so the whole group stays reportable.
+    """
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={
+            "a": {"triggers": ["foo"], "not_for": "... (use b)"},
+            "b": {"triggers": ["foo"]},
+            "c": {"triggers": ["foo"]},
+        },
+        agents={},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["undisambiguated"] == 1
+    assert set(data["reportable"][0]["owners"]) == {"skill:a", "skill:b", "skill:c"}
+
+
+def test_group_disambiguation_when_every_owner_linked(tmp_path: Path) -> None:
+    sp, ap = make_indexes(
+        tmp_path,
+        skills={
+            "a": {"triggers": ["foo"], "not_for": "... (use b)"},
+            "b": {"triggers": ["foo"], "not_for": "... (use c)"},
+            "c": {"triggers": ["foo"], "not_for": "... (use a)"},
+        },
+        agents={},
+    )
+    data = run_json(sp, ap)
+    assert data["totals"]["undisambiguated"] == 0
 
 
 def test_near_duplicate_via_article(tmp_path: Path) -> None:

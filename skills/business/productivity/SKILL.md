@@ -15,7 +15,7 @@ routing:
     - "prioritize tasks"
     - "standup"
     - "retrospective"
-  not_for: "software task specs, requirements, or plan-lifecycle management — that is planning. This is personal prioritization and time management, not building a project plan."
+  not_for: "software task specs, requirements, or plan-lifecycle management — that is planning; drafting the status-update message itself — that is professional-communication. This skill prioritizes and tracks work; it does not write specs or messages."
   category: business
   force_route: false
   pairs_with: []

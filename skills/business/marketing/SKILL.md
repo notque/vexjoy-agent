@@ -11,6 +11,7 @@ routing:
     - "brand review"
     - "competitive analysis"
     - "marketing performance"
+  not_for: "executive strategy, build-vs-buy calls, or growth positioning decisions (use csuite) — this is tactical marketing execution, not C-suite decision support"
   category: business
   force_route: false
   pairs_with:
