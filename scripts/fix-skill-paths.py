@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -168,6 +169,23 @@ def fix_content(content: str) -> tuple[str, int]:
     return result, count
 
 
+def _get_git_ignored(paths: list[Path]) -> set[Path]:
+    """Return the subset of paths that are git-ignored (batch check)."""
+    if not paths:
+        return set()
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            input="\n".join(str(p) for p in paths),
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return {Path(line) for line in result.stdout.strip().splitlines() if line}
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return set()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Fix skill path references.")
     parser.add_argument("--dry-run", action="store_true", help="Preview without changing files")
@@ -177,13 +195,17 @@ def main() -> int:
     scan_files = ["CLAUDE.md"]
     extensions = {".md", ".py", ".sh", ".json"}
 
-    files_to_scan: list[Path] = []
+    candidates: list[Path] = []
     for d in scan_dirs:
         p = Path(d)
         if p.is_dir():
             for f in p.rglob("*"):
                 if f.is_file() and f.suffix in extensions and "__pycache__" not in str(f):
-                    files_to_scan.append(f)
+                    candidates.append(f)
+
+    ignored = _get_git_ignored(candidates)
+
+    files_to_scan: list[Path] = [f for f in candidates if f not in ignored]
     for f in scan_files:
         p = Path(f)
         if p.is_file():

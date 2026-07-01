@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install pytest pyyaml pillow numpy jsonschema
+      - run: pip install -r requirements.lock pytest pillow numpy
       # INDEX.json is generated (untracked); tests that read the real index need it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       - run: python -m pytest --tb=short -q

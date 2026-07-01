@@ -715,35 +715,42 @@ def collect_route_weights() -> dict[str, dict[str, object]]:
     Returns a dict keyed `<agent>:<skill>` with the fields confidence, n
     (observation_count), success, failure, last_seen. Read-only; excludes
     obvious test rows (source LIKE 'test%'); deterministic key ordering.
+    On any sqlite3 error, returns {} (no evidence = keep behavior).
     """
-    init_db()
-    # Read only the columns we emit, ordered by key, for speed and determinism.
-    # Excludes obvious test rows (source LIKE 'test%'); read-only.
-    with get_connection() as conn:
-        rows = conn.execute(
-            """
-            SELECT key, confidence, observation_count, success_count, failure_count, last_seen
-            FROM learnings
-            WHERE topic = 'routing' AND category = 'effectiveness'
-              AND source NOT LIKE 'test%'
-            ORDER BY key ASC
-            """
-        ).fetchall()
-    return {
-        row["key"]: {
-            "confidence": round(float(row["confidence"]), 4),
-            "n": int(row["observation_count"] or 0),
-            "success": int(row["success_count"] or 0),
-            "failure": int(row["failure_count"] or 0),
-            "last_seen": row["last_seen"],
+    try:
+        init_db()
+        # Read only the columns we emit, ordered by key, for speed and determinism.
+        # Excludes obvious test rows (source LIKE 'test%'); read-only.
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT key, confidence, observation_count, success_count, failure_count, last_seen
+                FROM learnings
+                WHERE topic = 'routing' AND category = 'effectiveness'
+                  AND source NOT LIKE 'test%'
+                ORDER BY key ASC
+                """
+            ).fetchall()
+        return {
+            row["key"]: {
+                "confidence": round(float(row["confidence"]), 4),
+                "n": int(row["observation_count"] or 0),
+                "success": int(row["success_count"] or 0),
+                "failure": int(row["failure_count"] or 0),
+                "last_seen": row["last_seen"],
+            }
+            for row in rows
         }
-        for row in rows
-    }
+    except sqlite3.Error:
+        return {}
 
 
 def cmd_route_weights(args: argparse.Namespace) -> None:
     """Emit routing weights as JSON for health-aware re-ranking."""
-    print(json.dumps(collect_route_weights(), indent=2, default=str))
+    try:
+        print(json.dumps(collect_route_weights(), indent=2, default=str))
+    except sqlite3.Error:
+        print("{}")
 
 
 # Default minimum cohort size below which route-delta prints a low-sample WARNING.
@@ -1147,6 +1154,10 @@ def cmd_route_failure(args: argparse.Namespace) -> None:
         print(f"Error: pair must be 'agent:skill', got {key!r}", file=sys.stderr)
         sys.exit(2)
 
+    # Resolve reason from --reason or --reason-file.
+    if getattr(args, "reason_file", None):
+        args.reason = Path(args.reason_file).read_text(encoding="utf-8")
+
     init_db()
     routing_relevant = args.routing_relevant == "yes"
     session = args.session or ""
@@ -1467,7 +1478,11 @@ def cmd_learn(args):
     """Record a skill- or agent-scoped learning with minimal friction."""
     import hashlib
 
-    value = args.value
+    # Resolve value from positional arg or --value-file.
+    if getattr(args, "value_file", None):
+        value = Path(args.value_file).read_text(encoding="utf-8")
+    else:
+        value = args.value
     # Auto-generate key from value hash
     key = hashlib.sha256(value.encode()).hexdigest()[:12]
 
@@ -1675,7 +1690,11 @@ def main():
 
     # learn (low-friction skill-scoped recording)
     p_learn = subparsers.add_parser("learn", help="Record a skill/agent-scoped learning (one-liner)")
-    p_learn.add_argument("value", help="The learning content (one sentence)")
+    p_learn_value = p_learn.add_mutually_exclusive_group(required=True)
+    p_learn_value.add_argument("value", nargs="?", default=None, help="The learning content (one sentence)")
+    p_learn_value.add_argument(
+        "--value-file", help="Path to a file containing the learning content (avoids shell-splicing)"
+    )
     p_learn.add_argument("--skill", help="Skill name (sets topic to skill:{name})")
     p_learn.add_argument("--agent", help="Agent name (sets topic to agent:{name})")
     p_learn.add_argument("--topic", help="Custom topic (fallback if no --skill/--agent)")
@@ -1773,7 +1792,11 @@ def main():
     # route-failure — orchestrator-reported routing failure (ADR: orchestrator-reported-route-failures)
     p_rf = subparsers.add_parser("route-failure", help="Record an orchestrator-reported routing failure")
     p_rf.add_argument("agent_skill", help="Routing key (e.g., golang-general-engineer:go-patterns)")
-    p_rf.add_argument("--reason", required=True, help="Why the route failed (recorded with the event)")
+    p_rf_reason = p_rf.add_mutually_exclusive_group(required=True)
+    p_rf_reason.add_argument("--reason", help="Why the route failed (recorded with the event)")
+    p_rf_reason.add_argument(
+        "--reason-file", help="Path to a file containing the failure reason (avoids shell-splicing)"
+    )
     p_rf.add_argument(
         "--routing-relevant",
         dest="routing_relevant",
