@@ -18,6 +18,9 @@ The `/do` command routes requests to appropriate agents and skills.
 | python, .py, pip, pytest | `python-general-engineer` |
 | kubernetes, helm, k8s | `kubernetes-helm-engineer` |
 | react, next.js | `typescript-frontend-engineer` |
+| create skill, scaffold skill, new skill, create agent, scaffold agent | `toolkit-governance-engineer` |
+
+> **skill-creator is a skill, not an agent.** No `skill-creator` subagent_type exists. The agent that owns skill/agent scaffolding is `toolkit-governance-engineer` (owns `skills/INDEX.json`, `agents/INDEX.json`, `scripts/pre-route.py`). Route skill-creation requests as: agent `toolkit-governance-engineer` + skill `skill-creator`.
 
 ## Force-Routed Skills
 

@@ -156,6 +156,7 @@ Detect the user's intent and load the appropriate reference file:
 | any `gh` call writing or reading a PR/issue body | `gh-body-safety.md` | **Body safety** |
 | "update changelog", "release notes", "curate changelog" | `changelog-curation.md` | **Changelog** |
 | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `owner-decision-briefs.md` | **Decision brief** |
+| "INDEX.json conflict", "INDEX conflict on rebase", "two PRs regenerated INDEX", "regenerate INDEX after rebase" | `index-conflict-resolution.md` | **INDEX conflict** |
 
 ## Mandatory PR Body Structure
 
