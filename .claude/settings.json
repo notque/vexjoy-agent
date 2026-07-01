@@ -286,6 +286,12 @@
             "command": "python3 \"$HOME/.claude/hooks/creation-protocol-enforcer.py\"",
             "description": "Soft-warn when Agent dispatch is a creation request without a recent ADR session",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-section-integrity-validator.py\"",
+            "description": "Advisory: warn when subagent_type is a skill name or unknown (ARCH-002)",
+            "timeout": 3000
           }
         ]
       }
