@@ -63,6 +63,24 @@ except Exception:  # pragma: no cover - lib import must never hard-fail the hook
         return sys.stdin.read()
 
 
+try:
+    from hook_utils import deny_tool_use
+except Exception:  # pragma: no cover - lib import must never hard-fail the hook
+
+    def deny_tool_use(event_name: str, reason: str) -> None:
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": event_name,
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": reason,
+                    }
+                }
+            )
+        )
+
+
 _BYPASS_ENV = "WORKTREE_EDIT_GUARD_BYPASS"
 _WORKTREE_MARKER = "/.claude/worktrees/"
 # This hook is the SOLE PreToolUse guard covering MultiEdit and NotebookEdit
@@ -240,17 +258,7 @@ def _deny(target_real: str, main_repo_root: str, worktree_root: str, tool_name: 
     except Exception:
         pass
 
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": reason,
-                }
-            }
-        )
-    )
+    deny_tool_use("PreToolUse", reason)
     sys.exit(0)
 
 
