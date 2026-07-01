@@ -10,7 +10,7 @@ You know Claude Code. You've written agents, maybe built a skill or two. This do
 
 ## The Router
 
-Every `/do` request runs through the `/do` skill itself (`skills/meta/do/SKILL.md`). Phase 1 classifies complexity. Phase 2 runs `scripts/index-router.py` for deterministic trigger matching and candidate scoring. Then Claude selects the agent + skill combination.
+Every `/do` request runs through the `/do` skill itself (`skills/meta/do/SKILL.md`). Phase 1 classifies complexity. Phase 2 runs `scripts/pre-route.py` as a deterministic safety net (guards plus a high-confidence force-route fast path), then `scripts/routing-manifest.py` to generate the routing manifest; the orchestrator reads the manifest and selects the agent + skill combination in-session.
 
 A `skill-evaluator` hook exists but is disabled. Its routing cheat sheet became redundant once the `/do` skill got its own routing tables.
 
@@ -154,7 +154,7 @@ Ten event types, registered in settings.json:
 | `SessionStart` | Session begins | sync-to-user-claude, afk-mode, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector, session-github-briefing, session-adr-health-check |
 | `UserPromptSubmit` | Before processing each prompt | pipeline-context-detector, user-correction-capture, codex-auto-review, prompt-capture |
 | `PreToolUse` | Before tool execution | suggest-compact, pretool-unified-gate, pretool-branch-safety, ci-merge-gate, pretool-ruff-format-gate, pretool-index-sync-check, pretool-learning-injector, pretool-synthesis-gate, pretool-plan-gate, pretool-prompt-injection-scanner, pipeline-phase-gate, reference-loading-gate, pretool-adr-creation-gate, pretool-file-backup, reference-loading-enforcer, pretool-subagent-warmstart, creation-protocol-enforcer |
-| `PostToolUse` | After tool execution | posttool-lint-hint, agent-grade-on-change, adr-enforcement, posttool-security-scan, posttool-skill-frontmatter-check, posttooluse-joy-check-warn, posttooluse-sync-skill-index, posttool-docs-drift-alert, retro-graduation-gate, adr-lifecycle-on-merge, posttool-rename-sweep, record-activation, posttool-session-reads, usage-tracker, routing-gap-recorder, review-capture, instruction-compliance, error-learner, record-waste, completion-evidence-check, posttool-auto-test |
+| `PostToolUse` | After tool execution | posttool-lint-hint, agent-grade-on-change, adr-enforcement, posttool-security-scan, posttool-skill-frontmatter-check, posttooluse-joy-check-warn, posttooluse-sync-skill-index, posttool-docs-drift-alert, retro-graduation-gate, adr-lifecycle-on-merge, posttool-rename-sweep, record-activation, posttool-session-reads, usage-tracker, review-capture, instruction-compliance, error-learner, record-waste, completion-evidence-check, posttool-auto-test |
 | `PreCompact` | Before context compression | precompact-archive |
 | `PostCompact` | After context compression | postcompact-handler |
 | `TaskCompleted` | After a Task tool finishes | task-completed-learner |
