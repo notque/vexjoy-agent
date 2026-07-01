@@ -197,6 +197,12 @@ Rules:
 
 Use `agent` and `skill` fields directly; if `confidence` is "low", verify against INDEX files. The routing JSON is internal — never printed.
 
+**Skill-greediness gate (HARD — non-negotiable for Simple+).** If complexity is Simple, Medium, or Complex AND `skill` is null or empty, you MUST either:
+- (a) Pick a skill from the manifest that covers the task verb (review→systematic-code-review, debug→systematic-debugging, refactor→systematic-refactoring, audit→audit-report, explain→codebase-overview, compare→comparative-analysis, plan→planning, loop/objective→objective-loop), OR
+- (b) Fall back to `objective-loop` as the default methodology wrapper (never leave `skill` empty on Simple+).
+
+An agent without a skill is a specialist without methodology — the router MUST NOT dispatch that combination for Simple+ work. This gate closes the observed 24% empty-skill leak (see `route-events.jsonl`).
+
 **Dispatch-time section validator (MANDATORY before every `Agent(subagent_type=...)` call).** A skill name in the `agent` field makes the harness reject the dispatch (`Agent type 'X' not found`). Assert the `agent` field maps to a name in the manifest's `AGENTS:` section. Pseudocode:
 
 ```
@@ -216,7 +222,7 @@ if route.agent is None:
     route.agent = "general-purpose"  # safe fallback; pair with chosen skill
 ```
 
-If Step 0 cannot produce a defensible agent+skill pair, fall back to `general-purpose` + verification-before-completion.
+If Step 0 cannot produce a defensible agent+skill pair, fall back to `general-purpose` + `objective-loop` (never leave the skill slot empty on Simple+; `verification-before-completion` is a pattern, not a skill).
 
 Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` output, route to `.claude/agents/` local agents. Route all code changes to domain agents.
 
@@ -426,7 +432,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 **Step 4: Auto-Pipeline Fallback** (no match AND complexity >= Simple)
 
-Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent + verification-before-completion as safety net.
+Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent AND stack an explicit skill (`objective-loop` if nothing else fits). Never dispatch Simple+ work with an empty skill slot; `verification-before-completion` is a pattern injected in Phase 3, not a skill selection.
 
 **Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`. On a re-dispatch from this check, report the route failure (see Learning Capture, "Report routing failures").
 
