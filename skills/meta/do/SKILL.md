@@ -201,7 +201,7 @@ Use `agent` and `skill` fields directly; if `confidence` is "low", verify agains
 - (a) Pick a skill from the manifest that covers the task verb (review→systematic-code-review, debug→systematic-debugging, refactor→systematic-refactoring, audit→audit-report, explain→codebase-overview, compare→comparative-analysis, plan→planning, loop/objective→objective-loop), OR
 - (b) Fall back to `objective-loop` as the default methodology wrapper (never leave `skill` empty on Simple+).
 
-An agent without a skill is a specialist without methodology — the router MUST NOT dispatch that combination for Simple+ work. This gate closes the observed 24% empty-skill leak (see `route-events.jsonl`).
+An agent without a skill is a specialist without methodology — the router MUST NOT dispatch that combination for Simple+ work. This gate closes the observed empty-skill leak (12.6% of 517 decision events, `route-events.jsonl`, June 2026).
 
 **Dispatch-time section validator (MANDATORY before every `Agent(subagent_type=...)` call).** A skill name in the `agent` field makes the harness reject the dispatch (`Agent type 'X' not found`). Assert the `agent` field maps to a name in the manifest's `AGENTS:` section. Pseudocode:
 
@@ -359,10 +359,11 @@ Load `references/quality-loop.md` as the **outer orchestration wrapper**:
 
 Quality-loop absorbs Steps 0-1. The Phase 2 agent+skill is the implementation agent; force-route skills run INSIDE the loop. Skip when: Trivial/Simple (use `quick`), review-only/research/debugging/content creation, or user wants a simpler flow.
 
-**Step 1b/1c (Workflow dispatch — lazy-loaded):**
+**Step 1c: Workflow dispatch (lazy-loaded)**
 
 On a pipeline `pick`, a Complex/tier-4 task with no pick, or an explicit "run through a workflow" request, load `${CLAUDE_SKILL_DIR}/references/workflow-dispatch.md` and follow it.
 It carries the executor decision table, roster rules, and inline-script constraints verbatim.
+When Step 1b and Step 1c both apply (a Medium+ code modification that also has a pipeline pick or is Complex/tier-4), quality-loop is the OUTER wrapper; Step 1c workflow dispatch runs INSIDE its IMPLEMENT phase (`references/quality-loop.md`, "outer orchestration").
 
 **Step 2: Invoke agent with skill**
 
@@ -413,7 +414,7 @@ TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settin
 
 **Category overrides** (regardless of complexity): `thinking:slow` for security work, API/schema design, migrations, 5+ file reviews, architectural decisions; `thinking:fast` for lookups, status checks, single-function renames/refactors. Hooks capture the thinking class from dispatch metadata; the router sets the directive but records nothing.
 
-**Verb-based model dispatch for Complex tasks (3+ data sources).** Extraction verbs use parallel Haiku readers; analysis verbs a single Opus agent (extraction 38% cheaper, 23% faster — A/B tested).
+**Verb-based model dispatch for Complex tasks (3+ data sources).** Extraction verbs use parallel Haiku readers; analysis verbs a single Opus agent.
 
 | Task verb class | Dispatch mode |
 |---|---|
