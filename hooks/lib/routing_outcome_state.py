@@ -56,6 +56,7 @@ row gets scored on a subsequent stop. See adr/learn-step-to-hook.md.
 
 import json
 import os
+import sys
 import tempfile
 import time
 from contextlib import contextmanager
@@ -180,8 +181,9 @@ def _load(path: Path) -> dict[str, Any]:
                 data.setdefault("seen", [])
                 data.setdefault("pending", [])
                 return data
-    except (json.JSONDecodeError, OSError, ValueError):
-        pass
+    except (json.JSONDecodeError, OSError, ValueError) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] _load: {type(e).__name__}: {e}", file=sys.stderr)
     return {"seen": [], "pending": []}
 
 
@@ -199,9 +201,10 @@ def _atomic_write(path: Path, data: dict[str, Any]) -> None:
             except OSError:
                 pass
             raise
-    except Exception:
+    except Exception as e:
         # Best-effort: at worst we lose one bridge record.
-        pass
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] _atomic_write: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def claim_dispatch(session_id: str, signature: str) -> bool:
@@ -229,7 +232,9 @@ def claim_dispatch(session_id: str, signature: str) -> bool:
             data["seen"] = data["seen"][-500:]
             _atomic_write(path, data)
             return True
-    except Exception:
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] claim_dispatch: {type(e).__name__}: {e}", file=sys.stderr)
         return True
 
 
@@ -255,8 +260,9 @@ def append_pending_outcome(session_id: str, key: str, errors: bool) -> None:
             data["pending"].append({"key": key, "errors": bool(errors), "attempts": 0, "created": time.time()})
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] append_pending_outcome: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def peek_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
@@ -267,7 +273,9 @@ def peek_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
     """
     try:
         return list(_load(_state_file(session_id)).get("pending", []))
-    except Exception:
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] peek_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
         return []
 
 
@@ -294,7 +302,9 @@ def finalize_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
                 data["pending"] = []
                 _atomic_write(path, data)
         return pending
-    except Exception:
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] finalize_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
         return []
 
 
@@ -330,8 +340,9 @@ def revalidate_pending_outcomes(session_id: str, items: list[dict[str, Any]]) ->
                 )
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] revalidate_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
@@ -349,7 +360,9 @@ def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
                 data["pending"] = []
                 _atomic_write(path, data)
         return pending
-    except Exception:
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] drain_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
         return []
 
 
@@ -382,5 +395,6 @@ def requeue_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> No
                 data["pending"].append(entry)
             data["pending"] = data["pending"][-500:]
             _atomic_write(path, data)
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] requeue_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)

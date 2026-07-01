@@ -19,7 +19,7 @@ elif pick is None and complex4 and cap.workflow_capable and (Workflow tool in MY
         # NO named pipeline + Complex/tier-4: generic native fan-out (Stage 2)
                                                             -> Workflow.run("fan-out-workflow", {scope, tier, roster})
 elif pick is None and complex4:                             # Workflow tool absent -> floor
-                                                            -> dispatching-parallel-agents (prose fan-out, unchanged)
+                                                            -> dispatch multiple Agent tools in one message (prose fan-out, unchanged)
 else:                                                       -> agent + skill direct (simpler; unchanged)
 ```
 

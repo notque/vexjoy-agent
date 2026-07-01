@@ -55,7 +55,7 @@ _TABLE_POSITIVE_COLUMNS = re.compile(
 
 _TABLE_HEADER_ROW = re.compile(r"^\|(.+)\|", re.MULTILINE)
 
-_SKIP_FILENAMES = {"INDEX.json", "README.md"}
+_SKIP_FILENAMES = {"README.md"}
 
 
 def _strip_fenced_blocks(content: str) -> str:
@@ -551,7 +551,7 @@ def main() -> None:
         agent_files = [candidate]
     else:
         agent_files = sorted(AGENTS_DIR.glob("*.md"))
-        agent_files = [f for f in agent_files if f.name not in {"README.md", "INDEX.json"}]
+        agent_files = [f for f in agent_files if f.name not in {"README.md"}]
 
     results: list[AgentResult] = []
     for agent_file in agent_files:

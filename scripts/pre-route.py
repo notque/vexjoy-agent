@@ -17,6 +17,7 @@ a stable contract those tools depend on.
 
 Usage:
     python3 scripts/pre-route.py --request "run go tests"
+    python3 scripts/pre-route.py --request-file /tmp/req.txt --json-compact
     python3 scripts/pre-route.py --request "create a PR" --json-compact
 
 Exit codes:
@@ -466,6 +467,8 @@ def build_match_table(entries: list[dict]) -> list[MatchEntry]:
         force_route = entry.get("force_route", False)
 
         for trigger in entry.get("triggers", []):
+            if not isinstance(trigger, str):
+                continue
             trigger_lower = trigger.lower()
             pattern = _build_pattern(trigger_lower)
 
@@ -693,10 +696,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Deterministic pre-router for /do dispatch.",
     )
-    parser.add_argument(
+    req_group = parser.add_mutually_exclusive_group(required=True)
+    req_group.add_argument(
         "--request",
-        required=True,
         help="The user request string to route.",
+    )
+    req_group.add_argument(
+        "--request-file",
+        help="Path to a file containing the request string (avoids shell-splicing).",
     )
     parser.add_argument(
         "--json-compact",
@@ -705,7 +712,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    result = route(args.request)
+    try:
+        if args.request_file:
+            request_text = Path(args.request_file).read_text(encoding="utf-8")
+        else:
+            request_text = args.request
+
+        result = route(request_text)
+    except Exception as exc:
+        result = {
+            "matched": False,
+            "agent": None,
+            "skill": None,
+            "confidence": "low",
+            "match_type": "fallthrough",
+            "reasoning": f"pre-route error: {type(exc).__name__}",
+        }
 
     indent = None if args.json_compact else 2
     print(json.dumps(result, indent=indent))

@@ -88,7 +88,7 @@ Read and follow the repository CLAUDE.md first — its conventions affect agent 
 
 **Named-pattern + escalation guide:** for which workflow pattern fits, the failure modes a workflow fights, and the "does this really need more compute?" cost gate, load `skills/workflow/references/workflow-patterns.md`.
 
-**Check for parallel patterns FIRST**: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/`; if present, run `feature-state.py status`). On 2+ independent items, dispatch all in parallel in one message.
+**Check for parallel patterns FIRST**: 2+ independent failures or 3+ subtasks → dispatch multiple Agent tools in a single message (the harness runs them concurrently); `fan-out-workflow.js` provides native Workflow dispatch when available. Broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/`; if present, run `feature-state.py status`). On 2+ independent items, dispatch all in parallel in one message.
 
 **Optional: Force Direct** — OFF by default; applies only on explicit request.
 
@@ -113,15 +113,22 @@ If ANY creation signal AND complexity Simple+: set `is_creation = true`; Phase 4
 
 **Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: one in-session manifest read (~34 KB) on requests that miss the fast path — measured, accepted (`scripts/routing-ab-results/self-route-v1/VERDICT.md`, Cost section).
 
-**Fast path: high-confidence force-route (run FIRST, before Step 0)**
+**Pre-route (run ONCE at Phase 2 start, before the fast-path check)**
 
-Resolve SDIR as in Step 0, then run:
+Resolve SDIR, write the request to a temp file to avoid shell-splicing, then run pre-route.py once and store the result:
 
 ```bash
-python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
+SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
+REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
+python3 "$SDIR/pre-route.py" --request-file "$REQUEST_FILE" --json-compact
+rm -f "$REQUEST_FILE"
 ```
 
-If the result has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest read + self-route), Step 1.5 (weights read), and Step 1 (pre-route already ran). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
+Store this JSON as `PRE_ROUTE_RESULT`. Both the fast path and Step 1 read from it — pre-route.py is never called a second time.
+
+**Fast path: high-confidence force-route**
+
+Read `PRE_ROUTE_RESULT`. If it has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest read + self-route), Step 1.5 (weights read), and Step 1 (stored result already covers it). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
 
 **Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (the ~34 KB manifest read skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
 
@@ -238,20 +245,16 @@ Policy thresholds (for reading the recorded would-action, not for changing the r
 
 Carry the gate inputs on the routing marker so the recorder snapshots them at decision time — confidence alone cannot reconstruct the demote floor; it needs `n` and `failure` too. Append format and example: Phase 4 Step 2.
 
-**Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
+**Step 1: Deterministic safety-net** (reads `PRE_ROUTE_RESULT` — runs AFTER the semantic decision, never short-circuits it)
 
-Use its result ONLY as a guardrail. Reuse the fast-path gate's pre-route output when it ran this turn; otherwise resolve SDIR as in Step 0 and run:
+Use `PRE_ROUTE_RESULT` (the single pre-route call at Phase 2 start) ONLY as a guardrail. No second invocation — the stored result is structurally guaranteed.
 
-```bash
-python3 "$SDIR/pre-route.py" --request "{user_request}" --json-compact
-```
-
-- **(a) Safety-critical force-route override.** If pre-route returns `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill and the semantic pick disagrees, override to the force-route: genuine "push", "commit", "create PR", "merge" and security work MUST hit quality gates (lint, tests, CI). Record `match_type`.
+- **(a) Safety-critical force-route override.** If `PRE_ROUTE_RESULT` has `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill and the semantic pick disagrees, override to the force-route: genuine "push", "commit", "create PR", "merge" and security work MUST hit quality gates (lint, tests, CI). Record `match_type`.
 - **(b) Guards stay active.** Its phrase/unigram guards suppress false matches (e.g. "fish out", metaphorical commit/merge). A guarded request — and otherwise — stays with the Step 0 semantic decision.
 
 **Step 2: Apply skill override** (task verb overrides default skill)
 
-Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `INDEX files`.
+Common overrides: "review" → systematic-code-review, "debug" → workflow (systematic-debugging pipeline), "refactor" → workflow (systematic-refactoring pipeline), "TDD" → test-driven-development. Full override table in `INDEX files`.
 
 **Step 3: Display routing decision** (MANDATORY — FIRST visible output, before any work)
 
@@ -452,10 +455,12 @@ These feed the routing loop: `learning-db.py route-health` reads the decision ro
 **Report routing failures (router-reported channel).** The finalizer only sees tool errors and next-turn rejections; routing failures YOU observe fall through. On a HIGH-CONFIDENCE routing failure only, run:
 
 ```bash
-python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason "<cause>" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
+REASON_FILE=$(mktemp); printf '%s' "<cause>" > "$REASON_FILE"
+python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason-file "$REASON_FILE" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
+rm -f "$REASON_FILE"
 ```
 
-Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). Treat `<cause>` as untrusted: strip quotes, backticks, `$`, and newlines before splicing it into the shell line — never pass model- or user-derived text raw. See ADR `orchestrator-reported-route-failures`.
+Run it for: re-route after unusable output; lazy-completion re-dispatch; section-validator misroute that reached dispatch; harness-rejected agent type. Bad execution by the RIGHT route -> `--routing-relevant no` (event only, no decay). Ambiguous -> record nothing (precision over recall). `--routing-relevant yes` decays the pair via the finalizer's decay path; one failure per dispatch key (re-runs are no-ops). `<cause>` is written to a temp file to avoid shell-splicing of untrusted text — never pass model- or user-derived text as a shell argument. See ADR `orchestrator-reported-route-failures`.
 
 **OPTIONAL (not a gate):** curated free-text insight and review-finding graduation are opt-in via the `retro` skill (`retro graduate`), not a router step:
 
@@ -481,6 +486,10 @@ Solution: Apply the most specific force-route first. Stack compatible secondary 
 ### Error: "Plan Required But Not Created"
 Cause: Simple+ task attempted without task_plan.md
 Solution: Stop. Create `task_plan.md`. Resume routing once in place.
+
+### Error: "Router Script Failed"
+Cause: `pre-route.py` or `routing-manifest.py` exited non-zero or returned non-JSON.
+Solution: Treat as no-match. Route to `general-purpose` + `verification-before-completion`.
 
 ---
 
