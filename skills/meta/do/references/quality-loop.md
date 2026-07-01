@@ -93,7 +93,7 @@ branch: <feature-branch-name>
 ```
 This artifact is read by PHASE 5 (intent verification), PHASE 7 (fix agent selection), and PHASE 10 (ADR reconciliation).
 
-**Gate:** Agent commits exist on feature branch AND `quality-loop-state.md` written. If agent failed to commit, halt and report.
+**Gate:** Agent commits exist on feature branch AND `quality-loop-state.md` written; proceed to PHASE 3. If agent failed to commit, halt and report.
 
 ### PHASE 3 — TEST
 
@@ -192,6 +192,8 @@ Run the same test suite as PHASE 3.
 
 A pipeline that promises quality enforcement must not silently ship CRITICALs. The user must consciously choose to proceed.
 
+**Gate:** All tests green after fixes. Proceed to PHASE 9. If tests fail, loop to PHASE 7 (max 3 iterations per the loop counter above).
+
 ### PHASE 9 — PR
 
 Push branch and create PR via pr-workflow skill.
@@ -236,7 +238,7 @@ After PR is merged, compare what was planned against what was built.
 - Compare `task_plan.md` acceptance criteria against the merged diff
 - Note any deviations from the plan
 
-**Gate:** Reconciliation documented. Proceed to PHASE 11.
+**Gate:** Reconciliation documented. Proceed to PHASE 12.
 
 ### PHASE 12 — RECORD
 
@@ -252,7 +254,7 @@ python3 ~/.claude/scripts/learning-db.py learn --skill do --value-file "$SUMMARY
 rm -f "$SUMMARY_FILE"
 ```
 
-**Gate:** At least one learning recorded. Proceed to PHASE 12.
+**Gate:** At least one learning recorded. Proceed to PHASE 13.
 
 ### PHASE 13 — CLEANUP
 
