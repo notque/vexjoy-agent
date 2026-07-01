@@ -74,7 +74,14 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        pass
+    except Exception as e:
+        try:
+            print(f"[afk-mode] error: {type(e).__name__}: {e}", file=sys.stderr)
+        except Exception:
+            pass  # stderr write must never itself break the hook
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)
