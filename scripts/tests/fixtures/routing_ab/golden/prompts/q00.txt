@@ -3,4 +3,4 @@ USER REQUEST: push my changes to GitHub
 ROUTING MANIFEST:
 STUB MANIFEST v1
 Return your answer as JSON: {"agent": "...|null","skill":"...|null","pipeline":"...|null","reasoning":"one sentence","confidence":"high/medium/low"}
-FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For git operations (push, commit, PR, merge), ALWAYS select pr-workflow. Pick the most specific match. Return a single skill name as a string.
+FORCE-ROUTE RULE: Entries marked "FORCE" MUST be selected when their domain clearly matches the user's intent. FORCE matching is SEMANTIC, not keyword-based — match what the user MEANS. For GENUINE git / version-control operations — actually pushing code, committing files to a repository, or opening/merging a pull request — ALWAYS select pr-workflow. Do NOT route metaphorical or non-version-control uses of these words (e.g. 'commit to a decision/plan', 'merge ideas in your head', 'push back on a proposal') to pr-workflow. Pick the most specific match. Return a single skill name as a string.
