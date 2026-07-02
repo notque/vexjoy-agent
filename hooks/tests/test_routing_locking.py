@@ -68,8 +68,11 @@ def test_state_lock_serializes_critical_section(tmp_path):
 def test_lock_backend_not_noop_on_windows():
     """On Windows the fallback must be a REAL lock, not the old no-op shim.
 
-    Asserts the module exposes platform lock helpers that actually acquire a
-    lock on a temp fd (smoke). On POSIX this exercises fcntl; on Windows msvcrt.
+    Asserts the module exposes `_acquire_lock`/`_release_lock` helpers, and on
+    Windows inspects the helper source for a real backend (msvcrt/fcntl), never
+    a return-None stub. No lock is acquired on any platform.
+    TODO: add a real cross-platform lock acquisition test (acquire on a temp
+    fd, assert a second acquisition blocks or raises).
     """
     import routing_outcome_state as ros
 

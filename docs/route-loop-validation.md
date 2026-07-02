@@ -10,6 +10,8 @@ read_when:
 Branch: `feat/route-sensor`. Date: 2026-06-10. Audience: a skeptical reader
 who wants proof, not prose.
 
+Working notes: the `routing-loop-value-eval` ADR (local-only; the `adr/` directory is gitignored).
+
 ---
 
 ## Decision
