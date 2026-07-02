@@ -19,7 +19,8 @@ Detection logic:
 - Tool is Write (edits to existing files pass through)
 - Target path matches /agents/<name>.md, /skills/<name>/SKILL.md,
   /pipelines/<name>/SKILL.md, or /hooks/<name>.py (top level; lib/ and
-  tests/ never match)
+  tests/ never match; hook gating applies only in toolkit-shaped repos —
+  agents/ and skills/ dirs beside the hooks/ dir)
 - The target file does not already exist on disk (new creation only)
 - ADR not found in either lookup path
 
@@ -55,8 +56,27 @@ _PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 # Match hooks/foo-bar.py → "foo-bar". Top-level hook files only: lib/ and
 # tests/ paths carry an extra segment so [^/]+ never matches them. Hooks are
 # the component class PHILOSOPHY.md calls hardest to govern — same
-# ADR-before-creation rule as agents/skills/pipelines.
+# ADR-before-creation rule as agents/skills/pipelines. UNLIKE the sibling
+# patterns, this rule is scoped to toolkit-shaped repos (_is_toolkit_repo):
+# the gate runs user-level in every repo, and a random project's hooks/ dir
+# (git hooks, cookiecutter layouts) must not be denied with toolkit-specific
+# ADR guidance.
 _HOOK_RE = re.compile(r"/hooks/([^/]+)\.py$")
+
+
+def _is_toolkit_repo(root: Path) -> bool:
+    """Toolkit marker: agents/ AND skills/ dirs at the repo root.
+
+    Same detection convention as sync-to-user-claude.py and the PR pipeline's
+    toolkit-only phases. ``root`` is the directory CONTAINING the matched
+    hooks/ dir, derived from the target path itself (not cwd), so a Write
+    into another repo is judged by that repo's own shape.
+    """
+    try:
+        return (root / "agents").is_dir() and (root / "skills").is_dir()
+    except OSError:
+        return False
+
 
 # Path-shape allowlist for components whose creation is governed by an upstream
 # skill's own methodology, not by a per-component ADR. Mirrors the allowlist in
@@ -165,12 +185,23 @@ def _extract_component_name(file_path: str) -> str | None:
         Component name string, or None if the path is not a component file.
     """
     normalised = file_path.replace("\\", "/")
-    for pattern in (_AGENT_RE, _SKILL_RE, _PIPELINE_RE, _HOOK_RE):
+    for pattern in (_AGENT_RE, _SKILL_RE, _PIPELINE_RE):
         match = pattern.search(normalised)
-        if match and match.group(1) != "__init__":
-            # __init__.py is packaging, not a hook component.
+        if match:
             return match.group(1)
-    return None
+    # Hooks: match the lexically resolved path so hooks/sub/../new.py cannot
+    # skip the pattern. Normalization is scoped to the hook rule so sibling
+    # pattern behavior is unchanged.
+    resolved = os.path.normpath(normalised).replace("\\", "/")
+    match = _HOOK_RE.search(resolved)
+    if match is None or match.group(1) == "__init__":
+        # __init__.py is packaging, not a hook component.
+        return None
+    # Opt-in scoping: gate hooks only in toolkit-shaped repos (see _HOOK_RE).
+    repo_root = Path(resolved[: match.start()] or "/")
+    if not _is_toolkit_repo(repo_root):
+        return None
+    return match.group(1)
 
 
 def main() -> None:
