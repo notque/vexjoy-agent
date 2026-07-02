@@ -16,7 +16,7 @@ For each pattern block the script looks for a verdict in this priority order:
     3. A blanket inline tag on the parent H2 -- `## Heuristics (KEEP-verdict)`
        or `## Phrase Fingerprints (FOOTNOTE-verdict, scoped use only)` --
        which applies to every H3 child that does not carry its own verdict.
-       Matches the convention voice-feynman ships today.
+       Matches the convention private voice-profile skills ship today.
 
 The verdict requirement is stricter than "any verdict": a shipped SKILL.md
 must carry only KEEP and FOOTNOTE patterns. DROP patterns belong in working
@@ -62,7 +62,7 @@ VERDICT_LINE_RE = re.compile(
 
 # Inline tag at the end of an H3 heading: `### Pattern name (KEEP)` or
 # `### Pattern name (KEEP-verdict, ...)` (blanket-verdict shorthand reused on a
-# sub-section heading -- voice-feynman ships this for its FOOTNOTE phrase set).
+# sub-section heading -- voice profiles ship this for FOOTNOTE phrase sets).
 HEADING_TAG_RE = re.compile(
     r"\((KEEP|FOOTNOTE|DROP)(?:-verdict\b[^)]*)?\)\s*$",
     re.IGNORECASE,
@@ -166,7 +166,7 @@ def discover_pattern_blocks(text: str) -> list[PatternBlock]:
     # Resolve verdict per block. Priority: explicit body line > heading tag >
     # parent H2 blanket. The body line wins because a per-block override is the
     # most specific signal a maintainer can leave; the parent blanket is the
-    # convention voice-feynman ships and applies only when nothing more
+    # convention voice-profile skills ship and applies only when nothing more
     # specific is set.
     for block in blocks:
         verdict = _body_verdict(block.body_lines) or _heading_inline_verdict(block.name) or block.parent_blanket_verdict

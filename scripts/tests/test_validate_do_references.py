@@ -81,7 +81,7 @@ def test_phantom_pipeline_in_overrides_fails(tmp_path: Path) -> None:
 
 def test_voice_profile_names_accepted(tmp_path: Path) -> None:
     """voice-* names pass: profiles are user-level skills outside the repo index."""
-    modified = _skill_copy(tmp_path, "voice-amy-nemmity", "voice-zz-test-profile")
+    modified = _skill_copy(tmp_path, "voice-example-profile", "voice-zz-test-profile")
     result = _run(modified)
     assert result.returncode == 0, result.stdout + result.stderr
 

@@ -206,6 +206,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-private-name-leak-gate.py\"",
+            "description": "Private-name leak gate: blocks git commit/push and gh pr text naming a private component from ~/private-skills (local-only by design; block messages redact the name)",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/security-review-hook.py\"",
             "description": "Security review gate: blocks git commit when staged files have HIGH/CRITICAL findings (VEXJOY_SECURITY_REVIEW_SKIP=1 to override)",
             "timeout": 30000

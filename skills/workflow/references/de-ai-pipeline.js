@@ -12,7 +12,7 @@
 // (scan-ai-patterns.py) detects AI patterns; the LLM only fixes (PHILOSOPHY:
 // everything deterministic should be). So SCAN runs the scanner OUT-OF-BAND (the
 // /do caller passes the scan result in as `scope.scanHits`) — no LLM round-trip
-// for detection. FIX is a DATA-DRIVEN parallel barrier: one anti-ai-editor agent
+// for detection. FIX is a DATA-DRIVEN parallel barrier: one de-AI fix agent
 // per file with errors (the prose "one Agent per file" mandate), so the roster is
 // FULLY-DYNAMIC (caller-/data-supplied, no fixed count). VERIFY re-scans and
 // loops back to FIX up to a max-3-iteration bound (the prose anti-infinite-loop
@@ -30,7 +30,7 @@ import { skillDirectives, mandatoryInjections } from "./workflow-helpers.js";
 export const meta = {
   name: "de-ai-pipeline",
   description:
-    "De-AI scan-fix-verify loop as a deterministic native Workflow: SCAN -> FIX -> VERIFY -> REPORT. Detection is deterministic (scan-ai-patterns.py, run out-of-band; results passed in), so no LLM scans. FIX is a data-driven parallel barrier of one anti-ai-editor agent per file with errors (each attaching its full skill stack via one Skill() per skill plus the /do mandatory injections); VERIFY re-scans and loops back up to 3 iterations; REPORT summarizes and stages. The fix roster is caller-/data-supplied (fully dynamic). Mirrors de-ai-pipeline.md; that markdown flow stays the cross-harness floor.",
+    "De-AI scan-fix-verify loop as a deterministic native Workflow: SCAN -> FIX -> VERIFY -> REPORT. Detection is deterministic (scan-ai-patterns.py, run out-of-band; results passed in), so no LLM scans. FIX is a data-driven parallel barrier of one de-AI fix agent per file with errors (each attaching its full skill stack via one Skill() per skill plus the /do mandatory injections); VERIFY re-scans and loops back up to 3 iterations; REPORT summarizes and stages. The fix roster is caller-/data-supplied (fully dynamic). Mirrors de-ai-pipeline.md; that markdown flow stays the cross-harness floor.",
   // --- Conformance contract (pure literal — no calls/variables; see
   //     scripts/validate-workflow-conformance.py + adr/native-fast-path-portable-floor.md
   //     Stage 3). This is a FULLY-DYNAMIC-roster contract: the FIX fan-out is one
@@ -45,7 +45,7 @@ export const meta = {
     // barrier) is the first entered phase; the deterministic SCAN step precedes
     // it in-body (the scanner runs out-of-band; results passed in via scope).
     phases: ["fix", "verify", "report"],
-    // Fully-dynamic roster: one anti-ai-editor agent per file with errors, built
+    // Fully-dynamic roster: one de-AI fix agent per file with errors, built
     // from the scan results at runtime. No static names/count to pin — the gate
     // asserts the structural invariant instead.
     roster: { dynamic: true },
@@ -63,8 +63,10 @@ export const meta = {
 // this agent running the anti-ai methodology + the verification gate. The roster
 // is built per-file at runtime (one entry per error file), and agentType is
 // dispatched FROM that roster variable — the fully-dynamic structural invariant.
-const FIX_AGENT = "anti-ai-editor";
-const FIX_SKILLS = ["anti-ai-editor", "verification-before-completion"];
+// "de-ai-editor" is a placeholder name: the real fix component is private,
+// installed from ~/private-skills.
+const FIX_AGENT = "de-ai-editor";
+const FIX_SKILLS = ["de-ai-editor", "verification-before-completion"];
 const MAX_ITERATIONS = 3;
 
 // --- Schemas (mirror the STYLE of comprehensive-review-workflow.js / -----------
@@ -124,7 +126,7 @@ function enterPhase(title) {
 }
 
 // Build the per-file FIX roster from the current error-file list: one entry per
-// file, each dispatching the anti-ai-editor agent with its full skill stack. The
+// file, each dispatching the de-AI fix agent with its full skill stack. The
 // roster is DATA-DRIVEN (one worker per error file) — the fully-dynamic shape.
 // A caller-supplied `roster` override (each entry already {agentType, skills})
 // takes precedence: the /do caller can hand in a pre-built fix roster, and the
@@ -206,7 +208,7 @@ export default async function run({ scope, tier, roster } = {}) {
     iteration += 1;
 
     // Phase FIX: one hard barrier over the per-file roster. Each slot dispatches
-    // the anti-ai-editor agent via agentType (a runtime variable) and embeds one
+    // the de-AI fix agent via agentType (a runtime variable) and embeds one
     // Skill( directive per element of r.skills (the full stack) plus the /do
     // mandatory injections. Failed slots resolve to null and are filtered.
     enterPhase("fix");

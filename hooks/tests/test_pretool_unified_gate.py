@@ -371,7 +371,7 @@ class TestCheckCreationGate:
 
     def test_voice_skill_creation_allowlisted(self):
         """skills/voice-*/SKILL.md is produced by create-voice — must pass through."""
-        payload = _make_write_event("/project/skills/content/voice-feynman/SKILL.md")
+        payload = _make_write_event("/project/skills/content/voice-example-profile/SKILL.md")
         with patch("os.path.exists", return_value=False):
             assert _run_main(payload) == 0
 
@@ -392,7 +392,7 @@ class TestCheckCreationGate:
         # The creation gate doesn't fire on non-SKILL.md files anyway, so this
         # confirms the allowlist regex is anchored correctly and doesn't
         # accidentally widen the gate's surface.
-        payload = _make_write_event("/project/skills/content/voice-feynman/notes.md")
+        payload = _make_write_event("/project/skills/content/voice-example-profile/notes.md")
         with patch("os.path.exists", return_value=False):
             assert _run_main(payload) == 0
 

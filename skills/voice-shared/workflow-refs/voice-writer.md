@@ -40,7 +40,6 @@ routing:
     - voice-calibrator
     - voice-validator
     - joy-check
-    - anti-ai-editor
     - research-to-article
   complexity: Medium
   category: content
@@ -298,9 +297,9 @@ Voice validation checks stylistic fidelity. Joy-check checks tonal framing. Neit
 
 **Step 1: Invoke the anti-AI editor skill**
 
-The anti-AI editor is a **skill**, not a script. Do not attempt to run `scripts/anti-ai-editor.py` (it does not exist). Invoke the skill by dispatching an agent with the `anti-ai-editor` skill, or by reading `skills/anti-ai-editor/SKILL.md` and following its ASSESS phase against the draft content.
+The anti-AI editor is a private **skill**, not a script. Invoke it by dispatching an agent with the private de-AI editor skill (deployed to `~/.claude/skills/` from `~/private-skills`), or by reading its SKILL.md and following its ASSESS phase against the draft content.
 
-At minimum, load and apply the detection patterns from `skills/anti-ai-editor/references/detection-patterns.md` against the draft. Scan all 14 categories:
+At minimum, load and apply its detection-patterns reference against the draft. Scan all 14 categories:
 - Tier 1: AI Cliches, News AI Tells, Copula Avoidance, Novelty Inflation
 - Tier 2: Meta-commentary, Dangling -ing, Puffery, Generic Closers, Synonym Cycling, False Concession, Emotional Flatline, Reasoning Chain Artifacts
 - Tier 3: Structural monotony, Curly quotes
@@ -445,5 +444,5 @@ Result: Voice-consistent technical piece with full validation
 - `scan-negative-framing.py` -- Regex pre-filter for obvious negative framing patterns
 - `voice-validator` -- Deterministic voice fidelity validation
 - `voice-calibrator` -- Voice profile creation and tuning
-- `anti-ai-editor` -- AI pattern detection and removal
+- private de-AI editor skill -- AI pattern detection and removal
 - `create-voice` -- New voice profile creation

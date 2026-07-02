@@ -439,7 +439,7 @@ def generate_index(
         # Check if this directory directly contains a SKILL.md (flat layout)
         if (child / "SKILL.md").exists():
             _process_skill_dir(child)
-        # Check for nested skill/SKILL.md layout (e.g., voice-dragonball-z/skill/SKILL.md)
+        # Check for nested skill/SKILL.md layout (e.g., voice-example/skill/SKILL.md)
         elif (child / "skill" / "SKILL.md").exists():
             _process_skill_dir(child, skill_file_override=child / "skill" / "SKILL.md")
         else:
@@ -600,9 +600,8 @@ def main() -> int:
 
     # Scan ~/.claude/skills/ for deployed skills not already indexed.
     # Only when --include-private: the repo skills/ scan skips symlinked
-    # directories (private/voice skills), so this picks up voice-*,
-    # create-voice, anti-ai-editor, and any other skills deployed by the
-    # sync hook. Without --include-private, these entries would reference
+    # directories (private/voice skills), so this picks up voice-* profiles
+    # and any other private skills deployed by the sync hook. Without --include-private, these entries would reference
     # files that don't exist in the repo and break CI.
     user_skills_dir = Path.home() / ".claude" / "skills"
     if args.include_private and user_skills_dir.is_dir():

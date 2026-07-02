@@ -56,7 +56,7 @@ SKILL_MAPPING: dict[str, str] = {
     "voice-writer": "content",
     "voice-validator": "content",
     "translate": "content",
-    # Private skills (anti-ai-editor, interactive-essay, voice-* persona clones)
+    # Private skills (voice-* persona clones and other private components)
     # live in ~/private-skills, not in this repo. Not mapped here.
     # engineering/ — language-specific patterns + domain engineering
     "enterprise-search": "engineering",

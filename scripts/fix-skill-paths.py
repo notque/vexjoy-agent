@@ -49,7 +49,7 @@ SKILL_MAPPING: dict[str, str] = {
     "video-editing": "content",
     "gemini-image-generator": "content",
     "nano-banana-builder": "content",
-    # Private skills (voice-*, anti-ai-editor, create-voice, etc.)
+    # Private skills (voice-* profiles and other private components)
     # live in ~/private-skills, not in this repo.
     "enterprise-search": "engineering",
     "go-patterns": "engineering",

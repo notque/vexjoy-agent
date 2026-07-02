@@ -64,7 +64,7 @@ Defines 6 research dimensions, launches 5 parallel agents, compiles findings, wr
 /do write a blog post about [topic] in the [voice-name] voice
 ```
 
-Voice profiles ship as skills (`voice-vexjoy`, `voice-feynman`, `voice-andy-nemmity`). The `voice-writer` pipeline drafts in the calibrated voice and validates deterministically against the profile's metrics: sentence length distribution, contraction rate, punctuation density. Numbers, not vibes. Up to 3 revision iterations.
+Voice profiles ship as private `voice-*` skills, installed automatically from `~/private-skills` when present. The `voice-writer` pipeline drafts in the calibrated voice and validates deterministically against the profile's metrics: sentence length distribution, contraction rate, punctuation density. Numbers, not vibes. Up to 3 revision iterations.
 
 ### Anti-AI Editing
 
