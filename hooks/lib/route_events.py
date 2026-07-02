@@ -126,7 +126,8 @@ def record_outcome_event(
     reason: str | None = None,
     routing_relevant: bool | None = None,
 ) -> None:
-    """Append a per-dispatch OUTCOME event (outcome in {success, failure, neutral}).
+    """Append a per-dispatch OUTCOME event (outcome in {success, failure,
+    neutral, weak_success}).
 
     ``reason`` is the short cause for the outcome (e.g. tool-errors, rejection,
     acceptance, neutral-new-topic). Free of prompt text/secrets. Included only

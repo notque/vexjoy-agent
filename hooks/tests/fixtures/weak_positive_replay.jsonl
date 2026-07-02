@@ -1,0 +1,30 @@
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "now update the docs for the parser"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "add a retry to the fetch helper"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "rename the config module"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "wire the new endpoint into the router"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "bump the timeout on the slow test"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "split the utils file into two modules"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "add pagination to the list command"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "handle the empty-input case in the CLI"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "port the date parsing to the shared helper"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "log the cache misses at debug level"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "extract the validation into its own function"}
+{"type": "dispatch", "key": "python-general-engineer:test-driven-development", "errors": false}
+{"type": "prompt", "text": "sort the report output by date"}
+{"type": "dispatch", "key": "golang-general-engineer:go-patterns", "errors": false}
+{"type": "prompt", "text": "tighten the channel buffer sizes"}
+{"type": "dispatch", "key": "golang-general-engineer:go-patterns", "errors": true}
+{"type": "prompt", "text": "swap the mutex for a rwlock"}
+{"type": "dispatch", "key": "golang-general-engineer:go-patterns", "errors": false}
+{"type": "prompt", "text": "add the context deadline to the client"}

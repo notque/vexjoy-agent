@@ -15,6 +15,24 @@ import sqlite3
 BOOST_DELTA = 0.05
 DECAY_DELTA = 0.08
 
+# WEAK-POSITIVE signal (ADR router-improvement-program C6): a repeat dispatch
+# of the same agent:skill pair with no intervening failure is weak evidence the
+# route works — the user kept re-using it. Bounded so repetition alone can
+# never make a pair high-confidence:
+#   - WEAK_BOOST_DELTA (0.02) < acceptance boost (0.05) < failure decay (0.08):
+#     one failure erases four weak boosts; explicit signals always dominate.
+#   - WEAK_CONFIDENCE_CAP (0.65) sits strictly below the 0.70 high-confidence /
+#     injection threshold: crossing 0.70 requires explicit acceptance. The cap
+#     clamps the DELTA (never lowers a row already above it from explicit
+#     boosts); success_count still increments at the cap, so n keeps accruing
+#     toward the evidence gate (n >= 5) while confidence stays bounded.
+WEAK_BOOST_DELTA = 0.02
+WEAK_CONFIDENCE_CAP = 0.65
+
+# Basis label for a weak-positive outcome (route-health reports it as its own
+# line — neither strong feedback nor silent default-success).
+BASIS_REPEAT_WEAK = "repeat_dispatch_weak"
+
 
 def decision_row_exists(key: str) -> bool:
     """True iff a routing decision row was already written for ``key``.
@@ -60,6 +78,7 @@ def decision_row_exists(key: str) -> bool:
 SUCCESS = "success"
 FAILURE = "failure"
 NEUTRAL = "neutral"
+WEAK_SUCCESS = "weak_success"
 
 # Sentinel for "no positional outcome supplied" — distinct from any valid
 # outcome and from None, so the public `outcome` type is `str | bool` (None is
@@ -151,6 +170,12 @@ def apply_outcome(
     ``outcome`` is one of:
       - ``"failure"`` — decay the row (errors or attributable rejection).
       - ``"success"`` — boost the row (acceptance / continuation).
+      - ``"weak_success"`` — bounded small boost (C6 weak-positive: repeat
+        dispatch of the same pair with no intervening failure). Delta is
+        ``WEAK_BOOST_DELTA`` clamped so confidence never exceeds
+        ``WEAK_CONFIDENCE_CAP`` via weak boosts (delta 0 at/above the cap — the
+        row is never lowered). success_count still increments at the cap, so n
+        keeps accruing while confidence stays bounded.
       - ``"neutral"`` — NO-OP: no boost, no decay, no count change, no schema
         migration. Returns the row's current confidence unchanged. Neutral is the
         new default for unrelated/new-topic next prompts and clean autonomous Stop
@@ -203,7 +228,16 @@ def apply_outcome(
         return decay_confidence("routing", key, delta=DECAY_DELTA)
     if outcome == SUCCESS:
         return boost_confidence("routing", key, delta=BOOST_DELTA)
+    if outcome == WEAK_SUCCESS:
+        # Bounded: the delta shrinks to fit under the cap and clamps at 0 once
+        # confidence reaches it, so repetition alone can never lift a pair past
+        # WEAK_CONFIDENCE_CAP. delta=0 still increments success_count (n accrues).
+        current = _current_confidence(key)
+        delta = max(0.0, min(WEAK_BOOST_DELTA, WEAK_CONFIDENCE_CAP - current))
+        return boost_confidence("routing", key, delta=delta)
     # Unknown/typo outcome must NOT silently boost. Callers pass the literal
-    # SUCCESS/FAILURE/NEUTRAL constants; an unrecognized string is a bug to
-    # surface, not a default boost that inflates confidence.
-    raise ValueError(f"unknown routing outcome {outcome!r}; expected one of {SUCCESS!r}, {FAILURE!r}, {NEUTRAL!r}")
+    # SUCCESS/FAILURE/NEUTRAL/WEAK_SUCCESS constants; an unrecognized string is
+    # a bug to surface, not a default boost that inflates confidence.
+    raise ValueError(
+        f"unknown routing outcome {outcome!r}; expected one of {SUCCESS!r}, {FAILURE!r}, {NEUTRAL!r}, {WEAK_SUCCESS!r}"
+    )

@@ -35,7 +35,10 @@ File shape:
     {
       "seen": ["<dispatch-sig>", ...],     # idempotency for the decision hook
       "pending": [{"key": "agent:skill", "errors": false,
-                   "attempts": 0, "created": 1735000000.0}, ...]
+                   "attempts": 0, "created": 1735000000.0}, ...],
+      "history": {"agent:skill": "neutral", ...}  # last finalized outcome per
+                   key this session — the weak-positive signal (C6) reads it to
+                   tell a repeat dispatch with no intervening failure
     }
 
 Idempotency (MEDIUM, TOCTOU): the decision hook claims a dispatch signature via
@@ -109,6 +112,12 @@ _STATE_DIR = Path("/tmp")
 # pending key (decision row never written) cannot grow the file unbounded.
 MAX_REQUEUE_ATTEMPTS = 5
 
+# Bounded outcome history: last finalized outcome per route key this session
+# (the C6 weak-positive signal's memory). A session rarely touches more than a
+# few dozen distinct pairs; 200 keys bounds the file while never evicting in
+# practice. Eviction drops the OLDEST insertion (dict order round-trips JSON).
+MAX_HISTORY_KEYS = 200
+
 # Bounded pending age: a provisional pending entry that is never finalized by
 # UserPromptSubmit or Stop (e.g. a crashed session that emits neither a next
 # user prompt nor a clean Stop) must not live forever. ``finalize_pending_outcomes``
@@ -180,11 +189,12 @@ def _load(path: Path) -> dict[str, Any]:
             if isinstance(data, dict):
                 data.setdefault("seen", [])
                 data.setdefault("pending", [])
+                data.setdefault("history", {})
                 return data
     except (json.JSONDecodeError, OSError, ValueError) as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[routing-outcome-state] _load: {type(e).__name__}: {e}", file=sys.stderr)
-    return {"seen": [], "pending": []}
+    return {"seen": [], "pending": [], "history": {}}
 
 
 def _atomic_write(path: Path, data: dict[str, Any]) -> None:
@@ -364,6 +374,52 @@ def drain_pending_outcomes(session_id: str) -> list[dict[str, Any]]:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[routing-outcome-state] drain_pending_outcomes: {type(e).__name__}: {e}", file=sys.stderr)
         return []
+
+
+def get_outcome_history(session_id: str) -> dict[str, str]:
+    """Last finalized outcome per route key this session. {} on any error.
+
+    Read-only. The weak-positive signal (C6) reads it in the UserPromptSubmit
+    finalizer: a pending key whose PREVIOUS finalization this session was not a
+    failure is a repeat dispatch with no intervening failure.
+    """
+    try:
+        history = _load(_state_file(session_id)).get("history", {})
+        return dict(history) if isinstance(history, dict) else {}
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] get_outcome_history: {type(e).__name__}: {e}", file=sys.stderr)
+        return {}
+
+
+def record_outcome_history(session_id: str, updates: dict[str, str]) -> None:
+    """Merge finalized outcomes into the per-key session history. Best-effort.
+
+    Latest write wins per key (the finalizer applies failure precedence within
+    one turn BEFORE calling). Bounded to ``MAX_HISTORY_KEYS`` — oldest insertion
+    evicted first — so a long session cannot grow the file unbounded.
+    """
+    if not updates:
+        return
+    try:
+        path = _state_file(session_id)
+        with _state_lock(path):
+            data = _load(path)
+            history = data.get("history", {})
+            if not isinstance(history, dict):
+                history = {}
+            for key, outcome in updates.items():
+                if not key or not isinstance(outcome, str):
+                    continue
+                history.pop(key, None)  # re-insert => freshest position
+                history[key] = outcome
+            while len(history) > MAX_HISTORY_KEYS:
+                history.pop(next(iter(history)))
+            data["history"] = history
+            _atomic_write(path, data)
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(f"[routing-outcome-state] record_outcome_history: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def requeue_pending_outcomes(session_id: str, items: list[dict[str, Any]]) -> None:
