@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PostToolUse Hook: Routing Decision Recorder (action A, formerly /do Phase 5)
 
@@ -7,6 +7,19 @@ Records the routing-decision row for every Agent dispatch so the routing
 feedback loop (`learning-db.py route-health`) keeps receiving the rows it
 needs. Replaces the hand-run `learning-db.py record routing ...` step that
 lived in /do Phase 2 Step 4 + Phase 5 action A.
+
+WORKFLOW DISPATCHES (v1.1.0): /do Complex dispatches run through the Workflow
+tool. Its inner agent() calls fire NO PostToolUse:Agent event — the harness
+emits ONE PostToolUse with tool_name "Workflow", carrying every worker prompt
+(marker included) inside tool_input.script. So this hook also matches
+"Workflow": it reads tool_input.script, finds ALL line-start [do-route]
+markers (same anchored regex as the Agent path), and records one decision per
+marker. Idempotency is keyed per marker LINE so a resubmitted script (workflow
+resume) is a no-op. Pending outcomes are still appended per marker: Workflow
+inner agents fire no SubagentStop, but resolution never needed one — the
+UserPromptSubmit finalizer / Stop fallback resolve pendings on their normal
+paths, and a SubagentStop from any other dispatch merely revalidates them
+(their decision rows exist, written here first).
 
 SCOPING — record ONLY /do-routed dispatches.
 Every Agent dispatch fires PostToolUse:Agent, including pr-review's reviewer
@@ -95,6 +108,13 @@ _ACTION_RE = re.compile(r"\baction=(keep|demote|tiebreak)", re.IGNORECASE)
 _ALTS_RE = re.compile(r"\balts=([a-z0-9:_,-]+)", re.IGNORECASE)
 
 
+def _line_containing(text: str, pos: int) -> str:
+    """Return the full line of ``text`` that contains char offset ``pos``."""
+    start = text.rfind("\n", 0, pos) + 1  # -1 -> 0 for the first line
+    end = text.find("\n", pos)
+    return text[start:] if end == -1 else text[start:end]
+
+
 def _marker_line(prompt: str) -> str:
     """Return the single line that carries the [do-route] marker, or "".
 
@@ -110,9 +130,7 @@ def _marker_line(prompt: str) -> str:
     m = _DO_ROUTE_RE.search(prompt)
     if not m:
         return ""
-    start = prompt.rfind("\n", 0, m.start()) + 1  # -1 -> 0 for the first line
-    end = prompt.find("\n", m.start())
-    return prompt[start:] if end == -1 else prompt[start:end]
+    return _line_containing(prompt, m.start())
 
 
 def parse_health_inputs(prompt: str) -> HealthGateInputs:
@@ -203,6 +221,29 @@ def parse_do_route_marker(prompt: str) -> tuple[str, str] | None:
     return agent, skill
 
 
+def parse_workflow_markers(script: str) -> list[tuple[str, str, str]]:
+    """All line-start [do-route] markers in a Workflow script: [(agent, skill, marker line)].
+
+    A Workflow tool_input.script carries every worker prompt of a /do Complex
+    dispatch, so ONE script holds N markers — one routing decision each.
+    finditer with the SAME line-start-anchored regex as the Agent path keeps
+    the anchor semantics: a marker quoted mid-line never counts. skill is ""
+    when the marker carries no skill or "-".
+    """
+    if not script or "[do-route]" not in script.lower():
+        return []
+    markers: list[tuple[str, str, str]] = []
+    for m in _DO_ROUTE_RE.finditer(script):
+        agent = m.group(1).strip().lower()
+        if not agent:
+            continue  # malformed marker => nothing to key on
+        skill = (m.group(2) or "").strip().lower()
+        if skill == "-":
+            skill = ""
+        markers.append((agent, skill, _line_containing(script, m.start())))
+    return markers
+
+
 def build_routing_key(agent: str, skill: str) -> str:
     """Build the {agent}:{skill} key; agent-only "{agent}:" when skill unknown."""
     return f"{agent}:{skill}" if skill else f"{agent}:"
@@ -211,6 +252,20 @@ def build_routing_key(agent: str, skill: str) -> str:
 def dispatch_signature(agent: str, skill: str, description: str, prompt: str) -> str:
     """Stable signature for one dispatch, used for idempotency."""
     raw = f"{agent}|{skill}|{description}|{prompt[:200]}"
+    return hashlib.md5(raw.encode("utf-8", errors="replace")).hexdigest()[:16]
+
+
+def workflow_dispatch_signature(occurrence: int, marker_line: str) -> str:
+    """Idempotency signature for ONE marker in a Workflow script.
+
+    Keyed on the marker LINE, not the script: a workflow resume resubmits the
+    same script (possibly with step state changed AROUND the markers), and
+    every marker must re-derive the SAME signature so the re-run claims
+    nothing and records nothing. ``occurrence`` is this line's index among
+    IDENTICAL marker lines in the script, so two duplicate worker lines stay
+    two distinct dispatches while unrelated script edits shift no signature.
+    """
+    raw = f"workflow|{occurrence}|{marker_line.strip()}"
     return hashlib.md5(raw.encode("utf-8", errors="replace")).hexdigest()[:16]
 
 
@@ -313,114 +368,150 @@ def main() -> None:
             return
         event = json.loads(raw)
 
-        # matcher "Agent" in settings.json scopes this hook; guard defensively.
+        # matcher "Agent|Workflow" in settings.json scopes this hook; guard
+        # defensively.
         tool_name = event.get("tool_name") or event.get("tool", "")
-        if tool_name != "Agent":
+        if tool_name not in ("Agent", "Workflow"):
             return
 
         tool_input = event.get("tool_input") or event.get("input") or {}
-        prompt = tool_input.get("prompt") or ""
         description = tool_input.get("description") or ""
+        session_id = event.get("session_id") or ""
 
         # SCOPING: record ONLY /do-routed dispatches. No [do-route] marker =>
         # this is a sub-agent fan-out (pr-review reviewers, nested dispatch),
         # not a /do routing decision — skip so route-health's denominator stays
         # clean. agent + skill are read straight from the marker.
-        routed = parse_do_route_marker(prompt)
-        if routed is None:
+        #
+        # Build one decision per marker: (agent, skill, signature, marker_text).
+        # Agent carries ONE marker in tool_input.prompt (marker_text = whole
+        # prompt, unchanged semantics). Workflow carries N worker prompts in
+        # tool_input.script — one decision per line-start marker, marker_text =
+        # that marker's line so complexity/health parse per marker.
+        if tool_name == "Agent":
+            prompt = tool_input.get("prompt") or ""
+            routed = parse_do_route_marker(prompt)
+            if routed is None:
+                return
+            agent, skill = routed
+            if not agent:
+                return  # malformed marker => nothing to key on
+            decisions = [(agent, skill, dispatch_signature(agent, skill, description, prompt), prompt)]
+        else:
+            script = tool_input.get("script") or ""
+            occurrence: dict[str, int] = {}  # nth sighting of each identical marker line
+            decisions = []
+            for agent, skill, line in parse_workflow_markers(script):
+                nth = occurrence.get(line.strip(), 0)
+                occurrence[line.strip()] = nth + 1
+                decisions.append((agent, skill, workflow_dispatch_signature(nth, line), line))
+        if not decisions:
             return
-        agent, skill = routed
-        if not agent:
-            return  # malformed marker => nothing to key on
-        key = build_routing_key(agent, skill)
 
-        # Idempotency (atomic, MEDIUM/TOCTOU): claim this dispatch signature.
-        # claim_dispatch performs check-and-set under one flock, so N concurrent
-        # duplicate deliveries record exactly once. False => already claimed.
-        sig = dispatch_signature(agent, skill, description, prompt)
-        session_id = event.get("session_id") or ""
-        if not claim_dispatch(session_id, sig):
-            return
+        has_errors = None  # computed once, on the first claimed marker
+        recorded = False
+        for agent, skill, sig, marker_text in decisions:
+            # Idempotency (atomic, MEDIUM/TOCTOU): claim this dispatch signature.
+            # claim_dispatch performs check-and-set under one flock, so N concurrent
+            # duplicate deliveries record exactly once. False => already claimed.
+            # For Workflow, the signature is keyed per marker line, so a resumed
+            # workflow resubmitting the same script re-claims nothing (no-op).
+            if not claim_dispatch(session_id, sig):
+                continue
+            recorded = True
+            if has_errors is None:
+                # One Workflow event carries one tool result for ALL inner
+                # agents — per-marker error attribution is not observable here,
+                # so every marker shares the event-level flag (best available).
+                has_errors = detect_errors(event)
+            key = build_routing_key(agent, skill)
+            request_snippet = (description or marker_text)[:200].replace("\n", " ").strip()
 
-        has_errors = detect_errors(event)
-        request_snippet = (description or prompt)[:200].replace("\n", " ").strip()
+            from learning_db_v2 import record_learning
 
-        from learning_db_v2 import record_learning
+            record_learning(
+                topic="routing",
+                key=key,
+                value=(
+                    f"routing-decision: agent={agent} skill={skill or '-'} "
+                    f"tool_errors={1 if has_errors else 0} user_rerouted=0 "
+                    f"request: {request_snippet}"
+                ),
+                category="effectiveness",
+                tags=["routing", agent] + ([skill] if skill else []),
+                source="hook:routing-decision-recorder",
+                session_id=session_id or None,
+            )
 
-        record_learning(
-            topic="routing",
-            key=key,
-            value=(
-                f"routing-decision: agent={agent} skill={skill or '-'} "
-                f"tool_errors={1 if has_errors else 0} user_rerouted=0 "
-                f"request: {request_snippet}"
-            ),
-            category="effectiveness",
-            tags=["routing", agent] + ([skill] if skill else []),
-            source="hook:routing-decision-recorder",
-            session_id=session_id or None,
-        )
+            # T3: per-dispatch DECISION event (JSONL), append-only + failure-safe.
+            # Auxiliary to the aggregate row above — never blocks; route_events
+            # swallows write errors so the hook stays non-blocking.
+            cm = _COMPLEXITY_RE.search(marker_text)
+            complexity = cm.group(1) if cm else ""
+            health = parse_health_inputs(marker_text)
+            from route_events import record_decision_event
 
-        # T3: per-dispatch DECISION event (JSONL), append-only + failure-safe.
-        # Auxiliary to the aggregate row above — never blocks; route_events
-        # swallows write errors so the hook stays non-blocking.
-        cm = _COMPLEXITY_RE.search(prompt)
-        complexity = cm.group(1) if cm else ""
-        health = parse_health_inputs(prompt)
-        from route_events import record_decision_event
+            record_decision_event(
+                session=session_id,
+                request_snippet=request_snippet,
+                agent=agent,
+                skill=skill,
+                complexity=complexity,
+                health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
+                n=health["n"],
+                failure=health["failure"],
+                action=health["action"],
+                alternates=health["alternates"],
+                gate_inputs_present=health["gate_inputs_present"],
+            )
 
-        record_decision_event(
-            session=session_id,
-            request_snippet=request_snippet,
-            agent=agent,
-            skill=skill,
-            complexity=complexity,
-            health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
-            n=health["n"],
-            failure=health["failure"],
-            action=health["action"],
-            alternates=health["alternates"],
-            gate_inputs_present=health["gate_inputs_present"],
-        )
+            # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,
+            # one row per dispatch, AFTER the decision row so both share (topic, key).
+            # git_sha + session_id + run_id are always derivable, so this row is non-empty
+            # even when the best-effort fields (token_count, wall_clock_ms, model_id) are NULL.
+            import uuid
 
-        # Per-run telemetry envelope (ADR: learning-telemetry-envelope). Append-only,
-        # one row per dispatch, AFTER the decision row so both share (topic, key).
-        # git_sha + session_id + run_id are always derivable, so this row is non-empty
-        # even when the best-effort fields (token_count, wall_clock_ms, model_id) are NULL.
-        import uuid
+            from learning_db_v2 import record_telemetry_run
+            from telemetry_capture import git_sha_cached, model_id_from, token_count_from, wall_clock_ms_from
 
-        from learning_db_v2 import record_telemetry_run
-        from telemetry_capture import git_sha_cached, model_id_from, token_count_from, wall_clock_ms_from
+            record_telemetry_run(
+                topic="routing",
+                key=key,
+                run_id=str(uuid.uuid4()),
+                source="hook:routing-decision-recorder",
+                batch_id=os.environ.get("CLAUDE_TELEMETRY_BATCH") or session_id or None,
+                session_id=session_id or None,
+                git_sha=git_sha_cached(session_id),
+                model_id=model_id_from(event),
+                skill_version=None,  # PR-A: None (ADR Alternative D — populate when cheap)
+                token_count=token_count_from(event),
+                wall_clock_ms=wall_clock_ms_from(event),
+                tool_errors=has_errors,
+            )
 
-        record_telemetry_run(
-            topic="routing",
-            key=key,
-            run_id=str(uuid.uuid4()),
-            source="hook:routing-decision-recorder",
-            batch_id=os.environ.get("CLAUDE_TELEMETRY_BATCH") or session_id or None,
-            session_id=session_id or None,
-            git_sha=git_sha_cached(session_id),
-            model_id=model_id_from(event),
-            skill_version=None,  # PR-A: None (ADR Alternative D — populate when cheap)
-            token_count=token_count_from(event),
-            wall_clock_ms=wall_clock_ms_from(event),
-            tool_errors=has_errors,
-        )
+            # Bridge to the outcome resolvers. The dispatch was already claimed
+            # (marked seen) atomically above, so no separate mark. Decision row
+            # is written BEFORE this append (ordering: A-before-B). Workflow
+            # inner agents fire no SubagentStop — that's fine: resolution lives
+            # in the UserPromptSubmit finalizer / Stop fallback, and any other
+            # dispatch's SubagentStop merely revalidates these entries (their
+            # decision rows exist, written above).
+            append_pending_outcome(session_id, key, has_errors)
+
+        if not recorded:
+            return  # every marker already claimed (duplicate delivery / resume)
 
         # (C) right-sizing feedback, parse-only. extract_output_text flattens
         # the LIVE Agent content-block shape (list of {"type","text"} blocks)
         # as well as the Bash-style {"output": "..."} the tests simulate, so the
-        # banner is found regardless of payload shape.
+        # banner is found regardless of payload shape. Runs once per EVENT (not
+        # per marker) and only when a decision was claimed, so a duplicate
+        # delivery / resubmitted script never double-accumulates the tier sums.
         from hook_utils import get_tool_result
 
         output = extract_output_text(get_tool_result(event))
         if output:
             record_rightsizing(output, session_id)
-
-        # Bridge to the SubagentStop outcome hook (action B). The dispatch was
-        # already claimed (marked seen) atomically above, so no separate mark.
-        # Decision row is written BEFORE this append (ordering: A-before-B).
-        append_pending_outcome(session_id, key, has_errors)
 
     except Exception as e:
         # Always surface ONE short line so a recorder failure is visible, not

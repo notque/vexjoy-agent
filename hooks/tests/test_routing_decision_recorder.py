@@ -6,6 +6,9 @@ Covers:
 - A reads agent + skill from the [do-route] marker; agent-only when skill=-.
 - A records ONLY /do-routed dispatches: marker present => recorded; marker
   absent (reviewer sub-agent / nested fan-out) => skipped.
+- A records Workflow dispatches (/do Complex): one decision per line-start
+  [do-route] marker in tool_input.script; a resubmitted script (workflow
+  resume) is a no-op; the Agent path is unchanged.
 - A records a rightsizing row when the banner is present (C), silent otherwise.
 - A is idempotent: the same dispatch is recorded once.
 - B records success (boost) / failure (decay) from drained pending outcomes.
@@ -105,6 +108,38 @@ def _agent_event(
         },
         "tool_result": {"output": output, "is_error": is_error},
     }
+
+
+def _workflow_event(script, *, session="wf-s1", output="ok", is_error=False, description=""):
+    """Build a synthetic PostToolUse:Workflow event (/do Complex dispatch).
+
+    The Workflow tool's inner agent() calls fire NO PostToolUse:Agent event —
+    the harness emits ONE PostToolUse with tool_name "Workflow" whose
+    tool_input.script carries every worker prompt, [do-route] markers included.
+    """
+    return {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Workflow",
+        "session_id": session,
+        "tool_input": {"description": description, "script": script},
+        "tool_result": {"output": output, "is_error": is_error},
+    }
+
+
+# Two workers, two line-start markers, distinct gate inputs per marker line.
+_TWO_MARKER_SCRIPT = (
+    "results = []\n"
+    'prompt_a = """\n'
+    "[do-route] agent=python-general-engineer skill=go-patterns complexity=Complex health=-\n"
+    "Fix the bug.\n"
+    '"""\n'
+    'prompt_b = """\n'
+    "[do-route] agent=hook-development-engineer skill=pr-workflow complexity=Complex health=0.8 n=6 fail=1 action=keep\n"
+    "Open the PR.\n"
+    '"""\n'
+    'results.append(agent("python-general-engineer", prompt=prompt_a))\n'
+    'results.append(agent("hook-development-engineer", prompt=prompt_b))\n'
+)
 
 
 def _query_routing(db_env):
@@ -400,6 +435,130 @@ class TestDecisionRecorder:
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         assert _query_telemetry(db_env) == []
+
+
+class TestWorkflowDecisionRecorder:
+    """A also sees Workflow dispatches (/do Complex): one decision per
+    line-start [do-route] marker in tool_input.script, idempotent per marker
+    line so a workflow resume that resubmits the script records nothing new.
+    The Agent path stays byte-identical (regression test at the end)."""
+
+    def test_two_markers_record_two_decisions(self, db_env, tmp_path, monkeypatch):
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+        import telemetry_capture as tc
+
+        monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
+        a = _load(A_PATH, "rdr_wf_two")
+        event = _workflow_event(_TWO_MARKER_SCRIPT, session="wf-two")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+        # Two decision rows, one per marker.
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys
+        assert "hook-development-engineer:pr-workflow" in keys
+
+        # Two DECISION events with per-marker complexity + gate inputs.
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert len(decisions) == 2
+        by_agent = {d["agent"]: d for d in decisions}
+        assert by_agent["python-general-engineer"]["skill"] == "go-patterns"
+        assert by_agent["hook-development-engineer"]["skill"] == "pr-workflow"
+        assert all(d["complexity"] == "Complex" for d in decisions)
+        # marker A: health=- => no weight row but instrumented.
+        da = by_agent["python-general-engineer"]
+        assert da["health_at_decision"] is None and da["gate_inputs_present"] is True
+        # marker B: full numeric gate inputs, read from ITS line only.
+        db = by_agent["hook-development-engineer"]
+        assert db["health_at_decision"] == 0.8
+        assert db["n"] == 6 and db["failure"] == 1 and db["action"] == "keep"
+
+        # One telemetry envelope row per marker.
+        tel_keys = {r["key"] for r in _query_telemetry(db_env)}
+        assert tel_keys == {"python-general-engineer:go-patterns", "hook-development-engineer:pr-workflow"}
+
+        # One pending outcome per marker for the finalizer / Stop fallback
+        # (Workflow inner agents fire no SubagentStop; none is needed).
+        pending_keys = {p["key"] for p in ros.peek_pending_outcomes("wf-two")}
+        assert pending_keys == {"python-general-engineer:go-patterns", "hook-development-engineer:pr-workflow"}
+
+    def test_resubmitted_script_is_noop(self, db_env, monkeypatch):
+        # Workflow resume resubmits the SAME script: the per-marker-line
+        # signatures re-claim nothing => zero new rows/events/pendings.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        a = _load(A_PATH, "rdr_wf_resume")
+        event = _workflow_event(_TWO_MARKER_SCRIPT, session="wf-resume")
+        for _ in range(3):
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert len(decisions) == 2
+        assert all(r["observation_count"] == 1 for r in _query_routing(db_env))
+        assert len(ros.peek_pending_outcomes("wf-resume")) == 2
+
+    def test_identical_duplicate_marker_lines_are_two_decisions(self, db_env):
+        # Two workers with byte-identical marker lines = two real dispatches:
+        # the occurrence index keeps their signatures distinct — while a
+        # resubmit of the same script still re-claims both (no-op).
+        line = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium\n"
+        script = f'a = """\n{line}task one\n"""\nb = """\n{line}task two\n"""\n'
+        a = _load(A_PATH, "rdr_wf_dup")
+        event = _workflow_event(script, session="wf-dup")
+        for _ in range(2):  # second run = resume no-op
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert len(decisions) == 2
+
+    def test_mid_line_marker_not_recorded(self, db_env):
+        # Line-start anchor semantics carry over to the script path: a marker
+        # quoted mid-line is prose, not a routing decision.
+        script = 'x = "see the [do-route] agent=python-general-engineer skill=go-patterns line"\n'
+        a = _load(A_PATH, "rdr_wf_midline")
+        event = _workflow_event(script, session="wf-mid")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        assert _query_routing(db_env) == []
+        assert _read_events(db_env) == []
+
+    def test_workflow_rightsizing_accumulates_once_per_event(self, db_env):
+        # The banner lives in the ONE Workflow tool result: accumulate it once
+        # per event (not per marker), and never again on a resubmit.
+        a = _load(A_PATH, "rdr_wf_rs")
+        event = _workflow_event(
+            _TWO_MARKER_SCRIPT,
+            session="wf-rs",
+            output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17",
+        )
+        for _ in range(2):  # second run = resume no-op
+            with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+                a.main()
+        row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
+        assert "reviews: 1" in row["value"]
+
+    def test_agent_payload_regression(self, db_env):
+        # The Agent path must behave exactly as before the Workflow change:
+        # one row, one decision event, snippet from description, prompt-scoped
+        # complexity, one pending outcome.
+        sys.path.insert(0, str(LIB_DIR))
+        import routing_outcome_state as ros
+
+        a = _load(A_PATH, "rdr_wf_agent_reg")
+        event = _agent_event(skill="go-patterns", description="do work", session="wf-agent-reg")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        rows = _query_routing(db_env)
+        assert len(rows) == 1
+        assert rows[0]["key"] == "python-general-engineer:go-patterns"
+        assert "tool_errors=0" in rows[0]["value"]
+        decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
+        assert len(decisions) == 1
+        assert decisions[0]["request_snippet"] == "do work"
+        assert decisions[0]["complexity"] == "Medium"
+        assert [p["key"] for p in ros.peek_pending_outcomes("wf-agent-reg")] == ["python-general-engineer:go-patterns"]
 
 
 # ---------------------------------------------------------------------------
