@@ -181,7 +181,7 @@ version: 1.0.0
 user-invocable: true | false
 context: fork                    # optional: run in isolated sub-agent
 agent: golang-general-engineer   # optional: declare executor agent
-model: sonnet | haiku            # optional: model preference
+model: sonnet | opus | fable     # optional: model preference (Haiku retired)
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Skill, Task, Agent]
 routing:
   triggers: [keyword1]

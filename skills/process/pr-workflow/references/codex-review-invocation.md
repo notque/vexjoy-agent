@@ -57,7 +57,7 @@ what's the biggest strength.]
 ```bash
 codex exec review \
   --base main \
-  -m gpt-5.4 \
+  -m gpt-5.5 \
   -c 'model_reasoning_effort="high"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
@@ -74,7 +74,7 @@ or custom instructions:
 
 ```bash
 codex exec \
-  -m gpt-5.4 \
+  -m gpt-5.5 \
   -c 'model_reasoning_effort="high"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
@@ -86,7 +86,7 @@ For multi-line prompts, use a heredoc:
 
 ```bash
 codex exec \
-  -m gpt-5.4 \
+  -m gpt-5.5 \
   -c 'model_reasoning_effort="high"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
@@ -98,7 +98,7 @@ PROMPT
 ```
 
 Flag explanation:
-- `-m gpt-5.4` -- use GPT-5.4 for maximum review quality
+- `-m gpt-5.5` -- use GPT-5.5 for maximum review quality
 - `-c 'model_reasoning_effort="high"'` -- default `high` is the sensible baseline
   for routine review/triage; use `xhigh` only for hard correctness analysis
   (security/concurrency/migrations) where the extra depth justifies the slowdown
@@ -174,7 +174,7 @@ Gate: Every Codex finding has been assessed. Proceed to Phase 4.
 Structure the report as:
 
 ```markdown
-## Codex Code Review (GPT-5.4 high)
+## Codex Code Review (GPT-5.5 high)
 
 **Scope**: [what was reviewed -- e.g., "git diff main...HEAD (12 files)"]
 

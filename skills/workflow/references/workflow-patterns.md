@@ -57,4 +57,4 @@ When a workflow reads untrusted/public content, isolate the reader from privileg
 
 ## Model-Routing Classifier
 
-For mixed-difficulty batches, dispatch a classifier agent that researches each task, then routes it: Sonnet for routine, Opus for hard. Maps to `/do` Phase 4 verb-based model dispatch (Haiku readers → Opus synthesizer) — the same route-by-cost idea at task granularity.
+For mixed-difficulty batches, dispatch a classifier agent that researches each task, then routes it: Sonnet for routine, Opus for hard. Maps to `/do` Phase 4 verb-based model dispatch (gpt-5.5/sonnet extraction readers → fable/opus synthesizer, per the Model Selection table) — the same route-by-cost idea at task granularity.

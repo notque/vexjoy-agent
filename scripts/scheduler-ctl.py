@@ -73,7 +73,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     data = json.loads(path.read_text())
     defaults = data.get("defaults", {})
     for job in data.get("jobs", []):
-        job.setdefault("model", defaults.get("model", "haiku"))
+        job.setdefault("model", defaults.get("model", "sonnet"))
         job.setdefault("timeout_seconds", defaults.get("timeout_seconds", 120))
         job.setdefault("enabled", defaults.get("enabled", True))
         job.setdefault("cost_limit_usd", 1.0)
@@ -148,7 +148,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"Error: Job '{args.job_name}' not found", file=sys.stderr)
         return 1
 
-    model = job.get("model", "haiku")
+    model = job.get("model", "sonnet")
     timeout = job.get("timeout_seconds", 120)
     prompt = job["prompt"]
     allowed_tools: list[str] = job.get("allowed_tools", [])

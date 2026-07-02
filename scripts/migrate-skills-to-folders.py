@@ -97,6 +97,7 @@ SKILL_MAPPING: dict[str, str] = {
     "public-web-deploy": "infrastructure",
     "cve-source-check": "infrastructure",
     # meta/ — toolkit self-management
+    "codex": "meta",
     "do": "meta",
     "install": "meta",
     "learn": "meta",
