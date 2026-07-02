@@ -444,11 +444,16 @@
             "command": "python3 \"$HOME/.claude/hooks/instruction-compliance.py\"",
             "description": "Instruction compliance measurement after agent dispatch",
             "timeout": 5000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Workflow",
+        "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/routing-decision-recorder.py\"",
-            "description": "Record routing-decision row per Agent dispatch (replaces /do Phase 5 action A)",
+            "description": "Record routing-decision rows per Agent dispatch and per [do-route] marker in a Workflow script (replaces /do Phase 5 action A)",
             "timeout": 3000
           }
         ]
