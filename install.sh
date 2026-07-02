@@ -928,21 +928,24 @@ fi
 check_python
 detect_pip_command
 
-# Mirror availability is command-presence-based for optional runtimes.
+# Optional runtime mirrors sync when the runtime's command is on PATH OR its
+# home dir already exists. The dir check keeps existing installs syncing when
+# the runtime has no CLI on PATH (e.g. ~/.factory without a `factory` binary);
+# clean environments get no new runtime dirs.
 MIRROR_CODEX=false
 MIRROR_FACTORY=false
 MIRROR_HERMES=false
 MIRROR_REASONIX=false
-if is_command_available codex; then
+if is_command_available codex || [ -d "$CODEX_DIR" ]; then
     MIRROR_CODEX=true
 fi
-if is_command_available factory; then
+if is_command_available factory || [ -d "$FACTORY_DIR" ]; then
     MIRROR_FACTORY=true
 fi
-if is_command_available hermes; then
+if is_command_available hermes || [ -d "$HERMES_DIR" ]; then
     MIRROR_HERMES=true
 fi
-if is_command_available reasonix; then
+if is_command_available reasonix || [ -d "$REASONIX_DIR" ]; then
     MIRROR_REASONIX=true
 fi
 
@@ -977,7 +980,7 @@ if [ "$MIRROR_CODEX" = true ]; then
     echo -e "${GREEN}✓ ${CODEX_AGENTS_DIR} ready${NC}"
 else
     echo ""
-    echo -e "${BLUE}Skipping ~/.codex setup (codex command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping ~/.codex setup (codex not detected: no command, no ~/.codex).${NC}"
 fi
 
 
@@ -992,7 +995,7 @@ if [ "$MIRROR_FACTORY" = true ]; then
     echo -e "${GREEN}✓ ${FACTORY_DIR} ready${NC}"
 else
     echo ""
-    echo -e "${BLUE}Skipping ~/.factory setup (factory command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping ~/.factory setup (factory not detected: no command, no ~/.factory).${NC}"
 fi
 
 if [ "$MIRROR_HERMES" = true ]; then
@@ -1006,7 +1009,7 @@ if [ "$MIRROR_HERMES" = true ]; then
     echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
 else
     echo ""
-    echo -e "${BLUE}Skipping ~/.hermes setup (hermes command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping ~/.hermes setup (hermes not detected: no command, no ~/.hermes).${NC}"
 fi
 
 if [ "$MIRROR_REASONIX" = true ]; then
@@ -1020,7 +1023,7 @@ if [ "$MIRROR_REASONIX" = true ]; then
     echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 else
     echo ""
-    echo -e "${BLUE}Skipping ~/.reasonix setup (reasonix command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping ~/.reasonix setup (reasonix not detected: no command, no ~/.reasonix).${NC}"
 fi
 
 # detect_conflicts — scans all runtime dirs × all component types.
@@ -1794,7 +1797,7 @@ if [ "$MIRROR_CODEX" = true ]; then
     fi
 else
     echo ""
-    echo -e "${BLUE}Skipping Codex mirror sync (codex command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping Codex mirror sync (codex not detected: no command, no ~/.codex).${NC}"
     CODEX_ENTRY_COUNT=0
     CODEX_AGENT_COUNT=0
     CODEX_HOOK_COUNT=0
@@ -1915,7 +1918,7 @@ fi
 
 else
     echo ""
-    echo -e "${BLUE}Skipping Factory mirror sync (factory command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping Factory mirror sync (factory not detected: no command, no ~/.factory).${NC}"
     FACTORY_SKILL_COUNT=0
     FACTORY_DROID_COUNT=0
     FACTORY_HOOK_COUNT=0
@@ -1969,7 +1972,7 @@ else
 fi
 else
     echo ""
-    echo -e "${BLUE}Skipping Hermes mirror sync (hermes command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping Hermes mirror sync (hermes not detected: no command, no ~/.hermes).${NC}"
     HERMES_ENTRY_COUNT=0
     HERMES_SCRIPT_COUNT=0
 fi
@@ -2179,7 +2182,7 @@ fi
 
 else
     echo ""
-    echo -e "${BLUE}Skipping Reasonix mirror sync (reasonix command not found on PATH).${NC}"
+    echo -e "${BLUE}Skipping Reasonix mirror sync (reasonix not detected: no command, no ~/.reasonix).${NC}"
     REASONIX_ENTRY_COUNT=0
     REASONIX_SCRIPT_COUNT=0
     REASONIX_HOOK_COUNT=0
@@ -2340,22 +2343,22 @@ if [ "$DRY_RUN" = true ]; then
     if [ "$MIRROR_CODEX" = true ]; then
         echo -e "${BLUE}    - ~/.codex/hooks, ~/.codex/scripts${NC}"
     else
-        echo -e "${BLUE}    - ~/.codex skipped (codex command not found on PATH)${NC}"
+        echo -e "${BLUE}    - ~/.codex skipped (codex not detected: no command, no ~/.codex)${NC}"
     fi
     if [ "$MIRROR_FACTORY" = true ]; then
         echo -e "${BLUE}    - ~/.factory/hooks, ~/.factory/scripts${NC}"
     else
-        echo -e "${BLUE}    - ~/.factory skipped (factory command not found on PATH)${NC}"
+        echo -e "${BLUE}    - ~/.factory skipped (factory not detected: no command, no ~/.factory)${NC}"
     fi
     if [ "$MIRROR_HERMES" = true ]; then
         echo -e "${BLUE}    - ~/.hermes/scripts${NC}"
     else
-        echo -e "${BLUE}    - ~/.hermes skipped (hermes command not found on PATH)${NC}"
+        echo -e "${BLUE}    - ~/.hermes skipped (hermes not detected: no command, no ~/.hermes)${NC}"
     fi
     if [ "$MIRROR_REASONIX" = true ]; then
         echo -e "${BLUE}    - ~/.reasonix/hooks, ~/.reasonix/scripts${NC}"
     else
-        echo -e "${BLUE}    - ~/.reasonix skipped (reasonix command not found on PATH)${NC}"
+        echo -e "${BLUE}    - ~/.reasonix skipped (reasonix not detected: no command, no ~/.reasonix)${NC}"
     fi
     echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
@@ -2477,27 +2480,27 @@ if [ "$MIRROR_CODEX" = true ]; then
     echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
     echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
 else
-    echo "  • Codex: skipped (codex command not found on PATH)"
+    echo "  • Codex: skipped (codex not detected: no command, no ~/.codex)"
 fi
 if [ "$MIRROR_FACTORY" = true ]; then
     echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
     echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
     echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
 else
-    echo "  • Factory: skipped (factory command not found on PATH)"
+    echo "  • Factory: skipped (factory not detected: no command, no ~/.factory)"
 fi
 if [ "$MIRROR_HERMES" = true ]; then
     echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
     echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
 else
-    echo "  • Hermes: skipped (hermes command not found on PATH)"
+    echo "  • Hermes: skipped (hermes not detected: no command, no ~/.hermes)"
 fi
 if [ "$MIRROR_REASONIX" = true ]; then
     echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
     echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
     echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
 else
-    echo "  • Reasonix: skipped (reasonix command not found on PATH)"
+    echo "  • Reasonix: skipped (reasonix not detected: no command, no ~/.reasonix)"
 fi
 if [ "$REASONIX_HOOK_FAILED" = true ]; then
     echo -e "${RED}  • FAILED: ~/.reasonix/settings.json was not generated — Reasonix hooks (gates + observers) will NOT fire. See the error above.${NC}"

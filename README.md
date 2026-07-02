@@ -77,7 +77,7 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.factory/`, `~/.reasonix/`. The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
+Links into `~/.claude/` and mirrors into `~/.codex/`, `~/.factory/`, `~/.reasonix/` — each mirror only when that runtime is detected (its command on PATH or its home dir already exists). The installer asks symlink (live updates via `git pull`) or copy (stable snapshot).
 
 Want only part of the toolkit? Run `./install.sh --configure` to pick which skills, agents, and hooks install, or copy `.local.example/profile.yaml` to `.local/profile.yaml` and edit. No profile file = full install, unchanged behavior. Credit: [@thomasvan](https://github.com/thomasvan). Details: [.local.example/README.md](.local.example/README.md).
 
