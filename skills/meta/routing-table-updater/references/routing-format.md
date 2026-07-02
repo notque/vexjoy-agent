@@ -14,7 +14,7 @@ description: "Maintain /do routing tables when skills or agents change."
 user-invocable: false
 routing:
   triggers:
-    - "update routing"
+    - "update routing tables"
     - "routing drift"
   category: meta-tooling
   pairs_with:
@@ -48,7 +48,7 @@ Same shape; agents add `complexity` (e.g., `Medium`, `Complex`, `Medium-Complex`
     "routing-table-updater": {
       "file": "skills/meta/routing-table-updater/SKILL.md",
       "description": "Maintain /do routing tables when skills or agents change.",
-      "triggers": ["update routing", "routing drift"],
+      "triggers": ["update routing tables", "routing drift"],
       "category": "meta-tooling",
       "user_invocable": false,
       "pairs_with": ["toolkit-evolution", "generate-claudemd"]
