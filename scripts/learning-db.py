@@ -270,9 +270,10 @@ def cmd_prune(args):
     with get_connection() as conn:
         total_before = conn.execute("SELECT COUNT(*) FROM learnings").fetchone()[0]
         # `where` is built only from fixed clauses; all user values are bound as ? params.
-        matched = conn.execute(f"SELECT COUNT(*) FROM learnings WHERE {where}", params).fetchone()[
-            0
-        ]  # security-review: ignore (fixed clauses; user values bound as ?)
+        matched_sql = (
+            f"SELECT COUNT(*) FROM learnings WHERE {where}"  # security-review: ignore (fixed clauses; bound ?)
+        )
+        matched = conn.execute(matched_sql, params).fetchone()[0]
         breakdown = conn.execute(
             f"SELECT category, topic, COUNT(*) AS n FROM learnings WHERE {where} "  # security-review: ignore (fixed clauses; user values bound as ?)
             "GROUP BY category, topic ORDER BY n DESC",
@@ -292,9 +293,8 @@ def cmd_prune(args):
             print("Back up the database first: cp <db> <db>.bak-$(date +%Y%m%d)")
             return
 
-        cursor = conn.execute(
-            f"DELETE FROM learnings WHERE {where}", params
-        )  # security-review: ignore (fixed clauses; user values bound as ?)
+        delete_sql = f"DELETE FROM learnings WHERE {where}"  # security-review: ignore (fixed clauses; bound ? params)
+        cursor = conn.execute(delete_sql, params)
         deleted = cursor.rowcount
         conn.commit()
         total_after = conn.execute("SELECT COUNT(*) FROM learnings").fetchone()[0]
@@ -1338,7 +1338,16 @@ def cmd_skip_rate(args: argparse.Namespace) -> None:
         print("No instructions flagged. Threshold: >20% skip rate over 30+ observations.")
 
 
-_BASIS_LABELS = ("rejection_detected", "tool_errors_only", "acceptance_detected", "default_no_complaint")
+_BASIS_LABELS = (
+    "rejection_detected",
+    "tool_errors_only",
+    "acceptance_detected",
+    "default_no_complaint",
+    # C6 weak-positive: repeat dispatch, no intervening failure. Neither strong
+    # feedback nor silent default-success — reported on its own line and kept
+    # OUT of the silent-success share (strong + default formula unchanged).
+    "repeat_dispatch_weak",
+)
 
 
 def _read_basis_counts() -> dict[str, int]:
@@ -1394,6 +1403,9 @@ def cmd_route_health(args: argparse.Namespace) -> None:
     basis = _read_basis_counts()
     strong = basis["rejection_detected"] + basis["tool_errors_only"] + basis["acceptance_detected"]
     default_success = basis["default_no_complaint"]
+    # repeat_dispatch_weak (C6) is reported but stays OUT of strong/default and
+    # the silent-success share: it is an inferred signal, not user feedback and
+    # not silence-scored success. Formula unchanged from pre-C6.
     basis_total = strong + default_success
     silent_share = (default_success / basis_total) if basis_total else None
 
@@ -1452,6 +1464,7 @@ def cmd_route_health(args: argparse.Namespace) -> None:
         print(f"  tool_errors_only     {basis['tool_errors_only']}")
         print(f"  acceptance_detected  {basis['acceptance_detected']}")
         print(f"  default_no_complaint {basis['default_no_complaint']}")
+        print(f"  repeat_dispatch_weak {basis['repeat_dispatch_weak']} (weak-positive; outside the share below)")
         print(f"Silent-success share: {silent_share * 100:.0f}% of scored outcomes ({default_success}/{basis_total})")
     print(f"Governed-path coverage: {has_outcome}/{total} routing rows carry a finalized outcome ({pct:.0f}%)")
     print(
