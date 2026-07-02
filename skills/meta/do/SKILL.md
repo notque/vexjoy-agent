@@ -198,7 +198,7 @@ Rules:
 Use `agent` and `skill` fields directly; if `confidence` is "low", verify against INDEX files. The routing JSON is internal — never printed.
 
 **Skill-greediness gate (HARD — non-negotiable for Simple+).** If complexity is Simple, Medium, or Complex AND `skill` is null or empty, you MUST either:
-- (a) Pick a skill from the manifest that covers the task verb (review→systematic-code-review, debug→systematic-debugging, refactor→systematic-refactoring, audit→audit-report, explain→codebase-overview, compare→comparative-analysis, plan→planning, loop/objective→objective-loop), OR
+- (a) Pick a skill from the manifest that covers the task verb (review→systematic-code-review, debug→workflow (systematic-debugging pipeline), refactor→workflow (systematic-refactoring pipeline), audit→systematic-code-review (whole-repo audits→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop/objective→objective-loop), OR
 - (b) Fall back to `objective-loop` as the default methodology wrapper (never leave `skill` empty on Simple+).
 
 An agent without a skill is a specialist without methodology — the router MUST NOT dispatch that combination for Simple+ work. This gate closes the observed empty-skill leak (12.6% of 517 decision events, `route-events.jsonl`, June 2026).
@@ -222,7 +222,7 @@ if route.agent is None:
     route.agent = "general-purpose"  # safe fallback; pair with chosen skill
 ```
 
-If Step 0 cannot produce a defensible agent+skill pair, fall back to `general-purpose` + `objective-loop` (never leave the skill slot empty on Simple+; `verification-before-completion` is a pattern, not a skill).
+If Step 0 cannot produce a defensible agent+skill pair, fall back to `general-purpose` + `objective-loop` (never leave the skill slot empty on Simple+).
 
 Route to the simplest agent+skill that satisfies the request. On `[cross-repo]` output, route to `.claude/agents/` local agents. Route all code changes to domain agents.
 
@@ -295,18 +295,20 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
 | Any substantive work (code, design, plan) | Add retro knowledge only when it materially helps the task |
-| "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
+| "comprehensive" / "thorough" / "full" review, no diff available | Fallback: add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| "review" with 5+ files | Use parallel-code-review (3 reviewers) |
-| Diff-scope review detected (comprehensive/full review on a real diff) | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
+| "review" with 5+ files, no diff available | Fallback: use parallel-code-review (3 reviewers) |
+| Multi-file or comprehensive review on a real diff | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
-| Voice profile skill selected (voice-vexjoy, voice-dragonball-z, voice-andy-nemmity, etc.) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
+| Voice profile skill selected (any voice-* profile skill, e.g. voice-amy-nemmity, voice-dragonball-z) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
 | Vague verb + ambiguous object + no concrete file/symbol named + multiple plausible interpretations | `planning` (interview mode) — load `depth-first-interview.md` |
 | Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` (skills/meta/objective-loop) |
 
-**Interview-mode heuristic.** Fires when: short request (<15 words), verb in `{build, design, make, fix, figure out, set up}`, object with no file/symbol/path qualifier, no acceptance criteria.
+**Review-row precedence.** When review signals overlap, the real-diff row wins: any multi-file or comprehensive/thorough/full review with a diff routes through `right-size-review.py`; the two reviewer rows above apply only when no diff exists.
+
+**Interview-mode heuristic.** Fires when the request is short, names no concrete file/symbol/path, states no acceptance criteria, and admits multiple plausible interpretations; the 6 examples below are the spec.
 
 | Example | Match? | Why |
 |---|---|---|
@@ -397,6 +399,8 @@ Four injections (verbatim): completeness and density standards on Simple+; refer
 
 Append the Step 1.5 gate inputs to the same marker line so the recorder snapshots the route's decision-time health: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, plus ` alts={k1,k2}` when alternates were passed. When the picked pair has no weight row, append ` health=-` only (the recorder writes null). Example: `[do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium health=0.72 n=6 fail=0 action=keep`.
 
+When Phase 3 stacked enhancement skills on this dispatch, append the optional ` stack={s1,s2}` token (comma-separated skill names, no spaces) to the same marker line; omit it when nothing was stacked. The recorder parses it onto the decision event — instrumentation only. Example: `[do-route] agent=golang-general-engineer skill=go-patterns complexity=Complex health=- stack={test-driven-development,verification-before-completion}`.
+
 **Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens spent; prepend to each agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." Advisory, not a hard cap. Read the key once per session.
 
 ```bash
@@ -433,7 +437,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 **Step 4: Auto-Pipeline Fallback** (no match AND complexity >= Simple)
 
-Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent AND stack an explicit skill (`objective-loop` if nothing else fits). Never dispatch Simple+ work with an empty skill slot; `verification-before-completion` is a pattern injected in Phase 3, not a skill selection.
+Invoke `auto-pipeline` for unmatched requests. If none matches — or when uncertain — **ROUTE ANYWAY** to the closest agent AND stack an explicit skill (`objective-loop` if nothing else fits). Never dispatch Simple+ work with an empty skill slot; the fallback skill is `objective-loop` (`verification-before-completion` is routable when verification IS the task; Phase 3 injects its patterns as enhancements).
 
 **Lazy-completion check (before declaring done).** When an agent returns a "done" claim on an enumerable objective ("all N", a file list, a count), compare claimed scope vs objective scope; if claimed < objective, reject the early "done" and re-dispatch the remainder. See `skills/meta/do/references/lazy-completion-detector.md`. On a re-dispatch from this check, report the route failure (see Learning Capture, "Report routing failures").
 
