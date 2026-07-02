@@ -9,7 +9,7 @@ allowed-tools:
   - Glob
   - Bash
 routing:
-  not_for: "NOT: empirical/behavioral testing of a skill with test cases and benchmarks (use skill-eval). This skill is static structural/standards-compliance grading."
+  not_for: "empirical/behavioral testing of a skill with test cases and benchmarks (use skill-eval). This skill is static structural/standards-compliance grading."
   triggers:
     - "evaluate agent"
     - "audit agent"

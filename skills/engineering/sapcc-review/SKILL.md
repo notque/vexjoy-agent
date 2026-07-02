@@ -18,7 +18,7 @@ allowed-tools:
   - TaskList
   - EnterWorktree
 routing:
-  not_for: "NOT: full-repo compliance audit scan (use sapcc-audit). This skill is deep 10-specialist parallel review."
+  not_for: "full-repo compliance audit scan (use sapcc-audit). This skill is deep 10-specialist parallel review."
   triggers:
     - sapcc review
     - sapcc lead review

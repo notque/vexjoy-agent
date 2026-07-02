@@ -72,6 +72,13 @@ def load_entries() -> list[dict]:
                 "force_route": bool(data.get("force_route", False)),
             }
             not_for = data.get("not_for")
+            if isinstance(not_for, str):
+                # Formatters below prepend "NOT: "; strip a source-side
+                # prefix so a prefixed frontmatter value cannot render as
+                # "NOT: NOT:".
+                stripped = not_for.strip()
+                if stripped.upper().startswith("NOT:"):
+                    not_for = stripped[4:].lstrip()
             if not_for:
                 entry["not_for"] = not_for
             entries.append(entry)
