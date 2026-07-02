@@ -465,7 +465,8 @@ class TestWorkflowDecisionRecorder:
         by_agent = {d["agent"]: d for d in decisions}
         assert by_agent["python-general-engineer"]["skill"] == "go-patterns"
         assert by_agent["hook-development-engineer"]["skill"] == "pr-workflow"
-        assert all(d["complexity"] == "Complex" for d in decisions)
+        # complexity is normalized to the lowercase enum at record time.
+        assert all(d["complexity"] == "complex" for d in decisions)
         # marker A: health=- => no weight row but instrumented.
         da = by_agent["python-general-engineer"]
         assert da["health_at_decision"] is None and da["gate_inputs_present"] is True
@@ -557,7 +558,7 @@ class TestWorkflowDecisionRecorder:
         decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
         assert len(decisions) == 1
         assert decisions[0]["request_snippet"] == "do work"
-        assert decisions[0]["complexity"] == "Medium"
+        assert decisions[0]["complexity"] == "medium"  # normalized enum value
         assert [p["key"] for p in ros.peek_pending_outcomes("wf-agent-reg")] == ["python-general-engineer:go-patterns"]
 
 
@@ -1325,6 +1326,129 @@ class TestHealthMarkerLineScoping:
         ex.assert_called_with(0)  # still non-blocking
         err = capsys.readouterr().err
         assert "routing-decision-recorder: RuntimeError: forced failure" in err
+
+
+# ---------------------------------------------------------------------------
+# Complexity enum normalization + optional stack= token on the marker
+# ---------------------------------------------------------------------------
+
+
+class TestComplexityNormalization:
+    """The recorder lowercases the marker's complexity and validates it against
+    the router enum {trivial, simple, medium, complex}. Valid => normalized
+    value stored. Invalid (production carried `Low`) => complexity "" and the
+    raw value kept in complexity_invalid — recorded, never dropped. Read from
+    the marker LINE only (same scoping as the health gate inputs)."""
+
+    def _record(self, a, marker, session):
+        event = _health_event(marker, session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+    def test_valid_complexity_case_normalized(self, db_env, monkeypatch):
+        # Production case-split: `Medium` and `medium` must land as ONE value.
+        a = _load(A_PATH, "rdr_cx_case")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium", "cx-case")
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["complexity"] == "medium"
+        assert "complexity_invalid" not in d
+
+    def test_invalid_complexity_recorded_not_dropped(self, db_env, monkeypatch):
+        # Production invalid value `Low`: normalized field stays "", the raw
+        # value lands in complexity_invalid, and the decision event + routing
+        # row are STILL recorded.
+        a = _load(A_PATH, "rdr_cx_invalid")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns complexity=Low", "cx-invalid")
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["complexity"] == ""
+        assert d["complexity_invalid"] == "Low"
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert "python-general-engineer:go-patterns" in keys  # event not dropped
+
+    def test_absent_complexity_is_empty_without_invalid_field(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_cx_absent")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns", "cx-absent")
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["complexity"] == ""
+        assert "complexity_invalid" not in d
+
+    def test_body_complexity_not_read(self, db_env, monkeypatch):
+        # Marker-line scoping: a body mentioning complexity= must not be read
+        # (same rationale as the health gate inputs, Finding 70).
+        a = _load(A_PATH, "rdr_cx_body")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _health_event("[do-route] agent=python-general-engineer skill=go-patterns", session="cx-body")
+        event["tool_input"]["prompt"] += "\nThe old complexity=Weird value must be ignored."
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        d = next(e for e in _read_events(db_env) if e["type"] == "decision")
+        assert d["complexity"] == ""
+        assert "complexity_invalid" not in d
+
+
+class TestStackTokenParse:
+    """Optional ` stack={s1,s2}` marker token => decision event `stack` list.
+    Absent (or empty) token => NO field, so stack-free markers write unchanged
+    events. Instrumentation only — the router emits the token in a later PR."""
+
+    def _decision(self, db_env, monkeypatch, marker, session, body_suffix=""):
+        a = _load(A_PATH, f"rdr_stack_{session}")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _health_event(marker, session=session)
+        if body_suffix:
+            event["tool_input"]["prompt"] += body_suffix
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+        return next(e for e in _read_events(db_env) if e["type"] == "decision")
+
+    def test_stack_token_parsed_to_list(self, db_env, monkeypatch):
+        d = self._decision(
+            db_env,
+            monkeypatch,
+            "[do-route] agent=python-general-engineer skill=go-patterns "
+            "complexity=Medium stack={test-driven-development,pr-workflow}",
+            "yes",
+        )
+        assert d["stack"] == ["test-driven-development", "pr-workflow"]
+        assert d["complexity"] == "medium"  # sibling tokens still parse
+
+    def test_absent_stack_token_writes_no_field(self, db_env, monkeypatch):
+        d = self._decision(
+            db_env,
+            monkeypatch,
+            "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium",
+            "no",
+        )
+        assert "stack" not in d
+
+    def test_empty_stack_braces_write_no_field(self, db_env, monkeypatch):
+        d = self._decision(
+            db_env,
+            monkeypatch,
+            "[do-route] agent=python-general-engineer skill=go-patterns stack={}",
+            "empty",
+        )
+        assert "stack" not in d
+
+    def test_stack_in_body_ignored(self, db_env, monkeypatch):
+        # Marker-line scoping: a body mentioning stack={...} is prose, not a
+        # router token.
+        d = self._decision(
+            db_env,
+            monkeypatch,
+            "[do-route] agent=python-general-engineer skill=go-patterns",
+            "body",
+            body_suffix="\nDiscuss the stack={a,b} syntax in the docs.",
+        )
+        assert "stack" not in d
 
 
 # ---------------------------------------------------------------------------
