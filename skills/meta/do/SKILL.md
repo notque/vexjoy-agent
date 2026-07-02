@@ -111,7 +111,7 @@ If ANY creation signal AND complexity Simple+: set `is_creation = true`; Phase 4
 
 **Goal**: Select the correct agent + skill. Semantic intent routing is primary, and the orchestrator does it itself — read the manifest in-session, no routing sub-dispatch (self-route beat the Haiku hop +8.1 accuracy points, zero new safety misses; `scripts/routing-ab-results/self-route-v1/VERDICT.md`, PR #776). The pre-router is a safety-net, not a short-circuit — the fast path below is the one exception, and it only commits routes the safety-net would force anyway. Prefer FORCE-labeled entries when intent matches semantically.
 
-**Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: one in-session manifest read (~34 KB) on requests that miss the fast path — measured, accepted (`scripts/routing-ab-results/self-route-v1/VERDICT.md`, Cost section).
+**Contract: read for INTENT.** Read what the user MEANS; trigger keywords are hints, never gates. Plain or non-native-English phrasing routes as well as jargon ("send my commits to the server" routes like "git push"). Cost: one in-session manifest read (~38 KB, measured 2026-07-02) on requests that miss the fast path — measured, accepted (`scripts/routing-ab-results/self-route-v1/VERDICT.md`, Cost section).
 
 **Pre-route (run ONCE at Phase 2 start, before the fast-path check)**
 
@@ -130,7 +130,7 @@ Store this JSON as `PRE_ROUTE_RESULT`. Both the fast path and Step 1 read from i
 
 Read `PRE_ROUTE_RESULT`. If it has `"confidence": "high"` AND `"match_type": "force_route"` AND the skill is `pr-workflow` or a security skill: dispatch that pair directly. Skip Step 0 (manifest read + self-route), Step 1.5 (weights read), and Step 1 (stored result already covers it). Everything else stays mandatory: the routing banner (Step 3), Step 2 skill overrides where compatible, Phase 3 enhancements, and ALL Phase 4 injections — stamp the `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else the domain agent implied by Phase 1 classification, else `general-purpose`.
 
-**Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (the ~34 KB manifest read skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
+**Equivalence**: Step 1(a) already overrides any semantic pick with exactly these high-confidence force-routes, so the full flow always lands on this same force-routed skill. The fast path changes cost (the ~38 KB manifest read skipped), not behavior. Guards already ran inside pre-route, so idiom false-positives ("push back", "fish out") never reach the fast path. Any other result — no match, medium/low confidence, non-force match, or a skill outside pr-workflow/security — falls through to Step 0 unchanged.
 
 **Step 0: Semantic intent routing (PRIMARY — orchestrator self-route)**
 

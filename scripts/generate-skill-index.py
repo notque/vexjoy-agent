@@ -469,6 +469,31 @@ def generate_index(
     return index, warnings
 
 
+def prune_phantom_entries(skills_index: dict, roots: list[Path]) -> list[str]:
+    """Drop entries whose advertised `file` path exists under none of `roots`.
+
+    The --include-private scans index deployed and private packages; some
+    (e.g. voice packages with only a nested skill/SKILL.md) get a flat
+    `skills/{name}/SKILL.md` path that exists in no layout. Advertising them
+    creates phantom routes — the router selects a skill nothing can load.
+
+    Args:
+        skills_index: Index dict with entries under "skills".
+        roots: Layout roots to resolve `file` against (repo root, deployed root).
+
+    Returns:
+        Sorted names of pruned entries.
+    """
+    pruned: list[str] = []
+    skills = skills_index.get("skills", {})
+    for name in sorted(skills):
+        rel = skills[name].get("file", "")
+        if rel and not any((root / rel).is_file() for root in roots):
+            del skills[name]
+            pruned.append(name)
+    return pruned
+
+
 def check_trigger_collisions(
     skills_index: dict,
 ) -> list[str]:
@@ -681,6 +706,13 @@ def main() -> int:
                     if _repo_relative_path(skill_dir, "skills", repo_root) is None:
                         entry["file"] = f"skills/{deploy_name}/SKILL.md"
                     skills_index["skills"][deploy_name] = entry
+
+    # Phantom gate (include-private only): advertise only files that resolve
+    # in a live layout — the repo (nested paths) or ~/.claude (flat deployed).
+    if args.include_private:
+        pruned = prune_phantom_entries(skills_index, [repo_root, Path.home() / ".claude"])
+        for name in pruned:
+            skills_warnings.append(f"  - {name}: advertised file exists in no layout (pruned)")
 
     # Report warnings if any
     if skills_warnings:
