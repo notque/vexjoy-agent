@@ -2,9 +2,10 @@
 """
 Tests for the pretool-private-name-leak-gate hook.
 
-All fixtures use SYNTHETIC names (secret-example-skill, hidden-fixture-notes,
-translate). The real ~/private-skills tree is never read: every test patches
-mod._PRIVATE_DIR to a tmp dir, so no real private name can reach test output.
+All fixtures use SYNTHETIC names (secret-example-skill, nested-package-skill,
+hidden-fixture-agent, shared-fixture-name, translate). The real
+~/private-skills tree is never read: every test patches mod._PRIVATE_DIR to a
+tmp dir, so no real private name can reach test output.
 
 Run with: python3 -m pytest hooks/tests/test_pretool_private_name_leak_gate.py -v
 """
@@ -40,11 +41,25 @@ SYNTH_REDACTED = "s…l"
 
 @pytest.fixture()
 def private_dir(tmp_path, monkeypatch):
-    """Synthetic ~/private-skills tree; patched into the module."""
+    """Synthetic ~/private-skills tree; patched into the module.
+
+    Shape exercises every collection rule: a leaf skill dir, a nested
+    <name>/skill/SKILL.md package, an agents/*.md stem, plus interior noise
+    (reference stems, asset dirs) that must NOT enter the name set.
+    """
     root = tmp_path / "private-tree"
     (root / SYNTH).mkdir(parents=True)
     (root / SYNTH / "SKILL.md").write_text("---\nname: x\n---\n")
-    (root / "hidden-fixture-notes.md").write_text("notes\n")
+    # Interior noise inside the package: excluded from the name set.
+    (root / SYNTH / "references").mkdir()
+    (root / SYNTH / "references" / "interior-topic-map.md").write_text("ref\n")
+    (root / SYNTH / "asset-bundle-dir").mkdir()
+    # Nested package layout: <name>/skill/SKILL.md -> <name>.
+    (root / "nested-package-skill" / "skill").mkdir(parents=True)
+    (root / "nested-package-skill" / "skill" / "SKILL.md").write_text("---\nname: n\n---\n")
+    # Agent component: agents/*.md stem.
+    (root / "agents").mkdir()
+    (root / "agents" / "hidden-fixture-agent.md").write_text("agent\n")
     monkeypatch.setattr(mod, "_PRIVATE_DIR", root)
     # Point the user-index fallback at nothing so only the project INDEX counts.
     monkeypatch.setattr(mod, "_USER_INDEX", tmp_path / "no-user-index.json")
@@ -179,9 +194,14 @@ class TestBlocks:
         code, _, _, _ = _run_main(_event(f'gh pr merge 5 --squash --body "folds in {SYNTH}"', toolkit_repo))
         assert code == 2
 
-    def test_block_on_md_stem_name(self, private_dir, toolkit_repo):
-        """.md basenames (recursive) are part of the name set, not just dirs."""
-        code, _, _, _ = _run_main(_event('git commit -m "port hidden-fixture-notes"', toolkit_repo))
+    def test_block_on_agent_md_stem(self, private_dir, toolkit_repo):
+        """agents/*.md stems are leaf components and part of the name set."""
+        code, _, _, _ = _run_main(_event('git commit -m "port hidden-fixture-agent"', toolkit_repo))
+        assert code == 2
+
+    def test_block_on_nested_package_name(self, private_dir, toolkit_repo):
+        """<name>/skill/SKILL.md packages contribute <name>, not `skill`."""
+        code, _, _, _ = _run_main(_event('git commit -m "port nested-package-skill"', toolkit_repo))
         assert code == 2
 
 
@@ -214,10 +234,44 @@ class TestRedaction:
 
 class TestPassThrough:
     def test_public_homonym_never_blocks(self, private_dir, toolkit_repo):
-        """A private dir name that is also a tracked public skill passes."""
+        """A private leaf name that is also a tracked public skill passes."""
         (private_dir / "translate").mkdir()
+        (private_dir / "translate" / "SKILL.md").write_text("---\nname: t\n---\n")
         code, _, _, _ = _run_main(_event('git commit -m "improve translate flow"', toolkit_repo))
         assert code == 0
+
+    def test_interior_stems_and_dirs_excluded(self, private_dir, toolkit_repo):
+        """Reference stems and asset dir names inside packages never block."""
+        for word in ("interior-topic-map", "asset-bundle-dir", "references"):
+            code, _, _, _ = _run_main(_event(f'git commit -m "touch {word} docs"', toolkit_repo))
+            assert code == 0, f"interior name {word!r} must not block"
+
+    def test_public_tracked_tree_homonym_never_blocks(self, private_dir, toolkit_repo):
+        """A private leaf name already in the committed public tree passes.
+
+        Blocking a name the public repo already contains (the toolkit's own
+        name, common words) is pointless and only produces false positives.
+        """
+        (private_dir / "shared-fixture-name").mkdir()
+        (private_dir / "shared-fixture-name" / "SKILL.md").write_text("---\nname: s\n---\n")
+        (toolkit_repo / "docs.md").write_text("mentions shared-fixture-name already\n")
+        _git(toolkit_repo, "add", "docs.md")
+        _git(toolkit_repo, "commit", "-q", "-m", "public docs")
+        code, _, _, _ = _run_main(_event('git commit -m "improve shared-fixture-name flow"', toolkit_repo))
+        assert code == 0
+
+    def test_staged_leak_does_not_launder_name(self, private_dir, toolkit_repo):
+        """The public-tree grep reads the committed ref, not the working tree.
+
+        A just-staged leak must not make its own name look 'already public'.
+        """
+        (toolkit_repo / "clean.md").write_text("clean tracked file\n")
+        _git(toolkit_repo, "add", "clean.md")
+        _git(toolkit_repo, "commit", "-q", "-m", "public docs")
+        (toolkit_repo / "leak.md").write_text(f"wires {SYNTH} in\n")
+        _git(toolkit_repo, "add", "leak.md")
+        code, _, _, _ = _run_main(_event("git commit -m 'clean message'", toolkit_repo))
+        assert code == 2
 
     def test_absent_private_dir_is_noop(self, toolkit_repo, tmp_path, monkeypatch):
         """Public installs and CI have no ~/private-skills: graceful no-op."""
@@ -253,11 +307,40 @@ class TestPassThrough:
         assert code == 0
 
     def test_bypass_env(self, private_dir, toolkit_repo):
-        code, _, _, _ = _run_main(
+        code, _, _, err = _run_main(
             _event(f'git commit -m "wire {SYNTH} in"', toolkit_repo),
             env={"PRIVATE_NAME_GATE_BYPASS": "1"},
         )
         assert code == 0
+        assert "BYPASSED (env)" in err
+
+    def test_bypass_inline_prefix(self, private_dir, toolkit_repo):
+        """Inline prefix never reaches the hook's os.environ; the command
+        string form must work as documented."""
+        code, _, _, err = _run_main(_event(f'PRIVATE_NAME_GATE_BYPASS=1 git commit -m "wire {SYNTH} in"', toolkit_repo))
+        assert code == 0
+        assert "BYPASSED (inline)" in err
+
+    def test_bypass_inline_after_cd_segment(self, private_dir, toolkit_repo):
+        code, _, _, err = _run_main(
+            _event(f"cd {toolkit_repo} && PRIVATE_NAME_GATE_BYPASS=1 git push origin x", toolkit_repo)
+        )
+        assert code == 0
+        assert "BYPASSED (inline)" in err
+
+    def test_bypass_token_inside_message_does_not_bypass(self, private_dir, toolkit_repo):
+        """Only a leading env-assignment counts — the string inside a commit
+        message must not disarm the gate."""
+        code, _, _, _ = _run_main(_event(f'git commit -m "docs: PRIVATE_NAME_GATE_BYPASS=1 and {SYNTH}"', toolkit_repo))
+        assert code == 2
+
+    def test_bypass_fragment_after_semicolon_in_message_does_not_bypass(self, private_dir, toolkit_repo):
+        """A `; TOKEN=1 ...` fragment inside message text is not a prefix of a
+        gated command and must not disarm the gate."""
+        code, _, _, _ = _run_main(
+            _event(f'git commit -m "a; PRIVATE_NAME_GATE_BYPASS=1 enables {SYNTH}"', toolkit_repo)
+        )
+        assert code == 2
 
     def test_malformed_stdin_allowed(self, private_dir):
         code, _, _, _ = _run_main("not json{")
