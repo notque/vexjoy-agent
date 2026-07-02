@@ -57,7 +57,7 @@ The skill reads metadata from all skills and agents (never modifies them) and va
 **Step 1: Run scan script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/scan.py --repo $HOME/vexjoy-agent
+python3 ~/.claude/skills/meta/routing-table-updater/scripts/scan.py --repo $HOME/vexjoy-agent
 ```
 
 **Step 2: Validate scan output**
@@ -81,7 +81,7 @@ Compare discovered count against expected. If missing, check directory naming, a
 **Step 1: Run extraction script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
+python3 ~/.claude/skills/meta/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
 ```
 
 **Step 2: Verify extraction completeness**
@@ -107,7 +107,7 @@ Review against `references/extraction-patterns.md`. Patterns must be specific en
 **Step 1: Run generation script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
+python3 ~/.claude/skills/meta/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
 ```
 
 **Step 2: Understand the generation process**
@@ -165,7 +165,7 @@ EOF
 **Step 1: Run validation script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/validate.py
+python3 ~/.claude/skills/meta/routing-table-updater/scripts/validate.py
 ```
 
 Validates skill package structure, SKILL.md frontmatter, and script executability. Exit 0 = pass.
