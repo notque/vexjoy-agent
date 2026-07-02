@@ -24,6 +24,10 @@ jobs:
       - run: python scripts/validate-references.py --check-placeholders
       - run: python scripts/validate-skill-frontmatter.py
       - run: python scripts/validate-index-integrity.py
+      # Advisory (always exit 0): merged tracked+local index — phantom files, dead
+      # agent refs, missing category/description, "NOT: " doubling, category
+      # registry. Gate later with --strict (ADR router-improvement-program, C2).
+      - run: python scripts/validate-merged-index.py
       # /do control law: every routed component name must resolve (no phantom routes).
       - run: python scripts/validate-do-references.py
       - run: python scripts/validate-doc-links.py
