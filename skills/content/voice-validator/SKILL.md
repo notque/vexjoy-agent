@@ -21,7 +21,6 @@ routing:
   category: voice
   pairs_with:
     - voice-writer
-    - anti-ai-editor
     - joy-check
 ---
 
@@ -240,5 +239,5 @@ Solution:
 
 ### Related Skills
 - `voice-{name}` - Generates content in a specific voice (validate output with this skill)
-- `anti-ai-editor` - Complementary anti-AI pattern detection
+- private de-AI editor skill - complementary anti-AI pattern detection
 - `voice-writer` - Unified voice content generation pipeline that invokes this skill

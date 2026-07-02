@@ -157,7 +157,6 @@
         "REPORT"
       ],
       "pairs_with": [
-        "anti-ai-editor",
         "voice-validator"
       ]
     },
@@ -180,7 +179,6 @@
         "VERIFY AND REPORT"
       ],
       "pairs_with": [
-        "anti-ai-editor",
         "voice-validator"
       ]
     },
@@ -892,9 +890,7 @@
         "create-voice",
         "voice-calibrator",
         "voice-validator",
-        "voice-dragonball-z",
         "joy-check",
-        "anti-ai-editor",
         "research-to-article"
       ]
     },

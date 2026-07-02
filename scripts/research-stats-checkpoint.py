@@ -8,8 +8,8 @@ gate thresholds are not met, so the script can be wired into a pipeline as a
 deterministic gate between GATHER and SYNTHESIZE phases.
 
 Usage:
-    python3 scripts/research-stats-checkpoint.py research/feynman/
-    python3 scripts/research-stats-checkpoint.py research/feynman/ \\
+    python3 scripts/research-stats-checkpoint.py research/example-topic/
+    python3 scripts/research-stats-checkpoint.py research/example-topic/ \\
         --min-primary 3 --max-agent-share 0.75
 
 Exit codes:

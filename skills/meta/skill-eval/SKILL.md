@@ -46,7 +46,7 @@ Measure and improve skill quality through empirical testing — because structur
 |---|---|---|
 | reading or writing eval artifacts: evals.json, grading.json, metrics.json, history.json | `schemas.md` | Loads detailed guidance from `schemas.md`. |
 | improving a skill via variant generation and blind A/B promotion | `self-improve-loop.md` | Loads detailed guidance from `self-improve-loop.md`. |
-| "bake-off", "head-to-head", "compare implementations", "grade two versions", "which Feynman skill is better" | `bake-off-methodology.md` | Loads the bake-off rubric, anti-rationalization gate, fold-filter, and worked Feynman example. |
+| "bake-off", "head-to-head", "compare implementations", "grade two versions", "which persona skill is better" | `bake-off-methodology.md` | Loads the bake-off rubric, anti-rationalization gate, fold-filter, and worked persona example. |
 
 ## Instructions
 
@@ -192,13 +192,13 @@ The loop runs 5 phases: BASELINE (establish metrics with 3+ test cases), HYPOTHE
 
 #### Mode F: Head-to-Head Bake-Off
 
-Score two peer implementations of the same artifact (e.g., toolkit `voice-feynman` vs an external Feynman voice profile) on a numeric rubric and declare a decisive winner. Use when the user says "bake-off", "head-to-head", "compare implementations", "grade these two", or "which X is better".
+Score two peer implementations of the same artifact (e.g., a toolkit voice-profile skill vs an external peer voice profile) on a numeric rubric and declare a decisive winner. Use when the user says "bake-off", "head-to-head", "compare implementations", "grade these two", or "which X is better".
 
 Read the full protocol: `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md`
 
 The protocol runs 5 phases: PREPARE (read both artifacts in full, pick a verifier that built neither side), RUBRIC (define 5–12 criteria scored 0–10, pre-state the loser-of-each-criterion before reading evidence), GRADE (every score cites a path/line range or quote; build the matrix; apply anti-rationalization gate), FOLD (filter loser-wins through `docs/PHILOSOPHY.md` before recommending any folds into the winner), REPORT (output to `tmp/<topic>-bakeoff-report.md`, gitignored).
 
-The Feynman bake-off (toolkit 86 vs external 74 across 11 criteria, 12-point margin) is the canonical worked example carried in the reference.
+The persona voice-profile bake-off (toolkit 86 vs external 74 across 11 criteria, 12-point margin) is the canonical worked example carried in the reference.
 
 **GATE**: Bake-off protocol loaded from reference. Proceed through the 5 phases.
 
@@ -272,4 +272,4 @@ If description optimization found a better description:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/schemas.md` — JSON schemas for evals.json, grading.json, benchmark.json
 - `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md` — Self-improvement loop protocol: variant generation, blind A/B testing, promotion criteria
-- `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md` — Head-to-head bake-off protocol: rubric construction, anti-rationalization gate, philosophy-filtered fold-list, Feynman worked example
+- `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md` — Head-to-head bake-off protocol: rubric construction, anti-rationalization gate, philosophy-filtered fold-list, worked persona example

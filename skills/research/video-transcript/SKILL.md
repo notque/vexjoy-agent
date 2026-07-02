@@ -16,7 +16,6 @@ routing:
   category: research
   pairs_with:
     - research-pipeline
-    - wrestlejoy-external-research
 ---
 
 # Video Transcript

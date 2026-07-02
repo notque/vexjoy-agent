@@ -214,7 +214,7 @@ class TestUsernameRegex:
     @pytest.mark.parametrize(
         "username",
         [
-            pytest.param("AndyNemmity", id="mixed-case"),
+            pytest.param("MixedCaseUser", id="mixed-case"),
             pytest.param("rob0d", id="alphanumeric"),
             pytest.param("a-b_c", id="hyphen-and-underscore"),
             pytest.param("a" * 20, id="max-length-20"),

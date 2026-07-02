@@ -265,7 +265,7 @@
       "expected_skill": null,
       "category": "content-creation",
       "routing_tier": "llm_only",
-      "notes": "Script fires voice-writer pipeline force-route (via 'blog post' trigger), but correct answer is anti-ai-editor. Subtle distinction requires LLM intent understanding."
+      "notes": "Script fires voice-writer pipeline force-route (via 'blog post' trigger), but correct answer is the private de-AI editing skill. Subtle distinction requires LLM intent understanding."
     },
     {
       "request": "deploy the app to Kubernetes with Helm",

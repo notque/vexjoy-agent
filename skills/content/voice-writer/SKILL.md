@@ -57,7 +57,6 @@ routing:
   category: voice
   pairs_with:
     - voice-validator
-    - anti-ai-editor
     - joy-check
 ---
 
@@ -299,7 +298,7 @@ Where `{voice_profile}` is the voice skill selected in Phase 1 (e.g., `voice-myp
 **Goal**: Strip all AI-sounding patterns from the content.
 
 **Steps**:
-1. Invoke `anti-ai-editor` skill (`/home/feedgen/.claude/skills/anti-ai-editor/SKILL.md`)
+1. Invoke the private de-AI editor skill (deployed to `~/.claude/skills/` from `~/private-skills` when installed)
 2. Scan for and remove:
    - Generic transitions ("Furthermore", "Moreover", "It's worth noting")
    - Hedge stacking ("It seems like it might potentially")

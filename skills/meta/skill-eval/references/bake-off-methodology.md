@@ -8,7 +8,7 @@ This is the methodology reference for `skill-eval` Mode F (Head-to-Head Bake-Off
 
 ## When to use this mode
 
-Load this reference when the user says: "bake-off", "head-to-head", "grade these two", "compare implementations", "is X or Y better", "which Feynman skill is better", "compare voice-X to voice-Y", or any other request whose intent is *score two artifacts that aim at the same goal and pick a winner*.
+Load this reference when the user says: "bake-off", "head-to-head", "grade these two", "compare implementations", "is X or Y better", "which persona skill is better", "compare voice-X to voice-Y", or any other request whose intent is *score two artifacts that aim at the same goal and pick a winner*.
 
 Do **not** use this for:
 - Trigger evaluation of a single skill — use Mode A.
@@ -154,11 +154,11 @@ The output is a short, concrete fold-list. Each fold names the file to change, t
 
 ---
 
-## Worked example: Feynman voice-profile bake-off (2026-04-27)
+## Worked example: persona voice-profile bake-off (2026-04-27)
 
-**Subjects**: A — toolkit `skills/content/voice-feynman/SKILL.md` (428 lines, English) vs B — `alchaincyf/nuwa-skill` Feynman (447 lines, primarily Chinese).
+**Subjects**: A — a toolkit persona voice-profile skill (private; 428 lines, English) vs B — the `alchaincyf/nuwa-skill` peer persona skill (447 lines, primarily Chinese).
 
-**Verifier**: research-coordinator-engineer (separate from the toolkit-feynman builder).
+**Verifier**: research-coordinator-engineer (separate from the toolkit profile's builder).
 
 **Rubric**: 11 criteria, each 0–10, max 110.
 
@@ -183,13 +183,13 @@ The output is a short, concrete fold-list. Each fold names the file to change, t
 
 **Folds considered**:
 
-- Fold "ethical-boundaries subsection" (criterion 9 loser-win) → **REJECTED** under "Skills Contain Execution Context Only". Ethical judgment lives at the moment-of-use, not in the skill body. The salience-by-negation argument applies: telling the generator "do not claim X about Feynman's personal life" biases generation toward those exact topics.
+- Fold "ethical-boundaries subsection" (criterion 9 loser-win) → **REJECTED** under "Skills Contain Execution Context Only". Ethical judgment lives at the moment-of-use, not in the skill body. The salience-by-negation argument applies: telling the generator "do not claim X about the persona's personal life" biases generation toward those exact topics.
 - Fold "per-model limits subsections" (loser-win) → **CANDIDATE**. Adds runtime decision criteria. Worth a separate eval before accepting.
-- Fold "runtime fact-research protocol" (criterion 11 loser-win) → **REJECTED** for voice-feynman specifically. Belongs in a separate orchestration skill if it belongs anywhere; the voice profile is for content generation, not runtime fact-finding.
+- Fold "runtime fact-research protocol" (criterion 11 loser-win) → **REJECTED** for the toolkit profile specifically. Belongs in a separate orchestration skill if it belongs anywhere; the voice profile is for content generation, not runtime fact-finding.
 
 **Net survivors after philosophy filter**: 1 candidate, 0 immediate folds. Reported as such.
 
-The full worked report lives at `tmp/feynman-bakeoff-report.md` while it remains relevant; reproduce it with the methodology above against any voice-skill peer.
+The full worked report lives under `tmp/` (gitignored) while it remains relevant; reproduce it with the methodology above against any voice-skill peer.
 
 ---
 

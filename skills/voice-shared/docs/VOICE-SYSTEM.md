@@ -98,7 +98,7 @@ python3 scripts/voice-validator.py validate --content draft.md --profile your-vo
 
 ### Step 4: Integration
 
-Once calibrated, available to: `voice-writer`, `anti-ai-editor`, `workflow` (via `references/article-evaluation-pipeline.md`).
+Once calibrated, available to: `voice-writer`, the private de-AI editor skill, `workflow` (via `references/article-evaluation-pipeline.md`).
 
 ---
 
@@ -115,7 +115,6 @@ skills/
   create-voice/          # Interactive voice creation (7 phases)
   voice-validator/       # Validation methodology
   voice-writer/          # Unified 8-phase content generation
-  anti-ai-editor/        # AI tell detection and removal
   workflow/
     references/
       voice-calibrator.md   # Advanced calibration and refinement (workflow reference)
