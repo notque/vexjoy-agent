@@ -336,7 +336,7 @@ def main() -> None:
         # correct routes (the sibling-misattribution bug on the reaction axis).
         # Rule: when >1 dispatches are pending, IGNORE the turn-level reaction and
         # resolve each entry by its OWN per-entry `errors` flag (an entry with
-        # tool errors still fails; a clean sibling defaults to success). The
+        # tool errors still fails; a clean sibling stays neutral). The
         # reaction is applied ONLY in the unambiguous single-dispatch case. Stale
         # entries (dropped by the age check below) do not count toward the live
         # pending population for this decision.

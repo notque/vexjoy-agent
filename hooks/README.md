@@ -104,7 +104,6 @@ Task completes: TaskCompleted
 | `record-waste` | Any (failures) | Estimates token waste on tool failures and records to `learning.db` |
 | `retro-graduation-gate` | Bash | Warns after `gh pr create` if ungraduated retro entries exist in the toolkit repo |
 | `review-capture` | Agent | Captures severity-tagged review findings from subagent output to `learning.db` |
-| `routing-gap-recorder` | Any | Records `/do` routing gaps to `learning.db` when no agent matches a domain |
 | `usage-tracker` | Skill, Agent | Tracks Skill and Agent invocations to SQLite for usage analytics |
 
 ---

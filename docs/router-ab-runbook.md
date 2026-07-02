@@ -178,15 +178,23 @@ the Opus orchestrator session driving it.
   `scripts/routing-ab-results/pre-route-map-v1.1/` (deterministic, regenerate
   any time with `--pre-route-map`).
 
-## Queued experiments
+## Completed experiments
 
-1. **Tiered manifest** (`feat/do-cost-diet`): run the standing sequence with
-   `--manifest-arm full=... --manifest-arm tiered=...` once that branch lands.
-   Watch gate (d) — stub-tier is the bucket a tiered manifest can starve.
-2. **Force-route fast path**: `--pre-route-map --assert-buckets` is the
-   behavior-identical check; today's failing baseline (above) is the comparison
-   point. A fast path must not make a guard case eligible, and any claim that
-   paraphrases are covered must flip those 10 cases to PASS first.
+1. **Tiered manifest** (`feat/do-cost-diet`): REJECTED twice, 2026-06-10.
+   tiered-v1 failed gates (c) safety and (d) stub-tier; the stub-attribution
+   fix (`c1080c04`) re-ran as tiered-v2 and failed the same two gates.
+   Verdicts: `scripts/routing-ab-results/tiered-v1/VERDICT.md`,
+   `scripts/routing-ab-results/tiered-v2/VERDICT.md`. Do not re-queue without
+   a mechanism change beyond attribution text.
+2. **Force-route fast path**: SHIPPED in `skills/meta/do/SKILL.md` Phase 2,
+   keyed on pre-route `confidence: high` + `force_route` for pr-workflow and
+   security skills. The zero-model check (`--pre-route-map --assert-buckets`,
+   baseline above) still FAILS with 13 assert-bucket violations — 10
+   paraphrase-git/security cases fall through the keyword pre-router and 3
+   force-route cases sit at medium confidence — so the shipped fast path fires
+   on only 8/99 corpus cases; the guard direction holds (0/7 guards eligible).
+   A coverage fix for the 13 violations is in flight on
+   `fix/preroute-fastpath-coverage`.
 
 ## Known limits
 
