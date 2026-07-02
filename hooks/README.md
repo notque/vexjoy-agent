@@ -73,7 +73,7 @@ Task completes: TaskCompleted
 | `pretool-branch-safety` | Bash | Blocks `git commit` when on `main` or `master` branch |
 | `pretool-config-protection` | Write, Edit, MultiEdit | Blocks modifications to linter/formatter config files (ESLint, Prettier, Biome, Ruff, golangci-lint, etc.) |
 | `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/` when `task_plan.md` does not exist |
-| `pretool-private-name-leak-gate` | Bash | Blocks `git commit`/`git push` and `gh pr` text that names a private component from `~/private-skills`. Name set derived at runtime, minus public homonyms — local-only by design (no private tree = graceful no-op, so CI cannot host it). Block messages redact the matched name |
+| `pretool-private-name-leak-gate` | Bash | Blocks `git commit`/`git push` and `gh pr` text that names a private component from `~/private-skills`. Name set derived at runtime from LEAF components only (dirs with SKILL.md, agents/*.md stems), minus public-skill and public-tracked-tree homonyms — local-only by design (no private tree = graceful no-op, so CI cannot host it). Block messages redact the matched name. Bypass `PRIVATE_NAME_GATE_BYPASS=1` works as env var or inline command prefix (logged) |
 | `pretool-synthesis-gate` | Write, Edit | Blocks feature implementation when ADR consultation synthesis is missing or blocked |
 
 ### Advisory Hooks (exit 0 = warn)
