@@ -216,8 +216,13 @@ class TestConfidence:
         )
         assert pre_route.determine_confidence(match) == "high"
 
-    def test_force_route_medium_confidence(self, pre_route) -> None:
-        """Force-route with 1 trigger -> medium."""
+    def test_force_route_single_trigger_high_confidence(self, pre_route) -> None:
+        """Force-route with 1 trigger -> high.
+
+        A force match that reached scoring already passed every semantic
+        guard; the /do fast path and Step 1(a) safety override act only on
+        "high", so a single surviving force trigger must report it.
+        """
         match = pre_route.ScoredMatch(
             name="test",
             entry_type="skill",
@@ -225,7 +230,7 @@ class TestConfidence:
             force_route=True,
             matched_triggers=["a"],
         )
-        assert pre_route.determine_confidence(match) == "medium"
+        assert pre_route.determine_confidence(match) == "high"
 
     def test_non_force_medium_confidence(self, pre_route) -> None:
         """Non-force with 3+ triggers -> medium."""

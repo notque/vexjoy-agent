@@ -191,6 +191,33 @@ _VISIBILITY_OP_GUARD: set[str] = {
     "module",
 }
 
+# Safety-net triggers the INDEX files lack. The routing A/B corpus
+# (scripts/routing-ab-corpus.json, buckets paraphrase-git and
+# paraphrase-security) holds genuine git/security requests phrased without any
+# INDEX keyword; these force-route skills MUST catch them so quality gates
+# always run. Merged into the skill's INDEX triggers at load time, so each
+# match keeps the entry's force_route flag and passes the same guard checks.
+# Keep every pattern narrow: multi-word, intent-specific, and guarded below
+# when it could collide with ordinary English.
+SUPPLEMENTAL_TRIGGERS: dict[str, tuple[str, ...]] = {
+    "pr-workflow": (
+        "send commits",  # "send my commits to the server"
+        "shared repository",  # "save my work to the shared repository"
+        "submit changes",  # "I'd like to submit my changes for review"
+        "into version control",  # "record what I changed into version control"
+        "to version control",
+        "under version control",
+        "upload my work",  # "upload my finished work so the team can see it"
+        "went green",  # "check if the tests on my submitted change went green"
+    ),
+    "security-review": (
+        "code safe",  # "look over my code for safety problems" (safe* covers safety)
+        "is unsafe",  # "check whether anything here is unsafe"
+        "break into",  # "someone could break into this" — companion-gated below
+        "passwords keys",  # "did I leave any passwords or keys in the code"
+    ),
+}
+
 # Phrases that look like trigger matches but are common English idioms
 # unrelated to the skill. Keyed by skill name -> disqualifying context words.
 #
@@ -257,6 +284,37 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
         # rescue "make website repo public on github".
         "make public": _VISIBILITY_OP_GUARD,
         "make it public": _VISIBILITY_OP_GUARD,
+    },
+    # Guards for the SUPPLEMENTAL_TRIGGERS above. Per-trigger dict: these
+    # apply only to the listed idiom-prone triggers, never to the skill's
+    # INDEX triggers.
+    "security-review": {
+        # "make the code thread-safe" / "type safety" = language mechanics,
+        # not a security review.
+        "code safe": {
+            "thread",
+            "threads",
+            "threadsafe",
+            "type",
+            "types",
+            "typesafe",
+            "null",
+            "race",
+            "concurrency",
+            "exception",
+            "exceptions",
+        },
+        # Rust's `unsafe` keyword and pointer talk, not a vulnerability check.
+        "is unsafe": {
+            "rust",
+            "keyword",
+            "block",
+            "blocks",
+            "pointer",
+            "pointers",
+            "transmute",
+            "deref",
+        },
     },
 }
 
@@ -345,6 +403,32 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
         "public site": _DEPLOY_COMPANIONS,
         "nginx public site": _DEPLOY_COMPANIONS,
     },
+    # "break into" routes only with an intrusion word nearby ("someone could
+    # break into this"). Refactor phrasing ("break this into smaller
+    # functions") has no such companion and falls through.
+    "security-review": {
+        "break into": {
+            "someone",
+            "somebody",
+            "anyone",
+            "anybody",
+            "hacker",
+            "hackers",
+            "attacker",
+            "attackers",
+            "intruder",
+            "intruders",
+            "hack",
+            "hacked",
+            "hacking",
+            "malicious",
+            "breach",
+            "steal",
+            "stolen",
+            "burglar",
+            "criminals",
+        },
+    },
 }
 
 # Multi-word disqualifying phrases (substring match in lowered request).
@@ -366,6 +450,11 @@ SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
         "publish a book",
         "review the menu",
         "review my essay",
+        # Supplemental-trigger idioms: "upload my work to google drive" is a
+        # file sync, "shared repository of knowledge" is a metaphor.
+        "google drive",
+        "to dropbox",
+        "repository of knowledge",
     },
 }
 
@@ -408,11 +497,15 @@ def load_entries() -> list[dict]:
         for name, data in items.items():
             if not isinstance(data, dict):
                 continue
+            triggers = list(data.get("triggers", []))
+            # Safety-net paraphrase triggers the INDEX lacks (see
+            # SUPPLEMENTAL_TRIGGERS). The entry keeps its force_route flag.
+            triggers.extend(t for t in SUPPLEMENTAL_TRIGGERS.get(name, ()) if t not in triggers)
             entries.append(
                 {
                     "name": name,
                     "type": "skill" if index_type == "skills" else "agent",
-                    "triggers": data.get("triggers", []),
+                    "triggers": triggers,
                     "agent": data.get("agent"),
                     "force_route": bool(data.get("force_route", False)),
                 }
@@ -611,17 +704,22 @@ def determine_confidence(match: ScoredMatch) -> str:
     """Determine confidence level based on match characteristics.
 
     Thresholds:
-    - force_route + 2+ trigger matches -> "high"
-    - force_route + 1 trigger match -> "medium"
+    - force_route + 1+ trigger matches -> "high"
     - non-force + 3+ trigger matches -> "medium"
     - anything less -> "low" (fall through)
+
+    A force_route match that reaches scoring already passed every semantic
+    guard (score_matches discards guarded matches), so one surviving trigger
+    is a deterministic signal. The old ladder capped single-trigger force
+    matches at "medium", but the /do fast path and Step 1(a) safety override
+    (skills/meta/do/SKILL.md:131,258) act only on "high" — so genuine
+    one-trigger git/security requests ("commit these files", "did CI pass on
+    my PR?") were never force-protected.
     """
     trigger_count = len(match.matched_triggers)
 
-    if match.force_route and trigger_count >= 2:
-        return "high"
     if match.force_route and trigger_count >= 1:
-        return "medium"
+        return "high"
     if not match.force_route and trigger_count >= 3:
         return "medium"
     return "low"
