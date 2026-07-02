@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -16,12 +16,18 @@ local ~/private-skills tree. Shipping the set with the repo would itself be
 the leak, so CI and public installs (no ~/private-skills) get a graceful
 no-op. This gate cannot and should not run in CI.
 
-Name set:
-- Directory basenames and .md stems under ~/private-skills (recursive)
+Name set (LEAF components only — interior reference/asset dir names and
+bare file stems inside packages are noise, not component names):
+- Directories directly containing SKILL.md; for nested
+  <name>/skill/SKILL.md packages, the package dir <name>
+- Stems of *.md files directly inside an agents/ dir
 - MINUS structural basenames (SKILL, README, references, ...)
 - MINUS names shorter than 4 chars
 - MINUS tracked public skill names from skills/INDEX.json (project copy
   first, then ~/.claude/skills/INDEX.json) — public homonyms never block
+- MINUS names already present in the public tracked tree (one git grep
+  per invocation, cached for the run) — a name that is already public on
+  main (e.g. the toolkit's own name) cannot leak by appearing again
 
 Scanned text per command:
 - always: the command text itself (covers -m/--title/--body args)
@@ -39,7 +45,11 @@ Allow-through conditions:
 - Effective cwd is inside ~/private-skills itself (self-scan would
   always block that repo's own commits)
 - No private name found in any scanned text
-- PRIVATE_NAME_GATE_BYPASS=1 env var
+- PRIVATE_NAME_GATE_BYPASS=1 as an env var OR as an inline command prefix
+  (`PRIVATE_NAME_GATE_BYPASS=1 git push ...`). The hook runs in the
+  harness process, so an inline prefix never reaches os.environ — it is
+  detected in the command string itself. Owner approval only; every
+  bypass is logged to stderr.
 """
 
 import json
@@ -106,6 +116,41 @@ _MIN_NAME_LEN = 4
 # File-content arguments: commit message files and PR body files.
 _COMMIT_FILE_FLAGS = {"-F", "--file"}
 _PR_BODY_FILE_FLAGS = {"-F", "--body-file"}
+
+
+_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _bypass_requested(command: str) -> str | None:
+    """Return "env" or "inline" when the bypass is requested, else None.
+
+    The hook runs in the harness process: an inline `PRIVATE_NAME_GATE_BYPASS=1
+    git push ...` prefix never reaches os.environ, so the documented inline
+    form must be detected in the command string. Only leading env-assignment
+    tokens of a command segment count — the string inside a commit message
+    does not bypass.
+    """
+    if os.environ.get(_BYPASS_ENV) == "1":
+        return "env"
+    for segment in re.split(r"&&|\|\||;", command):
+        try:
+            tokens = shlex.split(segment)
+        except ValueError:
+            tokens = segment.split()
+        seen_bypass = False
+        rest = tokens
+        for i, token in enumerate(tokens):
+            if not _ENV_ASSIGN_RE.match(token):
+                rest = tokens[i:]
+                break
+            if token == f"{_BYPASS_ENV}=1":
+                seen_bypass = True
+        # The assignment must actually prefix a gated command — a stray
+        # `; {_BYPASS_ENV}=1 ...` fragment inside message text does not
+        # disarm the gate.
+        if seen_bypass and _CMD_RE.search(" ".join(rest)):
+            return "inline"
+    return None
 
 
 def _extract_effective_cwd(command: str, default_cwd: str | None) -> str | None:
@@ -175,21 +220,60 @@ def _public_skill_names(toolkit_root: Path) -> set[str]:
     return names
 
 
+def _tracked_tree_names(toolkit_root: Path, names: set[str]) -> set[str]:
+    """Names already present in the PUBLIC tracked tree (case-insensitive).
+
+    One `git grep` per invocation, against the committed public ref
+    (origin/main, else main, else HEAD) — NOT the working tree, which would
+    see a just-staged leak and defeat the gate. A name the public tree
+    already contains (the toolkit's own name, common tool words) cannot leak
+    by appearing again — blocking it only produces false positives.
+    """
+    if not names:
+        return set()
+    ref = None
+    for candidate in ("origin/main", "main", "HEAD"):
+        if _run_git(["rev-parse", "--verify", "-q", candidate], str(toolkit_root)):
+            ref = candidate
+            break
+    if ref is None:
+        return set()
+    args = ["grep", "-I", "-i", "-o", "-h", "--fixed-strings"]
+    for name in sorted(names):
+        args += ["-e", name]
+    out = _run_git([*args, ref], str(toolkit_root))
+    return {line.strip().lower() for line in out.splitlines()} & names
+
+
 def _private_names(toolkit_root: Path) -> set[str]:
-    """Runtime private-name set: dir basenames and .md stems, filtered."""
+    """Runtime private-name set: LEAF component names only, filtered.
+
+    Leaf components: dirs directly containing SKILL.md (a dir literally named
+    `skill` is the nested <name>/skill/SKILL.md package layout — use <name>),
+    plus stems of *.md files directly inside an agents/ dir. Interior
+    reference/asset dir names and bare file stems inside packages are noise,
+    not component names, and only produce false blocks.
+    """
     raw: set[str] = set()
     try:
-        for _dirpath, dirnames, filenames in os.walk(_PRIVATE_DIR):
+        for dirpath, dirnames, filenames in os.walk(_PRIVATE_DIR):
             # Skip VCS internals.
             dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-            raw.update(dirnames)
-            raw.update(Path(f).stem for f in filenames if f.endswith(".md"))
+            base = Path(dirpath)
+            if "SKILL.md" in filenames:
+                name = base.name
+                if name.lower() == "skill" and base != _PRIVATE_DIR:
+                    name = base.parent.name
+                raw.add(name)
+            if base.name == "agents":
+                raw.update(Path(f).stem for f in filenames if f.endswith(".md"))
     except OSError:
         return set()
     names = {n.lower() for n in raw}
     names -= _STOPLIST
     names = {n for n in names if len(n) >= _MIN_NAME_LEN and not n.startswith(".")}
     names -= _public_skill_names(toolkit_root)
+    names -= _tracked_tree_names(toolkit_root, names)
     return names
 
 
@@ -287,9 +371,10 @@ def main() -> None:
     if not command or not _CMD_RE.search(command):
         sys.exit(0)
 
-    if os.environ.get(_BYPASS_ENV) == "1":
-        if debug:
-            print(f"[private-name-leak-gate] Bypassed via {_BYPASS_ENV}=1", file=sys.stderr)
+    bypass = _bypass_requested(command)
+    if bypass:
+        # Always logged — a bypass is an audit event, not a debug detail.
+        print(f"[private-name-leak-gate] BYPASSED ({bypass}) via {_BYPASS_ENV}=1", file=sys.stderr)
         sys.exit(0)
 
     # Graceful no-op: no private tree on this machine (public install, CI).
@@ -341,7 +426,8 @@ def main() -> None:
                 f"Private component name ({redacted}) found in {location}. "
                 "Private skill names must not reach commits, pushes, or PR text. "
                 "Remove the reference and retry. "
-                f"Bypass with {_BYPASS_ENV}=1 only with explicit owner approval.",
+                f"Bypass with {_BYPASS_ENV}=1 (env var or inline command prefix) "
+                "only with explicit owner approval.",
             )
             sys.exit(0)
 
