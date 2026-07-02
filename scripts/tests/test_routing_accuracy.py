@@ -304,6 +304,37 @@ class TestPreRoute:
             )
 
 
+class TestPreRouteNegative:
+    """pre-route.py must NOT force-route these requests (tier: pre_route_negative).
+
+    The corpus pins idiom guards ("push back on this design"), the D7 planning
+    unigram classes (continue/resume/pause/unsure/handoff — originals in
+    test_pre_route_planning.py), pure fallthroughs, and sanitized patterns from
+    route-events history. A force-route here would override the semantic route
+    in /do Phase 2, so any force_route match at any confidence is a failure.
+    The corpus is the contract: if a phrase fails, fix the trigger or guard,
+    do not drop the case. See adr/router-improvement-program.md (C3).
+    """
+
+    @pytest.mark.parametrize(
+        "case",
+        _tier_cases("pre_route_negative"),
+        ids=_case_id,
+    )
+    def test_no_force_route(self, case: dict) -> None:
+        """Assert pre-route.py fires no force_route for the request.
+
+        Args:
+            case: Test case dict from routing-benchmark.json.
+        """
+        result = run_pre_route(case["request"])
+        assert result.get("match_type") != "force_route", (
+            f"{case['request']!r} must not force-route but got "
+            f"skill={result.get('skill')!r} agent={result.get('agent')!r} "
+            f"confidence={result.get('confidence')!r}. Reasoning: {result.get('reasoning')}"
+        )
+
+
 class TestCoverageReport:
     """Advisory benchmark-coverage report in routing-benchmark.py.
 
