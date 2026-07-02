@@ -86,6 +86,16 @@ def test_voice_profile_names_accepted(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_stale_prose_term_fails(tmp_path: Path) -> None:
+    """A PROSE_TERMS entry with zero occurrences in scope exits 1 — a stale
+    allowlist entry would let a future phantom silently reuse the name."""
+    modified = _skill_copy(tmp_path, "HARD — non-negotiable", "HARD")
+    result = _run(modified)
+    assert result.returncode == 1
+    assert "STALE ALLOWLIST" in result.stdout
+    assert "non-negotiable" in result.stdout
+
+
 def test_missing_region_anchor_fails(tmp_path: Path) -> None:
     """Restructuring an anchored region away fails loudly, not silently."""
     modified = _skill_copy(tmp_path, "## Error Handling", "## Renamed Section")

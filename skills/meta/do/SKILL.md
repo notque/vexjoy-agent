@@ -177,7 +177,7 @@ PIPELINE-SELECTION RULE: The `pipeline` field is OPTIONAL and most requests shou
 Match on MEANING, not keyword overlap. If a single agent+skill satisfies the request, return `null` for pipeline. Examples:
 - "write an article in vexjoy voice about X" → pipeline: "voice-writer" ✓ (multi-phase voice content generation matches the voice-writer pipeline)
 - "research X with artifacts and sources" → pipeline: "research-pipeline" ✓ (formal SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER flow)
-- "comprehensive review of these 8 files" → pipeline: "comprehensive-review" ✓ (multi-wave per-package review across many files)
+- "comprehensive review of these 8 files, no diff available" → pipeline: "comprehensive-review" ✓ (multi-wave per-package review across many files; with a real diff, Phase 3 right-size-review tiering outranks this pick)
 - "fix the typo on line 42 of foo.py" → pipeline: null (single trivial edit, no pipeline needed)
 - "debug this failing test" → pipeline: null (one agent+skill handles it; pipeline only if user asks for systematic debugging artifacts)
 - "review this 10-line function" → pipeline: null (single skill, no multi-wave review warranted)
@@ -295,18 +295,17 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
 | Any substantive work (code, design, plan) | Add retro knowledge only when it materially helps the task |
-| "comprehensive" / "thorough" / "full" review, no diff available | Fallback: add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| "review" with 5+ files, no diff available | Fallback: use parallel-code-review (3 reviewers) |
+| "comprehensive" / "thorough" / "full" review, or "review" with 5+ files — no diff available | Fallback: use parallel-code-review (3 reviewers: Security, Business Logic, Architecture) |
 | Multi-file or comprehensive review on a real diff | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
 | Voice profile skill selected (any voice-* profile skill, e.g. voice-amy-nemmity, voice-dragonball-z) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
-| Vague verb + ambiguous object + no concrete file/symbol named + multiple plausible interpretations | `planning` (interview mode) — load `depth-first-interview.md` |
+| Interview-mode heuristic fires (rule below) | `planning` (interview mode) — load `depth-first-interview.md` |
 | Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` (skills/meta/objective-loop) |
 
-**Review-row precedence.** When review signals overlap, the real-diff row wins: any multi-file or comprehensive/thorough/full review with a diff routes through `right-size-review.py`; the two reviewer rows above apply only when no diff exists.
+**Review-row precedence.** When review signals overlap, the real-diff row wins: any multi-file or comprehensive/thorough/full review with a diff routes through `right-size-review.py` — it also outranks a Phase 2 `comprehensive-review` pipeline pick; the fallback row applies only when no diff exists.
 
 **Interview-mode heuristic.** Fires when the request is short, names no concrete file/symbol/path, states no acceptance criteria, and admits multiple plausible interpretations; the 6 examples below are the spec.
 
