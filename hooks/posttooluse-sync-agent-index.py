@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PostToolUse Hook: Auto-sync agents/INDEX.json on agent-file changes.
 
@@ -32,6 +32,22 @@ from stdin_timeout import read_stdin
 # agents/<name>.md, flat layout (exactly one segment after agents/).
 AGENT_FILE_RE = re.compile(r"(?:^|/)agents/[^/]+\.md$")
 _EXCLUDE = {"INDEX.md", "README.md"}
+
+
+def _refresh_manifest_cache() -> None:
+    """Refresh the /do routing-manifest cache after an INDEX regen (C5).
+
+    Best-effort: the SessionStart hook re-checks next session, and /do
+    Phase 2's hash check falls back to the generator on any mismatch.
+    """
+    try:
+        from manifest_cache import refresh, resolve_scripts_dir
+
+        sdir = resolve_scripts_dir()
+        if sdir is not None:
+            refresh(sdir)
+    except Exception:
+        pass
 
 
 def is_agent_file(file_path: str) -> bool:
@@ -69,6 +85,7 @@ def main() -> None:
 
         if result.returncode == 0:
             print(f"[sync-agent-index] INDEX.json regenerated after {Path(file_path).name} edit")
+            _refresh_manifest_cache()
         else:
             print(f"[sync-agent-index] generator failed (exit {result.returncode})", file=sys.stderr)
             for line in result.stderr.strip().splitlines()[:10]:

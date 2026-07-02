@@ -134,12 +134,21 @@ Read `PRE_ROUTE_RESULT`. If it has `"confidence": "high"` AND `"match_type": "fo
 
 **Step 0: Semantic intent routing (PRIMARY — orchestrator self-route)**
 
-Generate the manifest, then route directly off it in-session. No routing sub-dispatch: the orchestrator reads the manifest and applies the rules below itself. (Self-route-v1 blind A/B, n=99: PROMOTE — +8.1 accuracy points over the Haiku hop, zero new safety-bucket misses, stub-tier 9→12; it fixes the agent-attribution failure and deletes a dispatch round trip. `scripts/routing-ab-results/self-route-v1/VERDICT.md`.)
+Acquire the manifest (cache-first, below), then route directly off it in-session. No routing sub-dispatch: the orchestrator reads the manifest and applies the rules below itself. (Self-route-v1 blind A/B, n=99: PROMOTE — +8.1 accuracy points over the Haiku hop, zero new safety-bucket misses, stub-tier 9→12; it fixes the agent-attribution failure and deletes a dispatch round trip. `scripts/routing-ab-results/self-route-v1/VERDICT.md`.)
+
+Acquire the manifest cache-first. A hash-gated disk cache (`~/.claude/cache/routing-manifest.txt` + `.hash` sidecar, ADR router-improvement-program C5) is kept fresh by the `session-manifest-cache` SessionStart hook and by the INDEX sync hooks after regeneration. Read the cache when the sidecar digest matches the generator's inputs; on absent/stale cache, fall back to running the generator (verbatim command, unchanged behavior):
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
-python3 "$SDIR/routing-manifest.py"
+BASE="$(dirname "$SDIR")"; CACHE="${HOME}/.claude/cache/routing-manifest.txt"; CHASH="${HOME}/.claude/cache/routing-manifest.hash"
+if [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$BASE/skills/INDEX.json" "$BASE/skills/INDEX.local.json" "$BASE/agents/INDEX.json" "$BASE/agents/INDEX.local.json" "$BASE/skills/workflow/references/pipeline-index.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
+  cat "$CACHE"    # cache hit: manifest read from disk, no Python start
+else
+  python3 "$SDIR/routing-manifest.py"
+fi
 ```
+
+The digest recompute is the freshness proof: it hashes the exact files the generator reads (missing files skipped — `hooks/lib/manifest_cache.py` computes the identical digest), so a stale sidecar can never serve an outdated manifest. Any mismatch, missing file, or empty cache runs the generator exactly as before.
 
 Given the user request and the manifest of available agents, skills, and pipelines, select the BEST agent+skill combination, and optionally a pipeline. Hold the decision internally as JSON (never printed; the `[do-route]` marker in Phase 4 is its only external trace):
 

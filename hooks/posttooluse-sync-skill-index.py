@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 PostToolUse Hook: Auto-sync INDEX.json on SKILL.md frontmatter changes
 
@@ -40,6 +40,22 @@ from stdin_timeout import read_stdin
 
 # Matches skills/**/SKILL.md (flat and nested category layouts)
 SKILL_FILE_RE = re.compile(r"skills/(?:[^/]+/)+SKILL\.md$")
+
+
+def _refresh_manifest_cache() -> None:
+    """Refresh the /do routing-manifest cache after an INDEX regen (C5).
+
+    Best-effort: the SessionStart hook re-checks next session, and /do
+    Phase 2's hash check falls back to the generator on any mismatch.
+    """
+    try:
+        from manifest_cache import refresh, resolve_scripts_dir
+
+        sdir = resolve_scripts_dir()
+        if sdir is not None:
+            refresh(sdir)
+    except Exception:
+        pass
 
 
 def main() -> None:
@@ -84,6 +100,7 @@ def main() -> None:
             # Emit a brief confirmation — model sees this as context
             skill_name = Path(file_path).parent.name
             print(f"[sync-skill-index] INDEX.json regenerated after {skill_name}/SKILL.md edit")
+            _refresh_manifest_cache()
         else:
             print(
                 f"[sync-skill-index] generator failed (exit {result.returncode})",
