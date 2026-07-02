@@ -1,240 +1,194 @@
 # Explanation Traces — Patterns to Fix
 
-Failure modes for both trace producers (hooks that write session-trace.json) and trace
-consumers (this skill reading it). Organized by who makes the mistake.
+Failure modes when reading `route-events.jsonl`, organized by kind: consumer
+mistakes (this skill's behavior) and producer-side diagnostics (recognizing why
+the recorded data is thin). The producers are fixed toolkit code
+(`hooks/routing-decision-recorder.py`, `hooks/routing-outcome-finalizer.py`,
+both writing through `hooks/lib/route_events.py`) — thin data usually means an
+older log line or an uninstrumented marker, and the fix is correct
+interpretation, never editing the log.
 
----
+Path used throughout:
 
-## Producer Patterns to Fix (Hook Writers)
-
-### AP-1: Post-Hoc Trace Writing
-
-**Detection** (find hooks that append after execution rather than at decision time):
 ```bash
-grep -rn "session-trace" hooks/ --include="*.py" | grep -v "import\|def "
-rg 'session.trace' hooks/ -l
+LOG="${CLAUDE_LEARNING_DIR:-$HOME/.claude/learning}/route-events.jsonl"
 ```
-
-**What it looks like**:
-```python
-# Hook writes after the full agent run completes
-def on_agent_stop(event):
-    # WRONG: Writing what happened, not what was decided
-    append_trace({
-        "timestamp": datetime.utcnow().isoformat(),
-        "type": "agent-selection",
-        "chosen": event["agent"],
-        "evidence": "agent completed successfully",  # outcome, not decision signal
-        "alternatives": [],
-    })
-```
-
-**Why wrong**: Post-hoc traces record outcomes, not decisions. The `evidence` becomes
-"it worked" rather than the actual scoring signals. Callers using `explanation-traces`
-get confident-sounding but meaningless answers.
-
-**Fix**:
-```python
-# Write at classification time, before dispatch
-def on_pre_tool_use(event):
-    if event["tool"] == "Agent":
-        chosen = event["input"]["subagent_type"]
-        # Capture scoring from the router, not the outcome
-        append_trace({
-            "timestamp": datetime.utcnow().isoformat(),
-            "type": "agent-selection",
-            "chosen": chosen,
-            "evidence": router_scores.get(chosen, "no score recorded"),
-            "alternatives": list(router_scores.keys()),
-        })
-```
-
----
-
-### AP-2: Null Alternatives
-
-**Detection**:
-```bash
-grep -n '"alternatives": null' session-trace.json
-rg '"alternatives":\s*null' session-trace.json
-# Also catch missing alternatives field entirely:
-python3 -c "
-import json, sys
-data = json.load(open('session-trace.json'))
-bad = [i for i, d in enumerate(data['decisions']) if 'alternatives' not in d]
-print(f'Missing alternatives field at indices: {bad}')
-"
-```
-
-**What it looks like**:
-```json
-{
-  "timestamp": "2026-04-01T10:00:00Z",
-  "type": "routing",
-  "chosen": "skill:roast",
-  "alternatives": null,
-  "evidence": "force_route triggered"
-}
-```
-
-**Why wrong**: `null` is not the same as `[]`. The schema requires an array. When the
-skill parses this, `alternatives` fails the `isinstance(v, list)` check. Consumers
-cannot distinguish "no alternatives considered" from "alternatives field missing".
-
-**Fix**: Use `[]` (empty array) when force_route was used and no alternatives were scored:
-```json
-{ "alternatives": [] }
-```
-
----
-
-### AP-3: Vague Evidence Strings
-
-**Detection**:
-```bash
-grep -n '"evidence": ""' session-trace.json
-rg '"evidence":\s*"(seemed right|best option|obvious choice|default)"' session-trace.json
-# Check evidence length — short evidence is usually vague:
-python3 -c "
-import json
-data = json.load(open('session-trace.json'))
-short = [(i, d['evidence']) for i, d in enumerate(data['decisions'])
-         if len(d.get('evidence', '')) < 20]
-for i, ev in short: print(f'[{i}] Short evidence: {repr(ev)}')
-"
-```
-
-**What it looks like**:
-```json
-{ "evidence": "seemed like the right choice" }
-{ "evidence": "best match" }
-{ "evidence": "" }
-```
-
-**Why wrong**: These evidence strings tell the user nothing. When they ask "why did you
-pick that agent?", the skill must quote the evidence field verbatim. Vague evidence
-produces vague explanations — the opposite of what the skill exists to provide.
-
-**Fix**: Evidence must include at least one of: trigger string, score value, or matched signal:
-```json
-{ "evidence": "Trigger 'roast this' matched skill:roast force_route=true; no scoring run" }
-{ "evidence": "reviewer-code scored 0.92 vs reviewer-domain 0.41; keywords: 'function', 'bug'" }
-```
-
----
-
-### AP-4: Overwriting Instead of Appending
-
-**Detection**:
-```bash
-# Find hooks that open with 'w' mode (overwrite) instead of read-then-write:
-grep -rn "open.*session-trace.*['\"]w['\"]" hooks/
-rg 'open\([^)]*session.trace[^)]*["\']w["\']' hooks/ --type py
-```
-
-**What it looks like**:
-```python
-# WRONG: Overwrites entire file each time
-with open("session-trace.json", "w") as f:
-    json.dump({"decisions": [new_entry]}, f)
-```
-
-**Why wrong**: Every hook invocation destroys all prior decisions. A session that makes
-10 routing decisions ends up with only the last one in the trace. The timeline is
-unrecoverable.
-
-**Fix**:
-```python
-import json, os
-
-def append_trace(entry):
-    path = "session-trace.json"
-    if os.path.exists(path):
-        with open(path) as f:
-            data = json.load(f)
-    else:
-        data = {"session_id": generate_id(), "started_at": now_iso(), "decisions": []}
-    data["decisions"].append(entry)
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-```
-
----
-
-### AP-5: Non-Monotonic Timestamps
-
-**Detection**:
-```bash
-python3 -c "
-import json
-data = json.load(open('session-trace.json'))
-ts = [d['timestamp'] for d in data['decisions']]
-for i in range(1, len(ts)):
-    if ts[i] < ts[i-1]:
-        print(f'Non-monotonic: [{i-1}] {ts[i-1]} > [{i}] {ts[i]}')
-"
-```
-
-**Why wrong**: If timestamps go backwards, the skill cannot sort decisions reliably.
-Chronological presentation breaks. This often happens when a hook generates timestamps
-at initialization rather than at emission time.
-
-**Fix**: Always call `datetime.utcnow().isoformat() + "Z"` at the moment the entry is
-created, not at hook startup.
 
 ---
 
 ## Consumer Patterns to Fix (Skill Behavior)
 
-### AP-6: Reconstructing Decisions from Conversation History
+### AP-1: Reconstructing Decisions from Conversation History
 
 **What it looks like** (incorrect skill behavior):
-> "The trace file doesn't exist, but based on the conversation I can tell the router
+> "The log doesn't exist, but based on the conversation I can tell the router
 > probably chose the golang agent because the user mentioned Go..."
 
-**Why wrong**: This is exactly the rationalization the skill exists to prevent. If no
-trace file exists, the correct answer is "no trace file found" — not an inference from
-memory or conversation history.
+**Why wrong**: This is exactly the rationalization the skill exists to prevent.
+The recorded event is the only evidence of what the router saw at decision time.
 
-**Correct behavior**: Report the missing file. Explain how to enable tracing. Do not fill
-the gap with inference. See SKILL.md Phase 1 Step 2 for the exact message to produce.
-
----
-
-### AP-7: Dumping Raw JSON Without Filtering
-
-**What it looks like**: Printing the entire `session-trace.json` content when the user
-asks a specific question like "why did you pick the code reviewer?".
-
-**Why wrong**: Unfiltered JSON forces the user to manually scan for the relevant entry.
-A 20-decision trace printed as raw JSON is noise, not an explanation.
-
-**Correct behavior**: Filter to the specific decision type, lead with the answer to the
-user's question, then offer the full timeline as supplementary context. See SKILL.md
-Phase 2 Step 2 for the filter strategy table.
+**Correct behavior**: Report the missing log, name the real path and producing
+hook, and stop. See SKILL.md Phase 1 Step 2 for the exact message.
 
 ---
 
-### AP-8: Treating Incomplete Traces as Complete
+### AP-2: Joining Outcomes by File Adjacency
 
-**What it looks like**: Presenting a timeline without flagging that several decisions have
-empty `evidence` fields.
+**What it looks like**: Pairing an OUTCOME event with the DECISION on the line
+above it.
 
-**Why wrong**: The user assumes the explanation is authoritative. Missing evidence means
-the "why" for those decisions is unknown — presenting them without a caveat creates false
-confidence in the explanation.
+**Why wrong**: Appends from parallel sessions interleave at line granularity.
+The outcome above may belong to a different session's dispatch. An outcome also
+lands minutes-to-hours after its decision — anything can sit between them.
 
-**Correct behavior**: Flag incomplete entries explicitly (SKILL.md Phase 3 Step 3).
-Report count of entries with missing/empty evidence. Never fill gaps silently.
+**Correct behavior**: Match on same `session` AND
+`key == f"{agent}:{skill}"`. Verify join quality:
+
+```bash
+python3 - "$LOG" <<'EOF'
+import json, sys
+dec, out = {}, set()
+for line in open(sys.argv[1]):
+    if not line.strip():
+        continue
+    e = json.loads(line)
+    if e["type"] == "decision":
+        dec[(e["session"], f"{e['agent']}:{e['skill']}")] = dec.get((e["session"], f"{e['agent']}:{e['skill']}"), 0) + 1
+    else:
+        out.add((e["session"], e["key"]))
+matched = sum(1 for k in dec if k in out)
+print(f"decision keys: {len(dec)}, with matched outcome: {matched}")
+EOF
+```
+
+---
+
+### AP-3: Conflating the Three Health States
+
+**What it looks like**: Rendering every `null` `health_at_decision` as
+"no health data".
+
+**Why wrong**: `null` carries two different facts, split by
+`gate_inputs_present`:
+- `true` → instrumented, but the pick had no weight row (a new pair — valid, expected)
+- `false`/absent → legacy marker, health never read
+
+Collapsing them hides whether the health gate ran.
+
+**Correct behavior**: Render the three states distinctly (SKILL.md Phase 3
+Step 1 table). Count each state:
+
+```bash
+python3 - "$LOG" <<'EOF'
+import json, sys, collections
+c = collections.Counter()
+for line in open(sys.argv[1]):
+    if not line.strip():
+        continue
+    e = json.loads(line)
+    if e["type"] != "decision":
+        continue
+    if e.get("health_at_decision") is not None:
+        c["(a) numeric"] += 1
+    elif e.get("gate_inputs_present"):
+        c["(b) no weight row"] += 1
+    else:
+        c["(c) legacy/uninstrumented"] += 1
+print(dict(c))
+EOF
+```
+
+---
+
+### AP-4: Treating Absent Additive Fields as Corruption
+
+**What it looks like**: Flagging lines without `gate_inputs_present` or
+`reason` as malformed.
+
+**Why wrong**: The schema grew append-compatibly; old lines lack new fields by
+design. `n`/`failure`/`action`/`alternates` are also `null` on any dispatch
+where no numeric `health=` was read.
+
+**Correct behavior**: Absent = "not recorded then". Flag the count in the
+timeline note; keep the entries.
+
+---
+
+### AP-5: Sorting by File Order Instead of `ts`
+
+**What it looks like**: Presenting events in the order they appear in the file.
+
+**Why wrong**: Concurrent appends interleave; a slow hook can land its line
+after a faster one with an earlier `ts`. File order approximates time but does
+not guarantee it.
+
+**Correct behavior**: Sort numerically on `ts` (a float, epoch seconds), then
+group by session for display.
+
+---
+
+### AP-6: Dumping Raw JSONL Without Filtering
+
+**What it looks like**: Printing raw log lines when the user asks a specific
+question like "why did I get the governance agent?".
+
+**Why wrong**: A 500-event log printed raw is noise, not an explanation.
+
+**Correct behavior**: Filter to the matching decision, lead with the answer,
+offer the session timeline as supplementary context. See SKILL.md Phase 2
+Step 2 for the filter table.
+
+---
+
+### AP-7: Leaking `request_snippet` Outside the Session
+
+**What it looks like**: Pasting `request_snippet` values into a PR body, issue,
+or exported report while demonstrating the skill.
+
+**Why wrong**: The snippet is the first 200 chars of a real user request —
+private session data. Showing it to the session's own user is the skill's job;
+sending it elsewhere is a leak.
+
+**Correct behavior**: Inside the session, quote snippets freely. In anything
+that leaves the session, report counts and field-presence statistics only.
+
+---
+
+## Producer-Side Diagnostics (Why the Data Is Thin)
+
+### AP-8: Missing Decisions — the Dispatch Was Never Recorded
+
+**Detection**:
+```bash
+ls ~/.claude/hooks/ | grep -E "routing-(decision-recorder|outcome-finalizer)"
+```
+
+**Interpretation**: The recorder appends a DECISION only for /do-routed
+dispatches carrying a `[do-route]` marker; manual Agent calls and nested
+fan-out are deliberately excluded (they would inflate route-health's
+denominator). Recorder absent from `~/.claude/hooks/` means merged hook changes
+were never synced — run `hooks/sync-to-user-claude.py`.
+
+---
+
+### AP-9: High Legacy Rate — Markers Without `health=`
+
+**Detection**: Run the AP-3 state counter. A large "(c) legacy/uninstrumented"
+share among *recent* decisions means current markers lack the `health=` token.
+
+**Interpretation**: `gate_inputs_present` is the signal the decommission clock
+reads. State (c) on old lines is history; state (c) on new lines means the
+router's Step-1.5 wiring regressed — worth a report against
+`skills/meta/do/SKILL.md` Phase 4, never a log edit.
 
 ---
 
 ## Quick Detection Cheatsheet
 
-| Pattern | Detection command |
+| Question | Command |
 |---|---|
-| Empty evidence | `rg '"evidence":\s*""' session-trace.json` |
-| Null alternatives | `rg '"alternatives":\s*null' session-trace.json` |
-| Overwrite hooks | `grep -rn 'open.*session-trace.*"w"' hooks/` |
-| Non-monotonic timestamps | see AP-5 detection block |
-| Missing required fields | `python3 -c "import json; fields={'timestamp','type','chosen','alternatives','evidence','context'}; [print(i, fields-set(d)) for i,d in enumerate(json.load(open('session-trace.json'))['decisions']) if fields-set(d)]"` |
+| Event counts by type | `python3 -c "import json,collections,os;p=os.path.expandvars('$LOG');print(collections.Counter(json.loads(l)['type'] for l in open(p) if l.strip()))"` |
+| Malformed lines | see error-handling.md, "Malformed JSONL Line" |
+| Health-state split | AP-3 counter above |
+| Decisions with matched outcomes | AP-2 join checker above |
+| Recorder synced | `ls ~/.claude/hooks/ \| grep routing-decision-recorder` |

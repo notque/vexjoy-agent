@@ -1,236 +1,193 @@
 # Explanation Traces — Error Handling
 
-Error-fix mappings for every error state the skill encounters when reading and parsing
-`session-trace.json`. Each entry includes: what the error looks like, root cause, and
-exact response to give the user.
+Error-fix mappings for every error state the skill encounters when reading
+`route-events.jsonl`. Each entry includes: what the error looks like, root cause, and
+the exact response to give the user. All commands are read-only.
+
+Path used throughout:
+
+```bash
+LOG="${CLAUDE_LEARNING_DIR:-$HOME/.claude/learning}/route-events.jsonl"
+```
 
 ---
 
-## Error: No Trace File Found
+## Error: No Log File Found
 
-**Trigger**: None of the search paths (`./session-trace.json`, `.claude/session-trace.json`,
-`**/session-trace.json`) return a readable file.
+**Trigger**: `$LOG` is absent or zero lines.
 
 **Root causes**:
 | Cause | How to identify |
 |---|---|
-| Tracing hook never installed | `ls hooks/ | grep trace` returns nothing |
-| Hook installed but never fired | Hook file exists, but session-trace.json absent |
-| File written to wrong path | `find . -name "session-trace*" 2>/dev/null` finds it elsewhere |
-| File cleaned up between sessions | `git status` shows it was deleted or .gitignored |
+| No /do-routed dispatch recorded yet | `~/.claude/learning/` exists but has no `route-events.jsonl` |
+| Hooks merged but never synced to `~/.claude` | `ls ~/.claude/hooks/ \| grep routing-decision-recorder` returns nothing |
+| `CLAUDE_LEARNING_DIR` points elsewhere | `echo "$CLAUDE_LEARNING_DIR"` is set; check that directory instead |
 
 **Detection** (run to diagnose which cause applies):
 ```bash
-# Check if any hook references session-trace:
-grep -rn "session-trace" hooks/ --include="*.py"
-# Find any trace file anywhere in the project:
-find . -name "session-trace*" 2>/dev/null
-# Check gitignore:
-grep "session-trace" .gitignore
+echo "resolved: $LOG"; ls -la "$LOG" 2>/dev/null
+echo "env: CLAUDE_LEARNING_DIR=${CLAUDE_LEARNING_DIR:-<unset>}"
+ls ~/.claude/hooks/ 2>/dev/null | grep -E "routing-(decision-recorder|outcome-finalizer)"
 ```
 
 **Response to user**:
 ```
-No session-trace.json found.
+No route event log found at ~/.claude/learning/route-events.jsonl
+(or $CLAUDE_LEARNING_DIR/route-events.jsonl when that variable is set).
 
-To enable decision tracing, add a hook that writes routing decisions,
-agent selections, skill phase transitions, and gate verdicts to
-session-trace.json. See: skills/meta/explanation-traces/references/trace-schema.md
-for the expected JSON format.
+The log is created on the first /do-routed dispatch by the
+routing-decision-recorder hook (hooks/routing-decision-recorder.py).
+An empty or missing log means no /do-routed dispatch has been recorded
+yet — or merged hook changes were never synced to ~/.claude; run
+hooks/sync-to-user-claude.py or restart the session.
 ```
 
-Read decisions from the trace file only. If no file exists, report that there is nothing
+Read decisions from the log only. If no file exists, report that there is nothing
 to read.
 
 ---
 
-## Error: Trace File Is Malformed JSON
+## Error: Malformed JSONL Line
 
-**Trigger**: `json.JSONDecodeError` (Python) or `SyntaxError` when parsing.
-
-**Common error messages**:
-```
-json.JSONDecodeError: Expecting ',' delimiter: line 47 column 3 (char 1203)
-json.JSONDecodeError: Unterminated string starting at: line 23 (char 890)
-json.JSONDecodeError: Extra data: line 2 column 1 (char 247)
-```
+**Trigger**: `json.JSONDecodeError` on an individual line.
 
 **Root causes**:
 | Cause | Symptom |
 |---|---|
-| Partial write (process killed mid-write) | File truncated; last `}` or `]` missing |
-| Race condition (two hooks writing simultaneously) | Duplicate or interleaved JSON objects |
-| Manual edit error | Trailing comma, unquoted key, etc. |
+| Truncated append (process killed mid-write; rare — per-line appends are atomic) | Last line of the file is a JSON prefix |
+| Manual edit | Bad line anywhere in the file |
 
 **Detection**:
 ```bash
-# Validate JSON syntax:
-python3 -m json.tool session-trace.json > /dev/null
-# Or:
-python3 -c "import json; json.load(open('session-trace.json'))"
-# Find the exact byte offset of the error:
-python3 -c "
-import json
-try:
-    json.load(open('session-trace.json'))
-except json.JSONDecodeError as e:
-    print(f'Error at line {e.lineno}, col {e.colno}, char {e.pos}: {e.msg}')
-"
+python3 - "$LOG" <<'EOF'
+import json, sys
+bad = []
+for i, line in enumerate(open(sys.argv[1]), 1):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        json.loads(line)
+    except json.JSONDecodeError as e:
+        bad.append((i, e.msg))
+print("malformed lines:", bad or "none")
+EOF
 ```
 
 **Response to user**:
 ```
-session-trace.json exists but cannot be parsed.
-
-Parse error: [include exact error message and line/char offset]
-
-Attempting to recover entries before the corruption point...
-[show any valid decisions found before the error position]
-
-The trace is incomplete. Decisions after char [N] are unavailable.
+route-events.jsonl has [N] unparseable line(s): [line numbers].
+Skipping them; [M] valid events remain and are shown below.
 ```
 
-**Recovery attempt**: Try to extract the valid prefix by parsing the file byte-by-byte
-up to the error position. Report what was recovered vs. what was lost.
+JSONL fails per line, never whole-file: skip each bad line, keep every parseable
+event, and report the skip count. Recovery of a truncated final line is
+unnecessary — the contract loses at most that one event.
 
 ---
 
-## Error: Trace File Has No Decision Entries
+## Error: Log Has No Decision Events
 
-**Trigger**: File parses successfully, but `data["decisions"]` is empty (`[]`) or the
-`decisions` key is absent entirely.
-
-**Distinguish the two cases**:
-```python
-data = json.load(open("session-trace.json"))
-if "decisions" not in data:
-    # Key absent — hook is writing wrong schema
-    print("decisions key missing from trace file")
-elif len(data["decisions"]) == 0:
-    # Key present but empty — hook fired but recorded nothing
-    print("decisions array is present but empty")
-```
+**Trigger**: File parses, but zero lines have `"type": "decision"`.
 
 **Detection**:
 ```bash
-python3 -c "
-import json
-data = json.load(open('session-trace.json'))
-print('decisions key present:', 'decisions' in data)
-print('decision count:', len(data.get('decisions', [])))
-print('top-level keys:', list(data.keys()))
-"
+python3 - "$LOG" <<'EOF'
+import json, sys, collections
+c = collections.Counter(json.loads(l)["type"] for l in open(sys.argv[1]) if l.strip())
+print("counts by type:", dict(c))
+EOF
 ```
 
 **Root causes**:
 | Symptom | Likely cause |
 |---|---|
-| `decisions` key missing | Hook writes different schema (e.g., only metadata) |
-| `decisions` is `[]` | Hook fires but the decision-recording code path never runs |
-| File is `{}` | Hook creates the file but never populates it |
+| Only `outcome` events | Recorder hook missing from `~/.claude/hooks/` while the finalizer is present |
+| File empty | No /do-routed dispatch since the log was created |
+| Dispatches happened but nothing recorded | Recorder skips dispatches without a `[do-route]` marker (deliberate: keeps route-health's denominator honest) — the dispatches were not /do-routed, or the marker is malformed |
 
 **Response to user**:
 ```
-session-trace.json exists [and the decisions array is present] but contains zero
-decision entries.
+route-events.jsonl exists with [N] outcome event(s) and zero decision events.
 
-This means the hook is running but no decisions were recorded. Check:
-1. Does the hook emit entries on PreToolUse (agent dispatch) or only on PostToolUse?
-2. Is the decision-writing code path gated behind a condition that never fires?
-
-See: skills/meta/explanation-traces/references/trace-schema.md for the expected
-schema and hook writing rules.
+Decisions are appended by hooks/routing-decision-recorder.py (PostToolUse on
+Agent dispatch) and only for /do-routed dispatches carrying a [do-route]
+marker. Check that the recorder is synced to ~/.claude/hooks/ and that the
+dispatches you expect were /do-routed.
 ```
 
 ---
 
-## Error: Decision Entry Missing Required Fields
+## Error: Decision Has No Matched Outcome
 
-**Trigger**: An entry in `decisions` is missing one or more of the six required fields:
-`timestamp`, `type`, `chosen`, `alternatives`, `evidence`, `context`.
+**Trigger**: A DECISION event has no OUTCOME with the same `session` and
+`key == "{agent}:{skill}"`.
 
-**Detection**:
-```bash
-python3 -c "
-import json
-REQUIRED = {'timestamp', 'type', 'chosen', 'alternatives', 'evidence', 'context'}
-data = json.load(open('session-trace.json'))
-for i, d in enumerate(data['decisions']):
-    missing = REQUIRED - set(d.keys())
-    if missing:
-        print(f'Entry [{i}]: missing fields: {missing}')
-"
-```
+**Root causes**:
+| Cause | How to identify |
+|---|---|
+| Pending — finalizer has not run yet | Decision is recent; the finalizer fires on the next user prompt |
+| Session ended before finalization | Decision `ts` is old and its session has no later events |
+| Finalizer dropped it (stale, past max pending age) | Old decision, no outcome ever appears |
 
-**Response to user**:
-```
-[N] decision entries have incomplete records:
-
-Entry [2]: missing fields: evidence, alternatives
-Entry [7]: missing fields: context
-
-These entries show WHAT was decided but not WHY. The recording hook did not
-capture full context at decision time. Presenting available fields only.
-```
-
-Flag each incomplete entry in the timeline output. Do not invent values for missing fields.
+**Response to user**: Label the entry `pending — not yet finalized` (recent) or
+`never finalized` (old). Outcomes arrive on a later user prompt, so a missing
+outcome right after a dispatch is normal, never an error. Report the recorded
+state; leave the outcome unset rather than inferring one.
 
 ---
 
-## Error: Invalid `type` Field Value
+## Error: Absent Additive Fields
 
-**Trigger**: An entry's `type` field contains a value other than `routing`, `agent-selection`,
-`skill-phase`, or `gate-verdict`.
+**Trigger**: A decision lacks `n`/`failure`/`action`/`alternates` or
+`gate_inputs_present`; an outcome lacks `reason` or `routing_relevant`.
 
-**Detection**:
-```bash
-python3 -c "
-import json
-VALID = {'routing', 'agent-selection', 'skill-phase', 'gate-verdict'}
-data = json.load(open('session-trace.json'))
-for i, d in enumerate(data['decisions']):
-    t = d.get('type', '')
-    if t not in VALID:
-        print(f'Entry [{i}]: invalid type {repr(t)} (valid: {VALID})')
-"
+**Cause**: The schema grew append-compatibly — lines written before a field
+shipped simply lack it. Also, `n`/`failure`/`action`/`alternates` stay `null`
+unless a real numeric `health=` was read (see trace-schema.md, health states).
+
+**Response to user**: Treat absence as "not recorded then". Flag counts:
 ```
-
-**Common invalid values**: `"agent_selection"` (underscore instead of hyphen),
-`"Agent"` (capitalized), `"decision"` (wrong category name).
-
-**Response to user**: Include the entry in the timeline but label it `[UNKNOWN TYPE]`.
-Do not silently drop entries with invalid types.
+Note: [N] decision(s) predate the health-gate instrumentation — they show
+WHAT was routed but carry no health data.
+```
+Present the fields that exist; leave the rest as unknown rather than inventing
+values.
 
 ---
 
-## Error: User Asks About a Decision Not in the Trace
+## Error: User Asks About a Dispatch Not in the Log
 
-**Trigger**: User asks "why did you choose X?" but no entry in `decisions` matches X
-in the `chosen` or `alternatives` fields.
+**Trigger**: User asks "why did I get routed to X?" but no DECISION matches X in
+`agent`, `skill`, or `alternates`.
 
 **Detection logic**:
 ```python
 query = "golang-general-engineer"
 matches = [d for d in decisions
-           if query in d.get("chosen", "") or query in d.get("alternatives", [])]
-if not matches:
-    # Decision was not recorded
+           if query in d.get("agent", "") or query in d.get("skill", "")
+           or query in (d.get("alternates") or [])]
 ```
+
+**Root causes**:
+| Cause | Explanation |
+|---|---|
+| Dispatch was not /do-routed | Manual Agent calls carry no `[do-route]` marker; the recorder skips them |
+| Nested fan-out | The recorder records top-level /do-routed dispatches only — recording nested sub-dispatches would inflate route-health's denominator |
+| Different session or older than the log | Filter widened to all sessions still finds nothing |
 
 **Response to user**:
 ```
-No trace entry found for [X].
+No decision event found for [X].
 
-The session trace has [N] decisions recorded:
-  - [list types and chosen values from the trace]
-
-The decision you're asking about was not captured. To record [X] decisions,
-the hook needs to emit a [routing|agent-selection|skill-phase|gate-verdict]
-entry when [X] is selected.
+The log records /do-routed top-level dispatches only. This session has [N]
+recorded decision(s): [list agent+skill pairs]. The dispatch you asked about
+was either not /do-routed or was a nested sub-dispatch, which the recorder
+deliberately excludes.
 ```
 
-Show what IS in the trace. Do not speculate about why X was chosen when it has no
-trace entry.
+Show what IS in the log. Leave unrecorded dispatches unexplained rather than
+speculating.
 
 ---
 
@@ -238,10 +195,9 @@ trace entry.
 
 | Error | Root cause | User message keyword | Fix |
 |---|---|---|---|
-| No file found | Hook not installed or wrong path | "No session-trace.json found" | Install tracing hook; see trace-schema.md |
-| Malformed JSON | Partial write or race condition | "cannot be parsed" | Show error offset; attempt recovery of pre-error entries |
-| `decisions` key missing | Wrong schema from hook | "decisions key missing" | Fix hook to use correct top-level structure |
-| `decisions` is empty | Hook fires but records nothing | "zero decision entries" | Check hook's decision-recording code path |
-| Missing required fields | Incomplete hook implementation | "incomplete records" | Flag affected entries; never invent missing values |
-| Invalid `type` value | Typo or schema drift in hook | `[UNKNOWN TYPE]` label | Label in output; do not drop |
-| Decision not in trace | Hook doesn't record that decision type | "not captured" | Show what is in trace; explain what hook change would fix it |
+| No log file | No dispatch yet, hooks unsynced, or env redirect | "No route event log found" | Name real path + producing hook; suggest sync-to-user-claude.py |
+| Malformed line | Truncated append or manual edit | "unparseable line(s)" | Skip per line; report count; keep valid events |
+| No decision events | Recorder unsynced or dispatches not /do-routed | "zero decision events" | Check recorder in ~/.claude/hooks/; confirm [do-route] marker |
+| Unmatched outcome | Pending or never finalized | "pending — not yet finalized" | Label the state; outcomes arrive on a later prompt |
+| Absent additive fields | Pre-instrumentation lines | "predate the health-gate instrumentation" | Treat as unknown; flag counts; keep values as recorded |
+| Dispatch not in log | Not /do-routed or nested fan-out | "not /do-routed" | Show recorded decisions; explain the exclusion |
