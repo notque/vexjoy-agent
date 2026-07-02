@@ -48,7 +48,7 @@ Confidence in handling a task directly is a signal to route: direct handling ski
 
 ## Output Discipline
 
-Every word the router prints and every dispatched agent prompt follows the **Dense-Complete Writing standard** (quoted verbatim in the Phase 4 injection). Full rules: `skills/shared-patterns/dense-complete-writing.md`.
+Every word the router prints and every dispatched agent prompt follows the **Dense-Complete Writing standard** (injected verbatim by `scripts/build-dispatch.py` at Phase 4 dispatch). Full rules: `skills/shared-patterns/dense-complete-writing.md`.
 
 **User sees:** phase banners, routing decision banner, brief post-agent summary (what changed, not how).
 **Internal only:** routing JSON, classification reasoning, enhancement stacking (unless Verbose Routing ON).
@@ -249,7 +249,7 @@ Policy thresholds (for reading the recorded would-action, not for changing the r
 
 **Always log the evaluation** to the T3 event stream: set `health_at_decision` to the picked pair's `confidence` scalar (a float, or `null` when the pair has no weight row); `n` and `failure` are separate fields. The recorder writes all three from the marker onto the per-dispatch DECISION event in `<CLAUDE_LEARNING_DIR>/route-events.jsonl`. Every route is scored even though nothing changes.
 
-Carry the gate inputs on the routing marker so the recorder snapshots them at decision time — confidence alone cannot reconstruct the demote floor; it needs `n` and `failure` too. Append format and example: Phase 4 Step 2.
+Carry the gate inputs on the routing marker so the recorder snapshots them at decision time — confidence alone cannot reconstruct the demote floor; it needs `n` and `failure` too. Pass them as the `health` field of the routing JSON; `scripts/build-dispatch.py` emits the marker (Phase 4 Step 2).
 
 **Step 1: Deterministic safety-net** (reads `PRE_ROUTE_RESULT` — runs AFTER the semantic decision, never short-circuits it)
 
@@ -370,52 +370,37 @@ When Step 1b and Step 1c both apply (a Medium+ code modification that also has a
 
 Dispatch the agent. Inject no MCP instructions; tool discovery is the agent's job.
 
-**Prepend Task Specification for Medium+ tasks.** For Simple tasks, include Intent and Acceptance when extractable. Invent no criteria; expand no scope.
-
-```
-## Task Specification (auto-extracted)
-
-**Intent:** <one sentence: what does success look like?>
-**Constraints:** <branch rules, operator-context, file paths, memory feedback>
-**Acceptance criteria:** <observable: tests pass, file exists, PR merges, specific output>
-**Relevant file locations:** <paths from request + expected paths>
-**Operator context:** <from [operator-context] tag>
-```
-
-Extraction: Intent from verb+object; Constraints include branch safety (keep main protected); Acceptance = observable outcomes. For creation, add "Implementation must match ADR `<kebab-case-name>`."
-
-Four injections (verbatim): completeness and density standards on Simple+; reference-loading and base instructions on all dispatches.
-
-**MANDATORY: Reference loading.** MUST include: "Before starting work, read your agent .md file to find the Reference Loading Table. Load EVERY reference file whose signal matches this task. Load greedily — if multiple signals match, load all matching references."
-
-**MANDATORY: Completeness standard.** MUST include: "Deliver the finished product. Ship the complete thing."
-
-**MANDATORY: Dense-Complete Writing standard.** MUST include: "Write to the Dense-Complete Writing standard — your structural guide for everything you do. It governs your output, code comments, any skill or reference files you write, AND every one of your thinking turns: (1) shortest accurate word; (2) cut every word that carries no instruction, rule, or decision; (3) plain English, not jargon; (4) concrete over abstract; (5) heavy qualifications in separate short sentences; (6) Completeness: treat content as fixed and wording as negotiable: carry every required point through the draft, then choose the shortest plain words that say those points exactly. Say everything the task needs and not one word more. Report what changed, not how. Full rules: `skills/shared-patterns/dense-complete-writing.md`."
-
-**MANDATORY: Base instructions.** MUST include: "Before starting work, also load `agents/base-instructions.md` for universal operational rules."
-
-**MANDATORY: Stamp the routing marker on every routed agent prompt.** Prepend verbatim: `[do-route] agent={agent} skill={skill} complexity={complexity}` (use `skill=-` when routing agent-only). It is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health. Stamp each agent in a roster.
-
-Append the Step 1.5 gate inputs to the same marker line so the recorder snapshots the route's decision-time health: ` health={confidence} n={n} fail={failure} action={keep|demote|tiebreak}`, plus ` alts={k1,k2}` when alternates were passed. When the picked pair has no weight row, append ` health=-` only (the recorder writes null). Example: `[do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium health=0.72 n=6 fail=0 action=keep`.
-
-When Phase 3 stacked enhancement skills on this dispatch, append the optional ` stack={s1,s2}` token (comma-separated skill names, no spaces) to the same marker line; omit it when nothing was stacked. The recorder parses it onto the decision event — instrumentation only. Example: `[do-route] agent=golang-general-engineer skill=go-patterns complexity=Complex health=- stack={test-driven-development,verification-before-completion}`.
-
-**Token budget signal (optional, documented).** Read `orchestration.token_budget` from `.claude/settings.json` (default 500000 when absent). Subtract a rough estimate of tokens spent; prepend to each agent prompt: "~{remaining} tokens available for this task; prioritize accordingly." Advisory, not a hard cap. Read the key once per session.
+**Build the dispatch preamble with `scripts/build-dispatch.py` (MANDATORY).** The script is the single source of truth for the `[do-route]` marker grammar, the thinking directives, the token-budget line, the Task Specification skeleton, the four mandatory verbatim injections (reference loading, completeness, Dense-Complete Writing, base instructions), and the optional worktree/local-only blocks. Never hand-assemble them. Assemble one routing-decision JSON per dispatch, run the script, prepend its stdout verbatim to the agent prompt. Roster: one run per worker prompt.
 
 ```bash
-TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settings.json')).get('orchestration',{}).get('token_budget',500000))" 2>/dev/null || echo 500000)
+python3 scripts/build-dispatch.py --json '{
+  "agent": "<agent>", "skill": "<skill; omit when agent-only>",
+  "complexity": "<trivial|simple|medium|complex>",
+  "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep", "alts": ["k1","k2"]},
+  "stack": ["s1","s2"],
+  "task_spec": {"intent": "...", "constraints": "...", "acceptance": "...",
+                "files": "...", "operator_context": "..."},
+  "flags": {"worktree": false, "local_only": false, "thinking_override": null},
+  "token_remaining": 480000
+}'
 ```
 
-**Inject thinking directive.** Prepend verbatim, no framing:
+Field sourcing (omit any optional field; the script degrades gracefully):
 
-| Complexity | Thinking Directive |
-|---|---|
-| Trivial | None (no agent) |
-| Simple | "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly." |
-| Medium | None (adaptive) |
-| Complex | "Think carefully and step-by-step before responding; this problem is harder than it looks." |
+- `agent`/`skill`/`complexity`: the Phase 2 decision. Omitted skill => marker gets `skill=-`.
+- `health`: the Step 1.5 gate inputs (`confidence`/`n`/`failure`/`action`, `alts` when alternates were offered). Omit when the picked pair has no weight row => marker gets `health=-`. The recorder snapshots these at decision time.
+- `stack`: the Phase 3 enhancement skills stacked on this dispatch; omit when none. Instrumentation only.
+- `task_spec`: extract per the rules below. Mandatory for Medium+; for Simple include intent and acceptance when extractable. Invent no criteria; expand no scope.
+- `flags.worktree`: true for `isolation: "worktree"` agents — the script injects the worktree rules.
+- `flags.local_only`: true when Phase 3 detected local-only signals — the script injects the LOCAL-ONLY block.
+- `flags.thinking_override`: "slow" for security work, API/schema design, migrations, 5+ file reviews, architectural decisions; "fast" for lookups, status checks, single-function renames/refactors; else omit (the script picks the directive by complexity). Hooks capture the thinking class from dispatch metadata; the router records nothing.
+- `token_remaining`: `orchestration.token_budget` (`.claude/settings.json`, default 500000) minus a rough spend estimate; omit to emit the full budget. Advisory, not a hard cap.
 
-**Category overrides** (regardless of complexity): `thinking:slow` for security work, API/schema design, migrations, 5+ file reviews, architectural decisions; `thinking:fast` for lookups, status checks, single-function renames/refactors. Hooks capture the thinking class from dispatch metadata; the router sets the directive but records nothing.
+Task Specification extraction: Intent from verb+object; Constraints include branch safety (keep main protected), operator-context, memory feedback; Acceptance = observable outcomes. For creation, add "Implementation must match ADR `<kebab-case-name>`."
+
+The emitted `[do-route]` marker is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health.
+
+**Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=-` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
 
 **Verb-based model dispatch for Complex tasks (3+ data sources).** Extraction verbs use parallel Haiku readers; analysis verbs a single Opus agent.
 
@@ -426,7 +411,7 @@ TOKEN_BUDGET=$(python3 -c "import json,sys; print(json.load(open('.claude/settin
 
 Simple/Medium: dispatch directly.
 
-Route to agents that create feature branches; for file modifications, include "commit your changes on the branch". For `isolation: "worktree"` agents, inject `worktree-agent` rules: "Verify CWD contains .claude/worktrees/. Create feature branch before edits. Skip task_plan.md. Stage specific files only."
+Route to agents that create feature branches; for file modifications, include "commit your changes on the branch". For `isolation: "worktree"` agents set `flags.worktree` in the routing JSON — the script injects the `worktree-agent` rules.
 
 Non-org repos: up to 3 `/pr-review` → fix iterations before PR creation. Org-gated repos (via `scripts/classify-repo.py`): require user confirmation before EACH git action.
 
