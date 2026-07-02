@@ -197,7 +197,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
     defaults = data.get("defaults", {})
     for job in data["jobs"]:
-        job.setdefault("model", defaults.get("model", "haiku"))
+        job.setdefault("model", defaults.get("model", "sonnet"))
         job.setdefault("timeout_seconds", defaults.get("timeout_seconds", 120))
         job.setdefault("max_retries", defaults.get("max_retries", 0))
         job.setdefault("enabled", defaults.get("enabled", True))
@@ -247,7 +247,7 @@ def estimate_cost(model: str, stdout: str) -> float:
     """
     import re
 
-    rates = _COST_PER_MILLION.get(model, _COST_PER_MILLION["haiku"])
+    rates = _COST_PER_MILLION.get(model, _COST_PER_MILLION["sonnet"])
 
     # Try to parse token counts from Claude CLI output
     input_match = re.search(r"input[_ ]tokens?[:\s]+(\d+)", stdout, re.IGNORECASE)
@@ -326,7 +326,7 @@ class Scheduler:
             variables.update(extra_vars)
         prompt = render_prompt(job["prompt"], variables)
 
-        model = job.get("model", "haiku")
+        model = job.get("model", "sonnet")
         timeout = job.get("timeout_seconds", 120)
 
         log.info("Executing job=%s model=%s trigger=%s", name, model, trigger_type)

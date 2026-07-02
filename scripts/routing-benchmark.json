@@ -1,5 +1,5 @@
 {
-  "version": "1.4",
+  "version": "1.5",
   "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change. routing_tier classifies how strictly the router is expected to match: force_route (script must fire correct force_route), candidate (correct answer in top-3), llm_only (no false-positive force-route expected). Two pre-route tiers exercise pre-route.py (the /do deterministic safety net): pre_route_only (must match the expected route), pre_route_negative (must not force-route; idiom guards, D7 planning classes, fallthroughs, and sanitized route-events history patterns).",
   "test_cases": [
     {
@@ -963,6 +963,30 @@
       "category": "go-development",
       "routing_tier": "pre_route_only",
       "notes": "History pattern (Go test/fix traffic): go test intent must force-route to go-patterns"
+    },
+    {
+      "request": "run this data analysis through codex",
+      "expected_agent": null,
+      "expected_skill": "codex",
+      "category": "model-dispatch",
+      "routing_tier": "force_route",
+      "notes": "Bulk/mechanical data analysis on gpt-5.5 \u2014 force-route to codex (trigger: 'through codex')"
+    },
+    {
+      "request": "codex review my latest PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "model-dispatch",
+      "routing_tier": "force_route",
+      "notes": "Review stays with pr-workflow's codex-review intent, not the general codex lane"
+    },
+    {
+      "request": "make the signup email copy warmer",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "model-dispatch",
+      "routing_tier": "llm_only",
+      "notes": "User-facing copy work (taste >= 7 per model-selection policy) \u2014 must NOT force-route to codex"
     }
   ]
 }
