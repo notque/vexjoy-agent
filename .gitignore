@@ -104,15 +104,12 @@ private-voices/
 skills/shared-patterns/anti-rhetorical-pivot.md
 skills/shared-patterns/wabi-sabi-authenticity.md
 skills/shared-patterns/voice-first-writing.md
-agents/wrestlejoy-*
-skills/wrestlejoy-*
 skills/voice-*
 !skills/voice-writer/
 !skills/voice-validator/
 !skills/voice-shared/
 !skills/voice-shared-references/
 skills/voice
-skills/gemini-wrestlejoy-*
 
 # Generated index artifacts — derived from SKILL.md/agent frontmatter.
 # Regenerated at install/CI/runtime (ADR untrack-generated-indexes). Never tracked.
