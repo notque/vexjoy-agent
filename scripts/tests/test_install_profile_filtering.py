@@ -61,6 +61,10 @@ def _first_top_level_skill() -> str:
 def fake_home(tmp_path: Path) -> Path:
     home = tmp_path / "home"
     home.mkdir()
+    # install.sh syncs a runtime mirror only when the runtime's command is on
+    # PATH or its home dir exists. CI runners lack the codex CLI, so pre-create
+    # ~/.codex to simulate a machine with the Codex runtime installed.
+    (home / ".codex").mkdir()
     return home
 
 
