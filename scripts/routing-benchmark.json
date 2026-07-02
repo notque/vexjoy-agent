@@ -1,6 +1,6 @@
 {
-  "version": "1.3",
-  "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change. routing_tier classifies how strictly the router is expected to match: force_route (script must fire correct force_route), candidate (correct answer in top-3), llm_only (no false-positive force-route expected).",
+  "version": "1.4",
+  "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change. routing_tier classifies how strictly the router is expected to match: force_route (script must fire correct force_route), candidate (correct answer in top-3), llm_only (no false-positive force-route expected). Two pre-route tiers exercise pre-route.py (the /do deterministic safety net): pre_route_only (must match the expected route), pre_route_negative (must not force-route; idiom guards, D7 planning classes, fallthroughs, and sanitized route-events history patterns).",
   "test_cases": [
     {
       "request": "push my changes to GitHub",
@@ -651,6 +651,318 @@
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
       "notes": "Gathering CI failure context, not a news pipeline \u2014 must NOT route to news-collection ('the' breaks the 'collect news' trigger)"
+    },
+    {
+      "request": "push back on this design",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Disagreement idiom, not git push - pre-route must not force-route (guard word 'back')"
+    },
+    {
+      "request": "fish out the bug",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Search idiom, not the Fish shell - phrase guard 'fish out' must suppress"
+    },
+    {
+      "request": "commit to a decision",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Resolve idiom, not git commit - pre-route must not force-route"
+    },
+    {
+      "request": "merge ideas in your head",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Thinking idiom, not git merge - phrase guard 'merge ideas' must suppress"
+    },
+    {
+      "request": "commit to a decision by friday",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Deadline idiom, not git commit - pre-route must not force-route"
+    },
+    {
+      "request": "push back on the proposed architecture",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Disagreement idiom, not git push - guard word 'back' must suppress"
+    },
+    {
+      "request": "merge these ideas into one proposal",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Synthesis idiom, not git merge - phrase guard 'merge ideas' must suppress"
+    },
+    {
+      "request": "ship of theseus argument about identity",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Philosophy idiom, not shipping code - phrase guard 'ship of theseus' must suppress"
+    },
+    {
+      "request": "review my essay draft",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Prose review, not a code/PR review - guard word 'essay' must suppress"
+    },
+    {
+      "request": "publish a paper on distributed consensus",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Academic publishing, not publishing code - phrase guard 'publish a paper' must suppress"
+    },
+    {
+      "request": "make the parser thread safe",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Concurrency mechanics, not a security review - 'code safe' guard word 'thread' must suppress"
+    },
+    {
+      "request": "break this function into smaller pieces",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Refactor phrasing - 'break into' routes to security-review only with an intrusion companion"
+    },
+    {
+      "request": "upload my work to google drive",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "File sync, not version control - phrase guard 'google drive' must suppress"
+    },
+    {
+      "request": "continue debugging the flaky integration test",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "D7 class 'continue': ordinary work continuation, not a plan-lifecycle request"
+    },
+    {
+      "request": "resume playback where the video stopped",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "D7 class 'resume': media control, not a plan-lifecycle request"
+    },
+    {
+      "request": "pause the batch job while we investigate",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "D7 class 'pause': process control, not a plan-lifecycle request"
+    },
+    {
+      "request": "unsure whether this cache is stale",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "D7 class 'unsure': uncertainty about a fact, not a plan-lifecycle request"
+    },
+    {
+      "request": "hand off the request to the load balancer",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "D7 class 'handoff': traffic routing, not a session handoff"
+    },
+    {
+      "request": "explain how the scheduler picks the next job",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "fallthrough",
+      "routing_tier": "pre_route_negative",
+      "notes": "Explanation request with no trigger keywords - must fall through to semantic routing"
+    },
+    {
+      "request": "what does this regex match",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "fallthrough",
+      "routing_tier": "pre_route_negative",
+      "notes": "Quick question with no trigger keywords - must fall through"
+    },
+    {
+      "request": "rename the helper for clarity",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "fallthrough",
+      "routing_tier": "pre_route_negative",
+      "notes": "Small edit with no trigger keywords - must fall through"
+    },
+    {
+      "request": "summarize the differences between these two configs",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "fallthrough",
+      "routing_tier": "pre_route_negative",
+      "notes": "Comparison request with no trigger keywords - must fall through"
+    },
+    {
+      "request": "root-cause the ranking bug in the report",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "History pattern: debugging requests route semantically (systematic-debugging); pre-route must not force-route"
+    },
+    {
+      "request": "go live with the feature flag rollout",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "notes": "Feature launch idiom, not a web deploy - 'go live' needs a deploy companion word"
+    },
+    {
+      "request": "commit these changes and push to origin",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "Commit+push intent must force-route to pr-workflow so git quality gates always run"
+    },
+    {
+      "request": "git push my branch and open a pull request",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "Push+PR intent must force-route to pr-workflow"
+    },
+    {
+      "request": "check whether CI went green on my pull request",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "CI status on a submitted change - supplemental trigger 'went green' must fire"
+    },
+    {
+      "request": "push my work, open a PR, and watch the checks",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "History pattern (push, PR, CI, merge requests): must force-route to pr-workflow"
+    },
+    {
+      "request": "stage and commit my changes",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "Stage+commit intent must force-route to pr-workflow"
+    },
+    {
+      "request": "submit my changes for review",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "routing_tier": "pre_route_only",
+      "notes": "Paraphrased git intent - supplemental trigger 'submit changes' must fire"
+    },
+    {
+      "request": "run a security review on the upload handler",
+      "expected_agent": null,
+      "expected_skill": "security-review",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Explicit security review must force-route to security-review"
+    },
+    {
+      "request": "check whether anyone could break into this server",
+      "expected_agent": null,
+      "expected_skill": "security-review",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Intrusion phrasing - 'break into' with companion 'anyone' must force-route"
+    },
+    {
+      "request": "did I leave any passwords or keys in the code",
+      "expected_agent": null,
+      "expected_skill": "security-review",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Secret-leak check - supplemental trigger 'passwords keys' must fire"
+    },
+    {
+      "request": "scan this diff for security vulnerabilities",
+      "expected_agent": null,
+      "expected_skill": "security-review",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Vulnerability scan must force-route to security-review"
+    },
+    {
+      "request": "is this endpoint code safe to expose",
+      "expected_agent": null,
+      "expected_skill": "security-review",
+      "category": "security",
+      "routing_tier": "pre_route_only",
+      "notes": "Safety question about code - 'code safe' trigger with no mechanics guard word must fire"
+    },
+    {
+      "request": "resume the plan for the schema migration",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_only",
+      "notes": "D7 positive class: plan resume must keep force-route (new phrasing; originals in test_pre_route_planning.py)"
+    },
+    {
+      "request": "pause the plan until the review lands",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_only",
+      "notes": "D7 positive class: plan pause must keep force-route"
+    },
+    {
+      "request": "create a plan for splitting the monolith",
+      "expected_agent": null,
+      "expected_skill": "planning",
+      "category": "planning-d7-guard",
+      "routing_tier": "pre_route_only",
+      "notes": "D7 positive class: plan creation must keep force-route"
+    },
+    {
+      "request": "run the go tests for the parser package",
+      "expected_agent": null,
+      "expected_skill": "go-patterns",
+      "category": "go-development",
+      "routing_tier": "pre_route_only",
+      "notes": "History pattern (Go test/fix traffic): go test intent must force-route to go-patterns"
     }
   ]
 }
