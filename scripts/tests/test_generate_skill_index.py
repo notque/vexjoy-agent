@@ -263,3 +263,60 @@ class TestCLIFlag:
         assert result.returncode == 0, f"CLI failed:\n{result.stderr}"
         assert custom_output.exists(), "Output file not created"
         json.loads(custom_output.read_text())  # must be valid JSON
+
+
+class TestPrunePhantomEntries:
+    """Entries advertising files that exist in no layout are pruned (audit defect D1)."""
+
+    def _index(self, file_path: str) -> dict:
+        return {
+            "skills": {
+                "sample-skill": {
+                    "file": file_path,
+                    "description": "A sample skill.",
+                    "triggers": ["sample"],
+                }
+            }
+        }
+
+    def test_existing_file_survives(self, tmp_path: Path) -> None:
+        """An entry whose advertised file resolves under a root is kept."""
+        skill_md = tmp_path / "skills" / "sample-skill" / "SKILL.md"
+        skill_md.parent.mkdir(parents=True)
+        skill_md.write_text("---\nname: sample-skill\n---\n")
+        index = self._index("skills/sample-skill/SKILL.md")
+
+        pruned = gsi.prune_phantom_entries(index, [tmp_path])
+
+        assert pruned == []
+        assert "sample-skill" in index["skills"]
+
+    def test_missing_file_is_pruned(self, tmp_path: Path) -> None:
+        """An entry whose advertised file exists under no root is removed."""
+        index = self._index("skills/sample-skill/SKILL.md")
+
+        pruned = gsi.prune_phantom_entries(index, [tmp_path, tmp_path / "deployed"])
+
+        assert pruned == ["sample-skill"]
+        assert index["skills"] == {}
+
+    def test_nested_layout_flat_path_is_pruned(self, tmp_path: Path) -> None:
+        """Reproduces D1: a package with only nested skill/SKILL.md gets a flat
+        advertised path that resolves nowhere — it must be pruned."""
+        nested = tmp_path / "skills" / "voice-sample" / "skill" / "SKILL.md"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("---\nname: voice-sample\n---\n")
+        index = {
+            "skills": {
+                "voice-sample": {
+                    "file": "skills/voice-sample/SKILL.md",  # flat path; only skill/SKILL.md exists
+                    "description": "Nested-layout package.",
+                    "triggers": ["voice sample"],
+                }
+            }
+        }
+
+        pruned = gsi.prune_phantom_entries(index, [tmp_path])
+
+        assert pruned == ["voice-sample"]
+        assert index["skills"] == {}
