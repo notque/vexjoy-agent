@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.2.0
 """
 PostToolUse Hook: Routing Decision Recorder (action A, formerly /do Phase 5)
 
@@ -80,7 +80,9 @@ EVENT_NAME = "PostToolUse"
 # /do routing decision; agent + skill are read straight from it. Sub-agent
 # fan-out (pr-review reviewers, nested dispatches) carries no marker → skipped.
 #   [do-route] agent=python-general-engineer skill=test-driven-development complexity=Medium
-# skill may be empty/"-"/absent (agent-only routing).
+# skill may be empty/"-"/absent (agent-only routing). The same line may carry
+# optional tokens: health=/n=/fail=/action=/alts= (Step 1.5 gate inputs) and
+# stack={s1,s2} (the composed skill stack, instrumentation only).
 # Anchored to line start (^\s*, MULTILINE) so a quoted/forwarded marker
 # mid-prose (e.g. a user pasting "...the [do-route] line...") doesn't get
 # recorded — only a marker /do itself emitted at the head of a line counts.
@@ -92,6 +94,18 @@ _DO_ROUTE_RE = re.compile(
 # Optional complexity field on the same marker line, recorded into the T3 event
 # log for replay. Absent => "".
 _COMPLEXITY_RE = re.compile(r"\bcomplexity=([a-z0-9-]+)", re.IGNORECASE)
+
+# The router's complexity enum (do/SKILL.md Phase 1). Marker values are
+# lowercased and validated against it: production events carried both case
+# splits ("medium" vs "Medium") and invalid values ("Low"), which fragmented
+# per-complexity aggregation. Valid => store normalized; invalid => store ""
+# and keep the raw value in the event's complexity_invalid field for audit.
+_VALID_COMPLEXITY = frozenset({"trivial", "simple", "medium", "complex"})
+
+# Optional stack token on the marker line: ` stack={s1,s2}` — the skill stack
+# the router composed for this dispatch. Instrumentation only: parsed onto the
+# decision event as a list; absent token => no field. Same charset as alts=.
+_STACK_RE = re.compile(r"\bstack=\{([a-z0-9:_,-]*)\}", re.IGNORECASE)
 
 # Step 1.5 health gate inputs on the same marker line (do/SKILL.md Phase 4 Step 2).
 # Each is an independent \b token. `health=-` => null (no weight row); else float.
@@ -188,6 +202,43 @@ def parse_health_inputs(prompt: str) -> HealthGateInputs:
         "alternates": [k for k in altm.group(1).split(",") if k] if altm else None,
         "gate_inputs_present": True,
     }
+
+
+def parse_marker_complexity(marker_text: str) -> tuple[str, str]:
+    """Read complexity off the marker LINE: (normalized, invalid_raw).
+
+    Scoped to the marker line (same rationale as parse_health_inputs, Finding
+    70): a task body mentioning `complexity=...` must not be read as the
+    router's value. Returns:
+      valid value   => ("medium", "")   — lowercased, in _VALID_COMPLEXITY
+      invalid value => ("", "Low")      — raw kept for the complexity_invalid
+                                          event field, never silently dropped
+      absent        => ("", "")
+    """
+    line = _marker_line(marker_text)
+    m = _COMPLEXITY_RE.search(line)
+    if not m:
+        return "", ""
+    raw = m.group(1)
+    normalized = raw.lower()
+    if normalized in _VALID_COMPLEXITY:
+        return normalized, ""
+    return "", raw
+
+
+def parse_stack(marker_text: str) -> list[str] | None:
+    """Read the optional ` stack={s1,s2}` token off the marker LINE, or None.
+
+    None when the token is absent (or empty) => the decision event carries no
+    stack field. Instrumentation only — the router spec change that EMITS the
+    token lands separately; this parser is forward-tolerant of it.
+    """
+    line = _marker_line(marker_text)
+    m = _STACK_RE.search(line)
+    if not m:
+        return None
+    items = [s for s in m.group(1).split(",") if s]
+    return items or None
 
 
 # Right-sizing banner. The first four fields are required; findings= and the
@@ -446,8 +497,8 @@ def main() -> None:
             # T3: per-dispatch DECISION event (JSONL), append-only + failure-safe.
             # Auxiliary to the aggregate row above — never blocks; route_events
             # swallows write errors so the hook stays non-blocking.
-            cm = _COMPLEXITY_RE.search(marker_text)
-            complexity = cm.group(1) if cm else ""
+            complexity, complexity_invalid = parse_marker_complexity(marker_text)
+            stack = parse_stack(marker_text)
             health = parse_health_inputs(marker_text)
             from route_events import record_decision_event
 
@@ -457,6 +508,8 @@ def main() -> None:
                 agent=agent,
                 skill=skill,
                 complexity=complexity,
+                complexity_invalid=complexity_invalid,
+                stack=stack,
                 health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
                 n=health["n"],
                 failure=health["failure"],

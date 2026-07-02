@@ -33,6 +33,7 @@ Task completes: TaskCompleted
 | `afk-mode` | Injects autonomous behavioral posture for unattended sessions (SSH, tmux, or `CLAUDE_AFK_MODE=always`). See [AFK Mode docs](afk-mode/README.md) |
 | `cross-repo-agents` | Discovers local `.claude/agents/` in the working directory and injects them for `/do` routing |
 | `fish-shell-detector` | Detects Fish shell users and injects the `fish-shell-config` skill |
+| `hook-version-parity-check` | Warn-only: compares deployed `~/.claude/hooks/*.py` hook-version headers against the repo checkout; on drift names the hooks and the sync command |
 | `session-github-briefing` | Injects GitHub monitoring briefing into session context (opt-in: `CLAUDE_KAIROS_ENABLED=true`) |
 | `operator-context-detector` | Detects operator context (personal/work/ci/production) and injects behavioral profile |
 | `retro-knowledge-injector` | Stub — previously injected retro knowledge; replaced by auto-dream via `session-context.py` |
@@ -68,7 +69,7 @@ Task completes: TaskCompleted
 | `pretool-unified-gate` | Bash, Write, Edit | Consolidated gate (ADR-068): gitignore bypass, git submission, dangerous commands, creation gate, sensitive file guard |
 | `ci-merge-gate` | Bash | Blocks `gh pr merge` when CI checks have not passed |
 | `mcp-health-check` | MCP tools | Probes MCP servers before tool calls; blocks (exit 2) if unhealthy and within backoff window. Also records failures in PostToolUse |
-| `pretool-adr-creation-gate` | Write | Blocks new agent/skill/pipeline creation when no corresponding ADR exists |
+| `pretool-adr-creation-gate` | Write | Blocks new agent/skill/pipeline/hook creation when no corresponding ADR exists |
 | `pretool-branch-safety` | Bash | Blocks `git commit` when on `main` or `master` branch |
 | `pretool-config-protection` | Write, Edit, MultiEdit | Blocks modifications to linter/formatter config files (ESLint, Prettier, Biome, Ruff, golangci-lint, etc.) |
 | `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/` when `task_plan.md` does not exist |

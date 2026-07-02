@@ -149,3 +149,55 @@ class TestADRCreationGate:
     def test_malformed_json_fails_open(self):
         """Invalid JSON must exit cleanly without blocking."""
         assert _run_main("not valid json {{{") == 0
+
+
+class TestHookCreationGate:
+    """New hooks/*.py files are components too: ADR-before-Write, same hard
+    gate as agents/skills/pipelines. Edits to existing hooks stay allowed;
+    hooks/lib/ and hooks/tests/ files are infrastructure, not components."""
+
+    def test_new_hook_without_adr_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "hooks" / "shiny-new-hook.py"
+            payload = _make_write_event(str(target), cwd=tmp)
+            assert _run_main(payload) == 2
+
+    def test_new_hook_with_adr_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            adr_dir = Path(tmp) / "adr"
+            adr_dir.mkdir()
+            (adr_dir / "shiny-new-hook.md").write_text("# ADR\n")
+            target = Path(tmp) / "hooks" / "shiny-new-hook.py"
+            payload = _make_write_event(str(target), cwd=tmp)
+            assert _run_main(payload) == 0
+
+    def test_existing_hook_edit_allowed(self):
+        """Overwriting an existing hook file is an update, not a creation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks_dir = Path(tmp) / "hooks"
+            hooks_dir.mkdir()
+            target = hooks_dir / "existing-hook.py"
+            target.write_text("# hook\n")
+            payload = _make_write_event(str(target), cwd=tmp)
+            assert _run_main(payload) == 0
+
+    def test_hook_lib_and_tests_files_not_gated(self):
+        """Nested hooks/lib/ and hooks/tests/ paths are not hook components."""
+        with tempfile.TemporaryDirectory() as tmp:
+            for rel in ("hooks/lib/new_helper.py", "hooks/tests/test_new_hook.py"):
+                target = Path(tmp) / rel
+                payload = _make_write_event(str(target), cwd=tmp)
+                assert _run_main(payload) == 0, rel
+
+    def test_hook_init_py_not_gated(self):
+        """hooks/__init__.py is packaging, not a component."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "hooks" / "__init__.py"
+            payload = _make_write_event(str(target), cwd=tmp)
+            assert _run_main(payload) == 0
+
+    def test_extract_component_name_for_hook(self):
+        assert mod._extract_component_name("/repo/hooks/my-hook.py") == "my-hook"
+        assert mod._extract_component_name("/repo/hooks/lib/util.py") is None
+        assert mod._extract_component_name("/repo/hooks/tests/test_x.py") is None
+        assert mod._extract_component_name("/repo/hooks/__init__.py") is None

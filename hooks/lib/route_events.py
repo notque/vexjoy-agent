@@ -64,6 +64,8 @@ def record_decision_event(
     agent: str,
     skill: str,
     complexity: str = "",
+    complexity_invalid: str = "",
+    stack: list[str] | None = None,
     health_at_decision: float | None = None,
     n: int | None = None,
     failure: int | None = None,
@@ -87,24 +89,33 @@ def record_decision_event(
     marker carried no `health=` token (state c, legacy/missing wiring). This
     distinguishes "no-row, but instrumented" from "never instrumented" — null
     health_at_decision alone cannot. Additive field; old readers ignore it.
+
+    complexity is the NORMALIZED enum value (trivial/simple/medium/complex) or
+    "". complexity_invalid carries a raw marker value that failed validation
+    (e.g. "Low") — written only when non-empty, so the bad value is kept for
+    audit instead of dropped. stack is the parsed ` stack={s1,s2}` marker token;
+    written only when present, so stack-free markers write unchanged events.
     """
-    _append(
-        {
-            "type": "decision",
-            "ts": time.time(),
-            "session": session or "",
-            "request_snippet": (request_snippet or "")[:200],
-            "agent": agent or "",
-            "skill": skill or "",
-            "complexity": complexity or "",
-            "health_at_decision": health_at_decision,
-            "n": n,
-            "failure": failure,
-            "action": action,
-            "alternates": alternates,
-            "gate_inputs_present": gate_inputs_present,
-        }
-    )
+    event: dict[str, Any] = {
+        "type": "decision",
+        "ts": time.time(),
+        "session": session or "",
+        "request_snippet": (request_snippet or "")[:200],
+        "agent": agent or "",
+        "skill": skill or "",
+        "complexity": complexity or "",
+        "health_at_decision": health_at_decision,
+        "n": n,
+        "failure": failure,
+        "action": action,
+        "alternates": alternates,
+        "gate_inputs_present": gate_inputs_present,
+    }
+    if complexity_invalid:
+        event["complexity_invalid"] = complexity_invalid
+    if stack is not None:
+        event["stack"] = stack
+    _append(event)
 
 
 def record_outcome_event(
