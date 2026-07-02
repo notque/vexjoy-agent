@@ -116,6 +116,12 @@ Source: `hooks/session-adr-health-check.py`.
 Meaning: An `.adr-session.json` was detected; the listed ADR governs creation work this session.
 Action: Treat the named ADR as binding for any creation request. Read it via `adr-query.py context` before writing new agents, skills, pipelines, or hooks. The `adr-enforcement` PostToolUse hook will flag drift.
 
+### `[hook-parity] WARNING: N deployed hook(s) differ from this checkout`
+
+Source: `hooks/hook-version-parity-check.py`.
+Meaning: The `# hook-version:` headers of the named deployed hooks in `~/.claude/hooks/` do not match this checkout — merged code is not deployed, so hook telemetry may be running stale logic.
+Action: Warn-only; nothing is blocked. Surface the drift to the user and suggest the included fix command (`python3 ~/.claude/hooks/sync-to-user-claude.py`). Expected in worktree sessions on hook-touching branches. Do not treat hook telemetry gaps as code bugs while this warning is active.
+
 ## Prompt-Signal Tags (emitted mid-conversation, require routing action)
 
 ### `[pipeline-creator]` plus `[auto-skill] pipeline-scaffolder` (plus JSON snapshot)

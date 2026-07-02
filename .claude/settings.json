@@ -96,6 +96,13 @@
             "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
+            "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
+            "timeout": 3000,
+            "once": true
           }
         ]
       }
