@@ -411,22 +411,24 @@ The emitted `[do-route]` marker is the SOLE signal `routing-decision-recorder` u
 
 **Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=-` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
 
-**Model Selection (owner policy — ADR `model-selection-policy`; canonical copy of the table).** Pick the model per dispatch from this table. Rankings, higher = better; cost = what the owner actually pays.
+**Model Selection (owner policy — ADR `model-selection-policy`; this is the canonical table — all other copies cite it).** Consult the table per dispatch. Rankings, higher = better; cost = what the owner actually pays.
 
-| model | cost | intelligence | taste | reach |
+| model | cost | intelligence | taste | role |
 |---|---|---|---|---|
-| gpt-5.5 | 9 | 8 | 5 | Codex CLI only — dispatch via the `codex` skill (wrapper mechanics live there) |
-| sonnet-5 | 5 | 5 | 7 | Agent/Workflow `model: "sonnet"` |
-| opus-4.8 | 4 | 7 | 8 | Agent/Workflow `model: "opus"` |
-| fable-5 | 2 | 9 | 9 | Agent/Workflow `model: "fable"` |
+| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex wrapper (`codex` skill). Dispatch target. |
+| sonnet-5 | 5 | 5 | 7 | Mechanical/reader fan-out, lighter routed work. `model: "sonnet"`. Dispatch target. |
+| opus-4.8 | 4 | 7 | 8 | Reviews, audits, analysis, deep work. `model: "opus"`. Dispatch target. |
+| fable-5 | 2 | 9 | 9 | Highest technical requirements only — deliberate escalation, never routine dispatch. |
 
 Rules:
 
-- **Defaults, not limits.** Standing permission to override: if a cheaper model's output misses the bar, rerun with a smarter model without asking. Judge the output, not the price tag. Escalating costs less than shipping mediocre work.
+- **The orchestrator is whatever model runs the main thread** — fable/opus/sonnet under Claude Code, gpt-5.5 under Codex. It classifies, routes, evaluates results, synthesizes.
+- **Explicit model required for Medium+ dispatches.** Omitting `model` inherits the session main-loop model. When an expensive model orchestrates, omission silently propagates it to every worker. Every Medium/Complex/Critical dispatch MUST set `model` explicitly. Omission is allowed only for Trivial/Simple lookups where sonnet-tier inheritance risk is acceptable.
+- **Defaults, not limits.** Standing permission to override: if a cheaper model's output misses the bar, rerun with a smarter model without asking. Judge the output, not the price tag. Escalating costs less than shipping mediocre work. Escalation path: sonnet → opus → gpt-5.5 cross-check → rerun with tighter spec.
 - For anything that ships: intelligence > taste > cost. Cost is a tie-breaker only.
 - Bulk/mechanical work (clear-spec implementation, data analysis, migrations) → gpt-5.5 — effectively free.
 - Anything user-facing (UI, copy, API design) needs taste ≥ 7.
-- Reviews of plans/implementations → fable-5 or opus-4.8; optionally gpt-5.5 as an extra independent perspective.
+- Reviews of plans/implementations → opus-4.8; optionally gpt-5.5 via codex as an extra independent perspective.
 - Haiku is retired — select only from the table above.
 - **Wrapper symmetry:** the wrapper serves whichever model family is NOT the current harness. Under Claude Code (current default), gpt-5.5 runs through a wrapper — the dispatched agent runs `codex exec` via Bash with a self-contained prompt, or a thin Claude wrapper agent (`model: "sonnet"`, low effort) writes the self-contained codex prompt, runs it, returns the result. Under the Codex harness, Claude models take the wrapper instead. Claude models under Claude Code need only the `model` parameter.
 - `codex exec -s read-only` for investigation/data-analysis prompts not covered by existing codex flows.
@@ -438,8 +440,8 @@ Decision rules live here; execution mechanics live in the `codex` skill (`skills
 
 | Task verb class | Dispatch mode |
 |---|---|
-| list, count, extract, inventory, search, check, find, grep | Mechanical extraction fan-out: gpt-5.5 via the codex wrapper (`codex` skill) or `model: "sonnet"` readers (one per data source) → `fable`/`opus` synthesizer per the table |
-| review, audit, assess, analyze, debug, investigate, evaluate | Single `fable` or `opus` agent (direct), per the table |
+| list, count, extract, inventory, search, check, find, grep | Mechanical extraction fan-out: gpt-5.5 via the codex wrapper (`codex` skill) or `model: "sonnet"` readers (one per data source) → orchestrator synthesizes in-session or `model: "opus"` synthesizer agent |
+| review, audit, assess, analyze, debug, investigate, evaluate | Single `model: "opus"` agent (direct), per the table |
 
 Simple/Medium: dispatch directly.
 
