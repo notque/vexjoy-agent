@@ -13,11 +13,12 @@ allowed-tools:
   - Skill
 routing:
   triggers:
-    - "update routing"
+    - "update routing tables"
     - "sync routing tables"
     - "routing maintenance"
     - "rebuild routing index"
     - "routing drift"
+  not_for: "fleet-wide routing policy, trigger governance, or standards enforcement (use the toolkit-governance-engineer agent). This skill mechanically regenerates and repairs the INDEX files."
   category: meta-tooling
   pairs_with:
     - toolkit-evolution
