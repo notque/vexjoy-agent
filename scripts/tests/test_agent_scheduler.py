@@ -217,10 +217,10 @@ class TestCostEstimation:
         expected = (1000 / 1_000_000) * 0.25 + (500 / 1_000_000) * 1.25
         assert abs(cost - round(expected, 6)) < 0.000001
 
-    def test_unknown_model_falls_back_to_haiku(self) -> None:
+    def test_unknown_model_falls_back_to_sonnet(self) -> None:
         cost = agent_scheduler.estimate_cost("unknown-model", "x" * 400)
-        haiku_cost = agent_scheduler.estimate_cost("haiku", "x" * 400)
-        assert cost == haiku_cost
+        sonnet_cost = agent_scheduler.estimate_cost("sonnet", "x" * 400)
+        assert cost == sonnet_cost
 
 
 # ---------------------------------------------------------------------------

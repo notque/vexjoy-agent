@@ -119,7 +119,7 @@ Invoke: /pr-workflow codex-review
 Scope: git diff --cached (staged changes)
 ```
 
-Codex runs in read-only sandbox mode with GPT-5.4 `high` reasoning by default (`xhigh` is opt-in for hard correctness analysis -- security/concurrency/migrations). It produces structured findings (CRITICAL / IMPROVEMENTS / POSITIVE / SUMMARY). Claude assesses each finding before incorporating -- Codex feedback is a second opinion, not authoritative.
+Codex runs in read-only sandbox mode with GPT-5.5 `high` reasoning by default (`xhigh` is opt-in for hard correctness analysis -- security/concurrency/migrations). It produces structured findings (CRITICAL / IMPROVEMENTS / POSITIVE / SUMMARY). Claude assesses each finding before incorporating -- Codex feedback is a second opinion, not authoritative.
 
 **If Codex finds CRITICAL issues that Claude agrees with**: Fix them and re-stage before proceeding.
 **If Codex is unavailable or errors**: Log the skip reason and proceed. This phase must never block the pipeline.

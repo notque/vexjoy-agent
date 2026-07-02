@@ -377,7 +377,7 @@ Example: ["Always exit 0 from hooks regardless of errors", "Never auto-apply cha
 
 Return [] if no universal principles are found."""
 
-        raw, _ = _run_claude_code(prompt, model="claude-haiku-4-5")
+        raw, _ = _run_claude_code(prompt, model="sonnet")
         raw = raw.strip()
         # Parse JSON
         principles = json.loads(raw)

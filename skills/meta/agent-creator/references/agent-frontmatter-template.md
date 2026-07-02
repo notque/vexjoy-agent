@@ -23,8 +23,8 @@ description: "Domain-specific work: concrete capability A, capability B. Not for
 color: blue
 
 # Optional: model override. Omit to use the session default.
-# Values: haiku (classification/scanning), sonnet (implementation/review).
-# Do not set opus — inspect task decomposition if opus seems required.
+# Values: sonnet (implementation/review), opus or fable (deep analysis/review).
+# Model-selection policy: /do SKILL.md, Model Selection. Haiku is retired.
 model: sonnet
 
 routing:
@@ -80,7 +80,7 @@ user_invocable: false
 | `name` | yes | string | lowercase, hyphens, numbers |
 | `description` | yes | quoted string | 60–120 chars; no "Use when:" prefix |
 | `color` | no | string | blue, green, yellow, red, purple, orange |
-| `model` | no | string | haiku, sonnet |
+| `model` | no | string | sonnet, opus, fable |
 | `routing.triggers` | yes | list | 3–6 natural-speech phrases |
 | `routing.pairs_with` | no | list | agent names that exist on disk |
 | `routing.complexity` | yes | enum | Low, Medium, High (case-sensitive) |
@@ -102,7 +102,7 @@ user_invocable: false
 
 ## Description Craft
 
-The router and Haiku selector see `name` and `description` first — often the only fields they consult before short-listing. A weak description fails to route reliably even when the body is correct.
+The router sees `name` and `description` first — often the only fields it consults before short-listing. A weak description fails to route reliably even when the body is correct.
 
 A strong description does three jobs in 60–120 characters:
 

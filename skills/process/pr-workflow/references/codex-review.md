@@ -1,6 +1,6 @@
 # Codex Review Intent
 
-Invoke OpenAI's Codex CLI (GPT-5.4 with maximum reasoning effort) to get an independent second opinion on code changes.
+Invoke OpenAI's Codex CLI (GPT-5.5 with maximum reasoning effort) to get an independent second opinion on code changes.
 
 ## Reference Loading
 

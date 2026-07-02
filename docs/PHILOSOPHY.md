@@ -222,7 +222,7 @@ The loop is designed, not incidental. `scripts/validate-doc-counts.py` runs as a
 
 ## Components Earn Their Keep
 
-One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 133 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
+One Domain, One Component governs creation. This governs retirement. A component's value is measured in routes carried; the route-weights and route-events telemetry is the detector (read it via `scripts/learning-db.py` route-health). Zero routes over a long window means shelf-ware: a candidate for demotion to a stub in the manifest, archival, or deletion — with demand-driven reactivation when traffic returns. As of 2026-06-10, the live working set — roughly four agents and six skills — carries nearly all routed traffic across 134 skills. A dated observation, not a permanent number. Recursive Measurement applies to the catalog itself: a component nobody routes to is context every session still pays for.
 
 Hooks need this governance most: a hook is the easiest component to create and the hardest to manage. Managing, correcting, and retiring hooks is named, recurring debt. The detector seed exists — the hook-health CI job (`scripts/validate-hook-health.py`, gating in `.github/workflows/test.yml`) — and the route-events/learning instrumentation pattern generalizes to hook firings. A hook nobody can attribute a benefit to is shelf-ware with side effects — worse than a shelf-ware skill, because it executes.
 
@@ -328,12 +328,15 @@ The biggest risk: rationalization. "Already done" (assumption). "Code looks corr
 
 ### Model Policy by Task Class
 
+Owner model-selection policy (ADR `model-selection-policy`; operational table in `skills/meta/do/SKILL.md`, Model Selection):
+
 | Model | Use for |
 |---|---|
-| `haiku` | Cheap classification: extraction, inventory, scanning, backlog generation. Routing was Haiku pre-#777; self-route since (`scripts/routing-ab-results/self-route-v1/VERDICT.md`) |
+| `gpt-5.5` (Codex CLI, `codex` skill) | Bulk/mechanical: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps |
 | `sonnet` | Substantive execution: implementation, review, synthesis, semantic rewriting |
+| `opus` / `fable` | Deep analysis and reviews of plans/implementations; user-facing work needing taste |
 
-Do not treat `opus` as default upgrade. If a component needs opus, inspect its prompt shape and task decomposition first.
+Haiku is retired (routing was Haiku pre-#777; self-route since — `scripts/routing-ab-results/self-route-v1/VERDICT.md`). Defaults, not limits: escalate to a smarter model whenever cheaper output misses the bar; for anything that ships, intelligence > taste > cost, with cost a tie-breaker only.
 
 **Token costs are not fungible.** One Opus token costs ~30x one Haiku token. Optimization targets the expensive model, not the cheap one. "Saves Haiku calls" is never a valid justification. Pre-routing's value is determinism (regex can't misroute). Phase gates' value is preventing Opus rework.
 
