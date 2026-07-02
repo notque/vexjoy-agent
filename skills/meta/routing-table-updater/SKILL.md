@@ -28,9 +28,9 @@ routing:
 
 ## Overview
 
-This skill maintains /do routing tables and command references when skills or agents are added, modified, or removed. It implements a **Phase-Gated Pipeline** -- scan, extract, generate, update, verify -- with deterministic script execution at each phase.
+This skill maintains the /do routing indices when skills or agents are added, modified, or removed. It implements a **Phase-Gated Pipeline** -- scan, extract, generate, update, verify -- with deterministic script execution at each phase.
 
-The skill reads metadata from all skills and agents (never modifies them) and safely updates `skills/meta/do/SKILL.md`, `skills/meta/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md` files. All changes are backed up before modification, and markdown syntax is validated before commit.
+The skill reads metadata from all skills and agents (never modifies them) and validates and repairs the generated routing indices `skills/INDEX.json` and `agents/INDEX.json`. PostToolUse hooks (`hooks/posttooluse-sync-skill-index.py`, `hooks/posttooluse-sync-agent-index.py`) regenerate the indices automatically on every SKILL.md or agent-file edit; this skill covers drift those hooks miss (bulk changes, deletes outside the harness, corrupted index files).
 
 ---
 
@@ -43,7 +43,7 @@ The skill reads metadata from all skills and agents (never modifies them) and sa
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | worked update scenarios: new skill, conflict, manual entry, complexity change | `examples.md` | Loads detailed guidance from `examples.md`. |
 | extracting trigger phrases: 'use when' clauses, action verbs, domain keywords, complexity inference | `extraction-patterns.md` | Loads detailed guidance from `extraction-patterns.md`. |
-| /do routing table structure, auto-generated markers, ordering rules | `routing-format.md` | Loads detailed guidance from `routing-format.md`. |
+| routing entry format: frontmatter routing block fields, INDEX.json entry shape, regeneration | `routing-format.md` | Loads detailed guidance from `routing-format.md`. |
 | skill-entry examples for registering a newly created skill | `skill-examples.md` | Loads detailed guidance from `skill-examples.md`. |
 
 ## Instructions
@@ -100,9 +100,9 @@ Review against `references/extraction-patterns.md`. Patterns must be specific en
 
 ### Phase 3: GENERATE -- Create Routing Table Entries
 
-**Goal**: Map extracted metadata to routing entries and detect conflicts.
+**Goal**: Map extracted metadata to routing entries and detect trigger conflicts before the indices are rebuilt.
 
-**Constraints**: Deterministic generation (no randomness); entries follow exact /do format spec (`references/routing-format.md`); pattern conflicts detected immediately; entries sorted alphabetically; duplicates within same table block gate passage.
+**Constraints**: Deterministic generation (no randomness); pattern conflicts detected immediately; entries sorted alphabetically; duplicates within the same group block gate passage.
 
 **Step 1: Run generation script**
 
@@ -112,94 +112,69 @@ python3 ~/.claude/skills/meta/routing-table-updater/scripts/generate_routes.py -
 
 **Step 2: Understand the generation process**
 
-1. Load routing format spec from `references/routing-format.md`
-2. Map each capability to appropriate routing table
-3. Format entries according to /do table structure
-4. Detect pattern conflicts (see `references/conflict-resolution.md`)
-5. Sort entries alphabetically within tables
+1. Group each capability by the routing classification extracted in Phase 2
+2. Detect pattern conflicts (see `references/conflict-resolution.md`)
+3. Sort entries alphabetically within groups
 
 **Step 3: Review conflict detection output**
 
 Low-severity conflicts: script applies specificity rules automatically. High-severity conflicts: script blocks gate passage and requires manual resolution.
 
-**Gate**: All capabilities are mapped, entries follow /do format, conflicts are documented, and no duplicates remain within the same table. Proceed to Phase 4 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All capabilities are mapped, conflicts are documented, and no duplicates remain within the same group. Proceed to Phase 4 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
 
 ---
 
-### Phase 4A: UPDATE -- Safely Modify commands/do.md
+### Phase 4: UPDATE -- Repair INDEX.json
 
-**Goal**: Apply generated routing entries to do.md with backup and validation.
+**Goal**: Bring `skills/INDEX.json` and `agents/INDEX.json` in line with filesystem state.
 
-**Constraints**: Always create timestamped backup before modification; preserve all hand-written entries (entries without `[AUTO-GENERATED]` marker are never overwritten); markdown table syntax validates after updates; atomic backup/restore on validation failure.
+**Constraints**: Both indices are generated, gitignored artifacts — repair means regenerating from frontmatter via the repo scripts; hand-edits to index files are lost on the next regeneration; source SKILL.md and agent files stay untouched; run from the repo root.
 
-**Step 1: Run update script with backup**
-
-```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/update_routing.py --input routing_entries.json --target $HOME/vexjoy-agent/commands/do.md --backup
-```
-
-**Step 2: Verify backup exists**
-
-Confirm backup file at `commands/.do.md.backup.{timestamp}` before any modifications proceed.
-
-**Step 3: Review the diff**
-
-The script outputs a diff showing new entries (+), modified entries (- old / + new), and preserved manual entries (unchanged). Review for correctness.
-
-**Step 4: Confirm or abort**
-
-If diff looks correct: confirm to apply. If unexpected: abort and investigate. With --auto-commit: confirmation skipped.
-
-**Step 5: Post-update validation**
-
-The script validates pipe alignment, header separator rows, consistent column counts, and no orphaned rows. On validation failure: automatic restore from backup. Report error details.
-
-**Gate**: Backup created, all manual entries preserved, markdown validated, diff confirmed. If gate fails, RESTORE from backup.
-
----
-
-### Phase 4B: UPDATE -- Update Command Files
-
-**Goal**: Update command files with current skill/agent references.
-
-**Constraints**: Command files updated only if they reference outdated/invalid skills; backups created for all modified files; all referenced skills must exist; markdown syntax validated after updates.
-
-**Step 1: Run update script with backup**
+**Step 1: Regenerate both indices**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/update_commands.py --commands-dir $HOME/vexjoy-agent/commands --metadata metadata.json --backup
+cd $HOME/vexjoy-agent
+python3 scripts/generate-skill-index.py
+python3 scripts/generate-agent-index.py
 ```
 
-**Step 2: Understand the update process**
+**Step 2: Check for phantom entries**
 
-1. Scan command files for skill invocations and references
-2. Identify outdated or invalid references (renamed/removed skills)
-3. Update references to match current metadata
-4. Create backups for all modified command files
-5. Validate updated markdown syntax
+Every entry's `file` path must exist on disk:
 
-**Gate**: Backups created for all modified files, all referenced skills exist, markdown validated.
+```bash
+python3 - <<'EOF'
+import json, os
+for idx, key in (("skills/INDEX.json", "skills"), ("agents/INDEX.json", "agents")):
+    entries = json.load(open(idx))[key]
+    phantom = [n for n, e in entries.items() if not os.path.exists(e["file"])]
+    print(idx, len(entries), "entries,", len(phantom), "phantom", phantom or "")
+EOF
+```
+
+**Gate**: Both generators exit 0 and both indices contain zero phantom `file` paths. On generator failure, fix the offending frontmatter (the error names the file) and rerun. Proceed to Phase 5 only after the gate passes.
 
 ---
 
 ### Phase 5: VERIFY -- Validate Routing Correctness
 
-**Goal**: Final validation of all routing tables.
+**Goal**: Final validation of the skill package and the rebuilt indices.
 
-**Constraints**: All auto-generated entries must have `[AUTO-GENERATED]` markers; no duplicate patterns within same routing table; all referenced skills/agents must exist; complexity values must match Simple/Medium/Complex; overlapping patterns documented with priority rules.
+**Constraints**: No duplicate trigger phrases within an index; every index entry's `file` path exists; complexity values must match Simple/Medium/Complex; overlapping patterns documented with priority rules.
 
 **Step 1: Run validation script**
 
 ```bash
-python3 ~/.claude/skills/meta/routing-table-updater/scripts/validate.py --target $HOME/vexjoy-agent/commands/do.md
+python3 ~/.claude/skills/meta/routing-table-updater/scripts/validate.py
 ```
+
+Validates skill package structure, SKILL.md frontmatter, and script executability. Exit 0 = pass.
 
 **Step 2: Understand verification checks**
 
-1. **Structural**: All routing tables present, headers formatted, pipes aligned
-2. **Content**: All auto-generated entries marked, no duplicates, all referenced skills/agents exist
+1. **Structural**: Skill package complete (SKILL.md, scripts, references), frontmatter parses
+2. **Content**: No duplicate triggers, every index entry's `file` path exists (Phase 4 Step 2 check)
 3. **Conflicts**: Overlapping patterns documented, priority rules applied
-4. **Integration**: Sample pattern matching tests pass
 
 **Gate**: All checks pass. Task complete ONLY if final gate passes. See `references/error-handling.md` for gate failure recovery.
 
@@ -233,7 +208,7 @@ Invocation by other skills:
 skill: routing-table-updater
 ```
 
-The skill reads metadata from all skills and agents but never modifies them. It only writes to `skills/meta/do/SKILL.md`, `skills/meta/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md` files.
+The skill reads metadata from all skills and agents but never modifies them. Its only write targets are the generated indices `skills/INDEX.json` and `agents/INDEX.json`, always via the repo generator scripts.
 
 ---
 
@@ -247,7 +222,7 @@ See `references/error-handling.md` for the full error matrix (YAML parse errors,
 
 ### Reference Files
 
-- `${CLAUDE_SKILL_DIR}/references/routing-format.md`: /do routing table format specification (table structure, entry formats, ordering rules)
+- `${CLAUDE_SKILL_DIR}/references/routing-format.md`: routing entry format specification (frontmatter routing block fields, INDEX.json entry shape, regeneration commands)
 - `${CLAUDE_SKILL_DIR}/references/extraction-patterns.md`: Trigger phrase extraction patterns (regex, keyword maps, complexity inference)
 - `${CLAUDE_SKILL_DIR}/references/conflict-resolution.md`: Conflict types, priority rules, severity levels, resolution process
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world examples of routing table updates (new skill, updated agent, conflict detection, manual preservation)
