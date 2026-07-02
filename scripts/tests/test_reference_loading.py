@@ -701,7 +701,7 @@ def _skill_ref_file_id(p: Path) -> str:
 
     Returns:
         String relative to the skills/ directory, e.g.
-        ``anti-ai-editor/references/detection-patterns.md`` or
+        ``docs-sync-checker/references/examples.md`` or
         ``go-patterns/references/sapcc-conventions/sapcc-code-patterns.md``.
     """
     try:
@@ -737,7 +737,6 @@ ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
 # Line counts recorded at ADR-190 audit time (2026-04-16). Actual counts may drift.
 # Set SKILL_REFS_STRICT=1 to force all entries to hard-fail for a decomposition audit.
 _KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
-    "anti-ai-editor/references/detection-patterns.md",  # 1240 lines
     "skill-creator/references/agent-template.md",  #  579 lines (moved from root AGENT_TEMPLATE_V2.md)
     "condition-based-waiting/references/implementation-patterns.md",  #  566 lines
     "distinctive-frontend-design/references/animation-patterns.md",  #  534 lines

@@ -17,7 +17,7 @@ For each test piece:
 
 ```bash
 python3 ~/.claude/scripts/voice-validator.py validate \
-  --content /tmp/voice-test-{name}-{N}.md \
+  --content /tmp/voice-sample-{name}-{N}.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
   --format text \
@@ -28,7 +28,7 @@ python3 ~/.claude/scripts/voice-validator.py validate \
 
 ```bash
 python3 ~/.claude/scripts/voice-validator.py check-banned \
-  --content /tmp/voice-test-{name}-{N}.md \
+  --content /tmp/voice-sample-{name}-{N}.md \
   --voice {name}
 ```
 

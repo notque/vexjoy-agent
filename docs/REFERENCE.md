@@ -163,7 +163,7 @@ Request deep expertise: *"Use the [name] agent"*
 ### Voice Writers
 | Agent | Domain |
 |-------|--------|
-| `voice-vexjoy`, `voice-feynman`, `voice-andy-nemmity` | Pre-calibrated voice profile skills |
+| private `voice-*` profile skills | Pre-calibrated voice profiles, installed from `~/private-skills` when present |
 
 ### Reviewer Personas (via `reviewer-perspectives`)
 | Persona | Perspective |

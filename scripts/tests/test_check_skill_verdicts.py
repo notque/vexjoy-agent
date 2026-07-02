@@ -25,7 +25,7 @@ _spec.loader.exec_module(checker)
 # ---- Synthetic SKILL.md fixtures -------------------------------------------
 
 HAPPY_PATH = """---
-name: voice-test
+name: voice-fixture
 ---
 
 # Voice: Test
@@ -263,7 +263,7 @@ class CheckSkillVerdictsTests(unittest.TestCase):
     def test_parent_h2_blanket_verdict_covers_children(self) -> None:
         """`## Mental Models (KEEP-verdict)` applies to its H3 children.
 
-        This is the convention voice-feynman ships -- a single declaration on
+        This is the convention private voice profiles ship -- a single declaration on
         the parent rather than a verdict line per pattern.
         """
         path = self._write("blanket.md", PARENT_BLANKET)

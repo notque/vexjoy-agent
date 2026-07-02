@@ -116,7 +116,7 @@ def test_error_rows_do_not_trip_gate(env):
 def test_voice_rows_do_not_trip_gate(env):
     """Voice corpus rows are not graduation candidates."""
     _init_db(env)
-    _insert(env, "voice-amy", "phrase-cadence", "voice", confidence=0.9, success_count=2)
+    _insert(env, "voice-fixture", "phrase-cadence", "voice", confidence=0.9, success_count=2)
     result = _run_hook(env)
     assert result.returncode == 0
     assert "ungraduated" not in result.stdout

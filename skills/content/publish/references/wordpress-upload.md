@@ -4,7 +4,7 @@
 
 This skill provides WordPress REST API integration for posts and media uploads using deterministic Python scripts. **LJMs orchestrate. Scripts execute.** All WordPress operations go through the three provided Python scripts (`wordpress-upload.py`, `wordpress-media-upload.py`, `wordpress-edit-post.py`), never via curl or raw API calls. This approach ensures credential security, deterministic behavior, and proper markdown-to-Gutenberg conversion.
 
-**Scope**: Create new posts, upload media, edit existing posts, manage featured images, handle categories/tags. Does not write article prose (use voice-writer) or edit prose style (use anti-ai-editor). Requires HTTPS-only connections and Application Password authentication configured in `~/.env`.
+**Scope**: Create new posts, upload media, edit existing posts, manage featured images, handle categories/tags. Does not write article prose (use voice-writer) or edit prose style (use the private de-AI editor skill). Requires HTTPS-only connections and Application Password authentication configured in `~/.env`.
 
 ---
 
@@ -244,5 +244,5 @@ See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-error-handling.md` for comm
 
 **Related Skills**:
 - `voice-writer`: Use for writing articles (not uploading them)
-- `anti-ai-editor`: Use for editing prose style (not publishing to WordPress)
+- private de-AI editor skill: use for editing prose style (not publishing to WordPress)
 - `wordpress-live-validation`: Post-upload browser-based live validation

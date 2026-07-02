@@ -51,12 +51,12 @@ EXTERNAL_TEXT_PATTERNS = [
     r"\bupdate\s+(the\s+)?(readme|doc)\b",
 ]
 
-# Voice-specific patterns (adds voice profile validation on top)
+# Voice-specific patterns (adds voice profile validation on top).
+# Profile-name triggers live in the private-skills copy of this hook;
+# the tracked copy keeps generic triggers only.
 VOICE_PATTERNS = [
     r"\bvoice\b",
-    r"\bandy\s*nemm",
     r"\bvexjoy\b",
-    r"\bfeynman\b",
     r"\bjoy\s*check\b",
     r"\banti[\s-]?ai\b",
 ]

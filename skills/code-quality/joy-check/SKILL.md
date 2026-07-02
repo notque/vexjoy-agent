@@ -24,7 +24,6 @@ routing:
     - instruction framing
   pairs_with:
     - voice-writer
-    - anti-ai-editor
     - voice-validator
     - skill-creator
   complexity: Simple
@@ -40,7 +39,7 @@ Validate content framing using mode-specific rubrics. Two modes:
 
 By default the skill evaluates each paragraph/instruction independently, produces a score (0-100), and suggests reframes without modifying content. Optional flags: `--fix` rewrites flagged items in place and re-verifies; `--strict` fails on any item below 60; `--mode writing|instruction` overrides auto-detection.
 
-This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs to voice-validator, AI pattern detection belongs to anti-ai-editor.
+This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs to voice-validator, AI pattern detection belongs to the private de-AI editor skill.
 
 ## Reference Loading Table
 
@@ -164,7 +163,7 @@ This skill integrates with content and toolkit pipelines:
 
 **Writing pipeline** (human-facing content):
 ```
-CONTENT --> voice-validator --> scan-ai-patterns --> joy-check --mode writing --> anti-ai-editor
+CONTENT --> voice-validator --> scan-ai-patterns --> joy-check --mode writing --> de-AI edit (private skill)
 ```
 
 **Instruction pipeline** (agent/skill/pipeline creation and modification):
@@ -225,6 +224,6 @@ The joy-check can be invoked standalone via `/joy-check [file]` (auto-detects mo
 
 ### Complementary Skills
 - `voice-validator` — Voice fidelity validation (different concern)
-- `anti-ai-editor` — AI pattern detection and removal (different concern)
+- private de-AI editor skill — AI pattern detection and removal (different concern; installed from `~/private-skills`)
 - `voice-writer` — Content pipeline that invokes joy-check as a validation phase
 - `skill-creator` — Skill creation pipeline that invokes joy-check in instruction mode

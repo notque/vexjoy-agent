@@ -2,7 +2,7 @@
 
 The 13-check Narrative rubric. Source: Russell et al. (2026), "StoryScope: Towards Comprehensive Narratological Evaluation of LLM-Generated Stories," arXiv:2604.03136v4, University of Maryland. 61,608 stories, 10,272 prompts, 304 narrative features, 5 AI models. The checks below adapt StoryScope's fiction features to nonfiction: arguments instead of plots, named actors and sources instead of characters, endings instead of resolutions.
 
-**Applicability**: content over 500 words. Skip this checklist for captions, tweets, and short social posts. `voice-validator` runs this rubric as its Narrative category; `anti-ai-editor` runs the same checks as its Narrative Structure category (its own `references/narrative-patterns.md`).
+**Applicability**: content over 500 words. Skip this checklist for captions, tweets, and short social posts. `voice-validator` runs this rubric as its Narrative category; the private de-AI editor skill runs the same checks as its Narrative Structure category (its own `references/narrative-patterns.md`).
 
 **Why narrative checks matter**: surface tells (word choice, cliches, sentence rhythm) get edited away; narrative structure survives stylistic editing. StoryScope reports 93.9% macro-F1 for human-vs-AI detection after LAMP rewriting stripped every stylistic cue. The structural fingerprint persists when every surface tell is patched.
 
