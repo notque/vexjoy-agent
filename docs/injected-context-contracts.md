@@ -122,6 +122,12 @@ Source: `hooks/hook-version-parity-check.py`.
 Meaning: The `# hook-version:` headers of the named deployed hooks in `~/.claude/hooks/` do not match this checkout — merged code is not deployed, so hook telemetry may be running stale logic.
 Action: Warn-only; nothing is blocked. Surface the drift to the user and suggest the included fix command (`python3 ~/.claude/hooks/sync-to-user-claude.py`). Expected in worktree sessions on hook-touching branches. Do not treat hook telemetry gaps as code bugs while this warning is active.
 
+### `[manifest-cache] fresh|refreshed: <path>`
+
+Source: `hooks/session-manifest-cache.py`.
+Meaning: The /do routing-manifest cache at the given path is verified against current INDEX inputs (`fresh`) or was just rebuilt (`refreshed`).
+Action: None required now. When /do Phase 2 Step 0 runs, its cache-first block reads this file instead of running `routing-manifest.py`; the bash sha256 check re-proves freshness at read time.
+
 ## Prompt-Signal Tags (emitted mid-conversation, require routing action)
 
 ### `[pipeline-creator]` plus `[auto-skill] pipeline-scaffolder` (plus JSON snapshot)

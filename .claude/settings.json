@@ -103,6 +103,13 @@
             "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
             "timeout": 3000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-manifest-cache.py\"",
+            "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
+            "timeout": 20000,
+            "once": true
           }
         ]
       }
