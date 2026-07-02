@@ -5,10 +5,9 @@ color: blue
 routing:
   triggers:
     - edit skill
-    - update routing
+    - routing table governance
     - ADR management
     - toolkit maintenance
-    - update routing tables
     - check coverage
     - skill compliance
     - hook standardization
@@ -18,7 +17,7 @@ routing:
     - scaffold skill
     - build a skill
     - create a skill
-  not_for: "authoring one new skill end-to-end (use skill-creator). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding."
+  not_for: "authoring one new skill end-to-end (use skill-creator), or mechanically regenerating routing INDEX files (use the routing-table-updater skill). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding or index sync."
   pairs_with:
     - adr-consultation
     - routing-table-updater

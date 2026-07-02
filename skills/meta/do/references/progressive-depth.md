@@ -22,7 +22,7 @@ Use `quick --trivial` for tasks that appear to be 1-3 file edits.
 
 **When**: The change looks self-contained — a bug fix, a config tweak, adding a small block of code. The agent attempts the fix and watches for escalation signals.
 
-**Examples**: "Fix the typo in routing-guide.md", "Add a --verbose flag to index-router.py", "Update the version number in SKILL.md."
+**Examples**: "Fix the typo in docs/router-ab-runbook.md", "Add a --verbose flag to index-router.py", "Update the version number in SKILL.md."
 
 **Escalation signals** (any one triggers escalation):
 - More than 3 files need changes
@@ -58,7 +58,7 @@ When an agent at any level determines it needs escalation, it must emit a struct
 Current level: 1 (Fast)
 Reason: Found 7 files need changes, original estimate was 2
 Recommended level: 2 (Methodical)
-Work completed so far: Fixed the primary file (routing-guide.md), discovered 6 other references that need matching updates
+Work completed so far: Fixed the primary file (docs/router-ab-runbook.md), discovered 6 other references that need matching updates
 ```
 
 The router receives this signal, preserves the work completed so far, and re-dispatches at the recommended level with context about what was already done.

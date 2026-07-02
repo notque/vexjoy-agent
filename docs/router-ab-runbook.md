@@ -60,12 +60,10 @@ python3 scripts/routing-ab-test.py --pre-route-map --assert-buckets --out-dir "$
 
 It asserts every benchmark-force_route, paraphrase-git, and paraphrase-security
 case is fast-path eligible (pre-route confidence `high` + `force_route`) and no
-false-positive-guard case is. Exit 0/1. As of corpus v1.1 this FAILS (13
-violations): all 10 paraphrase-git/security cases fall through the keyword
-pre-router by design, and 3 keyword force-route cases sit at `medium`
-confidence. Meaning: a fast path keyed on high-confidence force_route fires on
-only 8/99 corpus cases and never on paraphrased safety intents — those still
-need the semantic router. The guard direction holds (0/7 guards eligible).
+false-positive-guard case is. Exit 0/1. PR #833 closed the coverage hole this
+check originally exposed (13 violations under corpus v1.1); the check now
+PASSES (exit 0): all asserted buckets are fast-path eligible and no guard case
+is (0/7).
 
 ## The answer-collection bridge
 
@@ -189,12 +187,11 @@ the Opus orchestrator session driving it.
 2. **Force-route fast path**: SHIPPED in `skills/meta/do/SKILL.md` Phase 2,
    keyed on pre-route `confidence: high` + `force_route` for pr-workflow and
    security skills. The zero-model check (`--pre-route-map --assert-buckets`,
-   baseline above) still FAILS with 13 assert-bucket violations — 10
-   paraphrase-git/security cases fall through the keyword pre-router and 3
-   force-route cases sit at medium confidence — so the shipped fast path fires
-   on only 8/99 corpus cases; the guard direction holds (0/7 guards eligible).
-   A coverage fix for the 13 violations is in flight on
-   `fix/preroute-fastpath-coverage`.
+   above) initially FAILED with 13 assert-bucket violations — 10
+   paraphrase-git/security cases fell through the keyword pre-router and 3
+   force-route cases sat at medium confidence. PR #833 merged the coverage fix;
+   the check now PASSES (exit 0) and the guard direction holds (0/7 guards
+   eligible).
 
 ## Known limits
 
