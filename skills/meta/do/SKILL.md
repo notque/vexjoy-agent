@@ -310,7 +310,7 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | Multi-file or comprehensive review on a real diff | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
-| Voice profile skill selected (any voice-* profile skill, e.g. voice-amy-nemmity, voice-dragonball-z) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
+| Voice profile skill selected (any voice-* profile skill, e.g. voice-example-profile) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
 | Interview-mode heuristic fires (rule below) | `planning` (interview mode) — load `depth-first-interview.md` |
 | Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` (skills/meta/objective-loop) |
 

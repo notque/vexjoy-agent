@@ -453,7 +453,7 @@ The grep gate (`grep -rE 'remove\.bg|REMOVEBG|clipdrop' skills/game/game-sprite-
 
 ## Acknowledgement
 
-The gray-tolerance algorithm and watermark-corner cleanup are adapted from `~/road-to-aew/scripts/generate_enemy_sprite.py` (Andy Nemmity, 2025). That project produces 87 clean transparent enemy PNGs in production. The despill addition to pass 2 is original to this skill, calibrated against the live demo's anti-aliased Codex output.
+The gray-tolerance algorithm and watermark-corner cleanup are adapted from `~/road-to-aew/scripts/generate_enemy_sprite.py` (upstream road-to-aew project, 2025). That project produces 87 clean transparent enemy PNGs in production. The despill addition to pass 2 is original to this skill, calibrated against the live demo's anti-aliased Codex output.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
 ## Patterns to Detect and Fix

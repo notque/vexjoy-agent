@@ -100,7 +100,7 @@ The toolkit author's prior agent system, built January 2026 when Claude Code age
 - Coordinator-as-facilitator, not manager. The consensus-coordinator had zero decision authority — it ensured all agents were consulted, it couldn't override. Reinforced our coordination layer pattern where /do routes but never implements.
 
 **Patterns noted but not adopted:**
-- Political philosophy agents (Chomsky, Graeber). Their governance analysis function was adapted into the meta-process lens of `reviewer-perspectives` (system health analysis) without the political framing.
+- Political philosophy agents. Their governance analysis function was adapted into the meta-process lens of `reviewer-perspectives` (system health analysis) without the political framing.
 - Full consensus requirement (unanimous agreement). Too heavy for our pace. We use 3-agent consultation with blocking-concern gates instead.
 - CollectiveFlow CLI (Go tool for proposal management). Our ADR system + consultation directories serve the same function without a separate tool.
 

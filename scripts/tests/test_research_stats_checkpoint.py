@@ -57,7 +57,7 @@ Wikipedia summary.
 
 def test_happy_path_emits_table_and_exits_zero(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """Three primary sources spread across three agents — gate passes, exit 0."""
-    topic_dir = tmp_path / "feynman"
+    topic_dir = tmp_path / "example-topic"
     make_research_tree(
         topic_dir,
         {

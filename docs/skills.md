@@ -146,7 +146,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `voice-writer` | yes | Unified voice content generation pipeline with mandatory validation and joy-check |
 | `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
 | `create-voice` | no | Create voice profiles from writing samples |
-| `anti-ai-editor` | no | Remove AI-sounding patterns from content |
 | `publish` | no | Content-publishing umbrella: outline, pre-publish check, SEO, batch-edit, link/image/taxonomy audits, WordPress upload |
 | `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
 | `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
