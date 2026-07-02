@@ -72,7 +72,24 @@ Every `/do` dispatch is scored, never altered:
    rejection/rework/re-route (decay); **success** only on an explicit
    acceptance marker (boost); **neutral** otherwise (no-op). No complaint is
    NOT acceptance.
-5. The orchestrator reports routing failures it observes directly via
+5. **Weak-positive** (C6, ADR router-improvement-program): a would-be-neutral
+   entry upgrades to **weak_success** when the same `agent:skill` pair was
+   finalized non-failure earlier in the same session — a repeat dispatch with
+   no intervening failure means the user kept re-using the route. Bounded:
+   +0.02 per event, clamped so weak boosts never lift confidence past 0.65
+   (strictly below the 0.70 high-confidence/injection threshold — crossing it
+   requires explicit acceptance); `success_count`/n still accrue at the cap,
+   so the n>=5 evidence gate becomes reachable. Guards: the entry must be
+   clean (tool errors still decay, unchanged), and any rejection on the turn
+   — even an unattributable multi-dispatch one — suppresses the upgrade. The
+   upgrade reads dispatch history (per-key, per-session, in the bridge state
+   file), never prompt text: the reaction detector is unchanged, and a first
+   dispatch followed by an unrelated prompt stays a neutral no-op. Basis label
+   `repeat_dispatch_weak`; event outcome `weak_success`, reason
+   `repeat-dispatch-no-failure`. This closes the signal starvation that held
+   every weight at 0.5/n<5 (success previously required an explicit acceptance
+   marker that almost never appears).
+6. The orchestrator reports routing failures it observes directly via
    `learning-db.py route-failure` (ADR orchestrator-reported-route-failures,
    local working document). `--routing-relevant yes` decays the pair;
    idempotent per (session, marker).

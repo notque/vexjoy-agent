@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.1.0
 """
 UserPromptSubmit Hook: Routing Outcome Finalizer (next-turn resolution)
 
@@ -20,6 +20,22 @@ THREE-WAY (T4):
 then boost (success) / decay (failure) / no-op (neutral) the routing/{key} row,
 ONCE, and clear the pending list so a re-delivered prompt resolves nothing
 further (idempotent).
+
+WEAK-POSITIVE UPGRADE (C6, ADR router-improvement-program): explicit acceptance
+almost never appears, so healthy routes sat at confidence 0.5 forever (signal
+starvation). A REPEAT dispatch of the same agent:skill pair with no intervening
+failure is weak evidence the route works — the user kept re-using it. So a
+would-be-NEUTRAL entry upgrades to weak_success (small bounded boost, see
+routing_outcome_score.WEAK_BOOST_DELTA / WEAK_CONFIDENCE_CAP) when ALL hold:
+  - the entry itself is clean (no tool errors — the failure path is untouched),
+  - the same key was finalized NON-FAILURE earlier THIS session (per-key
+    history in the bridge state file; sessions start fresh),
+  - the turn carries NO rejection signal, even an unattributable one (a
+    multi-dispatch turn with a complaint upgrades nothing — conservative).
+The upgrade reads dispatch HISTORY, not prompt text: the reaction detector and
+its neutral classification are byte-identical. First dispatch of a pair plus an
+unrelated next prompt stays a neutral no-op exactly as before. Failure, decay,
+and explicit-acceptance paths are unchanged.
 
 SIGNAL FIDELITY (T4): the prior detector boosted EVERYTHING that was not an
 unambiguous failure — including neutral new-topic prompts — inflating success
@@ -215,6 +231,11 @@ _THATS_COMPLAINT_RE = re.compile(
 # first clause and lets "revert that, you broke the build" test "revert that".
 _CLAUSE_SPLIT_RE = re.compile(r"[.,;\n]")
 
+# Prior same-session outcomes that qualify a repeat dispatch for the C6
+# weak-positive upgrade: anything but a failure. A key whose LAST finalization
+# was a failure gets no weak boost — that repeat has an intervening failure.
+_NON_FAILURE_OUTCOMES = frozenset({"neutral", "success", "weak_success"})
+
 
 def _first_clause(prompt: str) -> str:
     """The user's immediate reaction: text up to the first `. ; \\n` terminator.
@@ -317,9 +338,17 @@ def main() -> None:
         import time
 
         from learning_db_v2 import init_db
-        from routing_outcome_score import apply_outcome, decision_row_exists, outcome_basis
+        from routing_outcome_score import (
+            BASIS_REPEAT_WEAK,
+            WEAK_SUCCESS,
+            apply_outcome,
+            decision_row_exists,
+            outcome_basis,
+        )
         from routing_outcome_state import (
             MAX_PENDING_AGE_SEC,
+            get_outcome_history,
+            record_outcome_history,
             requeue_pending_outcomes,
             revalidate_pending_outcomes,
         )
@@ -328,6 +357,11 @@ def main() -> None:
         # (decision_row_exists no longer calls init_db itself).
         init_db()
         now = time.time()
+
+        # C6 weak-positive: snapshot the per-key outcome history BEFORE scoring.
+        # Entries resolve against the PRE-turn snapshot only, so two same-pair
+        # siblings drained in one turn cannot weak-boost each other.
+        history = get_outcome_history(session_id)
 
         # HIGH-1: a turn-level rejection can only be ATTRIBUTED to a route when
         # exactly ONE dispatch is pending resolution this turn. /do Phase 4 fans
@@ -360,6 +394,7 @@ def main() -> None:
         debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
         to_revalidate: list[dict] = []
         to_requeue: list[dict] = []
+        history_updates: dict[str, str] = {}
         for item in pending:
             key = item.get("key")
             if not key:
@@ -400,14 +435,31 @@ def main() -> None:
                 outcome = "success"
             else:
                 outcome = "neutral"
+            # C6 WEAK-POSITIVE UPGRADE: a would-be-neutral CLEAN entry whose key
+            # was finalized non-failure earlier this session is a repeat
+            # dispatch with no intervening failure => small bounded boost.
+            # Suppressed for the whole turn when ANY rejection fired (even an
+            # unattributable multi-dispatch one): never boost on a complaint
+            # turn. Failure / explicit-acceptance branches above are untouched.
+            if outcome == "neutral" and not rejected and history.get(key) in _NON_FAILURE_OUTCOMES:
+                outcome = WEAK_SUCCESS
             # Basis is the evidence label (errors > rejection > acceptance >
             # no-complaint), recorded as a per-route counter for route-health's
             # silent-success report. acceptance_detected marks a boost earned by
             # an explicit positive marker — strong feedback, not silence.
-            # Label-only: it never changes the boost/decay/no-op the three-way
-            # outcome drives.
-            basis = outcome_basis(bool(item.get("errors")), reaction_failure, reaction_success)
+            # repeat_dispatch_weak marks the C6 inferred signal — neither strong
+            # feedback nor silence. Label-only: it never changes the
+            # boost/decay/no-op the outcome drives.
+            if outcome == WEAK_SUCCESS:
+                basis = BASIS_REPEAT_WEAK
+            else:
+                basis = outcome_basis(bool(item.get("errors")), reaction_failure, reaction_success)
             new_conf = apply_outcome(key, outcome, basis=basis)
+            # Session history feeds the NEXT repeat's weak-positive check.
+            # Failure precedence within the turn: one failed sibling marks the
+            # key failed even if another same-key entry scored clean.
+            if history_updates.get(key) != "failure":
+                history_updates[key] = outcome
             # Short, secret-free cause for this dispatch's outcome. Computed
             # unconditionally (not debug-only) so the JSONL OUTCOME event carries
             # the demotion cause — an operator reading route-events.jsonl after a
@@ -418,6 +470,8 @@ def main() -> None:
                 reason = "rejection"
             elif reaction_success:
                 reason = "acceptance"
+            elif outcome == WEAK_SUCCESS:
+                reason = "repeat-dispatch-no-failure"
             elif (rejected or accepted) and not attributable:
                 reason = "reaction-ignored-multi-dispatch"
             else:
@@ -441,6 +495,11 @@ def main() -> None:
                     f"[routing-outcome-finalizer] {outcome} routing/{key} ({reason}) conf={new_conf:.4f}",
                     file=sys.stderr,
                 )
+
+        # Persist this turn's finalized outcomes so the NEXT dispatch of each
+        # key can read them (the weak-positive signal's memory). Only actually
+        # scored entries land here — requeued/stale/malformed ones never do.
+        record_outcome_history(session_id, history_updates)
 
         if to_requeue:
             requeue_pending_outcomes(session_id, to_requeue)
