@@ -216,6 +216,10 @@ _canonical_path() {
     python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"
 }
 
+is_command_available() {
+    command -V -- "$1" >/dev/null 2>&1
+}
+
 _symlink_points_to() {
     local link=$1
     local expected=$2
@@ -924,6 +928,27 @@ fi
 check_python
 detect_pip_command
 
+# Optional runtime mirrors sync when the runtime's command is on PATH OR its
+# home dir already exists. The dir check keeps existing installs syncing when
+# the runtime has no CLI on PATH (e.g. ~/.factory without a `factory` binary);
+# clean environments get no new runtime dirs.
+MIRROR_CODEX=false
+MIRROR_FACTORY=false
+MIRROR_HERMES=false
+MIRROR_REASONIX=false
+if is_command_available codex || [ -d "$CODEX_DIR" ]; then
+    MIRROR_CODEX=true
+fi
+if is_command_available factory || [ -d "$FACTORY_DIR" ]; then
+    MIRROR_FACTORY=true
+fi
+if is_command_available hermes || [ -d "$HERMES_DIR" ]; then
+    MIRROR_HERMES=true
+fi
+if is_command_available reasonix || [ -d "$REASONIX_DIR" ]; then
+    MIRROR_REASONIX=true
+fi
+
 # Create ~/.claude if needed
 echo ""
 echo -e "${YELLOW}Setting up ~/.claude directory...${NC}"
@@ -935,50 +960,71 @@ fi
 echo -e "${GREEN}✓ ${CLAUDE_DIR} ready${NC}"
 
 echo ""
-echo -e "${YELLOW}Setting up ~/.codex skills directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${CODEX_SKILLS_DIR}${NC}"
-else
-    mkdir -p "${CODEX_SKILLS_DIR}"
-fi
-echo -e "${GREEN}✓ ${CODEX_SKILLS_DIR} ready${NC}"
+if [ "$MIRROR_CODEX" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Setting up ~/.codex skills directory...${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${CODEX_SKILLS_DIR}${NC}"
+    else
+        mkdir -p "${CODEX_SKILLS_DIR}"
+    fi
+    echo -e "${GREEN}✓ ${CODEX_SKILLS_DIR} ready${NC}"
 
-echo ""
-echo -e "${YELLOW}Setting up ~/.codex agents directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${CODEX_AGENTS_DIR}${NC}"
+    echo ""
+    echo -e "${YELLOW}Setting up ~/.codex agents directory...${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${CODEX_AGENTS_DIR}${NC}"
+    else
+        mkdir -p "${CODEX_AGENTS_DIR}"
+    fi
+    echo -e "${GREEN}✓ ${CODEX_AGENTS_DIR} ready${NC}"
 else
-    mkdir -p "${CODEX_AGENTS_DIR}"
+    echo ""
+    echo -e "${BLUE}Skipping ~/.codex setup (codex not detected: no command, no ~/.codex).${NC}"
 fi
-echo -e "${GREEN}✓ ${CODEX_AGENTS_DIR} ready${NC}"
 
 
-echo ""
-echo -e "${YELLOW}Setting up ~/.factory directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${FACTORY_DIR}${NC}"
+if [ "$MIRROR_FACTORY" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Setting up ~/.factory directory...${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${FACTORY_DIR}${NC}"
+    else
+        mkdir -p "${FACTORY_DIR}"
+    fi
+    echo -e "${GREEN}✓ ${FACTORY_DIR} ready${NC}"
 else
-    mkdir -p "${FACTORY_DIR}"
+    echo ""
+    echo -e "${BLUE}Skipping ~/.factory setup (factory not detected: no command, no ~/.factory).${NC}"
 fi
-echo -e "${GREEN}✓ ${FACTORY_DIR} ready${NC}"
 
-echo ""
-echo -e "${YELLOW}Setting up ~/.hermes/skills directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${HERMES_SKILLS_DIR}${NC}"
+if [ "$MIRROR_HERMES" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Setting up ~/.hermes/skills directory...${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${HERMES_SKILLS_DIR}${NC}"
+    else
+        mkdir -p "${HERMES_SKILLS_DIR}"
+    fi
+    echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
 else
-    mkdir -p "${HERMES_SKILLS_DIR}"
+    echo ""
+    echo -e "${BLUE}Skipping ~/.hermes setup (hermes not detected: no command, no ~/.hermes).${NC}"
 fi
-echo -e "${GREEN}✓ ${HERMES_SKILLS_DIR} ready${NC}"
 
-echo ""
-echo -e "${YELLOW}Setting up ~/.reasonix/skills directory...${NC}"
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${REASONIX_SKILLS_DIR}${NC}"
+if [ "$MIRROR_REASONIX" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Setting up ~/.reasonix/skills directory...${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${REASONIX_SKILLS_DIR}${NC}"
+    else
+        mkdir -p "${REASONIX_SKILLS_DIR}"
+    fi
+    echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 else
-    mkdir -p "${REASONIX_SKILLS_DIR}"
+    echo ""
+    echo -e "${BLUE}Skipping ~/.reasonix setup (reasonix not detected: no command, no ~/.reasonix).${NC}"
 fi
-echo -e "${GREEN}✓ ${REASONIX_SKILLS_DIR} ready${NC}"
 
 # detect_conflicts — scans all runtime dirs × all component types.
 # Populates parallel arrays conflict_keys[] and conflict_vals[] (bash 3.2 compatible).
@@ -1005,8 +1051,13 @@ _conflict_has() {
 
 detect_conflicts() {
     local runtime_dir component target src count items item name
-    for runtime_dir in "$CLAUDE_DIR" "$CODEX_DIR" \
-                       "$FACTORY_DIR" "$HERMES_DIR" "$REASONIX_DIR"; do
+    local -a runtime_dirs=("$CLAUDE_DIR")
+    [ "$MIRROR_CODEX" = true ] && runtime_dirs+=("$CODEX_DIR")
+    [ "$MIRROR_FACTORY" = true ] && runtime_dirs+=("$FACTORY_DIR")
+    [ "$MIRROR_HERMES" = true ] && runtime_dirs+=("$HERMES_DIR")
+    [ "$MIRROR_REASONIX" = true ] && runtime_dirs+=("$REASONIX_DIR")
+
+    for runtime_dir in "${runtime_dirs[@]}"; do
         [ -d "$runtime_dir" ] || continue
         for component in agents skills hooks commands scripts; do
             if [ "$runtime_dir" = "$REASONIX_DIR" ]; then
@@ -1558,194 +1609,204 @@ echo -e "${YELLOW}Installing post-merge git hook...${NC}"
 install_git_hook
 
 echo ""
-echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
-CODEX_ENTRY_COUNT=0
-for item in "${SCRIPT_DIR}/skills/"*; do
-    [ -e "$item" ] || continue
-    if [ -d "$item" ] && [ -f "$item/SKILL.md" ] && _profile_disabled skills "$(basename "$item")"; then
-        echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
-        continue
-    fi
-    target="${CODEX_SKILLS_DIR}/$(basename "$item")"
-    sync_codex_entry "$item" "$target"
-    CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
-done
-
-if [ -d "${SCRIPT_DIR}/private-voices" ]; then
-    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
-        [ -d "$voice_dir" ] || continue
-        skill_src="${voice_dir}/skill"
-        [ -d "$skill_src" ] || continue
-        voice_name=$(basename "$voice_dir")
-        target="${CODEX_SKILLS_DIR}/voice-${voice_name}"
-        sync_codex_entry "$skill_src" "$target"
-        CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
-    done
-fi
-
-if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-    for item in "${SCRIPT_DIR}/private-skills/"*; do
+if [ "$MIRROR_CODEX" = true ]; then
+    echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
+    CODEX_ENTRY_COUNT=0
+    for item in "${SCRIPT_DIR}/skills/"*; do
         [ -e "$item" ] || continue
+        if [ -d "$item" ] && [ -f "$item/SKILL.md" ] && _profile_disabled skills "$(basename "$item")"; then
+            echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
+            continue
+        fi
         target="${CODEX_SKILLS_DIR}/$(basename "$item")"
         sync_codex_entry "$item" "$target"
         CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
     done
-fi
 
-echo ""
-echo -e "${YELLOW}Syncing Codex agents mirror...${NC}"
-CODEX_AGENT_COUNT=0
-for item in "${SCRIPT_DIR}/agents/"*; do
-    [ -e "$item" ] || continue
-    if _profile_disabled agents "$(basename "$item")"; then
-        echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
-        continue
+    if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+        for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+            [ -d "$voice_dir" ] || continue
+            skill_src="${voice_dir}/skill"
+            [ -d "$skill_src" ] || continue
+            voice_name=$(basename "$voice_dir")
+            target="${CODEX_SKILLS_DIR}/voice-${voice_name}"
+            sync_codex_entry "$skill_src" "$target"
+            CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+        done
     fi
-    target="${CODEX_AGENTS_DIR}/$(basename "$item")"
-    sync_codex_entry "$item" "$target"
-    CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
-done
 
-if [ -d "${SCRIPT_DIR}/private-agents" ]; then
-    for item in "${SCRIPT_DIR}/private-agents/"*; do
+    if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+        for item in "${SCRIPT_DIR}/private-skills/"*; do
+            [ -e "$item" ] || continue
+            target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+            sync_codex_entry "$item" "$target"
+            CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+        done
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Syncing Codex agents mirror...${NC}"
+    CODEX_AGENT_COUNT=0
+    for item in "${SCRIPT_DIR}/agents/"*; do
         [ -e "$item" ] || continue
+        if _profile_disabled agents "$(basename "$item")"; then
+            echo -e "${YELLOW}  Skipping $(basename "$item") (disabled by profile)${NC}"
+            continue
+        fi
         target="${CODEX_AGENTS_DIR}/$(basename "$item")"
         sync_codex_entry "$item" "$target"
         CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
     done
-fi
 
-# Sync Codex hooks mirror (ADR-182)
-echo ""
-echo -e "${YELLOW}Syncing Codex hooks mirror...${NC}"
-CODEX_HOOK_COUNT=0
-CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
-
-if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
-    clean_codex_hooks_mirror_if_looped "$CODEX_HOOKS_DIR" "${SCRIPT_DIR}/hooks"
-
-    # Ensure hooks directory exists
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would create: ${CODEX_HOOKS_DIR}${NC}"
-    else
-        mkdir -p "$CODEX_HOOKS_DIR"
+    if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+        for item in "${SCRIPT_DIR}/private-agents/"*; do
+            [ -e "$item" ] || continue
+            target="${CODEX_AGENTS_DIR}/$(basename "$item")"
+            sync_codex_entry "$item" "$target"
+            CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
+        done
     fi
 
-    # Parse allowlist and mirror each allowlisted hook file.
-    # Format per line: EVENT:filename [matcher]
-    # Comments (#) and blank lines are ignored.
-    while IFS= read -r line || [ -n "$line" ]; do
-        # Strip leading/trailing whitespace for the blank check.
-        trimmed="${line#"${line%%[![:space:]]*}"}"
-        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-        [ -z "$trimmed" ] && continue
-        [ "${trimmed#\#}" != "$trimmed" ] && continue
+    # Sync Codex hooks mirror (ADR-182)
+    echo ""
+    echo -e "${YELLOW}Syncing Codex hooks mirror...${NC}"
+    CODEX_HOOK_COUNT=0
+    CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
 
-        # Extract filename: everything between the first colon and the first space (or EOL)
-        rest="${trimmed#*:}"
-        filename="${rest%% *}"
+    if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
+        clean_codex_hooks_mirror_if_looped "$CODEX_HOOKS_DIR" "${SCRIPT_DIR}/hooks"
 
-        if _profile_disabled hooks "$filename"; then
-            echo -e "${YELLOW}  Skipping ${filename} (disabled by profile)${NC}"
-            continue
-        fi
-
-        source_file="${SCRIPT_DIR}/hooks/${filename}"
-        if [ ! -f "$source_file" ]; then
-            echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
-            continue
-        fi
-
-        target_file="${CODEX_HOOKS_DIR}/${filename}"
-        sync_codex_entry "$source_file" "$target_file"
-        CODEX_HOOK_COUNT=$((CODEX_HOOK_COUNT + 1))
-    done < "$CODEX_HOOKS_ALLOWLIST"
-
-    # Also mirror the hooks/lib directory so intra-hook imports resolve
-    # (hook_utils, injection_patterns, stdin_timeout, usage_db, etc.).
-    if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
-        lib_target="${CODEX_HOOKS_DIR}/lib"
-        sync_codex_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target"
-    fi
-
-    # Generate hooks.json via the dedicated script.
-    CODEX_HOOKS_JSON="${CODEX_DIR}/hooks.json"
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would generate: ${CODEX_HOOKS_JSON}${NC}"
-    else
-        # Profile filtering: generate from a filtered allowlist copy so
-        # hooks.json never references hooks we did not mirror.
-        EFFECTIVE_ALLOWLIST="$CODEX_HOOKS_ALLOWLIST"
-        if [ -n "$DISABLED_HOOKS" ]; then
-            EFFECTIVE_ALLOWLIST=$(mktemp)
-            printf '%s\n' "$DISABLED_HOOKS" | $PYTHON_CMD "${SCRIPT_DIR}/scripts/filter-codex-allowlist.py" \
-                --input "$CODEX_HOOKS_ALLOWLIST" --disabled /dev/stdin --output "$EFFECTIVE_ALLOWLIST"
-        fi
-        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-codex-hooks-json.py" \
-            --allowlist "$EFFECTIVE_ALLOWLIST" \
-            --output "$CODEX_HOOKS_JSON" \
-            --codex-hooks-dir "$CODEX_HOOKS_DIR" 2>&1; then
-            echo -e "${GREEN}  ✓ Generated ${CODEX_HOOKS_JSON}${NC}"
+        # Ensure hooks directory exists
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would create: ${CODEX_HOOKS_DIR}${NC}"
         else
-            echo -e "${RED}  ✗ Failed to generate hooks.json${NC}"
+            mkdir -p "$CODEX_HOOKS_DIR"
         fi
-        if [ "$EFFECTIVE_ALLOWLIST" != "$CODEX_HOOKS_ALLOWLIST" ]; then
-            rm -f "$EFFECTIVE_ALLOWLIST"
-        fi
-    fi
 
-    # Ensure hooks feature flag is enabled in ~/.codex/config.toml.
-    CODEX_CONFIG="${CODEX_DIR}/config.toml"
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] hooks = true${NC}"
-    else
-        codex_flag_action=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
-            --config "$CODEX_CONFIG" 2>&1)
-        codex_flag_status=$?
-        if [ "$codex_flag_status" -eq 0 ]; then
-            echo -e "${GREEN}  ✓ Codex config feature flag: ${codex_flag_action}${NC}"
+        # Parse allowlist and mirror each allowlisted hook file.
+        # Format per line: EVENT:filename [matcher]
+        # Comments (#) and blank lines are ignored.
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Strip leading/trailing whitespace for the blank check.
+            trimmed="${line#"${line%%[![:space:]]*}"}"
+            trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+            [ -z "$trimmed" ] && continue
+            [ "${trimmed#\#}" != "$trimmed" ] && continue
+
+            # Extract filename: everything between the first colon and the first space (or EOL)
+            rest="${trimmed#*:}"
+            filename="${rest%% *}"
+
+            if _profile_disabled hooks "$filename"; then
+                echo -e "${YELLOW}  Skipping ${filename} (disabled by profile)${NC}"
+                continue
+            fi
+
+            source_file="${SCRIPT_DIR}/hooks/${filename}"
+            if [ ! -f "$source_file" ]; then
+                echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
+                continue
+            fi
+
+            target_file="${CODEX_HOOKS_DIR}/${filename}"
+            sync_codex_entry "$source_file" "$target_file"
+            CODEX_HOOK_COUNT=$((CODEX_HOOK_COUNT + 1))
+        done < "$CODEX_HOOKS_ALLOWLIST"
+
+        # Also mirror the hooks/lib directory so intra-hook imports resolve
+        # (hook_utils, injection_patterns, stdin_timeout, usage_db, etc.).
+        if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
+            lib_target="${CODEX_HOOKS_DIR}/lib"
+            sync_codex_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target"
+        fi
+
+        # Generate hooks.json via the dedicated script.
+        CODEX_HOOKS_JSON="${CODEX_DIR}/hooks.json"
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would generate: ${CODEX_HOOKS_JSON}${NC}"
         else
-            echo "$codex_flag_action"
-            echo -e "${YELLOW}  ⚠ Could not update ${CODEX_CONFIG} (see error above). Codex hooks may not activate.${NC}"
-        fi
-    fi
-
-    # Warn if installed Codex CLI is below the hook-support minimum (v0.114.0).
-    if command -v codex >/dev/null 2>&1; then
-        cx_ver=$(codex --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-        if [ -n "$cx_ver" ]; then
-            min_major=0; min_minor=114; min_patch=0
-            IFS='.' read -r cx_maj cx_min cx_pat <<< "$cx_ver"
-            if [ "$cx_maj" -lt "$min_major" ] || \
-               { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -lt "$min_minor" ]; } || \
-               { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -eq "$min_minor" ] && [ "$cx_pat" -lt "$min_patch" ]; }; then
-                echo -e "${YELLOW}  ⚠ Codex CLI version ${cx_ver} is below 0.114.0. Hooks may not work. See openai/codex#14754.${NC}"
+            # Profile filtering: generate from a filtered allowlist copy so
+            # hooks.json never references hooks we did not mirror.
+            EFFECTIVE_ALLOWLIST="$CODEX_HOOKS_ALLOWLIST"
+            if [ -n "$DISABLED_HOOKS" ]; then
+                EFFECTIVE_ALLOWLIST=$(mktemp)
+                printf '%s\n' "$DISABLED_HOOKS" | $PYTHON_CMD "${SCRIPT_DIR}/scripts/filter-codex-allowlist.py" \
+                    --input "$CODEX_HOOKS_ALLOWLIST" --disabled /dev/stdin --output "$EFFECTIVE_ALLOWLIST"
+            fi
+            if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-codex-hooks-json.py" \
+                --allowlist "$EFFECTIVE_ALLOWLIST" \
+                --output "$CODEX_HOOKS_JSON" \
+                --codex-hooks-dir "$CODEX_HOOKS_DIR" 2>&1; then
+                echo -e "${GREEN}  ✓ Generated ${CODEX_HOOKS_JSON}${NC}"
+            else
+                echo -e "${RED}  ✗ Failed to generate hooks.json${NC}"
+            fi
+            if [ "$EFFECTIVE_ALLOWLIST" != "$CODEX_HOOKS_ALLOWLIST" ]; then
+                rm -f "$EFFECTIVE_ALLOWLIST"
             fi
         fi
-    else
-        echo -e "${BLUE}  (codex CLI not installed; hooks will activate when Codex is installed)${NC}"
-    fi
-else
-    echo -e "${YELLOW}  ⚠ Codex hooks allowlist not found at ${CODEX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
-fi
 
-echo ""
-echo -e "${YELLOW}Syncing Codex scripts mirror...${NC}"
-if [ -d "${SCRIPT_DIR}/scripts" ]; then
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}  Would mirror scripts to: ${CODEX_SCRIPTS_DIR}${NC}"
+        # Ensure hooks feature flag is enabled in ~/.codex/config.toml.
+        CODEX_CONFIG="${CODEX_DIR}/config.toml"
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] hooks = true${NC}"
+        else
+            codex_flag_action=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
+                --config "$CODEX_CONFIG" 2>&1)
+            codex_flag_status=$?
+            if [ "$codex_flag_status" -eq 0 ]; then
+                echo -e "${GREEN}  ✓ Codex config feature flag: ${codex_flag_action}${NC}"
+            else
+                echo "$codex_flag_action"
+                echo -e "${YELLOW}  ⚠ Could not update ${CODEX_CONFIG} (see error above). Codex hooks may not activate.${NC}"
+            fi
+        fi
+
+        # Warn if installed Codex CLI is below the hook-support minimum (v0.114.0).
+        if command -v codex >/dev/null 2>&1; then
+            cx_ver=$(codex --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            if [ -n "$cx_ver" ]; then
+                min_major=0; min_minor=114; min_patch=0
+                IFS='.' read -r cx_maj cx_min cx_pat <<< "$cx_ver"
+                if [ "$cx_maj" -lt "$min_major" ] || \
+                   { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -lt "$min_minor" ]; } || \
+                   { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -eq "$min_minor" ] && [ "$cx_pat" -lt "$min_patch" ]; }; then
+                    echo -e "${YELLOW}  ⚠ Codex CLI version ${cx_ver} is below 0.114.0. Hooks may not work. See openai/codex#14754.${NC}"
+                fi
+            fi
+        else
+            echo -e "${BLUE}  (codex CLI not installed; hooks will activate when Codex is installed)${NC}"
+        fi
     else
-        mkdir -p "$CODEX_SCRIPTS_DIR"
+        echo -e "${YELLOW}  ⚠ Codex hooks allowlist not found at ${CODEX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
     fi
-    sync_codex_entry "${SCRIPT_DIR}/scripts" "$CODEX_SCRIPTS_DIR"
-    CODEX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
-    echo -e "${GREEN}  ✓ Scripts mirrored to ${CODEX_SCRIPTS_DIR}${NC}"
+
+    echo ""
+    echo -e "${YELLOW}Syncing Codex scripts mirror...${NC}"
+    if [ -d "${SCRIPT_DIR}/scripts" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would mirror scripts to: ${CODEX_SCRIPTS_DIR}${NC}"
+        else
+            mkdir -p "$CODEX_SCRIPTS_DIR"
+        fi
+        sync_codex_entry "${SCRIPT_DIR}/scripts" "$CODEX_SCRIPTS_DIR"
+        CODEX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+        echo -e "${GREEN}  ✓ Scripts mirrored to ${CODEX_SCRIPTS_DIR}${NC}"
+    else
+        CODEX_SCRIPT_COUNT=0
+    fi
 else
+    echo ""
+    echo -e "${BLUE}Skipping Codex mirror sync (codex not detected: no command, no ~/.codex).${NC}"
+    CODEX_ENTRY_COUNT=0
+    CODEX_AGENT_COUNT=0
+    CODEX_HOOK_COUNT=0
     CODEX_SCRIPT_COUNT=0
 fi
 
 echo ""
-echo -e "${YELLOW}Installing Factory components (mode: ${MODE})...${NC}"
+if [ "$MIRROR_FACTORY" = true ]; then
+    echo -e "${YELLOW}Installing Factory components (mode: ${MODE})...${NC}"
 # Factory uses the same top-level symlink/copy pattern as Claude.
 # Only difference: 'agents' is named 'droids' under ~/.factory.
 for component in agents skills hooks commands scripts; do
@@ -1855,6 +1916,15 @@ else
 fi
 
 
+else
+    echo ""
+    echo -e "${BLUE}Skipping Factory mirror sync (factory not detected: no command, no ~/.factory).${NC}"
+    FACTORY_SKILL_COUNT=0
+    FACTORY_DROID_COUNT=0
+    FACTORY_HOOK_COUNT=0
+fi
+
+if [ "$MIRROR_HERMES" = true ]; then
 echo ""
 echo -e "${YELLOW}Syncing Hermes skills mirror...${NC}"
 HERMES_ENTRY_COUNT=0
@@ -1900,7 +1970,14 @@ if [ -d "${SCRIPT_DIR}/scripts" ]; then
 else
     HERMES_SCRIPT_COUNT=0
 fi
+else
+    echo ""
+    echo -e "${BLUE}Skipping Hermes mirror sync (hermes not detected: no command, no ~/.hermes).${NC}"
+    HERMES_ENTRY_COUNT=0
+    HERMES_SCRIPT_COUNT=0
+fi
 
+if [ "$MIRROR_REASONIX" = true ]; then
 # ── Reasonix mirror (skills + scripts + hooks; Claude-Code-compatible extension layer) ──
 # Reasonix natively reads ~/.reasonix/skills, shells out to scripts via the SDIR chain,
 # and runs hooks declared in ~/.reasonix/settings.json (hooks key only; MCP/model/permissions
@@ -2103,6 +2180,17 @@ else
     echo -e "${YELLOW}  ⚠ Reasonix hooks allowlist not found at ${REASONIX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
 fi
 
+else
+    echo ""
+    echo -e "${BLUE}Skipping Reasonix mirror sync (reasonix not detected: no command, no ~/.reasonix).${NC}"
+    REASONIX_ENTRY_COUNT=0
+    REASONIX_SCRIPT_COUNT=0
+    REASONIX_HOOK_COUNT=0
+    REASONIX_HOOK_MISSING=0
+    REASONIX_HOOK_MISSING_LIST=""
+    REASONIX_HOOK_FAILED=false
+fi
+
 # Deploy private-voices shared references into skills/shared-patterns/
 # These files were removed from the public repo and live in private-voices/shared-references/
 # (gitignored). They must be deployed at install time into every runtime's shared-patterns dir.
@@ -2252,15 +2340,35 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 644 on docs/*.md${NC}"
     echo -e "${BLUE}  Would set 755 on mirrored hooks/scripts *.py under runtime directories${NC}"
     echo -e "${BLUE}    - ~/.claude/hooks, ~/.claude/scripts${NC}"
-    echo -e "${BLUE}    - ~/.codex/hooks, ~/.codex/scripts${NC}"
-    echo -e "${BLUE}    - ~/.factory/hooks, ~/.factory/scripts${NC}"
-    echo -e "${BLUE}    - ~/.hermes/scripts${NC}"
-    echo -e "${BLUE}    - ~/.reasonix/hooks, ~/.reasonix/scripts${NC}"
+    if [ "$MIRROR_CODEX" = true ]; then
+        echo -e "${BLUE}    - ~/.codex/hooks, ~/.codex/scripts${NC}"
+    else
+        echo -e "${BLUE}    - ~/.codex skipped (codex not detected: no command, no ~/.codex)${NC}"
+    fi
+    if [ "$MIRROR_FACTORY" = true ]; then
+        echo -e "${BLUE}    - ~/.factory/hooks, ~/.factory/scripts${NC}"
+    else
+        echo -e "${BLUE}    - ~/.factory skipped (factory not detected: no command, no ~/.factory)${NC}"
+    fi
+    if [ "$MIRROR_HERMES" = true ]; then
+        echo -e "${BLUE}    - ~/.hermes/scripts${NC}"
+    else
+        echo -e "${BLUE}    - ~/.hermes skipped (hermes not detected: no command, no ~/.hermes)${NC}"
+    fi
+    if [ "$MIRROR_REASONIX" = true ]; then
+        echo -e "${BLUE}    - ~/.reasonix/hooks, ~/.reasonix/scripts${NC}"
+    else
+        echo -e "${BLUE}    - ~/.reasonix skipped (reasonix not detected: no command, no ~/.reasonix)${NC}"
+    fi
     echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
     echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
     echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
-    echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
-    echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
+    if [ "$MIRROR_FACTORY" = true ]; then
+        echo -e "${BLUE}  Would set 600 on ~/.factory/settings.json${NC}"
+    fi
+    if [ "$MIRROR_REASONIX" = true ]; then
+        echo -e "${BLUE}  Would set 600 on ~/.reasonix/settings.json${NC}"
+    fi
 else
     set_mirror_python_permissions() {
         local target_dir="$1"
@@ -2274,13 +2382,13 @@ else
     # NOTE: Mirror-runtime paths only to avoid mutating checked-out sources.
     set_mirror_python_permissions "$CLAUDE_DIR/hooks"
     set_mirror_python_permissions "$CLAUDE_DIR/scripts"
-    set_mirror_python_permissions "$CODEX_HOOKS_DIR"
-    set_mirror_python_permissions "$CODEX_SCRIPTS_DIR"
-    set_mirror_python_permissions "$FACTORY_HOOKS_DIR"
-    set_mirror_python_permissions "$FACTORY_SCRIPTS_DIR"
-    set_mirror_python_permissions "$HERMES_SCRIPTS_DIR"
-    set_mirror_python_permissions "$REASONIX_HOOKS_DIR"
-    set_mirror_python_permissions "$REASONIX_SCRIPTS_DIR"
+    [ "$MIRROR_CODEX" = true ] && set_mirror_python_permissions "$CODEX_HOOKS_DIR"
+    [ "$MIRROR_CODEX" = true ] && set_mirror_python_permissions "$CODEX_SCRIPTS_DIR"
+    [ "$MIRROR_FACTORY" = true ] && set_mirror_python_permissions "$FACTORY_HOOKS_DIR"
+    [ "$MIRROR_FACTORY" = true ] && set_mirror_python_permissions "$FACTORY_SCRIPTS_DIR"
+    [ "$MIRROR_HERMES" = true ] && set_mirror_python_permissions "$HERMES_SCRIPTS_DIR"
+    [ "$MIRROR_REASONIX" = true ] && set_mirror_python_permissions "$REASONIX_HOOKS_DIR"
+    [ "$MIRROR_REASONIX" = true ] && set_mirror_python_permissions "$REASONIX_SCRIPTS_DIR"
 
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
     # Harden ~/.claude/ sensitive files (ADR-122)
@@ -2289,10 +2397,14 @@ else
     chmod 600 "$(ls -1t "${SETTINGS_FILE}.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
     chmod 700 "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
-    chmod 600 "${FACTORY_DIR}/settings.json" 2>/dev/null || true
-    chmod 600 "$(ls -1t "${FACTORY_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
-    chmod 600 "${REASONIX_DIR}/settings.json" 2>/dev/null || true
-    chmod 600 "$(ls -1t "${REASONIX_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
+    if [ "$MIRROR_FACTORY" = true ]; then
+        chmod 600 "${FACTORY_DIR}/settings.json" 2>/dev/null || true
+        chmod 600 "$(ls -1t "${FACTORY_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
+    fi
+    if [ "$MIRROR_REASONIX" = true ]; then
+        chmod 600 "${REASONIX_DIR}/settings.json" 2>/dev/null || true
+        chmod 600 "$(ls -1t "${REASONIX_DIR}/settings.json.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
+    fi
 fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 
@@ -2362,18 +2474,34 @@ echo ""
 echo "Installed components:"
 echo "  • Agents: ${AGENT_COUNT} specialized domain experts"
 echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} user-invocable)"
-echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
-echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
-echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
-echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
-echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
-echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
-echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
-echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
-echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
-echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
-echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
-echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
+if [ "$MIRROR_CODEX" = true ]; then
+    echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
+    echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
+    echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
+    echo "  • Codex scripts: ${CODEX_SCRIPT_COUNT} mirrored scripts in ~/.codex/scripts"
+else
+    echo "  • Codex: skipped (codex not detected: no command, no ~/.codex)"
+fi
+if [ "$MIRROR_FACTORY" = true ]; then
+    echo "  • Factory skills: ${FACTORY_SKILL_COUNT} mirrored entries in ~/.factory/skills"
+    echo "  • Factory droids: ${FACTORY_DROID_COUNT} mirrored entries in ~/.factory/droids"
+    echo "  • Factory hooks: ${FACTORY_HOOK_COUNT} mirrored entries in ~/.factory/hooks"
+else
+    echo "  • Factory: skipped (factory not detected: no command, no ~/.factory)"
+fi
+if [ "$MIRROR_HERMES" = true ]; then
+    echo "  • Hermes skills: ${HERMES_ENTRY_COUNT} mirrored entries in ~/.hermes/skills"
+    echo "  • Hermes scripts: ${HERMES_SCRIPT_COUNT} mirrored scripts in ~/.hermes/scripts"
+else
+    echo "  • Hermes: skipped (hermes not detected: no command, no ~/.hermes)"
+fi
+if [ "$MIRROR_REASONIX" = true ]; then
+    echo "  • Reasonix skills: ${REASONIX_ENTRY_COUNT} flattened skills (per-entry symlink in --symlink mode, copy in --copy mode) in ~/.reasonix/skills"
+    echo "  • Reasonix scripts: ${REASONIX_SCRIPT_COUNT} mirrored scripts in ~/.reasonix/scripts"
+    echo "  • Reasonix hooks: ${REASONIX_HOOK_COUNT} mirrored entries in ~/.reasonix/hooks"
+else
+    echo "  • Reasonix: skipped (reasonix not detected: no command, no ~/.reasonix)"
+fi
 if [ "$REASONIX_HOOK_FAILED" = true ]; then
     echo -e "${RED}  • FAILED: ~/.reasonix/settings.json was not generated — Reasonix hooks (gates + observers) will NOT fire. See the error above.${NC}"
 fi
