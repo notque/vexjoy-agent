@@ -17,6 +17,7 @@ to prevent phantom hook errors when switching branches.
 Unchanged files are skipped via content comparison.
 """
 
+import fcntl
 import filecmp
 import json
 import os
@@ -28,6 +29,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import hook_error
+
+
+def _tolerant_mkdir(path: Path) -> None:
+    """mkdir -p that handles broken symlinks in the path.
+
+    Path.mkdir(parents=True, exist_ok=True) raises FileExistsError when any
+    component of *path* is a broken symlink (the name exists in the directory
+    entry but points nowhere, so exist_ok cannot help). Fix: walk the path
+    from root, unlink any broken symlink, then mkdir.
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except FileExistsError:
+        # Walk from the root to find and fix broken symlinks
+        parts = path.resolve().parts if not path.is_absolute() else path.parts
+        current = Path(parts[0])
+        for part in parts[1:]:
+            current = current / part
+            if current.is_symlink() and not current.exists():
+                current.unlink()
+        # Retry after cleanup
+        path.mkdir(parents=True, exist_ok=True)
 
 
 def _atomic_json_write(path: Path, data: dict) -> None:
@@ -336,7 +359,27 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     elif dst.exists():
         dst.unlink()
 
-    dst.symlink_to(src)
+    try:
+        dst.symlink_to(src)
+    except FileExistsError:
+        # Race: another process created the symlink between our check and
+        # symlink_to. If it points to the right target, that's fine.
+        if dst.is_symlink():
+            try:
+                if dst.resolve() == src.resolve():
+                    return True
+            except OSError:
+                pass
+            # Wrong target — remove and retry once
+            dst.unlink(missing_ok=True)
+            dst.symlink_to(src)
+        else:
+            # Regular file/dir appeared — remove and retry once
+            if dst.is_dir():
+                shutil.rmtree(dst)
+            else:
+                dst.unlink(missing_ok=True)
+            dst.symlink_to(src)
     return True
 
 
@@ -429,7 +472,7 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     if dst.is_symlink():
         dst.unlink()
 
-    dst.mkdir(parents=True, exist_ok=True)
+    _tolerant_mkdir(dst)
 
     # Track what we create so we can clean stale entries
     expected_names: set[str] = set()
@@ -448,7 +491,11 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
                 if target.is_symlink() and target.resolve() == item.resolve():
                     continue
                 target.unlink()
-            target.symlink_to(item)
+            try:
+                target.symlink_to(item)
+            except FileExistsError:
+                # Race: concurrent process created it between unlink and symlink_to
+                pass
 
     # Symlink root-level support directories (shared-patterns, workflow, kb,
     # voice-shared-references). These hold reference files, not skills.
@@ -594,6 +641,34 @@ def main():
     repo_root = cwd
     user_claude = Path.home() / ".claude"
 
+    # Inter-process lock: concurrent SessionStarts both run this hook
+    # (once: true is per-session, not per-host). Non-blocking flock:
+    # if another process holds it, skip — its sync makes ours redundant.
+    lock_path = user_claude / ".sync.lock"
+    lock_fd = None
+    try:
+        lock_fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, IOError):
+        # Lock held by another process — skip sync
+        if lock_fd is not None:
+            os.close(lock_fd)
+        print("[sync] Skipping: another sync is in progress", file=sys.stderr)
+        return
+
+    try:
+        _main_inner(repo_root, user_claude)
+    finally:
+        # Release lock
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            os.close(lock_fd)
+        except OSError:
+            pass
+
+
+def _main_inner(repo_root: Path, user_claude: Path) -> None:
+    """Core sync logic, called under flock."""
     # Detect install mode from manifest. In symlink mode, components that
     # support it get directory-level symlinks instead of file-by-file copies.
     install_mode = _read_install_mode(user_claude)
@@ -667,7 +742,7 @@ def main():
             if dst.is_symlink():
                 dst.unlink()
 
-            dst.mkdir(parents=True, exist_ok=True)
+            _tolerant_mkdir(dst)
 
             # Additive sync: copy individual files, never nuke the directory.
             # This is safe even if interrupted — each file copy is independent.
@@ -680,18 +755,24 @@ def main():
                 if item.is_file():
                     rel = item.relative_to(src)
                     src_relative_paths.add(rel)
-                    target = dst / rel
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    if use_merge and item.suffix == ".md" and item.name != "L1.md":
-                        merge_retro_file(item, target)
-                        merge_count += 1
-                    elif use_merge and item.name == "L1.md":
-                        pass  # Skip L1 — regenerated below
-                    elif target.exists() and filecmp.cmp(item, target, shallow=False):
-                        pass  # Unchanged — skip copy
-                    else:
-                        shutil.copy2(item, target)
-                    count += 1
+                    try:
+                        target = dst / rel
+                        _tolerant_mkdir(target.parent)
+                        if use_merge and item.suffix == ".md" and item.name != "L1.md":
+                            merge_retro_file(item, target)
+                            merge_count += 1
+                        elif use_merge and item.name == "L1.md":
+                            pass  # Skip L1 — regenerated below
+                        elif target.exists() and filecmp.cmp(item, target, shallow=False):
+                            pass  # Unchanged — skip copy
+                        else:
+                            shutil.copy2(item, target)
+                        count += 1
+                    except Exception as file_err:
+                        print(
+                            f"[sync] ERROR: {dst_name}/{rel}: {file_err}",
+                            file=sys.stderr,
+                        )
 
             # Runtime skill index: overwrite the plain tracked copy with the
             # tracked+local merge (same invariants as symlink mode). Record
@@ -800,12 +881,12 @@ def main():
                 if hooks_dir.is_symlink() and not hooks_dir.exists():
                     hooks_dir.unlink()  # Remove broken symlink
                     print("[sync] Removed broken hooks symlink", file=sys.stderr)
-                hooks_dir.mkdir(parents=True, exist_ok=True)
+                _tolerant_mkdir(hooks_dir)
                 for py_file in missing_hooks:
                     repo_hook = repo_root / "hooks" / py_file
                     if repo_hook.exists():
                         target = hooks_dir / py_file
-                        target.parent.mkdir(parents=True, exist_ok=True)
+                        _tolerant_mkdir(target.parent)
                         shutil.copy2(repo_hook, target)
                         print(f"[sync] Emergency copy: hooks/{py_file} -> {target}", file=sys.stderr)
         except Exception as e:
@@ -885,12 +966,12 @@ def main():
                     if install_mode == "symlink":
                         _ensure_symlink(skill_dir, skill_dst)
                     else:
-                        skill_dst.mkdir(parents=True, exist_ok=True)
+                        _tolerant_mkdir(skill_dst)
                         for item in skill_dir.rglob("*"):
                             if item.is_file():
                                 rel = item.relative_to(skill_dir)
                                 target = skill_dst / rel
-                                target.parent.mkdir(parents=True, exist_ok=True)
+                                _tolerant_mkdir(target.parent)
                                 if target.exists() and filecmp.cmp(item, target, shallow=False):
                                     continue
                                 shutil.copy2(item, target)
@@ -909,7 +990,7 @@ def main():
     repo_skills = repo_root / "skills"
     if repo_skills.is_dir():
         try:
-            codex_skills_dst.mkdir(parents=True, exist_ok=True)
+            _tolerant_mkdir(codex_skills_dst)
             # Copy skills flat (same as ~/.claude/skills deployment).
             # The repo uses nested category folders but Codex needs flat.
             _codex_root_utility = {"shared-patterns", "workflow", "kb"}
@@ -927,7 +1008,7 @@ def main():
                         if item.is_file():
                             rel = item.relative_to(repo_skills)
                             target = codex_skills_dst / rel
-                            target.parent.mkdir(parents=True, exist_ok=True)
+                            _tolerant_mkdir(target.parent)
                             if target.exists() and filecmp.cmp(item, target, shallow=False):
                                 continue
                             shutil.copy2(item, target)
@@ -942,7 +1023,7 @@ def main():
                                 # Flatten: category/skill-name/SKILL.md → ~/.codex/skills/skill-name/SKILL.md
                                 rel = item.relative_to(skill_dir)
                                 target = codex_skills_dst / skill_dir.name / rel
-                                target.parent.mkdir(parents=True, exist_ok=True)
+                                _tolerant_mkdir(target.parent)
                                 if target.exists() and filecmp.cmp(item, target, shallow=False):
                                     continue
                                 shutil.copy2(item, target)
@@ -966,12 +1047,12 @@ def main():
                     deploy_name = skill_dir.name
                 codex_skill_dst = codex_skills_dst / deploy_name
                 try:
-                    codex_skill_dst.mkdir(parents=True, exist_ok=True)
+                    _tolerant_mkdir(codex_skill_dst)
                     for item in skill_dir.rglob("*"):
                         if item.is_file():
                             rel = item.relative_to(skill_dir)
                             target = codex_skill_dst / rel
-                            target.parent.mkdir(parents=True, exist_ok=True)
+                            _tolerant_mkdir(target.parent)
                             if target.exists() and filecmp.cmp(item, target, shallow=False):
                                 continue
                             shutil.copy2(item, target)
@@ -1001,12 +1082,12 @@ def main():
         if not src.is_dir():
             continue
         try:
-            codex_agents_dst.mkdir(parents=True, exist_ok=True)
+            _tolerant_mkdir(codex_agents_dst)
             for item in src.rglob("*"):
                 if item.is_file():
                     rel = item.relative_to(src)
                     target = codex_agents_dst / rel
-                    target.parent.mkdir(parents=True, exist_ok=True)
+                    _tolerant_mkdir(target.parent)
                     if target.exists() and filecmp.cmp(item, target, shallow=False):
                         continue
                     shutil.copy2(item, target)

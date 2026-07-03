@@ -5,6 +5,7 @@ user-invocable: false
 context: fork
 routing:
   category: meta-tooling
+  not_for: "3D game asset generation or Meshy API (use game-asset-generator skill) — this skill orchestrates multi-step ad-hoc workflows"
   pairs_with:
     - planning
     - feature-lifecycle

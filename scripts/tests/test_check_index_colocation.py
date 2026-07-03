@@ -53,12 +53,21 @@ def _make_repo(tmp_path: Path) -> Path:
     """Build a minimal git repo: scripts/generate-agent-index.py + one agent file."""
     repo = tmp_path / "repo"
     (repo / "scripts").mkdir(parents=True)
+    (repo / "scripts" / "lib").mkdir()
     (repo / "agents").mkdir()
 
     # Copy the real agent index generator so the check can regenerate.
     real_gen = SCRIPT.parent / "generate-agent-index.py"
     (repo / "scripts" / "generate-agent-index.py").write_text(real_gen.read_text(encoding="utf-8"), encoding="utf-8")
     (repo / "scripts" / "check-index-colocation.py").write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+
+    # generate-agent-index.py imports the shared frontmatter parser; copy it
+    # (and the package marker) so the isolated fixture repo can resolve it.
+    lib_dir = SCRIPT.parent / "lib"
+    for lib_file in ("__init__.py", "frontmatter.py"):
+        (repo / "scripts" / "lib" / lib_file).write_text(
+            (lib_dir / lib_file).read_text(encoding="utf-8"), encoding="utf-8"
+        )
 
     (repo / "agents" / "demo-agent.md").write_text(_agent_md(["alpha", "beta"]), encoding="utf-8")
 

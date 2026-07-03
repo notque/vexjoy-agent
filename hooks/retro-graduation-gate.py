@@ -17,10 +17,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, get_tool_output, get_tool_result, hook_error
+from learning_db_v2 import get_db_dir
 from stdin_timeout import read_stdin
 
-_db_dir = os.environ.get("CLAUDE_LEARNING_DIR")
-DB_PATH = (Path(_db_dir) if _db_dir else Path.home() / ".claude" / "learning") / "learning.db"
+DB_PATH = get_db_dir() / "learning.db"
 EVENT = "PostToolUse"
 
 # Only categories the retro skill can graduate. Derived from the candidate

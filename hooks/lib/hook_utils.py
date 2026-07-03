@@ -343,8 +343,10 @@ def parse_frontmatter(content: str) -> Optional[dict[str, Any]]:
     Parse YAML frontmatter from markdown content.
 
     Implements cascading fallback:
-    1. Try PyYAML if available
-    2. Fall back to regex parser
+    1. Try PyYAML if available (same block-scalar-aware behavior as
+       scripts/lib/frontmatter.py's parser; kept independent here so hooks
+       stay self-contained in hooks-only deployment mirrors).
+    2. Fall back to a simple regex parser for common fields.
 
     Args:
         content: Markdown file content
@@ -731,8 +733,8 @@ def has_reviewable_content(diff: str, scannable_exts: frozenset[str]) -> bool:
     - Files whose extension is not in `scannable_exts` (docs/config) → ignored.
     - Mode-only / pure-rename diffs (no added content lines) → False.
 
-    An added line in a scannable file (e.g. a new ``eval(...)`` in a ``.py``)
-    MUST pass this gate — true positives are preserved.
+    An added line in a scannable file (e.g. a new dangerous-eval call in a
+    ``.py``) MUST pass this gate — true positives are preserved.
     """
     current_scannable = False  # is the file in the current diff block scannable?
     for line in diff.splitlines():

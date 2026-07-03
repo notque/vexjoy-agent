@@ -10,6 +10,7 @@ routing:
     - "XCTest"
     - "Swift Testing framework"
     - "async test swift"
+  not_for: "general Swift development (use swift-general-engineer agent) — this skill covers Swift testing: XCTest, Swift Testing framework, test patterns"
   category: swift
   pairs_with:
     - swift-concurrency

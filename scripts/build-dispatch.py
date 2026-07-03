@@ -6,10 +6,11 @@ preamble the router prepends to the agent prompt. Hand-assembly of these
 blocks dropped mandatory injections; this script is the single source of
 truth for every one of them ("LLMs orchestrate, programs execute"):
 
-  1. `[do-route]` marker line — full grammar: agent/skill/complexity,
+  1. `[do-route]` marker line — full grammar: agent/skill/complexity/model,
      health gate inputs (`health= n= fail= action=` or `health=-`),
-     optional `alts={...}`, optional `stack={...}`. Emitted in the exact
-     shape hooks/routing-decision-recorder.py parses.
+     optional `alts={...}`, optional `stack={...}`. model= is required for
+     medium/complex (errors on omission); trivial/simple get `model=-`.
+     Emitted in the exact shape hooks/routing-decision-recorder.py parses.
   2. Thinking directive by complexity, with slow/fast category overrides.
   3. Token-budget line (input value, else `orchestration.token_budget`
      from .claude/settings.json, default 500000).
@@ -25,6 +26,9 @@ Input schema (missing optional fields degrade gracefully — block omitted):
       "skill": "test-driven-development",          // optional; empty => skill=-
       "complexity": "medium",                      // required enum, case-insensitive:
                                                    // trivial|simple|medium|complex
+      "model": "opus",                             // required for medium/complex;
+                                                   // optional for trivial/simple
+                                                   // (sonnet|opus|fable|gpt-5.5|codex)
       "health": {"confidence": 0.72, "n": 6,       // optional; absent/blank
                  "failure": 0, "action": "keep",   // confidence => health=-
                  "alts": ["a:b", "c:d"]},
@@ -113,6 +117,11 @@ LOCAL_ONLY_BLOCK = (
 # ---------------------------------------------------------------------------
 
 VALID_COMPLEXITY = ("trivial", "simple", "medium", "complex")
+VALID_MODELS = ("sonnet", "opus", "fable", "gpt-5.5", "codex")
+# Complexities that REQUIRE an explicit model pick (omission inherits the
+# session main-loop model — a silent cost leak when an expensive model
+# orchestrates). Trivial/simple may omit (inheritance risk is acceptable).
+_MODEL_REQUIRED_COMPLEXITY = frozenset({"medium", "complex"})
 VALID_ACTIONS = ("keep", "demote", "tiebreak")
 
 _AGENT_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -184,6 +193,27 @@ def build_marker(decision: dict) -> str:
         raise InputError(f"'complexity' {complexity!r} — must be one of {'/'.join(VALID_COMPLEXITY)}")
 
     parts = [f"[do-route] agent={agent}", f"skill={skill}", f"complexity={complexity}"]
+
+    # Model enforcement: required for medium/complex, optional for trivial/simple.
+    model = decision.get("model")
+    if model is not None:
+        model = str(model).strip().lower()
+        if model and model != "-":
+            # gpt-5.5 contains a dot — allow it through the charset check.
+            if model not in VALID_MODELS:
+                raise InputError(f"'model' {model!r} — must be one of {'/'.join(VALID_MODELS)}")
+            parts.append(f"model={model}")
+        else:
+            model = None
+    if model is None:
+        if complexity in _MODEL_REQUIRED_COMPLEXITY:
+            raise InputError(
+                f"'model' is required for complexity={complexity} "
+                f"(allowed: {'/'.join(VALID_MODELS)}). "
+                f"Omitting model inherits the session main-loop model — "
+                f"set it explicitly per the Model Selection table."
+            )
+        parts.append("model=-")
 
     health = decision.get("health") or {}
     if not isinstance(health, dict):

@@ -20,15 +20,17 @@ import os
 import sys
 from pathlib import Path
 
+# Import the canonical DB-dir resolver (ADR-122 hardening lives there)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks" / "lib"))
+from learning_db_v2 import get_db_dir
+
 EXIT_NO_SIGNAL = 0
 EXIT_SIGNAL = 3
 
 
 def events_path() -> Path:
     """Resolve route-events.jsonl honoring CLAUDE_LEARNING_DIR."""
-    env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
-    base = Path(env_dir) if env_dir else Path.home() / ".claude" / "learning"
-    return base / "route-events.jsonl"
+    return get_db_dir() / "route-events.jsonl"
 
 
 def main() -> int:

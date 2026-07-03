@@ -12,6 +12,7 @@ routing:
     - backend
     - webhook
     - authentication
+  not_for: "KPI dashboards or data analysis (use data-analysis skill) — this agent builds Node.js REST/GraphQL APIs"
   pairs_with:
     - systematic-code-review
     - database-engineer

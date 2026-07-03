@@ -307,7 +307,7 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
 | "comprehensive" / "thorough" / "full" review, or "review" with 5+ files — no diff available | Fallback: use parallel-code-review (3 reviewers: Security, Business Logic, Architecture) |
-| Multi-file or comprehensive review on a real diff | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
+| Multi-file or comprehensive review on a real diff | Run `python3 "$SDIR/right-size-review.py" --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
 | Voice profile skill selected (any voice-* profile skill, e.g. voice-example-profile) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
@@ -354,7 +354,7 @@ Maximum rigor: `/with-anti-rationalization [task]`.
 
 **Step 0: Execute Creation Protocol** (creation requests ONLY)
 
-If creation signal + Simple+: (1) Write ADR at `adr/{kebab-case-name}.md`, (2) Register via `adr-query.py register`, (3) Proceed to plan. ADR hooks (`adr-context-injector`, `adr-enforcement`) handle compliance.
+If creation signal + Simple+: (1) Write ADR at `adr/{kebab-case-name}.md`, (2) Register via `python3 "$SDIR/adr-query.py" register`, (3) Proceed to plan. ADR hooks (`adr-context-injector`, `adr-enforcement`) handle compliance.
 
 **Step 1: Create plan** (Simple+)
 
@@ -382,9 +382,10 @@ Dispatch the agent. Inject no MCP instructions; tool discovery is the agent's jo
 **Build the dispatch preamble with `scripts/build-dispatch.py` (MANDATORY).** The script is the single source of truth for the `[do-route]` marker grammar, the thinking directives, the token-budget line, the Task Specification skeleton, the four mandatory verbatim injections (reference loading, completeness, Dense-Complete Writing, base instructions), and the optional worktree/local-only blocks. Never hand-assemble them. Assemble one routing-decision JSON per dispatch, run the script, prepend its stdout verbatim to the agent prompt. Roster: one run per worker prompt.
 
 ```bash
-python3 scripts/build-dispatch.py --json '{
+python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "complexity": "<trivial|simple|medium|complex>",
+  "model": "<sonnet|opus|fable|gpt-5.5|codex>",
   "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep", "alts": ["k1","k2"]},
   "stack": ["s1","s2"],
   "task_spec": {"intent": "...", "constraints": "...", "acceptance": "...",
@@ -397,6 +398,7 @@ python3 scripts/build-dispatch.py --json '{
 Field sourcing (omit any optional field; the script degrades gracefully):
 
 - `agent`/`skill`/`complexity`: the Phase 2 decision. Omitted skill => marker gets `skill=-`.
+- `model`: the Model Selection table pick for this dispatch. REQUIRED for medium/complex/critical — the script errors on omission. Allowed values: `sonnet`, `opus`, `fable`, `gpt-5.5`, `codex`. Omitted for trivial/simple => marker gets `model=-`.
 - `health`: the Step 1.5 gate inputs (`confidence`/`n`/`failure`/`action`, `alts` when alternates were offered). Omit when the picked pair has no weight row => marker gets `health=-`. The recorder snapshots these at decision time.
 - `stack`: the Phase 3 enhancement skills stacked on this dispatch; omit when none. Instrumentation only.
 - `task_spec`: extract per the rules below. Mandatory for Medium+; for Simple include intent and acceptance when extractable. Invent no criteria; expand no scope.
@@ -409,24 +411,26 @@ Task Specification extraction: Intent from verb+object; Constraints include bran
 
 The emitted `[do-route]` marker is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health.
 
-**Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=-` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
+**Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=- model={model|-}` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
 
-**Model Selection (owner policy — ADR `model-selection-policy`; canonical copy of the table).** Pick the model per dispatch from this table. Rankings, higher = better; cost = what the owner actually pays.
+**Model Selection (owner policy — ADR `model-selection-policy`; this is the canonical table — all other copies cite it).** Consult the table per dispatch. Rankings, higher = better; cost = what the owner actually pays.
 
-| model | cost | intelligence | taste | reach |
+| model | cost | intelligence | taste | role |
 |---|---|---|---|---|
-| gpt-5.5 | 9 | 8 | 5 | Codex CLI only — dispatch via the `codex` skill (wrapper mechanics live there) |
-| sonnet-5 | 5 | 5 | 7 | Agent/Workflow `model: "sonnet"` |
-| opus-4.8 | 4 | 7 | 8 | Agent/Workflow `model: "opus"` |
-| fable-5 | 2 | 9 | 9 | Agent/Workflow `model: "fable"` |
+| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex wrapper (`codex` skill). Dispatch target. |
+| sonnet-5 | 5 | 5 | 7 | Mechanical/reader fan-out, lighter routed work. `model: "sonnet"`. Dispatch target. |
+| opus-4.8 | 4 | 7 | 8 | Reviews, audits, analysis, deep work. `model: "opus"`. Dispatch target. |
+| fable-5 | 2 | 9 | 9 | Highest technical requirements only — deliberate escalation, never routine dispatch. |
 
 Rules:
 
-- **Defaults, not limits.** Standing permission to override: if a cheaper model's output misses the bar, rerun with a smarter model without asking. Judge the output, not the price tag. Escalating costs less than shipping mediocre work.
+- **The orchestrator is whatever model runs the main thread** — fable/opus/sonnet under Claude Code, gpt-5.5 under Codex. It classifies, routes, evaluates results, synthesizes.
+- **Explicit model required for Medium+ dispatches.** Omitting `model` inherits the session main-loop model. When an expensive model orchestrates, omission silently propagates it to every worker. Every Medium/Complex/Critical dispatch MUST set `model` explicitly. Omission is allowed only for Trivial/Simple lookups where sonnet-tier inheritance risk is acceptable.
+- **Defaults, not limits.** Standing permission to override: if a cheaper model's output misses the bar, rerun with a smarter model without asking. Judge the output, not the price tag. Escalating costs less than shipping mediocre work. Escalation path: sonnet → opus → gpt-5.5 cross-check → rerun with tighter spec.
 - For anything that ships: intelligence > taste > cost. Cost is a tie-breaker only.
 - Bulk/mechanical work (clear-spec implementation, data analysis, migrations) → gpt-5.5 — effectively free.
 - Anything user-facing (UI, copy, API design) needs taste ≥ 7.
-- Reviews of plans/implementations → fable-5 or opus-4.8; optionally gpt-5.5 as an extra independent perspective.
+- Reviews of plans/implementations → opus-4.8; optionally gpt-5.5 via codex as an extra independent perspective.
 - Haiku is retired — select only from the table above.
 - **Wrapper symmetry:** the wrapper serves whichever model family is NOT the current harness. Under Claude Code (current default), gpt-5.5 runs through a wrapper — the dispatched agent runs `codex exec` via Bash with a self-contained prompt, or a thin Claude wrapper agent (`model: "sonnet"`, low effort) writes the self-contained codex prompt, runs it, returns the result. Under the Codex harness, Claude models take the wrapper instead. Claude models under Claude Code need only the `model` parameter.
 - `codex exec -s read-only` for investigation/data-analysis prompts not covered by existing codex flows.
@@ -438,14 +442,14 @@ Decision rules live here; execution mechanics live in the `codex` skill (`skills
 
 | Task verb class | Dispatch mode |
 |---|---|
-| list, count, extract, inventory, search, check, find, grep | Mechanical extraction fan-out: gpt-5.5 via the codex wrapper (`codex` skill) or `model: "sonnet"` readers (one per data source) → `fable`/`opus` synthesizer per the table |
-| review, audit, assess, analyze, debug, investigate, evaluate | Single `fable` or `opus` agent (direct), per the table |
+| list, count, extract, inventory, search, check, find, grep | Mechanical extraction fan-out: gpt-5.5 via the codex wrapper (`codex` skill) or `model: "sonnet"` readers (one per data source) → orchestrator synthesizes in-session or `model: "opus"` synthesizer agent |
+| review, audit, assess, analyze, debug, investigate, evaluate | Single `model: "opus"` agent (direct), per the table |
 
 Simple/Medium: dispatch directly.
 
 Route to agents that create feature branches; for file modifications, include "commit your changes on the branch". For `isolation: "worktree"` agents set `flags.worktree` in the routing JSON — the script injects the `worktree-agent` rules.
 
-Non-org repos: up to 3 `/pr-review` → fix iterations before PR creation. Org-gated repos (via `scripts/classify-repo.py`): require user confirmation before EACH git action.
+Non-org repos: up to 3 `/pr-review` → fix iterations before PR creation. Org-gated repos (via `python3 "$SDIR/classify-repo.py"`): require user confirmation before EACH git action.
 
 **Step 3: Handle multi-part requests**
 

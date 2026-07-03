@@ -25,8 +25,10 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+# Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import hook_error
+from learning_db_v2 import get_db_dir
 
 # Graduation thresholds
 MIN_CONFIDENCE = 0.85
@@ -125,12 +127,7 @@ def main():
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:
-        # Determine DB path (same logic as learning_db_v2.py)
-        db_dir = os.environ.get("CLAUDE_LEARNING_DIR")
-        if db_dir:
-            db_path = Path(db_dir) / "learning.db"
-        else:
-            db_path = Path.home() / ".claude" / "learning" / "learning.db"
+        db_path = get_db_dir() / "learning.db"
 
         # Silent exit if DB doesn't exist
         if not db_path.exists():
@@ -204,6 +201,7 @@ def main():
             conn.close()
 
     except Exception as exc:
+        # Stop hooks must NEVER fail the session
         hook_error("knowledge-graduation-proposer", exc)
 
 

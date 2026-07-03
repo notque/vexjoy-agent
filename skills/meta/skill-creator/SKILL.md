@@ -18,6 +18,7 @@ routing:
     - improve skill
     - optimize description
     - skill eval
+  not_for: "comparing or evaluating existing agents (use agent-comparison skill) — this skill scaffolds new skills from scratch"
   pairs_with:
     - agent-evaluation
     - verification-before-completion

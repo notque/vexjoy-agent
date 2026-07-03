@@ -14,6 +14,10 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.lib.frontmatter import parse_frontmatter as _parse_frontmatter
+
 # Role classifications and their allowed tools
 ROLE_TOOLS = {
     "reviewer-readonly": [
@@ -116,23 +120,10 @@ def parse_frontmatter(content: str) -> tuple[dict, str, str]:
     """Parse YAML frontmatter from markdown content.
     Returns (frontmatter_dict, frontmatter_text, body_text).
     """
-    if not content.startswith("---"):
+    fm, body = _parse_frontmatter(content)
+    if fm is None:
         return {}, "", content
-
-    end = content.find("---", 3)
-    if end == -1:
-        return {}, "", content
-
-    fm_text = content[3:end].strip()
-    body = content[end + 3 :]
-
-    # Simple YAML parsing for frontmatter
-    fm = {}
-    for line in fm_text.split("\n"):
-        if ":" in line and not line.startswith(" ") and not line.startswith("-"):
-            key, _, val = line.partition(":")
-            fm[key.strip()] = val.strip()
-
+    fm_text = content[3 : content.find("---", 3)].strip()
     return fm, fm_text, body
 
 

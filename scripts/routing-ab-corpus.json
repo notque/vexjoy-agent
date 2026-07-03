@@ -1,6 +1,6 @@
 {
-  "version": "1.1",
-  "description": "Blind A/B routing corpus for the semantic-first experiment. Two segments: (1) international/paraphrase cases that express the SAME intents as routing-benchmark.json but in plain non-native English avoiding the trigger keywords the deterministic pre-router matches on; (2) a sample drawn from routing-benchmark.json spanning all tiers including false-positive guards. Combined the corpus measures whether reading-for-intent-first (Arm B) recovers the long tail of paraphrased requests without regressing the safety-critical force-routes (pr-workflow, security-review) or re-introducing false positives. Each paraphrase case avoids the exact trigger phrases listed in skills/INDEX.json so pre-route.py falls through and the semantic router is the only path that can recover the route. Extension (v1.1, feat/route-ab-harness): 50 additional cases in five new buckets — stub-tier (skills with zero recorded routes; tiered-manifest tripwire), sibling-disambiguation, pipeline-pick (optional expected_pipeline; near-misses must return pipeline null), vague-interview (underspecified requests that should land planning), and plain-english (non-jargon phrasing). Optional fields: expected_pipeline (default null), acceptable (list of {agent, skill} alternates), uncertain (best-effort gold label). Absence of the optional fields means legacy behavior; the 49 legacy cases are byte-identical to v1.0.",
+  "version": "1.2",
+  "description": "Blind A/B routing corpus for the semantic-first experiment. Two segments: (1) international/paraphrase cases that express the SAME intents as routing-benchmark.json but in plain non-native English avoiding the trigger keywords the deterministic pre-router matches on; (2) a sample drawn from routing-benchmark.json spanning all tiers including false-positive guards. Combined the corpus measures whether reading-for-intent-first (Arm B) recovers the long tail of paraphrased requests without regressing the safety-critical force-routes (pr-workflow, security-review) or re-introducing false positives. Each paraphrase case avoids the exact trigger phrases listed in skills/INDEX.json so pre-route.py falls through and the semantic router is the only path that can recover the route. Extension (v1.1, feat/route-ab-harness): 50 additional cases in five new buckets \u2014 stub-tier (skills with zero recorded routes; tiered-manifest tripwire), sibling-disambiguation, pipeline-pick (optional expected_pipeline; near-misses must return pipeline null), vague-interview (underspecified requests that should land planning), and plain-english (non-jargon phrasing). Optional fields: expected_pipeline (default null), acceptable (list of {agent, skill} alternates), uncertain (best-effort gold label). Absence of the optional fields means legacy behavior; the 49 legacy cases are byte-identical to v1.0.",
   "test_cases": [
     {
       "request": "send my commits to the server",
@@ -503,7 +503,7 @@
       "notes": "STUB. Phaser 3 scenes/physics/tilemaps = phaser-gamedev per INDEX."
     },
     {
-      "request": "I have three competing proposals in docs/auth-redesign.md — tear them apart from several philosophical angles and tell me where they break",
+      "request": "I have three competing proposals in docs/auth-redesign.md \u2014 tear them apart from several philosophical angles and tell me where they break",
       "expected_agent": null,
       "expected_skill": "multi-persona-critique",
       "category": "analysis",
@@ -525,7 +525,7 @@
       "notes": "Sibling: professional-communication vs multi-persona-critique vs productivity. Transform technical notes into business format = professional-communication."
     },
     {
-      "request": "before we build the export feature, pin down the requirements and acceptance criteria — there is a lot I have not decided yet",
+      "request": "before we build the export feature, pin down the requirements and acceptance criteria \u2014 there is a lot I have not decided yet",
       "expected_agent": null,
       "expected_skill": "planning",
       "category": "planning",
@@ -533,7 +533,7 @@
       "notes": "Sibling: planning vs productivity. Spec/requirements/acceptance criteria = planning umbrella."
     },
     {
-      "request": "help me sort out my week — I have four deadlines, two meetings to prep, and no idea what to tackle first",
+      "request": "help me sort out my week \u2014 I have four deadlines, two meetings to prep, and no idea what to tackle first",
       "expected_agent": null,
       "expected_skill": "productivity",
       "category": "productivity",
@@ -541,7 +541,7 @@
       "notes": "Sibling: productivity vs planning. Personal task/weekly planning = productivity, not software planning."
     },
     {
-      "request": "do a careful structured review of the changes in src/billing/ — understand them first, then assess risks and write up findings",
+      "request": "do a careful structured review of the changes in src/billing/ \u2014 understand them first, then assess risks and write up findings",
       "expected_agent": null,
       "expected_skill": "systematic-code-review",
       "category": "code-review",
@@ -595,7 +595,7 @@
       "notes": "Sibling: voice-validator vs create-voice vs voice-writer. Fidelity check + rewrite loop = voice-validator."
     },
     {
-      "request": "run a formal research effort on local-first sync engines — scope it, gather sources with quality gates, and save the artifacts",
+      "request": "run a formal research effort on local-first sync engines \u2014 scope it, gather sources with quality gates, and save the artifacts",
       "expected_agent": "research-coordinator-engineer",
       "expected_skill": "research-pipeline",
       "category": "research",
@@ -609,7 +609,7 @@
       ]
     },
     {
-      "request": "map out the architecture of this repo — modules, boundaries, and how data flows between them, no edits",
+      "request": "map out the architecture of this repo \u2014 modules, boundaries, and how data flows between them, no edits",
       "expected_agent": null,
       "expected_skill": "codebase-overview",
       "category": "exploration",
@@ -632,7 +632,7 @@
       "expected_pipeline": "voice-writer"
     },
     {
-      "request": "research WebGPU adoption end to end — scope, gather, synthesize, validate — and deliver a cited report with saved artifacts",
+      "request": "research WebGPU adoption end to end \u2014 scope, gather, synthesize, validate \u2014 and deliver a cited report with saved artifacts",
       "expected_agent": "research-coordinator-engineer",
       "expected_skill": "research-pipeline",
       "category": "research",
@@ -918,6 +918,70 @@
       "category": "git-operations",
       "bucket": "plain-english",
       "notes": "SAFETY, PLAIN. PR preparation in casual words. MUST route pr-workflow."
+    },
+    {
+      "request": "stage the modified files and commit them",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "plain-english",
+      "notes": "SAFETY. Real git stage+commit intent. MUST route pr-workflow so quality gates fire."
+    },
+    {
+      "request": "add my changes to staging and make a commit",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "plain-english",
+      "notes": "SAFETY. Paraphrase of stage+commit. MUST route pr-workflow."
+    },
+    {
+      "request": "take what I changed and save it as a commit",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "plain-english",
+      "notes": "SAFETY. Non-technical stage+commit paraphrase. MUST route pr-workflow."
+    },
+    {
+      "request": "audit the auth flow for vulnerabilities",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "category": "security",
+      "bucket": "sibling-disambiguation",
+      "notes": "SAFETY. Real security audit intent. MUST route security-review, not finance. Bare 'audit' unigram previously misrouted to finance."
+    },
+    {
+      "request": "check the authentication code for security holes",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "category": "security",
+      "bucket": "sibling-disambiguation",
+      "notes": "SAFETY. Auth security review paraphrase. MUST route security-review."
+    },
+    {
+      "request": "look for vulnerabilities in my login system",
+      "expected_agent": "reviewer-system",
+      "expected_skill": "security-review",
+      "category": "security",
+      "bucket": "sibling-disambiguation",
+      "notes": "SAFETY. Login security audit paraphrase. MUST route security-review."
+    },
+    {
+      "request": "run a financial audit of last quarter's journal entries",
+      "expected_agent": null,
+      "expected_skill": "finance",
+      "category": "business",
+      "bucket": "sibling-disambiguation",
+      "notes": "Financial audit should route to finance, not security-review. Disambiguation: 'financial' qualifier."
+    },
+    {
+      "request": "commit the staged changes and push to remote",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "git-operations",
+      "bucket": "plain-english",
+      "notes": "SAFETY. Commit+push intent. MUST route pr-workflow."
     }
   ]
 }
