@@ -56,6 +56,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PIPELINE_PHASE_GATE_BYPASS"
@@ -343,9 +344,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[pipeline-phase-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # Crashed hook fails OPEN — never block tools on unexpected error.
-        sys.exit(0)
+        hook_error("pipeline-phase-gate", e)

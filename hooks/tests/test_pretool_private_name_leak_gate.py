@@ -110,7 +110,7 @@ def _run_main(stdin_payload: str, env: dict | None = None) -> tuple[int, dict | 
     with (
         patch.dict(os.environ, base_env, clear=True),
         patch.object(mod, "read_stdin", return_value=stdin_payload),
-        patch.object(mod, "record_governance_event", lambda *_args, **_kwargs: None),
+        patch.object(mod, "record_governance", lambda *_args, **_kwargs: None),
         patch("sys.stdout", stdout_capture),
         patch("sys.stderr", stderr_capture),
     ):

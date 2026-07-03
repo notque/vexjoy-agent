@@ -62,8 +62,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use
-from learning_db_v2 import record_governance_event
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PRIVATE_NAME_GATE_BYPASS"
@@ -415,12 +414,15 @@ def main() -> None:
                 f"[private-name-leak-gate] BLOCKED: private component name ({redacted}) found in {location}.",
                 file=sys.stderr,
             )
-            try:
-                record_governance_event(
-                    "policy_violation", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
-                )
-            except Exception:
-                pass  # Never let recording prevent a block
+            record_governance(
+                "policy_violation",
+                hook_name="pretool-private-name-leak-gate",
+                tool_name="Bash",
+                hook_phase="pre",
+                severity="high",
+                blocked=True,
+                command=command,
+            )
             deny_tool_use(
                 "PreToolUse",
                 f"Private component name ({redacted}) found in {location}. "
@@ -442,10 +444,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[private-name-leak-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never block tools.
+        hook_error("pretool-private-name-leak-gate", e)
     finally:
         sys.exit(0)

@@ -26,6 +26,7 @@ def main():
     try:
         # Lazy imports
         sys.path.insert(0, str(Path(__file__).parent / "lib"))
+        from hook_utils import hook_error
         from learning_db_v2 import decay_confidence, get_connection, init_db, prune, prune_ancillary
 
         init_db()
@@ -89,8 +90,7 @@ def main():
             )
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[confidence-decay] Error: {e}", file=sys.stderr)
+        hook_error("confidence-decay", e)
     finally:
         sys.exit(0)  # Never block
 

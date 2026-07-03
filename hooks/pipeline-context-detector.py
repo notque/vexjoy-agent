@@ -36,7 +36,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output, parse_frontmatter
+from hook_utils import context_output, empty_output, hook_error, parse_frontmatter
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
@@ -380,14 +380,7 @@ def main():
         context_output(EVENT_NAME, injection).print_and_exit()
 
     except Exception as e:
-        if debug:
-            print(f"[pipeline-creator] Error: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(
-                f"[pipeline-creator] Error: {type(e).__name__}: {e}",
-                file=sys.stderr,
-            )
+        hook_error("pipeline-context-detector", e)
         empty_output(EVENT_NAME).print_and_exit()
 
 

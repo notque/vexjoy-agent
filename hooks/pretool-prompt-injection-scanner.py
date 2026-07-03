@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 from injection_patterns import scan_content as _scan_patterns
 from stdin_timeout import read_stdin
 
@@ -161,6 +161,5 @@ if __name__ == "__main__":
         raise
     except Exception as e:
         # Fail OPEN — advisory hook must never crash the session
-        # But ALWAYS log so we know the scanner is broken
-        print(f"[injection-scanner] FATAL: hook crashed: {e}", file=sys.stderr)
+        hook_error("pretool-prompt-injection-scanner", e)
         sys.exit(0)

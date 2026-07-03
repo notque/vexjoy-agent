@@ -21,7 +21,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import get_session_id
+from hook_utils import get_session_id, hook_error
 from learning_db_v2 import get_stats, record_session
 from stdin_timeout import read_stdin
 
@@ -79,9 +79,7 @@ def main():
             print(f"[session-summary] Total sessions: {total_sessions}")
 
     except Exception as e:
-        # Log to stderr if debug enabled, but never fail
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[session-summary] Error: {e}", file=sys.stderr)
+        hook_error("session-summary", e)
     finally:
         sys.exit(0)
 

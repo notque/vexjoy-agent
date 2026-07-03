@@ -23,7 +23,7 @@ HOOKS_DIR = Path.home() / ".claude" / "hooks"
 sys.path.insert(0, str(HOOKS_DIR / "lib"))
 
 try:
-    from hook_utils import HookOutput, empty_output
+    from hook_utils import HookOutput, empty_output, hook_error
 except ImportError:
     # Graceful degradation if hook_utils not available
     def _noop():
@@ -144,10 +144,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[voice-output-gate] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("voice-output-gate", e)
     finally:
         sys.exit(0)

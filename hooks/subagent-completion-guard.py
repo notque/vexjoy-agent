@@ -41,6 +41,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 __EVENT_NAME = "SubagentStop"
@@ -531,12 +532,7 @@ def main() -> None:
         # Malformed input — don't block (non-blocking on internal errors)
         sys.exit(0)
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[subagent-completion-guard] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-        sys.exit(0)
+        hook_error("subagent-completion-guard", e)
 
 
 if __name__ == "__main__":

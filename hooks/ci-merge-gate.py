@@ -14,8 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use
-from learning_db_v2 import record_governance_event
+from hook_utils import deny_tool_use, record_governance
 from stdin_timeout import read_stdin
 
 
@@ -112,12 +111,15 @@ def main() -> None:
         names = ", ".join(c["name"] for c in failing)
         print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}", file=sys.stderr)
         print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.", file=sys.stderr)
-        try:
-            record_governance_event(
-                "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
-            )
-        except Exception:
-            pass  # Never let recording prevent a block
+        record_governance(
+            "approval_requested",
+            hook_name="ci-merge-gate",
+            tool_name="Bash",
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            command=command,
+        )
         deny_tool_use(
             "PreToolUse",
             f"CI checks are failing for PR #{pr_number}: {names}. Fix the failing checks before merging.",
@@ -128,12 +130,15 @@ def main() -> None:
         names = ", ".join(c["name"] for c in pending)
         print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}", file=sys.stderr)
         print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.", file=sys.stderr)
-        try:
-            record_governance_event(
-                "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
-            )
-        except Exception:
-            pass  # Never let recording prevent a block
+        record_governance(
+            "approval_requested",
+            hook_name="ci-merge-gate",
+            tool_name="Bash",
+            hook_phase="pre",
+            severity="medium",
+            blocked=True,
+            command=command,
+        )
         deny_tool_use(
             "PreToolUse",
             f"CI checks are still running for PR #{pr_number}: {names}. "

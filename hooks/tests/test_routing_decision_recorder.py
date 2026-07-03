@@ -1325,7 +1325,7 @@ class TestHealthMarkerLineScoping:
             a.main()
         ex.assert_called_with(0)  # still non-blocking
         err = capsys.readouterr().err
-        assert "routing-decision-recorder: RuntimeError: forced failure" in err
+        assert "[routing-decision-recorder] HOOK-ERROR: RuntimeError: forced failure" in err
 
 
 # ---------------------------------------------------------------------------

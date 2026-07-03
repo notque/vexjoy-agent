@@ -27,7 +27,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import empty_output, get_tool_output, get_tool_result
+from hook_utils import empty_output, get_tool_output, get_tool_result, hook_error
 from learning_db_v2 import record_learning
 from stdin_timeout import read_stdin
 
@@ -177,11 +177,7 @@ def main() -> None:
         empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[review-capture] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("review-capture", e)
     finally:
         sys.exit(0)  # Never block
 

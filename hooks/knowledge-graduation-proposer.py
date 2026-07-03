@@ -27,6 +27,7 @@ from pathlib import Path
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from learning_db_v2 import get_db_dir
 
 # Graduation thresholds
@@ -201,11 +202,7 @@ def main():
 
     except Exception as exc:
         # Stop hooks must NEVER fail the session
-        print(f"[knowledge-graduation-proposer] HOOK-ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
+        hook_error("knowledge-graduation-proposer", exc)
 
 
 if __name__ == "__main__":

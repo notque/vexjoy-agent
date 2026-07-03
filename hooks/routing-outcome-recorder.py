@@ -48,6 +48,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from routing_outcome_state import (
     drain_pending_outcomes,
     requeue_pending_outcomes,
@@ -126,14 +127,7 @@ def main() -> None:
             revalidate_pending_outcomes(session_id, to_revalidate)
 
     except Exception as e:
-        try:
-            print(f"[routing-outcome-recorder] error: {type(e).__name__}: {e}", file=sys.stderr)
-        except Exception:
-            pass  # stderr write must never itself break the hook
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
+        hook_error("routing-outcome-recorder", e)
     finally:
         sys.exit(0)  # Never block
 

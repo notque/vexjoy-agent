@@ -29,8 +29,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use
-from learning_db_v2 import record_governance_event
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "BRANCH_SAFETY_BYPASS"
@@ -119,12 +118,16 @@ def main() -> None:
             file=sys.stderr,
         )
         print("[fix-with-skill] pr-workflow", file=sys.stderr)
-        try:
-            record_governance_event(
-                "policy_violation", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
-            )
-        except Exception:
-            pass  # Never let recording prevent a block
+        record_governance(
+            "policy_violation",
+            hook_name="pretool-branch-safety",
+            tool_name="Bash",
+            hook_phase="pre",
+            severity="high",
+            blocked=True,
+            event=event,
+            command=command,
+        )
         deny_tool_use(
             "PreToolUse",
             f"Cannot commit directly to {branch}. Create a feature branch first. "
@@ -143,10 +146,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[branch-safety] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never block tools.
+        hook_error("pretool-branch-safety", e)
     finally:
         sys.exit(0)

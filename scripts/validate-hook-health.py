@@ -721,6 +721,41 @@ def check_liveness() -> list[str]:
     return []
 
 
+HOOK_ERRORS_JSONL = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+
+# A hook that errors more than this many times is a repeat offender.
+_REPEAT_THRESHOLD = 5
+
+
+def check_hook_error_repeat_offenders() -> list[str]:
+    """Read hook-errors.jsonl and surface hooks that error repeatedly."""
+    if not HOOK_ERRORS_JSONL.is_file():
+        return []
+    counts: dict[str, int] = {}
+    try:
+        for line in HOOK_ERRORS_JSONL.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+                hook = entry.get("hook", "unknown")
+                counts[hook] = counts.get(hook, 0) + 1
+            except (json.JSONDecodeError, TypeError):
+                continue
+    except OSError:
+        return []
+
+    msgs: list[str] = []
+    for hook, count in sorted(counts.items(), key=lambda x: -x[1]):
+        if count >= _REPEAT_THRESHOLD:
+            msgs.append(
+                f"REPEAT-OFFENDER: hooks/{hook}.py has {count} errors in hook-errors.jsonl "
+                f"(threshold: {_REPEAT_THRESHOLD}). Investigate and fix the root cause."
+            )
+    return msgs
+
+
 def run_all(with_liveness: bool) -> list[str]:
     settings = load_settings()
     failures: list[str] = []
@@ -730,6 +765,7 @@ def run_all(with_liveness: bool) -> list[str]:
     failures += check_mirror(settings)
     failures += check_allowlist_not_stale()
     failures += check_allowlist_entries_have_reasons()
+    failures += check_hook_error_repeat_offenders()
     if with_liveness:
         failures += check_matcher_liveness()
         failures += check_liveness()
@@ -752,6 +788,7 @@ def main() -> int:
         "mirror-sanity",
         "allowlist-not-stale",
         "allowlist-reasons",
+        "repeat-offenders",
     ]
     if with_liveness:
         checks.append("matcher-liveness")

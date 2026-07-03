@@ -24,7 +24,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import get_session_id, get_tool_output, get_tool_result, is_tool_error
+from hook_utils import get_session_id, get_tool_output, get_tool_result, hook_error, is_tool_error
 from stdin_timeout import read_stdin
 
 # Minimum token waste estimate per failure
@@ -69,11 +69,7 @@ def main() -> None:
         )
 
     except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError, Exception) as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[record-waste] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("record-waste", e)
     finally:
         sys.exit(0)
 

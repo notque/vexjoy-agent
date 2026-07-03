@@ -718,4 +718,4 @@ class TestFailOpen:
             text=True,
         )
         assert result.returncode == 0
-        assert "[mcp-health-check] error: AttributeError" in result.stderr
+        assert "[mcp-health-check] HOOK-ERROR: AttributeError" in result.stderr

@@ -22,7 +22,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 
 EVENT_NAME = "SessionStart"
 
@@ -83,9 +83,7 @@ def extract_agent_info(agent_path: Path) -> dict | None:
         return info
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[cross-repo] Failed to parse {agent_path}: {e}", file=sys.stderr)
-        return None
+        hook_error("cross-repo-agents", e)
 
 
 def discover_local_agents(cwd: str) -> list[dict]:
@@ -132,10 +130,7 @@ def main():
         context_output(EVENT_NAME, "\n".join(lines)).print_and_exit()
 
     except Exception as e:
-        # Log to stderr if debug enabled, but never fail
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[cross-repo] Error: {e}", file=sys.stderr)
-        empty_output(EVENT_NAME).print_and_exit()
+        hook_error("cross-repo-agents", e)
 
 
 if __name__ == "__main__":

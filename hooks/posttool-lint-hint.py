@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 # File extensions and their linters
@@ -41,11 +42,7 @@ def get_seen_extensions() -> set:
         if SEEN_EXTENSIONS_FILE.exists():
             return set(SEEN_EXTENSIONS_FILE.read_text().strip().split("\n"))
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("posttool-lint-hint", e)
     return set()
 
 
@@ -56,11 +53,7 @@ def mark_extension_seen(ext: str):
         seen.add(ext)
         SEEN_EXTENSIONS_FILE.write_text("\n".join(seen))
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("posttool-lint-hint", e)
 
 
 def main():
@@ -97,11 +90,7 @@ def main():
         print(f"[lint-hint] {filename} modified. Consider: {linter}")
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("posttool-lint-hint", e)
     finally:
         # CRITICAL: Always exit 0 to prevent blocking Claude Code
         sys.exit(0)

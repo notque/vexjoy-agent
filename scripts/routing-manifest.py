@@ -341,8 +341,13 @@ def main() -> int:
             print(format_tiered(entries, load_working_set()))
         else:
             print(format_compact(entries))
-    except Exception:
+    except Exception as exc:
         # Safe fallback: empty manifest so the router falls through gracefully.
+        # Always print the cause so the failure is visible without debug flags.
+        print(
+            f"[routing-manifest] FALLBACK: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
         print("AGENTS:\n\nSKILLS:\n\nPIPELINES:")
 
     return 0

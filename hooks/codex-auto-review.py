@@ -38,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
@@ -154,8 +154,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[codex-auto-review] HOOK-ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("codex-auto-review", exc)
     finally:
         sys.exit(0)

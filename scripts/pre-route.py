@@ -818,13 +818,16 @@ def main() -> int:
 
         result = route(request_text)
     except Exception as exc:
+        import traceback
+
+        traceback.print_exc(file=sys.stderr)
         result = {
             "matched": False,
             "agent": None,
             "skill": None,
             "confidence": "low",
             "match_type": "fallthrough",
-            "reasoning": f"pre-route error: {type(exc).__name__}",
+            "reasoning": f"pre-route error: {type(exc).__name__}: {exc}",
         }
 
     indent = None if args.json_compact else 2

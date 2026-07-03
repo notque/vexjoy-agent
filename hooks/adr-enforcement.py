@@ -23,7 +23,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output, log_warning
+from hook_utils import context_output, empty_output, hook_error, log_warning
 from stdin_timeout import read_stdin
 
 __EVENT_NAME = "PostToolUse"
@@ -232,19 +232,10 @@ def main() -> None:
         context_output(_EVENT_NAME, context).print_and_exit(0)
 
     except (json.JSONDecodeError, KeyError, TypeError) as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[adr-enforcement] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("adr-enforcement", e)
         empty_output(_EVENT_NAME).print_and_exit(0)
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[adr-enforcement] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-        empty_output(_EVENT_NAME).print_and_exit(0)
+        hook_error("adr-enforcement", e)
     finally:
         sys.exit(0)
 

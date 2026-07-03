@@ -34,7 +34,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use
+from hook_utils import deny_tool_use, hook_error
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "RUFF_FORMAT_GATE_BYPASS"
@@ -178,10 +178,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[ruff-format-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # Crashed hook must fail open — never block tools.
+        hook_error("pretool-ruff-format-gate", e)
     finally:
         sys.exit(0)

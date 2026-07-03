@@ -179,10 +179,10 @@ class TestDebugLogging:
 
         assert info is None
         captured = capsys.readouterr()
-        assert "[cross-repo]" in captured.err or captured.err == ""
+        assert "[cross-repo-agents] HOOK-ERROR:" in captured.err
 
-    def test_silent_when_debug_not_set(self, tmp_path, capsys):
-        """Test that errors are silent when CLAUDE_HOOKS_DEBUG is not set."""
+    def test_loud_error_when_debug_not_set(self, tmp_path, capsys):
+        """Errors are always visible (unconditional one-liner via hook_error)."""
         agent_file = tmp_path / "bad-agent.md"
         agent_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
 
@@ -192,7 +192,7 @@ class TestDebugLogging:
 
         assert info is None
         captured = capsys.readouterr()
-        assert captured.err == ""
+        assert "[cross-repo-agents] HOOK-ERROR:" in captured.err
 
 
 if __name__ == "__main__":
