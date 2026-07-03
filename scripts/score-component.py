@@ -34,6 +34,10 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
+
 SECRET_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"sk-[a-zA-Z0-9]{20,}"),
     re.compile(r"AKIA[A-Z0-9]{16}"),
@@ -115,11 +119,9 @@ class ComponentScore:
 
 def extract_frontmatter(content: str) -> dict | None:
     """Extract YAML frontmatter from markdown content."""
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return None
-
-    yaml_content = match.group(1)
     try:
         return yaml.safe_load(yaml_content)
     except yaml.YAMLError:

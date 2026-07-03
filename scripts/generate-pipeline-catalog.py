@@ -27,6 +27,10 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
+
 
 def extract_frontmatter(content: str) -> dict | None:
     """Extract YAML frontmatter from markdown content.
@@ -40,11 +44,9 @@ def extract_frontmatter(content: str) -> dict | None:
     Returns:
         Parsed frontmatter dict, or None if no frontmatter found.
     """
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return None
-
-    yaml_content = match.group(1)
 
     try:
         result = yaml.safe_load(yaml_content)

@@ -36,6 +36,10 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
+
 # Phase header regex: matches "## Phase 1:" or "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
 # Captures the NAME part after the colon, stopping before parenthetical or em-dash suffixes.
 PHASE_HEADER_RE = re.compile(r"^##+ Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
@@ -52,11 +56,9 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
     Returns:
         tuple: (frontmatter dict or None, used_fallback bool)
     """
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return None, False
-
-    yaml_content = match.group(1)
 
     try:
         result = yaml.safe_load(yaml_content)

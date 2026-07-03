@@ -21,9 +21,14 @@ Output:
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
 
 
 def extract_frontmatter(content: str) -> dict | None:
@@ -32,11 +37,9 @@ def extract_frontmatter(content: str) -> dict | None:
     Uses PyYAML for parsing, with fallback to regex for complex description fields
     that contain colons (common in agent descriptions with examples).
     """
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not match:
+    yaml_content = extract_frontmatter_block(content)
+    if yaml_content is None:
         return None
-
-    yaml_content = match.group(1)
 
     # Try PyYAML first
     try:
