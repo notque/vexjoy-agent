@@ -237,11 +237,22 @@ def check_referenced_files(content: str, file_path: Path, component_type: str) -
     valid = 0
     invalid_paths: list[str] = []
     for p in file_like:
-        resolved = (component_dir / p) if p.startswith("references/") else (REPO_ROOT / p)
+        if p.startswith("references/"):
+            # Bare references/ paths resolve against the component's own directory
+            resolved = component_dir / p
+        else:
+            resolved = REPO_ROOT / p
         if resolved.exists():
             valid += 1
         else:
-            invalid_paths.append(p)
+            # Agent-dir-relative convention: paths like {agent-name}/references/x.md
+            # resolve against REPO_ROOT/agents/ (or skills/ for skills)
+            alt_agents = REPO_ROOT / "agents" / p
+            alt_skills = REPO_ROOT / "skills" / p
+            if alt_agents.exists() or alt_skills.exists():
+                valid += 1
+            else:
+                invalid_paths.append(p)
 
     total = len(file_like)
     ratio = valid / total if total > 0 else 1.0
@@ -598,11 +609,16 @@ def score_to_dict(score: ComponentScore) -> dict:
 
 
 def find_all_agents() -> list[Path]:
-    """Find all agent markdown files (excludes README.md and INDEX.json)."""
+    """Find all agent markdown files (excludes non-routable files).
+
+    base-instructions.md is a shared preamble included by agents, not a
+    routable agent itself (no frontmatter, no routing entry). Scoring it
+    produces guaranteed false failures.
+    """
     agents_dir = REPO_ROOT / "agents"
     if not agents_dir.is_dir():
         return []
-    excluded = {"README.md", "INDEX.json"}
+    excluded = {"README.md", "INDEX.json", "base-instructions.md"}
     return sorted(p for p in agents_dir.glob("*.md") if p.name not in excluded)
 
 

@@ -230,6 +230,11 @@ def run_check_do_framing(json_output: bool, allowlist_path: Path | None = None) 
     return 1 if all_issues else 0
 
 
+# VERDICT template headings are output-format instructions (e.g.
+# ``## VERDICT: [PASS | NEEDS_CHANGES | BLOCK]``). They are intentionally
+# empty — the section body is filled at review time. Exempt from EMPTY_SECTION.
+_VERDICT_HEADING = re.compile(r"^##\s+VERDICT:", re.IGNORECASE)
+
 VALID_IMPACT_LEVELS = {"CRITICAL", "HIGH", "MEDIUM-HIGH", "MEDIUM", "LOW-MEDIUM", "LOW"}
 
 IMPACT_PATTERN = re.compile(r"\*\*Impact:\*\*\s+(\S+)")
@@ -305,6 +310,9 @@ def validate_reference_file(ref_path: Path) -> list[ReferenceIssue]:
     for heading, body in zip(headings, body_sections):
         stripped = body.strip()
         if not stripped:
+            # VERDICT template headings are intentionally body-less output templates
+            if _VERDICT_HEADING.match(heading.strip()):
+                continue
             issues.append(ReferenceIssue("empty-section", rel, f"Section '{heading.strip()}' has no body text"))
 
     if "```" not in content:
