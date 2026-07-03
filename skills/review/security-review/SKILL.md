@@ -23,6 +23,9 @@ routing:
     - "scan for vulnerabilities"
     - "check for security issues"
     - "security issues"
+    - "audit for vulnerabilities"
+    - "audit auth"
+    - "audit vulnerabilities"
   category: code-review
   pairs_with:
     - parallel-code-review

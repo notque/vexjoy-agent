@@ -38,6 +38,7 @@ routing:
     - complexity audit
     - authority concentration
     - reversibility check
+  not_for: "SAP Commerce Cloud full-repo compliance audit (use sapcc-audit skill) — this agent provides multi-perspective review: newcomer, senior, pedant, contrarian views"
   pairs_with:
     - systematic-code-review
     - workflow

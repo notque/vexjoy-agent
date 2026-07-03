@@ -12,6 +12,7 @@ routing:
     - "sprint planning"
     - "product metrics"
   category: business
+  not_for: "UX design methodology, wireframes, or accessibility audits (use design skill) — this skill handles product strategy, roadmaps, user research for feature prioritization"
   force_route: false
   pairs_with:
     - csuite

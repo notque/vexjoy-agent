@@ -18,6 +18,7 @@ routing:
     - "optimize skill"
     - "optimize description"
     - "run autoresearch"
+  not_for: "creating new skills from scratch (use skill-creator skill) — this skill compares and optimizes existing agent descriptions and routing"
   category: meta-tooling
   pairs_with:
     - agent-evaluation
