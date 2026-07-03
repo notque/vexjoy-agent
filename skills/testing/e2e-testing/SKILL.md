@@ -23,6 +23,7 @@ routing:
     - page object model
     - POM
     - test flakiness
+  not_for: "full test automation strategy including Vitest, coverage, and CI integration (use testing-automation-engineer agent) — this skill runs Playwright E2E tests"
   pairs_with:
     - testing-automation-engineer
     - typescript-frontend-engineer

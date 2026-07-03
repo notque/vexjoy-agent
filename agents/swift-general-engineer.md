@@ -69,6 +69,7 @@ routing:
     - swift-combine
     - swiftdata
     - coredata
+  not_for: "Swift concurrency patterns in isolation (use swift-concurrency skill) or Swift test-only work (use swift-testing skill) — this agent handles full Swift development"
   retro-topics:
     - swift-patterns
     - concurrency

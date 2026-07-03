@@ -38,7 +38,7 @@ routing:
     - sketchfab
     - poly pizza
     - poly haven
-  not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend"
+  not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend; ad-hoc workflow composition (use workflow skill)"
   pairs_with:
     - threejs-builder
     - typescript-frontend-engineer

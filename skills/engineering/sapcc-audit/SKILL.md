@@ -14,7 +14,7 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  not_for: "deep 10-specialist parallel review of specific files (use sapcc-review). This skill is full-repo compliance scan."
+  not_for: "deep 10-specialist parallel review of specific files (use sapcc-review). This skill is full-repo compliance scan; multi-perspective code review with newcomer/senior/pedant views (use reviewer-perspectives agent)"
   triggers:
     - sapcc audit
     - sapcc compliance
