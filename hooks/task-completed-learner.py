@@ -20,6 +20,7 @@ from pathlib import Path
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "TaskCompleted"
@@ -103,9 +104,7 @@ def main():
         if debug:
             print("[task-completed] Invalid JSON input", file=sys.stderr)
     except Exception as e:
-        if debug:
-            print(f"[task-completed] Error: {e}", file=sys.stderr)
-
+        hook_error("task-completed-learner", e)
     print("{}")
     sys.exit(0)
 

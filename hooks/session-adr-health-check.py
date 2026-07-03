@@ -32,7 +32,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 
 EVENT_NAME = "SessionStart"
 
@@ -134,10 +134,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[adr-health-check] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # Crashed hook must fail open — never block session start.
+        hook_error("session-adr-health-check", e)
     finally:
         sys.exit(0)

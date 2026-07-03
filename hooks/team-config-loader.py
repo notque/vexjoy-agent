@@ -25,6 +25,7 @@ from pathlib import Path
 
 # Lib imports for once-per-session bootstrap gate.
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 
 DEBUG = os.environ.get("CLAUDE_HOOKS_DEBUG") == "1"
 
@@ -208,14 +209,13 @@ def main() -> None:
         inject_config(config, config_path)
 
     except Exception as e:
-        debug(f"error loading team config: {e}")
+        hook_error("team-config-loader", e)
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        if DEBUG:
-            print(f"[team-config-loader] fatal: {e}", file=sys.stderr)
+        hook_error("team-config-loader", e)
     finally:
         sys.exit(0)

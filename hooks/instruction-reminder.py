@@ -17,7 +17,7 @@ from pathlib import Path
 # Add lib to path for hook_utils import
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import empty_output
+from hook_utils import empty_output, hook_error
 
 
 def main():
@@ -28,10 +28,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[instruction-reminder] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("instruction-reminder", e)
     finally:
         sys.exit(0)

@@ -36,10 +36,13 @@ def test_exits_0_on_injected_exception(tmp_path):
     lib_dir = tmp_path / "lib"
     lib_dir.mkdir()
     (lib_dir / "hook_utils.py").write_text(
+        "import sys\n"
         "def context_output(*a, **k):\n"
         "    raise RuntimeError('injected failure')\n"
         "def empty_output(*a, **k):\n"
         "    raise RuntimeError('injected failure')\n"
+        "def hook_error(name, exc):\n"
+        "    print(f'[{name}] HOOK-ERROR: {type(exc).__name__}: {exc}', file=sys.stderr)\n"
     )
 
     result = subprocess.run(
@@ -50,4 +53,4 @@ def test_exits_0_on_injected_exception(tmp_path):
     )
 
     assert result.returncode == 0
-    assert "[afk-mode] error: RuntimeError" in result.stderr
+    assert "[afk-mode] HOOK-ERROR: RuntimeError" in result.stderr

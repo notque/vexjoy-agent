@@ -40,4 +40,4 @@ def test_exits_0_on_injected_exception(tmp_path):
         env={**os.environ, "HOME": str(tmp_path)},
     )
     assert result.returncode == 0
-    assert "[rules-distill] error: IsADirectoryError" in result.stderr
+    assert "[rules-distill-trigger] HOOK-ERROR: IsADirectoryError" in result.stderr

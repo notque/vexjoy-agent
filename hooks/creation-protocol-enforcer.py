@@ -29,6 +29,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "ADR_PROTOCOL_BYPASS"
@@ -144,12 +145,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(
-                f"[creation-protocol-enforcer] Error: {type(e).__name__}: {e}",
-                file=sys.stderr,
-            )
-        # Fail open — never exit non-zero on unexpected errors.
-        sys.exit(0)
+        hook_error("creation-protocol-enforcer", e)

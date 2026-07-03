@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 from manifest_cache import CACHE_FILE, refresh, resolve_scripts_dir
 
 EVENT_NAME = "SessionStart"
@@ -55,12 +55,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let print_and_exit's sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[manifest-cache] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # Crashed hook must fail open — never block session start.
+        hook_error("session-manifest-cache", e)
     finally:
         sys.exit(0)

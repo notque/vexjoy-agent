@@ -73,6 +73,7 @@ from hook_utils import (
     deny_tool_use,
     empty_output,
     has_reviewable_content,
+    hook_error,
     working_tree_diff,
 )
 from stdin_timeout import read_stdin
@@ -468,9 +469,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0/2) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[security-review] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook fails OPEN — never block a commit, never stall a session.
-        sys.exit(0)
+        hook_error("security-review-hook", e)

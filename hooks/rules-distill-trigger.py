@@ -17,6 +17,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
+
 STALENESS_DAYS = 7
 STATE_DIR = Path.home() / ".claude" / "state"
 STATE_FILE = STATE_DIR / "rules-distill-state.json"
@@ -92,13 +95,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except Exception as e:
-        try:
-            print(f"[rules-distill] error: {type(e).__name__}: {e}", file=sys.stderr)
-        except Exception:
-            pass  # stderr write must never itself break the hook
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
+        hook_error("rules-distill-trigger", e)
         # Stop hooks must NEVER fail
         sys.exit(0)

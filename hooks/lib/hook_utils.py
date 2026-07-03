@@ -416,6 +416,148 @@ def log_error(message: str) -> None:
     print(f"[error] {message}", file=sys.stderr)
 
 
+# =============================================================================
+# Loud Hook Error Helper
+# =============================================================================
+
+# JSONL log for hook errors — enables validate-hook-health to surface repeat
+# offenders without needing CLAUDE_HOOKS_DEBUG set.
+_HOOK_ERRORS_PATH = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+
+# Secrets pattern used to strip sensitive values from error messages.
+_SECRETS_RE = None
+
+
+def _secrets_pattern():
+    """Lazy-compile secrets regex (avoids import-time re.compile cost)."""
+    global _SECRETS_RE
+    if _SECRETS_RE is None:
+        import re
+
+        _SECRETS_RE = re.compile(
+            r"(Bearer\s+\S+|token[=:]\S+|key[=:]\S+|password[=:]\S+|secret[=:]\S+)",
+            re.IGNORECASE,
+        )
+    return _SECRETS_RE
+
+
+def _redact_secrets(text: str) -> str:
+    """Strip obvious secret patterns from error text."""
+    return _secrets_pattern().sub("<redacted>", text)
+
+
+def hook_error(hook_name: str, exc: BaseException) -> None:
+    """Unconditional one-liner to stderr + append to hook-errors.jsonl.
+
+    Always called. Full traceback only under CLAUDE_HOOKS_DEBUG.
+    Never raises — swallows all internal failures so hooks stay non-blocking.
+    """
+    exc_type = type(exc).__name__
+    exc_msg = _redact_secrets(str(exc))
+    # Unconditional one-liner — always visible.
+    try:
+        print(f"[{hook_name}] HOOK-ERROR: {exc_type}: {exc_msg}", file=sys.stderr)
+    except Exception:
+        pass
+
+    # Full traceback only when debugging.
+    if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+        try:
+            import traceback
+
+            traceback.print_exc(file=sys.stderr)
+        except Exception:
+            pass
+
+    # Append to JSONL log (best-effort, never blocks).
+    try:
+        entry = json.dumps(
+            {
+                "ts": datetime.now(tz=timezone.utc).isoformat(),
+                "hook": hook_name,
+                "type": exc_type,
+                "msg": exc_msg[:500],
+            }
+        )
+        _HOOK_ERRORS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_HOOK_ERRORS_PATH, "a", encoding="utf-8") as f:
+            f.write(entry + "\n")
+    except Exception:
+        pass
+
+
+# =============================================================================
+# Governance Event Recording (enriched wrapper)
+# =============================================================================
+
+# Per-second dedup: suppress duplicate governance events within the same second.
+_GOV_DEDUP: dict[str, float] = {}
+
+
+def _redact_command_head(command: str, max_len: int = 80) -> str:
+    """First ~80 chars of a command with secrets stripped."""
+    head = command[:max_len]
+    return _redact_secrets(head)
+
+
+def record_governance(
+    event_type: str,
+    *,
+    hook_name: str = "",
+    tool_name: str = "",
+    hook_phase: str = "",
+    severity: str = "",
+    blocked: bool = False,
+    event: dict | None = None,
+    command: str = "",
+) -> str | None:
+    """Enriched governance event recording with dedup and payload.
+
+    Wraps learning_db_v2.record_governance_event with:
+    - session_id extracted from event or environment
+    - payload with hook name and redacted command head
+    - per-second dedup (suppresses duplicate event_type+tool_name within 1s)
+
+    Never raises. Returns event id on success, None on failure or dedup.
+    """
+    try:
+        # Per-second dedup key
+        now = time.time()
+        dedup_key = f"{event_type}:{tool_name}:{hook_name}"
+        last = _GOV_DEDUP.get(dedup_key, 0.0)
+        if now - last < 1.0:
+            return None  # suppressed
+        _GOV_DEDUP[dedup_key] = now
+
+        # Extract session_id
+        session_id = None
+        if event and isinstance(event, dict):
+            session_id = event.get("session_id")
+        if not session_id:
+            session_id = os.environ.get("CLAUDE_SESSION_ID")
+
+        # Build payload
+        payload: dict[str, Any] = {}
+        if hook_name:
+            payload["hook"] = hook_name
+        if command:
+            payload["command_head"] = _redact_command_head(command)
+
+        from learning_db_v2 import record_governance_event
+
+        return record_governance_event(
+            event_type,
+            session_id=session_id,
+            tool_name=tool_name,
+            hook_phase=hook_phase,
+            severity=severity,
+            payload=payload if payload else None,
+            blocked=blocked,
+        )
+    except Exception:
+        return None
+
+
 def deny_tool_use(event_name: str, reason: str) -> None:
     """Output a structured deny decision for PreToolUse/SubagentStop hooks.
 

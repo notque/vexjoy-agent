@@ -26,7 +26,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output, get_session_id, record_activations_safe
+from hook_utils import context_output, empty_output, get_session_id, hook_error, record_activations_safe
 from learning_db_v2 import (
     get_stats,
     query_learnings,
@@ -196,17 +196,13 @@ def main():
         empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
-        # Log to stderr if debug enabled, but never fail
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[learned-context] Error: {e}", file=sys.stderr)
-        empty_output(EVENT_NAME).print_and_exit()
+        hook_error("session-context", e)
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[session-context] Fatal: {type(e).__name__}: {e}", file=sys.stderr)
+        hook_error("session-context", e)
     finally:
         sys.exit(0)  # ALWAYS exit 0 — non-blocking requirement

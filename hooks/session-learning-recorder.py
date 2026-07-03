@@ -23,7 +23,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import empty_output, get_session_id
+from hook_utils import empty_output, get_session_id, hook_error
 from learning_db_v2 import get_connection, init_db
 from stdin_timeout import read_stdin
 
@@ -110,8 +110,7 @@ def finalize_routing_outcomes(session_id: str) -> None:
             apply_outcome(key, outcome, basis=basis)
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[session-learning-recorder] routing finalize error: {e}", file=sys.stderr)
+        hook_error("session-learning-recorder", e)
 
 
 def is_substantive_session(event: dict) -> bool:
@@ -166,9 +165,7 @@ def main():
         empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[session-learning-recorder] Error: {e}", file=sys.stderr)
-
+        hook_error("session-learning-recorder", e)
     empty_output(EVENT_NAME).print_and_exit()
 
 

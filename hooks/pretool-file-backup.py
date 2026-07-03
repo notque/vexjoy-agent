@@ -31,6 +31,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 # 10 MB limit — skip larger files silently
@@ -91,13 +92,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        try:
-            print(f"[pretool-file-backup] error: {type(e).__name__}: {e}", file=sys.stderr)
-        except Exception:
-            pass  # stderr write must never itself break the hook
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
-        # Fail OPEN — never block edits due to backup failure.
-        sys.exit(0)
+        hook_error("pretool-file-backup", e)

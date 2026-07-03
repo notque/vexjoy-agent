@@ -39,8 +39,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from learning_db_v2 import record_governance_event
+from hook_utils import record_governance
 from stdin_timeout import read_stdin
+
+# Module-level state set by main() so _block() can enrich governance events.
+_CURRENT_EVENT: dict | None = None
+_CURRENT_COMMAND: str = ""
 
 # ═══════════════════════════════════════════════════════════════
 # 1. GITIGNORE BYPASS (block-gitignore-bypass.py)
@@ -761,7 +765,16 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
     """
     print(message, file=sys.stderr)
     try:
-        record_governance_event("hook_blocked", tool_name=tool_name, hook_phase="pre", severity="high", blocked=True)
+        record_governance(
+            "hook_blocked",
+            hook_name="pretool-unified-gate",
+            tool_name=tool_name,
+            hook_phase="pre",
+            severity="high",
+            blocked=True,
+            event=_CURRENT_EVENT,
+            command=_CURRENT_COMMAND,
+        )
     except Exception:
         pass  # Never let recording prevent a block
     deny_reason = reason if reason else message
@@ -2276,11 +2289,14 @@ def check_sysadmin_security(command: str) -> None:
 
 
 def main() -> None:
+    global _CURRENT_EVENT, _CURRENT_COMMAND
     raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         return
+
+    _CURRENT_EVENT = event
 
     # Field name compatibility: try new names first, fall back to old
     tool = event.get("tool_name") or event.get("tool", "")
@@ -2288,6 +2304,7 @@ def main() -> None:
 
     if tool == "Bash":
         command = tool_input.get("command", "")
+        _CURRENT_COMMAND = command
         if not command:
             return
         check_gitignore_bypass(command)

@@ -23,8 +23,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import deny_tool_use
-from learning_db_v2 import record_governance_event
+from hook_utils import deny_tool_use, hook_error, record_governance
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "CONFIG_PROTECTION_BYPASS"
@@ -98,10 +97,14 @@ def _block(file_path: str) -> None:
         "[config-protection] To allow a legitimate config change: set CONFIG_PROTECTION_BYPASS=1",
         file=sys.stderr,
     )
-    try:
-        record_governance_event("policy_violation", tool_name="Write", hook_phase="pre", severity="high", blocked=True)
-    except Exception:
-        pass  # Never let recording prevent a block
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-config-protection",
+        tool_name="Write",
+        hook_phase="pre",
+        severity="high",
+        blocked=True,
+    )
     deny_tool_use(
         "PreToolUse",
         f"Modifying linter/formatter config '{Path(file_path).name}' is blocked. "
@@ -170,9 +173,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[config-protection] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN -- never block tools on unexpected errors.
-        sys.exit(0)
+        hook_error("pretool-config-protection", e)

@@ -69,6 +69,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "lib"))
+from hook_utils import hook_error
 from route_types import HealthGateInputs
 from routing_outcome_state import append_pending_outcome, claim_dispatch
 from stdin_timeout import read_stdin
@@ -567,18 +568,7 @@ def main() -> None:
             record_rightsizing(output, session_id)
 
     except Exception as e:
-        # Always surface ONE short line so a recorder failure is visible, not
-        # silent (the previous handler logged only under CLAUDE_HOOKS_DEBUG, so a
-        # dropped decision event left no trace). Exception class + message only —
-        # no prompt content, no secrets. Full traceback stays debug-gated.
-        try:
-            print(f"routing-decision-recorder: {type(e).__name__}: {e}", file=sys.stderr)
-        except Exception:
-            pass  # stderr write must never itself break the hook
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
+        hook_error("routing-decision-recorder", e)
     finally:
         sys.exit(0)  # Never block
 

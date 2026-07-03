@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import get_tool_result, is_tool_error
+from hook_utils import get_tool_result, hook_error, is_tool_error
 from stdin_timeout import read_stdin
 
 
@@ -161,11 +161,7 @@ def main():
         print("Consider updating these references before committing.")
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[rename-sweep] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("posttool-rename-sweep", e)
     finally:
         sys.exit(0)
 

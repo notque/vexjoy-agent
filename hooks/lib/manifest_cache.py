@@ -116,6 +116,15 @@ def refresh(scripts_dir: Path, force: bool = False) -> str:
     if not result.stdout.strip():
         return "failed: generator produced empty output"
 
+    # Refuse to cache a manifest with zero entries — the fallback headers
+    # ("AGENTS:\n\nSKILLS:\n\nPIPELINES:") contain no routable items and would
+    # hide the real cause (logged to stderr by routing-manifest.py).
+    output_stripped = result.stdout.strip()
+    _EMPTY_MANIFEST = "AGENTS:\n\nSKILLS:\n\nPIPELINES:"
+    if output_stripped == _EMPTY_MANIFEST or output_stripped == _EMPTY_MANIFEST.rstrip():
+        stderr_hint = (result.stderr or "").strip()[:200]
+        return f"failed: manifest has zero entries (not cached){'; cause: ' + stderr_hint if stderr_hint else ''}"
+
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     # Cache first, sidecar second: a crash between the writes leaves a
     # mismatched sidecar, which reads as stale — never as falsely fresh.

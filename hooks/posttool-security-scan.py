@@ -37,6 +37,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
 # Max findings to print before collapsing to a count (avoid noise).
@@ -123,11 +124,7 @@ def main() -> None:
             print(f"  ... and {len(findings) - _MAX_FINDINGS} more security hints")
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[security-scan] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("posttool-security-scan", e)
     finally:
         # CRITICAL: Always exit 0 to prevent blocking Claude Code.
         sys.exit(0)

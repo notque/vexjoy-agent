@@ -28,7 +28,7 @@ from pathlib import Path
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-
+from hook_utils import hook_error
 from learning_db_v2 import classify_error, generate_signature, get_stats, record_learning
 from stdin_timeout import read_stdin
 
@@ -86,11 +86,7 @@ def inject_adr_anchor(event: dict) -> None:
         print("[precompact-adr] ==========================================")
 
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("precompact-archive", e)
 
 
 def extract_error_resolutions(event: dict) -> list[dict]:
@@ -245,18 +241,9 @@ def main():
                 print(f"[learning-archive]   Total learnings: {high_conf}/{total} high-confidence")
 
     except json.JSONDecodeError as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("precompact-archive", e)
     except Exception as e:
-        # Log to stderr if debug enabled, but never fail
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        hook_error("precompact-archive", e)
     finally:
         # CRITICAL: Always exit 0 to prevent blocking Claude Code
         sys.exit(0)

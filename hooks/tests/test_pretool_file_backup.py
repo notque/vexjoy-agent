@@ -40,4 +40,4 @@ def test_exits_0_on_injected_exception():
         text=True,
     )
     assert result.returncode == 0
-    assert "[pretool-file-backup] error: AttributeError" in result.stderr
+    assert "[pretool-file-backup] HOOK-ERROR: AttributeError" in result.stderr

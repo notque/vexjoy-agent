@@ -26,7 +26,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output
+from hook_utils import context_output, hook_error
 from stdin_timeout import read_stdin
 
 __EVENT_NAME = "PreToolUse"
@@ -155,12 +155,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(
-                f"[section-integrity] Error: {type(e).__name__}: {e}",
-                file=sys.stderr,
-            )
-        # Fail open -- never exit non-zero on unexpected errors.
-        sys.exit(0)
+        hook_error("pretool-section-integrity-validator", e)

@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 
 EVENT_NAME = "SessionStart"
 
@@ -75,13 +75,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        try:
-            print(f"[afk-mode] error: {type(e).__name__}: {e}", file=sys.stderr)
-        except Exception:
-            pass  # stderr write must never itself break the hook
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            traceback.print_exc(file=sys.stderr)
+        hook_error("afk-mode", e)
     finally:
         sys.exit(0)

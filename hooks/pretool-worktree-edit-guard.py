@@ -64,7 +64,7 @@ except Exception:  # pragma: no cover - lib import must never hard-fail the hook
 
 
 try:
-    from hook_utils import deny_tool_use
+    from hook_utils import deny_tool_use, hook_error
 except Exception:  # pragma: no cover - lib import must never hard-fail the hook
 
     def deny_tool_use(event_name: str, reason: str) -> None:
@@ -245,18 +245,16 @@ def _deny(target_real: str, main_repo_root: str, worktree_root: str, tool_name: 
     print(reason, file=sys.stderr)
 
     # Best-effort governance record; never let it prevent the block.
-    try:
-        from learning_db_v2 import record_governance_event
+    from hook_utils import record_governance
 
-        record_governance_event(
-            "policy_violation",
-            tool_name=tool_name,
-            hook_phase="pre",
-            severity="high",
-            blocked=True,
-        )
-    except Exception:
-        pass
+    record_governance(
+        "policy_violation",
+        hook_name="pretool-worktree-edit-guard",
+        tool_name=tool_name,
+        hook_phase="pre",
+        severity="high",
+        blocked=True,
+    )
 
     deny_tool_use("PreToolUse", reason)
     sys.exit(0)
@@ -330,9 +328,6 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Preserve intentional exit code (0).
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[worktree-edit-guard] Error: {type(e).__name__}: {e}", file=sys.stderr)
+        hook_error("pretool-worktree-edit-guard", e)
         # A crashed hook must fail OPEN -- never block tools on a hook bug.
         sys.exit(0)

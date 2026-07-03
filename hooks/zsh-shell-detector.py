@@ -30,7 +30,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, hook_error
 
 EVENT_NAME = "SessionStart"
 
@@ -87,12 +87,8 @@ def main():
         context_output(EVENT_NAME, injection).print_and_exit()
 
     except Exception as e:
+        hook_error("zsh-shell-detector", e)
         # Always log error to stderr for observability
-        if debug:
-            print(f"[zsh-shell] Error: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[zsh-shell] Error: {type(e).__name__}: {e}", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
 

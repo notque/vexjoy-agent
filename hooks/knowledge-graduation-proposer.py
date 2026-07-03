@@ -25,6 +25,9 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from hook_utils import hook_error
+
 # Graduation thresholds
 MIN_CONFIDENCE = 0.85
 MIN_OBSERVATION_COUNT = 3
@@ -201,9 +204,7 @@ def main():
             conn.close()
 
     except Exception as exc:
-        # Stop hooks must NEVER fail the session
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[graduation] Error: {exc}", file=sys.stderr)
+        hook_error("knowledge-graduation-proposer", exc)
 
 
 if __name__ == "__main__":

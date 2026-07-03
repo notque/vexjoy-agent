@@ -40,7 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import get_session_id
+from hook_utils import get_session_id, hook_error
 from stdin_timeout import read_stdin
 
 __EVENT_NAME = "PreToolUse"
@@ -168,12 +168,4 @@ if __name__ == "__main__":
     except SystemExit:
         raise  # Preserve intentional exit codes (0, 2) — do not override
     except Exception as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(
-                f"[pretool-main-thread-discipline] HOOK-ERROR: {type(e).__name__}: {e}",
-                file=sys.stderr,
-            )
-            traceback.print_exc(file=sys.stderr)
-        sys.exit(0)  # Unexpected errors are non-blocking
+        hook_error("pretool-main-thread-discipline", e)
