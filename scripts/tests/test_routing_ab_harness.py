@@ -37,7 +37,14 @@ GOLDEN = FIX / "golden"
 # at corpus v1.0. The legacy cases are immutable; extending the corpus means
 # APPENDING cases, never editing these.
 LEGACY_CASES_SHA = "c2098af10277cc3350a3d39ebc0e9d9a3e0091923b8e1104e6fb79cd7ea53aa3"
-NEW_BUCKETS = {"stub-tier", "sibling-disambiguation", "pipeline-pick", "vague-interview", "plain-english", "reachability"}
+NEW_BUCKETS = {
+    "stub-tier",
+    "sibling-disambiguation",
+    "pipeline-pick",
+    "vague-interview",
+    "plain-english",
+    "reachability",
+}
 
 
 def load_harness(workdir: Path):
