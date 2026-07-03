@@ -143,6 +143,7 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 | choosing language constructs: type hints, dataclasses, protocols, context managers | [python-patterns.md](python-general-engineer/references/python-patterns.md) | Code examples for core Python idioms |
 | Python 3.11+/3.12 features, TaskGroup, Pydantic v2, uv, FastAPI | [python-modern-features.md](python-general-engineer/references/python-modern-features.md) | Modern feature and tooling reference |
 | security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | [python-security.md](python-general-engineer/references/python-security.md) | Secure implementation patterns for Python, Django, FastAPI, Flask. |
+| flask, jinja, webapp, template rendering, Flask routes, Jinja2 filters | [flask-jinja-webapp.md](python-general-engineer/references/flask-jinja-webapp.md) | Flask + Jinja2 web application patterns and security. |
 | before writing any Python code (forbidden-pattern gate) | [hard-gate-patterns.md](python-general-engineer/references/hard-gate-patterns.md) | STOP/REPORT/FIX pattern table with detection commands |
 | fundamental design choices, retry limits, recovery | [blocker-criteria.md](python-general-engineer/references/blocker-criteria.md) | Blocker table, retry limits, recovery protocol |
 | before claiming Python work complete | [anti-rationalization.md](python-general-engineer/references/anti-rationalization.md) | Python-specific rationalization table |
