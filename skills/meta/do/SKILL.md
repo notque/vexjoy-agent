@@ -307,7 +307,7 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
 | "comprehensive" / "thorough" / "full" review, or "review" with 5+ files — no diff available | Fallback: use parallel-code-review (3 reviewers: Security, Business Logic, Architecture) |
-| Multi-file or comprehensive review on a real diff | Run `python3 scripts/right-size-review.py --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
+| Multi-file or comprehensive review on a real diff | Run `python3 "$SDIR/right-size-review.py" --base {base} --head {head}` (or `--files N --packages M`); dispatch the matching tier — Tier 1→parallel-code-review (3), Tier 2→12, Tier 3→17, Tier 4→full (27). Escalate one tier on any CRITICAL finding; no tier signal → full behavior. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject `local-only` constraint (see `shared-patterns/local-only.md`). Prepend: "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
 | Voice profile skill selected (any voice-* profile skill, e.g. voice-example-profile) | Stack `voice-writer` (its 13-phase pipeline is required for all voice content); the voice-* skill loads as the profile in Phase 1 (LOAD). |
@@ -354,7 +354,7 @@ Maximum rigor: `/with-anti-rationalization [task]`.
 
 **Step 0: Execute Creation Protocol** (creation requests ONLY)
 
-If creation signal + Simple+: (1) Write ADR at `adr/{kebab-case-name}.md`, (2) Register via `adr-query.py register`, (3) Proceed to plan. ADR hooks (`adr-context-injector`, `adr-enforcement`) handle compliance.
+If creation signal + Simple+: (1) Write ADR at `adr/{kebab-case-name}.md`, (2) Register via `python3 "$SDIR/adr-query.py" register`, (3) Proceed to plan. ADR hooks (`adr-context-injector`, `adr-enforcement`) handle compliance.
 
 **Step 1: Create plan** (Simple+)
 
@@ -382,9 +382,10 @@ Dispatch the agent. Inject no MCP instructions; tool discovery is the agent's jo
 **Build the dispatch preamble with `scripts/build-dispatch.py` (MANDATORY).** The script is the single source of truth for the `[do-route]` marker grammar, the thinking directives, the token-budget line, the Task Specification skeleton, the four mandatory verbatim injections (reference loading, completeness, Dense-Complete Writing, base instructions), and the optional worktree/local-only blocks. Never hand-assemble them. Assemble one routing-decision JSON per dispatch, run the script, prepend its stdout verbatim to the agent prompt. Roster: one run per worker prompt.
 
 ```bash
-python3 scripts/build-dispatch.py --json '{
+python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "complexity": "<trivial|simple|medium|complex>",
+  "model": "<sonnet|opus|fable|gpt-5.5|codex>",
   "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep", "alts": ["k1","k2"]},
   "stack": ["s1","s2"],
   "task_spec": {"intent": "...", "constraints": "...", "acceptance": "...",
@@ -397,6 +398,7 @@ python3 scripts/build-dispatch.py --json '{
 Field sourcing (omit any optional field; the script degrades gracefully):
 
 - `agent`/`skill`/`complexity`: the Phase 2 decision. Omitted skill => marker gets `skill=-`.
+- `model`: the Model Selection table pick for this dispatch. REQUIRED for medium/complex/critical — the script errors on omission. Allowed values: `sonnet`, `opus`, `fable`, `gpt-5.5`, `codex`. Omitted for trivial/simple => marker gets `model=-`.
 - `health`: the Step 1.5 gate inputs (`confidence`/`n`/`failure`/`action`, `alts` when alternates were offered). Omit when the picked pair has no weight row => marker gets `health=-`. The recorder snapshots these at decision time.
 - `stack`: the Phase 3 enhancement skills stacked on this dispatch; omit when none. Instrumentation only.
 - `task_spec`: extract per the rules below. Mandatory for Medium+; for Simple include intent and acceptance when extractable. Invent no criteria; expand no scope.
@@ -409,7 +411,7 @@ Task Specification extraction: Intent from verb+object; Constraints include bran
 
 The emitted `[do-route]` marker is the SOLE signal `routing-decision-recorder` uses to record a `routing` row, reading `agent`/`skill` straight from it. Dispatches without it (pr-review sub-agents, nested fan-out) are correctly excluded from route-health.
 
-**Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=-` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
+**Fallback (script failed: non-zero exit or empty output).** Treat as "Router Script Failed" for the preamble only: hand-stamp the single line `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=- model={model|-}` at the head of the prompt (the recorder depends on it), add the Task Specification inline, dispatch, and report the script failure.
 
 **Model Selection (owner policy — ADR `model-selection-policy`; this is the canonical table — all other copies cite it).** Consult the table per dispatch. Rankings, higher = better; cost = what the owner actually pays.
 
@@ -447,7 +449,7 @@ Simple/Medium: dispatch directly.
 
 Route to agents that create feature branches; for file modifications, include "commit your changes on the branch". For `isolation: "worktree"` agents set `flags.worktree` in the routing JSON — the script injects the `worktree-agent` rules.
 
-Non-org repos: up to 3 `/pr-review` → fix iterations before PR creation. Org-gated repos (via `scripts/classify-repo.py`): require user confirmation before EACH git action.
+Non-org repos: up to 3 `/pr-review` → fix iterations before PR creation. Org-gated repos (via `python3 "$SDIR/classify-repo.py"`): require user confirmation before EACH git action.
 
 **Step 3: Handle multi-part requests**
 

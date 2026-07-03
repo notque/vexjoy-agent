@@ -107,6 +107,14 @@ _VALID_COMPLEXITY = frozenset({"trivial", "simple", "medium", "complex"})
 # decision event as a list; absent token => no field. Same charset as alts=.
 _STACK_RE = re.compile(r"\bstack=\{([a-z0-9:_,-]*)\}", re.IGNORECASE)
 
+# Model token on the marker line: `model=opus` or `model=-`. Added for model
+# enforcement (ADR model-selection-policy). Valid values match VALID_MODELS in
+# build-dispatch.py; `model=-` or absent => null. Old markers (pre-model) work
+# unchanged: absent token reads as null. gpt-5.5 contains a dot, hence the
+# charset `[a-z0-9.-]`.
+_MODEL_RE = re.compile(r"\bmodel=([a-z0-9.-]+|-)", re.IGNORECASE)
+_VALID_MODELS = frozenset({"sonnet", "opus", "fable", "gpt-5.5", "codex"})
+
 # Step 1.5 health gate inputs on the same marker line (do/SKILL.md Phase 4 Step 2).
 # Each is an independent \b token. `health=-` => null (no weight row); else float.
 # n=/fail= are the other demote-floor inputs; action= is keep|demote|tiebreak;
@@ -239,6 +247,24 @@ def parse_stack(marker_text: str) -> list[str] | None:
         return None
     items = [s for s in m.group(1).split(",") if s]
     return items or None
+
+
+def parse_model(marker_text: str) -> str | None:
+    """Read the `model=` token off the marker LINE, or None.
+
+    None when the token is absent (old markers) or `model=-` (trivial/simple
+    with no explicit pick). A valid model name => that string. An unrecognized
+    value => None (not silently accepted). Backward-compatible: old markers
+    without `model=` return None.
+    """
+    line = _marker_line(marker_text)
+    m = _MODEL_RE.search(line)
+    if not m:
+        return None
+    raw = m.group(1).lower()
+    if raw == "-":
+        return None
+    return raw if raw in _VALID_MODELS else None
 
 
 # Right-sizing banner. The first four fields are required; findings= and the
@@ -500,6 +526,7 @@ def main() -> None:
             complexity, complexity_invalid = parse_marker_complexity(marker_text)
             stack = parse_stack(marker_text)
             health = parse_health_inputs(marker_text)
+            model = parse_model(marker_text)
             from route_events import record_decision_event
 
             record_decision_event(
@@ -510,6 +537,7 @@ def main() -> None:
                 complexity=complexity,
                 complexity_invalid=complexity_invalid,
                 stack=stack,
+                model=model,
                 health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
                 n=health["n"],
                 failure=health["failure"],
