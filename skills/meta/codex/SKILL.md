@@ -34,14 +34,14 @@ Two flows keep their own specialized codex integration — route to them instead
 
 Policy mirror — canonical copy: `/do` SKILL.md, Model Selection (edit there first, then here). Rankings, higher = better; cost = what the owner actually pays.
 
-| model | cost | intelligence | taste |
-|---|---|---|---|
-| gpt-5.5 | 9 | 8 | 5 |
-| sonnet-5 | 5 | 5 | 7 |
-| opus-4.8 | 4 | 7 | 8 |
-| fable-5 | 2 | 9 | 9 |
+| model | cost | intelligence | taste | role |
+|---|---|---|---|---|
+| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex. Dispatch target. |
+| sonnet-5 | 5 | 5 | 7 | Mechanical/reader fan-out, lighter work. Dispatch target. |
+| opus-4.8 | 4 | 7 | 8 | Reviews, audits, analysis, deep work. Dispatch target. |
+| fable-5 | 2 | 9 | 9 | Highest technical requirements only — never routine dispatch. |
 
-Route here when the task is **bulk/mechanical**: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps — gpt-5.5 is effectively free. Route elsewhere when the task is user-facing (UI, copy, API design — needs taste ≥ 7: sonnet/opus/fable) or is a plan/implementation review (fable-5 or opus-4.8 lead; gpt-5.5 optionally adds an extra independent perspective via pr-workflow's codex-review).
+Route here when the task is **bulk/mechanical**: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps — gpt-5.5 is effectively free. Route elsewhere when the task is user-facing (UI, copy, API design — needs taste ≥ 7: sonnet/opus) or is a plan/implementation review (opus-4.8 lead; gpt-5.5 optionally adds an extra independent perspective via pr-workflow's codex-review). Consult the canonical model-selection table in `/do` SKILL.md.
 
 These are defaults, not limits. Standing permission to escalate: when gpt-5.5's output misses the bar, rerun on a smarter model without asking — judge the output, not the price tag; escalating costs less than shipping mediocre work. For anything that ships, intelligence > taste > cost; cost is a tie-breaker only.
 

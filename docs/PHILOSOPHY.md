@@ -334,7 +334,7 @@ Owner model-selection policy (ADR `model-selection-policy`; operational table in
 |---|---|
 | `gpt-5.5` (Codex CLI, `codex` skill) | Bulk/mechanical: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps |
 | `sonnet` | Substantive execution: implementation, review, synthesis, semantic rewriting |
-| `opus` / `fable` | Deep analysis and reviews of plans/implementations; user-facing work needing taste |
+| `opus` | Reviews, audits, analysis, deep work; user-facing work needing taste (consult canonical table in `/do` SKILL.md Model Selection) |
 
 Haiku is retired (routing was Haiku pre-#777; self-route since — `scripts/routing-ab-results/self-route-v1/VERDICT.md`). Defaults, not limits: escalate to a smarter model whenever cheaper output misses the bar; for anything that ships, intelligence > taste > cost, with cost a tie-breaker only.
 
