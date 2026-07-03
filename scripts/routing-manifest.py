@@ -37,6 +37,12 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 from routing_index_merge import load_index_items as _load_index_items
 
+# Canonical DB-dir resolver (ADR-122 hardening lives there)
+_HOOKS_LIB = Path(__file__).resolve().parent.parent / "hooks" / "lib"
+if str(_HOOKS_LIB) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_LIB))
+from learning_db_v2 import get_db_dir
+
 # Tiered mode: how far back a route-events DECISION keeps a name in the
 # working set, and how many description words a stub line keeps.
 WORKING_SET_WINDOW_SECONDS = 30 * 86400
@@ -88,8 +94,7 @@ def load_entries() -> list[dict]:
 
 def _learning_dir() -> Path:
     """Resolve the learning dir from CLAUDE_LEARNING_DIR (tests redirect it)."""
-    env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
-    return Path(env_dir) if env_dir else Path.home() / ".claude" / "learning"
+    return get_db_dir()
 
 
 def _names_from_key(key: str, names: set[str]) -> None:

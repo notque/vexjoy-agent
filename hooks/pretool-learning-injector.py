@@ -27,6 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, get_session_id, record_activations_safe
+from learning_db_v2 import sanitize_for_context
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
@@ -178,10 +179,7 @@ def main():
 
         # Query learning.db for matching patterns via FTS5 full-text search
         # Lazy import to avoid paying cost when early-exiting
-        from learning_db_v2 import (
-            sanitize_for_context,
-            search_learnings,
-        )
+        from learning_db_v2 import search_learnings
 
         query_str = " OR ".join(tags)
         results = search_learnings(
@@ -218,8 +216,11 @@ def main():
             print("[pretool] Invalid JSON input", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
     except Exception as e:
+        print(f"[pretool-learning-injector] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         if debug:
-            print(f"[pretool] Error: {e}", file=sys.stderr)
+            import traceback
+
+            traceback.print_exc(file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
 
