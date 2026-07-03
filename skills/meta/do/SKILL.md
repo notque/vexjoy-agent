@@ -155,11 +155,11 @@ GENERAL:
 - Single skill string, not array.
 ```
 
-**Step 0b: Apply routing decision**
+**Step 0b: Apply the routing decision**
 
 Use `agent`/`skill` directly; low confidence → verify against INDEX files. Routing JSON is internal.
 
-**Skill-greediness gate (HARD for Simple+).** Null/empty skill → pick one: review→systematic-code-review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→systematic-code-review (whole-repo→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop→objective-loop. Fallback: `objective-loop`. Never leave skill empty on Simple+.
+**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null/empty skill → pick one: review→systematic-code-review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→systematic-code-review (whole-repo→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop→objective-loop. Fallback: `objective-loop`. Never leave skill empty on Simple+.
 
 **Section validator (MANDATORY before `Agent(subagent_type=...)`):**
 
@@ -202,7 +202,7 @@ Guardrail only. No second pre-route invocation.
 - **(a)** If pre-route has high-confidence force_route for pr-workflow/security and semantic pick disagrees → override. Git/security work MUST hit quality gates. Record `match_type`.
 - **(b)** Phrase/unigram guards suppress false matches ("fish out", metaphorical commit). Guarded requests stay with Step 0.
 
-**Step 2: Skill override** — "review"→systematic-code-review, "debug"→workflow, "refactor"→workflow, "TDD"→test-driven-development. Full table in INDEX files.
+**Step 2: Apply skill override** — "review"→systematic-code-review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→test-driven-development. Full table in INDEX files.
 
 **Step 3: Display routing decision** (MANDATORY — FIRST visible output)
 
@@ -242,7 +242,7 @@ Stack skills based on request signals.
 | Multi-file/comprehensive review, real diff | `python3 "$SDIR/right-size-review.py" --base {base} --head {head}` (or `--files N --packages M`); Tier 1→3, 2→12, 3→17, 4→27 reviewers. Escalate one tier on CRITICAL; no tier signal → full behavior. Outranks Phase 2 `comprehensive-review` pipeline pick. |
 | Complex implementation | Offer subagent-driven-development |
 | "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject local-only (`shared-patterns/local-only.md`): "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
-| Voice profile skill selected | Stack `voice-writer` (13-phase pipeline); voice-* loads as profile in Phase 1. |
+| Voice profile skill selected (any voice-* profile, e.g. voice-example-profile) | Stack `voice-writer` (13-phase pipeline); voice-* loads as profile in Phase 1. |
 | Interview-mode heuristic fires | `planning` (interview mode) — load `depth-first-interview.md` |
 | Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` |
 
@@ -387,7 +387,7 @@ Run for: re-route, lazy-completion re-dispatch, section-validator misroute, harn
 | Error | Cause | Solution |
 |-------|-------|----------|
 | No Agent Matches | No agent covers domain | INDEX near-matches → closest agent + verification-before-completion. Report gap. |
-| Force-Route Conflict | Multiple force-routes match | Most specific first; stack compatible secondaries. |
+| Force-Route Conflict | Multiple force-route triggers match | Most specific first; stack compatible secondaries. |
 | Plan Required | Simple+ without task_plan.md | Create plan, resume. |
 | Router Script Failed | Non-zero exit or non-JSON | No-match fallback: `general-purpose` + `verification-before-completion`. |
 
