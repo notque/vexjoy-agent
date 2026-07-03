@@ -77,17 +77,12 @@ VOICE_PROFILE_RE = re.compile(r"^voice-[a-z0-9]+(?:-[a-z0-9]+)*$")
 # component name; a new entry needs the same justification.
 PROSE_TERMS = frozenset(
     {
-        "anti-rationalization",  # "anti-rationalization patterns" (the -core/-review files resolve)
         "built-in",  # "built-in verification gates"
         "cross-repo",  # the [cross-repo] output tag
         "done-criteria",  # "Objective with done-criteria"
-        "empty-skill",  # "empty-skill leak"
         "force-route",  # "force-route triggers"
-        "multi-file",  # "multi-file or comprehensive review"
         "near-matches",  # "check INDEX files for near-matches"
-        "no-match",  # "Treat as no-match"
         "non-negotiable",  # "HARD — non-negotiable"
-        "non-zero",  # "exited non-zero"
         "real-diff",  # "the real-diff row wins"
         "whole-repo",  # "whole-repo audits"
     }
