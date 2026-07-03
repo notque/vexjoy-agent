@@ -15,8 +15,6 @@ import re
 import sys
 from pathlib import Path
 
-import yaml
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 SKILLS_DIR = REPO_ROOT / "skills"
@@ -25,17 +23,14 @@ PIPELINES_DIR = REPO_ROOT / "skills" / "workflow" / "references"
 SKILLS_MARKER = "### Companion Skills"
 PIPELINES_MARKER = "### Companion Pipelines"
 
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import parse_frontmatter as _parse_frontmatter
+
 
 def parse_frontmatter(text: str) -> tuple[dict | None, str]:
     """Extract YAML frontmatter and the remaining body from a markdown file."""
-    match = re.match(r"^---\n(.*?\n)---\n?(.*)", text, re.DOTALL)
-    if not match:
-        return None, text
-    try:
-        data = yaml.safe_load(match.group(1))
-    except yaml.YAMLError:
-        return None, text
-    return data, match.group(2)
+    return _parse_frontmatter(text)
 
 
 def extract_description(frontmatter: dict) -> str:

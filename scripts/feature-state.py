@@ -433,27 +433,36 @@ def cmd_gate(args: argparse.Namespace) -> int:
 
 
 def _get_gate_confidence(gate_id: str) -> float:
-    """Query learning database for gate-related confidence."""
+    """Look up average learning confidence for a gate's phase.
+
+    Reads from hooks/lib/learning_db_v2.py's learning.db (the store that
+    replaced the retired patterns.db) via its query_learnings() read API.
+    This function only imports and calls learning_db_v2 -- it never modifies
+    it. Mirrors gate phase (e.g. "design", "plan") against learning tags,
+    the closest available analog to the old "project_path LIKE %phase%"
+    heuristic now that project_path and phase are unrelated concepts in the
+    v2 schema.
+
+    Returns 0.0 (no confidence signal) when learning_db_v2 is unavailable,
+    the database has no matching rows, or any lookup error occurs -- same
+    "no data" fallback the retired patterns.db lookup used.
+    """
+    phase = gate_id.split(".")[0] if "." in gate_id else gate_id
     try:
-        db_path = Path.home() / ".claude" / "learning" / "patterns.db"
-        if not db_path.exists():
+        _script_dir = Path(__file__).resolve().parent.parent
+        sys.path.insert(0, str(_script_dir / "hooks" / "lib"))
+        _home_lib = Path.home() / ".claude" / "hooks" / "lib"
+        if _home_lib.is_dir():
+            sys.path.insert(0, str(_home_lib))
+        from learning_db_v2 import query_learnings
+
+        learnings = query_learnings(tags=[phase], min_confidence=0.0, limit=50)
+        if not learnings:
             return 0.0
-
-        import sqlite3
-
-        conn = sqlite3.connect(str(db_path), timeout=2)
-        cursor = conn.cursor()
-
-        # Look for patterns related to this gate's domain
-        phase = gate_id.split(".")[0] if "." in gate_id else gate_id
-        cursor.execute(
-            "SELECT AVG(confidence) FROM patterns WHERE project_path LIKE ? AND confidence > 0",
-            (f"%{phase}%",),
-        )
-        row = cursor.fetchone()
-        conn.close()
-
-        return row[0] if row and row[0] else 0.0
+        confidences = [row.get("confidence", 0.0) for row in learnings]
+        return sum(confidences) / len(confidences)
+    except ImportError:
+        return 0.0
     except Exception:
         return 0.0
 
@@ -944,7 +953,7 @@ def _regenerate_l1(retro_dir: Path) -> None:
 
     l1_path = retro_dir / "L1.md"
     l1_path.write_text("\n".join(lines) + "\n")
-    print(f"[retro-archive] Regenerated L1 from {len(l2_files)} L2 files", file=sys.stderr)
+    print(f"[retro-archive] Regenerated L1 from {len(l2_files)} L2 files", file=sys.stderr)  # nosec: log, not SQL
 
 
 def _archive_retro_knowledge(root: Path, feature_dir: Path, feature: str) -> bool:

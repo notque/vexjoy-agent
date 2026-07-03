@@ -18,6 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
 EXCLUDED_DIRS = {"archive", "images"}
 
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import extract_frontmatter_block
+from scripts.lib.frontmatter import parse_frontmatter as _parse_frontmatter_yaml
+
 
 def docs_files() -> list[Path]:
     files = []
@@ -30,27 +35,24 @@ def docs_files() -> list[Path]:
 
 
 def parse_frontmatter(path: Path) -> tuple[str | None, list[str], str | None]:
-    """Return (summary, read_when, error). Minimal parser; stdlib only."""
+    """Return (summary, read_when, error) via the shared YAML frontmatter parser."""
     text = path.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
         return None, [], "missing frontmatter"
-    end = text.find("\n---", 4)
-    if end == -1:
+    if extract_frontmatter_block(text) is None:
         return None, [], "unterminated frontmatter"
-    summary = None
-    read_when: list[str] = []
-    in_read_when = False
-    for line in text[4:end].splitlines():
-        stripped = line.strip()
-        if stripped.startswith("summary:"):
-            summary = stripped[len("summary:") :].strip().strip('"')
-            in_read_when = False
-        elif stripped == "read_when:":
-            in_read_when = True
-        elif in_read_when and stripped.startswith("- "):
-            read_when.append(stripped[2:].strip().strip('"'))
-        elif stripped and not line.startswith(" "):
-            in_read_when = False
+
+    fm, _body = _parse_frontmatter_yaml(text)
+    if fm is None:
+        return None, [], "malformed frontmatter"
+
+    summary = fm.get("summary")
+    if not isinstance(summary, str):
+        summary = None
+
+    read_when_raw = fm.get("read_when")
+    read_when = [str(item) for item in read_when_raw] if isinstance(read_when_raw, list) else []
+
     if not summary:
         return summary, read_when, "missing summary"
     if not read_when:

@@ -87,6 +87,10 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.lib.frontmatter import load_yaml_mapping
+
 AGENT_REF_GLOB = "agents/*/references/*.md"
 SKILL_REF_GLOB = "skills/*/references/*.md"
 
@@ -151,11 +155,8 @@ def read_frontmatter(path: Path) -> tuple[dict | None, str | None, str]:
     if not match:
         return None, None, text
     raw = match.group(1)
-    try:
-        data = yaml.safe_load(raw)
-    except yaml.YAMLError:
-        return None, raw, text
-    if not isinstance(data, dict):
+    data = load_yaml_mapping(raw)
+    if data is None:
         return None, raw, text
     return data, raw, text
 
