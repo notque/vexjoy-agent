@@ -15,7 +15,7 @@ agent: golang-general-engineer
 routing:
   category: language
   force_route: true
-  not_for: "'go' as a verb (go ahead, here we go, go-live, let's go), Go (the board game), pidgin/cargo english 'go do X', plain typo/spelling fixes inside a .go file ('small mistake in main.go', 'fix the spelling in foo.go') — those route to quick; only fires for the Go programming language patterns/idioms/testing"
+  not_for: "'go' as a verb (go ahead, here we go, go-live, let's go), Go (the board game), pidgin/cargo english 'go do X', plain typo/spelling fixes inside a .go file ('small mistake in main.go', 'fix the spelling in foo.go') — those route to quick; only fires for the Go programming language patterns/idioms/testing; SAP Commerce Cloud PHP work (use php-general-engineer agent)"
   triggers:
     # testing triggers
     - go test

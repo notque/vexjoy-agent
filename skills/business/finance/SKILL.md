@@ -8,9 +8,10 @@ routing:
     - "reconciliation"
     - "variance analysis"
     - "financial statements"
-    - "audit"
+    - "financial audit"
     - "month-end close"
     - "SOX"
+  not_for: "code security audits, vulnerability scanning, or auth-flow reviews (use security-review) — only financial/accounting audit and SOX compliance"
   category: business
   force_route: false
   pairs_with:

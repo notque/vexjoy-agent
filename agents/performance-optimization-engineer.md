@@ -10,7 +10,7 @@ routing:
     - render performance
     - web performance
     - lighthouse
-  not_for: "backend/algorithmic performance in a specific language (use that language engineer) — only web/frontend runtime and load performance"
+  not_for: "backend/algorithmic performance in a specific language (use that language engineer); MCP server development (use mcp-local-docs-engineer) — only web/frontend runtime and load performance"
   pairs_with:
     - verification-before-completion
   complexity: Medium-Complex

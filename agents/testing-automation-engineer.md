@@ -10,6 +10,7 @@ routing:
     - vitest
     - test automation
     - visual regression
+  not_for: "Playwright-only E2E test authoring (use e2e-testing skill) — this agent covers full test automation strategy including Vitest, coverage, and CI integration"
   retro-topics:
     - testing
     - debugging

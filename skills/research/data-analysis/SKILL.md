@@ -31,6 +31,7 @@ routing:
     - "statistical analysis"
     - "CSV analysis"
     - "explore dataset"
+  not_for: "building REST/GraphQL API endpoints (use nodejs-api-engineer agent) — this skill analyzes data, builds KPI dashboards, and runs statistical queries"
   pairs_with:
     - workflow
     - codebase-analyzer
