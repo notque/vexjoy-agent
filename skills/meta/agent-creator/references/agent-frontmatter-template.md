@@ -23,7 +23,7 @@ description: "Domain-specific work: concrete capability A, capability B. Not for
 color: blue
 
 # Optional: model override. Omit to use the session default.
-# Values: sonnet (implementation/review), opus or fable (deep analysis/review).
+# Values: sonnet (implementation/lighter work), opus (reviews/analysis/deep work).
 # Model-selection policy: /do SKILL.md, Model Selection. Haiku is retired.
 model: sonnet
 

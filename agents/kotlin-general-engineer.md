@@ -60,7 +60,7 @@ routing:
     - ktfmt
     - android kotlin
     - kotlin-multiplatform
-  not_for: "writing Kotlin tests (use kotlin-testing); coroutine or Flow patterns in isolation (use kotlin-coroutines). This agent writes and debugs Kotlin features."
+  not_for: "writing Kotlin tests (use kotlin-testing); coroutine or Flow patterns in isolation (use kotlin-coroutines); Go goroutine work (use golang-general-engineer). This agent writes and debugs Kotlin features."
   retro-topics:
     - kotlin-patterns
     - coroutines

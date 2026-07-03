@@ -77,7 +77,13 @@ DEFAULT_FIX_ACTIONS = {
 # ─── Database Connection ───────────────────────────────────────
 
 
-def _get_db_dir() -> Path:
+def get_db_dir() -> Path:
+    """Return the learning database directory, honoring CLAUDE_LEARNING_DIR.
+
+    Public API for callers that need the directory path (e.g. to locate
+    sibling files like route-events.jsonl). Keeps ADR-122 chmod hardening
+    in get_db_path() which calls this.
+    """
     env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
     if env_dir:
         return Path(env_dir)
@@ -85,7 +91,7 @@ def _get_db_dir() -> Path:
 
 
 def get_db_path() -> Path:
-    db_dir = _get_db_dir()
+    db_dir = get_db_dir()
     db_dir.mkdir(parents=True, exist_ok=True)
     # Harden directory permissions (ADR-122)
     try:
@@ -448,10 +454,10 @@ def sanitize_for_context(text: str) -> str:
     """
     if not text:
         return text
-    # Neutralize role boundary tags
+    # Neutralize role boundary tags (case-insensitive)
     for tag in ("system", "user", "assistant", "human"):
-        text = text.replace(f"<{tag}>", f"[{tag}]")
-        text = text.replace(f"</{tag}>", f"[/{tag}]")
+        text = re.sub(rf"<{tag}>", f"[{tag}]", text, flags=re.IGNORECASE)
+        text = re.sub(rf"</{tag}>", f"[/{tag}]", text, flags=re.IGNORECASE)
     # Strip zero-width Unicode characters
     zero_width = "\u200b\u200d\u200e\u200f\u202a\u202b\u202c\u202d\u202e\ufeff"
     for ch in zero_width:
@@ -467,10 +473,11 @@ def sanitize_fts_query(term: str) -> str:
     """
     import re as _re
 
+    # Remove FTS5 keyword operators FIRST (before special-char removal strips
+    # adjacent parens and breaks word boundaries, e.g. "NEAR(a b)" -> "NEARa b").
+    term = _re.sub(r"\b(NOT|NEAR|AND|OR)\b", "", term, flags=_re.IGNORECASE)
     # Remove FTS5 special characters
     term = _re.sub(r'["\(\)\*:\-\^\+]', "", term)
-    # Remove FTS5 keyword operators (case-insensitive, whole word)
-    term = _re.sub(r"\b(NOT|NEAR|AND|OR)\b", "", term, flags=_re.IGNORECASE)
     return term.strip()
 
 

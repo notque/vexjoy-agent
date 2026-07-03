@@ -459,7 +459,7 @@ When upgrading an agent to v2.0:
 - [ ] Moved verbose content to references/
 
 ### YAML Frontmatter
-- [ ] Model specified (`model: sonnet` for most executors; `opus`/`fable` per the model-selection policy in `/do` SKILL.md — Haiku is retired)
+- [ ] Model specified (`model: sonnet` for most executors; `opus` for reviews/analysis/deep work — consult the canonical model-selection table in `/do` SKILL.md; Haiku retired)
 - [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved

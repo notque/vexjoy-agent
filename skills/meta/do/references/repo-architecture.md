@@ -23,7 +23,7 @@ description: Brief purpose description
 user-invocable: false    # Hide from slash menu (internal skills)
 context: fork            # Run in isolated sub-agent context
 agent: golang-general-engineer  # Declare executor agent
-model: sonnet            # Model preference: sonnet | opus | fable (`/do` is the router exception; Haiku retired)
+model: sonnet            # Model preference: sonnet | opus (consult `/do` SKILL.md Model Selection table; Haiku retired)
 allowed-tools:           # YAML list format
   - Read
   - Write

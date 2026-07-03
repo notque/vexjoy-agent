@@ -10,6 +10,7 @@ routing:
     - "swift async await"
     - "Swift Actor"
     - "Swift Task group"
+  not_for: "general Swift development (use swift-general-engineer agent) — this skill covers Swift concurrency patterns: actors, async/await, Sendable, structured concurrency"
   category: swift
   pairs_with:
     - swift-testing
