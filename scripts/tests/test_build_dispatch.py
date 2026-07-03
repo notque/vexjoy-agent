@@ -3,8 +3,9 @@
 
 Covers:
 - Marker round-trip against the REAL recorder parser
-  (hooks/routing-decision-recorder.py) on 7 marker variants: agent/skill,
-  complexity, health gate inputs (numeric and `health=-`), alts, stack.
+  (hooks/routing-decision-recorder.py) on 9 marker variants: agent/skill,
+  complexity, model, health gate inputs (numeric and `health=-`), alts, stack.
+- Model enforcement: required for medium/complex, optional for trivial/simple.
 - Preamble completeness and block order: marker first, then thinking
   directive, token line, Task Specification, the 4 mandatory injections,
   optional worktree/local-only blocks.
@@ -48,6 +49,7 @@ def _decision(**overrides):
         "agent": "python-general-engineer",
         "skill": "test-driven-development",
         "complexity": "medium",
+        "model": "opus",
         "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep"},
         "stack": ["verification-before-completion"],
         "task_spec": {
@@ -70,11 +72,12 @@ def _decision(**overrides):
 # ---------------------------------------------------------------------------
 
 ROUND_TRIP_CASES = [
-    pytest.param(  # V1: everything — numeric health, all gate inputs, alts, stack
+    pytest.param(  # V1: everything — numeric health, all gate inputs, alts, stack, model
         {
             "agent": "golang-general-engineer",
             "skill": "go-patterns",
             "complexity": "complex",
+            "model": "opus",
             "health": {
                 "confidence": 0.72,
                 "n": 6,
@@ -88,6 +91,7 @@ ROUND_TRIP_CASES = [
             "agent": "golang-general-engineer",
             "skill": "go-patterns",
             "complexity": "complex",
+            "model": "opus",
             "health": 0.72,
             "n": 6,
             "failure": 1,
@@ -96,7 +100,7 @@ ROUND_TRIP_CASES = [
             "gate_inputs_present": True,
             "stack": ["test-driven-development", "verification-before-completion"],
         },
-        id="full-gate-inputs-alts-stack",
+        id="full-gate-inputs-alts-stack-model",
     ),
     pytest.param(  # V2: no weight row (health=-) with a stack
         {"health": {}, "stack": ["worktree-agent"]},
@@ -104,6 +108,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
+            "model": "opus",
             "health": None,
             "n": None,
             "failure": None,
@@ -120,6 +125,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "",
             "complexity": "medium",
+            "model": "opus",
             "health": None,
             "gate_inputs_present": True,
             "stack": None,
@@ -132,6 +138,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
+            "model": "opus",
             "health": 0.5,
             "n": None,
             "failure": None,
@@ -142,17 +149,18 @@ ROUND_TRIP_CASES = [
         },
         id="numeric-health-alone",
     ),
-    pytest.param(  # V5: simple complexity, health key absent entirely
-        {"complexity": "simple", "health": None, "stack": []},
+    pytest.param(  # V5: simple complexity, model omitted => model=-
+        {"complexity": "simple", "health": None, "stack": [], "model": None},
         {
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "simple",
+            "model": None,
             "health": None,
             "gate_inputs_present": True,
             "stack": None,
         },
-        id="simple-no-health-key",
+        id="simple-no-model-no-health",
     ),
     pytest.param(  # V6: confidence 1.0 formats as integer '1'; tiebreak action
         {"health": {"confidence": 1.0, "n": 12, "failure": 0, "action": "tiebreak"}, "stack": []},
@@ -160,6 +168,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
+            "model": "opus",
             "health": 1.0,
             "n": 12,
             "failure": 0,
@@ -169,17 +178,49 @@ ROUND_TRIP_CASES = [
         },
         id="confidence-one-tiebreak",
     ),
-    pytest.param(  # V7: trivial complexity, uppercase input normalized
-        {"complexity": "Trivial", "agent": "CLAUDE", "skill": "quick", "health": None, "stack": []},
+    pytest.param(  # V7: trivial complexity, uppercase input normalized, model omitted
+        {"complexity": "Trivial", "agent": "CLAUDE", "skill": "quick", "health": None, "stack": [], "model": None},
         {
             "agent": "claude",
             "skill": "quick",
             "complexity": "trivial",
+            "model": None,
             "health": None,
             "gate_inputs_present": True,
             "stack": None,
         },
-        id="case-normalized-trivial",
+        id="case-normalized-trivial-no-model",
+    ),
+    pytest.param(  # V8: gpt-5.5 model (dotted name)
+        {"model": "gpt-5.5"},
+        {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "complexity": "medium",
+            "model": "gpt-5.5",
+            "health": 0.72,
+            "n": 6,
+            "failure": 0,
+            "action": "keep",
+            "alternates": None,
+            "gate_inputs_present": True,
+            "stack": ["verification-before-completion"],
+        },
+        id="gpt-5.5-dotted-model",
+    ),
+    pytest.param(  # V9: old marker without model= (backward compat)
+        # Simulate by checking recorder parses model=None from a pre-model marker
+        {"complexity": "simple", "model": None, "health": None, "stack": []},
+        {
+            "agent": "python-general-engineer",
+            "skill": "test-driven-development",
+            "complexity": "simple",
+            "model": None,
+            "health": None,
+            "gate_inputs_present": True,
+            "stack": None,
+        },
+        id="backward-compat-no-model-token",
     ),
 ]
 
@@ -196,6 +237,7 @@ def test_marker_round_trip_with_real_recorder(overrides, expected):
     assert (complexity, invalid) == (expected["complexity"], "")
 
     assert recorder.parse_stack(preamble) == expected["stack"]
+    assert recorder.parse_model(preamble) == expected["model"]
 
     health = recorder.parse_health_inputs(preamble)
     assert health["health"] == expected["health"]
@@ -218,7 +260,7 @@ def test_marker_is_first_line_at_line_start():
 def test_preamble_contains_every_mandatory_block_in_order():
     preamble = bd.build_preamble(_decision(complexity="complex"))
     ordered = [
-        "[do-route] agent=python-general-engineer skill=test-driven-development complexity=complex",
+        "[do-route] agent=python-general-engineer skill=test-driven-development complexity=complex model=opus",
         bd.THINKING_SLOW,
         "~480000 tokens available for this task; prioritize accordingly.",
         "## Task Specification (auto-extracted)",
@@ -276,9 +318,9 @@ def test_thinking_directive_by_complexity_and_override(complexity, override, exp
 
 
 def test_missing_optional_fields_omit_their_blocks_only():
-    minimal = {"agent": "claude", "complexity": "medium"}
+    minimal = {"agent": "claude", "complexity": "medium", "model": "sonnet"}
     preamble = bd.build_preamble(minimal)
-    assert preamble.startswith("[do-route] agent=claude skill=- complexity=medium health=-\n")
+    assert preamble.startswith("[do-route] agent=claude skill=- complexity=medium model=sonnet health=-\n")
     assert "## Task Specification" not in preamble
     assert "stack={" not in preamble
     # Mandatory blocks survive the minimal input.
@@ -322,6 +364,7 @@ def test_determinism_same_input_same_bytes():
         {"agent": "Bad Agent!"},
         {"complexity": "low"},  # the audit's real-world invalid value
         {"complexity": ""},
+        {"model": "haiku"},  # retired model — not in VALID_MODELS
         {"health": {"confidence": 1.5}},
         {"health": {"confidence": -0.1}},
         {"health": {"confidence": 0.5, "action": "boost"}},
@@ -334,6 +377,29 @@ def test_determinism_same_input_same_bytes():
 def test_invalid_input_raises(overrides):
     with pytest.raises(bd.InputError):
         bd.build_preamble(_decision(**overrides))
+
+
+# ---------------------------------------------------------------------------
+# Model enforcement: missing model on medium/complex must error.
+# ---------------------------------------------------------------------------
+
+
+def test_model_required_for_medium_errors_on_omission():
+    """Medium complexity with no model must fail — the live incident this fixes."""
+    with pytest.raises(bd.InputError, match="'model' is required"):
+        bd.build_preamble(_decision(model=None))
+
+
+def test_model_required_for_complex_errors_on_omission():
+    with pytest.raises(bd.InputError, match="'model' is required"):
+        bd.build_preamble(_decision(complexity="complex", model=None))
+
+
+def test_model_optional_for_trivial_and_simple():
+    """Trivial/simple may omit model — inheritance risk is acceptable."""
+    for complexity in ("trivial", "simple"):
+        preamble = bd.build_preamble(_decision(complexity=complexity, model=None))
+        assert "model=-" in preamble.splitlines()[0]
 
 
 # ---------------------------------------------------------------------------
@@ -372,6 +438,7 @@ def test_cli_json_file_and_stdin(tmp_path):
         "not json",
         json.dumps({"complexity": "medium"}),  # agent missing
         json.dumps({"agent": "claude", "complexity": "Low"}),  # invalid enum
+        json.dumps({"agent": "claude", "complexity": "medium"}),  # model missing for medium
     ],
 )
 def test_cli_bad_input_exits_2_with_empty_stdout(payload):
@@ -379,3 +446,11 @@ def test_cli_bad_input_exits_2_with_empty_stdout(payload):
     assert result.returncode == 2
     assert result.stdout == ""
     assert "build-dispatch:" in result.stderr
+
+
+def test_cli_model_missing_error_message():
+    """CLI exit-2 message names the missing field and the allowed values."""
+    result = _run_cli("--json", json.dumps({"agent": "claude", "complexity": "complex"}))
+    assert result.returncode == 2
+    assert "'model' is required" in result.stderr
+    assert "Model Selection" in result.stderr or "sonnet" in result.stderr

@@ -66,6 +66,7 @@ def record_decision_event(
     complexity: str = "",
     complexity_invalid: str = "",
     stack: list[str] | None = None,
+    model: str | None = None,
     health_at_decision: float | None = None,
     n: int | None = None,
     failure: int | None = None,
@@ -115,6 +116,8 @@ def record_decision_event(
         event["complexity_invalid"] = complexity_invalid
     if stack is not None:
         event["stack"] = stack
+    if model is not None:
+        event["model"] = model
     _append(event)
 
 
