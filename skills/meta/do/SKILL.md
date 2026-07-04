@@ -22,70 +22,47 @@ routing:
 
 # /do - Smart Router
 
-/do is a **ROUTER**, not a worker. Classify, select agent+skill, dispatch. All execution goes to agents.
+ROUTER, not worker. Classify → agent+skill → dispatch. Main: Classify→Select→Dispatch→Evaluate→Re-route→Report.
 
-**Main thread:** (1) Classify, (2) Select, (3) Dispatch, (4) Evaluate, (5) Re-route if needed, (6) Report.
+Do the whole thing (tests+docs). Product, not plan. Partial → follow-up. Inject Simple+. Confidence handling directly → route.
 
-Catching yourself reading/writing code or analyzing — pause and route to an agent.
-
-## The Completeness Standard
-
-Do the whole thing — with tests and documentation. The answer is the finished product, not a plan. Prefer the permanent solve over a workaround. If an agent returns partial work, route a follow-up. Search before building. Test before shipping. Decompose into agent-sized tasks. The standard: the result reads as "that's done," not "that's a start." Inject for Simple+ work. Confidence in handling directly is a signal to route: direct handling skips domain knowledge, methodology, and references.
-
-## Output Discipline
-
-Every word follows **Dense-Complete Writing** (injected by `scripts/build-dispatch.py`). Full rules: `skills/shared-patterns/dense-complete-writing.md`.
-
-**User sees:** phase banners, routing banner, brief post-agent summary (what changed, not how).
-**Internal only:** routing JSON, classification reasoning, enhancement stacking (unless Verbose Routing ON).
+Dense-Complete Writing (`build-dispatch.py` injects; `skills/shared-patterns/dense-complete-writing.md`). User: banners+summary. Internal: JSON/reasoning/stacking (Verbose overrides).
 
 ## Instructions
 
 ### Phase Banners (MANDATORY)
 
-Every phase displays: `/do > Phase N: PHASE_NAME — description...`
-After Phase 2, display the `===` routing decision banner. Both required.
+Every phase: `/do > Phase N: PHASE_NAME — description...`
+After Phase 2: `===` routing banner. Both required.
 
 ---
 
 ### Phase 1: CLASSIFY
 
-Read and follow repository CLAUDE.md first.
+Read CLAUDE.md first.
 
-| Complexity | Agent | Skill | Direct Action |
-|------------|-------|-------|---------------|
-| Trivial | No | No | **ONLY reading a file the user named by exact path** |
-| Simple | **Yes** | Yes | Route to agent |
-| Medium | **Required** | **Required** | Route to agent |
-| Complex | Required (2+) | Required (2+) | Route to agent |
+| Complexity | Agent | Skill | Direct |
+|---|---|---|---|
+| Trivial | No | No | ONLY user-named file by path |
+| Simple | Yes | Yes | Route |
+| Medium | Required | Required | Route |
+| Complex | 2+ | 2+ | Route |
 
-Everything beyond reading a user-named file is Simple+ and MUST route — without reasoning about whether you could handle it directly. When uncertain, classify UP.
+Beyond user-named file = Simple+, MUST route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, retro, comparisons.
 
-**Progressive Depth**: Start shallow; let the agent escalate. See `references/progressive-depth.md`.
+Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→research-coordinator-engineer; coord→project-coordinator-engineer; plan+exec→subagent-driven-development; feature→feature-lifecycle (.feature/→feature-state.py status). Force Direct: OFF.
 
-**NOT Trivial** (route them): evaluating repos/URLs, opinions, git operations, codebase questions (`explore-pipeline`), retro lookups (`retro`), comparisons.
+**Creation Detection** (MANDATORY): create/scaffold/build/"add new"/"new [component]" targeting agent/skill/pipeline/hook/feature/plugin/workflow/voice. ANY + Simple+ → `is_creation=true`, Phase 4 Step 0. Not: debug/review/fix/refactor/explain/audit.
 
-Maximize skill/agent/pipeline usage. Named-pattern guide: `skills/workflow/references/workflow-patterns.md`.
-
-**Parallel FIRST**: 2+ independent failures or 3+ subtasks → multiple Agent tools in one message. `fan-out-workflow.js` for Workflow. Research → `research-coordinator-engineer`; coordination → `project-coordinator-engineer`; plan+"execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (`.feature/` present → `feature-state.py status`).
-
-**Force Direct** — OFF by default; explicit request only.
-
-**Creation Request Detection** (MANDATORY before Gate):
-
-Creation signals: verbs ("create", "scaffold", "build", "add new", "new [component]", "implement new"), targets (agent, skill, pipeline, hook, feature, plugin, workflow, voice profile), implicit ("I need/build me a [component]"). If ANY signal AND Simple+: `is_creation = true`; Phase 4 Step 0 mandatory. Not creation: debugging, reviewing, fixing, refactoring, explaining, auditing existing. When ambiguous, check whether output is a NEW file.
-
-**Gate**: Complexity classified. Creation → output `[CREATION REQUEST DETECTED]`. Display banner. Trivial: handle directly. Simple+: Phase 2.
+**Gate**: Complexity set. Creation → `[CREATION REQUEST DETECTED]`. Trivial: direct. Simple+: Phase 2.
 
 ---
 
 ### Phase 2: ROUTE
 
-Select the correct agent+skill. Semantic intent routing is primary; the orchestrator does it itself. Prefer FORCE-labeled entries when intent matches.
+Semantic intent. Prefer FORCE. Keywords hint, never gate. "send my commits to the server" = "git push".
 
-**Read for INTENT.** Keywords are hints, never gates. Plain/non-native-English routes as well as jargon ("send my commits to the server" = "git push").
-
-**Pre-route (run ONCE, before fast-path)**
+**Pre-route (ONCE, before fast-path)**
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
@@ -94,16 +71,15 @@ python3 "$SDIR/pre-route.py" --request-file "$REQUEST_FILE" --json-compact
 rm -f "$REQUEST_FILE"
 ```
 
-Store as `PRE_ROUTE_RESULT`. Never call pre-route.py again.
+→`PRE_ROUTE_RESULT` (once).
 
-**Fast path:** If `PRE_ROUTE_RESULT` has `"confidence": "high"` AND `"match_type": "force_route"` AND skill is `pr-workflow` or a security skill: dispatch directly. Skip Steps 0/1.5/1. Keep mandatory: routing banner (Step 3), Step 2 overrides, Phase 3, ALL Phase 4 injections — stamp `[do-route]` marker with `health=-`. Agent: pre-route's `agent` when non-null, else domain agent, else `general-purpose`. The full flow lands on the same route (Step 1a would force-override to it anyway); fast path changes cost, not behavior.
+**Fast path:** PRE_ROUTE_RESULT high-conf force_route + pr-workflow/security → skip 0/1.5/1, dispatch direct. Keep banner+overrides+P3+P4. `[do-route]` `health=-`. Agent: pre-route→domain→general-purpose.
 
-**Step 0: Semantic intent routing (self-route)**
+**Step 0: Self-route**
 
-Acquire manifest cache-first. Hash-gated disk cache (`~/.claude/cache/routing-manifest.txt` + `.hash` sidecar), kept fresh by SessionStart hook and INDEX sync hooks. On cache miss/stale:
+Manifest cache (`~/.claude/cache/routing-manifest.txt`+`.hash`). SDIR from pre-route. Miss/stale:
 
 ```bash
-SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
 BASE="$(dirname "$SDIR")"; CACHE="${HOME}/.claude/cache/routing-manifest.txt"; CHASH="${HOME}/.claude/cache/routing-manifest.hash"
 if [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$BASE/skills/INDEX.json" "$BASE/skills/INDEX.local.json" "$BASE/agents/INDEX.json" "$BASE/agents/INDEX.local.json" "$BASE/skills/workflow/references/pipeline-index.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
   cat "$CACHE"    # cache hit: manifest read from disk, no Python start
@@ -112,29 +88,16 @@ else
 fi
 ```
 
-Select BEST agent+skill+pipeline. Hold internally as JSON (never printed; `[do-route]` marker is its only external trace):
-
-```
-{
-  "agent": "agent-name or null",
-  "skill": "skill-name or null",
-  "pipeline": "pipeline-name or null",
-  "reasoning": "one sentence why",
-  "confidence": "high/medium/low"
-}
-```
+Internal JSON; `[do-route]` = sole trace.
 
 **Routing rules (ALL apply):**
 
 ```
 SECTION-INTEGRITY (HARD — never violate):
-- `agent` MUST be from the manifest's AGENTS section, or null. Never put a skill name in `agent`.
-- `skill` MUST be from SKILLS section, or null. Never put an agent name in `skill`.
-- `pipeline` MUST be from PIPELINES section, or null.
-- No agent fit → `"agent": null` (router falls back to `general-purpose`). Never promote a skill into `agent`.
-- FORCE (process) skills go in `skill` only. Example: `zsh-shell-config` → `"skill": "zsh-shell-config"`, separate agent.
+agent∈AGENTS|null, skill∈SKILLS|null, pipeline∈PIPELINES|null.
+No fit→null→general-purpose. Never skill→agent. FORCE skills: skill slot only.
 
-FORCE-ROUTE: FORCE entries MUST be selected when domain matches SEMANTICALLY. Match MEANING, not words:
+FORCE-ROUTE — select when domain matches SEMANTICALLY (meaning, not words):
 - "push my changes" → pr-workflow (FORCE) ✓ (git push)
 - "push back on this design" → NOT pr-workflow (resist/argue)
 - "configure my fish shell" → fish-shell-config (FORCE) ✓
@@ -142,137 +105,96 @@ FORCE-ROUTE: FORCE entries MUST be selected when domain matches SEMANTICALLY. Ma
 - "quick fix to the login page" → quick (FORCE) ✓
 - "quick overview of the architecture" → NOT quick (exploration)
 
-PIPELINE: Optional, most null. Select ONLY when BOTH hold: (1) intent SEMANTICALLY matches a pipeline's triggers/description, AND (2) the request genuinely benefits from a multi-phase flow — not just a single skill task. Examples:
-- "write an article in vexjoy voice about X" → pipeline: "voice-writer" ✓
-- "research X with artifacts and sources" → pipeline: "research-pipeline" ✓
-- "fix the typo on line 42 of foo.py" → pipeline: null
-When in doubt, null. (A comprehensive-review pick is outranked by Phase 3 right-size-review tiering when a real diff exists.)
+PIPELINE — both: triggers match + multi-phase benefit. Mostly null.
+"vexjoy voice article"→voice-writer ✓ | "research+sources"→research-pipeline ✓ | "fix typo"→null
+Comprehensive-review outranked by right-size-review when real diff exists.
 
-GENERAL:
-- Most specific match. Agent = domain, skill = methodology; pick both.
-- Task verbs → prefer matching skills. No match → all nulls with reasoning.
-- GENUINE git ops (push, commit, PR, merge) → ALWAYS pr-workflow. Metaphorical ("commit to a decision") → never.
-- Single skill string, not array.
+GENERAL: most specific. Agent=domain, skill=method. Git→pr-workflow; metaphor→never.
 ```
 
 **Step 0b: Apply the routing decision**
 
-Use `agent`/`skill` directly; low confidence → verify against INDEX files. Routing JSON is internal.
+Low conf → verify INDEX.
 
-**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null/empty skill → pick one: review→systematic-code-review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→systematic-code-review (whole-repo→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop→objective-loop. Fallback: `objective-loop`. Never leave skill empty on Simple+.
+**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→systematic-code-review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→systematic-code-review (whole-repo→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop→objective-loop. Fallback: `objective-loop`.
 
-**Section validator (MANDATORY before `Agent(subagent_type=...)`):**
+**Section validator (MANDATORY before dispatch):**
 
 ```
-agents_section = grep_section(manifest, "AGENTS:", "SKILLS:")
-skills_section = grep_section(manifest, "SKILLS:", "PIPELINES:")
-agent_names = [first_token(line) for line in agents_section]
-skill_names = [first_token(line) for line in skills_section]
-
-if route.agent and route.agent not in agent_names:
-    if route.agent in skill_names:
-        route.skill = route.skill or route.agent
-        route.agent = None
-    record_misroute(reason="agent-slot held skill name", value=route.agent)
-
-if route.agent is None:
-    route.agent = "general-purpose"
+agents = tokens(manifest, "AGENTS:", "SKILLS:")
+skills = tokens(manifest, "SKILLS:", "PIPELINES:")
+if route.agent not in agents:
+    if route.agent in skills: route.skill ||= route.agent
+    route.agent = None; record_misroute(...)
+route.agent ||= "general-purpose"
 ```
 
-No defensible pair → `general-purpose` + `objective-loop`. Route simplest satisfying pair. `[cross-repo]` → `.claude/agents/` local agents. Code changes → domain agents.
+No pair→general-purpose+objective-loop. `[cross-repo]`→`.claude/agents/`. Code→domain agents.
 
-**Step 1.5: Health evaluation (shadow-only)**
-
-After Step 0/0b, before Step 1. Read weights, score the pick:
+**Step 1.5: Health (shadow-only)**
 
 ```bash
 python3 "$SDIR/learning-db.py" route-weights --json
 ```
 
-Call `health_adjust()` (`scripts/lib/route_policy.py`). Returns `{final_pick, action, reason}`, action in `keep|demote|tiebreak`. **Shadow-only: recorded, never alters route.** Activation gated on first negative signal (`docs/route-loop-validation.md`).
+`health_adjust()` → keep|demote|tiebreak. **Recorded, never alters route.** Demote: conf<0.30+fail>=3+n>=5. Tiebreak: conf<0.35+healthier alt. Force-route/security→keep. n<5→keep. `build-dispatch.py` emits marker on DECISION.
 
-Thresholds: demote floor `confidence<0.30 AND failure>=3 AND n>=5`; tiebreak `confidence<0.35` with healthier alternate `n>=5`; force-route/security always `keep`; `n<5` or no row → `keep`.
+**Step 1: Safety-net** (reads PRE_ROUTE_RESULT)
 
-Log to T3: `health_at_decision` (float/null), `n`, `failure` as separate fields on the DECISION event in `route-events.jsonl`. Pass as `health` field in routing JSON; `build-dispatch.py` emits the marker.
+(a) force_route pr-workflow/security disagrees → override. Git/security MUST hit quality gates. (b) Phrase guards suppress false matches → Step 0.
 
-**Step 1: Deterministic safety-net** (reads `PRE_ROUTE_RESULT`, after semantic decision)
+**Step 2: Apply skill override** — "review"→systematic-code-review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→test-driven-development. Full table in INDEX.
 
-Guardrail only. No second pre-route invocation.
-
-- **(a)** If pre-route has high-confidence force_route for pr-workflow/security and semantic pick disagrees → override. Git/security work MUST hit quality gates. Record `match_type`.
-- **(b)** Phrase/unigram guards suppress false matches ("fish out", metaphorical commit). Guarded requests stay with Step 0.
-
-**Step 2: Apply skill override** — "review"→systematic-code-review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→test-driven-development. Full table in INDEX files.
-
-**Step 3: Display routing decision** (MANDATORY — FIRST visible output)
+**Step 3: Routing banner** (MANDATORY — first visible output)
 
 ```
-===================================================================
- ROUTING: [brief summary]
-===================================================================
- Selected:
-   -> Agent: [name] - [why]
-   -> Skill: [name] - [why]
-   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
-   -> Extra Rigor: [add verification patterns for code/security/testing tasks when needed]
- Invoking...
-===================================================================
+=== ROUTING: [summary] ===
+Agent: [name]-[why] | Skill: [name]-[why]
+Pipeline: [phases] | Rigor: [if needed]
+Invoking... ===
 ```
 
-Trivial: `Classification: Trivial - [reason]` and `Handling directly (no agent/skill)`.
+Trivial: `Classification: Trivial - [reason]`, `Handling directly`.
 
-**Dry Run Mode** / **Verbose Routing** — both OFF by default.
+Learning: hooks below.
 
-Learning capture is automatic via hooks (table in Learning Capture section).
-
-**Gate**: Agent+skill selected. Banner displayed. Phase 3.
+**Gate**: Agent+skill set, banner shown. Phase 3.
 
 ---
 
 ### Phase 3: ENHANCE
 
-Stack skills based on request signals.
+Stack on signals.
 
 | Signal | Enhancement |
-|--------|-------------|
-| Substantive work | Retro knowledge when it materially helps |
-| "with tests" / "production ready" | test-driven-development + verification-before-completion |
-| "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| "comprehensive"/"thorough"/"full" review, or "review" with 5+ files — no diff | Fallback: parallel-code-review (3: Security, BizLogic, Architecture) |
-| Multi-file/comprehensive review, real diff | `python3 "$SDIR/right-size-review.py" --base {base} --head {head}` (or `--files N --packages M`); Tier 1→3, 2→12, 3→17, 4→27 reviewers. Escalate one tier on CRITICAL; no tier signal → full behavior. Outranks Phase 2 `comprehensive-review` pipeline pick. |
+|---|---|
+| Substantive | Retro knowledge when material |
+| "with tests"/"production ready" | test-driven-development+verification-before-completion |
+| "research needed"/"investigate first" | research-coordinator-engineer |
+| Comprehensive/thorough/full review or 5+ files, no diff | parallel-code-review (Security, BizLogic, Arch) |
+| Multi-file review, real diff | `right-size-review.py`; T1→3,T2→12,T3→17,T4→27. CRITICAL+1. Outranks comprehensive-review. |
 | Complex implementation | Offer subagent-driven-development |
-| "local only" / "no push" / "keep it local" / "don't commit" / "stay local" | Inject local-only (`shared-patterns/local-only.md`): "**LOCAL-ONLY MODE.** Do not push, commit, create PRs, or deploy. All work stays on disk. Read-only git is fine." |
-| Voice profile skill selected (any voice-* profile, e.g. voice-example-profile) | Stack `voice-writer` (13-phase pipeline); voice-* loads as profile in Phase 1. |
-| Interview-mode heuristic fires | `planning` (interview mode) — load `depth-first-interview.md` |
-| Objective with done-criteria / "keep going until X" / "loop until done" | Stack `objective-loop` |
+| "local only"/"no push"/"keep it local"/"stay local" | Inject `shared-patterns/local-only.md` |
+| Voice profile (e.g. voice-example-profile) | Stack `voice-writer`; voice-*=profile |
+| Interview-mode heuristic | `planning` — `depth-first-interview.md` |
+| Objective with done-criteria / "loop until done" | Stack `objective-loop` |
 
-**Review-row precedence.** When review signals overlap, the real-diff row wins; the fallback row applies only when no diff exists.
+Review overlap: real-diff row wins; fallback only without diff.
 
-**Interview-mode heuristic.** Fires when request is short, names no file/symbol/path, no acceptance criteria, multiple interpretations. The 6 examples below are the spec.
+**Interview heuristic.** Short, no file/symbol, ambiguous. Spec:
 
-| Example | Match? | Why |
+| Example | ? | Why |
 |---|---|---|
-| "i'm not sure how to approach this complex build" | YES | Uncertainty + vague + no target |
-| "fix the typo on line 42 of foo.py" | NO | Concrete file + location |
-| "build a thing that does X" | YES | Vague verb + no file |
-| "add a test for `parseConfig` in src/config.go" | NO | Concrete symbol + file |
-| "where do i even start with this rewrite" | YES | Explicit uncertainty, no subject |
-| "rename `cfg` to `config` in `internal/`" | NO | Concrete symbol + directory + mechanical op |
+| "i'm not sure how to approach this complex build" | Y | Vague+no target |
+| "fix the typo on line 42 of foo.py" | N | File+loc |
+| "build a thing that does X" | Y | No file |
+| "add a test for `parseConfig` in src/config.go" | N | Symbol+file |
+| "where do i even start with this rewrite" | Y | No subject |
+| "rename `cfg` to `config` in `internal/`" | N | Mechanical |
 
-When in doubt, defer injection. Check `pairs_with` in `skills/INDEX.json` before stacking; empty `pairs_with: []` means undeclared, not prohibited. Skills with built-in verification gates may not need stacking.
+Check `pairs_with` before stacking. Skills with built-in verification gates may suffice.
 
-Anti-rationalization per task type:
-
-| Task Type | Patterns |
-|-----------|----------|
-| Code modification | anti-rationalization-core, verification-checklist |
-| Code review | anti-rationalization-core, anti-rationalization-review |
-| Security | anti-rationalization-core, anti-rationalization-security |
-| Testing | anti-rationalization-core, anti-rationalization-testing |
-| Debugging | anti-rationalization-core, verification-checklist |
-| External content | **untrusted-content-handling** |
-
-Maximum rigor: `/with-anti-rationalization [task]`.
+anti-rationalization-core always + verification-checklist (code/debug) + anti-rationalization-review + anti-rationalization-security + anti-rationalization-testing; external: **untrusted-content-handling**. Max: `/with-anti-rationalization`.
 
 **Gate**: Enhancements applied. Phase 4.
 
@@ -280,23 +202,17 @@ Maximum rigor: `/with-anti-rationalization [task]`.
 
 ### Phase 4: EXECUTE
 
-**Step 0: Creation Protocol** (creation only) — Write ADR at `adr/{kebab-case-name}.md`, register via `python3 "$SDIR/adr-query.py" register`, proceed to plan.
+**Step 0: Creation** — ADR at `adr/{name}.md`, `adr-query.py register`, plan.
 
-**Step 1: Create plan** (Simple+) — `task_plan.md` before execution; skip Trivial.
+**Step 1: Plan** (Simple+) — `task_plan.md`; skip Trivial.
 
-**Step 1b: Quality-loop** (Medium+ code modifications)
+**Step 1b: Quality-loop** (Medium+ code mod) — `references/quality-loop.md` 14 phases. P2 agent=implementation. Force-route in loop. Skip non-code/Trivial/Simple.
 
-Load `references/quality-loop.md` as outer wrapper: 14-phase lifecycle (ADR→PLAN→IMPLEMENT→TEST→REVIEW→INTENT VERIFY→LIVE VALIDATE→FIX→RETEST→PR→CODEX REVIEW→ADR RECONCILE→RECORD→CLEANUP). Phase 2 agent+skill is the implementation agent inside IMPLEMENT. Force-route skills run inside the loop. Skip for: Trivial/Simple, review-only/research/debugging/content, or simpler-flow request.
-
-**Step 1c: Workflow dispatch** (lazy-loaded)
-
-On pipeline pick, Complex/tier-4 with no pick, or explicit workflow request → load `${CLAUDE_SKILL_DIR}/references/workflow-dispatch.md`. When both 1b+1c apply, quality-loop is OUTER; workflow runs inside IMPLEMENT.
+**Step 1c: Workflow** — Pipeline pick or Complex no pick or explicit → `${CLAUDE_SKILL_DIR}/references/workflow-dispatch.md`. Both 1b+1c → quality-loop OUTER, workflow in IMPLEMENT.
 
 **Step 2: Invoke agent**
 
-Dispatch the agent. Inject no MCP instructions; tool discovery is the agent's job.
-
-**Build dispatch with `scripts/build-dispatch.py` (MANDATORY).** Single source of truth for `[do-route]` marker, thinking directives, token budget, Task Spec, four verbatim injections (reference loading, completeness, Dense-Complete Writing, base instructions), worktree/local-only blocks. Never hand-assemble. One JSON per dispatch, prepend stdout. Roster: one per worker.
+**`build-dispatch.py` (MANDATORY)** — source for `[do-route]`, thinking, budget, Task Spec, injections, worktree/local-only. Never hand-assemble.
 
 ```bash
 python3 "$SDIR/build-dispatch.py" --json '{
@@ -312,39 +228,37 @@ python3 "$SDIR/build-dispatch.py" --json '{
 }'
 ```
 
-Fields (omit optional; script degrades): `agent`/`skill`/`complexity` from Phase 2 (no skill→`skill=-`). `model` from Model Selection (**required Medium+**, script errors; values: sonnet/opus/fable/gpt-5.5/codex; trivial/simple→`model=-`). `health` from Step 1.5 (no row→omit→`health=-`). `stack` from Phase 3 (instrumentation). `task_spec` mandatory Medium+, Simple include intent+acceptance when extractable; intent=verb+object, constraints=branch safety+operator-context+memory, acceptance=observable outcomes; creation adds "must match ADR"; invent nothing. `flags.worktree` for worktree agents. `flags.local_only` on local-only signals. `flags.thinking_override`: "slow" for security/API design/migrations/5+ files/arch; "fast" for lookups/renames; else omit. `token_remaining` advisory budget minus spend.
+`agent`/`skill`/`complexity`: Phase 2 (null→`-`). `model`: **required Medium+** (`-` trivial/simple). `health`: 1.5 (`-` if none). `stack`: Phase 3. `task_spec`: mandatory Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
 
-The `[do-route]` marker is the SOLE signal `routing-decision-recorder` reads. Dispatches without it (sub-agents, nested fan-out) are excluded from route-health.
+`[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded.
 
-**Fallback (script failed).** Hand-stamp: `[do-route] agent={agent} skill={skill|-} complexity={complexity} health=- model={model|-}` at prompt head, add Task Specification inline, dispatch, report failure.
+**Fallback:** `[do-route] agent={a} skill={s|-} complexity={c} health=- model={m|-}`, Task Spec inline, dispatch.
 
-**Model Selection (canonical table — ADR `model-selection-policy`).**
+**Model Selection (ADR `model-selection-policy`).**
 
-| model | cost | intelligence | taste | role |
+| model | cost | int | taste | role |
 |---|---|---|---|---|
-| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex wrapper. Dispatch target. |
-| sonnet-5 | 5 | 5 | 7 | Mechanical fan-out, lighter work. `model: "sonnet"`. Dispatch target. |
-| opus-4.8 | 4 | 7 | 8 | Reviews, audits, analysis, deep work. `model: "opus"`. Dispatch target. |
-| fable-5 | 2 | 9 | 9 | Highest requirements only — deliberate escalation, never routine dispatch. |
+| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex |
+| sonnet-5 | 5 | 5 | 7 | Fan-out, lighter. `"sonnet"` |
+| opus-4.8 | 4 | 7 | 8 | Reviews, deep. `"opus"` |
+| fable-5 | 2 | 9 | 9 | Escalation only |
 
-Rules: Orchestrator = main thread model. **Medium+ MUST set model explicitly** (omission inherits — expensive propagation). Trivial/Simple: omission OK. Defaults, not limits — cheaper output misses bar → rerun smarter. Path: sonnet→opus→gpt-5.5→tighter spec. Ships: intelligence > taste > cost. Bulk→gpt-5.5. User-facing needs taste≥7. Reviews→opus. Haiku retired. Wrapper symmetry: wrapper serves model family NOT current harness. `codex exec -s read-only` for investigation. Codex prompts leave machine — public content only. Mechanics: `codex` skill.
+**Medium+ MUST set model**. Cheaper misses→smarter (sonnet→opus→gpt-5.5→spec). intelligence>taste>cost. Bulk→gpt-5.5, taste>=7 user-facing, reviews→opus. Haiku retired. Codex: read-only; public only.
 
-**Complex tasks (3+ sources) verb dispatch:**
+**Complex (3+ sources):**
 
-| Verb class | Mode |
+| Verbs | Mode |
 |---|---|
-| list, count, extract, inventory, search, check, find, grep | Fan-out: gpt-5.5/sonnet readers → opus synthesizer |
-| review, audit, assess, analyze, debug, investigate, evaluate | Single opus agent |
+| list/count/extract/inventory/search/check/find/grep | Fan-out gpt-5.5/sonnet → opus synth |
+| review/audit/assess/analyze/debug/investigate/evaluate | Single opus |
 
-Simple/Medium: dispatch directly. Route to feature-branch agents; for modifications, include "commit on the branch". `isolation: "worktree"` → set `flags.worktree`.
+Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`flags.worktree`. Non-org: 3 reviews→fix→PR. Org: confirm git.
 
-Non-org repos: up to 3 `/pr-review` → fix iterations before PR. Org-gated (`classify-repo.py`): confirm before each git action.
+**Step 3: Multi-part** — deps sequential; independent parallel (max 10).
 
-**Step 3: Multi-part requests** — "first...then", "and also", numbered lists, semicolons. Sequential dependencies in order; independent items in parallel (max 10).
+**Step 4: Auto-Pipeline Fallback** (no match, Simple+) — `auto-pipeline`. None → closest+`objective-loop`. Never empty skill.
 
-**Step 4: Auto-Pipeline Fallback** (no match, Simple+) — `auto-pipeline`. Still no match → route closest agent + `objective-loop`. Never dispatch Simple+ with empty skill.
-
-**Lazy-completion check.** Agent claims "done" on enumerable objective → compare claimed vs actual scope; if short, reject and re-dispatch remainder. See `references/lazy-completion-detector.md`. Re-dispatch → report route failure.
+**Lazy-completion check.** "Done" on enumerable → compare scope; short → reject, re-dispatch (`references/lazy-completion-detector.md`). Re-dispatch → route failure.
 
 **Gate**: Agent invoked, results delivered.
 
@@ -352,23 +266,20 @@ Non-org repos: up to 3 `/pr-review` → fix iterations before PR. Org-gated (`cl
 
 ### Learning Capture (automatic)
 
-Hooks capture everything. Router records one case manually: observed route failures (below).
+Hooks capture all. Router records: route failures only.
 
 | Capture | Hook | Event |
-|---------|------|-------|
-| Routing decision (`{agent}:{skill}`) | `routing-decision-recorder` | PostToolUse:Agent |
-| Outcome - validate pending | `routing-outcome-recorder` | SubagentStop |
-| Outcome - finalize (boost/decay) | `routing-outcome-finalizer` | UserPromptSubmit |
-| Outcome - session-end fallback | `session-learning-recorder` | Stop |
-| Right-sizing feedback | `routing-decision-recorder` | PostToolUse:Agent |
-| Tool errors | `error-learner` | PostToolUse |
-| Review findings | `review-capture` | PostToolUse:Agent |
+|---|---|---|
+| Decision+right-sizing | `routing-decision-recorder` | PostToolUse:Agent |
+| Outcome pending | `routing-outcome-recorder` | SubagentStop |
+| Outcome final | `routing-outcome-finalizer` | UserPromptSubmit |
+| Session-end | `session-learning-recorder` | Stop |
+| Errors | `error-learner` | PostToolUse |
+| Reviews | `review-capture` | PostToolUse:Agent |
 
-Feeds `learning-db.py route-health`. See ADR `learn-step-to-hook`.
+**Outcome fidelity.** THREE-WAY: errors/rejection→decay; acceptance→boost; else neutral.
 
-**Outcome fidelity.** Deterministic on next user turn, zero LLM cost, THREE-WAY: failure on errors/rejection (decay); success on explicit acceptance (boost); neutral otherwise. No complaint ≠ acceptance. Stop fallback: errors→failure, clean→neutral.
-
-**Report route failures** (HIGH-CONFIDENCE only):
+**Route failures** (HIGH-CONFIDENCE only):
 
 ```bash
 REASON_FILE=$(mktemp); printf '%s' "<cause>" > "$REASON_FILE"
@@ -376,26 +287,24 @@ python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason-file
 rm -f "$REASON_FILE"
 ```
 
-Run for: re-route, lazy-completion re-dispatch, section-validator misroute, harness-rejected agent. Right route + bad execution → `--routing-relevant no`. Ambiguous → skip. Decays one per dispatch key. Temp file avoids shell-splicing.
+Triggers: re-route, lazy re-dispatch, validator misroute, harness reject. Right route+bad exec → `--routing-relevant no`.
 
-**Optional:** curated insight via `retro` skill: `learning-db.py learn --skill <name> "insight"` or `--agent <name> "insight"`. Routing rows (`category=effectiveness`) excluded from `retro graduate`.
+**Optional:** `learning-db.py learn --skill <name> "insight"`. Routing (`category=effectiveness`) excluded from `retro graduate`.
 
 ---
 
 ## Error Handling
 
 | Error | Cause | Solution |
-|-------|-------|----------|
-| No Agent Matches | No agent covers domain | INDEX near-matches → closest agent + verification-before-completion. Report gap. |
-| Force-Route Conflict | Multiple force-route triggers match | Most specific first; stack compatible secondaries. |
-| Plan Required | Simple+ without task_plan.md | Create plan, resume. |
-| Router Script Failed | Non-zero exit or non-JSON | No-match fallback: `general-purpose` + `verification-before-completion`. |
+|---|---|---|
+| No Agent | Domain uncovered | INDEX near-matches → closest+verification-before-completion |
+| Force-Route Conflict | Multiple force-route triggers | Most specific; stack secondaries |
+| Plan Required | Simple+ no plan | Create, resume |
+| Script Failed | Non-zero/non-JSON | `general-purpose`+`verification-before-completion` |
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation
-- `agents/INDEX.json`: Agent triggers, metadata, `not_for`
-- `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with, `not_for`
-- `skills/workflow/SKILL.md`: Workflow phases, triggers, composition
-- `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases
-- `scripts/routing-manifest.py`: Generates routing manifest from INDEX files
+- `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`
+- `agents/INDEX.json`, `skills/INDEX.json`
+- `skills/workflow/SKILL.md`, `skills/workflow/references/pipeline-index.json`
+- `scripts/routing-manifest.py`
