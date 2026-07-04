@@ -22,9 +22,9 @@ routing:
 
 # /do - Smart Router
 
-ROUTER, not worker. Classify → agent+skill → dispatch. Main: Classify→Select→Dispatch→Evaluate→Re-route→Report.
+ROUTER, not worker. Classify → agent+skill → dispatch. All execution goes to agents. Catching yourself reading/writing code or analyzing — pause and route to an agent. Main: Classify→Select→Dispatch→Evaluate→Re-route→Report.
 
-Do the whole thing (tests+docs). Product, not plan. Partial → follow-up. Inject Simple+. Confidence handling directly → route.
+Do the whole thing (tests+docs). Product, not plan. Permanent solve over workaround. Search before building; test before shipping. Decompose into agent-sized tasks. The result reads as "that's done," not "that's a start." Partial → follow-up. Inject Simple+. Confidence in handling directly is a signal to route.
 
 Dense-Complete Writing (`build-dispatch.py` injects; `skills/shared-patterns/dense-complete-writing.md`). User: banners+summary. Internal: JSON/reasoning/stacking (Verbose overrides).
 
@@ -77,16 +77,7 @@ rm -f "$REQUEST_FILE"
 
 **Step 0: Self-route**
 
-Manifest cache (`~/.claude/cache/routing-manifest.txt`+`.hash`). SDIR from pre-route. Miss/stale:
-
-```bash
-BASE="$(dirname "$SDIR")"; CACHE="${HOME}/.claude/cache/routing-manifest.txt"; CHASH="${HOME}/.claude/cache/routing-manifest.hash"
-if [ -s "$CACHE" ] && [ -s "$CHASH" ] && [ "$(cat "$SDIR/routing-manifest.py" "$SDIR/routing_index_merge.py" "$BASE/skills/INDEX.json" "$BASE/skills/INDEX.local.json" "$BASE/agents/INDEX.json" "$BASE/agents/INDEX.local.json" "$BASE/skills/workflow/references/pipeline-index.json" 2>/dev/null | sha256sum | cut -d' ' -f1)" = "$(cat "$CHASH")" ]; then
-  cat "$CACHE"    # cache hit: manifest read from disk, no Python start
-else
-  python3 "$SDIR/routing-manifest.py"
-fi
-```
+Read the manifest (hash-gated cache or regenerate): `"$SDIR/get-routing-manifest.sh"` (SDIR from pre-route).
 
 Internal JSON; `[do-route]` = sole trace.
 
@@ -137,7 +128,7 @@ No pair→general-purpose+objective-loop. `[cross-repo]`→`.claude/agents/`. Co
 python3 "$SDIR/learning-db.py" route-weights --json
 ```
 
-`health_adjust()` → keep|demote|tiebreak. **Recorded, never alters route.** Demote: conf<0.30+fail>=3+n>=5. Tiebreak: conf<0.35+healthier alt. Force-route/security→keep. n<5→keep. `build-dispatch.py` emits marker on DECISION.
+`health_adjust()` → keep|demote|tiebreak. **Recorded, never alters route.** Activation gated on first negative signal (`docs/route-loop-validation.md`). Demote: conf<0.30+fail>=3+n>=5. Tiebreak: conf<0.35+healthier alt. Force-route/security→keep. n<5→keep. `build-dispatch.py` emits marker on DECISION.
 
 **Step 1: Safety-net** (reads PRE_ROUTE_RESULT)
 
@@ -148,10 +139,16 @@ python3 "$SDIR/learning-db.py" route-weights --json
 **Step 3: Routing banner** (MANDATORY — first visible output)
 
 ```
-=== ROUTING: [summary] ===
-Agent: [name]-[why] | Skill: [name]-[why]
-Pipeline: [phases] | Rigor: [if needed]
-Invoking... ===
+===================================================================
+ ROUTING: [brief summary]
+===================================================================
+ Selected:
+   -> Agent: [name] - [why]
+   -> Skill: [name] - [why]
+   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
+   -> Extra Rigor: [verification patterns for code/security/testing when needed]
+ Invoking...
+===================================================================
 ```
 
 Trivial: `Classification: Trivial - [reason]`, `Handling directly`.
@@ -266,41 +263,13 @@ Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`fl
 
 ### Learning Capture (automatic)
 
-Hooks capture all. Router records: route failures only.
-
-| Capture | Hook | Event |
-|---|---|---|
-| Decision+right-sizing | `routing-decision-recorder` | PostToolUse:Agent |
-| Outcome pending | `routing-outcome-recorder` | SubagentStop |
-| Outcome final | `routing-outcome-finalizer` | UserPromptSubmit |
-| Session-end | `session-learning-recorder` | Stop |
-| Errors | `error-learner` | PostToolUse |
-| Reviews | `review-capture` | PostToolUse:Agent |
-
-**Outcome fidelity.** THREE-WAY: errors/rejection→decay; acceptance→boost; else neutral.
-
-**Route failures** (HIGH-CONFIDENCE only):
-
-```bash
-REASON_FILE=$(mktemp); printf '%s' "<cause>" > "$REASON_FILE"
-python3 ~/.claude/scripts/learning-db.py route-failure AGENT:SKILL --reason-file "$REASON_FILE" --routing-relevant yes --session $SESSION --marker $DISPATCH_ID
-rm -f "$REASON_FILE"
-```
-
-Triggers: re-route, lazy re-dispatch, validator misroute, harness reject. Right route+bad exec → `--routing-relevant no`.
-
-**Optional:** `learning-db.py learn --skill <name> "insight"`. Routing (`category=effectiveness`) excluded from `retro graduate`.
+Hooks capture all. On observed route failure or learning question → load `${CLAUDE_SKILL_DIR}/references/learning-capture.md` (hooks table, outcome fidelity, route-failure protocol).
 
 ---
 
 ## Error Handling
 
-| Error | Cause | Solution |
-|---|---|---|
-| No Agent | Domain uncovered | INDEX near-matches → closest+verification-before-completion |
-| Force-Route Conflict | Multiple force-route triggers | Most specific; stack secondaries |
-| Plan Required | Simple+ no plan | Create, resume |
-| Script Failed | Non-zero/non-JSON | `general-purpose`+`verification-before-completion` |
+On any routing error → load `${CLAUDE_SKILL_DIR}/references/error-handling.md`.
 
 ## References
 

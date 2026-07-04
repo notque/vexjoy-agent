@@ -11,6 +11,7 @@ Run with: python3 -m pytest scripts/tests/test_validate_do_references.py -v
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,8 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "validate-do-references.py"
 SKILL_FILE = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
+REFS_DIR = SKILL_FILE.parent / "references"
+COLD_REFS = ("error-handling.md", "learning-capture.md")
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 
@@ -33,11 +36,15 @@ def _run(skill_file: Path) -> subprocess.CompletedProcess:
 
 
 def _skill_copy(tmp_path: Path, old: str, new: str) -> Path:
-    """Copy the real SKILL.md with one substring swapped; assert the swap hit."""
+    """Copy the real SKILL.md (+ cold refs) with one substring swapped; assert the swap hit."""
     text = SKILL_FILE.read_text(encoding="utf-8")
     assert old in text, f"fixture drift: {old!r} not in SKILL.md — update this test"
     out = tmp_path / "SKILL.md"
     out.write_text(text.replace(old, new), encoding="utf-8")
+    refs = tmp_path / "references"
+    refs.mkdir(exist_ok=True)
+    for name in COLD_REFS:
+        shutil.copy(REFS_DIR / name, refs / name)
     return out
 
 
@@ -102,3 +109,25 @@ def test_missing_region_anchor_fails(tmp_path: Path) -> None:
     result = _run(modified)
     assert result.returncode == 1
     assert "anchor not found" in result.stdout
+
+
+def test_phantom_in_cold_reference_fails(tmp_path: Path) -> None:
+    """A phantom name in a scanned cold reference file exits 1 and names it."""
+    modified = _skill_copy(tmp_path, "# /do - Smart Router", "# /do - Smart Router")
+    ref = tmp_path / "references" / "error-handling.md"
+    text = ref.read_text(encoding="utf-8")
+    anchor = "verification-before-completion"
+    assert anchor in text, "fixture drift: update this test"
+    ref.write_text(text.replace(anchor, "made-up-verifier-zz", 1), encoding="utf-8")
+    result = _run(modified)
+    assert result.returncode == 1
+    assert "made-up-verifier-zz" in result.stdout
+
+
+def test_missing_cold_reference_fails(tmp_path: Path) -> None:
+    """Deleting a scanned cold reference fails loudly — coverage cannot drop."""
+    modified = _skill_copy(tmp_path, "# /do - Smart Router", "# /do - Smart Router")
+    (tmp_path / "references" / "learning-capture.md").unlink()
+    result = _run(modified)
+    assert result.returncode == 1
+    assert "cold reference not found" in result.stdout
