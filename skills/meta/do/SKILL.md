@@ -100,7 +100,7 @@ PIPELINE — both: triggers match + multi-phase benefit. Mostly null.
 "vexjoy voice article"→voice-writer ✓ | "research+sources"→research-pipeline ✓ | "fix typo"→null
 Comprehensive-review outranked by right-size-review when real diff exists.
 
-GENERAL: most specific. Agent=domain, skill=method. Git→pr-workflow; metaphor→never.
+GENERAL: most specific. Agent=domain, skill=method. GENUINE git/version-control ops (actually pushing code, committing files, opening/merging a PR) → ALWAYS pr-workflow. Metaphorical uses ("commit to a decision", "merge ideas/branches in your head", "push back on a proposal") → NEVER pr-workflow.
 ```
 
 **Step 0b: Apply the routing decision**
