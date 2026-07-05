@@ -15,7 +15,19 @@ routing:
     - "executive summary"
     - "summarize for management"
     - "status update"
-  not_for: "critiquing or stress-testing a proposal's merits — that is multi-persona-critique; deciding what to prioritize or work on next — that is productivity. This drafts the message; it does not judge ideas or set priorities."
+    - "compose email"
+    - "draft response"
+    - "reply to my boss"
+    - "reply to manager"
+    - "help me write back"
+    - "work email"
+    - "meeting summary"
+    - "meeting notes"
+    - "write a message to"
+    - "pushback email"
+    - "disagree professionally"
+    - "difficult conversation"
+  not_for: "critiquing or stress-testing a proposal's merits — that is multi-persona-critique; deciding what to prioritize or work on next — that is productivity; writing blog posts or articles with a voice profile — that is voice-writer. This drafts interpersonal messages; it does not judge ideas, set priorities, or generate content."
   category: content-creation
   pairs_with:
     - voice-writer

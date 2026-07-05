@@ -18,6 +18,12 @@ routing:
     - codebase health check
     - review all files
     - full codebase review
+    - audit the codebase
+    - codebase audit
+    - review whole repo
+    - sweep all source files
+    - repo health
+  not_for: "reviewing a single PR, diff, or named file (use systematic-code-review); security-only review (use security-review). This reviews ALL source files in the repo, producing a prioritized issue backlog."
   pairs_with:
     - systematic-code-review
     - parallel-code-review

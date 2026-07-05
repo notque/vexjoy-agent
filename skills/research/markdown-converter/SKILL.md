@@ -14,6 +14,13 @@ routing:
     - "PDF to markdown"
     - "docx to markdown"
     - "ingest document"
+    - "read this PDF"
+    - "read this document"
+    - "extract text from document"
+    - "convert PDF"
+    - "convert document"
+    - "pptx to markdown"
+    - "xlsx to markdown"
   category: research
   pairs_with:
     - research-pipeline
