@@ -262,8 +262,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `swift-concurrency` | no | Swift concurrency: async/await, Actor, Task, Sendable patterns |
-| `swift-testing` | no | Swift testing: XCTest, Swift Testing framework, async patterns |
+| `swift` | no | Swift development: concurrency patterns, async/await, actors, testing with XCTest and Swift Testing framework |
 
 ---
 

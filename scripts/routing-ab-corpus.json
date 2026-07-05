@@ -429,7 +429,7 @@
     {
       "request": "convert the completion-handler callbacks in NetworkClient.swift to async/await and make the cache actor-safe",
       "expected_agent": "swift-general-engineer",
-      "expected_skill": "swift-concurrency",
+      "expected_skill": "swift",
       "category": "swift-development",
       "bucket": "stub-tier",
       "notes": "STUB. async/await + Actor migration = swift-concurrency per INDEX."
@@ -1458,7 +1458,7 @@
     {
       "request": "write XCTest cases for this Swift view model with async test patterns",
       "expected_agent": "swift-general-engineer",
-      "expected_skill": "swift-testing",
+      "expected_skill": "swift",
       "category": "swift",
       "bucket": "reachability",
       "notes": "Swift testing: XCTest with async patterns."

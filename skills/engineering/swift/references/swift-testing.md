@@ -1,22 +1,3 @@
----
-name: swift-testing
-promoted_to: swift
-description: "Swift testing: XCTest, Swift Testing framework, async patterns."
-user-invocable: false
-context: fork
-agent: swift-general-engineer
-routing:
-  triggers:
-    - "swift testing"
-    - "XCTest"
-    - "Swift Testing framework"
-    - "async test swift"
-  not_for: "general Swift development (use swift-general-engineer agent) — this skill covers Swift testing: XCTest, Swift Testing framework, test patterns"
-  category: swift
-  pairs_with:
-    - swift-concurrency
-    - test-driven-development
----
 
 # Swift Testing Patterns
 
