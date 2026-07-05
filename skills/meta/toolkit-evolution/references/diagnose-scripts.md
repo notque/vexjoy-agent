@@ -1,6 +1,6 @@
 # DIAGNOSE Phase Scripts
 
-> **Scope**: Concrete bash/Python commands for each step of Phase 1 DIAGNOSE and Phase 0 DISCOVER frequency check. Load this reference before running those phases. The SKILL.md contains the prose instructions and decision logic; this file contains the exact commands to execute.
+> **Scope**: Concrete bash/Python commands for each step of Phase 1 DIAGNOSE and Phase 0 DISCOVER (frequency check, briefing data, PR-history mining). Load this reference before running those phases. The SKILL.md contains the prose instructions and decision logic; this file contains the exact commands to execute.
 
 ---
 
@@ -55,6 +55,29 @@ for a in sorted(agents):
 ```
 
 ---
+
+## DISCOVER Step 2b: PR-History Reflection
+
+Read-only `gh` queries. No mutation of PRs, comments, or labels.
+
+```bash
+# Titles, bodies, and changed files for the last 30 merged PRs
+gh pr list --state merged --limit 30 --json number,title,body,files \
+  --jq '.[] | {number, title, files: [.files[].path]}'
+
+# Review-comment threads for each of those PRs
+for n in $(gh pr list --state merged --limit 30 --json number --jq '.[].number'); do
+  echo "--- PR #$n ---"
+  gh pr view "$n" --comments
+done
+```
+
+Read the combined output for three signals:
+- **Recurring friction**: the same file, directory, or component named as the diff target across 3+ PRs — a change that keeps needing a change is a design gap, not bad luck.
+- **Repeated fix patterns**: review comments requesting the identical correction (a missing test, a missing frontmatter field, a missing validation call) on separate PRs — the fix belongs in a hook, script, or skill step, not in each reviewer's memory.
+- **Skill/agent gaps**: a PR manually performs a step (e.g., hand-editing INDEX.json, manually chasing a routing entry) that an existing script or skill should have automated, or that no component covers.
+
+Each signal needs 2+ distinct PRs as evidence (Triple-Validation recurrence check) before it becomes a proposal. Format proposals like other DISCOVER output: one-sentence description, evidence (PR numbers), estimated impact. Tag source `[PR-HISTORY]`.
 
 ## DIAGNOSE Step 1: Learning DB Search Queries
 
