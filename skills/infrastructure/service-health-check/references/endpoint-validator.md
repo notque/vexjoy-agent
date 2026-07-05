@@ -1,30 +1,4 @@
----
-name: endpoint-validator
-promoted_to: service-health-check
-description: "Deterministic API endpoint validation with pass/fail reporting."
-user-invocable: false
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - "validate endpoints"
-    - "smoke test API"
-    - "health check endpoints"
-    - "test endpoint"
-    - "check API"
-    - "smoke test"
-  category: infrastructure
-  not_for: "process/service uptime or daemon liveness (use service-health-check); only HTTP/API endpoint request validation"
-  pairs_with:
-    - service-health-check
-    - e2e-testing
----
-
-# Endpoint Validator Skill
+# Endpoint Validator
 
 Deterministic HTTP endpoint validation following a **Discover, Validate, Report** pattern. Finds endpoints, tests each against expectations, and produces machine-readable results with clear pass/fail verdicts and CI-compatible exit codes.
 
@@ -169,9 +143,9 @@ SUMMARY:
 
 **Gate**: Report printed, exit code set. Validation complete.
 
-### Examples
+## Examples
 
-#### Example 1: Pre-Deployment Health Check
+### Example 1: Pre-Deployment Health Check
 User says: "Validate all endpoints before we deploy"
 Actions:
 1. Find `endpoints.json` in project root (DISCOVER)
@@ -179,15 +153,13 @@ Actions:
 3. Print report, exit 0 if all pass (REPORT)
 Result: Structured pass/fail report with CI-compatible exit code
 
-#### Example 2: Smoke Test After Migration
+### Example 2: Smoke Test After Migration
 User says: "Check if the API is still working after the database migration"
 Actions:
 1. Read endpoint config, confirm base URL reachable (DISCOVER)
 2. Hit each endpoint, check status and expected keys (VALIDATE)
 3. Surface any failures with error details (REPORT)
 Result: Quick verification that migration did not break API contracts
-
----
 
 ## Error Handling
 
@@ -212,26 +184,10 @@ Solution:
 2. Remove `expect_key` if endpoint legitimately returns non-JSON
 3. Check if authentication is required (HTML login page returned)
 
----
-
-## Reference Loading
-
-| Task Type | Load This Reference |
-|-----------|-------------------|
-| Security header WARNs, HSTS/CSP/X-Frame issues | `references/security-headers.md` |
-| Config errors, hardcoded IPs, timeout problems | `references/endpoint-config-preferred-patterns.md` |
-| 401/403 failures, Bearer/API-key/cookie auth | `references/auth-endpoint-patterns.md` |
-
----
-
-## References
-
-### CI/CD Integration
+## CI/CD Integration
 
 ```yaml
 # GitHub Actions example
-# TODO: scripts/validate_endpoints.py not yet implemented
-# Manual alternative: use curl to validate endpoints from endpoints.json
 - name: Validate API endpoints
   run: |
     jq -r '.endpoints[].path' endpoints.json | while read path; do
@@ -241,8 +197,6 @@ Solution:
 
 ```bash
 # Pre-deployment gate
-# TODO: scripts/validate_endpoints.py not yet implemented
-# Manual alternative: iterate endpoints.json with curl
 jq -r '.endpoints[].path' endpoints.json | while read path; do
   curl -sf "http://localhost:8000$path" > /dev/null || { echo "FAIL: $path"; exit 1; }
 done

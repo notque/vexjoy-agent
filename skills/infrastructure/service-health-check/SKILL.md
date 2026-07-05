@@ -1,12 +1,14 @@
 ---
 name: service-health-check
-description: "Service health monitoring: Discover, Check, Report in 3 phases."
+description: "Service health monitoring, endpoint validation, and CVE source auditing."
 user-invocable: false
 allowed-tools:
   - Bash
   - Read
+  - Write
   - Glob
   - Grep
+  - Edit
 routing:
   triggers:
     - "service status"
@@ -14,12 +16,23 @@ routing:
     - "uptime check"
     - "is service running"
     - "check health"
+    - "validate endpoints"
+    - "smoke test API"
+    - "health check endpoints"
+    - "test endpoint"
+    - "check API"
+    - "smoke test"
+    - "check cve sources"
+    - "cve source coverage"
+    - "audit cve feeds"
+    - "vulnerability source audit"
+    - "verify cve sources"
+    - "security feed audit"
   category: infrastructure
-  not_for: "validating individual API endpoint responses (use endpoint-validator); only service/process liveness and uptime"
   pairs_with:
     - kubernetes-debugging
-    - endpoint-validator
     - condition-based-waiting
+    - e2e-testing
 ---
 
 # Service Health Check Skill
@@ -31,6 +44,20 @@ This skill provides deterministic service health monitoring using the **Discover
 **Core principle**: Health assessment is evidence-based. Never report a service healthy without verifying process status independently of health file content. Never assume a running process is functional — always cross-check against health files and port binding.
 
 ---
+
+
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| Endpoint validation request | `references/endpoint-validator.md` | Full endpoint validation methodology |
+| Security header WARNs, HSTS/CSP/X-Frame issues | `references/security-headers.md` | Deep security header reference |
+| Config errors, hardcoded IPs, timeout problems | `references/endpoint-config-preferred-patterns.md` | Endpoint config patterns |
+| 401/403 failures, Bearer/API-key/cookie auth | `references/auth-endpoint-patterns.md` | Auth endpoint patterns |
+| CVE source audit request | `references/cve-source-check.md` | Full CVE source check methodology |
+| CVE registry schema questions | `references/registry-schema.md` | Registry shape and entry format |
+| CVE source URL verification | `references/source-verification.md` | HEAD-check semantics |
+| CVE report format questions | `references/output-formats.md` | JSON schema and Markdown sections |
 
 ## Instructions
 
