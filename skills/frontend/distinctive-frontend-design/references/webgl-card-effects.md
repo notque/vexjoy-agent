@@ -1,35 +1,3 @@
----
-name: webgl-card-effects
-promoted_to: distinctive-frontend-design
-description: "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow."
-agent: typescript-frontend-engineer
-user-invocable: false
-command: /card-effects
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - card effects
-    - holographic
-    - foil effect
-    - card shimmer
-    - card glow
-    - shader card
-    - WebGL card
-    - rarity effects
-    - Balatro effect
-    - card visual effects
-  pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
-  complexity: Medium
-  category: frontend
----
 
 # WebGL Card Effects Skill
 
@@ -43,42 +11,6 @@ This skill adds GPU-accelerated visual effects to React card components using st
 
 **Key constraint**: Browsers cap WebGL contexts at roughly 8–16 total per page. This skill uses a single shared WebGL2 context with blit-to-2D-canvas output per card, avoiding the per-card context problem entirely. See `references/shader-integration-react.md` for the full singleton pattern.
 
----
-
-## Instructions
-
-### Phase 1: ASSESS
-
-**Goal**: Understand which effects are needed and confirm the card component structure before writing any code.
-
-**Step 1: Read the card component**
-
-Read these files before writing anything:
-- `src/components/cards/FramedCard.tsx` — component structure, hover state, rarity prop flow
-- `src/components/cards/cardStyles.ts` — `CARD_SIZE_CONFIG` for pixel dimensions, rarity string values
-
-Confirm:
-- How rarity reaches the component (prop name, TypeScript type, exact string values)
-- Whether `isHovered` state already exists in the component
-- Which sizes are rendered in contexts that justify shader cost (xl/lg only — xs/sm are too small)
-- Whether `showShine` / `card-shine` CSS exists and needs coordination
-
-**Step 2: Select effect tier per rarity**
-
-| Rarity | WebGL? | Effect |
-|--------|--------|--------|
-| starter / common | No | CSS shimmer only — no WebGL overhead |
-| uncommon | Yes (subtle) | Metallic band shimmer, very low opacity |
-| rare | Yes (medium) | Moving shimmer + blue hue shift + edge pulse |
-| legendary | Yes (full) | Rainbow holographic foil, mouse-reactive tilt |
-
-**Step 3: Confirm React version**
-
-Check `package.json` for the React version. This skill assumes React 19 (ref as prop, no forwardRef). If the project uses React 18, canvas refs require `useRef` + standard ref passing.
-
-**Gate**: Rarity values confirmed, CARD_SIZE_CONFIG read, effect tiers decided. Proceed only when this gate passes.
-
----
 
 ### Phase 2: BUILD
 
@@ -126,75 +58,6 @@ For uncommon: use only the metallic band pass (single moving highlight), opacity
 
 **Gate**: Run `npx tsc --noEmit`. Zero TypeScript errors. Open browser console and verify `gl.getShaderInfoLog()` returns empty string for all shaders.
 
----
-
-### Phase 3: INTEGRATE
-
-**Goal**: Mount the canvas overlay on `FramedCard.tsx` and wire rarity/hover state into the shader uniforms.
-
-**Step 1: Derive render decision**
-
-Inside `FramedCard`, after the existing `const shouldShine` line:
-
-```tsx
-const shouldRenderShader =
-  ['uncommon', 'rare', 'legendary'].includes(rarity) &&
-  size !== 'xs' &&
-  size !== 'sm';
-```
-
-**Step 2: Call the hook**
-
-```tsx
-const shaderCanvasRef = useCardShader({
-  rarity,
-  isHovered,
-  isUpgraded,
-  enabled: shouldRenderShader,
-});
-```
-
-**Step 3: Add the canvas overlay to JSX**
-
-Inside the `motion.div` return, immediately after the frame `<img>` element (after z-10):
-
-```tsx
-{shouldRenderShader && (
-  <canvas
-    ref={shaderCanvasRef}
-    className="absolute inset-0 w-full h-full pointer-events-none rounded-lg"
-    style={{ zIndex: 15, mixBlendMode: 'screen' }}
-  />
-)}
-```
-
-`mix-blend-mode: screen` makes the shader's black background transparent while letting bright holographic colors add onto the card surface.
-
-**Step 4: Coordinate with existing CSS shine**
-
-The existing `card-shine` CSS class creates a gradient sweep on hover. It will double-shimmer with the WebGL effect. Suppress it for rarities that have the WebGL shader:
-
-```tsx
-const shineClass =
-  showShine && shouldShine && !shouldRenderShader
-    ? `card-shine ${...}`
-    : '';
-```
-
-**Step 5: Verify z-layer stack**
-
-From bottom to top inside the card:
-- `z-0` — artwork container
-- `z-10` — frame PNG image
-- `z-15` — shader canvas (new)
-- `z-20` — text elements (energy orb, name, description, type strip)
-- Tooltip renders outside via `AnimatePresence` portal
-
-Tailwind does not generate `z-15` by default. Either add it to `tailwind.config` or use `style={{ zIndex: 15 }}` inline (already shown above).
-
-**Gate**: Cards render correctly at all sizes. Shader canvas is visible on uncommon/rare/legendary. No z-fighting between shader layer and frame image. TypeScript clean.
-
----
 
 ### Phase 4: POLISH
 
@@ -244,26 +107,6 @@ On devices where `supportsWebGL2()` returns false, the hook returns a null ref a
 
 **Gate**: All DevTools performance targets met. Mobile fallback verified. Visual quality approved at lg and xl sizes across all three shader tiers.
 
----
-
-## Error Handling
-
-### "WebGL: INVALID_OPERATION: useProgram: program not valid"
-Shader compilation failed silently. Call `gl.getShaderInfoLog(shader)` immediately after `gl.compileShader(shader)`. Common causes: GLSL syntax error, wrong `#version 300 es` directive missing, or a uniform declared but never referenced (GLSL compilers strip unused uniforms — reference them or remove the declaration).
-
-### Canvas present but effect invisible
-Check `mixBlendMode`. On very dark card backgrounds, `screen` blend mode makes dark shader output invisible. For debugging, switch to `normal` blend mode to see the raw shader output. Also verify the canvas `zIndex` is above the frame PNG (15 > 10).
-
-### Browser console: "Too many active WebGL contexts"
-The shared context singleton in `useCardShader` is not being used — individual hook calls are each creating a new context. Verify the module-level singleton is initialized once and reused. See the singleton pattern in `references/shader-integration-react.md`.
-
-### Canvas appears stretched or distorted on high-DPI displays
-Canvas `width` / `height` attributes must match physical pixel dimensions, not CSS dimensions. CSS `w-full h-full` sets display size only. Use a `ResizeObserver` on the canvas element: `canvas.width = entry.contentRect.width * devicePixelRatio`.
-
-### TypeScript error: "Property 'ref' does not exist on 'HTMLCanvasElement'"
-React 19 passes ref as a prop. The canvas element should be `<canvas ref={shaderCanvasRef} ... />` — no forwardRef needed. Ensure the ref type matches: `useRef<HTMLCanvasElement>(null)`.
-
----
 
 ## Reference Loading Table
 

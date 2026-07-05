@@ -1,30 +1,3 @@
----
-name: text-animation
-promoted_to: distinctive-frontend-design
-description: "Dependency-free kinetic typography: roll/slot text, reveals, typewriter, crossfade."
-agent: typescript-frontend-engineer
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - text animation
-    - kinetic typography
-    - slot machine text
-    - animated headline
-    - rolling label
-    - rolling counter
-  pairs_with:
-    - html-artifact
-    - distinctive-frontend-design
-  complexity: Medium
-  category: frontend
----
 
 # Text Animation Skill
 

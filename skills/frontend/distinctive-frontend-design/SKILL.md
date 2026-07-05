@@ -18,11 +18,35 @@ routing:
     - "anti-cliche design"
     - "visual identity"
     - "design language"
+    - "text animation"
+    - "kinetic typography"
+    - "slot machine text"
+    - "animated headline"
+    - "rolling label"
+    - "rolling counter"
+    - "card effects"
+    - "holographic"
+    - "foil effect"
+    - "card shimmer"
+    - "card glow"
+    - "shader card"
+    - "WebGL card"
+    - "rarity effects"
+    - "Balatro effect"
+    - "card visual effects"
+    - "HTML slides"
+    - "browser presentation"
+    - "web deck"
+    - "reveal-style"
+    - "viewport presentation"
+    - "convert PPTX to web"
+    - "convert PPTX to HTML"
+    - "slides for a browser"
+    - "kiosk presentation"
   category: frontend
   pairs_with:
     - threejs-builder
-    - webgl-card-effects
-    - frontend-slides
+    - html-artifact
 ---
 
 # Distinctive Frontend Design Skill
@@ -44,6 +68,9 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 | game UI, AAA game, polished game, Steam game, roguelike UI, Slay the Spire | `game-ui-polish.md` | Loads game-native polish rules that prevent website-like surfaces, excessive gradients, nested boxes, and fake-premium chrome. |
 | starter code: design tokens, base styles, React/Tailwind and HTML templates | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
+| text animation, kinetic typography, roll text, slot machine, animated headline, rolling label, rolling counter | `text-animation.md`, then `roll-text.md` or `text-animation-patterns.md` per signal | Loads text-animation domain skill and the matching pattern reference. |
+| card effects, holographic, foil, shimmer, card glow, shader card, WebGL card, rarity effects, Balatro effect | `webgl-card-effects.md`, then `card-shader-patterns.md` or `shader-integration-react.md` or `balatro-shader-breakdown.md` per phase | Loads card-effects domain skill and the matching shader reference. |
+| HTML slides, browser presentation, web deck, reveal-style, viewport presentation, PPTX conversion, kiosk presentation | `frontend-slides.md`, then `STYLE_PRESETS.md` or `slide-controller.md` or `pptx-conversion.md` per phase | Loads slides domain skill and the matching slides reference. |
 | aesthetic direction examples and expanded phase steps | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
 | picking a page structure in Phase 1 | `macrostructure-catalog.md` | Load only the single chosen `macro:*` entry by its heading anchor (e.g. `#macrostat-led`), never the whole file — one entry carries every rule the build needs. |
 | before Phase 1: definitions of Hero, Full-bleed, Surface type, and other gating terms | `vocabulary.md` | Loads detailed guidance from `vocabulary.md`. |
@@ -252,3 +279,16 @@ See `references/error-handling.md` for recovery procedures covering banned fonts
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`
 - `${CLAUDE_SKILL_DIR}/references/macrostructure-catalog.md`
+- `${CLAUDE_SKILL_DIR}/references/text-animation.md`
+- `${CLAUDE_SKILL_DIR}/references/roll-text.md`
+- `${CLAUDE_SKILL_DIR}/references/text-animation-patterns.md`
+- `${CLAUDE_SKILL_DIR}/references/webgl-card-effects.md`
+- `${CLAUDE_SKILL_DIR}/references/card-shader-patterns.md`
+- `${CLAUDE_SKILL_DIR}/references/shader-integration-react.md`
+- `${CLAUDE_SKILL_DIR}/references/balatro-shader-breakdown.md`
+- `${CLAUDE_SKILL_DIR}/references/frontend-slides.md`
+- `${CLAUDE_SKILL_DIR}/references/STYLE_PRESETS.md`
+- `${CLAUDE_SKILL_DIR}/references/slide-controller.md`
+- `${CLAUDE_SKILL_DIR}/references/pptx-conversion.md`
+- `${CLAUDE_SKILL_DIR}/references/js-controller-patterns.md`
+- `${CLAUDE_SKILL_DIR}/references/slide-layout-patterns.md`
