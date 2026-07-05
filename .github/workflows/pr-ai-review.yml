@@ -27,6 +27,9 @@ on:
 jobs:
   quick-review:
     runs-on: ubuntu-latest
+    # Same-repo PRs only: fork PRs get no secret anyway (pull_request event), so
+    # skipping them avoids burning CI minutes on runs that can only fail.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     # Advisory job: a failure here must never fail the PR's required checks.
     continue-on-error: true
     permissions:

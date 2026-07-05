@@ -1748,7 +1748,14 @@ def cmd_backfill_stack_usage(args: argparse.Namespace) -> None:
         print(f"Already backfilled ({already['value']}). Pass --force to re-run (will double-count).")
         return
 
-    from route_events import events_path
+    try:
+        from route_events import events_path
+    except ImportError:
+        print(
+            "route_events not found; run from repo root or ensure hooks/lib is on PYTHONPATH.",
+            file=sys.stderr,
+        )
+        return
 
     path = events_path()
     if not path.exists():

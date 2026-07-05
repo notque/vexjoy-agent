@@ -1,6 +1,6 @@
 # Composition Patterns Reference
 
-Proven patterns for composing multiple skills into effective workflows. This file is referenced by the skill-composer SKILL.md.
+Proven patterns for composing multiple skills into effective workflows. This file is referenced by the workflow SKILL.md (formerly skill-composer).
 
 ## Pattern Catalog
 

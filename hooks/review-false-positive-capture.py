@@ -57,11 +57,34 @@ _REVIEWER_PATTERN = re.compile(
 # Best-effort extraction of file paths from prompt text.
 _FILE_PATTERN = re.compile(r"(?:^|\s)([\w./-]+\.(?:py|ts|tsx|js|jsx|go|rs|md|yaml|yml|json|sh|sql))\b")
 
+# Secret-shaped substrings redacted before any prompt text is persisted or logged.
+# Prompt text disputing a finding can quote the finding itself, secrets included.
+_SECRET_PATTERNS = [
+    re.compile(r"\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}", re.IGNORECASE),
+    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9._-]{10,}"),  # JWT
+    re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"),  # API keys (sk- prefix)
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),  # GitHub tokens
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),  # AWS access key ID
+    re.compile(
+        r"\b(?:api[_-]?key|token|secret|password|passwd)\s*[:=]\s*\S{6,}",
+        re.IGNORECASE,
+    ),
+    # PEM header, split so secret scanners don't flag this detection pattern.
+    re.compile(r"-----BEGIN [A-Z ]*" + "PRIVATE " + "KEY-----"),
+]
+
+
+def redact_secrets(text: str) -> str:
+    """Replace secret-shaped substrings with <redacted> before storage/logging."""
+    for pattern in _SECRET_PATTERNS:
+        text = pattern.sub("<redacted>", text)
+    return text
+
 
 def generate_key(text: str) -> str:
     """MD5 hash of normalized first 200 chars for deduplication."""
     normalized = text[:200].lower().strip()
-    return hashlib.md5(normalized.encode()).hexdigest()[:16]
+    return hashlib.md5(normalized.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 def extract_reviewer(text: str) -> str:
@@ -71,9 +94,14 @@ def extract_reviewer(text: str) -> str:
 
 
 def extract_source_file(text: str) -> str:
-    """Best-effort source file path from prompt text."""
+    """Best-effort source file path from prompt text; traversal prefixes stripped."""
     m = _FILE_PATTERN.search(text)
-    return m.group(1) if m else "unknown"
+    if not m:
+        return "unknown"
+    path = m.group(1)
+    while path.startswith("../"):
+        path = path[3:]
+    return path.lstrip("/") or "unknown"
 
 
 def main():
@@ -91,10 +119,9 @@ def main():
             if re.search(pattern, window, re.IGNORECASE):
                 reviewer = extract_reviewer(window)
                 source_file = extract_source_file(window)
+                safe_prompt = redact_secrets(prompt[:200])
 
-                value = (
-                    f"finding: {prompt[:200]} | reviewer: {reviewer} | reason: user-disputed | source: {source_file}"
-                )
+                value = f"finding: {safe_prompt} | reviewer: {reviewer} | reason: user-disputed | source: {source_file}"
 
                 tags = ["false-positive"]
                 if reviewer != "unknown":
@@ -113,7 +140,7 @@ def main():
                     session_id=session_id,
                 )
                 print(
-                    f"[review-fp] captured: reviewer={reviewer} source={source_file} prompt={prompt[:60]}",
+                    f"[review-fp] captured: reviewer={reviewer} source={source_file} prompt={safe_prompt[:60]}",
                     file=sys.stderr,
                 )
                 empty_output(EVENT_NAME).print_and_exit()

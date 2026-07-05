@@ -218,6 +218,11 @@ def main() -> int:
     if args.stdin:
         files = _parse_stdin()
     else:
+        if args.base is None:
+            print(
+                "warning: no --base given; diffing against the working tree, not a branch",
+                file=sys.stderr,
+            )
         files = _git_numstat(args.base, args.head)
 
     result = classify(files)

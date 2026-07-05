@@ -12,7 +12,7 @@ This document maps which skills work well together, common input/output types, a
 - Compatible with: Almost all implementation skills
 - Notes: Excellent starting point for complex tasks
 
-**skill-composer** (this skill)
+**workflow** (this skill; formerly skill-composer)
 - Inputs: `task_description`, `skill_index`
 - Outputs: `execution_dag`, `skill_chain`
 - Compatible with: All skills (meta-skill)
