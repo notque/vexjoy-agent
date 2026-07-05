@@ -18,7 +18,7 @@ routing:
   pairs_with:
     - toolkit-evolution
     - agent-evaluation
-    - codebase-analyzer
+    - codebase-overview
     - routing-table-updater
     - pr-workflow
   complexity: Complex
@@ -88,7 +88,7 @@ This agent operates as an orchestrator for top-down system upgrades.
 | Skill | When to Invoke |
 |-------|---------------|
 | `agent-evaluation` | Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Struc... |
-| `codebase-analyzer` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
+| `codebase-overview` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
 | `routing-table-updater` | Maintain /do routing tables and command references when skills or agents are added, modified, or removed. Use when sk... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

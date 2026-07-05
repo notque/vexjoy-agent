@@ -10,7 +10,7 @@ routing:
     - github conventions
     - programming rules
   pairs_with:
-    - codebase-analyzer
+    - codebase-overview
     - generate-claudemd
   complexity: Medium
   category: meta
