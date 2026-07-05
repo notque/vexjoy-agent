@@ -1,30 +1,3 @@
----
-name: headlines
-promoted_to: content-calendar
-description: "Generate headlines, titles, and subject lines: charge, volume, tighten."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "headline"
-    - "headlines"
-    - "article title"
-    - "title options"
-    - "subject line"
-    - "better title"
-  category: content-creation
-  pairs_with:
-    - voice-writer
-    - content-engine
-    - topic-brainstormer
----
 
 # Headlines
 

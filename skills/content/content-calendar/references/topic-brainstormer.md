@@ -1,31 +1,3 @@
----
-name: topic-brainstormer
-promoted_to: content-calendar
-description: "Generate blog topic ideas: problem mining, gap analysis, expansion."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-command: /brainstorm
-routing:
-  triggers:
-    - "brainstorm topics"
-    - "content ideas"
-    - "blog topic ideas"
-    - "what to write about"
-    - "angles"
-    - "story angles"
-  category: content-creation
-  pairs_with:
-    - content-calendar
-    - series-planner
-    - research-pipeline
----
 
 # Topic Brainstormer
 

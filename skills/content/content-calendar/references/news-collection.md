@@ -1,22 +1,3 @@
----
-name: news-collection
-promoted_to: content-calendar
-description: "Collect, filter, and freshness-qualify news items."
-user-invocable: false
-routing:
-  triggers:
-    - "news collection"
-    - "collect news"
-    - "qualify news items"
-    - "news triage"
-    - "filter news feed"
-    - "check news freshness"
-  not_for: "general research reports — that is research-pipeline. Pick this when the input is a stream of news items to qualify for a content pipeline."
-  pairs_with:
-    - fact-check
-  complexity: Medium
-  category: research
----
 
 # News Collection
 

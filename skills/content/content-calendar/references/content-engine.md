@@ -1,32 +1,3 @@
----
-name: content-engine
-promoted_to: content-calendar
-description: "Repurpose source assets into platform-native social content."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - repurpose this
-    - adapt for social
-    - turn this into posts
-    - content from article
-    - content from demo
-    - content from doc
-    - write variants for
-    - social content from
-    - platform variants
-    - repurpose for
-  pairs_with:
-    - x-api
-  category: content
-  disambiguate: voice-writer
----
 
 # Content Engine Skill
 

@@ -1,30 +1,3 @@
----
-name: series-planner
-promoted_to: content-calendar
-description: "Plan multi-part content series: structure, cross-linking, cadence."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-command: /series
-routing:
-  triggers:
-    - "plan series"
-    - "multi-part content"
-    - "content series"
-    - "article series"
-    - "content arc"
-  category: content-creation
-  pairs_with:
-    - content-calendar
-    - topic-brainstormer
-    - publish
----
 
 # Series Planner Skill
 
