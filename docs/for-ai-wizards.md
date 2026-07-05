@@ -373,6 +373,6 @@ Three layers:
 
 **Auto-injection via hooks**: The `instruction-compliance` hook (PostToolUse) flags drift from CLAUDE.md rules after each tool call, and SessionStart hooks reload the operator context every session. As conversations get long, early instructions fade from attention. Posttool reinforcement brings them back.
 
-**Skill-level embedding**: Every agent and skill embeds anti-rationalization in its operator context. The `with-anti-rationalization` skill can be composed with other skills to add an extra verification layer. Gate enforcement in skills is itself an anti-rationalization mechanism. You cannot skip Phase 3 by claiming Phase 2 "probably" passed.
+**Skill-level embedding**: Every agent and skill embeds anti-rationalization in its operator context. The `verification-before-completion` skill includes an anti-rationalization enforcement reference for maximum-rigor tasks. Gate enforcement in skills is itself an anti-rationalization mechanism. You cannot skip Phase 3 by claiming Phase 2 "probably" passed.
 
 The pattern works because it does not trust the LLM to police itself. Structural enforcement (gates, hooks, exit codes) instead of behavioral instructions alone.

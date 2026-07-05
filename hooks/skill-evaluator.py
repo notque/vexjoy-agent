@@ -76,14 +76,14 @@ SKILL_ROUTING = {
     "pr-workflow": "PR lifecycle umbrella: commit, codex-review, sync, status, fix, cleanup, miner, branch-name, ci-check",
     # Research/Analysis
     "codebase-overview": "Rapidly understand unfamiliar codebases",
-    "codebase-analyzer": "Extract implicit coding rules from patterns",
+    # codebase-analyzer: demoted to codebase-overview
     "pr-miner": "Mine PR comments for coding standards",
     "pr-mining-coordinator": "Coordinate PR mining operations",
     # Process
     "workflow-orchestrator": "Multi-step tasks, brainstorming, planning",
     "verification-before-completion": "Multiple validation layers before done",
     "read-only-ops": "Exploration and reporting without modifications",
-    "skill-composer": "Orchestrate multi-skill workflows",
+    # skill-composer: demoted to workflow
     # Evaluation
     "agent-evaluation": "Evaluate agents/skills for quality",
     "agent-comparison": "A/B test agent variants",
@@ -161,7 +161,7 @@ def get_evaluation_prompt(complexity: str) -> str:
 - Quality Gates: go-patterns, python-quality-gate, universal-quality-gate
 - Git: pr-workflow (umbrella: commit, codex-review, sync, status, fix, cleanup, miner, branch-name, ci-check)
 - Process: workflow-orchestrator, verification-before-completion, test-driven-development
-- Analysis: codebase-overview, codebase-analyzer, agent-evaluation
+- Analysis: codebase-overview, agent-evaluation
 - Cleanup: code-cleanup, comment-quality, code-linting"""
 
     phases = {

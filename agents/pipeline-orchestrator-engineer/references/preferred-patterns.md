@@ -17,13 +17,13 @@ grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|dis
 
 ---
 
-### Run codebase-analyzer Before Scaffolding
+### Run codebase-overview Before Scaffolding
 
 Always Phase 1 before Phase 3. If existing agent covers 80%+, bind new skills instead of duplicating. Two agents with overlapping triggers produce non-deterministic routing.
 
 **Detection**:
 ```bash
-grep -rn 'codebase-analyzer' adr/ --include="*.md" | wc -l
+grep -rn 'codebase-overview' adr/ --include="*.md" | wc -l
 ```
 
 ---

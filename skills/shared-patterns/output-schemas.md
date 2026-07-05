@@ -53,7 +53,7 @@ Standardized output patterns for different agent types. Agents SHOULD use the ap
 - [ ] [Action item]
 ```
 
-**Used by:** performance-optimization-engineer, codebase-analyzer, research-coordinator-engineer
+**Used by:** performance-optimization-engineer, codebase-overview, research-coordinator-engineer
 
 ---
 

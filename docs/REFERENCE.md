@@ -215,8 +215,7 @@ Loaded automatically or via `Skill("name")`.
 ### Knowledge Extraction
 | Skill | Purpose |
 |-------|---------|
-| `codebase-analyzer` | Extract patterns statistically |
-| `codebase-overview` | Rapid context building |
+| `codebase-overview` | Rapid context building + statistical pattern extraction |
 
 ### Domain-Specific
 | Skill | Purpose |
