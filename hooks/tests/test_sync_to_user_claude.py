@@ -675,6 +675,82 @@ class TestMainRuntimeIndex:
         assert "voice-x" in skills
 
 
+class TestHasPromotedTo:
+    """Tests for _has_promoted_to — skip skills folded into a parent."""
+
+    def _make_skills_root(self, tmp_path: Path) -> Path:
+        root = tmp_path / "skills"
+        root.mkdir()
+        return root
+
+    def test_promoted_with_existing_target_is_skipped(self, tmp_path: Path) -> None:
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "fish-shell-config"
+        child.mkdir()
+        (child / "SKILL.md").write_text("---\nname: fish-shell-config\npromoted_to: shell-config\n---\nbody\n")
+        target = category / "shell-config"
+        target.mkdir()
+        (target / "SKILL.md").write_text("---\nname: shell-config\n---\nbody\n")
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is True
+
+    def test_promoted_with_missing_target_is_deployed(self, tmp_path: Path) -> None:
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "fish-shell-config"
+        child.mkdir()
+        (child / "SKILL.md").write_text("---\nname: fish-shell-config\npromoted_to: shell-config\n---\nbody\n")
+        # No target skill created anywhere under root.
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is False
+
+    def test_no_promoted_to_key_is_deployed(self, tmp_path: Path) -> None:
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "ordinary-skill"
+        child.mkdir()
+        (child / "SKILL.md").write_text("---\nname: ordinary-skill\n---\nbody\n")
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is False
+
+    def test_malformed_frontmatter_fails_safe_and_deploys(self, tmp_path: Path) -> None:
+        """A skill with no closing '---' or unreadable frontmatter must not
+        raise — SessionStart hooks must never crash on a bad file. Failing
+        safe means the skill stays deployed (not silently dropped)."""
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "broken-skill"
+        child.mkdir()
+        (child / "SKILL.md").write_text("---\nname: broken-skill\nno closing delimiter\n")
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is False
+
+    def test_missing_skill_md_fails_safe_and_deploys(self, tmp_path: Path) -> None:
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "no-md-skill"
+        child.mkdir()
+        # No SKILL.md at all.
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is False
+
+    def test_no_frontmatter_delimiter_is_deployed(self, tmp_path: Path) -> None:
+        root = self._make_skills_root(tmp_path)
+        category = root / "voice"
+        category.mkdir()
+        child = category / "plain-skill"
+        child.mkdir()
+        (child / "SKILL.md").write_text("# Just a heading, no frontmatter\n")
+
+        assert sync_mod._has_promoted_to(child, skills_root=root) is False
+
+
 class TestResolvesInside:
     """Tests for _resolves_inside — the repo-path safety guard."""
 
