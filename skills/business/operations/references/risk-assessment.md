@@ -7,7 +7,7 @@ skill: operations
 
 # Risk Assessment Reference
 
-> **Scope**: Operational risk assessment for projects, processes, vendors, and changes. Covers the probability x impact scoring matrix, risk category taxonomy, mitigation planning with ownership, residual risk tracking, and compliance-adjacent risk management. Use when identifying, scoring, or mitigating operational risks. For strategic/CEO-level risk, see `skills/business/csuite/references/risk-assessment.md`.
+> **Scope**: Operational risk assessment for projects, processes, vendors, and changes. Covers the probability x impact scoring matrix, risk category taxonomy, mitigation planning with ownership, residual risk tracking, and compliance-adjacent risk management. Use when identifying, scoring, or mitigating operational risks. For strategic/CEO-level risk, see `skills/business/business-ops/references/risk-assessment.md`.
 > **Generated**: 2026-05-05 — Risk assessments are time-sensitive. Reassess when conditions change, not on a fixed schedule alone.
 
 ---

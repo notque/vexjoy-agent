@@ -17,7 +17,7 @@ from pathlib import Path
 # Complete mapping: skill_name → category_folder
 SKILL_MAPPING: dict[str, str] = {
     # business/ — executive + domain skills
-    "csuite": "business",
+    "business-ops": "business",
     "sales": "business",
     "legal": "business",
     "finance": "business",
@@ -63,10 +63,13 @@ SKILL_MAPPING: dict[str, str] = {
     "go-patterns": "engineering",
     "kotlin-coroutines": "engineering",
     "kotlin-testing": "engineering",
+    "kotlin": "engineering",
     "php-quality": "engineering",
     "php-testing": "engineering",
+    "php": "engineering",
     "swift-concurrency": "engineering",
     "swift-testing": "engineering",
+    "swift": "engineering",
     "sapcc-audit": "engineering",
     "sapcc-review": "engineering",
     "cobalt-core": "engineering",
@@ -87,11 +90,13 @@ SKILL_MAPPING: dict[str, str] = {
     # infrastructure/ — ops, k8s, shell, cron
     "kubernetes-debugging": "infrastructure",
     "kubernetes-security": "infrastructure",
+    "kubernetes": "infrastructure",
     "fish-shell-config": "infrastructure",
     "zsh-shell-config": "infrastructure",
+    "shell-config": "infrastructure",
     "shell-process-patterns": "infrastructure",
     "headless-cron-creator": "infrastructure",
-    "cron-job-auditor": "infrastructure",
+    "cron-automation": "infrastructure",
     "endpoint-validator": "infrastructure",
     "service-health-check": "infrastructure",
     "public-web-deploy": "infrastructure",

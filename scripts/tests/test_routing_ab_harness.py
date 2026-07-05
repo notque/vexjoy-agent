@@ -45,7 +45,13 @@ GOLDEN = FIX / "golden"
 # that no longer exists), which is a worse invariant to protect than "notes
 # mention the current skill name." Future edits to cases[:49] still require the
 # same scrutiny this pin exists to enforce.
-LEGACY_CASES_SHA = "0a1abfee45629f067d7c926731e9eb3bc7739bbf272b3ea3bb399c47eb58499b"
+# Exception (2026-07-05, skill consolidation): 35 skills folded into 13 parents
+# via promoted_to. Legacy edits, all rename-class: notes in cases 18-20 and 31
+# (codebase-analyzer -> codebase-overview, fish-shell-config -> shell-config)
+# and case 42 gold label (roast -> multi-persona-critique, its parent). Same
+# rationale as the 87977cdb exception above: the old digest pins gold labels
+# for skills that no longer exist.
+LEGACY_CASES_SHA = "f7b95f03ecd51857dd85adde93304caff5c9b29224afb082bf4298ce75738fd9"
 NEW_BUCKETS = {
     "stub-tier",
     "sibling-disambiguation",

@@ -82,7 +82,7 @@ Brief all 5 agents with the same baseline data from `references/diagnose-scripts
 |-------|------------|-------------------|
 | **The User** | Analyzes learning.db for unmatched routing requests (`python3 scripts/learning-db.py search "routing decision" --limit 20`), error patterns, and requests that had no agent match. "What did users ask for that we couldn't handle?" |
 | **The Operator** | Examines the active projects (check git repos in `~/`) for repeated manual workflows that could be skills. "What am I doing by hand that should be automated?" |
-| **The Strategist** | Uses the csuite skill's EVALUATION mode thinking: what decision-support, content, or process skills would make the owner more effective? Reads `skills/business/csuite/SKILL.md` for framework. "What high-leverage skills are we missing?" |
+| **The Strategist** | Uses the business-ops skill's (formerly csuite) EVALUATION mode thinking: what decision-support, content, or process skills would make the owner more effective? Reads `skills/business/business-ops/SKILL.md` for framework. "What high-leverage skills are we missing?" |
 | **The Community** | Web-searches for what people are building and requesting in AI coding communities (Claude Code GitHub issues, Reddit, X/Twitter). "What does the market want?" |
 | **The Architect** | Examines current skill categories (from `skills/INDEX.json`) for structural gaps. Cross-references with `agents/INDEX.json`. "Where are the architectural blind spots?" E.g., "we have 23 process skills but 0 decision skills." |
 

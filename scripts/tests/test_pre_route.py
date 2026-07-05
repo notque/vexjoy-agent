@@ -77,11 +77,14 @@ class TestSpecifiedRoutes:
         assert result["skill"] == "quick"
         assert result["match_type"] == "force_route"
 
-    def test_fish_shell_matches_fish_config(self, pre_route, real_entries) -> None:
-        """'configure my fish shell' should match fish-shell-config (force-route)."""
+    def test_fish_shell_matches_shell_config(self, pre_route, real_entries) -> None:
+        """'configure my fish shell' should match shell-config (force-route).
+
+        fish-shell-config folded into shell-config (skill consolidation).
+        """
         result = pre_route.route("configure my fish shell", entries=real_entries)
         assert result["matched"] is True
-        assert result["skill"] == "fish-shell-config"
+        assert result["skill"] == "shell-config"
         assert result["match_type"] == "force_route"
 
     def test_review_code_ambiguous_falls_through(self, pre_route, real_entries) -> None:

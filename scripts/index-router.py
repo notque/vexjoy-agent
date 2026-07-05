@@ -58,6 +58,10 @@ COMPOSITION_CHAINS: dict[str, list[str]] = {
 
 MAX_CANDIDATES = 10
 MIN_SCORE_THRESHOLD = 0.1
+# A full trigger-phrase match floors the candidate score regardless of how
+# many triggers the entry carries (consolidation parents carry many).
+PHRASE_HIT_FLOOR = 0.5
+PHRASE_HIT_STEP = 0.1
 
 # Phrases that look like trigger matches but are common English idioms
 # unrelated to the skill. Keyed by entry name -> set of disqualifying context words.
@@ -298,7 +302,13 @@ def score_candidates(request: str, entries: list[IndexEntry]) -> list[Candidate]
     """Score all entries by trigger word overlap with the request.
 
     Score = count of trigger words appearing in the request / total trigger
-    words for the entry. Returns the top candidates sorted by score descending.
+    words for the entry. A full trigger-phrase hit additionally floors the
+    score at PHRASE_HIT_FLOOR (+PHRASE_HIT_STEP per extra hit): a phrase
+    match is a strong intent signal whose strength is independent of how
+    many triggers the entry carries. Without the floor, consolidation
+    parents that absorbed several skills' triggers dilute their word-overlap
+    denominator below MIN_SCORE_THRESHOLD and vanish from candidates.
+    Returns the top candidates sorted by score descending.
 
     Args:
         request: The user request text.
@@ -308,7 +318,8 @@ def score_candidates(request: str, entries: list[IndexEntry]) -> list[Candidate]
         List of Candidate objects with score > MIN_SCORE_THRESHOLD, sorted by
         score descending, limited to MAX_CANDIDATES.
     """
-    request_words = set(request.lower().split())
+    lowered = request.lower()
+    request_words = set(lowered.split())
     scored: list[Candidate] = []
 
     for entry in entries:
@@ -318,6 +329,23 @@ def score_candidates(request: str, entries: list[IndexEntry]) -> list[Candidate]
 
         matched = len(trigger_words & request_words)
         score = round(matched / len(trigger_words), 2)
+
+        # Phrase-hit floor. Guards apply, same as force-route matching, so
+        # idiom collisions ("fish out") stay suppressed here too.
+        phrase_guards = SEMANTIC_GUARD_PHRASES.get(entry.name)
+        guard_hit = bool(phrase_guards and any(re.search(rf"\b{re.escape(p)}\b", lowered) for p in phrase_guards))
+        guards = SEMANTIC_GUARDS.get(entry.name)
+        guard_hit = guard_hit or bool(guards and (request_words & guards))
+        if not guard_hit:
+            # Multi-word triggers only: a full phrase like "news triage" is a
+            # strong intent signal; single words ("python", "design") are
+            # domain markers that stay in word-overlap scoring.
+            phrase_hits = sum(1 for t in entry.triggers if " " in t.strip() and _trigger_matches(t, lowered))
+            if phrase_hits:
+                floor = PHRASE_HIT_FLOOR + PHRASE_HIT_STEP * (phrase_hits - 1)
+                # Word overlap stays in as the tie-break so specific entries
+                # (many matched words) outrank generic single-trigger hits.
+                score = round(min(floor + score, 0.95), 2)
 
         if score > MIN_SCORE_THRESHOLD:
             scored.append(

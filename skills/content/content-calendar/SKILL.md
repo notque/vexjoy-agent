@@ -28,6 +28,8 @@ routing:
     - "angles"
     - "story angles"
     - "headline"
+    - "headline options"
+    - "headline for"
     - "headlines"
     - "article title"
     - "title options"

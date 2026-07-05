@@ -45,6 +45,7 @@ routing:
     - "kiosk presentation"
   category: frontend
   pairs_with:
+    - typescript-frontend-engineer
     - threejs-builder
     - html-artifact
 ---

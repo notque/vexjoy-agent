@@ -7,7 +7,7 @@ skill: operations
 
 # Vendor Management Reference
 
-> **Scope**: Operational vendor management lifecycle — evaluation scorecards, due diligence checklists, contract review triggers, and ongoing performance monitoring. Covers new vendor evaluation, renewal decisions, and vendor comparison. For strategic build-vs-buy decisions, see `skills/business/csuite/references/vendor-evaluation.md`.
+> **Scope**: Operational vendor management lifecycle — evaluation scorecards, due diligence checklists, contract review triggers, and ongoing performance monitoring. Covers new vendor evaluation, renewal decisions, and vendor comparison. For strategic build-vs-buy decisions, see `skills/business/business-ops/references/vendor-evaluation.md`.
 > **Generated**: 2026-05-05 — Vendor landscapes shift. Reassess scorecards annually and contracts at each renewal.
 
 ---
