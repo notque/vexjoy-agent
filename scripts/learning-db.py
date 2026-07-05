@@ -36,6 +36,8 @@ Usage:
     python3 scripts/learning-db.py route-health [--json]
     python3 scripts/learning-db.py route-weights --json
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
+    python3 scripts/learning-db.py record-review-fp --reviewer reviewer-code --finding "unused import" --reason "import used in test"
+    python3 scripts/learning-db.py review-fps [--json] [--min-confidence 0.5]
 """
 
 import argparse
@@ -1576,6 +1578,90 @@ def cmd_migrate(args):
     )
 
 
+def cmd_record_review_fp(args):
+    """Record a structured review false positive with full metadata."""
+    value = (
+        f"finding: {args.finding} "
+        f"| reviewer: {args.reviewer} "
+        f"| reason: {args.reason} "
+        f"| source: {args.source_file or 'unknown'}"
+    )
+    tags = ["false-positive"]
+    if args.reviewer:
+        tags.append(args.reviewer)
+
+    result = record_learning(
+        topic="review-false-positive",
+        key=args.finding[:50].lower().strip().replace(" ", "-"),
+        value=value,
+        category="review",
+        confidence=0.70,
+        tags=tags,
+        source=args.source or "cli:record-review-fp",
+        source_detail=args.source_detail,
+        project_path=args.project_path,
+    )
+    action = "Updated" if not result["is_new"] else "Recorded"
+    print(
+        f"{action}: review-false-positive/{result['key']} "
+        f"(reviewer: {args.reviewer}, confidence: {result['confidence']:.2f}, "
+        f"observations: {result['observation_count']})"
+    )
+
+
+def cmd_review_fps(args):
+    """List accumulated review false positives, grouped by reviewer agent."""
+    init_db()
+    results = query_learnings(
+        topic="review-false-positive",
+        category="review",
+        min_confidence=args.min_confidence,
+        exclude_graduated=not args.include_graduated,
+        order_by="last_seen DESC",
+        limit=args.limit,
+    )
+
+    if args.json:
+        # Group by reviewer for JSON output
+        grouped = {}
+        for r in results:
+            reviewer = _extract_reviewer_from_value(r.get("value", ""))
+            grouped.setdefault(reviewer, []).append(r)
+        print(json.dumps(grouped, indent=2, default=str))
+        return
+
+    if not results:
+        print("No review false positives recorded.")
+        return
+
+    # Group by reviewer
+    grouped = {}
+    for r in results:
+        reviewer = _extract_reviewer_from_value(r.get("value", ""))
+        grouped.setdefault(reviewer, []).append(r)
+
+    for reviewer, entries in sorted(grouped.items(), key=lambda kv: -len(kv[1])):
+        print(f"\n=== {reviewer} ({len(entries)} false positive(s)) ===")
+        for r in entries:
+            obs = f" [{r['observation_count']}x]" if r["observation_count"] > 1 else ""
+            print(f"  [{r['confidence']:.2f}]{obs} {r['key']}")
+            # Extract finding and reason from pipe-delimited value
+            parts = _parse_pipe_value(r.get("value", ""))
+            if parts.get("finding"):
+                print(f"    finding: {parts['finding'][:100]}")
+            if parts.get("reason"):
+                print(f"    reason:  {parts['reason']}")
+            if parts.get("source") and parts["source"] != "unknown":
+                print(f"    source:  {parts['source']}")
+            print(f"    last seen: {r.get('last_seen', 'unknown')}")
+
+
+def _extract_reviewer_from_value(value: str) -> str:
+    """Extract reviewer name from pipe-delimited value string."""
+    parts = _parse_pipe_value(value)
+    return parts.get("reviewer", "unknown")
+
+
 def _non_negative_int(value: str) -> int:
     """Validate that an argparse integer value is non-negative.
 
@@ -1837,6 +1923,25 @@ def main():
     p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")
     p_route_health.add_argument("--json", action="store_true", help="Output as JSON")
     p_route_health.set_defaults(func=cmd_route_health)
+
+    # record-review-fp (structured review false-positive recording)
+    p_rrfp = subparsers.add_parser("record-review-fp", help="Record a review false positive with full metadata")
+    p_rrfp.add_argument("--reviewer", required=True, help="Reviewer agent name (e.g., reviewer-code)")
+    p_rrfp.add_argument("--finding", required=True, help="The review finding text that was wrong")
+    p_rrfp.add_argument("--reason", required=True, help="Why the finding was judged wrong")
+    p_rrfp.add_argument("--source-file", help="Source file or skill the finding was about")
+    p_rrfp.add_argument("--source", help="Source identifier (default: cli:record-review-fp)")
+    p_rrfp.add_argument("--source-detail", help="Additional source context")
+    p_rrfp.add_argument("--project-path", help="Project path")
+    p_rrfp.set_defaults(func=cmd_record_review_fp)
+
+    # review-fps (list false positives per reviewer)
+    p_rfps = subparsers.add_parser("review-fps", help="List review false positives grouped by reviewer agent")
+    p_rfps.add_argument("--min-confidence", type=float, default=0.0, help="Minimum confidence threshold")
+    p_rfps.add_argument("--include-graduated", action="store_true", help="Include graduated entries")
+    p_rfps.add_argument("--limit", type=int, default=100, help="Maximum entries to return")
+    p_rfps.add_argument("--json", action="store_true", help="Output as JSON")
+    p_rfps.set_defaults(func=cmd_review_fps)
 
     args = parser.parse_args()
     args.func(args)
