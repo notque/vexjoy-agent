@@ -91,9 +91,8 @@ SKILL_ROUTING = {
     # Specialized
     "distinctive-frontend-design": "Unique aesthetics, avoid generic AI patterns",
     "professional-communication": "Transform technical to business formats",
-    "endpoint-validator": "API endpoint validation, pass/fail",
-    "service-health-check": "Service monitoring, restart recommendations",
-    "cron-job-auditor": "Audit cron scripts for best practices",
+    "service-health-check": "Service health, endpoint validation, CVE source auditing",
+    "cron-automation": "Audit and create cron jobs with safety",
     "docs-sync-checker": "Verify all skills/agents documented",
     "routing-table-updater": "Maintain /do routing tables",
     # Plan Management
