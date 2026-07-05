@@ -1,6 +1,6 @@
 ---
-name: cron-job-auditor
-description: "Audit cron scripts for reliability and safety."
+name: cron-automation
+description: "Audit and create cron jobs with reliability and safety."
 user-invocable: false
 allowed-tools:
   - Read
@@ -14,10 +14,14 @@ routing:
     - "cron safety"
     - "cron reliability"
     - "scheduled task safety"
+    - "create cron job"
+    - "scheduled task"
+    - "headless agent"
+    - "background automation"
+    - "recurring agent"
   category: infrastructure
   pairs_with:
     - shell-process-patterns
-    - headless-cron-creator
 ---
 
 # Cron Job Auditor Skill
@@ -31,6 +35,7 @@ Static analysis of cron and scheduled job scripts against a 9-point reliability 
 | Checking error handling, `set -e`, `pipefail`, `trap`, exit codes | `shell-error-handling.md` | Routes to the matching deep reference |
 | Checking lock files, flock, PID files, concurrent execution | `concurrency-and-locks.md` | Routes to the matching deep reference |
 | Checking logging, timestamps, log rotation, stderr routing | `logging-and-rotation.md` | Routes to the matching deep reference |
+| Creating cron jobs, scheduled tasks, headless agents, wrapper scripts | `headless-cron-creator.md` | Routes to cron job creation methodology |
 
 ## Instructions
 
@@ -186,6 +191,7 @@ Solution:
 | Checking error handling, `set -e`, `pipefail`, `trap`, exit codes | `references/shell-error-handling.md` |
 | Checking lock files, flock, PID files, concurrent execution | `references/concurrency-and-locks.md` |
 | Checking logging, timestamps, log rotation, stderr routing | `references/logging-and-rotation.md` |
+| Creating cron jobs, scheduled tasks, headless agents, wrapper scripts | `references/headless-cron-creator.md` |
 
 ## References
 

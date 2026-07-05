@@ -1,30 +1,3 @@
----
-name: headless-cron-creator
-promoted_to: cron-automation
-description: "Generate headless Claude Code cron jobs with safety."
-user-invocable: false
-argument-hint: "<name> <schedule> <prompt>"
-agent: python-general-engineer
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Edit
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "create cron job"
-    - "scheduled task"
-    - "headless agent"
-    - "background automation"
-    - "recurring agent"
-  category: process
-  pairs_with:
-    - cron-job-auditor
-    - shell-process-patterns
----
-
 # Headless Cron Creator Skill
 
 Generate headless Claude Code cron jobs from a task description and schedule. Creates a wrapper script with safety mechanisms (lockfile, budget cap, dry-run default, logging) and installs crontab entries. All crontab mutations go through `scripts/crontab-manager.py`, which writes to temp files and creates timestamped backups in `~/.claude/crontab-backups/` before every change -- never pipe directly to `crontab -` because a mid-stream pipe failure wipes the entire crontab.
