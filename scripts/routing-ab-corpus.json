@@ -432,7 +432,7 @@
       "expected_skill": "swift",
       "category": "swift-development",
       "bucket": "stub-tier",
-      "notes": "STUB. async/await + Actor migration = swift-concurrency per INDEX."
+      "notes": "STUB. async/await + Actor migration = swift per INDEX."
     },
     {
       "request": "take the renders in assets/frames/ and the narration in voiceover.mp3 and stitch them into an mp4",

@@ -3,7 +3,7 @@
 """
 SessionStart Hook: Zsh Shell Detection
 
-Detects Zsh shell users and injects the zsh-shell-config skill.
+Detects Zsh shell users and injects the shell-config skill.
 Runs once at session start to provide Zsh-specific guidance.
 
 Detection Logic:
@@ -63,7 +63,7 @@ def is_zsh_shell() -> bool:
 def get_zsh_injection() -> str:
     """Get the context injection for Zsh shell users.
 
-    Emits only tags. The zsh-shell-config skill carries its own knowledge.
+    Emits only tags. The shell-config skill carries its own knowledge.
     """
     return "[zsh-shell] Detected Zsh shell user\n[auto-skill] shell-config"
 
