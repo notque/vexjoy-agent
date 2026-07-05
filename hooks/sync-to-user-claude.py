@@ -325,12 +325,18 @@ def _resolves_inside(path: Path, root: "Path | list[Path]") -> bool:
     roots = [root] if isinstance(root, Path) else root
     try:
         resolved = str(path.resolve())
-        for r in roots:
-            root_str = str(r.resolve())
-            if resolved == root_str or resolved.startswith(root_str + os.sep):
-                return True
     except OSError:
-        pass
+        # Cannot resolve the candidate path: fail closed (treat as inside).
+        return True
+    for r in roots:
+        try:
+            root_str = str(r.resolve())
+        except OSError:
+            # Cannot resolve this root: fail closed rather than let a
+            # deletion proceed unverified against it.
+            return True
+        if resolved == root_str or resolved.startswith(root_str + os.sep):
+            return True
     return False
 
 
@@ -366,6 +372,20 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     current_path = str(repo_root)
     recorded_path = manifest.get("toolkit_path", "")
     if recorded_path != current_path:
+        # A repo "move" means the old path is gone. When the recorded path
+        # still exists as a directory, this run is indistinguishable from an
+        # undetected worktree -- rewriting the manifest would collapse the
+        # multi-root deletion guard onto the worktree path. Keep the record.
+        if recorded_path and Path(recorded_path).is_dir():
+            print(
+                "[sync] manifest toolkit_path kept: recorded path",
+                recorded_path,
+                "is still present; current run is at",
+                current_path,
+                "(worktree or copy?)",
+                file=sys.stderr,
+            )
+            return
         manifest["toolkit_path"] = current_path
         _atomic_json_write(manifest_path, manifest)
 
@@ -767,8 +787,21 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     # support it get directory-level symlinks instead of file-by-file copies.
     install_mode = _read_install_mode(user_claude)
 
+    # Read the canonical toolkit_path BEFORE any manifest rewrite. Ordering
+    # matters: if an undetected worktree updated the manifest first, the
+    # canonical root would collapse onto the worktree path and the multi-root
+    # deletion guard below would protect nothing but the worktree.
+    canonical = _canonical_repo_root(user_claude)
+    if canonical is None:
+        print(
+            "[sync] WARNING: no canonical toolkit_path in install manifest; "
+            "deletion guard reduced to single-root protection",
+            file=sys.stderr,
+        )
+
     # Update the manifest's toolkit_path if the repo has moved (e.g., renamed
-    # from claude-code-toolkit to vexjoy-agent and re-cloned).
+    # from claude-code-toolkit to vexjoy-agent and re-cloned). Refuses the
+    # rewrite while the recorded path still exists (undetected worktree).
     _update_manifest_toolkit_path(user_claude, repo_root)
 
     # Build the protected-roots list: repo_root (CWD) plus the canonical
@@ -777,7 +810,6 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     # manifest still records the MAIN repo.  Deletions must be blocked for
     # both.  When both resolve to the same directory, the list collapses to
     # a single entry.
-    canonical = _canonical_repo_root(user_claude)
     if canonical and canonical.resolve() != repo_root.resolve():
         protected_roots: Path | list[Path] = [repo_root, canonical]
     else:

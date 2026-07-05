@@ -1016,3 +1016,65 @@ class TestProtectedRootsWorktreeScenario:
         # Main repo files must still exist
         for name in self.VSR_FILES:
             assert (main / "skills" / "voice-shared-references" / name).exists()
+
+
+class TestMainInnerWorktreeEndToEnd:
+    """End-to-end through main(): an UNDETECTED worktree must neither rewrite
+    the manifest's toolkit_path nor delete symlinks resolving into the main
+    repo.  Guards the _main_inner ordering: canonical root is read and the
+    manifest-rewrite refusal applies BEFORE protected_roots is built."""
+
+    def _setup(self, tmp_path: Path) -> tuple[Path, Path, Path]:
+        """Main repo, worktree missing one skill, ~/.claude pointing at main."""
+        main = tmp_path / "main"
+        for comp in ["agents", "hooks", "commands", "scripts"]:
+            (main / comp).mkdir(parents=True)
+            (main / comp / "sample.md").write_text(f"# {comp}\n")
+        vsr = main / "skills" / "voice-shared-references"
+        vsr.mkdir(parents=True)
+        (vsr / "voice-first-writing.md").write_text("# voice\n")
+        (main / ".claude").mkdir()
+        (main / ".claude" / "settings.json").write_text(json.dumps({"hooks": {}}))
+
+        # Worktree: same shape, but no voice-shared-references skill.
+        worktree = tmp_path / "worktree"
+        for comp in ["agents", "hooks", "commands", "scripts"]:
+            (worktree / comp).mkdir(parents=True)
+            (worktree / comp / "sample.md").write_text(f"# {comp}\n")
+        wt_do = worktree / "skills" / "meta" / "do"
+        wt_do.mkdir(parents=True)
+        (wt_do / "SKILL.md").write_text("---\nname: do\n---\n")
+        (worktree / ".claude").mkdir()
+        (worktree / ".claude" / "settings.json").write_text(json.dumps({"hooks": {}}))
+
+        user_claude = tmp_path / "home" / ".claude"
+        (user_claude / "skills").mkdir(parents=True)
+        (user_claude / "skills" / "voice-shared-references").symlink_to(vsr)
+        manifest = {
+            "mode": "symlink",
+            "toolkit_path": str(main),
+            "components": ["agents", "skills", "hooks", "commands", "scripts"],
+        }
+        (user_claude / ".install-manifest.json").write_text(json.dumps(manifest))
+        return main, worktree, user_claude
+
+    def test_undetected_worktree_keeps_manifest_and_main_repo_symlinks(self, tmp_path: Path) -> None:
+        main, worktree, user_claude = self._setup(tmp_path)
+
+        with (
+            patch.object(Path, "home", return_value=tmp_path / "home"),
+            patch.object(Path, "cwd", return_value=worktree),
+            # Worktree detection bypassed -- the exact incident scenario.
+            patch.object(sync_mod, "_is_git_worktree", return_value=False),
+            patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
+        ):
+            sync_mod.main()
+
+        # Manifest must still record the MAIN repo, not the worktree.
+        manifest = json.loads((user_claude / ".install-manifest.json").read_text())
+        assert manifest["toolkit_path"] == str(main), "manifest rewrite must be refused while the recorded path exists"
+
+        # The symlink into the main repo must survive stale cleanup.
+        vsr_link = user_claude / "skills" / "voice-shared-references"
+        assert vsr_link.is_symlink(), "symlink into main repo must survive"
+        assert (main / "skills" / "voice-shared-references" / "voice-first-writing.md").exists()
