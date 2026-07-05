@@ -125,6 +125,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/review-false-positive-capture.py\"",
+            "description": "Capture review false-positive signals when a user disputes a code-review finding",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/user-correction-capture.py\"",
             "description": "Detect user corrections and record to learning DB",
             "timeout": 3000
