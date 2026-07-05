@@ -1,5 +1,6 @@
 ---
 name: do
+promoted_to: native-router
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
 user-invocable: true
 argument-hint: "<request>"
