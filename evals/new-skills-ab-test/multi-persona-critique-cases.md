@@ -110,7 +110,7 @@ Each case presents a set of proposals. All three variants evaluate the same prop
 
 **What good critique looks like**:
 - Surfaces the simplicity-vs-isolation tradeoff explicitly
-- Notes worktrees have a known failure mode (branch confusion, leaked changes -- referenced in worktree-agent skill)
+- Notes worktrees have a known failure mode (branch confusion, leaked changes -- referenced in do/references/worktree-rules.md)
 - Notes containers add Docker dependency that many Claude Code users don't have
 - Raises the question of whether the failure modes of worktrees are frequent enough to justify the migration cost
 - Personas disagree based on different value weightings (simplicity vs safety)

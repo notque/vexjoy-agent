@@ -1,20 +1,6 @@
----
-name: worktree-agent
-promoted_to: do
-description: "Mandatory rules for agents in git worktree isolation."
-user-invocable: false
-context: fork
-tags: [worktree, isolation, parallel, agent]
-routing:
-  triggers:
-    - "worktree agent"
-    - "git worktree"
-    - "git worktree rules"
-    - "isolated agent"
-  category: git-workflow
----
-
 # Worktree Agent Rules
+
+> From the demoted `worktree-agent` skill. Canonical worktree isolation rules for agents dispatched with `isolation: "worktree"`.
 
 Mandatory rules for any agent dispatched with `isolation: "worktree"`.
 

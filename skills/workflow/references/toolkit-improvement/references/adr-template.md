@@ -152,7 +152,7 @@ worktree branches afterward.
 4. Orchestrator verifies convergence after all agents complete
 
 **Worktree agent rules** (from ADR-126): When dispatching worktree agents, include the
-`worktree-agent` skill rules in each prompt. See `skills/process/worktree-agent/SKILL.md`. Key
+worktree rules in each prompt. See `skills/meta/do/references/worktree-rules.md`. Key
 rules: verify CWD contains `.claude/worktrees/`, create branch before edits, ignore
 auto-plan hooks, stage specific files only, never touch the main worktree.
 
