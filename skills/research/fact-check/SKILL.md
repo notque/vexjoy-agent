@@ -18,6 +18,10 @@ routing:
     - "check facts"
     - "verify this quote"
     - "is this accurate"
+    - "is this true"
+    - "check this claim"
+    - "verify this"
+    - "are these numbers right"
   not_for: "building a research report from scratch (research-pipeline) or open-web adversarial research (deep-research). Pick fact-check when a draft or source set already exists and the question is whether its claims hold."
   category: research
   pairs_with:

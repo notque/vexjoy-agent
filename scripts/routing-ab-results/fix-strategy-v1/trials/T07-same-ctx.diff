@@ -1,0 +1,11 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T07/src.orig	2026-07-04 20:19:46.763901924 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T07/src/csv_writer.py	2026-07-04 20:21:43.072576147 -0700
+@@ -17,7 +17,7 @@
+         with open(self.path, "a") as f:
+             if not self._header_written:
+                 f.write(",".join(self.columns) + "\n")
+-                # BUG: missing self._header_written = True
++                self._header_written = True
+             values = [row.get(col, "") for col in self.columns]
+             f.write(",".join(values) + "\n")
+ 

@@ -23,7 +23,6 @@ routing:
   category: process
   pairs_with:
     - systematic-code-review
-    - with-anti-rationalization
 ---
 
 # Verification Before Completion Skill
@@ -40,7 +39,9 @@ This skill prevents the most common form of premature completion: claiming succe
 |---|---|---|
 | verifying artifacts are real and substantive, not stubs | `adversarial-methodology.md` | Loads detailed guidance from `adversarial-methodology.md`. |
 | checklist-driven work | `checklist.md` | Loads detailed guidance from `checklist.md`. |
+| diff touches migration files or schema definitions | `checklist.md` (Database Change Checklist → Schema Verification Gate) | Before/after schema state checks (SQLite, Django, Rails, raw SQL), duplicate-table/column check, existing-query compatibility check |
 | good-vs-bad verification walkthroughs: bug fix, refactor, migration, config change | `verification-examples.md` | Loads detailed guidance from `verification-examples.md`. |
+| maximum rigor, anti-rationalization enforcement, pressure resistance, gate checking patterns | `anti-rationalization-enforcement.md` | Domain-specific rationalization detection, 5-signal checklist, pressure resistance framework (from demoted with-anti-rationalization). |
 
 ## Instructions
 

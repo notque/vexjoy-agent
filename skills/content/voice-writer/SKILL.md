@@ -53,7 +53,7 @@ routing:
     - "write essay"
     - "write piece"
     - "ghost write"
-  not_for: "scheduling or calendaring a content series (use content-calendar). This skill generates one article from a voice profile."
+  not_for: "scheduling or calendaring a content series (use content-calendar); drafting interpersonal emails, memos, meeting summaries, or professional pushback messages (use professional-communication). This skill generates articles and blog posts from a voice profile."
   category: voice
   pairs_with:
     - voice-validator

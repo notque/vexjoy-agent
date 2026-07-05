@@ -1,5 +1,6 @@
 ---
 name: worktree-agent
+promoted_to: do
 description: "Mandatory rules for agents in git worktree isolation."
 user-invocable: false
 context: fork

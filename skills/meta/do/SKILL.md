@@ -1,5 +1,6 @@
 ---
 name: do
+promoted_to: native-router
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
 user-invocable: true
 argument-hint: "<request>"
@@ -191,7 +192,7 @@ Review overlap: real-diff row wins; fallback only without diff.
 
 Check `pairs_with` before stacking. Skills with built-in verification gates may suffice.
 
-anti-rationalization-core always + verification-checklist (code/debug) + anti-rationalization-review + anti-rationalization-security + anti-rationalization-testing; external: **untrusted-content-handling**. Max: `/with-anti-rationalization`.
+anti-rationalization-core always + verification-checklist (code/debug) + anti-rationalization-review + anti-rationalization-security + anti-rationalization-testing; external: **untrusted-content-handling**. Max: load `verification-before-completion` references/anti-rationalization-enforcement.md.
 
 **Gate**: Enhancements applied. Phase 4.
 

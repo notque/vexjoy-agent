@@ -104,6 +104,16 @@ This reference only checks CI status. For local debugging of test failures, hand
 
 ---
 
+## Automatic PR AI Review (Advisory)
+
+`.github/workflows/pr-ai-review.yml` runs a quick AI review on every PR push (`opened`, `synchronize`, `reopened`) — no `@claude` mention needed. Scope: correctness bugs and safety-policy violations in the PR diff only, posted as one PR comment.
+
+Warn-only by design (docs/PHILOSOPHY.md, Warn-Only Gates Beat Blocking Gates): it never requests changes, never fails the build, and is not a required status check. Graduating any part of it to a blocking gate needs a dedicated ADR and operator sign-off.
+
+Future extension point: if `skills/process/pr-workflow/references/pr-risk-policy.md` exists, a follow-up job could key a deeper, tier-based review off it. The quick-pass workflow does not read or depend on that file today.
+
+---
+
 ## Error Handling
 
 ### Error: "gh CLI not found"

@@ -69,7 +69,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `universal-quality-gate` | no | Multi-language code quality gate with auto-detection and linters |
 | `python-quality-gate` | no | Python quality checks: ruff, pytest, mypy, bandit in deterministic order |
 | `verification-before-completion` | no | Defense-in-depth verification before declaring any task complete |
-| `with-anti-rationalization` | no | Anti-rationalization enforcement for maximum-rigor task execution |
+| `with-anti-rationalization` | no | _(demoted to verification-before-completion)_ Anti-rationalization enforcement for maximum-rigor task execution |
 | `testing-preferred-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
 | `roast` | no | Constructive critique via 5 HackerNews personas with claim validation |
 | `condense` | yes | Maximize information density: preserve all instructions, remove prose filler. |
@@ -93,7 +93,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `go-patterns` | no | Go development patterns: testing, concurrency, errors, review, and conventions |
 | `sapcc-audit` | no | Full-repo SAP CC Go compliance audit against review standards |
 | `sapcc-review` | no | Gold-standard SAP CC Go code review: 10 parallel domain specialists |
-| `codebase-analyzer` | no | Statistical rule discovery from Go codebase patterns |
+| `codebase-analyzer` | no | _(demoted to codebase-overview)_ Statistical rule discovery from Go codebase patterns |
 
 ---
 
@@ -202,7 +202,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `kairos-lite` | yes | Proactive monitoring -- checks GitHub, CI, and toolkit health, produces briefings |
 | `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
-| `skill-composer` | no | DAG-based multi-skill orchestration with dependency resolution |
+| `skill-composer` | no | _(demoted to workflow)_ DAG-based multi-skill orchestration with dependency resolution |
 | `agent-evaluation` | no | Evaluate agents and skills for quality and standards compliance |
 | `agent-comparison` | no | A/B test agent variants for quality and token cost |
 | `routing-table-updater` | no | Maintain /do routing tables when skills or agents change |
@@ -320,7 +320,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `worktree-agent` | no | Mandatory rules for agents in git worktree isolation |
+| `worktree-agent` | no | _(demoted to do references)_ Mandatory rules for agents in git worktree isolation |
 
 ---
 

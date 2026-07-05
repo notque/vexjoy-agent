@@ -18,7 +18,6 @@ routing:
   not_for: "plan-artifact pause/resume (HANDOFF.json plus pause.md/resume.md) — that is planning. This skill packages inline agent-to-agent state: working tree, PR/CI, live processes, checks."
   category: process
   pairs_with:
-    - worktree-agent
     - pr-workflow
 ---
 
@@ -56,7 +55,7 @@ Rehydrate in this order, then act.
 ## Constraints
 
 - State only what you verified; mark inherited claims as "per handoff, unverified."
-- In worktrees, follow `skills/process/worktree-agent/SKILL.md` rules: verify CWD, feature branch first.
+- In worktrees, follow worktree rules (`skills/meta/do/references/worktree-rules.md`): verify CWD, feature branch first.
 - Keep secrets out of the package: redact tokens and credential paths as `<redacted>`.
 
 ## Error handling

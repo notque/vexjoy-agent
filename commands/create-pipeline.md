@@ -8,7 +8,7 @@ route_to:
   agent: pipeline-orchestrator-engineer
   skill: workflow
   enhancements:
-    - codebase-analyzer
+    - codebase-overview
     - routing-table-updater
 trigger:
   hook: pipeline-context-detector
@@ -39,7 +39,7 @@ Entry point command for the Pipeline Creator meta-pipeline.
 ## What It Does
 
 1. **Context Detection** (`pipeline-context-detector` hook): Scans the repository for existing agents, skills, and hooks related to the task. Builds a JSON environment snapshot.
-2. **Discovery** (`codebase-analyzer`): Analyzes existing components to prevent duplication and identify reusable patterns.
+2. **Discovery** (`codebase-overview`): Analyzes existing components to prevent duplication and identify reusable patterns.
 3. **Scaffolding** (fan-out via `workflow` skill, scaffolder phase): Dispatches parallel sub-agents to create:
    - Python detector hook (environment evaluation before LLM invocation)
    - Agent manifest (following `skills/skill-creator/references/agent-template.md`)

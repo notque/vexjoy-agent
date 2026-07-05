@@ -152,7 +152,7 @@
       "expected_skill": "read-only-ops",
       "category": "exploration",
       "bucket": "paraphrase-explore",
-      "notes": "Read-only architecture exploration, no edit intent. read-only-ops or codebase-analyzer. MUST NOT route an editing skill."
+      "notes": "Read-only architecture exploration, no edit intent. read-only-ops or codebase-overview. MUST NOT route an editing skill."
     },
     {
       "request": "walk me through what each part of this project does, do not change anything",
@@ -160,7 +160,7 @@
       "expected_skill": "read-only-ops",
       "category": "exploration",
       "bucket": "paraphrase-explore",
-      "notes": "Explicit no-edit exploration. read-only-ops. Defensible: codebase-analyzer / workflow explore pipeline."
+      "notes": "Explicit no-edit exploration. read-only-ops. Defensible: codebase-overview / workflow explore pipeline."
     },
     {
       "request": "give me a map of where the important files live in here",
@@ -168,7 +168,7 @@
       "expected_skill": "read-only-ops",
       "category": "exploration",
       "bucket": "paraphrase-explore",
-      "notes": "Codebase-map exploration, read-only. read-only-ops or codebase-analyzer."
+      "notes": "Codebase-map exploration, read-only. read-only-ops or codebase-overview."
     },
     {
       "request": "moderate the reports waiting in my subreddit queue",
@@ -1058,10 +1058,10 @@
     {
       "request": "chain these three skills together in order with dependency resolution between them",
       "expected_agent": null,
-      "expected_skill": "skill-composer",
+      "expected_skill": "workflow",
       "category": "meta-tooling",
       "bucket": "reachability",
-      "notes": "Skill composer: DAG-based multi-skill orchestration."
+      "notes": "Workflow: DAG-based multi-skill orchestration (was skill-composer, demoted)."
     },
     {
       "request": "benchmark this skill's routing accuracy and check whether its triggers actually work",
@@ -1138,10 +1138,10 @@
     {
       "request": "statistically analyze the patterns in this project and extract the implicit coding conventions",
       "expected_agent": null,
-      "expected_skill": "codebase-analyzer",
+      "expected_skill": "codebase-overview",
       "category": "analysis",
       "bucket": "reachability",
-      "notes": "Codebase analyzer: statistical rule discovery."
+      "notes": "Codebase overview: statistical rule discovery (was codebase-analyzer, demoted)."
     },
     {
       "request": "analyze this CSV dataset and tell me which variables actually matter for the outcome",

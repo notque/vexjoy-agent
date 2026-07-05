@@ -1,0 +1,18 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T01/src.orig	2026-07-04 20:19:46.751901648 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T01/src/pagination.py	2026-07-04 20:20:14.261534517 -0700
+@@ -1,12 +1,12 @@
+-"""Paginate a list of items. Bug: off-by-one in page count calculation."""
++"""Paginate a list of items."""
+ 
+ 
+ def paginate(items: list, page_size: int) -> int:
+     """Return total number of pages needed for items at given page_size."""
+     if page_size <= 0:
+         raise ValueError("page_size must be positive")
+-    # BUG: integer division truncates; 10 items / 3 per page = 3, but need 4
+-    return len(items) // page_size
++    # Ceiling division: round up so a partial final page still counts.
++    return -(-len(items) // page_size)
+ 
+ 
+ def get_page(items: list, page: int, page_size: int) -> list:

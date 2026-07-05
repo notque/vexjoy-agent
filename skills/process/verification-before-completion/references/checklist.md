@@ -133,6 +133,26 @@ Use this checklist for ANY code change, regardless of language or domain:
 - [ ] **N+1 prevented**: No new N+1 query patterns introduced
 - [ ] **Transactions proper**: Transaction boundaries correct
 
+### Schema Verification Gate
+
+Run when a diff touches migration files or schema definitions. Verify schema state before and after the change, not just that the migration command exited 0.
+
+**Before the change** — capture the baseline schema:
+- [ ] **SQLite**: `sqlite3 <db> "SELECT sql FROM sqlite_master WHERE type IN ('table','index')"` -- save output
+- [ ] **Django**: `python manage.py showmigrations` -- confirm current applied state
+- [ ] **Rails**: `rails db:migrate:status` -- confirm current applied state
+- [ ] **Raw SQL migrations**: dump schema (`pg_dump --schema-only`, `mysqldump --no-data`, or equivalent) -- save output
+
+**After the change** — diff against the baseline:
+- [ ] **SQLite**: re-run `SELECT sql FROM sqlite_master ...`, diff against before-output
+- [ ] **Django**: `showmigrations` shows the new migration applied; `makemigrations --check` reports no pending changes
+- [ ] **Rails**: `db:migrate:status` shows the new migration `up`
+- [ ] **Raw SQL migrations**: re-dump schema, diff against before-output -- confirm only the intended tables/columns changed
+
+**Duplicate/collision check**:
+- [ ] **No existing equivalent**: grep the schema dump / model definitions for a table or column that already covers this data under another name (renamed field, near-duplicate table) before adding a new one
+- [ ] **Existing queries compatible**: grep the codebase for references to the changed table/column (raw SQL strings, ORM model fields, serializers) -- confirm none break against the new schema
+
 ---
 
 ## Infrastructure/DevOps Checklist

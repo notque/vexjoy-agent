@@ -1,5 +1,6 @@
 ---
 name: codebase-analyzer
+promoted_to: codebase-overview
 description: "Statistical rule discovery from Go codebase patterns."
 user-invocable: false
 allowed-tools:

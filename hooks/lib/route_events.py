@@ -44,6 +44,11 @@ def _events_path() -> Path:
     return base / _EVENTS_FILENAME
 
 
+def events_path() -> Path:
+    """Public accessor for the route-events.jsonl path (e.g. CLI backfill)."""
+    return _events_path()
+
+
 def _append(event: dict[str, Any]) -> None:
     """Append one JSON line. Best-effort: swallow every error (never break a hook)."""
     try:

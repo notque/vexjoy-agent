@@ -1,0 +1,25 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T07/src.orig	2026-07-04 20:19:46.759901832 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T07/src/csv_writer.py	2026-07-04 20:20:49.863353211 -0700
+@@ -1,4 +1,4 @@
+-"""CSV export utility. Bug: header row is written on every call, not just the first."""
++"""CSV export utility."""
+ 
+ from pathlib import Path
+ 
+@@ -9,7 +9,6 @@
+     def __init__(self, path: Path, columns: list[str]):
+         self.path = path
+         self.columns = columns
+-        # BUG: _header_written is never set to True, so header re-emits every write_row
+         self._header_written = False
+ 
+     def write_row(self, row: dict[str, str]) -> None:
+@@ -17,7 +16,7 @@
+         with open(self.path, "a") as f:
+             if not self._header_written:
+                 f.write(",".join(self.columns) + "\n")
+-                # BUG: missing self._header_written = True
++                self._header_written = True
+             values = [row.get(col, "") for col in self.columns]
+             f.write(",".join(values) + "\n")
+ 

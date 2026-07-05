@@ -13,6 +13,11 @@ routing:
     - "extract transcript"
     - "download subtitles"
     - "what does this video say"
+    - "get transcript"
+    - "transcribe video"
+    - "transcribe this video"
+    - "pull subtitles"
+    - "captions from video"
   category: research
   pairs_with:
     - research-pipeline

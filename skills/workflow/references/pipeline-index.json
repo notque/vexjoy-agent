@@ -234,7 +234,7 @@
       ],
       "pairs_with": [
         "pipeline-scaffolder",
-        "codebase-analyzer"
+        "codebase-overview"
       ],
       "agent": "pipeline-orchestrator-engineer",
       "model": "opus"
@@ -273,7 +273,7 @@
       ],
       "pairs_with": [
         "codebase-overview",
-        "codebase-analyzer",
+        "codebase-overview",
         "technical-documentation-engineer"
       ]
     },
