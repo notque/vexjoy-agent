@@ -1,25 +1,3 @@
----
-name: finance
-promoted_to: business-ops
-description: "Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing."
-routing:
-  triggers:
-    - "finance"
-    - "journal entry"
-    - "reconciliation"
-    - "variance analysis"
-    - "financial statements"
-    - "financial audit"
-    - "month-end close"
-    - "SOX"
-  not_for: "code security audits, vulnerability scanning, or auth-flow reviews (use security-review) — only financial/accounting audit and SOX compliance"
-  category: business
-  force_route: false
-  pairs_with:
-    - csuite
-    - data-analysis
-user-invocable: true
----
 
 # Finance & Accounting
 

@@ -21,7 +21,7 @@ routing:
     - alternatives
     - assumptions
     - challenge
-    - roast
+    - multi-persona-critique
     # user advocate
     - user impact
     - user advocate

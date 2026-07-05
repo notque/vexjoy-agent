@@ -63,7 +63,7 @@ routing:
     - swiftlint
     - swiftformat
     - xctest
-    - swift-testing
+    - swift
     - swift actor
     - swift sendable
     - swift-combine

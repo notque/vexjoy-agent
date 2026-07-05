@@ -1,25 +1,3 @@
----
-name: hr
-promoted_to: business-ops
-description: People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. Use when managing hiring pipelines, writing performance reviews, analyzing compensation, drafting offers, or planning organizational changes.
-routing:
-  triggers:
-    - "HR"
-    - "human resources"
-    - "recruiting"
-    - "performance review"
-    - "compensation"
-    - "hiring"
-    - "onboarding"
-    - "org planning"
-  not_for: "code performance review (use reviewer-code). This skill covers people performance reviews and HR operations."
-  category: business
-  force_route: false
-  pairs_with:
-    - csuite
-    - data-analysis
-user-invocable: true
----
 
 # HR — People Operations
 

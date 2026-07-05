@@ -1,27 +1,3 @@
----
-name: legal
-promoted_to: business-ops
-description: Legal workflows — contract review, compliance checks, NDA triage, risk assessment, legal briefs. Use when reviewing contracts, checking compliance, triaging NDAs, assessing legal risk, or drafting legal documents. Not legal advice — analysis support for qualified professionals.
-routing:
-  triggers:
-    - "legal"
-    - "contract review"
-    - "compliance check"
-    - "NDA"
-    - "legal risk"
-    - "legal brief"
-    - "vendor check"
-    - "german compliance"
-    - "DSGVO"
-    - "GoBD"
-    - "TDDDG"
-    - "AI Act compliance"
-    - "eIDAS"
-  category: business
-  force_route: false
-  pairs_with: []
-user-invocable: true
----
 
 # Legal Workflows
 

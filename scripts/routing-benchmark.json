@@ -230,10 +230,10 @@
     {
       "request": "roast this design doc",
       "expected_agent": null,
-      "expected_skill": "roast",
+      "expected_skill": "multi-persona-critique",
       "category": "code-review",
       "routing_tier": "llm_only",
-      "notes": "Niche skill requiring intent understanding \u2014 script does not force-route. LLM must recognize 'roast' as multi-persona critique."
+      "notes": "Niche skill requiring intent understanding \u2014 script does not force-route. LLM must recognize 'multi-persona-critique' as multi-persona critique."
     },
     {
       "request": "execute plan for the API redesign",
@@ -353,10 +353,10 @@
     {
       "request": "add holographic foil card effects with WebGL shader",
       "expected_agent": "typescript-frontend-engineer",
-      "expected_skill": "webgl-card-effects",
+      "expected_skill": "distinctive-frontend-design",
       "category": "pairs-with-agent-resolution",
       "routing_tier": "candidate",
-      "notes": "WebGL card effects \u2014 agent resolved via pairs_with. webgl-card-effects pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
+      "notes": "WebGL card effects \u2014 agent resolved via pairs_with. distinctive-frontend-design pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
     },
     {
       "request": "run a security threat model audit on the toolkit",
@@ -380,7 +380,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Search/investigate, not Fish shell \u2014 must NOT route to fish-shell-config"
+      "notes": "Search/investigate, not Fish shell \u2014 must NOT route to shell-config"
     },
     {
       "request": "give me a quick read on the architecture",
@@ -591,26 +591,26 @@
     {
       "request": "give me headline options for this post",
       "expected_agent": null,
-      "expected_skill": "headlines",
+      "expected_skill": "content-calendar",
       "category": "content-creation",
       "routing_tier": "candidate",
-      "notes": "Direct trigger 'headline' \u2014 headlines is top candidate (not force-routed)"
+      "notes": "Direct trigger 'headline' \u2014 content-calendar is top candidate (not force-routed)"
     },
     {
       "request": "draft a subject line for the newsletter",
       "expected_agent": null,
-      "expected_skill": "headlines",
+      "expected_skill": "content-calendar",
       "category": "content-creation",
       "routing_tier": "candidate",
-      "notes": "Direct trigger 'subject line' \u2014 headlines is top candidate"
+      "notes": "Direct trigger 'subject line' \u2014 content-calendar is top candidate"
     },
     {
       "request": "what should I call this piece so people actually click it",
       "expected_agent": null,
-      "expected_skill": "headlines",
+      "expected_skill": "content-calendar",
       "category": "content-creation",
       "routing_tier": "llm_only",
-      "notes": "Zero trigger keywords \u2014 LLM must recognize title-finding intent as headlines. Script correctly does not force-route."
+      "notes": "Zero trigger keywords \u2014 LLM must recognize title-finding intent as content-calendar. Script correctly does not force-route."
     },
     {
       "request": "summarize the headline figures from the quarterly report",
@@ -618,31 +618,31 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "'headline figures' means top-line numbers, not titles \u2014 must NOT route to headlines"
+      "notes": "'headline figures' means top-line numbers, not titles \u2014 must NOT route to content-calendar"
     },
     {
       "request": "collect news items for tomorrow's briefing",
       "expected_agent": null,
-      "expected_skill": "news-collection",
+      "expected_skill": "content-calendar",
       "category": "research",
       "routing_tier": "candidate",
-      "notes": "Direct trigger 'collect news' \u2014 news-collection is top candidate (not force-routed)"
+      "notes": "Direct trigger 'collect news' \u2014 content-calendar is top candidate (not force-routed)"
     },
     {
       "request": "run news triage on this morning's feed",
       "expected_agent": null,
-      "expected_skill": "news-collection",
+      "expected_skill": "content-calendar",
       "category": "research",
       "routing_tier": "candidate",
-      "notes": "Direct trigger 'news triage' \u2014 news-collection is top candidate"
+      "notes": "Direct trigger 'news triage' \u2014 content-calendar is top candidate"
     },
     {
       "request": "pull together what happened this week in the industry and keep only the recent stuff",
       "expected_agent": null,
-      "expected_skill": "news-collection",
+      "expected_skill": "content-calendar",
       "category": "research",
       "routing_tier": "llm_only",
-      "notes": "Zero trigger keywords \u2014 LLM must recognize collect-and-freshness-filter intent as news-collection. Script correctly does not force-route."
+      "notes": "Zero trigger keywords \u2014 LLM must recognize collect-and-freshness-filter intent as content-calendar. Script correctly does not force-route."
     },
     {
       "request": "collect the news about our test failures from CI logs",
@@ -650,7 +650,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Gathering CI failure context, not a news pipeline \u2014 must NOT route to news-collection ('the' breaks the 'collect news' trigger)"
+      "notes": "Gathering CI failure context, not a news pipeline \u2014 must NOT route to content-calendar ('the' breaks the 'collect news' trigger)"
     },
     {
       "request": "push back on this design",
