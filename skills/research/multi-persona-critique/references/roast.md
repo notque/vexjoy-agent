@@ -1,30 +1,3 @@
----
-name: roast
-promoted_to: multi-persona-critique
-description: "Constructive critique via 5 HackerNews personas with claim validation."
-user-invocable: false
-argument-hint: "<target to critique>"
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
-  - Task
-  - Skill
-context: fork
-routing:
-  triggers:
-    - "roast code"
-    - "devil's advocate"
-    - "stress test idea"
-    - "roast this"
-    - "stress test this idea"
-    - "poke holes in this"
-  category: analysis
-  pairs_with:
-    - multi-persona-critique
-    - systematic-code-review
----
 
 # Roast: Devil's Advocate Analysis
 

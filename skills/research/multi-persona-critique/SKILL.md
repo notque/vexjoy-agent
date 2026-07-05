@@ -20,6 +20,12 @@ routing:
     - "evaluate from multiple perspectives"
     - "get different viewpoints"
     - "critique proposals"
+    - "roast code"
+    - "devil's advocate"
+    - "stress test idea"
+    - "roast this"
+    - "stress test this idea"
+    - "poke holes in this"
   not_for: "speaking to a person, a meeting, or pushing back in a conversation — that is professional-communication. This critiques an artifact, not interpersonal messaging."
   pairs_with:
     - roast
@@ -57,6 +63,8 @@ This skill takes a set of proposals — feature ideas, architectural decisions, 
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
 | dispatching the five critique personas (Phase 2) | `personas.md` | Loads detailed guidance from `personas.md`. |
 | writing the Phase 5 synthesis report | `synthesis-template.md` | Loads detailed guidance from `synthesis-template.md`. |
+| roast-style code critique with HN personas | `roast.md` | Loads the roast workflow: evidence-based critique via 5 HN personas with claim validation. |
+| HN persona specs, claim format, validation verdicts | `hn-personas.md` | Loads HN commenter persona specifications, prompt template, and claim format. |
 
 ## Instructions
 
