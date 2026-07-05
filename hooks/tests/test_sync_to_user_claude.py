@@ -824,3 +824,195 @@ class TestRepoSideDeletionGuard:
         link = dst / "voice-shared-references"
         assert link.is_symlink()
         assert link.resolve() == (repo / "skills" / "voice-shared-references").resolve()
+
+
+class TestResolvesInsideMultiRoot:
+    """Tests for _resolves_inside with list-of-roots support."""
+
+    def test_single_path_still_works(self, tmp_path: Path) -> None:
+        repo = tmp_path / "repo"
+        child = repo / "skills" / "voice"
+        child.mkdir(parents=True)
+        assert sync_mod._resolves_inside(child, repo) is True
+
+    def test_list_of_roots_matches_any(self, tmp_path: Path) -> None:
+        main_repo = tmp_path / "main"
+        worktree = tmp_path / "worktree"
+        main_repo.mkdir()
+        worktree.mkdir()
+        child = main_repo / "skills"
+        child.mkdir()
+        # child is inside main_repo but not worktree
+        assert sync_mod._resolves_inside(child, [worktree, main_repo]) is True
+
+    def test_list_of_roots_rejects_outside(self, tmp_path: Path) -> None:
+        main_repo = tmp_path / "main"
+        worktree = tmp_path / "worktree"
+        outside = tmp_path / "outside"
+        main_repo.mkdir()
+        worktree.mkdir()
+        outside.mkdir()
+        assert sync_mod._resolves_inside(outside, [main_repo, worktree]) is False
+
+    def test_symlink_resolved_against_canonical_root(self, tmp_path: Path) -> None:
+        """When a symlink resolves into the MAIN repo, the guard catches it
+        even when repo_root is a worktree path (canonical root provides coverage)."""
+        main_repo = tmp_path / "main"
+        vsr = main_repo / "skills" / "voice-shared-references"
+        vsr.mkdir(parents=True)
+        (vsr / "test.md").write_text("content")
+
+        worktree = tmp_path / "worktree"
+        worktree.mkdir()
+
+        # Symlink points to main repo (as ~/.claude/skills/voice-shared-references does)
+        link = tmp_path / "link"
+        link.symlink_to(vsr)
+
+        # With only worktree root: NOT detected (the bug)
+        assert sync_mod._resolves_inside(link, worktree) is False
+        # With both roots: detected (the fix)
+        assert sync_mod._resolves_inside(link, [worktree, main_repo]) is True
+
+
+class TestCanonicalRepoRoot:
+    """Tests for _canonical_repo_root."""
+
+    def test_reads_toolkit_path(self, tmp_path: Path) -> None:
+        manifest = {"mode": "symlink", "toolkit_path": str(tmp_path)}
+        (tmp_path / ".install-manifest.json").write_text(json.dumps(manifest))
+        result = sync_mod._canonical_repo_root(tmp_path)
+        assert result == tmp_path
+
+    def test_returns_none_for_missing_manifest(self, tmp_path: Path) -> None:
+        result = sync_mod._canonical_repo_root(tmp_path)
+        assert result is None
+
+    def test_returns_none_for_nonexistent_dir(self, tmp_path: Path) -> None:
+        manifest = {"toolkit_path": str(tmp_path / "no-such-dir")}
+        (tmp_path / ".install-manifest.json").write_text(json.dumps(manifest))
+        result = sync_mod._canonical_repo_root(tmp_path)
+        assert result is None
+
+
+class TestWorktreeDetectionSafeDefault:
+    """Tests for _is_git_worktree safe default when .git file is unreadable."""
+
+    def test_unreadable_git_file_assumes_worktree(self, tmp_path: Path) -> None:
+        """When .git is a file but unreadable and git rev-parse fails,
+        _is_git_worktree must return True (safe default)."""
+        dot_git = tmp_path / ".git"
+        dot_git.write_text("gitdir: some/path")
+        dot_git.chmod(0o000)
+        try:
+            with (
+                patch.object(sync_mod, "_is_ephemeral_path", return_value=False),
+                patch("subprocess.check_output", side_effect=OSError("no git")),
+            ):
+                result = sync_mod._is_git_worktree(tmp_path)
+            assert result is True, "Must assume worktree when .git file is unreadable"
+        finally:
+            dot_git.chmod(0o644)
+
+    def test_readable_submodule_allowed(self, tmp_path: Path) -> None:
+        """A readable .git file without 'worktrees/' is a submodule — allow sync."""
+        dot_git = tmp_path / ".git"
+        dot_git.write_text("gitdir: ../.git/modules/mymod")
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._is_git_worktree(tmp_path)
+        assert result is False
+
+    def test_readable_worktree_blocked(self, tmp_path: Path) -> None:
+        dot_git = tmp_path / ".git"
+        dot_git.write_text("gitdir: /repo/.git/worktrees/agent-123")
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            result = sync_mod._is_git_worktree(tmp_path)
+        assert result is True
+
+
+class TestProtectedRootsWorktreeScenario:
+    """Reproduce the worktree bypass scenario that causes voice-shared-references
+    deletion.  A worktree that bypassed _is_git_worktree runs sync with
+    repo_root = worktree_path.  Without canonical root protection, symlinks
+    into the MAIN repo escape the _resolves_inside guard."""
+
+    VSR_FILES: ClassVar[list[str]] = [
+        "anti-rhetorical-pivot.md",
+        "voice-first-writing.md",
+        "wabi-sabi-authenticity.md",
+    ]
+
+    def _make_main_and_worktree(self, tmp_path: Path) -> tuple[Path, Path, Path]:
+        """Build main repo, worktree, and ~/.claude with symlinks to main."""
+        # Main repo
+        main = tmp_path / "main"
+        skills = main / "skills"
+        vsr = skills / "voice-shared-references"
+        vsr.mkdir(parents=True)
+        for name in self.VSR_FILES:
+            (vsr / name).write_text(f"# {name}\n")
+        meta_do = skills / "meta" / "do"
+        meta_do.mkdir(parents=True)
+        (meta_do / "SKILL.md").write_text("---\nname: do\n---\n")
+
+        # Worktree (older branch, no voice-shared-references)
+        worktree = tmp_path / "worktree"
+        wt_skills = worktree / "skills"
+        wt_meta_do = wt_skills / "meta" / "do"
+        wt_meta_do.mkdir(parents=True)
+        (wt_meta_do / "SKILL.md").write_text("---\nname: do\n---\n")
+        # Note: no voice-shared-references in worktree!
+
+        # Simulated ~/.claude/skills with symlinks into MAIN repo
+        claude_skills = tmp_path / "claude" / "skills"
+        claude_skills.mkdir(parents=True)
+        (claude_skills / "voice-shared-references").symlink_to(vsr)
+        (claude_skills / "do").symlink_to(meta_do)
+
+        return main, worktree, claude_skills
+
+    def test_worktree_sync_without_canonical_deletes_symlink(self, tmp_path: Path) -> None:
+        """Without canonical root, stale cleanup would delete the voice-shared-references
+        symlink because it resolves into the main repo, not the worktree."""
+        main, worktree, claude_skills = self._make_main_and_worktree(tmp_path)
+
+        # Sync from worktree WITHOUT canonical root protection
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(
+                worktree / "skills",
+                claude_skills,
+                repo_root=worktree,  # Wrong root — only protects worktree paths
+            )
+
+        # The symlink was removed because voice-shared-references is not in
+        # worktree's skills, so not in expected_names, and the symlink resolves
+        # into main (not worktree), so the guard didn't catch it.
+        assert not (claude_skills / "voice-shared-references").exists(), (
+            "Expected the symlink to be removed (reproducing the bug)"
+        )
+        # But main repo files must still exist (unlink only removes the link)
+        for name in self.VSR_FILES:
+            assert (main / "skills" / "voice-shared-references" / name).exists()
+
+    def test_worktree_sync_with_canonical_preserves_symlink(self, tmp_path: Path) -> None:
+        """With canonical root (the fix), the guard catches the symlink even
+        when repo_root is the worktree path."""
+        main, worktree, claude_skills = self._make_main_and_worktree(tmp_path)
+
+        # Sync from worktree WITH canonical root protection
+        protected_roots = [worktree, main]
+        with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
+            sync_mod._sync_skills_flat_symlinks(
+                worktree / "skills",
+                claude_skills,
+                repo_root=protected_roots,
+            )
+
+        # The symlink must survive — protected by canonical root
+        vsr_link = claude_skills / "voice-shared-references"
+        assert vsr_link.is_symlink(), "voice-shared-references symlink must survive"
+        assert vsr_link.resolve() == (main / "skills" / "voice-shared-references").resolve()
+
+        # Main repo files must still exist
+        for name in self.VSR_FILES:
+            assert (main / "skills" / "voice-shared-references" / name).exists()
