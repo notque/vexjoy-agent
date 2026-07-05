@@ -287,7 +287,27 @@ def _read_install_mode(user_claude: Path) -> str:
         return "copy"
 
 
-def _resolves_inside(path: Path, root: Path) -> bool:
+def _canonical_repo_root(user_claude: Path) -> Path | None:
+    """Read the canonical toolkit path from the install manifest.
+
+    Returns the toolkit_path as a Path if it exists and is a directory,
+    otherwise None.  This provides a stable repo root for _resolves_inside
+    even when CWD is a worktree that bypassed detection.
+    """
+    manifest_path = user_claude / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        toolkit_path = manifest.get("toolkit_path", "")
+        if toolkit_path:
+            p = Path(toolkit_path)
+            if p.is_dir():
+                return p
+    except (json.JSONDecodeError, OSError):
+        pass
+    return None
+
+
+def _resolves_inside(path: Path, root: "Path | list[Path]") -> bool:
     """True when *path* resolves to *root* or a descendant of *root*.
 
     Safety guard: prevents destructive operations (rmtree, unlink) from
@@ -295,13 +315,23 @@ def _resolves_inside(path: Path, root: Path) -> bool:
     contains a symlink pointing into the repo, code that traverses the
     symlink sees regular files whose realpath is inside the repo.
     Deleting those deletes tracked source files.
+
+    *root* may be a single Path or a list of Paths.  When a list is
+    given, True is returned if the resolved path falls inside ANY root.
+    This lets callers protect both the CWD-based repo_root AND the
+    canonical toolkit_path from the install manifest -- vital when sync
+    runs from a worktree that bypassed detection.
     """
+    roots = [root] if isinstance(root, Path) else root
     try:
         resolved = str(path.resolve())
-        root_str = str(root.resolve())
-        return resolved == root_str or resolved.startswith(root_str + os.sep)
+        for r in roots:
+            root_str = str(r.resolve())
+            if resolved == root_str or resolved.startswith(root_str + os.sep):
+                return True
     except OSError:
-        return False
+        pass
+    return False
 
 
 def _is_ephemeral_path(path: Path) -> bool:
@@ -340,7 +370,7 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
         _atomic_json_write(manifest_path, manifest)
 
 
-def _ensure_symlink(src: Path, dst: Path, repo_root: Path | None = None) -> bool:
+def _ensure_symlink(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> bool:
     """Ensure dst is a symlink pointing to src.
 
     If dst is already the correct symlink, returns True (no change needed).
@@ -490,7 +520,7 @@ def _sync_runtime_skill_index(src: Path, dst: Path) -> bool:
     return True
 
 
-def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: Path | None = None) -> None:
+def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
     The repo organizes skills into category folders:
@@ -622,10 +652,10 @@ def _is_git_worktree(path: Path) -> bool:
     ephemeral worktree paths (e.g. /tmp/...-worktree-...) that get cleaned up,
     which breaks every hook until manual reinstall.
 
-    Known limitation: if .git is missing/corrupted AND git is not on PATH AND
-    the path is not under /tmp/, the function returns False (allows sync).
-    The /tmp/ guards in _ensure_symlink and _update_manifest_toolkit_path
-    provide secondary protection for the most common failure case.
+    Safe default: when .git is a file (worktree/submodule marker) but neither
+    the file content nor git rev-parse can determine the type, assume worktree
+    and refuse sync.  A false positive (blocking a submodule) is harmless; a
+    false negative (allowing a worktree) causes data loss.
     """
     # Fast check: reject ephemeral paths (e.g. /tmp/)
     if _is_ephemeral_path(path):
@@ -635,13 +665,15 @@ def _is_git_worktree(path: Path) -> bool:
     # Distinguish by reading the file: worktrees point to .git/worktrees/<name>,
     # submodules point to .git/modules/<name>. Only reject worktrees.
     dot_git = path / ".git"
-    if dot_git.is_file():
+    dot_git_is_file = dot_git.is_file()
+    if dot_git_is_file:
         try:
             content = dot_git.read_text().strip()
             # Format: "gitdir: <path>"
             if "worktrees/" in content:
                 return True
             # Submodule (.git/modules/) — not a worktree, allow sync
+            return False
         except OSError:
             # Can't read .git file — fall through to git rev-parse check
             pass
@@ -666,6 +698,18 @@ def _is_git_worktree(path: Path) -> bool:
             return True
     except (subprocess.CalledProcessError, OSError):
         pass
+
+    # Safe default: if .git is a file (worktree/submodule marker) but we
+    # could not determine its type, assume worktree and refuse sync.
+    # False positive (blocking a submodule) is harmless; false negative
+    # (allowing a worktree) causes symlink re-pointing and potential data loss.
+    if dot_git_is_file:
+        print(
+            f"[sync] WARNING: .git file at {path} unreadable and git rev-parse "
+            f"failed; assuming worktree (safe default)",
+            file=sys.stderr,
+        )
+        return True
 
     return False
 
@@ -727,6 +771,18 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     # from claude-code-toolkit to vexjoy-agent and re-cloned).
     _update_manifest_toolkit_path(user_claude, repo_root)
 
+    # Build the protected-roots list: repo_root (CWD) plus the canonical
+    # toolkit_path from the manifest.  If sync somehow runs from a worktree
+    # that bypassed _is_git_worktree, repo_root is the worktree path but the
+    # manifest still records the MAIN repo.  Deletions must be blocked for
+    # both.  When both resolve to the same directory, the list collapses to
+    # a single entry.
+    canonical = _canonical_repo_root(user_claude)
+    if canonical and canonical.resolve() != repo_root.resolve():
+        protected_roots: Path | list[Path] = [repo_root, canonical]
+    else:
+        protected_roots = repo_root
+
     # Components to sync (directories)
     components = [
         ("agents", "agents"),
@@ -779,11 +835,11 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                 # but Claude Code only discovers flat ~/.claude/skills/*/SKILL.md.
                 # Create individual symlinks to flatten the nested structure.
                 if src_name == "skills":
-                    _sync_skills_flat_symlinks(src, dst, repo_root=repo_root)
+                    _sync_skills_flat_symlinks(src, dst, repo_root=protected_roots)
                     count = sum(1 for d in dst.iterdir() if d.is_dir() and not d.name.startswith("."))
                     synced.append(f"{dst_name}(symlink, {count} skills)")
                 else:
-                    _ensure_symlink(src, dst, repo_root=repo_root)
+                    _ensure_symlink(src, dst, repo_root=protected_roots)
                     synced.append(f"{dst_name}(symlink)")
                 continue
 
@@ -860,7 +916,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                     if rel not in all_paths:
                         # Guard: refuse to delete files that resolve inside
                         # the repo (symlink traversal data-loss prevention).
-                        if _resolves_inside(item, repo_root):
+                        if _resolves_inside(item, protected_roots):
                             print(
                                 f"[sync] BLOCKED: stale-cleanup refusing to "
                                 f"unlink {dst_name}/{rel} (resolves inside repo)",
@@ -874,7 +930,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             # Clean up empty directories left behind
             for dirpath in sorted(dst.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):
-                    if _resolves_inside(dirpath, repo_root):
+                    if _resolves_inside(dirpath, protected_roots):
                         continue
                     dirpath.rmdir()
         except Exception as e:
@@ -1054,7 +1110,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             _tolerant_mkdir(codex_skills_dst)
             # Copy skills flat (same as ~/.claude/skills deployment).
             # The repo uses nested category folders but Codex needs flat.
-            _codex_root_utility = {"shared-patterns", "workflow", "kb"}
+            _codex_root_utility = {"shared-patterns", "workflow", "kb", "voice-shared-references"}
             for child in sorted(repo_skills.iterdir()):
                 if child.is_file():
                     # Root files: INDEX.json, README.md, etc.
