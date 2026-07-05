@@ -1,5 +1,6 @@
 ---
 name: product-management
+promoted_to: business-ops
 description: "Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning."
 routing:
   triggers:

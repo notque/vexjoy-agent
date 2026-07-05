@@ -1,5 +1,6 @@
 ---
 name: swift-testing
+promoted_to: swift
 description: "Swift testing: XCTest, Swift Testing framework, async patterns."
 user-invocable: false
 context: fork

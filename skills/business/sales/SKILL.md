@@ -1,5 +1,6 @@
 ---
 name: sales
+promoted_to: business-ops
 description: Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting. Use when prepping for calls, reviewing pipeline health, drafting personalized outreach, analyzing competitors, or building forecasts.
 routing:
   triggers:

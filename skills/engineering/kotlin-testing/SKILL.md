@@ -1,5 +1,6 @@
 ---
 name: kotlin-testing
+promoted_to: kotlin
 description: "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers."
 user-invocable: false
 context: fork

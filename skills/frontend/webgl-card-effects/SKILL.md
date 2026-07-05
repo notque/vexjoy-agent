@@ -1,5 +1,6 @@
 ---
 name: webgl-card-effects
+promoted_to: distinctive-frontend-design
 description: "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow."
 agent: typescript-frontend-engineer
 user-invocable: false

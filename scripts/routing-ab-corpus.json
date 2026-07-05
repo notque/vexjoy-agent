@@ -1,6 +1,6 @@
 {
   "version": "1.2",
-  "description": "Blind A/B routing corpus for the semantic-first experiment. Two segments: (1) international/paraphrase cases that express the SAME intents as routing-benchmark.json but in plain non-native English avoiding the trigger keywords the deterministic pre-router matches on; (2) a sample drawn from routing-benchmark.json spanning all tiers including false-positive guards. Combined the corpus measures whether reading-for-intent-first (Arm B) recovers the long tail of paraphrased requests without regressing the safety-critical force-routes (pr-workflow, security-review) or re-introducing false positives. Each paraphrase case avoids the exact trigger phrases listed in skills/INDEX.json so pre-route.py falls through and the semantic router is the only path that can recover the route. Extension (v1.1, feat/route-ab-harness): 50 additional cases in five new buckets — stub-tier (skills with zero recorded routes; tiered-manifest tripwire), sibling-disambiguation, pipeline-pick (optional expected_pipeline; near-misses must return pipeline null), vague-interview (underspecified requests that should land planning), and plain-english (non-jargon phrasing). Optional fields: expected_pipeline (default null), acceptable (list of {agent, skill} alternates), uncertain (best-effort gold label). Absence of the optional fields means legacy behavior; the 49 legacy cases are byte-identical to v1.0. Extension (v1.2, feat/full-catalog-reachability): 73 reachability cases covering every previously-uncovered routable skill in the merged catalog. Bucket \"reachability\" — held-out probes expressing genuine user needs without quoting trigger keywords. 22 skills classified never-routable-by-design (voice profiles, shared patterns, pipeline sub-skills, internal orchestration).",
+  "description": "Blind A/B routing corpus for the semantic-first experiment. Two segments: (1) international/paraphrase cases that express the SAME intents as routing-benchmark.json but in plain non-native English avoiding the trigger keywords the deterministic pre-router matches on; (2) a sample drawn from routing-benchmark.json spanning all tiers including false-positive guards. Combined the corpus measures whether reading-for-intent-first (Arm B) recovers the long tail of paraphrased requests without regressing the safety-critical force-routes (pr-workflow, security-review) or re-introducing false positives. Each paraphrase case avoids the exact trigger phrases listed in skills/INDEX.json so pre-route.py falls through and the semantic router is the only path that can recover the route. Extension (v1.1, feat/route-ab-harness): 50 additional cases in five new buckets \u2014 stub-tier (skills with zero recorded routes; tiered-manifest tripwire), sibling-disambiguation, pipeline-pick (optional expected_pipeline; near-misses must return pipeline null), vague-interview (underspecified requests that should land planning), and plain-english (non-jargon phrasing). Optional fields: expected_pipeline (default null), acceptable (list of {agent, skill} alternates), uncertain (best-effort gold label). Absence of the optional fields means legacy behavior; the 49 legacy cases are byte-identical to v1.0. Extension (v1.2, feat/full-catalog-reachability): 73 reachability cases covering every previously-uncovered routable skill in the merged catalog. Bucket \"reachability\" \u2014 held-out probes expressing genuine user needs without quoting trigger keywords. 22 skills classified never-routable-by-design (voice profiles, shared patterns, pipeline sub-skills, internal orchestration).",
   "test_cases": [
     {
       "request": "send my commits to the server",
@@ -256,7 +256,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "bucket": "false-positive-guard",
-      "notes": "GUARD. Search/investigate, not Fish shell. MUST NOT route fish-shell-config."
+      "notes": "GUARD. Search/investigate, not Fish shell. MUST NOT route shell-config."
     },
     {
       "request": "give me a quick read on the architecture",
@@ -341,10 +341,10 @@
     {
       "request": "roast this design doc",
       "expected_agent": null,
-      "expected_skill": "roast",
+      "expected_skill": "multi-persona-critique",
       "category": "code-review",
       "bucket": "benchmark-llm_only",
-      "notes": "Niche skill; pre-route does not force-route. LLM must recognize 'roast' as multi-persona critique."
+      "notes": "Niche skill; pre-route does not force-route. LLM must recognize 'multi-persona-critique' as multi-persona critique."
     },
     {
       "request": "plan the implementation for this feature",
@@ -405,50 +405,50 @@
     {
       "request": "the checkout pod in the staging namespace keeps restarting with CrashLoopBackOff, figure out what is wrong",
       "expected_agent": "kubernetes-helm-engineer",
-      "expected_skill": "kubernetes-debugging",
+      "expected_skill": "kubernetes",
       "category": "infrastructure",
       "bucket": "stub-tier",
-      "notes": "STUB. Pod failure debugging = kubernetes-debugging per INDEX."
+      "notes": "STUB. Pod failure debugging = kubernetes per INDEX."
     },
     {
       "request": "my Kotlin Flow collector in SyncService.kt stops emitting after the first error, fix the coroutine handling",
       "expected_agent": "kotlin-general-engineer",
-      "expected_skill": "kotlin-coroutines",
+      "expected_skill": "kotlin",
       "category": "kotlin-development",
       "bucket": "stub-tier",
-      "notes": "STUB. Flow/coroutine error handling = kotlin-coroutines per INDEX."
+      "notes": "STUB. Flow/coroutine error handling = kotlin per INDEX."
     },
     {
       "request": "add PHPUnit tests with a database fixture for the InvoiceRepository class in src/Repository/InvoiceRepository.php",
       "expected_agent": "php-general-engineer",
-      "expected_skill": "php-testing",
+      "expected_skill": "php",
       "category": "php-development",
       "bucket": "stub-tier",
-      "notes": "STUB. PHPUnit + database testing = php-testing per INDEX."
+      "notes": "STUB. PHPUnit + database testing = php per INDEX."
     },
     {
       "request": "convert the completion-handler callbacks in NetworkClient.swift to async/await and make the cache actor-safe",
       "expected_agent": "swift-general-engineer",
-      "expected_skill": "swift-concurrency",
+      "expected_skill": "swift",
       "category": "swift-development",
       "bucket": "stub-tier",
-      "notes": "STUB. async/await + Actor migration = swift-concurrency per INDEX."
+      "notes": "STUB. async/await + Actor migration = swift per INDEX."
     },
     {
       "request": "take the renders in assets/frames/ and the narration in voiceover.mp3 and stitch them into an mp4",
       "expected_agent": null,
-      "expected_skill": "image-to-video",
+      "expected_skill": "video-editing",
       "category": "media",
       "bucket": "stub-tier",
-      "notes": "STUB. FFmpeg video from images + audio = image-to-video per INDEX."
+      "notes": "STUB. FFmpeg video from images + audio = video-editing per INDEX."
     },
     {
       "request": "build an HTML slide deck that runs in the browser for my quarterly review talk, one slide per milestone",
       "expected_agent": "typescript-frontend-engineer",
-      "expected_skill": "frontend-slides",
+      "expected_skill": "distinctive-frontend-design",
       "category": "content-creation",
       "bucket": "stub-tier",
-      "notes": "STUB. Browser HTML presentation = frontend-slides per INDEX."
+      "notes": "STUB. Browser HTML presentation = distinctive-frontend-design per INDEX."
     },
     {
       "request": "translate docs/user-guide.md into Japanese and keep the code blocks untouched",
@@ -469,10 +469,10 @@
     {
       "request": "go through the cron scripts under ops/cron/ and tell me which ones could fail silently or clobber data",
       "expected_agent": null,
-      "expected_skill": "cron-job-auditor",
+      "expected_skill": "cron-automation",
       "category": "operations",
       "bucket": "stub-tier",
-      "notes": "STUB. Cron reliability/safety audit = cron-job-auditor per INDEX. Defensible: forensics.",
+      "notes": "STUB. Cron reliability/safety audit = cron-automation per INDEX. Defensible: forensics.",
       "acceptable": [
         {
           "agent": null,
@@ -503,12 +503,12 @@
       "notes": "STUB. Phaser 3 scenes/physics/tilemaps = phaser-gamedev per INDEX."
     },
     {
-      "request": "I have three competing proposals in docs/auth-redesign.md — tear them apart from several philosophical angles and tell me where they break",
+      "request": "I have three competing proposals in docs/auth-redesign.md \u2014 tear them apart from several philosophical angles and tell me where they break",
       "expected_agent": null,
       "expected_skill": "multi-persona-critique",
       "category": "analysis",
       "bucket": "sibling-disambiguation",
-      "notes": "Sibling: multi-persona-critique vs professional-communication. Critique of proposals from personas = multi-persona-critique. Defensible: roast.",
+      "notes": "Sibling: multi-persona-critique vs professional-communication. Critique of proposals from personas = multi-persona-critique. Defensible: multi-persona-critique.",
       "acceptable": [
         {
           "agent": null,
@@ -525,7 +525,7 @@
       "notes": "Sibling: professional-communication vs multi-persona-critique vs productivity. Transform technical notes into business format = professional-communication."
     },
     {
-      "request": "before we build the export feature, pin down the requirements and acceptance criteria — there is a lot I have not decided yet",
+      "request": "before we build the export feature, pin down the requirements and acceptance criteria \u2014 there is a lot I have not decided yet",
       "expected_agent": null,
       "expected_skill": "planning",
       "category": "planning",
@@ -533,15 +533,15 @@
       "notes": "Sibling: planning vs productivity. Spec/requirements/acceptance criteria = planning umbrella."
     },
     {
-      "request": "help me sort out my week — I have four deadlines, two meetings to prep, and no idea what to tackle first",
+      "request": "help me sort out my week \u2014 I have four deadlines, two meetings to prep, and no idea what to tackle first",
       "expected_agent": null,
-      "expected_skill": "productivity",
+      "expected_skill": "business-ops",
       "category": "productivity",
       "bucket": "sibling-disambiguation",
       "notes": "Sibling: productivity vs planning. Personal task/weekly planning = productivity, not software planning."
     },
     {
-      "request": "do a careful structured review of the changes in src/billing/ — understand them first, then assess risks and write up findings",
+      "request": "do a careful structured review of the changes in src/billing/ \u2014 understand them first, then assess risks and write up findings",
       "expected_agent": null,
       "expected_skill": "systematic-code-review",
       "category": "code-review",
@@ -595,7 +595,7 @@
       "notes": "Sibling: voice-validator vs create-voice vs voice-writer. Fidelity check + rewrite loop = voice-validator."
     },
     {
-      "request": "run a formal research effort on local-first sync engines — scope it, gather sources with quality gates, and save the artifacts",
+      "request": "run a formal research effort on local-first sync engines \u2014 scope it, gather sources with quality gates, and save the artifacts",
       "expected_agent": "research-coordinator-engineer",
       "expected_skill": "research-pipeline",
       "category": "research",
@@ -609,7 +609,7 @@
       ]
     },
     {
-      "request": "map out the architecture of this repo — modules, boundaries, and how data flows between them, no edits",
+      "request": "map out the architecture of this repo \u2014 modules, boundaries, and how data flows between them, no edits",
       "expected_agent": null,
       "expected_skill": "codebase-overview",
       "category": "exploration",
@@ -632,7 +632,7 @@
       "expected_pipeline": "voice-writer"
     },
     {
-      "request": "research WebGPU adoption end to end — scope, gather, synthesize, validate — and deliver a cited report with saved artifacts",
+      "request": "research WebGPU adoption end to end \u2014 scope, gather, synthesize, validate \u2014 and deliver a cited report with saved artifacts",
       "expected_agent": "research-coordinator-engineer",
       "expected_skill": "research-pipeline",
       "category": "research",
@@ -970,7 +970,7 @@
     {
       "request": "run a financial audit of last quarter's journal entries",
       "expected_agent": null,
-      "expected_skill": "finance",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "sibling-disambiguation",
       "notes": "Financial audit should route to finance, not security-review. Disambiguation: 'financial' qualifier."
@@ -1090,7 +1090,7 @@
     {
       "request": "take this long-form article and adapt it into posts for each social platform",
       "expected_agent": null,
-      "expected_skill": "content-engine",
+      "expected_skill": "content-calendar",
       "category": "content",
       "bucket": "reachability",
       "notes": "Content engine: repurpose assets for social."
@@ -1098,7 +1098,7 @@
     {
       "request": "plan a five-part article series with cross-links and a publishing cadence",
       "expected_agent": null,
-      "expected_skill": "series-planner",
+      "expected_skill": "content-calendar",
       "category": "content-creation",
       "bucket": "reachability",
       "notes": "Series planner: multi-part content structure."
@@ -1106,7 +1106,7 @@
     {
       "request": "mine reader problems and content gaps to generate fresh article topic ideas",
       "expected_agent": null,
-      "expected_skill": "topic-brainstormer",
+      "expected_skill": "content-calendar",
       "category": "content-creation",
       "bucket": "reachability",
       "notes": "Topic brainstormer: idea generation from problem mining."
@@ -1178,7 +1178,7 @@
     {
       "request": "grab the transcript from this YouTube video and clean it into readable paragraphs",
       "expected_agent": null,
-      "expected_skill": "video-transcript",
+      "expected_skill": "video-editing",
       "category": "research",
       "bucket": "reachability",
       "notes": "Video transcript: yt-dlp subtitle extraction."
@@ -1250,7 +1250,7 @@
     {
       "request": "evaluate whether we should invest in this new market opportunity from a strategic perspective",
       "expected_agent": null,
-      "expected_skill": "csuite",
+      "expected_skill": "business-ops",
       "category": "decision-support",
       "bucket": "reachability",
       "notes": "C-suite: executive decision support."
@@ -1258,7 +1258,7 @@
     {
       "request": "triage these support tickets and draft responses for the high-priority ones",
       "expected_agent": null,
-      "expected_skill": "customer-support",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Customer support: ticket triage and response."
@@ -1274,7 +1274,7 @@
     {
       "request": "outline the hiring process for a senior engineering role with interview stages and a job description",
       "expected_agent": null,
-      "expected_skill": "hr",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "HR: recruiting pipeline and job postings."
@@ -1282,7 +1282,7 @@
     {
       "request": "review this contract for red flags and check whether it meets compliance requirements",
       "expected_agent": null,
-      "expected_skill": "legal",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Legal: contract review and compliance."
@@ -1298,7 +1298,7 @@
     {
       "request": "review our vendor contracts and create a runbook for the deployment process",
       "expected_agent": null,
-      "expected_skill": "operations",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Operations: vendor management and runbooks."
@@ -1306,7 +1306,7 @@
     {
       "request": "build a PRD with requirements prioritization and a delivery roadmap",
       "expected_agent": null,
-      "expected_skill": "product-management",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Product management: PRD and roadmap."
@@ -1314,7 +1314,7 @@
     {
       "request": "prep me for this sales call and review the deal pipeline for this quarter",
       "expected_agent": null,
-      "expected_skill": "sales",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Sales: call prep and pipeline review."
@@ -1330,7 +1330,7 @@
     {
       "request": "set up my Fish shell with the right PATH entries and prompt customization",
       "expected_agent": null,
-      "expected_skill": "fish-shell-config",
+      "expected_skill": "shell-config",
       "category": "process",
       "bucket": "reachability",
       "notes": "Fish shell config: PATH and prompt setup. force_route skill."
@@ -1338,7 +1338,7 @@
     {
       "request": "create a scheduled background job that runs this check every morning",
       "expected_agent": null,
-      "expected_skill": "headless-cron-creator",
+      "expected_skill": "cron-automation",
       "category": "process",
       "bucket": "reachability",
       "notes": "Headless cron creator: scheduled agent jobs."
@@ -1370,7 +1370,7 @@
     {
       "request": "configure my Zsh with completions plugins and the right PATH setup",
       "expected_agent": null,
-      "expected_skill": "zsh-shell-config",
+      "expected_skill": "shell-config",
       "category": "process",
       "bucket": "reachability",
       "notes": "Zsh shell config: completions and PATH. force_route skill."
@@ -1394,7 +1394,7 @@
     {
       "request": "check whether our vulnerability monitoring covers all the technologies in our stack",
       "expected_agent": null,
-      "expected_skill": "cve-source-check",
+      "expected_skill": "service-health-check",
       "category": "infrastructure",
       "bucket": "reachability",
       "notes": "CVE source check: vulnerability feed coverage audit."
@@ -1402,7 +1402,7 @@
     {
       "request": "smoke test all our API endpoints and report which ones are returning errors",
       "expected_agent": null,
-      "expected_skill": "endpoint-validator",
+      "expected_skill": "service-health-check",
       "category": "infrastructure",
       "bucket": "reachability",
       "notes": "Endpoint validator: API smoke testing."
@@ -1418,7 +1418,7 @@
     {
       "request": "write JUnit 5 tests for this Kotlin data class with coroutine test dispatchers",
       "expected_agent": "kotlin-general-engineer",
-      "expected_skill": "kotlin-testing",
+      "expected_skill": "kotlin",
       "category": "kotlin",
       "bucket": "reachability",
       "notes": "Kotlin testing: JUnit 5 with coroutines."
@@ -1426,7 +1426,7 @@
     {
       "request": "set up RBAC policies and pod security standards for this Kubernetes cluster",
       "expected_agent": "kubernetes-helm-engineer",
-      "expected_skill": "kubernetes-security",
+      "expected_skill": "kubernetes",
       "category": "kubernetes",
       "bucket": "reachability",
       "notes": "Kubernetes security: RBAC and PodSecurity."
@@ -1434,7 +1434,7 @@
     {
       "request": "review this PHP code for PSR compliance and modern PHP 8 best practices",
       "expected_agent": "php-general-engineer",
-      "expected_skill": "php-quality",
+      "expected_skill": "php",
       "category": "php",
       "bucket": "reachability",
       "notes": "PHP quality: PSR standards review."
@@ -1458,7 +1458,7 @@
     {
       "request": "write XCTest cases for this Swift view model with async test patterns",
       "expected_agent": "swift-general-engineer",
-      "expected_skill": "swift-testing",
+      "expected_skill": "swift",
       "category": "swift",
       "bucket": "reachability",
       "notes": "Swift testing: XCTest with async patterns."
@@ -1482,7 +1482,7 @@
     {
       "request": "add a typewriter reveal effect and slot-machine text transitions to this page",
       "expected_agent": null,
-      "expected_skill": "text-animation",
+      "expected_skill": "distinctive-frontend-design",
       "category": "frontend",
       "bucket": "reachability",
       "notes": "Text animation: kinetic typography effects."
@@ -1498,7 +1498,7 @@
     {
       "request": "generate a 16-color tileset with palette-quantized sprites for this retro game",
       "expected_agent": null,
-      "expected_skill": "game-asset-generator",
+      "expected_skill": "game-pipeline",
       "category": "game-development",
       "bucket": "reachability",
       "notes": "Game asset generator: deterministic pixel art."
@@ -1514,7 +1514,7 @@
     {
       "request": "import these motion capture BVH files and process them for game animation",
       "expected_agent": null,
-      "expected_skill": "motion-pipeline",
+      "expected_skill": "game-pipeline",
       "category": "game-animation",
       "bucket": "reachability",
       "notes": "Motion pipeline: BVH processing for game animation."

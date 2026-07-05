@@ -1,5 +1,6 @@
 ---
 name: cobalt-core
+promoted_to: kubernetes
 description: "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute."
 agent: kubernetes-helm-engineer
 user-invocable: true

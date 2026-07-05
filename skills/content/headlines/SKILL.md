@@ -1,5 +1,6 @@
 ---
 name: headlines
+promoted_to: content-calendar
 description: "Generate headlines, titles, and subject lines: charge, volume, tighten."
 user-invocable: false
 allowed-tools:

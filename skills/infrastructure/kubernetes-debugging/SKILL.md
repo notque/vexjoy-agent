@@ -1,5 +1,6 @@
 ---
 name: kubernetes-debugging
+promoted_to: kubernetes
 description: "Kubernetes debugging for pod failures and networking."
 user-invocable: false
 context: fork

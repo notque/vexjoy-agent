@@ -1,5 +1,6 @@
 ---
 name: roast
+promoted_to: multi-persona-critique
 description: "Constructive critique via 5 HackerNews personas with claim validation."
 user-invocable: false
 argument-hint: "<target to critique>"

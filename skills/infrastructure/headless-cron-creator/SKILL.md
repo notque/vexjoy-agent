@@ -1,5 +1,6 @@
 ---
 name: headless-cron-creator
+promoted_to: cron-automation
 description: "Generate headless Claude Code cron jobs with safety."
 user-invocable: false
 argument-hint: "<name> <schedule> <prompt>"

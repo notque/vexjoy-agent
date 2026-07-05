@@ -1,5 +1,6 @@
 ---
 name: content-engine
+promoted_to: content-calendar
 description: "Repurpose source assets into platform-native social content."
 user-invocable: false
 allowed-tools:

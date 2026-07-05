@@ -64,8 +64,7 @@ MIN_SCORE_THRESHOLD = 0.1
 # When any guard word appears in the request, the match is discarded.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"back", "pressure", "pushback", "pushed", "pushing"},
-    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
-    "zsh-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 
@@ -74,8 +73,7 @@ SEMANTIC_GUARDS: dict[str, set[str]] = {
 # (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
 # reliably means search/extract, not the Fish shell).
 SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
-    "fish-shell-config": {"fish out", "fish for"},
-    "zsh-shell-config": {"zsh out", "zsh for"},
+    "shell-config": {"fish out", "fish for", "zsh out", "zsh for"},
 }
 
 
@@ -255,7 +253,7 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
         if not entry.force_route:
             continue
         # Phrase-level guard: skip if a disqualifying phrase appears as a
-        # whole-word match (e.g. "fish out" suppresses fish-shell-config
+        # whole-word match (e.g. "fish out" suppresses shell-config
         # without blocking "log out" or substring-matching "selfish forum").
         phrase_guards = SEMANTIC_GUARD_PHRASES.get(entry.name)
         if phrase_guards and any(re.search(rf"\b{re.escape(phrase)}\b", lowered) for phrase in phrase_guards):

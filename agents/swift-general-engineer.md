@@ -63,13 +63,13 @@ routing:
     - swiftlint
     - swiftformat
     - xctest
-    - swift-testing
+    - swift
     - swift actor
     - swift sendable
     - swift-combine
     - swiftdata
     - coredata
-  not_for: "Swift concurrency patterns in isolation (use swift-concurrency skill) or Swift test-only work (use swift-testing skill) — this agent handles full Swift development"
+  not_for: "Swift concurrency patterns or test-only work in isolation (use swift skill) — this agent handles full Swift development"
   retro-topics:
     - swift-patterns
     - concurrency

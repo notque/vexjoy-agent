@@ -1,5 +1,6 @@
 ---
 name: topic-brainstormer
+promoted_to: content-calendar
 description: "Generate blog topic ideas: problem mining, gap analysis, expansion."
 user-invocable: false
 allowed-tools:

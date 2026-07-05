@@ -1,5 +1,6 @@
 ---
 name: swift-concurrency
+promoted_to: swift
 description: "Swift concurrency: async/await, Actor, Task, Sendable patterns."
 user-invocable: false
 context: fork

@@ -1,5 +1,6 @@
 ---
 name: image-to-video
+promoted_to: video-editing
 description: "FFmpeg-based video creation from image and audio."
 user-invocable: false
 allowed-tools:

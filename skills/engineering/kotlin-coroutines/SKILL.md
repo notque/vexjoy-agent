@@ -1,5 +1,6 @@
 ---
 name: kotlin-coroutines
+promoted_to: kotlin
 description: "Kotlin structured concurrency, Flow, and Channel patterns."
 user-invocable: false
 context: fork

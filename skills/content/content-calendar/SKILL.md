@@ -16,11 +16,46 @@ routing:
     - "publishing schedule"
     - "content schedule"
     - "publication plan"
+    - "plan series"
+    - "multi-part content"
+    - "content series"
+    - "article series"
+    - "content arc"
+    - "brainstorm topics"
+    - "content ideas"
+    - "blog topic ideas"
+    - "what to write about"
+    - "angles"
+    - "story angles"
+    - "headline"
+    - "headlines"
+    - "article title"
+    - "title options"
+    - "subject line"
+    - "better title"
+    - "repurpose this"
+    - "adapt for social"
+    - "turn this into posts"
+    - "content from article"
+    - "content from demo"
+    - "content from doc"
+    - "write variants for"
+    - "social content from"
+    - "platform variants"
+    - "repurpose for"
+    - "news collection"
+    - "collect news"
+    - "qualify news items"
+    - "news triage"
+    - "filter news feed"
+    - "check news freshness"
+  not_for: "general research reports — that is research-pipeline. Pick this when the input is a stream of news items to qualify for a content pipeline."
   category: content-creation
   pairs_with:
-    - topic-brainstormer
-    - series-planner
     - publish
+    - voice-writer
+    - x-api
+    - fact-check
 ---
 
 # Content Calendar Skill
@@ -34,6 +69,11 @@ Manage editorial content through 6 pipeline stages: Ideas, Outlined, Drafted, Ed
 | calendar file location, template, section formats | `calendar-format.md` | Loads detailed guidance from `calendar-format.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | velocity tracking and stuck-content detection | `metrics.md` | Loads detailed guidance from `metrics.md`. |
+| series planning: multi-part structure, cross-linking, cadence | `series-planner.md` | Series planning domain from folded series-planner skill. |
+| topic brainstorming: problem mining, gap analysis, scoring | `topic-brainstormer.md` | Topic ideation domain from folded topic-brainstormer skill. |
+| headlines: charge, volume, tighten, format adaptation | `headlines.md` | Headline generation domain from folded headlines skill. |
+| content repurposing: platform-native social variants | `content-engine.md` | Content repurposing domain from folded content-engine skill. |
+| news collection: item qualification, freshness forensics | `news-collection.md` | News collection domain from folded news-collection skill. |
 | executing view, add, move, schedule, archive operations | `operations.md` | Loads detailed guidance from `operations.md`. |
 | stage definitions and transition rules | `pipeline-stages.md` | Loads detailed guidance from `pipeline-stages.md`. |
 

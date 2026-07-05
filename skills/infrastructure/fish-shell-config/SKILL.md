@@ -1,5 +1,6 @@
 ---
 name: fish-shell-config
+promoted_to: shell-config
 description: "Fish shell configuration and PATH management."
 user-invocable: false
 allowed-tools:

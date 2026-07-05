@@ -1,5 +1,6 @@
 ---
 name: kubernetes-security
+promoted_to: kubernetes
 description: "Kubernetes security: RBAC, PodSecurity, network policies."
 user-invocable: false
 context: fork

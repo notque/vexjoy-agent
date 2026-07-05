@@ -1,5 +1,6 @@
 ---
 name: finance
+promoted_to: business-ops
 description: "Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing."
 routing:
   triggers:

@@ -27,10 +27,32 @@ routing:
     - add juice
     - screen shake
     - capacitor ios
+    - pixel art
+    - tile pattern
+    - palette quantize
+    - matrix sprite
+    - meshy
+    - meshyai
+    - generate 3d model
+    - text to 3d
+    - image to 3d
+    - world labs
+    - mocap
+    - motion data
+    - animation pipeline
+    - BVH import
+    - contact detection
+    - IK solve
+    - motion blend
+    - bone trajectory
+    - root extraction
+    - FABRIK
+    - skeletal animation data
+  not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend; ad-hoc workflow composition (use workflow skill)"
   pairs_with:
     - threejs-builder
     - phaser-gamedev
-    - game-asset-generator
+    - game-sprite-pipeline
   complexity: Complex
   category: game-development
 ---
@@ -55,6 +77,14 @@ This skill orchestrates the full game development lifecycle: SCAFFOLD → ASSETS
 | `references/promo-video.md` | `promo-video.md` | DEPLOY |
 | `references/deploy.md` | `deploy.md` | DEPLOY |
 | `references/capacitor-ios.md` | `capacitor-ios.md` | DEPLOY |
+| "3D model", GLB, mesh, rig, meshy | `game-asset-generator.md`, `meshyai.md` | 3D model generation |
+| "environment", "gaussian splat", "world labs" | `game-asset-generator.md`, `worldlabs.md` | Environment generation |
+| "sprite", "pixel art", "tile", "palette quantize" | `game-asset-generator.md`, `pixel-art-sprites.md` | 2D sprite / pixel art |
+| "image", "texture", "concept art", fal.ai | `game-asset-generator.md`, `fal-ai-image.md` | Image / texture generation |
+| "free asset", "find model", "sketchfab" | `game-asset-generator.md`, `asset-sources.md` | Existing asset sources |
+| "mocap", "BVH", "motion data", "animation pipeline" | `motion-pipeline.md` | Motion data import / processing |
+| "contact detection", "IK solve", "FABRIK" | `motion-pipeline.md` | Contact / IK solving |
+| "motion blend", "bone trajectory", "root extraction" | `motion-pipeline.md` | Motion decomposition / blending |
 
 ## Instructions
 
@@ -306,3 +336,10 @@ grep -r 'src="/' dist/ && echo "WARN: absolute paths" || echo "OK"
 | `references/promo-video.md` | DEPLOY | Slow-mo trick, Playwright recording, FFmpeg assembly, mobile portrait format |
 | `references/deploy.md` | DEPLOY | GitHub Pages, Vercel, static hosting, pre-deploy checklist |
 | `references/capacitor-ios.md` | DEPLOY | Capacitor 5+ iOS: SPM setup, asset contracts, touch controls, debugging |
+| `references/game-asset-generator.md` | ASSETS | Game asset generation: 3D models, environments, sprites, textures, free sources |
+| `references/meshyai.md` | ASSETS | Meshy API: text-to-3D, image-to-3D, rig, animate, optimize-glb |
+| `references/worldlabs.md` | ASSETS | World Labs Marble API: SPZ generation, SplatMesh renderer, Y-flip |
+| `references/fal-ai-image.md` | ASSETS | fal.ai: model endpoints, queue API, cost tracking, chroma-key |
+| `references/asset-sources.md` | ASSETS | Sketchfab, Poly Haven, Poly.pizza search and download |
+| `references/pixel-art-sprites.md` | ASSETS | Canvas sprite matrices, palette system, animation frames |
+| `references/motion-pipeline.md` | ASSETS | CPU-only motion pipeline: BVH import, contacts, decompose, blend, IK |
