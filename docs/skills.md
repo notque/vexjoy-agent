@@ -39,7 +39,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 |-------|-----------|-------------|
 | `planning` | yes | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume intents |
 | `decision-helper` | no | Weighted decision scoring for architectural choices |
-| `csuite` | no | C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation. |
+| `business-ops` | no | Business operations: strategy, technology, growth, support, finance, HR, legal, operations, sales, productivity, product management |
 | `plant-seed` | no | Capture forward-looking idea as a seed for future feature design |
 
 ---
@@ -271,16 +271,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `customer-support` | yes | Customer support workflows — ticket triage, response drafting, knowledge base articles, escalation handling, customer research. |
 | `design` | yes | Design workflows — UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis. |
-| `finance` | yes | Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing. |
-| `hr` | yes | People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. |
-| `legal` | yes | Legal workflows — contract review, compliance checks, NDA triage, risk assessment, legal briefs. |
 | `marketing` | yes | Marketing: SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting. |
-| `operations` | yes | Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking. |
-| `product-management` | yes | Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning. |
-| `productivity` | yes | Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates. |
-| `sales` | yes | Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting. |
 
 ---
 

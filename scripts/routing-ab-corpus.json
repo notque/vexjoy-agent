@@ -535,7 +535,7 @@
     {
       "request": "help me sort out my week \u2014 I have four deadlines, two meetings to prep, and no idea what to tackle first",
       "expected_agent": null,
-      "expected_skill": "productivity",
+      "expected_skill": "business-ops",
       "category": "productivity",
       "bucket": "sibling-disambiguation",
       "notes": "Sibling: productivity vs planning. Personal task/weekly planning = productivity, not software planning."
@@ -970,7 +970,7 @@
     {
       "request": "run a financial audit of last quarter's journal entries",
       "expected_agent": null,
-      "expected_skill": "finance",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "sibling-disambiguation",
       "notes": "Financial audit should route to finance, not security-review. Disambiguation: 'financial' qualifier."
@@ -1250,7 +1250,7 @@
     {
       "request": "evaluate whether we should invest in this new market opportunity from a strategic perspective",
       "expected_agent": null,
-      "expected_skill": "csuite",
+      "expected_skill": "business-ops",
       "category": "decision-support",
       "bucket": "reachability",
       "notes": "C-suite: executive decision support."
@@ -1258,7 +1258,7 @@
     {
       "request": "triage these support tickets and draft responses for the high-priority ones",
       "expected_agent": null,
-      "expected_skill": "customer-support",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Customer support: ticket triage and response."
@@ -1274,7 +1274,7 @@
     {
       "request": "outline the hiring process for a senior engineering role with interview stages and a job description",
       "expected_agent": null,
-      "expected_skill": "hr",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "HR: recruiting pipeline and job postings."
@@ -1282,7 +1282,7 @@
     {
       "request": "review this contract for red flags and check whether it meets compliance requirements",
       "expected_agent": null,
-      "expected_skill": "legal",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Legal: contract review and compliance."
@@ -1298,7 +1298,7 @@
     {
       "request": "review our vendor contracts and create a runbook for the deployment process",
       "expected_agent": null,
-      "expected_skill": "operations",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Operations: vendor management and runbooks."
@@ -1306,7 +1306,7 @@
     {
       "request": "build a PRD with requirements prioritization and a delivery roadmap",
       "expected_agent": null,
-      "expected_skill": "product-management",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Product management: PRD and roadmap."
@@ -1314,7 +1314,7 @@
     {
       "request": "prep me for this sales call and review the deal pipeline for this quarter",
       "expected_agent": null,
-      "expected_skill": "sales",
+      "expected_skill": "business-ops",
       "category": "business",
       "bucket": "reachability",
       "notes": "Sales: call prep and pipeline review."

@@ -1,25 +1,3 @@
----
-name: operations
-promoted_to: business-ops
-description: "Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking."
-routing:
-  triggers:
-    - "operations"
-    - "vendor review"
-    - "runbook"
-    - "process documentation"
-    - "risk assessment"
-    - "capacity plan"
-    - "change management"
-    - "compliance tracking"
-  category: business
-  force_route: false
-  pairs_with:
-    - csuite
-    - finance
-    - hr
-user-invocable: true
----
 
 # Operations
 

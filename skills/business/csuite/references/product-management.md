@@ -1,24 +1,3 @@
----
-name: product-management
-promoted_to: business-ops
-description: "Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning."
-routing:
-  triggers:
-    - "product management"
-    - "feature spec"
-    - "PRD"
-    - "roadmap"
-    - "stakeholder update"
-    - "user research"
-    - "sprint planning"
-    - "product metrics"
-  category: business
-  not_for: "UX design methodology, wireframes, or accessibility audits (use design skill) — this skill handles product strategy, roadmaps, user research for feature prioritization"
-  force_route: false
-  pairs_with:
-    - csuite
-user-invocable: true
----
 
 # Product Management
 

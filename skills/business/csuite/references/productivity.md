@@ -1,27 +1,3 @@
----
-name: productivity
-promoted_to: business-ops
-description: "Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates."
-routing:
-  triggers:
-    - "productivity"
-    - "task management"
-    - "daily plan"
-    - "weekly review"
-    - "meeting agenda"
-    - "focus time"
-    - "goal setting"
-    - "status update"
-    - "time management"
-    - "prioritize tasks"
-    - "standup"
-    - "retrospective"
-  not_for: "software task specs, requirements, or plan-lifecycle management — that is planning; drafting the status-update message itself — that is professional-communication. This skill prioritizes and tracks work; it does not write specs or messages; multi-agent project coordination (use project-coordinator-engineer agent)"
-  category: business
-  force_route: false
-  pairs_with: []
-user-invocable: true  # justification: productivity modes are directly invoked for daily/weekly planning rituals
----
 
 # Productivity
 

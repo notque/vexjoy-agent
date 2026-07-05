@@ -1,22 +1,3 @@
----
-name: sales
-promoted_to: business-ops
-description: Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting. Use when prepping for calls, reviewing pipeline health, drafting personalized outreach, analyzing competitors, or building forecasts.
-routing:
-  triggers:
-    - "sales"
-    - "call prep"
-    - "pipeline review"
-    - "forecast"
-    - "draft outreach"
-    - "prospect research"
-    - "competitive intelligence"
-  category: business
-  force_route: false
-  pairs_with:
-    - csuite
-user-invocable: true
----
 
 # Sales
 
