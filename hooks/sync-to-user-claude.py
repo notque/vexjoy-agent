@@ -540,6 +540,45 @@ def _sync_runtime_skill_index(src: Path, dst: Path) -> bool:
     return True
 
 
+def _has_promoted_to(skill_dir: Path, skills_root: "Path | None" = None) -> bool:
+    """True when SKILL.md has promoted_to: and the target skill exists.
+
+    Skills with promoted_to: are folded into a parent skill and should not
+    appear as separate entries in ~/.claude/skills/ or mirror runtimes.
+    Returns False when the target skill does not exist yet (forward-looking
+    promotion tag), keeping the source skill deployed until its replacement
+    is live.
+
+    Uses a lightweight regex scan of the frontmatter block (between --- delimiters)
+    to avoid pulling in a YAML parser dependency.
+    """
+    skill_md = skill_dir / "SKILL.md"
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    # Frontmatter is between the first two --- lines
+    if not text.startswith("---"):
+        return False
+    end = text.find("\n---", 3)
+    if end == -1:
+        return False
+    frontmatter = text[3:end]
+    m = re.search(r"^promoted_to\s*:\s*(.+)$", frontmatter, re.MULTILINE)
+    if not m:
+        return False
+    # Validate the target skill exists in the repo
+    if skills_root is not None:
+        target_name = m.group(1).strip()
+        # Search category subdirectories for the target skill
+        for category in skills_root.iterdir():
+            if category.is_dir() and (category / target_name / "SKILL.md").exists():
+                return True
+        # Target not found — keep deploying the source skill
+        return False
+    return True
+
+
 def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
@@ -639,6 +678,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
             # Category folder: create symlinks for each skill inside
             for skill_dir in sorted(category_dir.iterdir()):
                 if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
+                    if _has_promoted_to(skill_dir, skills_root=src):
+                        continue  # Folded into parent; skip deployment
                     expected_names.add(skill_dir.name)
                     _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
                 elif skill_dir.is_dir() and (skill_dir / "profile.json").exists():
@@ -1167,6 +1208,8 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                     for skill_dir in sorted(child.iterdir()):
                         if not skill_dir.is_dir():
                             continue
+                        if _has_promoted_to(skill_dir, skills_root=repo_skills):
+                            continue  # Folded into parent; skip mirror
                         for item in skill_dir.rglob("*"):
                             if item.is_file():
                                 # Flatten: category/skill-name/SKILL.md → ~/.codex/skills/skill-name/SKILL.md
