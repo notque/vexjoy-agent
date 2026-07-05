@@ -1,0 +1,13 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T05/src.orig	2026-07-04 20:19:46.780902315 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T05/src/cache.py	2026-07-04 20:21:29.359261040 -0700
+@@ -16,7 +16,9 @@
+         if key not in self._store:
+             return None
+         timestamp, value = self._store[key]
+-        # BUG: should check if entry is expired and evict it, but returns stale value
++        if time.monotonic() - timestamp > self.ttl:
++            del self._store[key]
++            return None
+         return value
+ 
+     def put(self, key: str, value: object) -> None:

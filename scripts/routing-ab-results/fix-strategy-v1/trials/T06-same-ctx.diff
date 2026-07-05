@@ -1,0 +1,18 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T06/src.orig	2026-07-04 20:19:46.772902131 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T06/src/retry.py	2026-07-04 20:21:37.588450137 -0700
+@@ -1,4 +1,4 @@
+-"""Retry decorator with exponential backoff. Bug: incorrect default makes retries immediate (no backoff)."""
++"""Retry decorator with exponential backoff."""
+ 
+ import time
+ from collections.abc import Callable
+@@ -8,8 +8,7 @@
+ def retry(
+     max_attempts: int = 3,
+     base_delay: float = 1.0,
+-    # BUG: multiplier=0.0 means delay is always 0 regardless of attempt number
+-    multiplier: float = 0.0,
++    multiplier: float = 2.0,
+     exceptions: tuple[type[Exception], ...] = (Exception,),
+ ) -> Callable:
+     """Retry a function on failure with exponential backoff."""

@@ -1,0 +1,12 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T01/src.orig	2026-07-04 20:19:46.755901740 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T01/src/pagination.py	2026-07-04 20:20:59.646578121 -0700
+@@ -5,8 +5,7 @@
+     """Return total number of pages needed for items at given page_size."""
+     if page_size <= 0:
+         raise ValueError("page_size must be positive")
+-    # BUG: integer division truncates; 10 items / 3 per page = 3, but need 4
+-    return len(items) // page_size
++    return (len(items) + page_size - 1) // page_size
+ 
+ 
+ def get_page(items: list, page: int, page_size: int) -> list:

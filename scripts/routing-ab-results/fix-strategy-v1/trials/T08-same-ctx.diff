@@ -1,0 +1,10 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T08/src.orig	2026-07-04 20:19:46.799902752 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T08/src/merge_sorted.py	2026-07-04 20:21:48.847708835 -0700
+@@ -12,5 +12,6 @@
+         else:
+             result.append(b[j])
+             j += 1
+-    # BUG: remaining elements of whichever list is not exhausted are dropped
++    result.extend(a[i:])
++    result.extend(b[j:])
+     return result
