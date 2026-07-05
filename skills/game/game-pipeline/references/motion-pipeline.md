@@ -1,37 +1,3 @@
----
-name: motion-pipeline
-promoted_to: game-pipeline
-user-invocable: true
-description: "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK. No GPU required."
-allowed-tools:
-  - Read
-  - Bash
-  - Write
-  - Edit
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "mocap"
-    - "motion data"
-    - "animation pipeline"
-    - "BVH import"
-    - "contact detection"
-    - "IK solve"
-    - "motion blend"
-    - "bone trajectory"
-    - "root extraction"
-    - "FABRIK"
-    - "skeletal animation data"
-  category: game-animation
-  pairs_with:
-    - game-sprite-pipeline
-    - phaser-gamedev
-  agents:
-    - rive-skeletal-animator
-    - pixijs-combat-renderer
-    - game-asset-generator
----
 
 # Motion Pipeline Skill
 

@@ -1,51 +1,3 @@
----
-name: game-asset-generator
-promoted_to: game-pipeline
-description: "Deterministic palette/matrix pixel art (not AI). Use for procedural tile art, color-quantized output, matrix sprites."
-agent: typescript-frontend-engineer
-user-invocable: false
-command: /game-assets
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - pixel art
-    - tile pattern
-    - palette quantize
-    - matrix sprite
-    - meshy
-    - meshyai
-    - generate 3d model
-    - text to 3d
-    - image to 3d
-    - world labs
-    - gaussian splat
-    - splat environment
-    - game asset
-    - fal ai
-    - fal.ai
-    - generate texture
-    - generate image for game
-    - 3d character
-    - game model
-    - rig model
-    - animate model
-    - game environment
-    - sketchfab
-    - poly pizza
-    - poly haven
-  not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend; ad-hoc workflow composition (use workflow skill)"
-  pairs_with:
-    - threejs-builder
-    - typescript-frontend-engineer
-  complexity: Medium
-  category: game-development
----
 
 # Game Asset Generator Skill
 
@@ -55,7 +7,6 @@ This skill generates game-ready assets (3D models, Gaussian Splat environments, 
 
 **Scope**: Use for AI-generated 3D models, world environments, pixel art sprites, concept art, textures, and sourcing free pre-built assets. Keep game engine scripting, physics, game loop logic, and shader authoring in `threejs-builder` after asset generation.
 
----
 
 ## Phase 1: DETECT
 
@@ -87,7 +38,6 @@ If the required key is missing, the fallback chain applies -- load `references/a
 
 **Gate**: Asset type identified, relevant reference loaded. Proceed to Phase 2 only when gate passes.
 
----
 
 ## Phase 2: GENERATE
 
@@ -111,7 +61,6 @@ If the required key is missing, the fallback chain applies -- load `references/a
 
 **Gate**: Asset file downloaded and validated (size > 0, correct extension). .meta.json saved. Proceed to Phase 3 only when gate passes.
 
----
 
 ## Phase 3: INTEGRATE
 
@@ -162,7 +111,6 @@ mixer.update(deltaTime);
 
 **Gate**: Asset visible in scene. No console errors. Animations play if applicable.
 
----
 
 ## Reference Loading Table
 
@@ -209,7 +157,6 @@ Solution: Confirm `FAL_KEY` is in `~/.env`. Authorization header must be `Key <y
 Cause: `@gltf-transform/cli` not installed globally.
 Solution: `npm install -g @gltf-transform/cli`
 
----
 
 ## References
 
