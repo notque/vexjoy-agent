@@ -18,6 +18,17 @@ routing:
     - into Portuguese
     - from English to
     - convert language
+    - in German
+    - in Spanish
+    - in French
+    - in Japanese
+    - in Chinese
+    - in Korean
+    - in Italian
+    - in Arabic
+    - in Hindi
+    - in Dutch
+    - in Russian
   not_for: "reformatting or restructuring text without changing language"
   pairs_with:
     - professional-communication

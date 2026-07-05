@@ -39,7 +39,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 |-------|-----------|-------------|
 | `planning` | yes | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume intents |
 | `decision-helper` | no | Weighted decision scoring for architectural choices |
-| `csuite` | no | C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation. |
+| `business-ops` | no | Business operations: strategy, technology, growth, support, finance, HR, legal, operations, sales, productivity, product management |
 | `plant-seed` | no | Capture forward-looking idea as a seed for future feature design |
 
 ---
@@ -69,9 +69,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `universal-quality-gate` | no | Multi-language code quality gate with auto-detection and linters |
 | `python-quality-gate` | no | Python quality checks: ruff, pytest, mypy, bandit in deterministic order |
 | `verification-before-completion` | no | Defense-in-depth verification before declaring any task complete |
-| `with-anti-rationalization` | no | Anti-rationalization enforcement for maximum-rigor task execution |
+| `with-anti-rationalization` | no | _(demoted to verification-before-completion)_ Anti-rationalization enforcement for maximum-rigor task execution |
 | `testing-preferred-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
-| `roast` | no | Constructive critique via 5 HackerNews personas with claim validation |
 | `condense` | yes | Maximize information density: preserve all instructions, remove prose filler. |
 | `security-review` | yes | Local security review of git changes: deterministic scan + Security reviewer over the diff. |
 
@@ -93,7 +92,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `go-patterns` | no | Go development patterns: testing, concurrency, errors, review, and conventions |
 | `sapcc-audit` | no | Full-repo SAP CC Go compliance audit against review standards |
 | `sapcc-review` | no | Gold-standard SAP CC Go code review: 10 parallel domain specialists |
-| `codebase-analyzer` | no | Statistical rule discovery from Go codebase patterns |
+| `codebase-analyzer` | no | _(demoted to codebase-overview)_ Statistical rule discovery from Go codebase patterns |
 
 ---
 
@@ -104,12 +103,9 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `typescript-check` | no | TypeScript type checking via tsc --noEmit with actionable error output |
 | `vitest-runner` | no | Run Vitest tests and parse results into actionable output |
 | `e2e-testing` | no | Playwright-based end-to-end testing workflow |
-| `distinctive-frontend-design` | no | Context-driven aesthetic exploration with anti-cliche validation |
-| `frontend-slides` | no | Browser-based HTML presentation generation |
+| `distinctive-frontend-design` | no | Frontend design: aesthetic exploration, text animation, card effects, HTML slides |
 | `threejs-builder` | no | Three.js app builder: Design, Build, Animate, Polish in 4 phases |
 | `nano-banana-builder` | no | Image generation and post-processing via Gemini Nano Banana APIs |
-| `text-animation` | no | Dependency-free kinetic typography: roll/slot text, reveals, typewriter, crossfade. |
-| `webgl-card-effects` | no | Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow. |
 
 ---
 
@@ -118,7 +114,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
 | `integration-checker` | no | Verify cross-component wiring and data flow |
-| `endpoint-validator` | no | Deterministic API endpoint validation with pass/fail reporting |
 | `testing-agents-with-subagents` | no | Test agents via subagents: known inputs, captured outputs, verification |
 
 ---
@@ -147,14 +142,10 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
 | `create-voice` | no | Create voice profiles from writing samples |
 | `publish` | no | Content-publishing umbrella: outline, pre-publish check, SEO, batch-edit, link/image/taxonomy audits, WordPress upload |
-| `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
-| `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
-| `content-engine` | no | Repurpose source assets into platform-native social content |
-| `content-calendar` | no | Manage editorial content through six pipeline stages |
+| `content-calendar` | no | Content pipeline: editorial calendar, brainstorming, headlines, repurposing, news collection |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
-| `image-to-video` | no | FFmpeg-based video creation from image and audio |
-| `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
+| `video-editing` | no | Video pipeline: editing, image-to-video, transcript extraction |
 | `image-gen` | no | AI image generation: Gemini and Nano Banana backends; single/series/batch workflows with prompt-to-disk. |
 | `translate` | yes | Document translation: quick/normal/refined modes with chunked parallel subagents and glossary support. |
 
@@ -184,10 +175,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `explanation-traces` | yes | Query and display structured decision traces from routing, agent selection, and skill execution. |
 | `multi-persona-critique` | yes | Critique a written proposal or design artifact via 5 philosophical personas in parallel, with consensus synthesis. |
 | `fact-check` | no | Verify factual claims against sources before publish. |
-| `headlines` | no | Generate headlines, titles, and subject lines: charge, volume, tighten. |
 | `markdown-converter` | no | Convert PDF, Office, HTML, data, media, ZIP to Markdown. |
-| `news-collection` | no | Collect, filter, and freshness-qualify news items. |
-| `video-transcript` | no | Extract video transcripts: yt-dlp subtitles to clean paragraphs. |
 
 ---
 
@@ -202,7 +190,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `kairos-lite` | yes | Proactive monitoring -- checks GitHub, CI, and toolkit health, produces briefings |
 | `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
-| `skill-composer` | no | DAG-based multi-skill orchestration with dependency resolution |
+| `skill-composer` | no | _(demoted to workflow)_ DAG-based multi-skill orchestration with dependency resolution |
 | `agent-evaluation` | no | Evaluate agents and skills for quality and standards compliance |
 | `agent-comparison` | no | A/B test agent variants for quality and token cost |
 | `routing-table-updater` | no | Maintain /do routing tables when skills or agents change |
@@ -228,16 +216,12 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `headless-cron-creator` | no | Generate headless Claude Code cron jobs with safety |
-| `cron-job-auditor` | no | Audit cron scripts for reliability and safety |
-| `service-health-check` | no | Service health monitoring: Discover, Check, Report in 3 phases |
-| `fish-shell-config` | no | Fish shell configuration and PATH management |
+| `cron-automation` | no | Cron automation: audit and create scheduled jobs with safety |
+| `service-health-check` | no | Service health: endpoint validation, CVE source auditing, process monitoring |
 | `wordpress-live-validation` | no | Validate published WordPress posts in browser via Playwright |
-| `cobalt-core` | yes | Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute. |
-| `cve-source-check` | yes | Audit CVE/vulnerability source coverage for a technology stack. |
 | `public-web-deploy` | no | Publish a public website safely: DNS, web server, HTTPS, hardening, verify. |
 | `shell-process-patterns` | no | Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification. |
-| `zsh-shell-config` | no | Zsh shell configuration, PATH management, completions, and framework setup. |
+| `shell-config` | no | Shell configuration: Fish and Zsh setup, PATH, completions, plugins |
 
 ---
 
@@ -245,8 +229,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `kotlin-coroutines` | no | Kotlin structured concurrency, Flow, and Channel patterns |
-| `kotlin-testing` | no | Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers |
+| `kotlin` | no | Kotlin development: coroutines, Flow, testing with JUnit 5 and Kotest |
 
 ---
 
@@ -254,8 +237,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `php-quality` | no | PHP code quality: PSR standards, strict types, framework idioms |
-| `php-testing` | no | PHP testing patterns: PHPUnit, test doubles, database testing |
+| `php` | no | PHP development: code quality, PSR standards, testing with PHPUnit |
 
 ---
 
@@ -263,8 +245,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `swift-concurrency` | no | Swift concurrency: async/await, Actor, Task, Sendable patterns |
-| `swift-testing` | no | Swift testing: XCTest, Swift Testing framework, async patterns |
+| `swift` | no | Swift development: concurrency patterns, async/await, actors, testing with XCTest and Swift Testing framework |
 
 ---
 
@@ -272,8 +253,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `kubernetes-debugging` | no | Kubernetes debugging for pod failures and networking |
-| `kubernetes-security` | no | Kubernetes security: RBAC, PodSecurity, network policies |
+| `kubernetes` | no | Kubernetes operations: debugging, security, RBAC, and infrastructure tooling |
 
 ---
 
@@ -291,16 +271,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `customer-support` | yes | Customer support workflows — ticket triage, response drafting, knowledge base articles, escalation handling, customer research. |
 | `design` | yes | Design workflows — UX copy, design systems, design critique, accessibility review, design handoff, user research synthesis. |
-| `finance` | yes | Finance and accounting: journal entries, reconciliation, variance analysis, financial statements, audit support, month-end close, SOX testing. |
-| `hr` | yes | People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. |
-| `legal` | yes | Legal workflows — contract review, compliance checks, NDA triage, risk assessment, legal briefs. |
 | `marketing` | yes | Marketing: SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, performance reporting. |
-| `operations` | yes | Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking. |
-| `product-management` | yes | Product management: feature specs, roadmaps, stakeholder updates, user research synthesis, competitive analysis, metrics, sprint planning. |
-| `productivity` | yes | Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates. |
-| `sales` | yes | Sales workflows — call prep, pipeline analysis, outreach, competitive intelligence, forecasting. |
 
 ---
 
@@ -308,10 +280,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `game-asset-generator` | no | Deterministic palette/matrix pixel art (not AI). |
-| `game-pipeline` | no | Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy. |
+| `game-pipeline` | no | Game lifecycle: scaffold, assets, audio, motion capture, QA, deploy |
 | `game-sprite-pipeline` | no | AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. |
-| `motion-pipeline` | yes | CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK. |
 | `phaser-gamedev` | no | Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish. |
 
 ---
@@ -320,7 +290,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `worktree-agent` | no | Mandatory rules for agents in git worktree isolation |
+| `worktree-agent` | no | _(demoted to do references)_ Mandatory rules for agents in git worktree isolation |
 
 ---
 

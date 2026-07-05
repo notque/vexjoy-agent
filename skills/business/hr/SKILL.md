@@ -1,5 +1,6 @@
 ---
 name: hr
+promoted_to: business-ops
 description: People operations workflows — recruiting pipeline, performance reviews, compensation analysis, offer drafting, interview prep, onboarding, org planning. Use when managing hiring pipelines, writing performance reviews, analyzing compensation, drafting offers, or planning organizational changes.
 routing:
   triggers:

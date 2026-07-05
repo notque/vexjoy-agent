@@ -287,6 +287,59 @@ def _read_install_mode(user_claude: Path) -> str:
         return "copy"
 
 
+def _canonical_repo_root(user_claude: Path) -> Path | None:
+    """Read the canonical toolkit path from the install manifest.
+
+    Returns the toolkit_path as a Path if it exists and is a directory,
+    otherwise None.  This provides a stable repo root for _resolves_inside
+    even when CWD is a worktree that bypassed detection.
+    """
+    manifest_path = user_claude / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        toolkit_path = manifest.get("toolkit_path", "")
+        if toolkit_path:
+            p = Path(toolkit_path)
+            if p.is_dir():
+                return p
+    except (json.JSONDecodeError, OSError):
+        pass
+    return None
+
+
+def _resolves_inside(path: Path, root: "Path | list[Path]") -> bool:
+    """True when *path* resolves to *root* or a descendant of *root*.
+
+    Safety guard: prevents destructive operations (rmtree, unlink) from
+    reaching repo files through symlinks.  When ~/.claude/skills/
+    contains a symlink pointing into the repo, code that traverses the
+    symlink sees regular files whose realpath is inside the repo.
+    Deleting those deletes tracked source files.
+
+    *root* may be a single Path or a list of Paths.  When a list is
+    given, True is returned if the resolved path falls inside ANY root.
+    This lets callers protect both the CWD-based repo_root AND the
+    canonical toolkit_path from the install manifest -- vital when sync
+    runs from a worktree that bypassed detection.
+    """
+    roots = [root] if isinstance(root, Path) else root
+    try:
+        resolved = str(path.resolve())
+    except OSError:
+        # Cannot resolve the candidate path: fail closed (treat as inside).
+        return True
+    for r in roots:
+        try:
+            root_str = str(r.resolve())
+        except OSError:
+            # Cannot resolve this root: fail closed rather than let a
+            # deletion proceed unverified against it.
+            return True
+        if resolved == root_str or resolved.startswith(root_str + os.sep):
+            return True
+    return False
+
+
 def _is_ephemeral_path(path: Path) -> bool:
     """Check if a path is ephemeral (will be cleaned up automatically).
 
@@ -319,19 +372,37 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
     current_path = str(repo_root)
     recorded_path = manifest.get("toolkit_path", "")
     if recorded_path != current_path:
+        # A repo "move" means the old path is gone. When the recorded path
+        # still exists as a directory, this run is indistinguishable from an
+        # undetected worktree -- rewriting the manifest would collapse the
+        # multi-root deletion guard onto the worktree path. Keep the record.
+        if recorded_path and Path(recorded_path).is_dir():
+            print(
+                "[sync] manifest toolkit_path kept: recorded path",
+                recorded_path,
+                "is still present; current run is at",
+                current_path,
+                "(worktree or copy?)",
+                file=sys.stderr,
+            )
+            return
         manifest["toolkit_path"] = current_path
         _atomic_json_write(manifest_path, manifest)
 
 
-def _ensure_symlink(src: Path, dst: Path) -> bool:
+def _ensure_symlink(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> bool:
     """Ensure dst is a symlink pointing to src.
 
     If dst is already the correct symlink, returns True (no change needed).
     If dst is a broken symlink, stale symlink, or regular directory, removes
     it and creates the correct symlink. Returns True on success.
 
-    Safety: refuses to create symlinks pointing into /tmp/ since those
-    targets are ephemeral and will break after cleanup.
+    Safety guards:
+    - Refuses to create symlinks pointing into /tmp/ (ephemeral targets).
+    - When *repo_root* is provided, refuses to rmtree/unlink any path that
+      resolves inside the repo working tree.  This prevents data loss when
+      a parent symlink (e.g. ~/.claude/skills -> repo/skills/) causes dst
+      to resolve into the repo even though dst itself is not a symlink.
     """
     # Never create a symlink to an ephemeral path
     if _is_ephemeral_path(src):
@@ -354,9 +425,23 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     elif dst.is_dir():
         # Regular directory from a previous copy-mode install or broken sync.
         # Remove it so we can replace with a symlink.
+        # SAFETY: if dst resolves inside the repo (parent symlink traversal),
+        # rmtree would destroy tracked source files.  Skip + loud stderr.
+        if repo_root is not None and _resolves_inside(dst, repo_root):
+            print(
+                f"[sync] BLOCKED: refusing to rmtree {dst} (resolves inside repo {repo_root})",
+                file=sys.stderr,
+            )
+            return False
         shutil.rmtree(dst)
 
     elif dst.exists():
+        if repo_root is not None and _resolves_inside(dst, repo_root):
+            print(
+                f"[sync] BLOCKED: refusing to unlink {dst} (resolves inside repo {repo_root})",
+                file=sys.stderr,
+            )
+            return False
         dst.unlink()
 
     try:
@@ -375,6 +460,12 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
             dst.symlink_to(src)
         else:
             # Regular file/dir appeared — remove and retry once
+            if repo_root is not None and _resolves_inside(dst, repo_root):
+                print(
+                    f"[sync] BLOCKED: refusing to remove {dst} in race recovery (resolves inside repo {repo_root})",
+                    file=sys.stderr,
+                )
+                return False
             if dst.is_dir():
                 shutil.rmtree(dst)
             else:
@@ -449,7 +540,7 @@ def _sync_runtime_skill_index(src: Path, dst: Path) -> bool:
     return True
 
 
-def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
+def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
     The repo organizes skills into category folders:
@@ -467,6 +558,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     Runtime-index policy: ~/.claude/skills/INDEX.json is materialized as a
     real merged file (tracked first, local fills gaps per-name), never a
     symlink. See _sync_runtime_skill_index for the two invariants this keeps.
+
+    *repo_root* enables the repo-path safety guard in _ensure_symlink.
     """
     # If dst is a single symlink to the repo (old-style), replace with a real dir
     if dst.is_symlink():
@@ -524,7 +617,7 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
         if item.is_dir() and _is_support_dir(item):
             support_dirs.add(item.name)
             expected_names.add(item.name)
-            _ensure_symlink(item, dst / item.name)
+            _ensure_symlink(item, dst / item.name, repo_root=repo_root)
 
     # Create per-skill symlinks from nested category folders.
     # Each category folder (meta/, process/, etc.) contains skill subdirectories.
@@ -541,21 +634,28 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
         if (category_dir / "SKILL.md").exists():
             # Flat skill at root level (legacy or special case)
             expected_names.add(category_dir.name)
-            _ensure_symlink(category_dir, dst / category_dir.name)
+            _ensure_symlink(category_dir, dst / category_dir.name, repo_root=repo_root)
         else:
             # Category folder: create symlinks for each skill inside
             for skill_dir in sorted(category_dir.iterdir()):
                 if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
                     expected_names.add(skill_dir.name)
-                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
                 elif skill_dir.is_dir() and (skill_dir / "profile.json").exists():
                     # Voice profile directories (data-only, no SKILL.md)
                     expected_names.add(skill_dir.name)
-                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
 
-    # Clean stale entries: remove symlinks in dst that no longer map to a source
+    # Clean stale entries: remove symlinks in dst that no longer map to a source.
+    # Guard: refuse to unlink anything that resolves inside the repo.
     for item in dst.iterdir():
         if item.name not in expected_names and item.is_symlink():
+            if repo_root is not None and _resolves_inside(item, repo_root):
+                print(
+                    f"[sync] BLOCKED: stale-cleanup refusing to unlink {item.name} (resolves inside repo)",
+                    file=sys.stderr,
+                )
+                continue
             item.unlink()
 
 
@@ -572,10 +672,10 @@ def _is_git_worktree(path: Path) -> bool:
     ephemeral worktree paths (e.g. /tmp/...-worktree-...) that get cleaned up,
     which breaks every hook until manual reinstall.
 
-    Known limitation: if .git is missing/corrupted AND git is not on PATH AND
-    the path is not under /tmp/, the function returns False (allows sync).
-    The /tmp/ guards in _ensure_symlink and _update_manifest_toolkit_path
-    provide secondary protection for the most common failure case.
+    Safe default: when .git is a file (worktree/submodule marker) but neither
+    the file content nor git rev-parse can determine the type, assume worktree
+    and refuse sync.  A false positive (blocking a submodule) is harmless; a
+    false negative (allowing a worktree) causes data loss.
     """
     # Fast check: reject ephemeral paths (e.g. /tmp/)
     if _is_ephemeral_path(path):
@@ -585,13 +685,15 @@ def _is_git_worktree(path: Path) -> bool:
     # Distinguish by reading the file: worktrees point to .git/worktrees/<name>,
     # submodules point to .git/modules/<name>. Only reject worktrees.
     dot_git = path / ".git"
-    if dot_git.is_file():
+    dot_git_is_file = dot_git.is_file()
+    if dot_git_is_file:
         try:
             content = dot_git.read_text().strip()
             # Format: "gitdir: <path>"
             if "worktrees/" in content:
                 return True
             # Submodule (.git/modules/) — not a worktree, allow sync
+            return False
         except OSError:
             # Can't read .git file — fall through to git rev-parse check
             pass
@@ -616,6 +718,18 @@ def _is_git_worktree(path: Path) -> bool:
             return True
     except (subprocess.CalledProcessError, OSError):
         pass
+
+    # Safe default: if .git is a file (worktree/submodule marker) but we
+    # could not determine its type, assume worktree and refuse sync.
+    # False positive (blocking a submodule) is harmless; false negative
+    # (allowing a worktree) causes symlink re-pointing and potential data loss.
+    if dot_git_is_file:
+        print(
+            f"[sync] WARNING: .git file at {path} unreadable and git rev-parse "
+            f"failed; assuming worktree (safe default)",
+            file=sys.stderr,
+        )
+        return True
 
     return False
 
@@ -673,9 +787,33 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     # support it get directory-level symlinks instead of file-by-file copies.
     install_mode = _read_install_mode(user_claude)
 
+    # Read the canonical toolkit_path BEFORE any manifest rewrite. Ordering
+    # matters: if an undetected worktree updated the manifest first, the
+    # canonical root would collapse onto the worktree path and the multi-root
+    # deletion guard below would protect nothing but the worktree.
+    canonical = _canonical_repo_root(user_claude)
+    if canonical is None:
+        print(
+            "[sync] WARNING: no canonical toolkit_path in install manifest; "
+            "deletion guard reduced to single-root protection",
+            file=sys.stderr,
+        )
+
     # Update the manifest's toolkit_path if the repo has moved (e.g., renamed
-    # from claude-code-toolkit to vexjoy-agent and re-cloned).
+    # from claude-code-toolkit to vexjoy-agent and re-cloned). Refuses the
+    # rewrite while the recorded path still exists (undetected worktree).
     _update_manifest_toolkit_path(user_claude, repo_root)
+
+    # Build the protected-roots list: repo_root (CWD) plus the canonical
+    # toolkit_path from the manifest.  If sync somehow runs from a worktree
+    # that bypassed _is_git_worktree, repo_root is the worktree path but the
+    # manifest still records the MAIN repo.  Deletions must be blocked for
+    # both.  When both resolve to the same directory, the list collapses to
+    # a single entry.
+    if canonical and canonical.resolve() != repo_root.resolve():
+        protected_roots: Path | list[Path] = [repo_root, canonical]
+    else:
+        protected_roots = repo_root
 
     # Components to sync (directories)
     components = [
@@ -729,11 +867,11 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                 # but Claude Code only discovers flat ~/.claude/skills/*/SKILL.md.
                 # Create individual symlinks to flatten the nested structure.
                 if src_name == "skills":
-                    _sync_skills_flat_symlinks(src, dst)
+                    _sync_skills_flat_symlinks(src, dst, repo_root=protected_roots)
                     count = sum(1 for d in dst.iterdir() if d.is_dir() and not d.name.startswith("."))
                     synced.append(f"{dst_name}(symlink, {count} skills)")
                 else:
-                    _ensure_symlink(src, dst)
+                    _ensure_symlink(src, dst, repo_root=protected_roots)
                     synced.append(f"{dst_name}(symlink)")
                 continue
 
@@ -808,6 +946,15 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                 if item.is_file():
                     rel = item.relative_to(dst)
                     if rel not in all_paths:
+                        # Guard: refuse to delete files that resolve inside
+                        # the repo (symlink traversal data-loss prevention).
+                        if _resolves_inside(item, protected_roots):
+                            print(
+                                f"[sync] BLOCKED: stale-cleanup refusing to "
+                                f"unlink {dst_name}/{rel} (resolves inside repo)",
+                                file=sys.stderr,
+                            )
+                            continue
                         try:
                             item.unlink()
                         except OSError:
@@ -815,6 +962,8 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             # Clean up empty directories left behind
             for dirpath in sorted(dst.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):
+                    if _resolves_inside(dirpath, protected_roots):
+                        continue
                     dirpath.rmdir()
         except Exception as e:
             errors.append(f"stale-cleanup-{dst_name}: {e}")
@@ -993,7 +1142,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             _tolerant_mkdir(codex_skills_dst)
             # Copy skills flat (same as ~/.claude/skills deployment).
             # The repo uses nested category folders but Codex needs flat.
-            _codex_root_utility = {"shared-patterns", "workflow", "kb"}
+            _codex_root_utility = {"shared-patterns", "workflow", "kb", "voice-shared-references"}
             for child in sorted(repo_skills.iterdir()):
                 if child.is_file():
                     # Root files: INDEX.json, README.md, etc.

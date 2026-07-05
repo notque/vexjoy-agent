@@ -36,7 +36,22 @@ GOLDEN = FIX / "golden"
 # SHA-256 of json.dumps(test_cases[:49], sort_keys=True, ensure_ascii=False)
 # at corpus v1.0. The legacy cases are immutable; extending the corpus means
 # APPENDING cases, never editing these.
-LEGACY_CASES_SHA = "c2098af10277cc3350a3d39ebc0e9d9a3e0091923b8e1104e6fb79cd7ea53aa3"
+#
+# Exception (2026-07-04, post-merge fixup I3): commit 87977cdb (codebase-analyzer
+# demoted to codebase-overview) edited the `notes` field of legacy entries 18-20
+# to rename the skill reference — an owner-approved content correction, not a
+# scope change to the pinned cases. The pin is updated to the new digest rather
+# than reverted, because the old digest now describes stale prose (a skill name
+# that no longer exists), which is a worse invariant to protect than "notes
+# mention the current skill name." Future edits to cases[:49] still require the
+# same scrutiny this pin exists to enforce.
+# Exception (2026-07-05, skill consolidation): 35 skills folded into 13 parents
+# via promoted_to. Legacy edits, all rename-class: notes in cases 18-20 and 31
+# (codebase-analyzer -> codebase-overview, fish-shell-config -> shell-config)
+# and case 42 gold label (roast -> multi-persona-critique, its parent). Same
+# rationale as the 87977cdb exception above: the old digest pins gold labels
+# for skills that no longer exist.
+LEGACY_CASES_SHA = "f7b95f03ecd51857dd85adde93304caff5c9b29224afb082bf4298ce75738fd9"
 NEW_BUCKETS = {
     "stub-tier",
     "sibling-disambiguation",

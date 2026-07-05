@@ -1,5 +1,6 @@
 ---
 name: motion-pipeline
+promoted_to: game-pipeline
 user-invocable: true
 description: "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK. No GPU required."
 allowed-tools:

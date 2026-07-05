@@ -1,5 +1,6 @@
 ---
 name: php-testing
+promoted_to: php
 description: "PHP testing patterns: PHPUnit, test doubles, database testing."
 user-invocable: false
 context: fork

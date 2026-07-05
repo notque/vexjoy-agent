@@ -1,0 +1,19 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T05/src.orig	2026-07-04 20:19:46.775902200 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T05/src/cache.py	2026-07-04 20:20:37.529069617 -0700
+@@ -1,4 +1,4 @@
+-"""LRU cache with TTL. Bug: expired entries are returned instead of evicted."""
++"""LRU cache with TTL."""
+ 
+ import time
+ 
+@@ -16,7 +16,9 @@
+         if key not in self._store:
+             return None
+         timestamp, value = self._store[key]
+-        # BUG: should check if entry is expired and evict it, but returns stale value
++        if time.monotonic() - timestamp > self.ttl:
++            del self._store[key]
++            return None
+         return value
+ 
+     def put(self, key: str, value: object) -> None:

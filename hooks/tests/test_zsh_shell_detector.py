@@ -172,7 +172,7 @@ class TestZshMain:
         inner = parsed.get("hookSpecificOutput", {})
         ctx = inner.get("additionalContext", "")
         assert "[zsh-shell] Detected Zsh shell user" in ctx
-        assert "[auto-skill] zsh-shell-config" in ctx
+        assert "[auto-skill] shell-config" in ctx
 
     def test_non_zsh_emits_empty(self):
         """SHELL=/bin/bash → main() emits empty output (no additionalContext)."""
@@ -205,4 +205,5 @@ class TestZshMain:
 
     def test_injection_format_correct(self):
         """Injected context matches exact expected format."""
-        assert zsh_mod.get_zsh_injection() == "[zsh-shell] Detected Zsh shell user\n[auto-skill] zsh-shell-config"
+        # zsh-shell-config folded into shell-config (skill consolidation).
+        assert zsh_mod.get_zsh_injection() == "[zsh-shell] Detected Zsh shell user\n[auto-skill] shell-config"

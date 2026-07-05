@@ -1,5 +1,6 @@
 ---
 name: zsh-shell-config
+promoted_to: shell-config
 description: "Zsh shell configuration, PATH management, completions, and framework setup."
 user-invocable: false
 allowed-tools:

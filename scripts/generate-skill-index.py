@@ -629,6 +629,10 @@ def main() -> int:
                 continue
             if used_fallback and args.strict:
                 continue
+            # Folded skills stay folded: a deployed copy of a promoted skill
+            # must not re-enter routing through the local overlay.
+            if fm.get("promoted_to"):
+                continue
             # Override name to match deployed name
             fm["name"] = deploy_name
             entry = build_entry(
@@ -687,6 +691,9 @@ def main() -> int:
                     if not fm:
                         continue
                     if used_fallback and args.strict:
+                        continue
+                    # Folded skills stay folded, same rule as the deployed scan.
+                    if fm.get("promoted_to"):
                         continue
 
                     # Override name to match deployed name

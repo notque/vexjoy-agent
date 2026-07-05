@@ -84,7 +84,7 @@ routing:
     - php-cs-fixer
     - phpstan
     - psalm
-  not_for: "running or configuring PHP quality or test tooling in isolation (use php-quality or php-testing); Go SAP Commerce Cloud patterns (use go-patterns skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
+  not_for: "running or configuring PHP quality or test tooling in isolation (use php skill); Go SAP Commerce Cloud patterns (use go-patterns skill); Python pip/packaging (use python-general-engineer). This agent writes and debugs PHP features."
   retro-topics:
     - php-patterns
     - security

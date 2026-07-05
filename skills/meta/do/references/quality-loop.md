@@ -81,7 +81,7 @@ Dispatch the agent+skill that `/do` Phase 2 selected, with worktree isolation. T
 - Create feature branch in worktree
 - Agent uses its own skill and reference files for domain-specific implementation
 - Agent commits on the feature branch
-- Inject worktree-agent skill rules into agent prompt
+- Inject worktree rules into agent prompt (see `references/worktree-rules.md`)
 - Include "commit your changes on the branch" in agent prompt
 
 **State artifact:** Before proceeding, write `quality-loop-state.md` in the worktree root:

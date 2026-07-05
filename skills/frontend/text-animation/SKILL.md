@@ -1,5 +1,6 @@
 ---
 name: text-animation
+promoted_to: distinctive-frontend-design
 description: "Dependency-free kinetic typography: roll/slot text, reveals, typewriter, crossfade."
 agent: typescript-frontend-engineer
 user-invocable: false

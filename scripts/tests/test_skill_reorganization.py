@@ -17,6 +17,8 @@ from typing import ClassVar
 
 import pytest
 
+from scripts.lib.frontmatter import parse_frontmatter
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -97,13 +99,24 @@ class TestIndexIntegrity:
         assert not missing, f"INDEX.json entries with missing files:\n" + "\n".join(missing)
 
     def test_every_skill_md_is_in_index(self, index_skills: dict[str, dict], skill_md_paths: list[Path]) -> None:
-        """Every SKILL.md on disk must be represented in INDEX.json."""
+        """Every SKILL.md on disk must be represented in INDEX.json.
+
+        Exception: SKILL.md files carrying a `promoted_to` frontmatter field
+        are demoted skills whose content moved to a reference file elsewhere
+        (see generate-skill-index.py's `[skip] {name} promoted to {target}`
+        handling). The generator correctly excludes them from INDEX.json, so
+        the test exempts them by reading the field, not by hardcoding names.
+        """
         indexed_files = {meta["file"] for meta in index_skills.values()}
         orphaned = []
         for path in skill_md_paths:
             rel = str(path.relative_to(ROOT))
-            if rel not in indexed_files:
-                orphaned.append(rel)
+            if rel in indexed_files:
+                continue
+            frontmatter, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+            if frontmatter and frontmatter.get("promoted_to"):
+                continue
+            orphaned.append(rel)
         assert not orphaned, f"SKILL.md files not in INDEX.json:\n" + "\n".join(orphaned)
 
     def test_no_duplicate_skill_names(self, index_data: dict) -> None:
@@ -425,11 +438,17 @@ class TestGenerators:
 
     @pytest.mark.slow
     def test_generated_index_has_expected_skill_count(self) -> None:
-        """Generated INDEX.json should have ~113 skills."""
+        """Generated INDEX.json should have ~99 active skills.
+
+        Floor tracks the 99-skill catalog from the 13-family consolidation
+        (35 skills folded via promoted_to, catalog 129 -> 99; this PR's
+        feat/skill-consolidation chunk). Not slack: raise the floor with new
+        skills, lower it only for an owner-approved consolidation.
+        """
         data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
         count = len(data["skills"])
         # Allow small variance (new skills may be added)
-        assert count >= 100, f"Too few skills in INDEX.json: {count} (expected >=100)"
+        assert count >= 95, f"Too few skills in INDEX.json: {count} (expected >=95)"
         assert count <= 150, f"Too many skills in INDEX.json: {count} (expected <=150)"
 
     @pytest.mark.slow

@@ -1,0 +1,15 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T04/src.orig	2026-07-04 20:19:46.786902453 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T04/src/config_parser.py	2026-07-04 20:20:28.386859385 -0700
+@@ -10,9 +10,9 @@
+         line = line.strip()
+         if not line or line.startswith("#"):
+             continue
+-        # BUG: split("=") splits on ALL '=' chars; "db_url=postgres://host?opt=1"
+-        # yields key="db_url", value="postgres://host?opt" and drops "1"
+-        parts = line.split("=")
++        # Split only on the first '=' so values containing '=' (e.g. URLs like
++        # "db_url=postgres://host?opt=1") are preserved intact.
++        parts = line.split("=", 1)
+         if len(parts) == 2:
+             result[parts[0].strip()] = parts[1].strip()
+     return result

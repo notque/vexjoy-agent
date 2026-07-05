@@ -137,6 +137,7 @@ Detect the user's intent and load the appropriate reference file:
 | **Body safety** | any `gh` call writing or reading a PR/issue body | `${CLAUDE_SKILL_DIR}/references/gh-body-safety.md` |
 | **Changelog** | "update changelog", "release notes", "curate changelog" | `${CLAUDE_SKILL_DIR}/references/changelog-curation.md` |
 | **Decision brief** | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `${CLAUDE_SKILL_DIR}/references/owner-decision-briefs.md` |
+| **Risk classify** | automatic pre-review step; also "classify PR risk", "pr risk", "risk check" | `${CLAUDE_SKILL_DIR}/references/pr-risk-policy.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 
@@ -160,6 +161,25 @@ Detect the user's intent and load the appropriate reference file:
 | "update changelog", "release notes", "curate changelog" | `changelog-curation.md` | **Changelog** |
 | "decision brief", "authorization tier", "ask the owner", "is it decision-ready" | `owner-decision-briefs.md` | **Decision brief** |
 | "INDEX.json conflict", "INDEX conflict on rebase", "two PRs regenerated INDEX", "regenerate INDEX after rebase" | `index-conflict-resolution.md` | **INDEX conflict** |
+| "classify PR risk", "pr risk", "risk check", or automatic pre-review step | `pr-risk-policy.md` | **Risk classify** |
+
+## Review Lanes by Risk
+
+Before dispatching reviewers for any PR, run risk classification:
+
+```bash
+python3 scripts/pr-risk-classify.py --base "$MAIN_BRANCH" --head HEAD
+```
+
+Route to the appropriate review lane based on the `risk` field:
+
+| Risk | Lane | Action |
+|---|---|---|
+| `low` | Quick single review | `parallel-code-review` (3 agents) — lightweight, fast |
+| `medium` | Full right-size-review roster | Run `right-size-review.py` for tier-appropriate wave composition |
+| `high` | Full roster + operator sign-off | Right-size-review roster + add `**Operator sign-off required**` note to PR body Notes section |
+
+When `recommend_split` is true, surface the recommendation to the user before dispatching review: "This PR has N lines changed (above the 800-line ceiling). Consider splitting into smaller PRs for faster, higher-quality review." Proceed with review if the user chooses to continue.
 
 ## Mandatory PR Body Structure
 

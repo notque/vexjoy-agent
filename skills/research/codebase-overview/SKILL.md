@@ -22,7 +22,6 @@ routing:
     - "understand this codebase"
   category: analysis
   pairs_with:
-    - codebase-analyzer
     - generate-claudemd
 ---
 
@@ -37,6 +36,8 @@ Systematic 4-phase codebase exploration that produces an evidence-backed onboard
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |
 | language-specific discovery commands per exploration phase | `exploration-strategies.md` | Loads detailed guidance from `exploration-strategies.md`. |
 | writing the 12-section overview report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| statistical rule discovery, Go pattern analysis, cartographer scripts | `statistical-three-lenses.md`, `statistical-metrics-catalog.md` | Measure-first analysis lenses and 100-metric catalog (from demoted codebase-analyzer). |
+| statistical analysis worked examples, phase banners, error catalog | `statistical-phase-details.md`, `statistical-analysis-examples.md` | Phase details and real-world analysis workflows (from demoted codebase-analyzer). |
 
 ## Instructions
 
@@ -293,3 +294,10 @@ Launch 4 parallel agents using Task, each focused on a specific domain. Each age
 - `${CLAUDE_SKILL_DIR}/references/report-template.md`: Standard markdown report template with all sections
 - `${CLAUDE_SKILL_DIR}/references/exploration-strategies.md`: Language-specific discovery commands and patterns
 - `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples, error handling, parallel agent template and domain table
+- `${CLAUDE_SKILL_DIR}/references/statistical-three-lenses.md`: Three statistical analysis lenses (Consistency, Signature, Idiom) for Go codebases
+- `${CLAUDE_SKILL_DIR}/references/statistical-metrics-catalog.md`: 100-metric catalog across 25 categories for Go pattern analysis
+- `${CLAUDE_SKILL_DIR}/references/statistical-phase-details.md`: Phase banners, reconciliation matrix, rule format for statistical analysis
+- `${CLAUDE_SKILL_DIR}/references/statistical-analysis-examples.md`: Real-world statistical analysis examples and workflows
+- `${CLAUDE_SKILL_DIR}/scripts/cartographer_omni.py`: Full 100-metric Go codebase statistical analyzer
+- `${CLAUDE_SKILL_DIR}/scripts/cartographer.py`: Quick ~15-category Go pattern overview
+- `${CLAUDE_SKILL_DIR}/scripts/cartographer_ultimate.py`: 6-category focused performance pattern detection

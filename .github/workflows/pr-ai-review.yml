@@ -1,0 +1,84 @@
+name: PR AI Review (Quick Pass)
+
+# Automatic, warn-only AI review on every PR. Complements .github/workflows/claude.yml
+# (which only fires on an explicit @claude mention) with a review that runs on every
+# push to a PR, no mention required.
+#
+# Design constraints (docs/PHILOSOPHY.md, Warn-Only Gates Beat Blocking Gates):
+# - Never blocks merge. This workflow only posts a PR comment; it is not registered
+#   as a required status check in branch protection.
+# - Scope stays narrow: correctness bugs and safety-policy violations only, read from
+#   the PR diff. No style/naming/formatting commentary -- ruff and the lint job already
+#   own that ground.
+# - Graduating any part of this to a blocking gate needs a dedicated ADR and operator
+#   sign-off (see docs/PHILOSOPHY.md, Warn-Only Gates Beat Blocking Gates).
+#
+# Future deeper pass (not implemented here, self-contained by design): if
+# skills/process/pr-workflow/references/pr-risk-policy.md exists, a follow-up job could
+# key a second, deeper review off the risk tiers it defines (e.g. run only on
+# high-risk-labeled files, apply stricter checks per tier). This workflow does not read
+# or depend on that file -- it may not exist yet, and this quick pass must work without
+# it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  quick-review:
+    runs-on: ubuntu-latest
+    # Same-repo PRs only: fork PRs get no secret anyway (pull_request event), so
+    # skipping them avoids burning CI minutes on runs that can only fail.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Advisory job: a failure here must never fail the PR's required checks.
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude quick review
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          additional_permissions: |
+            actions: read
+
+          # Small, focused prompt: correctness bugs and safety-policy violations only,
+          # scoped to the PR diff. Advisory -- must never request changes or block merge.
+          prompt: |
+            Perform a quick, warn-only AI review of this pull request's diff only.
+
+            Scope, nothing else:
+            1. Correctness bugs: logic errors, unhandled errors, broken control flow,
+               off-by-one, incorrect API usage.
+            2. Safety-policy violations: committed secrets, public network binds
+               (0.0.0.0, wildcard listeners), destructive commands without a guard,
+               bypassed hooks/gates, weakened auth/TLS/firewall settings.
+
+            Do not comment on style, naming, formatting, or test coverage -- other CI
+            jobs own that ground.
+
+            Steps:
+            1. Run `git diff origin/main...HEAD` to see only the changed lines (this
+               repo's PRs always target `main`; avoid interpolating branch names from
+               event payloads into commands).
+            2. Skip files that are pure docs/comments unless they encode enforceable
+               policy (ADRs, hook contracts, CLAUDE.md).
+            3. Post one PR comment via `gh pr comment` summarizing findings: one bullet
+               per finding, `file:line` reference, one-line fix suggestion. If none,
+               post "Quick AI pass: no correctness or safety-policy issues found."
+            4. This is advisory only. Never mark the review as requesting changes,
+               never fail the build, never block merge.
+
+          claude_args: '--allowed-tools "Bash(git diff:*),Bash(gh pr comment:*)"'

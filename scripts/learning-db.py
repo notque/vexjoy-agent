@@ -36,6 +36,10 @@ Usage:
     python3 scripts/learning-db.py route-health [--json]
     python3 scripts/learning-db.py route-weights --json
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
+    python3 scripts/learning-db.py record-review-fp --reviewer reviewer-code --finding "unused import" --reason "import used in test"
+    python3 scripts/learning-db.py review-fps [--json] [--min-confidence 0.5]
+    python3 scripts/learning-db.py stack-usage [--json]
+    python3 scripts/learning-db.py backfill-stack-usage [--force]
 """
 
 import argparse
@@ -1576,6 +1580,238 @@ def cmd_migrate(args):
     )
 
 
+def cmd_record_review_fp(args):
+    """Record a structured review false positive with full metadata."""
+    value = (
+        f"finding: {args.finding} "
+        f"| reviewer: {args.reviewer} "
+        f"| reason: {args.reason} "
+        f"| source: {args.source_file or 'unknown'}"
+    )
+    tags = ["false-positive"]
+    if args.reviewer:
+        tags.append(args.reviewer)
+
+    result = record_learning(
+        topic="review-false-positive",
+        key=args.finding[:50].lower().strip().replace(" ", "-"),
+        value=value,
+        category="review",
+        confidence=0.70,
+        tags=tags,
+        source=args.source or "cli:record-review-fp",
+        source_detail=args.source_detail,
+        project_path=args.project_path,
+    )
+    action = "Updated" if not result["is_new"] else "Recorded"
+    print(
+        f"{action}: review-false-positive/{result['key']} "
+        f"(reviewer: {args.reviewer}, confidence: {result['confidence']:.2f}, "
+        f"observations: {result['observation_count']})"
+    )
+
+
+def cmd_review_fps(args):
+    """List accumulated review false positives, grouped by reviewer agent."""
+    init_db()
+    results = query_learnings(
+        topic="review-false-positive",
+        category="review",
+        min_confidence=args.min_confidence,
+        exclude_graduated=not args.include_graduated,
+        order_by="last_seen DESC",
+        limit=args.limit,
+    )
+
+    if args.json:
+        # Group by reviewer for JSON output
+        grouped = {}
+        for r in results:
+            reviewer = _extract_reviewer_from_value(r.get("value", ""))
+            grouped.setdefault(reviewer, []).append(r)
+        print(json.dumps(grouped, indent=2, default=str))
+        return
+
+    if not results:
+        print("No review false positives recorded.")
+        return
+
+    # Group by reviewer
+    grouped = {}
+    for r in results:
+        reviewer = _extract_reviewer_from_value(r.get("value", ""))
+        grouped.setdefault(reviewer, []).append(r)
+
+    for reviewer, entries in sorted(grouped.items(), key=lambda kv: -len(kv[1])):
+        print(f"\n=== {reviewer} ({len(entries)} false positive(s)) ===")
+        for r in entries:
+            obs = f" [{r['observation_count']}x]" if r["observation_count"] > 1 else ""
+            print(f"  [{r['confidence']:.2f}]{obs} {r['key']}")
+            # Extract finding and reason from pipe-delimited value
+            parts = _parse_pipe_value(r.get("value", ""))
+            if parts.get("finding"):
+                print(f"    finding: {parts['finding'][:100]}")
+            if parts.get("reason"):
+                print(f"    reason:  {parts['reason']}")
+            if parts.get("source") and parts["source"] != "unknown":
+                print(f"    source:  {parts['source']}")
+            print(f"    last seen: {r.get('last_seen', 'unknown')}")
+
+
+def _extract_reviewer_from_value(value: str) -> str:
+    """Extract reviewer name from pipe-delimited value string."""
+    parts = _parse_pipe_value(value)
+    return parts.get("reviewer", "unknown")
+
+
+# Key prefix routing-decision-recorder.py uses for stack-usage rows (must
+# match hooks/routing-decision-recorder.py's _STACK_USAGE_KEY_PREFIX).
+STACK_USAGE_KEY_PREFIX = "stack-usage:"
+_STACK_USAGE_BACKFILL_MARKER = f"{STACK_USAGE_KEY_PREFIX}_backfilled"
+
+
+def _collect_stack_usage() -> list[dict[str, object]]:
+    """Read every stack-usage row into {skill, times_stacked, last_seen}, most-frequent first."""
+    init_db()
+    results = query_learnings(
+        topic="routing",
+        category="effectiveness",
+        limit=10000,
+        exclude_graduated=False,
+        exclude_test_sources=False,
+    )
+    rows = []
+    for r in results:
+        key = str(r["key"])
+        if not key.startswith(STACK_USAGE_KEY_PREFIX) or key == _STACK_USAGE_BACKFILL_MARKER:
+            continue
+        rows.append(
+            {
+                "skill": key[len(STACK_USAGE_KEY_PREFIX) :],
+                "times_stacked": r.get("observation_count", 1),
+                "last_seen": r.get("last_seen"),
+            }
+        )
+    rows.sort(key=lambda r: -int(r["times_stacked"]))
+    return rows
+
+
+def cmd_stack_usage(args: argparse.Namespace) -> None:
+    """List enhancement skills seen in `[do-route]` `stack={...}` tokens.
+
+    One row per enhancement skill: times stacked (observation_count) and last
+    seen, most-frequent first — the routing-table utilization audit's view
+    onto stacked skills (voice-validator, joy-check, etc.) that the primary
+    per-dispatch `route-stats`/`route-weights` rows never surface.
+    """
+    rows = _collect_stack_usage()
+
+    if args.json:
+        print(json.dumps(rows, indent=2, default=str))
+        return
+
+    if not rows:
+        print(
+            "No stack usage recorded yet. Data accumulates once a [do-route] "
+            "marker carries a stack={...} token; run backfill-stack-usage to "
+            "import any stack data already in route-events.jsonl."
+        )
+        return
+
+    print(f"Stack Usage ({len(rows)} enhancement skill(s) seen)")
+    print(f"{'Skill':<40} {'Times Stacked':>14}  Last Seen")
+    print(f"{'─' * 40} {'─' * 14}  {'─' * 19}")
+    for r in rows:
+        print(f"{r['skill']:<40} {r['times_stacked']:>14}  {r['last_seen']}")
+
+
+def cmd_backfill_stack_usage(args: argparse.Namespace) -> None:
+    """One-shot: aggregate historical stack={...} data from route-events.jsonl.
+
+    routing-decision-recorder.py only started writing stack-usage rows once
+    this feature shipped; route-events.jsonl may already carry older DECISION
+    events with a `stack` field from before that. This replays those events
+    through the same per-skill counting the live hook uses, so historical
+    stacking isn't invisible to the query surface.
+
+    Idempotent via a marker row: re-running without --force is a no-op (a
+    second pass would double-count the same historical events, since each
+    event bump is indistinguishable from a fresh live dispatch).
+    """
+    init_db()
+    with get_connection() as conn:
+        already = conn.execute(
+            "SELECT value FROM learnings WHERE topic = 'routing' AND key = ?",
+            (_STACK_USAGE_BACKFILL_MARKER,),
+        ).fetchone()
+    if already and not args.force:
+        print(f"Already backfilled ({already['value']}). Pass --force to re-run (will double-count).")
+        return
+
+    try:
+        from route_events import events_path
+    except ImportError:
+        print(
+            "route_events not found; run from repo root or ensure hooks/lib is on PYTHONPATH.",
+            file=sys.stderr,
+        )
+        return
+
+    path = events_path()
+    if not path.exists():
+        print(f"No route-events.jsonl found at {path}; nothing to backfill.")
+        record_learning(
+            topic="routing",
+            key=_STACK_USAGE_BACKFILL_MARKER,
+            value="backfilled: 0 events (route-events.jsonl absent)",
+            category="effectiveness",
+            source="cli:backfill-stack-usage",
+        )
+        return
+
+    events_with_stack = 0
+    skill_increments = 0
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") != "decision":
+                continue
+            stack = event.get("stack")
+            if not stack:
+                continue
+            events_with_stack += 1
+            for skill in dict.fromkeys(stack):
+                if not skill:
+                    continue
+                record_learning(
+                    topic="routing",
+                    key=f"{STACK_USAGE_KEY_PREFIX}{skill}",
+                    value=f"stack-usage: skill={skill}",
+                    category="effectiveness",
+                    tags=["stack-usage", skill],
+                    source="cli:backfill-stack-usage",
+                )
+                skill_increments += 1
+
+    record_learning(
+        topic="routing",
+        key=_STACK_USAGE_BACKFILL_MARKER,
+        value=f"backfilled: {events_with_stack} historical decision events, {skill_increments} skill increments",
+        category="effectiveness",
+        source="cli:backfill-stack-usage",
+    )
+    print(
+        f"Backfill complete: {events_with_stack} historical decision event(s) with stack data, "
+        f"{skill_increments} skill-usage increment(s) recorded."
+    )
+
+
 def _non_negative_int(value: str) -> int:
     """Validate that an argparse integer value is non-negative.
 
@@ -1837,6 +2073,39 @@ def main():
     p_route_health = subparsers.add_parser("route-health", help="Quick routing feedback loop health check")
     p_route_health.add_argument("--json", action="store_true", help="Output as JSON")
     p_route_health.set_defaults(func=cmd_route_health)
+
+    # record-review-fp (structured review false-positive recording)
+    p_rrfp = subparsers.add_parser("record-review-fp", help="Record a review false positive with full metadata")
+    p_rrfp.add_argument("--reviewer", required=True, help="Reviewer agent name (e.g., reviewer-code)")
+    p_rrfp.add_argument("--finding", required=True, help="The review finding text that was wrong")
+    p_rrfp.add_argument("--reason", required=True, help="Why the finding was judged wrong")
+    p_rrfp.add_argument("--source-file", help="Source file or skill the finding was about")
+    p_rrfp.add_argument("--source", help="Source identifier (default: cli:record-review-fp)")
+    p_rrfp.add_argument("--source-detail", help="Additional source context")
+    p_rrfp.add_argument("--project-path", help="Project path")
+    p_rrfp.set_defaults(func=cmd_record_review_fp)
+
+    # review-fps (list false positives per reviewer)
+    p_rfps = subparsers.add_parser("review-fps", help="List review false positives grouped by reviewer agent")
+    p_rfps.add_argument("--min-confidence", type=float, default=0.0, help="Minimum confidence threshold")
+    p_rfps.add_argument("--include-graduated", action="store_true", help="Include graduated entries")
+    p_rfps.add_argument("--limit", type=int, default=100, help="Maximum entries to return")
+    p_rfps.add_argument("--json", action="store_true", help="Output as JSON")
+    p_rfps.set_defaults(func=cmd_review_fps)
+
+    # stack-usage (per-enhancement-skill utilization from [do-route] stack={...})
+    p_stack_usage = subparsers.add_parser(
+        "stack-usage", help="List enhancement skills seen stacked, with times stacked + last seen"
+    )
+    p_stack_usage.add_argument("--json", action="store_true", help="Output as JSON")
+    p_stack_usage.set_defaults(func=cmd_stack_usage)
+
+    # backfill-stack-usage (one-shot import from route-events.jsonl)
+    p_backfill_stack = subparsers.add_parser(
+        "backfill-stack-usage", help="One-shot: import historical stack={...} data from route-events.jsonl"
+    )
+    p_backfill_stack.add_argument("--force", action="store_true", help="Re-run even if already backfilled")
+    p_backfill_stack.set_defaults(func=cmd_backfill_stack_usage)
 
     args = parser.parse_args()
     args.func(args)

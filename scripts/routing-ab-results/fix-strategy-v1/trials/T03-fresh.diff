@@ -1,0 +1,12 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T03/src.orig	2026-07-04 20:19:46.735901280 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/fresh/T03/src/rate_limiter.py	2026-07-04 20:20:21.509701224 -0700
+@@ -22,8 +22,7 @@
+     def try_acquire(self) -> bool:
+         """Return True if a token is available, consuming it."""
+         self._refill()
+-        # BUG: >= should be >, allowing acquire when tokens == 0
+-        if self.tokens >= 0:
++        if self.tokens > 0:
+             self.tokens -= 1
+             return True
+         return False

@@ -44,14 +44,14 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/fish-shell-detector.py\"",
-            "description": "Auto-detect Fish shell users and inject fish-shell-config skill",
+            "description": "Auto-detect Fish shell users and inject shell-config skill",
             "timeout": 1000,
             "once": true
           },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
-            "description": "Auto-detect Zsh shell users and inject zsh-shell-config skill",
+            "description": "Auto-detect Zsh shell users and inject shell-config skill",
             "timeout": 1000,
             "once": true
           },
@@ -122,6 +122,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
             "description": "Detect pipeline creation requests and inject pipeline context",
             "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/review-false-positive-capture.py\"",
+            "description": "Capture review false-positive signals when a user disputes a code-review finding",
+            "timeout": 3000
           },
           {
             "type": "command",

@@ -202,6 +202,14 @@ Address only the confirmed root cause. No speculative improvements.
 
 Run the reproduction test. It must turn GREEN. If it doesn't, the fix didn't work and you need to return to Phase 2 with new hypotheses.
 
+**Step 2a: Revert on failed fix**
+
+If the fix attempt fails (test stays RED) or creates more breakage than it solves (new failures outweigh the one fixed):
+
+1. Revert all changes made since Phase 1 -- `git checkout -- <files>` or `git stash` the fix attempt. The codebase returns to its pre-fix state before any new hypothesis is tried.
+2. Append the revert reason to `.debug-session.md` Eliminated Hypotheses -- record which hypothesis was tried, what broke, and why it was reverted.
+3. Return to Phase 2 with narrowed scope -- the failed attempt is evidence; use it to rule out the hypothesis and rank the remaining candidates.
+
 **Step 3: Test edge cases**
 
 Test boundary values, empty input, null, maximum values. Verify the fix works beyond the exact reproduction case.

@@ -26,8 +26,24 @@ routing:
     - make a clip
     - assemble clips
     - video editing
+    - image to video
+    - audio visualization
+    - static video
+    - mp4 from image
+    - music video
+    - podcast video
+    - video from image
+    - combine image audio
+    - album art video
+    - cover art video
+    - video transcript
+    - youtube transcript
+    - extract transcript
+    - download subtitles
+    - what does this video say
   pairs_with:
     - typescript-frontend-engineer
+    - research-pipeline
 ---
 
 # Video Editing Skill
@@ -56,6 +72,10 @@ This skill implements a **6-layer pipeline** where AI handles judgment tasks (wh
 | `references/errors.md` | `errors.md` | Error Handling |
 | `references/ffmpeg-commands.md` | `ffmpeg-commands.md` | Phase 3, Proxy |
 | `references/remotion-scaffold.md` | `remotion-scaffold.md` | Phase 4 |
+
+| Image-to-video task | `references/image-to-video.md` | Full image-to-video pipeline: validate, prepare, encode, verify |
+| Image-to-video FFmpeg filters | `references/ffmpeg-filters.md` | FFmpeg filter graphs for audio visualization modes |
+| Video transcript extraction | `references/video-transcript.md` | yt-dlp subtitle download and VTT cleaning pipeline |
 
 ## Instructions
 
@@ -170,3 +190,6 @@ Common errors (missing source files, FFmpeg codec errors, Remotion composition-n
 
 - [Remotion docs](https://www.remotion.dev/docs) -- TSX composition API
 - [FFmpeg docs](https://ffmpeg.org/documentation.html) -- Flag reference
+- `references/image-to-video.md`: Image-to-video pipeline (validate, prepare, encode, verify)
+- `references/ffmpeg-filters.md`: FFmpeg filter graphs for audio visualization modes
+- `references/video-transcript.md`: yt-dlp subtitle download and VTT cleaning

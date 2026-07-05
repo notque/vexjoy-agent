@@ -18,7 +18,7 @@ cycle; done-criteria verify by execution; the loop reschedules via
 ## Non-goals
 
 - Executing work inline (route through /do).
-- Persistence: cron/CronCreate loops belong to `headless-cron-creator` behind `OWNER-APPROVED-PERSISTENCE`.
+- Persistence: cron/CronCreate loops belong to `cron-automation` behind `OWNER-APPROVED-PERSISTENCE`.
 - Retry/backoff code inside programs (`condition-based-waiting`).
 - Single-condition waits (harness `Monitor`).
 - Replacing `feature-lifecycle` (features keep their phase machine).

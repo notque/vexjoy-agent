@@ -31,7 +31,7 @@ Requests that route elsewhere instead of activating html-artifact.
 | 2 | "Run the tests" | Test execution, not output generation | test runner / quick |
 | 3 | "Write this as markdown" | Explicit markdown request | Standard markdown output |
 | 4 | "Create an interactive essay about caching" | Self-contained HTML with scroll animations | html-artifact skill with scrollytelling-patterns.md |
-| 5 | "Make a slide deck for the conference" | Presentation deck | frontend-slides skill |
+| 5 | "Make a slide deck for the conference" | Presentation deck | distinctive-frontend-design skill |
 | 6 | "Build a React component for the login page" | Framework component | typescript-frontend-engineer |
 
 ---

@@ -3,7 +3,7 @@
 """
 SessionStart Hook: Fish Shell Detection
 
-Detects Fish shell users and injects the fish-shell-config skill.
+Detects Fish shell users and injects the shell-config skill.
 Runs once at session start to provide Fish-specific guidance.
 
 Detection Logic:
@@ -12,7 +12,7 @@ Detection Logic:
 
 Output Format:
 - [fish-shell] Detected Fish shell user
-- [auto-skill] fish-shell-config
+- [auto-skill] shell-config
 
 Design Principles:
 - Lightweight detection (no complex processing)
@@ -76,10 +76,10 @@ def is_fish_shell() -> bool:
 def get_fish_injection() -> str:
     """Get the context injection for Fish shell users.
 
-    Emits only tags. The fish-shell-config skill carries its own knowledge.
+    Emits only tags. The shell-config skill carries its own knowledge.
     ADR hook-injection-condensation: removed tutorial block.
     """
-    return "[fish-shell] Detected Fish shell user\n[auto-skill] fish-shell-config"
+    return "[fish-shell] Detected Fish shell user\n[auto-skill] shell-config"
 
 
 def main():

@@ -1,5 +1,6 @@
 ---
 name: operations
+promoted_to: business-ops
 description: "Business operations: vendor management, runbooks, process docs, risk assessment, capacity planning, change management, compliance tracking."
 routing:
   triggers:

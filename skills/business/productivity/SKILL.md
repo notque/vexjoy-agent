@@ -1,5 +1,6 @@
 ---
 name: productivity
+promoted_to: business-ops
 description: "Personal productivity: pick what to work on next, prioritize tasks, plan your day, weekly reviews, meeting optimization, goals, status updates."
 routing:
   triggers:

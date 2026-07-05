@@ -1,5 +1,6 @@
 ---
 name: customer-support
+promoted_to: business-ops
 description: Customer support workflows — ticket triage, response drafting, knowledge base articles, escalation handling, customer research. Use when triaging support tickets, drafting customer responses, creating KB articles, managing escalations, or researching customer context.
 routing:
   triggers:

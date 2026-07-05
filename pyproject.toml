@@ -117,6 +117,16 @@ line-ending = "lf"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# fixtures/fix-strategy-ab/tests/ is a synthetic project (test input for
+# scripts/tests/test_fix_strategy_ab.py), not a real test suite. Its
+# tests/__init__.py collides with the top-level tests/ package under bare
+# `pytest` collection — both resolve to the module name "tests" (I1,
+# post-merge fixups, 2026-07-04). No test files live directly under any
+# other `fixtures/` directory, so excluding the name repo-wide is safe.
+# .claude/ holds agent worktrees — full repo copies whose test packages
+# collide with the real ones (ImportPathMismatchError) when any worktree
+# exists at collection time.
+norecursedirs = ["fixtures", ".claude", ".git", "venv", "node_modules"]
 markers = [
     "slow: marks tests as slow (subprocess calls)",
     "integration: marks tests requiring external tools (e.g., Chrome headless)",
