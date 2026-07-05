@@ -12,7 +12,7 @@ Detection Logic:
 
 Output Format:
 - [fish-shell] Detected Fish shell user
-- [auto-skill] fish-shell-config
+- [auto-skill] shell-config
 
 Design Principles:
 - Lightweight detection (no complex processing)
@@ -79,7 +79,7 @@ def get_fish_injection() -> str:
     Emits only tags. The fish-shell-config skill carries its own knowledge.
     ADR hook-injection-condensation: removed tutorial block.
     """
-    return "[fish-shell] Detected Fish shell user\n[auto-skill] fish-shell-config"
+    return "[fish-shell] Detected Fish shell user\n[auto-skill] shell-config"
 
 
 def main():

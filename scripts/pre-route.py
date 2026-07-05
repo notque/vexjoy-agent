@@ -250,8 +250,7 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
         "essay",
         "offsite",
     },
-    "fish-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
-    "zsh-shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
     "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
     # ADR public-web-deploy. Low-specificity idiom triggers ("go live",
     # "make it public", "static site", "use my domain", "set up https",
@@ -436,8 +435,7 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
 # (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
 # reliably means search/extract, not the Fish shell).
 SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
-    "fish-shell-config": {"fish out", "fish for"},
-    "zsh-shell-config": {"zsh out", "zsh for"},
+    "shell-config": {"fish out", "fish for", "zsh out", "zsh for"},
     # ADR pr-create-skill-guard: phrase guards for newly-added pr-workflow triggers.
     # The unigram guards above catch most idioms; these phrase guards suppress
     # multi-word collisions that span the trigger window (e.g. 'ship of theseus'

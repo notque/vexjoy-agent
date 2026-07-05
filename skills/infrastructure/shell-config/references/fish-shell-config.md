@@ -1,36 +1,3 @@
----
-name: fish-shell-config
-promoted_to: shell-config
-description: "Fish shell configuration and PATH management."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  category: process
-  not_for: "fishing for bugs (debugging), fishing for feedback (asking for input), 'fish out' as 'extract/find', fish (the animal) — only fires for the Fish shell config"
-  triggers:
-    - fish
-    - fish shell
-    - config.fish
-    - abbr
-    - fish function
-    - fish_config
-    - fish_variables
-    - funced
-    - funcsave
-    - ~/.config/fish
-    - conf.d
-    - fish abbreviation
-    - .fish file
-    - "#!/usr/bin/env fish"
-  pairs_with: []
-  force_route: true
----
 
 # Fish Shell Configuration Skill
 
@@ -244,25 +211,6 @@ end
 3. **Interactive guards** — verify `status is-interactive` guards on abbreviations and key bindings in `conf.d/`
 4. **Clean environment test** — run `fish --no-config` then `source <file>` to confirm isolated correctness
 
----
-
-## Reference Material
-
-### Example: Setting Up a New Fish Config
-User says: "Set up my Fish shell config"
-1. Confirm Fish context
-2. Create modular structure in `~/.config/fish/`
-3. Write `conf.d/00-path.fish`, `conf.d/10-env.fish`, `conf.d/20-abbreviations.fish`
-4. Syntax-check all files
-
-### Example: Migrating a Bash Alias File
-User says: "Convert my .bash_aliases to Fish"
-1. Read `.bash_aliases`, confirm Fish target
-2. Determine which become abbreviations vs functions
-3. Write abbreviations to `conf.d/`, functions to `functions/`
-4. Syntax-check, test in clean shell
-
----
 
 ## Error Handling
 
@@ -282,18 +230,3 @@ Solution: Use a function instead. Move the logic from `abbr` to a file in `funct
 Cause: Missing `-x` (export) flag on `set`
 Solution: Use `set -gx VAR value` to make variable visible to subprocesses. Check with `set --show VAR` to inspect current scope and export status.
 
----
-
-## References
-
-| Task Signal | Load | Why |
-|-------------|------|-----|
-| Migrating from Bash, converting `.bashrc`/`.bash_aliases`, `source`, `export`, `[[` in Fish file | `bash-migration.md` | Full Bash-to-Fish syntax translation table |
-| Variable scoping, PATH management, `fish_add_path`, `set` flags, `abbr`, completions | `fish-quick-reference.md` | Variable scope guide, special variables, control flow cheatsheet |
-| Error audit, "unknown command", PATH not persisting, abbreviation not working, syntax error, broken conf.d | `fish-preferred-patterns.md` | Failure modes with grep detection commands and error-fix mappings |
-| Go, Rust, Docker, Node.js, Python, pyenv, fnm, starship, direnv, fzf, zoxide, mise, tool setup | `tool-integrations.md` | Concrete integration patterns for common dev tools |
-
-- `${CLAUDE_SKILL_DIR}/references/bash-migration.md`: Complete Bash-to-Fish syntax translation table
-- `${CLAUDE_SKILL_DIR}/references/fish-quick-reference.md`: Variable scoping, special variables, and command cheatsheet
-- `${CLAUDE_SKILL_DIR}/references/fish-preferred-patterns.md`: Failure mode catalog with grep detection commands and error-fix mappings
-- `${CLAUDE_SKILL_DIR}/references/tool-integrations.md`: Concrete integration patterns for Go, Rust, Docker, Node.js, Python, and shell enhancers

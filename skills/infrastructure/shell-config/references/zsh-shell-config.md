@@ -1,47 +1,3 @@
----
-name: zsh-shell-config
-promoted_to: shell-config
-description: "Zsh shell configuration, PATH management, completions, and framework setup."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  category: process
-  not_for: "not for non-zsh shells — only fires for Zsh configuration"
-  triggers:
-    - zsh
-    - zsh shell
-    - .zshrc
-    - zshrc
-    - .zshenv
-    - zshenv
-    - .zprofile
-    - zprofile
-    - compinit
-    - fpath
-    - autoload -Uz
-    - oh-my-zsh
-    - prezto
-    - zinit
-    - antigen
-    - p10k
-    - powerlevel10k
-    - setopt
-    - zsh completion
-    - zsh function
-    - zsh plugin
-    - typeset -U
-    - zplug
-    - configure zsh
-    - zsh config
-  pairs_with: []
-  force_route: true
----
 
 # Zsh Shell Configuration Skill
 
@@ -338,41 +294,6 @@ zsh -i -c 'zmodload zsh/zprof; compinit; zprof' 2>&1 | head -20
 
 **NULL_GLOB vs no-match error**: Without `NULL_GLOB`, `rm *.tmp` fails with "no matches" when no `.tmp` files exist. With `NULL_GLOB`, `rm *.tmp` expands to `rm` with no arguments (also an error). Use glob qualifier `(N)` for conditional expansion: `rm -- *.tmp(N)` silently does nothing when there are no matches.
 
----
-
-## Error Handling
-
-### Error: `compinit: insecure directories`
-
-Cause: Files in `fpath` are group- or world-writable.
-Solution: `compaudit` lists the offending paths. Fix with `chmod go-w /path` or pass `-u` flag: `compinit -u` (unsafe — skips ownership check).
-
-### Error: Completions not found after adding to fpath
-
-Cause: `compinit` was called before the `fpath` extension, or `~/.zcompdump` is stale.
-Solution: Move `fpath=(~/.zsh/completions $fpath)` above `compinit`. Delete `~/.zcompdump` and restart shell to regenerate.
-
-### Error: `add-zsh-hook: function not found`
-
-Cause: `autoload -Uz add-zsh-hook` was not called before using the hook.
-Solution: Add `autoload -Uz add-zsh-hook` before any `add-zsh-hook` call — typically at the top of `.zshrc`.
-
-### Error: PATH additions not visible to scripts
-
-Cause: Variables set in `~/.zshrc` are not sourced by non-interactive shells.
-Solution: Move `PATH` exports to `~/.zshenv` — it is sourced by every Zsh invocation including scripts.
-
-### Error: Slow shell startup (>300ms)
-
-Cause: `compinit` rescanning all fpath entries on every start; heavy plugin loading.
-Solution: Add the `~/.zcompdump` age guard (see Step 3). Profile with `zmodload zsh/zprof; compinit; zprof`. Use `zinit` or lazy-loading for plugins.
-
-### Error: `zsh -n` reports syntax error in valid-looking code
-
-Cause: `EXTENDED_GLOB` patterns like `^` or `#` in unquoted strings parsed as glob operators.
-Solution: Quote strings containing these characters. Check with `setopt NO_EXTENDED_GLOB` temporarily to isolate.
-
----
 
 ## References
 
