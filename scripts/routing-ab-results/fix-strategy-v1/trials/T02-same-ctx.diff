@@ -1,0 +1,24 @@
+--- /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T02/src.orig	2026-07-04 20:19:46.747901556 -0700
++++ /tmp/claude-1000/-home-feedgen-vexjoy-agent/9538a47f-e10b-4469-a9f7-e83fbe2f2c21/scratchpad/trials/same-ctx/T02/src/user_input.py	2026-07-04 20:21:13.715901520 -0700
+@@ -1,13 +1,18 @@
+-"""Sanitize user input for safe display. Bug: missing HTML entity escaping."""
++"""Sanitize user input for safe display."""
+ 
++import html
+ import re
+ 
+ 
+ def sanitize_for_display(text: str) -> str:
+     """Remove dangerous HTML but preserve safe content for display."""
+     # Strip script tags
+-    text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL | re.IGNORECASE)
+-    # BUG: does not escape &, <, > — raw HTML entities pass through
++    text = re.sub(
++        r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL | re.IGNORECASE
++    )
++    # Escape HTML entities (&, <, >, etc.) after script-tag removal so the
++    # regex above still sees raw <script> tags to strip.
++    text = html.escape(text)
+     return text.strip()
+ 
+ 

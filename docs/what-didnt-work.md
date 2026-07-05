@@ -32,6 +32,13 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 Experiments recorded after the seed set. Same four bold fields; `###` headings keep the seed-count checks in `scripts/tests/test_negative_results_registry.py` stable. Newest on top.
 
+### 2026-07-04 same-context fixing vs fresh-agent fixing (quality-loop Phase 7)
+
+- **Expectation**: the Lovable-article claim (the agent that evaluated a finding fixes it best in the same context, with no re-discovery cost) beats Phase 7's fresh-agent design on fix correctness or latency.
+- **What happened**: 8 paired trials (16 sonnet runs) on a seeded-bug fixture (8 Python modules, one test-pinned bug each). Both arms 8/8 correct, zero collateral damage, indistinguishable tool-call counts (~3 per trial): the finding text alone re-discovered every bug in one Read. Blind opus judge leaned same-ctx 4-2 (+2 ties), but 6/8 verdicts turned on a fixture artifact (which arm scrubbed the "Bug:" docstring), and one diff pair was character-identical; sign test p ~= 0.69. Correctness hit ceiling, so the run judges the corpus, not the variants. The same-ctx arm was also simulated (reviewer reasoning injected into a fresh prompt), not a true warm-context continuation.
+- **Evidence**: `scripts/routing-ab-results/fix-strategy-v1/VERDICT.md` (per-trial data, diffs, judge output); fixture `fixtures/fix-strategy-ab/`.
+- **Decision**: revisit-if a hardened corpus (multi-file bugs, misleading findings, fixes that break other tests) drops the fresh baseline below ~80% AND a true same-context arm (session continuation, not reasoning injection) is built. Until then Phase 7 keeps the fresh agent.
+
 ### 2026-06-12 fact-check skill blind A/B on the original (easy) eval corpus
 
 - **Expectation**: a skill carrying journalist-grade verification methodology beats a bare sonnet baseline on a 6-fixture closed-book claim-verification corpus.
