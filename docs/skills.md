@@ -233,7 +233,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `service-health-check` | no | Service health monitoring: Discover, Check, Report in 3 phases |
 | `fish-shell-config` | no | Fish shell configuration and PATH management |
 | `wordpress-live-validation` | no | Validate published WordPress posts in browser via Playwright |
-| `cobalt-core` | yes | Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute. |
 | `cve-source-check` | yes | Audit CVE/vulnerability source coverage for a technology stack. |
 | `public-web-deploy` | no | Publish a public website safely: DNS, web server, HTTPS, hardening, verify. |
 | `shell-process-patterns` | no | Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification. |
@@ -269,8 +268,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `kubernetes-debugging` | no | Kubernetes debugging for pod failures and networking |
-| `kubernetes-security` | no | Kubernetes security: RBAC, PodSecurity, network policies |
+| `kubernetes` | no | Kubernetes operations: debugging, security, RBAC, and infrastructure tooling |
 
 ---
 

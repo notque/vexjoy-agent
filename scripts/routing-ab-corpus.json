@@ -405,10 +405,10 @@
     {
       "request": "the checkout pod in the staging namespace keeps restarting with CrashLoopBackOff, figure out what is wrong",
       "expected_agent": "kubernetes-helm-engineer",
-      "expected_skill": "kubernetes-debugging",
+      "expected_skill": "kubernetes",
       "category": "infrastructure",
       "bucket": "stub-tier",
-      "notes": "STUB. Pod failure debugging = kubernetes-debugging per INDEX."
+      "notes": "STUB. Pod failure debugging = kubernetes per INDEX."
     },
     {
       "request": "my Kotlin Flow collector in SyncService.kt stops emitting after the first error, fix the coroutine handling",
@@ -1426,7 +1426,7 @@
     {
       "request": "set up RBAC policies and pod security standards for this Kubernetes cluster",
       "expected_agent": "kubernetes-helm-engineer",
-      "expected_skill": "kubernetes-security",
+      "expected_skill": "kubernetes",
       "category": "kubernetes",
       "bucket": "reachability",
       "notes": "Kubernetes security: RBAC and PodSecurity."
