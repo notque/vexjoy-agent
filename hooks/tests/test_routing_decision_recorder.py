@@ -1451,6 +1451,68 @@ class TestStackTokenParse:
         assert "stack" not in d
 
 
+class TestStackUsageRecording:
+    """The recorder also bumps a stack-usage DB row per enhancement skill
+    (topic="routing", category="effectiveness", key "stack-usage:{skill}"),
+    queried by `learning-db.py stack-usage`. Instrumentation only — reuses
+    record_learning's upsert, no parallel store."""
+
+    def _record(self, a, marker, session):
+        event = _health_event(marker, session=session)
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+    def test_stack_skills_recorded_as_rows(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_su1")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(
+            a,
+            "[do-route] agent=python-general-engineer skill=go-patterns "
+            "stack={test-driven-development,verification-before-completion}",
+            "su-1",
+        )
+        rows = {r["key"]: r for r in _query_routing(db_env)}
+        assert "stack-usage:test-driven-development" in rows
+        assert "stack-usage:verification-before-completion" in rows
+        assert rows["stack-usage:test-driven-development"]["observation_count"] == 1
+
+    def test_repeat_stacking_bumps_observation_count(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_su2")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        for i in range(3):
+            self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns stack={joy-check}", f"su-r{i}")
+        rows = {r["key"]: r for r in _query_routing(db_env)}
+        assert rows["stack-usage:joy-check"]["observation_count"] == 3
+
+    def test_duplicate_skill_in_one_marker_counts_once(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_su3")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(
+            a, "[do-route] agent=python-general-engineer skill=go-patterns stack={joy-check,joy-check}", "su-dup"
+        )
+        rows = {r["key"]: r for r in _query_routing(db_env)}
+        assert rows["stack-usage:joy-check"]["observation_count"] == 1
+
+    def test_absent_stack_token_records_no_stack_usage_rows(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_su4")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns", "su-none")
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert not any(k.startswith("stack-usage:") for k in keys)
+
+    def test_empty_stack_braces_record_no_stack_usage_rows(self, db_env, monkeypatch):
+        a = _load(A_PATH, "rdr_su5")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns stack={}", "su-empty")
+        keys = {r["key"] for r in _query_routing(db_env)}
+        assert not any(k.startswith("stack-usage:") for k in keys)
+
+
 # ---------------------------------------------------------------------------
 # A + B integration: route-health closes the loop
 # ---------------------------------------------------------------------------

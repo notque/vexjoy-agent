@@ -327,6 +327,37 @@ def build_routing_key(agent: str, skill: str) -> str:
     return f"{agent}:{skill}" if skill else f"{agent}:"
 
 
+_STACK_USAGE_KEY_PREFIX = "stack-usage:"
+
+
+def record_stack_usage(stack: list[str] | None, session_id: str | None) -> None:
+    """Bump the per-skill stack-usage row for every skill in ``stack``.
+
+    Mirrors the rightsizing accumulation convention: one `learnings` row per
+    enhancement skill (topic="routing", category="effectiveness", key
+    "stack-usage:{skill}"), reusing record_learning's built-in upsert so
+    observation_count = times stacked and last_seen = last stacked — no
+    parallel store. Deduplicated per dispatch so a marker listing the same
+    skill twice counts once. No-op when stack is None/empty (absent token).
+    """
+    if not stack:
+        return
+    from learning_db_v2 import record_learning
+
+    for skill in dict.fromkeys(stack):  # de-dup, preserve order
+        if not skill:
+            continue
+        record_learning(
+            topic="routing",
+            key=f"{_STACK_USAGE_KEY_PREFIX}{skill}",
+            value=f"stack-usage: skill={skill}",
+            category="effectiveness",
+            tags=["stack-usage", skill],
+            source="hook:routing-decision-recorder",
+            session_id=session_id or None,
+        )
+
+
 def dispatch_signature(agent: str, skill: str, description: str, prompt: str) -> str:
     """Stable signature for one dispatch, used for idempotency."""
     raw = f"{agent}|{skill}|{description}|{prompt[:200]}"
@@ -528,6 +559,12 @@ def main() -> None:
             stack = parse_stack(marker_text)
             health = parse_health_inputs(marker_text)
             model = parse_model(marker_text)
+
+            # Stack-usage telemetry: one aggregate row per enhancement skill in
+            # the marker's ` stack={...}` token (routing-table utilization audit).
+            # No-op when stack is None (token absent) — never blocks the hook.
+            record_stack_usage(stack, session_id)
+
             from route_events import record_decision_event
 
             record_decision_event(
