@@ -413,10 +413,10 @@
     {
       "request": "my Kotlin Flow collector in SyncService.kt stops emitting after the first error, fix the coroutine handling",
       "expected_agent": "kotlin-general-engineer",
-      "expected_skill": "kotlin-coroutines",
+      "expected_skill": "kotlin",
       "category": "kotlin-development",
       "bucket": "stub-tier",
-      "notes": "STUB. Flow/coroutine error handling = kotlin-coroutines per INDEX."
+      "notes": "STUB. Flow/coroutine error handling = kotlin per INDEX."
     },
     {
       "request": "add PHPUnit tests with a database fixture for the InvoiceRepository class in src/Repository/InvoiceRepository.php",
@@ -1418,7 +1418,7 @@
     {
       "request": "write JUnit 5 tests for this Kotlin data class with coroutine test dispatchers",
       "expected_agent": "kotlin-general-engineer",
-      "expected_skill": "kotlin-testing",
+      "expected_skill": "kotlin",
       "category": "kotlin",
       "bucket": "reachability",
       "notes": "Kotlin testing: JUnit 5 with coroutines."

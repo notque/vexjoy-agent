@@ -245,8 +245,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `kotlin-coroutines` | no | Kotlin structured concurrency, Flow, and Channel patterns |
-| `kotlin-testing` | no | Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers |
+| `kotlin` | no | Kotlin development: coroutines, Flow, testing with JUnit 5 and Kotest |
 
 ---
 

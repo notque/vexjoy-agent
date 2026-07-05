@@ -1,23 +1,3 @@
----
-name: kotlin-testing
-promoted_to: kotlin
-description: "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers."
-user-invocable: false
-context: fork
-agent: kotlin-general-engineer
-routing:
-  triggers:
-    - "kotlin testing"
-    - "junit kotlin"
-    - "kotest"
-    - "junit 5 kotlin"
-    - "kotlin test dispatcher"
-  category: kotlin
-  pairs_with:
-    - kotlin-coroutines
-    - test-driven-development
----
-
 # Kotlin Testing Patterns
 
 ## JUnit 5 Fundamentals

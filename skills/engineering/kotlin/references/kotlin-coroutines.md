@@ -1,23 +1,3 @@
----
-name: kotlin-coroutines
-promoted_to: kotlin
-description: "Kotlin structured concurrency, Flow, and Channel patterns."
-user-invocable: false
-context: fork
-agent: kotlin-general-engineer
-routing:
-  triggers:
-    - "kotlin coroutines"
-    - "kotlin structured concurrency"
-    - "kotlin Flow"
-    - "kotlin Channel"
-    - "suspend function"
-    - "structured concurrency kotlin"
-  category: kotlin
-  pairs_with:
-    - kotlin-testing
----
-
 # Kotlin Coroutines Patterns
 
 Umbrella skill for Kotlin coroutine development: structured concurrency, cancellation,
