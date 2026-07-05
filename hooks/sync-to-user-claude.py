@@ -287,6 +287,23 @@ def _read_install_mode(user_claude: Path) -> str:
         return "copy"
 
 
+def _resolves_inside(path: Path, root: Path) -> bool:
+    """True when *path* resolves to *root* or a descendant of *root*.
+
+    Safety guard: prevents destructive operations (rmtree, unlink) from
+    reaching repo files through symlinks.  When ~/.claude/skills/
+    contains a symlink pointing into the repo, code that traverses the
+    symlink sees regular files whose realpath is inside the repo.
+    Deleting those deletes tracked source files.
+    """
+    try:
+        resolved = str(path.resolve())
+        root_str = str(root.resolve())
+        return resolved == root_str or resolved.startswith(root_str + os.sep)
+    except OSError:
+        return False
+
+
 def _is_ephemeral_path(path: Path) -> bool:
     """Check if a path is ephemeral (will be cleaned up automatically).
 
@@ -323,15 +340,19 @@ def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
         _atomic_json_write(manifest_path, manifest)
 
 
-def _ensure_symlink(src: Path, dst: Path) -> bool:
+def _ensure_symlink(src: Path, dst: Path, repo_root: Path | None = None) -> bool:
     """Ensure dst is a symlink pointing to src.
 
     If dst is already the correct symlink, returns True (no change needed).
     If dst is a broken symlink, stale symlink, or regular directory, removes
     it and creates the correct symlink. Returns True on success.
 
-    Safety: refuses to create symlinks pointing into /tmp/ since those
-    targets are ephemeral and will break after cleanup.
+    Safety guards:
+    - Refuses to create symlinks pointing into /tmp/ (ephemeral targets).
+    - When *repo_root* is provided, refuses to rmtree/unlink any path that
+      resolves inside the repo working tree.  This prevents data loss when
+      a parent symlink (e.g. ~/.claude/skills -> repo/skills/) causes dst
+      to resolve into the repo even though dst itself is not a symlink.
     """
     # Never create a symlink to an ephemeral path
     if _is_ephemeral_path(src):
@@ -354,9 +375,23 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     elif dst.is_dir():
         # Regular directory from a previous copy-mode install or broken sync.
         # Remove it so we can replace with a symlink.
+        # SAFETY: if dst resolves inside the repo (parent symlink traversal),
+        # rmtree would destroy tracked source files.  Skip + loud stderr.
+        if repo_root is not None and _resolves_inside(dst, repo_root):
+            print(
+                f"[sync] BLOCKED: refusing to rmtree {dst} (resolves inside repo {repo_root})",
+                file=sys.stderr,
+            )
+            return False
         shutil.rmtree(dst)
 
     elif dst.exists():
+        if repo_root is not None and _resolves_inside(dst, repo_root):
+            print(
+                f"[sync] BLOCKED: refusing to unlink {dst} (resolves inside repo {repo_root})",
+                file=sys.stderr,
+            )
+            return False
         dst.unlink()
 
     try:
@@ -375,6 +410,12 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
             dst.symlink_to(src)
         else:
             # Regular file/dir appeared — remove and retry once
+            if repo_root is not None and _resolves_inside(dst, repo_root):
+                print(
+                    f"[sync] BLOCKED: refusing to remove {dst} in race recovery (resolves inside repo {repo_root})",
+                    file=sys.stderr,
+                )
+                return False
             if dst.is_dir():
                 shutil.rmtree(dst)
             else:
@@ -449,7 +490,7 @@ def _sync_runtime_skill_index(src: Path, dst: Path) -> bool:
     return True
 
 
-def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
+def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: Path | None = None) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
     The repo organizes skills into category folders:
@@ -467,6 +508,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
     Runtime-index policy: ~/.claude/skills/INDEX.json is materialized as a
     real merged file (tracked first, local fills gaps per-name), never a
     symlink. See _sync_runtime_skill_index for the two invariants this keeps.
+
+    *repo_root* enables the repo-path safety guard in _ensure_symlink.
     """
     # If dst is a single symlink to the repo (old-style), replace with a real dir
     if dst.is_symlink():
@@ -524,7 +567,7 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
         if item.is_dir() and _is_support_dir(item):
             support_dirs.add(item.name)
             expected_names.add(item.name)
-            _ensure_symlink(item, dst / item.name)
+            _ensure_symlink(item, dst / item.name, repo_root=repo_root)
 
     # Create per-skill symlinks from nested category folders.
     # Each category folder (meta/, process/, etc.) contains skill subdirectories.
@@ -541,21 +584,28 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path) -> None:
         if (category_dir / "SKILL.md").exists():
             # Flat skill at root level (legacy or special case)
             expected_names.add(category_dir.name)
-            _ensure_symlink(category_dir, dst / category_dir.name)
+            _ensure_symlink(category_dir, dst / category_dir.name, repo_root=repo_root)
         else:
             # Category folder: create symlinks for each skill inside
             for skill_dir in sorted(category_dir.iterdir()):
                 if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
                     expected_names.add(skill_dir.name)
-                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
                 elif skill_dir.is_dir() and (skill_dir / "profile.json").exists():
                     # Voice profile directories (data-only, no SKILL.md)
                     expected_names.add(skill_dir.name)
-                    _ensure_symlink(skill_dir, dst / skill_dir.name)
+                    _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
 
-    # Clean stale entries: remove symlinks in dst that no longer map to a source
+    # Clean stale entries: remove symlinks in dst that no longer map to a source.
+    # Guard: refuse to unlink anything that resolves inside the repo.
     for item in dst.iterdir():
         if item.name not in expected_names and item.is_symlink():
+            if repo_root is not None and _resolves_inside(item, repo_root):
+                print(
+                    f"[sync] BLOCKED: stale-cleanup refusing to unlink {item.name} (resolves inside repo)",
+                    file=sys.stderr,
+                )
+                continue
             item.unlink()
 
 
@@ -729,11 +779,11 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                 # but Claude Code only discovers flat ~/.claude/skills/*/SKILL.md.
                 # Create individual symlinks to flatten the nested structure.
                 if src_name == "skills":
-                    _sync_skills_flat_symlinks(src, dst)
+                    _sync_skills_flat_symlinks(src, dst, repo_root=repo_root)
                     count = sum(1 for d in dst.iterdir() if d.is_dir() and not d.name.startswith("."))
                     synced.append(f"{dst_name}(symlink, {count} skills)")
                 else:
-                    _ensure_symlink(src, dst)
+                    _ensure_symlink(src, dst, repo_root=repo_root)
                     synced.append(f"{dst_name}(symlink)")
                 continue
 
@@ -808,6 +858,15 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                 if item.is_file():
                     rel = item.relative_to(dst)
                     if rel not in all_paths:
+                        # Guard: refuse to delete files that resolve inside
+                        # the repo (symlink traversal data-loss prevention).
+                        if _resolves_inside(item, repo_root):
+                            print(
+                                f"[sync] BLOCKED: stale-cleanup refusing to "
+                                f"unlink {dst_name}/{rel} (resolves inside repo)",
+                                file=sys.stderr,
+                            )
+                            continue
                         try:
                             item.unlink()
                         except OSError:
@@ -815,6 +874,8 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             # Clean up empty directories left behind
             for dirpath in sorted(dst.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):
+                    if _resolves_inside(dirpath, repo_root):
+                        continue
                     dirpath.rmdir()
         except Exception as e:
             errors.append(f"stale-cleanup-{dst_name}: {e}")
