@@ -1,5 +1,6 @@
 ---
 name: php-quality
+promoted_to: php
 description: "PHP code quality: PSR standards, strict types, framework idioms."
 user-invocable: false
 context: fork

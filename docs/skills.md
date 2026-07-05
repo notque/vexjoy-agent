@@ -254,8 +254,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `php-quality` | no | PHP code quality: PSR standards, strict types, framework idioms |
-| `php-testing` | no | PHP testing patterns: PHPUnit, test doubles, database testing |
+| `php` | no | PHP development: code quality, PSR standards, testing with PHPUnit |
 
 ---
 
