@@ -45,6 +45,7 @@ Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cro
 | Signal | Load These Files | Why |
 |---|---|---|
 | running DISCOVER/DIAGNOSE commands: learning DB queries, git scan, drift checks | `diagnose-scripts.md` | Loads detailed guidance from `diagnose-scripts.md`. |
+| mining merged-PR history and review comments (Phase 0 Step 2b) | `diagnose-scripts.md` | Read-only `gh pr list`/`gh pr view --comments` commands, § DISCOVER Step 2b |
 | writing the evolution cycle report | `evolution-report-template.md` | Loads detailed guidance from `evolution-report-template.md`. |
 | Phase 3 CRITIQUE fallback; failure modes, error handling, cost estimates, cron setup | `evolve-preferred-patterns.md` | Loads detailed guidance from `evolve-preferred-patterns.md`. |
 | Phase 6 EVOLVE: PR creation, merge, branch cleanup, learning records | `evolve-scripts.md` | Loads detailed guidance from `evolve-scripts.md`. |
@@ -71,9 +72,13 @@ Collect current toolkit state using the briefing data commands from `references/
 
 See `references/evolve-preferred-patterns.md` § Phase 0 DISCOVER for the full agent table and proposal format. Dispatch all 5 simultaneously.
 
+**Step 2b: Mine merged-PR history**
+
+Read-only `gh` queries over the last 30 merged PRs plus their review-comment threads surface recurring friction, repeated fix patterns, and skill/agent gaps that perspective agents miss because they read current state, not history. Commands and interpretation guide: `references/diagnose-scripts.md` § DISCOVER Step 2b. Tag every surviving proposal `[PR-HISTORY]`.
+
 **Step 3: Deduplicate and filter** -- remove duplicates of existing skills (check `skills/INDEX.json`), remove proposals with no evidence (require at least one concrete data point), group similar proposals and note convergent evidence.
 
-**Step 4: Feed into DIAGNOSE** -- append surviving proposals to the Phase 1 opportunity list with source tagged `[DISCOVER]`.
+**Step 4: Feed into DIAGNOSE** -- append surviving proposals to the Phase 1 opportunity list with source tagged `[DISCOVER]` (perspective agents) or `[PR-HISTORY]` (PR mining).
 
 **Step 5: Save discovery report** to `evolution-reports/discovery-{YYYY-MM-DD}.md` (run `mkdir -p evolution-reports` first). Include briefing data, all proposals, filtering rationale, forwarded proposals, and date stamp.
 
