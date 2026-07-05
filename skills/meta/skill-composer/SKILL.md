@@ -1,5 +1,6 @@
 ---
 name: skill-composer
+promoted_to: workflow
 description: "DAG-based multi-skill orchestration with dependency resolution."
 user-invocable: false
 allowed-tools:

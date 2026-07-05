@@ -84,6 +84,10 @@ Load the appropriate workflow reference based on the task.
 | **Patterns** | Composable-pattern + failure-mode + cost-gate catalog | `references/workflow-patterns.md` |
 | **Patterns** | Tournament (pairwise-comparison) template | `references/tournament-workflow.md` |
 | **Patterns** | Quarantine (untrusted-source triage isolation) | `references/quarantine-pattern.md` |
+| **Orchestration** | DAG-based multi-skill composition patterns | `references/dag-composition-patterns.md` |
+| **Orchestration** | Skill compatibility matrix for chaining | `references/dag-compatibility-matrix.md` |
+| **Orchestration** | Common DAG skill patterns | `references/dag-skill-patterns.md` |
+| **Orchestration** | DAG orchestration worked examples | `references/dag-orchestration-examples.md` |
 
 ## How to Use (MANDATORY)
 
@@ -134,3 +138,5 @@ If the task spans multiple workflows (e.g., research then write), load each refe
 | **Patterns / cost gate / failure modes** | `workflow-patterns.md` | Which named pattern + when to escalate + when NOT to use |
 | **Tournament** | `tournament-workflow.md` | Pairwise-comparison ranking template |
 | **Quarantine** | `quarantine-pattern.md` | Isolate untrusted-source readers from privileged actions |
+| **DAG orchestration**, multi-skill chaining, dependency resolution | `dag-composition-patterns.md`, `dag-compatibility-matrix.md` | Proven multi-skill composition patterns and compatibility (from demoted skill-composer). |
+| **DAG skill patterns**, skill chain troubleshooting | `dag-skill-patterns.md`, `dag-orchestration-examples.md` | Common patterns and worked examples (from demoted skill-composer). |
