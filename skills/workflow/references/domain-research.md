@@ -19,7 +19,7 @@ routing:
     - domain research
   pairs_with:
     - pipeline-scaffolder
-    - codebase-analyzer
+    - codebase-overview
   complexity: Medium
   category: meta
 ---
