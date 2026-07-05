@@ -1,42 +1,6 @@
----
-name: image-to-video
-promoted_to: video-editing
-description: "FFmpeg-based video creation from image and audio."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - image to video
-    - audio visualization
-    - static video
-    - mp4 from image
-    - music video
-    - podcast video
-    - video from image
-    - combine image audio
-    - album art video
-    - cover art video
-  pairs_with:
-    - workflow
-  complexity: simple
-  category: video-creation
----
-
-# Image to Video Skill
+# Image to Video
 
 Combine a static image with an audio file to produce an MP4 video using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing of matched image+audio pairs. For image generation, use `image-gen` instead.
-
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| building FFmpeg filter graphs for audio visualization; encoding settings | `ffmpeg-filters.md` | Loads detailed guidance from `ffmpeg-filters.md`. |
 
 ## Instructions
 
@@ -194,5 +158,5 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
-- `${CLAUDE_SKILL_DIR}/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)
+- `references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
+- `skills/content/image-to-video/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)

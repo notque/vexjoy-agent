@@ -1,29 +1,3 @@
----
-name: video-transcript
-promoted_to: video-editing
-description: "Extract video transcripts: yt-dlp subtitles to clean paragraphs."
-user_invocable: false  # default -- router-dispatched, not user-typed
-agent: python-general-engineer
-allowed-tools:
-  - Bash
-  - Read
-routing:
-  triggers:
-    - "video transcript"
-    - "youtube transcript"
-    - "extract transcript"
-    - "download subtitles"
-    - "what does this video say"
-    - "get transcript"
-    - "transcribe video"
-    - "transcribe this video"
-    - "pull subtitles"
-    - "captions from video"
-  category: research
-  pairs_with:
-    - research-pipeline
----
-
 # Video Transcript
 
 Pull a video's transcript as readable paragraphs. Two paths, in order:
