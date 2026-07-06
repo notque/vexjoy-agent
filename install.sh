@@ -1298,6 +1298,24 @@ link_skills_nested() {
                 echo -e "${YELLOW}  Skipping ${entry_name}/${child_name} (disabled by profile)${NC}"
                 continue
             fi
+            # Skip skills folded into a parent via promoted_to: frontmatter,
+            # but only when the target skill exists (forward-looking tags stay deployed).
+            if [ -f "$child/SKILL.md" ]; then
+                _promoted_target=$(head -20 "$child/SKILL.md" | grep '^promoted_to:' | sed 's/^promoted_to:\s*//' | tr -d ' ')
+                if [ -n "$_promoted_target" ]; then
+                    # Check if target skill dir exists anywhere under source
+                    _target_found=false
+                    for _cat in "$source"/*/; do
+                        if [ -f "${_cat}${_promoted_target}/SKILL.md" ]; then
+                            _target_found=true
+                            break
+                        fi
+                    done
+                    if [ "$_target_found" = true ]; then
+                        continue
+                    fi
+                fi
+            fi
             if [ -e "$target/$entry_name/$child_name" ] || [ -L "$target/$entry_name/$child_name" ]; then
                 continue  # external/existing entry; keep it
             fi
