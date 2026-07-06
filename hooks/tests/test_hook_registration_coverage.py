@@ -10,7 +10,9 @@ Run with: python3 -m pytest hooks/tests/test_hook_registration_coverage.py -v
 
 from __future__ import annotations
 
+import ast
 import importlib.util
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -20,6 +22,9 @@ VALIDATOR = REPO_ROOT / "scripts" / "validate-hook-health.py"
 _spec = importlib.util.spec_from_file_location("validate_hook_health", VALIDATOR)
 vhh = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(vhh)
+
+HOOKS_LIB = REPO_ROOT / "hooks" / "lib"
+sys.path.insert(0, str(HOOKS_LIB))
 
 
 def _settings() -> dict:
@@ -78,7 +83,7 @@ def test_invisible_unicode_reason_does_not_silence_gate(tmp_path):
     cannot mask a dormant hook — closes the hidden-Unicode bypass."""
     al = tmp_path / "al.txt"
     # ghost.py followed by '#' + a zero-width space (U+200B) only.
-    al.write_text("ghost.py            # ​‌\nreal.py  # legitimate deferred reason here\n")
+    al.write_text("ghost.py            # ​‌\nreal.py  # legitimate deferred reason here\n", encoding="utf-8")
     parsed = vhh.parse_allowlist(al)
     assert "real.py" in parsed
     assert "ghost.py" not in parsed
@@ -318,3 +323,34 @@ def test_real_subprocess_dispatch_is_detected():
     assert _ast_dispatched(inline, {"x.py"}) == {"x.py"}
     assert _ast_dispatched(slot0, {"x.py"}) == {"x.py"}
     assert _ast_dispatched(path_join, {"x.py"}) == {"x.py"}
+
+
+def test_hook_lib_exports_every_imported_helper():
+    """Every hooks/lib named import in hooks/*.py must exist in that module."""
+    lib_modules = {path.stem for path in HOOKS_LIB.glob("*.py") if path.name != "__init__.py"}
+    imported: dict[str, dict[str, set[str]]] = {}
+    for hook_path in sorted((REPO_ROOT / "hooks").glob("*.py")):
+        tree = ast.parse(hook_path.read_text(encoding="utf-8"), filename=str(hook_path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module in lib_modules:
+                imported.setdefault(hook_path.name, {}).setdefault(node.module, set()).update(
+                    alias.name for alias in node.names
+                )
+
+    missing = []
+    loaded_modules = {}
+    for hook_name, modules in imported.items():
+        for module_name, names in modules.items():
+            if module_name not in loaded_modules:
+                module_path = HOOKS_LIB / f"{module_name}.py"
+                spec = importlib.util.spec_from_file_location(f"repo_hook_lib_{module_name}", module_path)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
+                spec.loader.exec_module(module)
+                loaded_modules[module_name] = module
+            module = loaded_modules[module_name]
+            for name in sorted(names):
+                if not hasattr(module, name):
+                    missing.append(f"{hook_name}: {module_name}.{name}")
+
+    assert not missing, "hooks/lib missing imported helper(s):\n" + "\n".join(missing)

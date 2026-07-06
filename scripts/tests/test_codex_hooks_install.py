@@ -332,3 +332,47 @@ def test_install_sh_handles_missing_allowlist_gracefully() -> None:
         "Cannot test missing-allowlist path without mutating the repo allowlist file. "
         "Covered by the install.sh bash branch that prints a warning and continues."
     )
+
+
+def test_per_item_install_refreshes_hooks_lib(fake_home: Path, tmp_path: Path) -> None:
+    """Per-item hook installs must refresh hooks/lib, not preserve stale helpers."""
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    src.mkdir()
+    try:
+        dst.symlink_to(src)
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable for this user/platform: {exc}")
+    dst.unlink()
+
+    stale_lib = fake_home / ".claude" / "hooks" / "lib"
+    stale_lib.mkdir(parents=True)
+    (stale_lib / "hook_utils.py").write_text("def log_error(message): pass\n", encoding="utf-8")
+    (stale_lib / "external_helper.py").write_text("# user-owned helper\n", encoding="utf-8")
+
+    stale_codex_lib = fake_home / ".codex" / "hooks" / "lib"
+    stale_codex_lib.mkdir(parents=True)
+    (stale_codex_lib / "hook_utils.py").write_text("def log_error(message): pass\n", encoding="utf-8")
+    (stale_codex_lib / "external_helper.py").write_text("# user-owned helper\n", encoding="utf-8")
+
+    reasonix_dir = fake_home / ".reasonix"
+    reasonix_dir.mkdir()
+    stale_reasonix_lib = reasonix_dir / "hooks" / "lib"
+    stale_reasonix_lib.mkdir(parents=True)
+    (stale_reasonix_lib / "hook_utils.py").write_text("def log_error(message): pass\n", encoding="utf-8")
+    (stale_reasonix_lib / "external_helper.py").write_text("# user-owned helper\n", encoding="utf-8")
+
+    result = _run_install(fake_home, ["--symlink", "--per-item", "--force"])
+
+    assert result.returncode == 0, f"install.sh failed.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    hook_utils = fake_home / ".claude" / "hooks" / "lib" / "hook_utils.py"
+    assert "def hook_error(" in hook_utils.read_text(encoding="utf-8")
+    assert (stale_lib / "external_helper.py").read_text(encoding="utf-8") == "# user-owned helper\n"
+
+    codex_hook_utils = fake_home / ".codex" / "hooks" / "lib" / "hook_utils.py"
+    assert "def hook_error(" in codex_hook_utils.read_text(encoding="utf-8")
+    assert (stale_codex_lib / "external_helper.py").read_text(encoding="utf-8") == "# user-owned helper\n"
+
+    reasonix_hook_utils = fake_home / ".reasonix" / "hooks" / "lib" / "hook_utils.py"
+    assert "def hook_error(" in reasonix_hook_utils.read_text(encoding="utf-8")
+    assert (stale_reasonix_lib / "external_helper.py").read_text(encoding="utf-8") == "# user-owned helper\n"

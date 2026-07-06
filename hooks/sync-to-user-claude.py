@@ -17,7 +17,6 @@ to prevent phantom hook errors when switching branches.
 Unchanged files are skipped via content comparison.
 """
 
-import fcntl
 import filecmp
 import json
 import os
@@ -27,8 +26,56 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+try:
+    from hook_utils import hook_error
+except ImportError:
+
+    def hook_error(hook_name: str, exc: BaseException) -> None:
+        print(f"[{hook_name}] HOOK-ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+
+def _try_lock_fd(lock_fd: int) -> bool:
+    if fcntl is not None:
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except (OSError, IOError):
+            return False
+
+    try:
+        import msvcrt
+
+        os.write(lock_fd, b"\0")
+        os.lseek(lock_fd, 0, os.SEEK_SET)
+        msvcrt.locking(lock_fd, msvcrt.LK_NBLCK, 1)
+        return True
+    except (ImportError, OSError):
+        return False
+
+
+def _unlock_fd(lock_fd: int | None) -> None:
+    if lock_fd is None:
+        return
+    try:
+        if fcntl is not None:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        else:
+            import msvcrt
+
+            os.lseek(lock_fd, 0, os.SEEK_SET)
+            msvcrt.locking(lock_fd, msvcrt.LK_UNLCK, 1)
+    except (ImportError, OSError):
+        pass
+    try:
+        os.close(lock_fd)
+    except OSError:
+        pass
 
 
 def _tolerant_mkdir(path: Path) -> None:
@@ -803,11 +850,12 @@ def main():
     lock_fd = None
     try:
         lock_fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except (OSError, IOError):
+        if not _try_lock_fd(lock_fd):
+            raise OSError("sync lock already held")
+    except OSError:
         # Lock held by another process — skip sync
         if lock_fd is not None:
-            os.close(lock_fd)
+            _unlock_fd(lock_fd)
         print("[sync] Skipping: another sync is in progress", file=sys.stderr)
         return
 
@@ -816,8 +864,7 @@ def main():
     finally:
         # Release lock
         try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            os.close(lock_fd)
+            _unlock_fd(lock_fd)
         except OSError:
             pass
 

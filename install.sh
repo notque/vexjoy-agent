@@ -1165,6 +1165,23 @@ install_component() {
                     echo -e "${YELLOW}  Skipping ${item_name} (disabled by profile)${NC}"
                     continue
                 fi
+                if [ "$name" = "hooks" ] && [ "$item_name" = "lib" ]; then
+                    if [ -L "$target/$item_name" ] || [ -f "$target/$item_name" ]; then
+                        rm -rf "$target/$item_name"
+                    fi
+                    mkdir -p "$target/$item_name"
+                    local lib_item lib_name
+                    for lib_item in "$item"/*; do
+                        [ -e "$lib_item" ] || [ -L "$lib_item" ] || continue
+                        lib_name=$(basename "$lib_item")
+                        if [ -e "$target/$item_name/$lib_name" ] || [ -L "$target/$item_name/$lib_name" ]; then
+                            rm -rf "$target/$item_name/$lib_name"
+                        fi
+                        ln -s "$lib_item" "$target/$item_name/$lib_name"
+                    done
+                    echo -e "${GREEN}  ✓ Per-item refreshed ${item_name}${NC}"
+                    continue
+                fi
                 if [ -e "$target/$item_name" ]; then
                     echo -e "${YELLOW}  WARNING: $target/$item_name already exists — skipping (kept existing)${NC}"
                     continue
@@ -1352,6 +1369,14 @@ sync_mirror_entry() {
             for item in "$source"/*; do
                 [ -e "$item" ] || [ -L "$item" ] || continue
                 item_name=$(basename "$item")
+                if [ "$name" = "lib" ] && [ "$(basename "$(dirname "$source")")" = "hooks" ]; then
+                    if [ -e "$target/$item_name" ] || [ -L "$target/$item_name" ]; then
+                        rm -rf "$target/$item_name"
+                    fi
+                    ln -s "$item" "$target/$item_name"
+                    echo -e "${GREEN}  ✓ ${label} per-item refreshed ${item_name}${NC}"
+                    continue
+                fi
                 if [ -e "$target/$item_name" ]; then
                     continue  # already present; skip silently
                 fi
