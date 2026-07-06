@@ -1006,6 +1006,52 @@ class TestWorktreeDetectionSafeDefault:
         assert result is True
 
 
+class TestWindowsImportRecovery:
+    """Windows bootstrap must survive stale deployed hook utility modules."""
+
+    def test_imports_with_stale_hook_utils(self, tmp_path: Path) -> None:
+        hooks_dir = tmp_path / "hooks"
+        lib_dir = hooks_dir / "lib"
+        lib_dir.mkdir(parents=True)
+        shutil.copy2(HOOKS_DIR / "sync-to-user-claude.py", hooks_dir / "sync-to-user-claude.py")
+        (lib_dir / "hook_utils.py").write_text("def log_error(message): pass\n", encoding="utf-8")
+
+        spec = importlib.util.spec_from_file_location(
+            "sync_to_user_claude_stale_helper",
+            hooks_dir / "sync-to-user-claude.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+
+        assert callable(module.hook_error)
+        assert callable(module._try_lock_fd)
+
+    def test_lock_helpers_acquire_release_and_reacquire(self, tmp_path: Path) -> None:
+        lock_path = tmp_path / ".sync.lock"
+        fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+        assert sync_mod._try_lock_fd(fd) is True
+        sync_mod._unlock_fd(fd)
+
+        fd2 = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+        assert sync_mod._try_lock_fd(fd2) is True
+        sync_mod._unlock_fd(fd2)
+
+    def test_windows_lock_backend_is_not_noop(self, tmp_path: Path) -> None:
+        if sys.platform != "win32":
+            pytest.skip("Windows-only msvcrt lock behavior")
+
+        lock_path = tmp_path / ".sync.lock"
+        fd1 = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+        fd2 = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            assert sync_mod._try_lock_fd(fd1) is True
+            assert sync_mod._try_lock_fd(fd2) is False
+        finally:
+            sync_mod._unlock_fd(fd2)
+            sync_mod._unlock_fd(fd1)
+
+
 class TestProtectedRootsWorktreeScenario:
     """Reproduce the worktree bypass scenario that causes voice-shared-references
     deletion.  A worktree that bypassed _is_git_worktree runs sync with
