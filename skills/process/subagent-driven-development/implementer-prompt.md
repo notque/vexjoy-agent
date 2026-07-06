@@ -156,6 +156,29 @@ When done, report:
 Begin by confirming you understand the task, or asking questions.
 ```
 
+## Executor-Ready Plans
+
+When the plan follows `skills/process/planning/references/executor-ready-plan-template.md`, append this block to the dispatch prompt (fill `{PLAN_BASE_SHA}` from the plan's Metadata — this is the plan-creation SHA, not `{BASE_SHA}` above):
+
+```
+## Executor Contract (executor-ready plan)
+
+Before touching any file, run the drift check:
+- `git merge-base --is-ancestor {PLAN_BASE_SHA} HEAD` must succeed. Commits from this plan's earlier tasks are not drift.
+- Before editing a file, confirm the step's inlined Context excerpt still matches the file.
+
+Execute steps in order. Run each step's Verify command and match its Expected output before proceeding.
+
+STOP and escalate — report what you completed, what triggered the stop, and what decision you need — when any of these fire:
+1. Drift: ancestry check fails or a Context excerpt no longer matches.
+2. A step's Verify command fails twice (one retry allowed).
+3. Completing a step requires touching a file in the plan's Out-of-scope list, or any file absent from the In-scope list.
+4. A step's Do section is ambiguous, or a (required) plan section is missing.
+5. A previously passing test fails after a step.
+
+Do not improvise past a STOP.
+```
+
 ## Handling Questions
 
 When implementer asks questions:
