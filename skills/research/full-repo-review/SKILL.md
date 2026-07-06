@@ -54,7 +54,8 @@ identical.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| writing full-repo-review-report.md | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| writing full-repo-review-report.md | `report-template.md` | Report structure and field definitions |
+| dispatching Wave 1 or Wave 2 review agents | `audit-playbook.md` | Per-category checklists, evidence requirements, severity mapping, reviewer role assignments |
 
 ## Instructions
 
@@ -110,8 +111,8 @@ reviewers should not waste tokens rediscovering.
 python3 ~/.claude/scripts/score-component.py --all-agents --all-skills --json
 ```
 
-Parse the JSON output. Flag any component scoring below 60 (grade F) as a
-CRITICAL finding for the final report. Components scoring 60-74 (grade C) are
+Parse the JSON output. Flag any component scoring below 60 (grades F and D) as
+a CRITICAL finding for the final report. Components scoring 60-74 (grade C) are
 HIGH findings.
 
 Save the raw scores -- they go into the report's "Deterministic Health Scores"
@@ -136,8 +137,11 @@ Invoke the `comprehensive-review` skill with these overrides:
 - **Scope**: Pass the full file list from Phase 1 (use `--focus [files]` mode)
 - **Mode**: Use `--review-only` to skip auto-fix. Output is a prioritized backlog for human triage, not patches -- full-repo auto-fix touches too many files at once and risks cascading breakage.
 - **All waves**: Run Wave 0, Wave 1, and Wave 2. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, and the full 3-wave review catches logic and design issues.
+- **Checklists**: Load `references/audit-playbook.md` and pass it as prompt context for the wave agents — for each Wave 1/2 agent, include the playbook's category checklists matching that agent's lens (per the playbook's Reviewer Role Cross-Reference) plus each component's Phase 1 score and grade.
 
-The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation agents), and Wave 2 (deep-dive agents) internally.
+The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation agents), and Wave 2 (deep-dive agents) internally; the Checklists override is how the playbook reaches the agents it dispatches, since wave agents run in fresh context and cannot load it themselves.
+
+**Audit playbook**: The playbook maps categories to wave lenses and specifies evidence requirements per pattern. Agents use the checklists in their prompt to ensure systematic coverage rather than ad-hoc judgment about what to check.
 
 **Step 2: Collect findings**
 
@@ -237,3 +241,4 @@ least the severity sections and deterministic scores.
 ## References
 
 - [Report Template](references/report-template.md) -- Full structure for `full-repo-review-report.md` output
+- [Audit Playbook](references/audit-playbook.md) -- Per-category checklists (correctness, security, performance, test coverage, tech debt, dependencies, DX, docs) with evidence requirements and reviewer role assignments

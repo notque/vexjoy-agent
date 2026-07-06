@@ -103,6 +103,8 @@ Use the Task tool with the prompt template from `./implementer-prompt.md`. Inclu
 - Clear deliverables
 - Permission to ask questions
 
+**Verification and STOP contract**: When the plan follows the executor-ready format (see `skills/process/planning/references/executor-ready-plan-template.md`), append the "Executor-Ready Plans" section of `./implementer-prompt.md` to the dispatch prompt — the contract binds only if the implementer receives it. The implementer runs the ancestry drift check before starting, executes each step's verify command before proceeding, and triggers a STOP on any of the template's five STOP conditions (drift, double verification failure, out-of-scope touch, ambiguous or missing instruction, test regression).
+
 **Implementation constraints** (enforced inline):
 - Implementer must understand task fully before coding begins. If they ask questions: answer clearly and completely, provide additional context, re-dispatch with answers. Give them time to fully understand the task.
 - Dispatch follows the Phase 1 scope-overlap decision: parallelize tasks within a non-overlapping group; serialize tasks whose file scopes overlap, because overlapping file edits cause conflicts that are expensive to resolve. When the overlap check reports any conflict, run those tasks sequentially.
@@ -222,5 +224,6 @@ Solution:
 
 ### Prompt Templates
 - `implementer-prompt.md`: Dispatch template for implementation subagents
+- `skills/process/planning/references/executor-ready-plan-template.md`: Self-contained plan format with drift checks, per-step verification, and STOP conditions
 - `adr-reviewer-prompt.md`: Dispatch template for ADR compliance review
 - `code-quality-reviewer-prompt.md`: Dispatch template for code quality review
