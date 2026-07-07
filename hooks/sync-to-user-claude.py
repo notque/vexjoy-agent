@@ -734,16 +734,9 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
                     expected_names.add(skill_dir.name)
                     _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
 
-    # Clean stale entries: remove symlinks in dst that no longer map to a source.
-    # Guard: refuse to unlink anything that resolves inside the repo.
+    # Clean stale entries: remove dangling symlinks (target no longer exists).
     for item in dst.iterdir():
-        if item.name not in expected_names and item.is_symlink():
-            if repo_root is not None and _resolves_inside(item, repo_root):
-                print(
-                    f"[sync] BLOCKED: stale-cleanup refusing to unlink {item.name} (resolves inside repo)",
-                    file=sys.stderr,
-                )
-                continue
+        if item.is_symlink() and not item.exists():
             item.unlink()
 
 
