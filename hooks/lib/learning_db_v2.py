@@ -1106,7 +1106,9 @@ def record_evidence_route_decision(
     session_id = _bounded_text(session_id, 160)
     decision_id = _bounded_text(
         decision_id
-        or _event_id(datetime.now(timezone.utc).isoformat(timespec="microseconds"), session_id, route_key, request_snippet),
+        or _event_id(
+            datetime.now(timezone.utc).isoformat(timespec="microseconds"), session_id, route_key, request_snippet
+        ),
         160,
     )
     stack_text = _bounded_text(_json_text(stack), 2000)
