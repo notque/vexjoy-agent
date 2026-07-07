@@ -22,7 +22,7 @@ import os
 import re
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ─── Configuration ─────────────────────────────────────────────
@@ -1013,7 +1013,7 @@ def record_evidence_event(
     event_id = _bounded_text(
         event_id
         or _event_id(
-            datetime.now(UTC).isoformat(timespec="microseconds"),
+            datetime.now(timezone.utc).isoformat(timespec="microseconds"),
             event_type,
             source,
             session_id,
@@ -1106,7 +1106,7 @@ def record_evidence_route_decision(
     session_id = _bounded_text(session_id, 160)
     decision_id = _bounded_text(
         decision_id
-        or _event_id(datetime.now(UTC).isoformat(timespec="microseconds"), session_id, route_key, request_snippet),
+        or _event_id(datetime.now(timezone.utc).isoformat(timespec="microseconds"), session_id, route_key, request_snippet),
         160,
     )
     stack_text = _bounded_text(_json_text(stack), 2000)
