@@ -55,6 +55,21 @@ def main():
                 project_path=project_path,
                 args_summary=args_summary,
             )
+            try:
+                from learning_db_v2 import record_evidence_event
+
+                record_evidence_event(
+                    event_type="skill_invocation",
+                    source="hook:usage-tracker",
+                    session_id=session_id,
+                    project_path=project_path,
+                    skill=skill_name,
+                    tool_name="Skill",
+                    action="invoke",
+                    target=args_summary,
+                )
+            except Exception:
+                pass
 
         elif tool_name == "Agent":
             # Try subagent_type first (Agent tool), then agentType (Workflow's agent()),
@@ -71,6 +86,22 @@ def main():
                 project_path=project_path,
                 isolation=isolation,
             )
+            try:
+                from learning_db_v2 import record_evidence_event
+
+                record_evidence_event(
+                    event_type="agent_invocation",
+                    source="hook:usage-tracker",
+                    session_id=session_id,
+                    project_path=project_path,
+                    agent=agent_type,
+                    tool_name="Agent",
+                    action="invoke",
+                    target=description or None,
+                    metadata={"isolation": isolation},
+                )
+            except Exception:
+                pass
 
     except Exception as e:
         hook_error("usage-tracker", e)

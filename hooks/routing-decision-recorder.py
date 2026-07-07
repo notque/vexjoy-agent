@@ -607,6 +607,27 @@ def main() -> None:
                 wall_clock_ms=wall_clock_ms_from(event),
                 tool_errors=has_errors,
             )
+            try:
+                from learning_db_v2 import record_evidence_route_decision
+
+                record_evidence_route_decision(
+                    session_id=session_id or None,
+                    agent=agent,
+                    skill=skill or None,
+                    complexity=complexity or None,
+                    model=model,
+                    request_snippet=request_snippet,
+                    stack=stack,
+                    health=health["health"],
+                    n=health["n"],
+                    failure=bool(has_errors),
+                    action=health["action"],
+                    alternates=health["alternates"],
+                    gate_inputs_present=bool(health["gate_inputs_present"]),
+                    decision_id=f"{session_id or 'no-session'}:{sig}",
+                )
+            except Exception:
+                pass
 
             # Bridge to the outcome resolvers. The dispatch was already claimed
             # (marked seen) atomically above, so no separate mark. Decision row

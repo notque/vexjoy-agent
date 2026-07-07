@@ -38,6 +38,11 @@ Usage:
     python3 scripts/learning-db.py skip-rate [--json] [--include-test]
     python3 scripts/learning-db.py record-review-fp --reviewer reviewer-code --finding "unused import" --reason "import used in test"
     python3 scripts/learning-db.py review-fps [--json] [--min-confidence 0.5]
+    python3 scripts/learning-db.py evidence-recent [--json]
+    python3 scripts/learning-db.py evidence-route-context AGENT:SKILL [--json]
+    python3 scripts/learning-db.py evidence-file-history PATH [--json]
+    python3 scripts/learning-db.py evidence-failures [--json]
+    python3 scripts/learning-db.py evidence-decide AGENT:SKILL [--json]
     python3 scripts/learning-db.py stack-usage [--json]
     python3 scripts/learning-db.py backfill-stack-usage [--force]
 """
@@ -66,10 +71,15 @@ from learning_db_v2 import (
     export_markdown,
     get_connection,
     get_db_path,
+    get_evidence_decision,
+    get_evidence_failures,
+    get_evidence_file_history,
+    get_evidence_route_context,
     get_stats,
     import_from_patterns_db,
     import_from_retro,
     init_db,
+    list_evidence_events,
     mark_graduated,
     query_instruction_skip_rate,
     query_learnings,
@@ -1081,6 +1091,85 @@ def cmd_telemetry_query(args: argparse.Namespace) -> None:
         print(f"{r['recorded_at']}  {r['topic']}/{r['key']}  git_sha={r['git_sha']}  source={r['source']}")
 
 
+def _print_json(data) -> None:
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _print_evidence_rows(rows: list[dict]) -> None:
+    if not rows:
+        print("No evidence rows found.")
+        return
+    for row in rows:
+        status = ""
+        if row.get("success") is True:
+            status = " ok"
+        elif row.get("success") is False:
+            status = " failed"
+        target = f" target={row['target']}" if row.get("target") else ""
+        route = f" route={row['route_key']}" if row.get("route_key") else ""
+        print(f"{row['ts']}  {row['event_type']}{status} source={row['source']}{route}{target}")
+
+
+def cmd_evidence_recent(args: argparse.Namespace) -> None:
+    rows = list_evidence_events(
+        limit=args.limit,
+        session_id=args.session,
+        event_type=args.type,
+        route_key=args.route_key,
+        agent=args.agent,
+        skill=args.skill,
+        failures_only=args.failures,
+    )
+    if args.json:
+        _print_json(rows)
+    else:
+        _print_evidence_rows(rows)
+
+
+def cmd_evidence_route_context(args: argparse.Namespace) -> None:
+    context = get_evidence_route_context(args.route_key, limit=args.limit)
+    if args.json:
+        _print_json(context)
+        return
+    totals = context["totals"]
+    print(
+        f"{args.route_key}: {totals['decisions']} decision(s), "
+        f"{totals['successes']} success(es), {totals['failures']} failure(s)"
+    )
+    _print_evidence_rows(context["failures"])
+
+
+def cmd_evidence_file_history(args: argparse.Namespace) -> None:
+    rows = get_evidence_file_history(args.target, limit=args.limit)
+    if args.json:
+        _print_json(rows)
+    else:
+        _print_evidence_rows(rows)
+
+
+def cmd_evidence_failures(args: argparse.Namespace) -> None:
+    rows = get_evidence_failures(
+        limit=args.limit,
+        route_key=args.route_key,
+        agent=args.agent,
+        skill=args.skill,
+    )
+    if args.json:
+        _print_json(rows)
+    else:
+        _print_evidence_rows(rows)
+
+
+def cmd_evidence_decide(args: argparse.Namespace) -> None:
+    decision = get_evidence_decision(args.route_key)
+    if args.json:
+        _print_json(decision)
+        return
+    print(f"{decision['route_key']}: {decision['recommendation']} ({decision['confidence']})")
+    for reason in decision["reasons"]:
+        print(f"- {reason}")
+
+
 def cmd_record_routing_outcome(args: argparse.Namespace) -> None:
     """Record whether a routing decision succeeded or failed."""
     init_db()
@@ -2028,6 +2117,47 @@ def main():
     p_tquery.add_argument("--limit", type=int, default=50)
     p_tquery.add_argument("--format", choices=["human", "json"], default="human")
     p_tquery.set_defaults(func=cmd_telemetry_query)
+
+    # evidence-recent — recent queryable agent evidence rows.
+    p_e_recent = subparsers.add_parser("evidence-recent", help="List recent agent evidence events")
+    p_e_recent.add_argument("--limit", type=int, default=50)
+    p_e_recent.add_argument("--session", help="Filter by session id")
+    p_e_recent.add_argument("--type", help="Filter by event type")
+    p_e_recent.add_argument("--route-key", help="Filter by route key (agent:skill)")
+    p_e_recent.add_argument("--agent", help="Filter by agent")
+    p_e_recent.add_argument("--skill", help="Filter by skill")
+    p_e_recent.add_argument("--failures", action="store_true", help="Only failed events")
+    p_e_recent.add_argument("--json", action="store_true", help="Output as JSON")
+    p_e_recent.set_defaults(func=cmd_evidence_recent)
+
+    # evidence-route-context — route-specific decision history and failures.
+    p_e_route = subparsers.add_parser("evidence-route-context", help="Show local evidence for one route")
+    p_e_route.add_argument("route_key", help="Route key (agent:skill)")
+    p_e_route.add_argument("--limit", type=int, default=20)
+    p_e_route.add_argument("--json", action="store_true", help="Output as JSON")
+    p_e_route.set_defaults(func=cmd_evidence_route_context)
+
+    # evidence-file-history — events touching a file/path target.
+    p_e_file = subparsers.add_parser("evidence-file-history", help="Show evidence events for a target path")
+    p_e_file.add_argument("target", help="File path or target text")
+    p_e_file.add_argument("--limit", type=int, default=50)
+    p_e_file.add_argument("--json", action="store_true", help="Output as JSON")
+    p_e_file.set_defaults(func=cmd_evidence_file_history)
+
+    # evidence-failures — recent failed evidence rows.
+    p_e_failures = subparsers.add_parser("evidence-failures", help="List recent failed evidence events")
+    p_e_failures.add_argument("--limit", type=int, default=50)
+    p_e_failures.add_argument("--route-key", help="Filter by route key")
+    p_e_failures.add_argument("--agent", help="Filter by agent")
+    p_e_failures.add_argument("--skill", help="Filter by skill")
+    p_e_failures.add_argument("--json", action="store_true", help="Output as JSON")
+    p_e_failures.set_defaults(func=cmd_evidence_failures)
+
+    # evidence-decide — compact advisory derived from route evidence.
+    p_e_decide = subparsers.add_parser("evidence-decide", help="Summarize the advisory state for one route")
+    p_e_decide.add_argument("route_key", help="Route key (agent:skill)")
+    p_e_decide.add_argument("--json", action="store_true", help="Output as JSON")
+    p_e_decide.set_defaults(func=cmd_evidence_decide)
 
     # record-routing-outcome
     p_rro = subparsers.add_parser("record-routing-outcome", help="Record routing decision outcome")
