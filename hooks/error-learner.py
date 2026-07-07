@@ -32,6 +32,7 @@ from learning_db_v2 import (
     decay_confidence,
     generate_signature,
     lookup_error_solution,
+    record_evidence_event,
     record_learning,
     sanitize_for_context,
 )
@@ -156,6 +157,21 @@ def main():
 
         # Sanitize before storing or replaying in context
         error_message = sanitize_for_context(error_message)
+        try:
+            record_evidence_event(
+                event_type="tool_failure",
+                source="hook:error-learner",
+                session_id=event.get("session_id") or None,
+                project_path=cwd,
+                tool_name=tool_name,
+                action="run",
+                target=source_detail,
+                success=False,
+                error=error_message,
+                metadata={"error_type": error_type, "signature": signature},
+            )
+        except Exception:
+            pass
 
         # Check for existing solution in unified DB
         existing = lookup_error_solution(error_message)

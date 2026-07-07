@@ -490,6 +490,26 @@ def main() -> None:
                 reason=reason,
                 routing_relevant=True,
             )
+            try:
+                from learning_db_v2 import record_evidence_event, update_evidence_route_outcome
+
+                update_evidence_route_outcome(
+                    route_key=key,
+                    session_id=session_id or None,
+                    outcome=outcome,
+                    outcome_basis=basis,
+                )
+                record_evidence_event(
+                    event_type="route_outcome",
+                    source="hook:routing-outcome-finalizer",
+                    session_id=session_id or None,
+                    route_key=key,
+                    action=outcome,
+                    success=outcome != "failure",
+                    metadata={"basis": basis, "reason": reason},
+                )
+            except Exception:
+                pass
             if debug:
                 print(
                     f"[routing-outcome-finalizer] {outcome} routing/{key} ({reason}) conf={new_conf:.4f}",

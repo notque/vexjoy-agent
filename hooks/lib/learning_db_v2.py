@@ -17,18 +17,19 @@ Design Principles:
 """
 
 import hashlib
+import json
 import os
 import re
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 # ─── Configuration ─────────────────────────────────────────────
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 6
+_CURRENT_SCHEMA_VERSION = 7
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -199,6 +200,16 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (6, 'add routing_outcome_basis table for outcome-basis counters')"
         )
 
+    if current < 7:
+        # v6 -> v7: local agent evidence read model for queryable sessions,
+        # hook events, and route decisions. Additive and idempotent.
+        conn.executescript(_EVIDENCE_DDL)
+        conn.execute("PRAGMA user_version = 7")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (7, 'add agent evidence event and route decision tables')"
+        )
+
     conn.commit()
 
 
@@ -294,6 +305,129 @@ CREATE TABLE IF NOT EXISTS routing_outcome_basis (
     count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (key, basis)
 );
+"""
+
+
+_EVIDENCE_DDL = """
+CREATE TABLE IF NOT EXISTS evidence_sessions (
+    session_id    TEXT PRIMARY KEY,
+    project_path  TEXT,
+    started_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    summary       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS evidence_events (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id      TEXT NOT NULL UNIQUE,
+    session_id    TEXT,
+    ts            TEXT NOT NULL DEFAULT (datetime('now')),
+    event_type    TEXT NOT NULL,
+    source        TEXT NOT NULL,
+    agent         TEXT,
+    skill         TEXT,
+    tool_name     TEXT,
+    route_key     TEXT,
+    action        TEXT,
+    target        TEXT,
+    target_hash   TEXT,
+    success       INTEGER,
+    error         TEXT,
+    model         TEXT,
+    tokens        INTEGER,
+    metadata      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_events_ts ON evidence_events(ts);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_session ON evidence_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_type ON evidence_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_route ON evidence_events(route_key);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_agent_skill ON evidence_events(agent, skill);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_target_hash ON evidence_events(target_hash);
+CREATE INDEX IF NOT EXISTS idx_evidence_events_success ON evidence_events(success);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS evidence_events_fts USING fts5(
+    event_type,
+    source,
+    agent,
+    skill,
+    tool_name,
+    route_key,
+    action,
+    target,
+    error,
+    metadata,
+    content='evidence_events',
+    content_rowid='id',
+    tokenize='porter unicode61'
+);
+
+CREATE TRIGGER IF NOT EXISTS evidence_events_ai AFTER INSERT ON evidence_events BEGIN
+    INSERT INTO evidence_events_fts(
+        rowid, event_type, source, agent, skill, tool_name, route_key, action, target, error, metadata
+    )
+    VALUES (
+        new.id, new.event_type, new.source, new.agent, new.skill, new.tool_name, new.route_key,
+        new.action, new.target, new.error, new.metadata
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS evidence_events_ad AFTER DELETE ON evidence_events BEGIN
+    INSERT INTO evidence_events_fts(
+        evidence_events_fts, rowid, event_type, source, agent, skill, tool_name, route_key,
+        action, target, error, metadata
+    )
+    VALUES (
+        'delete', old.id, old.event_type, old.source, old.agent, old.skill, old.tool_name, old.route_key,
+        old.action, old.target, old.error, old.metadata
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS evidence_events_au AFTER UPDATE ON evidence_events BEGIN
+    INSERT INTO evidence_events_fts(
+        evidence_events_fts, rowid, event_type, source, agent, skill, tool_name, route_key,
+        action, target, error, metadata
+    )
+    VALUES (
+        'delete', old.id, old.event_type, old.source, old.agent, old.skill, old.tool_name, old.route_key,
+        old.action, old.target, old.error, old.metadata
+    );
+    INSERT INTO evidence_events_fts(
+        rowid, event_type, source, agent, skill, tool_name, route_key, action, target, error, metadata
+    )
+    VALUES (
+        new.id, new.event_type, new.source, new.agent, new.skill, new.tool_name, new.route_key,
+        new.action, new.target, new.error, new.metadata
+    );
+END;
+
+CREATE TABLE IF NOT EXISTS evidence_route_decisions (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    decision_id          TEXT NOT NULL UNIQUE,
+    session_id           TEXT,
+    route_key            TEXT NOT NULL,
+    agent                TEXT NOT NULL,
+    skill                TEXT,
+    complexity           TEXT,
+    model                TEXT,
+    action               TEXT,
+    health               REAL,
+    n                    INTEGER,
+    failure              INTEGER DEFAULT 0,
+    gate_inputs_present  INTEGER DEFAULT 0,
+    outcome              TEXT,
+    outcome_basis        TEXT,
+    request_snippet      TEXT,
+    stack                TEXT,
+    alternates           TEXT,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_route_key ON evidence_route_decisions(route_key);
+CREATE INDEX IF NOT EXISTS idx_evidence_route_session ON evidence_route_decisions(session_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_route_created ON evidence_route_decisions(created_at);
+CREATE INDEX IF NOT EXISTS idx_evidence_route_outcome ON evidence_route_decisions(outcome);
 """
 
 
@@ -440,6 +574,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 """
     + _TELEMETRY_DDL
     + _BASIS_DDL
+    + _EVIDENCE_DDL
 )
 
 
@@ -764,6 +899,481 @@ def record_telemetry_run(
             ),
         )
         conn.commit()
+
+
+def _bounded_text(value: object, limit: int = 2000) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text[:limit]
+
+
+def _json_text(value: object) -> str | None:
+    if value is None:
+        return None
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    except TypeError:
+        return json.dumps(str(value))
+
+
+def _parse_json_text(value: str | None) -> object:
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def _target_hash(target: str | None) -> str | None:
+    if not target:
+        return None
+    return hashlib.sha256(target.encode("utf-8", errors="replace")).hexdigest()[:24]
+
+
+def _route_key(agent: str, skill: str | None = None) -> str:
+    clean_agent = (agent or "").strip()
+    clean_skill = (skill or "").strip()
+    return f"{clean_agent}:{clean_skill}" if clean_skill else f"{clean_agent}:"
+
+
+def _event_id(*parts: object) -> str:
+    raw = "|".join("" if part is None else str(part) for part in parts)
+    return hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()
+
+
+def _bool_or_none(value: object) -> bool | None:
+    if value is None:
+        return None
+    return bool(value)
+
+
+def _event_row(row: sqlite3.Row) -> dict:
+    data = dict(row)
+    data["success"] = _bool_or_none(data.get("success"))
+    data["metadata"] = _parse_json_text(data.get("metadata")) or {}
+    return data
+
+
+def _record_evidence_session(conn: sqlite3.Connection, session_id: str | None, project_path: str | None = None) -> None:
+    if not session_id:
+        return
+    conn.execute(
+        """
+        INSERT INTO evidence_sessions (session_id, project_path, started_at, last_seen_at)
+        VALUES (?, ?, datetime('now'), datetime('now'))
+        ON CONFLICT(session_id) DO UPDATE SET
+            project_path = COALESCE(excluded.project_path, evidence_sessions.project_path),
+            last_seen_at = datetime('now')
+        """,
+        (session_id, project_path),
+    )
+
+
+def record_evidence_event(
+    *,
+    event_type: str,
+    source: str,
+    session_id: str | None = None,
+    project_path: str | None = None,
+    agent: str | None = None,
+    skill: str | None = None,
+    tool_name: str | None = None,
+    route_key: str | None = None,
+    action: str | None = None,
+    target: str | None = None,
+    success: bool | None = None,
+    error: str | None = None,
+    model: str | None = None,
+    tokens: int | None = None,
+    metadata: dict | list | str | None = None,
+    event_id: str | None = None,
+    ts: str | None = None,
+) -> dict:
+    """Record a queryable agent evidence event and return the inserted row."""
+    init_db()
+    event_type = _bounded_text(event_type, 120) or "event"
+    source = _bounded_text(source, 160) or "unknown"
+    session_id = _bounded_text(session_id, 160)
+    project_path = _bounded_text(project_path, 1000)
+    agent = _bounded_text(agent, 160)
+    skill = _bounded_text(skill, 160)
+    tool_name = _bounded_text(tool_name, 160)
+    route_key = _bounded_text(route_key, 320)
+    action = _bounded_text(action, 160)
+    target = _bounded_text(target, 1000)
+    error = _bounded_text(error, 2000)
+    model = _bounded_text(model, 160)
+    metadata_text = _bounded_text(_json_text(metadata), 4000)
+    target_hash = _target_hash(target)
+    ts = _bounded_text(ts, 80)
+    event_id = _bounded_text(
+        event_id
+        or _event_id(
+            datetime.now(UTC).isoformat(timespec="microseconds"),
+            event_type,
+            source,
+            session_id,
+            agent,
+            skill,
+            tool_name,
+            route_key,
+            action,
+            target_hash,
+        ),
+        160,
+    )
+
+    with get_connection() as conn:
+        _record_evidence_session(conn, session_id, project_path)
+        conn.execute(
+            """
+            INSERT INTO evidence_events (
+                event_id, session_id, ts, event_type, source, agent, skill, tool_name,
+                route_key, action, target, target_hash, success, error, model, tokens, metadata
+            )
+            VALUES (?, ?, COALESCE(?, datetime('now')), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(event_id) DO UPDATE SET
+                session_id = excluded.session_id,
+                ts = excluded.ts,
+                event_type = excluded.event_type,
+                source = excluded.source,
+                agent = excluded.agent,
+                skill = excluded.skill,
+                tool_name = excluded.tool_name,
+                route_key = excluded.route_key,
+                action = excluded.action,
+                target = excluded.target,
+                target_hash = excluded.target_hash,
+                success = excluded.success,
+                error = excluded.error,
+                model = excluded.model,
+                tokens = excluded.tokens,
+                metadata = excluded.metadata
+            """,
+            (
+                event_id,
+                session_id,
+                ts,
+                event_type,
+                source,
+                agent,
+                skill,
+                tool_name,
+                route_key,
+                action,
+                target,
+                target_hash,
+                None if success is None else int(bool(success)),
+                error,
+                model,
+                tokens,
+                metadata_text,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM evidence_events WHERE event_id = ?", (event_id,)).fetchone()
+        return _event_row(row)
+
+
+def record_evidence_route_decision(
+    *,
+    session_id: str | None,
+    agent: str,
+    skill: str | None = None,
+    complexity: str | None = None,
+    model: str | None = None,
+    request_snippet: str | None = None,
+    stack: list[str] | tuple[str, ...] | str | None = None,
+    health: float | None = None,
+    n: int | None = None,
+    failure: bool | None = None,
+    action: str | None = None,
+    alternates: list[str] | tuple[str, ...] | str | None = None,
+    gate_inputs_present: bool = False,
+    decision_id: str | None = None,
+    outcome: str | None = None,
+    outcome_basis: str | None = None,
+) -> dict:
+    """Record a route decision plus a companion evidence event."""
+    init_db()
+    agent = _bounded_text(agent, 160) or "unknown"
+    skill = _bounded_text(skill, 160)
+    route_key = _route_key(agent, skill)
+    session_id = _bounded_text(session_id, 160)
+    decision_id = _bounded_text(
+        decision_id
+        or _event_id(datetime.now(UTC).isoformat(timespec="microseconds"), session_id, route_key, request_snippet),
+        160,
+    )
+    stack_text = _bounded_text(_json_text(stack), 2000)
+    alternates_text = _bounded_text(_json_text(alternates), 2000)
+
+    with get_connection() as conn:
+        _record_evidence_session(conn, session_id)
+        conn.execute(
+            """
+            INSERT INTO evidence_route_decisions (
+                decision_id, session_id, route_key, agent, skill, complexity, model, action,
+                health, n, failure, gate_inputs_present, outcome, outcome_basis,
+                request_snippet, stack, alternates, created_at, updated_at
+            )
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now')
+            )
+            ON CONFLICT(decision_id) DO UPDATE SET
+                session_id = excluded.session_id,
+                route_key = excluded.route_key,
+                agent = excluded.agent,
+                skill = excluded.skill,
+                complexity = excluded.complexity,
+                model = excluded.model,
+                action = excluded.action,
+                health = excluded.health,
+                n = excluded.n,
+                failure = excluded.failure,
+                gate_inputs_present = excluded.gate_inputs_present,
+                outcome = excluded.outcome,
+                outcome_basis = excluded.outcome_basis,
+                request_snippet = excluded.request_snippet,
+                stack = excluded.stack,
+                alternates = excluded.alternates,
+                updated_at = datetime('now')
+            """,
+            (
+                decision_id,
+                session_id,
+                route_key,
+                agent,
+                skill,
+                _bounded_text(complexity, 80),
+                _bounded_text(model, 160),
+                _bounded_text(action, 80),
+                health,
+                n,
+                None if failure is None else int(bool(failure)),
+                int(bool(gate_inputs_present)),
+                _bounded_text(outcome, 80),
+                _bounded_text(outcome_basis, 120),
+                _bounded_text(request_snippet, 1000),
+                stack_text,
+                alternates_text,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM evidence_route_decisions WHERE decision_id = ?", (decision_id,)).fetchone()
+
+    record_evidence_event(
+        event_type="route_decision",
+        source="hook:routing",
+        session_id=session_id,
+        agent=agent,
+        skill=skill,
+        route_key=route_key,
+        action=action,
+        success=None if failure is None else not bool(failure),
+        model=model,
+        metadata={
+            "complexity": complexity,
+            "health": health,
+            "n": n,
+            "gate_inputs_present": gate_inputs_present,
+            "stack": stack,
+            "outcome": outcome,
+            "outcome_basis": outcome_basis,
+        },
+        event_id=f"route:{decision_id}",
+    )
+    data = dict(row)
+    data["failure"] = _bool_or_none(data.get("failure"))
+    data["gate_inputs_present"] = bool(data.get("gate_inputs_present"))
+    data["stack"] = _parse_json_text(data.get("stack")) or []
+    data["alternates"] = _parse_json_text(data.get("alternates")) or []
+    return data
+
+
+def update_evidence_route_outcome(
+    *,
+    route_key: str,
+    session_id: str | None = None,
+    outcome: str,
+    outcome_basis: str | None = None,
+) -> None:
+    """Attach the latest outcome to the newest matching route decision."""
+    init_db()
+    clauses = ["route_key = ?"]
+    params: list = [route_key]
+    if session_id:
+        clauses.append("session_id = ?")
+        params.append(session_id)
+    where = " AND ".join(clauses)
+    with get_connection() as conn:
+        row = conn.execute(
+            f"SELECT decision_id FROM evidence_route_decisions WHERE {where} ORDER BY id DESC LIMIT 1",  # security-review: ignore (fixed clauses; user values bound as ?)
+            params,
+        ).fetchone()
+        if not row:
+            return
+        conn.execute(
+            """
+            UPDATE evidence_route_decisions
+            SET outcome = ?, outcome_basis = ?, updated_at = datetime('now')
+            WHERE decision_id = ?
+            """,
+            (_bounded_text(outcome, 80), _bounded_text(outcome_basis, 120), row["decision_id"]),
+        )
+        conn.commit()
+
+
+def list_evidence_events(
+    *,
+    limit: int = 50,
+    session_id: str | None = None,
+    event_type: str | None = None,
+    route_key: str | None = None,
+    agent: str | None = None,
+    skill: str | None = None,
+    target: str | None = None,
+    failures_only: bool = False,
+) -> list[dict]:
+    init_db()
+    clauses: list[str] = []
+    params: list = []
+    if session_id:
+        clauses.append("session_id = ?")
+        params.append(session_id)
+    if event_type:
+        clauses.append("event_type = ?")
+        params.append(event_type)
+    if route_key:
+        clauses.append("route_key = ?")
+        params.append(route_key)
+    if agent:
+        clauses.append("agent = ?")
+        params.append(agent)
+    if skill:
+        clauses.append("skill = ?")
+        params.append(skill)
+    if target:
+        clauses.append("(target_hash = ? OR target LIKE ?)")
+        params.extend([_target_hash(target), f"%{target}%"])
+    if failures_only:
+        clauses.append("success = 0")
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    params.append(max(1, min(int(limit), 500)))
+    with get_connection() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM evidence_events {where} ORDER BY id DESC LIMIT ?",  # security-review: ignore (fixed clauses; user values bound as ?)
+            params,
+        ).fetchall()
+    return [_event_row(row) for row in rows]
+
+
+def get_evidence_failures(
+    *,
+    limit: int = 50,
+    route_key: str | None = None,
+    agent: str | None = None,
+    skill: str | None = None,
+) -> list[dict]:
+    return list_evidence_events(
+        limit=limit,
+        route_key=route_key,
+        agent=agent,
+        skill=skill,
+        failures_only=True,
+    )
+
+
+def get_evidence_file_history(target: str, *, limit: int = 50) -> list[dict]:
+    return list_evidence_events(limit=limit, target=target)
+
+
+def _decision_row(row: sqlite3.Row) -> dict:
+    data = dict(row)
+    data["failure"] = _bool_or_none(data.get("failure"))
+    data["gate_inputs_present"] = bool(data.get("gate_inputs_present"))
+    data["stack"] = _parse_json_text(data.get("stack")) or []
+    data["alternates"] = _parse_json_text(data.get("alternates")) or []
+    return data
+
+
+def get_evidence_route_context(route_key: str, *, limit: int = 20) -> dict:
+    init_db()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM evidence_route_decisions
+            WHERE route_key = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (route_key, max(1, min(int(limit), 200))),
+        ).fetchall()
+        totals = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS decisions,
+                COALESCE(SUM(CASE WHEN failure = 1 OR outcome = 'failure' THEN 1 ELSE 0 END), 0) AS failures,
+                COALESCE(SUM(CASE WHEN outcome IN ('success', 'weak_success') THEN 1 ELSE 0 END), 0) AS successes,
+                MAX(updated_at) AS last_seen
+            FROM evidence_route_decisions
+            WHERE route_key = ?
+            """,
+            (route_key,),
+        ).fetchone()
+    total_data = dict(totals)
+    return {
+        "route_key": route_key,
+        "totals": total_data,
+        "recent": [_decision_row(row) for row in rows],
+        "failures": get_evidence_failures(route_key=route_key, limit=limit),
+    }
+
+
+def get_evidence_decision(route_key: str) -> dict:
+    context = get_evidence_route_context(route_key, limit=10)
+    totals = context["totals"]
+    decisions = int(totals.get("decisions") or 0)
+    failures = int(totals.get("failures") or 0)
+    successes = int(totals.get("successes") or 0)
+    if decisions == 0:
+        return {
+            "route_key": route_key,
+            "recommendation": "no_data",
+            "confidence": "none",
+            "reasons": ["No local evidence has been recorded for this route."],
+            "context": context,
+        }
+
+    failure_rate = failures / decisions
+    reasons = [
+        f"{decisions} recorded decision(s)",
+        f"{failure_rate:.0%} failure rate",
+    ]
+    if successes:
+        reasons.append(f"{successes} successful outcome(s)")
+
+    if failure_rate > 0.65:
+        recommendation = "investigate"
+        confidence = "medium" if decisions >= 3 else "low"
+    elif failure_rate >= 0.25:
+        recommendation = "watch"
+        confidence = "medium" if decisions >= 4 else "low"
+    else:
+        recommendation = "keep"
+        confidence = "medium" if decisions >= 3 else "low"
+
+    return {
+        "route_key": route_key,
+        "recommendation": recommendation,
+        "confidence": confidence,
+        "reasons": reasons,
+        "context": context,
+    }
 
 
 def query_learnings(
