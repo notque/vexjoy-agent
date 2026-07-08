@@ -215,9 +215,9 @@ def build_marker(decision: dict) -> str:
             )
         parts.append("model=-")
 
-    health = decision.get("health") or {}
+    health = decision.get("health")
     if not isinstance(health, dict):
-        raise InputError("'health' must be an object")
+        health = {}  # "-" sentinel or absent → no health data
     confidence = health.get("confidence")
     if confidence is None:
         # No weight row for the pick — the recorder writes null but marks the
