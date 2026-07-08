@@ -1093,26 +1093,27 @@ class TestProtectedRootsWorktreeScenario:
 
         return main, worktree, claude_skills
 
-    def test_worktree_sync_without_canonical_deletes_symlink(self, tmp_path: Path) -> None:
-        """Without canonical root, stale cleanup would delete the voice-shared-references
-        symlink because it resolves into the main repo, not the worktree."""
+    def test_worktree_sync_without_canonical_preserves_foreign_symlink(self, tmp_path: Path) -> None:
+        """With the foreign-symlink fix, a live symlink whose target is outside
+        the given repo_root is preserved even without canonical root protection.
+        voice-shared-references resolves into main (outside worktree), so it
+        survives the cleanup."""
         main, worktree, claude_skills = self._make_main_and_worktree(tmp_path)
 
-        # Sync from worktree WITHOUT canonical root protection
+        # Sync from worktree with only the worktree as repo_root
         with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
             sync_mod._sync_skills_flat_symlinks(
                 worktree / "skills",
                 claude_skills,
-                repo_root=worktree,  # Wrong root — only protects worktree paths
+                repo_root=worktree,
             )
 
-        # The symlink was removed because voice-shared-references is not in
-        # worktree's skills, so not in expected_names, and the symlink resolves
-        # into main (not worktree), so the guard didn't catch it.
-        assert not (claude_skills / "voice-shared-references").exists(), (
-            "Expected the symlink to be removed (reproducing the bug)"
-        )
-        # But main repo files must still exist (unlink only removes the link)
+        # voice-shared-references resolves into main (outside worktree root),
+        # so it is treated as a foreign symlink and preserved.
+        vsr_link = claude_skills / "voice-shared-references"
+        assert vsr_link.is_symlink(), "voice-shared-references must be preserved"
+        assert vsr_link.resolve() == (main / "skills" / "voice-shared-references").resolve()
+        # Main repo files untouched
         for name in self.VSR_FILES:
             assert (main / "skills" / "voice-shared-references" / name).exists()
 
