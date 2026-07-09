@@ -734,16 +734,22 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
                     expected_names.add(skill_dir.name)
                     _ensure_symlink(skill_dir, dst / skill_dir.name, repo_root=repo_root)
 
-    # Clean stale entries: remove symlinks in dst that no longer map to a source.
-    # Guard: refuse to unlink anything that resolves inside the repo.
+    # Clean stale entries: remove symlinks no longer in expected_names, with
+    # two preservation rules when repo_root is known:
+    #   (a) Preserve if the target resolves INSIDE a known root — it belongs to
+    #       a repo (e.g. canonical main repo when syncing from a worktree).
+    #   (b) Preserve if the target is live and resolves OUTSIDE all known roots
+    #       — it is a foreign symlink (e.g. ~/.agents/skills/foo) that we must
+    #       not touch.
+    # When repo_root is None we cannot apply either guard, so anything not in
+    # expected_names is removed (original behaviour).
     for item in dst.iterdir():
         if item.name not in expected_names and item.is_symlink():
-            if repo_root is not None and _resolves_inside(item, repo_root):
-                print(
-                    f"[sync] BLOCKED: stale-cleanup refusing to unlink {item.name} (resolves inside repo)",
-                    file=sys.stderr,
-                )
-                continue
+            if repo_root is not None:
+                if _resolves_inside(item, repo_root):
+                    continue  # (a) inside a known repo root — preserve
+                if item.exists():
+                    continue  # (b) live and outside all roots — foreign, preserve
             item.unlink()
 
 
