@@ -108,7 +108,6 @@ skills/voice-*
 !skills/voice-writer/
 !skills/voice-validator/
 !skills/voice-shared/
-!skills/voice-shared-references/
 skills/voice
 
 # Generated index artifacts — derived from SKILL.md/agent frontmatter.

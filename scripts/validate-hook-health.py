@@ -29,9 +29,12 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -638,7 +641,14 @@ _EVENT_BASE = {
     "PostToolUse": {"hook_event_name": "PostToolUse", "tool_result": "ok", "session_id": "hh"},
     "PreCompact": {"hook_event_name": "PreCompact", "summary": "x"},
     "PostCompact": {"hook_event_name": "PostCompact"},
-    "Stop": {"hook_event_name": "Stop", "stop_hook_active": False, "session_id": "hh"},
+    # Stop hooks may inspect the working tree and launch nested validators. A
+    # neutral directory keeps this probe about hook liveness, not repo state.
+    "Stop": {
+        "hook_event_name": "Stop",
+        "stop_hook_active": False,
+        "session_id": "hh",
+        "cwd": tempfile.gettempdir(),
+    },
     "StopFailure": {"hook_event_name": "StopFailure"},
     "SubagentStop": {"hook_event_name": "SubagentStop", "tool_name": "Agent", "tool_result": "ok", "session_id": "hh"},
     "TaskCompleted": {"hook_event_name": "TaskCompleted", "task": "x", "session_id": "hh"},
@@ -721,27 +731,59 @@ def check_liveness() -> list[str]:
     return []
 
 
-HOOK_ERRORS_JSONL = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+DEFAULT_HOOK_ERRORS_JSONL = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+DEFAULT_HOOK_ERROR_LOOKBACK_HOURS = 24.0
 
 # A hook that errors more than this many times is a repeat offender.
 _REPEAT_THRESHOLD = 5
 
 
-def check_hook_error_repeat_offenders() -> list[str]:
-    """Read hook-errors.jsonl and surface hooks that error repeatedly."""
-    if not HOOK_ERRORS_JSONL.is_file():
+def _hook_errors_path() -> Path:
+    override = os.environ.get("CLAUDE_HOOK_ERRORS_PATH")
+    return Path(override) if override else DEFAULT_HOOK_ERRORS_JSONL
+
+
+def _parse_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def check_hook_error_repeat_offenders(
+    *,
+    lookback_hours: float = DEFAULT_HOOK_ERROR_LOOKBACK_HOURS,
+    now: datetime | None = None,
+) -> list[str]:
+    """Surface hooks that repeatedly errored within the lookback window."""
+    path = _hook_errors_path()
+    if not path.is_file():
         return []
+    current = now or datetime.now(tz=timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    cutoff = current.astimezone(timezone.utc) - timedelta(hours=lookback_hours)
     counts: dict[str, int] = {}
     try:
-        for line in HOOK_ERRORS_JSONL.read_text(encoding="utf-8").splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue
             try:
                 entry = json.loads(line)
+                timestamp = _parse_timestamp(entry.get("ts"))
+                if timestamp is None or timestamp < cutoff:
+                    continue
                 hook = entry.get("hook", "unknown")
+                if not isinstance(hook, str) or not hook:
+                    hook = "unknown"
                 counts[hook] = counts.get(hook, 0) + 1
-            except (json.JSONDecodeError, TypeError):
+            except (AttributeError, json.JSONDecodeError, TypeError):
                 continue
     except OSError:
         return []
@@ -751,12 +793,16 @@ def check_hook_error_repeat_offenders() -> list[str]:
         if count >= _REPEAT_THRESHOLD:
             msgs.append(
                 f"REPEAT-OFFENDER: hooks/{hook}.py has {count} errors in hook-errors.jsonl "
-                f"(threshold: {_REPEAT_THRESHOLD}). Investigate and fix the root cause."
+                f"in the last {lookback_hours:g} hours (threshold: {_REPEAT_THRESHOLD}). "
+                "Investigate and fix the root cause."
             )
     return msgs
 
 
-def run_all(with_liveness: bool) -> list[str]:
+def run_all(
+    with_liveness: bool,
+    hook_error_lookback_hours: float = DEFAULT_HOOK_ERROR_LOOKBACK_HOURS,
+) -> list[str]:
     settings = load_settings()
     failures: list[str] = []
     failures += check_schema(settings)
@@ -765,7 +811,7 @@ def run_all(with_liveness: bool) -> list[str]:
     failures += check_mirror(settings)
     failures += check_allowlist_not_stale()
     failures += check_allowlist_entries_have_reasons()
-    failures += check_hook_error_repeat_offenders()
+    failures += check_hook_error_repeat_offenders(lookback_hours=hook_error_lookback_hours)
     if with_liveness:
         failures += check_matcher_liveness()
         failures += check_liveness()
@@ -776,10 +822,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Composing hook-health validator")
     parser.add_argument("--ci", action="store_true", help="Exit 1 on any failure; runs liveness too")
     parser.add_argument("--with-liveness", action="store_true", help="Also run smoke-test liveness")
+    parser.add_argument(
+        "--hook-error-lookback-hours",
+        type=float,
+        default=DEFAULT_HOOK_ERROR_LOOKBACK_HOURS,
+        help="Repeat-offender lookback window (default: 24 hours)",
+    )
     args = parser.parse_args()
+    if args.hook_error_lookback_hours <= 0:
+        parser.error("--hook-error-lookback-hours must be greater than zero")
 
     with_liveness = args.ci or args.with_liveness
-    failures = run_all(with_liveness=with_liveness)
+    failures = run_all(
+        with_liveness=with_liveness,
+        hook_error_lookback_hours=args.hook_error_lookback_hours,
+    )
 
     checks = [
         "schema",

@@ -331,18 +331,17 @@ class TestRuntimeIndexMerge:
 class TestSupportDirSurvivesCleanup:
     """Support dirs (reference .md files, no SKILL.md) must enter
     expected_names, or the stale-cleanup loop unlinks them every
-    SessionStart. Regression test for the voice-shared-references bug:
-    the dir was missing from the root_dirs allowlist, so the cleanup
-    deleted its symlink 4 times in one session."""
+    SessionStart. Regression test for a support directory that is not
+    explicitly allowlisted."""
 
     def _make_src(self, tmp_path: Path) -> Path:
         src = tmp_path / "skills"
-        refs = src / "voice-shared-references"
+        refs = src / "support-notes"
         refs.mkdir(parents=True)
         for name in (
-            "anti-rhetorical-pivot.md",
-            "voice-first-writing.md",
-            "wabi-sabi-authenticity.md",
+            "pattern-a.md",
+            "pattern-b.md",
+            "pattern-c.md",
         ):
             (refs / name).write_text("# ref\n")
         # one real skill so the flatten loop has something to do
@@ -351,7 +350,7 @@ class TestSupportDirSurvivesCleanup:
         (skill / "SKILL.md").write_text("---\nname: do\n---\n")
         return src
 
-    def test_voice_shared_references_survives_sync(self, tmp_path: Path) -> None:
+    def test_support_directory_survives_sync(self, tmp_path: Path) -> None:
         src = self._make_src(tmp_path)
         dst = tmp_path / "out"
         with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
@@ -359,10 +358,10 @@ class TestSupportDirSurvivesCleanup:
             # Second pass exercises the stale-cleanup against existing links
             sync_mod._sync_skills_flat_symlinks(src, dst)
 
-        link = dst / "voice-shared-references"
+        link = dst / "support-notes"
         assert link.is_symlink()
-        assert link.resolve() == (src / "voice-shared-references").resolve()
-        assert (link / "voice-first-writing.md").read_text() == "# ref\n"
+        assert link.resolve() == (src / "support-notes").resolve()
+        assert (link / "pattern-b.md").read_text() == "# ref\n"
 
     def test_preexisting_support_symlink_not_unlinked(self, tmp_path: Path) -> None:
         """The original failure: a symlink already in dst was unlinked
@@ -370,12 +369,12 @@ class TestSupportDirSurvivesCleanup:
         src = self._make_src(tmp_path)
         dst = tmp_path / "out"
         dst.mkdir()
-        (dst / "voice-shared-references").symlink_to(src / "voice-shared-references")
+        (dst / "support-notes").symlink_to(src / "support-notes")
 
         with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
             sync_mod._sync_skills_flat_symlinks(src, dst)
 
-        assert (dst / "voice-shared-references").is_symlink()
+        assert (dst / "support-notes").is_symlink()
 
     def test_future_support_dir_protected_without_allowlist(self, tmp_path: Path) -> None:
         """Any root dir with .md files and no skill subdir is treated as a
@@ -757,7 +756,7 @@ class TestResolvesInside:
     def test_path_inside_repo(self, tmp_path: Path) -> None:
         repo = tmp_path / "repo"
         repo.mkdir()
-        child = repo / "skills" / "voice-shared-references"
+        child = repo / "skills" / "support-notes"
         child.mkdir(parents=True)
         assert sync_mod._resolves_inside(child, repo) is True
 
@@ -770,7 +769,7 @@ class TestResolvesInside:
 
     def test_symlink_resolves_inside(self, tmp_path: Path) -> None:
         """A symlink in ~/.claude that points into the repo should be detected."""
-        repo = tmp_path / "repo" / "skills" / "voice-shared-references"
+        repo = tmp_path / "repo" / "skills" / "support-notes"
         repo.mkdir(parents=True)
         link = tmp_path / "link"
         link.symlink_to(repo)
@@ -791,7 +790,7 @@ class TestResolvesInside:
 
 
 class TestRepoSideDeletionGuard:
-    """Regression tests for the voice-shared-references repo-side deletion bug.
+    """Regression tests for deleting source through a deployed support link.
 
     When ~/.claude/skills/ contains a symlink into the repo, destructive
     operations (rmtree, unlink) must refuse to follow that symlink and
@@ -801,13 +800,13 @@ class TestRepoSideDeletionGuard:
     """
 
     def _make_repo(self, tmp_path: Path) -> Path:
-        """Build a minimal repo with voice-shared-references."""
+        """Build a minimal repo with a support directory."""
         repo = tmp_path / "repo"
         skills = repo / "skills"
-        vsr = skills / "voice-shared-references"
-        vsr.mkdir(parents=True)
-        for name in ("anti-rhetorical-pivot.md", "voice-first-writing.md", "wabi-sabi-authenticity.md"):
-            (vsr / name).write_text(f"# {name}\n")
+        support = skills / "support-notes"
+        support.mkdir(parents=True)
+        for name in ("pattern-a.md", "pattern-b.md", "pattern-c.md"):
+            (support / name).write_text(f"# {name}\n")
         # one skill so the flatten loop works
         skill = skills / "meta" / "do"
         skill.mkdir(parents=True)
@@ -818,35 +817,35 @@ class TestRepoSideDeletionGuard:
         """When dst resolves inside the repo via a parent symlink,
         _ensure_symlink must refuse to rmtree rather than delete repo files."""
         repo = self._make_repo(tmp_path)
-        repo_vsr = repo / "skills" / "voice-shared-references"
+        repo_support = repo / "skills" / "support-notes"
 
         # Simulate: ~/.claude/skills is a symlink to repo/skills (old-style)
         claude_skills = tmp_path / "claude_skills"
         claude_skills.symlink_to(repo / "skills")
 
-        # dst = ~/.claude/skills/voice-shared-references — resolves to repo path
-        dst = claude_skills / "voice-shared-references"
+        # The destination traverses the parent symlink into the repo.
+        dst = claude_skills / "support-notes"
         assert dst.is_dir() and not dst.is_symlink(), "dst traverses parent symlink, is NOT itself a symlink"
 
         # Without the guard, _ensure_symlink would rmtree the repo dir
         with patch.object(sync_mod, "_is_ephemeral_path", return_value=False):
-            result = sync_mod._ensure_symlink(repo_vsr, dst, repo_root=repo)
+            result = sync_mod._ensure_symlink(repo_support, dst, repo_root=repo)
 
         # Guard must have blocked the rmtree
         assert result is False, "_ensure_symlink should return False when dst resolves inside repo"
 
         # Repo files must still exist
-        assert repo_vsr.is_dir()
-        for name in ("anti-rhetorical-pivot.md", "voice-first-writing.md", "wabi-sabi-authenticity.md"):
-            assert (repo_vsr / name).exists(), f"Repo file {name} was deleted!"
+        assert repo_support.is_dir()
+        for name in ("pattern-a.md", "pattern-b.md", "pattern-c.md"):
+            assert (repo_support / name).exists(), f"Repo file {name} was deleted!"
 
     def test_ensure_symlink_allows_rmtree_outside_repo(self, tmp_path: Path) -> None:
         """rmtree of a real dir outside the repo must still work."""
         repo = self._make_repo(tmp_path)
-        src = repo / "skills" / "voice-shared-references"
+        src = repo / "skills" / "support-notes"
 
         # dst is a real dir outside the repo (from a previous copy-mode install)
-        dst = tmp_path / "claude" / "skills" / "voice-shared-references"
+        dst = tmp_path / "claude" / "skills" / "support-notes"
         dst.mkdir(parents=True)
         (dst / "stale-copy.md").write_text("copy")
 
@@ -880,7 +879,7 @@ class TestRepoSideDeletionGuard:
         assert (repo / "skills" / "meta" / "do" / "SKILL.md").exists()
 
     def test_repo_files_survive_full_sync(self, tmp_path: Path) -> None:
-        """End-to-end: voice-shared-references files survive a full
+        """End-to-end: support files survive a full
         _sync_skills_flat_symlinks cycle, even with two passes."""
         repo = self._make_repo(tmp_path)
         src = repo / "skills"
@@ -891,15 +890,15 @@ class TestRepoSideDeletionGuard:
             sync_mod._sync_skills_flat_symlinks(src, dst, repo_root=repo)
 
         # Repo files must survive both passes
-        for name in ("anti-rhetorical-pivot.md", "voice-first-writing.md", "wabi-sabi-authenticity.md"):
-            repo_file = repo / "skills" / "voice-shared-references" / name
+        for name in ("pattern-a.md", "pattern-b.md", "pattern-c.md"):
+            repo_file = repo / "skills" / "support-notes" / name
             assert repo_file.exists(), f"Repo file {name} was deleted by sync!"
             assert repo_file.read_text() == f"# {name}\n"
 
         # The symlink in dst must exist and point to the repo dir
-        link = dst / "voice-shared-references"
+        link = dst / "support-notes"
         assert link.is_symlink()
-        assert link.resolve() == (repo / "skills" / "voice-shared-references").resolve()
+        assert link.resolve() == (repo / "skills" / "support-notes").resolve()
 
 
 class TestResolvesInsideMultiRoot:
@@ -934,16 +933,16 @@ class TestResolvesInsideMultiRoot:
         """When a symlink resolves into the MAIN repo, the guard catches it
         even when repo_root is a worktree path (canonical root provides coverage)."""
         main_repo = tmp_path / "main"
-        vsr = main_repo / "skills" / "voice-shared-references"
-        vsr.mkdir(parents=True)
-        (vsr / "test.md").write_text("content")
+        support = main_repo / "skills" / "support-notes"
+        support.mkdir(parents=True)
+        (support / "test.md").write_text("content")
 
         worktree = tmp_path / "worktree"
         worktree.mkdir()
 
-        # Symlink points to main repo (as ~/.claude/skills/voice-shared-references does)
+        # Symlink points to the main repo.
         link = tmp_path / "link"
-        link.symlink_to(vsr)
+        link.symlink_to(support)
 
         # With only worktree root: NOT detected (the bug)
         assert sync_mod._resolves_inside(link, worktree) is False
@@ -1053,15 +1052,16 @@ class TestWindowsImportRecovery:
 
 
 class TestProtectedRootsWorktreeScenario:
-    """Reproduce the worktree bypass scenario that causes voice-shared-references
-    deletion.  A worktree that bypassed _is_git_worktree runs sync with
+    """Reproduce a worktree bypass that removes a main-repo support link.
+
+    A worktree that bypassed _is_git_worktree runs sync with
     repo_root = worktree_path.  Without canonical root protection, symlinks
     into the MAIN repo escape the _resolves_inside guard."""
 
-    VSR_FILES: ClassVar[list[str]] = [
-        "anti-rhetorical-pivot.md",
-        "voice-first-writing.md",
-        "wabi-sabi-authenticity.md",
+    SUPPORT_FILES: ClassVar[list[str]] = [
+        "pattern-a.md",
+        "pattern-b.md",
+        "pattern-c.md",
     ]
 
     def _make_main_and_worktree(self, tmp_path: Path) -> tuple[Path, Path, Path]:
@@ -1069,26 +1069,26 @@ class TestProtectedRootsWorktreeScenario:
         # Main repo
         main = tmp_path / "main"
         skills = main / "skills"
-        vsr = skills / "voice-shared-references"
-        vsr.mkdir(parents=True)
-        for name in self.VSR_FILES:
-            (vsr / name).write_text(f"# {name}\n")
+        support = skills / "support-notes"
+        support.mkdir(parents=True)
+        for name in self.SUPPORT_FILES:
+            (support / name).write_text(f"# {name}\n")
         meta_do = skills / "meta" / "do"
         meta_do.mkdir(parents=True)
         (meta_do / "SKILL.md").write_text("---\nname: do\n---\n")
 
-        # Worktree (older branch, no voice-shared-references)
+        # Worktree (older branch, no support directory)
         worktree = tmp_path / "worktree"
         wt_skills = worktree / "skills"
         wt_meta_do = wt_skills / "meta" / "do"
         wt_meta_do.mkdir(parents=True)
         (wt_meta_do / "SKILL.md").write_text("---\nname: do\n---\n")
-        # Note: no voice-shared-references in worktree!
+        # Note: the support directory is absent from the worktree.
 
         # Simulated ~/.claude/skills with symlinks into MAIN repo
         claude_skills = tmp_path / "claude" / "skills"
         claude_skills.mkdir(parents=True)
-        (claude_skills / "voice-shared-references").symlink_to(vsr)
+        (claude_skills / "support-notes").symlink_to(support)
         (claude_skills / "do").symlink_to(meta_do)
 
         return main, worktree, claude_skills
@@ -1096,8 +1096,8 @@ class TestProtectedRootsWorktreeScenario:
     def test_worktree_sync_without_canonical_preserves_foreign_symlink(self, tmp_path: Path) -> None:
         """With the foreign-symlink fix, a live symlink whose target is outside
         the given repo_root is preserved even without canonical root protection.
-        voice-shared-references resolves into main (outside worktree), so it
-        survives the cleanup."""
+        The support directory resolves into main (outside worktree), so it
+        survives cleanup."""
         main, worktree, claude_skills = self._make_main_and_worktree(tmp_path)
 
         # Sync from worktree with only the worktree as repo_root
@@ -1108,14 +1108,14 @@ class TestProtectedRootsWorktreeScenario:
                 repo_root=worktree,
             )
 
-        # voice-shared-references resolves into main (outside worktree root),
+        # The support directory resolves into main (outside worktree root),
         # so it is treated as a foreign symlink and preserved.
-        vsr_link = claude_skills / "voice-shared-references"
-        assert vsr_link.is_symlink(), "voice-shared-references must be preserved"
-        assert vsr_link.resolve() == (main / "skills" / "voice-shared-references").resolve()
-        # Main repo files untouched
-        for name in self.VSR_FILES:
-            assert (main / "skills" / "voice-shared-references" / name).exists()
+        support_link = claude_skills / "support-notes"
+        assert support_link.is_symlink(), "support symlink must be preserved"
+        assert support_link.resolve() == (main / "skills" / "support-notes").resolve()
+        # Main repo files untouched.
+        for name in self.SUPPORT_FILES:
+            assert (main / "skills" / "support-notes" / name).exists()
 
     def test_worktree_sync_with_canonical_preserves_symlink(self, tmp_path: Path) -> None:
         """With canonical root (the fix), the guard catches the symlink even
@@ -1132,13 +1132,13 @@ class TestProtectedRootsWorktreeScenario:
             )
 
         # The symlink must survive — protected by canonical root
-        vsr_link = claude_skills / "voice-shared-references"
-        assert vsr_link.is_symlink(), "voice-shared-references symlink must survive"
-        assert vsr_link.resolve() == (main / "skills" / "voice-shared-references").resolve()
+        support_link = claude_skills / "support-notes"
+        assert support_link.is_symlink(), "support symlink must survive"
+        assert support_link.resolve() == (main / "skills" / "support-notes").resolve()
 
         # Main repo files must still exist
-        for name in self.VSR_FILES:
-            assert (main / "skills" / "voice-shared-references" / name).exists()
+        for name in self.SUPPORT_FILES:
+            assert (main / "skills" / "support-notes" / name).exists()
 
 
 class TestMainInnerWorktreeEndToEnd:
@@ -1153,13 +1153,13 @@ class TestMainInnerWorktreeEndToEnd:
         for comp in ["agents", "hooks", "commands", "scripts"]:
             (main / comp).mkdir(parents=True)
             (main / comp / "sample.md").write_text(f"# {comp}\n")
-        vsr = main / "skills" / "voice-shared-references"
-        vsr.mkdir(parents=True)
-        (vsr / "voice-first-writing.md").write_text("# voice\n")
+        support = main / "skills" / "support-notes"
+        support.mkdir(parents=True)
+        (support / "pattern.md").write_text("# pattern\n")
         (main / ".claude").mkdir()
         (main / ".claude" / "settings.json").write_text(json.dumps({"hooks": {}}))
 
-        # Worktree: same shape, but no voice-shared-references skill.
+        # Worktree: same shape, but no support directory.
         worktree = tmp_path / "worktree"
         for comp in ["agents", "hooks", "commands", "scripts"]:
             (worktree / comp).mkdir(parents=True)
@@ -1172,7 +1172,7 @@ class TestMainInnerWorktreeEndToEnd:
 
         user_claude = tmp_path / "home" / ".claude"
         (user_claude / "skills").mkdir(parents=True)
-        (user_claude / "skills" / "voice-shared-references").symlink_to(vsr)
+        (user_claude / "skills" / "support-notes").symlink_to(support)
         manifest = {
             "mode": "symlink",
             "toolkit_path": str(main),
@@ -1198,6 +1198,6 @@ class TestMainInnerWorktreeEndToEnd:
         assert manifest["toolkit_path"] == str(main), "manifest rewrite must be refused while the recorded path exists"
 
         # The symlink into the main repo must survive stale cleanup.
-        vsr_link = user_claude / "skills" / "voice-shared-references"
-        assert vsr_link.is_symlink(), "symlink into main repo must survive"
-        assert (main / "skills" / "voice-shared-references" / "voice-first-writing.md").exists()
+        support_link = user_claude / "skills" / "support-notes"
+        assert support_link.is_symlink(), "symlink into main repo must survive"
+        assert (main / "skills" / "support-notes" / "pattern.md").exists()

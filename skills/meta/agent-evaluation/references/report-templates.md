@@ -1,278 +1,106 @@
 # Evaluation Report Templates
 
-Standard templates for agent/skill evaluation reports.
+Use the scorer's raw `total/max_total` and grade. Do not normalize to 100 or add qualitative points.
 
-## Single Item Report Template
+## Single Item
 
-```markdown
+````markdown
 # Evaluation Report: {name}
 
 **Type**: Agent | Skill
 **Evaluated**: {YYYY-MM-DD HH:MM}
-**Evaluator**: agent-evaluation skill v1.0.0
-**Overall Score**: {score}/100 ({grade})
+**Structural Score**: {total}/{max_total} ({grade}; {percentage}%)
 
----
+## Structural Precheck
 
-## Executive Summary
+| Check | Status | Earned | Max | Detail |
+|---|---|---:|---:|---|
+| {checks[*].name} | {checks[*].status} | {checks[*].earned} | {checks[*].max} | {checks[*].detail} |
 
-{One paragraph summary of quality and key findings}
+**Secret penalty**: {secret_penalty}
 
----
+## Qualitative Findings
 
-## Structural Validation
+### High
+- **{file}:{line}**: {finding and impact}
 
-| Component | Status | Score | Notes |
-|-----------|--------|-------|-------|
-| YAML front matter | {PASS/FAIL} | {X}/10 | {details} |
-| Operator Context | {PASS/FAIL} | {X}/20 | {details} |
-| Examples | {PASS/FAIL/N/A} | {X}/10 | {details} |
-| Error Handling | {PASS/FAIL} | {X}/10 | {details} |
-| Reference Files | {PASS/FAIL/N/A} | {X}/10 | {details} |
-| Validation Script | {PASS/FAIL/N/A} | {X}/10 | {details} |
+### Medium
+- **{file}:{line}**: {finding and impact}
 
-**Structural Score**: {X}/{max}
-
----
-
-## Content Depth Analysis
-
-| Metric | Value |
-|--------|-------|
-| Main file lines | {X} |
-| Reference lines | {X} |
-| Total lines | {X} |
-| Depth grade | {EXCELLENT/GOOD/ADEQUATE/THIN/INSUFFICIENT} |
-
-**Depth Score**: {X}/30
-
----
-
-## Issues Found
-
-### HIGH Priority
-{numbered list of critical issues}
-
-### MEDIUM Priority
-{numbered list of moderate issues}
-
-### LOW Priority
-{numbered list of minor issues}
-
----
+### Low
+- **{file}:{line}**: {finding and impact}
 
 ## Recommendations
 
-1. **{Action}**: {Specific guidance}
-2. **{Action}**: {Specific guidance}
-3. **{Action}**: {Specific guidance}
+1. **{Action}**: {specific guidance}
 
----
+## Raw Output
 
-## Comparison to Collection
-
-| Metric | This Item | Collection Average |
-|--------|-----------|-------------------|
-| Overall Score | {X}/100 | {X}/100 |
-| Structural Score | {X}% | {X}% |
-| Depth Score | {X}/30 | {X}/30 |
-| Percentile | {X}th | - |
-
----
-
-## Raw Test Output
-
-<details>
-<summary>Click to expand test output</summary>
-
+```json
+{score-component.py JSON result}
 ```
-{actual command output from evaluation}
-```
+````
 
-</details>
-```
-
-## Collection Summary Template
+## Collection Summary
 
 ```markdown
 # Collection Evaluation Summary
 
 **Date**: {YYYY-MM-DD}
-**Evaluator**: agent-evaluation skill v1.0.0
+**Agents**: {count}
+**Skills**: {count}
+**Average structural percentage**: {percentage}%
 
----
+## Grade Distribution
 
-## Overview
+| Grade | Agents | Skills |
+|---|---:|---:|
+| A (90-100%) | {count} | {count} |
+| B (75-89%) | {count} | {count} |
+| C (60-74%) | {count} | {count} |
+| D (40-59%) | {count} | {count} |
+| F (0-39%) | {count} | {count} |
 
-| Metric | Value |
-|--------|-------|
-| Total Agents | {X} |
-| Total Skills | {X} |
-| Average Score | {X}/100 |
-| Operator Model Coverage | {X}% |
+## Results
 
----
+| Component | Type | Total | Max | Percentage | Grade | Primary issue |
+|---|---|---:|---:|---:|:---:|---|
+| {file} | {type} | {total} | {max_total} | {percentage}% | {grade} | {issue} |
 
-## Score Distribution
+## Common Qualitative Findings
 
-### Agents
-
-| Grade | Count | Percentage |
-|-------|-------|------------|
-| A (90-100) | {X} | {X}% |
-| B (80-89) | {X} | {X}% |
-| C (70-79) | {X} | {X}% |
-| D (60-69) | {X} | {X}% |
-| F (<60) | {X} | {X}% |
-
-### Skills
-
-| Grade | Count | Percentage |
-|-------|-------|------------|
-| A (90-100) | {X} | {X}% |
-| B (80-89) | {X} | {X}% |
-| C (70-79) | {X} | {X}% |
-| D (60-69) | {X} | {X}% |
-| F (<60) | {X} | {X}% |
-
----
-
-## Top Performers
-
-### Agents
-1. {name}: {score}/100
-2. {name}: {score}/100
-3. {name}: {score}/100
-
-### Skills
-1. {name}: {score}/100
-2. {name}: {score}/100
-3. {name}: {score}/100
-
----
-
-## Areas of Excellence
-
-### Structural Quality
-- {X}% have complete Operator Context sections
-- {X}% have comprehensive error handling
-- {X}% have validation scripts (skills)
-
-### Content Depth
-- {X}% exceed 1500 lines (EXCELLENT depth)
-- {X}% have substantive reference files
-- Average total lines: {X}
-
-### Best Practices Observed
-1. {observed_pattern_1}
-2. {observed_pattern_2}
-3. {observed_pattern_3}
-
----
-
-## Needs Improvement
-
-### Agents
-1. {name}: {score}/100 - {primary issue}
-2. {name}: {score}/100 - {primary issue}
-
-### Skills
-1. {name}: {score}/100 - {primary issue}
-2. {name}: {score}/100 - {primary issue}
-
----
-
-## Common Issues
-
-| Issue | Occurrences | Affected Items |
-|-------|-------------|----------------|
-| {issue} | {X} | {list} |
-| {issue} | {X} | {list} |
-| {issue} | {X} | {list} |
-
----
-
-## Recommendations
-
-### Immediate Actions (HIGH priority)
-1. {action}
-2. {action}
-
-### Short-term Improvements (MEDIUM priority)
-1. {action}
-2. {action}
-
-### Long-term Enhancements (LOW priority)
-1. {action}
-2. {action}
-
----
-
-## Trend Analysis
-
-{If historical data available, show score trends over time}
-
----
-
-## Appendix: Full Scores
-
-### Agents
-
-| Name | Structural | Depth | Total | Grade |
-|------|------------|-------|-------|-------|
-| {name} | {X}/70 | {X}/30 | {X}/100 | {grade} |
-| ... | ... | ... | ... | ... |
-
-### Skills
-
-| Name | Structural | Depth | Total | Grade |
-|------|------------|-------|-------|-------|
-| {name} | {X}/70 | {X}/30 | {X}/100 | {grade} |
-| ... | ... | ... | ... | ... |
+| Finding | Count | Affected components |
+|---|---:|---|
+| {finding} | {count} | {files} |
 ```
 
-## Quick Check Template
-
-For rapid evaluations:
+## Quick Check
 
 ```markdown
 # Quick Check: {name}
 
-**Score**: {X}/100 | **Grade**: {grade}
+**Structural Score**: {total}/{max_total} ({grade}; {percentage}%)
 
-## Pass/Fail
-- [x] YAML front matter
-- [x] Operator Context
-- [ ] Error Handling (MISSING)
-- [x] Content depth
+| Check | Status | Earned/Max | Detail |
+|---|---|---:|---|
+| {name} | {status} | {earned}/{max} | {detail} |
 
-## Top Issue
-{Single most important finding}
-
-## Quick Fix
-{Single most impactful action}
+**Top qualitative issue**: {evidence-backed issue or "None found"}
 ```
 
-## Comparison Template
-
-For comparing two items:
+## Comparison
 
 ```markdown
 # Comparison: {name1} vs {name2}
 
-| Aspect | {name1} | {name2} | Winner |
-|--------|---------|---------|--------|
-| Overall Score | {X}/100 | {X}/100 | {name} |
-| Structural | {X}/70 | {X}/70 | {name} |
-| Depth | {X}/30 | {X}/30 | {name} |
-| Operator Model | {Complete/Partial} | {Complete/Partial} | {name} |
-
-## Key Differences
-
-1. {difference}
-2. {difference}
+| Aspect | {name1} | {name2} |
+|---|---:|---:|
+| Structural score | {total}/{max_total} | {total}/{max_total} |
+| Percentage | {percentage}% | {percentage}% |
+| Grade | {grade} | {grade} |
+| High qualitative findings | {count} | {count} |
 
 ## Recommendation
 
-{Which to use and when}
+{Which component better fits the stated use and why.}
 ```

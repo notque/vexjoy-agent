@@ -202,7 +202,7 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
             "description": "Gate: block merge to main/master when CI checks are red",
-            "timeout": 3000
+            "timeout": 30000
           },
           {
             "type": "command",

@@ -11,7 +11,24 @@ test) and redirects its state to a fresh tmp dir per test. Other hook test files
 that don't bind a `mod` with those attributes are unaffected.
 """
 
+import sys
+from pathlib import Path
+
 import pytest
+
+_LIB_DIR = Path(__file__).resolve().parents[1] / "lib"
+if str(_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(_LIB_DIR))
+
+import hook_utils
+
+
+@pytest.fixture(autouse=True)
+def _isolate_hook_error_log(tmp_path, monkeypatch):
+    """Keep hook failures raised by tests out of production telemetry."""
+    path = tmp_path / "hook-errors.jsonl"
+    monkeypatch.setattr(hook_utils, "_DEFAULT_HOOK_ERRORS_PATH", path)
+    monkeypatch.setenv("CLAUDE_HOOK_ERRORS_PATH", str(path))
 
 
 @pytest.fixture(autouse=True)

@@ -626,6 +626,23 @@ def _has_promoted_to(skill_dir: Path, skills_root: "Path | None" = None) -> bool
     return True
 
 
+def _is_support_dir(item: Path) -> bool:
+    """Return whether a root skills directory contains support material.
+
+    Public utility directories may have nested data instead of root Markdown.
+    Other support directories are detected by shape so local overlays do not
+    need to be named in this repository.
+    """
+    if item.name in {"shared-patterns", "workflow", "kb"}:
+        return True
+    if item.name.startswith(".") or (item / "SKILL.md").exists():
+        return False
+    children = list(item.iterdir())
+    has_md = any(child.is_file() and child.suffix == ".md" for child in children)
+    has_skill_subdir = any(child.is_dir() and (child / "SKILL.md").exists() for child in children)
+    return has_md and not has_skill_subdir
+
+
 def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Path] | None" = None) -> None:
     """Create flat per-skill symlinks from nested category structure.
 
@@ -638,8 +655,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
         ~/.claude/skills/do → repo/skills/meta/do
         ~/.claude/skills/planning → repo/skills/process/planning
 
-    Root-level items (INDEX.json, support dirs like shared-patterns/,
-    workflow/, kb/, voice-shared-references/) are symlinked directly.
+    Root-level items (INDEX.json and support directories) are symlinked
+    directly.
 
     Runtime-index policy: ~/.claude/skills/INDEX.json is materialized as a
     real merged file (tracked first, local fills gaps per-name), never a
@@ -676,28 +693,8 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
                 # Race: concurrent process created it between unlink and symlink_to
                 pass
 
-    # Symlink root-level support directories (shared-patterns, workflow, kb,
-    # voice-shared-references). These hold reference files, not skills.
-    root_dirs = {"shared-patterns", "workflow", "kb", "voice-shared-references"}
-
-    def _is_support_dir(item: Path) -> bool:
-        """Support dirs hold reference .md files at their root, not skills.
-
-        They must enter expected_names or the stale-cleanup loop below
-        unlinks them every SessionStart (the voice-shared-references bug).
-        A dir counts as support when allowlisted, or when it has .md files
-        directly inside and no skill subdirectory — category folders always
-        hold at least one subdirectory with a SKILL.md.
-        """
-        if item.name in root_dirs:
-            return True
-        if item.name.startswith(".") or (item / "SKILL.md").exists():
-            return False
-        children = list(item.iterdir())
-        has_md = any(c.is_file() and c.suffix == ".md" for c in children)
-        has_skill_subdir = any(c.is_dir() and (c / "SKILL.md").exists() for c in children)
-        return has_md and not has_skill_subdir
-
+    # Symlink root-level support directories. These hold reference or utility
+    # files, not independently routed skills.
     support_dirs: set[str] = set()
     for item in src.iterdir():
         if item.is_dir() and _is_support_dir(item):
@@ -1236,7 +1233,6 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
             _tolerant_mkdir(codex_skills_dst)
             # Copy skills flat (same as ~/.claude/skills deployment).
             # The repo uses nested category folders but Codex needs flat.
-            _codex_root_utility = {"shared-patterns", "workflow", "kb", "voice-shared-references"}
             for child in sorted(repo_skills.iterdir()):
                 if child.is_file():
                     # Root files: INDEX.json, README.md, etc.
@@ -1245,7 +1241,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                         continue
                     shutil.copy2(child, target)
                     codex_count += 1
-                elif child.is_dir() and child.name in _codex_root_utility:
+                elif child.is_dir() and _is_support_dir(child):
                     # Utility dirs: copy directly
                     for item in child.rglob("*"):
                         if item.is_file():
