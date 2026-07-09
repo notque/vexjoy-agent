@@ -62,6 +62,20 @@ def _get_agent_names(project_root: Path) -> set[str]:
     if _agents_cache is not None:
         return _agents_cache
     _agents_cache = _load_index_names(project_root / "agents" / "INDEX.json", "agents")
+    # Global toolkit agents are dispatchable from any project cwd.
+    _agents_cache |= _load_index_names(
+        Path.home() / ".claude" / "agents" / "INDEX.json", "agents"
+    )
+    # Project-local agents (cross-repo convention): .claude/agents/*.md in the
+    # project repo, discovered by filename like the session-start cross-repo
+    # hook does. The directory is often a symlink (e.g. .claude/agents ->
+    # ../.agents/agents); glob follows it.
+    try:
+        _agents_cache |= {
+            md.stem for md in (project_root / ".claude" / "agents").glob("*.md")
+        }
+    except OSError:
+        pass
     # Always include "general-purpose" -- it's the default agent, not listed
     # in INDEX.json but always valid.
     _agents_cache.add("general-purpose")
