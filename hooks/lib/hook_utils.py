@@ -424,7 +424,14 @@ def log_error(message: str) -> None:
 
 # JSONL log for hook errors — enables validate-hook-health to surface repeat
 # offenders without needing CLAUDE_HOOKS_DEBUG set.
-_HOOK_ERRORS_PATH = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+_DEFAULT_HOOK_ERRORS_PATH = Path.home() / ".claude" / "learning" / "hook-errors.jsonl"
+
+
+def _hook_errors_path() -> Path:
+    """Resolve the error log at call time so tests and operators can isolate it."""
+    override = os.environ.get("CLAUDE_HOOK_ERRORS_PATH")
+    return Path(override) if override else _DEFAULT_HOOK_ERRORS_PATH
+
 
 # Secrets pattern used to strip sensitive values from error messages.
 _SECRETS_RE = None
@@ -481,8 +488,9 @@ def hook_error(hook_name: str, exc: BaseException) -> None:
                 "msg": exc_msg[:500],
             }
         )
-        _HOOK_ERRORS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(_HOOK_ERRORS_PATH, "a", encoding="utf-8") as f:
+        path = _hook_errors_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
             f.write(entry + "\n")
     except Exception:
         pass

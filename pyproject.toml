@@ -126,7 +126,9 @@ pythonpath = ["."]
 # .claude/ holds agent worktrees — full repo copies whose test packages
 # collide with the real ones (ImportPathMismatchError) when any worktree
 # exists at collection time.
-norecursedirs = ["fixtures", ".claude", ".git", "venv", "node_modules"]
+# tmp/ holds local scratch projects and generated experiments, not repository
+# tests. Collecting them makes the suite depend on untracked local artifacts.
+norecursedirs = ["fixtures", ".claude", ".git", "venv", "node_modules", "tmp"]
 markers = [
     "slow: marks tests as slow (subprocess calls)",
     "integration: marks tests requiring external tools (e.g., Chrome headless)",

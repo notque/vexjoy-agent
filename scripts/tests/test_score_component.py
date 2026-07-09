@@ -104,6 +104,27 @@ class TestJsonOutput:
         assert check["status"] in ("PASS", "FAIL", "PART")
 
 
+class TestEvaluationDocsContract:
+    """Keep the evaluation skill aligned with the executable scorer."""
+
+    def test_rubric_matches_json_contract(self) -> None:
+        result = run_script("skills/meta/do/SKILL.md", "--json", expect_rc=0)
+        entry = json.loads(result.stdout)["results"][0]
+        rubric = (REPO_ROOT / "skills/meta/agent-evaluation/references/scoring-rubric.md").read_text()
+
+        assert entry["max_total"] == 90
+        assert "**90**" in rubric
+        assert "`checks[*].earned`" in rubric
+        assert "`checks[*].max`" in rubric
+        for check in entry["checks"]:
+            assert check["name"] in rubric
+
+    def test_skill_documents_public_json_keys(self) -> None:
+        skill = (REPO_ROOT / "skills/meta/agent-evaluation/SKILL.md").read_text()
+        assert "`status`, `earned`, `max`, and `detail`" in skill
+        assert "`total`, `max_total`, and `grade`" in skill
+
+
 class TestSecretDetection:
     """Test --check-secrets flag."""
 

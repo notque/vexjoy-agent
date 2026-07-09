@@ -17,13 +17,13 @@ Scores from `score-component.py --all-agents --all-skills`.
 
 | Component | Score | Grade | Key Issues |
 |-----------|-------|-------|------------|
-| example-agent | 85 | B | Missing CAN/CANNOT sections |
+| example-agent | 68/90 | B | Missing workflow gate |
 
 ### Score Summary
-- **A (90-100)**: N components
-- **B (75-89)**: N components
-- **C (60-74)**: N components -- listed as HIGH findings below
-- **D/F (<60)**: N components -- listed as CRITICAL findings below
+- **A (90-100%)**: N components
+- **B (75-89%)**: N components
+- **C (60-74%)**: N components -- listed as HIGH findings below
+- **D/F (<60%)**: N components -- listed as CRITICAL findings below
 
 ## Critical (fix immediately)
 
@@ -65,7 +65,7 @@ Issues that appear across 3+ files. These are the highest-leverage fixes.
 
 ## Review Metadata
 
-- **Waves executed**: 0, 1, 2
+- **Waves executed**: 0, 1, 2, 3
 - **Duration**: N minutes
 - **Score pre-check**: pass / warn (script failed, review continued) / fail
 - **comprehensive-review version**: N.N.N

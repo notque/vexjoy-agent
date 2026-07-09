@@ -26,7 +26,7 @@ routing:
 
 # Agent Evaluation Skill
 
-Objective, evidence-based quality assessment for agents and skills. Implements a 6-phase rubric: Identify, Structural, Content, Code, Integration, Report. Every finding must cite a file path and line number — no subjective "looks good" verdicts.
+Evidence-based quality assessment for agents and skills. The deterministic scorer supplies a 90-point structural precheck; qualitative review covers usefulness and behavior without inventing extra points. Every qualitative finding must cite a file path and line number.
 
 ## Reference Loading Table
 
@@ -35,7 +35,7 @@ Objective, evidence-based quality assessment for agents and skills. Implements a
 | evaluating an entire agent/skill collection | `batch-evaluation.md` | Loads detailed guidance from `batch-evaluation.md`. |
 | diagnosing recurring structural and content issues | `common-issues.md` | Loads detailed guidance from `common-issues.md`. |
 | writing single-item or collection evaluation reports | `report-templates.md` | Loads detailed guidance from `report-templates.md`. |
-| assigning points against v2.0 standards; grade boundaries | `scoring-rubric.md` | Loads detailed guidance from `scoring-rubric.md`. |
+| interpreting deterministic scores, JSON keys, or grade boundaries | `scoring-rubric.md` | Exact contract implemented by `score-component.py` |
 
 ## Instructions
 
@@ -65,7 +65,7 @@ ls -la skills/{name}/
 
 Score every rubric category — never skip a category even if it "looks fine." Parse each required field explicitly rather than eyeballing YAML. Record PASS/FAIL with the line number for each check.
 
-Run `score-component.py` to get deterministic PASS/FAIL for all structural checks. The script implements the full ADR-031 rubric (frontmatter, operator context, error handling, referenced files, failure modes) and outputs per-check results with line references. Do not re-implement these checks inline — read the JSON output and move directly to scoring.
+Run `score-component.py` to get deterministic structural scores. It checks frontmatter, referenced paths, pattern and error headings, routing registration, reference-directory presence, workflow structure, and internal links. It does not emit line references or judge content depth, Operator Context, tool semantics, or behavioral quality.
 
 ```bash
 # Deterministic structural checks via score-component.py
@@ -74,52 +74,17 @@ python3 scripts/score-component.py agents/{name}.md --json
 python3 scripts/score-component.py skills/{name}/SKILL.md --json
 ```
 
-The JSON output includes `results[0].checks` (per-check status, earned_points, max_points, detail) and `results[0].total` (aggregate score). Record each check status from the JSON — do not re-run `grep -c` for sections the script already covers.
+The JSON output includes `results[0].checks` with `status`, `earned`, `max`, and `detail`, plus `results[0].total`, `max_total`, and `grade`. Record these exact keys. Do not refer to `earned_points` or `max_points`; those are internal Python attributes, not JSON fields.
 
-**What score-component.py covers** (do not duplicate):
-- YAML frontmatter fields
-- Operator Context section presence
-- Error Handling section presence
-- Failure modes section presence
-- Referenced file existence
-- Inline constraint presence
-
-**What requires LLM judgment in Phase 3+** (not covered by the script):
-- Operator Context item counts (Hardcoded 5-8, Default 5-8, Optional 3-5)
-- `allowed-tools` list format vs comma-separated string
-- `description` pipe format with WHAT + WHEN + negative constraint
-- `version` set to `2.0.0`
-- Gate presence in Instructions section
-- CAN/CANNOT boundaries section
-- Anti-rationalization table in References section
-
-**Structural Scoring** (60 points):
-
-| Component | Points | Requirement |
-|-----------|--------|-------------|
-| YAML front matter | 10 | All required fields, list format, pipe description |
-| Operator Context | 20 | All 3 behavior types with correct item counts |
-| Error Handling | 10 | Section present with documented errors |
-| Examples (agents) / References (skills) | 10 | 3+ examples or 2+ reference files |
-| CAN/CANNOT | 5 | Both sections present with concrete items |
-| Failure Modes | 5 | 3-5 domain-specific patterns with 3-part structure |
-
-**Integration Scoring** (10 points):
-
-| Component | Points | Requirement |
-|-----------|--------|-------------|
-| References and cross-references | 5 | Shared patterns linked, all refs resolve |
-| Tool and link consistency | 5 | allowed-tools matches usage, anti-rationalization table present |
-
-See `references/scoring-rubric.md` for full/partial/no credit breakdowns.
+See `references/scoring-rubric.md` for the exact eight checks, 90-point maximum, percentage grade boundaries, optional secret penalty, and JSON contract.
 
 **Gate**: All structural checks scored with evidence. Proceed only when gate passes.
 
-### Phase 3: Content Depth Analysis
+### Phase 3: Qualitative Content Analysis
 
-**Goal**: Measure content quality and volume.
+**Goal**: Assess whether the component carries useful, accurate, proportionate guidance.
 
-Do not estimate length by impression — count lines and calculate the score. "Content is long enough" is not a measurement.
+Line counts can describe size, but do not award points for length. More prose is not evidence of better behavior.
 
 ```bash
 # Skill total lines (SKILL.md + references)
@@ -131,17 +96,9 @@ total=$((skill_lines + ref_lines))
 agent_lines=$(wc -l < agents/{name}.md)
 ```
 
-**Depth Scoring** (30 points max):
+Check for concrete domain knowledge, stale or contradictory claims, unnecessary bulk, and missing instructions needed to execute the advertised task. Keep these findings outside the deterministic score.
 
-| Total Lines | Score | Grade |
-|-------------|-------|-------|
-| >1500 (skills) / >2000 (agents) | 30 | EXCELLENT |
-| 500-1500 / 1000-2000 | 22 | GOOD |
-| 300-500 / 500-1000 | 15 | ADEQUATE |
-| 150-300 / 200-500 | 8 | THIN |
-| <150 / <200 | 0 | INSUFFICIENT |
-
-**Gate**: Depth score calculated. Proceed only when gate passes.
+**Gate**: Qualitative findings cite evidence, or explicitly state that none were found.
 
 ### Phase 4: Code Quality Checks
 
@@ -213,9 +170,9 @@ This phase is read-only: report findings but never modify agents or skills. Use 
 
 Use the report template from `references/report-templates.md`. The report MUST include:
 
-1. **Header**: Name, type, date, overall score and grade
-2. **Structural Validation**: Table with check, status, score, and evidence (line numbers)
-3. **Content Depth**: Line counts for main file and references, grade, depth score
+1. **Header**: Name, type, date, structural score, maximum, and grade
+2. **Structural Validation**: Table with each scorer check, status, `earned/max`, and detail
+3. **Qualitative Analysis**: Evidence-backed findings kept separate from the score
 4. **Code Quality**: Script syntax results, placeholder count, untagged block count
 5. **Issues Found**: Grouped by HIGH / MEDIUM / LOW priority
 6. **Recommendations**: Specific, actionable improvements with file paths and line numbers
@@ -225,19 +182,19 @@ Use the report template from `references/report-templates.md`. The report MUST i
 
 | Priority | Criteria | Examples |
 |----------|----------|---------|
-| HIGH | Missing required section or broken functionality | No Operator Context, syntax errors in scripts |
-| MEDIUM | Section present but incomplete or non-compliant | Wrong item counts, old allowed-tools format |
+| HIGH | Broken functionality or a severe structural failure | Syntax errors, invalid frontmatter, broken critical references |
+| MEDIUM | Incomplete or misleading guidance | Stale instructions, weak recovery guidance, tool mismatch |
 | LOW | Cosmetic or minor quality issues | Untagged code blocks, missing changelog |
 
-**Grade Boundaries**:
+**Grade Boundaries** (percentage of `total / max_total`):
 
 | Score | Grade | Interpretation |
 |-------|-------|----------------|
-| 90-100 | A | Production ready, exemplary |
-| 80-89 | B | Good, minor improvements needed |
-| 70-79 | C | Adequate, some gaps to address |
-| 60-69 | D | Below standard, significant work needed |
-| <60 | F | Major overhaul required |
+| 90-100 | A | Strong structural health |
+| 75-89 | B | Good structural health |
+| 60-74 | C | Structural gaps to address |
+| 40-59 | D | Significant structural gaps |
+| <40 | F | Major structural gaps |
 
 **Gate**: Report generated with all sections populated and evidence cited. Evaluation complete.
 
@@ -249,8 +206,8 @@ Use the report template from `references/report-templates.md`. The report MUST i
 User says: "Evaluate the test-driven-development skill"
 Actions:
 1. Confirm `skills/testing/test-driven-development/` exists (IDENTIFY)
-2. Check YAML, Operator Context, Error Handling sections (STRUCTURAL)
-3. Count lines in SKILL.md + references (CONTENT)
+2. Run `score-component.py` and record all eight checks (STRUCTURAL)
+3. Inspect content for useful, accurate, proportionate guidance (CONTENT)
 4. Syntax-check any scripts, find placeholders (CODE)
 5. Verify all referenced files exist (INTEGRATION)
 6. Generate scored report (REPORT)
@@ -264,16 +221,15 @@ Actions:
 3. Generate individual reports + collection summary (REPORT)
 Result: Per-item scores plus distribution, top performers, and improvement areas
 
-### Example 3: V2 Migration Compliance Check
-User says: "Check if systematic-refactoring skill meets v2 standards"
+### Example 3: Structural Compliance Check
+User says: "Check the structural health of systematic-refactoring"
 Actions:
 1. Confirm `skills/systematic-refactoring/` exists (IDENTIFY)
-2. Check YAML uses list `allowed-tools`, pipe description, version 2.0.0 (STRUCTURAL)
-3. Verify Operator Context has correct item counts: Hardcoded 5-8, Default 5-8, Optional 3-5 (STRUCTURAL)
-4. Confirm CAN/CANNOT sections, gates in Instructions, anti-rationalization table (STRUCTURAL)
-5. Count total lines, run code checks (CONTENT + CODE)
-6. Generate scored report highlighting v2 gaps (REPORT)
-Result: Report with specific v2 compliance gaps and required actions
+2. Run the deterministic 90-point precheck (STRUCTURAL)
+3. Inspect guidance and examples for accuracy and usefulness (CONTENT)
+4. Run code checks where scripts or examples exist (CODE)
+5. Generate a report that separates scored checks from qualitative findings (REPORT)
+Result: Structural score plus evidence-backed qualitative findings
 
 ---
 
@@ -291,13 +247,9 @@ Solution: Flag as HIGH priority structural failure. Score YAML section as 0/10. 
 Cause: Validation script has syntax issues
 Solution: Run `python3 -m py_compile` and capture the specific error. Score validation script as 0/10. Include error output in report.
 
-### Error: "Operator Context Item Counts Out of Range"
-Cause: v2 standard requires Hardcoded 5-8, Default 5-8, Optional 3-5 items. Skill has too few or too many.
-Solution:
-1. Count actual items per behavior type (bold items starting with `- **`)
-2. If too few: flag as MEDIUM priority — behaviors likely need to be split or added
-3. If too many: flag as LOW priority — behaviors may need consolidation
-4. Score Operator Context at partial credit (10/20) if counts are wrong
+### Error: "Documented JSON Key Missing"
+Cause: The evaluator read internal `earned_points` or `max_points` names instead of the JSON contract.
+Solution: Read `checks[*].earned` and `checks[*].max`; confirm top-level `total`, `max_total`, and `grade` before reporting.
 
 ---
 

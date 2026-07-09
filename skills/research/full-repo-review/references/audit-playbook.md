@@ -174,7 +174,7 @@ The orchestrator loads this playbook and pastes the relevant category checklists
 
 ## Mapping to score-component.py
 
-Grade bands come from `score-component.py` (A 90-100, B 75-89, C 60-74, D 40-59, F 0-39):
+Grade bands come from the `total / max_total` percentage in `score-component.py` (A 90-100, B 75-89, C 60-74, D 40-59, F 0-39):
 
 | Grade | Score | Severity in report | Action |
 |---|---|---|---|
@@ -210,5 +210,6 @@ When review runs via comprehensive-review waves (the full-repo-review path), the
 | newcomer, docs-validator | Developer Experience |
 | architecture reviewer | Performance, Tech Debt |
 | Wave 2 deep-dive agents | Re-check the same categories as their Wave 1 counterpart lens, at depth |
+| Wave 3 adversarial agents | Challenge weak evidence, false consensus, missed user impact, and low-value recommendations across all categories |
 
 Each reviewer covers its primary categories exhaustively and its secondary categories opportunistically. This division prevents both gaps and redundant deep-dives.

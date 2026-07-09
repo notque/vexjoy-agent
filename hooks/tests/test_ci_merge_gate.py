@@ -7,18 +7,50 @@ on ``PATH`` that returns a controlled CI-status result. This exercises the
 hook's real subprocess boundary without depending on the surrounding repo.
 """
 
+import ast
 import json
 import os
 import stat
 import subprocess
 import sys
+from pathlib import Path
 
 HOOK = os.path.join(os.path.dirname(__file__), "..", "ci-merge-gate.py")
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Deterministic CI-status payload the fake `gh pr checks` emits by default:
 # a single passing check. The hook treats this as "all checks passed", so no
 # CI-derived deny can fire and the --admin/--force bypass branches are isolated.
 _FAKE_GH_CHECKS_PASS = '[{"name": "ci", "state": "SUCCESS", "bucket": "pass"}]'
+
+
+def test_registered_timeout_exceeds_worst_subprocess_path():
+    """The host timeout must cover every subprocess on the longest hook path."""
+    settings = json.loads((REPO_ROOT / ".claude" / "settings.json").read_text())
+    registrations = [
+        hook
+        for group in settings["hooks"]["PreToolUse"]
+        for hook in group["hooks"]
+        if "ci-merge-gate.py" in hook["command"]
+    ]
+    assert len(registrations) == 1
+
+    tree = ast.parse(Path(HOOK).read_text())
+    subprocess_timeouts = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Attribute) or node.func.attr != "run":
+            continue
+        if not isinstance(node.func.value, ast.Name) or node.func.value.id != "subprocess":
+            continue
+        timeout = next((kw.value for kw in node.keywords if kw.arg == "timeout"), None)
+        assert isinstance(timeout, ast.Constant) and isinstance(timeout.value, int)
+        subprocess_timeouts.append(timeout.value)
+
+    # With no PR number, both subprocess calls can run sequentially.
+    worst_path_ms = sum(subprocess_timeouts) * 1000
+    assert registrations[0]["timeout"] > worst_path_ms
 
 
 def _install_fake_gh(tmp_dir: str, checks_json: str) -> str:
