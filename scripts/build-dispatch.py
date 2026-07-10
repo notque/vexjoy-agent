@@ -28,7 +28,9 @@ Input schema (missing optional fields degrade gracefully — block omitted):
                                                    // trivial|simple|medium|complex
       "model": "opus",                             // required for medium/complex;
                                                    // optional for trivial/simple
-                                                   // (sonnet|opus|fable|gpt-5.5|codex)
+      "model_policy": "standard",                  // optional GPT-5.6 auto lane
+      "model_effort": "high",                      // required for explicit GPT-5.6 picks
+      "manual_model_override": false,               // required for non-default GPT picks
       "health": {"confidence": 0.72, "n": 6,       // optional; absent/blank
                  "failure": 0, "action": "keep",   // confidence => health=-
                  "alts": ["a:b", "c:d"]},
@@ -117,7 +119,37 @@ LOCAL_ONLY_BLOCK = (
 # ---------------------------------------------------------------------------
 
 VALID_COMPLEXITY = ("trivial", "simple", "medium", "complex")
-VALID_MODELS = ("sonnet", "opus", "fable", "gpt-5.5", "codex")
+# Claude lanes remain supported by the native Agent tool. OpenAI selections
+# run through the Codex wrapper lane; their effort is explicit so route events
+# retain the actual benchmark choice rather than only a model family.
+GPT_56_MODELS = ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
+GPT_56_EFFORTS = ("low", "medium", "high", "xhigh", "max")
+LEGACY_GPT_55 = "gpt-5.5"
+VALID_MODELS = ("sonnet", "opus", "fable", "codex", LEGACY_GPT_55, *GPT_56_MODELS)
+VALID_PROVIDERS = ("anthropic", "openai", "other")
+ANTHROPIC_MODELS = ("fable", "opus", "sonnet")
+
+# DeepSWE Pass@1 / cost benchmark defaults per provider lane.
+# `deterministic` deliberately has no model: use scripts.
+OPENAI_AUTO_POLICIES = {
+    "low-risk": ("gpt-5.6-terra", "high"),  # 54 / $1.13
+    "standard": ("gpt-5.6-sol", "high"),  # 69 / $3.47
+    "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
+    "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
+}
+ANTHROPIC_AUTO_POLICIES = {
+    "low-risk": ("fable", "low"),  # 60 / $3.76
+    "standard": ("fable", "medium"),  # 65 / $6.09
+    "high-risk": ("fable", "high"),  # 69 / $9.18
+    "max-power": ("fable", "xhigh"),  # 70 / $13.41, explicit only
+}
+AUTO_POLICIES_BY_PROVIDER = {
+    "anthropic": ANTHROPIC_AUTO_POLICIES,
+    "openai": OPENAI_AUTO_POLICIES,
+}
+# Backward compat: tests and the OpenAI-only path reference this name.
+AUTO_MODEL_POLICIES = OPENAI_AUTO_POLICIES
+VALID_MODEL_POLICIES = ("deterministic", *AUTO_MODEL_POLICIES)
 # Complexities that REQUIRE an explicit model pick (omission inherits the
 # session main-loop model — a silent cost leak when an expensive model
 # orchestrates). Trivial/simple may omit (inheritance risk is acceptable).
@@ -145,6 +177,126 @@ _TASK_SPEC_FIELDS = (
 
 class InputError(ValueError):
     """Invalid routing decision — message tells the caller what to fix."""
+
+
+def _optional_model(value: object) -> str | None:
+    """Normalize an optional model value, treating blank and '-' as absent."""
+    if value is None:
+        return None
+    model = str(value).strip().lower()
+    return model if model and model != "-" else None
+
+
+def _optional_effort(value: object) -> str | None:
+    """Normalize and validate an optional reasoning-effort value."""
+    if value is None:
+        return None
+    effort = str(value).strip().lower()
+    if not effort or effort == "-":
+        return None
+    if effort not in GPT_56_EFFORTS:
+        raise InputError(f"'model_effort' {effort!r} — must be one of {'/'.join(GPT_56_EFFORTS)}")
+    return effort
+
+
+def _resolve_provider(decision: dict) -> str:
+    """Extract and validate the provider field; default 'anthropic' (Claude Code)."""
+    raw = decision.get("provider")
+    if raw is None:
+        return "anthropic"
+    provider = str(raw).strip().lower()
+    if not provider or provider == "-":
+        return "anthropic"
+    if provider not in VALID_PROVIDERS:
+        raise InputError(f"'provider' {provider!r} — must be one of {'/'.join(VALID_PROVIDERS)}")
+    return provider
+
+
+def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tuple[str | None, str | None]:
+    """Return the validated ``(model, effort)`` for one dispatch decision.
+
+    Harness-aware: ``provider`` selects the automatic policy table.
+    Anthropic lane defaults select fable at benchmark-backed effort points;
+    opus/sonnet and fable/max are manual-only (dominated points kept for
+    context-window and latency constraints the benchmark does not measure).
+    OpenAI lane defaults select GPT-5.6 Sol/Terra.  Effort is recorded in
+    the marker for all models; for Claude lanes it is advisory (the harness
+    Agent tool does not accept per-call effort).
+    """
+    manual = decision.get("manual_model_override", False)
+    if not isinstance(manual, bool):
+        raise InputError("'manual_model_override' must be a boolean")
+
+    policy_raw = decision.get("model_policy")
+    policy = str(policy_raw).strip().lower() if policy_raw is not None else ""
+    model = _optional_model(decision.get("model"))
+    effort = _optional_effort(decision.get("model_effort"))
+
+    if policy:
+        if policy not in VALID_MODEL_POLICIES:
+            raise InputError(f"'model_policy' {policy!r} — must be one of {'/'.join(VALID_MODEL_POLICIES)}")
+        if policy == "deterministic":
+            raise InputError("model_policy='deterministic' requires a script, not an LLM dispatch")
+
+        policies = AUTO_POLICIES_BY_PROVIDER.get(provider)
+        if policies is None:
+            raise InputError(
+                f"model_policy requires provider 'anthropic' or 'openai', got {provider!r}; "
+                "use an explicit model for other harnesses"
+            )
+
+        expected_model, expected_effort = policies[policy]
+        if policy == "max-power" and not manual:
+            raise InputError("model_policy='max-power' requires manual_model_override=true")
+        if (model is not None and model != expected_model) or (effort is not None and effort != expected_effort):
+            if not manual:
+                raise InputError(
+                    f"model_policy={policy!r} selects {expected_model}/{expected_effort}; "
+                    "use manual_model_override=true for another choice"
+                )
+            override_model = model or expected_model
+            if provider == "openai" and override_model not in GPT_56_MODELS:
+                raise InputError("OpenAI model_policy overrides must use a GPT-5.6 model")
+            if provider == "anthropic" and override_model not in ANTHROPIC_MODELS:
+                raise InputError("Anthropic model_policy overrides must use a Claude model")
+            if model is not None and model != expected_model and effort is None:
+                raise InputError("manual model overrides require 'model_effort'")
+            return override_model, effort or expected_effort
+        return expected_model, expected_effort
+
+    if model is None:
+        if effort is not None:
+            raise InputError("'model_effort' requires an explicit model")
+        return None, None
+    if model not in VALID_MODELS:
+        raise InputError(f"'model' {model!r} — must be one of {'/'.join(VALID_MODELS)}")
+
+    if model in GPT_56_MODELS:
+        if effort is None:
+            raise InputError("GPT-5.6 selections require 'model_effort'")
+        if not manual:
+            raise InputError("explicit GPT-5.6 selections require model_policy or manual_model_override=true")
+        return model, effort
+
+    if model == LEGACY_GPT_55:
+        if not manual:
+            raise InputError("legacy gpt-5.5 requires manual_model_override=true")
+        return model, effort
+
+    # Claude models (fable, opus, sonnet) and codex wrapper.
+    # Effort is optional and advisory for Claude lanes — recorded in the
+    # marker (model@effort) for telemetry but not passed to the Agent tool.
+    if model in ("opus", "sonnet"):
+        if not manual:
+            raise InputError(
+                f"'{model}' requires manual_model_override=true "
+                "(dominated by fable in DeepSWE benchmarks; kept for context-window/latency constraints)"
+            )
+    if model == "fable" and effort == "max" and not manual:
+        raise InputError(
+            "fable/max requires manual_model_override=true (dominated by fable/xhigh: same Pass@1, higher cost)"
+        )
+    return model, effort
 
 
 def _fmt_confidence(value: float) -> str:
@@ -195,16 +347,14 @@ def build_marker(decision: dict) -> str:
     parts = [f"[do-route] agent={agent}", f"skill={skill}", f"complexity={complexity}"]
 
     # Model enforcement: required for medium/complex, optional for trivial/simple.
-    model = decision.get("model")
+    # Effort token included for all models so telemetry can distinguish each
+    # benchmarked point; advisory for Claude lanes (Agent tool has no effort param).
+    provider = _resolve_provider(decision)
+    model, effort = resolve_model_selection(decision, provider)
     if model is not None:
-        model = str(model).strip().lower()
-        if model and model != "-":
-            # gpt-5.5 contains a dot — allow it through the charset check.
-            if model not in VALID_MODELS:
-                raise InputError(f"'model' {model!r} — must be one of {'/'.join(VALID_MODELS)}")
-            parts.append(f"model={model}")
-        else:
-            model = None
+        parts.append(f"model={model}")
+        if effort is not None:
+            parts.append(f"effort={effort}")
     if model is None:
         if complexity in _MODEL_REQUIRED_COMPLEXITY:
             raise InputError(

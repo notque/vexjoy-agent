@@ -3,6 +3,8 @@
 Detailed phases 2-4 of the pr-workflow skill's codex-review intent: how to invoke `codex exec`,
 assess the feedback critically, and deliver the final unified report.
 
+> Under Claude Code, codex review is an explicit cross-provider second-opinion tool — a deliberate OpenAI-lane call, not the automatic model default.
+
 ---
 
 ### Phase 2: Invoke Codex
@@ -57,8 +59,8 @@ what's the biggest strength.]
 ```bash
 codex exec review \
   --base main \
-  -m gpt-5.5 \
-  -c 'model_reasoning_effort="high"' \
+  -m gpt-5.6-sol \
+  -c 'model_reasoning_effort="xhigh"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE"
@@ -74,8 +76,8 @@ or custom instructions:
 
 ```bash
 codex exec \
-  -m gpt-5.5 \
-  -c 'model_reasoning_effort="high"' \
+  -m gpt-5.6-sol \
+  -c 'model_reasoning_effort="xhigh"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE" \
@@ -86,8 +88,8 @@ For multi-line prompts, use a heredoc:
 
 ```bash
 codex exec \
-  -m gpt-5.5 \
-  -c 'model_reasoning_effort="high"' \
+  -m gpt-5.6-sol \
+  -c 'model_reasoning_effort="xhigh"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE" \
@@ -98,10 +100,9 @@ PROMPT
 ```
 
 Flag explanation:
-- `-m gpt-5.5` -- use GPT-5.5 for maximum review quality
-- `-c 'model_reasoning_effort="high"'` -- default `high` is the sensible baseline
-  for routine review/triage; use `xhigh` only for hard correctness analysis
-  (security/concurrency/migrations) where the extra depth justifies the slowdown
+- `-m gpt-5.6-sol` -- use the benchmark-selected high-risk review model
+- `-c 'model_reasoning_effort="xhigh"'` -- the high-risk review lane; use
+  `max` only with an explicit exceptional override
 - `--ephemeral` -- don't persist the Codex session (this is a one-shot review)
 - `--dangerously-bypass-approvals-and-sandbox` -- bypass the bwrap sandbox
   which fails in containerized/VM environments with "loopback: Failed
@@ -174,7 +175,7 @@ Gate: Every Codex finding has been assessed. Proceed to Phase 4.
 Structure the report as:
 
 ```markdown
-## Codex Code Review (GPT-5.5 high)
+## Codex Code Review (GPT-5.6 Sol xhigh)
 
 **Scope**: [what was reviewed -- e.g., "git diff main...HEAD (12 files)"]
 

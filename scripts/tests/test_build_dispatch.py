@@ -49,7 +49,7 @@ def _decision(**overrides):
         "agent": "python-general-engineer",
         "skill": "test-driven-development",
         "complexity": "medium",
-        "model": "opus",
+        "model": "fable",
         "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep"},
         "stack": ["verification-before-completion"],
         "task_spec": {
@@ -78,6 +78,7 @@ ROUND_TRIP_CASES = [
             "skill": "go-patterns",
             "complexity": "complex",
             "model": "opus",
+            "manual_model_override": True,
             "health": {
                 "confidence": 0.72,
                 "n": 6,
@@ -108,7 +109,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
-            "model": "opus",
+            "model": "fable",
             "health": None,
             "n": None,
             "failure": None,
@@ -125,7 +126,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "",
             "complexity": "medium",
-            "model": "opus",
+            "model": "fable",
             "health": None,
             "gate_inputs_present": True,
             "stack": None,
@@ -138,7 +139,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
-            "model": "opus",
+            "model": "fable",
             "health": 0.5,
             "n": None,
             "failure": None,
@@ -168,7 +169,7 @@ ROUND_TRIP_CASES = [
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
             "complexity": "medium",
-            "model": "opus",
+            "model": "fable",
             "health": 1.0,
             "n": 12,
             "failure": 0,
@@ -191,8 +192,8 @@ ROUND_TRIP_CASES = [
         },
         id="case-normalized-trivial-no-model",
     ),
-    pytest.param(  # V8: gpt-5.5 model (dotted name)
-        {"model": "gpt-5.5"},
+    pytest.param(  # V8: legacy GPT-5.5 remains a manual-only compatibility lane.
+        {"model": "gpt-5.5", "model_effort": "high", "manual_model_override": True},
         {
             "agent": "python-general-engineer",
             "skill": "test-driven-development",
@@ -206,7 +207,7 @@ ROUND_TRIP_CASES = [
             "gate_inputs_present": True,
             "stack": ["verification-before-completion"],
         },
-        id="gpt-5.5-dotted-model",
+        id="gpt-5.5-manual-compatibility-model",
     ),
     pytest.param(  # V9: old marker without model= (backward compat)
         # Simulate by checking recorder parses model=None from a pre-model marker
@@ -260,7 +261,7 @@ def test_marker_is_first_line_at_line_start():
 def test_preamble_contains_every_mandatory_block_in_order():
     preamble = bd.build_preamble(_decision(complexity="complex"))
     ordered = [
-        "[do-route] agent=python-general-engineer skill=test-driven-development complexity=complex model=opus",
+        "[do-route] agent=python-general-engineer skill=test-driven-development complexity=complex model=fable",
         bd.THINKING_SLOW,
         "~480000 tokens available for this task; prioritize accordingly.",
         "## Task Specification (auto-extracted)",
@@ -318,9 +319,9 @@ def test_thinking_directive_by_complexity_and_override(complexity, override, exp
 
 
 def test_missing_optional_fields_omit_their_blocks_only():
-    minimal = {"agent": "claude", "complexity": "medium", "model": "sonnet"}
+    minimal = {"agent": "claude", "complexity": "medium", "model": "fable"}
     preamble = bd.build_preamble(minimal)
-    assert preamble.startswith("[do-route] agent=claude skill=- complexity=medium model=sonnet health=-\n")
+    assert preamble.startswith("[do-route] agent=claude skill=- complexity=medium model=fable health=-\n")
     assert "## Task Specification" not in preamble
     assert "stack={" not in preamble
     # Mandatory blocks survive the minimal input.
@@ -400,6 +401,282 @@ def test_model_optional_for_trivial_and_simple():
     for complexity in ("trivial", "simple"):
         preamble = bd.build_preamble(_decision(complexity=complexity, model=None))
         assert "model=-" in preamble.splitlines()[0]
+
+
+# ---------------------------------------------------------------------------
+# GPT-5.6 model policy: benchmark-backed automatic defaults and manual lanes.
+# ---------------------------------------------------------------------------
+
+SUPPLIED_GPT_56_POINTS = {
+    ("gpt-5.6-sol", "max"): (73, 8.39, 60_000, 61),
+    ("gpt-5.6-sol", "xhigh"): (71, 4.70, 41_000, 44),
+    ("gpt-5.6-sol", "high"): (69, 3.47, 28_000, 37),
+    ("gpt-5.6-sol", "medium"): (61, 1.86, 18_000, 31),
+    ("gpt-5.6-sol", "low"): (45, 1.07, 11_000, 23),
+    ("gpt-5.6-terra", "max"): (70, 4.95, 72_000, 76),
+    ("gpt-5.6-terra", "xhigh"): (60, 2.13, 40_000, 43),
+    ("gpt-5.6-terra", "high"): (54, 1.13, 22_000, 34),
+    ("gpt-5.6-terra", "medium"): (35, 0.58, 12_000, 25),
+    ("gpt-5.6-terra", "low"): (24, 0.43, 8_600, 21),
+    ("gpt-5.6-luna", "max"): (67, 3.03, 73_000, 102),
+    ("gpt-5.6-luna", "xhigh"): (57, 1.54, 45_000, 71),
+    ("gpt-5.6-luna", "high"): (44, 0.78, 26_000, 49),
+    ("gpt-5.6-luna", "medium"): (11, 0.22, 8_200, 24),
+    ("gpt-5.6-luna", "low"): (2, 0.07, 3_100, 12),
+}
+
+
+def _dominates(candidate: tuple[int, float, int, int], target: tuple[int, float, int, int]) -> bool:
+    """Return whether ``candidate`` is at least as good on every supplied metric."""
+    candidate_pass, candidate_cost, candidate_tokens, candidate_steps = candidate
+    target_pass, target_cost, target_tokens, target_steps = target
+    return (
+        candidate_pass >= target_pass
+        and candidate_cost <= target_cost
+        and candidate_tokens <= target_tokens
+        and candidate_steps <= target_steps
+        and candidate != target
+    )
+
+
+@pytest.mark.parametrize(
+    ("task_class", "model", "effort"),
+    [
+        ("low-risk", "gpt-5.6-terra", "high"),
+        ("standard", "gpt-5.6-sol", "high"),
+        ("high-risk", "gpt-5.6-sol", "xhigh"),
+    ],
+)
+def test_gpt_56_policy_selects_the_automatic_pareto_defaults(task_class, model, effort):
+    """Automatic task classes select only the documented benchmark defaults."""
+    decision = _decision(model=None, model_policy=task_class, provider="openai")
+    marker = bd.build_marker(decision)
+
+    assert f"model={model}" in marker
+    assert f"effort={effort}" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == effort
+
+
+def test_gpt_56_policy_points_are_not_dominated_on_supplied_metrics():
+    """Automatic choices cannot regress to a worse quality/cost/latency point."""
+    for policy, point in bd.AUTO_MODEL_POLICIES.items():
+        assert point in SUPPLIED_GPT_56_POINTS, f"{policy} is not in the supplied benchmark"
+        target = SUPPLIED_GPT_56_POINTS[point]
+        assert not any(_dominates(candidate, target) for candidate in SUPPLIED_GPT_56_POINTS.values()), (
+            f"{policy} selects dominated point {point}"
+        )
+
+
+@pytest.mark.parametrize("model", ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"))
+@pytest.mark.parametrize("effort", ("low", "medium", "high", "xhigh", "max"))
+def test_all_supplied_gpt_56_variants_and_efforts_are_valid_manual_overrides(model, effort):
+    """Every supplied GPT-5.6 pair is representable without becoming an auto route."""
+    marker = bd.build_marker(_decision(model=model, model_effort=effort, manual_model_override=True))
+    assert f"model={model}" in marker
+    assert f"effort={effort}" in marker
+
+
+def test_exceptional_max_power_requires_explicit_override():
+    """The most expensive benchmark point is opt-in, never an automatic default."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model=None, model_policy="max-power", provider="openai"))
+
+    marker = bd.build_marker(
+        _decision(model=None, model_policy="max-power", manual_model_override=True, provider="openai")
+    )
+    assert "model=gpt-5.6-sol" in marker
+    assert "effort=max" in marker
+
+    # Anthropic max-power also requires override
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model=None, model_policy="max-power", provider="anthropic"))
+
+    marker = bd.build_marker(
+        _decision(model=None, model_policy="max-power", manual_model_override=True, provider="anthropic")
+    )
+    assert "model=fable" in marker
+    assert "effort=xhigh" in marker
+
+
+def test_manual_override_can_replace_a_policy_default():
+    """An explicit override wins over the automatic task-class selection."""
+    marker = bd.build_marker(
+        _decision(
+            model_policy="standard",
+            model="gpt-5.6-luna",
+            model_effort="max",
+            manual_model_override=True,
+            provider="openai",
+        )
+    )
+    assert "model=gpt-5.6-luna" in marker
+    assert "effort=max" in marker
+
+
+def test_manual_policy_model_override_requires_explicit_effort():
+    """A different model family must never inherit the policy's effort silently."""
+    with pytest.raises(bd.InputError, match="require 'model_effort'"):
+        bd.build_marker(
+            _decision(
+                model_policy="standard",
+                model="gpt-5.6-luna",
+                manual_model_override=True,
+                provider="openai",
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"model": "gpt-5.5", "model_effort": "high"},
+        {"model": "gpt-5.6-sol", "model_effort": "high"},
+        {"model": "gpt-5.6-sol", "model_effort": "low"},
+        {"model": "gpt-5.6-terra", "model_effort": "xhigh"},
+        {"model": "gpt-5.6-luna", "model_effort": "max"},
+        {"model": "gpt-5.6-sol", "model_effort": "ultra", "manual_model_override": True},
+    ],
+)
+def test_non_default_openai_model_choices_require_manual_override(overrides):
+    """Dominated and legacy choices cannot be selected accidentally."""
+    with pytest.raises(bd.InputError):
+        bd.build_marker(_decision(**overrides))
+
+
+# ---------------------------------------------------------------------------
+# Anthropic lane: benchmark-backed automatic defaults and manual lanes.
+# ---------------------------------------------------------------------------
+
+SUPPLIED_CLAUDE_POINTS = {
+    ("fable", "max"): (70, 21.63, 119_000, 88),
+    ("fable", "xhigh"): (70, 13.41, 80_000, 68),
+    ("fable", "high"): (69, 9.18, 57_000, 59),
+    ("fable", "medium"): (65, 6.09, 40_000, 48),
+    ("fable", "low"): (60, 3.76, 25_000, 38),
+    ("opus", "max"): (59, 13.22, 135_000, 120),
+    ("opus", "xhigh"): (54, 8.01, 86_000, 95),
+    ("opus", "high"): (52, 4.28, 50_000, 73),
+    ("opus", "medium"): (49, 3.44, 41_000, 66),
+    ("opus", "low"): (41, 2.29, 29_000, 54),
+    ("sonnet", "max"): (54, 26.40, 214_000, 268),
+    ("sonnet", "xhigh"): (50, 11.89, 121_000, 186),
+    ("sonnet", "high"): (48, 7.43, 87_000, 147),
+    ("sonnet", "medium"): (40, 4.08, 57_000, 108),
+    ("sonnet", "low"): (31, 2.19, 36_000, 77),
+    ("sonnet-4.6", "high"): (30, 5.52, 76_000, 134),
+}
+
+
+@pytest.mark.parametrize(
+    ("task_class", "model", "effort"),
+    [
+        ("low-risk", "fable", "low"),
+        ("standard", "fable", "medium"),
+        ("high-risk", "fable", "high"),
+    ],
+)
+def test_anthropic_policy_selects_the_automatic_pareto_defaults(task_class, model, effort):
+    """Anthropic automatic task classes select fable at benchmark-backed effort points."""
+    decision = _decision(model=None, model_policy=task_class, provider="anthropic")
+    marker = bd.build_marker(decision)
+
+    assert f"model={model}" in marker
+    assert f"effort={effort}" in marker
+    assert recorder.parse_model(marker) == model
+    assert recorder.parse_model_effort(marker) == effort
+
+
+def test_anthropic_policy_points_are_not_dominated_on_supplied_metrics():
+    """Anthropic automatic choices are non-dominated within the Anthropic lane."""
+    for policy, point in bd.ANTHROPIC_AUTO_POLICIES.items():
+        assert point in SUPPLIED_CLAUDE_POINTS, f"{policy} is not in the supplied benchmark"
+        target = SUPPLIED_CLAUDE_POINTS[point]
+        assert not any(_dominates(candidate, target) for candidate in SUPPLIED_CLAUDE_POINTS.values()), (
+            f"{policy} selects dominated point {point}"
+        )
+
+
+def test_fable_max_dominated_by_xhigh():
+    """fable[max] same Pass@1 as fable[xhigh] at higher cost — manual-only."""
+    fmax = SUPPLIED_CLAUDE_POINTS[("fable", "max")]
+    fxhigh = SUPPLIED_CLAUDE_POINTS[("fable", "xhigh")]
+    assert fmax[0] == fxhigh[0], "precondition: same Pass@1"
+    assert fmax[1] > fxhigh[1], "precondition: max costs more"
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model="fable", model_effort="max"))
+
+
+def test_opus_dominated_by_fable():
+    """opus[max] 59% vs fable[low] 60% — every opus point is dominated."""
+    fable_low = SUPPLIED_CLAUDE_POINTS[("fable", "low")]
+    opus_max = SUPPLIED_CLAUDE_POINTS[("opus", "max")]
+    assert _dominates(fable_low, opus_max), "precondition: fable[low] dominates opus[max]"
+
+
+def test_sonnet_dominated_by_opus():
+    """sonnet-5 is dominated by opus at comparable tiers."""
+    opus_low = SUPPLIED_CLAUDE_POINTS[("opus", "low")]
+    sonnet_high = SUPPLIED_CLAUDE_POINTS[("sonnet", "high")]
+    # opus[low] 41/$2.29 vs sonnet[high] 48/$7.43 — opus loses on Pass@1 but
+    # the entire sonnet range is dominated by fable, making it manual-only.
+    assert sonnet_high[1] > opus_low[1], "precondition: sonnet[high] costs more than opus[low]"
+
+
+@pytest.mark.parametrize("model", ("opus", "sonnet"))
+def test_dominated_claude_models_require_manual_override(model):
+    """opus and sonnet are dominated by fable — manual-only."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model=model))
+    # With manual_override they work fine
+    marker = bd.build_marker(_decision(model=model, manual_model_override=True))
+    assert f"model={model}" in marker
+
+
+def test_claude_model_effort_round_trip():
+    """Claude model@effort (fable@high) parses and persists in the marker."""
+    marker = bd.build_marker(_decision(model="fable", model_effort="high"))
+    assert "model=fable" in marker
+    assert "effort=high" in marker
+    assert recorder.parse_model(marker) == "fable"
+    assert recorder.parse_model_effort(marker) == "high"
+
+
+def test_provider_absent_defaults_to_anthropic():
+    """Missing provider field defaults to 'anthropic' (Claude Code is primary)."""
+    decision = _decision(model=None, model_policy="standard")
+    marker = bd.build_marker(decision)
+    # Should resolve via Anthropic table: fable/medium
+    assert "model=fable" in marker
+    assert "effort=medium" in marker
+
+
+def test_provider_openai_uses_openai_table():
+    """provider='openai' routes through the GPT-5.6 policy table."""
+    decision = _decision(model=None, model_policy="standard", provider="openai")
+    marker = bd.build_marker(decision)
+    assert "model=gpt-5.6-sol" in marker
+    assert "effort=high" in marker
+
+
+def test_provider_other_rejects_model_policy():
+    """provider='other' cannot use model_policy — no hardcoded table."""
+    with pytest.raises(bd.InputError, match="other"):
+        bd.build_marker(_decision(model=None, model_policy="standard", provider="other"))
+
+
+def test_cross_provider_policy_override_rejected():
+    """Anthropic policy cannot be overridden with a GPT model (cross-lane)."""
+    with pytest.raises(bd.InputError, match="Claude model"):
+        bd.build_marker(
+            _decision(
+                model_policy="standard",
+                model="gpt-5.6-sol",
+                model_effort="high",
+                manual_model_override=True,
+                provider="anthropic",
+            )
+        )
 
 
 # ---------------------------------------------------------------------------

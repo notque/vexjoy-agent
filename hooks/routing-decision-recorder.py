@@ -108,13 +108,23 @@ _VALID_COMPLEXITY = frozenset({"trivial", "simple", "medium", "complex"})
 # decision event as a list; absent token => no field. Same charset as alts=.
 _STACK_RE = re.compile(r"\bstack=\{([a-z0-9:_,-]*)\}", re.IGNORECASE)
 
-# Model token on the marker line: `model=opus` or `model=-`. Added for model
-# enforcement (ADR model-selection-policy). Valid values match VALID_MODELS in
-# build-dispatch.py; `model=-` or absent => null. Old markers (pre-model) work
-# unchanged: absent token reads as null. gpt-5.5 contains a dot, hence the
-# charset `[a-z0-9.-]`.
+# Model token on the marker line: `model=opus` or `model=-`. GPT-5.6 selections
+# carry an additional `effort=` token. Valid values match build-dispatch.py;
+# `model=-` or absent => null. Old markers remain readable.
 _MODEL_RE = re.compile(r"\bmodel=([a-z0-9.-]+|-)", re.IGNORECASE)
-_VALID_MODELS = frozenset({"sonnet", "opus", "fable", "gpt-5.5", "codex"})
+_EFFORT_RE = re.compile(r"\beffort=(low|medium|high|xhigh|max)", re.IGNORECASE)
+_VALID_MODELS = frozenset(
+    {
+        "sonnet",
+        "opus",
+        "fable",
+        "codex",
+        "gpt-5.5",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-5.6-luna",
+    }
+)
 
 # Step 1.5 health gate inputs on the same marker line (do/SKILL.md Phase 4 Step 2).
 # Each is an independent \b token. `health=-` => null (no weight row); else float.
@@ -266,6 +276,20 @@ def parse_model(marker_text: str) -> str | None:
     if raw == "-":
         return None
     return raw if raw in _VALID_MODELS else None
+
+
+def parse_model_effort(marker_text: str) -> str | None:
+    """Read a valid ``effort=`` token from the marker line, if present.
+
+    Returns effort for any recognized model (Claude or OpenAI).  Effort is
+    advisory for Claude lanes but recorded for telemetry (model@effort).
+    """
+    line = _marker_line(marker_text)
+    model = parse_model(line)
+    if model is None:
+        return None
+    match = _EFFORT_RE.search(line)
+    return match.group(1).lower() if match else None
 
 
 # Right-sizing banner. The first four fields are required; findings= and the
@@ -559,6 +583,8 @@ def main() -> None:
             stack = parse_stack(marker_text)
             health = parse_health_inputs(marker_text)
             model = parse_model(marker_text)
+            effort = parse_model_effort(marker_text)
+            recorded_model = f"{model}@{effort}" if model and effort else model
 
             # Stack-usage telemetry: one aggregate row per enhancement skill in
             # the marker's ` stack={...}` token (routing-table utilization audit).
@@ -575,7 +601,7 @@ def main() -> None:
                 complexity=complexity,
                 complexity_invalid=complexity_invalid,
                 stack=stack,
-                model=model,
+                model=recorded_model,
                 health_at_decision=health["health"],  # real gate inputs from the marker (Step 1.5)
                 n=health["n"],
                 failure=health["failure"],
@@ -615,7 +641,7 @@ def main() -> None:
                     agent=agent,
                     skill=skill or None,
                     complexity=complexity or None,
-                    model=model,
+                    model=recorded_model,
                     request_snippet=request_snippet,
                     stack=stack,
                     health=health["health"],
