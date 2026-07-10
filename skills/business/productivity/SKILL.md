@@ -113,7 +113,7 @@ If the request spans modes, pick the primary mode and note the secondary.
    | Convert to async | Draft async alternative with decision framework and deadline |
    | Optimize recurring meeting | Analyze frequency, attendance, decision output vs time spent |
 
-2. **For audits** — Calculate meeting cost (participants x hourly rate x duration x frequency). Surface the number because most people underestimate it. A weekly 1-hour meeting with 8 people at $75/hr costs $31,200/year.
+2. **For audits** — Calculate meeting cost (participants x hourly rate x duration x frequency). Surface the number because most people underestimate it. A weekly 1-hour meeting with 8 people at 75 USD/hr costs 31,200 USD/year.
 
 3. **For agendas** — Every agenda item gets:
    - **Type**: Decision, Discussion, Information, or Brainstorm (because different types need different facilitation)

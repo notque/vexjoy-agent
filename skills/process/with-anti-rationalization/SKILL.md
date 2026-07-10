@@ -125,7 +125,7 @@ If any answer is YES: STOP and address the rationalization before proceeding.
 1. [ ] Did I verify or just assume?
 2. [ ] Did I run tests or just check code visually?
 3. [ ] Did I complete everything or just the "important" parts?
-4. [ ] Would I bet $100 this works correctly?
+4. [ ] Would I bet 100 dollars this works correctly?
 5. [ ] Can I show evidence (output, test results)?
 ```
 

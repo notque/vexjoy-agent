@@ -77,7 +77,7 @@ Review the generated script. Verify it contains:
 - [ ] `set -euo pipefail`
 - [ ] `flock` lockfile -- prevents concurrent runs of the same job
 - [ ] `--permission-mode auto` -- never use `--dangerously-skip-permissions` (auto is sufficient) or `--bare` (breaks OAuth/keychain auth)
-- [ ] `--max-budget-usd` -- caps spend per run (default $2.00)
+- [ ] `--max-budget-usd` -- caps spend per run (default 2.00 USD)
 - [ ] `--no-session-persistence`
 - [ ] `--allowedTools`
 - [ ] `tee` to per-run timestamped log file

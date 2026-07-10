@@ -246,50 +246,52 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 **Harness-native routing.** The SDIR probe (Phase 2 pre-route) identifies the harness: `~/.claude` → provider `anthropic`, `~/.codex` → provider `openai`, `~/.hermes`/`.factory`/`.reasonix` → provider `other`. Default when absent: `anthropic` (Claude Code is primary). Each provider lane has its own automatic policy table; cross-provider dispatch is manual-only (explicit tool invocation, never a silent default).
 
-Run deterministic work with scripts, not an LLM. Two decision axes: (1) DeepSWE Pass@1 / cost / tokens / steps — agentic task completion rate, the quantitative source. (2) Owner-observed felt quality — fable > sol (noticeable gap despite similar Pass@1), opus > gpt-5.5 (marginal). Benchmark ties or near-ties resolve in favor of felt quality. Cells: `Pass@1 / cost / output tokens / steps`; higher Pass@1 better, other three lower-is-better.
+Run deterministic work with scripts, not an LLM. Two decision axes: (1) DeepSWE Pass@1 / cost / tokens / steps — agentic task completion rate, the quantitative source. (2) Owner-observed felt quality — fable > sol (noticeable gap despite similar Pass@1), opus > gpt-5.5 (marginal). Benchmark ties or near-ties resolve in favor of felt quality. Cells: `Pass@1 / cost / output tokens / steps`; cost = avg USD per task, written as a plain number — slash-command templating substitutes dollar-digit positional parameters in this injected body, so a literal dollar sign before a digit corrupts on every argful invocation. Higher Pass@1 better, other three lower-is-better.
 
-**Start low, escalate on miss.** Task-class tables are ceilings by risk class, not starting points. Default = lowest tier whose risk class matches; escalate one tier only when output misses the acceptance bar. High tiers cost 3-6x per Pass@1 point (see pts/$ column) — pre-paying for xhigh/max "to be safe" wastes $200/month plan budget. Fan-out rule: parallel readers use the lane's low-risk point; one synthesis agent may run one tier higher. User-facing output (docs, prose, reviews the owner reads, design) leans fable even at standard tier; bulk/mechanical/parse-heavy work is where the OpenAI lane's cheaper points earn their keep (under Codex harness or explicit cross-provider call).
+**Start low, escalate on miss.** Task-class tables are ceilings by risk class, not starting points. Default = lowest tier whose risk class matches; escalate one tier only when output misses the acceptance bar. High tiers cost 3-6x per Pass@1 point (see pts/$ column) — pre-paying for xhigh/max "to be safe" wastes the 200 USD/month plan budget. Fan-out rule: parallel readers use the lane's low-risk point; one synthesis agent may run one tier higher. User-facing output (docs, prose, reviews the owner reads, design) leans fable even at standard tier; bulk/mechanical/parse-heavy work is where the OpenAI lane's cheaper points earn their keep (under Codex harness or explicit cross-provider call).
 
 **Anthropic lane** (automatic under Claude Code). Effort is advisory — recorded in marker as model@effort for telemetry; the Agent tool has no per-call effort parameter.
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|
-| Fable-5 | 70 / $21.63 / 119k / 88 | 70 / $13.41 / 80k / 68 | 69 / $9.18 / 57k / 59 | 65 / $6.09 / 40k / 48 | 60 / $3.76 / 25k / 38 |
-| Opus-4.8 | 59 / $13.22 / 135k / 120 | 54 / $8.01 / 86k / 95 | 52 / $4.28 / 50k / 73 | 49 / $3.44 / 41k / 66 | 41 / $2.29 / 29k / 54 |
-| Sonnet-5 | 54 / $26.40 / 214k / 268 | 50 / $11.89 / 121k / 186 | 48 / $7.43 / 87k / 147 | 40 / $4.08 / 57k / 108 | 31 / $2.19 / 36k / 77 |
+| Fable-5 | 70 / 21.63 / 119k / 88 | 70 / 13.41 / 80k / 68 | 69 / 9.18 / 57k / 59 | 65 / 6.09 / 40k / 48 | 60 / 3.76 / 25k / 38 |
+| Opus-4.8 | 59 / 13.22 / 135k / 120 | 54 / 8.01 / 86k / 95 | 52 / 4.28 / 50k / 73 | 49 / 3.44 / 41k / 66 | 41 / 2.29 / 29k / 54 |
+| Sonnet-5 | 54 / 26.40 / 214k / 268 | 50 / 11.89 / 121k / 186 | 48 / 7.43 / 87k / 147 | 40 / 4.08 / 57k / 108 | 31 / 2.19 / 36k / 77 |
 
 | Task class | Selection | pts/$ | Why |
 |---|---|---|---|
 | deterministic | no LLM | — | Run the script directly. |
-| low-risk | `fable` / `low` | 16.0 | 60 Pass@1 at $3.76, 25k tokens, 38 steps. |
-| standard | `fable` / `medium` | 10.7 | 65 Pass@1 at $6.09, 40k tokens, 48 steps. |
-| high-risk | `fable` / `high` | 7.5 | 69 Pass@1 at $9.18, 57k tokens, 59 steps. |
-| max-power | `fable` / `xhigh` | 5.2 | 70 Pass@1 at $13.41, 80k tokens, 68 steps; `manual_model_override=true`; state justification in task_spec intent. |
+| low-risk | `fable` / `low` | 16.0 | 60 Pass@1 at 3.76, 25k tokens, 38 steps. |
+| standard | `fable` / `medium` | 10.7 | 65 Pass@1 at 6.09, 40k tokens, 48 steps. |
+| high-risk | `fable` / `high` | 7.5 | 69 Pass@1 at 9.18, 57k tokens, 59 steps. |
+| max-power | `fable` / `xhigh` | 5.2 | 70 Pass@1 at 13.41, 80k tokens, 68 steps; `manual_model_override=true`; state justification in task_spec intent. |
 
-Fable[max] dominated by [xhigh] (same Pass@1, higher cost) — manual-only. Opus dominated by fable at every tier (opus[max] 59/$13.22 vs fable[low] 60/$3.76). Sonnet-5 dominated by opus. All opus/sonnet points → `manual_model_override=true`, kept for context-window, latency, and fan-out breadth constraints the benchmark does not measure. Haiku is retired.
+Fable[max] dominated by [xhigh] (same Pass@1, higher cost) — manual-only. Opus dominated by fable at every tier (opus[max] 59/13.22 vs fable[low] 60/3.76). Sonnet-5 dominated by opus. All opus/sonnet points → `manual_model_override=true`, kept for context-window, latency, and fan-out breadth constraints the benchmark does not measure. Haiku is retired.
 
 **OpenAI lane** (automatic under Codex CLI).
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|
-| GPT-5.6 Sol | 73 / $8.39 / 60k / 61 | 71 / $4.70 / 41k / 44 | 69 / $3.47 / 28k / 37 | 61 / $1.86 / 18k / 31 | 45 / $1.07 / 11k / 23 |
-| GPT-5.6 Terra | 70 / $4.95 / 72k / 76 | 60 / $2.13 / 40k / 43 | 54 / $1.13 / 22k / 34 | 35 / $0.58 / 12k / 25 | 24 / $0.43 / 8.6k / 21 |
-| GPT-5.6 Luna | 67 / $3.03 / 73k / 102 | 57 / $1.54 / 45k / 71 | 44 / $0.78 / 26k / 49 | 11 / $0.22 / 8.2k / 24 | 2 / $0.07 / 3.1k / 12 |
-| GPT-5.5 legacy | n/a | 67 / $7.23 / 46k / 82 | 64 / $5.10 / 31k / 62 | 54 / $2.75 / 20k / 46 | 27 / $1.20 / 9.4k / 28 |
+| GPT-5.6 Sol | 73 / 8.39 / 60k / 61 | 71 / 4.70 / 41k / 44 | 69 / 3.47 / 28k / 37 | 61 / 1.86 / 18k / 31 | 45 / 1.07 / 11k / 23 |
+| GPT-5.6 Terra | 70 / 4.95 / 72k / 76 | 60 / 2.13 / 40k / 43 | 54 / 1.13 / 22k / 34 | 35 / 0.58 / 12k / 25 | 24 / 0.43 / 8.6k / 21 |
+| GPT-5.6 Luna | 67 / 3.03 / 73k / 102 | 57 / 1.54 / 45k / 71 | 44 / 0.78 / 26k / 49 | 11 / 0.22 / 8.2k / 24 | 2 / 0.07 / 3.1k / 12 |
+| GPT-5.5 legacy | n/a | 67 / 7.23 / 46k / 82 | 64 / 5.10 / 31k / 62 | 54 / 2.75 / 20k / 46 | 27 / 1.20 / 9.4k / 28 |
 
 | Task class | Selection | pts/$ | Why |
 |---|---|---|---|
 | deterministic | no LLM | — | Run the script directly. |
-| low-risk | `gpt-5.6-terra` / `high` | 47.8 | 54 Pass@1 at $1.13, 22k tokens, 34 steps. |
-| standard | `gpt-5.6-sol` / `high` | 19.9 | 69 Pass@1 at $3.47, 28k tokens, 37 steps. |
-| high-risk | `gpt-5.6-sol` / `xhigh` | 15.1 | 71 Pass@1 at $4.70, 41k tokens, 44 steps. |
-| max-power | `gpt-5.6-sol` / `max` | 8.7 | 73 Pass@1 at $8.39, 60k tokens, 61 steps; `manual_model_override=true`; state justification in task_spec intent. |
+| low-risk | `gpt-5.6-terra` / `high` | 47.8 | 54 Pass@1 at 1.13, 22k tokens, 34 steps. |
+| standard | `gpt-5.6-sol` / `high` | 19.9 | 69 Pass@1 at 3.47, 28k tokens, 37 steps. |
+| high-risk | `gpt-5.6-sol` / `xhigh` | 15.1 | 71 Pass@1 at 4.70, 41k tokens, 44 steps. |
+| max-power | `gpt-5.6-sol` / `max` | 8.7 | 73 Pass@1 at 8.39, 60k tokens, 61 steps; `manual_model_override=true`; state justification in task_spec intent. |
 
 All GPT-5.5 choices are manual-only. Off-policy GPT-5.6 points (Sol medium/low, Terra max/xhigh/medium/low, all Luna) are manual-only — some are cost trade-offs, not dominated; use with `manual_model_override=true` for a stated constraint.
 
 **Other harnesses** (provider=`other`): `model_policy` is unavailable — choose the highest non-dominated Pass@1 point among models the harness exposes, applying the same start-low-escalate-on-miss discipline. Set model explicitly.
 
 **Cross-provider escalation** — manual only, never automatic. Escalating anthropic → sol is a cost/limits lever or independent-second-opinion lever, not a quality upgrade (fable wins on felt quality at comparable Pass@1). Under Claude Code, codex-wrapper dispatches (`codex` skill, pr-workflow codex second-opinion review) remain valid as EXPLICIT tools — deliberate cross-provider calls, not defaults. Escalation targets: anthropic max-power miss → sol/xhigh or sol/max (second opinion, cheaper per point); openai max-power miss → fable/xhigh (quality upgrade on felt quality axis). Manual-pick ordering among legacy/manual points: opus-4.8 above gpt-5.5 where they otherwise tie.
+
+**Coordinator model.** The main-thread coordinator routes and evaluates but never executes; its cost is input-dominated (largest context, short outputs), and DeepSWE Pass@1 measures execution it never does. Picks: anthropic harness → `sonnet`; openai harness → `gpt-5.6-terra`/`high`. Safe because deterministic scripts (pre-route, manifest, build-dispatch, health weights) absorb routing complexity and the learning loop bounds misroute cost. Escalate the coordinator (sonnet → opus) only on observed misroutes or repeated lazy-completion acceptance, never preemptively. Session model is set via harness config (`/model`), not per-turn.
 
 **Medium+ MUST set a model or policy.** Codex prompts stay read-only and public unless a task requires otherwise.
 

@@ -34,16 +34,16 @@ Two flows keep their own specialized codex integration — route to them instead
 
 ## Phase 1: DECIDE — does this task belong on GPT-5.6?
 
-Policy mirror — canonical copy: `/do` SKILL.md, Model Selection (edit there first, then here). Rankings, higher = better; cost = what the owner actually pays.
+Policy mirror — canonical copy: `/do` SKILL.md, Model Selection (edit there first, then here). Rankings, higher = better; cost = avg USD per task, written as a plain number (slash-command templating corrupts dollar-digit sequences in injected skill bodies), what the owner actually pays.
 
 | Task class | Model / effort | DeepSWE Pass@1 / cost / output tokens / steps |
 |---|---|---|
-| Low-risk assistance | `gpt-5.6-terra` / `high` | 54 / $1.13 / 22k / 34 |
-| Standard implementation | `gpt-5.6-sol` / `high` | 69 / $3.47 / 28k / 37 |
-| High-risk implementation or review | `gpt-5.6-sol` / `xhigh` | 71 / $4.70 / 41k / 44 |
-| Exceptional explicit escalation | `gpt-5.6-sol` / `max` | 73 / $8.39 / 60k / 61 |
+| Low-risk assistance | `gpt-5.6-terra` / `high` | 54 / 1.13 / 22k / 34 |
+| Standard implementation | `gpt-5.6-sol` / `high` | 69 / 3.47 / 28k / 37 |
+| High-risk implementation or review | `gpt-5.6-sol` / `xhigh` | 71 / 4.70 / 41k / 44 |
+| Exceptional explicit escalation | `gpt-5.6-sol` / `max` | 73 / 8.39 / 60k / 61 |
 
-Run deterministic work as scripts, not through Codex. The `/do` model policy selects the lane and passes model plus effort. Legacy GPT-5.5, all Luna choices, and the other non-default GPT-5.6 settings are manual-only; do not substitute them automatically. Luna `max`, for example, saves $0.44 versus Sol `high` but consumes 45k more output tokens and 65 more steps for two fewer Pass@1 points. Consult the canonical table in `/do` SKILL.md.
+Run deterministic work as scripts, not through Codex. The `/do` model policy selects the lane and passes model plus effort. Legacy GPT-5.5, all Luna choices, and the other non-default GPT-5.6 settings are manual-only; do not substitute them automatically. Luna `max`, for example, saves 0.44 USD versus Sol `high` but consumes 45k more output tokens and 65 more steps for two fewer Pass@1 points. Consult the canonical table in `/do` SKILL.md.
 
 These are defaults, not limits. Standing permission to escalate when output misses the bar applies within the policy; `max` still needs an explicit override. For anything that ships, intelligence > taste > cost; cost is a tie-breaker only.
 
