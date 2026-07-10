@@ -111,7 +111,7 @@ python3 ~/.claude/scripts/crontab-manager.py list
 
 ## Cost estimate
 
-~$0.09 per nightly run with 50 memory files (~20-30K input tokens at Sonnet pricing). ~$33/year for automated overnight operation. Budget capped at $3.00/run via wrapper script.
+~0.09 USD per nightly run with 50 memory files (~20-30K input tokens at Sonnet pricing). ~33 USD/year for automated overnight operation. Budget capped at 3.00 USD/run via wrapper script.
 
 ## Cron setup
 

@@ -356,6 +356,8 @@ Owner model-selection policy (ADR `model-selection-policy`; operational table in
 
 The `/do` table is canonical and records the full DeepSWE Pass@1 / cost / tokens / steps data. Max-power requires `manual_model_override=true` in both lanes. Opus/sonnet are manual-only (dominated by fable). Legacy `gpt-5.5` and non-default GPT-5.6 points are manual-only. Haiku is retired (routing was Haiku pre-#777; self-route since — `scripts/routing-ab-results/self-route-v1/VERDICT.md`). Defaults, not limits: escalate when cheaper output misses the bar; for anything that ships, intelligence > taste > cost, with cost a tie-breaker only. Fan-out uses the lane's low-risk point; one synthesis agent may run one tier higher.
 
+**Coordinator model.** The main-thread coordinator routes and evaluates, never executes — its cost is input-dominated and Pass@1 measures execution it never does. Anthropic harness → sonnet; OpenAI harness → gpt-5.6-terra/high; escalate to opus only on observed misroutes, set via harness config (`/model`), not per-turn. Full rule: `skills/meta/do/SKILL.md`, Model Selection.
+
 **Token costs are not fungible.** One Opus token costs ~30x one Haiku token. Optimization targets the expensive model, not the cheap one. "Saves Haiku calls" is never a valid justification. Pre-routing's value is determinism (regex can't misroute). Phase gates' value is preventing Opus rework.
 
 **Test:** Which model's tokens does this optimization save? Savings on the cheap model never justify added complexity.
