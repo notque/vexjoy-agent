@@ -345,16 +345,12 @@ class DocumentationParser:
         Returns:
             Dict with issues categorized by type
         """
-        issues = {"missing_entries": [], "stale_entries": [], "version_mismatches": [], "incomplete_entries": []}
+        issues = {"missing_entries": [], "stale_entries": [], "incomplete_entries": []}
 
         # Build sets of discovered tool names
         discovered_skills = {s["name"] for s in scan_results.get("skills", [])}
         discovered_agents = {a["name"] for a in scan_results.get("agents", [])}
         discovered_commands = {c["name"] for c in scan_results.get("commands", [])}
-
-        # Build lookup for versions
-        skill_versions = {s["name"]: s["version"] for s in scan_results.get("skills", [])}
-        agent_versions = {a["name"]: a["version"] for a in scan_results.get("agents", [])}
 
         # Check skills catalog
         skills_readme = documented.get("docs/skills.md", [])
@@ -380,14 +376,6 @@ class DocumentationParser:
             issues["stale_entries"].append(
                 {"tool_type": "skill", "tool_name": skill, "documented_in": ["docs/skills.md"], "severity": "medium"}
             )
-
-        # Version mismatches for skills
-        for skill in skills_readme:
-            skill_name = skill["name"]
-            if skill_name in skill_versions:
-                # Try to extract version from command or description
-                # This is heuristic - version may not always be in README
-                pass  # Version comparison would need version column in README
 
         # Check agents README
         agents_readme = documented.get("agents/README.md", [])
@@ -492,10 +480,7 @@ def main():
             results["summary"] = {
                 "missing_entries": len(issues["missing_entries"]),
                 "stale_entries": len(issues["stale_entries"]),
-                "version_mismatches": len(issues["version_mismatches"]),
-                "total_issues": len(issues["missing_entries"])
-                + len(issues["stale_entries"])
-                + len(issues["version_mismatches"]),
+                "total_issues": len(issues["missing_entries"]) + len(issues["stale_entries"]),
             }
 
         # Output results

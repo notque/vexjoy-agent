@@ -2,9 +2,9 @@
 """
 Agent Scheduler Daemon — autonomous execution of Claude agent jobs.
 
-Reads job definitions from schedules.json, executes them via `claude -p`,
-and persists results in SQLite. Supports cron schedules, HTTP webhooks,
-and filesystem watchers.
+Reads job definitions from schedules.json, executes deterministic commands or
+Claude prompts, and persists results in SQLite. Supports cron schedules, HTTP
+webhooks, and filesystem watchers.
 
 Usage:
     python3 scripts/agent-scheduler.py                     # Run with default config
@@ -197,11 +197,30 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
     defaults = data.get("defaults", {})
     for job in data["jobs"]:
-        job.setdefault("model", defaults.get("model", "sonnet"))
+        runner = job.setdefault("runner", defaults.get("runner", "claude"))
+        if runner not in {"claude", "command"}:
+            log.error("Job %s has invalid runner: %s", job.get("name", "<unnamed>"), runner)
+            sys.exit(1)
+
+        if runner == "command":
+            command = job.get("command")
+            if not isinstance(command, list) or not command or not all(isinstance(arg, str) for arg in command):
+                log.error(
+                    "Command job %s must define command as a non-empty string array", job.get("name", "<unnamed>")
+                )
+                sys.exit(1)
+            job["model"] = "command"
+            job.setdefault("cost_limit_usd", 0.0)
+        else:
+            if not isinstance(job.get("prompt"), str) or not job["prompt"]:
+                log.error("Claude job %s must define a non-empty prompt", job.get("name", "<unnamed>"))
+                sys.exit(1)
+            job.setdefault("model", defaults.get("model", "sonnet"))
+            job.setdefault("cost_limit_usd", 1.0)
+
         job.setdefault("timeout_seconds", defaults.get("timeout_seconds", 120))
         job.setdefault("max_retries", defaults.get("max_retries", 0))
         job.setdefault("enabled", defaults.get("enabled", True))
-        job.setdefault("cost_limit_usd", 1.0)
 
     log.info("Loaded %d jobs from %s", len(data["jobs"]), config_path)
     return data
@@ -265,6 +284,38 @@ def estimate_cost(model: str, stdout: str) -> float:
     return round(cost, 6)
 
 
+def build_command_job_command(job: dict[str, Any], variables: dict[str, Any]) -> list[str]:
+    """Render a deterministic command job as argv without shell parsing."""
+    return [render_prompt(arg, variables) for arg in job["command"]]
+
+
+def build_claude_job_command(job: dict[str, Any], prompt: str, model: str) -> list[str]:
+    """Build the Claude CLI command for a judgment-requiring job."""
+    allowed_tools: list[str] = job.get("allowed_tools", [])
+    if allowed_tools:
+        return [
+            "claude",
+            "-p",
+            prompt,
+            "--model",
+            model,
+            "--allowedTools",
+            ",".join(allowed_tools),
+            "--print",
+        ]
+
+    log.debug("Job %s has no allowed_tools — running with --dangerously-skip-permissions", job["name"])
+    return [
+        "claude",
+        "-p",
+        prompt,
+        "--model",
+        model,
+        "--dangerously-skip-permissions",
+        "--print",
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Job execution
 # ---------------------------------------------------------------------------
@@ -299,11 +350,12 @@ class Scheduler:
         trigger_detail: str,
         extra_vars: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
-        """Execute a single job via claude -p subprocess.
+        """Execute a single scheduled job.
 
         Returns the result dict, or None if the job was skipped.
         """
         name = job["name"]
+        runner = job.get("runner", "claude")
 
         # Overlap prevention
         with self._lock:
@@ -312,108 +364,94 @@ class Scheduler:
                 return None
             self._running_jobs.add(name)
 
-        # Daily budget check
-        current_cost = get_daily_cost()
-        if current_cost >= self.daily_budget:
-            log.warning("Daily budget $%.2f reached (spent $%.2f). Skipping %s", self.daily_budget, current_cost, name)
+        try:
+            # Daily model budget applies only to Claude jobs. Command jobs have
+            # no token cost and should keep routine maintenance running.
+            current_cost = get_daily_cost()
+            if runner == "claude" and current_cost >= self.daily_budget:
+                log.warning(
+                    "Daily budget $%.2f reached (spent $%.2f). Skipping %s", self.daily_budget, current_cost, name
+                )
+                return None
+
+            variables: dict[str, Any] = {"job": {"name": name, "description": job.get("description", "")}}
+            if extra_vars:
+                variables.update(extra_vars)
+
+            model = job.get("model", "sonnet")
+            timeout = job.get("timeout_seconds", 120)
+
+            if runner == "command":
+                cmd = build_command_job_command(job, variables)
+                model = "command"
+            else:
+                prompt = render_prompt(job["prompt"], variables)
+                cmd = build_claude_job_command(job, prompt, model)
+
+            log.info("Executing job=%s runner=%s model=%s trigger=%s", name, runner, model, trigger_type)
+            started_at = datetime.now(timezone.utc).isoformat()
+            start_time = time.monotonic()
+
+            workdir = Path(job.get("workdir", str(_REPO_ROOT))).expanduser()
+            if not workdir.is_absolute():
+                workdir = _REPO_ROOT / workdir
+
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(workdir))
+                exit_code = result.returncode
+                stdout = result.stdout
+                stderr = result.stderr
+            except subprocess.TimeoutExpired:
+                exit_code = 124
+                stdout = ""
+                stderr = f"Job timed out after {timeout}s"
+                log.error("Job %s timed out after %ds", name, timeout)
+            except FileNotFoundError:
+                exit_code = 127
+                stdout = ""
+                stderr = f"{cmd[0]} not found in PATH"
+                log.error("%s not found — cannot execute job %s", cmd[0], name)
+            except Exception as exc:
+                exit_code = 1
+                stdout = ""
+                stderr = str(exc)
+                log.error("Job %s failed: %s", name, exc)
+
+            duration = time.monotonic() - start_time
+            finished_at = datetime.now(timezone.utc).isoformat()
+            cost = 0.0 if runner == "command" else estimate_cost(model, stdout)
+
+            # Per-job cost limit check (flag, not prevent — run already completed)
+            cost_limit = job.get("cost_limit_usd", 1.0)
+            if cost > cost_limit:
+                log.warning("Job %s cost $%.4f exceeds limit $%.2f", name, cost, cost_limit)
+
+            record_result(
+                job_name=name,
+                trigger_type=trigger_type,
+                started_at=started_at,
+                finished_at=finished_at,
+                exit_code=exit_code,
+                stdout=stdout[:50000],  # Cap stored output at 50KB
+                stderr=stderr[:10000],
+                model=model,
+                duration_seconds=round(duration, 2),
+                cost_estimate_usd=cost,
+                trigger_detail=trigger_detail,
+            )
+
+            status = "OK" if exit_code == 0 else "FAIL"
+            log.info("Job %s finished: %s exit=%d duration=%.1fs cost=$%.4f", name, status, exit_code, duration, cost)
+
+            return {
+                "job_name": name,
+                "exit_code": exit_code,
+                "duration_seconds": round(duration, 2),
+                "cost_estimate_usd": cost,
+            }
+        finally:
             with self._lock:
                 self._running_jobs.discard(name)
-            return None
-
-        # Render prompt
-        variables: dict[str, Any] = {"job": {"name": name, "description": job.get("description", "")}}
-        if extra_vars:
-            variables.update(extra_vars)
-        prompt = render_prompt(job["prompt"], variables)
-
-        model = job.get("model", "sonnet")
-        timeout = job.get("timeout_seconds", 120)
-
-        log.info("Executing job=%s model=%s trigger=%s", name, model, trigger_type)
-        started_at = datetime.now(timezone.utc).isoformat()
-        start_time = time.monotonic()
-
-        allowed_tools: list[str] = job.get("allowed_tools", [])
-        if allowed_tools:
-            # Per-job tool scoping: pass --allowedTools instead of --dangerously-skip-permissions
-            cmd = [
-                "claude",
-                "-p",
-                prompt,
-                "--model",
-                model,
-                "--allowedTools",
-                ",".join(allowed_tools),
-                "--print",
-            ]
-        else:
-            log.debug("Job %s has no allowed_tools — running with --dangerously-skip-permissions", name)
-            cmd = [
-                "claude",
-                "-p",
-                prompt,
-                "--model",
-                model,
-                "--dangerously-skip-permissions",
-                "--print",
-            ]
-
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(_REPO_ROOT))
-            exit_code = result.returncode
-            stdout = result.stdout
-            stderr = result.stderr
-        except subprocess.TimeoutExpired:
-            exit_code = 124
-            stdout = ""
-            stderr = f"Job timed out after {timeout}s"
-            log.error("Job %s timed out after %ds", name, timeout)
-        except FileNotFoundError:
-            exit_code = 127
-            stdout = ""
-            stderr = "claude CLI not found in PATH"
-            log.error("claude CLI not found — cannot execute jobs")
-        except Exception as exc:
-            exit_code = 1
-            stdout = ""
-            stderr = str(exc)
-            log.error("Job %s failed: %s", name, exc)
-
-        duration = time.monotonic() - start_time
-        finished_at = datetime.now(timezone.utc).isoformat()
-        cost = estimate_cost(model, stdout)
-
-        # Per-job cost limit check (flag, not prevent — run already completed)
-        cost_limit = job.get("cost_limit_usd", 1.0)
-        if cost > cost_limit:
-            log.warning("Job %s cost $%.4f exceeds limit $%.2f", name, cost, cost_limit)
-
-        record_result(
-            job_name=name,
-            trigger_type=trigger_type,
-            started_at=started_at,
-            finished_at=finished_at,
-            exit_code=exit_code,
-            stdout=stdout[:50000],  # Cap stored output at 50KB
-            stderr=stderr[:10000],
-            model=model,
-            duration_seconds=round(duration, 2),
-            cost_estimate_usd=cost,
-            trigger_detail=trigger_detail,
-        )
-
-        status = "OK" if exit_code == 0 else "FAIL"
-        log.info("Job %s finished: %s exit=%d duration=%.1fs cost=$%.4f", name, status, exit_code, duration, cost)
-
-        with self._lock:
-            self._running_jobs.discard(name)
-
-        return {
-            "job_name": name,
-            "exit_code": exit_code,
-            "duration_seconds": round(duration, 2),
-            "cost_estimate_usd": cost,
-        }
 
     # --- Cron scheduling ---
 
@@ -794,7 +832,14 @@ def main() -> int:
         log.info("Config OK: %d jobs defined", len(config["jobs"]))
         for job in config["jobs"]:
             status = "enabled" if job.get("enabled", True) else "disabled"
-            log.info("  %-25s %-10s trigger=%s model=%s", job["name"], status, job["trigger"]["type"], job["model"])
+            log.info(
+                "  %-25s %-10s trigger=%s runner=%s model=%s",
+                job["name"],
+                status,
+                job["trigger"]["type"],
+                job["runner"],
+                job["model"],
+            )
         return 0
 
     # Check for existing instance

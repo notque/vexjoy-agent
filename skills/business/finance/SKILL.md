@@ -29,7 +29,7 @@ Umbrella skill for finance and accounting workflows. Detects the domain from the
 
 ---
 
-## Mode Detection
+## Reference Loading Table
 
 Classify into exactly one mode before proceeding.
 

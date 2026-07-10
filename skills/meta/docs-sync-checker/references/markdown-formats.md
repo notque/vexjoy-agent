@@ -154,14 +154,12 @@ The `golang-general-engineer` agent provides Go expertise.
 Description of skill-name-1. Detailed explanation of purpose and usage.
 
 **Usage**: `skill: skill-name-1`
-**Version**: 1.2.0
 
 ### skill-name-2
 
 Description of skill-name-2.
 
 **Usage**: `skill: skill-name-2`
-**Version**: 2.0.0
 
 ## Agents Reference
 
@@ -178,13 +176,12 @@ Description of agent-name-1.
 2. **Tool Name**: Same as YAML `name` field
 3. **Description**: First paragraph after header
 4. **Usage**: Optional "Usage:" line showing invocation
-5. **Version**: Optional "Version:" line showing current version
 
 ### Parsing Rules
 
 - **Pattern**: `###\s+([a-z0-9\-]+)` to extract tool name
 - **Description**: First non-empty, non-header line after tool header
-- **Usage/Version**: Extract from bold "Usage:" or "Version:" lines if present
+- **Usage**: Extract from a bold "Usage:" line if present
 
 ## Markdown Formatting Best Practices
 

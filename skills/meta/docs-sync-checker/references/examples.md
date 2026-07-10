@@ -174,45 +174,7 @@ You created a new namespaced command `commands/code/cleanup.md`
 
 ---
 
-## Example 4: Fixing Version Mismatch
-
-### Scenario
-You updated `code-linting` skill from version 1.1.0 to 1.2.0 in YAML, but forgot to update README
-
-### YAML Frontmatter (Updated)
-```yaml
----
-name: code-linting
----
-```
-
-### Before: docs/REFERENCE.md
-
-```markdown
-### code-linting
-
-Combined Python (ruff) and JavaScript (Biome) linting skill.
-
-**Usage**: `skill: code-linting`
-**Version**: 1.1.0
-```
-
-### After: docs/REFERENCE.md
-
-```markdown
-### code-linting
-
-Combined Python (ruff) and JavaScript (Biome) linting skill.
-
-**Usage**: `skill: code-linting`
-**Version**: 1.2.0
-```
-
-**Note**: Only update version number, keep description and usage unchanged.
-
----
-
-## Example 5: Adding Skill with Hook
+## Example 4: Adding Skill with Hook
 
 ### Scenario
 You created `github-actions-check` skill with associated hook `UserToolUse`
@@ -270,7 +232,6 @@ description: [EXPERIMENTAL] Automatically fix missing documentation entries
 
 **Note**:
 - Include `[EXPERIMENTAL]` prefix in description
-- Use version 0.x.x to indicate experimental status
 - Still document in README (prevents "missing entry" reports)
 
 ---
@@ -486,10 +447,6 @@ git commit -m "Add/update [tool-name] with documentation"
 2. Remove row from `docs/skills.md` table
 3. Remove section from `docs/REFERENCE.md` (if documented)
 4. Remove references from `README.md` (if any)
-
-### Update Skill Version
-1. Update `version:` in `skills/skill-name/SKILL.md` YAML
-2. Update version in `docs/REFERENCE.md` (if documented there)
 
 ### Add Agent
 1. Create `agents/agent-name.md` with YAML frontmatter

@@ -1,8 +1,8 @@
 ---
 name: codex
-description: "Run bulk/mechanical work on gpt-5.5 via the Codex CLI."
+description: "Run benchmark-selected GPT-5.6 work through the Codex CLI."
 user-invocable: false
-compatibility: "Requires codex CLI on PATH (verified codex-cli 0.142.5); ~/.codex/config.toml supplies the model (gpt-5.5) and reasoning-effort defaults"
+compatibility: "Requires codex CLI on PATH; /do supplies the selected GPT-5.6 model and reasoning effort."
 routing:
   force_route: true
   triggers:
@@ -11,7 +11,7 @@ routing:
     - dispatch to codex
     - run on codex
     - codex analysis
-    - gpt-5.5
+    - gpt-5.6
   pairs_with:
     - data-analysis
     - pr-workflow
@@ -19,9 +19,11 @@ routing:
   category: meta
 ---
 
-# Codex — the gpt-5.5 Execution Lane
+# Codex — the GPT-5.6 Execution Lane
 
-Run a task on gpt-5.5 through the Codex CLI (`codex exec`) and return the result. This is the general-purpose lane for work the model-selection policy sends to gpt-5.5, and the **canonical owner of general `codex exec` mechanics** — when the CLI changes, update here first. gpt-5.5 is reachable only through this CLI; the Agent tool's `model` parameter covers Claude models only.
+Run a benchmark-selected GPT-5.6 task through the Codex CLI (`codex exec`) and return the result. This is the OpenAI execution lane — the general-purpose lane for work the model-selection policy sends to GPT-5.6, and the **canonical owner of general `codex exec` mechanics** — when the CLI changes, update here first. GPT selections are reachable only through this CLI; the Agent tool's `model` parameter covers Claude models only.
+
+**Under Claude Code, this skill runs only on explicit invocation or cross-provider escalation, never as the automatic default.** The harness-native model lane under Claude Code is the Anthropic lane (fable). This skill is a deliberate cross-provider tool — codex review as a second-opinion, codex exec for a GPT-specific constraint — not a routing default.
 
 Two flows keep their own specialized codex integration — route to them instead of re-implementing here:
 
@@ -30,28 +32,28 @@ Two flows keep their own specialized codex integration — route to them instead
 | PR / code review via codex | `codex exec review`, finding triage, report synthesis | `skills/process/pr-workflow/references/codex-review.md` |
 | Sprite/image generation backend | codex image backend selection and invocation | `skills/game/game-sprite-pipeline/references/backend-chain.md` |
 
-## Phase 1: DECIDE — does this task belong on gpt-5.5?
+## Phase 1: DECIDE — does this task belong on GPT-5.6?
 
 Policy mirror — canonical copy: `/do` SKILL.md, Model Selection (edit there first, then here). Rankings, higher = better; cost = what the owner actually pays.
 
-| model | cost | intelligence | taste | role |
-|---|---|---|---|---|
-| gpt-5.5 | 9 | 8 | 5 | Bulk/mechanical via codex. Dispatch target. |
-| sonnet-5 | 5 | 5 | 7 | Mechanical/reader fan-out, lighter work. Dispatch target. |
-| opus-4.8 | 4 | 7 | 8 | Reviews, audits, analysis, deep work. Dispatch target. |
-| fable-5 | 2 | 9 | 9 | Highest technical requirements only — never routine dispatch. |
+| Task class | Model / effort | DeepSWE Pass@1 / cost / output tokens / steps |
+|---|---|---|
+| Low-risk assistance | `gpt-5.6-terra` / `high` | 54 / $1.13 / 22k / 34 |
+| Standard implementation | `gpt-5.6-sol` / `high` | 69 / $3.47 / 28k / 37 |
+| High-risk implementation or review | `gpt-5.6-sol` / `xhigh` | 71 / $4.70 / 41k / 44 |
+| Exceptional explicit escalation | `gpt-5.6-sol` / `max` | 73 / $8.39 / 60k / 61 |
 
-Route here when the task is **bulk/mechanical**: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps — gpt-5.5 is effectively free. Route elsewhere when the task is user-facing (UI, copy, API design — needs taste ≥ 7: sonnet/opus) or is a plan/implementation review (opus-4.8 lead; gpt-5.5 optionally adds an extra independent perspective via pr-workflow's codex-review). Consult the canonical model-selection table in `/do` SKILL.md.
+Run deterministic work as scripts, not through Codex. The `/do` model policy selects the lane and passes model plus effort. Legacy GPT-5.5, all Luna choices, and the other non-default GPT-5.6 settings are manual-only; do not substitute them automatically. Luna `max`, for example, saves $0.44 versus Sol `high` but consumes 45k more output tokens and 65 more steps for two fewer Pass@1 points. Consult the canonical table in `/do` SKILL.md.
 
-These are defaults, not limits. Standing permission to escalate: when gpt-5.5's output misses the bar, rerun on a smarter model without asking — judge the output, not the price tag; escalating costs less than shipping mediocre work. For anything that ships, intelligence > taste > cost; cost is a tie-breaker only.
+These are defaults, not limits. Standing permission to escalate when output misses the bar applies within the policy; `max` still needs an explicit override. For anything that ships, intelligence > taste > cost; cost is a tie-breaker only.
 
-**Gate**: task classified bulk/mechanical (or investigation — Phase 4 sandbox rule). Otherwise route to the policy's Claude pick and stop here.
+**Gate**: task has a GPT-5.6 policy selection. Otherwise route to scripts or the policy's Claude pick and stop here.
 
-## Phase 2: WRAP — how gpt-5.5 runs from this harness
+## Phase 2: WRAP — how GPT-5.6 runs from this harness
 
 **Wrapper symmetry**: the wrapper is needed for whichever model family is NOT the current harness.
 
-- **Under Claude Code** (current default): gpt-5.5 runs through a wrapper — either the dispatched agent runs `codex exec` via Bash with a self-contained prompt, or a thin Claude wrapper agent (`model: "sonnet"`, low effort) writes the self-contained codex prompt, runs it, and returns the result.
+- **Under Claude Code** (current default): GPT-5.6 runs through a wrapper — either the dispatched agent runs `codex exec` via Bash with a self-contained prompt, or a thin Claude wrapper agent (`model: "sonnet"`, low effort) writes the self-contained codex prompt, runs it, and returns the result.
 - **Under the Codex harness**: Claude models require the wrapper instead.
 - Claude models under Claude Code need no wrapper — just the Agent/Workflow `model` parameter.
 
@@ -77,13 +79,16 @@ On a hit or a private component name: scrub the flagged content when the task su
 
 ## Phase 4: RUN
 
-Model and reasoning effort come from `~/.codex/config.toml` (gpt-5.5, high) — pass `-m`/`-c` overrides only when the task needs them.
+Pass the policy-selected model and effort explicitly. Do not rely on a local default that can silently select a deprecated model.
 
 **Investigation / data analysis (default for anything that only reads):**
 
+Set `CODEX_MODEL` and `CODEX_EFFORT` from the `/do` selection before invoking
+the CLI; do not substitute a local default.
+
 ```bash
 TMPFILE=$(mktemp)
-codex exec -s read-only --skip-git-repo-check -o "$TMPFILE" "$(cat <<'PROMPT'
+codex exec -m "$CODEX_MODEL" -c "model_reasoning_effort=\"$CODEX_EFFORT\"" -s read-only --skip-git-repo-check -o "$TMPFILE" "$(cat <<'PROMPT'
 [self-contained prompt]
 PROMPT
 )"
@@ -96,7 +101,7 @@ cat "$TMPFILE"
 
 **Reviews:** use `codex exec review` via the pr-workflow codex-review flow (table above), not a hand-rolled prompt.
 
-**Gate**: exit code 0 AND output matches the requested format. Non-zero exit: report stderr and stop — codex failures are auth/API/prompt-length issues that a blind retry won't fix. Verify the output against a deterministic check where one exists (counts, file lists, test runs) before passing it upstream — gpt-5.5 output is evidence, not verdict. State the lane in the result ("ran on gpt-5.5 via codex") so the caller can apply the escalation rule.
+**Gate**: exit code 0 AND output matches the requested format. Non-zero exit: report stderr and stop — codex failures are auth/API/prompt-length issues that a blind retry won't fix. Verify the output against a deterministic check where one exists (counts, file lists, test runs) before passing it upstream — GPT-5.6 output is evidence, not verdict. State the model and effort in the result so the caller can apply the escalation rule.
 
 ## Error handling
 

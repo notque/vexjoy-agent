@@ -60,6 +60,20 @@ For large mechanical sweeps: if the change can be expressed as detector + rewrit
 
 **Test:** Is this operation deterministic? Same input, same output? If yes, it belongs in a script.
 
+### State Boundary
+
+LLM context is a view, not storage. It should contain only the facts needed for the current judgment.
+
+| State shape | Home | Why |
+|---|---|---|
+| Structured, queryable, recurring, high-volume | SQLite, JSON, generated indexes, event logs | Schema, queries, dedupe, pruning, and deterministic replay |
+| Unstructured, interpretive, reasoning-shaping | Agent files, skill references, ADRs, prose notes | Nuance matters more than SELECT clauses |
+| Ephemeral working context | Prompt/session context | Short-lived view for the current task |
+
+If data needs filtering, aggregation, confidence, retention, or replay, store it outside the prompt. If context shapes judgment and resists a stable schema, keep it as prose and load it on demand.
+
+**Test:** Would a script reasonably run a query against this state? If yes, it belongs in a structured store. Would a table strip out the reason the context matters? If yes, it belongs in prose.
+
 ### Routing confidence and force_route
 
 Skills route at confidence tiers driven by trigger-match count plus a `force_route` bonus; the tier mapping is implementation detail — see `force_bonus` in [`scripts/pre-route.py`](../scripts/pre-route.py) and the per-skill `force_route` flag in skills/INDEX.json (schema: `scripts/generate-skill-index.py`).
@@ -330,13 +344,17 @@ The biggest risk: rationalization. "Already done" (assumption). "Code looks corr
 
 Owner model-selection policy (ADR `model-selection-policy`; operational table in `skills/meta/do/SKILL.md`, Model Selection):
 
-| Model | Use for |
-|---|---|
-| `gpt-5.5` (Codex CLI, `codex` skill) | Bulk/mechanical: clear-spec implementation, data analysis, migrations, extraction/inventory sweeps |
-| `sonnet` | Substantive execution: implementation, review, synthesis, semantic rewriting |
-| `opus` | Reviews, audits, analysis, deep work; user-facing work needing taste (consult canonical table in `/do` SKILL.md Model Selection) |
+**Harness-native routing:** each harness defaults to its own provider's model lane. Cross-provider dispatch is manual-only, never automatic. Start low, escalate on miss — high tiers cost 3-6x per Pass@1 point. Plan budget ($200/month per provider) makes cost a first-class constraint. Two decision axes: DeepSWE Pass@1 (agentic completion) + owner-observed felt quality (fable > sol noticeable, opus > gpt-5.5 marginal); ties resolve in favor of felt quality.
 
-Haiku is retired (routing was Haiku pre-#777; self-route since — `scripts/routing-ab-results/self-route-v1/VERDICT.md`). Defaults, not limits: escalate to a smarter model whenever cheaper output misses the bar; for anything that ships, intelligence > taste > cost, with cost a tie-breaker only.
+| Task class | Anthropic lane (Claude Code) | OpenAI lane (Codex CLI) |
+|---|---|---|
+| Deterministic | Scripts — no LLM dispatch | Scripts — no LLM dispatch |
+| Low-risk | `fable` / `low` (60 P@1 / $3.76) | `gpt-5.6-terra` / `high` (54 P@1 / $1.13) |
+| Standard | `fable` / `medium` (65 / $6.09) | `gpt-5.6-sol` / `high` (69 / $3.47) |
+| High-risk | `fable` / `high` (69 / $9.18) | `gpt-5.6-sol` / `xhigh` (71 / $4.70) |
+| Max-power | `fable` / `xhigh` (70 / $13.41) | `gpt-5.6-sol` / `max` (73 / $8.39) |
+
+The `/do` table is canonical and records the full DeepSWE Pass@1 / cost / tokens / steps data. Max-power requires `manual_model_override=true` in both lanes. Opus/sonnet are manual-only (dominated by fable). Legacy `gpt-5.5` and non-default GPT-5.6 points are manual-only. Haiku is retired (routing was Haiku pre-#777; self-route since — `scripts/routing-ab-results/self-route-v1/VERDICT.md`). Defaults, not limits: escalate when cheaper output misses the bar; for anything that ships, intelligence > taste > cost, with cost a tie-breaker only. Fan-out uses the lane's low-risk point; one synthesis agent may run one tier higher.
 
 **Token costs are not fungible.** One Opus token costs ~30x one Haiku token. Optimization targets the expensive model, not the cheap one. "Saves Haiku calls" is never a valid justification. Pre-routing's value is determinism (regex can't misroute). Phase gates' value is preventing Opus rework.
 

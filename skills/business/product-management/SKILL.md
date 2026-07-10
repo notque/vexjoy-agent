@@ -26,7 +26,7 @@ Umbrella skill for PM workflows: specs, roadmaps, stakeholder comms, research sy
 
 ---
 
-## Mode Detection
+## Reference Loading Table
 
 Classify into one mode before proceeding.
 

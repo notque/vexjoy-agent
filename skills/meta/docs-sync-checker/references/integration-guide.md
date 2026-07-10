@@ -64,7 +64,6 @@ python3 skills/meta/docs-sync-checker/scripts/generate_report.py --issues /tmp/i
 
 **What auto-fix does NOT do**:
 - Remove stale entries (manual review required)
-- Fix version mismatches (ambiguous which is correct)
 - Improve description quality
 
 Always review changes before committing.
@@ -82,13 +81,11 @@ Schema:
     "total_tools": 25,
     "missing_entries": 3,
     "stale_entries": 2,
-    "version_mismatches": 1,
     "sync_score": 0.88
   },
   "issues": {
     "missing_entries": [],
     "stale_entries": [],
-    "version_mismatches": []
   },
   "recommendations": []
 }
@@ -143,7 +140,6 @@ git commit -m "Remove old-skill and documentation references"
 - [ ] Ran docs-sync-checker to verify documentation sync
 - [ ] Added/updated documentation for new/modified tools
 - [ ] Removed documentation for deleted tools
-- [ ] Version numbers match between YAML and documentation
 ```
 
 ## Sync Score Interpretation

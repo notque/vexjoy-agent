@@ -422,6 +422,50 @@ class TestDecisionRecorder:
         assert row["git_sha"]
         assert row["source"] == "hook:routing-decision-recorder"
 
+    def test_gpt_56_model_effort_is_persisted_in_route_evidence(self, db_env, monkeypatch):
+        """The model-and-effort benchmark point survives the marker round-trip."""
+        a = _load(A_PATH, "rdr_gpt_56_model_effort")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(skill="go-patterns", session="gpt-56-effort")
+        event["tool_input"]["prompt"] = (
+            "[do-route] agent=python-general-engineer skill=go-patterns complexity=complex "
+            "model=gpt-5.6-sol effort=xhigh health=-\nReview the implementation."
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+        decisions = [event for event in _read_events(db_env) if event["type"] == "decision"]
+        assert decisions[0]["model"] == "gpt-5.6-sol@xhigh"
+
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+
+        context = ldb.get_evidence_route_context("python-general-engineer:go-patterns")
+        assert context["recent"][0]["model"] == "gpt-5.6-sol@xhigh"
+
+    def test_claude_model_effort_is_persisted_in_route_evidence(self, db_env, monkeypatch):
+        """Claude model@effort (fable@high) survives the marker round-trip (advisory effort)."""
+        a = _load(A_PATH, "rdr_claude_effort")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(skill="go-patterns", session="claude-effort")
+        event["tool_input"]["prompt"] = (
+            "[do-route] agent=python-general-engineer skill=go-patterns complexity=complex "
+            "model=fable effort=high health=-\nReview the implementation."
+        )
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+        decisions = [event for event in _read_events(db_env) if event["type"] == "decision"]
+        assert decisions[0]["model"] == "fable@high"
+
+        sys.path.insert(0, str(LIB_DIR))
+        import learning_db_v2 as ldb
+
+        context = ldb.get_evidence_route_context("python-general-engineer:go-patterns")
+        assert context["recent"][0]["model"] == "fable@high"
+
     def test_no_telemetry_row_when_marker_absent(self, db_env, tmp_path, monkeypatch):
         # No [do-route] marker => no decision row AND no envelope row.
         a = _load(A_PATH, "rdr_tel_nomarker")

@@ -29,7 +29,7 @@ def collect_component_files(repo_root: Path, component_type: str) -> list[Path]:
     if component_type == "agent":
         return sorted(path for path in (repo_root / "agents").glob("*.md") if path.is_file())
     if component_type == "skill":
-        return sorted(path for path in (repo_root / "skills").glob("*/SKILL.md") if path.is_file())
+        return sorted(path for path in (repo_root / "skills").rglob("SKILL.md") if path.is_file())
     raise ValueError(f"unsupported component type: {component_type}")
 
 

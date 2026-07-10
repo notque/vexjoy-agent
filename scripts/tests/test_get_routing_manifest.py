@@ -18,6 +18,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_SRC = REPO_ROOT / "scripts" / "get-routing-manifest.sh"
+DO_SKILL = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
 
 def _setup(tmp_path: Path) -> tuple[Path, Path]:
@@ -27,7 +28,9 @@ def _setup(tmp_path: Path) -> tuple[Path, Path]:
     sdir.mkdir(parents=True)
     script = sdir / "get-routing-manifest.sh"
     shutil.copy(SCRIPT_SRC, script)
-    script.chmod(0o755)
+    # The router invokes this script through bash, so its tracked mode must
+    # not determine whether manifest loading works.
+    script.chmod(0o644)
     (sdir / "routing-manifest.py").write_text('print("GENERATED")\n', encoding="utf-8")
     (sdir / "routing_index_merge.py").write_text("# merge helper\n", encoding="utf-8")
     (base / "skills").mkdir()
@@ -96,3 +99,9 @@ def test_missing_cache_regenerates(tmp_path: Path) -> None:
     result = _run(sdir, home)
     assert result.returncode == 0, result.stderr
     assert result.stdout == "GENERATED\n"
+
+
+def test_do_invokes_manifest_through_bash() -> None:
+    """The router must not depend on the manifest script executable bit."""
+    lines = DO_SKILL.read_text(encoding="utf-8").splitlines()
+    assert 'bash "$SDIR/get-routing-manifest.sh"' in lines

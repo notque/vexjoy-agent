@@ -224,7 +224,7 @@ existing sapcc references
 
 ---
 
-## Voice skills (create-voice, voice-writer, voice-calibrator)
+## Voice skills (create-voice, voice-writer, voice-validator)
 
 These skills are already rich — they have deterministic Python validators and
 wabi-sabi calibration built in. Enrichment is rarely warranted.

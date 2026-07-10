@@ -53,7 +53,7 @@ Load the appropriate workflow reference based on the task.
 | Category | Workflow | Reference |
 |----------|----------|-----------|
 | **Code Review** | Comprehensive multi-wave review | `references/comprehensive-review.md` |
-| **Code Review** | Systematic code review | `references/systematic-code-review.md` |
+| **Code Review** | Systematic code review | `skills/review/systematic-code-review/SKILL.md` |
 | **Debugging** | Evidence-based debugging pipeline | `references/systematic-debugging.md` |
 | **Refactoring** | Safe refactoring with test gates | `references/systematic-refactoring.md` |
 | **Features** | End-to-end feature lifecycle | `skills/process/feature-lifecycle/references/pipeline.md` |
@@ -61,7 +61,6 @@ Load the appropriate workflow reference based on the task.
 | **Research** | Formal research with source gates | `references/research-pipeline.md` |
 | **Research** | Research to article pipeline | `references/research-to-article.md` |
 | **Content** | Voice content generation | `references/voice-writer.md` |
-| **Content** | Voice calibration | `references/voice-calibrator.md` |
 | **Content** | Article evaluation | `references/article-evaluation-pipeline.md` |
 | **Content** | De-AI content pipeline | `references/de-ai-pipeline.md` |
 | **Content** | Documentation pipeline | `references/doc-pipeline.md` |
@@ -92,23 +91,23 @@ Load the appropriate workflow reference based on the task.
 
 ## How to Use (MANDATORY)
 
-**You MUST load the reference file before executing any workflow phase.** The table above is a routing index — the actual methodology, phases, gates, and instructions are in the reference files.
+**You MUST load the named target before executing any workflow phase.** The table above is a routing index — the actual methodology, phases, gates, and instructions are in its references or standalone skills.
 
 1. **Identify** the workflow category from the user's task using the table above
-2. **Load** the matching reference file using `Read` tool on `${CLAUDE_SKILL_DIR}/references/<name>.md`
+2. **Load** the matching target. `references/...` paths resolve under `${CLAUDE_SKILL_DIR}`; `skills/.../SKILL.md` paths are standalone public skills rooted at the repository.
 3. **Follow** the phases and gates defined in that reference exactly — do not improvise phases
 4. **Report** using the output format specified in the loaded reference
 
 If the task spans multiple workflows (e.g., research then write), load each reference in sequence and follow them in order.
 
-**Workflow rule**: Load the reference file before executing a workflow phase. The table shows names only; the reference file contains the actual instructions, gates, artifact requirements, and quality criteria.
+**Workflow rule**: Load the named target before executing a workflow phase. The table shows names only; the target contains the actual instructions, gates, artifact requirements, and quality criteria.
 
 ## Reference Loading Table
 
 | Signal | Load These Files | Why |
 |---|---|---|
 | **Code Review** | `comprehensive-review.md` | Comprehensive multi-wave review |
-| **Code Review** | `systematic-code-review.md` | Systematic code review |
+| **Code Review** | `skills/review/systematic-code-review/SKILL.md` | Systematic code review |
 | **Debugging** | `systematic-debugging.md` | Evidence-based debugging pipeline |
 | **Refactoring** | `systematic-refactoring.md` | Safe refactoring with test gates |
 | **Features** | `pipeline.md` | End-to-end feature lifecycle |
@@ -116,7 +115,6 @@ If the task spans multiple workflows (e.g., research then write), load each refe
 | **Research** | `research-pipeline.md` | Formal research with source gates |
 | **Research** | `research-to-article.md` | Research to article pipeline |
 | **Content** | `voice-writer.md` | Voice content generation |
-| **Content** | `voice-calibrator.md` | Voice calibration |
 | **Content** | `article-evaluation-pipeline.md` | Article evaluation |
 | **Content** | `de-ai-pipeline.md` | De-AI content pipeline |
 | **Content** | `doc-pipeline.md` | Documentation pipeline |

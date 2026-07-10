@@ -111,9 +111,10 @@ reviewers should not waste tokens rediscovering.
 python3 ~/.claude/scripts/score-component.py --all-agents --all-skills --json
 ```
 
-Parse the JSON output. Use each result's `grade` field, which is based on
-`total / max_total`: grades F and D are CRITICAL findings, and grade C is HIGH.
-Do not classify raw totals against percentage grade boundaries.
+Parse the JSON output and save each structural score and grade. A score is a
+triage lead, not a finding: **score alone never determines severity**. A
+reviewer must confirm a concrete issue with file-and-line evidence and use the
+category severity guide before adding it to the backlog.
 
 Save the raw scores -- they go into the report's "Deterministic Health Scores"
 section.
@@ -137,7 +138,7 @@ Invoke the `comprehensive-review` skill with these overrides:
 - **Scope**: Pass the full file list from Phase 1 (use `--focus [files]` mode)
 - **Mode**: Use `--review-only` to skip auto-fix. Output is a prioritized backlog for human triage, not patches -- full-repo auto-fix touches too many files at once and risks cascading breakage.
 - **All waves**: Run Wave 0, Wave 1, Wave 2, and Wave 3. Full-repo review needs maximum coverage. Wave 0 supplies per-package context, Waves 1 and 2 inspect cross-cutting and deep risks, and Wave 3 challenges false consensus and low-value findings.
-- **Checklists**: Load `references/audit-playbook.md` and pass it as prompt context for the wave agents. For each Wave 1/2 agent, include the category checklists matching that agent's lens plus each component's Phase 1 score and grade. For Wave 3, include prior findings and the playbook's evidence rules so adversarial reviewers can reject weak findings or surface missed risks.
+- **Checklists**: Load `references/audit-playbook.md` and pass it as prompt context for the wave agents. For each Wave 1/2 agent, include the category checklists matching that agent's lens plus each component's Phase 1 score and grade as triage context only. For Wave 3, include prior findings and the playbook's evidence rules so adversarial reviewers can reject weak findings or surface missed risks.
 
 The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation), Wave 2 (deep dive), and Wave 3 (adversarial) internally. The Checklists override is how the playbook reaches agents dispatched in fresh context.
 
@@ -167,7 +168,10 @@ Combine:
 - Phase 1 score-component.py results (structural health)
 - Phase 2 comprehensive-review findings (deep analysis)
 
-Deduplicate where both sources flag the same issue. Keep the higher severity.
+Treat the score as corroborating metadata. Keep a structural issue only when a
+reviewer independently confirms it with a file, line, and applicable category
+rule; then use the category's severity guide. **A score alone never determines
+severity.** Deduplicate confirmed findings by their evidence, not by score band.
 
 **Step 2: Identify systemic patterns**
 

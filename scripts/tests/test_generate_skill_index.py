@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 SCRIPT = Path(__file__).resolve().parent.parent / "generate-skill-index.py"
+AGENT_SCRIPT = Path(__file__).resolve().parent.parent / "generate-agent-index.py"
 
 
 def _load_gsi():
@@ -21,7 +22,16 @@ def _load_gsi():
     return mod
 
 
+def _load_gai():
+    """Load generate-agent-index.py as a module (hyphenated name requires importlib)."""
+    spec = importlib.util.spec_from_file_location("generate_agent_index", AGENT_SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 gsi = _load_gsi()
+gai = _load_gai()
 
 # Minimal valid SKILL.md frontmatter for test fixtures
 _SKILL_FRONTMATTER = """\
@@ -263,6 +273,20 @@ class TestCLIFlag:
         assert result.returncode == 0, f"CLI failed:\n{result.stderr}"
         assert custom_output.exists(), "Output file not created"
         json.loads(custom_output.read_text())  # must be valid JSON
+
+
+class TestPrivateIndexOutput:
+    """Private-inclusive generation must never overwrite the public index name."""
+
+    def test_skill_default_output_is_local_when_private_is_included(self, tmp_path: Path) -> None:
+        skills_dir = tmp_path / "skills"
+        assert gsi.default_output_path(skills_dir, include_private=False) == skills_dir / "INDEX.json"
+        assert gsi.default_output_path(skills_dir, include_private=True) == skills_dir / "INDEX.local.json"
+
+    def test_agent_default_output_is_local_when_private_is_included(self, tmp_path: Path) -> None:
+        agents_dir = tmp_path / "agents"
+        assert gai.default_output_path(agents_dir, include_private=False) == agents_dir / "INDEX.json"
+        assert gai.default_output_path(agents_dir, include_private=True) == agents_dir / "INDEX.local.json"
 
 
 class TestPrunePhantomEntries:

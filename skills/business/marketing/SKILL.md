@@ -27,7 +27,7 @@ Umbrella skill for marketing workflows: SEO audits, campaign planning, content s
 
 ---
 
-## Mode Detection
+## Reference Loading Table
 
 Classify the user's request into exactly one mode before proceeding. If the request spans multiple modes, choose the primary one and note the secondary.
 

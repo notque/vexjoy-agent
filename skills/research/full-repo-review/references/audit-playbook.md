@@ -2,7 +2,7 @@
 
 Structured checklists for full-repo review. Each category lists specific patterns to look for and the evidence required to confirm a finding. Findings without evidence are speculation, not findings.
 
-Integrates with `score-component.py` grades: F and D grades (< 60) map to CRITICAL severity, C grade (60-74) maps to HIGH. Each category names a primary reviewer role; overlap is intentional — independent confirmation strengthens findings. See "Reviewer Role Cross-Reference" for how roles map to `parallel-code-review` and to comprehensive-review wave lenses.
+Uses `score-component.py` grades as structural triage context. A score alone never determines severity: each finding still needs file-and-line evidence and the category's severity guide. Each category names a primary reviewer role; overlap is intentional — independent confirmation strengthens findings. See "Reviewer Role Cross-Reference" for how roles map to `parallel-code-review` and to comprehensive-review wave lenses.
 
 ---
 
@@ -13,7 +13,7 @@ The orchestrator loads this playbook and pastes the relevant category checklists
 1. Check every pattern in the "Look for" list against the file under review.
 2. Record a finding only when evidence exists (file path, line number, concrete observation).
 3. Assign severity per the category's severity guide.
-4. Cross-reference the `score-component.py` scores in the prompt — structural issues the script already flagged need confirmation, not rediscovery.
+4. Cross-reference the `score-component.py` scores in the prompt — structural issues the script flagged need confirmation, not automatic escalation.
 
 ---
 
@@ -172,19 +172,16 @@ The orchestrator loads this playbook and pastes the relevant category checklists
 
 ---
 
-## Mapping to score-component.py
+## Using score-component.py
 
-Grade bands come from the `total / max_total` percentage in `score-component.py` (A 90-100, B 75-89, C 60-74, D 40-59, F 0-39):
+Grade bands come from `total / max_total` (A 90-100, B 75-89, C 60-74, D
+40-59, F 0-39). Record them in the deterministic-health table and use lower
+scores to prioritize inspection. **A score alone never determines severity.**
 
-| Grade | Score | Severity in report | Action |
-|---|---|---|---|
-| F | 0-39 | CRITICAL | Fix immediately; structural deficiency |
-| D | 40-59 | CRITICAL | Fix immediately; structural deficiency |
-| C | 60-74 | HIGH | Fix this sprint |
-| B | 75-89 | (informational) | Note in health scores table |
-| A | 90-100 | (informational) | Note in health scores table |
-
-Wave agents use this mapping to avoid double-counting: if `score-component.py` already flagged a structural issue (missing error handling section, broken frontmatter), the reviewer confirms and cites the score rather than writing a new finding from scratch.
+Wave agents use scores to avoid duplicate work: if `score-component.py` flags
+a structural issue, the reviewer confirms the specific condition and cites the
+line. The category severity guide, user impact, and evidence determine the
+report tier.
 
 ---
 

@@ -1,7 +1,8 @@
 # Codex CLI Patterns
 
 > **Scope**: `codex exec` command variants, flags, and error recovery for code review invocations.
-> **Version range**: @openai/codex >=0.1.0, gpt-5.5 / gpt-4o / o4-mini models
+> **Cross-provider note**: Under Claude Code this is an explicit cross-provider second-opinion tool, never the automatic default.
+> **Version range**: @openai/codex with the GPT-5.6 Sol review lane available
 > **Generated**: 2026-04-16
 
 ---
@@ -23,8 +24,8 @@ wastes tokens and hits prompt-length limits.
 | Single commit review | `codex exec review --commit <SHA>` | `--commit <SHA>` |
 | Unstaged changes only | `codex exec review --uncommitted` | `--uncommitted` |
 | Custom focus areas | `codex exec "YOUR PROMPT"` | no `--base/--commit` |
-| High-quality analysis (default) | add to any | `-m gpt-5.5 -c 'model_reasoning_effort="high"'` |
-| Hard correctness escalation (security/concurrency/migrations) | opt-in only | `-m gpt-5.5 -c 'model_reasoning_effort="xhigh"'` |
+| High-risk review | add to any | `-m gpt-5.6-sol -c 'model_reasoning_effort="xhigh"'` |
+| Exceptional maximum-power escalation | explicit override only | `-m gpt-5.6-sol -c 'model_reasoning_effort="max"'` |
 | Capture output | add to any | `-o "$TMPFILE"` |
 | One-shot (no persist) | add to any | `--ephemeral` |
 | Container/VM bypass | add to any | `--dangerously-bypass-approvals-and-sandbox` |
@@ -40,8 +41,8 @@ TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX)
 
 codex exec review \
   --base main \
-  -m gpt-5.5 \
-  -c 'model_reasoning_effort="high"' \
+  -m gpt-5.6-sol \
+  -c 'model_reasoning_effort="xhigh"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE"
@@ -57,8 +58,8 @@ handles diff internally.
 TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX)
 
 codex exec \
-  -m gpt-5.5 \
-  -c 'model_reasoning_effort="high"' \
+  -m gpt-5.6-sol \
+  -c 'model_reasoning_effort="xhigh"' \
   --ephemeral \
   --dangerously-bypass-approvals-and-sandbox \
   -o "$TMPFILE" \
@@ -75,7 +76,7 @@ access and embedding large diffs wastes tokens and loses formatting.
 ### Check exit code before reading output
 
 ```bash
-if ! codex exec review --base main -m gpt-5.5 -o "$TMPFILE"; then
+if ! codex exec review --base main -m gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' -o "$TMPFILE"; then
   echo "Codex failed — check stderr for API/auth errors"
   rm -f "$TMPFILE"
   exit 1
@@ -133,7 +134,7 @@ custom `[PROMPT]` argument in the `review` subcommand. The CLI errors.
 
 **Fix**: Use `codex exec` (not `codex exec review`) with a custom prompt:
 ```bash
-codex exec -m gpt-5.5 -o "$TMPFILE" \
+codex exec -m gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' -o "$TMPFILE" \
   "Run \`git diff main...HEAD\` and focus on error handling patterns."
 ```
 
@@ -185,7 +186,7 @@ sandbox; the bypass flag disables it entirely. Combining them errors.
 | Empty output file | Timeout, model error, or prompt too long | Check stderr; do not retry automatically |
 | `401 Unauthorized` | OPENAI_API_KEY not set or expired | `export OPENAI_API_KEY=...` or check key validity |
 | `429 Too Many Requests` | Rate limit hit | Wait and report to user — do not retry in a loop |
-| `model not found: gpt-5.5` | Model unavailable in account tier | Fall back to `gpt-4o` and note in report |
+| `model not found: gpt-5.6-sol` | Review lane unavailable in account tier | Fall back to the policy's Claude review lane and note it in the report |
 
 ---
 

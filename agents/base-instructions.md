@@ -41,7 +41,7 @@ Read and follow repository CLAUDE.md files before any implementation. Project in
 
 See `skills/shared-patterns/anti-rationalization-core.md` for universal rationalization patterns. /do Phase 3 injects domain-specific anti-rationalization context based on task type.
 
-## Reference Loading
+## Reference Loading Table
 
 Load these reference files when the task signals match. Do not load preemptively.
 

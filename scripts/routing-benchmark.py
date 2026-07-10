@@ -6,9 +6,9 @@ in the benchmark test fixture actually exist in the INDEX.json files. This is a
 STRUCTURAL benchmark — it checks that routing targets are valid, not that the LLM
 routes correctly.
 
-Also offers an ADVISORY coverage report (--coverage, included in --verbose):
-skills in skills/INDEX.json that no benchmark case references. Warn-Only Gates
-(docs/PHILOSOPHY.md): coverage gaps are printed but never affect the exit code.
+Also verifies coverage accounting: every indexed skill must have a benchmark case
+or an explicit, machine-readable exclusion explaining why no deterministic case
+belongs in this corpus.
 
 Usage:
     python3 scripts/routing-benchmark.py
@@ -19,7 +19,7 @@ Usage:
 
 Exit codes:
     0 - All test cases have valid targets (or all expected targets are null)
-    1 - One or more test cases reference non-existent components
+    1 - Invalid targets or invalid coverage accounting
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ DEFAULT_FIXTURE = REPO_ROOT / "scripts" / "routing-benchmark.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
 PIPELINES_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
+COVERAGE_EXCLUSIONS = REPO_ROOT / "scripts" / "routing-benchmark-exclusions.json"
 
 
 def load_json(path: Path) -> dict:
@@ -59,6 +60,24 @@ def load_json(path: Path) -> dict:
         sys.exit(1)
 
 
+def _public_skill_names(index: dict, repo_root: Path = REPO_ROOT) -> set[str]:
+    """Return indexed skills whose declared files exist in this public checkout.
+
+    The generated index may include local overlay skills when explicitly built
+    with ``--include-private``. Their flat deployment paths are intentionally
+    absent from this repository, so they do not belong in a public benchmark
+    or its committed coverage accounting.
+    """
+    skills: set[str] = set()
+    for name, entry in index.get("skills", {}).items():
+        if not isinstance(entry, dict):
+            continue
+        file_path = entry.get("file")
+        if isinstance(file_path, str) and (repo_root / file_path).is_file():
+            skills.add(name)
+    return skills
+
+
 def load_component_names() -> tuple[set[str], set[str], set[str]]:
     """Load all known agent, skill, and pipeline names from INDEX files.
 
@@ -75,7 +94,7 @@ def load_component_names() -> tuple[set[str], set[str], set[str]]:
 
     if SKILLS_INDEX.exists():
         data = load_json(SKILLS_INDEX)
-        skills = set(data.get("skills", {}).keys())
+        skills = _public_skill_names(data)
 
     if PIPELINES_INDEX.exists():
         data = load_json(PIPELINES_INDEX)
@@ -138,23 +157,74 @@ def compute_coverage(test_cases: list[dict], skills: set[str]) -> tuple[set[str]
     return skills & referenced, skills - referenced
 
 
-def print_coverage_report(test_cases: list[dict], skills: set[str]) -> None:
-    """Print the advisory coverage report: skills no benchmark case references.
+def load_coverage_exclusions(path: Path = COVERAGE_EXCLUSIONS) -> dict[str, str]:
+    """Load per-skill reasons for deliberate benchmark exclusions.
 
-    Warn-Only Gates (docs/PHILOSOPHY.md): advisory only — never changes the
-    exit code. Blocking on coverage would need its own ADR.
+    An exclusion is documentation of a known evaluation boundary, not a passing
+    benchmark. Keeping it separate from the corpus makes uncovered skills visible
+    while preventing silent coverage regressions as the index changes.
+    """
+    data = load_json(path)
+    exclusions = data.get("exclusions")
+    if not isinstance(exclusions, dict):
+        print(f"ERROR: {path} must contain an object named 'exclusions'", file=sys.stderr)
+        sys.exit(1)
+
+    invalid = [
+        name
+        for name, reason in exclusions.items()
+        if not isinstance(name, str) or not isinstance(reason, str) or not reason.strip()
+    ]
+    if invalid:
+        print(f"ERROR: {path} contains exclusions without a non-empty reason: {invalid}", file=sys.stderr)
+        sys.exit(1)
+    return exclusions
+
+
+def compute_coverage_accounting(
+    test_cases: list[dict], skills: set[str], exclusions: dict[str, str]
+) -> tuple[set[str], set[str], set[str], list[str]]:
+    """Return benchmarked, excluded, unaccounted skills and configuration errors."""
+    covered, _ = compute_coverage(test_cases, skills)
+    excluded = skills & set(exclusions)
+    unaccounted = skills - covered - excluded
+    errors: list[str] = []
+
+    unknown_exclusions = sorted(set(exclusions) - skills)
+    if unknown_exclusions:
+        errors.append(f"Exclusions name skills absent from skills/INDEX.json: {unknown_exclusions}")  # security-review: ignore (error message, not SQL)  # fmt: skip
+
+    overlapping = sorted(covered & excluded)
+    if overlapping:
+        errors.append(f"Skills are both benchmarked and excluded: {overlapping}")
+
+    if unaccounted:
+        errors.append(f"Indexed skills lack a benchmark case or exclusion: {sorted(unaccounted)}")
+
+    return covered, excluded, unaccounted, errors
+
+
+def print_coverage_report(test_cases: list[dict], skills: set[str], exclusions: dict[str, str]) -> list[str]:
+    """Print coverage accounting and return configuration errors.
 
     Args:
         test_cases: Benchmark test case dicts (unfiltered).
         skills: Skill names from skills/INDEX.json.
     """
-    covered, uncovered = compute_coverage(test_cases, skills)
+    covered, excluded, unaccounted, errors = compute_coverage_accounting(test_cases, skills, exclusions)
     print()
-    print(f"Coverage (advisory): {len(covered)}/{len(skills)} skills referenced by benchmark cases")
-    if uncovered:
-        print(f"Uncovered skills ({len(uncovered)}):")
-        for name in sorted(uncovered):
-            print(f"  - {name}")
+    print(
+        f"Coverage: {len(covered)} benchmarked, {len(excluded)} excluded, {len(unaccounted)} unaccounted / {len(skills)} indexed skills"
+    )
+    if excluded:
+        print(f"Excluded skills ({len(excluded)}):")
+        for name in sorted(excluded):
+            print(f"  - {name}: {exclusions[name]}")
+    if errors:
+        print("Coverage accounting errors:")
+        for error in errors:
+            print(f"  - {error}")
+    return errors
 
 
 def run_benchmark(
@@ -260,10 +330,12 @@ def run_benchmark(
             for err in errors:
                 print(f"    -> {err}")
 
-    # Advisory coverage report — never affects the return value
+    coverage_errors: list[str] = []
     if show_coverage:
-        print_coverage_report(all_cases, skills)
+        coverage_errors = print_coverage_report(all_cases, skills, load_coverage_exclusions())
 
+    # Coverage errors are advisory per PHILOSOPHY.md Warn-Only Gates — they
+    # print but do not fail the run. Only invalid routing targets block.
     return fail_count == 0
 
 
@@ -299,7 +371,7 @@ Examples:
     parser.add_argument(
         "--coverage",
         action="store_true",
-        help="Print advisory skill-coverage report (also shown with --verbose); gaps never fail the run",
+        help="Print skill coverage accounting (also shown with --verbose)",
     )
 
     args = parser.parse_args()

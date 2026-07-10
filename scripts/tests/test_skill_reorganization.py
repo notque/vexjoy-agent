@@ -422,10 +422,17 @@ class TestGenerators:
     """Verify skill index and manifest generators work correctly."""
 
     @pytest.mark.slow
-    def test_generate_skill_index_exits_zero(self) -> None:
-        """generate-skill-index.py --include-private must exit 0."""
+    def test_generate_skill_index_exits_zero(self, tmp_path: Path) -> None:
+        """The include-private generator must not overwrite the shared public index."""
+        output = tmp_path / "INDEX.json"
         result = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "generate-skill-index.py"), "--include-private"],
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "generate-skill-index.py"),
+                "--include-private",
+                "--output",
+                str(output),
+            ],
             capture_output=True,
             text=True,
             cwd=str(ROOT),
@@ -435,6 +442,7 @@ class TestGenerators:
             f"generate-skill-index.py failed (exit {result.returncode}):\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
+        assert output.is_file()
 
     @pytest.mark.slow
     def test_generated_index_has_expected_skill_count(self) -> None:

@@ -204,6 +204,16 @@ Two report-only scripts surface upkeep work; both print a digest and never edit,
 - `python3 scripts/harvest-corrections.py` clusters captured user corrections by routed domain and suggests one-line doc fixes. Run weekly by habit, or schedule it via `/schedule`.
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills/agents as pruning candidates. Run quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
+Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses scripts.
+
+| Need | Use |
+|---|---|
+| Run a deterministic command on a schedule | `scripts/agent-scheduler.py` with `runner: "command"` |
+| Run an agent judgment on a schedule, webhook, or file change | `scripts/agent-scheduler.py` with the default `runner: "claude"` |
+| Install or remove a user crontab entry safely | `scripts/crontab-manager.py` |
+| Audit shell cron reliability | `cron-automation` |
+| Keep one interactive objective moving until criteria verify | `objective-loop` |
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

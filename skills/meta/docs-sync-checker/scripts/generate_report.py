@@ -83,7 +83,6 @@ class ReportGenerator:
 
         lines.append(f"- **Missing Entries**: {summary.get('missing_entries', 0)} HIGH priority")
         lines.append(f"- **Stale Entries**: {summary.get('stale_entries', 0)} MEDIUM priority")
-        lines.append(f"- **Version Mismatches**: {summary.get('version_mismatches', 0)} LOW priority")
 
         if total_issues > 0 and scan_results:
             total_tools = scan_results.get("summary", {}).get("total_tools", 1)
@@ -114,7 +113,7 @@ class ReportGenerator:
 
                 lines.append(f"#### {i}. {tool_type}: {tool_name}")
                 lines.append(f"**Path**: `{tool_path}`")
-                lines.append(f"**Missing from**: {missing_from}")
+                lines.append(f"**Missing from**: {missing_from}")  # security-review: ignore (markdown report line, not SQL)  # fmt: skip
                 lines.append("")
 
                 # Suggested fixes for each location
@@ -156,34 +155,6 @@ class ReportGenerator:
             lines.append("---")
             lines.append("")
 
-        # Version Mismatches
-        version_mismatches = issues.get("version_mismatches", [])
-        if version_mismatches:
-            lines.append("## LOW Priority Issues")
-            lines.append("")
-            lines.append(f"### Version Mismatches ({len(version_mismatches)})")
-            lines.append("")
-            lines.append("YAML version differs from documented version:")
-            lines.append("")
-
-            for i, issue in enumerate(version_mismatches, 1):
-                tool_name = issue["tool_name"]
-                yaml_version = issue["yaml_version"]
-                documented_version = issue["documented_version"]
-                documented_in = issue["documented_in"]
-
-                lines.append(f"#### {i}. {tool_name}")
-                lines.append(f"**YAML Version**: {yaml_version}")
-                lines.append(f"**Documented Version**: {documented_version}")
-                lines.append(f"**File**: {documented_in}")
-                lines.append("")
-                lines.append("**Suggested Fix**:")
-                lines.append(f"Update {documented_in} to show version {yaml_version}")
-                lines.append("")
-
-            lines.append("---")
-            lines.append("")
-
         # Recommendations
         if total_issues > 0:
             lines.append("## Recommendations")
@@ -193,11 +164,8 @@ class ReportGenerator:
                 lines.append(f"1. **Add missing entries** for new tools ({len(missing)} tools)")
             if stale:
                 lines.append(f"2. **Remove stale entries** for deleted tools ({len(stale)} tools)")
-            if version_mismatches:
-                lines.append(f"3. **Update versions** to match YAML frontmatter ({len(version_mismatches)} tools)")
-
-            lines.append("4. **Run this check** before committing documentation changes")
-            lines.append("5. **Integrate with CI/CD** to prevent future drift")
+            lines.append("3. **Run this check** before committing documentation changes")
+            lines.append("4. **Integrate with CI/CD** to prevent future drift")
             lines.append("")
         else:
             lines.append("## Status: All Clear! ✅")
