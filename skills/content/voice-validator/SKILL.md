@@ -36,6 +36,12 @@ The workflow implements the **Iterative Refinement** pattern: scan → document 
 
 ---
 
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| validating narrative content of 500+ words | `narrative-patterns.md` | Supplies the full narrative-fidelity rubric. |
+
 ## Instructions
 
 ### Phase 1: IDENTIFY TARGET

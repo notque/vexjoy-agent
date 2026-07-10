@@ -27,6 +27,12 @@ routing:
 
 Design a command-line tool's interface before implementation: human-first, script-friendly, Linux-only. Output is a compact spec the user or an agent can implement directly. Rubric source: clig.dev (rebuilt as `references/clig-checklist.md`).
 
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| designing a command-line interface | `clig-checklist.md` | Supplies the CLI design rubric. |
+
 ## Workflow
 
 ### Phase 1: SCOPE

@@ -336,11 +336,7 @@ class TestPreRouteNegative:
 
 
 class TestCoverageReport:
-    """Advisory benchmark-coverage report in routing-benchmark.py.
-
-    Warn-Only Gates (docs/PHILOSOPHY.md): the report names skills with zero
-    benchmark coverage but never fails the run — coverage gaps exit 0.
-    """
+    """Coverage accounting distinguishes benchmarked skills from explicit exclusions."""
 
     def test_compute_coverage_splits_known_skills(self) -> None:
         """Skills referenced by expected_skill are covered; the rest are not."""
@@ -363,13 +359,50 @@ class TestCoverageReport:
         assert covered == set()
         assert uncovered == {"headlines"}
 
-    def test_coverage_flag_exits_zero_despite_gaps(self) -> None:
-        """--coverage prints the advisory report and never fails on gaps."""
+    def test_public_skill_names_exclude_missing_overlay_paths(self, tmp_path: Path) -> None:
+        """Public coverage ignores entries whose deployment path is absent from the repo."""
+        public_skill = tmp_path / "skills" / "testing" / "public" / "SKILL.md"
+        public_skill.parent.mkdir(parents=True)
+        public_skill.write_text("# Public\n", encoding="utf-8")
+        index = {
+            "skills": {
+                "public": {"file": "skills/testing/public/SKILL.md"},
+                "local-overlay": {"file": "skills/local-overlay/SKILL.md"},
+            }
+        }
+
+        assert routing_benchmark._public_skill_names(index, tmp_path) == {"public"}
+
+    def test_coverage_accounting_rejects_unaccounted_skills(self) -> None:
+        """An indexed skill must have a case or a documented exclusion."""
+        covered, excluded, unaccounted, errors = routing_benchmark.compute_coverage_accounting(
+            [{"expected_skill": "fact-check"}], {"fact-check", "headlines"}, {}
+        )
+        assert covered == {"fact-check"}
+        assert excluded == set()
+        assert unaccounted == {"headlines"}
+        assert errors == ["Indexed skills lack a benchmark case or exclusion: ['headlines']"]
+
+    def test_coverage_accounting_rejects_stale_or_overlapping_exclusions(self) -> None:
+        """Exclusions cannot hide removed skills or duplicate real benchmark coverage."""
+        _, _, _, errors = routing_benchmark.compute_coverage_accounting(
+            [{"expected_skill": "fact-check"}],
+            {"fact-check"},
+            {"fact-check": "duplicate", "ghost": "stale"},
+        )
+        assert errors == [
+            "Exclusions name skills absent from skills/INDEX.json: ['ghost']",
+            "Skills are both benchmarked and excluded: ['fact-check']",
+        ]
+
+    def test_coverage_flag_reports_accounted_inventory(self) -> None:
+        """The checked-in corpus and exclusions account for every indexed skill."""
         result = subprocess.run(
             [sys.executable, str(BENCHMARK_SCRIPT), "--coverage"],
             capture_output=True,
             text=True,
             timeout=30,
         )
-        assert result.returncode == 0, f"--coverage must exit 0, got {result.returncode}: {result.stderr}"
-        assert "Coverage (advisory):" in result.stdout
+        assert result.returncode == 0, f"--coverage must pass, got {result.returncode}: {result.stderr}"
+        assert "Coverage:" in result.stdout
+        assert "0 unaccounted" in result.stdout

@@ -496,22 +496,6 @@
       ]
     },
     {
-      "name": "voice-calibrator",
-      "description": "Analyze writing samples and extract voice patterns to create or update",
-      "phase_count": 3,
-      "phases": [
-        "VOICE GROUNDING",
-        "VOICE METRICS",
-        "THINKING PATTERNS"
-      ],
-      "chain": "VOICE GROUNDING → VOICE METRICS → THINKING PATTERNS",
-      "task_type": "content-pipeline",
-      "triggers": [
-        "voice",
-        "calibrator"
-      ]
-    },
-    {
       "name": "voice-writer",
       "description": "Unified voice content generation pipeline with mandatory validation and",
       "phase_count": 8,

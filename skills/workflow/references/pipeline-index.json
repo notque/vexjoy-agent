@@ -813,24 +813,6 @@
       ],
       "model": "opus"
     },
-    "voice-calibrator": {
-      "file": "skills/workflow/references/voice-calibrator.md",
-      "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
-      "triggers": [
-        "voice calibrate",
-        "calibrate voice",
-        "voice profile",
-        "voice analysis",
-        "voice refine"
-      ],
-      "category": "content",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "voice-writer",
-        "voice-validator"
-      ]
-    },
     "voice-writer": {
       "file": "skills/workflow/references/voice-writer.md",
       "description": "Unified voice content generation pipeline with mandatory validation and joy-check. 13-phase pipeline with per-phase agent dispatch.",
@@ -888,7 +870,6 @@
       ],
       "pairs_with": [
         "create-voice",
-        "voice-calibrator",
         "voice-validator",
         "joy-check",
         "research-to-article"

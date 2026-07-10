@@ -7,15 +7,16 @@ and generates agents/INDEX.json for fast /do router lookups.
 
 Usage:
     python scripts/generate-agent-index.py
-    python scripts/generate-agent-index.py --include-private
+    python scripts/generate-agent-index.py --include-private  # writes agents/INDEX.local.json
     python scripts/generate-agent-index.py --include-private --output agents/INDEX.local.json
 
 Options:
     --include-private   Include symlinked agent files (default: skip them)
-    --output PATH       Output path (default: agents/INDEX.json)
+    --output PATH       Output path (default: agents/INDEX.json; INDEX.local.json with --include-private)
 
 Output:
-    agents/INDEX.json - Routing index for /do router (public, tracked)
+    agents/INDEX.json - Public routing index for /do
+    agents/INDEX.local.json - Private-inclusive local overlay
 """
 
 import argparse
@@ -205,6 +206,11 @@ def generate_index(
     return index
 
 
+def default_output_path(agents_dir: Path, include_private: bool) -> Path:
+    """Keep private-inclusive indexes out of the public index filename."""
+    return agents_dir / ("INDEX.local.json" if include_private else "INDEX.json")
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -235,7 +241,9 @@ def main() -> int:
         return 1
 
     # Resolve output path
-    output_path: Path = args.output if args.output is not None else agents_dir / "INDEX.json"
+    output_path: Path = (
+        args.output if args.output is not None else default_output_path(agents_dir, args.include_private)
+    )
 
     # Generate index: symlinked files skipped by default, included with --include-private.
     # Private agents directory (gitignored) is only scanned when --include-private is set.

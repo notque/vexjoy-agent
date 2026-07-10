@@ -31,7 +31,7 @@ class ToolScanner:
         """
         Extract YAML frontmatter from markdown file.
 
-        Returns dict with name, description, version or None if invalid.
+        Returns dict with required name and description fields and an optional version.
         """
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -64,7 +64,7 @@ class ToolScanner:
                     yaml_data[key] = value.strip()
 
             # Validate required fields
-            required_fields = ["name", "description", "version"]
+            required_fields = ["name", "description"]
             for field in required_fields:
                 if field not in yaml_data:
                     error = f"Missing required field '{field}' in {file_path}"
@@ -95,27 +95,25 @@ class ToolScanner:
 
         self.log(f"Scanning skills directory: {skills_dir}")
 
-        # Find all SKILL.md files in skills/*/SKILL.md
-        for skill_dir in skills_dir.iterdir():
-            if not skill_dir.is_dir():
-                continue
-
-            skill_file = skill_dir / "SKILL.md"
-            if not skill_file.exists():
-                self.log(f"No SKILL.md in {skill_dir.name}")
-                continue
-
+        # Skills are category-nested: skills/<category>/<name>/SKILL.md.
+        for skill_file in sorted(skills_dir.rglob("SKILL.md")):
+            skill_dir = skill_file.parent
             yaml_data = self.parse_yaml_frontmatter(skill_file)
             if yaml_data:
-                skills.append(
-                    {
-                        "name": yaml_data["name"],
-                        "description": yaml_data["description"],
-                        "version": yaml_data.get("version", "unknown"),
-                        "path": str(skill_file.relative_to(self.repo_root)),
-                        "directory": skill_dir.name,
-                    }
-                )
+                if yaml_data["name"] != skill_dir.name:
+                    self.errors.append(
+                        f"Skill name '{yaml_data['name']}' does not match directory '{skill_dir.name}' in {skill_file}"
+                    )
+                    continue
+                skill = {
+                    "name": yaml_data["name"],
+                    "description": yaml_data["description"],
+                    "path": str(skill_file.relative_to(self.repo_root)),
+                    "directory": skill_dir.name,
+                }
+                if "version" in yaml_data:
+                    skill["version"] = yaml_data["version"]
+                skills.append(skill)
                 self.log(f"Found skill: {yaml_data['name']} at {skill_file}")
 
         return skills
@@ -142,14 +140,19 @@ class ToolScanner:
 
             yaml_data = self.parse_yaml_frontmatter(agent_file)
             if yaml_data:
-                agents.append(
-                    {
-                        "name": yaml_data["name"],
-                        "description": yaml_data["description"],
-                        "version": yaml_data.get("version", "unknown"),
-                        "path": str(agent_file.relative_to(self.repo_root)),
-                    }
-                )
+                if yaml_data["name"] != agent_file.stem:
+                    self.errors.append(
+                        f"Agent name '{yaml_data['name']}' does not match filename '{agent_file.stem}' in {agent_file}"
+                    )
+                    continue
+                agent = {
+                    "name": yaml_data["name"],
+                    "description": yaml_data["description"],
+                    "path": str(agent_file.relative_to(self.repo_root)),
+                }
+                if "version" in yaml_data:
+                    agent["version"] = yaml_data["version"]
+                agents.append(agent)
                 self.log(f"Found agent: {yaml_data['name']} at {agent_file}")
 
         return agents
@@ -234,7 +237,7 @@ class ToolScanner:
             return "Command description not available"
 
         except Exception as e:
-            self.log(f"Could not extract description from {file_path}: {e}")
+            self.log(f"Could not extract description from {file_path}: {e}")  # security-review: ignore (log line, not SQL)  # fmt: skip
             return "Command description not available"
 
     def scan_all(self, types: Optional[List[str]] = None) -> Dict[str, Any]:

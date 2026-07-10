@@ -4,19 +4,21 @@ Generate skill routing index from YAML frontmatter.
 
 Reads skills/**/SKILL.md, extracts routing metadata
 from YAML frontmatter, and generates a dict-keyed index file:
-  - skills/INDEX.json   (skills only, v2.0)
+  - skills/INDEX.json       (public skills only, v2.0)
+  - skills/INDEX.local.json (private-inclusive local overlay)
 
 Usage:
     python scripts/generate-skill-index.py
-    python scripts/generate-skill-index.py --include-private
+    python scripts/generate-skill-index.py --include-private  # writes skills/INDEX.local.json
     python scripts/generate-skill-index.py --include-private --output skills/INDEX.local.json
 
 Options:
     --include-private   Include symlinked directories (default: skip them)
-    --output PATH       Output path (default: skills/INDEX.json)
+    --output PATH       Output path (default: skills/INDEX.json; INDEX.local.json with --include-private)
 
 Output:
-    skills/INDEX.json    - Skill routing index for /do router (public, tracked)
+    skills/INDEX.json       - Public routing index for /do
+    skills/INDEX.local.json - Private-inclusive local overlay
 
 
 Exit codes:
@@ -549,6 +551,11 @@ def write_index(index: dict, output_path: Path) -> bool:
         return False
 
 
+def default_output_path(skills_dir: Path, include_private: bool) -> Path:
+    """Keep private-inclusive indexes out of the public index filename."""
+    return skills_dir / ("INDEX.local.json" if include_private else "INDEX.json")
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -584,7 +591,9 @@ def main() -> int:
         return 1
 
     # Resolve output path
-    output_path: Path = args.output if args.output is not None else skills_dir / "INDEX.json"
+    output_path: Path = (
+        args.output if args.output is not None else default_output_path(skills_dir, args.include_private)
+    )
 
     # Generate skills index
     # When --include-private is used (for INDEX.local.json), flatten nested paths

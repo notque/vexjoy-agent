@@ -29,7 +29,7 @@ Umbrella skill for all people operations: recruiting, performance management, co
 
 ---
 
-## Mode Detection
+## Reference Loading Table
 
 Classify the request into exactly one mode. If the request spans modes, choose the primary and note the secondary.
 

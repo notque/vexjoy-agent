@@ -77,7 +77,6 @@ This file defines where each tool type should be documented and the required fie
 - Section header: `### tool-name`
 - Description: Detailed explanation of tool purpose
 - Usage: How to invoke the tool
-- Version: Current version number (optional but recommended)
 
 **Example**:
 ```markdown
@@ -86,7 +85,6 @@ This file defines where each tool type should be documented and the required fie
 Combined Python (ruff) and JavaScript (Biome) linting skill. Use when user requests linting, formatting, code quality checks, or style fixes.
 
 **Usage**: `skill: code-linting`
-**Version**: 1.2.0
 ```
 
 ## Cross-Reference Requirements
@@ -105,13 +103,6 @@ Combined Python (ruff) and JavaScript (Biome) linting skill. Use when user reque
 - **MUST** be documented in: commands/README.md
 - **SHOULD** be documented in: docs/REFERENCE.md (if significant command)
 - **MAY** be referenced in: README.md (if highlighted as important)
-
-## Version Synchronization Rules
-
-1. **Single Source of Truth**: YAML frontmatter in SKILL.md or agent .md file is authoritative
-2. **Documentation Follows YAML**: All documentation should reflect current YAML version
-3. **Update Together**: When updating version in YAML, update all documentation locations
-4. **Version Format**: Use semantic versioning (MAJOR.MINOR.PATCH)
 
 ## Deprecation Documentation Requirements
 
@@ -198,7 +189,7 @@ If tools should not be publicly documented:
 2. **Completeness**: All required fields present
 3. **Consistency**: Same tool described same way across all locations
 4. **Clarity**: Descriptions clear and concise (prefer <200 chars)
-5. **Currency**: Versions and descriptions reflect current state
+5. **Currency**: Descriptions reflect current state
 
 ## Validation Checks
 
@@ -210,7 +201,6 @@ The docs-sync-checker performs these validations:
 4. **Completeness**: All required fields present
 5. **Format**: Markdown tables/lists properly formatted
 6. **Staleness**: No documentation for non-existent tools
-7. **Version Sync**: Documented version matches YAML version (if version documented)
 
 ## Reference Files
 

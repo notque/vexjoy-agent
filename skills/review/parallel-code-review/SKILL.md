@@ -25,6 +25,12 @@ routing:
 
 Orchestrate three specialized code reviewers (Security, Business Logic, Architecture) in true parallel using the Fan-Out/Fan-In pattern. Each reviewer runs independently with domain-specific focus, then findings are aggregated by severity into a unified BLOCK/FIX/APPROVE verdict.
 
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| selecting the Architecture reviewer brief | `architecture-smell-baseline.md` | Supplies the required architecture smell baseline. |
+
 ---
 
 ## Instructions

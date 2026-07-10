@@ -32,9 +32,9 @@ routing:
 
 # Create Voice
 
-Create a complete voice profile from writing samples through a 7-phase pipeline. This skill is the user-facing entry point for the voice system. It orchestrates existing tools (voice-analyzer.py, voice-validator.py, voice-calibrator template) into a guided, phase-gated workflow.
+Create a complete voice profile from writing samples through a 7-phase pipeline. This skill is the user-facing entry point for the voice system. It orchestrates existing tools and its checked-in generation guide into a guided, phase-gated workflow.
 
-**Architecture**: This skill is a GUIDE and ORCHESTRATOR. It delegates all deterministic work to existing scripts and all template structure to the voice-calibrator skill. It does not duplicate or replace any existing component.
+**Architecture**: This skill is a GUIDE and ORCHESTRATOR. It delegates deterministic work to existing scripts and generation structure to `references/skill-generation.md`. It does not duplicate or replace any existing component.
 
 ---
 
@@ -176,15 +176,13 @@ See `references/phase-banners.md` for the Phase 4 status banner template.
 
 ### Step 5: GENERATE -- Create the Voice Skill
 
-**Goal**: Generate the complete voice skill files following the voice-calibrator template.
+**Goal**: Generate the complete voice skill files from the checked-in generation guide.
 
-keep modifications out of scope — voice-analyzer.py, voice-validator.py, banned-patterns.json, voice-calibrator, voice-writer, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
+Keep modifications out of scope — voice-analyzer.py, voice-validator.py, banned-patterns.json, voice-writer, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
 
 Before generating, show users any existing voice implementation in `skills/voice-*/` as a concrete example of "done", because reference implementations ground expectations.
 
-Follow the template structure from voice-calibrator (lines 1063-1512 of `skills/workflow/references/voice-calibrator.md`), because it was refined over 10 iterations and embeds prompt engineering best practices (attention anchoring, probability dampening, XML context tags, few-shot examples for prohibitions). Deviating from the template means losing those lessons.
-
-See `references/skill-generation.md` for "Files to Create", the "SKILL.md Structure" table (sections by line count), "SKILL.md Frontmatter", "Sample Organization" (by length and by pattern type), "Voice Metrics Section" format, "Two-Layer Architecture", "Prompt Engineering Techniques" (5 validated techniques), and the `config.json` template.
+Follow `references/skill-generation.md` for "Files to Create", the "SKILL.md Structure" table (sections by line count), "SKILL.md Frontmatter", "Sample Organization" (by length and by pattern type), "Voice Metrics Section" format, "Two-Layer Architecture", "Prompt Engineering Techniques" (5 validated techniques), and the `config.json` template.
 
 **GATE**: `SKILL.md` exists with 2000+ lines. Samples section has 400+ lines. All template sections present (samples, metrics, rules, fingerprints, protocol, typos, contrastive examples, thinking patterns). `config.json` exists with valid JSON. Frontmatter has correct fields.
 

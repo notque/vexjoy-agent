@@ -110,6 +110,49 @@ class TestLoadConfig:
         with pytest.raises(SystemExit):
             agent_scheduler.load_config(no_jobs)
 
+    def test_command_runner_config(self, tmp_path: Path) -> None:
+        config_path = tmp_path / "schedules.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "jobs": [
+                        {
+                            "name": "doc-counts",
+                            "runner": "command",
+                            "trigger": {"type": "cron", "schedule": "0 * * * *"},
+                            "command": ["python3", "scripts/validate-doc-counts.py"],
+                        }
+                    ]
+                }
+            )
+        )
+
+        config = agent_scheduler.load_config(config_path)
+        job = config["jobs"][0]
+        assert job["runner"] == "command"
+        assert job["model"] == "command"
+        assert job["cost_limit_usd"] == 0.0
+
+    def test_command_runner_requires_argv_array(self, tmp_path: Path) -> None:
+        config_path = tmp_path / "schedules.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "jobs": [
+                        {
+                            "name": "bad-command",
+                            "runner": "command",
+                            "trigger": {"type": "cron", "schedule": "0 * * * *"},
+                            "command": "python3 scripts/validate-doc-counts.py",
+                        }
+                    ]
+                }
+            )
+        )
+
+        with pytest.raises(SystemExit):
+            agent_scheduler.load_config(config_path)
+
 
 # ---------------------------------------------------------------------------
 # Cron expression parsing
@@ -191,6 +234,11 @@ class TestRenderPrompt:
         variables: dict[str, Any] = {"job": {"name": "health-check", "description": "Check health"}}
         result = agent_scheduler.render_prompt("Job: {job.name} - {job.description}", variables)
         assert result == "Job: health-check - Check health"
+
+    def test_command_job_command_renders_each_arg_without_shell(self) -> None:
+        job = {"command": ["python3", "scripts/check.py", "--path", "{file_path}"]}
+        result = agent_scheduler.build_command_job_command(job, {"file_path": "a file.md"})
+        assert result == ["python3", "scripts/check.py", "--path", "a file.md"]
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +392,38 @@ class TestSchedulerExecution:
         assert result is not None
         assert result["exit_code"] == 124
 
+    @patch("subprocess.run")
+    def test_execute_command_job_uses_command_runner(self, mock_run: MagicMock, scheduler: Any, temp_db: Path) -> None:
+        mock_run.return_value = MagicMock(returncode=0, stdout="docs ok", stderr="")
+        job = {
+            "name": "doc-counts",
+            "runner": "command",
+            "trigger": {"type": "cron", "schedule": "0 * * * *"},
+            "command": ["python3", "scripts/validate-doc-counts.py"],
+            "timeout_seconds": 10,
+            "model": "command",
+            "cost_limit_usd": 0.0,
+        }
+
+        result = scheduler.execute_job(job, "cron", "0 * * * *")
+
+        assert result is not None
+        assert result["exit_code"] == 0
+        assert result["cost_estimate_usd"] == 0.0
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        assert args[0] == ["python3", "scripts/validate-doc-counts.py"]
+        assert kwargs["cwd"] == str(agent_scheduler._REPO_ROOT)
+
+        conn = sqlite3.connect(str(temp_db))
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT model, cost_estimate_usd FROM job_results WHERE job_name = ?", ("doc-counts",)
+        ).fetchone()
+        assert row["model"] == "command"
+        assert row["cost_estimate_usd"] == 0.0
+        conn.close()
+
     def test_daily_budget_enforcement(self, scheduler: Any) -> None:
         for i in range(10):
             agent_scheduler.record_result(
@@ -364,6 +444,37 @@ class TestSchedulerExecution:
         result = scheduler.execute_job(job, "cron", "*/5 * * * *")
         assert result is None
 
+    @patch("subprocess.run")
+    def test_daily_budget_does_not_block_command_jobs(self, mock_run: MagicMock, scheduler: Any) -> None:
+        mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
+        for i in range(10):
+            agent_scheduler.record_result(
+                job_name=f"expensive-{i}",
+                trigger_type="cron",
+                started_at=f"2026-03-14T{i:02d}:00:00+00:00",
+                finished_at=f"2026-03-14T{i:02d}:01:00+00:00",
+                exit_code=0,
+                stdout="",
+                stderr="",
+                model="opus",
+                duration_seconds=60,
+                cost_estimate_usd=1.0,
+                trigger_detail="* * * * *",
+            )
+
+        job = {
+            "name": "doc-counts",
+            "runner": "command",
+            "trigger": {"type": "cron", "schedule": "0 * * * *"},
+            "command": ["python3", "scripts/validate-doc-counts.py"],
+            "timeout_seconds": 10,
+            "model": "command",
+            "cost_limit_usd": 0.0,
+        }
+        result = scheduler.execute_job(job, "cron", "0 * * * *")
+        assert result is not None
+        assert result["exit_code"] == 0
+
 
 # ---------------------------------------------------------------------------
 # Webhook handler
@@ -372,14 +483,14 @@ class TestSchedulerExecution:
 
 class TestWebhookHandler:
     def test_signature_verification_valid(self) -> None:
-        secret = "test-secret"
+        secret = "test-secret"  # security-review: ignore - intentional HMAC test fixture, not a credential
         body = b'{"action": "opened"}'
         expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         computed = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         assert hmac.compare_digest(expected, computed)
 
     def test_signature_verification_invalid(self) -> None:
-        secret = "test-secret"
+        secret = "test-secret"  # security-review: ignore - intentional HMAC test fixture, not a credential
         body = b'{"action": "opened"}'
         wrong_sig = "sha256=" + "0" * 64
         expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()

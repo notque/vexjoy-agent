@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import ClassVar
 
@@ -671,7 +672,7 @@ class TestCrossAgentReferenceIsolation:
 # ---------------------------------------------------------------------------
 
 
-def _collect_all_skill_reference_files() -> list[Path]:
+def _collect_all_skill_reference_files(skills_dir: Path = SKILLS_DIR) -> list[Path]:
     """Collect every .md file under any skill's references/ directory, recursively.
 
     Skills may have nested sub-directories inside references/ (e.g.
@@ -682,12 +683,10 @@ def _collect_all_skill_reference_files() -> list[Path]:
         Sorted list of Path objects for every .md file under skills/*/references/.
     """
     files: list[Path] = []
-    if not SKILLS_DIR.exists():
+    if not skills_dir.exists():
         return files
-    for skill_dir in sorted(SKILLS_DIR.iterdir()):
-        if not skill_dir.is_dir():
-            continue
-        refs_dir = skill_dir / "references"
+    for skill_file in sorted(skills_dir.rglob("SKILL.md")):
+        refs_dir = skill_file.parent / "references"
         if refs_dir.exists():
             files.extend(sorted(refs_dir.rglob("*.md")))
     return files
@@ -710,65 +709,55 @@ def _skill_ref_file_id(p: Path) -> str:
         return p.name
 
 
-def _collect_skills_with_references() -> list[str]:
-    """Return skill names (directory stems) that have a references/ subdirectory.
+def _collect_skills_with_references(skills_dir: Path = SKILLS_DIR) -> list[Path]:
+    """Return skill directories that have a references/ subdirectory.
 
     Returns:
-        Sorted list of skill name strings.
+        Sorted list of skill directories.
     """
-    if not SKILLS_DIR.exists():
+    if not skills_dir.exists():
         return []
     return sorted(
-        skill_dir.name
-        for skill_dir in SKILLS_DIR.iterdir()
-        if skill_dir.is_dir() and (skill_dir / "references").exists()
+        skill_file.parent for skill_file in skills_dir.rglob("SKILL.md") if (skill_file.parent / "references").exists()
     )
 
 
 ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
 
-# Pre-existing oversized skill reference files (ADR-190 Finding 4).
+# Pre-existing oversized skill reference files, baselined on 2026-07-09.
 #
-# This is the authoritative TODO list for gradual decomposition. Each entry xfails by default
-# so CI stays green while decomposition work proceeds. Removing a file from this list without
-# first decomposing it below 500 lines will cause that test to hard-fail. The list can only
-# shrink — do not add new files here; fix the file instead.
+# This is the authoritative dated debt register for gradual decomposition. Each entry xfails by
+# default so CI stays green while decomposition work proceeds. The invariant below rejects both
+# unregistered oversized files and stale exemptions, so a new violation cannot be hidden here.
 #
-# Line counts recorded at ADR-190 audit time (2026-04-16). Actual counts may drift.
 # Set SKILL_REFS_STRICT=1 to force all entries to hard-fail for a decomposition audit.
-_KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
-    "skill-creator/references/agent-template.md",  #  579 lines (moved from root AGENT_TEMPLATE_V2.md)
-    "condition-based-waiting/references/implementation-patterns.md",  #  566 lines
-    "distinctive-frontend-design/references/animation-patterns.md",  #  534 lines
-    "docs-sync-checker/references/examples.md",  #  508 lines
-    "pr-workflow/references/commit-staging-rules.md",  #  590 lines
-    "go-patterns/references/sapcc-conventions.md",  #  677 lines
-    "go-patterns/references/sapcc-conventions/preferred-patterns.md",  #  566 lines
-    "go-patterns/references/sapcc-conventions/api-design-detailed.md",  #  697 lines
-    "go-patterns/references/sapcc-conventions/architecture-patterns.md",  #  543 lines
-    "go-patterns/references/sapcc-conventions/build-ci-detailed.md",  #  547 lines
-    "go-patterns/references/sapcc-conventions/error-handling-detailed.md",  #  570 lines
-    "go-patterns/references/sapcc-conventions/sapcc-code-patterns.md",  # 3872 lines
-    "go-patterns/references/sapcc-conventions/testing-patterns-detailed.md",  #  709 lines
-    "pr-workflow/references/miner.md",  #  512 lines
-    "pr-workflow/references/pipeline.md",  #  785 lines
-    "skill-composer/references/examples.md",  #  719 lines
-    "test-driven-development/references/examples.md",  #  874 lines
-    "testing-preferred-patterns/references/preferred-pattern-catalog.md",  #  568 lines
-    "threejs-builder/references/react-three-fiber.md",  #  595 lines
-    "threejs-builder/references/shader-patterns.md",  #  501 lines
-    "threejs-builder/references/visual-polish.md",  #  528 lines
-    "threejs-builder/references/webgpu.md",  #  649 lines
-    "verification-before-completion/references/verification-examples.md",  #  619 lines
-    "webgl-card-effects/references/shader-integration-react.md",  #  542 lines
-    "workflow/references/comprehensive-review.md",  #  546 lines
-    "workflow/references/domain-research.md",  #  650 lines
-    "workflow/references/pipeline-scaffolder/references/generated-skill-template.md",  # 1037 lines
-    "workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md",  #  740 lines
-    "workflow/references/toolkit-improvement.md",  #  564 lines
-    "workflow/references/voice-calibrator.md",  #  801 lines
-    "workflow/references/workflow-orchestrator/references/plan-template.md",  #  672 lines
-    "workflow/references/workflow-orchestrator/references/task-patterns.md",  #  900 lines
+_KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
+    "engineering/go-patterns/references/sapcc-conventions.md": "2026-07-09",
+    "engineering/go-patterns/references/sapcc-conventions/api-design-detailed.md": "2026-07-09",
+    "engineering/go-patterns/references/sapcc-conventions/architecture-patterns.md": "2026-07-09",
+    "engineering/go-patterns/references/sapcc-conventions/build-ci-detailed.md": "2026-07-09",
+    "engineering/go-patterns/references/sapcc-conventions/error-handling-detailed.md": "2026-07-09",
+    "engineering/go-patterns/references/sapcc-conventions/sapcc-code-patterns.md": "2026-07-09",
+    "frontend/distinctive-frontend-design/references/animation-patterns.md": "2026-07-09",
+    "frontend/distinctive-frontend-design/references/shader-integration-react.md": "2026-07-09",
+    "frontend/threejs-builder/references/react-three-fiber.md": "2026-07-09",
+    "frontend/threejs-builder/references/visual-polish.md": "2026-07-09",
+    "frontend/threejs-builder/references/webgpu.md": "2026-07-09",
+    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-07-09",
+    "meta/skill-composer/references/examples.md": "2026-07-09",
+    "meta/skill-creator/references/agent-template.md": "2026-07-09",
+    "process/condition-based-waiting/references/implementation-patterns.md": "2026-07-09",
+    "process/pr-workflow/references/commit-staging-rules.md": "2026-07-09",
+    "process/pr-workflow/references/miner.md": "2026-07-09",
+    "process/pr-workflow/references/pipeline.md": "2026-07-09",
+    "process/verification-before-completion/references/verification-examples.md": "2026-07-09",
+    "testing/test-driven-development/references/examples.md": "2026-07-09",
+    "testing/testing-preferred-patterns/references/preferred-pattern-catalog.md": "2026-07-09",
+    "workflow/references/comprehensive-review.md": "2026-07-09",
+    "workflow/references/domain-research.md": "2026-07-09",
+    "workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md": "2026-07-09",
+    "workflow/references/toolkit-improvement.md": "2026-07-09",
+    "workflow/references/workflow-orchestrator/references/task-patterns.md": "2026-07-09",
 }
 
 _SKILLS_WITH_REFERENCES: list[str] = _collect_skills_with_references()
@@ -829,6 +818,28 @@ class TestSkillReferenceFileSizeCompliance:
                 f"Do not add this file to _KNOWN_OVERSIZED_SKILL_REFS — fix it instead."
             )
 
+    def test_legacy_size_debt_matches_current_violations(self) -> None:
+        """Every exception is dated, still oversized, and no new violation is hidden."""
+        actual_violations = {
+            _skill_ref_file_id(path)
+            for path in ALL_SKILL_REFERENCE_FILES
+            if len(path.read_text(encoding="utf-8").splitlines()) > REFERENCE_LINE_LIMIT
+        }
+        registered = set(_KNOWN_OVERSIZED_SKILL_REFS)
+
+        invalid_dates = [
+            f"{ref_id} ({baseline_date})"
+            for ref_id, baseline_date in _KNOWN_OVERSIZED_SKILL_REFS.items()
+            if _parse_baseline_date(baseline_date) is None
+        ]
+        assert not invalid_dates, "Invalid legacy-debt dates:\n" + "\n".join(invalid_dates)
+        assert actual_violations == registered, (
+            "Reference-size debt register drifted. New violations must be decomposed; resolved "
+            "violations must be removed from the register.\n"
+            f"Unregistered: {sorted(actual_violations - registered)}\n"
+            f"Stale: {sorted(registered - actual_violations)}"
+        )
+
     @pytest.mark.parametrize(
         "ref_path",
         ALL_SKILL_REFERENCE_FILES,
@@ -863,19 +874,43 @@ class TestSkillReferenceDirectoryDiscoverability:
     and may indicate an incomplete scaffold.
     """
 
-    @pytest.mark.parametrize("skill_name", _SKILLS_WITH_REFERENCES)
-    def test_skill_references_dir_contains_md_files(self, skill_name: str) -> None:
+    @pytest.mark.parametrize(
+        "skill_dir",
+        _SKILLS_WITH_REFERENCES,
+        ids=[str(path.relative_to(SKILLS_DIR)) for path in _SKILLS_WITH_REFERENCES],
+    )
+    def test_skill_references_dir_contains_md_files(self, skill_dir: Path) -> None:
         """A skill's references/ directory must contain at least one .md file.
 
         An empty references/ directory is dead weight — either populate it or
         remove it so the skill body does not declare references that cannot load.
 
         Args:
-            skill_name: Skill directory name under skills/.
+            skill_dir: Skill directory under skills/.
         """
-        refs_dir = SKILLS_DIR / skill_name / "references"
+        refs_dir = skill_dir / "references"
         md_files = list(refs_dir.rglob("*.md"))
         assert md_files, (
-            f"skills/{skill_name}/references/ exists but contains no .md files. "
+            f"{skill_dir.relative_to(REPO_ROOT)}/references/ exists but contains no .md files. "
             f"Either add reference content or remove the empty directory."
         )
+
+
+def _parse_baseline_date(value: str) -> date | None:
+    """Return a valid ISO-8601 baseline date, or None for malformed entries."""
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def test_skill_reference_discovery_includes_nested_skill_directories(tmp_path: Path) -> None:
+    """A category-nested skill and its nested references are both discoverable."""
+    skills_dir = tmp_path / "skills"
+    nested_reference = skills_dir / "testing" / "demo" / "references" / "examples" / "case.md"
+    nested_reference.parent.mkdir(parents=True)
+    nested_reference.write_text("# Case\n", encoding="utf-8")
+    (nested_reference.parents[2] / "SKILL.md").write_text("# Demo\n", encoding="utf-8")
+
+    assert _collect_all_skill_reference_files(skills_dir) == [nested_reference]
+    assert _collect_skills_with_references(skills_dir) == [nested_reference.parents[2]]

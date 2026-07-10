@@ -30,6 +30,21 @@ def test_skill_with_references_requires_reference_loading_table(tmp_path: Path) 
     assert violations[0].component_type == "skill"
 
 
+def test_nested_skill_with_references_requires_reference_loading_table(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    skill_dir = repo / "skills" / "testing" / "demo-skill"
+    refs_dir = skill_dir / "references" / "examples"
+    refs_dir.mkdir(parents=True)
+    (refs_dir / "case.md").write_text("# Case\n", encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text("# Demo Skill\n", encoding="utf-8")
+
+    violations = _mod.validate_components(repo, ["skill"])
+
+    assert len(violations) == 1
+    assert violations[0].component == "demo-skill"
+    assert violations[0].file == "skills/testing/demo-skill/SKILL.md"
+
+
 def test_agent_with_parseable_table_passes(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     refs_dir = repo / "agents" / "demo-agent" / "references"

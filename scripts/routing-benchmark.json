@@ -987,6 +987,22 @@
       "category": "model-dispatch",
       "routing_tier": "llm_only",
       "notes": "User-facing copy work (taste >= 7 per model-selection policy) \u2014 must NOT force-route to codex"
+    },
+    {
+      "request": "check documentation drift across the repository",
+      "expected_agent": null,
+      "expected_skill": "docs-sync-checker",
+      "category": "meta-tooling",
+      "routing_tier": "candidate",
+      "notes": "Documentation-drift intent must surface the deterministic sync checker."
+    },
+    {
+      "request": "start with a failing test for this parser",
+      "expected_agent": null,
+      "expected_skill": "test-driven-development",
+      "category": "testing",
+      "routing_tier": "candidate",
+      "notes": "Explicit RED-phase intent must surface the TDD skill."
     }
   ]
 }

@@ -56,29 +56,6 @@ This file documents the synchronization rules for determining which files must d
 
 **Enforcement**: Low priority - no enforcement
 
-## Version Synchronization Rules
-
-### Version Source of Truth
-
-**Single Source**: YAML frontmatter `version:` field in SKILL.md or agent .md file
-
-**Rule**: Documentation should reflect YAML version, NOT the other way around
-
-**When to Update**:
-1. Update YAML `version:` field
-2. Run docs-sync-checker
-3. Update all documentation to match YAML version
-
-### Version Documentation Locations
-
-**Required**: No location required to document version (optional everywhere)
-
-**Recommended**:
-- docs/REFERENCE.md: Include version in tool section
-- docs/skills.md: Could add Version column (not standard currently)
-
-**Enforcement**: Low priority - version mismatches reported as LOW severity
-
 ## Deprecation Rules
 
 ### Marking Tools as Deprecated
@@ -199,7 +176,7 @@ sync_score = (total_tools - total_issues) / total_tools * 100
 
 **Where**:
 - `total_tools` = count of all skills + agents + commands discovered
-- `total_issues` = count of missing entries + stale entries + version mismatches
+- `total_issues` = count of missing entries + stale entries
 
 ### Interpretation
 
@@ -249,11 +226,6 @@ sync_score = (total_tools - total_issues) / total_tools * 100
 ### MEDIUM Priority
 - Stale entries (documented but tool removed)
 - **Action**: Should fix soon, acceptable temporarily
-
-### LOW Priority
-- Version mismatches (documented version ≠ YAML version)
-- Incomplete entries (missing optional fields)
-- **Action**: Fix when convenient
 
 ## Sync Workflow Integration
 
@@ -308,7 +280,6 @@ These rules may evolve as the repository grows:
 
 **Potential Changes**:
 - Add `.docsignore` for tools to exclude
-- Add version column to docs/skills.md table
 - Introduce skill/agent namespaces
 - Add automated description consistency checking
 - Support alternative documentation formats (JSON, YAML)

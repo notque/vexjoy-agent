@@ -27,6 +27,5 @@ Generated: 2026-03-23T17:42:13Z
 | research-to-article | 6 | GATHER → COMPILE → GROUND → GENERATE → VALIDATE → OUTPUT | content-pipeline | research then write, article with research, write about, research and article, full article pipeline |
 | skill-creation-pipeline | 5 | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE | git-workflow | skill, creation, pipeline |
 | system-upgrade | 6 | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY | git-workflow | system, upgrade |
-| voice-calibrator | 3 | VOICE GROUNDING → VOICE METRICS → THINKING PATTERNS | content-pipeline | voice, calibrator |
 | voice-writer | 8 | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP | content | write article, blog post, write in voice, generate voice content, voice workflow |
 | workflow-orchestrator | 4 | BRAINSTORM → WRITE-PLAN → VALIDATE-PLAN → EXECUTE-PLAN | git-workflow | workflow, orchestrator |

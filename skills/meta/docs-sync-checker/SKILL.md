@@ -27,7 +27,7 @@ routing:
 
 Deterministic 4-phase drift detector that compares the filesystem against README entries. Each phase (Scan, Cross-Reference, Detect, Report) has a gate that must pass before proceeding. The skill produces a sync score (percentage of tools properly documented) and actionable fix suggestions for every detected issue.
 
-This skill checks presence, absence, and version alignment only -- it does not judge description quality, generate documentation content, resolve merge conflicts, validate cross-references, or track when drift occurred. Suggested fixes use YAML descriptions verbatim; content generation and quality assessment require different skills.
+This skill checks documentation presence and absence only -- it does not judge description quality, generate documentation content, resolve merge conflicts, validate cross-references, or track when drift occurred. Suggested fixes use YAML descriptions verbatim; content generation and quality assessment require different skills.
 
 Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict` (exit code 1 on issues), `--format json` (machine-readable output for CI/CD).
 
@@ -59,9 +59,9 @@ python3 skills/meta/docs-sync-checker/scripts/scan_tools.py --repo-root $HOME/ve
 
 For each tool type, verify:
 
-Skills (`skills/*/SKILL.md`):
+Skills (`skills/**/SKILL.md`):
 - File has opening `---` and closing `---` YAML delimiters
-- YAML contains `name`, `description`, and `version` fields
+- YAML contains non-empty `name` and `description` fields
 - `name` field matches directory name (e.g., `skills/code-quality/code-linting/` has `name: code-linting`)
 
 Agents (`agents/*.md`):
@@ -138,24 +138,17 @@ For each tool type and its primary documentation file:
 - `missing = filesystem_tools - documented_tools` (tools that exist but are not documented)
 - `stale = documented_tools - filesystem_tools` (documented tools that no longer exist -- users waste time trying to invoke non-existent tools, so always flag these)
 
-**Step 2: Check version consistency**
+**Step 2: Categorize and assign severity**
 
-For tools that appear in both sets, compare:
-- YAML `version` field vs. documented version (if version is documented)
-- Flag mismatches where YAML is authoritative source of truth
-
-**Step 3: Categorize and assign severity**
-
-Severity reflects user impact: missing entries mean tools are undiscoverable, stale entries waste time, version mismatches cause confusion.
+Severity reflects user impact: missing entries mean tools are undiscoverable and stale entries waste time.
 
 | Category | Condition | Severity |
 |----------|-----------|----------|
 | Missing Entry | Tool in filesystem, not in primary README | HIGH |
 | Stale Entry | Tool in README, not in filesystem | MEDIUM |
-| Version Mismatch | YAML version differs from documented | LOW |
 | Incomplete Entry | Documentation missing required fields | LOW |
 
-**Step 4: Record issue details**
+**Step 3: Record issue details**
 
 For each issue, capture: tool type, tool name, tool path, affected documentation file(s), severity, and suggested fix action.
 
@@ -184,9 +177,7 @@ Report must include these sections:
 
 3. **MEDIUM Priority: Stale Entries** -- For each stale tool, identify the file and line to remove
 
-4. **LOW Priority: Version Mismatches** -- For each mismatch, show YAML version (authoritative) vs. documented version
-
-5. **Files Checked** -- List each documentation file with count of tools parsed from it
+4. **Files Checked** -- List each documentation file with count of tools parsed from it
 
 **Step 3: Validate actionability**
 
@@ -233,15 +224,7 @@ Actions:
 3. DETECT flags as MEDIUM severity stale entry
 4. REPORT suggests removing the row from agents/README.md
 
-#### Example 3: Version Bump Without Doc Update
-User updated `version: 2.0.0` in `skills/code-quality/code-linting/SKILL.md` but `docs/REFERENCE.md` still shows `Version: 1.5.0`.
-Actions:
-1. SCAN reads YAML version as 2.0.0
-2. CROSS-REFERENCE reads documented version as 1.5.0 from docs/REFERENCE.md
-3. DETECT flags as LOW severity version mismatch
-4. REPORT suggests updating version line in docs/REFERENCE.md to 2.0.0
-
-#### Example 4: Batch Changes After Refactor
+#### Example 3: Batch Changes After Refactor
 User created 3 new skills and deleted 2 old ones in a refactoring PR.
 Actions:
 1. SCAN discovers 3 new skills in filesystem, does not find 2 removed skills
@@ -256,7 +239,7 @@ Cause: Invalid frontmatter -- missing `---` delimiters, tabs instead of spaces, 
 Solution:
 1. Check file has opening `---` on line 1 and closing `---` after YAML block
 2. Verify no tab characters in YAML (spaces only)
-3. Confirm required fields present: `name`, `description`, `version`
+3. Confirm required fields present: `name`, `description`
 4. Validate manually: `head -20 {file_path}` and check syntax
 
 ### Error: "Documentation File Not Found"

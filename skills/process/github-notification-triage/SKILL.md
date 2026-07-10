@@ -80,6 +80,12 @@ When invoked on a schedule (no interactive user), use both flags to auto-clear a
 python3 scripts/github-notification-triage.py --mark-read --save
 ```
 
+## Reference Loading Table
+
+| Signal | Load These Files | Why |
+|---|---|---|
+| triaging an issue or pull-request queue | `item-card-contract.md` | Defines the required per-item report card. |
+
 ## Issue/PR Queue Triage
 
 When the task is triaging a queue of issues or PRs (not just notifications), report one card per item using the contract in [references/item-card-contract.md](references/item-card-contract.md):

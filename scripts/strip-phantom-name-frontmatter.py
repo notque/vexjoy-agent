@@ -132,7 +132,6 @@ VERIFIED_SAFE_PATHS: frozenset[str] = frozenset(
         "skills/workflow/references/systematic-debugging.md",
         "skills/workflow/references/systematic-refactoring.md",
         "skills/workflow/references/toolkit-improvement.md",
-        "skills/workflow/references/voice-calibrator.md",
         "skills/workflow/references/voice-writer.md",
         "skills/workflow/references/workflow-orchestrator.md",
     }
