@@ -18,7 +18,7 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: Codex CLI, Factory, or Reasonix. The toolkit mirrors skills (and agents where the harness supports them) into their directories (`~/.codex/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Claude Code remains the full runtime for hooks, commands, and scripts. Gemini CLI support was removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity — see README § "Gemini CLI / Antigravity CLI Support (removed)".
+Optional: Codex CLI, Factory, or Reasonix. The toolkit mirrors skills (and agents where the harness supports them) into their directories (`~/.codex/`, `~/.factory/`, `~/.reasonix/`), so all the CLIs dispatch the same domain expertise. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Claude Code remains the only runtime with the full hook surface. Gemini CLI support was removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity — see README § "Gemini CLI / Antigravity CLI Support (removed)".
 
 Verify optional tools: `codex --version` / `factory --version` / `reasonix --version`.
 
@@ -41,7 +41,15 @@ cd vexjoy-agent
 
 The installer asks one question: symlink or copy. Symlink means updates via `git pull`. Copy means a stable snapshot. Either works.
 
-What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills into `~/.codex/skills/`, agents into `~/.codex/agents/` and `~/.factory/droids/` (Factory calls agents "droids"), and skills + scripts + hooks into `~/.reasonix/` (no agent surface there). Configures hooks in settings so they activate automatically.
+What it does: installs agents, skills, hooks, commands, and scripts into `~/.claude/` (symlinked or copied per your choice). Mirrors skills and agents into `~/.codex/`, agents into `~/.factory/droids/` (Factory calls agents "droids"), and skills + scripts + hooks into `~/.reasonix/` (no agent surface there). It configures each harness's supported hooks.
+
+### Codex hook coverage
+
+Codex integration requires v0.144.1+. The original six-hook allowlist was correct for v0.114, when Codex tool hooks intercepted only Bash. Current Codex support classifies the 76 Claude hook registrations as 26 native, 36 adapter-backed, and 14 unsupported (62 supported); the counts are registrations, not unique files.
+
+The adapter translates Codex `apply_patch` operations into Write/Edit events for existing VexJoy guards. It cannot cover writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. Codex also omits Claude's `conversation_history` at PreCompact and `session_data` at Stop, so those adapted hooks run with degraded telemetry. This is not full Claude parity.
+
+After installation or a hook update, run `/hooks` in Codex and review changed definitions. Codex hash-trusts hook commands and skips changed definitions until you approve them.
 
 ## Verify
 

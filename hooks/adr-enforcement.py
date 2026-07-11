@@ -26,7 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import context_output, empty_output, hook_error, log_warning
 from stdin_timeout import read_stdin
 
-__EVENT_NAME = "PostToolUse"
+_EVENT_NAME = "PostToolUse"
+_TRUSTED_ROOT = Path(__file__).resolve().parent.parent
 
 # Pipeline component files that trigger enforcement (matched against repo-relative paths)
 _PIPELINE_COMPONENT_PATTERNS = [
@@ -50,20 +51,34 @@ _STEP_MENU = "skills/workflow/references/pipeline-scaffolder/references/step-men
 _SPEC_FORMAT = "skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md"
 
 
-def is_pipeline_component(file_path: str) -> bool:
+def _project_root(event: dict) -> Path:
+    """Resolve the repository the hook event is operating on."""
+    candidate = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd()
+    return Path(candidate).resolve()
+
+
+def _project_relative_path(file_path: str, project_root: Path) -> Path | None:
+    """Return ``file_path`` relative to the event project, or None if outside it."""
+    try:
+        path = Path(file_path)
+        absolute = path.resolve() if path.is_absolute() else (project_root / path).resolve()
+        return absolute.relative_to(project_root)
+    except (OSError, ValueError):
+        return None
+
+
+def is_pipeline_component(file_path: str, project_root: Path | None = None) -> bool:
     """Check if the file is a pipeline component that should be compliance-checked.
 
     Normalizes the path to be relative to the repo root before matching, so
     patterns like agents/ only match the top-level agents/ directory and not
     arbitrary path components.
     """
-    try:
-        repo_root = Path(__file__).parent.parent.resolve()
-        abs_path = Path(file_path).resolve()
-        rel_path = abs_path.relative_to(repo_root)
-        rel_str = str(rel_path)
-    except (ValueError, Exception):
+    root = project_root or Path(os.environ.get("CLAUDE_PROJECT_DIR", Path.cwd())).resolve()
+    rel_path = _project_relative_path(file_path, root)
+    if rel_path is None:
         return False
+    rel_str = rel_path.as_posix()
 
     for exclude in _EXCLUDE_PATTERNS:
         if re.search(exclude, rel_str):
@@ -87,7 +102,7 @@ def load_session(cwd: str) -> dict | None:
 def run_compliance_check(
     compliance_script: Path,
     file_path: str,
-    cwd: str,
+    project_root: Path,
 ) -> dict | None:
     """
     Run adr-compliance.py check on the file.
@@ -99,11 +114,11 @@ def run_compliance_check(
         str(compliance_script),
         "check",
         "--file",
-        file_path,
+        str(project_root / file_path),
         "--step-menu",
-        _STEP_MENU,
+        str(project_root / _STEP_MENU),
         "--spec-format",
-        _SPEC_FORMAT,
+        str(project_root / _SPEC_FORMAT),
     ]
 
     try:
@@ -112,7 +127,7 @@ def run_compliance_check(
             capture_output=True,
             text=True,
             timeout=10,
-            cwd=cwd,
+            cwd=str(_TRUSTED_ROOT),
         )
         output = result.stdout.strip()
         if not output:
@@ -150,7 +165,7 @@ def format_violations(file_path: str, check_result: dict) -> str:
         lines.append(f"[adr-enforcement] {entry}")
 
     lines.append("[adr-enforcement] FIX REQUIRED before proceeding:")
-    lines.append(f"[adr-enforcement]   python3 ~/.claude/scripts/adr-compliance.py check --file {display_path} \\")
+    lines.append(f"[adr-enforcement]   python3 scripts/adr-compliance.py check --file {display_path} \\")
     lines.append(f"[adr-enforcement]     --step-menu {_STEP_MENU} \\")
     lines.append(f"[adr-enforcement]     --spec-format {_SPEC_FORMAT}")
 
@@ -190,13 +205,16 @@ def main() -> None:
             empty_output(_EVENT_NAME).print_and_exit(0)
             return
 
-        # Check scope — only pipeline component files
-        if not is_pipeline_component(file_path):
+        project_root = _project_root(event)
+        relative_path = _project_relative_path(file_path, project_root)
+
+        # Check scope — only pipeline component files in the event project.
+        if relative_path is None or not is_pipeline_component(file_path, project_root):
             empty_output(_EVENT_NAME).print_and_exit(0)
             return
 
-        # Determine cwd
-        cwd = event.get("cwd", str(Path.cwd()))
+        cwd = str(project_root)
+        display_path = relative_path.as_posix()
 
         # Check for active ADR session
         session = load_session(cwd)
@@ -206,7 +224,7 @@ def main() -> None:
             return
 
         # Locate adr-compliance.py
-        compliance_script = Path(cwd) / "scripts" / "adr-compliance.py"
+        compliance_script = _TRUSTED_ROOT / "scripts" / "adr-compliance.py"
         if not compliance_script.exists():
             log_warning(
                 f"adr-compliance.py not found at {compliance_script} — "
@@ -216,7 +234,7 @@ def main() -> None:
             return
 
         # Run compliance check
-        check_result = run_compliance_check(compliance_script, file_path, cwd)
+        check_result = run_compliance_check(compliance_script, display_path, project_root)
         if check_result is None:
             # Subprocess failed or returned no JSON — skip silently
             empty_output(_EVENT_NAME).print_and_exit(0)
@@ -225,9 +243,9 @@ def main() -> None:
         verdict = check_result.get("verdict", "unknown")
 
         if verdict == "FAIL":
-            context = format_violations(file_path, check_result)
+            context = format_violations(display_path, check_result)
         else:
-            context = format_pass(file_path, check_result)
+            context = format_pass(display_path, check_result)
 
         context_output(_EVENT_NAME, context).print_and_exit(0)
 

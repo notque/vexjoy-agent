@@ -1715,9 +1715,29 @@ if [ "$MIRROR_CODEX" = true ]; then
     echo -e "${YELLOW}Syncing Codex hooks mirror...${NC}"
     CODEX_HOOK_COUNT=0
     CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
+    CODEX_MANAGED_HOOKS_MANIFEST="${CODEX_HOOKS_DIR}/.vexjoy-managed-hooks"
 
     if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
         clean_codex_hooks_mirror_if_looped "$CODEX_HOOKS_DIR" "${SCRIPT_DIR}/hooks"
+
+        # Remove only files recorded by the previous VexJoy install. This
+        # refreshes hooks removed from the current compatibility inventory
+        # without touching user-owned files in ~/.codex/hooks.
+        if [ -f "$CODEX_MANAGED_HOOKS_MANIFEST" ]; then
+            while IFS= read -r managed_name || [ -n "$managed_name" ]; do
+                case "$managed_name" in
+                    ""|.*|*/*|*\\*) continue ;;
+                esac
+                managed_path="${CODEX_HOOKS_DIR}/${managed_name}"
+                if [ -e "$managed_path" ] || [ -L "$managed_path" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove previously managed Codex hook: ${managed_path}${NC}"
+                    else
+                        rm -f "$managed_path"
+                    fi
+                fi
+            done < "$CODEX_MANAGED_HOOKS_MANIFEST"
+        fi
 
         # Ensure hooks directory exists
         if [ "$DRY_RUN" = true ]; then
@@ -1726,8 +1746,19 @@ if [ "$MIRROR_CODEX" = true ]; then
             mkdir -p "$CODEX_HOOKS_DIR"
         fi
 
+        CODEX_MANAGED_NAMES="codex-hook-adapter.py"
+
+        # Deploy the adapter before hooks.json can reference it. Codex runs all
+        # mirrored hooks through this compatibility boundary.
+        CODEX_ADAPTER_SOURCE="${SCRIPT_DIR}/hooks/codex-hook-adapter.py"
+        if [ -f "$CODEX_ADAPTER_SOURCE" ]; then
+            sync_codex_entry "$CODEX_ADAPTER_SOURCE" "${CODEX_HOOKS_DIR}/codex-hook-adapter.py"
+        else
+            echo -e "${RED}  ✗ Codex hook adapter missing: ${CODEX_ADAPTER_SOURCE}${NC}"
+        fi
+
         # Parse allowlist and mirror each allowlisted hook file.
-        # Format per line: EVENT:filename [matcher]
+        # Format per line: EVENT:filename [key=value compatibility metadata]
         # Comments (#) and blank lines are ignored.
         while IFS= read -r line || [ -n "$line" ]; do
             # Strip leading/trailing whitespace for the blank check.
@@ -1754,7 +1785,15 @@ if [ "$MIRROR_CODEX" = true ]; then
             target_file="${CODEX_HOOKS_DIR}/${filename}"
             sync_codex_entry "$source_file" "$target_file"
             CODEX_HOOK_COUNT=$((CODEX_HOOK_COUNT + 1))
+            CODEX_MANAGED_NAMES="${CODEX_MANAGED_NAMES}
+${filename}"
         done < "$CODEX_HOOKS_ALLOWLIST"
+
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would write managed-hook manifest: ${CODEX_MANAGED_HOOKS_MANIFEST}${NC}"
+        else
+            printf '%s\n' "$CODEX_MANAGED_NAMES" | sed '/^$/d' | sort -u > "$CODEX_MANAGED_HOOKS_MANIFEST"
+        fi
 
         # Also mirror the hooks/lib directory so intra-hook imports resolve
         # (hook_utils, injection_patterns, stdin_timeout, usage_db, etc.).
@@ -1765,8 +1804,16 @@ if [ "$MIRROR_CODEX" = true ]; then
 
         # Generate hooks.json via the dedicated script.
         CODEX_HOOKS_JSON="${CODEX_DIR}/hooks.json"
+        if [ -f "$CODEX_HOOKS_JSON" ]; then
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would back up existing ${CODEX_HOOKS_JSON} before replacement${NC}"
+            else
+                echo -e "${BLUE}  Will back up existing ${CODEX_HOOKS_JSON} before replacement${NC}"
+            fi
+        fi
         if [ "$DRY_RUN" = true ]; then
             echo -e "${BLUE}  Would generate: ${CODEX_HOOKS_JSON}${NC}"
+            echo -e "${BLUE}  Changed Codex hook definitions are skipped until they are reviewed and trusted with /hooks${NC}"
         else
             # Profile filtering: generate from a filtered allowlist copy so
             # hooks.json never references hooks we did not mirror.
@@ -1781,6 +1828,7 @@ if [ "$MIRROR_CODEX" = true ]; then
                 --output "$CODEX_HOOKS_JSON" \
                 --codex-hooks-dir "$CODEX_HOOKS_DIR" 2>&1; then
                 echo -e "${GREEN}  ✓ Generated ${CODEX_HOOKS_JSON}${NC}"
+                echo -e "${YELLOW}  ⚠ New or changed Codex hook definitions are skipped until you review and trust them with /hooks.${NC}"
             else
                 echo -e "${RED}  ✗ Failed to generate hooks.json${NC}"
             fi
@@ -1789,32 +1837,33 @@ if [ "$MIRROR_CODEX" = true ]; then
             fi
         fi
 
-        # Ensure hooks feature flag is enabled in ~/.codex/config.toml.
+        # Ensure hooks and explicit MultiAgent V2 routing are enabled in Codex.
         CODEX_CONFIG="${CODEX_DIR}/config.toml"
         if [ "$DRY_RUN" = true ]; then
-            echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] hooks = true${NC}"
+            echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has hooks and explicit subagent routing${NC}"
         else
             codex_flag_action=$($PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
                 --config "$CODEX_CONFIG" 2>&1)
             codex_flag_status=$?
             if [ "$codex_flag_status" -eq 0 ]; then
-                echo -e "${GREEN}  ✓ Codex config feature flag: ${codex_flag_action}${NC}"
+                echo -e "${GREEN}  ✓ Codex config features: ${codex_flag_action}${NC}"
             else
                 echo "$codex_flag_action"
                 echo -e "${YELLOW}  ⚠ Could not update ${CODEX_CONFIG} (see error above). Codex hooks may not activate.${NC}"
             fi
         fi
 
-        # Warn if installed Codex CLI is below the hook-support minimum (v0.114.0).
+        # Current parity was verified on Codex CLI v0.144.1. The old v0.114
+        # floor supported ADR-182's six-hook subset, not apply_patch parity.
         if command -v codex >/dev/null 2>&1; then
             cx_ver=$(codex --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
             if [ -n "$cx_ver" ]; then
-                min_major=0; min_minor=114; min_patch=0
+                min_major=0; min_minor=144; min_patch=1
                 IFS='.' read -r cx_maj cx_min cx_pat <<< "$cx_ver"
                 if [ "$cx_maj" -lt "$min_major" ] || \
                    { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -lt "$min_minor" ]; } || \
                    { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -eq "$min_minor" ] && [ "$cx_pat" -lt "$min_patch" ]; }; then
-                    echo -e "${YELLOW}  ⚠ Codex CLI version ${cx_ver} is below 0.114.0. Hooks may not work. See openai/codex#14754.${NC}"
+                    echo -e "${YELLOW}  ⚠ Codex CLI version ${cx_ver} is below 0.144.1. Current hook parity may not work.${NC}"
                 fi
             fi
         else
@@ -1833,7 +1882,7 @@ if [ "$MIRROR_CODEX" = true ]; then
             mkdir -p "$CODEX_SCRIPTS_DIR"
         fi
         sync_codex_entry "${SCRIPT_DIR}/scripts" "$CODEX_SCRIPTS_DIR"
-        CODEX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+        CODEX_SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | wc -l)
         echo -e "${GREEN}  ✓ Scripts mirrored to ${CODEX_SCRIPTS_DIR}${NC}"
     else
         CODEX_SCRIPT_COUNT=0
@@ -2508,9 +2557,9 @@ fi
 # Count components dynamically (excluding README files)
 AGENT_COUNT=$(ls -1 "${SCRIPT_DIR}/agents/"*.md 2>/dev/null | grep -v README | wc -l)
 SKILL_COUNT=$(ls -1 "${SCRIPT_DIR}/skills/"*/SKILL.md 2>/dev/null | wc -l)
-HOOK_COUNT=$(ls -1 "${SCRIPT_DIR}/hooks/"*.py 2>/dev/null | grep -cv '__init__')
+HOOK_COUNT=$(ls -1 "${SCRIPT_DIR}/hooks/"*.py 2>/dev/null | wc -l)
 COMMAND_COUNT=$(ls -1 "${SCRIPT_DIR}/commands/"*.md 2>/dev/null | grep -v README | wc -l)
-SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | grep -cv '__init__')
+SCRIPT_COUNT=$(ls -1 "${SCRIPT_DIR}/scripts/"*.py 2>/dev/null | wc -l)
 INVOCABLE_COUNT=$(grep -rl 'user-invocable: true' "${SCRIPT_DIR}/skills/"*/SKILL.md 2>/dev/null | wc -l)
 
 echo ""

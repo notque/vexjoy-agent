@@ -423,6 +423,13 @@ def dispatched_basenames() -> set[str]:
         except OSError:
             continue
         dispatched |= dispatched_targets_in_source(raw, names, self_name=src.name)
+
+    # Codex hooks.json invokes this wrapper before every allowlisted target.
+    # It is generated from the mirror inventory rather than registered in
+    # Claude settings or subprocess-dispatched by another hook source.
+    codex_adapter = "codex-hook-adapter.py"
+    if codex_adapter in names and parse_mirror(CODEX_MIRROR):
+        dispatched.add(codex_adapter)
     return dispatched
 
 
@@ -638,7 +645,11 @@ _EVENT_BASE = {
     "SessionStart": {"hook_event_name": "SessionStart", "session_id": "hh"},
     "UserPromptSubmit": {"hook_event_name": "UserPromptSubmit", "prompt": "hello", "session_id": "hh"},
     "PreToolUse": {"hook_event_name": "PreToolUse", "session_id": "hh"},
-    "PostToolUse": {"hook_event_name": "PostToolUse", "tool_result": "ok", "session_id": "hh"},
+    "PostToolUse": {
+        "hook_event_name": "PostToolUse",
+        "tool_result": {"output": "ok", "is_error": False},
+        "session_id": "hh",
+    },
     "PreCompact": {"hook_event_name": "PreCompact", "summary": "x"},
     "PostCompact": {"hook_event_name": "PostCompact"},
     # Stop hooks may inspect the working tree and launch nested validators. A

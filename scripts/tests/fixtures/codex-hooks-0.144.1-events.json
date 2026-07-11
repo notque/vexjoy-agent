@@ -1,0 +1,2281 @@
+{
+  "attempts": [
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [
+          "sandbox_loopback_setup_failure",
+          "sandbox_setup_failure"
+        ],
+        "event_type_counts": {
+          "item.completed": 4,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 7,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          "I\u2019ll run exactly that command once.",
+          "Command attempted once; the shell failed because the sandbox could not configure loopback networking."
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            }
+          ],
+          "tool_names": {
+            "Bash": 1
+          }
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            }
+          ],
+          "tool_names": {
+            "Bash": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "bash",
+      "name": "bash",
+      "returncode": 0,
+      "sandbox_mode": "workspace-write",
+      "session_storage": "ephemeral",
+      "timed_out": false
+    },
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [
+          "apply_patch_error",
+          "patch_rejected",
+          "sandbox_loopback_setup_failure",
+          "sandbox_setup_failure",
+          "tool_error"
+        ],
+        "event_type_counts": {
+          "item.completed": 4,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 7,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          "Applying the exact patch now.",
+          ""
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))",
+          "<TIMESTAMP> ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to read file to update <WORKSPACE>/probe-target.txt: fs sandbox helper failed with status exit status: 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "apply_patch"
+            }
+          ],
+          "tool_names": {
+            "apply_patch": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "apply_patch",
+      "name": "apply_patch_1",
+      "pretool_input_validation": {
+        "command_string_count": 1,
+        "exact_requested_patch_count": 1,
+        "has_patch_markers_count": 1,
+        "pretool_payload_count": 1,
+        "tool_input_object_count": 1
+      },
+      "returncode": 0,
+      "sandbox_mode": "workspace-write",
+      "session_storage": "ephemeral",
+      "target_state": {
+        "changed_to_other_content": false,
+        "exact_expected_content": false,
+        "unchanged": true
+      },
+      "timed_out": false
+    },
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [],
+        "event_type_counts": {
+          "item.completed": 4,
+          "item.started": 1,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.started",
+            "item_keys": [
+              "changes",
+              "id",
+              "status",
+              "type"
+            ],
+            "item_type": "file_change",
+            "status": "in_progress"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "changes",
+              "id",
+              "status",
+              "type"
+            ],
+            "item_type": "file_change",
+            "status": "completed"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 8,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          ""
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "apply_patch"
+            }
+          ],
+          "tool_names": {
+            "apply_patch": 1
+          }
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "apply_patch"
+            }
+          ],
+          "tool_names": {
+            "apply_patch": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "apply_patch",
+      "name": "apply_patch_2",
+      "pretool_input_validation": {
+        "command_string_count": 1,
+        "exact_requested_patch_count": 1,
+        "has_patch_markers_count": 1,
+        "pretool_payload_count": 1,
+        "tool_input_object_count": 1
+      },
+      "returncode": 0,
+      "sandbox_mode": "danger-full-access",
+      "session_storage": "ephemeral",
+      "target_state": {
+        "changed_to_other_content": false,
+        "exact_expected_content": true,
+        "unchanged": false
+      },
+      "timed_out": false
+    },
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [],
+        "event_type_counts": {
+          "item.completed": 4,
+          "item.started": 1,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.started",
+            "item_keys": [
+              "changes",
+              "id",
+              "status",
+              "type"
+            ],
+            "item_type": "file_change",
+            "status": "in_progress"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "changes",
+              "id",
+              "status",
+              "type"
+            ],
+            "item_type": "file_change",
+            "status": "completed"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 8,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          ""
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "apply_patch"
+            }
+          ],
+          "tool_names": {
+            "apply_patch": 1
+          }
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "apply_patch"
+            }
+          ],
+          "tool_names": {
+            "apply_patch": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "apply_patch",
+      "name": "apply_patch_3",
+      "pretool_input_validation": {
+        "command_string_count": 1,
+        "exact_requested_patch_count": 1,
+        "has_patch_markers_count": 1,
+        "pretool_payload_count": 1,
+        "tool_input_object_count": 1
+      },
+      "returncode": 0,
+      "sandbox_mode": "danger-full-access",
+      "session_storage": "ephemeral",
+      "target_state": {
+        "changed_to_other_content": false,
+        "exact_expected_content": true,
+        "unchanged": false
+      },
+      "timed_out": false
+    },
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [
+          "sandbox_loopback_setup_failure",
+          "sandbox_setup_failure",
+          "tool_error"
+        ],
+        "event_type_counts": {
+          "item.completed": 4,
+          "item.started": 1,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.started",
+            "item_keys": [
+              "agents_states",
+              "id",
+              "prompt",
+              "receiver_thread_ids",
+              "sender_thread_id",
+              "status",
+              "tool",
+              "type"
+            ],
+            "item_type": "collab_tool_call",
+            "status": "in_progress"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "agents_states",
+              "id",
+              "prompt",
+              "receiver_thread_ids",
+              "sender_thread_id",
+              "status",
+              "tool",
+              "type"
+            ],
+            "item_type": "collab_tool_call",
+            "status": "completed"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 8,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          "Non-empty."
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))",
+          "<TIMESTAMP> ERROR codex_core::tools::router: error=unable to locate image at `<WORKSPACE>/probe-target.txt`: fs sandbox helper failed with status exit status: 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 4,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationspawn_agent"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "list_mcp_resources"
+            },
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationwait_agent"
+            }
+          ],
+          "tool_names": {
+            "Bash": 1,
+            "collaborationspawn_agent": 1,
+            "collaborationwait_agent": 1,
+            "list_mcp_resources": 1
+          }
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 5,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationspawn_agent"
+            },
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationwait_agent"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "list_mcp_resources"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "view_image"
+            }
+          ],
+          "tool_names": {
+            "Bash": 1,
+            "collaborationspawn_agent": 1,
+            "collaborationwait_agent": 1,
+            "list_mcp_resources": 1,
+            "view_image": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 1,
+          "samples": [
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SubagentStart",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStop": {
+          "count": 1,
+          "samples": [
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SubagentStop",
+              "payload_keys": [
+                "agent_id",
+                "agent_transcript_path",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "subagent",
+      "name": "subagent_1",
+      "returncode": 0,
+      "sandbox_mode": "workspace-write",
+      "session_storage": "disposable_home_persisted",
+      "timed_out": false
+    },
+    {
+      "codex_json_evidence": {
+        "diagnostic_categories": [
+          "sandbox_loopback_setup_failure",
+          "sandbox_setup_failure",
+          "tool_error"
+        ],
+        "event_type_counts": {
+          "item.completed": 5,
+          "item.started": 1,
+          "thread.started": 1,
+          "turn.completed": 1,
+          "turn.started": 1
+        },
+        "item_evidence": [
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "message",
+              "type"
+            ],
+            "item_type": "error"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          },
+          {
+            "event_type": "item.started",
+            "item_keys": [
+              "agents_states",
+              "id",
+              "prompt",
+              "receiver_thread_ids",
+              "sender_thread_id",
+              "status",
+              "tool",
+              "type"
+            ],
+            "item_type": "collab_tool_call",
+            "status": "in_progress"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "agents_states",
+              "id",
+              "prompt",
+              "receiver_thread_ids",
+              "sender_thread_id",
+              "status",
+              "tool",
+              "type"
+            ],
+            "item_type": "collab_tool_call",
+            "status": "completed"
+          },
+          {
+            "event_type": "item.completed",
+            "item_keys": [
+              "id",
+              "text",
+              "type"
+            ],
+            "item_type": "agent_message"
+          }
+        ],
+        "json_line_count": 9,
+        "parse_error_count": 0,
+        "sanitized_agent_message_diagnostics": [
+          "I\u2019ll delegate that single file check and wait for its report.",
+          "non-empty"
+        ],
+        "sanitized_error_messages": [
+          "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+        ],
+        "sanitized_stderr_diagnostics": [
+          "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<PROBE_ROOT>/codex-home\"))",
+          "<TIMESTAMP> ERROR codex_core::tools::router: error=unable to locate image at `<WORKSPACE>/probe-target.txt`: fs sandbox helper failed with status exit status: 1: bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+        ],
+        "stderr_nonempty": true
+      },
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 4,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationspawn_agent"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            },
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PostToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_response",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationwait_agent"
+            }
+          ],
+          "tool_names": {
+            "Bash": 2,
+            "collaborationspawn_agent": 1,
+            "collaborationwait_agent": 1
+          }
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 5,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationspawn_agent"
+            },
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "collaborationwait_agent"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "Bash"
+            },
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "PreToolUse",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "tool_input",
+                "tool_name",
+                "tool_use_id",
+                "transcript_path",
+                "turn_id"
+              ],
+              "tool_name": "view_image"
+            }
+          ],
+          "tool_names": {
+            "Bash": 2,
+            "collaborationspawn_agent": 1,
+            "collaborationwait_agent": 1,
+            "view_image": 1
+          }
+        },
+        "SessionStart": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SessionStart",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "source",
+                "transcript_path"
+              ],
+              "source": "startup"
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "Stop": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "Stop",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStart": {
+          "count": 1,
+          "samples": [
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SubagentStart",
+              "payload_keys": [
+                "agent_id",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "SubagentStop": {
+          "count": 1,
+          "samples": [
+            {
+              "agent_type": "default",
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "SubagentStop",
+              "payload_keys": [
+                "agent_id",
+                "agent_transcript_path",
+                "agent_type",
+                "cwd",
+                "hook_event_name",
+                "last_assistant_message",
+                "model",
+                "permission_mode",
+                "session_id",
+                "stop_hook_active",
+                "transcript_path",
+                "turn_id"
+              ],
+              "stop_hook_active": false
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        },
+        "UserPromptSubmit": {
+          "count": 1,
+          "samples": [
+            {
+              "cwd": "<WORKSPACE>",
+              "hook_event_name": "UserPromptSubmit",
+              "payload_keys": [
+                "cwd",
+                "hook_event_name",
+                "model",
+                "permission_mode",
+                "prompt",
+                "session_id",
+                "transcript_path",
+                "turn_id"
+              ]
+            }
+          ],
+          "tool_names": {
+            "<missing>": 1
+          }
+        }
+      },
+      "kind": "subagent",
+      "name": "subagent_2",
+      "returncode": 0,
+      "sandbox_mode": "workspace-write",
+      "session_storage": "disposable_home_persisted",
+      "timed_out": false
+    },
+    {
+      "hook_events": {
+        "PostCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PostToolUse": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreCompact": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "PreToolUse": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SessionStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "Stop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStart": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "SubagentStop": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        },
+        "UserPromptSubmit": {
+          "count": 0,
+          "samples": [],
+          "tool_names": {}
+        }
+      },
+      "kind": "compact",
+      "name": "compact_interactive",
+      "pty_evidence": {
+        "bounded_seconds": 47,
+        "compact_slash_command_sent": true,
+        "postcompact_hook_observed_during_wait": false,
+        "precompact_hook_observed_during_wait": false,
+        "prompt_hook_observed": false,
+        "prompt_sent": true,
+        "stop_hook_observed_before_compact": false,
+        "tui_output_bytes_observed": 8964,
+        "tui_text_retained": false
+      },
+      "returncode": 0,
+      "sandbox_mode": "workspace-write",
+      "session_storage": "disposable_home_persisted",
+      "timed_out": false
+    }
+  ],
+  "codex_version": "codex-cli 0.144.1",
+  "documentation": {
+    "checked_on": "2026-07-11",
+    "hook_reference": "https://learn.chatgpt.com/docs/hooks"
+  },
+  "fixture_schema": 2,
+  "generated_at": "2026-07-11T20:34:37+00:00",
+  "observed_events": {
+    "PostCompact": {
+      "count": 0,
+      "observed": false,
+      "samples": []
+    },
+    "PostToolUse": {
+      "count": 11,
+      "observed": true,
+      "samples": [
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "Bash"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "apply_patch"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "collaborationspawn_agent"
+        },
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "Bash"
+        },
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "list_mcp_resources"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PostToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_response",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "collaborationwait_agent"
+        }
+      ]
+    },
+    "PreCompact": {
+      "count": 0,
+      "observed": false,
+      "samples": []
+    },
+    "PreToolUse": {
+      "count": 14,
+      "observed": true,
+      "samples": [
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "Bash"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "apply_patch"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "collaborationspawn_agent"
+        },
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "collaborationwait_agent"
+        },
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "Bash"
+        },
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "list_mcp_resources"
+        },
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "PreToolUse",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "tool_input",
+            "tool_name",
+            "tool_use_id",
+            "transcript_path",
+            "turn_id"
+          ],
+          "tool_name": "view_image"
+        }
+      ]
+    },
+    "SessionStart": {
+      "count": 6,
+      "observed": true,
+      "samples": [
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "SessionStart",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "source",
+            "transcript_path"
+          ],
+          "source": "startup"
+        }
+      ]
+    },
+    "Stop": {
+      "count": 6,
+      "observed": true,
+      "samples": [
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "Stop",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "stop_hook_active": false
+        }
+      ]
+    },
+    "SubagentStart": {
+      "count": 2,
+      "observed": true,
+      "samples": [
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "SubagentStart",
+          "payload_keys": [
+            "agent_id",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ]
+        }
+      ]
+    },
+    "SubagentStop": {
+      "count": 2,
+      "observed": true,
+      "samples": [
+        {
+          "agent_type": "default",
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "SubagentStop",
+          "payload_keys": [
+            "agent_id",
+            "agent_transcript_path",
+            "agent_type",
+            "cwd",
+            "hook_event_name",
+            "last_assistant_message",
+            "model",
+            "permission_mode",
+            "session_id",
+            "stop_hook_active",
+            "transcript_path",
+            "turn_id"
+          ],
+          "stop_hook_active": false
+        }
+      ]
+    },
+    "UserPromptSubmit": {
+      "count": 6,
+      "observed": true,
+      "samples": [
+        {
+          "cwd": "<WORKSPACE>",
+          "hook_event_name": "UserPromptSubmit",
+          "payload_keys": [
+            "cwd",
+            "hook_event_name",
+            "model",
+            "permission_mode",
+            "prompt",
+            "session_id",
+            "transcript_path",
+            "turn_id"
+          ]
+        }
+      ]
+    }
+  },
+  "observed_tool_names": {
+    "Bash": {
+      "post": 4,
+      "pre": 4
+    },
+    "apply_patch": {
+      "post": 2,
+      "pre": 3
+    },
+    "collaborationspawn_agent": {
+      "post": 2,
+      "pre": 2
+    },
+    "collaborationwait_agent": {
+      "post": 2,
+      "pre": 2
+    },
+    "list_mcp_resources": {
+      "post": 1,
+      "pre": 1
+    },
+    "view_image": {
+      "post": 0,
+      "pre": 2
+    }
+  },
+  "probe": {
+    "attempt_count": 7,
+    "expected_cli_version": "0.144.1",
+    "hook_trust": "documented_one_off_bypass_scoped_to_disposable_home",
+    "kind": "live_multi_attempt_disposable_codex_home",
+    "normal_config_hooks_auth_mutated": false,
+    "normal_persisted_hook_trust_written": false
+  },
+  "registration_assessments": [
+    {
+      "assessment": "supported_observed",
+      "reason": "observed 3 apply_patch PreToolUse events from 3 exact inputs",
+      "registration": "PreToolUse matcher=apply_patch|Edit|Write"
+    },
+    {
+      "assessment": "supported_observed",
+      "reason": "the Bash control emitted 1 pre-hook and 1 post-hook",
+      "registration": "PreToolUse/PostToolUse matcher=Bash"
+    },
+    {
+      "assessment": "supported_observed_after_successful_mutation",
+      "reason": "2 exact mutations produced 2 corresponding PostToolUse observations",
+      "registration": "PostToolUse matcher=apply_patch|Edit|Write"
+    },
+    {
+      "assessment": "supported_observed_after_completed_subagent",
+      "reason": "2 dedicated attempt(s) emitted paired start/stop events and 2 completed collaboration item(s)",
+      "registration": "SubagentStart/SubagentStop"
+    },
+    {
+      "assessment": "runtime_unverified_pty_input_not_accepted",
+      "reason": "the PTY sent a prompt and /compact, but no UserPromptSubmit hook proved TUI acceptance",
+      "registration": "PreCompact"
+    },
+    {
+      "assessment": "runtime_unverified_pty_input_not_accepted",
+      "reason": "the PTY sent a prompt and /compact, but no UserPromptSubmit hook proved TUI acceptance",
+      "registration": "PostCompact"
+    }
+  ],
+  "sanitization": {
+    "agent_messages_path_and_secret_sanitized_and_truncated": true,
+    "authentication_material_omitted": true,
+    "codex_exec_json_reduced_to_schema_status_and_error_categories": true,
+    "raw_prompts_commands_tool_input_and_tool_output_omitted": true,
+    "temporary_and_home_paths_tokenized": true
+  },
+  "validation": {
+    "core_passed": true,
+    "core_required_events": {
+      "SessionStart": true,
+      "Stop": true,
+      "UserPromptSubmit": true
+    },
+    "exit_semantics": {
+      "allow_unverified_compaction": true,
+      "default_exit_code": 2,
+      "effective_exit_code": 0
+    },
+    "overall_status": "partial_with_documented_limitations",
+    "requested_events": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "PreCompact",
+      "PostCompact",
+      "SubagentStart",
+      "SubagentStop",
+      "Stop"
+    ],
+    "trigger_validation": {
+      "apply_patch_pre_post": {
+        "attempt_count": 3,
+        "exact_mutation_count": 2,
+        "exact_requested_patch_input_count": 3,
+        "passed": true,
+        "post_count": 2,
+        "pre_count": 3,
+        "successful_mutations_with_post_count": 2
+      },
+      "bash_pre_post": {
+        "passed": true,
+        "post_count": 1,
+        "pre_count": 1
+      },
+      "compaction_lifecycle": {
+        "interactive_command_acceptance_demonstrated": false,
+        "interactive_prompt_hook_observed": false,
+        "interactive_pty_attempted": true,
+        "noninteractive_trigger_available_in_codex_exec": false,
+        "passed": false,
+        "post_count": 0,
+        "pre_count": 0
+      },
+      "subagent_lifecycle": {
+        "attempt_count": 2,
+        "completed_collaboration_item_count": 2,
+        "passed": true,
+        "spawn_tool_pre_count": 2,
+        "start_count": 2,
+        "stop_count": 2,
+        "successful_lifecycle_attempt_count": 2
+      }
+    }
+  }
+}

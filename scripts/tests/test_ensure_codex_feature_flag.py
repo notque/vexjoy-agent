@@ -80,12 +80,23 @@ class TestNeedsUpdate:
         assert write_needed is True
         assert action == "added-key"
 
-    def test_hooks_true_returns_already_present(self) -> None:
-        """hooks = true means no write is needed."""
-        content = "[features]\nhooks = true\n"
+    def test_required_settings_return_already_present(self) -> None:
+        """A fully configured file needs no write."""
+        content = (
+            "[features]\nhooks = true\n\n"
+            "[features.multi_agent_v2]\n"
+            "hide_spawn_agent_metadata = false\n"
+            'tool_namespace = "agents"\n'
+        )
         write_needed, action = needs_update(content)
         assert write_needed is False
         assert action == "already-present"
+
+    def test_hooks_only_adds_subagent_routing(self) -> None:
+        """Existing hooks config still needs MultiAgent V2 compatibility."""
+        write_needed, action = needs_update("[features]\nhooks = true\n")
+        assert write_needed is True
+        assert action == "added-subagent-routing"
 
     def test_hooks_false_exits_2(self) -> None:
         """hooks = false must exit with code 2."""
@@ -153,10 +164,42 @@ class TestApplyUpdate:
         assert parsed["features"]["hooks"] is True
 
     def test_already_present_returns_identical_content(self) -> None:
-        """Content that already has the flag is returned unchanged."""
-        original = "[features]\nhooks = true\n"
+        """A fully configured file is returned unchanged."""
+        original = (
+            "[features]\nhooks = true\n\n"
+            "[features.multi_agent_v2]\n"
+            "hide_spawn_agent_metadata = false\n"
+            'tool_namespace = "agents"\n'
+        )
         result = apply_update(original)
         assert result == original
+
+    @requires_tomllib
+    def test_adds_multi_agent_v2_subagent_routing_compatibility(self) -> None:
+        """Sol coordinators retain explicit per-subagent routing fields."""
+        result = apply_update("[features]\nhooks = true\n")
+        parsed = tomllib.loads(result)
+        assert parsed["features"]["multi_agent_v2"] == {
+            "hide_spawn_agent_metadata": False,
+            "tool_namespace": "agents",
+        }
+
+    @requires_tomllib
+    def test_repairs_multi_agent_v2_values_and_preserves_other_keys(self) -> None:
+        """Conflicting routing values are replaced without losing peer keys."""
+        original = (
+            "[features]\nhooks = true\n\n"
+            "[features.multi_agent_v2]\n"
+            "hide_spawn_agent_metadata = true\n"
+            'tool_namespace = "tools"\n'
+            "usage_hint_enabled = false\n"
+        )
+        parsed = tomllib.loads(apply_update(original))
+        assert parsed["features"]["multi_agent_v2"] == {
+            "hide_spawn_agent_metadata": False,
+            "tool_namespace": "agents",
+            "usage_hint_enabled": False,
+        }
 
     @requires_tomllib
     def test_both_keys_strips_deprecated_keeps_hooks(self) -> None:
@@ -298,9 +341,14 @@ class TestCLI:
         assert parsed["features"]["goals"] is True
 
     def test_already_present_is_noop(self, tmp_path: Path) -> None:
-        """Pre-existing flag produces no file change and reports already-present."""
+        """All required settings produce no change and report already-present."""
         cfg = tmp_path / "config.toml"
-        original = "[features]\nhooks = true\n"
+        original = (
+            "[features]\nhooks = true\n\n"
+            "[features.multi_agent_v2]\n"
+            "hide_spawn_agent_metadata = false\n"
+            'tool_namespace = "agents"\n'
+        )
         cfg.write_text(original, encoding="utf-8")
         result = _run(["--config", str(cfg), "--no-backup"])
         assert result.returncode == 0

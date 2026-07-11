@@ -1,55 +1,103 @@
-# Codex hooks allowlist — Phase 1 (safe on Codex v0.114.0+)
-# See adr/182-codex-hooks-mirror.md for rationale.
-# Format: EVENT:filename [matcher]
-# Lines starting with # are comments. Blank lines ignored.
+# Codex hooks compatibility inventory — current surface (verified on v0.144.1)
 #
-# Phase 2 hooks (edit-guards blocked on openai/codex#16732) are deliberately excluded.
+# ADR-182's six-hook set was correct for Codex v0.114: tool hooks then fired
+# only for Bash. Current Codex supports ten command-hook events plus Bash,
+# apply_patch (with Edit/Write aliases), and MCP tool matchers. This is a later
+# upstream capability expansion, not a defect in the original integration.
 #
-# IMPORTANT: This list was corrected during ADR-182 implementation (2026-04-11) after
-# an audit of actual hook source files revealed the initial ADR Phase 1 table contained
-# misclassifications. The corrected Phase 1 includes ONLY hooks that are verified to be:
-#   1. Present in hooks/ directory (not a ghost reference)
-#   2. Functional (not a disabled stub that returns empty_output immediately)
-#   3. Registered at an event type that Codex supports AND fires correctly
-#   4. Either not a tool-interception hook, OR interception is Bash-only
+# Format:
+#   EVENT:filename [matcher=REGEX] class=native|adapted mode=MODE failure=open|closed
+# MODE is native, prompt, patch, precompact, subagent-stop, or stop.
+# UserPromptSubmit and Stop do not accept matcher metadata. Every production
+# entry is explicit; generator legacy parsing exists only for upgrade errors.
+#
+# Accounting against .claude/settings.json:
+#   76 registrations = 26 native + 36 adapted + 14 unsupported.
 
-# ----- Phase 1: functional + verified safe -----
+# Native SessionStart (12)
+SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-context.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:cross-repo-agents.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:fish-shell-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:zsh-shell-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:sapcc-go-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:operator-context-detector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-github-briefing.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-adr-health-check.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:team-config-loader.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:rules-distill-injector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-manifest-cache.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 
-# SessionStart injectors (pure stdout, no tool interception, Codex fires on startup or resume)
-SessionStart:session-github-briefing.py
-SessionStart:operator-context-detector.py
-SessionStart:team-config-loader.py
-SessionStart:rules-distill-injector.py
+# Adapted SessionStart: path/environment normalization (2)
+SessionStart:sync-to-user-claude.py matcher=startup|resume|clear|compact class=adapted mode=native failure=open
+SessionStart:hook-version-parity-check.py matcher=startup|resume|clear|compact class=adapted mode=native failure=open
 
-# Stop recorders (pure observation, no tool interception)
-Stop:session-learning-recorder.py
+# Native UserPromptSubmit (3)
+UserPromptSubmit:review-false-positive-capture.py class=native mode=native failure=open
+UserPromptSubmit:prompt-capture.py class=native mode=native failure=open
+UserPromptSubmit:routing-outcome-finalizer.py class=native mode=native failure=open
 
-# PostToolUse Bash scanners (Bash matcher is the only supported PreTool/PostTool case per #16732)
-PostToolUse:posttool-bash-injection-scan.py Bash
+# Adapted UserPromptSubmit: top-level prompt/userMessage normalization (3)
+UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=open
+UserPromptSubmit:user-correction-capture.py class=adapted mode=prompt failure=open
+UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
 
-# ----- Deliberately EXCLUDED from Phase 1 -----
-#
-# The following appeared in the ADR-182 draft Phase 1 table but are removed here
-# because direct inspection of hooks/*.py and ~/.claude/settings.json revealed errors.
-#
-# Category A: Phase 2 interceptors misclassified as Phase 1 (would silently fail per #16732)
-# These hooks fire under PreToolUse or PostToolUse with Write|Edit matchers. Codex will
-# register them but never invoke them because Codex hardcodes tool_name="Bash" for hook
-# dispatch. A silently-registered-but-never-fires hook is worse than a missing one because
-# users assume the hook is protecting them.
-#   pretool-prompt-injection-scanner.py  -- actually PreToolUse:Write|Edit (file docstring line 4)
-#   suggest-compact.py                   -- actually PreToolUse:{Edit,Write} (file docstring line 4)
-#   sql-injection-detector.py            -- actually PostToolUse:Write|Edit (file docstring line 4)
-#
-# Category B: non-existent file
-#   pretool-bash-injection-scan.py       -- only posttool-bash-injection-scan.py exists
-#
-# Category C: disabled stubs (empty_output().print_and_exit() on every call)
-# These exist as files but do nothing. Mirroring them costs install time for zero effect.
-# If a future redesign makes them functional, re-evaluate for Phase 1 inclusion.
-#   adr-context-injector.py              -- stub, "DISABLED pending redesign"
-#   capability-catalog-injector.py       -- disabled after A/B test determined it injected 52KB redundant JSON
-#   instruction-reminder.py              -- stub retained for settings.json compatibility
-#   retro-knowledge-injector.py          -- stub; injection handled by session-context.py
-#   creation-request-enforcer-userprompt.py -- stub retained for settings.json compatibility
-#   auto-plan-detector.py                -- removed (no-op stub deleted)
+# Native PreToolUse Bash enforcement (5)
+PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:ci-merge-gate.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:pretool-ruff-format-gate.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:pretool-private-name-leak-gate.py matcher=Bash class=native mode=native failure=closed
+PreToolUse:security-review-hook.py matcher=Bash class=native mode=native failure=closed
+
+# Adapted PreToolUse apply_patch/Edit|Write (11)
+PreToolUse:suggest-compact.py matcher=Edit|Write class=adapted mode=patch failure=open
+PreToolUse:pretool-unified-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-worktree-edit-guard.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-learning-injector.py matcher=Edit|Write class=adapted mode=patch failure=open
+PreToolUse:pretool-synthesis-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-plan-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-prompt-injection-scanner.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pipeline-phase-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:reference-loading-gate.py matcher=Edit|Write class=adapted mode=patch failure=open
+PreToolUse:pretool-adr-creation-gate.py matcher=Edit|Write class=adapted mode=patch failure=closed
+PreToolUse:pretool-file-backup.py matcher=Edit|Write class=adapted mode=patch failure=open
+
+# Native PostToolUse Bash observers (4)
+PostToolUse:retro-graduation-gate.py matcher=Bash class=native mode=native failure=open
+PostToolUse:adr-lifecycle-on-merge.py matcher=Bash class=native mode=native failure=open
+PostToolUse:posttool-bash-injection-scan.py matcher=Bash class=native mode=native failure=open
+PostToolUse:posttool-rename-sweep.py matcher=Bash class=native mode=native failure=open
+
+# Adapted PostToolUse apply_patch/Edit|Write observers (13)
+PostToolUse:posttool-lint-hint.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:adr-enforcement.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttool-security-scan.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttool-skill-frontmatter-check.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttooluse-joy-check-warn.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttooluse-sync-skill-index.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttooluse-sync-agent-index.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttool-docs-drift-alert.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:security-review-hook.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:record-activation.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:error-learner.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:record-waste.py matcher=Edit|Write class=adapted mode=patch failure=open
+PostToolUse:posttool-auto-test.py matcher=Edit|Write class=adapted mode=patch failure=open
+
+# Adapted PreCompact: Codex lacks Claude conversation_history telemetry (1)
+PreCompact:precompact-archive.py matcher=manual|auto class=adapted mode=precompact failure=open
+
+# SubagentStop (1 native, 1 adapted)
+SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
+SubagentStop:subagent-completion-guard.py matcher=* class=adapted mode=subagent-stop failure=open
+
+# Stop (1 native, 5 adapted). Codex lacks Claude session_data telemetry.
+Stop:confidence-decay.py class=native mode=native failure=open
+Stop:stop-drift-guard.py class=adapted mode=stop failure=open
+Stop:session-summary.py class=adapted mode=stop failure=open
+Stop:session-learning-recorder.py class=adapted mode=stop failure=open
+Stop:knowledge-graduation-proposer.py class=adapted mode=stop failure=open
+Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
+
+# Unsupported 14 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
+# four PreToolUse:Agent; six PostToolUse:Read/Skill/Agent/Workflow;
+# TaskCompleted; StopFailure; and PostCompact model-context reinjection.

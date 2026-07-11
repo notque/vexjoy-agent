@@ -2,7 +2,9 @@
 """
 Generate ~/.codex/hooks.json from a curated allowlist file.
 
-The allowlist format is one entry per line: EVENT:filename [matcher]
+Current entries use:
+    EVENT:filename [matcher=REGEX] class=native|adapted mode=MODE failure=open|closed
+
 Comments (lines starting with #) and blank lines are ignored.
 
 Usage:
@@ -14,12 +16,23 @@ Usage:
 import argparse
 import json
 import os
+import re
+import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
 
-# Events that require a matcher (Codex requires tool name to filter on).
-EVENTS_REQUIRING_MATCHER = {"PreToolUse", "PostToolUse"}
+# Events that support a matcher in Codex 0.144.1.
+EVENTS_SUPPORTING_MATCHER = {
+    "SessionStart",
+    "SubagentStart",
+    "PreToolUse",
+    "PermissionRequest",
+    "PostToolUse",
+    "PreCompact",
+    "PostCompact",
+    "SubagentStop",
+}
 
 # Events where matcher should default to "startup|resume" when omitted.
 EVENTS_WITH_DEFAULT_MATCHER = {"SessionStart"}
@@ -28,9 +41,74 @@ EVENTS_WITH_DEFAULT_MATCHER = {"SessionStart"}
 EVENTS_WITHOUT_MATCHER = {"UserPromptSubmit", "Stop"}
 
 # All known Codex events, in the canonical output order.
-EVENT_ORDER = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
+EVENT_ORDER = [
+    "SessionStart",
+    "SubagentStart",
+    "PreToolUse",
+    "PermissionRequest",
+    "PostToolUse",
+    "PreCompact",
+    "PostCompact",
+    "UserPromptSubmit",
+    "SubagentStop",
+    "Stop",
+]
 
 ALL_KNOWN_EVENTS = set(EVENT_ORDER)
+ADAPTER_MODES = {"native", "prompt", "patch", "precompact", "subagent-stop", "stop"}
+FAILURE_POLICIES = {"open", "closed"}
+CLASSIFICATIONS = {"native", "adapted"}
+MODE_EVENTS = {
+    "prompt": {"UserPromptSubmit"},
+    "patch": {"PreToolUse", "PostToolUse"},
+    "precompact": {"PreCompact"},
+    "subagent-stop": {"SubagentStop"},
+    "stop": {"Stop"},
+}
+
+# Registrations intentionally excluded from the Codex mirror. Keeping this in
+# production code makes unsupported coverage machine-readable and forces every
+# Claude registration to have a precise reviewed decision.
+UNSUPPORTED_REGISTRATIONS = {
+    ("PreToolUse", "reference-loading-enforcer.py"): (
+        "Codex SubagentStart omits the Agent task prompt and tool input this reference injector requires."
+    ),
+    ("PreToolUse", "pretool-subagent-warmstart.py"): (
+        "Codex SubagentStart omits the dispatched Agent prompt needed to build the warm-start payload."
+    ),
+    ("PreToolUse", "creation-protocol-enforcer.py"): (
+        "Codex SubagentStart does not expose the Agent task text used to detect creation requests."
+    ),
+    ("PreToolUse", "pretool-section-integrity-validator.py"): (
+        "Codex SubagentStart does not expose the Agent tool input whose routed sections this validator checks."
+    ),
+    ("PostToolUse", "posttool-session-reads.py"): (
+        "Codex tool hooks do not intercept the built-in Read path that supplies this session-read event."
+    ),
+    ("PostToolUse", "usage-tracker.py"): (
+        "Codex has no PostToolUse surface for Claude Skill or Agent tool invocations tracked here."
+    ),
+    ("PostToolUse", "review-capture.py"): (
+        "Codex has no PostToolUse Agent result carrying the structured reviewer output this hook captures."
+    ),
+    ("PostToolUse", "instruction-compliance.py"): (
+        "Codex has no PostToolUse Agent transcript result required for instruction-compliance scoring."
+    ),
+    ("PostToolUse", "routing-decision-recorder.py"): (
+        "Codex has no PostToolUse Agent or Workflow result containing the routed decision marker."
+    ),
+    ("PostToolUse", "completion-evidence-check.py"): (
+        "Codex has no PostToolUse Agent result containing the completion evidence this checker evaluates."
+    ),
+    ("PostToolUse", "agent-grade-on-change.py"): (
+        "Codex copy installs omit evals/harness.py, and this hook emits an ad hoc message object outside the hook schema."
+    ),
+    ("TaskCompleted", "task-completed-learner.py"): ("Codex 0.144.1 does not publish a TaskCompleted lifecycle event."),
+    ("StopFailure", "stop-failure-handler.py"): ("Codex 0.144.1 does not publish a StopFailure lifecycle event."),
+    ("PostCompact", "postcompact-handler.py"): (
+        "Codex PostCompact cannot inject the model-visible plan context that is this hook's core behavior."
+    ),
+}
 
 
 def parse_allowlist(text: str) -> list[dict]:
@@ -40,7 +118,7 @@ def parse_allowlist(text: str) -> list[dict]:
         text: Contents of the allowlist file (not a path; the raw text).
 
     Returns:
-        List of dicts with keys: event, filename, matcher (str or None).
+        List of dicts with event, filename, matcher, mode, and failure_policy.
 
     Raises:
         ValueError: On malformed lines (includes line number in message).
@@ -62,45 +140,113 @@ def parse_allowlist(text: str) -> list[dict]:
             raise ValueError(f"Line {lineno}: missing filename after ':' in {raw!r}.")
 
         filename = rest_parts[0]
-        matcher: str | None = rest_parts[1] if len(rest_parts) > 1 else None
-
         if event not in ALL_KNOWN_EVENTS:
             known = ", ".join(sorted(ALL_KNOWN_EVENTS))
             raise ValueError(f"Line {lineno}: unknown event {event!r}. Known events: {known}.")
+        if not filename.endswith(".py") or "/" in filename or "\\" in filename:
+            raise ValueError(f"Line {lineno}: filename must be a bare .py hook name, got {filename!r}.")
 
-        if event in EVENTS_REQUIRING_MATCHER and matcher is None:
-            raise ValueError(
-                f"Line {lineno}: {event} requires a matcher (e.g. 'Bash') because Codex "
-                f"only fires {event} for named tools. Add 'Bash' after the filename: "
-                f"'{event}:{filename} Bash'."
-            )
+        matcher: str | None = None
+        mode = "native"
+        failure_policy = "open"
+        classification = "native"
 
-        entries.append({"event": event, "filename": filename, "matcher": matcher})
+        metadata: dict[str, str] = {}
+        for token in rest_parts[1:]:
+            if "=" not in token:
+                raise ValueError(f"Line {lineno}: current entries require explicit key=value metadata.")
+            key, value = token.split("=", 1)
+            if key not in {"matcher", "class", "mode", "failure"}:
+                raise ValueError(f"Line {lineno}: unknown metadata key {key!r}.")
+            if key in metadata:
+                raise ValueError(f"Line {lineno}: duplicate metadata key {key!r}.")
+            if not value:
+                raise ValueError(f"Line {lineno}: metadata key {key!r} has an empty value.")
+            metadata[key] = value
+        required_metadata = {"class", "mode", "failure"}
+        missing_metadata = sorted(required_metadata - metadata.keys())
+        if missing_metadata:
+            raise ValueError(f"Line {lineno}: missing required metadata: {', '.join(missing_metadata)}.")
+        matcher = metadata.get("matcher")
+        mode = metadata["mode"]
+        failure_policy = metadata["failure"]
+        classification = metadata["class"]
+
+        if mode not in ADAPTER_MODES:
+            raise ValueError(f"Line {lineno}: unknown adapter mode {mode!r}.")
+        if failure_policy not in FAILURE_POLICIES:
+            raise ValueError(f"Line {lineno}: unknown failure policy {failure_policy!r}.")
+        if classification not in CLASSIFICATIONS:
+            raise ValueError(f"Line {lineno}: unknown compatibility class {classification!r}.")
+        if classification == "native" and mode != "native":
+            raise ValueError(f"Line {lineno}: class=native requires mode=native.")
+        if event in EVENTS_WITHOUT_MATCHER and matcher is not None:
+            raise ValueError(f"Line {lineno}: {event} does not support matcher metadata.")
+        if event in EVENTS_SUPPORTING_MATCHER and matcher is None:
+            raise ValueError(f"Line {lineno}: {event} requires explicit matcher=... metadata.")
+        allowed_events = MODE_EVENTS.get(mode)
+        if allowed_events is not None and event not in allowed_events:
+            raise ValueError(f"Line {lineno}: mode={mode} is not valid for {event}.")
+        if mode == "patch" and (matcher is None or re.search(r"Edit|Write|apply_patch", matcher) is None):
+            raise ValueError(f"Line {lineno}: patch mode requires an Edit, Write, or apply_patch matcher.")
+
+        entries.append(
+            {
+                "event": event,
+                "filename": filename,
+                "matcher": matcher,
+                "mode": mode,
+                "failure_policy": failure_policy,
+                "classification": classification,
+            }
+        )
+
+    seen: set[tuple[str, str]] = set()
+    for entry in entries:
+        key = (entry["event"], entry["filename"])
+        if key in seen:
+            raise ValueError(f"Duplicate hook registration: {entry['event']}:{entry['filename']}.")
+        seen.add(key)
 
     return entries
 
 
-def build_hooks_json(entries: list[dict], codex_hooks_dir: str | None = None) -> dict:
+def validate_hook_files(entries: list[dict], source_hooks_dir: Path) -> None:
+    """Reject commands whose adapter or target hook is absent."""
+    required = {"codex-hook-adapter.py", *(entry["filename"] for entry in entries)}
+    missing = sorted(filename for filename in required if not (source_hooks_dir / filename).is_file())
+    if missing:
+        raise ValueError(f"Missing Codex hook source files in {source_hooks_dir}: {', '.join(missing)}")
+
+
+def build_hooks_json(
+    entries: list[dict],
+    codex_hooks_dir: str | None = None,
+    source_hooks_dir: Path | None = None,
+) -> dict:
     """Build the Codex hooks.json structure from parsed allowlist entries.
 
     Args:
         entries: List of entry dicts from parse_allowlist().
         codex_hooks_dir: Directory where hooks will reside. Defaults to $HOME/.codex/hooks.
+        source_hooks_dir: Source directory used to prove every generated hook exists.
 
     Returns:
         Dict representing the full hooks.json structure.
     """
     if codex_hooks_dir is None:
         codex_hooks_dir = os.path.join(os.environ.get("HOME", "~"), ".codex", "hooks")
+    if source_hooks_dir is None:
+        source_hooks_dir = Path(__file__).resolve().parent.parent / "hooks"
+    validate_hook_files(entries, source_hooks_dir)
 
     # Group by (event, effective_matcher) so shared matchers collapse into one block.
     # Key: (event, effective_matcher_or_None)
-    groups: dict[tuple[str, str | None], list[str]] = {}
+    groups: dict[tuple[str, str | None], list[dict]] = {}
 
     for entry in entries:
         event = entry["event"]
         raw_matcher = entry["matcher"]
-        filename = entry["filename"]
 
         # Determine the effective matcher for grouping and output.
         if event in EVENTS_WITH_DEFAULT_MATCHER and raw_matcher is None:
@@ -112,7 +258,7 @@ def build_hooks_json(entries: list[dict], codex_hooks_dir: str | None = None) ->
 
         key = (event, effective_matcher)
         groups.setdefault(key, [])
-        groups[key].append(filename)
+        groups[key].append(entry)
 
     if not groups:
         return {"hooks": {}}
@@ -131,15 +277,30 @@ def build_hooks_json(entries: list[dict], codex_hooks_dir: str | None = None) ->
 
         for key in sorted_keys:
             _, matcher = key
-            filenames = event_groups[key]
+            group_entries = event_groups[key]
 
             hook_entries = [
                 {
                     "type": "command",
-                    "command": f'python3 "{codex_hooks_dir}/{fname}"',
+                    "command": " ".join(
+                        [
+                            "python3",
+                            shlex.quote(f"{codex_hooks_dir}/codex-hook-adapter.py"),
+                            "--hook",
+                            shlex.quote(f"{codex_hooks_dir}/{entry['filename']}"),
+                            "--event",
+                            shlex.quote(entry["event"]),
+                            "--matcher",
+                            shlex.quote(entry["matcher"] or "*"),
+                            "--mode",
+                            shlex.quote(entry["mode"]),
+                            "--failure-policy",
+                            shlex.quote(entry["failure_policy"]),
+                        ]
+                    ),
                     "timeout": 600,
                 }
-                for fname in filenames
+                for entry in group_entries
             ]
 
             block: dict = {}
@@ -179,6 +340,11 @@ def main() -> None:
         default=None,
         help="Directory where hooks will live (default: $HOME/.codex/hooks).",
     )
+    parser.add_argument(
+        "--source-hooks-dir",
+        default=str(Path(__file__).resolve().parent.parent / "hooks"),
+        help="Source hooks directory used to reject missing adapter/target files.",
+    )
 
     args = parser.parse_args()
 
@@ -200,7 +366,11 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        result = build_hooks_json(entries, codex_hooks_dir=args.codex_hooks_dir)
+        result = build_hooks_json(
+            entries,
+            codex_hooks_dir=args.codex_hooks_dir,
+            source_hooks_dir=Path(args.source_hooks_dir),
+        )
     except Exception as exc:
         print(f"Error building hooks JSON: {exc}", file=sys.stderr)
         sys.exit(1)

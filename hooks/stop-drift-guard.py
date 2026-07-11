@@ -68,6 +68,7 @@ from hook_utils import (
 from stdin_timeout import read_stdin
 
 _DISABLE_ENV = "VEXJOY_DRIFT_GUARD_DISABLE"
+_TRUSTED_ROOT = Path(__file__).resolve().parent.parent
 
 # Stop-event dedup state. Absolute path so it works from any cwd the harness
 # fires in. Own state dir so this guard's dedup never collides with another hook.
@@ -230,17 +231,20 @@ def _relevant_checks(diff: str) -> list[str]:
 
 
 def _script_path(name: str) -> Path | None:
-    """Locate scripts/<name>.py across the repo and deployed layouts."""
-    here = Path(__file__).resolve()
-    candidates = [
-        here.parent.parent / "scripts" / name,  # repo: hooks/ -> scripts/
-        here.parent / "scripts" / name,
-        Path(os.path.expanduser(f"~/.claude/scripts/{name}")),
-    ]
-    for c in candidates:
-        if c.is_file():
-            return c
-    return None
+    """Locate a validator only in the hook's canonical trusted install."""
+    scripts_dir = _TRUSTED_ROOT / "scripts"
+    candidate = scripts_dir / name
+    return candidate if candidate.is_file() else None
+
+
+def _target_is_trusted_root(cwd: str | None) -> bool:
+    """Whether a validator may safely execute project-owned hook/tool code."""
+    if not cwd:
+        return False
+    try:
+        return Path(cwd).resolve() == _TRUSTED_ROOT.resolve()
+    except OSError:
+        return False
 
 
 def _run_script(script: str, args: list[str], cwd: str | None, timeout: int = 30):
@@ -254,7 +258,7 @@ def _run_script(script: str, args: list[str], cwd: str | None, timeout: int = 30
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=cwd or None,
+            cwd=str(_TRUSTED_ROOT),
         )
     except (subprocess.TimeoutExpired, OSError):
         return None
@@ -262,7 +266,14 @@ def _run_script(script: str, args: list[str], cwd: str | None, timeout: int = 30
 
 def _check_smoke(cwd: str | None) -> dict | None:
     """smoke-test-hooks.py --ci: exit 0 = clean, exit 1 = FAIL/MISSING."""
-    proc = _run_script("smoke-test-hooks.py", ["--ci"], cwd)
+    if not cwd:
+        return None
+    target_root = str(Path(cwd).resolve())
+    proc = _run_script(
+        "smoke-test-hooks.py",
+        ["--ci", "--repo-root", target_root, "--hooks-dir", str(_TRUSTED_ROOT / "hooks")],
+        cwd,
+    )
     if proc is None:
         return None
     if proc.returncode == 0:
@@ -278,7 +289,9 @@ def _check_smoke(cwd: str | None) -> dict | None:
 
 def _check_doc_counts(cwd: str | None) -> dict | None:
     """validate-doc-counts.py --json: drift when the `drifts` array is non-empty."""
-    proc = _run_script("validate-doc-counts.py", ["--json"], cwd)
+    if not cwd:
+        return None
+    proc = _run_script("validate-doc-counts.py", ["--json", "--repo-root", str(Path(cwd).resolve())], cwd)
     if proc is None:
         return None
     try:
@@ -305,6 +318,8 @@ def _check_doc_counts(cwd: str | None) -> dict | None:
 
 def _check_routing(cwd: str | None) -> dict | None:
     """check-routing-drift.py: exit 0 = clean, exit 1 = a skill missing from manifest."""
+    if not _target_is_trusted_root(cwd):
+        return None
     proc = _run_script("check-routing-drift.py", [], cwd)
     if proc is None:
         return None

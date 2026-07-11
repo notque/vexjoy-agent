@@ -274,6 +274,37 @@ class TestCLIFlag:
         assert custom_output.exists(), "Output file not created"
         json.loads(custom_output.read_text())  # must be valid JSON
 
+    def test_skill_repo_root_flag_scans_and_writes_target_repo(self, tmp_path: Path) -> None:
+        _make_skill_dir(tmp_path / "skills" / "testing", "target-skill")
+
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--repo-root", str(tmp_path)],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+        index = json.loads((tmp_path / "skills" / "INDEX.json").read_text(encoding="utf-8"))
+        assert set(index["skills"]) == {"target-skill"}
+
+    def test_agent_repo_root_flag_scans_and_writes_target_repo(self, tmp_path: Path) -> None:
+        agents = tmp_path / "agents"
+        agents.mkdir()
+        (agents / "target-agent.md").write_text(
+            "---\nname: target-agent\ndescription: Target agent fixture.\n---\n",
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [sys.executable, str(AGENT_SCRIPT), "--repo-root", str(tmp_path)],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+        index = json.loads((agents / "INDEX.json").read_text(encoding="utf-8"))
+        assert set(index["agents"]) == {"target-agent"}
+
 
 class TestPrivateIndexOutput:
     """Private-inclusive generation must never overwrite the public index name."""

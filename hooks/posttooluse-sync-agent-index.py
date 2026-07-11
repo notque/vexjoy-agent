@@ -21,6 +21,7 @@ count check reads a fresh index):
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -32,6 +33,24 @@ from stdin_timeout import read_stdin
 # agents/<name>.md, flat layout (exactly one segment after agents/).
 AGENT_FILE_RE = re.compile(r"(?:^|/)agents/[^/]+\.md$")
 _EXCLUDE = {"INDEX.md", "README.md"}
+
+
+def _project_root(event: dict) -> Path:
+    """Resolve the repository targeted by the PostToolUse event."""
+    candidate = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd()
+    return Path(candidate).resolve()
+
+
+def _generator(project_root: Path) -> Path | None:
+    """Find the generator in the hook install or target checkout."""
+    hook_install_root = Path(__file__).resolve().parent.parent
+    for candidate in (
+        hook_install_root / "scripts" / "generate-agent-index.py",
+        project_root / "scripts" / "generate-agent-index.py",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _refresh_manifest_cache() -> None:
@@ -69,17 +88,17 @@ def main() -> None:
         if not is_agent_file(file_path):
             return
 
-        repo_root = Path(__file__).resolve().parent.parent
-        generator = repo_root / "scripts" / "generate-agent-index.py"
-        if not generator.exists():
-            print(f"[sync-agent-index] generator not found: {generator}", file=sys.stderr)
+        project_root = _project_root(event)
+        generator = _generator(project_root)
+        if generator is None:
+            print("[sync-agent-index] generator not found in hook install or target project", file=sys.stderr)
             return
 
         result = subprocess.run(
-            [sys.executable, str(generator)],
+            [sys.executable, str(generator), "--repo-root", str(project_root)],
             capture_output=True,
             text=True,
-            cwd=str(repo_root),
+            cwd=str(project_root),
             timeout=12,
         )
 

@@ -69,3 +69,9 @@ def test_stop_liveness_probe_does_not_audit_the_current_repo():
 
     assert stop_payload["cwd"] != str(health.REPO_ROOT)
     assert Path(stop_payload["cwd"]).is_dir()
+
+
+def test_posttool_liveness_probe_uses_hook_utils_result_schema():
+    result = health._EVENT_BASE["PostToolUse"]["tool_result"]
+
+    assert result == {"output": "ok", "is_error": False}

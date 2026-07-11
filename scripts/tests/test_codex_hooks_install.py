@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -78,7 +79,7 @@ def _parse_allowlist_filenames() -> set[str]:
 
 
 @pytest.fixture
-def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     """Provide a clean temporary HOME directory for each test.
 
     Args:
@@ -95,7 +96,12 @@ def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # ~/.codex to simulate a machine with the Codex runtime installed.
     (home / ".codex").mkdir()
     monkeypatch.setenv("HOME", str(home))
-    return home
+    try:
+        yield home
+    finally:
+        # Copy-mode installs mirror a large script corpus. Reclaim each fake
+        # HOME immediately so the full installer suite cannot exhaust /tmp.
+        shutil.rmtree(home, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
@@ -174,18 +180,19 @@ def test_install_sh_generates_valid_hooks_json(fake_home: Path) -> None:
     assert has_session_start, "hooks.json has no SessionStart entries"
     assert has_bash_post_tool_use, "hooks.json has no PostToolUse entry with matcher='Bash'"
 
-    # Guard: no PreToolUse or PostToolUse block should have a non-Bash matcher.
-    # This catches accidental Phase 2 hook promotion (openai/codex#16732 regression).
-    for event_key in ("PreToolUse", "PostToolUse"):
-        if event_key not in data["hooks"]:
-            continue
-        for group in data["hooks"][event_key]:
-            matcher = group.get("matcher", "Bash")
-            assert matcher == "Bash", (
-                f"Non-Bash matcher '{matcher}' found in {event_key} block. "
-                "This is a Phase 2 hook regression (openai/codex#16732). "
-                f"Full group: {group}"
-            )
+    commands = [entry["command"] for groups in data["hooks"].values() for group in groups for entry in group["hooks"]]
+    assert len(commands) == 62
+    assert all("codex-hook-adapter.py" in command for command in commands)
+    assert "Codex scripts: 129 mirrored scripts" in result.stdout
+    assert "Hooks: 88 automation hooks" in result.stdout
+    assert "Scripts: 129 utility scripts" in result.stdout
+
+    tool_matchers = {
+        group.get("matcher")
+        for event_key in ("PreToolUse", "PostToolUse")
+        for group in data["hooks"].get(event_key, [])
+    }
+    assert tool_matchers == {"Bash", "Edit|Write"}
 
 
 @requires_tomllib
@@ -201,6 +208,10 @@ def test_install_sh_sets_feature_flag(fake_home: Path) -> None:
 
     assert "features" in config, "[features] section missing from config.toml"
     assert config["features"].get("hooks") is True, f"hooks != true in [features]. Got: {config['features']}"
+    assert config["features"].get("multi_agent_v2") == {
+        "hide_spawn_agent_metadata": False,
+        "tool_namespace": "agents",
+    }, f"MultiAgent V2 routing compatibility missing. Got: {config['features']}"
     assert "codex_hooks" not in config["features"], (
         f"deprecated codex_hooks should not be written. Got: {config['features']}"
     )
@@ -249,7 +260,7 @@ def test_install_sh_migrates_deprecated_codex_hooks_flag(fake_home: Path) -> Non
     assert result.returncode == 0, f"install.sh failed.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
     text = config_path.read_text(encoding="utf-8")
     assert "codex_hooks" not in text
-    assert "Codex config feature flag: migrated" in result.stdout
+    assert "Codex config features: migrated" in result.stdout
 
     with open(config_path, "rb") as fh:
         config = tomllib.load(fh)
@@ -276,6 +287,9 @@ def test_install_sh_dry_run_does_not_touch_filesystem(fake_home: Path) -> None:
     assert "Would create" in combined or "Would generate" in combined or "Would ensure" in combined, (
         f"Dry-run output contains no 'Would ...' lines for Codex hooks.\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
     )
+    assert "/hooks" in combined
+    assert "trust" in combined.lower()
+    assert "skipped until" in combined.lower()
 
 
 @requires_tomllib
@@ -376,3 +390,80 @@ def test_per_item_install_refreshes_hooks_lib(fake_home: Path, tmp_path: Path) -
     reasonix_hook_utils = fake_home / ".reasonix" / "hooks" / "lib" / "hook_utils.py"
     assert "def hook_error(" in reasonix_hook_utils.read_text(encoding="utf-8")
     assert (stale_reasonix_lib / "external_helper.py").read_text(encoding="utf-8") == "# user-owned helper\n"
+
+
+def test_install_mirrors_adapter_and_writes_managed_manifest(fake_home: Path) -> None:
+    """The generated adapter command always points to an installed file."""
+    result = _run_install(fake_home, ["--copy", "--force"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    hooks_dir = fake_home / ".codex" / "hooks"
+    assert (hooks_dir / "codex-hook-adapter.py").is_file()
+    manifest = hooks_dir / ".vexjoy-managed-hooks"
+    assert manifest.is_file()
+    managed = set(manifest.read_text(encoding="utf-8").splitlines())
+    assert "codex-hook-adapter.py" in managed
+    assert _parse_allowlist_filenames() <= managed
+
+
+def test_reinstall_removes_only_previously_managed_stale_hooks(fake_home: Path) -> None:
+    """Stale toolkit files are removed while unlisted user files survive."""
+    hooks_dir = fake_home / ".codex" / "hooks"
+    hooks_dir.mkdir(parents=True)
+    (hooks_dir / "stale-toolkit.py").write_text("# old toolkit file\n", encoding="utf-8")
+    (hooks_dir / "user-hook.py").write_text("# user owned\n", encoding="utf-8")
+    (hooks_dir / ".vexjoy-managed-hooks").write_text("stale-toolkit.py\n", encoding="utf-8")
+
+    result = _run_install(fake_home, ["--copy", "--force"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert not (hooks_dir / "stale-toolkit.py").exists()
+    assert (hooks_dir / "user-hook.py").read_text(encoding="utf-8") == "# user owned\n"
+
+
+def test_install_reports_codex_hook_trust_review(fake_home: Path) -> None:
+    """Changed definitions are not active until Codex hash trust is reviewed."""
+    result = _run_install(fake_home, ["--copy", "--force"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "/hooks" in result.stdout
+    assert "review" in result.stdout.lower()
+    assert "trust" in result.stdout.lower()
+    assert "skipped until" in result.stdout.lower()
+
+
+def test_dry_run_reports_existing_hooks_json_backup_plan(fake_home: Path) -> None:
+    """Dry-run names the backup action without modifying hooks.json."""
+    hooks_json = fake_home / ".codex" / "hooks.json"
+    hooks_json.write_text('{"user": "content"}\n', encoding="utf-8")
+    result = _run_install(fake_home, ["--dry-run", "--copy"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "would back up" in result.stdout.lower()
+    assert str(hooks_json) in result.stdout
+    assert hooks_json.read_text(encoding="utf-8") == '{"user": "content"}\n'
+
+
+def test_install_reports_and_creates_existing_hooks_json_backup(fake_home: Path) -> None:
+    """Replacement announces and creates the generator's timestamped backup."""
+    hooks_json = fake_home / ".codex" / "hooks.json"
+    hooks_json.write_text('{"user": "content"}\n', encoding="utf-8")
+    result = _run_install(fake_home, ["--copy", "--force"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "will back up" in result.stdout.lower()
+    assert str(hooks_json) in result.stdout
+    backups = list((fake_home / ".codex").glob("hooks.bak.*"))
+    assert len(backups) == 1
+    assert backups[0].read_text(encoding="utf-8") == '{"user": "content"}\n'
+
+
+def test_install_warns_below_current_hook_floor(
+    fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The old v0.114 floor no longer claims current apply_patch parity."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    codex = bin_dir / "codex"
+    codex.write_text("#!/bin/sh\necho 'codex-cli 0.143.0'\n", encoding="utf-8")
+    codex.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+
+    result = _run_install(fake_home, ["--copy", "--force"])
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "below 0.144.1" in result.stdout

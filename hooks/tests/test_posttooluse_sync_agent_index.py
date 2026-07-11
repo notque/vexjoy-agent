@@ -19,7 +19,7 @@ REPO_ROOT = HOOK.parent.parent
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 
 
-def run_hook(event_obj_or_str) -> subprocess.CompletedProcess:
+def run_hook(event_obj_or_str, *, cwd: Path | None = None) -> subprocess.CompletedProcess:
     payload = event_obj_or_str if isinstance(event_obj_or_str, str) else json.dumps(event_obj_or_str)
     return subprocess.run(
         [sys.executable, str(HOOK)],
@@ -27,6 +27,7 @@ def run_hook(event_obj_or_str) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         timeout=30,
+        cwd=cwd,
     )
 
 
@@ -35,14 +36,25 @@ def run_hook(event_obj_or_str) -> subprocess.CompletedProcess:
 # ---------------------------------------------------------------------------
 
 
-def test_regen_on_agent_edit_writes_index_and_exits_zero() -> None:
-    if AGENTS_INDEX.exists():
-        AGENTS_INDEX.unlink()
-    proc = run_hook({"tool_input": {"file_path": "agents/hook-development-engineer.md"}})
+def test_regen_on_agent_edit_writes_target_index_without_touching_source(tmp_path: Path) -> None:
+    agent = tmp_path / "agents" / "isolated-agent.md"
+    agent.parent.mkdir()
+    agent.write_text(
+        "---\nname: isolated-agent\ndescription: Isolated agent fixture.\n---\n",
+        encoding="utf-8",
+    )
+    before = AGENTS_INDEX.read_bytes() if AGENTS_INDEX.exists() else None
+    proc = run_hook(
+        {"cwd": str(tmp_path), "tool_input": {"file_path": str(agent)}},
+        cwd=Path("/"),
+    )
     assert proc.returncode == 0, proc.stderr
-    assert AGENTS_INDEX.is_file()
-    data = json.loads(AGENTS_INDEX.read_text(encoding="utf-8"))
-    assert "agents" in data and len(data["agents"]) > 0
+    target_index = tmp_path / "agents" / "INDEX.json"
+    assert target_index.is_file()
+    data = json.loads(target_index.read_text(encoding="utf-8"))
+    assert set(data["agents"]) == {"isolated-agent"}
+    after = AGENTS_INDEX.read_bytes() if AGENTS_INDEX.exists() else None
+    assert after == before
     assert "[sync-agent-index]" in proc.stdout
 
 

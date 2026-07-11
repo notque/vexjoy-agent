@@ -580,10 +580,16 @@ def main() -> int:
         default=False,
         help="Disable regex fallback. YAML parse failure = skip the skill and log an error.",
     )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="Repository to scan (default: parent of this script).",
+    )
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
-    repo_root = script_dir.parent
+    repo_root = (args.repo_root or script_dir.parent).resolve()
     skills_dir = repo_root / "skills"
 
     if not skills_dir.exists():
