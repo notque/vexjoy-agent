@@ -1,279 +1,176 @@
 #!/usr/bin/env python3
-"""
-Allowlist guard tests for scripts/codex-hooks-allowlist.txt.
+"""Current Codex 0.144.1 hook compatibility inventory tests.
 
-Purpose: Codex bug openai/codex#16732 means PreToolUse/PostToolUse hooks only
-fire for the Bash tool. Any hook that guards Edit/Write/apply_patch would
-register on Codex but silently never run. A registered-but-never-fires hook
-is the worst failure mode: users assume protection that does not exist.
-
-These tests ensure that Phase 2 hooks (Edit/Write interceptors) are never
-accidentally promoted into the Phase 1 allowlist.
-
-Run: python3 -m pytest scripts/tests/test_codex_hooks_allowlist.py -v
+ADR-182's six-hook Bash-only allowlist was correct for the older Codex hook
+surface. Codex now supports apply_patch aliases and more lifecycle events.
+These tests pin the reviewed 76-registration accounting so a new Claude hook
+cannot silently create or remove Codex coverage.
 """
 
+import importlib.util
+import json
 import re
+import subprocess
+import sys
+from collections import Counter
 from pathlib import Path
-
-import pytest
-
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt"
+GENERATOR_PATH = REPO_ROOT / "scripts" / "generate-codex-hooks-json.py"
+HOOK_HEALTH_PATH = REPO_ROOT / "scripts" / "validate-hook-health.py"
 HOOKS_DIR = REPO_ROOT / "hooks"
+CLAUDE_SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 
-# ---------------------------------------------------------------------------
-# Phase 2 hooks: blocked from allowlist until openai/codex#16732 is fixed
-# ---------------------------------------------------------------------------
-
-PHASE_2_HOOKS = {
-    "adr-enforcement.py",
-    "pretool-config-protection.py",
-    "creation-protocol-enforcer.py",
-    "posttool-rename-sweep.py",
-    "pretool-plan-gate.py",
-    "pretool-unified-gate.py",
-    "pretool-adr-creation-gate.py",
-    "reference-loading-enforcer.py",
-    "reference-loading-gate.py",
-}
-
-# Events that are NOT tool-tied (skip Edit/Write matcher checks for these)
-NON_TOOL_EVENTS = {"SessionStart", "UserPromptSubmit", "Stop"}
-
-# Tool-tied events where the matcher must be "Bash"
-TOOL_EVENTS = {"PreToolUse", "PostToolUse"}
-
-# Allowlist line format: EVENT:hook_filename[ matcher]
-ALLOWLIST_LINE_RE = re.compile(r"^[A-Za-z]+:[a-zA-Z0-9_\-]+\.py( [A-Za-z]+)?$")
-
-# Patterns in hook source that suggest Edit/Write interception (regex)
-EDIT_WRITE_MATCHER_RE = re.compile(
-    r"""tool_name\s*(?:==|in)\s*['"\[]{1,2}(?:Edit|Write|MultiEdit|NotebookEdit|apply_patch|WebSearch)"""
-    r"""|matches.*(?:Edit|Write)|tool_name.*Edit|tool_name.*Write""",
-    re.IGNORECASE,
-)
-
-# String literals that look like Edit/Write tool names used as matchers
-EDIT_WRITE_LITERAL_RE = re.compile(r"""["'](Edit|Write|MultiEdit|apply_patch|NotebookEdit)["']""")
+_COMMAND_HOOK_RE = re.compile(r"(?:^|/)hooks/([A-Za-z0-9_-]+\.py)(?:['\" ]|$)")
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+def _load_generator():
+    spec = importlib.util.spec_from_file_location("generate_codex_hooks_json", GENERATOR_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def _load_allowlist_lines() -> list[str]:
-    """Return non-comment, non-blank lines from the allowlist file."""
-    text = ALLOWLIST_PATH.read_text(encoding="utf-8")
-    return [line.strip() for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
+GENERATOR = _load_generator()
+UNSUPPORTED_REGISTRATIONS = set(getattr(GENERATOR, "UNSUPPORTED_REGISTRATIONS", {}))
 
 
-def _parse_entry(line: str) -> tuple[str, str, str | None]:
-    """Parse an allowlist entry into (event, filename, matcher_or_None)."""
-    parts = line.split(" ", 1)
-    event_hook = parts[0]
-    matcher = parts[1].strip() if len(parts) > 1 else None
-    event, filename = event_hook.split(":", 1)
-    return event, filename, matcher
+def _load_hook_health():
+    spec = importlib.util.spec_from_file_location("validate_hook_health", HOOK_HEALTH_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def _lines_near_pattern(content: str, pattern: re.Pattern, context_lines: int = 5) -> list[str]:
-    """Return source lines near any match, with surrounding context."""
-    lines = content.splitlines()
-    hits: list[str] = []
-    for idx, line in enumerate(lines):
-        if pattern.search(line):
-            start = max(0, idx - context_lines)
-            end = min(len(lines), idx + context_lines + 1)
-            snippet = lines[idx]
-            # Include neighboring lines only if they contain matcher-related keywords
-            context_keywords = re.compile(r"tool_name|matcher|if |elif ", re.IGNORECASE)
-            neighbors = [lines[i] for i in range(start, end) if i != idx and context_keywords.search(lines[i])]
-            hit = f"  line {idx + 1}: {snippet.strip()}"
-            if neighbors:
-                hit += " [nearby: " + " | ".join(n.strip() for n in neighbors[:3]) + "]"
-            hits.append(hit)
-    return hits
+def _entries() -> list[dict]:
+    return GENERATOR.parse_allowlist(ALLOWLIST_PATH.read_text(encoding="utf-8"))
 
 
-# ---------------------------------------------------------------------------
-# Skip guard: skip all tests if allowlist not yet created
-# ---------------------------------------------------------------------------
+def _claude_registrations() -> set[tuple[str, str]]:
+    settings = json.loads(CLAUDE_SETTINGS.read_text(encoding="utf-8"))
+    registrations: set[tuple[str, str]] = set()
+    for event, groups in settings.get("hooks", {}).items():
+        for group in groups:
+            for hook in group.get("hooks", []):
+                match = _COMMAND_HOOK_RE.search(hook.get("command", ""))
+                if match:
+                    registrations.add((event, match.group(1)))
+    return registrations
 
 
-def _require_allowlist() -> None:
-    if not ALLOWLIST_PATH.exists():
-        pytest.skip("allowlist not yet created; guard will activate on next run")
+def test_inventory_accounting_is_76_equals_26_plus_36_plus_14() -> None:
+    """Every Claude registration has one reviewed current Codex decision."""
+    entries = _entries()
+    classes = Counter(entry["classification"] for entry in entries)
+    assert len(entries) == 62
+    assert classes == {"native": 26, "adapted": 36}
+    assert len(UNSUPPORTED_REGISTRATIONS) == 14
+    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 76
 
 
-# ---------------------------------------------------------------------------
-# Test: allowlist format is valid
-# ---------------------------------------------------------------------------
+def test_supported_and_unsupported_sets_partition_claude_settings() -> None:
+    """Coverage drift fails until a new registration is classified."""
+    supported = {(entry["event"], entry["filename"]) for entry in _entries()}
+    assert not supported & UNSUPPORTED_REGISTRATIONS
+    assert supported | UNSUPPORTED_REGISTRATIONS == _claude_registrations()
 
 
-def test_allowlist_format_valid() -> None:
-    """Each non-comment non-blank line must match EVENT:filename[ Matcher]."""
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    bad: list[str] = []
-    for line in lines:
-        if not ALLOWLIST_LINE_RE.match(line):
-            bad.append(line)
-    assert not bad, "Allowlist lines with invalid format:\n" + "\n".join(f"  {b}" for b in bad)
-
-
-# ---------------------------------------------------------------------------
-# Test: all allowlisted hook files exist on disk
-# ---------------------------------------------------------------------------
-
-
-def test_allowlist_hooks_exist() -> None:
-    """Every allowlisted hook file must exist in hooks/."""
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    missing: list[str] = []
-    for line in lines:
-        _, filename, _ = _parse_entry(line)
-        hook_path = HOOKS_DIR / filename
-        if not hook_path.exists():
-            missing.append(f"  {filename} (from entry: {line})")
-    assert not missing, "Allowlisted hooks missing from hooks/ directory:\n" + "\n".join(missing)
-
-
-# ---------------------------------------------------------------------------
-# Test: no duplicate entries
-# ---------------------------------------------------------------------------
-
-
-def test_no_duplicate_entries() -> None:
-    """Each EVENT:filename pair must appear at most once."""
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    seen: set[str] = set()
-    duplicates: list[str] = []
-    for line in lines:
-        event, filename, _ = _parse_entry(line)
-        key = f"{event}:{filename}"
-        if key in seen:
-            duplicates.append(f"  {key}")
-        seen.add(key)
-    assert not duplicates, "Duplicate allowlist entries:\n" + "\n".join(duplicates)
-
-
-# ---------------------------------------------------------------------------
-# Test: Phase 2 hooks are NOT in the allowlist (filename guard)
-# ---------------------------------------------------------------------------
-
-
-def test_phase2_hooks_are_NOT_in_allowlist() -> None:
-    """Phase 2 hook filenames must not appear in the allowlist at all.
-
-    These hooks intercept Edit/Write/apply_patch calls. Due to Codex bug
-    openai/codex#16732, PreToolUse/PostToolUse only fires for Bash, so
-    these hooks would register but never run. Silently broken is worse
-    than absent.
-    """
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    violations: list[str] = []
-    for line in lines:
-        _, filename, _ = _parse_entry(line)
-        if filename in PHASE_2_HOOKS:
-            violations.append(f"  {line}")
-    assert not violations, (
-        "Phase 2 hooks (Edit/Write interceptors) found in allowlist.\n"
-        "These hooks are blocked by openai/codex#16732 and must not be mirrored to Codex.\n"
-        "Violations:\n" + "\n".join(violations)
-    )
-
-
-# ---------------------------------------------------------------------------
-# Test: tool-tied events must use Bash matcher only
-# ---------------------------------------------------------------------------
-
-
-def test_pretooluse_posttooluse_matcher_is_bash() -> None:
-    """PreToolUse and PostToolUse entries must specify 'Bash' as the matcher.
-
-    Any other matcher (Edit, Write, MultiEdit, or no matcher) would register
-    a hook that silently never fires on Codex due to openai/codex#16732.
-    """
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    violations: list[str] = []
-    for line in lines:
-        event, filename, matcher = _parse_entry(line)
-        if event not in TOOL_EVENTS:
+def test_every_current_entry_has_explicit_compatibility_metadata() -> None:
+    """Production entries never rely on legacy mode or matcher inference."""
+    for raw in ALLOWLIST_PATH.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
             continue
-        if matcher != "Bash":
-            violations.append(f"  {line}" + (f" (matcher={matcher!r})" if matcher else " (no matcher specified)"))
-    assert not violations, (
-        "PreToolUse/PostToolUse entries without 'Bash' matcher.\n"
-        "Non-Bash matchers silently never fire on Codex (openai/codex#16732).\n"
-        "Violations:\n" + "\n".join(violations)
+        assert " class=" in line, line
+        assert " mode=" in line, line
+        assert " failure=" in line, line
+        event = line.split(":", 1)[0]
+        if event not in {"UserPromptSubmit", "Stop"}:
+            assert " matcher=" in line, line
+
+
+def test_all_supported_hook_files_exist() -> None:
+    """Generated commands never point to a missing target hook."""
+    missing = [entry["filename"] for entry in _entries() if not (HOOKS_DIR / entry["filename"]).is_file()]
+    assert not missing
+
+
+def test_apply_patch_entries_use_patch_mode_and_alias_matcher() -> None:
+    """Edit/Write guards are promoted only through deterministic patch adaptation."""
+    patch_entries = [entry for entry in _entries() if entry["mode"] == "patch"]
+    assert len(patch_entries) == 24
+    assert {entry["event"] for entry in patch_entries} == {"PreToolUse", "PostToolUse"}
+    assert {entry["matcher"] for entry in patch_entries} == {"Edit|Write"}
+    assert all(entry["classification"] == "adapted" for entry in patch_entries)
+
+
+def test_failure_closed_is_limited_to_pretool_enforcement() -> None:
+    """Observers continue on adapter failure; only pre-action gates fail closed."""
+    closed = [entry for entry in _entries() if entry["failure_policy"] == "closed"]
+    assert closed
+    assert all(entry["event"] == "PreToolUse" for entry in closed)
+
+
+def test_unsupported_boundaries_are_exact() -> None:
+    """Absent and semantically incomplete paths remain visibly unsupported."""
+    assert {
+        ("PreToolUse", "reference-loading-enforcer.py"),
+        ("PreToolUse", "pretool-subagent-warmstart.py"),
+        ("PreToolUse", "creation-protocol-enforcer.py"),
+        ("PreToolUse", "pretool-section-integrity-validator.py"),
+        ("PostToolUse", "posttool-session-reads.py"),
+        ("PostToolUse", "usage-tracker.py"),
+        ("PostToolUse", "review-capture.py"),
+        ("PostToolUse", "instruction-compliance.py"),
+        ("PostToolUse", "routing-decision-recorder.py"),
+        ("PostToolUse", "completion-evidence-check.py"),
+        ("PostToolUse", "agent-grade-on-change.py"),
+        ("TaskCompleted", "task-completed-learner.py"),
+        ("StopFailure", "stop-failure-handler.py"),
+        ("PostCompact", "postcompact-handler.py"),
+    } == UNSUPPORTED_REGISTRATIONS
+
+
+def test_unsupported_inventory_has_machine_owned_precise_reasons() -> None:
+    """Every excluded registration carries a reviewable production reason."""
+    reasons = GENERATOR.UNSUPPORTED_REGISTRATIONS
+    assert len(reasons) == 14
+    assert all(isinstance(reason, str) and len(reason.split()) >= 6 for reason in reasons.values())
+    assert all("unsupported" not in reason.lower() for reason in reasons.values())
+
+
+def test_codex_adapter_is_accounted_as_a_generated_dispatch_target() -> None:
+    """The wrapper is active via hooks.json, not dormant Claude registration."""
+    hook_health = _load_hook_health()
+    assert "codex-hook-adapter.py" in hook_health.dispatched_basenames()
+
+
+def test_semantic_reclassifications_match_the_runtime_contracts() -> None:
+    """Bash rename detection is native; the drift rewake needs Stop adaptation."""
+    entries = {(entry["event"], entry["filename"]): entry for entry in _entries()}
+    rename = entries[("PostToolUse", "posttool-rename-sweep.py")]
+    assert rename["matcher"] == "Bash"
+    assert rename["classification"] == "native"
+    assert rename["mode"] == "native"
+
+    drift = entries[("Stop", "stop-drift-guard.py")]
+    assert drift["classification"] == "adapted"
+    assert drift["mode"] == "stop"
+
+
+def test_adr_enforcement_empty_posttool_payload_emits_valid_json() -> None:
+    """The newly promoted PostToolUse hook uses its declared event constant."""
+    result = subprocess.run(
+        [sys.executable, str(HOOKS_DIR / "adr-enforcement.py")],
+        input="",
+        capture_output=True,
+        text=True,
+        timeout=5,
     )
-
-
-# ---------------------------------------------------------------------------
-# Test: allowlisted hook source does not contain Edit/Write intercept patterns
-# ---------------------------------------------------------------------------
-
-
-def test_phase1_hooks_do_not_intercept_edit_write() -> None:
-    """For each allowlisted PreToolUse/PostToolUse hook, scan its source for
-    Edit/Write/apply_patch interception patterns.
-
-    Failure modes guarded:
-    - Pattern 1: tool_name == 'Edit' / tool_name in ['Write', ...] (direct comparison)
-    - Pattern 2: string literals 'Edit', 'Write', 'MultiEdit', 'apply_patch' near
-      conditional / matcher logic
-
-    Reports ALL violations before failing so maintainers see the full list.
-    Session-tied events (SessionStart, UserPromptSubmit, Stop) are skipped.
-    Entries with matcher == 'Bash' are nominally safe but still scanned because
-    a hook might check tool_name internally to handle both Bash and Edit paths.
-    """
-    _require_allowlist()
-    lines = _load_allowlist_lines()
-    warnings: list[str] = []
-
-    for line in lines:
-        event, filename, _ = _parse_entry(line)
-
-        # Non-tool events cannot have Edit/Write matchers by design
-        if event in NON_TOOL_EVENTS:
-            continue
-
-        hook_path = HOOKS_DIR / filename
-        if not hook_path.exists():
-            # Missing file is caught by test_allowlist_hooks_exist
-            continue
-
-        source = hook_path.read_text(encoding="utf-8")
-
-        # Pattern 1: direct tool_name comparison with Edit/Write
-        hits1 = _lines_near_pattern(source, EDIT_WRITE_MATCHER_RE)
-        if hits1:
-            warnings.append(f"\n[WARN] {filename}: tool_name == Edit/Write pattern detected\n" + "\n".join(hits1))
-
-        # Pattern 2: string literals that look like tool-name matchers
-        hits2 = _lines_near_pattern(source, EDIT_WRITE_LITERAL_RE)
-        if hits2:
-            # Filter out false positives: string literals that are clearly
-            # comments, docstrings, or user-facing messages (not conditionals)
-            real_hits = [h for h in hits2 if not re.search(r"#.*[Ee]dit|#.*[Ww]rite|\"\"\".*[Ee]dit|'{3}.*[Ee]dit", h)]
-            if real_hits:
-                warnings.append(
-                    f"\n[WARN] {filename}: Edit/Write string literals near conditional logic\n" + "\n".join(real_hits)
-                )
-
-    assert not warnings, (
-        "Phase 1 hooks contain patterns suggesting Edit/Write interception.\n"
-        "These hooks would register on Codex but silently never fire (openai/codex#16732).\n"
-        "Review each hook and move it to Phase 2 if it guards non-Bash tools.\n" + "".join(warnings)
-    )
+    assert result.returncode == 0
+    output = json.loads(result.stdout)
+    assert output["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
+    assert "NameError" not in result.stderr

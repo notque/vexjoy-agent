@@ -30,6 +30,16 @@ ROOT_MARKDOWN = ["README.md", "CONTRIBUTING.md", "CLAUDE.md"]
 SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 BANNED_PATTERNS = REPO_ROOT / "scripts" / "data" / "banned-patterns.json"
 
+
+def configure_repo_root(repo_root: Path) -> None:
+    """Point data discovery at an explicit repository without executing it."""
+    global REPO_ROOT, DOCS_DIR, SETTINGS, BANNED_PATTERNS
+    REPO_ROOT = repo_root.resolve()
+    DOCS_DIR = REPO_ROOT / "docs"
+    SETTINGS = REPO_ROOT / ".claude" / "settings.json"
+    BANNED_PATTERNS = REPO_ROOT / "scripts" / "data" / "banned-patterns.json"
+
+
 CLAIM = re.compile(
     r"\b(\d{1,4})\+?\s+"
     r"(agents?|skills?|hooks?|scripts?|pipelines?|hook events?|"
@@ -167,12 +177,23 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--emit-hook-table", action="store_true")
     parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="Repository whose files should be counted (default: toolkit containing this script).",
+    )
+    parser.add_argument(
         "--tolerance",
         type=int,
         default=0,
         help="allow claims within N of ground truth (default: 0)",
     )
     args = parser.parse_args()
+
+    if args.repo_root is not None:
+        if not args.repo_root.is_dir():
+            parser.error(f"--repo-root is not a directory: {args.repo_root}")
+        configure_repo_root(args.repo_root)
 
     if args.emit_hook_table:
         print(emit_hook_table())

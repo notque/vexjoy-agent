@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Ensure ~/.codex/config.toml contains the hooks feature flag.
+"""Ensure ~/.codex/config.toml contains toolkit-required feature settings.
 
 Performs a TOML-aware merge: adds [features] and hooks = true if absent,
-while preserving all existing sections unchanged. Backs up the config
-before writing unless --no-backup is passed.
+and keeps explicit MultiAgent V2 subagent routing available to coordinators,
+while preserving all other settings. Backs up the config before writing unless
+--no-backup is passed.
 
 Codex CLI renamed this flag from codex_hooks to hooks (codex_hooks now
 prints a deprecation warning). This script writes the new hooks key and
@@ -22,12 +23,14 @@ from datetime import datetime
 from pathlib import Path
 
 _FEATURES_HEADER = "[features]"
+_MULTI_AGENT_V2_HEADER = "[features.multi_agent_v2]"
 # Match the current key. ^\s*hooks does not match "codex_hooks" because that
 # line begins with "codex_", so the deprecated key is handled separately.
 _KEY_PATTERN = re.compile(r"^\s*hooks\s*=\s*(true|false)\s*$", re.MULTILINE)
 # Match the deprecated key so we can strip it during migration.
 _DEPRECATED_KEY_PATTERN = re.compile(r"^[ \t]*codex_hooks\s*=\s*(true|false)\s*$\n?", re.MULTILINE)
-_SECTION_PATTERN = re.compile(r"^\[features\]", re.MULTILINE)
+_SECTION_PATTERN = re.compile(r"^\[features\]\s*$", re.MULTILINE)
+_MULTI_AGENT_V2_SECTION_PATTERN = re.compile(r"^\[features\.multi_agent_v2\]\s*$", re.MULTILINE)
 
 
 _MISSING = object()  # Sentinel: file did not exist at read time.
@@ -99,6 +102,8 @@ def _analyse_content(content: str) -> tuple[bool, str]:
         # present so we can strip it and clear the deprecation warning.
         if has_deprecated:
             return True, "migrated"
+        if not _multi_agent_routing_ready(content):
+            return True, "added-subagent-routing"
         return False, "already-present"
 
     # No new key. A deprecated codex_hooks = false is a deliberate disable.
@@ -138,7 +143,7 @@ def needs_update(content: str) -> tuple[bool, str]:
     Returns:
         A tuple of (needs_write, action_tag) where action_tag is one of:
         'already-present', 'added-section', 'added-key', 'created-file',
-        'migrated'.
+        'migrated', or 'added-subagent-routing'.
 
     Raises:
         SystemExit: With exit code 2 when hooks (or deprecated codex_hooks) is false.
@@ -153,12 +158,79 @@ def _strip_deprecated(content: str) -> str:
     return _DEPRECATED_KEY_PATTERN.sub("", content)
 
 
+def _section_body(content: str, header_pattern: re.Pattern[str]) -> str | None:
+    """Return one TOML table body, excluding its header."""
+    match = header_pattern.search(content)
+    if not match:
+        return None
+    next_header = re.search(r"^\[", content[match.end() :], re.MULTILINE)
+    end = match.end() + next_header.start() if next_header else len(content)
+    return content[match.end() : end]
+
+
+def _multi_agent_routing_ready(content: str) -> bool:
+    """Return whether Codex exposes explicit subagent routing inputs."""
+    body = _section_body(content, _MULTI_AGENT_V2_SECTION_PATTERN)
+    if body is None:
+        return False
+    hide = re.search(r"^\s*hide_spawn_agent_metadata\s*=\s*false\s*$", body, re.MULTILINE)
+    namespace = re.search(r'^\s*tool_namespace\s*=\s*"agents"\s*$', body, re.MULTILINE)
+    return bool(hide and namespace)
+
+
+def _ensure_table_setting(
+    content: str,
+    header_pattern: re.Pattern[str],
+    header: str,
+    key: str,
+    value: str,
+) -> str:
+    """Set one key in a TOML table while preserving unrelated text."""
+    match = header_pattern.search(content)
+    if not match:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        if content:
+            content += "\n"
+        return f"{content}{header}\n{key} = {value}\n"
+
+    next_header = re.search(r"^\[", content[match.end() :], re.MULTILINE)
+    section_end = match.end() + next_header.start() if next_header else len(content)
+    body = content[match.end() : section_end]
+    key_pattern = re.compile(rf"^[ \t]*{re.escape(key)}\s*=.*$", re.MULTILINE)
+    replacement = f"{key} = {value}"
+    if key_pattern.search(body):
+        body = key_pattern.sub(replacement, body, count=1)
+    else:
+        body = f"\n{replacement}{body}"
+    return content[: match.end()] + body + content[section_end:]
+
+
+def _ensure_multi_agent_routing(content: str) -> str:
+    """Expose per-subagent model controls and use Codex's agent namespace."""
+    content = _ensure_table_setting(
+        content,
+        _MULTI_AGENT_V2_SECTION_PATTERN,
+        _MULTI_AGENT_V2_HEADER,
+        "hide_spawn_agent_metadata",
+        "false",
+    )
+    return _ensure_table_setting(
+        content,
+        _MULTI_AGENT_V2_SECTION_PATTERN,
+        _MULTI_AGENT_V2_HEADER,
+        "tool_namespace",
+        '"agents"',
+    )
+
+
 def apply_update(content: str) -> str:
-    """Return the updated config content with hooks = true set.
+    """Return content with hooks and explicit subagent routing configured.
 
     Adds [features] if absent, or injects hooks under the existing [features]
-    section. Removes any deprecated codex_hooks line. Does not modify any
-    other section.
+    section. Adds the MultiAgent V2 compatibility table, repairs its two
+    required values, and removes any deprecated codex_hooks line. Preserves
+    all unrelated settings.
 
     Args:
         content: The current file content (may be empty).
@@ -176,7 +248,7 @@ def apply_update(content: str) -> str:
         # insert the current key below [features].
         content = _strip_deprecated(content)
         if _KEY_PATTERN.search(content):
-            return content
+            return _ensure_multi_agent_routing(content)
 
     if action in ("created-file", "added-section"):
         # Append a new [features] block. Ensure a trailing newline before it
@@ -186,7 +258,10 @@ def apply_update(content: str) -> str:
         if content:
             content += "\n"
         content += "[features]\nhooks = true\n"
-        return content
+        return _ensure_multi_agent_routing(content)
+
+    if action == "added-subagent-routing":
+        return _ensure_multi_agent_routing(content)
 
     # action == "added-key" or migrated-without-hooks: strip any deprecated key,
     # then insert hooks after the [features] header.
@@ -199,7 +274,7 @@ def apply_update(content: str) -> str:
         if not injected and line.strip() == "[features]":
             result.append("hooks = true\n")
             injected = True
-    return "".join(result)
+    return _ensure_multi_agent_routing("".join(result))
 
 
 def _write_with_backup(path: Path, new_content: str, backup: bool) -> None:
@@ -221,7 +296,7 @@ def _write_with_backup(path: Path, new_content: str, backup: bool) -> None:
 
 def main() -> None:
     """Parse arguments, determine required action, and update the config file."""
-    parser = argparse.ArgumentParser(description="Ensure ~/.codex/config.toml has the hooks feature flag.")
+    parser = argparse.ArgumentParser(description="Ensure ~/.codex/config.toml has toolkit-required feature settings.")
     parser.add_argument(
         "--config",
         type=Path,

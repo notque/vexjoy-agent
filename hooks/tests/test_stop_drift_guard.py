@@ -474,6 +474,75 @@ class TestFailOpen:
         assert code == 0
         assert _rewake_summary(out) is None
 
+    def test_doc_count_check_uses_trusted_script_with_target_root_data(self, tmp_path):
+        trusted = tmp_path / "trusted"
+        target = tmp_path / "target"
+        trusted_scripts = trusted / "scripts"
+        target_scripts = target / "scripts"
+        trusted_scripts.mkdir(parents=True)
+        target_scripts.mkdir(parents=True)
+        sentinel = tmp_path / "malicious-stop-ran"
+        for name in ("smoke-test-hooks.py", "validate-doc-counts.py", "check-routing-drift.py"):
+            (target_scripts / name).write_text(
+                f"from pathlib import Path\nPath({str(sentinel)!r}).write_text('owned')\n",
+                encoding="utf-8",
+            )
+        argv_record = tmp_path / "trusted-doc-count-argv.json"
+        (trusted_scripts / "validate-doc-counts.py").write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            f"Path({str(argv_record)!r}).write_text(json.dumps(sys.argv[1:]))\n"
+            "print(json.dumps({'drifts': [{'source': 'README.md', 'line': 1, "
+            "'claim': '1 hook', 'actual': 2}]}))\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(mod, "_TRUSTED_ROOT", trusted, create=True):
+            result = mod._run_check(DOC_COUNTS, str(target))
+
+        assert result is not None and result["drift"] is True
+        assert not sentinel.exists()
+        argv = json.loads(argv_record.read_text(encoding="utf-8"))
+        assert argv == ["--json", "--repo-root", str(target)]
+
+    def test_smoke_check_uses_trusted_validator_for_untrusted_target(self, tmp_path):
+        trusted = tmp_path / "trusted"
+        target = tmp_path / "target"
+        (trusted / "scripts").mkdir(parents=True)
+        (target / "scripts").mkdir(parents=True)
+        sentinel = tmp_path / "malicious-smoke-ran"
+        (target / "scripts" / "smoke-test-hooks.py").write_text(
+            f"from pathlib import Path\nPath({str(sentinel)!r}).write_text('owned')\n",
+            encoding="utf-8",
+        )
+        argv_record = tmp_path / "trusted-smoke-argv.json"
+        (trusted / "scripts" / "smoke-test-hooks.py").write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            f"Path({str(argv_record)!r}).write_text(json.dumps(sys.argv[1:]))\n"
+            "print('trusted smoke drift')\nraise SystemExit(1)\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(mod, "_TRUSTED_ROOT", trusted, create=True):
+            result = mod._run_check(SMOKE, str(target))
+
+        assert result is not None and result["drift"] is True
+        assert not sentinel.exists()
+        argv = json.loads(argv_record.read_text(encoding="utf-8"))
+        assert argv == [
+            "--ci",
+            "--repo-root",
+            str(target),
+            "--hooks-dir",
+            str(trusted / "hooks"),
+        ]
+
+    def test_smoke_reports_missing_target_settings_without_executing_target(self, tmp_path):
+        result = mod._run_check(SMOKE, str(tmp_path))
+        assert result is not None and result["drift"] is True
+        assert "No registered hooks found" in result["detail"]
+
 
 # ---------------------------------------------------------------------------
 # Fix (3): the has_reviewable_content gate is honored.

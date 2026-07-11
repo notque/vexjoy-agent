@@ -18,14 +18,20 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import hook_error
+from hook_utils import context_output, hook_error
 from stdin_timeout import read_stdin
+
+_EVENT_NAME = "PostToolUse"
+_TRUSTED_ROOT = Path(__file__).resolve().parent.parent
 
 # Files that trigger a drift check when modified
 _TRIGGER_NAMES = frozenset({"INDEX.json"})
 
-# Repo root — derived relative to this hook's location (hooks/ → repo root)
-_REPO_ROOT = Path(__file__).parent.parent
+
+def _project_root(event: dict) -> Path:
+    """Resolve the repository targeted by the hook event."""
+    candidate = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd()
+    return Path(candidate).resolve()
 
 
 def _is_watched_file(file_path: str) -> bool:
@@ -51,22 +57,23 @@ def _is_watched_file(file_path: str) -> bool:
     return False
 
 
-def _run_scan_tools() -> tuple[bool, str]:
+def _run_scan_tools(repo_root: Path) -> tuple[bool, str]:
     """Run docs-sync-checker/scripts/scan_tools.py if it exists.
 
     Returns:
         (drift_detected, message)
     """
-    script = _REPO_ROOT / "skills" / "docs-sync-checker" / "scripts" / "scan_tools.py"
+    script = _TRUSTED_ROOT / "skills" / "meta" / "docs-sync-checker" / "scripts" / "scan_tools.py"
     if not script.exists():
         return False, ""
 
     try:
         result = subprocess.run(
-            ["python3", str(script), "--repo-root", str(_REPO_ROOT)],
+            ["python3", str(script), "--repo-root", str(repo_root)],
             capture_output=True,
             text=True,
             timeout=10,
+            cwd=str(_TRUSTED_ROOT),
         )
         if result.returncode != 0:
             return True, f"scan_tools.py exited {result.returncode}: {result.stderr[:300]}"
@@ -77,13 +84,13 @@ def _run_scan_tools() -> tuple[bool, str]:
         return False, ""
 
 
-def _fallback_count_check() -> tuple[bool, str]:
+def _fallback_count_check(repo_root: Path) -> tuple[bool, str]:
     """Compare agent .md file count on disk vs entries in agents/INDEX.json.
 
     Returns:
         (drift_detected, message)
     """
-    agents_dir = _REPO_ROOT / "agents"
+    agents_dir = repo_root / "agents"
     index_path = agents_dir / "INDEX.json"
 
     if not agents_dir.is_dir() or not index_path.exists():
@@ -111,14 +118,14 @@ def _fallback_count_check() -> tuple[bool, str]:
     return False, ""
 
 
-def _check_drift() -> tuple[bool, str]:
+def _check_drift(repo_root: Path) -> tuple[bool, str]:
     """Run drift detection: prefer scan_tools.py, fall back to count check."""
-    drift, msg = _run_scan_tools()
+    drift, msg = _run_scan_tools(repo_root)
     if drift:
         return drift, msg
     if not msg:
         # scan_tools.py either passed or was absent — run fallback regardless
-        return _fallback_count_check()
+        return _fallback_count_check(repo_root)
     return False, ""
 
 
@@ -151,10 +158,10 @@ def main() -> None:
     if not file_path or not _is_watched_file(file_path):
         return
 
-    drift_detected, message = _check_drift()
+    drift_detected, message = _check_drift(_project_root(hook_input))
 
     if drift_detected and message:
-        print(f"[docs-drift] WARNING: {message}", file=sys.stderr)
+        context_output(_EVENT_NAME, f"[docs-drift] WARNING: {message}").print_and_exit(0)
 
 
 if __name__ == "__main__":

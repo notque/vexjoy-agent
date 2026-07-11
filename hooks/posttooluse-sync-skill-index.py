@@ -30,6 +30,7 @@ Design:
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -40,6 +41,24 @@ from stdin_timeout import read_stdin
 
 # Matches skills/**/SKILL.md (flat and nested category layouts)
 SKILL_FILE_RE = re.compile(r"skills/(?:[^/]+/)+SKILL\.md$")
+
+
+def _project_root(event: dict) -> Path:
+    """Resolve the repository targeted by the PostToolUse event."""
+    candidate = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd()
+    return Path(candidate).resolve()
+
+
+def _generator(project_root: Path) -> Path | None:
+    """Find the generator in the hook install or target checkout."""
+    hook_install_root = Path(__file__).resolve().parent.parent
+    for candidate in (
+        hook_install_root / "scripts" / "generate-skill-index.py",
+        project_root / "scripts" / "generate-skill-index.py",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _refresh_manifest_cache() -> None:
@@ -76,23 +95,21 @@ def main() -> None:
         if not SKILL_FILE_RE.search(file_path):
             return
 
-        # Resolve repo root: hooks/ is one level below repo root
-        hook_dir = Path(__file__).resolve().parent
-        repo_root = hook_dir.parent
-        generator = repo_root / "scripts" / "generate-skill-index.py"
+        project_root = _project_root(event)
+        generator = _generator(project_root)
 
-        if not generator.exists():
+        if generator is None:
             print(
-                f"[sync-skill-index] generator not found: {generator}",
+                "[sync-skill-index] generator not found in hook install or target project",
                 file=sys.stderr,
             )
             return
 
         result = subprocess.run(
-            [sys.executable, str(generator)],
+            [sys.executable, str(generator), "--repo-root", str(project_root)],
             capture_output=True,
             text=True,
-            cwd=str(repo_root),
+            cwd=str(project_root),
             timeout=12,
         )
 

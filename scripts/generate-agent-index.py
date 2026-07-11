@@ -229,11 +229,17 @@ def main() -> int:
         default=None,
         help="Output file path (default: agents/INDEX.json relative to repo root).",
     )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="Repository to scan (default: parent of this script).",
+    )
     args = parser.parse_args()
 
     # Find agents directory relative to script
     script_dir = Path(__file__).parent
-    repo_root = script_dir.parent
+    repo_root = (args.repo_root or script_dir.parent).resolve()
     agents_dir = repo_root / "agents"
 
     if not agents_dir.exists():
