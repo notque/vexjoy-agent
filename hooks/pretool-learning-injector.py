@@ -74,6 +74,62 @@ EDIT_FILE_PATTERNS = [
     (re.compile(r"\.ya?ml$"), ["yaml", "kubernetes"]),
 ]
 
+# Bare command names too generic to carry domain signal. A bare "grep" or
+# "test" as the sole tag turns the FTS query into a near-universal match,
+# pulling in unrelated learnings from any topic that happens to mention the
+# word (root cause of cross-domain noise -- see ADR: pretool-injector-scoping).
+# Excluded from the fallback below; commands matched by COMMAND_KEYWORD_PATTERNS
+# above are unaffected since they never reach the fallback.
+#
+# Deliberately excludes rm/mv/cp: those are exactly the commands where a
+# pretool "gotcha" warning has the most safety value, and the category
+# allowlist (INJECTABLE_CATEGORIES) plus project_path scoping already remove
+# the cross-domain noise that motivated this stoplist -- stoplisting
+# destructive commands on top of that would trade away real safety signal
+# for no additional noise reduction (ADR consultation, Concern 7).
+GENERIC_COMMAND_STOPLIST = frozenset(
+    {
+        "grep",
+        "find",
+        "ls",
+        "cat",
+        "cd",
+        "echo",
+        "test",
+        "check",
+        "wc",
+        "pwd",
+        "mkdir",
+        "touch",
+        "head",
+        "tail",
+        "sort",
+        "uniq",
+        "true",
+        "false",
+        "sleep",
+        "date",
+        "env",
+        "export",
+        "source",
+        "which",
+        "type",
+        "printf",
+        "sed",
+        "awk",
+        "jq",
+        "diff",
+        "xargs",
+    }
+)
+
+# Categories relevant to tool-error/gotcha hints. Excludes cross-domain
+# categories (voice, effectiveness, review, design, pivot, misroute) that
+# dominate the confidence pool with content unrelated to tool operation --
+# e.g. character-voice or PR-review learnings from other projects surfacing
+# on a bare `grep` or `find` call. See ADR: pretool-injector-scoping.
+INJECTABLE_CATEGORIES = ["error", "gotcha", "debug"]
+
 
 def extract_bash_tags(command: str) -> list[str]:
     """Extract relevant tags from a Bash command string."""
@@ -88,7 +144,7 @@ def extract_bash_tags(command: str) -> list[str]:
         parts = command.strip().split()
         if parts:
             base_cmd = parts[0].split("/")[-1]  # strip path prefix
-            if len(base_cmd) > 1:
+            if len(base_cmd) > 1 and base_cmd not in GENERIC_COMMAND_STOPLIST:
                 tags.add(base_cmd)
 
     return list(tags)[:10]  # Cap at 10 tags
@@ -162,6 +218,7 @@ def main():
         # this hook from spawning for non-matching tools.
         tool_name = event.get("tool_name", "")
         tool_input = event.get("tool_input", {})
+        cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
 
         # Extract tags based on tool type
         if tool_name == "Bash":
@@ -186,6 +243,8 @@ def main():
             query_str,
             min_confidence=MIN_CONFIDENCE,
             exclude_graduated=True,
+            categories=INJECTABLE_CATEGORIES,
+            project_path=cwd,
             limit=MAX_RESULTS,
         )
 
