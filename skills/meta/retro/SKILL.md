@@ -1,8 +1,8 @@
 ---
 name: retro
-description: "Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5)."
+description: "Learning system interface: stats, search, graduate, clear learnings. Backed by learning.db (SQLite + FTS5)."
 user-invocable: true
-argument-hint: "[status|list|search <term>|graduate]"
+argument-hint: "[status|list|search <term>|graduate|clear]"
 allowed-tools:
   - Bash
   - Read
@@ -16,6 +16,11 @@ routing:
     - "graduate knowledge"
     - "learning stats"
     - "search learnings"
+    - "retro clear"
+    - "clear learnings"
+    - "prune learnings"
+    - "clear stale learnings"
+    - "clear learning noise"
   category: meta-tooling
   pairs_with:
     - learn
@@ -41,6 +46,7 @@ Parse the user's argument to determine the subcommand. Default to `status` if no
 | search TERM | **search** |
 | graduate | **graduate** |
 | what-didnt-work | **what-didnt-work** |
+| clear | **clear** |
 
 ### Subcommand: status
 
@@ -195,6 +201,69 @@ Entries marked. They will no longer be injected via the hook
 since they are now part of the agent's permanent knowledge.
 ```
 
+### Subcommand: clear
+
+Remove noise from learning.db: cross-domain rows (via filtered `prune`) or
+old low-confidence rows (via `stale-prune`). Wraps the existing
+`learning-db.py prune` / `stale-prune` CLI — no new deletion code path.
+
+**Key constraints:**
+- Dry-run by default, always. Never pass `--apply`/`--confirm` on the first invocation of a session, regardless of how the user phrased the request ("clear the voice noise", "prune this", "clean up learnings").
+- Show the dry-run counts and a sample of matched rows, then stop and ask the user to explicitly confirm ("apply" / "yes, clear it" / "confirm") before re-invoking with `--apply` or `--confirm`.
+- Never infer confirmation from the original request alone — "clear the voice category" is a request to see what *would* be cleared, not authorization to delete.
+- This command mutates `learning.db`. Do not use it to satisfy a code-level bug fix task that explicitly excludes data mutation — check the task's constraints before running `--apply`/`--confirm`.
+
+**Step 1**: Determine the clear mode from the user's argument.
+
+| User intent | Mode | Underlying command |
+|---|---|---|
+| "clear category X" / "clear topic X" / has `--category`, `--topic`, `--max-confidence`, or `--older-than` | **filtered** | `learning-db.py prune` |
+| "clear stale" / "clear old" / no filter given | **stale** | `learning-db.py stale-prune` |
+
+**Step 2**: Run the dry-run (always, unconditionally, first).
+
+```bash
+# Filtered mode
+python3 ~/.claude/scripts/learning-db.py prune --category CATEGORY [--topic TOPIC] [--max-confidence N] [--older-than DAYS] --dry-run
+
+# Stale mode
+python3 ~/.claude/scripts/learning-db.py stale-prune --dry-run [--min-age-days DAYS]
+```
+
+**Step 3**: Present the dry-run result and stop.
+
+```
+RETRO CLEAR — DRY RUN
+======================
+
+Mode: [filtered | stale]
+Filter: [category=X, topic=Y, ...] or [min-age-days=N]
+
+Matched: [N] entries
+  - [topic/key] (conf: [N], age: [N]d)
+  ...
+
+This is a preview — nothing was deleted. Reply "apply" (or "confirm") to
+actually remove these entries, or refine the filter and re-run.
+```
+
+**Step 4**: Only after the user explicitly confirms in this turn, re-run with `--apply` (filtered) or `--confirm` (stale):
+
+```bash
+python3 ~/.claude/scripts/learning-db.py prune --category CATEGORY ... --apply
+# or
+python3 ~/.claude/scripts/learning-db.py stale-prune --confirm [--min-age-days DAYS]
+```
+
+**Step 5**: Report the outcome.
+
+```
+CLEARED: [N] entries removed ([mode] mode, filter: [...])
+Total learnings: [before] -> [after]
+```
+
+Graduated entries and `routing`/`effectiveness` rows are always protected from `prune` (see `scripts/tests/test_learning_db_prune.py`). `stale-prune` archives to `learning_archive` rather than hard-deleting, and likewise skips graduated rows.
+
 ### Subcommand: what-didnt-work
 
 Print the negative-results registry, the list of experiments that lost. Read it before re-running an experiment so a known-dead path is not retried.
@@ -257,6 +326,10 @@ Actions: Run `learning-db.py search "routing"`, display ranked results.
 User says: "/retro graduate"
 Actions: Query design/gotcha entries, evaluate each against graduation criteria, propose edits to target agents/skills, apply approved changes, mark graduated.
 
+### Example 5: Clear cross-domain noise
+User says: "/retro clear category voice"
+Actions: Run `learning-db.py prune --category voice --dry-run`, present the matched count and sample rows, stop and wait for explicit confirmation. Only on "apply"/"confirm" from the user, re-run with `--apply` and report before/after totals.
+
 ---
 
 ## Error Handling
@@ -278,7 +351,8 @@ Solution: Report the stats and suggest recording more learnings via normal work.
 
 ## References
 
-- `~/.claude/scripts/learning-db.py` — Python CLI for all database operations
+- `~/.claude/scripts/learning-db.py` — Python CLI for all database operations, including `prune` and `stale-prune` (wrapped by the `clear` subcommand)
 - `hooks/session-context.py` — Hook that injects the pre-built dream payload and high-confidence patterns at session start (ADR-147, supersedes retro-knowledge-injector.py)
+- `hooks/pretool-learning-injector.py` — PreToolUse hook that queries `learning.db` for tool-error hints; scoped to `error`/`gotcha`/`debug` categories (ADR: pretool-injector-scoping)
 - `scripts/learning.db` — SQLite database with FTS5 search index
 - `docs/what-didnt-work.md`: Negative-results registry. Printed by the `what-didnt-work` subcommand; the doc is the canonical store.

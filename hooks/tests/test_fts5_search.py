@@ -37,7 +37,13 @@ def isolated_db(tmp_path):
 
 
 def _record(topic: str, key: str, value: str, tags: list[str] | None = None, confidence: float = 0.7) -> dict:
-    """Helper to record a learning with defaults."""
+    """Helper to record a learning with defaults.
+
+    source="manual" (not "test*") so these fixture rows survive
+    search_learnings()'s default exclude_test_sources=True -- the dedicated
+    TestExcludeTestSources class below uses an explicit "test*" source to
+    exercise that filter directly.
+    """
     return db.record_learning(
         topic=topic,
         key=key,
@@ -45,7 +51,7 @@ def _record(topic: str, key: str, value: str, tags: list[str] | None = None, con
         category="design",
         confidence=confidence,
         tags=tags,
-        source="test",
+        source="manual",
     )
 
 
@@ -223,6 +229,114 @@ class TestSearchLearnings:
         results = db.search_learnings("xyznonexistent")
         assert results == []
 
+    def test_categories_filter_matches_any(self):
+        """ADR: pretool-injector-scoping -- categories restricts to an allowlist."""
+        _record("topic-a", "key-a", "Error content about deadlocks", tags=["go"])  # category=design (default)
+        db.record_learning(
+            topic="topic-b",
+            key="key-b",
+            value="Deadlock error pattern",
+            category="error",
+            confidence=0.9,
+            tags=["go"],
+            source="manual",
+        )
+        db.record_learning(
+            topic="topic-c",
+            key="key-c",
+            value="Deadlock gotcha note",
+            category="gotcha",
+            confidence=0.9,
+            tags=["go"],
+            source="manual",
+        )
+
+        results = db.search_learnings("deadlock", categories=["error", "gotcha"])
+        topics = {r["topic"] for r in results}
+        assert topics == {"topic-b", "topic-c"}
+
+    def test_categories_filter_excludes_others(self):
+        _record("topic-a", "key-a", "Voice content about deadlocks", tags=["go"])  # category=design
+        results = db.search_learnings("deadlock", categories=["error", "gotcha", "debug"])
+        assert results == []
+
+    def test_categories_filter_none_is_no_op(self):
+        _record("topic-a", "key-a", "Design content about deadlocks", tags=["go"])
+        results = db.search_learnings("deadlock")
+        assert len(results) == 1
+
+    def test_project_path_filter_matches_global_and_exact(self):
+        db.record_learning(
+            topic="topic-global",
+            key="key-a",
+            value="Global content about circuit breakers",
+            category="error",
+            confidence=0.9,
+            source="manual",
+            project_path=None,
+        )
+        db.record_learning(
+            topic="topic-same-project",
+            key="key-b",
+            value="Same-project content about circuit breakers",
+            category="error",
+            confidence=0.9,
+            source="manual",
+            project_path="/home/user/project-a",
+        )
+        db.record_learning(
+            topic="topic-other-project",
+            key="key-c",
+            value="Other-project content about circuit breakers",
+            category="error",
+            confidence=0.9,
+            source="manual",
+            project_path="/home/user/project-b",
+        )
+
+        results = db.search_learnings("circuit breakers", project_path="/home/user/project-a")
+        topics = {r["topic"] for r in results}
+        assert topics == {"topic-global", "topic-same-project"}
+        assert "topic-other-project" not in topics
+
+    def test_project_path_none_is_no_op(self):
+        db.record_learning(
+            topic="topic-other-project",
+            key="key-c",
+            value="Other-project content about circuit breakers",
+            category="error",
+            confidence=0.9,
+            source="manual",
+            project_path="/home/user/project-b",
+        )
+        results = db.search_learnings("circuit breakers")
+        assert len(results) == 1
+
+    def test_exclude_test_sources_default_excludes(self):
+        """ADR: pretool-injector-scoping Concern 1 -- parity with query_learnings()."""
+        db.record_learning(
+            topic="topic-fixture",
+            key="key-a",
+            value="Test fixture content about retries",
+            category="error",
+            confidence=0.9,
+            source="test-fixture",
+        )
+        results = db.search_learnings("retries")
+        assert results == []
+
+    def test_exclude_test_sources_false_includes(self):
+        db.record_learning(
+            topic="topic-fixture",
+            key="key-a",
+            value="Test fixture content about retries",
+            category="error",
+            confidence=0.9,
+            source="test-fixture",
+        )
+        results = db.search_learnings("retries", exclude_test_sources=False)
+        assert len(results) == 1
+
 
 class TestMigrationBackfill:
     """Test _migrate_fts() backfill for pre-existing databases."""
@@ -282,7 +396,7 @@ class TestMigrationBackfill:
                 "old-entry",
                 "This is a pre-existing learning about goroutines",
                 "design",
-                "test",
+                "manual",
                 "go,concurrency",
             ),
         )
@@ -307,7 +421,8 @@ class TestBackwardCompatibility:
         _record("python-patterns", "dataclass", "Use dataclasses", tags=["python"])
 
         # Exact tag substring matching still works
-        # ADR-191: test fixtures use source="test"; opt back in via exclude_test_sources=False.
+        # _record() defaults to source="manual", so exclude_test_sources=False
+        # is a no-op here; kept for defensiveness if the fixture default changes.
         results = db.query_learnings(tags=["go"], exclude_test_sources=False)
         assert len(results) >= 1
         assert any(r["topic"] == "go-patterns" for r in results)

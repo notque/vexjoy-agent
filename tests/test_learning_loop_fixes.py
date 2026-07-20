@@ -47,7 +47,14 @@ def tmp_learning_dir(tmp_path):
 
 @pytest.fixture()
 def seeded_db(tmp_learning_dir):
-    """Learning DB with a seeded high-confidence error pattern."""
+    """Learning DB with a seeded high-confidence error pattern.
+
+    source="manual-seed" (not "test*") -- search_learnings() defaults to
+    excluding source LIKE 'test%' rows (ADR: pretool-injector-scoping,
+    parity with query_learnings()'s ADR-191 exclude_test_sources), and this
+    row is meant to exercise the real end-to-end injection path, not that
+    filter.
+    """
     import learning_db_v2
 
     learning_db_v2.init_db()
@@ -58,7 +65,7 @@ def seeded_db(tmp_learning_dir):
         category="error",
         confidence=0.9,
         tags=["python", "import_error"],
-        source="test-seed",
+        source="manual-seed",
         error_type="import_error",
         error_signature="test-sig-001",
     )

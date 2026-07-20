@@ -1264,7 +1264,8 @@ def list_evidence_events(
         params.extend([_target_hash(target), f"%{target}%"])
     if failures_only:
         clauses.append("success = 0")
-    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    joined_clauses = " AND ".join(clauses)
+    where = ("WHERE " + joined_clauses) if clauses else ""  # security-review: ignore (fixed clauses; pre-existing)
     params.append(max(1, min(int(limit), 500)))
     with get_connection() as conn:
         rows = conn.execute(
@@ -1467,6 +1468,9 @@ def search_learnings(
     *,
     min_confidence: float = 0.0,
     exclude_graduated: bool = True,
+    categories: list[str] | None = None,
+    project_path: str | None = None,
+    exclude_test_sources: bool = True,
     limit: int = 50,
 ) -> list[dict]:
     """Full-text search across learnings with BM25 ranking.
@@ -1479,6 +1483,18 @@ def search_learnings(
             matching (e.g. "goroutine OR channel", "circuit*").
         min_confidence: Minimum confidence threshold for results.
         exclude_graduated: If True, omit entries that have graduated.
+        categories: If given, restrict results to rows whose category is in
+            this list (matches ANY, same semantics as query_learnings()'s
+            `tags` filter). Use this to keep cross-domain categories (e.g.
+            "voice", "review", "design") out of results meant for a
+            different domain (e.g. tool-error hints).
+        project_path: If given, restrict results to rows with a NULL
+            project_path (global knowledge) or an exact match — same
+            semantics as query_learnings()'s `project_path` filter.
+        exclude_test_sources: If True (default), omit entries where source
+            starts with 'test' — same default and rationale as
+            query_learnings() (ADR-191): keeps test fixtures out of
+            production injection. Pass False to include them (e.g. auditing).
         limit: Maximum number of results to return.
 
     Returns:
@@ -1506,6 +1522,20 @@ def search_learnings(
 
     if exclude_graduated:
         conditions.append("l.graduated_to IS NULL")
+
+    if exclude_test_sources:
+        conditions.append("l.source NOT LIKE 'test%'")
+
+    if categories:
+        category_clauses = []
+        for category in categories:
+            category_clauses.append("l.category = ?")
+            params.append(category)
+        conditions.append(f"({' OR '.join(category_clauses)})")
+
+    if project_path:
+        conditions.append("(l.project_path IS NULL OR l.project_path = ?)")
+        params.append(project_path)
 
     where = " AND ".join(conditions)
 
