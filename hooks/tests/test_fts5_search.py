@@ -421,7 +421,8 @@ class TestBackwardCompatibility:
         _record("python-patterns", "dataclass", "Use dataclasses", tags=["python"])
 
         # Exact tag substring matching still works
-        # ADR-191: test fixtures use source="test"; opt back in via exclude_test_sources=False.
+        # _record() defaults to source="manual", so exclude_test_sources=False
+        # is a no-op here; kept for defensiveness if the fixture default changes.
         results = db.query_learnings(tags=["go"], exclude_test_sources=False)
         assert len(results) >= 1
         assert any(r["topic"] == "go-patterns" for r in results)
