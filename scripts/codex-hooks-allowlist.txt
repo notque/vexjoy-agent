@@ -27,6 +27,7 @@ SessionStart:session-adr-health-check.py matcher=startup|resume|clear|compact cl
 SessionStart:team-config-loader.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:rules-distill-injector.py matcher=startup|resume|clear|compact class=native mode=native failure=open
 SessionStart:session-manifest-cache.py matcher=startup|resume|clear|compact class=native mode=native failure=open
+SessionStart:session-task-registry.py matcher=* class=native mode=native failure=open
 
 # Adapted SessionStart: path/environment normalization (2)
 SessionStart:sync-to-user-claude.py matcher=startup|resume|clear|compact class=adapted mode=native failure=open
@@ -84,6 +85,7 @@ SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native fai
 # SubagentStop (1 native, 1 adapted)
 SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
 SubagentStop:subagent-completion-guard.py matcher=* class=adapted mode=subagent-stop failure=open
+SubagentStop:session-task-registry.py matcher=* class=native mode=subagent-stop failure=open
 
 # Stop (0 native, 4 adapted). Codex lacks Claude session_data telemetry.
 Stop:stop-drift-guard.py class=adapted mode=stop failure=open

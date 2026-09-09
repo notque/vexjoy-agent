@@ -34,6 +34,11 @@ See [Anti-Rationalization](../skills/shared-patterns/anti-rationalization-core.m
 | `output-schemas.md` | Standardized agent output patterns | All agents |
 | `forbidden-patterns-template.md` | Template for domain-specific hard gates | Domain agents (Go, Python, etc.) |
 | `autonomous-repair.md` | Bounded self-repair with RETRY/DECOMPOSE/PRUNE/ESCALATE | Workflow orchestrator, pipeline skills |
+| `dense-complete-writing.md` | Universal writing standard: density rules plus completeness clause | All agents and skills |
+| `google-devdocs-style.md` | Construction rules for clear, active, reader-first prose | All agents and skills |
+| `llm-domain-failure-modes-base.md` | Universal LLM failure patterns extended by domain-specific references | Domain agents |
+| `local-only.md` | Prevents premature git operations during local-only work | /do routing |
+| `untrusted-content-handling.md` | Safe processing of external content through LLM classification | Content and research skills |
 
 ## Pattern vs Skill Distinction
 

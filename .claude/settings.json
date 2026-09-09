@@ -110,6 +110,13 @@
             "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
             "timeout": 20000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Inject incomplete tasks from previous sessions at session start",
+            "timeout": 3000,
+            "once": true
           }
         ]
       }
@@ -419,6 +426,17 @@
             "timeout": 3000
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Record [do-route] dispatches to the durable task registry",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "PreCompact": [
@@ -459,6 +477,12 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
             "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Update task registry status on subagent completion",
             "timeout": 3000
           }
         ]
