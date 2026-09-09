@@ -61,14 +61,14 @@ def _claude_registrations() -> set[tuple[str, str]]:
     return registrations
 
 
-def test_inventory_accounting_is_62_equals_26_plus_27_plus_9() -> None:
+def test_inventory_accounting_is_68_equals_29_plus_29_plus_10() -> None:
     """Every Claude registration has one reviewed current Codex decision."""
     entries = _entries()
     classes = Counter(entry["classification"] for entry in entries)
-    assert len(entries) == 53
-    assert classes == {"native": 26, "adapted": 27}
-    assert len(UNSUPPORTED_REGISTRATIONS) == 9
-    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 62
+    assert len(entries) == 58
+    assert classes == {"native": 29, "adapted": 29}
+    assert len(UNSUPPORTED_REGISTRATIONS) == 10
+    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 68
 
 
 def test_supported_and_unsupported_sets_partition_claude_settings() -> None:
@@ -124,6 +124,7 @@ def test_unsupported_boundaries_are_exact() -> None:
         ("PostToolUse", "usage-tracker.py"),
         ("PostToolUse", "review-capture.py"),
         ("PostToolUse", "routing-decision-recorder.py"),
+        ("PostToolUse", "session-task-registry.py"),
         ("StopFailure", "stop-failure-handler.py"),
         ("PostCompact", "postcompact-handler.py"),
     } == UNSUPPORTED_REGISTRATIONS
@@ -132,7 +133,7 @@ def test_unsupported_boundaries_are_exact() -> None:
 def test_unsupported_inventory_has_machine_owned_precise_reasons() -> None:
     """Every excluded registration carries a reviewable production reason."""
     reasons = GENERATOR.UNSUPPORTED_REGISTRATIONS
-    assert len(reasons) == 9
+    assert len(reasons) == 10
     assert all(isinstance(reason, str) and len(reason.split()) >= 6 for reason in reasons.values())
     assert all("unsupported" not in reason.lower() for reason in reasons.values())
 

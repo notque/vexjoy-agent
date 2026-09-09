@@ -112,6 +112,224 @@
             "once": true
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "timeout": 20000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
+            "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
+            "description": "Inject the pre-built overnight dream payload and dream notice (ADR-147)",
+            "timeout": 5000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/cross-repo-agents.py\"",
+            "description": "Discover custom agents in working directory",
+            "timeout": 3000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/fish-shell-detector.py\"",
+            "description": "Auto-detect Fish shell users and inject shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
+            "description": "Auto-detect Zsh shell users and inject shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
+            "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/operator-context-detector.py\"",
+            "description": "Detect operator context (pipeline session, ADR session) and inject context",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-github-briefing.py\"",
+            "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-adr-health-check.py\"",
+            "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/team-config-loader.py\"",
+            "description": "Load optional team-config.yaml into session context; silent when no config file exists",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/rules-distill-injector.py\"",
+            "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
+            "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
+            "timeout": 3000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-manifest-cache.py\"",
+            "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
+            "timeout": 20000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "description": "Report session state to herdr sidebar (no-op when herdr absent)",
+            "timeout": 2000,
+            "once": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "timeout": 20000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
+            "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
+            "description": "Inject the pre-built overnight dream payload and dream notice (ADR-147)",
+            "timeout": 5000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/cross-repo-agents.py\"",
+            "description": "Discover custom agents in working directory",
+            "timeout": 3000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/fish-shell-detector.py\"",
+            "description": "Auto-detect Fish shell users and inject shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/zsh-shell-detector.py\"",
+            "description": "Auto-detect Zsh shell users and inject shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
+            "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/operator-context-detector.py\"",
+            "description": "Detect operator context (pipeline session, ADR session) and inject context",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-github-briefing.py\"",
+            "description": "Inject GitHub briefing at session start (opt-in: CLAUDE_KAIROS_ENABLED=true)",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-adr-health-check.py\"",
+            "description": "Warn if .adr-session.json is orphaned (referenced ADR file missing); silent when no session exists",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/team-config-loader.py\"",
+            "description": "Load optional team-config.yaml into session context; silent when no config file exists",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/rules-distill-injector.py\"",
+            "description": "Inject pending rules-distillation candidates at session start (ADR-114); silent when none pending",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/hook-version-parity-check.py\"",
+            "description": "Warn-only: compare deployed ~/.claude/hooks hook-version headers against the repo checkout; silent on parity",
+            "timeout": 3000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-manifest-cache.py\"",
+            "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
+            "timeout": 20000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Inject incomplete tasks from previous sessions at session start",
+            "timeout": 3000,
+            "once": true
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -419,6 +637,17 @@
             "timeout": 3000
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Record [do-route] dispatches to the durable task registry",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "PreCompact": [
@@ -459,6 +688,72 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
             "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
+            "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "description": "Report subagent state to herdr sidebar (no-op when herdr absent)",
+            "timeout": 2000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
+            "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-state-tracker.py\"",
+            "description": "Track subagent lifecycle state and inject context for failed/unknown agents",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
+            "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
+            "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-task-registry.py\"",
+            "description": "Update task registry status on subagent completion",
             "timeout": 3000
           }
         ]

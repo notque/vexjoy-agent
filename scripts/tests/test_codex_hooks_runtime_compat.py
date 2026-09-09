@@ -69,6 +69,8 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("SessionStart", "context:[team-config]", "team-config-loader.py")
     add("SessionStart", "context:<rules-distill-candidates>", "rules-distill-injector.py")
     add("SessionStart", "context:[manifest-cache] refreshed", "session-manifest-cache.py")
+    add("SessionStart", "noaction:herdr-absent", "herdr-state-reporter.py")
+    add("SessionStart", "noaction:empty-registry", "session-task-registry.py")
     add("SessionStart", "noaction:ephemeral-worktree-guard", "sync-to-user-claude.py")
     add("SessionStart", "context:[hook-parity] WARNING", "hook-version-parity-check.py")
     add("SubagentStart", "context:[warmstart] Parent session context for Explore", "subagent-start-warmstart.py")
@@ -110,6 +112,9 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("PreCompact", "context:ACTIVE PIPELINE SESSION", "precompact-archive.py")
     add("SubagentStop", "state:routing-requeue", "routing-outcome-recorder.py")
     add("SubagentStop", "deny:READ-ONLY", "subagent-completion-guard.py")
+    add("SubagentStop", "noaction:herdr-absent", "herdr-state-reporter.py")
+    add("SubagentStop", "state:subagent-registry", "subagent-state-tracker.py")
+    add("SubagentStop", "state:task-registry", "session-task-registry.py")
     add("Stop", "state:learning-db", "session-summary.py")
     add("Stop", "deny:Toolkit drift detected", "stop-drift-guard.py")
     add("Stop", "context:[rules-distill]", "rules-distill-trigger.py")
@@ -536,6 +541,15 @@ def _assert_meaningful(
     elif contract.startswith("stderr:"):
         marker = contract.split(":", 1)[1]
         assert marker in result.stderr, f"{key} lost expected stderr marker {marker!r}"
+    elif contract.startswith("noaction:"):
+        # Hook exits 0 silently (e.g., herdr absent, empty registry)
+        assert output == {}, f"{key} must be a no-op in this sandbox, got {output}"
+    elif contract.startswith("state:subagent-registry"):
+        # Subagent state tracker writes to state dir
+        assert result.returncode == 0
+    elif contract.startswith("state:task-registry"):
+        # Task registry writes to state dir
+        assert result.returncode == 0
     elif contract == "noaction:ephemeral-worktree-guard":
         checkout = evidence["ephemeral_checkout"]
         assert isinstance(checkout, Path) and str(checkout.resolve()).startswith("/tmp/")
@@ -596,9 +610,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 53, "runtime matrix must execute every supported registration"
+    assert len(REGISTRATIONS) == 58, "runtime matrix must execute every supported registration"
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 53
+    assert len(registrations) == 58
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 
