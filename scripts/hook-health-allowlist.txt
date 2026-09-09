@@ -14,7 +14,6 @@
 # entry here.
 
 # --- Retired / superseded stubs (kept on disk for compatibility) ---
-instruction-reminder.py                   # retired stub: superseded by session-context.py (settings.json compat)
 retro-knowledge-injector.py               # retired stub: dream payload now injected by session-context.py (ADR-147)
 creation-request-enforcer-userprompt.py   # retired stub: /do Phase 1 handles creation-request enforcement
 skill-evaluator.py                        # disabled stub: main() is a no-op; routing-injection superseded by /do SKILL.md routing tables (overlaps /do)
