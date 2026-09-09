@@ -110,6 +110,13 @@
             "description": "Hash-gated /do routing-manifest cache: verify ~/.claude/cache/routing-manifest.txt, regenerate only when INDEX inputs changed (ADR router-improvement-program C5)",
             "timeout": 20000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "description": "Report session state to herdr sidebar (no-op when herdr absent)",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -460,6 +467,12 @@
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
             "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/herdr-state-reporter.py\"",
+            "description": "Report subagent state to herdr sidebar (no-op when herdr absent)",
+            "timeout": 2000
           }
         ]
       }

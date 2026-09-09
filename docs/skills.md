@@ -105,7 +105,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `e2e-testing` | no | Playwright-based end-to-end testing workflow |
 | `distinctive-frontend-design` | no | Frontend design: aesthetic exploration, text animation, card effects, HTML slides |
 | `threejs-builder` | no | Three.js app builder: Design, Build, Animate, Polish in 4 phases |
-| `nano-banana-builder` | no | Image generation and post-processing via Gemini Nano Banana APIs |
 
 ---
 
@@ -186,7 +185,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `adr-consultation` | no | Multi-agent consultation for architecture decisions |
 | `retro` | yes | Session retrospective: prints the negative-results registry, reviews what a session changed. |
 | `auto-dream` | yes | Background memory consolidation -- overnight cleanup of stale, duplicate, and conflicting memory entries |
-| `kairos-lite` | yes | Proactive monitoring -- checks GitHub, CI, and toolkit health, produces briefings |
 | `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
 | `skill-composer` | no | _(demoted to workflow)_ DAG-based multi-skill orchestration with dependency resolution |

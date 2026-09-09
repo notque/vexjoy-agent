@@ -171,3 +171,9 @@ evolution-reports/
 
 # Backup virtualenvs
 venv.*.bak/
+
+# Hill-climb calibration artifacts (generated, not committed)
+.hillclimb/
+
+# Ad-hoc analysis reports (generated, not committed)
+reports/
