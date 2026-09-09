@@ -84,6 +84,7 @@ SubagentStart:subagent-start-warmstart.py matcher=* class=native mode=native fai
 # SubagentStop (1 native, 1 adapted)
 SubagentStop:routing-outcome-recorder.py matcher=* class=native mode=native failure=open
 SubagentStop:subagent-completion-guard.py matcher=* class=adapted mode=subagent-stop failure=open
+SubagentStop:subagent-state-tracker.py matcher=* class=native mode=subagent-stop failure=open
 
 # Stop (0 native, 4 adapted). Codex lacks Claude session_data telemetry.
 Stop:stop-drift-guard.py class=adapted mode=stop failure=open

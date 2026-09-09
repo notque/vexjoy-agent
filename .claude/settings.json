@@ -460,6 +460,12 @@
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-recorder.py\"",
             "description": "Validate routing-decision pending outcomes per subagent stop (decision-row existence + bounded re-queue); next-turn finalizer applies boost/decay",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-state-tracker.py\"",
+            "description": "Track subagent lifecycle state and inject context for failed/unknown agents",
+            "timeout": 3000
           }
         ]
       }
