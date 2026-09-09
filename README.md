@@ -8,8 +8,8 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
-<!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 domain agents, 122 workflow skills, 73 hooks, 136 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+<!-- Counts here must match the Four Layers table (~line 143). Verify both: python138 scripts/validate-doc-counts.py -->
+43 domain agents, 122 workflow skills, 76 hooks, 138 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -145,8 +145,8 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 122 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
-| Hooks | 73 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 136 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Hooks | 76 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
+| Scripts | 138 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
