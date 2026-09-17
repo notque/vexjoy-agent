@@ -97,6 +97,7 @@ import argparse
 import json
 import math
 import random
+import re
 import shlex
 import subprocess
 import sys
@@ -788,14 +789,61 @@ def compute_paired_stats(
     }
 
 
+# "MUST NOT (force-)route <name>" is the corpus's own literal phrasing for the
+# single named trap a false-positive-guard case must avoid (see routing-ab-
+# corpus.json notes on the false-positive-guard bucket). Parsed once here so
+# GUARD scoring never needs a hand-maintained trap-name table.
+_TRAP_RE = re.compile(r"MUST NOT (?:force-)?route ([A-Za-z0-9_-]+)")
+
+
+def _trap_name(rec: dict) -> str | None:
+    notes = rec.get("notes") or ""
+    m = _TRAP_RE.search(notes)
+    return m.group(1) if m else None
+
+
 def route_correct(rec: dict, route: dict) -> bool:
-    """Deterministic correctness: exact expected pair, or any `acceptable` alternate."""
+    """Deterministic correctness: exact expected pair, any `acceptable` alternate,
+    or (for GUARD-bucket cases) simply not hitting the named trap.
+
+    Two corpus-label/grader mismatches, fixed 2026-09-16 per owner review of the
+    /d v1 comparison run (see adr/jev-router-replacement.md):
+
+    1. `expected_agent: null` means "any reasonable agent accepted," not "agent
+       must literally be null." A perfect skill match paired with a real,
+       reasonable agent was previously scored wrong. Fix: when expected_agent
+       is None, the agent constraint is always satisfied — skill is the only
+       gate. The same null-is-a-wildcard rule applies to `acceptable` alternates
+       for consistency.
+    2. `false-positive-guard` bucket cases carry `expected_skill: null` to mean
+       "must not hit the specific named trap skill/agent," not "must return
+       skill=null." /do's own Skill-greediness gate requires filling a skill
+       whenever one plausibly applies, so a literal-null requirement contradicts
+       /do's contract by construction. Fix: for this bucket, the pass condition
+       is "route does not match the trap name parsed from the case's own
+       notes" (agent, skill, or pipeline), not exact-null-skill equality.
+    """
     agent = _norm(route.get("agent"))
     skill = _norm(route.get("skill"))
-    if agent == _norm(rec.get("expected_agent")) and skill == _norm(rec.get("expected_skill")):
+
+    if rec.get("bucket") == "false-positive-guard":
+        trap = _trap_name(rec)
+        if trap is not None:
+            pipeline = _norm(route.get("pipeline"))
+            return trap not in {agent, skill, pipeline}
+        # No parseable trap in notes (shouldn't happen for this bucket, but
+        # don't silently pass everything if it does): fall through to the
+        # ordinary expected-pair check below as a defensive default.
+
+    expected_agent = _norm(rec.get("expected_agent"))
+
+    def _agent_ok(candidate: str | None, expected: str | None) -> bool:
+        return expected is None or candidate == expected
+
+    if _agent_ok(agent, expected_agent) and skill == _norm(rec.get("expected_skill")):
         return True
     for alt in rec.get("acceptable", []) or []:
-        if agent == _norm(alt.get("agent")) and skill == _norm(alt.get("skill")):
+        if _agent_ok(agent, _norm(alt.get("agent"))) and skill == _norm(alt.get("skill")):
             return True
     return False
 

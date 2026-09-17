@@ -39,9 +39,10 @@ UserPromptSubmit:review-false-positive-capture.py class=native mode=native failu
 UserPromptSubmit:prompt-capture.py class=native mode=native failure=open
 UserPromptSubmit:routing-outcome-finalizer.py class=native mode=native failure=open
 
-# Adapted UserPromptSubmit: top-level prompt/userMessage normalization (2)
+# Adapted UserPromptSubmit: top-level prompt/userMessage normalization (3)
 UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=open
 UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
+UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=open
 
 # Native PreToolUse Bash enforcement (5)
 PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed

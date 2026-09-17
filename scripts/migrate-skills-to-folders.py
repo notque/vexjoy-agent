@@ -88,6 +88,7 @@ SKILL_MAPPING: dict[str, str] = {
     "dev-branch-deploy": "infrastructure",
     # meta/ — toolkit self-management
     "codex": "meta",
+    "d": "meta",
     "do": "meta",
     "install": "meta",
     "retro": "meta",

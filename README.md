@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python138 scripts/validate-doc-counts.py -->
-43 domain agents, 122 workflow skills, 76 hooks, 138 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+43 domain agents, 123 workflow skills, 77 hooks, 141 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -39,6 +39,20 @@ The router pairs a Go agent with a debugging skill, then follows the task throug
  │ /do  │───▶│ Task │───▶│Agent │───▶│Tests │───▶│  PR  │───▶│Route │
  │Router│    │ Plan │    │+Skill│    │Gates │    │Branch│    │Result│
  └──────┘    └──────┘    └──────┘    └──────┘    └──────┘    └──────┘
+```
+
+## /d — Jev-Powered Router
+
+`/d` routes requests through [TypeSafe's Jev](https://docs.typesafe.ai) classifier. One API call picks the agent, skill, and pipeline — no manifest read into context. Requires Jev; use `/do` if TypeSafe is not configured.
+
+**Setup:** install the `typesafe` MCP plugin and set `TYPESAFE_API_KEY` in your environment.
+
+```
+> /d fix the flaky test in the payments module
+
+  ROUTING (/d): testing-automation-engineer + testing-preferred-patterns
+  Source: jev (confidence: medium)
+  Invoking...
 ```
 
 ## Anti-Rationalization
@@ -144,9 +158,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 122 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
-| Hooks | 76 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 138 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Skills | 123 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Hooks | 77 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
+| Scripts | 141 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 

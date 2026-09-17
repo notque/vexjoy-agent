@@ -21,6 +21,7 @@
     "data-analysis": "Semantic analysis route; no stable deterministic trigger contract.",
     "decision-helper": "Semantic decision-support route; no stable deterministic trigger contract.",
     "design": "Semantic design route; no stable deterministic trigger contract.",
+    "d": "Meta-router that classifies via Jev API, not a routing target.",
     "do": "The router itself, not a routing target. /do is the entry point that selects agents and skills; it is never the result of a routing decision.",
     "e2e-testing": "Testing-method route; no stable deterministic trigger contract.",
     "enterprise-search": "Engineering route requires repository and search-system context.",

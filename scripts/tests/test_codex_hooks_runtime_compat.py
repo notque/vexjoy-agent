@@ -79,6 +79,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("UserPromptSubmit", "state:routing-requeue", "routing-outcome-finalizer.py")
     add("UserPromptSubmit", "context:[pipeline-creator]", "pipeline-context-detector.py")
     add("UserPromptSubmit", "context:[codex-auto-review]", "codex-auto-review.py")
+    add("UserPromptSubmit", "noaction:no-d-invocation", "jev-route-injector-userprompt.py")
     add(
         "PreToolUse",
         "allow",
@@ -610,9 +611,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 58, "runtime matrix must execute every supported registration"
+    assert len(REGISTRATIONS) == 59, "runtime matrix must execute every supported registration"
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 58
+    assert len(registrations) == 59
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

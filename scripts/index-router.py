@@ -349,6 +349,10 @@ def score_candidates(request: str, entries: list[IndexEntry]) -> list[Candidate]
     scored: list[Candidate] = []
 
     for entry in entries:
+        # Meta-tooling entries (routers like /d, /do) are dispatchers, not
+        # workers — exclude them from candidate scoring.
+        if entry.category == "meta-tooling":
+            continue
         trigger_words = _extract_trigger_words(entry.triggers)
         if not trigger_words:
             continue

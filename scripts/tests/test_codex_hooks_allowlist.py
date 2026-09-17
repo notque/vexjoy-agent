@@ -61,14 +61,14 @@ def _claude_registrations() -> set[tuple[str, str]]:
     return registrations
 
 
-def test_inventory_accounting_is_68_equals_29_plus_29_plus_10() -> None:
+def test_inventory_accounting_is_69_equals_29_plus_30_plus_10() -> None:
     """Every Claude registration has one reviewed current Codex decision."""
     entries = _entries()
     classes = Counter(entry["classification"] for entry in entries)
-    assert len(entries) == 58
-    assert classes == {"native": 29, "adapted": 29}
+    assert len(entries) == 59
+    assert classes == {"native": 29, "adapted": 30}
     assert len(UNSUPPORTED_REGISTRATIONS) == 10
-    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 68
+    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 69
 
 
 def test_supported_and_unsupported_sets_partition_claude_settings() -> None:

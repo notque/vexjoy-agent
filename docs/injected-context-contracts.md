@@ -57,6 +57,12 @@ Source: `hooks/precompact-archive.py` (PreCompact).
 Meaning: A pipeline session with an active ADR is about to lose context to compression. The block carries the ADR path, its hash, and the three commands that restore your bearings afterwards.
 Action: After compaction, run the listed commands in order: read the ADR, verify its hash with `adr-query.py verify`, then reload your role context with `adr-query.py context`. The ADR stays binding across the compaction boundary.
 
+### `[jev-route-injector] JEV_RESULT precomputed by this hook...` (plus the full JEV_RESULT JSON)
+
+Source: `hooks/jev-route-injector-userprompt.py` (UserPromptSubmit; fires only on a raw `/d ...` prompt, matched before generation starts).
+Meaning: `scripts/jev-route.py` already ran for this turn's request and its output is the `JEV_RESULT` JSON embedded in the tag. This exists because prose alone ("call jev-route.py first") failed once — the model skipped the script call on a meta-question. The hook makes the classification happen outside the model's control, before the model's first token for the turn.
+Action: `skills/meta/d/SKILL.md` Phase 1 reads this `JEV_RESULT` directly and does NOT re-run `scripts/jev-route.py`. When this tag is absent (non-`/d` prompt, an invocation shape the hook's regex didn't recognize, or a hook timeout/failure — the hook fails open in every error case), Phase 1 runs the script itself exactly as before this hook existed; absence is not an error condition, it is the documented fallback path.
+
 ## Session-State Tags (injected at session start, shape behavior for the session)
 
 These fire once at SessionStart. They condition the entire session.

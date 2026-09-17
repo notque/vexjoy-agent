@@ -364,6 +364,12 @@
             "command": "python3 \"$HOME/.claude/hooks/routing-outcome-finalizer.py\"",
             "description": "Finalize routing-decision outcomes on the next user turn (tool-errors + user reaction + re-route); replaces eager SubagentStop boost/decay",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/jev-route-injector-userprompt.py\"",
+            "description": "Pre-run jev-route.py on a /d invocation and inject JEV_RESULT before generation starts",
+            "timeout": 26000
           }
         ]
       }
