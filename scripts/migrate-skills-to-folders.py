@@ -95,7 +95,7 @@ SKILL_MAPPING: dict[str, str] = {
 }
 
 # Directories to keep at root level (no SKILL.md or special structure)
-KEEP_AT_ROOT = {"shared-patterns", "kb", "reddit-data", "voice", "voice-shared"}
+KEEP_AT_ROOT = {"shared-patterns", "kb", "voice-shared"}
 
 
 def main() -> int:

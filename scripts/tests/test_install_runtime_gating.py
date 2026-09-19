@@ -25,8 +25,8 @@ NODE = shutil.which("node")
 RUNTIMES = ("codex", "factory", "hermes", "reasonix")
 ALL_RUNTIMES = ("claude", *RUNTIMES)
 HOOK_RUNTIMES = ("claude", "codex", "factory", "reasonix")
-EXACT_PRIMARY_CALL = "Call the Skill tool with `test-driven-development`."
-EXACT_STACK_CALL = "Call the Skill tool with `verification-before-completion`."
+EXACT_PRIMARY_CALL = "Call the Skill tool with `testing`."
+EXACT_STACK_CALL = "Call the Skill tool with `process`."
 
 if shutil.which("bash") is None:
     pytest.skip("bash not available on this platform", allow_module_level=True)
@@ -72,8 +72,8 @@ def _run_installed_builder(
     fake_home: Path,
     runtime: str,
     *,
-    skill: str = "test-driven-development",
-    stack: tuple[str, ...] = ("verification-before-completion",),
+    skill: str = "testing",
+    stack: tuple[str, ...] = ("process",),
 ) -> subprocess.CompletedProcess:
     payload = {
         "agent": "python-general-engineer",
@@ -104,7 +104,7 @@ def _assert_installed_contract(fake_home: Path, runtime: str) -> None:
     assert result.stdout.count(EXACT_PRIMARY_CALL) == 1, runtime
     assert result.stdout.count(EXACT_STACK_CALL) == 1, runtime
     assert "Call the Skill tool with" in _installed_do_skill(fake_home, runtime).read_text(encoding="utf-8")
-    helper = fake_home / f".{runtime}" / "skills/workflow/references/workflow-helpers.js"
+    helper = fake_home / f".{runtime}" / "skills/process/workflow/references/workflow-helpers.js"
     assert "Call the Skill tool with" in helper.read_text(encoding="utf-8")
     if runtime in HOOK_RUNTIMES:
         hook_helper = fake_home / f".{runtime}" / "hooks/lib/skill_directives.py"
@@ -166,17 +166,17 @@ def test_clean_copy_generates_installed_agent_index_before_workflow_import(tmp_p
     """A source tree without agents/INDEX.json still installs an importable workflow helper."""
     source = tmp_path / "source"
     home = tmp_path / "home"
-    for directory in ("agents", "skills/workflow/references", "scripts/lib"):
+    for directory in ("agents", "skills/process/workflow/references", "scripts/lib"):
         (source / directory).mkdir(parents=True, exist_ok=True)
     home.mkdir()
 
     shutil.copy2(INSTALL_SH, source / "install.sh")
     (source / "requirements.txt").write_text("", encoding="utf-8")
     shutil.copy2(REPO_ROOT / "agents/reviewer-system.md", source / "agents/reviewer-system.md")
-    shutil.copy2(REPO_ROOT / "skills/workflow/SKILL.md", source / "skills/workflow/SKILL.md")
+    shutil.copy2(REPO_ROOT / "skills/process/workflow/SKILL.md", source / "skills/process/workflow/SKILL.md")
     shutil.copy2(
-        REPO_ROOT / "skills/workflow/references/workflow-helpers.js",
-        source / "skills/workflow/references/workflow-helpers.js",
+        REPO_ROOT / "skills/process/workflow/references/workflow-helpers.js",
+        source / "skills/process/workflow/references/workflow-helpers.js",
     )
     for script in ("generate-agent-index.py", "generate-skill-index.py"):
         shutil.copy2(REPO_ROOT / "scripts" / script, source / "scripts" / script)
@@ -197,7 +197,7 @@ def test_clean_copy_generates_installed_agent_index_before_workflow_import(tmp_p
     assert installed_index.is_file()
     assert "reviewer-system" in json.loads(installed_index.read_text(encoding="utf-8"))["agents"]
 
-    helper = home / ".claude/skills/workflow/references/workflow-helpers.js"
+    helper = home / ".claude/skills/process/workflow/references/workflow-helpers.js"
     imported = subprocess.run(
         [NODE, "--input-type=module", "-e", "await import(process.argv[1])", helper.as_uri()],
         cwd=home,
@@ -218,8 +218,8 @@ def test_whole_directory_symlink_inventory_keeps_nested_skills(fake_home: Path) 
     skills_dir = fake_home / ".claude/skills"
     assert skills_dir.is_symlink()
     index = json.loads((skills_dir / "INDEX.json").read_text(encoding="utf-8"))["skills"]
-    entry = index["test-driven-development"]
-    assert entry["file"] == "skills/testing/test-driven-development/SKILL.md"
+    entry = index["testing"]
+    assert entry["file"] == "skills/process/testing/SKILL.md"
     assert (fake_home / ".claude" / entry["file"]).is_file()
     _assert_installed_contract(fake_home, "claude")
 
@@ -232,7 +232,7 @@ def test_profile_filtered_installed_inventory_drives_dispatch(
 ) -> None:
     """Every runtime validates Skill calls against its deployed, filtered inventory."""
     disabled = "quick"
-    enabled = "test-driven-development"
+    enabled = "testing"
     disabled_agent = "reviewer-system"
     enabled_agent = "python-general-engineer"
     profile = tmp_path / "profile.yaml"
@@ -275,7 +275,7 @@ def test_symlink_profile_transition_removes_disabled_skill_links_and_inventory(
 ) -> None:
     """Reapplying a stricter profile removes links installed by the prior profile."""
     disabled = "quick"
-    enabled = "test-driven-development"
+    enabled = "testing"
     install_args = ("--symlink", "--force")
 
     initial = _install_all_runtimes(fake_home, install_args)

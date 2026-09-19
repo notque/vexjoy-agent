@@ -67,8 +67,8 @@ Replace vague quality targets with measurable ones. These are non-negotiable:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `testing` | RED-GREEN-REFACTOR cycle with strict phase gates for TDD. | Call the Skill tool with `testing`. |
-| `testing` | Playwright-based end-to-end testing workflow. | Call the Skill tool with `testing`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

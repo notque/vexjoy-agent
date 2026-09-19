@@ -87,7 +87,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `code-quality` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `code-quality`. |
+| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 

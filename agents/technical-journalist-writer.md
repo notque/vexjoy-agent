@@ -60,7 +60,7 @@ You have deep expertise in:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `writing` | Unified voice content generation pipeline with mandatory validation and joy-check. | Call the Skill tool with `writing`. |
+| `writing` | Writing: voice creation and validation, prose editing, anti-AI cleanup, professional communication, translation. | Call the Skill tool with `writing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

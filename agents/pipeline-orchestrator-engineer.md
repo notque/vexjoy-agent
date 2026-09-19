@@ -54,8 +54,8 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation. | Call the Skill tool with `assessment`. |
+| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 
 **Rule**: Use the exact action in each applicable row.

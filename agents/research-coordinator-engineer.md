@@ -56,8 +56,8 @@ Coordinate research through `research-subagent-executor` agents (`subagent_type=
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `process` | Process: processspectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | Call the Skill tool with `process`. |
+| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
+| `process` | Process: retrospectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | Call the Skill tool with `process`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -62,7 +62,7 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analysis. | Call the Skill tool with `assessment`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `docs-sync-checker` | Detect documentation drift against filesystem state. | Call the Skill tool with `docs-sync-checker`. |
 

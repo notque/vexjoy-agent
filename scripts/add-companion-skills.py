@@ -19,7 +19,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 SKILLS_DIR = REPO_ROOT / "skills"
-PIPELINES_DIR = REPO_ROOT / "skills" / "workflow" / "references"
+PIPELINES_DIR = REPO_ROOT / "skills" / "process" / "workflow" / "references"
 SKILL_INDEX = SKILLS_DIR / "INDEX.json"
 AGENT_INDEX = AGENTS_DIR / "INDEX.json"
 PIPELINE_INDEX = PIPELINES_DIR / "pipeline-index.json"

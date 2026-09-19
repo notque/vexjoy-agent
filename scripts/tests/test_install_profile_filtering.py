@@ -77,10 +77,18 @@ def _first_allowlisted_hook() -> str:
 
 
 def _first_top_level_skill() -> str:
-    for entry in sorted((REPO_ROOT / "skills").iterdir()):
-        if entry.is_dir() and (entry / "SKILL.md").is_file():
-            return entry.name
-    raise AssertionError("no top-level skill found")
+    """Return the first installed skill name (may be nested under a category)."""
+    for category in sorted((REPO_ROOT / "skills").iterdir()):
+        if not category.is_dir():
+            continue
+        # Direct: skills/<skill>/SKILL.md
+        if (category / "SKILL.md").is_file():
+            return category.name
+        # Nested: skills/<category>/<skill>/SKILL.md
+        for child in sorted(category.iterdir()):
+            if child.is_dir() and (child / "SKILL.md").is_file():
+                return child.name
+    raise AssertionError("no skill found")
 
 
 @pytest.fixture
@@ -138,9 +146,9 @@ def test_no_profile_installs_everything(fake_home: Path) -> None:
     assert (fake_home / ".claude" / "agents" / f"{agent}.md").exists()
     assert (fake_home / ".claude" / "hooks" / hook).exists()
     assert (fake_home / ".claude" / "skills" / skill).exists()
-    assert (fake_home / ".claude" / "skills" / "game-design" / "SKILL.md").exists()
+    assert (fake_home / ".claude" / "skills" / "game-dev" / "SKILL.md").exists()
     assert (fake_home / ".codex" / "hooks" / hook).exists()
-    assert (fake_home / ".codex" / "skills" / "game-design" / "SKILL.md").exists()
+    assert (fake_home / ".codex" / "skills" / "game-dev" / "SKILL.md").exists()
     installed_skills = len(list((fake_home / ".claude" / "skills").glob("*/SKILL.md")))
     installed_invocable = sum(
         "user-invocable: true" in path.read_text(encoding="utf-8")

@@ -79,9 +79,9 @@ This agent operates as an orchestrator for top-down system upgrades.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `toolkit` | Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve. | Call the Skill tool with `toolkit`. |
-| `toolkit` | Evaluate agents and skills for quality and standards compliance. | Call the Skill tool with `toolkit`. |
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation. | Call the Skill tool with `assessment`. |
+| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
+| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
 | `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | Call the Skill tool with `pr-workflow`. |
 

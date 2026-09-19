@@ -77,8 +77,8 @@ This agent operates as an operator for TypeScript frontend development, configur
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `code-quality` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `code-quality`. |
-| `programming` | TypeScript type checking via tsc --noEmit with actionable error output. | Call the Skill tool with `programming`. |
+| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
+| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 
