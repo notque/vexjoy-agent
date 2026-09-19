@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 domain agents, 59 workflow skills, 78 hooks, 153 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+43 domain agents, 65 workflow skills, 78 hooks, 154 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -105,9 +105,9 @@ claude plugin marketplace add ./plugins/jev-auto-compact
 claude plugin install jev-auto-compact@jev-auto-compact -y
 ```
 
-Replaces LLM-generated compaction summaries with Jev-judged verbatim pruning. Once context reaches 60%, Jev evaluates each old tool call (keep, truncate result, or drop) and returns the pruned transcript with zero rewriting, in about a second instead of one to three minutes. The threshold matters: every compaction is a cold KV-cache rewrite of the prefix, so compacting every turn multiplies cost. Evidence lives in `learning.db` (`python153 scripts/jev-compact-evidence.py`).
+Replaces LLM-generated compaction summaries with Jev-judged verbatim pruning. Once context reaches 60%, Jev evaluates each old tool call (keep, truncate result, or drop) and returns the pruned transcript with zero rewriting, in about a second instead of one to three minutes. The threshold matters: every compaction is a cold KV-cache rewrite of the prefix, so compacting every turn multiplies cost. Evidence lives in `learning.db` (`python3 scripts/jev-compact-evidence.py`).
 
-**Proof it works:** `python153 scripts/jev-compact-evidence.py` prints every compaction from two sources side by side — the plugin's claim and the engine's own `compact_boundary` record (tokens before/after, duration). A Jev compaction shows as a sub-second engine record next to a matching plugin claim; a built-in LLM compaction shows as a 30–150s record. Rows live in `~/.claude/learning/learning.db` (`compaction_events`, `session_usage`).
+**Proof it works:** `python3 scripts/jev-compact-evidence.py` prints every compaction from two sources side by side — the plugin's claim and the engine's own `compact_boundary` record (tokens before/after, duration). A Jev compaction shows as a sub-second engine record next to a matching plugin claim; a built-in LLM compaction shows as a 30–150s record. Rows live in `~/.claude/learning/learning.db` (`compaction_events`, `session_usage`).
 
 **Full setup:** [docs/start-here.md](docs/start-here.md)
 
@@ -145,7 +145,7 @@ Mirrors agents (as "droids"), skills, and all78 hooks into `~/.factory/`. Hook c
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 153 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, 154 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 
@@ -169,9 +169,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills,78 hooks, an
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 59 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Skills | 65 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
 | Hooks | 78 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 153 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Scripts | 154 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -212,7 +212,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 ## Philosophy
 
 - **Zero-expertise operation.** Say what you want. The system classifies, dispatches, enforces, delivers.
-- **LLMs orchestrate, programs execute.** Deterministic work belongs to153 scripts. LLM judgment handles design decisions, diagnosis, review.
+- **LLMs orchestrate, programs execute.** Deterministic work belongs to 154 scripts. LLM judgment handles design decisions, diagnosis, review.
 - **Density.** Every word carries instruction, rule, or decision. Cut everything else.
 - **Breadth over depth.** Right context ensures correctness. Unfocused context adds cost.
 - **Structural enforcement.** Exit codes enforce what instructions can't. Quality gates are automated, not advisory.
@@ -224,9 +224,9 @@ Full design philosophy: **[PHILOSOPHY.md](docs/PHILOSOPHY.md)**
 
 One report-only script surfaces upkeep work; it prints a digest and never edits, deletes, or blocks.
 
-- `python153 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
+- `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses153 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses 154 scripts.
 
 | Need | Use |
 |---|---|
