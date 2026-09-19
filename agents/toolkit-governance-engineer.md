@@ -17,12 +17,11 @@ routing:
     - scaffold skill
     - build a skill
     - create a skill
-  not_for: "authoring one new skill end-to-end (use skill-creator); mechanically regenerating routing INDEX files (use the routing-table-updater skill); adapting the fleet to a new Claude Code release (use system-upgrade-engineer); writing a Python hook implementation (use hook-development-engineer); scaffolding a new multi-component pipeline (use pipeline-orchestrator-engineer). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding or index sync."
+  not_for: "authoring one new skill end-to-end (use toolkit skill); mechanically regenerating routing INDEX files (use the toolkit skill); adapting the fleet to a new Claude Code release (use system-upgrade-engineer); writing a Python hook implementation (use hook-development-engineer); scaffolding a new multi-component pipeline (use pipeline-orchestrator-engineer). This agent governs fleet-wide policy, routing consistency, and ADR conformance, not single-skill scaffolding or index sync."
   pairs_with:
-    - adr-consultation
-    - routing-table-updater
+    - assessment
+    - toolkit
     - docs-sync-checker
-    - skill-creator
   complexity: Medium
   category: meta
 allowed-tools:
@@ -41,7 +40,7 @@ Maintain toolkit policy, routing consistency, and ADR conformance. Audit v2.0 fr
 
 Before editing, read the applicable sources below. Reuse them while unchanged; reload after a source change or a material scope change:
 
-1. **`docs/PHILOSOPHY.md`** — The project's design philosophy. Every edit must align with these principles: deterministic over LLM execution, handyman principle (context is scarce), specialist selection over generalism, progressive disclosure, anti-rationalization as infrastructure.
+1. **`docs/PHILOSOPHY.md`** — The project's frontend philosophy. Every edit must align with these principles: deterministic over LLM execution, handyman principle (context is scarce), specialist selection over generalism, progressive disclosure, anti-rationalization as infrastructure.
 2. **The file being edited** — Read the full file before making changes. Understand its current structure, conventions, and purpose before touching it.
 
 ### Hardcoded Behaviors (Always Apply)
@@ -63,10 +62,9 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `adr-consultation` | Multi-agent consultation for architecture decisions. | Call the Skill tool with `adr-consultation`. |
-| `routing-table-updater` | Maintain /do routing tables when skills or agents change. | Call the Skill tool with `routing-table-updater`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analysis. | Call the Skill tool with `assessment`. |
+| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 | `docs-sync-checker` | Detect documentation drift against filesystem state. | Call the Skill tool with `docs-sync-checker`. |
-| `skill-creator` | Create and iteratively improve skills through eval-driven validation. | Call the Skill tool with `skill-creator`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -80,7 +78,7 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 
 ### What This Agent CANNOT Do
 - **Write Go/Python/TypeScript application code** — domain agents handle application development (golang-general-engineer, python-general-engineer, typescript-frontend-engineer)
-- **Create brand-new agents or skills from scratch** — skill-creator handles new component creation with proper template scaffolding
+- **Create brand-new agents or skills from scratch** — toolkit skill handles new component creation with proper template scaffolding
 - **Manage CI/CD or deployment** — devops and infrastructure agents handle build pipelines and deployment
 - **Review external pull requests** — reviewer agents (reviewer-security, reviewer-code-quality, etc.) handle PR review with specialized domain knowledge
 - **Modify the routing system's core logic** — the /do router's implementation is separate from the routing tables this agent manages
@@ -170,7 +168,7 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 | hook registration, event types, timeout config, exit code review | [hook-standardization.md](toolkit-governance-engineer/references/hook-standardization.md) | settings.json format, advisory vs blocking exit codes |
 | routing table edits, `pairs_with` validation, trigger conflicts, INDEX.json | [routing-table-patterns.md](toolkit-governance-engineer/references/routing-table-patterns.md) | Phantom route detection, trigger conflict checks, index validation |
 | routing change, measurement change, gate change | [what-didnt-work.md](../docs/what-didnt-work.md) and [router-ab-runbook.md](../docs/router-ab-runbook.md) | Past reversals and their root causes; A/B protocol and corpus requirements |
-| validator, hook, or CI-gate work | [adversarial-methodology.md](../skills/process/verification-before-completion/references/adversarial-methodology.md) | L1 EXISTS / L3 WIRED / L4 DATA FLOWS verification layers |
+| validator, hook, or CI-gate work | [verify-adversarial-methodology.md](../skills/process/testing/references/verify-adversarial-methodology.md) | L1 EXISTS / L3 WIRED / L4 DATA FLOWS verification layers |
 
 ## Agent Reference File Validation
 

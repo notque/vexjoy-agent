@@ -45,7 +45,7 @@ Bugs that manifest at output-render time (table layout, template output, log for
 `golang.org/x/tools/cmd/deadcode` (SSA whole-program analysis) resolves interface dispatch, method values, and reflection — edges syntax tools miss. Run it during VERIFY for cleanup, review, or refactoring-prep tasks; skip it when the question is only "does this build and pass tests?"
 
 ```bash
-go install golang.org/x/tools/cmd/deadcode@latest
+go deploy golang.org/x/tools/cmd/deadcode@latest
 deadcode ./...            # one line per unreachable function
 deadcode -json ./...      # machine-parseable
 deadcode -test ./...      # include test binary entry points

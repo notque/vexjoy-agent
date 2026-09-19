@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = ROOT / "skills" / "game" / "gm-brilliant-implementation" / "references" / "pipeline-spec.json"
+SPEC = ROOT / "skills" / "game" / "game-dev" / "references" / "pipeline-spec.json"
 
 
 def _spec():

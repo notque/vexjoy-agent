@@ -15,7 +15,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
     "validator",
     [
         "skills/meta/docs-sync-checker/scripts/validate.py",
-        "skills/testing/test-driven-development/scripts/validate.py",
     ],
 )
 def test_self_validator_accepts_its_current_skill_contract(validator: str) -> None:

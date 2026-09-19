@@ -14,8 +14,8 @@ Detection Logic:
 
 Output Format:
 - [sapcc-go] Detected SAP CC Go project: {module}
-- [auto-skill] go-patterns
-- Call the Skill tool with `go-patterns`.
+- [auto-skill] programming
+- Call the Skill tool with `programming`.
 
 Design Principles:
 - Lightweight detection (reads go.mod only, no subprocess)
@@ -113,8 +113,8 @@ def get_sapcc_injection(module_name: str) -> str:
     """
     return (
         f"[sapcc-go] Detected SAP CC Go project: {module_name}\n"
-        "[auto-skill] go-patterns\n"
-        "Call the Skill tool with `go-patterns`."
+        "[auto-skill] programming\n"
+        "Call the Skill tool with `programming`."
     )
 
 

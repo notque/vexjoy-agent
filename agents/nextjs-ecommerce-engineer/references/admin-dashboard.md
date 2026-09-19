@@ -172,7 +172,7 @@ const ProductSchema = z.object({
   price:       z.number().positive().multipleOf(0.01),
   stock:       z.number().int().min(0),
   categoryId:  z.string().cuid(),
-  published:   z.boolean().default(false),
+  contented:   z.boolean().default(false),
 })
 
 export async function createProduct(formData: FormData) {
@@ -184,7 +184,7 @@ export async function createProduct(formData: FormData) {
     price:       parseFloat(formData.get('price') as string),
     stock:       parseInt(formData.get('stock') as string),
     categoryId:  formData.get('categoryId'),
-    published:   formData.get('published') === 'true',
+    contented:   formData.get('contented') === 'true',
   })
 
   if (!parsed.success) {
@@ -205,7 +205,7 @@ export async function archiveProduct(productId: string) {
   // Soft delete — preserve for order history
   await db.product.update({
     where: { id: productId },
-    data: { archivedAt: new Date(), published: false },
+    data: { archivedAt: new Date(), contented: false },
   })
 
   revalidatePath('/admin/products')

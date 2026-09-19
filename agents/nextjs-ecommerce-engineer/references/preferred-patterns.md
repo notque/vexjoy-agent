@@ -179,7 +179,7 @@ const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY!)
 
 **Why wrong:** `NEXT_PUBLIC_` variables are bundled into client JS. Anyone can read the secret key from the browser.
 
-**Fix:** Never prefix Stripe secret key with `NEXT_PUBLIC_`. Only the publishable key goes to the client.
+**Fix:** Never prefix Stripe secret key with `NEXT_PUBLIC_`. Only the contentable key goes to the client.
 
 ```typescript
 // CORRECT: Secret key server-side only

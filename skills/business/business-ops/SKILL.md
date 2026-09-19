@@ -11,223 +11,217 @@ allowed-tools:
   - Edit
 routing:
   triggers:
-    # Strategy/CEO
-    - "should we"
-    - "evaluate opportunity"
-    - "trade-off"
-    - "worth it"
-    - "invest in"
-    - "strategy"
-    # Technology/CTO
+    - "business strategy"
     - "build vs buy"
     - "vendor evaluation"
-    - "adopt"
-    - "technology choice"
-    - "tech stack"
-    # Growth/CMO
-    - "grow audience"
-    - "growth"
-    - "brand"
-    - "positioning"
-    - "community building"
-    # Competitive
     - "competitive analysis"
     - "market landscape"
-    - "differentiation"
-    # Evaluation
-    - "feasibility"
-    - "effort estimate"
-    - "ROI"
-    - "priority"
-    - "project evaluation"
-    - "go no go"
-    - "viability"
-    # Customer Support
-    - "customer support"
-    - "ticket triage"
-    - "support response"
-    - "knowledge base"
-    - "KB article"
-    - "escalation"
-    - "customer research"
-    # Finance
-    - "finance"
-    - "journal entry"
-    - "reconciliation"
-    - "variance analysis"
-    - "financial statements"
-    - "financial audit"
-    - "month-end close"
-    - "SOX"
-    # HR
-    - "HR"
-    - "human resources"
-    - "recruiting"
-    - "performance review"
-    - "compensation"
-    - "hiring"
-    - "onboarding"
-    - "org planning"
-    # Legal
-    - "legal"
-    - "contract review"
-    - "compliance check"
-    - "NDA"
-    - "legal risk"
-    - "legal brief"
-    - "vendor check"
-    - "german compliance"
-    - "DSGVO"
-    - "GoBD"
-    - "TDDDG"
-    - "AI Act compliance"
-    - "eIDAS"
-    # Operations
-    - "operations"
-    - "vendor review"
-    - "runbook"
-    - "process documentation"
-    - "risk assessment"
-    - "capacity plan"
-    - "change management"
-    - "compliance tracking"
-    # Sales
-    - "sales"
-    - "call prep"
-    - "pipeline review"
-    - "forecast"
-    - "draft outreach"
-    - "prospect research"
-    - "competitive intelligence"
-    # Productivity
-    - "productivity"
-    - "task management"
-    - "daily plan"
-    - "weekly review"
-    - "meeting agenda"
-    - "focus time"
-    - "goal setting"
-    - "status update"
-    - "time management"
-    - "prioritize tasks"
-    - "standup"
-    - "retrospective"
-    # Product Management
-    - "product management"
-    - "feature spec"
-    - "PRD"
-    - "roadmap"
-    - "stakeholder update"
-    - "user research"
-    - "sprint planning"
-    - "product metrics"
-  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts, or tactical marketing competitive analysis (use marketing) — this is executive strategy, not campaign execution. Code security audits, vulnerability scanning, or auth-flow reviews (use security-review) — only financial/accounting audit and SOX compliance. Code performance review (use reviewer-code) — this covers people performance reviews and HR operations. Software task specs, requirements, or plan-lifecycle management (use planning) — this skill prioritizes and tracks work, not specs. UX design methodology, wireframes, or accessibility audits (use design) — this handles product strategy, roadmaps, user research for feature prioritization."
+    - "brand strategy"
+    - "pricing strategy"
+    - "hiring plan"
+    - "team structure"
+    - "budget allocation"
+    - "revenue model"
+    - "go to market"
+    - "product roadmap strategy"
+    - "investor pitch"
+    - "partnership evaluation"
+    - "operational efficiency"
+    - "customer acquisition cost"
+    - "unit economics"
+    - "business model"
+    - "market fit"
+  not_for: "micro library choices (use decision-helper), writing content, SEO of specific posts, or tactical marketing competitive analysis (use marketing) — this is executive strategy, not campaign execution. Code security audits, vulnerability scanning, or auth-flow reviews (use security) — only financial/accounting audit and SOX compliance. Code performance review (use reviewer-code) — this covers people performance reviews and HR operations. Software task specs, requirements, or plan-lifecycle management (use planning) — this skill prioritizes and tracks work, not specs. UX design methodology, wireframes, or accessibility audits (use design) — this handles product strategy, roadmaps, user research for feature prioritization."
   complexity: Medium
   category: decision-support
   pairs_with:
-    - marketing
-    - data-analysis
+    - content
+    - data
 ---
 
 # Business Operations
 
-Umbrella skill for all business functions: executive strategy (CEO/CTO/CMO), competitive intelligence, project evaluation, customer support, finance, HR, legal, operations, sales, productivity, and product management. Each domain loads its own reference files on demand — this skill detects the mode, loads the right references, and executes the appropriate framework.
-
-**Scope**: Business decisions and operational workflows. Use decision-helper for technical architecture micro-choices, domain agents for code, voice-writer for content, and systematic-debugging for debugging.
-
----
+Thirteen modes covering executive strategy through daily productivity. Classify
+the request into one mode, load its reference, follow that reference's framework.
 
 ## Mode Detection
 
-Classify the user's request into exactly one mode before proceeding. If the request spans multiple modes, choose the primary one and note the secondary.
+| Mode | Signal | Framework |
+|------|--------|-----------|
+| **STRATEGY** | Market entry, partnerships, resource allocation, "should we" | FRAME -> ANALYZE -> DECIDE |
+| **TECHNOLOGY** | Build vs buy, vendor, SaaS, tech stack | TCO analysis -> Vendor scoring -> Decision |
+| **GROWTH** | Audience, SEO, brand, community, channel | Segment -> Channel-score -> Plan |
+| **COMPETITIVE** | Competitor, market landscape, differentiation | Map landscape -> Position -> Track |
+| **EVALUATION** | Feasibility, ROI, go/no-go, effort estimate | Feasibility score -> ROI model -> Verdict |
+| **SUPPORT** | Ticket triage, response, KB article, escalation | TRIAGE/RESPOND/KB/ESCALATE/RESEARCH |
+| **FINANCE** | Journal entry, reconciliation, variance, SOX | CLASSIFY -> GATHER -> PRODUCE -> VERIFY |
+| **HR** | Recruiting, performance review, compensation, hiring | DEFINE -> PIPELINE/EVALUATE -> DOCUMENT |
+| **LEGAL** | Contract review, compliance, NDA, DSGVO, GoBD | INTAKE -> ANALYZE -> FLAG -> OUTPUT |
+| **OPERATIONS** | Runbook, process docs, risk, vendor, change mgmt | SCOPE -> AUTHOR/ASSESS -> VERIFY |
+| **SALES** | Call prep, pipeline, outreach, forecast | RESEARCH -> PREPARE/ANALYZE -> OUTPUT |
+| **PRODUCTIVITY** | Task management, daily plan, meeting, standup | CAPTURE -> DECOMPOSE -> PRIORITIZE |
+| **PRODUCT** | Feature spec, PRD, roadmap, user research, metrics | UNDERSTAND -> GATHER -> GENERATE |
 
-| Mode | Signal Phrases | Reference |
-|------|---------------|-----------|
-| **STRATEGY** | Market entry, partnerships, resource allocation, opportunity, "should I/we", strategic pivots, investment | `references/csuite.md` |
-| **TECHNOLOGY** | Build vs buy, vendor, SaaS, tech stack, architecture, adopt, technology choice | `references/csuite.md` |
-| **GROWTH** | Content strategy, audience, SEO, marketing, brand, community, positioning, channel | `references/csuite.md` |
-| **COMPETITIVE** | Competitor, competition, market landscape, differentiation, positioning against, market share | `references/csuite.md` |
-| **EVALUATION** | Feasibility, effort estimate, ROI, priority, go/no-go, viability, "is it worth it" | `references/csuite.md` |
-| **SUPPORT** | Customer support, ticket triage, support response, knowledge base, KB article, escalation | `references/customer-support.md` |
-| **FINANCE** | Finance, journal entry, reconciliation, variance analysis, financial statements, audit, SOX, month-end close | `references/finance.md` |
-| **HR** | HR, recruiting, performance review, compensation, hiring, onboarding, org planning | `references/hr.md` |
-| **LEGAL** | Legal, contract review, compliance check, NDA, legal risk, legal brief, vendor check, DSGVO, GoBD | `references/legal.md` |
-| **OPERATIONS** | Operations, vendor review, runbook, process documentation, risk assessment, capacity plan, change management | `references/operations.md` |
-| **SALES** | Sales, call prep, pipeline review, forecast, draft outreach, prospect research, competitive intelligence | `references/sales.md` |
-| **PRODUCTIVITY** | Productivity, task management, daily plan, weekly review, meeting agenda, focus time, goal setting, standup | `references/productivity.md` |
-| **PRODUCT** | Product management, feature spec, PRD, roadmap, stakeholder update, user research, sprint planning, metrics | `references/product-management.md` |
-
----
-
-## Reference Loading Table
-
-Load references based on the detected mode. Load only the references required by the mode.
-
-| Signal | Mode | Reference |
-|--------|------|-----------|
-| Market entry, partnerships, resource allocation, opportunity | STRATEGY | `references/strategic-frameworks.md`, `references/decision-matrices.md` |
-| Build vs buy, vendor, SaaS, tech stack, architecture | TECHNOLOGY | `references/tco-framework.md`, `references/vendor-evaluation.md` |
-| Content, audience, SEO, marketing, brand, community | GROWTH | `references/audience-segmentation.md`, `references/channel-evaluation.md` |
-| Competitor, market landscape, positioning, differentiation | COMPETITIVE | `references/competitive-mapping.md`, `references/market-positioning.md` |
-| Feasibility, effort, ROI, priority, go/no-go | EVALUATION | `references/feasibility-scoring.md`, `references/roi-frameworks.md` |
-| Ticket triage, support response, KB article, escalation, customer research | SUPPORT | `references/customer-support.md` |
-| Journal entry, reconciliation, variance, financial statements, audit, SOX | FINANCE | `references/finance.md` |
-| Recruiting, performance review, compensation, hiring, onboarding, org planning | HR | `references/hr.md` |
-| Contract review, compliance check, NDA, legal risk, legal brief, DSGVO, GoBD | LEGAL | `references/legal.md` |
-| Vendor review, runbook, process documentation, risk assessment, capacity plan, change management | OPERATIONS | `references/operations.md` |
-| Call prep, pipeline review, forecast, draft outreach, prospect research | SALES | `references/sales.md` |
-| Task management, daily plan, weekly review, meeting agenda, goal setting, standup | PRODUCTIVITY | `references/productivity.md` |
-| Feature spec, PRD, roadmap, stakeholder update, user research, sprint planning, metrics | PRODUCT | `references/product-management.md` |
+If the request spans modes, pick the primary. Note the secondary.
 
 ---
 
-## Instructions
+## Shared Workflow
 
-For each mode, load the corresponding reference file for the full framework and instructions:
+1. Classify the request into exactly one mode from the table.
+2. Load the mode's reference file (see Deep References). Each reference
+   contains full framework, sub-modes, phases, and deeper reference pointers.
+3. Follow the reference's instructions. Do not improvise a framework when one
+   exists.
+4. Every mode's top-level reference also specifies an LLM failure-modes
+   guardrail file. Load it alongside the main reference.
 
-- **STRATEGY, TECHNOLOGY, GROWTH, COMPETITIVE, EVALUATION**: Load `references/csuite.md`
-- **SUPPORT**: Load `references/customer-support.md`
-- **FINANCE**: Load `references/finance.md`
-- **HR**: Load `references/hr.md`
-- **LEGAL**: Load `references/legal.md`
-- **OPERATIONS**: Load `references/operations.md`
-- **SALES**: Load `references/sales.md`
-- **PRODUCTIVITY**: Load `references/productivity.md`
-- **PRODUCT**: Load `references/product-management.md`
+---
+
+## Executive Modes (STRATEGY, TECHNOLOGY, GROWTH, COMPETITIVE, EVALUATION)
+
+Load `references/csuite.md` for the full C-suite framework. All five modes
+share the same 3-phase pattern:
+
+**Phase 1: FRAME** -- Convert the question into a structured decision. Name the
+actual decision (users present symptoms; the real decision is broader). Identify
+irreversibility. Set time horizon. List 2-4 options. State what makes it hard.
+
+**Phase 2: ANALYZE** -- Per option: upside (best realistic + expected), downside
+(worst realistic + recovery + irreversible losses), requirements, opportunity
+cost. Separate facts from assumptions. Quantify.
+
+**Phase 3: DECIDE** -- Score options via weighted criteria. Present verdict with
+driving factors, risk mitigations, and reversibility assessment. Load
+mode-specific deep references for scoring matrices.
+
+---
+
+## Support Mode
+
+Load `references/customer-support.md`. Five sub-modes: TRIAGE (classify ticket,
+assign priority P1-P4, route), RESPOND (draft calibrated reply with tone
+matching emotional state), KB (convert resolution into publish-ready article),
+ESCALATE (build structured brief with impact assessment), RESEARCH (investigate
+history with confidence scoring).
+
+Key guardrail: never fabricate ticket history, resolution steps, or customer
+quotes.
+
+---
+
+## Finance Mode
+
+Load `references/finance.md`. Six sub-modes: JOURNAL ENTRY, RECONCILIATION,
+VARIANCE, STATEMENTS, AUDIT/SOX, CLOSE. All output is working material for
+qualified professionals -- not financial advice.
+
+Key guardrails: never fabricate account codes, balances, or transaction details.
+Source all numbers from user-provided data. Always state GAAP/IFRS basis.
+
+---
+
+## HR Mode
+
+Load `references/hr.md`. Nine sub-modes: RECRUITING, PERFORMANCE, COMPENSATION,
+OFFER, INTERVIEW, ONBOARDING, ORG-PLANNING, PEOPLE-ANALYTICS, POLICY.
+
+Key guardrails: source compensation data from user-provided or public databases.
+Focus on skills, behaviors, outcomes -- not demographics. Include legal review
+disclaimer on binding language. Ask for jurisdiction before compliance advice.
+Minimize PII retention.
+
+---
+
+## Legal Mode
+
+Load `references/legal.md`. Six sub-modes: CONTRACT (clause-by-clause
+GREEN/YELLOW/RED analysis), COMPLIANCE (regulation checklist with German
+compliance for DSGVO/GoBD/TDDDG), NDA (triage classification), RISK (severity x
+likelihood matrix), WRITING (structured legal documents), VENDOR (agreement
+inventory and gap analysis).
+
+Key guardrail: analysis support only, not legal advice. All binding language
+needs qualified counsel review. Load `references/legal/german-business-compliance.md`
+for German-specific regulation.
+
+---
+
+## Operations Mode
+
+Load `references/operations.md`. Nine sub-modes: RUNBOOK, RISK, VENDOR,
+PROCESS, CHANGE, CAPACITY, COMPLIANCE, STATUS, OPTIMIZE.
+
+Key patterns: RUNBOOK uses SCOPE -> AUTHOR -> VERIFY with prerequisite
+checklists. RISK produces severity x likelihood matrices. CHANGE follows
+RFC -> REVIEW -> IMPLEMENT -> VERIFY. All operations docs require rollback
+procedures.
+
+---
+
+## Sales Mode
+
+Load `references/sales.md`. Seven sub-modes: CALL-PREP, PIPELINE, OUTREACH,
+COMPETITIVE, FORECAST, CALL-SUMMARY, RESEARCH.
+
+Key patterns: CALL-PREP researches prospect then builds agenda with questions.
+PIPELINE applies health scoring and flags stale deals. OUTREACH personalizes
+from research (never generic templates). FORECAST uses weighted probability
+with scenario analysis.
+
+---
+
+## Productivity Mode
+
+Load `references/productivity.md`. Six sub-modes: TASK (decompose and
+prioritize), PLAN (daily/weekly time blocks), MEETING (optimize or eliminate),
+STATUS (structured updates), REVIEW (weekly retrospective), GOAL (OKRs).
+
+Key patterns: vertical slicing for task decomposition (shippable slices, not
+horizontal layers). 1/2/4-hour time buckets. Tasks over 4 hours need
+decomposition.
+
+---
+
+## Product Mode
+
+Load `references/product-management.md`. Eight sub-modes: SPEC (PRD with
+acceptance criteria), ROADMAP (Now/Next/Later prioritization), STAKEHOLDER
+(structured updates), RESEARCH (synthesis with thematic analysis), COMPETITIVE
+(battle cards), METRICS (funnel/cohort/retention analysis), SPRINT (backlog
+grooming with capacity), BRAINSTORM (Socratic exploration).
 
 ---
 
 ## Error Handling
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Too many options | 5+ options creating paralysis | Eliminate obviously inferior options first. Get to 2-4 before running full framework. |
-| Not enough information | User cannot answer framing questions | Identify 2-3 critical unknowns. Recommend time-boxed research sprint before deciding. |
-| Analysis paralysis | Keeps adding criteria or second-guessing | Apply reversibility test. If reversible, recommend best current option with checkpoint. |
-| Emotional attachment | User has already decided, wants validation | Name the pattern directly. Ask: stress-test the choice, or genuinely evaluate all options? |
+| Error | Response |
+|-------|----------|
+| Too many options (5+) | Eliminate obviously inferior first. Get to 2-4. |
+| Not enough information | Identify 2-3 critical unknowns. Recommend research sprint. |
+| Analysis paralysis | Reversibility test. If reversible, recommend best option with checkpoint. |
+| Emotional attachment | Name the pattern. Ask: stress-test, or genuinely evaluate? |
 
 ---
 
-## References
+## Deep References
 
-| Reference | When to Load | Content |
-|-----------|-------------|---------|
-| `references/csuite.md` | Any executive strategy mode | Full C-suite decision support frameworks: STRATEGY, TECHNOLOGY, GROWTH, COMPETITIVE, EVALUATION |
-| `references/strategic-frameworks.md` | STRATEGY mode | Porter's Five Forces, SWOT scoring, OKR alignment matrices |
-| `references/decision-matrices.md` | STRATEGY mode | Weighted decision matrices, ICE/RICE scoring, pre-mortem templates |
-| `references/tco-framework.md` | TECHNOLOGY mode | TCO templates, hidden cost checklists, migration cost models |
-| `references/vendor-evaluation.md` | TECHNOLOGY mode | Vendor scorecards, RFP criteria, red flag detection, contract checklist |
-| `references/audience-segmentation.md` | GROWTH mode | ICP scoring matrix, persona templates, segmentation frameworks |
-| `references/channel-evaluation.md` | GROWTH mode | Channel scoring matrices, CAC/LTV models, funnel stage mapping |
-| `references/competitive-mapping.md` | COMPETITIVE mode | Landscape map templates, feature matrices, activity tracker |
-| `references/market-positioning.md` | COMPETITIVE mode | Positioning maps, differentiation scoring, win/loss frameworks |
-| `references/feasibility-scoring.md` | EVALUATION mode | Three-dimension feasibility model, confidence calibration, decision tree |
-| `references/roi-frameworks.md` | EVALUATION mode | T-shirt sizing, three-point estimation, risk-adjusted NPV |
-| `references/customer-support.md` | SUPPORT mode | Triage, response drafting, KB articles, escalation, customer research |
-| `references/finance.md` | FINANCE mode | Journal entries, reconciliation, variance analysis, financial statements, audit/SOX |
-| `references/hr.md` | HR mode | Recruiting, performance management, compensation, org planning, people analytics |
-| `references/legal.md` | LEGAL mode | Contract review, compliance, NDA triage, risk assessment, legal writing |
-| `references/operations.md` | OPERATIONS mode | Runbooks, risk assessment, vendor management, process docs, change management, compliance |
-| `references/sales.md` | SALES mode | Call prep, pipeline analysis, outreach, competitive intelligence, forecasting |
-| `references/productivity.md` | PRODUCTIVITY mode | Task management, daily/weekly planning, meeting optimization, status updates, goals |
-| `references/product-management.md` | PRODUCT mode | Feature specs, roadmaps, stakeholder updates, research synthesis, metrics, sprint planning |
+All references contain >100 lines of domain-specific frameworks, templates, and
+guardrails. Load on demand per mode.
+
+| Mode | Primary | Sub-references |
+|------|---------|----------------|
+| STRATEGY | `references/csuite.md` | `references/strategic-frameworks.md`, `references/decision-matrices.md` |
+| TECHNOLOGY | `references/csuite.md` | `references/tco-framework.md`, `references/vendor-evaluation.md` |
+| GROWTH | `references/csuite.md` | `references/audience-segmentation.md`, `references/channel-evaluation.md` |
+| COMPETITIVE | `references/csuite.md` | `references/competitive-mapping.md`, `references/market-positioning.md` |
+| EVALUATION | `references/csuite.md` | `references/feasibility-scoring.md`, `references/roi-frameworks.md` |
+| SUPPORT | `references/customer-support.md` | `references/customer-support/*.md` |
+| FINANCE | `references/finance.md` | `references/finance/*.md` |
+| HR | `references/hr.md` | `references/hr/*.md` |
+| LEGAL | `references/legal.md` | `references/legal/*.md` |
+| OPERATIONS | `references/operations.md` | `references/operations/*.md` |
+| SALES | `references/sales.md` | `references/sales/*.md` |
+| PRODUCTIVITY | `references/productivity.md` | `references/productivity/*.md` |
+| PRODUCT | `references/product-management.md` | `references/product-management/*.md` |
+| Cross-cutting | `references/content-funnel.md`, `references/trend-analysis.md`, `references/risk-assessment.md`, `references/estimation-techniques.md`, `references/migration-planning.md` | Shared frameworks |

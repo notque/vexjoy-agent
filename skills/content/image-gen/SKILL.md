@@ -30,52 +30,36 @@ routing:
   not_for: "HTML visualization or charts (use html-artifact), or deterministic non-AI palette/matrix pixel art (use game-asset-generator)"
   pairs_with:
     - python-general-engineer
-    - game-sprite-pipeline
+    - game-dev
 ---
 
 # image-gen
 
-Backend-agnostic image generation workflow: single images, series with anchor-chain consistency, and batch pipelines. Two backends: Gemini (API) and Nano Banana (local scripts with post-processing).
+Backend-agnostic image generation: single images, series with anchor-chain consistency, batch pipelines. Two backends: Gemini (API) and Nano Banana (local scripts with post-processing).
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| Signal | Load | Content |
 |---|---|---|
-| Every request (always load) | `references/series-consistency.md` | Anchor-chain and prompt-file-first rules apply to all generation |
-| Every request (always load) | `references/backend-selection.md` | Mode decision required before every generation |
-| Script output `gemini` | `references/backends/gemini.md` | Gemini API models, env vars, flags |
-| Script output `nano-banana` | `references/backends/nano-banana.md` | Nano Banana subcommands, flags, aspect ratios |
+| Gemini backend selected | `references/backends/gemini.md` | Models, env vars, flag table, examples, error codes |
+| Nano Banana needed (post-processing, series, JSON batch, style-match) | `references/backends/nano-banana.md` | Subcommands, flags, aspect ratios, prompt patterns by asset type |
 
-## Phase 1: Detect Mode and Load References
-
-Run the backend detection script — it reads environment variables and outputs a single word:
+## Phase 1: Detect Backend
 
 ```bash
 python3 skills/content/image-gen/scripts/detect-backend.py
 ```
 
-Output values:
-- `gemini` — GEMINI_API_KEY or GOOGLE_API_KEY is set
-- `ask` — no key found; ask the user which backend to use
+- `gemini` -- load `references/backends/gemini.md`
+- `ask` -- no key found; ask the user to set `GEMINI_API_KEY`
 
-Load references based on output:
+**Gate**: backend confirmed.
 
-1. Load `references/series-consistency.md` (always — applies to every generation).
-2. Load `references/backend-selection.md` (always — needed to pick mode and script).
-3. Load `references/backends/gemini.md` when output is `gemini`.
-4. Ask the user to set `GEMINI_API_KEY` or confirm they want to use local scripts when output is `ask`.
+## Phase 2: Write Prompt Files
 
-**Gate**: references loaded, backend confirmed before Phase 2.
+Write all prompts to disk before any API call. Prompt files are the generation record and anchor-chain input for series.
 
-## Phase 2: Write Prompt File
-
-Write the complete prompt to disk before any API call. Prompt files serve as the generation record and the anchor-chain input for series — writing them first means the full intent is on disk before any quota is spent.
-
-File naming:
-- Single image: `prompts/YYYY-MM-DD-{slug}.md`
-- Series: `prompts/{series-name}-01.md`, `prompts/{series-name}-02.md`, ...
-
-Prompt file format:
+File naming: single `prompts/YYYY-MM-DD-{slug}.md`, series `prompts/{series-name}-01.md` through `-NN.md`.
 
 ```markdown
 ---
@@ -84,72 +68,89 @@ aspect-ratio: 1:1
 flags: []
 ---
 
-Full prompt text here. Be explicit about subject, style, background, and constraints.
+Full prompt text. Be explicit about subject, style, background, constraints.
 ```
-
-Create the `prompts/` directory if absent:
 
 ```bash
 mkdir -p prompts
 ```
 
-For a series, write all prompt files before calling any generation script. See `references/series-consistency.md` for the anchor-chain algorithm and why this ordering prevents drift.
+For series: write ALL prompt files before calling any generation script.
 
-**Gate**: all prompt files written and reviewed before Phase 3.
+**Gate**: all prompt files written and reviewed.
 
-## Phase 3: Select Mode and Script
+## Phase 3: Select Script
 
-Use `references/backend-selection.md` to map the request to the correct script and subcommand.
-
-| Use case | Script | Notes |
+| Use case | Script | Subcommand |
 |---|---|---|
-| Single image, Gemini | `scripts/generate_image.py` | `--prompt` flag |
-| Batch from prompt file, Gemini | `scripts/generate_image.py` | `--batch` flag |
-| Single or batch with post-processing | `scripts/nano-banana-generate.py` | Full flag set in backend ref |
-| Series with anchor chain | `scripts/nano-banana-generate.py with-reference` | Load ref images from previous outputs |
-| Post-processing only | `scripts/nano-banana-process.py` | crop, remove-bg, pipeline subcommands |
+| Single image, Gemini | `scripts/generate_image.py` | `--prompt` |
+| Batch from text file, Gemini | `scripts/generate_image.py` | `--batch` |
+| Single with post-processing | `scripts/nano-banana-generate.py` | `generate` |
+| Style match from reference | `scripts/nano-banana-generate.py` | `with-reference` |
+| Batch from JSON manifest | `scripts/nano-banana-generate.py` | `batch` |
+| Series (anchor chain) | `scripts/nano-banana-generate.py` | `generate` then `with-reference` |
+| Post-processing only | `scripts/nano-banana-process.py` | `crop` / `remove-bg` / `pipeline` |
 
-**Gate**: script and subcommand identified before Phase 4.
+Model selection:
+
+| Scenario | Model |
+|---|---|
+| Draft, testing, batch, cost-sensitive | `gemini-2.5-flash-image` (2-5s) |
+| Final asset, character art, typography | `gemini-3-pro-image-preview` (~30s) |
+
+Aspect ratio by use case:
+
+| Asset type | Ratio |
+|---|---|
+| Sprites, characters, icons | `1:1` |
+| Card art, landscape | `16:9` |
+| Vertical maps, portrait bg | `9:16` |
+| Portrait cards | `3:4` |
+| Wide banners | `21:9` |
+
+Generate at the target ratio. Generating 1:1 and cropping to 16:9 loses 56% of pixels.
+
+**Gate**: script and subcommand identified.
 
 ## Phase 4: Generate
 
-Call the selected script with absolute paths for output files — relative paths break when scripts run from different working directories.
+Use absolute paths for output files. Show full script output.
 
-For series generation, follow the anchor-chain sequence from `references/series-consistency.md`:
+### Anchor-Chain Algorithm (Series)
+
+Character drift occurs when images are generated independently. Prevent it by passing the previous output as `--reference`:
+
+```
+image-01.png (no ref) -> image-02.png (ref=01) -> image-03.png (ref=02) -> ...
+```
+
 1. Generate image 1 with no reference.
 2. Use output of image 1 as `--reference` for image 2.
-3. Continue: each image references the previous output.
+3. Continue: each image N references image N-1.
 
-Show the full script output — the user needs status messages, warnings, and partial failure information.
+Save originals with `--save-original` for any batch or expensive generation. Re-processing a saved original is free; re-generating costs quota and may break the chain.
 
-**Gate**: script exits 0 before Phase 5.
+**Gate**: script exits 0.
 
 ## Phase 5: Verify and Report
 
-Visual inspection is mandatory. Read the generated image file to verify:
-- Subject matches the prompt
-- No unwanted watermarks, logos, or artifacts
-- Aspect ratio and framing are correct
-- No excessive padding or dark borders that need cropping
+Read the generated image to verify:
+- Subject matches prompt
+- No unwanted watermarks or artifacts
+- Aspect ratio and framing correct
+- No excessive padding or dark borders
 
-If visual inspection fails: regenerate with an adjusted prompt. Report the issue clearly before retrying.
+If inspection fails: regenerate with adjusted prompt. Report the issue before retrying.
 
-Report to the user:
-- Output file path (absolute)
-- Image dimensions
-- Model used
-- Post-processing applied (if any)
-- Visual verification result
-
-Report only what was requested. The user did not ask for style suggestions or additional generations.
+Report: output file path (absolute), dimensions, model, post-processing applied, verification result. Report only what was requested.
 
 ## Error Handling
 
 | Error | Cause | Resolution |
 |---|---|---|
-| `GEMINI_API_KEY not set` | Missing env var | `export GEMINI_API_KEY=your_key` or `export GOOGLE_API_KEY=your_key` |
-| `No image in response` | Prompt triggered safety filter or text-only response | Adjust prompt phrasing; check for policy-violating content |
-| `Missing dependency: google-genai` | Package not installed | `pip install google-genai pillow` |
-| `Rate limit exceeded (429)` | Too many API calls | Increase `--delay`; default 2s may be too aggressive on free tier |
-| `Content policy violation (400)` | Restricted prompt content | Rephrase using neutral language; this restriction is API-side |
-| `No image data in response` | API returned text only | Set `response_modalities=["IMAGE", "TEXT"]` in config |
+| `GEMINI_API_KEY not set` | Missing env var | `export GEMINI_API_KEY=your_key` |
+| `No image in response` | Safety filter or text-only response | Adjust prompt; remove policy-adjacent content |
+| `Missing dependency: google-genai` | Package absent | `pip install google-genai pillow` |
+| `Rate limit exceeded (429)` | Too many requests | Increase `--delay`; script retries automatically |
+| `Content policy violation (400)` | Restricted content | Rephrase using neutral language |
+| Model not found | Wrong model string | Use exact strings: `gemini-2.5-flash-image` or `gemini-3-pro-image-preview` |

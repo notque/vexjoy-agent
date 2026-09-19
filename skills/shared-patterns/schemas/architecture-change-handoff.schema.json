@@ -103,7 +103,7 @@
       "uniqueItems": true
     },
     "next_skill": {
-      "enum": ["workflow", "feature-lifecycle", null]
+      "enum": ["workflow", "workflow", null]
     },
     "next_pipeline": {
       "enum": ["systematic-refactoring", null]
@@ -279,7 +279,7 @@
           "success_criteria": {"minItems": 3},
           "consultation_adr": {"type": "null"},
           "consultation_adr_hash": {"type": "null"},
-          "next_skill": {"const": "feature-lifecycle"},
+          "next_skill": {"const": "workflow"},
           "next_pipeline": {"type": "null"}
         }
       }

@@ -63,7 +63,7 @@ def test_shipped_skill_file_passes() -> None:
 
 def test_phantom_in_verb_map_fails(tmp_path: Path) -> None:
     """Re-introducing the audited phantom 'audit-report' exits 1 and names it."""
-    modified = _skill_copy(tmp_path, "audit→systematic-code-review", "audit→audit-report")
+    modified = _skill_copy(tmp_path, "audit→review", "audit→audit-report")
     result = _run(modified)
     assert result.returncode == 1
     assert "audit-report" in result.stdout
@@ -116,7 +116,7 @@ def test_phantom_in_cold_reference_fails(tmp_path: Path) -> None:
     modified = _skill_copy(tmp_path, "# /do - Smart Router", "# /do - Smart Router")
     ref = tmp_path / "references" / "error-handling.md"
     text = ref.read_text(encoding="utf-8")
-    anchor = "verification-before-completion"
+    anchor = "process"
     assert anchor in text, "fixture drift: update this test"
     ref.write_text(text.replace(anchor, "made-up-verifier-zz", 1), encoding="utf-8")
     result = _run(modified)

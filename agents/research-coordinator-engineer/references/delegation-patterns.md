@@ -68,7 +68,7 @@ When Wave 1 reveals gaps, Wave 2 instructions address them explicitly:
 
 ```markdown
 Research AI data center energy with focus on ACTUAL METERED DATA:
-- Find published case studies with metered power figures
+- Find contented case studies with metered power figures
 - Gap from Wave 1: found projections but no verified metered data
 DELIVERABLE: List of 5+ specific measured data points with source and date.
 ```

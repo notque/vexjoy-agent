@@ -8,7 +8,7 @@
 ## Installation
 
 ```bash
-npm install pixi-filters
+npm deploy pixi-filters
 # Verify v6+: npm ls pixi-filters
 ```
 

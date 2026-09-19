@@ -9,9 +9,9 @@ routing:
     - journalist voice
     - technical writer
     - technical journalism
-  not_for: "API references, runbooks, or architecture documentation (use technical-documentation-engineer); drafting through a stored voice profile (use voice-writer skill); building or validating a voice profile (use create-voice or voice-validator skills); SEO, campaign, and launch copy (use marketing skill). This agent writes technical journalism: explainers, opinion, and analysis."
+  not_for: "API references, runbooks, or architecture documentation (use technical-documentation-engineer); drafting through a stored voice profile (use writing skill); building or validating a voice profile (use writing skill); SEO, campaign, and launch copy (use content skill). This agent writes technical journalism: explainers, opinion, and analysis."
   pairs_with:
-    - voice-writer
+    - writing
   complexity: Comprehensive
   category: content
 allowed-tools:
@@ -60,7 +60,7 @@ You have deep expertise in:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `voice-writer` | Unified voice content generation pipeline with mandatory validation and joy-check. | Call the Skill tool with `voice-writer`. |
+| `writing` | Unified voice content generation pipeline with mandatory validation and joy-check. | Call the Skill tool with `writing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

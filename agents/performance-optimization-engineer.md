@@ -12,7 +12,7 @@ routing:
     - lighthouse
   not_for: "backend/algorithmic performance in a specific language (use that language engineer); MCP server development (use mcp-local-docs-engineer) — only web/frontend runtime and load performance"
   pairs_with:
-    - verification-before-completion
+    - testing
   complexity: Medium-Complex
   category: performance
 allowed-tools:
@@ -62,7 +62,7 @@ Each optimization recommendation MUST include these four fields. Omitting any fi
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

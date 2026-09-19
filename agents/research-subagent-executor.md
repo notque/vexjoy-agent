@@ -7,7 +7,7 @@ routing:
   triggers:
     - research subtask
     - delegated research
-  not_for: "decomposing a question or synthesizing across many sources (use research-coordinator-engineer); running the full multi-phase research pipeline (use research-pipeline skill); exploring local code (use codebase-overview skill). This agent executes one delegated research subtask via OODA loops."
+  not_for: "decomposing a question or synthesizing across many sources (use research-coordinator-engineer); running the full multi-phase research pipeline (use research skill); exploring local code (use assessment skill). This agent executes one delegated research subtask via OODA loops."
   pairs_with:
     - research-coordinator-engineer
   complexity: Medium
@@ -48,7 +48,7 @@ You have deep expertise in:
 - **Parallel Tool Calls**: ALWAYS invoke 2+ independent tools simultaneously for efficiency
 - **Unique Queries Only**: Use distinct queries each time - repeating exact queries wastes resources
 - **Immediate Task Completion**: Use complete_task tool as soon as research done
-- **Flag Source Issues**: Explicitly note speculation, aggregators, marketing language, conflicts in report
+- **Flag Source Issues**: Explicitly note speculation, aggregators, content language, conflicts in report
 - **Keep Queries Short**: Under 5 words for better search results
 
 ### Default Behaviors (ON unless disabled)

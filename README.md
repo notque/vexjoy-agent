@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 domain agents, 125 workflow skills, 78 hooks, 152 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+43 domain agents, 59 workflow skills, 78 hooks, 153 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -145,7 +145,7 @@ Mirrors agents (as "droids"), skills, and all78 hooks into `~/.factory/`. Hook c
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 152 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, 153 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 
@@ -169,9 +169,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills,78 hooks, an
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 125 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
+| Skills | 59 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
 | Hooks | 78 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 152 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Scripts | 153 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 

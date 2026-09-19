@@ -13,12 +13,12 @@ routing:
     - "migration safety review"
     - "dependency audit"
     - "API doc accuracy review"
-  not_for: "standalone security scan of git changes (use security-review skill); parallel multi-reviewer code review (use parallel-code-review skill); business-logic correctness, ADR conformance, or SAP CC structural review (use reviewer-domain) — this agent provides system-level review: concurrency, error handling, observability, API contracts"
+  not_for: "standalone security scan of git changes (use security skill); parallel multi-reviewer code review (use review skill); business-logic correctness, ADR conformance, or SAP CC structural review (use reviewer-domain) — this agent provides system-level review: concurrency, error handling, observability, API contracts"
   pairs_with:
     - workflow
-    - systematic-code-review
-    - parallel-code-review
-    - go-patterns
+    - review
+
+    - programming
   complexity: Medium-Complex
   category: review
 allowed-tools:
@@ -124,9 +124,8 @@ These rules are stated here AND duplicated inline above at each phase where they
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `systematic-code-review` | 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings. | Call the Skill tool with `systematic-code-review`. |
-| `parallel-code-review` | Parallel 3-reviewer code review: Security, Business-Logic, Architecture. | Call the Skill tool with `parallel-code-review`. |
-| `go-patterns` | Go development patterns: testing, concurrency, errors, review, and conventions. | Call the Skill tool with `go-patterns`. |
+| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
+| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -144,7 +143,7 @@ Return findings in this exact format:
 3. HIGH: fix before next deployment
 4. MEDIUM: fix within sprint
 5. LOW: backlog
-6. POSITIVE: what is well-designed (at most 3 observations)
+6. POSITIVE: what is well-frontended (at most 3 observations)
 7. VERDICT: APPROVE / REQUEST_CHANGES / BLOCK
 ```
 
@@ -170,10 +169,9 @@ Each finding must follow this structure:
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `parallel-code-review` | Multi-reviewer parallel orchestration |
-| `systematic-code-review` | 4-phase structured code review |
+| `review` | Systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review |
 | `comprehensive-review` | Unified 3-wave code review pipeline |
-| `go-patterns` | Go patterns: concurrency, error handling, testing (when Go code is in scope) |
+| `programming` | Language-specific patterns: Go, Kotlin, PHP, Swift, TypeScript (when applicable) |
 
 ## Tool Restrictions
 

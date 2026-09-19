@@ -10,13 +10,13 @@ routing:
     - vitest
     - test automation
     - visual regression
-  not_for: "Playwright-only E2E test authoring (use e2e-testing skill) — this agent covers full test automation strategy including Vitest, coverage, and CI integration"
-  retro-topics:
+  not_for: "Playwright-only E2E test authoring (use testing skill) — this agent covers full test automation strategy including Vitest, coverage, and CI integration"
+  process-topics:
     - testing
     - debugging
   pairs_with:
-    - test-driven-development
-    - e2e-testing
+    - testing
+    - testing
   complexity: Medium-Complex
   category: testing
 allowed-tools:
@@ -67,8 +67,8 @@ Replace vague quality targets with measurable ones. These are non-negotiable:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates for TDD. | Call the Skill tool with `test-driven-development`. |
-| `e2e-testing` | Playwright-based end-to-end testing workflow. | Call the Skill tool with `e2e-testing`. |
+| `testing` | RED-GREEN-REFACTOR cycle with strict phase gates for TDD. | Call the Skill tool with `testing`. |
+| `testing` | Playwright-based end-to-end testing workflow. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -84,8 +84,11 @@ def detect_voice_mode(prompt: str) -> bool:
 
 
 def requested_voice_skill(prompt: str) -> str | None:
-    """Return the first indexed voice skill named in untrusted prompt text."""
-    for match in re.finditer(r"\bvoice-[a-z0-9][a-z0-9-]*\b", prompt.lower()):
+    """Return the first indexed voice skill named in untrusted prompt text.
+
+    Matches ``voice-*`` prefixed names and the consolidated ``writing`` skill.
+    """
+    for match in re.finditer(r"\b(?:voice-[a-z0-9][a-z0-9-]*|writing)\b", prompt.lower()):
         name = match.group(0)
         if skill_call_directive(name):
             return name
@@ -122,7 +125,7 @@ def build_gate_instruction(voice_mode: bool, prompt: str = "") -> str:
         )
         if voice_skill and voice_skill != "voice-validator":
             lines.append(f"Call the Skill tool with `{voice_skill}`.")
-        lines.append("Call the Skill tool with `voice-validator`.")
+        lines.append("Call the Skill tool with `writing`.")
 
     lines.append("[/voice-output-gate]")
     return "\n".join(lines)

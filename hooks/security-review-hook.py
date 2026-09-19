@@ -409,7 +409,7 @@ def handle_stop(event: dict) -> None:
     diff_excerpt = diff[:max_chars]
 
     instruction = (
-        "Call the Skill tool with `security-review`. "
+        "Call the Skill tool with `security`. "
         "Review the working-tree changes below. "
         "Scope to the changed files, run the deterministic scanner "
         "(scripts/security-review-scan.py), compose the parallel-code-review "

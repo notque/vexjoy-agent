@@ -20,7 +20,7 @@ routing:
     - seed this
     - plant-seed
   pairs_with:
-    - feature-lifecycle
+    - workflow
   complexity: Simple
   category: process
 ---

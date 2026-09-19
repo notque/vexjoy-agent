@@ -12,13 +12,13 @@ routing:
     - react-navigation
     - gesture handler
     - native stack
-  retro-topics:
+  process-topics:
     - react-native-patterns
     - mobile-performance
     - animations
   not_for: "React web apps (use typescript-frontend-engineer); portfolio and gallery sites for creatives (use react-portfolio-engineer)"
   pairs_with:
-    - universal-quality-gate
+    - code-quality
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -41,7 +41,7 @@ You have deep expertise in:
 - **Native UI Patterns**: expo-image, native modals, Pressable, safe area handling, native menus
 - **State Management**: Minimal state, derived values, Zustand selectors, dispatch updaters
 - **Rendering**: Conditional rendering safety, text component rules, React Compiler compatibility
-- **Monorepo Config**: Native dependency autolinking, single dependency versions, design system imports
+- **Monorepo Config**: Native dependency autolinking, single dependency versions, frontend system imports
 
 Works with both Expo managed workflow and bare React Native. Patterns apply to both unless noted.
 
@@ -49,7 +49,7 @@ Works with both Expo managed workflow and bare React Native. Patterns apply to b
 
 ### UNDERSTAND
 - Read and follow repository CLAUDE.md before any implementation — project conventions override agent defaults
-- Check injected retro-knowledge for react-native-patterns, mobile-performance, and animation learnings before starting.
+- Check injected process-knowledge for react-native-patterns, mobile-performance, and animation learnings before starting.
 - Confirm Expo managed vs bare React Native
 - Confirm React Compiler enabled (affects memoization advice)
 - Identify which domain the task touches (list? animation? navigation? UI?)
@@ -79,7 +79,7 @@ Do not load references for domains not relevant to the task — context is a sca
 | Images, modals, Pressable, safe area, ScrollView, styling, galleries, menus, layout measurement | `ui-patterns.md` |
 | useState, derived state, Zustand, state structure, dispatchers, ground truth | `state-management.md` |
 | Conditional rendering, &&, Text components, React Compiler, memoization | `rendering-patterns.md` |
-| Monorepo, fonts, imports, design system, dependency versions, autolinking | `monorepo-config.md` |
+| Monorepo, fonts, imports, frontend system, dependency versions, autolinking | `monorepo-config.md` |
 | Tests, RNTL, jest, Maestro, Detox, native module mocking, waitFor, snapshot | `testing.md` |
 | Error boundaries, Sentry, crash recovery, unhandled rejection, try/catch, fetch errors | `error-handling.md` |
 
@@ -87,7 +87,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `universal-quality-gate` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `universal-quality-gate`. |
+| `code-quality` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -97,7 +97,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 **Animation not smooth**: Load `animation-patterns.md` — likely animating layout properties instead of transform/opacity.
 
-**Native module not found**: Load `monorepo-config.md` — likely autolinking issue with native dep not installed in app directory.
+**Native module not found**: Load `monorepo-config.md` — likely autolinking issue with native dep not deployed in app directory.
 
 **Text rendering crash**: Load `rendering-patterns.md` — string outside Text component or falsy && rendering.
 

@@ -113,6 +113,25 @@ round trip. This maps directly onto `/do`'s own Trivial classification
 path... never dispatches, handled directly") — `/d`'s SKILL.md Phase 1T
 handles it the same way: direct, no Phase 4.
 
+### State and shortlist size
+
+`state` is the bare request string when no project facts exist. When the hook
+passes `--cwd`, `detect_project_context()` reads marker files (for example
+`pyproject.toml`, `package.json`, `go.mod`) and dependency manifests in that
+directory, and `state` becomes `{"request": ..., "project": {"languages":
+[...], "frameworks": [...], "datastores": [...]}}`. The project block holds
+names only, never paths or file contents. The agent instructions gain one
+sentence that tells Jev to use `project` when the request names no language.
+
+The stage-1 shortlist is 6 agents and 6 skills (`STAGE1_SHORTLIST_N`,
+`--shortlist`). Stage 2 cannot pick outside the shortlist, so its size caps
+accuracy. Measure coverage offline from the stored stage-1 probabilities in
+`jev_calls` before changing it.
+
+Score the router with `scripts/jev-eval.py --split dev` while tuning and
+`--split test` once at the end. `--workload-dir NAME=PATH` supplies the
+repository for corpus cases that record a workload.
+
 ### Stage 2 (shortlist rerank + fits + multi-select), only when gate clears
 
 One call, only reached when `gate_score >= gate_threshold`. Body (shape,
@@ -123,9 +142,9 @@ candidate counts vary per request):
   "state": "<user request verbatim>",
   "model": "jev-latest",
   "questions": {
-    "agent":                 {"type": "choice", "instructions": "...", "criteria": {"<top-3 agent shortlist>": "<full desc NOT: not_for>"}},
+    "agent":                 {"type": "choice", "instructions": "...", "criteria": {"<top-6 agent shortlist>": "<full desc NOT: not_for>"}},
     "agent_fit__<name>":     {"type": "noul", "instructions": "..."},
-    "skill":                 {"type": "choice", "instructions": "...", "criteria": {"<top-3 skill shortlist>": "<full desc NOT: not_for>"}},
+    "skill":                 {"type": "choice", "instructions": "...", "criteria": {"<top-6 skill shortlist>": "<full desc NOT: not_for>"}},
     "skill_fit__<name>":     {"type": "noul", "instructions": "..."},
     "pipeline":              {"type": "choice", "instructions": "...", "criteria": {"<top-1 pipeline>": "...", "none": "..."}},
     "pipeline_fit__<name>":  {"type": "noul", "instructions": "..."},
@@ -170,7 +189,7 @@ from v1 — just moved into stage 2's call (they need the same rich context
 stage 2 already has, and stage 1's trivial-bypass gate makes them moot when
 it fires, so stage 2 is the natural home). Fan-out candidates (`agents`
 field) are a NEW per-candidate `Noul` over agents ranked just below the
-primary shortlist (`agent_shortlist[3:6]`, i.e. stage-1 ranks 4-6),
+primary shortlist (the three agents ranked just after it in stage 1),
 asking "should this agent ALSO run in parallel, on a distinct independent
 subtask" — see "Fan-out selection rule" below for the exact gating heuristic
 and why it exists.

@@ -194,7 +194,7 @@ class TestRealRepo:
             'Path("agents/INDEX.json").write_text(\'{"agents":{"a":{"description":"A","triggers":["a"]}}}\')\n',
             encoding="utf-8",
         )
-        pipeline_index = repo / "skills" / "workflow" / "references" / "pipeline-index.json"
+        pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
         pipeline_index.parent.mkdir(parents=True)
         pipeline_index.write_text(
             '{"pipelines":{"p":{"description":"P","triggers":["p"]}}}',
@@ -222,7 +222,7 @@ class TestRealRepo:
         repo = tmp_path / "repo"
         (repo / "skills").mkdir(parents=True)
         (repo / "agents").mkdir()
-        pipeline_index = repo / "skills" / "workflow" / "references" / "pipeline-index.json"
+        pipeline_index = repo / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
         pipeline_index.parent.mkdir(parents=True)
         (repo / "skills" / "INDEX.json").write_bytes(bad_content)
         (repo / "agents" / "INDEX.json").write_text('{"agents":{}}', encoding="utf-8")

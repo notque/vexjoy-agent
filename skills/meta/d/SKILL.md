@@ -150,14 +150,14 @@ script) map to stack entries:
 
 | Signal true | Stack |
 |---|---|
-| `tests_requested` | `testing` |
+| `tests_requested` | `test-driven-development` + `verification-before-completion` |
 | `research_needed` | add `research-coordinator-engineer` to agents (fan-out) |
-| `comprehensive_review` | `review` (drop if a real multi-file diff exists — `right-size-review.py` outranks it) |
+| `comprehensive_review` | `parallel-code-review` (drop if a real multi-file diff exists — `right-size-review.py` outranks it) |
 | `local_only` | inject `shared-patterns/local-only.md` |
-| `objective_loop_worthy` | `process` |
+| `objective_loop_worthy` | `objective-loop` |
 
 `anti-rationalization-core` always rides. When `source` is
-`pre-route-force` and `JEV_RESULT.stack` is non-empty (e.g. `programming`),
+`pre-route-force` and `JEV_RESULT.stack` is non-empty (e.g. `go-patterns`),
 keep it.
 
 **Fan-out agents**: union `JEV_RESULT.agents` (script-computed fan-out picks,

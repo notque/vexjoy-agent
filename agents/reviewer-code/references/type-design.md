@@ -29,7 +29,7 @@ Every type analyzed receives ratings (1-10) for:
 
 - **4-Dimension Rating**: Every type must receive ratings (1-10) for all 4 dimensions.
 - **Compile-Time Preference**: Recommend compile-time guarantees over runtime checks where the language supports it.
-- **Clarity Over Cleverness**: Simple type designs that are easy to understand beat clever designs.
+- **Clarity Over Cleverness**: Simple type frontends that are easy to understand beat clever frontends.
 - **Review-First in Fix Mode**: Complete the full 4-dimension analysis first, then apply improvements.
 
 ## Default Behaviors

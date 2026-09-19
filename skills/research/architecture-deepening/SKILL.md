@@ -28,9 +28,8 @@ routing:
     - architecture deepening
   not_for: "local cleanup/refactoring (workflow or planning), feature design (feature-lifecycle), architecture overview/explanation (codebase-overview), or vague complexity reduction; requires cross-module interface or caller-burden evidence"
   pairs_with:
-    - full-repo-review
-    - adr-consultation
-    - codebase-overview
+    - review
+    - assessment
   complexity: Medium
   category: analysis
 ---
@@ -45,14 +44,16 @@ Find shallow modules and propose deepening opportunities. Not a code review -- d
 
 ---
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
-|---|---|---|
-| Phase 1 scope/ranking, prior decisions, no-findings result; Phase 3 handoff | `maintenance-lifecycle.md` | Evidence-fed entry rules, recent-change scope, decision memory, candidate schema, typed delivery handoff |
-| Phase 1, module analysis, vocabulary terms | `vocabulary.md` | Shared architecture vocabulary: module, depth, seam, leverage, locality, deletion test |
-| Phase 2, interface alternatives, parallel exploration | `interface-design.md` | Parallel sub-agent pattern for exploring alternative interfaces |
-| Phase 2-3, dependency analysis, testing strategy | `deepening-strategies.md` | Dependency categorization, safe deepening patterns, testing strategies |
+Load on demand when working in the named phase.
+
+| Phase | Reference | Content |
+|-------|-----------|---------|
+| Phase 1 | `references/maintenance-lifecycle.md` | Entry rules, recent-change scope, decision memory, candidate schema, typed handoff |
+| Phase 1 | `references/vocabulary.md` | Shared vocabulary: module, depth, seam, leverage, locality, deletion test |
+| Phase 2 | `references/interface-design.md` | Patterns for exploring alternative interfaces, deletion test |
+| Phase 2-3 | `references/deepening-strategies.md` | Dependency categorization, safe deepening, testing strategies |
 
 ## Instructions
 

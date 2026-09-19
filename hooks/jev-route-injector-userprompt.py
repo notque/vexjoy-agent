@@ -81,7 +81,7 @@ def extract_request_text(prompt: str) -> str | None:
     return prompt[m.end() :].strip()
 
 
-def run_jev_route(request_text: str, session_id: str = "") -> dict | None:
+def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dict | None:
     """Run jev-route.py directly (list-argv subprocess -- no shell, so no
     quoting risk from ``request_text``).
 
@@ -89,14 +89,23 @@ def run_jev_route(request_text: str, session_id: str = "") -> dict | None:
     failure path here means "fail open," not "block."
 
     ``session_id`` reaches the call log through ``JEV_SESSION_ID``, so spend can
-    be read per session.
+    be read per session. ``cwd`` is the repository the request is about; the
+    router detects its languages and frameworks from marker files and sends
+    them as state facts.
     """
     script = Path(__file__).resolve().parent.parent / "scripts" / "jev-route.py"
     if not script.is_file():
         return None
     try:
         proc = subprocess.run(
-            [sys.executable, str(script), "--request", request_text, "--json-compact"],
+            [
+                sys.executable,
+                str(script),
+                "--request",
+                request_text,
+                "--json-compact",
+                *(["--cwd", cwd] if cwd else []),
+            ],
             capture_output=True,
             text=True,
             timeout=JEV_ROUTE_TIMEOUT_SECONDS,
@@ -147,7 +156,12 @@ def main() -> None:
         return
 
     session_id = event.get("session_id") if isinstance(event, dict) else ""
-    jev_result = run_jev_route(request_text, session_id if isinstance(session_id, str) else "")
+    cwd = event.get("cwd")
+    jev_result = run_jev_route(
+        request_text,
+        session_id if isinstance(session_id, str) else "",
+        cwd if isinstance(cwd, str) else "",
+    )
     if jev_result is None:
         # Fail open: Phase 1's own prose-driven script call is the fallback,
         # unchanged from before this hook existed.

@@ -1,5 +1,5 @@
 # Rive Animation Library Reference
-<!-- Loaded by rive-skeletal-animator when task involves: animation set design, state machine inputs, clip durations, idle/attack/hit/block animations, timing sync with CombatEngine, state transitions -->
+<!-- Loaded by rive-skeletal-animator when task involves: animation set frontend, state machine inputs, clip durations, idle/attack/hit/block animations, timing sync with CombatEngine, state transitions -->
 
 Standard wrestling animation set covering the complete combat lifecycle. Every clip maps to a CombatEngine event. Durations match game logic timing windows exactly.
 

@@ -20,7 +20,7 @@ routing:
     - state machine
     # sapcc structural
     - sapcc structural
-    - go-bits design
+    - go-bits frontend
     - sapcc structural review
     - type export
     - anti-over-engineering
@@ -30,11 +30,10 @@ routing:
     - production
     - ops
     - operational
-  not_for: "naming, dead code, test coverage, and convention review (use reviewer-code); security, concurrency, error handling, observability, and API contracts (use reviewer-system); newcomer, contrarian, pedant, or user-advocate framings (use reviewer-perspectives); full-repo SAP Commerce Cloud compliance audit (use sapcc-audit skill); running a consultation to decide a new architecture decision (use adr-consultation skill). This agent reviews business logic, ADR conformance, and SAP CC structural correctness against domain requirements."
+  not_for: "naming, dead code, test coverage, and convention review (use reviewer-code); security, concurrency, error handling, observability, and API contracts (use reviewer-system); newcomer, contrarian, pedant, or user-advocate framings (use reviewer-perspectives); full-repo SAP Commerce Cloud compliance audit (use domain skill); running a consultation to decide a new architecture decision (use assessment skill). This agent reviews business logic, ADR conformance, and SAP CC structural correctness against domain requirements."
   pairs_with:
     - workflow
-    - parallel-code-review
-    - systematic-code-review
+    - review
   complexity: Medium-Complex
   category: review
 allowed-tools:
@@ -49,7 +48,7 @@ allowed-tools:
 
 # Domain-Specific Reviewer
 
-You are an **operator** for domain-specific code and design review, configuring Claude's behavior for specialized review across 4 domains. Each domain brings deep expertise in its area, loaded on demand from reference files.
+You are an **operator** for domain-specific code and frontend review, configuring Claude's behavior for specialized review across 4 domains. Each domain brings deep expertise in its area, loaded on demand from reference files.
 
 ## Operator Context
 
@@ -72,8 +71,7 @@ You are an **operator** for domain-specific code and design review, configuring 
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `parallel-code-review` | Parallel 3-reviewer code review: Security, Business-Logic, Architecture. | Call the Skill tool with `parallel-code-review`. |
-| `systematic-code-review` | 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings. | Call the Skill tool with `systematic-code-review`. |
+| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -26,7 +26,7 @@ routing:
     - card visual effects
   pairs_with:
     - typescript-frontend-engineer
-    - ui-design-engineer
+    - ui-frontend-engineer
   complexity: Medium
   category: frontend
 ---
@@ -265,12 +265,12 @@ React 19 passes ref as a prop. The canvas element should be `<canvas ref={shader
 
 ---
 
-## Reference Loading Table
+## Deep References
 
-| Task | Reference File |
-|------|---------------|
-| Fragment shader GLSL source | `references/card-shader-patterns.md` |
-| React 19 WebGL hook + context pool | `references/shader-integration-react.md` |
-| Balatro holographic foil breakdown | `references/balatro-shader-breakdown.md` |
+Load the reference needed for the current phase. All three total ~1,400 lines -- load all only if implementing everything in one pass.
 
-Load only the reference needed for the current phase. All three together is ~1,400 lines — only load all three if implementing everything in one pass.
+| Signal | Reference |
+|--------|-----------|
+| GLSL fragment shader source for each tier | `references/card-shader-patterns.md` |
+| React 19 WebGL hook, context singleton | `references/shader-integration-react.md` |
+| Balatro holographic foil GLSL breakdown | `references/balatro-shader-breakdown.md` |

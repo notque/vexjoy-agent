@@ -2,7 +2,7 @@
 
 Load when reviewing GitHub Actions workflows, CI pipeline configs, action definitions, or CI build scripts.
 
-CI/CD pipelines run with elevated privileges: write access, secrets, OIDC tokens, and publishing credentials. Separate privileged and unprivileged execution, pin dependencies to immutable refs, treat all PR-controlled content as untrusted.
+CI/CD pipelines run with elevated privileges: write access, secrets, OIDC tokens, and contenting credentials. Separate privileged and unprivileged execution, pin dependencies to immutable refs, treat all PR-controlled content as untrusted.
 
 ---
 
@@ -55,7 +55,7 @@ jobs:
 ```bash
 rg -n 'pull_request_target' .github/workflows/
 rg -n 'github\.event\.pull_request\.head\.sha|github\.head_ref' .github/workflows/
-rg -B5 -A5 'npm install|npm test|pip install|make |pytest|cargo test|go test' .github/workflows/
+rg -B5 -A5 'npm deploy|npm test|pip deploy|make |pytest|cargo test|go test' .github/workflows/
 ```
 
 ---

@@ -43,7 +43,7 @@ routing:
     - what does this video say
   pairs_with:
     - typescript-frontend-engineer
-    - research-pipeline
+    - research
 ---
 
 # Video Editing Skill
@@ -63,19 +63,15 @@ This skill implements a **6-layer pipeline** where AI handles judgment tasks (wh
 
 ---
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| Signal | Load | Content |
 |---|---|---|
-| `references/preflight.md` | `preflight.md` | Before Phase 1 |
-| `references/phase-commands.md` | `phase-commands.md` | Each phase |
-| `references/errors.md` | `errors.md` | Error Handling |
-| `references/ffmpeg-commands.md` | `ffmpeg-commands.md` | Phase 3, Proxy |
-| `references/remotion-scaffold.md` | `remotion-scaffold.md` | Phase 4 |
-
-| Image-to-video task | `references/image-to-video.md` | Full image-to-video pipeline: validate, prepare, encode, verify |
-| Image-to-video FFmpeg filters | `references/ffmpeg-filters.md` | FFmpeg filter graphs for audio visualization modes |
-| Video transcript extraction | `references/video-transcript.md` | yt-dlp subtitle download and VTT cleaning pipeline |
+| Shell commands for each phase, gate checks | `references/phase-commands.md` | Full command blocks for Phases 1-6 |
+| FFmpeg recipes: cutting, concat, proxy, detection | `references/ffmpeg-commands.md` | Timestamp extraction, batch cutting, audio normalization, scene/silence detection |
+| Remotion composition scaffold | `references/remotion-scaffold.md` | TSX composition template, render command, reuse patterns |
+| Image-to-video pipeline | `references/image-to-video.md` | Validate, prepare, encode, verify workflow |
+| FFmpeg filter graphs for visualization | `references/ffmpeg-filters.md` | Scale/pad, showwaves, showspectrum, overlay, complete filter graphs |
 
 ## Instructions
 
@@ -84,7 +80,11 @@ This skill implements a **6-layer pipeline** where AI handles judgment tasks (wh
 **Hard requirements** (BLOCK if missing): `ffmpeg` (all phases), `node` (Remotion / npx).
 **Soft requirements** (WARN if missing): `remotion` (only required for Phase 4).
 
-Preflight script (dependency checks, install hints, exit codes): `references/preflight.md`.
+```bash
+which ffmpeg >/dev/null 2>&1 || { echo "ERROR: ffmpeg not found. Install: brew install ffmpeg (macOS) | apt install ffmpeg (Linux)"; exit 1; }
+which node >/dev/null 2>&1 || { echo "ERROR: node not found. Install: https://nodejs.org or via nvm"; exit 1; }
+npx remotion --version >/dev/null 2>&1 || echo "WARNING: remotion CLI not found. Phase 4 unavailable. Install: npm install @remotion/cli"
+```
 
 ---
 
@@ -172,24 +172,28 @@ Handoff template (`handoff-notes.txt` with source list, EDL, rough-cut path, rem
 
 ---
 
+## Video Transcript Extraction
+
+Pull a video's transcript as readable paragraphs. Prefer uploader subtitles; fall back to auto-generated.
+
+```bash
+# Path 1: uploader subtitles (accurate)
+yt-dlp --skip-download --write-subs --sub-langs en --sub-format vtt -o '<work-dir>/%(id)s' '<URL>'
+# Path 2: auto-generated (fallback when path 1 writes no file)
+yt-dlp --skip-download --write-auto-subs --sub-langs en --sub-format vtt -o '<work-dir>/%(id)s' '<URL>'
+# Clean VTT to paragraphs
+python3 skills/research/video-transcript/scripts/vtt_to_paragraph.py <work-dir>/<id>.en.vtt
+```
+
+Options: `--timestamps` for `[mm:ss]` markers, `--keep-brackets` for cue tags, `-o FILE` for file output. Other languages: change `--sub-langs`. List available: `yt-dlp --list-subs '<URL>'`.
+
 ## Error Handling
 
-Common errors (missing source files, FFmpeg codec errors, Remotion composition-not-found, concat-order bugs, ElevenLabs 401) and fixes: `references/errors.md`.
-
----
-
-## References
-
-| Reference | When to Load | Content |
-|-----------|-------------|---------|
-| `references/preflight.md` | Before Phase 1 | Dependency check script: ffmpeg, node, remotion |
-| `references/phase-commands.md` | Each phase | Full shell command blocks for Phases 1-6 and gate checks |
-| `references/errors.md` | Error Handling | Error matrix with causes and fixes |
-| `references/ffmpeg-commands.md` | Phase 3, Proxy | FFmpeg recipes: timestamp extraction, batch cutting, concatenation, proxy generation, audio normalization, scene/silence detection, social reframing |
-| `references/remotion-scaffold.md` | Phase 4 | TSX composition scaffold, render command, reuse patterns |
-
-- [Remotion docs](https://www.remotion.dev/docs) -- TSX composition API
-- [FFmpeg docs](https://ffmpeg.org/documentation.html) -- Flag reference
-- `references/image-to-video.md`: Image-to-video pipeline (validate, prepare, encode, verify)
-- `references/ffmpeg-filters.md`: FFmpeg filter graphs for audio visualization modes
-- `references/video-transcript.md`: yt-dlp subtitle download and VTT cleaning
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "No such file or directory" on source | Path in cuts.txt doesn't match filename | Run `cat source-inventory.txt`. Quote paths with spaces. |
+| FFmpeg "Invalid option" or codec errors | Codec unavailable or flag syntax error | `ffmpeg -codecs \| grep libx264`. Fall back to `-c:v copy`. |
+| Remotion "Could not find composition" | Composition ID mismatch | Check `src/index.ts` for registered ID. Match exactly in render command. |
+| Segments concat in wrong order | Shell glob sorts alphabetically, not by EDL | Generate concat-list.txt from cuts.txt order, not from glob. |
+| ElevenLabs 401 | `ELEVENLABS_API_KEY` not set | `export ELEVENLABS_API_KEY=your_key` before Phase 5. |
+| No .vtt file from transcript extraction | Video has no subtitles in requested language | `yt-dlp --list-subs '<URL>'` and pick an available language. |

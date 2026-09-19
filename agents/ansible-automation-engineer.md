@@ -12,7 +12,7 @@ routing:
     - AWX
   not_for: "Kubernetes manifests, Helm charts, or cluster deploys (use kubernetes-helm-engineer); Claude Code hook or toolkit automation (use hook-development-engineer); application test automation (use testing-automation-engineer). This agent writes Ansible playbooks, roles, collections, and Molecule tests."
   pairs_with:
-    - verification-before-completion
+    - testing
     - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
@@ -79,7 +79,7 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -103,7 +103,7 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 - **Application Code**: Use language-specific agents (python, go) for application development
 - **Container Orchestration**: Use `kubernetes-helm-engineer` for K8s deployments
 - **Monitoring Setup**: Use `prometheus-grafana-engineer` for observability infrastructure
-- **Database Schema**: Use `database-engineer` for schema design and optimization
+- **Database Schema**: Use `database-engineer` for schema frontend and optimization
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent.
 
@@ -166,7 +166,7 @@ Common Ansible errors and solutions.
 Common Ansible mistakes and their corrections.
 
 ### Use Specific Modules Over Command
-**Signal**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
+**Signal**: `command: apt-get deploy nginx` or `shell: systemctl restart nginx`
 **Why this matters**: Not idempotent, doesn't report changes properly, no parameter validation
 **Preferred action**: Use specific modules: `apt: name=nginx state=present` and `systemd: name=nginx state=restarted`
 
@@ -221,7 +221,7 @@ grep -A2 "^  - " playbooks/*.yml | grep -v "name:"
 
 ## Verification STOP Blocks
 
-After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation designed without knowing the current state is speculation."
+After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation frontended without knowing the current state is speculation."
 
 After recommending performance optimizations (parallelism, fact caching, mitogen), STOP and ask: "Am I providing before/after metrics (playbook run time, task count), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
 

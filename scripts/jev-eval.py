@@ -28,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import statistics
@@ -78,7 +79,23 @@ def load_corpus_version() -> str:
     return str(data.get("version", "unknown"))
 
 
-def run_jev_route(request: str, timeout: float, confidence_floor: float) -> dict:
+def case_split(case: dict) -> str:
+    """Stable dev/test assignment from the request text: 60% dev, 40% test."""
+    digest = hashlib.sha256(case["request"].encode("utf-8")).digest()
+    return "dev" if digest[0] % 5 < 3 else "test"
+
+
+def case_workload(case: dict) -> str | None:
+    return (case.get("provenance") or {}).get("workload")
+
+
+def run_jev_route(
+    request: str,
+    timeout: float,
+    confidence_floor: float,
+    cwd: str | None = None,
+    route_args: list[str] | None = None,
+) -> dict:
     """One subprocess call to jev-route.py. Never raises: a bad subprocess
     result is turned into a harness-error fallback row instead."""
     try:
@@ -93,6 +110,8 @@ def run_jev_route(request: str, timeout: float, confidence_floor: float) -> dict
                 str(timeout),
                 "--confidence-floor",
                 str(confidence_floor),
+                *(["--cwd", cwd] if cwd else []),
+                *(route_args or []),
             ],
             capture_output=True,
             text=True,
@@ -132,14 +151,33 @@ def is_correct_for_accuracy(case: dict, result: dict) -> bool:
     return bool(AB.route_correct(case, route))
 
 
-def run_eval(out_dir: Path, workers: int, timeout: float, confidence_floor: float) -> list[dict]:
+def run_eval(
+    out_dir: Path,
+    workers: int,
+    timeout: float,
+    confidence_floor: float,
+    limit: int | None = None,
+    split: str | None = None,
+    workload_dirs: dict[str, str] | None = None,
+    only_workloads: bool = False,
+    route_args: list[str] | None = None,
+) -> list[dict]:
     corpus = load_corpus()
+    workload_dirs = workload_dirs or {}
+    if split:
+        corpus = [c for c in corpus if case_split(c) == split]
+    if only_workloads:
+        corpus = [c for c in corpus if case_workload(c) in workload_dirs]
+    if limit:
+        corpus = corpus[:limit]  # smoke run: price and wiring check before the full corpus
     out_dir.mkdir(parents=True, exist_ok=True)
 
     raw_rows: list[dict | None] = [None] * len(corpus)
 
     def _work(i: int, case: dict) -> tuple[int, dict]:
-        return i, run_jev_route(case["request"], timeout, confidence_floor)
+        return i, run_jev_route(
+            case["request"], timeout, confidence_floor, workload_dirs.get(case_workload(case)), route_args
+        )
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [pool.submit(_work, i, case) for i, case in enumerate(corpus)]
@@ -455,9 +493,40 @@ def main() -> int:
     parser.add_argument(
         "--confidence-floor", type=float, default=0.7, help="Confidence floor passed through to jev-route.py."
     )
+    parser.add_argument("--limit", type=int, default=None, help="Run only the first N cases (smoke run).")
+    parser.add_argument(
+        "--split", choices=("dev", "test"), default=None, help="Run one split: tune on dev, report test."
+    )
+    parser.add_argument(
+        "--workload-dir",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="Repository directory for cases whose provenance.workload is NAME; passed to the router as --cwd.",
+    )
+    parser.add_argument(
+        "--route-arg",
+        action="append",
+        default=[],
+        help="Extra argument passed through to jev-route.py (repeatable), e.g. --route-arg=--shortlist --route-arg=6.",
+    )
+    parser.add_argument(
+        "--only-workloads", action="store_true", help="Run only cases whose workload has a --workload-dir."
+    )
     args = parser.parse_args()
 
-    rows = run_eval(args.out_dir, args.workers, args.timeout, args.confidence_floor)
+    workload_dirs = dict(item.split("=", 1) for item in args.workload_dir if "=" in item)
+    rows = run_eval(
+        args.out_dir,
+        args.workers,
+        args.timeout,
+        args.confidence_floor,
+        args.limit,
+        args.split,
+        workload_dirs,
+        args.only_workloads,
+        args.route_arg,
+    )
     summary = summarize(rows)
     write_verdict(args.out_dir, summary, load_corpus_version())
 

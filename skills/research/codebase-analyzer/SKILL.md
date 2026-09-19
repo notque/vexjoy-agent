@@ -22,33 +22,24 @@ routing:
     - "structural metrics"
   category: analysis
   pairs_with:
-    - codebase-overview
-    - go-patterns
+    - assessment
+    - programming
 ---
 
 # Codebase Analyzer Skill
 
 Statistical rule discovery through measurement of Go codebases. Python scripts count patterns to avoid LLM training bias, then statistics are interpreted to derive confidence-scored rules. The core principle is **Measure First, Interpret Second** -- what IS in the code is the local standard, not what an LLM thinks "should be" there.
 
-## Reference Loading
+## Deep References
 
-Load these files when the corresponding signals appear:
+Load on demand when the corresponding signal appears.
 
-| Signal | Load |
-|--------|------|
-| Understanding the three lenses (Consistency, Signature, Idiom) | `references/three-lenses.md` |
-| Worked examples, phase banners, error catalog, reconciliation matrix | `references/phase-details.md` |
-| Full 100-metric catalog across 25 categories | `references/metrics-catalog.md` |
-| Additional real-world analysis workflows | `references/examples.md` |
-
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| worked analyses: single Go service, multi-repo comparison, pattern adoption and evolution tracking | `examples.md` | Loads detailed guidance from `examples.md`. |
-| computing the 100 metrics across 25 categories | `metrics-catalog.md` | Loads detailed guidance from `metrics-catalog.md`. |
-| phase banners, reconciliation matrix, rule format | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
-| understanding the measure-don't-read statistical approach | `three-lenses.md` | Loads detailed guidance from `three-lenses.md`. |
+| Signal | Reference | Content |
+|--------|-----------|---------|
+| Three-lens methodology | `references/three-lenses.md` | Consistency, Signature, Idiom lens details |
+| Phase banners, error catalog, reconciliation | `references/phase-details.md` | Phase templates, rule format, error catalog |
+| 100-metric catalog | `references/metrics-catalog.md` | All metrics across 25 categories |
+| Worked examples | `references/examples.md` | Single repo, multi-repo, evolution tracking workflows |
 
 ## Instructions
 
@@ -188,15 +179,7 @@ Load `references/phase-details.md` for:
 
 ---
 
-## References
+## Prerequisites
 
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/three-lenses.md`: Detailed explanation of the three analysis lenses
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world analysis examples and workflows
-- `${CLAUDE_SKILL_DIR}/references/metrics-catalog.md`: Complete 100-metric catalog across 25 categories
-- `${CLAUDE_SKILL_DIR}/references/phase-details.md`: Phase banners, reconciliation matrix, examples, error handling
-
-### Prerequisites
-- Python 3.7+
-- Go codebase to analyze (50+ files recommended)
-- No external dependencies (uses only Python standard library)
+- Python 3.7+ (standard library only, no external dependencies)
+- Go codebase with 50+ files (100+ ideal for meaningful rules)

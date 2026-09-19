@@ -23,7 +23,7 @@ routing:
     - platform variants
     - repurpose for
   pairs_with:
-    - x-api
+    - content
   category: content
   disambiguate: voice-writer
 ---
@@ -33,16 +33,6 @@ routing:
 Repurpose anchor content into platform-native variants. This skill produces drafts only — it does not make API calls or publish content. Posting is handled downstream by `x-api` (single platform) or `crosspost` (multi-platform).
 
 Platform-native means each variant is written from scratch for its target platform: different register (conversational on X, professional-but-human on LinkedIn, punchy on TikTok), different structure (thread vs. long-form post vs. short script vs. newsletter section), and different hook style (open fast on X, strong first line on LinkedIn, interrupt on TikTok). Shortening the same text for each platform is not adaptation — it produces content that reads identically everywhere and fails on every platform.
-
----
-
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
-| drafting variants: platform rules, banned hype phrases, delivery handoff | `phase-playbook.md` | Loads detailed guidance from `phase-playbook.md`. |
-| character limits and format rules per platform | `platform-specs.md` | Loads detailed guidance from `platform-specs.md`. |
 
 ## Instructions
 
@@ -158,17 +148,10 @@ See `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` for error cases: source t
 
 ---
 
-## References
+## Deep References
 
-| Signal | Load |
-|--------|------|
-| Phase 3 DRAFT — writing platform variants | `references/platform-specs.md`, `references/phase-playbook.md` |
-| Phase 4 GATE — running quality checks | `references/phase-playbook.md`, `references/error-handling.md` |
-| Script fails, gate won't pass, source errors | `references/error-handling.md` |
-| Platform rules, character limits, posting norms | `references/platform-specs.md` |
-| Delivery, handoff, artifact templates | `references/phase-playbook.md` |
-
-- `${CLAUDE_SKILL_DIR}/references/platform-specs.md` — Character limits, format rules, and posting norms per platform
-- `${CLAUDE_SKILL_DIR}/references/phase-playbook.md` — Full platform rules for Phase 3, banned hype phrases for Phase 4, error handling
-- `${CLAUDE_SKILL_DIR}/references/error-handling.md` — Gate failure recovery, script fallbacks, error-fix mappings, detection commands
-- `~/private-skills/scripts/scan-negative-framing.py` — Negative framing and hype phrase detection
+| Signal | Load | Content |
+|--------|------|---------|
+| Phase 3 platform rules, character limits, posting norms | `references/platform-specs.md` | Per-platform register, length, hook, hashtag, CTA rules |
+| Phase 3-5 templates, banned hype phrases, delivery handoff | `references/phase-playbook.md` | `content_ideas.md` and `content_drafts.md` templates, platform rule detail, banned phrases, delivery order, downstream routing |
+| Gate failures, script fallbacks, error-fix mappings | `references/error-handling.md` | Recovery when scripts fail, manual grep fallbacks, error-fix table, detection commands |

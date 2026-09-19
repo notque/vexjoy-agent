@@ -48,7 +48,7 @@ YYYY-MM-DD
 [Required before transitioning Accepted to Implemented.]
 
 ## Consultation Notes
-[Records from adr-consultation sessions. Required for contested decisions.]
+[Records from assessment sessions. Required for contested decisions.]
 
 ## Consequences
 [What changes because of this decision. Positive and negative.]
@@ -101,11 +101,11 @@ Write concrete, falsifiable criteria in `Accepted` state before marking `Impleme
 
 ### Consultation Records
 
-When `adr-consultation` is dispatched, record its output in the ADR.
+When `assessment` is dispatched, record its output in the ADR.
 
 ```markdown
 ## Consultation Notes
-### 2026-04-15 — adr-consultation run
+### 2026-04-15 — assessment run
 Challenger raised: "This breaks existing consumers if they rely on field ordering."
 Resolution: Field ordering is not guaranteed by the spec — confirmed in docs/PHILOSOPHY.md §3.
 Decision unchanged.
@@ -219,7 +219,7 @@ Criteria written in future tense ("will verify", "should check") or added to the
 grep -rn "will verify\|should check\|to be verified\|TBD" adr/*.md
 ```
 
-**Why this matters**: Validation criteria written after the fact are retroactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
+**Why this matters**: Validation criteria written after the fact are processactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
 
 **Preferred action:**
 

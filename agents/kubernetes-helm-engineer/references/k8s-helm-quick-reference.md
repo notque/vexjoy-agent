@@ -21,7 +21,7 @@ Run in this order before every deploy:
 ```bash
 helm lint ./charts/myapp --values values-prod.yaml
 helm template myapp ./charts/myapp --values values-prod.yaml | less
-helm upgrade --install myapp ./charts/myapp \
+helm upgrade --deploy myapp ./charts/myapp \
   --values values-prod.yaml --dry-run=server --namespace production
 helm diff upgrade myapp ./charts/myapp \
   --values values-prod.yaml --namespace production

@@ -10,14 +10,13 @@ routing:
     - "naming review"
     - "dead code review"
     - "performance review"
-    - "type design review"
+    - "type frontend review"
     - "test coverage review"
     - "config safety review"
   not_for: "Codex second-opinion review or PR lifecycle (use pr-workflow skill); business-logic correctness, ADR conformance, or SAP CC structural review (use reviewer-domain) — this agent reviews code quality: conventions, naming, dead code, test coverage"
   pairs_with:
     - workflow
-    - parallel-code-review
-    - systematic-code-review
+    - review
   complexity: Medium
   category: review
 allowed-tools:
@@ -48,7 +47,7 @@ Select and load reference(s) matching the review request:
 | Unreachable branches, unused exports | [dead-code.md](reviewer-code/references/dead-code.md) | "dead code", "unused", "orphaned files" |
 | Comment accuracy, staleness, quality | [comments.md](reviewer-code/references/comments.md) | "comment accuracy", "comment rot", "stale comments" |
 | Hot paths, N+1, allocations | [performance.md](reviewer-code/references/performance.md) | "performance", "hot paths", "N+1", "allocations" |
-| Type invariants, encapsulation | [type-design.md](reviewer-code/references/type-design.md) | "type design", "type safety", "illegal states" |
+| Type invariants, encapsulation | [type-frontend.md](reviewer-code/references/type-frontend.md) | "type frontend", "type safety", "illegal states" |
 | Test coverage quality, gaps | [test-analyzer.md](reviewer-code/references/test-analyzer.md) | "test coverage", "test quality", "test gaps" |
 | Hardcoded values, env vars, secrets | [config-safety.md](reviewer-code/references/config-safety.md) | "config safety", "hardcoded values", "secrets in code" |
 
@@ -121,8 +120,7 @@ Rules:
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `parallel-code-review` | Launch Security, Business-Logic, and Architecture reviewers in parallel |
-| `systematic-code-review` | 4-phase UNDERSTAND/VERIFY/ASSESS/DOCUMENT methodology |
+| `review` | Systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review |
 
 ## Tool Restrictions
 
@@ -145,7 +143,7 @@ Rules:
 | Unreachable branches, unused exports | `dead-code.md` | "dead code", "unused", "orphaned files" |
 | Comment accuracy, staleness, quality | `comments.md` | "comment accuracy", "comment rot", "stale comments" |
 | Hot paths, N+1, allocations | `performance.md` | "performance", "hot paths", "N+1", "allocations" |
-| Type invariants, encapsulation | `type-design.md` | "type design", "type safety", "illegal states" |
+| Type invariants, encapsulation | `type-frontend.md` | "type frontend", "type safety", "illegal states" |
 | Test coverage quality, gaps | `test-analyzer.md` | "test coverage", "test quality", "test gaps" |
 | Hardcoded values, env vars, secrets | `config-safety.md` | "config safety", "hardcoded values", "secrets in code" |
 
@@ -154,7 +152,6 @@ Rules:
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `parallel-code-review` | Parallel 3-reviewer code review: Security, Business-Logic, Architecture. | Call the Skill tool with `parallel-code-review`. |
-| `systematic-code-review` | 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings. | Call the Skill tool with `systematic-code-review`. |
+| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
 
 **Rule**: Use the exact action in each applicable row.

@@ -1,5 +1,5 @@
 ---
-name: github-profile-rules-engineer
+name: github-engineer
 description: "Extract coding conventions and style rules from GitHub user profiles via API."
 color: blue
 routing:
@@ -9,10 +9,10 @@ routing:
     - coding style extraction
     - github conventions
     - programming rules
-  not_for: "deriving conventions from a local repository (use codebase-overview skill); generating a project CLAUDE.md from repo analysis (use generate-claudemd skill); building a writing-voice profile from author samples (use create-voice skill); reviewing code against conventions already adopted (use reviewer-code). This agent extracts coding rules from GitHub user profiles via the API."
+  not_for: "deriving conventions from a local repository (use assessment skill); generating a project CLAUDE.md from repo analysis (use toolkit skill); building a writing-voice profile from author samples (use writing skill); reviewing code against conventions already adopted (use reviewer-code). This agent extracts coding rules from GitHub user profiles via the API."
   pairs_with:
-    - codebase-overview
-    - generate-claudemd
+    - assessment
+    - toolkit
   complexity: Medium
   category: meta
 allowed-tools:
@@ -68,8 +68,8 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `codebase-overview` | Systematic codebase exploration and architecture mapping. | Call the Skill tool with `codebase-overview`. |
-| `generate-claudemd` | Generate project-specific CLAUDE.md from repo analysis. | Call the Skill tool with `generate-claudemd`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analysis, multi-perspective critique. | Call the Skill tool with `assessment`. |
+| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 
 **Rule**: Use the exact action in each applicable row.
 

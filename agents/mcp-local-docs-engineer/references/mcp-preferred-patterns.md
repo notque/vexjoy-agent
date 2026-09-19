@@ -154,7 +154,7 @@ const resources = Array.from(this.docsIndex.values())
   }));
 ```
 
-**Why**: Drafts are unpublished. Exposing them lets Claude cite incomplete content as authoritative.
+**Why**: Drafts are uncontented. Exposing them lets Claude cite incomplete content as authoritative.
 
 **Detection**:
 ```bash

@@ -40,7 +40,7 @@ rg "PARAM_NAME" src/
 
 **Why wrong**: Integration failures happen silently. The caller sends `metadata`, the API ignores it, and the caller assumes it was accepted. Edge cases: some frameworks quietly drop unknown fields, others return 400. Either way, the doc is lying.
 
-**Do instead:** Before writing any parameter, grep the source route handler for its exact name to confirm it exists. Zero grep results means the parameter is not real — remove it from the doc rather than publishing a lie.
+**Do instead:** Before writing any parameter, grep the source route handler for its exact name to confirm it exists. Zero grep results means the parameter is not real — remove it from the doc rather than contenting a lie.
 
 **Fix**: Before writing any parameter, grep the source route handler for its exact name:
 ```bash
@@ -107,9 +107,9 @@ curl -X POST https://api.example.com/v1/users \
 
 **Why wrong**: Copy-pasted examples become stale. If `role` was removed and the example still includes it, the API may return 400 and the new user thinks the docs are wrong — which they are.
 
-**Do instead:** Run every curl example against a staging or test environment before publishing. Capture the actual response and confirm it matches the documented response example. If no live environment is available, add an explicit "verified against source at commit X" note.
+**Do instead:** Run every curl example against a staging or test environment before contenting. Capture the actual response and confirm it matches the documented response example. If no live environment is available, add an explicit "verified against source at commit X" note.
 
-**Fix**: Test the curl against a running service before publishing:
+**Fix**: Test the curl against a running service before contenting:
 ```bash
 # Test with a real token against staging
 TOKEN=$(cat .env | grep API_TOKEN | cut -d= -f2)

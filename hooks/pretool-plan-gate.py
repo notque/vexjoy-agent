@@ -299,7 +299,7 @@ def _target_status(file_path: str, event_cwd: object, root: Path) -> str:
 def _deny(reason: str, *, stderr_message: str, fix_with_planning: bool = False) -> NoReturn:
     print(f"[plan-gate] BLOCKED: {stderr_message}", file=sys.stderr)
     if fix_with_planning:
-        print("[fix-with-skill] planning", file=sys.stderr)
+        print("[fix-with-skill] process", file=sys.stderr)
     deny_tool_use("PreToolUse", reason)
     sys.exit(0)
 
@@ -373,7 +373,7 @@ def main() -> None:
 
     _deny(
         "Create task_plan.md before modifying implementation code in agents/ or skills/. "
-        "[fix-with-skill] planning\nCall the Skill tool with `planning`.",
+        "[fix-with-skill] process\nCall the Skill tool with `process`.",
         stderr_message="Create task_plan.md before modifying implementation code.",
         fix_with_planning=True,
     )

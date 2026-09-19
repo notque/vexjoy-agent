@@ -6,7 +6,7 @@
 
 ## Late-Arriving Data
 **Cause**: Events arrive after the processing window closes (common with mobile apps, IoT, distributed systems).
-**Solution**: Implement late-arrival handling: add a reprocessing window (e.g., re-run last 3 days daily), use watermarking in streaming, or design a lambda architecture with batch correction layer.
+**Solution**: Implement late-arrival handling: add a reprocessing window (e.g., re-run last 3 days daily), use watermarking in streaming, or frontend a lambda architecture with batch correction layer.
 
 ## Schema Evolution Breakage
 **Cause**: Source system schema changes without notice -- columns renamed, types changed, new fields added.

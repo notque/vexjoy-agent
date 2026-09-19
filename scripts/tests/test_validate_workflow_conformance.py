@@ -28,7 +28,7 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[1] / "validate-workflow-conformance.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "conformance"
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REAL_WORKFLOW_DIR = REPO_ROOT / "skills" / "workflow" / "references"
+REAL_WORKFLOW_DIR = REPO_ROOT / "skills" / "process" / "workflow" / "references"
 CONTRACTED_WORKFLOWS = tuple(
     REAL_WORKFLOW_DIR / name
     for name in (
@@ -138,8 +138,8 @@ def test_extract_phase_titles_from_source():
 def test_extract_skill_tokens_from_source():
     src = (FIXTURES / "matching.js").read_text()
     skills = vwc.extract_skill_tokens(src)
-    assert "systematic-code-review" in skills
-    assert "multi-persona-critique" in skills
+    assert "review" in skills
+    assert "assessment" in skills
 
 
 def test_extract_skill_tokens_picks_up_skills_array():
@@ -150,15 +150,15 @@ def test_extract_skill_tokens_picks_up_skills_array():
     """
     src = (FIXTURES / "matching.js").read_text()
     skills = vwc.extract_skill_tokens(src)
-    # verification-before-completion is declared only inside skills:[...] arrays.
-    assert "verification-before-completion" in skills
+    # testing is declared only inside skills:[...] arrays.
+    assert "testing" in skills
 
 
 def test_extract_skills_list_from_roster_entry():
     """Each static roster entry exposes its full skills LIST (not a single skill)."""
     matching = vwc.extract_contract((FIXTURES / "matching.js").read_text())
     entry = matching["roster"][0]
-    assert vwc.entry_skills(entry) == ["systematic-code-review", "verification-before-completion"]
+    assert vwc.entry_skills(entry) == ["review", "testing"]
 
 
 @pytest.mark.parametrize(
@@ -183,33 +183,33 @@ def test_skill_directives_rejects_untrusted_or_empty_names(skills, message):
     (
         (
             [
-                {"agentType": "reviewer-system", "skills": ["systematic-code-review"]},
-                {"agentType": "not-an-indexed-agent", "skills": ["systematic-code-review"]},
+                {"agentType": "reviewer-system", "skills": ["review"]},
+                {"agentType": "not-an-indexed-agent", "skills": ["review"]},
             ],
             "research-coordinator-engineer",
             "unknown agent",
         ),
         (
             [
-                {"agentType": "reviewer-system", "skills": ["systematic-code-review"]},
+                {"agentType": "reviewer-system", "skills": ["review"]},
                 {"agentType": "reviewer-code", "skills": ["not-an-indexed-skill"]},
             ],
             "research-coordinator-engineer",
             "unknown skill",
         ),
         (
-            [{"agentType": "reviewer-system", "skills": ["systematic-code-review"]}],
+            [{"agentType": "reviewer-system", "skills": ["review"]}],
             "not-an-indexed-agent",
             "unknown agent",
         ),
         (
-            [{"agentType": "systematic-code-review", "skills": ["verification-before-completion"]}],
+            [{"agentType": "review", "skills": ["testing"]}],
             "research-coordinator-engineer",
             "skill, not an agent",
         ),
         (
             [
-                {"agentType": "reviewer-system", "skills": ["systematic-code-review"]},
+                {"agentType": "reviewer-system", "skills": ["review"]},
                 {"agentType": "reviewer-code", "skills": []},
             ],
             "research-coordinator-engineer",
@@ -238,8 +238,8 @@ def test_fully_dynamic_roster_requires_registry_validation_call():
 @pytest.mark.parametrize(
     ("agent_type", "skills", "message"),
     (
-        ("not-an-indexed-agent", ["systematic-code-review"], "unknown agent"),
-        ("reviewer-system", ["reviewer-code"], "agent, not a skill"),
+        ("not-an-indexed-agent", ["review"], "unknown agent"),
+        ("reviewer-system", ["reviewer-code"], "agent, not a skill"),  # reviewer-code is an agent name, not a skill
         ("reviewer-system", [], "at least one skill"),
     ),
 )
@@ -334,8 +334,8 @@ def test_contracted_workflows_use_only_active_skill_names():
     source = "\n".join(path.read_text(encoding="utf-8") for path in CONTRACTED_WORKFLOWS)
     assert '"roast"' not in source
     assert '"codebase-analyzer"' not in source
-    assert '"multi-persona-critique"' in source
-    assert '"codebase-overview"' in source
+    assert '"assessment"' in source
+    assert '"review"' in source
 
 
 # --- DYNAMIC: only when node is available ------------------------------------
@@ -492,7 +492,7 @@ def test_missing_one_of_several_skills_fails_static():
     rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
     res = _result_for(data, "mismatch-skill.js")
     assert res["status"] == "fail", res
-    assert any("verification-before-completion" in e for e in res["static_errors"]), res["static_errors"]
+    assert any("testing" in e for e in res["static_errors"]), res["static_errors"]
 
 
 def test_each_declared_skill_checked_independently():
@@ -500,9 +500,9 @@ def test_each_declared_skill_checked_independently():
     src = (FIXTURES / "mismatch-skill.js").read_text()
     contract = vwc.extract_contract(src)
     errors, _ = vwc._static_checks(src, contract)
-    # systematic-code-review is emitted (ok); verification-before-completion is not.
-    assert any("verification-before-completion" in e for e in errors), errors
-    assert not any("'systematic-code-review'" in e and "not resolvable" in e for e in errors), errors
+    # review is emitted (ok); testing is not.
+    assert any("testing" in e for e in errors), errors
+    assert not any("'review'" in e and "not resolvable" in e for e in errors), errors
 
 
 def test_delegated_skill_directives_call_satisfies_invariant():

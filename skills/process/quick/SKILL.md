@@ -64,12 +64,11 @@ All flags default off. Combine discussion, research, and verification as needed.
 | `--no-branch` | Stay on the current branch if repository branch rules permit it. |
 | `--no-commit` | Leave edits uncommitted, including in trivial mode. |
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| When | Load | Content |
 |---|---|---|
-| usage examples, task ID format, error handling | `examples.md` | Examples and recovery. |
-| emitting banners, commit format, or STATE.md entries | `templates.md` | Output and tracking contracts. |
+| Emitting banners, commit format, STATE.md entries | `references/templates.md` | Output and tracking contracts |
 
 ## Setup
 
@@ -92,7 +91,6 @@ Use for `--trivial` or a clearly mechanical one-line change identified by the ro
 
 Use discussion for `--discuss` or material uncertainty about the requested change, approach, or acceptance criteria. Batch independent questions using the DISCUSS template. Wait for answers needed to proceed; do not ask again about decisions or actions already authorized.
 
-For `--interview`, load `planning/references/depth-first-interview.md`. The explicit flag skips its opt-out question. Follow PRIME → ENUMERATE BRANCHES → TRAVERSE → COMPILE OUTPUT, with at most 5 questions and 3 recursion levels per branch. Keep Resolved Decisions / Carried Forward / Scope Boundary / Mode Used inline for the plan.
 
 For `--research` or unfamiliar code, read relevant source, tests, and configuration. Establish current behavior, where the change fits, and what could break. Summarize findings and their effect on the plan in 3–5 lines.
 
@@ -121,3 +119,22 @@ With `--full`, run tests for affected packages/modules, configured lint on chang
 Unless `--no-commit`, stage specific intended files with `git add <specific-files>`, use the conventional commit format from `references/templates.md`, and include `Quick task <task-id>` in the body. Verify with `git log -1 --oneline`.
 
 Create or append to root `STATE.md` using the reference schema. Use tier `trivial->quick` after escalation; otherwise `quick`. Record skipped commits explicitly. Emit the completion summary with changes, checks, commit or skipped status, branch, flags, and log location. Continue any already-authorized delivery steps.
+
+## Examples
+
+**Base mode**: `/quick add --verbose flag to the CLI` -- Generate ID `260322-001`, plan 3 edits (flag definition, handler, help text), create branch `quick/260322-001-add-verbose-flag`, execute, commit, log.
+
+**With research**: `/quick --research fix the timeout bug in auth middleware` -- Read auth middleware first, trace call path, then plan and execute.
+
+**Escalated from trivial**: `--trivial` hit 3-edit limit across 5 files. Quick picks up with context, plans remaining edits, commits all changes, logs as tier `trivial->quick`.
+
+**Full rigor**: `/quick --full update payment amount rounding logic` -- Plan edit, execute, run tests + lint + diff review, commit.
+
+## Error Handling
+
+| Error | Cause | Fix |
+|---|---|---|
+| Task ID collision | Two tasks with same sequence | Increment sequence. If STATE.md corrupted, scan git log for `Quick task YYMMDD-` to find next ID. |
+| Scope exceeds quick tier | Task grows beyond contained work | Suggest `/do` for multi-component or architectural changes. >15 edits is advisory. |
+| Test failure in `--full` mode | Quality gate found issues | Fix failing tests. If fix needs significant work, note in STATE.md and suggest follow-up `/quick`. |
+| Branch conflict | Branch `quick/<id>-...` exists | Increment task ID sequence and retry. |

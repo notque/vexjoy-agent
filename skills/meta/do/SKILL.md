@@ -50,9 +50,9 @@ Read CLAUDE.md first.
 | Medium | Required | Required | Route |
 | Complex | 2+ | 2+ | Route |
 
-Beyond user-named file = Simple+, must route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, retro, comparisons.
+Beyond user-named file = Simple+, must route. Uncertain → UP. Depth: `references/progressive-depth.md`. NOT Trivial: repos/URLs, opinions, git, codebase Qs, process, comparisons.
 
-Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→research-coordinator-engineer; coord→project-coordinator-engineer; plan+exec→subagent-driven-development; feature→feature-lifecycle (.feature/→feature-state.py status). Force Direct: OFF.
+Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→research-coordinator-engineer; coord→project-coordinator-engineer; plan+exec→process; feature→workflow (.feature/→feature-state.py status). Force Direct: OFF.
 
 **Creation Detection**: create/scaffold/build/"add new"/"new [component]" targeting agent/skill/pipeline/hook/feature/plugin/workflow/voice. Any of these + Simple+ → `is_creation=true`, Phase 4 Step 0. Not: debug/review/fix/refactor/explain/audit.
 
@@ -100,31 +100,31 @@ SECTION-INTEGRITY RULE (HARD CONSTRAINT — never violate):
 - `skill` must be a name listed in the SKILLS: section, or null. Do not put an agent name in `skill`.
 - `pipeline` must be a name listed in the PIPELINES: section, or null.
 - If no agent fits, return `"agent": null` — DO NOT promote a skill into the `agent` slot. The router falls back to a default agent (e.g. `general-purpose`) and pairs it with your chosen skill.
-- Skills marked FORCE are still skills, not agents. They fill the `skill` slot only. Example: `shell-config` is a SKILL — on a match set `"skill": "shell-config"` and pick a separate agent (or null) for `agent`.
+- Skills marked FORCE are still skills, not agents. They fill the `skill` slot only. Example: `deploy` is a SKILL — on a match set `"skill": "deploy"` and pick a separate agent (or null) for `agent`.
 - Pipelines marked FORCE are still pipelines. They fill the `pipeline` slot only, and the run still needs its own `agent` and `skill`.
 - Every name in `agents` must also be an AGENTS: name, and distinct from `agent`.
 
 FORCE-ROUTE RULE: manifest entries marked FORCE — in SKILLS: or in PIPELINES: — are selected when their domain clearly matches the user's intent. FORCE matching is semantic, not keyword-based — match what the user means, not individual words:
-- "push my changes" → pr-workflow ✓ (git push) | "push back on this design" → NOT pr-workflow (means resist)
-- "configure my fish shell" → shell-config ✓ (the Fish shell) | "fish for bugs" → NOT shell-config (means search)
+- "push my changes" → pr-workflow ✓ (git push) | "push back on this frontend" → NOT pr-workflow (means resist)
+- "configure my fish shell" → deploy ✓ (the Fish shell) | "fish for bugs" → NOT deploy (means search)
 - "quick fix to the login page" → quick ✓ (small edit) | "quick overview of the architecture" → NOT quick (means explore)
 A FORCE pipeline (5 of the 29) binds the `pipeline` slot exactly as a FORCE skill binds `skill`. `pre-route.py` reads FORCE pipelines and applies their semantic guard policy; the semantic route still owns intent and must apply the same MEANS-not-words test above.
 
-PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The PIPELINES: section ships in every manifest and 29 pipelines are available; reach for one on ANY of:
+PIPELINE-SELECTION RULE: pick a pipeline whenever the work has REAL PHASES. The PIPELINES: section ships in every manifest and 25 pipelines are available; reach for one on ANY of:
 (1) the intent semantically matches a pipeline's description or its `t:` triggers, OR
 (2) the shape is multi-phase — 3+ distinct steps, gather-then-synthesize, mixed script+LLM work, or intermediate artifacts worth keeping, OR
 (3) Phase 1 classified the request Complex.
 The user saying the word "pipeline" is one signal among these, never the gate. Examples:
-- "write an article in vexjoy voice about X" → voice-writer ✓ | "research X with artifacts and sources" → research-pipeline ✓
+- "write an article in vexjoy voice about X" → writing ✓ | "research X with artifacts and sources" → research ✓
 - "comprehensive review of these 8 files" → comprehensive-review ✓ (outranked by `right-size-review.py` when a real diff exists)
-- "add caching to the API and update the docs" → feature-pipeline ✓ (design → implement → document; nobody said "pipeline")
+- "add caching to the API and update the docs" → feature-pipeline ✓ (frontend → implement → document; nobody said "pipeline")
 - "help me understand how auth works across this repo" → explore-pipeline ✓ (parallel exploration; a plain pipeline earns the pick on shape, no FORCE flag needed)
 Return null when the whole job is one step for one agent: "fix the typo on line 42 of foo.py", "debug this failing test", "review this 10-line function".
 
 MULTI-AGENT RULE: `agents` holds EXTRA agents beyond `agent`; `[]` when one agent covers the work. Fan out when the parts run at once against separate files: 2+ independent failures, 3+ independent subtasks, per-package or per-language review, gather from several domains. Keep a single agent when the parts touch the same files or each step consumes the previous step's output. Complex (Phase 1) starts from fan-out and justifies staying single.
 
 SPECIFICITY RULES:
-- Pick the most specific match. "Go tests" → golang-general-engineer + go-patterns, not general-purpose.
+- Pick the most specific match. "Go tests" → golang-general-engineer + programming, not general-purpose.
 - Agent handles the domain. Skill handles the methodology. Pick both when possible.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
 - A task verb in the request (review, debug, refactor, test) prefers the skill matching that verb.
@@ -147,13 +147,13 @@ Composition rules:
 - A pipeline names the phases; the agent and skill still fill their slots and run inside those phases. Picking a pipeline replaces neither.
 - Stack always composes: anti-rationalization-core rides every route, and Phase 3 adds the rest.
 - A FORCE skill and a FORCE pipeline matching together is legal — different slots, both get filled.
-- Contradictory pairs, keep one: `quick` with any pipeline (quick means one step — drop the pipeline); comprehensive-review with `right-size-review.py` (a real diff wins); `objective-loop` as fallback beside a real domain skill (the fallback yields); two pipelines (pick the outer one, nest the other through Step 1c).
+- Contradictory pairs, keep one: `quick` with any pipeline (quick means one step — drop the pipeline); comprehensive-review with `right-size-review.py` (a real diff wins); `workflow` as fallback beside a real domain skill (the fallback yields); two pipelines (pick the outer one, nest the other through Step 1c).
 
 **Step 0b: Apply the routing decision**
 
 Use the `agent` and `skill` fields directly. Low confidence → verify against the INDEX files.
 
-**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→systematic-code-review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→systematic-code-review (whole-repo→full-repo-review), explain→codebase-overview, compare→decision-helper (agent A/Bs→agent-comparison), plan→planning, loop→objective-loop. Fallback: `objective-loop`.
+**Skill-greediness gate (HARD — non-negotiable for Simple+).** Null skill → pick: review→review, debug→workflow (systematic-debugging), refactor→workflow (systematic-refactoring), audit→review (whole-repo→review), explain→assessment, compare→assessment (agent A/Bs→toolkit), plan→workflow, loop→workflow. Fallback: `workflow`.
 
 **Agent-greediness gate (HARD — non-negotiable for Simple+).** `general-purpose` is the last resort, not the default. Measured share of dispatches: 42.5% (128/301, `evidence_route_decisions` 2026-08-15). Target band: unmeasured -- see the `learning-db.py` route health report for the current band and its provenance. A null `agent` works this table before `general-purpose` is permitted:
 
@@ -164,7 +164,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 | TypeScript UI, React, bundling, state | typescript-frontend-engineer |
 | TypeScript runtime bug, async race, type error | typescript-debugging-engineer |
 | Node backend, REST, auth, webhooks | nodejs-api-engineer |
-| Swift, Kotlin, PHP | swift-general-engineer, kotlin-general-engineer, php-general-engineer |
+| Swift, Kotlin, PHP | programming-general-engineer, programming-general-engineer, programming-general-engineer |
 | SQL schema, query plans, migrations | database-engineer (SQLite + Peewee → sqlite-peewee-engineer) |
 | ETL, warehouse, stream processing | data-engineer |
 | Kubernetes, Helm, Ansible | kubernetes-helm-engineer, ansible-automation-engineer |
@@ -173,7 +173,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 | This toolkit: skills, agents, routing tables, ADRs, INDEX files | toolkit-governance-engineer |
 | Harness or toolkit upgrade sweep | system-upgrade-engineer |
 | Tests, coverage, E2E | testing-automation-engineer |
-| Web performance; design system and accessibility | performance-optimization-engineer, ui-design-engineer |
+| Web performance; frontend system and accessibility | performance-optimization-engineer, ui-frontend-engineer |
 | React Native, Expo | react-native-engineer |
 | API docs and runbooks; explainers and articles | technical-documentation-engineer, technical-journalist-writer |
 | Review: quality / system + security / ADR + business logic / perspectives | reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives |
@@ -197,7 +197,7 @@ if route.agent not in agents:
 route.agent ||= "general-purpose"
 ```
 
-No pair→general-purpose+objective-loop. `[cross-repo]`→`.claude/agents/`. Code→domain agents.
+No pair→general-purpose+workflow. `[cross-repo]`→`.claude/agents/`. Code→domain agents.
 
 **Step 1: Deterministic safety-net** (`pre-route.py` — runs AFTER the semantic decision, never short-circuits it)
 
@@ -212,9 +212,9 @@ rm -f "$REQUEST_FILE"
 → `PRE_ROUTE_RESULT`.
 
 - **(a) Safety-critical force-route override — the one case that beats Step 0.** `"confidence": "high"` with a `force_route` match for `pr-workflow` or a security skill overrides a disagreeing semantic pick: genuine push, commit, create-PR, and merge work, and security work, must hit the quality gates (lint, tests, CI). Record `match_type`. The agent stays the Step 0 pick, or the Agent-greediness table result when Step 0 returned null.
-- **(b) Every other result keeps the Step 0 decision.** Phrase and unigram guards inside `pre-route.py` already suppress idiom false positives ("fish out", metaphorical commit/merge), so a guarded or non-matching result leaves the semantic pick standing. Matching only force-routes is by design — the semantic route owns the long tail.
+- **(b) Every other result keeps the Step 0 decision.** Phrase and unigram guards inside `pre-route.py` already suppress idiom false positives ("fish out", metaphorical commit/merge), so a guarded or non-matching result leaves the semantic pick standing. Matching only force-routes is by frontend — the semantic route owns the long tail.
 
-**Step 2: Apply skill override** — "review"→systematic-code-review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→test-driven-development. Full table in INDEX.
+**Step 2: Apply skill override** — "review"→review, "debug"→workflow (systematic-debugging pipeline), "refactor"→workflow (systematic-refactoring pipeline), "TDD"→testing. Full table in INDEX.
 
 **Step 3: Routing banner** (first visible output)
 
@@ -244,23 +244,20 @@ Stack on signals.
 | Signal | Enhancement |
 |---|---|
 | Substantive | Retro knowledge when material |
-| "with tests"/"production ready" | test-driven-development+verification-before-completion |
+| "with tests"/"production ready" | testing+testing |
 | "research needed"/"investigate first" | research-coordinator-engineer |
-| Comprehensive/thorough/full review or 5+ files, no diff | parallel-code-review (Security, BizLogic, Arch) |
+| Comprehensive/thorough/full review or 5+ files, no diff | review (Security, BizLogic, Arch) |
 | Multi-file review, real diff | `right-size-review.py`; T1→3,T2→12,T3→17,T4→27. CRITICAL+1. Outranks comprehensive-review. |
-| Complex implementation | Offer subagent-driven-development |
+| Complex implementation | Offer process |
 | "local only"/"no push"/"keep it local"/"stay local" | Inject `shared-patterns/local-only.md` |
-| Voice profile (e.g. voice-example-profile) | Stack `voice-writer`; voice-*=profile |
-| Material unresolved choices | `planning` — `ambiguity-triage.md`; ask only when question value is high |
-| Needed knowledge or approval exists with another person | `planning` — `human-source-elicitation.md` |
-| Observation can settle a high impact uncertainty | `planning` — `empirical-prototype.md` |
-| Phase, worker, or session transition | `planning` — `context-boundary.md` |
-| Objective with done-criteria / "loop until done" | Stack `objective-loop` |
-| Protected PR/security intent with a Go source operand | Keep `pr-workflow`/`security-review` primary and stack `go-patterns` from `PRE_ROUTE_RESULT.stack` or router `pairs_with` |
+| Voice profile (e.g. voice-example-profile) | Stack `writing`; voice-*=profile |
+| Needed knowledge or approval exists with another person | `workflow` — `human-source-elicitation.md` |
+| Observation can settle a high impact uncertainty | `workflow` — `empirical-prototype.md` |
+| Objective with done-criteria / "loop until done" | Stack `workflow` |
+| Protected PR/security intent with a Go source operand | Keep `pr-workflow`/`security` primary and stack `programming` from `PRE_ROUTE_RESULT.stack` or router `pairs_with` |
 
 Review overlap: real-diff row wins; fallback only without diff.
 
-**Question-value policy.** Complexity alone never forces questions. Inspect the request, repository, supplied material, and prior decisions first. Load `planning/references/ambiguity-triage.md`, then choose:
 
 | Unresolved state | Action |
 |---|---|
@@ -272,15 +269,13 @@ Review overlap: real-diff row wins; fallback only without diff.
 
 Explicit "interview me" or "grill me" opts into exhaustive material coverage until shared understanding or a user stop; it has no arbitrary question or round cap. An implicit interview must earn its interruption cost through likely avoided rework and remains bounded. "Just build it," "skip questions," and equivalents use recommended defaults and continue.
 
-An interview is not terminal when it suspends an active delivery objective. Compile the decisions and automatically resume the originating build, fix, install, validation, or other execution flow; never report the decision artifact as completion of the original objective. Stop after compilation only when the user explicitly requested only an interview artifact or excluded implementation.
+An interview is not terminal when it suspends an active delivery objective. Compile the decisions and automatically resume the originating build, fix, deploy, validation, or other execution flow; never report the decision artifact as completion of the original objective. Stop after compilation only when the user explicitly requested only an interview artifact or excluded implementation.
 
 Ask the current independent frontier in one logical round. In Markdown, include the full frontier with a recommendation for each and wait once. A harness native structured question UI may chunk the frontier only at its capacity per call; do not recompute between chunks unless an answer invalidates a pending question. Single question turns are reserved for true dependency branches. Interviews initiated by the router cap at five questions and three decision rounds, plus at most one concise confirmation response; explicit grills construct and exhaust the material decision tree, with the kinds and number of questions determined by what shared understanding requires. Do not add ceremonial questions. Answering the last frontier does not authorize execution by itself: ask one concise shared understanding confirmation. Skip that extra confirmation only when the same response explicitly says "proceed", "build it", "looks right, continue", or equivalent. Resume nested execution only after explicit proceed or confirmation; a request for only an interview stops at the artifact.
 
-At each pipeline or worker boundary, apply `planning/references/context-boundary.md`: continue while live context is evidence; use a fresh worker with a complete Task Spec when durable artifacts are sufficient; use `pause.md` only for plan or session lifecycle; use the Task Spec for inline worker or agent transfer, adding `session-handoff` only for live process or PR state; compact only under context pressure.
 
 Check `pairs_with` before stacking. Skills with built-in verification gates may suffice.
 
-anti-rationalization-core always + verification-checklist (code/debug) + anti-rationalization-review + anti-rationalization-security + anti-rationalization-testing; external: **untrusted-content-handling**. Max: load `verification-before-completion` references/anti-rationalization-enforcement.md.
 
 **Step G: GATHER (Simple+)** — fill the Task Spec before the Gate.
 
@@ -289,7 +284,7 @@ anti-rationalization-core always + verification-checklist (code/debug) + anti-ra
 3. Verify named paths. Add excerpts only when they explain a decision or let the worker act; the builder validates paths even when gathering is off.
 4. Use `context_mode: "summary"` for current git status, diff stat, and recent commits. Use `files` when initial excerpts help, or `none` when the worker already has valid context. The legacy default is `files`. Mode `none` retains a notice that no fresh state was gathered, so the handoff envelope stays complete. Legacy `--no-gather` removes that envelope too; use `none` for Medium+ handoffs. Context modes never omit the supplied Task Spec or required injections.
 
-Reuse reads only while their source and task context remain unchanged; a fresh worker needs access to the relevant content or references. For worker transitions, use `session-handoff`. Verification evidence follows `verification-before-completion`; repeat checks when their inputs or relevant environment change, not just because a new phase starts.
+Reuse reads only while their source and task context remain unchanged; a fresh worker needs access to the relevant content or references. For worker transitions, use `process`. Verification evidence follows `testing`; repeat checks when their inputs or relevant environment change, not just because a new phase starts.
 
 **Gate**: Enhancements applied, Task Spec filled. Phase 4.
 
@@ -355,7 +350,7 @@ Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`fl
 
 **Step 3: Multi-part / fan-out** — deps sequential; independent parallel (max 10). Phase 2 `agents` → ONE `build-dispatch.py` call and ONE Agent dispatch per agent: N agents = N calls = N markers, one marker each. Emit the parallel Agent calls in a single message. Each agent gets its own `files` and scope. Sequential stages pass relevant prior results and evidence locations; synthesis receives the findings and access to evidence from every required stage. Packing several markers into one Bash/Workflow script keeps them recorded but forfeits route-fit scoring, which reads a lone marker per event.
 
-**Step 4: Auto-Pipeline Fallback** (no match, Simple+) — `auto-pipeline`. None → closest+`objective-loop`. Never empty skill.
+**Step 4: Auto-Pipeline Fallback** (no match, Simple+) — `auto-pipeline`. None → closest+`workflow`. Never empty skill.
 
 **Lazy-completion check.** "Done" on enumerable → compare scope; short → reject, re-dispatch (`references/lazy-completion-detector.md`). Re-dispatch → route failure.
 

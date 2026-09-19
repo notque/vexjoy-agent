@@ -73,7 +73,7 @@ Priority order:
 ## Patterns to Detect
 
 ### Accepting README Existence as Completeness
-"README.md exists, documentation is covered." A README with only a title provides no onboarding value. Validate: description, installation, usage, testing.
+"README.md exists, documentation is covered." A README with only a title provides no onboarding value. Validate: description, deployation, usage, testing.
 
 ### Trusting Documented Commands
 "README says `make test` runs tests." Makefile may not have a `test` target. Verify every documented command against the actual build system.

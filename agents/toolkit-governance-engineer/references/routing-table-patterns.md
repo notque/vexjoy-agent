@@ -23,8 +23,8 @@ routing:
     - update routing      # secondary trigger phrase
     - ADR management      # domain-specific trigger
   pairs_with:
-    - adr-consultation    # agents commonly invoked together
-    - routing-table-updater
+    - assessment    # agents commonly invoked together
+    - toolkit
   complexity: Medium
   category: meta
 ```
@@ -69,10 +69,10 @@ ls agents/toolkit-governance-engineer.md
 ls agents/toolkit-governance-engineer/
 
 # Verify skill exists
-ls skills/meta/routing-table-updater/SKILL.md
+ls skills/meta/toolkit/SKILL.md
 
 # Verify all pairs_with entries exist
-for name in adr-consultation routing-table-updater docs-sync-checker; do
+for name in assessment toolkit docs-sync-checker; do
   ls agents/${name}.md 2>/dev/null || ls skills/${name}/SKILL.md 2>/dev/null || echo "MISSING: ${name}"
 done
 ```
@@ -187,7 +187,7 @@ for t, files in triggers.items():
 
 **Signal**:
 ```
-CONFLICT: "update routing" claimed by: agents/toolkit-governance-engineer.md, agents/routing-table-updater.md
+CONFLICT: "update routing" claimed by: agents/toolkit-governance-engineer.md, agents/toolkit.md
 ```
 
 **Why this matters**: The router cannot deterministically select between two agents claiming the same trigger. Resolution depends on ordering or scoring, which is non-obvious and changes silently when the index regenerates.

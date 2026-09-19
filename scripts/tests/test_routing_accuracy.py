@@ -307,9 +307,9 @@ class TestPreRoute:
 class TestPreRouteNegative:
     """pre-route.py must NOT force-route these requests (tier: pre_route_negative).
 
-    The corpus pins idiom guards ("push back on this design"), the D7 planning
+    The corpus pins idiom guards ("push back on this design"), the D7 process
     unigram classes (continue/resume/pause/unsure/handoff — originals in
-    test_pre_route_planning.py), pure fallthroughs, and sanitized patterns from
+    test_pre_route_process.py), pure fallthroughs, and sanitized patterns from
     route-events history. A force-route here would override the semantic route
     in /do Phase 2, so any force_route match at any confidence is a failure.
     The corpus is the contract: if a phrase fails, fix the trigger or guard,
@@ -340,16 +340,16 @@ class TestCoverageReport:
 
     def test_compute_coverage_splits_known_skills(self) -> None:
         """Skills referenced by expected_skill are covered; the rest are not."""
-        cases = [{"expected_skill": "fact-check"}, {"expected_skill": None}]
-        covered, uncovered = routing_benchmark.compute_coverage(cases, {"fact-check", "headlines"})
-        assert covered == {"fact-check"}
+        cases = [{"expected_skill": "research"}, {"expected_skill": None}]
+        covered, uncovered = routing_benchmark.compute_coverage(cases, {"research", "headlines"})
+        assert covered == {"research"}
         assert uncovered == {"headlines"}
 
     def test_compute_coverage_counts_stacked_skills(self) -> None:
         """Skills referenced via expected_stacked count as covered."""
-        cases = [{"expected_skill": None, "expected_stacked": ["go-patterns"]}]
-        covered, uncovered = routing_benchmark.compute_coverage(cases, {"go-patterns"})
-        assert covered == {"go-patterns"}
+        cases = [{"expected_skill": None, "expected_stacked": ["programming"]}]
+        covered, uncovered = routing_benchmark.compute_coverage(cases, {"programming"})
+        assert covered == {"programming"}
         assert uncovered == set()
 
     def test_compute_coverage_ignores_unknown_references(self) -> None:
@@ -376,9 +376,9 @@ class TestCoverageReport:
     def test_coverage_accounting_rejects_unaccounted_skills(self) -> None:
         """An indexed skill must have a case or a documented exclusion."""
         covered, excluded, unaccounted, errors = routing_benchmark.compute_coverage_accounting(
-            [{"expected_skill": "fact-check"}], {"fact-check", "headlines"}, {}
+            [{"expected_skill": "research"}], {"research", "headlines"}, {}
         )
-        assert covered == {"fact-check"}
+        assert covered == {"research"}
         assert excluded == set()
         assert unaccounted == {"headlines"}
         assert errors == ["Indexed skills lack a benchmark case or exclusion: ['headlines']"]
@@ -386,13 +386,13 @@ class TestCoverageReport:
     def test_coverage_accounting_rejects_stale_or_overlapping_exclusions(self) -> None:
         """Exclusions cannot hide removed skills or duplicate real benchmark coverage."""
         _, _, _, errors = routing_benchmark.compute_coverage_accounting(
-            [{"expected_skill": "fact-check"}],
-            {"fact-check"},
-            {"fact-check": "duplicate", "ghost": "stale"},
+            [{"expected_skill": "research"}],
+            {"research"},
+            {"research": "duplicate", "ghost": "stale"},
         )
         assert errors == [
             "Exclusions name skills absent from skills/INDEX.json: ['ghost']",
-            "Skills are both benchmarked and excluded: ['fact-check']",
+            "Skills are both benchmarked and excluded: ['research']",
         ]
 
     def test_coverage_flag_reports_accounted_inventory(self) -> None:

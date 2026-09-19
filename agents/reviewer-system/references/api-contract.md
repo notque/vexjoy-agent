@@ -13,7 +13,7 @@ Detect breaking changes, backward compatibility violations, schema inconsistenci
 ### Hardcoded Behaviors
 - **Breaking Change Zero Tolerance**: Every backward-incompatible change reported, even if "no clients use it yet."
 - **Evidence-Based Findings**: Every finding shows before/after API shape or incorrect contract.
-- **Wave 2 Context Usage**: When Wave 1 findings provided, use business-logic and type-design findings.
+- **Wave 2 Context Usage**: When Wave 1 findings provided, use business-logic and type-frontend findings.
 
 ### Default Behaviors (ON unless disabled)
 - Field removal detection

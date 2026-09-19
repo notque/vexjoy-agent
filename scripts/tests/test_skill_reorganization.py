@@ -43,18 +43,21 @@ KEEP_AT_ROOT: set[str] = _mod.KEEP_AT_ROOT
 
 # Expected categories from the migration
 CATEGORIES = {
+    "analysis",
     "business",
     "code-quality",
     "content",
+    "domain",
     "engineering",
     "frontend",
     "game",
     "infrastructure",
+    "integrations",
     "meta",
     "process",
+    "programming",
     "research",
     "review",
-    "testing",
 }
 
 
@@ -165,11 +168,11 @@ class TestSkillStructure:
         assert not violations, f"Loose files in category folders:\n" + "\n".join(violations)
 
     def test_every_skill_dir_has_skill_md(self) -> None:
-        """Every skill subdirectory within a category should contain a SKILL.md.
+        """Every mapped skill subdirectory within a category should contain a SKILL.md.
 
-        Some voice-profile directories only have profile.json + references/
-        without a SKILL.md — these are data-only directories, not full skills.
-        The test reports them but does not fail on data-only voice profiles.
+        Directories not in SKILL_MAPPING are remnant reference dirs whose
+        SKILL.md was folded into an umbrella skill during consolidation.
+        Voice-profile directories with profile.json are data-only.
         """
         missing = []
         for cat in CATEGORIES:
@@ -180,7 +183,9 @@ class TestSkillStructure:
                 if child.is_dir() and not (child / "SKILL.md").is_file():
                     # Voice profile dirs without SKILL.md are data-only (have profile.json)
                     is_voice_profile = child.name.startswith("voice-") and (child / "profile.json").is_file()
-                    if not is_voice_profile:
+                    # Remnant reference dirs not in SKILL_MAPPING are consolidated husks
+                    is_remnant = child.name not in SKILL_MAPPING
+                    if not is_voice_profile and not is_remnant:
                         missing.append(str(child.relative_to(ROOT)))
         assert not missing, f"Skill dirs without SKILL.md:\n" + "\n".join(missing)
 
@@ -228,10 +233,20 @@ class TestSkillStructure:
 class TestCrossReferences:
     """Verify no stale flat-path references remain."""
 
+    # Skill names that double as category or sub-path prefixes.
+    # ``skills/workflow/`` may be a valid nested prefix (skills/process/workflow/)
+    # or a former KEEP_AT_ROOT path, not necessarily a stale flat skill reference.
+    _AMBIGUOUS_PREFIXES: ClassVar[frozenset[str]] = frozenset({"workflow", "testing"})
+
     @pytest.fixture(scope="class")
     def skill_names_set(self) -> set[str]:
-        """Set of all known mapped skill names."""
-        return set(SKILL_MAPPING.keys())
+        """Set of all known mapped skill names.
+
+        Excludes skills whose name matches a category or an ambiguous path
+        prefix — ``skills/review/`` is a valid category prefix, not a stale
+        flat path.
+        """
+        return set(SKILL_MAPPING.keys()) - CATEGORIES - self._AMBIGUOUS_PREFIXES
 
     @pytest.fixture(scope="class")
     def flat_path_pattern(self, skill_names_set: set[str]) -> re.Pattern[str]:
@@ -336,9 +351,9 @@ class TestHookRegex:
     # Sample paths for testing
     NESTED_PATHS: ClassVar[list[str]] = [
         "/home/user/project/skills/meta/do/SKILL.md",
-        "/home/user/project/skills/content/publish/SKILL.md",
-        "/home/user/project/skills/engineering/go-patterns/SKILL.md",
-        "/home/user/project/skills/testing/vitest-runner/SKILL.md",
+        "/home/user/project/skills/content/content/SKILL.md",
+        "/home/user/project/skills/programming/programming/SKILL.md",
+        "/home/user/project/skills/process/testing/SKILL.md",
     ]
 
     FLAT_PATHS: ClassVar[list[str]] = [
@@ -405,7 +420,7 @@ class TestHookRegex:
 
     @pytest.mark.parametrize(
         "skill_name,category",
-        [("do", "meta"), ("publish", "content"), ("go-patterns", "engineering"), ("vitest-runner", "testing")],
+        [("do", "meta"), ("content", "content"), ("programming", "programming"), ("testing", "process")],
     )
     def test_frontmatter_re_parametrized(self, skill_name: str, category: str) -> None:
         """SKILL_FILE_RE must match specific known nested paths."""
@@ -446,18 +461,17 @@ class TestGenerators:
 
     @pytest.mark.slow
     def test_generated_index_has_expected_skill_count(self) -> None:
-        """Generated INDEX.json should have ~99 active skills.
+        """Generated INDEX.json should have ~41 active skills.
 
-        Floor tracks the 99-skill catalog from the 13-family consolidation
-        (35 skills folded via promoted_to, catalog 129 -> 99; this PR's
-        feat/skill-consolidation chunk). Not slack: raise the floor with new
+        Floor tracks the post-consolidation catalog (125 → 41 via
+        promoted_to + skill merges). Not slack: raise the floor with new
         skills, lower it only for an owner-approved consolidation.
         """
         data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
         count = len(data["skills"])
         # Allow small variance (new skills may be added)
-        assert count >= 95, f"Too few skills in INDEX.json: {count} (expected >=95)"
-        assert count <= 150, f"Too many skills in INDEX.json: {count} (expected <=150)"
+        assert count >= 35, f"Too few skills in INDEX.json: {count} (expected >=35)"
+        assert count <= 80, f"Too many skills in INDEX.json: {count} (expected <=80)"
 
     @pytest.mark.slow
     def test_routing_manifest_exits_zero(self) -> None:

@@ -24,8 +24,8 @@ index_router = importlib.import_module("index-router")
 SAMPLE_SKILLS_INDEX = {
     "version": "2.0",
     "skills": {
-        "go-patterns": {
-            "file": "skills/engineering/go-patterns/SKILL.md",
+        "programming": {
+            "file": "skills/programming/programming/SKILL.md",
             "description": "Go patterns: testing, concurrency, error handling, code review, conventions.",
             "triggers": [
                 ".go",
@@ -95,7 +95,7 @@ SAMPLE_PIPELINES_INDEX = {
             "description": "Create documentation.",
             "triggers": ["document this", "create documentation", "write docs"],
             "force_route": True,
-            "pairs_with": ["generate-claudemd"],
+            "pairs_with": ["toolkit"],
         },
         "explore-pipeline": {
             "file": "skills/workflow/references/explore-pipeline.md",
@@ -113,7 +113,7 @@ SAMPLE_AGENTS_INDEX = {
             "file": "golang-general-engineer.md",
             "short_description": "Go development expert.",
             "triggers": ["go", "golang", ".go files", "gofmt"],
-            "pairs_with": ["go-patterns"],
+            "pairs_with": ["programming"],
             "complexity": "Medium-Complex",
             "category": "language",
         },
@@ -183,7 +183,7 @@ class TestLoadIndexes:
 
     def test_skill_entry_fields(self) -> None:
         entries = index_router.load_indexes()
-        go_patterns = next(e for e in entries if e.name == "go-patterns")
+        go_patterns = next(e for e in entries if e.name == "programming")
         assert go_patterns.entry_type == "skill"
         assert go_patterns.force_route is True
         assert go_patterns.agent == "golang-general-engineer"
@@ -236,15 +236,15 @@ class TestLoadIndexes:
         entries = index_router.load_indexes()
         names = {e.name for e in entries}
         # Tracked skills survive alongside the local addition.
-        assert "go-patterns" in names
+        assert "programming" in names
         assert "private-skill" in names
 
     def test_stale_local_never_overrides_tracked_content(self, mock_indexes: Path) -> None:
         """A stale local superset cannot revert tracked entry content (add-only merge)."""
-        stale_local = {"skills": {"go-patterns": {"triggers": ["stale trigger"], "force_route": False}}}
+        stale_local = {"skills": {"programming": {"triggers": ["stale trigger"], "force_route": False}}}
         (mock_indexes / "skills" / "INDEX.local.json").write_text(json.dumps(stale_local))
         entries = index_router.load_indexes()
-        go_patterns = next(e for e in entries if e.name == "go-patterns")
+        go_patterns = next(e for e in entries if e.name == "programming")
         assert go_patterns.force_route is True
         assert "Go test" in go_patterns.triggers
 
@@ -261,7 +261,7 @@ class TestCheckForceRoutes:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write Go test for auth", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
         assert match.agent == "golang-general-engineer"
 
     def test_matches_force_route_pipeline(self) -> None:
@@ -293,13 +293,13 @@ class TestCheckForceRoutes:
         # "table-driven" is a trigger for go-patterns
         match = index_router.check_force_routes("write table-driven tests for auth", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
 
     def test_go_file_edit_outranks_quick(self) -> None:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("fix typo in foo.go", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
 
     @pytest.mark.parametrize(
         "operand",
@@ -309,7 +309,7 @@ class TestCheckForceRoutes:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes(f"fix typo in {operand}", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
 
     @pytest.mark.parametrize(
         "operand",
@@ -375,14 +375,14 @@ class TestWordBoundaryMatching:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write Go test for auth", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
 
     def test_hyphenated_trigger_matches(self) -> None:
         """'table-driven' should match at word boundaries."""
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write table-driven tests", entries)
         assert match is not None
-        assert match.name == "go-patterns"
+        assert match.name == "programming"
 
     def test_single_word_not_embedded_in_larger_word(self) -> None:
         """Single-word trigger should not match inside a larger word.
@@ -499,7 +499,7 @@ class TestResolveAgent:
     def test_returns_existing_agent(self) -> None:
         entries = index_router.load_indexes()
         candidate = index_router.Candidate(
-            entry_type="skill", name="go-patterns", score=0.9, agent="golang-general-engineer"
+            entry_type="skill", name="programming", score=0.9, agent="golang-general-engineer"
         )
         assert index_router.resolve_agent(candidate, entries) == "golang-general-engineer"
 
@@ -560,7 +560,7 @@ class TestResolveAgentPairsWithPaths:
             ),
             # Skills that are NOT agents (used to verify they're skipped)
             index_router.IndexEntry(
-                name="test-driven-development",
+                name="testing",
                 entry_type="skill",
                 triggers=["tdd", "red green refactor"],
             ),
@@ -602,7 +602,7 @@ class TestResolveAgentPairsWithPaths:
                     "name": "game-sprite-pipeline",
                     "triggers": ["AI sprite", "generate sprite"],
                     "pairs_with": [
-                        "test-driven-development",
+                        "testing",
                         "python-general-engineer",
                         "typescript-frontend-engineer",
                     ],
@@ -631,7 +631,7 @@ class TestResolveAgentPairsWithPaths:
                 {
                     "name": "testing-preferred-patterns",
                     "triggers": ["testing anti-patterns", "flaky tests"],
-                    "pairs_with": ["test-driven-development", "systematic-debugging"],
+                    "pairs_with": ["testing", "systematic-debugging"],
                 },
             ]
         )
@@ -755,7 +755,7 @@ class TestSuggestPairs:
     """Tests for suggest_pairs."""
 
     def test_collects_pairs(self) -> None:
-        entry = index_router.IndexEntry(name="go-patterns", entry_type="skill", pairs_with=["systematic-debugging"])
+        entry = index_router.IndexEntry(name="programming", entry_type="skill", pairs_with=["systematic-debugging"])
         pairs = index_router.suggest_pairs([entry])
         assert pairs == ["systematic-debugging"]
 
@@ -788,12 +788,12 @@ class TestCheckCompositionChains:
     def test_finds_chain_for_entry_skill(self) -> None:
         chains = index_router.check_composition_chains("systematic-debugging")
         assert len(chains) == 1
-        assert chains[0] == ["systematic-debugging", "test-driven-development", "pr-pipeline"]
+        assert chains[0] == ["systematic-debugging", "testing", "pr-pipeline"]
 
     def test_finds_chain_for_member_skill(self) -> None:
-        chains = index_router.check_composition_chains("test-driven-development")
-        assert len(chains) == 1
-        assert "systematic-debugging" in chains[0]
+        chains = index_router.check_composition_chains("testing")
+        assert len(chains) >= 1
+        assert any("systematic-debugging" in c for c in chains)
 
     def test_returns_empty_for_no_match(self) -> None:
         chains = index_router.check_composition_chains("nonexistent-skill")
@@ -806,7 +806,7 @@ class TestCheckCompositionChains:
     def test_doc_pipeline_chain(self) -> None:
         chains = index_router.check_composition_chains("doc-pipeline")
         assert len(chains) == 1
-        assert chains[0] == ["docs-sync-checker", "doc-pipeline", "generate-claudemd"]
+        assert chains[0] == ["docs-sync-checker", "doc-pipeline", "toolkit"]
 
 
 # ---------------------------------------------------------------------------
@@ -820,7 +820,7 @@ class TestRouteRequest:
     def test_force_route_populates_result(self) -> None:
         result = index_router.route_request("write Go test for the handler")
         assert result.force_route is not None
-        assert result.force_route.get("skill") == "go-patterns"
+        assert result.force_route.get("skill") == "programming"
         assert result.force_route.get("agent") == "golang-general-engineer"
 
     def test_force_only_skips_candidates(self) -> None:
@@ -851,14 +851,14 @@ class TestRouteRequest:
         [
             ("create PR for foo.go", "pr-workflow"),
             ("push foo.go", "pr-workflow"),
-            ("security review foo.go", "security-review"),
-            ("security audit foo.go", "security-review"),
+            ("security review foo.go", "security"),
+            ("security audit foo.go", "security"),
         ],
     )
     def test_protected_composite_keeps_primary_and_pairs_go(self, query: str, expected: str) -> None:
         entries = [
             index_router.IndexEntry(
-                name="go-patterns",
+                name="programming",
                 entry_type="skill",
                 triggers=[".go"],
                 force_route=True,
@@ -871,7 +871,7 @@ class TestRouteRequest:
                 force_route=True,
             ),
             index_router.IndexEntry(
-                name="security-review",
+                name="security",
                 entry_type="skill",
                 triggers=["security review"],
                 force_route=True,
@@ -880,7 +880,7 @@ class TestRouteRequest:
         result = index_router.route_request(query, force_only=True, entries=entries)
         assert result.force_route is not None
         assert result.force_route.get("skill") == expected
-        assert "go-patterns" in result.pairs_with
+        assert "programming" in result.pairs_with
 
 
 # ---------------------------------------------------------------------------
@@ -914,7 +914,7 @@ class TestFormatting:
         result = index_router.route_request("write Go test for auth")
         output = index_router.format_text_output(result)
         assert "force_route:" in output
-        assert "go-patterns" in output
+        assert "programming" in output
 
     def test_text_output_no_match(self) -> None:
         result = index_router.route_request("xyzzy zzzzz")
@@ -950,7 +950,7 @@ class TestCLI:
             text=True,
         )
         assert result.returncode == 0
-        assert "go-patterns" in result.stdout
+        assert "programming" in result.stdout
 
     def test_force_only_flag(self) -> None:
         result = subprocess.run(
@@ -984,7 +984,7 @@ class TestCLI:
         assert result.returncode == 0
         parsed = json.loads(result.stdout)
         assert parsed["force_route"]["skill"] == "pr-workflow"
-        assert "go-patterns" in parsed["pairs_with"]
+        assert "programming" in parsed["pairs_with"]
 
     @pytest.mark.parametrize(
         "query",
@@ -998,7 +998,7 @@ class TestCLI:
         )
         assert result.returncode == 0
         parsed = json.loads(result.stdout)
-        assert parsed["force_route"]["skill"] == "go-patterns"
+        assert parsed["force_route"]["skill"] == "programming"
 
     @pytest.mark.parametrize("query", ["push back on foo.go", "push against foo.go", "pushback on foo.go"])
     def test_real_index_push_metaphors_do_not_route_pr(self, query: str) -> None:

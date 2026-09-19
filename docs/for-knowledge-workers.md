@@ -8,7 +8,7 @@ read_when:
 
 ## What This Gives You
 
-Describe your work in plain English. One command routes to 125 skills and their quality checks.
+Describe your work in plain English. One command routes to 59 skills and their quality checks.
 
 ## Interface
 

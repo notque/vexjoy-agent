@@ -19,8 +19,8 @@ routing:
     - "README outdated"
   category: documentation
   pairs_with:
-    - generate-claudemd
-    - codebase-overview
+    - toolkit
+    - assessment
 ---
 
 # Documentation Sync Checker Skill
@@ -32,16 +32,6 @@ This skill checks documentation presence and absence only -- it does not judge d
 Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict` (exit code 1 on issues), `--format json` (machine-readable output for CI/CD).
 
 ---
-
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| documentation work | `documentation-structure.md` | Loads detailed guidance from `documentation-structure.md`. |
-| before/after doc-update examples: adding skill docs, removing deprecated agent docs | `examples.md` | Loads detailed guidance from `examples.md`. |
-| wiring the checker into CI, pre-commit, or auto-fix mode | `integration-guide.md` | Loads detailed guidance from `integration-guide.md`. |
-| expected table and list formats per README file | `markdown-formats.md` | Loads detailed guidance from `markdown-formats.md`. |
-| which docs must list which tools; sync score and deprecation rules | `sync-rules.md` | Loads detailed guidance from `sync-rules.md`. |
 
 ## Instructions
 
@@ -268,9 +258,14 @@ Solution:
 
 ---
 
-## References
-- `${CLAUDE_SKILL_DIR}/references/documentation-structure.md`: Documentation file matrix, required fields per location, cross-reference requirements
-- `${CLAUDE_SKILL_DIR}/references/markdown-formats.md`: Expected table/list formats for each README file, parsing rules, common formatting errors
-- `${CLAUDE_SKILL_DIR}/references/sync-rules.md`: Synchronization rules, severity levels, deprecation handling, namespace rules
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples for adding, removing, updating, and batch documentation changes
-- `${CLAUDE_SKILL_DIR}/references/integration-guide.md`: CI/CD setup, pre-commit hooks, auto-fix mode, JSON output, workflow integration
+## Deep References
+
+Load when the task requires detailed guidance beyond the phases above.
+
+| Signal | Reference |
+|--------|-----------|
+| Documentation file matrix, required fields | `references/documentation-structure.md` |
+| Expected table/list formats per README | `references/markdown-formats.md` |
+| Sync score formula, severity rules, deprecation | `references/sync-rules.md` |
+| Before/after examples for doc updates | `references/examples.md` |
+| CI/CD setup, pre-commit hooks, auto-fix mode | `references/integration-guide.md` |

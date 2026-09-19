@@ -9,7 +9,7 @@ For React web games (Road to AEW): use Rive. Below is why, and when Spine2D is b
 |-----------|------|---------|--------|
 | React runtime | First-class (`@rive-app/react-canvas`, hooks) | Manual integration required | **Rive** |
 | Editor cost | Free (web-based at rive.app) | $69 Essential / $299 Professional | **Rive** |
-| Editor access | Browser-based, no install | Desktop app (Windows/macOS) | **Rive** |
+| Editor access | Browser-based, no deploy | Desktop app (Windows/macOS) | **Rive** |
 | File format | Single `.riv` | `.skel` + `.atlas` + `.png` (3+ files) | **Rive** |
 | Runtime bundle | ~150KB WASM (includes renderer) | ~80KB JS + atlas textures (varies) | Spine has smaller JS, but textures add up |
 | State machines | Built into Editor UI | Code-based (no visual editor) | **Rive** |
@@ -117,7 +117,7 @@ All transitions, conditions, and blending coded manually. Designers must communi
 ### Rive Editor (rive.app)
 
 - Free for unlimited projects (paid tiers add team collaboration)
-- Web-based, no install, any OS
+- Web-based, no deploy, any OS
 - Supports: bones, mesh deformation, constraints (IK, transform), state machines, events, blend modes
 
 ### Spine2D Editor
@@ -133,7 +133,7 @@ All transitions, conditions, and blending coded manually. Designers must communi
 |----------|--------|
 | Shipping to Unity/Unreal/Godot | Spine has official, production-grade game engine runtimes |
 | Team already has Spine licenses | No reason to retrain or rebuild existing rigs |
-| Game is primarily a native app (not web) | Rive's web-first design is a disadvantage in native contexts |
+| Game is primarily a native app (not web) | Rive's web-first frontend is a disadvantage in native contexts |
 | Need battle-tested stability (10+ years) | Spine has deeper track record in shipped games |
 | Very complex mesh deformation (clothing physics, jiggle) | Spine's Professional tier has more deformation tooling |
 

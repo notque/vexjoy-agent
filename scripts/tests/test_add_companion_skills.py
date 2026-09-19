@@ -17,20 +17,20 @@ DIRECTIVE = re.compile(r"Call the Skill tool with `([a-z0-9][a-z0-9-]*)`\.")
 
 def test_classify_pairs_keeps_agents_and_pipelines_out_of_skills():
     indexes = (
-        {"verification-before-completion": {}},
+        {"testing": {}},
         {"feature-pipeline": {}},
         {"reviewer-code": {}},
     )
-    assert acs.classify_pairs(["verification-before-completion", "feature-pipeline", "reviewer-code"], indexes) == (
-        ["verification-before-completion"],
+    assert acs.classify_pairs(["testing", "feature-pipeline", "reviewer-code"], indexes) == (
+        ["testing"],
         ["feature-pipeline"],
         ["reviewer-code"],
     )
 
 
 def test_callable_skill_wins_same_name_pipeline_overlap():
-    indexes = ({"voice-writer": {}}, {"voice-writer": {}}, {})
-    assert acs.classify_pairs(["voice-writer"], indexes) == (["voice-writer"], [], [])
+    indexes = ({"writing": {}}, {"writing": {}}, {})
+    assert acs.classify_pairs(["writing"], indexes) == (["writing"], [], [])
 
 
 def test_unknown_pair_fails_closed():
@@ -40,11 +40,11 @@ def test_unknown_pair_fails_closed():
 
 def test_skill_section_uses_exact_action_contract():
     section = acs.build_section(
-        ["verification-before-completion"],
+        ["testing"],
         "Skills",
-        {"verification-before-completion": {"description": "Verify before completion."}},
+        {"testing": {"description": "Verify before completion."}},
     )
-    assert section.count("Call the Skill tool with `verification-before-completion`.") == 1
+    assert section.count("Call the Skill tool with `testing`.") == 1
 
 
 def test_agent_and_pipeline_sections_contain_no_skill_call():
@@ -59,9 +59,9 @@ def test_agent_and_pipeline_sections_contain_no_skill_call():
 
 def test_skill_sections_require_skill_tool_permission():
     source = "---\nallowed-tools:\n  - Read\n---\n\nBody\n"
-    updated = acs.ensure_skill_tool(source, ["verification-before-completion"])
+    updated = acs.ensure_skill_tool(source, ["testing"])
     assert "allowed-tools:\n  - Read\n  - Skill\n" in updated
-    assert acs.ensure_skill_tool(updated, ["verification-before-completion"]) == updated
+    assert acs.ensure_skill_tool(updated, ["testing"]) == updated
 
 
 def test_generated_agent_skill_calls_are_indexed_and_permitted():

@@ -11,10 +11,10 @@ routing:
     - type error
     - production error
     - memory leak
-  retro-topics:
+  process-topics:
     - typescript-patterns
     - debugging
-  not_for: "building components, state management, or build configuration (use typescript-frontend-engineer); running tsc and clearing reported type errors mechanically (use typescript-check skill); React Native runtime issues (use react-native-engineer); Core Web Vitals and bundle performance (use performance-optimization-engineer). This agent diagnoses TypeScript race conditions, async bugs, type failures, and production runtime exceptions."
+  not_for: "building components, state management, or build configuration (use typescript-frontend-engineer); running tsc and clearing reported type errors mechanically (use programming skill); React Native runtime issues (use react-native-engineer); Core Web Vitals and bundle performance (use performance-optimization-engineer). This agent diagnoses TypeScript race conditions, async bugs, type failures, and production runtime exceptions."
   pairs_with:
     - workflow
     - typescript-frontend-engineer
@@ -76,7 +76,7 @@ Diagnose TypeScript type errors, async races, floating promises, waterfall reque
 For TS2322 and TS2345, compare the expected and actual type structures. For races, inspect abort controllers and cleanup timing. For production exceptions, use source maps and a reproduction from production data. Find leaked listeners and timers with Chrome DevTools, then verify cleanup.
 
 ### What This Agent CANNOT Do
-- **Fix Architectural Problems**: Use `typescript-frontend-engineer` or `database-engineer` for architectural redesign
+- **Fix Architectural Problems**: Use `typescript-frontend-engineer` or `database-engineer` for architectural refrontend
 - **Performance Optimization**: Use `performance-optimization-engineer` for systematic performance tuning beyond debugging
 - **Security Vulnerabilities**: Use `reviewer-security` for security-specific debugging and fixes
 - **Infrastructure Issues**: Use `kubernetes-helm-engineer` or infrastructure agents for deployment/config debugging
@@ -137,7 +137,7 @@ Debugging patterns to follow. See [typescript-frontend-engineer/references/engin
 ### Guessing Without Hypothesis
 **What it looks like**: "Try changing X", "Maybe add this check", "What if you use Y instead"
 **Why wrong**: No learning happens, might fix symptom not cause, wastes time on random changes
-**✅ Do instead**: State hypothesis ("I believe X causes Y because..."), design experiment to test it, analyze results, iterate
+**✅ Do instead**: State hypothesis ("I believe X causes Y because..."), frontend experiment to test it, analyze results, iterate
 
 ### Marking Fixed Without Reproduction
 **What it looks like**: "The code looks right now", "This should fix it", "Try it and let me know"

@@ -13,12 +13,12 @@ routing:
     - tempest
     - oslo.config
     - oslo.messaging
-  retro-topics:
+  process-topics:
     - python-patterns
     - debugging
-  not_for: "general Python features, debugging, or web frameworks outside OpenStack (use python-general-engineer); running Python lint, format, and test gates (use python-quality-gate skill); SQLite and Peewee ORM work (use sqlite-peewee-engineer). This agent develops OpenStack services and Oslo libraries."
+  not_for: "general Python features, debugging, or web frameworks outside OpenStack (use python-general-engineer); running Python lint, format, and test gates (use code-quality skill); SQLite and Peewee ORM work (use sqlite-peewee-engineer). This agent develops OpenStack services and Oslo libraries."
   pairs_with:
-    - python-quality-gate
+    - code-quality
     - python-general-engineer
   complexity: Complex
   category: language
@@ -98,7 +98,7 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `python-quality-gate` | Python quality checks: ruff, pytest, mypy, bandit in deterministic order. | Call the Skill tool with `python-quality-gate`. |
+| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -12,7 +12,7 @@ docker-compose up -d
 # No rollback, no previous version tagged
 ```
 
-**Why it matters**: No time to design rollback at 3 AM. "Revert the commit" ignores migrations, config changes, stateful systems.
+**Why it matters**: No time to frontend rollback at 3 AM. "Revert the commit" ignores migrations, config changes, stateful systems.
 
 **Preferred action**:
 ```bash

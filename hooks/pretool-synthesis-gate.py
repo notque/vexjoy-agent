@@ -288,7 +288,7 @@ def main() -> None:
             "PreToolUse",
             f"ADR consultation required before implementing {adr_name}. "
             f"[fix-with-skill] adr-consultation\n"
-            f"Call the Skill tool with `adr-consultation`. The consultation must generate "
+            f"Call the Skill tool with `assessment`. The consultation must generate "
             f"{synthesis_path}.{stale_note}",
         )
         sys.exit(0)

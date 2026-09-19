@@ -1,6 +1,6 @@
 # PromQL Patterns Reference
 
-> **Scope**: PromQL query correctness, common expression mistakes, and recording rule design
+> **Scope**: PromQL query correctness, common expression mistakes, and recording rule frontend
 > **Version range**: Prometheus 2.0+ (most patterns apply to all 2.x)
 > **Generated**: 2026-04-09 — verify against current Prometheus release notes
 

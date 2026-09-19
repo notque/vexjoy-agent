@@ -18,8 +18,8 @@ routing:
     - integration-checker
     - wiring check
   pairs_with:
-    - feature-lifecycle
-    - systematic-code-review
+    - workflow
+    - review
   complexity: Medium
   category: process
 ---
@@ -82,4 +82,3 @@ State incomplete coverage separately; missing source or unresolved scope cannot 
 
 ## References
 
-- [Feature state conventions](../../process/feature-lifecycle/references/shared.md)

@@ -68,6 +68,6 @@ Native headers handle safe areas, blur effects, and scroll behavior automaticall
 ## Benefits of Native Navigators
 
 - **Performance**: Transitions and gestures on UI thread
-- **Platform behavior**: iOS large titles, Android material design, system back gesture
+- **Platform behavior**: iOS large titles, Android material frontend, system back gesture
 - **System integration**: Scroll-to-top on tab tap, correct safe areas
 - **Accessibility**: Platform features work automatically

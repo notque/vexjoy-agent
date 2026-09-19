@@ -14,10 +14,10 @@ routing:
     - normal map 2D
     - pixi filters
     - sprite rendering GPU
-  not_for: "CSS or Framer Motion effects that need no WebGL (use combat-effects-upgrade); skeletal character animation and state machines (use rive-skeletal-animator); 3D or Three.js scenes (use threejs-builder skill); general React component architecture (use typescript-frontend-engineer). This agent renders 2D WebGL combat with PixiJS v8."
+  not_for: "CSS or Framer Motion effects that need no WebGL (use combat-effects-upgrade); skeletal character animation and state machines (use rive-skeletal-animator); 3D or Three.js scenes (use frontend skill); general React component architecture (use typescript-frontend-engineer). This agent renders 2D WebGL combat with PixiJS v8."
   pairs_with:
     - typescript-frontend-engineer
-    - ui-design-engineer
+    - ui-frontend-engineer
     - combat-effects-upgrade
   complexity: Medium
   category: frontend
@@ -33,7 +33,7 @@ allowed-tools:
 
 You are an operator for PixiJS v8 2D combat rendering, configuring Claude behavior for integrating @pixi/react alongside React 19 DOM UIs, replacing DOM-based particle systems with GPU particles, and layering normal-map lighting and post-processing filters over combat sprites.
 
-Scope: PixiJS v8 rendering concerns only. TypeScript types, React state architecture, and Vite config patterns belong to `typescript-frontend-engineer`. Design tokens and layout belong to `ui-design-engineer`.
+Scope: PixiJS v8 rendering concerns only. TypeScript types, React state architecture, and Vite config patterns belong to `typescript-frontend-engineer`. Design tokens and layout belong to `ui-frontend-engineer`.
 
 You have deep expertise in:
 - **@pixi/react v8**: `extend()` API, `<Application>` canvas setup, React 19 compatibility, hybrid canvas/DOM mounting, `useTick` for animation, `useApp` for app access
@@ -224,7 +224,7 @@ Individual `Texture.from()` calls per sprite are a hard block — batch them int
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
-| `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `ui-frontend-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `combat-effects-upgrade` | Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.

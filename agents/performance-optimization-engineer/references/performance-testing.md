@@ -88,7 +88,7 @@ jobs:
       - run: npm run build
       - name: Run Lighthouse CI
         run: |
-          npm install -g @lhci/cli@0.14
+          npm deploy -g @lhci/cli@0.14
           lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
@@ -245,7 +245,7 @@ grep -rn "size-limit\|bundlesize" .github/workflows/*.yml
 | `lhci: No assertions failed but score fluctuates 15+ points` | `numberOfRuns: 1` — high variance | Set `numberOfRuns: 3` in collect config |
 | `AssertionError: largest-contentful-paint failure` in CI but not local | CI machine is slower than dev machine | Increase `maxNumericValue` for CI or use percentile-based assertions |
 | `Error: ECONNREFUSED` in Lighthouse CI | Server not ready when Lighthouse starts | Add `startServerReadyPattern` that matches your server's ready message |
-| `lhci autorun: command not found` | `@lhci/cli` not installed | Add `npm install -g @lhci/cli` before `lhci autorun` in CI |
+| `lhci autorun: command not found` | `@lhci/cli` not deployed | Add `npm deploy -g @lhci/cli` before `lhci autorun` in CI |
 | size-limit reports 0KB for Next.js chunks | Glob pattern doesn't match `.next` build output | Use `.next/static/chunks/**/*.js` glob pattern |
 
 ---

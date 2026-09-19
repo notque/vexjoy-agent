@@ -47,12 +47,12 @@ Use each procedure where it applies; do not load every owner at dispatch or repe
 | Concern | Owner |
 |---|---|
 | Capability selection and dispatch contract | `skills/meta/do/SKILL.md` and `scripts/build-dispatch.py` |
-| Scope, decisions, and plan lifecycle | `skills/process/planning/SKILL.md` |
+| Scope, decisions, and plan lifecycle | `skills/process/workflow/SKILL.md` |
 | Implementation | Selected domain agent and task skill |
-| Check evidence and completion claims | `skills/process/verification-before-completion/SKILL.md` |
+| Check evidence and completion claims | `skills/process/testing/SKILL.md` |
 | Review scope and reuse | `skills/process/pr-workflow/references/pr-risk-policy.md` |
 | Commit, PR, CI, and merge | `skills/process/pr-workflow/SKILL.md` |
-| Context transfer | `skills/process/planning/references/context-boundary.md` and `skills/process/session-handoff/SKILL.md` |
+| Context transfer | `skills/process/workflow/references/pl-context-boundary.md` and `skills/process/process/references/process.md` |
 
 Keep domain exceptions with their domain. Follow higher-priority instructions and existing user authorization when defaults conflict; do not add another approval round.
 

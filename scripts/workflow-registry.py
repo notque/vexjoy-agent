@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DIR = REPO_ROOT / "skills" / "workflow" / "references"
+DEFAULT_DIR = REPO_ROOT / "skills" / "process" / "workflow" / "references"
 
 # Capture the body of the first `meta = { ... }` block (non-greedy to the
 # first closing brace at depth 0 — meta is a flat literal by contract).

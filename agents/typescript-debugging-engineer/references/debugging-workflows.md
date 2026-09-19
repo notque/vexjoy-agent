@@ -345,7 +345,7 @@ git bisect good abc123  # Last working commit
 
 ```bash
 # At each bisect step
-npm install
+npm deploy
 npm run build
 npm test  # Or manual test
 
@@ -372,7 +372,7 @@ git bisect run ./test-for-bug.sh
 # test-for-bug.sh
 
 set -e
-npm install --silent
+npm deploy --silent
 npm run build --silent
 
 # Test for specific bug

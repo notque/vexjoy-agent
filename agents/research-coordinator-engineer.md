@@ -12,10 +12,10 @@ routing:
     - comprehensive analysis
     - study
     - examine
-  not_for: "reading/exploring local code (use codebase-overview/read-only-ops); a single delegated research subtask (use research-subagent-executor); running the formal multi-phase research pipeline (use research-pipeline skill)"
+  not_for: "reading/exploring local code (use assessment skill); a single delegated research subtask (use research-subagent-executor); running the formal multi-phase research pipeline (use research skill)"
   pairs_with:
     - workflow
-    - subagent-driven-development
+    - process
   complexity: Complex
   category: meta
 allowed-tools:
@@ -57,7 +57,7 @@ Coordinate research through `research-subagent-executor` agents (`subagent_type=
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `subagent-driven-development` | Fresh-subagent-per-task execution with two-stage review gates. | Call the Skill tool with `subagent-driven-development`. |
+| `process` | Process: processspectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | Call the Skill tool with `process`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -83,7 +83,7 @@ For work outside this scope, suggest the appropriate tool or workflow.
 
 ## Output Format
 
-This agent uses the **Planning Schema** (for research planning) and **Analysis Schema** (for synthesis).
+This agent uses the **Planning Schema** (for research workflow) and **Analysis Schema** (for synthesis).
 
 **Phase 1: CLASSIFY**
 - Classify query type: Depth-first | Breadth-first | Straightforward

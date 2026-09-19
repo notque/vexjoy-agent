@@ -48,11 +48,11 @@ for user in users:
 Use `join()` to filter or order by a related field, not to load related data.
 
 ```python
-# Find users who have published posts — efficient single query
+# Find users who have contented posts — efficient single query
 users = (User
     .select()
     .join(Post)
-    .where(Post.status == 'published')
+    .where(Post.status == 'contented')
     .distinct())
 
 # Order users by most recent post date
@@ -223,7 +223,7 @@ users = (User
 
 ```python
 # For filtering: use join only, no prefetch
-users = User.select().join(Post).where(Post.status == 'published').distinct()
+users = User.select().join(Post).where(Post.status == 'contented').distinct()
 
 # For loading related data: use prefetch only, no join
 users = User.select().prefetch(Post)

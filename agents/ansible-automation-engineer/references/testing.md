@@ -197,7 +197,7 @@ grep -rn "tasks:" molecule/*/verify.yml -A5 \
       ping:
 ```
 
-**Why this matters**: Ping passing means the container is alive, not that the role worked. A role that fails to install nginx will still pass this verify.
+**Why this matters**: Ping passing means the container is alive, not that the role worked. A role that fails to deploy nginx will still pass this verify.
 
 **Preferred action**:
 ```yaml
@@ -265,7 +265,7 @@ mock_modules:
 | `[no-changed-when]` | command/shell task missing `changed_when` | Add `changed_when: false` for read-only, or `changed_when: result.rc == 0` |
 | `[yaml[truthy]]` | Using `yes/no/True/False` instead of `true/false` | Replace with lowercase boolean: `become: true` |
 | `Idempotency test failed` | Task reports changed on second run | Add `changed_when: false` or use idempotent module instead of command |
-| `FAILED! => module not found` | Module not installed in execution environment | Install collection: `ansible-galaxy collection install community.general` |
+| `FAILED! => module not found` | Module not deployed in execution environment | Install collection: `ansible-galaxy collection deploy community.general` |
 | `Permission denied during Molecule converge` | Docker image lacks sudo/become support | Use `geerlingguy/docker-*-ansible` images that include sudo |
 
 ---

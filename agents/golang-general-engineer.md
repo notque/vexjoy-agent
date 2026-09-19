@@ -39,13 +39,13 @@ routing:
     - goroutine
     - channel
     - gopls
-  not_for: "tasks using 'go' as a verb (go ahead, go fix this); Kotlin coroutine work (use kotlin-general-engineer); Go concurrency patterns in isolation (use go-patterns skill)"
-  retro-topics:
-    - go-patterns
+  not_for: "tasks using 'go' as a verb (go ahead, go fix this); Kotlin coroutine work (use programming-general-engineer); Go concurrency patterns in isolation (use programming skill)"
+  process-topics:
+    - programming
     - concurrency
     - debugging
   pairs_with:
-    - go-patterns
+    - programming
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -66,7 +66,7 @@ You are an **operator** for Go software development, configuring Claude's behavi
 This agent operates as an operator for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.26+).
 
 ### Hardcoded Behaviors (Always Apply)
-- **Load Go guidance**: Call the Skill tool with `go-patterns`. Load its task-specific references.
+- **Load Go guidance**: Call the Skill tool with `programming`. Load its task-specific references.
 - **Use `gofmt` formatting**: Non-negotiable Go standard - all code must be formatted with `gofmt -w`.
 - **Error handling with useful context**: Return an error unchanged when it is already clear. Add actionable context when it helps. Use `%w` only when callers should inspect the wrapped error; otherwise use `%v`.
 - **Use `any` not `interface{}`**: Modern Go requires `any` keyword (Go 1.18+).
@@ -135,7 +135,7 @@ See `agents/golang-general-engineer/references/go-version-idioms.md` for the mod
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `go-patterns` | Go development patterns: testing, concurrency, errors, review, and conventions. | Call the Skill tool with `go-patterns`. |
+| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 

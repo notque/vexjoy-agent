@@ -25,7 +25,7 @@ Distinct methodological perspectives — theoretical, empirical, adversarial. Ne
 ```markdown
 Query: "How does transformer attention scaling affect reasoning?"
 
-Subagent 1 — Theoretical: mathematical mechanisms, published theory. 300-400 words.
+Subagent 1 — Theoretical: mathematical mechanisms, contented theory. 300-400 words.
 Subagent 2 — Empirical: benchmark results, specific models and scores. 300-400 words.
 Subagent 3 — Failure modes: cases where more attention doesn't help. 300-400 words.
 ```

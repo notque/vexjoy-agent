@@ -15,7 +15,7 @@
 
 **Detection trigger**: Any `UserDefaults` call with a key string containing `token`, `password`, `key`, `secret`, `credential`, or `auth` is a security violation requiring Keychain migration.
 
-```swift
+```programming
 // Wrong
 UserDefaults.standard.set(apiToken, forKey: "auth_token")
 
@@ -50,7 +50,7 @@ struct KeychainStore {
 
 For endpoints handling financial, healthcare, or authentication data, implement certificate or public key pinning via `URLSessionDelegate`.
 
-```swift
+```programming
 final class PinningDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
     private let pinnedHashes: Set<String>
 
@@ -94,7 +94,7 @@ final class PinningDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
 
 Validate all data from external sources before use:
 
-```swift
+```programming
 // URL from deep link or pasteboard — never force-unwrap
 guard let url = URL(string: rawString), url.scheme == "https" else {
     logger.warning("Rejected invalid URL: \(rawString, privacy: .private)")
@@ -123,7 +123,7 @@ Use `import Testing` for all new test files. Migrate XCTest suites to Swift Test
 | Expected failure | `@Test(.disabled("reason"))` | `XCTSkip` |
 | Test tags | `@Test(.tags(.performance))` | None built-in |
 
-```swift
+```programming
 import Testing
 @testable import MyApp
 
@@ -167,7 +167,7 @@ struct UserRepositoryTests {
 ### Coverage
 
 ```bash
-swift test --enable-code-coverage
+programming test --enable-code-coverage
 # View report:
 xcrun llvm-cov report .build/debug/<product>.xctest/Contents/MacOS/<product> \
     -instr-profile .build/debug/codecov/default.profdata

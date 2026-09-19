@@ -84,7 +84,7 @@ TRIGGER_SEP = "|"
 INDEX_PATHS = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
     "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": (REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json", None),
+    "pipelines": (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json", None),
 }
 
 
@@ -206,7 +206,7 @@ def select_triggers(entry: dict, reserved: set[str], cap: int | None = None) -> 
       validator decides `route.agent in agents` by tokenizing the text between
       the AGENTS: and SKILLS: headers, so a skill name printed inside an agent
       line would validate that skill as an agent. Five real cases exist today
-      (agent kotlin-general-engineer carries trigger "kotlin", which is also a
+      (agent programming-general-engineer carries trigger "programming", which is also a
       skill). Dropping them keeps SECTION-INTEGRITY true by construction.
     - A phrase already present verbatim in the description, which spends bytes
       to repeat a token the router can already read on the same line.

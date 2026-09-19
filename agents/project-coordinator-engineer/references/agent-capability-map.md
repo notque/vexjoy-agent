@@ -17,12 +17,12 @@
 | Ansible playbooks | `ansible-automation-engineer` | — | kubernetes-helm-engineer |
 | OpenSearch/Elasticsearch | `opensearch-elasticsearch-engineer` | — | database-engineer |
 | Prometheus/Grafana | `prometheus-grafana-engineer` | — | — |
-| Swift iOS/macOS | `swift-general-engineer` | — | — |
-| Kotlin Android/JVM | `kotlin-general-engineer` | — | — |
-| PHP backend | `php-general-engineer` | — | — |
+| Swift iOS/macOS | `programming-general-engineer` | — | — |
+| Kotlin Android/JVM | `programming-general-engineer` | — | — |
+| PHP backend | `programming-general-engineer` | — | — |
 | React Native / Expo | `react-native-engineer` | — | typescript-frontend-engineer |
 | Code review | `reviewer-code-playbook` | `reviewer-system-playbook` | — |
-| Security audit | `security-threat-model` | — | — |
+| Security audit | `security` | — | — |
 | Performance | `performance-optimization-engineer` | — | — |
 | Documentation | `technical-documentation-engineer-playbook` | — | — |
 
@@ -36,7 +36,7 @@ Verify agent exists: `ls ~/.claude/agents/ | grep {agent-name}`
 
 **nodejs-api-engineer**: CAN do REST endpoints, middleware, auth, webhooks, DB integration. CANNOT do frontend components, native code, infrastructure.
 
-**database-engineer**: CAN do schema design, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
+**database-engineer**: CAN do schema frontend, migrations, indexes, query optimization. CANNOT do application code. **Mandatory sequencing**: database agent ALWAYS before application agents on schema changes.
 
 **performance-optimization-engineer**: CAN do Core Web Vitals, bundle analysis, rendering optimization, profiling. CANNOT fix unrelated logic bugs.
 

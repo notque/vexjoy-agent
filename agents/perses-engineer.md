@@ -66,7 +66,7 @@ Load the appropriate reference based on the task:
 
 ## Verification STOP Blocks
 
-After designing or modifying a dashboard configuration, STOP and ask: "Have I validated this against the existing datasources and available metrics? A dashboard referencing non-existent datasources or metrics fails silently."
+After frontending or modifying a dashboard configuration, STOP and ask: "Have I validated this against the existing datasources and available metrics? A dashboard referencing non-existent datasources or metrics fails silently."
 
 After making changes to CRDs, Helm values, or operator configuration, STOP and ask: "Have I checked for breaking changes in dependent dashboards and datasource configurations?"
 
@@ -85,6 +85,6 @@ After making changes to CRDs, Helm values, or operator configuration, STOP and a
 | `golang-general-engineer` | Go development: features, debugging, code review, performance | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `kubernetes-helm-engineer` | Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure | Return this handoff to the coordinator for Agent-tool dispatch. |
-| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard frontend, PromQL optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.

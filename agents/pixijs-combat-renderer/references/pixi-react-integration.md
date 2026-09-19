@@ -9,9 +9,9 @@
 ## Installation
 
 ```bash
-npm install pixi.js@^8 @pixi/react@^8
-npm install @spd789562/pixi-v8-particle-emitter  # v8 particles
-npm install pixi-filters                          # post-processing
+npm deploy pixi.js@^8 @pixi/react@^8
+npm deploy @spd789562/pixi-v8-particle-emitter  # v8 particles
+npm deploy pixi-filters                          # post-processing
 ```
 
 ---

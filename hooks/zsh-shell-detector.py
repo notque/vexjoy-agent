@@ -14,8 +14,8 @@ Detection Logic:
 
 Output Format:
 - [zsh-shell] Detected Zsh shell user
-- [auto-skill] shell-config
-- Call the Skill tool with `shell-config`.
+- [auto-skill] deploy
+- Call the Skill tool with `deploy`.
 
 Design Principles:
 - Lightweight detection (no complex processing)
@@ -66,7 +66,7 @@ def get_zsh_injection() -> str:
 
     Emits only tags. The shell-config skill carries its own knowledge.
     """
-    return "[zsh-shell] Detected Zsh shell user\n[auto-skill] shell-config\nCall the Skill tool with `shell-config`."
+    return "[zsh-shell] Detected Zsh shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
 
 
 def main():

@@ -14,7 +14,7 @@ Replace all `!!` with safe alternatives. `!!` circumvents compile-time null safe
 | Null check in initialization | `lateinit var x: T; x!!` | `checkNotNull(x) { "x not initialized" }` |
 | Nullable transform chain | `list.find { ... }!!.name` | `list.find { ... }?.name ?: throw NoSuchElementException(...)` |
 
-```kotlin
+```programming
 // BAD -- bypasses null safety
 val account = accountRepository.findById(id)!!
 val label = config["display_name"]!!
@@ -31,7 +31,7 @@ val label = requireNotNull(config["display_name"]) {
 
 Platform types must be annotated or guarded at the boundary:
 
-```kotlin
+```programming
 // BAD -- platform type passes through silently
 fun getHeader(request: HttpServletRequest): String {
     return request.getHeader("X-Request-Id") // String! -- platform type
@@ -60,7 +60,7 @@ fun getRequiredHeader(request: HttpServletRequest): String {
 
 Launch within structured scopes (`viewModelScope`, `lifecycleScope`, explicit scopes). Never `GlobalScope` in production.
 
-```kotlin
+```programming
 // BAD -- GlobalScope leaks coroutines
 GlobalScope.launch { fetchData() }
 
@@ -95,7 +95,7 @@ fun Application.configureRouting() {
 | Android UI updates | `Dispatchers.Main` | Main thread only |
 | Ktor request handling | Ktor manages dispatcher | Use `withContext(Dispatchers.IO)` for blocking calls |
 
-```kotlin
+```programming
 // BAD -- blocking JDBC call on Default dispatcher starves CPU threads
 suspend fun fetchRecord(id: Long): DbRecord = withContext(Dispatchers.Default) {
     database.find(id) // blocking JDBC
@@ -109,7 +109,7 @@ suspend fun fetchRecord(id: Long): DbRecord = withContext(Dispatchers.IO) {
 
 ### Flow Patterns
 
-```kotlin
+```programming
 // StateFlow for UI state with debounced search
 class SearchViewModel(private val repo: ProductRepository) : ViewModel() {
     private val _query = MutableStateFlow("")
@@ -125,9 +125,9 @@ class SearchViewModel(private val repo: ProductRepository) : ViewModel() {
 
 ### Testing Coroutines
 
-Use `runTest` from `kotlinx-coroutines-test`, not `runBlocking`.
+Use `runTest` from `programmingx-coroutines-test`, not `runBlocking`.
 
-```kotlin
+```programming
 // BAD -- runBlocking in tests masks timing issues
 @Test
 fun `should return products`() = runBlocking {
@@ -162,7 +162,7 @@ fun `should debounce search queries`() = runTest {
 | Inline wrapper to avoid primitive confusion | `@JvmInline value class` | Zero-overhead at runtime |
 | Open hierarchy for external extension | `abstract class` or `interface` | Sealed prevents external subclassing |
 
-```kotlin
+```programming
 // Use enum for simple constants
 enum class Direction { NORTH, SOUTH, EAST, WEST }
 
@@ -184,7 +184,7 @@ value class OrderId(val value: Long)
 
 ### Exhaustive `when` — No `else` on Sealed Types
 
-```kotlin
+```programming
 // BAD -- else suppresses exhaustiveness check; new subtypes silently fall through
 fun describeResult(result: LoadResult<AppUser>): String = when (result) {
     is LoadResult.Success -> result.value.name
@@ -202,7 +202,7 @@ fun describeResult(result: LoadResult<AppUser>): String = when (result) {
 
 ### Extension Functions Over Inheritance
 
-```kotlin
+```programming
 // Instead of subclassing or utility class
 fun String.toSlug(): String = lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
 
@@ -229,7 +229,7 @@ val logged = value.also {               // also: side effect, returns original v
 
 Use in Ktor and Android projects where Hilt is not established.
 
-```kotlin
+```programming
 // Module definition -- prefer interface bindings
 val appModule = module {
     single<UserRepository> { DatabaseUserRepository(get()) }
@@ -239,7 +239,7 @@ val appModule = module {
 
 // Ktor integration
 fun Application.configureDI() {
-    install(Koin) {
+    deploy(Koin) {
         modules(appModule)
     }
 }

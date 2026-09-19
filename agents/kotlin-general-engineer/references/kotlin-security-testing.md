@@ -4,7 +4,7 @@
 
 ### Secrets via Environment Variables
 
-```kotlin
+```programming
 // BAD -- hardcoded secret
 val jwtSecret = "super-secret-key-do-not-share"
 
@@ -20,7 +20,7 @@ val dbPassword: String = requireNotNull(System.getenv("DB_PASSWORD")) {
 
 ### Exposed DSL -- Parameterized Queries Only
 
-```kotlin
+```programming
 // BAD -- SQL injection via string interpolation
 fun findByEmail(email: String): AppUser? {
     return transaction {
@@ -45,7 +45,7 @@ fun findByDomain(domain: String): List<AppUser> = transaction {
 
 ### Ktor JWT Authentication
 
-```kotlin
+```programming
 fun Application.configureSecurity() {
     val secret = requireNotNull(System.getenv("JWT_SECRET")) { "JWT_SECRET must be set" }
     val issuer = requireNotNull(System.getenv("JWT_ISSUER")) { "JWT_ISSUER must be set" }
@@ -106,7 +106,7 @@ fun Application.configureSecurity() {
 
 Choose per context, keep consistent within a module:
 
-```kotlin
+```programming
 // StringSpec -- simple, flat tests
 class UserValidatorTest : StringSpec({
     "should reject email without @ symbol" {
@@ -140,7 +140,7 @@ class PaymentProcessorTest : BehaviorSpec({
 
 ### MockK
 
-```kotlin
+```programming
 // Mock and stub
 val repo = mockk<AccountRepository>()
 every { repo.findById(1L) } returns AppUser(id = UserId(1L), name = "Alice", email = "alice@example.com")
@@ -176,7 +176,7 @@ coVerify { repo.findByIdSuspend(1L) }
 
 Configure coverage thresholds in `build.gradle.kts`:
 
-```kotlin
+```programming
 koverReport {
     verify {
         rule {

@@ -22,243 +22,83 @@ routing:
     - "story angles"
   category: content-creation
   pairs_with:
-    - content-calendar
-    - series-planner
-    - research-pipeline
+    - content
+    - research
 ---
 
 # Topic Brainstormer
 
-## Overview
+Generate blog topic ideas that align with a content identity built around solving frustrating technical problems. Three phases: ASSESS, DECIDE, GENERATE. Every topic must pass the three-question content quality filter before presentation.
 
-This skill generates blog post topic ideas that align with a content identity built around solving frustrating technical problems. It operates through three sequential phases (ASSESS → DECIDE → GENERATE) with **hard quality gates**: every topic must pass a three-question content quality filter before presentation. The output is always a prioritized list with impact/vex/resolution scores, never an unfiltered pile of ideas.
+## Deep References
 
-Core principle: **Assess-Decide-Generate with Domain Intelligence**. Gather signals from existing content and problem sources, filter candidates ruthlessly, then score and prioritize the survivors.
-
----
-
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
+| Signal | Load | Content |
 |---|---|---|
-| filtering topics against blog identity: the three-question test | `content-filter.md` | Loads detailed guidance from `content-filter.md`. |
-| scoring topics on impact, vex level, resolution | `priority-scoring.md` | Loads detailed guidance from `priority-scoring.md`. |
-| mining topics: problems, gaps, technology expansion | `topic-sources.md` | Loads detailed guidance from `topic-sources.md`. |
-| generating angles on one topic or story: six lenses, distinctness, "so what?" gate | `angle-lenses.md` | Loads detailed guidance from `angle-lenses.md`. |
+| Filtering topics: three-question test, category examples | `references/content-filter.md` | Full quality filter with green/red/yellow topic categories, salvage patterns |
+| Scoring: impact, vex, resolution matrix | `references/priority-scoring.md` | Rubrics per dimension, score ranges, calibration, worked examples |
+| Mining: problem sources, gap analysis, expansion | `references/topic-sources.md` | Mining prompts, signal strength, gap types, expansion strategies |
 
-## Instructions
+## Phase 1: ASSESS
 
-### Phase 1: ASSESS
+Gather context about existing content and available sources.
 
-**Goal**: Gather context about existing content and available topic sources.
+1. Read all posts in the content directory. Document post count, content clusters, technologies covered, last post date.
+2. Identify available sources: problem mining (recent debugging, errors, config struggles), gap analysis (cross-references leading nowhere), tech expansion (adjacent technologies).
+3. Extract all "see also" and cross-reference mentions. Flag any pointing to content that does not exist.
 
-**Step 1: Scan existing content**
+**Gate**: Content landscape documented, at least 2 sources identified with material.
 
-Read all posts in the content directory. Document:
+## Phase 2: DECIDE
 
-```markdown
-## Content Landscape
-Posts found: [N]
-Content clusters: [list main themes]
-Technologies covered: [list]
-Last post date: [date]
-```
+Generate candidates and filter through the content quality test.
 
-**Step 2: Identify available sources**
+1. Mine 5-10 raw candidates from at least 2 sources. Capture: source type, raw topic, initial vex signal.
+2. Apply the content quality filter -- every candidate must answer YES to all three:
+   - **Was there genuine frustration?** Real time lost, failed attempts, unclear docs, unexpected behavior.
+   - **Is there a satisfying resolution?** Clear fix, understanding gained, prevention strategy, "a-ha moment."
+   - **Would this help others?** Reproducible problem, actionable solution, relatable frustration.
+3. Reject failing candidates. Document each rejection: topic, failed question, reason.
 
-Determine which topic sources have material to mine:
-- Problem Mining: Recent debugging sessions, errors, config struggles
-- Gap Analysis: Cross-references in existing posts that lead nowhere
-- Tech Expansion: Adjacent technologies not yet covered
+Failure modes to catch:
+- **Tutorial-only topics**: "How to Set Up X" with vex listed as "learning a new tool" is not genuine frustration. Find the specific friction. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex.
+- **Opinion without experience**: "Why Go Is Better Than Python" is debate, not experience. Ground in measurement.
 
-**Step 3: Note cross-references**
+**Gate**: At least 3 candidates pass. Fewer than 3 -- return to Step 1 with different sources.
 
-Extract all "see also", "related", and cross-reference mentions from existing posts. Flag any that point to content that does not exist.
+## Phase 3: GENERATE
 
-**Gate**: Content landscape documented, at least 2 sources identified with material. Proceed only when gate passes.
+Score, prioritize, and present the filtered list.
 
----
+**Scoring**: `Priority = Impact(1-5) x Vex(1-5) x Resolution(1-5)`. Thresholds: 60-125 HIGH, 30-59 MEDIUM, 15-29 LOW, 1-14 SKIP.
 
-### Phase 2: DECIDE
+**Titles**: Replace vague categories with failure-mode titles. Bad: "Kubernetes Networking Issues". Good: "Pod-to-Pod Traffic Works But Service Discovery Fails".
 
-**Goal**: Generate topic candidates and filter them through the content quality test.
+**Output format**: Grouped by priority tier. Each topic: title, vex, joy, content cluster fit, word estimate, score breakdown. End with recommendations: top pick, quick win, deep dive.
 
-**Quality Filter Rule**: This is non-negotiable. Every candidate must answer YES to all three questions. Unfiltered lists waste user time; apply rigor here.
+**Tie-breaking**: prefer topics that fill an existing gap, complement recent posts, use already-covered technologies, have clearer narrative structure.
 
-**Step 1: Mine candidates from identified sources**
+**Gate**: All topics scored, prioritized, presented with recommendations.
 
-Generate 5-10 raw topic candidates from at least 2 sources. For each candidate, capture:
-- Source (problem mining, gap analysis, or tech expansion)
-- Raw topic area
-- Initial vex signal (what frustration exists)
+## Angle Lenses Mode
 
-**Step 2: Apply content quality filter to every candidate**
+When the task asks for angles on a single topic (not fresh candidates), apply these six lenses instead of the content quality filter:
 
-Each topic must answer YES to all three questions:
+| Lens | Question |
+|------|----------|
+| Perspective shift | Whose view changes the story? |
+| Ladder of abstraction | One rung up (the trend) or down (the single case)? |
+| News values | Which value carries it: conflict, proximity, novelty, impact, human interest? |
+| Data angle | What does the dataset say that the narrative misses? |
+| Contrarian | What if the consensus framing is wrong? |
+| Timeliness peg | Why now? What event or deadline makes this urgent? |
 
-1. **Was there genuine frustration?** Real time lost, multiple failed attempts, unclear docs, or unexpected behavior that blocked progress.
-2. **Is there a satisfying resolution?** Clear fix exists, understanding gained, prevention strategy available, or "a-ha moment" to share.
-3. **Would this help others?** Problem is reproducible, not too environment-specific, solution is actionable, frustration is relatable.
-
-**Why this matters**: Topics that fail any question produce weak posts. "How to Set Up Hugo" lacks genuine frustration (official docs already cover installation). "Rewriting a Python CLI in Go Cut Startup Time by 10x" has concrete vex (400ms startup delay) and concrete joy (40ms result).
-
-**Step 3: Reject failing candidates**
-
-Remove any topic that fails the filter. Document why each rejection failed:
-
-| Rejected Topic | Failed Question | Reason |
-|----------------|-----------------|--------|
-| [topic] | [1, 2, or 3] | [why] |
-
-**Failure Mode Warning — Do Not Generate Tutorial-Only Topics**: "How to Set Up X" with vex listed as "learning a new tool" is not genuine frustration. Find the specific friction point. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex (version mismatch between local and CI).
-
-**Failure Mode Warning — Do Not Accept Opinion Without Experience**: "Why Go Is Better Than Python for CLI Tools" is debate, not experience. This lacks a specific problem solved, no measurable outcome. Ground in measurement instead.
-
-**Gate**: At least 3 candidates pass the content quality filter. If fewer than 3 pass, return to Step 1 with different sources. Proceed only when gate passes.
-
----
-
-### Phase 3: GENERATE
-
-**Goal**: Score, prioritize, and present the filtered topic list.
-
-**Step 1: Score each passing topic**
-
-Apply the priority matrix to every candidate:
-
-```
-Impact (1-5):     How many people face this problem?
-Vex Level (1-5):  How frustrating is the problem?
-Resolution (1-5): How satisfying is the solution?
-
-Priority Score = Impact x Vex Level x Resolution
-
-  60-125: HIGH PRIORITY    - Write this soon
-  30-59:  MEDIUM PRIORITY  - Good candidate with right angle
-  15-29:  LOW PRIORITY     - Needs more vex or broader impact
-  1-14:   SKIP             - Not enough value for readers
-```
-
-**Why scoring matters**: Unscored lists require user re-evaluation. Always include the priority matrix for every topic.
-
-**Step 2: Write specific titles**
-
-Replace vague category titles with failure-mode titles:
-- Bad: "Kubernetes Networking Issues"
-- Good: "Pod-to-Pod Traffic Works But Service Discovery Fails"
-
-**Failure Mode Warning — Do Not Use Vague Topic Titles**: "Kubernetes Networking Issues" is too broad to act on. Which issues? What specifically failed? Use failure-mode titles instead: "CoreDNS Returns NXDOMAIN for Internal Services" signals real vex and specificity.
-
-**Step 3: Present prioritized output**
-
-```markdown
-## Topic Brainstorm Results
-
-### Source: [problem mining / gap analysis / tech expansion]
-
-### HIGH PRIORITY (Strong vex potential)
-
-1. "[Specific Topic Title]"
-   The Vex: [What frustration this addresses]
-   The Joy: [What satisfying resolution looks like]
-   Fits existing: [Which content cluster this joins]
-   Estimated: [word count range]
-   Score: Impact(N) x Vex(N) x Resolution(N) = [total]
-
-### MEDIUM PRIORITY (Good but needs angle)
-
-2. "[Specific Topic Title]"
-   The Vex: [frustration]
-   The Joy: [resolution]
-   Angle needed: [What narrative hook would strengthen this]
-   Score: Impact(N) x Vex(N) x Resolution(N) = [total]
-
-### GAP FILL (Based on existing content)
-
-3. "[Specific Topic Title]"
-   Referenced in: [which post mentions this]
-   Missing: [what content would fill the gap]
-   Score: Impact(N) x Vex(N) x Resolution(N) = [total]
-
-### Recommendations
-- Top pick: [Topic N] - [one sentence why]
-- Quick win: [Topic N] - [one sentence why]
-- Deep dive: [Topic N] - [one sentence why]
-```
-
-**Step 4: Handle score ties**
-
-When scores are equal, prefer topics that:
-1. Fill an existing content gap
-2. Complement recent posts
-3. Use technologies already covered (lower research overhead)
-4. Have clearer narrative structure
-
-**Gate**: All topics scored, prioritized, and presented with recommendations. Output is complete.
-
----
-
-## Examples
-
-### Example 1: Problem Mining Session
-User says: "I spent all day debugging a Hugo build issue, brainstorm some topics"
-Actions:
-1. Scan existing posts for Hugo coverage (ASSESS)
-2. Mine the debugging session for vex signals, filter through content quality test (DECIDE)
-3. Score and present topics with the build issue as high-priority candidate (GENERATE)
-Result: Prioritized topic list with the fresh debugging experience as top pick
-
-### Example 2: Content Gap Analysis
-User says: "What should I write about next?"
-Actions:
-1. Read all existing posts, extract cross-references and themes (ASSESS)
-2. Identify referenced-but-missing content, filter through content quality test (DECIDE)
-3. Score gap-fill topics alongside any problem-mined candidates (GENERATE)
-Result: Prioritized list mixing gap fills with fresh topic candidates
-
----
+Rules: one lens per kept angle (distinctness is structural). Each kept angle must pass the "so what?" gate -- one sentence naming a concrete reader payoff. Log refused angles with reason.
 
 ## Error Handling
 
-### Error: "No Existing Posts to Analyze"
-Cause: Content directory is empty or does not exist yet
-Solution:
-1. Focus entirely on problem mining instead of gap analysis
-2. Ask user about recent debugging sessions or technical struggles
-3. Check repository CLAUDE.md or project docs for tech stack hints
-4. Generate topics from technology interests alone
-
-### Error: "All Candidates Fail content quality Filter"
-Cause: Sources lack genuine frustration signals or resolutions
-Solution:
-1. Ask probing questions: "What broke recently?" or "What took hours to fix?"
-2. Reframe tutorial candidates: "What surprised you?" or "What mistake does everyone make?"
-3. Shift to a different source (e.g., from gap analysis to problem mining)
-4. If no vex exists, acknowledge honestly -- not every session yields topics
-
-### Error: "Topic Too Broad to Score"
-Cause: Candidate is a category ("Kubernetes networking") rather than a specific problem
-Solution:
-1. Break into multiple specific failure modes
-2. Ask: "What specific moment was most frustrating?"
-3. Use failure-mode title pattern: "[Thing A] works but [Thing B] fails"
-
-### Error: "Resolution Unclear or Missing"
-Cause: User has an ongoing issue without a resolution, or the fix is a workaround with no understanding
-Solution:
-1. Ask: "Did you solve it? How?"
-2. If unresolved, defer the topic until resolution is found
-3. If workaround-only, assess whether "understanding why the workaround works" provides enough joy
-4. Consider documenting the investigation so far as a "part 1" topic (requires series planning)
-
----
-
-## References
-
-This skill uses these patterns:
-- **Content Quality Filter**: Three-question test (frustration + resolution + helpfulness) is the gate
-- **Priority Scoring**: Always use the Impact × Vex × Resolution matrix
-- **Failure-Mode Titles**: Specific problem descriptors, never vague categories
-- **Problem Mining Signals**: Debugging sessions, Stack Overflow searches, error messages, config struggles
-- **Gap Analysis**: "See also" missing posts, prerequisites assumed, incomplete series, follow-up questions
-- **Technology Expansion**: Same tool/different feature, same category/different tool, integration opportunities
+| Error | Cause | Solution |
+|-------|-------|----------|
+| No existing posts | Content directory empty | Focus on problem mining; ask about recent debugging sessions |
+| All candidates fail filter | Sources lack frustration signals | Ask probing questions: "What broke recently?" Shift sources. |
+| Topic too broad | Category, not a specific problem | Break into failure modes: "[A] works but [B] fails" |
+| Resolution unclear | Ongoing issue, no fix yet | Defer until resolved; or assess if "understanding the workaround" suffices |

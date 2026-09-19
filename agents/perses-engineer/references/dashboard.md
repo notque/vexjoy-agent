@@ -180,7 +180,7 @@ dashboard.New("My Dashboard",
 )
 ```
 
-**Why it matters**: Without explicit duration, the dashboard opens with the server's default time range, which may be 6h or 24h. Users expect the dashboard designer's intended time range.
+**Why it matters**: Without explicit duration, the dashboard opens with the server's default time range, which may be 6h or 24h. Users expect the dashboard frontender's intended time range.
 
 **Preferred action**:
 ```go

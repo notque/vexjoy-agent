@@ -1,6 +1,6 @@
 # Upgrade Signal Parsing Reference
 
-> **Scope**: Extracting actionable upgrade items from Claude Code release notes, user goal changes, and learning.db retro candidates. Does NOT cover component implementation — only parsing and classification.
+> **Scope**: Extracting actionable upgrade items from Claude Code release notes, user goal changes, and learning.db process candidates. Does NOT cover component implementation — only parsing and classification.
 > **Version range**: Claude Code releases, all versions
 > **Generated**: 2026-04-15 — verify signal categories against current release format
 
@@ -9,7 +9,7 @@
 ## Overview
 
 Upgrade signals arrive in three forms: Claude Code release notes (feature additions, deprecations,
-breaking changes), user goal-change statements (new workflows to support), and retro-driven signals
+breaking changes), user goal-change statements (new workflows to support), and process-driven signals
 from the learning.db graduation queue. Each form requires a different parsing strategy. The most
 common failure is treating a feature mention as an upgrade requirement without identifying *which
 component type* is affected.
@@ -84,7 +84,7 @@ If no existing hook covers the trigger, `create-new` is the right action.
 Query learning.db for graduated patterns and map to component updates.
 
 ```bash
-# Find retro candidates with recurrence > 2
+# Find process candidates with recurrence > 2
 python3 scripts/learning-db.py list --status candidate --min-count 3
 
 # Find patterns associated with specific component type
@@ -134,7 +134,7 @@ If no: Minor or skip. If yes: Important or Critical.
 ### Separate Signal Types by Source in Manifest
 
 **Signal**: A single Change Manifest combining release-note signals, user
-goal-change statements, and retro signals without flagging their source.
+goal-change statements, and process signals without flagging their source.
 
 **Why this matters**: Each signal type has different urgency heuristics and different component
 scope. Mixing them without source labels causes the PLAN phase to assign wrong tiers.
@@ -157,7 +157,7 @@ Do instead: Separate into sections by signal type. Label each row with its sourc
 ## Detection Commands Reference
 
 ```bash
-# Find retro candidates with recurrence > 2
+# Find process candidates with recurrence > 2
 python3 scripts/learning-db.py list --status candidate --min-count 3
 
 # Check learning.db for agent-specific patterns

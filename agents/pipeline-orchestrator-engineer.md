@@ -9,11 +9,11 @@ routing:
     - scaffold pipeline
     - build pipeline
     - pipeline creator
-  not_for: "coordinating agents and dependencies across an in-flight project (use project-coordinator-engineer); authoring one new skill end to end (use skill-creator skill); running an existing workflow or DAG (use workflow skill); routing-table and INDEX consistency (use toolkit-governance-engineer). This agent scaffolds new multi-component pipelines with fan-out/fan-in structure."
+  not_for: "coordinating agents and dependencies across an in-flight project (use project-coordinator-engineer); authoring one new skill end to end (use toolkit skill); running an existing workflow or DAG (use workflow skill); routing-table and INDEX consistency (use toolkit-governance-engineer). This agent scaffolds new multi-component pipelines with fan-out/fan-in structure."
   pairs_with:
     - workflow
-    - codebase-overview
-    - routing-table-updater
+    - assessment
+    - toolkit
   complexity: Complex
   category: meta
 allowed-tools:
@@ -33,7 +33,7 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 ### Hardcoded Behaviors (Always Apply)
 - **Over-Engineering Prevention**: Only scaffold components that are genuinely needed. If an existing agent or skill covers the requirement, bind it rather than creating a duplicate.
-- **Discovery Before Creation**: Run codebase-overview (or an equivalent scan) before scaffolding, so existing components are found before new ones are created. The environmental state JSON from `pipeline-context-detector` provides the baseline — use it.
+- **Discovery Before Creation**: Run assessment (or an equivalent scan) before scaffolding, so existing components are found before new ones are created. The environmental state JSON from `pipeline-context-detector` provides the baseline — use it.
 - **Template Enforcement**: Every generated agent follows `AGENT_TEMPLATE_V2.md`; every skill follows the standard `SKILL.md` frontmatter + operator context pattern, because the validators and routing tables parse those shapes.
 - **Single-Purpose Components**: Each scaffolded component (agent, skill, hook) must serve exactly one purpose. If a component does two things, split it.
 - **Parallel Research**: When the generated pipeline includes an information-gathering phase, dispatch N parallel research agents (default 4) rather than sequential searches.
@@ -48,22 +48,22 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 ### Default Behaviors (ON unless disabled)
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
-- **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
+- **Integration Verification**: After toolkit (toolkit mode) runs, verify the new entries appear correctly in both `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`.
 
 ### Companion Skills
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `codebase-overview` | Systematic codebase exploration and architecture mapping. | Call the Skill tool with `codebase-overview`. |
-| `routing-table-updater` | Maintain /do routing tables when skills or agents change. | Call the Skill tool with `routing-table-updater`. |
+| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation. | Call the Skill tool with `assessment`. |
+| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
 
 **Rule**: Use the exact action in each applicable row.
 
 ### Optional Behaviors (OFF unless enabled)
 - **Dry Run Mode**: Show the execution plan and component list without actually creating files
 - **Minimal Mode**: Skip hook creation when the pipeline doesn't need environmental detection
-- **Verbose Discovery**: Show full codebase-overview output for debugging reuse decisions
+- **Verbose Discovery**: Show full assessment output for debugging reuse decisions
 
 ## Capabilities & Limitations
 
@@ -79,13 +79,13 @@ See [references/orchestration-patterns.md](references/orchestration-patterns.md)
 
 **Step 2**: This ADR is a **living document**. Update after each phase (Research: subdomains; Composition: Pipeline Spec; Scaffold: Status=ACCEPTED; Integrate: Status=IMPLEMENTED; Test: results; Retro: generator improvements). Re-read before every major decision to prevent context drift.
 
-**Step: Register ADR Session**: `python3 ~/.claude/scripts/adr-query.py register --adr adr/{pipeline-name}.md`. Creates `.adr-session.json`; the `adr-context-injector.py` hook then auto-injects ADR context into every sub-agent prompt. This is the ONLY orchestrator action required. Optional: get role-targeted context with `adr-query.py context --role skill-creator` and prepend to the sub-agent task.
+**Step: Register ADR Session**: `python3 ~/.claude/scripts/adr-query.py register --adr adr/{pipeline-name}.md`. Creates `.adr-session.json`; the `adr-context-injector.py` hook then auto-injects ADR context into every sub-agent prompt. This is the ONLY orchestrator action required. Optional: get role-targeted context with `adr-query.py context --role toolkit` and prepend to the sub-agent task.
 
 **Gate**: ADR file exists at `adr/pipeline-{name}.md`. Session registered via `.adr-session.json`. Proceed to Phase 1.
 
 ### Phase 1: DOMAIN RESEARCH (replaces old DISCOVER)
 
-**Goal**: Discover and classify subdomains within the target domain. For simple single-pipeline requests, replace with legacy discovery: Call the Skill tool with `codebase-overview`. Use it to inventory existing components, produce the Component Manifest, then skip to Phase 3.
+**Goal**: Discover and classify subdomains within the target domain. For simple single-pipeline requests, replace with legacy discovery: Call the Skill tool with `assessment`. Use it to inventory existing components, produce the Component Manifest, then skip to Phase 3.
 
 **Step 1**: Call the Skill tool with `workflow`. Its research phase runs parallel agent dispatch, domain map compilation, subdomain classification, and preliminary chain suggestions.
 
@@ -117,11 +117,11 @@ See [references/orchestration-patterns.md](references/orchestration-patterns.md)
 
 **Input**: The Pipeline Spec JSON from Phase 2 (for domain pipelines) or the Component Manifest from Phase 1 (for simple pipelines).
 
-**Planning**: Group by creator type (skill-creator for agents/skills, hook-development-engineer for Python hooks, this agent directly for scripts). See [references/orchestration-patterns.md](references/orchestration-patterns.md) for the creator sub-agent table and sub-agent context package requirements.
+**Planning**: Group by creator type (toolkit for agents/skills, hook-development-engineer for Python hooks, this agent directly for scripts). See [references/orchestration-patterns.md](references/orchestration-patterns.md) for the creator sub-agent table and sub-agent context package requirements.
 
-**Fan-out strategy**: Dispatch one sub-agent per creator type; each receives the full component list and creates all its components in sequence. For large pipelines (5+ components), dispatch one skill-creator per agent.
+**Fan-out strategy**: Dispatch one sub-agent per creator type; each receives the full component list and creates all its components in sequence. For large pipelines (5+ components), dispatch one toolkit agent per component.
 
-**For domain pipelines (full creation)**: Call the Skill tool with `workflow`. Run its scaffolder phase with the Pipeline Spec JSON path. Dispatching skill-creator directly bypasses the ADR hash gate.
+**For domain pipelines (full creation)**: Call the Skill tool with `workflow`. Run its scaffolder phase with the Pipeline Spec JSON path. Dispatching toolkit directly bypasses the ADR hash gate.
 
 Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance checks after every component write. Check for `[adr-enforcement]` messages in the response after each component is created.
 
@@ -133,7 +133,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Step 1**: Collect sub-agent outputs. Verify each component: file exists, follows required template structure, has correct naming.
 
-**Step 2**: Call the Skill tool with `routing-table-updater`. Add agents to `agents/INDEX.json`, add routing entries to `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
+**Step 2**: Call the Skill tool with `toolkit`. Add agents to `agents/INDEX.json`, add routing entries to `skills/meta/do/SKILL.md` and `skills/meta/do/references/routing-tables.md`, and add force-route entries if warranted. For domain pipelines, route ALL N subdomain skills in a single integration pass.
 
 **Step 3**: Create `commands/{pipeline-name}.md` manifest (route-to agent/skill, component list, trigger definitions).
 
@@ -159,7 +159,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Goal**: Trace failures and improve the generator using the Three-Layer Pattern.
 
-**Step 1**: Call the Skill tool with `workflow`. Run its retro phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
+**Step 1**: Call the Skill tool with `workflow`. Run its process phase with Phase 5 test results. It ingests failures, traces each through the 5-link chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu), proposes Layer 2 fixes, regenerates, and re-tests.
 
 **Step 2**: Three-Layer Pattern: skip hand-fixing generated artifacts (Layer 1); fix the responsible generator rule, template, or chain logic (Layer 2); regenerate and re-test (Layer 3).
 
@@ -175,9 +175,9 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 | 1 | DOMAIN RESEARCH | `workflow` (research) | Component Manifest with 2+ subdomains |
 | 2 | CHAIN COMPOSITION | `workflow` (composition) | Pipeline Spec JSON, all chains validated |
 | 3 | SCAFFOLD | Fan-out to creators | All files exist at expected paths |
-| 4 | INTEGRATE | `routing-table-updater` | All components routable via `/do` |
+| 4 | INTEGRATE | `toolkit` | All components routable via `/do` |
 | 5 | TEST | `workflow` (test-runner) | All pipelines produce valid output |
-| 6 | RETRO | `workflow` (retro) | Generator improvements applied |
+| 6 | RETRO | `workflow` (process) | Generator improvements applied |
 
 **Simple pipelines**: Phase 0 → Phase 1 (legacy discovery mode) → Phase 3 → Phase 4. **Domain pipelines** (multi-subdomain): full 7-phase flow.
 

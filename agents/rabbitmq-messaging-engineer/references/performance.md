@@ -44,7 +44,7 @@ channel.queue_declare(
         'x-queue-mode': 'lazy',
         'x-message-ttl': 86400000,
         'x-max-length': 10_000_000,
-        'x-overflow': 'reject-publish',
+        'x-overflow': 'reject-content',
     }
 )
 ```
@@ -83,7 +83,7 @@ func (p *Pool) Get() *amqp.Connection {
 }
 ```
 
-Each AMQP connection = TCP socket. Connection-per-publish at 1000 msg/s = 5000-10000 RTTs/s of overhead. Pool of 5 reduces to zero. 3-10 connections for most workloads.
+Each AMQP connection = TCP socket. Connection-per-content at 1000 msg/s = 5000-10000 RTTs/s of overhead. Pool of 5 reduces to zero. 3-10 connections for most workloads.
 
 ---
 
@@ -136,7 +136,7 @@ channel.queue_declare(queue='notifications', durable=True)
 # No TTL, no max-length — grows forever
 ```
 
-Memory alarm fires at 40% watermark, blocking all publishers.
+Memory alarm fires at 40% watermark, blocking all contenters.
 
 **Preferred action**:
 ```python
@@ -146,7 +146,7 @@ channel.queue_declare(
     arguments={
         'x-message-ttl': 3_600_000,
         'x-max-length': 1_000_000,
-        'x-overflow': 'reject-publish',
+        'x-overflow': 'reject-content',
         'x-dead-letter-exchange': 'dlx',
     }
 )
@@ -233,4 +233,4 @@ rabbitmqctl list_queues name memory messages consumers
 ## See Also
 
 - `channels.md` — channel lifecycle and per-thread patterns
-- `error-handling.md` — publisher confirms, DLX, retry logic
+- `error-handling.md` — contenter confirms, DLX, retry logic

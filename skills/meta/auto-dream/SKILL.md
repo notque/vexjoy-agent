@@ -31,27 +31,9 @@ Background memory consolidation cycle. Scans memory files, finds stale, duplicat
 - Cron job at 2 AM nightly via wrapper script: `scripts/auto-dream-cron.sh --execute`
 - Manual trigger for testing: `./scripts/auto-dream-cron.sh` (dry-run by default)
 
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| Debugging failed cron run, silent failure, empty log, wrong exit code | `headless-cron-patterns.md` | Routes to the matching deep reference |
-| Setting up or modifying wrapper script (`flock`, `--permission-mode`, `envsubst`, `PIPESTATUS`) | `headless-cron-patterns.md` | Routes to the matching deep reference |
-| Budget cap, `--max-budget-usd`, unattended Claude invocation | `headless-cron-patterns.md` | Routes to the matching deep reference |
-| Writing, updating, or archiving memory files | `memory-file-operations.md` | Routes to the matching deep reference |
-| Updating `MEMORY.md` index, atomic write, `.tmp` rename | `memory-file-operations.md` | Routes to the matching deep reference |
-| Staleness detection, duplicate merging, conflict flagging | `memory-file-operations.md` | Routes to the matching deep reference |
-| YAML frontmatter structure, `merged_from`, memory file format | `memory-file-operations.md` | Routes to the matching deep reference |
-| Testing the dream cycle safely, dry-run validation, output file verification | `dream-cycle-testing.md` | Routes to the matching deep reference |
-| Reading and interpreting cron run logs, detecting silent failures | `logging-patterns.md` | Routes to the matching deep reference |
-| Log rotation, log directory structure, phase completion markers in logs | `logging-patterns.md` | Routes to the matching deep reference |
-| `last-dream.md` stale, missing injection payload, cron log empty | `logging-patterns.md` | Routes to the matching deep reference |
-| Concurrent dream runs, lockfile already held, duplicate cron invocations | `concurrency.md` | Routes to the matching deep reference |
-| `MEMORY.md.tmp` left behind, partial write recovery, atomic rename failure | `concurrency.md` | Routes to the matching deep reference |
-
 ## Instructions
 
-When invoked interactively (not via cron), read `skills/meta/auto-dream/dream-prompt.md` and execute its phases directly. The prompt is self-contained — it describes the full seven-phase cycle including safety constraints, file paths, and output formats.
+When invoked interactively (not via cron), read `skills/meta/auto-dream/dream-prompt.md` and execute its phases directly. The prompt is self-contained -- it describes the full cycle including safety constraints, file paths, and output formats.
 
 For cron invocation: the dream prompt is passed directly to `claude -p` and runs as a standalone headless session with no CLAUDE.md, no hooks, no project context. All instructions are embedded in the prompt.
 
@@ -130,22 +112,14 @@ Note: schedule uses 2:07 AM (off-minute) per cron best practice — avoids load 
 - Dry-run by default, `--execute` for live runs
 - Exit code propagation via `PIPESTATUS[0]`
 
-## Reference Loading
+## Deep References
 
-Load these references when the task matches the signal:
+Load when the task requires detailed guidance beyond the phases above.
 
-| Signal / Task | Reference File |
-|---------------|----------------|
-| Debugging failed cron run, silent failure, empty log, wrong exit code | `references/headless-cron-patterns.md` |
-| Setting up or modifying wrapper script (`flock`, `--permission-mode`, `envsubst`, `PIPESTATUS`) | `references/headless-cron-patterns.md` |
-| Budget cap, `--max-budget-usd`, unattended Claude invocation | `references/headless-cron-patterns.md` |
-| Writing, updating, or archiving memory files | `references/memory-file-operations.md` |
-| Updating `MEMORY.md` index, atomic write, `.tmp` rename | `references/memory-file-operations.md` |
-| Staleness detection, duplicate merging, conflict flagging | `references/memory-file-operations.md` |
-| YAML frontmatter structure, `merged_from`, memory file format | `references/memory-file-operations.md` |
-| Testing the dream cycle safely, dry-run validation, output file verification | `references/dream-cycle-testing.md` |
-| Reading and interpreting cron run logs, detecting silent failures | `references/logging-patterns.md` |
-| Log rotation, log directory structure, phase completion markers in logs | `references/logging-patterns.md` |
-| `last-dream.md` stale, missing injection payload, cron log empty | `references/logging-patterns.md` |
-| Concurrent dream runs, lockfile already held, duplicate cron invocations | `references/concurrency.md` |
-| `MEMORY.md.tmp` left behind, partial write recovery, atomic rename failure | `references/concurrency.md` |
+| Signal | Reference |
+|--------|-----------|
+| Failed cron run, wrapper script setup, budget cap | `references/headless-cron-patterns.md` |
+| Memory file writes, YAML frontmatter, staleness, merging | `references/memory-file-operations.md` |
+| Dry-run validation, output file verification | `references/dream-cycle-testing.md` |
+| Cron log interpretation, rotation, phase markers | `references/logging-patterns.md` |
+| Concurrent runs, lockfile, partial write recovery | `references/concurrency.md` |

@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Glob
 routing:
+  force_route: true
   triggers:
     - "how does routing work"
     - "what skills exist"

@@ -8,7 +8,7 @@ Secure-by-default patterns for Swift iOS, macOS, and server-side. Load when task
 
 Use Keychain Services for tokens, passwords, API keys, and cryptographic keys. Set `kSecAttrAccessible` to the most restrictive level appropriate for the use case.
 
-```swift
+```programming
 import Security
 
 enum KeychainError: Error {
@@ -64,8 +64,8 @@ func loadFromKeychain(key: String) throws -> Data {
 
 **Detection**:
 ```bash
-rg -n 'UserDefaults.*token\|UserDefaults.*password\|UserDefaults.*secret\|UserDefaults.*key' . --type swift
-rg -n 'SecItemAdd\|SecItemCopyMatching\|kSecClass' . --type swift
+rg -n 'UserDefaults.*token\|UserDefaults.*password\|UserDefaults.*secret\|UserDefaults.*key' . --type programming
+rg -n 'SecItemAdd\|SecItemCopyMatching\|kSecClass' . --type programming
 ```
 
 ---
@@ -93,7 +93,7 @@ Keep ATS enabled. Document each exception with technical reason why HTTPS cannot
 </dict>
 ```
 
-```swift
+```programming
 // Never do this in production:
 // NSAllowsArbitraryLoads = true  // Disables ATS entirely
 ```
@@ -112,7 +112,7 @@ rg -n 'NSExceptionDomains|NSAppTransportSecurity' . --type xml
 
 Use universal links for deep linking. If custom URL schemes necessary, validate all parameters.
 
-```swift
+```programming
 // Correct: universal link handling with validation
 func application(_ application: UIApplication,
                  continue userActivity: NSUserActivity,
@@ -141,7 +141,7 @@ func application(_ application: UIApplication,
 }
 ```
 
-```swift
+```programming
 // If custom URL schemes are used, validate everything
 func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) -> Bool {
     guard url.scheme == "myapp",
@@ -162,8 +162,8 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 
 **Detection**:
 ```bash
-rg -n 'CFBundleURLSchemes|openURL|open url' . --type swift
-rg -n 'NSUserActivityTypeBrowsingWeb|universalLinks' . --type swift
+rg -n 'CFBundleURLSchemes|openURL|open url' . --type programming
+rg -n 'NSUserActivityTypeBrowsingWeb|universalLinks' . --type programming
 ```
 
 ---
@@ -172,7 +172,7 @@ rg -n 'NSUserActivityTypeBrowsingWeb|universalLinks' . --type swift
 
 Disable JS for untrusted content. Restrict navigation to allowed domains. Never use `UIWebView`.
 
-```swift
+```programming
 import WebKit
 
 // Correct: secure WKWebView configuration
@@ -209,9 +209,9 @@ class SecureNavigationDelegate: NSObject, WKNavigationDelegate {
 
 **Detection**:
 ```bash
-rg -n 'allowsContentJavaScript\s*=\s*true|javaScriptEnabled\s*=\s*true' . --type swift
-rg -n 'WKWebView|UIWebView' . --type swift
-rg -n 'addScriptMessageHandler|evaluateJavaScript' . --type swift
+rg -n 'allowsContentJavaScript\s*=\s*true|javaScriptEnabled\s*=\s*true' . --type programming
+rg -n 'WKWebView|UIWebView' . --type programming
+rg -n 'addScriptMessageHandler|evaluateJavaScript' . --type programming
 ```
 
 ---
@@ -220,7 +220,7 @@ rg -n 'addScriptMessageHandler|evaluateJavaScript' . --type swift
 
 Never rely solely on `LocalAuthentication`. Use biometrics to unlock a Keychain-stored credential, then verify server-side.
 
-```swift
+```programming
 import LocalAuthentication
 
 func authenticateAndFetch() async throws -> UserData {
@@ -252,8 +252,8 @@ func authenticateAndFetch() async throws -> UserData {
 
 **Detection**:
 ```bash
-rg -n 'LAContext|evaluatePolicy|canEvaluatePolicy' . --type swift
-rg -n 'deviceOwnerAuthentication' . --type swift
+rg -n 'LAContext|evaluatePolicy|canEvaluatePolicy' . --type programming
+rg -n 'deviceOwnerAuthentication' . --type programming
 ```
 
 ---
@@ -262,7 +262,7 @@ rg -n 'deviceOwnerAuthentication' . --type swift
 
 Pin certificates or public keys for auth, payment, and personal data APIs.
 
-```swift
+```programming
 import CryptoKit
 
 class PinningDelegate: NSObject, URLSessionDelegate {
@@ -300,8 +300,8 @@ class PinningDelegate: NSObject, URLSessionDelegate {
 
 **Detection**:
 ```bash
-rg -n 'didReceive challenge|URLAuthenticationChallenge|SecTrust' . --type swift
-rg -n 'pinnedCertificates\|pinnedPublicKeys\|certificatePinner' . --type swift
+rg -n 'didReceive challenge|URLAuthenticationChallenge|SecTrust' . --type programming
+rg -n 'pinnedCertificates\|pinnedPublicKeys\|certificatePinner' . --type programming
 ```
 
 ---
@@ -310,7 +310,7 @@ rg -n 'pinnedCertificates\|pinnedPublicKeys\|certificatePinner' . --type swift
 
 Store tokens, keys, credentials in Keychain. Reserve UserDefaults for non-sensitive preferences.
 
-```swift
+```programming
 // Correct: UserDefaults for preferences only
 UserDefaults.standard.set("dark", forKey: "theme")
 UserDefaults.standard.set(true, forKey: "onboardingComplete")
@@ -326,7 +326,7 @@ UserDefaults.standard.set("en", forKey: "preferredLanguage")
 
 **Detection**:
 ```bash
-rg -n 'UserDefaults.*set.*token\|UserDefaults.*set.*password\|UserDefaults.*set.*secret\|UserDefaults.*set.*key\|UserDefaults.*set.*credential' . --type swift
+rg -n 'UserDefaults.*set.*token\|UserDefaults.*set.*password\|UserDefaults.*set.*secret\|UserDefaults.*set.*key\|UserDefaults.*set.*credential' . --type programming
 ```
 
 ---
@@ -335,7 +335,7 @@ rg -n 'UserDefaults.*set.*token\|UserDefaults.*set.*password\|UserDefaults.*set.
 
 Validate all parameters before use in navigation, API calls, or database queries.
 
-```swift
+```programming
 // Correct: validate and sanitize deep link parameters
 struct DeepLinkRouter {
     enum Route {
@@ -377,6 +377,6 @@ struct DeepLinkRouter {
 
 **Detection**:
 ```bash
-rg -n 'openURL\|open url\|application.*open.*url' . --type swift
-rg -n 'URLComponents.*queryItems' . --type swift
+rg -n 'openURL\|open url\|application.*open.*url' . --type programming
+rg -n 'URLComponents.*queryItems' . --type programming
 ```

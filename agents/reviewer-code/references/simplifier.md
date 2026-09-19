@@ -100,7 +100,7 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 
 ## Abstraction Boundary Patterns
 
-Patterns where unnecessary complexity can be removed while preserving behavior. See `skills/engineering/go-patterns/references/preferred-patterns/code-examples.md` AP-8 for full before/after examples.
+Patterns where unnecessary complexity can be removed while preserving behavior. See `skills/engineering/programming/references/preferred-patterns/code-examples.md` AP-8 for full before/after examples.
 
 ### Detection Signals
 

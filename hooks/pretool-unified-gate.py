@@ -1799,14 +1799,14 @@ def check_creation_gate(file_path: str, cwd: str = "") -> None:
         f"[creation-gate] BLOCKED: New {component_type} must follow the skill creation workflow.\n"
         f"[creation-gate] Path: {file_path}\n"
         f"[creation-gate] No Task tool (worktree agent)? Use the skill path, write the ADR, and register it:\n"
-        f"[creation-gate] Call the Skill tool with `skill-creator`.\n"
+        f"[creation-gate] Call the Skill tool with `toolkit`.\n"
         f"[creation-gate]   python3 scripts/adr-query.py register --adr adr/{component_label}.md\n"
         f"[creation-gate] A registered ADR named '{component_label}' unlocks this path; retry the Write after registering.\n"
         f"[fix-with-agent] skill-creator",
         reason=(
             f"New {component_type} files must be created via the skill-creator agent "
             f"([fix-with-agent] skill-creator). Worktree agents without the Task tool must use the skill path. "
-            f"Call the Skill tool with `skill-creator`. Write "
+            f"Call the Skill tool with `toolkit`. Write "
             f"adr/{component_label}.md, run "
             f"`python3 scripts/adr-query.py register --adr adr/{component_label}.md`, then retry this Write."
         ),

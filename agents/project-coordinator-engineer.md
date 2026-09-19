@@ -13,7 +13,7 @@ routing:
   not_for: "personal productivity and task-list tools (use business-ops skill, PRODUCTIVITY mode); scaffolding the structure of a new multi-component pipeline (use pipeline-orchestrator-engineer) — this agent coordinates multi-agent project execution and dependency tracking"
   pairs_with:
     - workflow
-    - subagent-driven-development
+    - process
   complexity: Complex
   category: meta
 allowed-tools:
@@ -77,7 +77,7 @@ This agent operates as an operator for multi-agent project orchestration, config
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured multi-phase workflows: review, debug, refactor (tidy, clean up, untangle messy code without behaviour chan... | Call the Skill tool with `workflow`. |
-| `subagent-driven-development` | Fresh-subagent-per-task execution with two-stage review gates. | Call the Skill tool with `subagent-driven-development`. |
+| `process` | Process: processspectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | Call the Skill tool with `process`. |
 
 **Rule**: Use the exact action in each applicable row.
 

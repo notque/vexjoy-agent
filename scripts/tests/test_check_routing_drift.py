@@ -83,8 +83,8 @@ def _run(repo: Path) -> subprocess.CompletedProcess[str]:
 
 def test_clean_setup_passes(tmp_path: Path) -> None:
     skills = {
-        "deploy": {"file": "skills/deploy/SKILL.md", "description": "deploy"},
-        "review": {"file": "skills/review/SKILL.md", "description": "review"},
+        "deploy": {"file": "skills/infrastructure/deploy/SKILL.md", "description": "deploy"},
+        "review": {"file": "skills/review/review/SKILL.md", "description": "review"},
     }
     repo = _setup_repo(tmp_path, skills)
     result = _run(repo)

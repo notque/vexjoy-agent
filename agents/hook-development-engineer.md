@@ -12,10 +12,10 @@ routing:
     - SessionStart
     - routing telemetry hook
     - hook registration
-  not_for: "auditing hook conventions, registration, or timeouts fleet-wide (use toolkit-governance-engineer); adapting existing hooks to a new Claude Code release (use system-upgrade-engineer); reading routing telemetry that hooks already recorded (use the retro skill); general Python features outside the hook system (use python-general-engineer). This agent writes and debugs Python hook implementations."
+  not_for: "auditing hook conventions, registration, or timeouts fleet-wide (use toolkit-governance-engineer); adapting existing hooks to a new Claude Code release (use system-upgrade-engineer); reading routing telemetry that hooks already recorded (use the process skill); general Python features outside the hook system (use python-general-engineer). This agent writes and debugs Python hook implementations."
   pairs_with:
-    - verification-before-completion
-    - python-quality-gate
+    - testing
+    - code-quality
   complexity: Comprehensive
   category: meta
 allowed-tools:
@@ -61,8 +61,8 @@ Build event-driven telemetry and governance hooks for Claude Code. Capture dispa
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
-| `python-quality-gate` | Python quality checks: ruff, pytest, mypy, bandit in deterministic order. | Call the Skill tool with `python-quality-gate`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
+| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -185,7 +185,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Signal | Reference File | When to Load |
 |--------|---------------|--------------|
-| Pipeline diagram, event flow, telemetry directory structure | `references/architecture.md` | When explaining hook integration or reviewing system design |
+| Pipeline diagram, event flow, telemetry directory structure | `references/architecture.md` | When explaining hook integration or reviewing system frontend |
 | Blocking errors, synchronous ops, direct writes, registration order, unguarded main(), UserPromptSubmit misuse | `references/preferred-patterns.md` | When reviewing hook code or debugging session deadlocks — preferred patterns and detection |
 | Production hook template, non-blocking pattern, complete implementations | `references/code-examples.md` | When scaffolding a new hook from scratch |
 | Telemetry schema, routing and evidence writes, atomic write ops, read-only CLI | `references/telemetry-database.md` | When implementing telemetry store operations |

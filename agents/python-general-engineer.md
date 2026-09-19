@@ -38,12 +38,12 @@ routing:
     - fastapi
     - django
     - flask
-  not_for: "PHP development (use php-general-engineer); OpenStack services and Oslo libraries (use python-openstack-engineer); SQLite and Peewee ORM work (use sqlite-peewee-engineer) — this agent handles general Python development"
-  retro-topics:
+  not_for: "PHP development (use programming-general-engineer); OpenStack services and Oslo libraries (use python-openstack-engineer); SQLite and Peewee ORM work (use sqlite-peewee-engineer) — this agent handles general Python development"
+  process-topics:
     - python-patterns
     - debugging
   pairs_with:
-    - python-quality-gate
+    - code-quality
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -120,7 +120,7 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `python-quality-gate` | Python quality checks: ruff, pytest, mypy, bandit in deterministic order. | Call the Skill tool with `python-quality-gate`. |
+| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -139,7 +139,7 @@ Python development end to end: features, debugging, review, performance, tests. 
 | Signal | Load These Files | Why |
 |---|---|---|
 | flask, jinja, gunicorn, blueprint, CSRF exempt, static 403, SESSION_COOKIE_SECURE, StrictUndefined, systemctl restart | [flask-jinja-webapp.md](python-general-engineer/references/flask-jinja-webapp.md) | mmr-ratings production incidents: worker template cache, mode-600 static 403, CSRF blueprint exemptions, error-fix map |
-| except OSError, type: ignore, E712, Peewee, venv, pip mismatch, uv install, reddit_mod, stdin JSON, LLM prompt fields, tarfile, yaml.load, pickle, extra="allow", SSRF | [python-local-gates.md](python-general-engineer/references/python-local-gates.md) | Host incidents (reddit_mod silent failures), Peewee E712 suppression, host venv/uv rules, CLI pipeline conventions, CVE-pinned gotchas |
+| except OSError, type: ignore, E712, Peewee, venv, pip mismatch, uv deploy, reddit_mod, stdin JSON, LLM prompt fields, tarfile, yaml.load, pickle, extra="allow", SSRF | [python-local-gates.md](python-general-engineer/references/python-local-gates.md) | Host incidents (reddit_mod silent failures), Peewee E712 suppression, host venv/uv rules, CLI pipeline conventions, CVE-pinned gotchas |
 
 ## Error Handling
 
@@ -151,7 +151,7 @@ Before writing Python code, check the hard-gate table in [python-local-gates.md]
 
 ## Blocker Criteria & Death Loop Prevention
 
-STOP and ask the user for explicit confirmation on fundamental design choices: async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes. Retry limit: after 3 failed attempts at the same fix, stop and reassess the diagnosis instead of iterating.
+STOP and ask the user for explicit confirmation on fundamental frontend choices: async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes. Retry limit: after 3 failed attempts at the same fix, stop and reassess the diagnosis instead of iterating.
 
 ## References
 

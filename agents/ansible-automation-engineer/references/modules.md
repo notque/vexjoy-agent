@@ -16,9 +16,9 @@ The most common Ansible failure mode is using `command` or `shell` when an idemp
 
 | Task | Wrong Approach | Correct Module | Notes |
 |------|---------------|----------------|-------|
-| Install package (Debian) | `command: apt-get install nginx` | `ansible.builtin.apt` | Handles idempotency, state management |
-| Install package (RHEL) | `command: yum install nginx` | `ansible.builtin.dnf` | `dnf` preferred over `yum` on RHEL 8+ |
-| Install package (any OS) | `shell: {{pkg_mgr}} install` | `ansible.builtin.package` | Cross-platform, uses detected pkg manager |
+| Install package (Debian) | `command: apt-get deploy nginx` | `ansible.builtin.apt` | Handles idempotency, state management |
+| Install package (RHEL) | `command: yum deploy nginx` | `ansible.builtin.dnf` | `dnf` preferred over `yum` on RHEL 8+ |
+| Install package (any OS) | `shell: {{pkg_mgr}} deploy` | `ansible.builtin.package` | Cross-platform, uses detected pkg manager |
 | Manage service | `command: systemctl start nginx` | `ansible.builtin.systemd` | Reports enabled/started/stopped state |
 | Copy file | `command: cp src dst` | `ansible.builtin.copy` | Detects changes by checksum |
 | Template | `command: sed 's/VAR/val/g' > /etc/conf` | `ansible.builtin.template` | Jinja2, detects changes, `--diff` support |
@@ -51,7 +51,7 @@ The most common Ansible failure mode is using `command` or `shell` when an idemp
   ansible.builtin.apt:
     name: nginx
     state: present
-    install_recommends: false  # apt-specific option
+    deploy_recommends: false  # apt-specific option
   when: ansible_os_family == "Debian"
 
 - name: Install nginx with dnf options (RHEL 8+)
@@ -132,9 +132,9 @@ The most common Ansible failure mode is using `command` or `shell` when an idemp
 ### Use Package Modules for Installation
 **Detection**:
 ```bash
-# Find shell/command used for package installation
+# Find shell/command used for package deployation
 grep -rn "command:\|shell:" playbooks/ roles/ \
-  | grep -E "apt-get|yum|dnf|pip install|npm install"
+  | grep -E "apt-get|yum|dnf|pip deploy|npm deploy"
 
 rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
 ```
@@ -142,13 +142,13 @@ rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
 **Signal**:
 ```yaml
 - name: Install nginx
-  shell: apt-get install -y nginx
+  shell: apt-get deploy -y nginx
 
 - name: Update packages
   command: yum update -y
 ```
 
-**Why this matters**: `shell`/`command` always report `changed` regardless of whether nginx was already installed. Running twice installs twice (or errors). No change tracking. Breaks `--check` mode (would show false changes).
+**Why this matters**: `shell`/`command` always report `changed` regardless of whether nginx was already deployed. Running twice deploys twice (or errors). No change tracking. Breaks `--check` mode (would show false changes).
 
 **Preferred action**:
 ```yaml

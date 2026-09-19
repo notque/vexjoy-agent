@@ -170,7 +170,7 @@ def test_bypass_disables_gate() -> None:
 def _decision(complexity: str) -> dict:
     return {
         "agent": "python-general-engineer",
-        "skill": "test-driven-development",
+        "skill": "testing",
         "complexity": complexity,
         "model": "opus",
         "task_spec": {

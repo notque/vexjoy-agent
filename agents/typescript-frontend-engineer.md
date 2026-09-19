@@ -13,12 +13,12 @@ routing:
     - ".ts"
     - zod
   not_for: "React Native mobile apps (use react-native-engineer); diagnosing race conditions, async bugs, or production runtime exceptions (use typescript-debugging-engineer); e-commerce carts, Stripe, and checkout flows (use nextjs-ecommerce-engineer); portfolio and gallery sites (use react-portfolio-engineer). This agent builds TypeScript frontend architecture: type-safe components, state, and build configuration."
-  retro-topics:
+  process-topics:
     - typescript-patterns
     - debugging
   pairs_with:
-    - universal-quality-gate
-    - typescript-check
+    - code-quality
+    - programming
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -77,8 +77,8 @@ This agent operates as an operator for TypeScript frontend development, configur
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `universal-quality-gate` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `universal-quality-gate`. |
-| `typescript-check` | TypeScript type checking via tsc --noEmit with actionable error output. | Call the Skill tool with `typescript-check`. |
+| `code-quality` | Multi-language code quality gate with auto-detection and linters. | Call the Skill tool with `code-quality`. |
+| `programming` | TypeScript type checking via tsc --noEmit with actionable error output. | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -103,7 +103,7 @@ This agent operates as an operator for TypeScript frontend development, configur
 - **Backend API Implementation**: Use `nodejs-api-engineer` or `golang-general-engineer` for server-side TypeScript/API development
 - **Database Schema Design**: Use `database-engineer` for database modeling and query optimization
 - **Mobile Native Code**: For native iOS/Android features beyond web views, use platform-specific tools (Swift, Kotlin)
-- **Complex Styling Systems**: For design system architecture, use `ui-design-engineer` for comprehensive design token systems
+- **Complex Styling Systems**: For frontend system architecture, use `ui-frontend-engineer` for comprehensive frontend token systems
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent or approach.
 
@@ -126,7 +126,7 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 | type error, any, type assertion, tsc, tsconfig, forwardRef, React 19 migration, hard gates, blockers, death-loop | `engineering-rules.md` | House gates, exceptions, stop conditions, and the non-obvious failure-mode table (RSC, cache, effects, localStorage) |
 | ViewTransition, page animation, shared element, navigation animation, view transition | `react-view-transitions.md` | Thinly-documented canary API: activation rules, CSS workarounds, troubleshooting |
 | security, auth, XSS, CSRF, SSRF, Server Action auth, middleware bypass, image optimizer, or any vulnerability-related code | `nextjs-security.md` | Version-pinned Next.js CVEs and detection commands |
-| text/headline/label/microcopy animation | `skills/frontend/distinctive-frontend-design/references/roll-text.md` | Zero-npm roll/slot text pattern: standalone demo, extraction guide, knobs |
+| text/headline/label/microcopy animation | `skills/frontend/distinctive-frontend-frontend/references/roll-text.md` | Zero-npm roll/slot text pattern: standalone demo, extraction guide, knobs |
 
 ## References
 

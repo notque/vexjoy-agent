@@ -3,6 +3,7 @@ name: building-with-jev
 description: "Write, compose, integrate, and improve programs that call Jev, TypeSafe's System One judgment model."
 user_invocable: false  # default -- router-dispatched, not user-typed
 routing:
+  force_route: true
   triggers:
     - jev
     - typesafe
@@ -22,7 +23,7 @@ routing:
   not_for: "Running the browser harness end to end (use browser-jev-automation) or routing a request (use do). This skill is for designing and fixing the Jev calls inside a program, and for dissolving skills into Jev programs."
   pairs_with:
     - browser-jev-automation
-    - skill-creator
+    - toolkit
     - do
   complexity: Complex
   category: meta
@@ -50,7 +51,6 @@ Jev reads one `state`, answers every question in the request independently and i
 | hooks, reader/storage/action, fail modes, persistence, calibration store | `references/integration-lifecycle.md` | Where a call lives and what happens when Jev is down |
 | wrong answers, low confidence, clustered scores, revision discipline, known debt | `references/improve-and-calibrate.md` | Symptom table and labeled-example loop |
 | dissolving a skill, replacing an LLM with Jev, three-tier classification | `references/dissolving-a-skill.md` | Method, phase table, worked example |
-| the number behind a rule | `references/lessons-with-numbers.md` | Each rule with the measurement that supports it |
 | decision surface, card, gate design, threshold, what numbers mean, failure behavior, versions | `references/decision-card.md` | Decision card template: fields every gate must define before code ships |
 | position of a judgment, operand, gate, post-judge, selector, verifier, logical operators, dissolve a skill phase | `references/composition-positions.md` | 11 positions a judgment can occupy relative to a function, mapped to our scripts, with the walk-the-positions procedure |
 
@@ -126,7 +126,7 @@ Evidence of value is a labeled run. Unit tests with fake Jev answers show that t
 | Fixed floor per call | below the typical state size | one- or two-line questions; `what`, `not_for`, and `examples` only where labeled misses call for them |
 | Firing rate | matches how often the answer changes an action | on-demand commands first; hooks after step 11's conditions |
 
-**Iteration is cheap when requests repeat.** Identical payloads return identical answers (zero variance across repeated runs of a fixed question set). `call_jev` caches by payload hash for 30 minutes, longer than a loop round, so a round re-bills only the requests whose questions changed. A breaker trips on HTTP 401 and 402, so an auth or billing failure costs one call.
+**Iteration is cheap when requests repeat.** Identical payloads return nearly identical answers: zero variance on small requests, and up to 0.04 per answer on a 246-question request, which flipped 1 of 85 decisions. Keep thresholds away from where answers cluster, and measure this noise floor before you compare two variants. `call_jev` caches by payload hash for 30 minutes, longer than a loop round, so a round re-bills only the requests whose questions changed. A breaker trips on HTTP 401 and 402, so an auth or billing failure costs one call.
 
 **Telemetry is part of the system.** `call_jev` logs every call: script name, session id, input tokens, question count, payload hash, cached or not, error. Read the cost report after every multi-call run and compare it with the step 6 estimate.
 

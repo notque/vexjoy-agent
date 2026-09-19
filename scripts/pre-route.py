@@ -14,7 +14,7 @@ Non-force keyword routing was retired 2026-07: replaying 49 real /do requests
 it fell through 43/49, and both non-force keyword matches it did produce were
 wrong. The guard/companion tables stay — they are the precision layer of the
 force-route guarantee, pinned by the ADR corpus tests
-(test_pre_route_pr_workflow/planning/public_web_deploy).
+(test_pre_route_pr_workflow/workflow/public_web_deploy).
 
 Output contract (stable): matched, agent, skill, confidence, match_type,
 reasoning. Consumers: skills/meta/do/SKILL.md Phase 2, routing-ab-test.py,
@@ -41,7 +41,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 GO_SOURCE_OPERAND_RE = re.compile(r"\.go(?=(?::\d+|#L\d+)?(?:$|[\s`'\",;!?()\[\]{}]|\.(?=$|\s)))")
-PROTECTED_GO_COMPOSITE_SKILLS = {"pr-workflow", "pr-pipeline", "security-review"}
+PROTECTED_GO_COMPOSITE_SKILLS = {"pr-workflow", "pr-pipeline", "security"}
 PR_CREATE_INTENT_RE = re.compile(
     r"\b(?:create|open|make|draft|submit|raise|file)\b"
     r"(?:\s+\S+){0,5}?\s+(?:a\s+)?(?:pr|pull\s+request)\b",
@@ -55,7 +55,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from routing_index_merge import load_index_items as _load_index_items
 
 # INDEX.json is a generated artifact (untracked). When the tracked path is
-# missing — fresh checkout, no install.sh run — regenerate it on the fly from
+# missing — fresh checkout, no deploy.sh run — regenerate it on the fly from
 # SKILL.md/agent frontmatter via these generators.
 _INDEX_GENERATORS = {
     "skills": REPO_ROOT / "scripts" / "generate-skill-index.py",
@@ -91,13 +91,13 @@ INDEX_PATHS = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
     "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
     "pipelines": (
-        REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
+        REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
         None,
     ),
 }
 
 # Verbs/nouns that signal working ON a site (build, edit, debug, discuss) rather
-# than PUBLISHING one. Shared blocklist for public-web-deploy idiom triggers so
+# than PUBLISHING one. Shared blocklist for deploy idiom triggers so
 # overloaded deploy companions ("public", "domain") cannot wave through ordinary
 # dev/content/architecture requests.
 # Only ACTION verbs and unambiguous non-deploy modifiers belong here. Site-TYPE
@@ -123,8 +123,9 @@ _SITE_WORK_GUARD: set[str] = {
     "css",
     "style",
     "restyle",
-    "design",
-    "redesign",
+    "frontend",
+    "refrontend",
+    "writing",
     "translate",
     "translation",
     "localize",
@@ -184,7 +185,7 @@ _SITE_WORK_GUARD: set[str] = {
 
 # Repo/code/package visibility vocabulary. "make (it) public" most often means
 # flipping a GitHub repo / npm package / code symbol to public, not deploying a
-# web page. These words near the trigger discard the public-web-deploy match.
+# web page. These words near the trigger discard the deploy match.
 # Note: "github"/"gitlab" are intentionally absent — "make my website public on
 # github pages" is a genuine managed-static deploy. The repo-visibility signal
 # is carried by repo/repository/gist/code/source/package, not the host name.
@@ -226,7 +227,7 @@ SUPPLEMENTAL_TRIGGERS: dict[str, tuple[str, ...]] = {
         "upload my work",  # "upload my finished work so the team can see it"
         "went green",  # "check if the tests on my submitted change went green"
     ),
-    "security-review": (
+    "security": (
         "code safe",  # "look over my code for safety problems" (safe* covers safety)
         "is unsafe",  # "check whether anything here is unsafe"
         "break into",  # "someone could break into this" — companion-gated below
@@ -252,7 +253,7 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
         "pushback",
         "pushed",
         "pushing",
-        # Idiom guards for ship/merge/publish/review triggers (ADR pr-create-skill-guard).
+        # Idiom guards for ship/merge/content/review triggers (ADR pr-create-skill-guard).
         # These suppress matches when context indicates non-git intent.
         "theseus",
         "manuscript",
@@ -267,21 +268,24 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
         "essay",
         "offsite",
     },
-    "shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
-    "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
-    # ADR public-web-deploy. Low-specificity idiom triggers ("go live",
+    # "deploy" catch-all guards (for, bugs, compliments, information, ideas,
+    # answers) were superseded by the per-trigger dict below.  Removed to fix
+    # duplicate-key lint (F601).  The per-trigger dict covers each idiom's
+    # disqualifiers with higher precision.
+    "writing": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
+    # ADR deploy. Low-specificity idiom triggers ("go live",
     # "make it public", "static site", "use my domain", "set up https",
     # "public website") are handled by the POSITIVE companion-word requirement
     # below (SEMANTIC_REQUIRE_COMPANION), not by enumerating disqualifiers — a
     # blocklist loses the arms race against ordinary phrasing. Only the
     # near-specific "deploy website" keeps a negative guard for its one idiom.
-    # Defense-in-depth for public-web-deploy: a match routes only when it
+    # Defense-in-depth for deploy: a match routes only when it
     # survives BOTH this per-trigger blocklist AND (for idiom triggers) the
     # companion-word requirement below. The blocklist catches build/edit/
     # discuss verbs that overloaded companions ("public", "domain") would
     # otherwise wave through ("compare static site generators for public docs").
-    "public-web-deploy": {
-        # build / edit / discuss verbs that mean "work ON a site", not "publish one"
+    "deploy": {
+        # build / edit / discuss verbs that mean "work ON a site", not "content one"
         "static site": _SITE_WORK_GUARD,
         "landing page": _SITE_WORK_GUARD,
         "public website": _SITE_WORK_GUARD,
@@ -304,7 +308,7 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
     # Guards for the SUPPLEMENTAL_TRIGGERS above. Per-trigger dict: these
     # apply only to the listed idiom-prone triggers, never to the skill's
     # INDEX triggers.
-    "security-review": {
+    "security": {
         # "make the code thread-safe" / "type safety" = language mechanics,
         # not a security review.
         "code safe": {
@@ -345,8 +349,8 @@ SEMANTIC_GUARDS: dict[str, set[str] | dict[str, set[str]]] = {
 # "nginx public site", "deploy site", "put X online", "host a website",
 # "point my domain") are NOT listed here and route on their own.
 # Public-web-SPECIFIC companions only. Generic terms (server, production, prod,
-# publish, serve) are deliberately excluded — they appear in ordinary non-deploy
-# requests ("on production", "publish the report") and would re-open the false
+# content, serve) are deliberately excluded — they appear in ordinary non-deploy
+# requests ("on production", "content the report") and would re-open the false
 # positives. Every word here names public web hosting / DNS / TLS concretely.
 _DEPLOY_COMPANIONS: set[str] = {
     # "site"/"website" confirm deploy intent for verb-only idiom triggers
@@ -399,7 +403,7 @@ _DEPLOY_COMPANIONS: set[str] = {
     "droplet",
 }
 SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
-    "public-web-deploy": {
+    "deploy": {
         "go live": _DEPLOY_COMPANIONS,
         "make it public": _DEPLOY_COMPANIONS,
         "make public": _DEPLOY_COMPANIONS,
@@ -418,11 +422,16 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
         # "retheme the deploy site" / "deploy website unit tests".
         "public site": _DEPLOY_COMPANIONS,
         "nginx public site": _DEPLOY_COMPANIONS,
+        "host a website": _DEPLOY_COMPANIONS,
+        "website online": _DEPLOY_COMPANIONS,
+        "put online": _DEPLOY_COMPANIONS,
+        # "put this online" is unambiguous — no companion needed.
+        # "put site online" likewise.
     },
     # "break into" routes only with an intrusion word nearby ("someone could
     # break into this"). Refactor phrasing ("break this into smaller
     # functions") has no such companion and falls through.
-    "security-review": {
+    "security": {
         "break into": {
             "someone",
             "somebody",
@@ -452,7 +461,7 @@ SEMANTIC_REQUIRE_COMPANION: dict[str, dict[str, set[str]]] = {
 # (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
 # reliably means search/extract, not the Fish shell).
 SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
-    "shell-config": {"fish out", "fish for", "zsh out", "zsh for"},
+    "deploy": {"fish out", "fish for", "zsh out", "zsh for"},
     # ADR pr-create-skill-guard: phrase guards for newly-added pr-workflow triggers.
     # The unigram guards above catch most idioms; these phrase guards suppress
     # multi-word collisions that span the trigger window (e.g. 'ship of theseus'
@@ -461,8 +470,8 @@ SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
         "ship of theseus",
         "merge ideas",
         "merge personalities",
-        "publish a paper",
-        "publish a book",
+        "content a paper",
+        "content a book",
         "review the menu",
         "review my essay",
         # Supplemental-trigger idioms: "upload my work to google drive" is a
@@ -800,10 +809,10 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
             )
 
     if go_operand and re.search(r"\bsecurity\s+audit\b", request, re.IGNORECASE):
-        security_entry = next((entry for entry in table if entry.name == "security-review"), None)
+        security_entry = next((entry for entry in table if entry.name == "security"), None)
         if security_entry is not None:
-            candidates["skill:security-review"] = ScoredMatch(
-                name="security-review",
+            candidates["skill:security"] = ScoredMatch(
+                name="security",
                 entry_type="skill",
                 agent=security_entry.agent,
                 force_route=True,
@@ -829,8 +838,8 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     # process phrase such as "fix typo". Ensure every .go edit loads the Go
     # skill's mandatory style baseline while leaving non-Go typo work on quick.
     protected = [candidate for candidate in candidates.values() if candidate.name in PROTECTED_GO_COMPOSITE_SKILLS]
-    if go_operand and not protected and "skill:go-patterns" in candidates:
-        candidates["skill:go-patterns"].score += 100
+    if go_operand and not protected and "skill:programming" in candidates:
+        candidates["skill:programming"].score += 100
 
     # Skill/agent and pipeline are orthogonal slots (COMBINATION DOCTRINE):
     # pick the best non-pipeline match for skill/agent and the best pipeline
@@ -892,7 +901,7 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
         "confidence": confidence,
         "match_type": match_type,
         "reasoning": f"matched triggers [{triggers_str}] for {top.name}",
-        "stack": ["go-patterns"] if go_operand and top.name in PROTECTED_GO_COMPOSITE_SKILLS else [],
+        "stack": ["programming"] if go_operand and top.name in PROTECTED_GO_COMPOSITE_SKILLS else [],
     }
 
 

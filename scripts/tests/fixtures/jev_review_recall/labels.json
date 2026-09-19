@@ -1,0 +1,23 @@
+[
+ {"id":"H1","file":"hooks/jev-turn-quality-gate-stop.py","func":"__main__","class":"finally_overrides_exit_status|swallowed_failure_of_primary_effect","note":"finally: sys.exit(0) swallows SystemExit(2) rewake"},
+ {"id":"H2","file":"hooks/jev-post-agent-validator-subagentstop.py","func":"run_jev_tool_with_context","class":"subprocess_flag_not_accepted","note":"--context passed to scripts that reject it"},
+ {"id":"H3","file":"hooks/jev-compact-precompact.py","func":"run_compact_guidance","class":"event_field_never_present|fallback_defeats_purpose","note":"reads event['messages']; payload carries transcript_path"},
+ {"id":"H4","file":"hooks/jev-pre-edit-guard-pretooluse.py","func":"_handle_write_edit","class":"private_data_sent_to_model|unredacted_egress|secret","note":"file bodies + commands sent to API unredacted"},
+ {"id":"H5","file":"hooks/jev-route-injector-userprompt.py","func":"read_recent_agent_findings","class":"cross_session|race_or_reentrancy|wrong_scope","note":"globs *.json across sessions and unlinks another session's file"},
+ {"id":"H6","file":"hooks/jev-post-agent-validator-subagentstop.py","func":"extract_request_text","class":"event_field_never_present","note":"task_prompt/task/prompt never present in SubagentStop"},
+ {"id":"H7","file":"hooks/jev-post-agent-validator-subagentstop.py","func":"format_findings","class":"consumer_key_mismatch","note":"reads completeness/request_addressed; producer emits completeness_depth/addressed_primary_intent"},
+ {"id":"H8","file":"hooks/jev-post-agent-validator-subagentstop.py","func":"run_jev_tool","class":"secret_or_content_on_argv","note":"3000 chars of output on argv"},
+ {"id":"H10","file":"scripts/jev-compact-evidence.py","func":"_store_files","class":"unguarded_raise|resource_leak|swallowed_failure_of_primary_effect","note":"path.stat() outside try"},
+ {"id":"B1","file":"scripts/lib/jev_browser/cdp_driver.mjs","func":"fresh","class":"fallback_defeats_purpose","note":"WAIT freshness-checked against body-text marker; rejected on dynamic pages"},
+ {"id":"B2","file":"scripts/lib/jev_browser/cdp_driver.mjs","func":"navigate|waitForLoad","class":"swallowed_failure_of_primary_effect","note":"Page.navigate errorText discarded; timeout returns silently; open replies ok:true"},
+ {"id":"B3","file":"scripts/lib/jev_browser/cdp_driver.mjs","func":"CDP|_read|close","class":"resource_leak|hang|race_or_reentrancy","note":"no close handler / no dialog handler; readline without timeout hangs forever"},
+ {"id":"B4","file":"scripts/lib/jev_browser/cdp_driver.mjs","func":"openTab","class":"secret|unredacted_egress|private_data_sent","note":"setExtraHTTPHeaders sends --header token to every origin"},
+ {"id":"B5","file":"scripts/jev-browser-verify.py","func":"verify","class":"guard_inverted_or_off_by_one|off_by_one_or_boundary","note":"passed computed before deterministic override"},
+ {"id":"B7","file":"scripts/jev-smoke-test.py","func":"_score_index","class":"score_read_as_level_index","note":"round(mean)+1 compared to level threshold"},
+ {"id":"B8","file":"plugins/jev-auto-compact/hooks/jev-auto-compact.mjs","func":"turn.complete","class":"unconditional_expensive_side_effect","note":"after {skip} nothing recorded; re-judges every turn"},
+ {"id":"B9","file":"plugins/jev-auto-compact/hooks/jev-auto-compact.mjs","func":"compact","class":"swallowed_failure_of_primary_effect|silent_failure","note":"batch errors caught with no log"},
+ {"id":"E1","file":"scripts/jev-quality-loop.py","func":"_score_passes","class":"score_read_as_level_index","note":"score compared to label index"},
+ {"id":"E2","file":"scripts/jev-cascade-review.py","func":"_parse_stage1","class":"score_read_as_level_index","note":"risk score treated as label"},
+ {"id":"E3","file":"scripts/jev-diff-triage.py","func":"_assign_priority","class":"dead_or_unreachable_code|unused_parameter","note":"threshold parameter never used"},
+ {"id":"E4","file":"scripts/jev-pr-slop-scan.py","func":"scan_diff","class":"swallowed_failure_of_primary_effect|silent_failure","note":"per-file failures hidden; files_scanned counts failures"}
+]

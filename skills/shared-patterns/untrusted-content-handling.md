@@ -120,9 +120,8 @@ Prompt boundaries are the first layer. Additional layers should always be presen
 
 | Skill | External content source |
 |-------|----------------------|
-| `reddit-moderate` | Reddit posts, comments, report reasons, usernames, user history |
+| `content` | Reddit posts, comments, report reasons, usernames, user history; Bluesky posts, profiles |
 | `publish` | WordPress comments (if processing) |
-| `bluesky-reader` | Bluesky posts, profiles |
 | Any future social media / community tool | All user-generated text |
 
 ### How to reference this pattern:

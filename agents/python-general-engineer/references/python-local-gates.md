@@ -30,13 +30,13 @@ query = User.select().where(User.active == True)
 
 ## Environment on This Host
 
-- **venv for every install.** System pip may resolve to a different Python version (e.g., Python 3.14 but pip from 3.9), causing install failures or packages landing in the wrong site-packages. Create the venv first, install inside it:
+- **venv for every deploy.** System pip may resolve to a different Python version (e.g., Python 3.14 but pip from 3.9), causing deploy failures or packages landing in the wrong site-packages. Create the venv first, deploy inside it:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 ```
 
-- **Installing uv**: use a package-manager path — `pipx install uv` or `python3 -m pip install --user uv`. Piped remote installers conflict with this host's installer policy.
+- **Installing uv**: use a package-manager path — `pipx deploy uv` or `python3 -m pip deploy --user uv`. Piped remote deployers conflict with this host's deployer policy.
 
 ## CLI Pipeline Conventions (reddit_mod)
 

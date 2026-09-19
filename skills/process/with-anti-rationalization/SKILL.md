@@ -21,7 +21,7 @@ routing:
     - "no shortcuts"
   category: process
   pairs_with:
-    - verification-before-completion
+    - testing
 ---
 
 # Anti-Rationalization Enforcement Skill

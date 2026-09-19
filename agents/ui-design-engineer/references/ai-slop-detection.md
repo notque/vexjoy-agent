@@ -1,12 +1,12 @@
 # AI Slop Detection
 
-<!-- Loaded by ui-design-engineer when task involves AI slop, generic UI, AI-generated look, template look, or default styling -->
+<!-- Loaded by ui-frontend-engineer when task involves AI slop, generic UI, AI-generated look, template look, or default styling -->
 
 Detect and fix the 8 most common patterns that make AI-generated UI look generic. Each pattern below starts with the correct approach, then provides a detection command for auditing existing code.
 
 ## Use Purposeful Gradients
 
-Gradients serve a visual purpose: directing attention, creating depth, or establishing atmosphere. Aggressive multi-color gradients with 3+ color stops — the rainbow-adjacent backgrounds AI defaults to — signal that no design decision was made. Use single-hue gradients (e.g., dark blue to slightly lighter blue) or solid backgrounds. A gradient earns its place when it creates a mood, not when it fills a blank.
+Gradients serve a visual purpose: directing attention, creating depth, or establishing atmosphere. Aggressive multi-color gradients with 3+ color stops — the rainbow-adjacent backgrounds AI defaults to — signal that no frontend decision was made. Use single-hue gradients (e.g., dark blue to slightly lighter blue) or solid backgrounds. A gradient earns its place when it creates a mood, not when it fills a blank.
 
 ```css
 /* Correct: single-hue gradient creating subtle depth */
@@ -16,7 +16,7 @@ background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
 background-color: #fafaf9;
 ```
 
-**Keep if:** The design specification calls for a multi-stop gradient and provides the exact color stops with a visual rationale. Brand gradients with 3+ stops exist (Instagram, Stripe).
+**Keep if:** The frontend specification calls for a multi-stop gradient and provides the exact color stops with a visual rationale. Brand gradients with 3+ stops exist (Instagram, Stripe).
 
 **Detection:**
 ```bash
@@ -28,7 +28,7 @@ Flag any gradient with 3 or more color stops for manual review.
 
 ## Reserve Emoji for Brand Context
 
-Emoji used as decorative section markers — a rocket before "Features", a sparkle before "Benefits" — is an AI tell. It adds visual noise without communicating information. Use SVG icons from a coherent icon set (Lucide, Heroicons, Phosphor) or text-only headings. Emoji belongs in conversational UI (chat, notifications, reactions) where informal tone is the point, not in marketing or product sections where it cheapens the message.
+Emoji used as decorative section markers — a rocket before "Features", a sparkle before "Benefits" — is an AI tell. It adds visual noise without communicating information. Use SVG icons from a coherent icon set (Lucide, Heroicons, Phosphor) or text-only headings. Emoji belongs in conversational UI (chat, notifications, reactions) where informal tone is the point, not in content or product sections where it cheapens the message.
 
 ```html
 <!-- Correct: icon from a coherent set -->
@@ -67,7 +67,7 @@ The `border-radius: 12px` card with `border-left: 4px solid {accent}` is the sin
 }
 ```
 
-**Keep if:** The left border accent is part of a documented design system with a specific semantic meaning (e.g., VS Code's panel indicators, GitHub's diff markers).
+**Keep if:** The left border accent is part of a documented frontend system with a specific semantic meaning (e.g., VS Code's panel indicators, GitHub's diff markers).
 
 **Detection:**
 ```bash
@@ -79,7 +79,7 @@ Cross-reference hits with `border-radius` in the same rule or component. The com
 
 ## Use Professional Illustration or Photography
 
-AI defaults to hand-drawn, sketchy SVG illustrations — wobbly lines, friendly blob shapes, stick-figure-adjacent characters. These look like placeholder art that shipped by accident. Use real photography, professional vector illustration from a licensed set (unDraw with customization, Storyset), or honest placeholders (see `honest-placeholders.md` in `skills/frontend/distinctive-frontend-design/references/`). An honest "image needed" placeholder is better than a bad illustration that looks intentional.
+AI defaults to hand-drawn, sketchy SVG illustrations — wobbly lines, friendly blob shapes, stick-figure-adjacent characters. These look like placeholder art that shipped by accident. Use real photography, professional vector illustration from a licensed set (unDraw with customization, Storyset), or honest placeholders (see `honest-placeholders.md` in `skills/frontend/frontend/references/`). An honest "image needed" placeholder is better than a bad illustration that looks intentional.
 
 ```html
 <!-- Correct: real photography with proper alt text -->
@@ -118,7 +118,7 @@ rg -i 'font-family.*\b(Inter|Roboto|Arial|Helvetica|system-ui)\b' --include='*.c
 
 ## Use Near-Black and Near-White
 
-Pure `#000000` and `#FFFFFF` are harsh on screens and signal default choices — no one picked these colors, the tool did. Use near-black (e.g., `#1a1a2e`, `oklch(15% 0.02 260)`) and near-white (e.g., `#fafaf9`, `oklch(98% 0.005 80)`) to soften the palette without losing contrast. The difference is subtle but immediate: near-variants feel designed, pure values feel default.
+Pure `#000000` and `#FFFFFF` are harsh on screens and signal default choices — no one picked these colors, the tool did. Use near-black (e.g., `#1a1a2e`, `oklch(15% 0.02 260)`) and near-white (e.g., `#fafaf9`, `oklch(98% 0.005 80)`) to soften the palette without losing contrast. The difference is subtle but immediate: near-variants feel frontended, pure values feel default.
 
 ```css
 /* Correct: near-black and near-white */
@@ -134,7 +134,7 @@ Pure `#000000` and `#FFFFFF` are harsh on screens and signal default choices —
 }
 ```
 
-**Keep if:** The design specification explicitly uses `#000` or `#FFF` for a high-contrast brutalist aesthetic, or the context is a code editor / terminal theme where pure black backgrounds are conventional.
+**Keep if:** The frontend specification explicitly uses `#000` or `#FFF` for a high-contrast brutalist aesthetic, or the context is a code editor / terminal theme where pure black backgrounds are conventional.
 
 **Detection:**
 ```bash
@@ -156,9 +156,9 @@ Random hex values with no relationship to each other — `#4f46e5` next to `#10b
 }
 ```
 
-**Keep if:** The colors come from an established design system (Tailwind's palette, Material Design) where the relationships are already defined.
+**Keep if:** The colors come from an established frontend system (Tailwind's palette, Material Design) where the relationships are already defined.
 
-**Detection:** Check whether color values appear in the project's design specification, brand guide, or a documented palette source. Colors that cannot be traced to a source need justification. See `oklch-color-harmony.md` (in `skills/frontend/distinctive-frontend-design/references/`) for the technique to build harmonious palettes from context.
+**Detection:** Check whether color values appear in the project's frontend specification, brand guide, or a documented palette source. Colors that cannot be traced to a source need justification. See `oklch-color-harmony.md` (in `skills/frontend/frontend/references/`) for the technique to build harmonious palettes from context.
 
 ---
 
@@ -176,10 +176,10 @@ Values like `padding: 7px`, `margin: 13px`, or `gap: 18px` that do not fit a 4px
 }
 ```
 
-**Keep if:** The value is 1px or 2px for borders, outlines, or dividers — these are structural, not spacing. `--allow 1,2` in the design scale checker handles this.
+**Keep if:** The value is 1px or 2px for borders, outlines, or dividers — these are structural, not spacing. `--allow 1,2` in the frontend scale checker handles this.
 
 **Detection:**
 ```bash
-python3 scripts/design-scale-check.py path/to/styles.css
+python3 scripts/frontend-scale-check.py path/to/styles.css
 ```
-The script flags any `px` value that is not a multiple of 4 (configurable via `--base`). See `scripts/design-scale-check.py` for full usage.
+The script flags any `px` value that is not a multiple of 4 (configurable via `--base`). See `scripts/frontend-scale-check.py` for full usage.

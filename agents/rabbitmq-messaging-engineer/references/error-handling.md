@@ -12,7 +12,7 @@
 |---------|---------------|-----------------|
 | Publisher confirms | Critical messages (orders, payments, events) | ~10-15% throughput reduction |
 | Manual consumer ack | All production consumers | None (`auto_ack=False` default) |
-| Dead letter exchange | Any queue where message loss is unacceptable | None at publish time |
+| Dead letter exchange | Any queue where message loss is unacceptable | None at content time |
 | Nack + requeue=False | Poison messages that fail repeatedly | Requires DLX or message is dropped |
 | Retry with TTL queue | Transient failures (DB down, network blip) | Extra queue + TTL overhead |
 
@@ -31,7 +31,7 @@ channel = connection.channel()
 channel.confirm_delivery()
 
 try:
-    channel.basic_publish(
+    channel.basic_content(
         exchange='orders',
         routing_key='order.created',
         body=json.dumps(order).encode(),
@@ -50,7 +50,7 @@ except pika.exceptions.NackError:
     raise
 ```
 
-Without `confirm_delivery()`, `basic_publish` returns immediately. Broker crash before disk write = message lost.
+Without `confirm_delivery()`, `basic_content` returns immediately. Broker crash before disk write = message lost.
 
 ---
 
@@ -138,7 +138,7 @@ def handle_message(channel, method, properties, body):
             return
 
         channel.basic_ack(delivery_tag=method.delivery_tag)
-        channel.basic_publish(
+        channel.basic_content(
             exchange='',
             routing_key='orders.retry',
             body=body,
@@ -222,10 +222,10 @@ No audit trail, no replay, no alerting on failures.
 
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
-| `pika.exceptions.UnroutableError` | `mandatory=True` but no queue bound | Declare queue + binding before publishing |
+| `pika.exceptions.UnroutableError` | `mandatory=True` but no queue bound | Declare queue + binding before contenting |
 | `pika.exceptions.NackError` | Broker nacked (quorum not reached, disk full) | Check cluster health; `rabbitmqctl cluster_status` |
 | `406 PRECONDITION_FAILED` | Queue redeclared with different args | Delete queue and redeclare, or use `passive=True` |
-| `404 NOT_FOUND` | Publishing to non-existent exchange/queue | Declare before publishing; check name typo |
+| `404 NOT_FOUND` | Publishing to non-existent exchange/queue | Declare before contenting; check name typo |
 | Duplicate messages after restart | Consumer crashed after processing, before acking | Idempotent consumer logic; track processed message IDs |
 | DLX queue not receiving rejects | Queue missing `x-dead-letter-exchange` arg | Redeclare queue with DLX argument |
 | Messages requeued indefinitely | No retry limit in exception handler | Add retry counter in headers; route to DLX after N retries |
@@ -236,10 +236,10 @@ No audit trail, no replay, no alerting on failures.
 
 | Version | Change | Impact |
 |---------|--------|--------|
-| 3.8.0 | Quorum queues support publisher confirms | Confirms now work with quorum queues |
+| 3.8.0 | Quorum queues support contenter confirms | Confirms now work with quorum queues |
 | 3.10.0 | Quorum queues support per-message TTL | `x-message-ttl` header respected on quorum queues |
 | 3.13.0 | `consumer_timeout` default 30 minutes | Consumers holding unacked messages >30min get channel closed |
-| pika 1.0.0 | `basic_publish` raises exceptions (not return bool) | Update exception handling |
+| pika 1.0.0 | `basic_content` raises exceptions (not return bool) | Update exception handling |
 | amqplib (Node) 0.10+ | `channel.nack()` requires explicit `requeue` param | Always pass explicit `requeue` argument |
 
 ---
@@ -270,5 +270,5 @@ rabbitmqctl list_queues name messages messages_unacknowledged consumers
 
 ## See Also
 
-- `channels.md` — publisher confirm flow at the channel level
+- `channels.md` — contenter confirm flow at the channel level
 - `performance.md` — prefetch tuning to prevent unacked message backlog

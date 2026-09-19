@@ -90,7 +90,7 @@ Programs decide the obvious ends; Jev judges the middle. In compaction, Glob and
 
 ## History injection and stall detection
 
-Include the last N actions as "ACTIONS ALREADY TAKEN (do NOT repeat these)" in state. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); a fingerprint unchanged after an action means no effect, a fingerprint revisited three times means a cycle. Both end the loop in code with no Jev cost. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick. Worked example: `scripts/jev-browser-agent.py` (`STALL_LIMIT`, `CYCLE_VISIT_LIMIT`, `_compute_fingerprint`).
+Put the last N actions in state as a plain list (`actions_already_taken`). Put the rule ("do not repeat an action listed in `actions_already_taken`") in the instructions: state holds facts, instructions hold the judgment. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); a fingerprint unchanged after an action means no effect, a fingerprint revisited three times means a cycle. Both end the loop in code with no Jev cost. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick. Worked example: `scripts/jev-browser-agent.py` (`STALL_LIMIT`, `CYCLE_VISIT_LIMIT`, `_compute_fingerprint`).
 
 ## Label over index
 
@@ -111,4 +111,4 @@ Start from the failure: what did Jev get wrong, or what could it not see?
 1. **Name the failure.** Wrong answer, low confidence, missed case, loop, or latency.
 2. **Change one of four levers.** State shape (what evidence Jev sees), question decomposition (how many questions and of what type), call sequencing (one call vs. chained calls), or policy (thresholds and weights in code).
 3. **Measure against labeled cases.** Run the new pattern on the same labeled set. Compare accuracy, confidence distribution, and false-positive rate.
-4. **Keep only with numbers.** A pattern that reads well but does not improve the numbers is not a pattern. Record the before/after measurements in `references/lessons-with-numbers.md`.
+4. **Keep only with numbers.** A pattern that reads well but does not improve the numbers is not a pattern. Record the before/after measurements alongside the labeled cases.

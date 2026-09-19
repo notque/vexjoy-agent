@@ -13,7 +13,7 @@ routing:
     - codex analysis
     - gpt-5.6
   pairs_with:
-    - data-analysis
+    - data
     - pr-workflow
   complexity: Medium
   category: meta
@@ -29,8 +29,6 @@ Two flows keep their own specialized codex integration — route to them instead
 
 | Existing flow | Owns | Where |
 |---|---|---|
-| PR / code review via codex | `codex exec review`, finding triage, report synthesis | `skills/process/pr-workflow/references/codex-review.md` |
-| Sprite/image generation backend | codex image backend selection and invocation | `skills/game/game-sprite-pipeline/references/backend-chain.md` |
 
 ## Phase 1: DECIDE — does this task belong on GPT-5.6?
 
@@ -120,5 +118,3 @@ Solution: shorten the prompt (point codex at files instead of embedding content)
 ## References
 
 - `/do` SKILL.md, Model Selection — canonical policy table and routing decision rules
-- `skills/process/pr-workflow/references/codex-review.md` — review-specific codex flow
-- `skills/game/game-sprite-pipeline/references/backend-chain.md` — codex image backend

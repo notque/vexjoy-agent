@@ -182,4 +182,4 @@ grep -rn 'useEffect' --include="*.tsx" -A5 | grep -v 'if.*rive\|!rive' | grep 'r
 
 - `rive-react-setup.md` — Full `useRive` parameter reference
 - `rive-performance.md` — WebGL cleanup, lazy loading, canvas sizing
-- `rive-animation-library.md` — State machine design, `onStateChange` states
+- `rive-animation-library.md` — State machine frontend, `onStateChange` states

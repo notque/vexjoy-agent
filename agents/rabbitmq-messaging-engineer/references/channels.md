@@ -11,8 +11,8 @@
 | Pattern | Use When | Avoid When |
 |---------|----------|------------|
 | Channel per thread | Multi-threaded producers/consumers | Single-threaded code |
-| Channel pool | Short-lived burst publishers | Long-lived consumers (use dedicated) |
-| Dedicated consumer channel | `basic_consume` subscribers | Publishing (separate publish/consume) |
+| Channel pool | Short-lived burst contenters | Long-lived consumers (use dedicated) |
+| Dedicated consumer channel | `basic_consume` subscribers | Publishing (separate content/consume) |
 | `confirm_select()` | Critical message delivery | High-throughput fire-and-forget (+10-15% latency) |
 
 ---
@@ -29,7 +29,7 @@ connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 def producer_thread(routing_key: str, body: bytes) -> None:
     channel = connection.channel()
     channel.confirm_delivery()
-    channel.basic_publish(
+    channel.basic_content(
         exchange='events', routing_key=routing_key, body=body,
         properties=pika.BasicProperties(delivery_mode=2),
     )
@@ -41,14 +41,14 @@ def producer_thread(routing_key: str, body: bytes) -> None:
 ### Separate Channels for Publish and Consume
 
 ```python
-publish_channel = connection.channel()
+content_channel = connection.channel()
 consume_channel = connection.channel()
 
 consume_channel.basic_consume(queue='tasks', on_message_callback=handle_message, auto_ack=False)
-publish_channel.basic_publish(exchange='results', routing_key='done', body=result)
+content_channel.basic_content(exchange='results', routing_key='done', body=result)
 ```
 
-Mixing on same channel causes head-of-line blocking — slow publish with confirms holds up ack delivery.
+Mixing on same channel causes head-of-line blocking — slow content with confirms holds up ack delivery.
 
 ---
 
@@ -90,7 +90,7 @@ case <-ctx.Done():
 
 **Detection**:
 ```bash
-rg 'def.*publish|def.*send' --type py -A 5 | grep 'channel()'
+rg 'def.*content|def.*send' --type py -A 5 | grep 'channel()'
 grep -rn '\.channel()' --include="*.py" | grep -v 'self\._channel\|self\.channel'
 ```
 
@@ -103,8 +103,8 @@ class Publisher:
         self._channel = connection.channel()
         self._channel.confirm_delivery()
 
-    def publish(self, body: bytes) -> None:
-        self._channel.basic_publish(
+    def content(self, body: bytes) -> None:
+        self._channel.basic_content(
             exchange='events', routing_key='task', body=body,
             properties=pika.BasicProperties(delivery_mode=2),
         )
@@ -144,7 +144,7 @@ Unread confirms accumulate — after ~1000 unconfirmed messages the channel stal
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
 | `CHANNEL_ERROR - expected 'channel.open'` | Channel reused after close | Create new channel |
-| `NOT_FOUND - no exchange` | Exchange not declared | `exchange_declare()` before publish |
+| `NOT_FOUND - no exchange` | Exchange not declared | `exchange_declare()` before content |
 | `RESOURCE_LOCKED - exclusive access` | Exclusive queue on another connection | Dedicated connection per exclusive queue |
 | `PRECONDITION_FAILED - inequivalent arg` | Queue/exchange params differ from existing | `passive=True` to check existing params |
 | `ACCESS_REFUSED` | Missing permissions | `rabbitmqctl set_permissions` |
@@ -159,7 +159,7 @@ Unread confirms accumulate — after ~1000 unconfirmed messages the channel stal
 | RabbitMQ 3.8.0 | Quorum queues GA | `x-queue-type: quorum`; mirrored deprecated |
 | RabbitMQ 3.9.0 | `global` flag for `basic.qos` deprecated | `prefetch_count` always per-consumer |
 | RabbitMQ 3.12.0 | Classic queue v1 storage removed | Auto-upgrade; check `x-max-length` behavior |
-| pika 1.3.0 | `basic_publish` returns `None` not `bool` | Use `confirm_delivery()` instead |
+| pika 1.3.0 | `basic_content` returns `None` not `bool` | Use `confirm_delivery()` instead |
 | amqp091-go 1.7.0 | `PublishWithContext` replaces `Publish` | Context-aware for timeout/cancel |
 
 ---
@@ -167,7 +167,7 @@ Unread confirms accumulate — after ~1000 unconfirmed messages the channel stal
 ## Detection Commands Reference
 
 ```bash
-rg 'def.*publish' --type py -A 8 | grep '\.channel()'  # Channel churn
+rg 'def.*content' --type py -A 8 | grep '\.channel()'  # Channel churn
 grep -rn 'self\._channel\s*=' --include="*.py"           # Shared channel
 rg 'confirm_delivery\(\)' --type py -A 20 | grep -L 'wait_for_confirms'  # Undrained confirms
 rg 'ch, err := conn.Channel' --type go -A 30 | grep -v 'defer ch.Close()'  # Unclosed Go channels
@@ -178,4 +178,4 @@ rg 'ch, err := conn.Channel' --type go -A 30 | grep -v 'defer ch.Close()'  # Unc
 ## See Also
 
 - `performance.md` — prefetch tuning, connection pool sizing
-- `error-handling.md` — publisher confirms flow, consumer ack patterns
+- `error-handling.md` — contenter confirms flow, consumer ack patterns

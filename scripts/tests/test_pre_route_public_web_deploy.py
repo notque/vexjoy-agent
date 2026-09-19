@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Tests pinning the public-web-deploy force-route corpus (ADR public-web-deploy).
+"""Tests pinning the deploy force-route corpus (ADR deploy).
 
 Positive corpus: phrasings of public-deploy intent that MUST force-route to
-`public-web-deploy`. Negative corpus: idiomatic phrasings that overlap on
+`deploy`. Negative corpus: idiomatic phrasings that overlap on
 low-specificity trigger words ("go live", "static site", "use my domain",
 "set up https", "make it public", "public website") but mean something else,
-and MUST NOT force-route to `public-web-deploy`.
+and MUST NOT force-route to `deploy`.
 
 Low-specificity idiom triggers are gated by a POSITIVE companion-word
 requirement (a deploy/host term must sit near the trigger), not a blocklist —
 this is what keeps the negative corpus falling through. The corpus is the
 contract: if a phrase fails, fix the trigger/guard, do not drop the case.
-See `adr/public-web-deploy.md`.
+See `adr/deploy.md`.
 """
 
 import json
@@ -36,7 +36,7 @@ def _route(phrase: str) -> dict:
     return json.loads(proc.stdout)
 
 
-# Positive corpus: every phrase MUST force-route to public-web-deploy.
+# Positive corpus: every phrase MUST force-route to deploy.
 POSITIVE_CORPUS = [
     # Required true positives from the task spec
     "put my website online",
@@ -92,7 +92,7 @@ POSITIVE_CORPUS = [
 ]
 
 
-# Negative corpus: every phrase MUST NOT force-route to public-web-deploy.
+# Negative corpus: every phrase MUST NOT force-route to deploy.
 NEGATIVE_CORPUS = [
     # Required false cases from the task spec
     "use my domain knowledge to design the schema",
@@ -166,10 +166,10 @@ NEGATIVE_CORPUS = [
 
 @pytest.mark.parametrize("phrase", POSITIVE_CORPUS)
 def test_positive_corpus_force_routes_to_public_web_deploy(phrase: str) -> None:
-    """Each public-deploy phrasing must force-route to public-web-deploy."""
+    """Each public-deploy phrasing must force-route to deploy."""
     result = _route(phrase)
-    assert result["skill"] == "public-web-deploy", (
-        f"phrase {phrase!r} routed to skill={result.get('skill')!r}, expected public-web-deploy. full result: {result}"
+    assert result["skill"] == "deploy", (
+        f"phrase {phrase!r} routed to skill={result.get('skill')!r}, expected deploy. full result: {result}"
     )
     assert result["match_type"] == "force_route", (
         f"phrase {phrase!r} matched with match_type={result.get('match_type')!r}, "
@@ -179,7 +179,7 @@ def test_positive_corpus_force_routes_to_public_web_deploy(phrase: str) -> None:
 
 @pytest.mark.parametrize("phrase", NEGATIVE_CORPUS)
 def test_negative_corpus_does_not_force_route_to_public_web_deploy(phrase: str) -> None:
-    """Each idiomatic phrasing must not force-route to public-web-deploy."""
+    """Each idiomatic phrasing must not force-route to deploy."""
     result = _route(phrase)
-    is_force_route = result.get("skill") == "public-web-deploy" and result.get("match_type") == "force_route"
-    assert not is_force_route, f"phrase {phrase!r} incorrectly force-routed to public-web-deploy. full result: {result}"
+    is_force_route = result.get("skill") == "deploy" and result.get("match_type") == "force_route"
+    assert not is_force_route, f"phrase {phrase!r} incorrectly force-routed to deploy. full result: {result}"

@@ -16,150 +16,86 @@ from pathlib import Path
 
 # Complete mapping: skill_name → category_folder
 SKILL_MAPPING: dict[str, str] = {
-    # business/ — executive + domain skills
-    # (sales, legal, finance, hr, customer-support, operations,
-    #  product-management, productivity folded into business-ops references/)
+    # analysis/ — assessment, data
+    "assessment": "analysis",
+    "data": "analysis",
+    # business/
     "business-ops": "business",
-    "marketing": "business",
-    "design": "business",
     # code-quality/
-    "code-cleanup": "code-quality",
-    "code-linting": "code-quality",
+    "code-quality": "code-quality",
     "comment-quality": "code-quality",
     "condense": "code-quality",
     "joy-check": "code-quality",
-    "python-quality-gate": "code-quality",
-    "typescript-check": "code-quality",
-    "universal-quality-gate": "code-quality",
     # content/ — publishing, social, media, voice, comms
-    "content-calendar": "content",
+    "content": "content",
     "content-engine": "content",
     "headlines": "content",
-    "professional-communication": "content",
     "series-planner": "content",
     "topic-brainstormer": "content",
-    "publish": "content",
-    "wordpress-live-validation": "content",
-    "x-api": "content",
-    "bluesky-reader": "content",
-    "reddit-moderate": "content",
     "image-to-video": "content",
     "video-editing": "content",
     "image-gen": "content",
-    "create-voice": "content",
-    "voice-writer": "content",
-    "voice-validator": "content",
-    "translate": "content",
+    "writing": "content",
     # Private skills (voice-* persona clones and other private components)
     # live in ~/private-skills, not in this repo. Not mapped here.
-    # engineering/ — language-specific patterns + domain engineering
-    "enterprise-search": "engineering",
-    "go-patterns": "engineering",
-    "kotlin": "engineering",
-    "php": "engineering",
-    "swift": "engineering",
-    "sapcc-audit": "engineering",
-    "sapcc-review": "engineering",
+    # domain/
+    "domain": "domain",
+    # engineering/
     "cli-design": "engineering",
-    "opensearch-detection-engineer": "engineering",
     # frontend/
-    "distinctive-frontend-design": "frontend",
+    "frontend": "frontend",
     "frontend-slides": "frontend",
-    "threejs-builder": "frontend",
     "webgl-card-effects": "frontend",
     # game/
     "game-asset-generator": "game",
-    "game-design": "game",
-    "gm-brilliant-implementation": "game",
-    "game-pipeline": "game",
-    "game-sprite-pipeline": "game",
-    "phaser-gamedev": "game",
+    "game-dev": "game",
     "motion-pipeline": "game",
-    # infrastructure/ — ops, k8s, shell, cron
+    # infrastructure/ — ops, k8s, deploy, browser
     "browser-jev-automation": "infrastructure",
     "kubernetes": "infrastructure",
-    "shell-config": "infrastructure",
-    "shell-process-patterns": "infrastructure",
     "headless-cron-creator": "infrastructure",
-    "cron-automation": "infrastructure",
     "endpoint-validator": "infrastructure",
-    "service-health-check": "infrastructure",
-    "public-web-deploy": "infrastructure",
     "cve-source-check": "infrastructure",
-    "dev-branch-deploy": "infrastructure",
+    "deploy": "infrastructure",
+    # integrations/
+    "github": "integrations",
     # meta/ — toolkit self-management
     "building-with-jev": "meta",
     "codex": "meta",
     "d": "meta",
     "do": "meta",
-    "install": "meta",
-    "retro": "meta",
     "auto-dream": "meta",
-    "routing-table-updater": "meta",
-    "skill-composer": "meta",
-    "skill-creator": "meta",
-    "skill-eval": "meta",
-    "agent-comparison": "meta",
-    "agent-creator": "meta",
-    "agent-evaluation": "meta",
-    "toolkit-evolution": "meta",
+    "toolkit": "meta",
     "workflow-help": "meta",
-    "reference-enrichment": "meta",
-    "generate-claudemd": "meta",
-    "html-artifact": "meta",
     "docs-sync-checker": "meta",
-    "explanation-traces": "meta",
-    "objective-loop": "meta",
-    "hill-climb": "meta",
-    # process/ — methodologies, git, debugging
-    "planning": "process",
-    "session-handoff": "process",
+    # process/ — methodologies, git, debugging, testing, workflow
+    "debugging": "process",
     "quick": "process",
-    "feature-lifecycle": "process",
-    "pair-programming": "process",
-    "subagent-driven-development": "process",
     "with-anti-rationalization": "process",
-    "verification-before-completion": "process",
-    "condition-based-waiting": "process",
-    "socratic-debugging": "process",
-    "forensics": "process",
     "plant-seed": "process",
-    "read-only-ops": "process",
     "pr-workflow": "process",
     "worktree-agent": "process",
-    "github-notification-triage": "process",
-    "adr-consultation": "process",
+    "process": "process",
+    "testing": "process",
+    "workflow": "process",
+    # programming/
+    "programming": "programming",
     # research/ — investigation, analysis, decisions
-    "research-pipeline": "research",
-    "fact-check": "research",
+    "research": "research",
     "news-collection": "research",
     "markdown-converter": "research",
     "video-transcript": "research",
-    "data-analysis": "research",
     "architecture-deepening": "research",
     "codebase-analyzer": "research",
-    "codebase-overview": "research",
-    "full-repo-review": "research",
-    "multi-persona-critique": "research",
-    "repo-value-analysis": "research",
     "roast": "research",
-    "decision-helper": "research",
-    "security-threat-model": "research",
     # review/
-    "systematic-code-review": "review",
-    "parallel-code-review": "review",
     "integration-checker": "review",
-    "security-review": "review",
-    # testing/
-    "test-driven-development": "testing",
-    "e2e-testing": "testing",
-    "testing-agents-with-subagents": "testing",
-    "testing-preferred-patterns": "testing",
-    "vitest-runner": "testing",
+    "review": "review",
+    "security": "review",
 }
 
 # Directories to keep at root level (no SKILL.md or special structure)
-KEEP_AT_ROOT = {"shared-patterns", "workflow", "kb"}
+KEEP_AT_ROOT = {"shared-patterns", "kb", "reddit-data", "voice", "voice-shared"}
 
 
 def main() -> int:

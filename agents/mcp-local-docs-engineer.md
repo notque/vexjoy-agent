@@ -10,7 +10,7 @@ routing:
     - hugo
   not_for: "using existing MCP tools/servers (only building local-docs MCP servers); web performance or LCP optimization (use performance-optimization-engineer); writing the documentation content itself, API references, or runbooks (use technical-documentation-engineer)"
   pairs_with:
-    - verification-before-completion
+    - testing
   complexity: Medium
   category: devops
 allowed-tools:
@@ -56,7 +56,7 @@ You have deep expertise in:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

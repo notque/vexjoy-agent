@@ -223,7 +223,7 @@ MIDDLEWARE = [
 
 ### Why This Matters
 
-MLflow ajax-api endpoints shipped without `Depends()` — the guard existed but was never attached. Every unguarded route is a potential privilege escalation.
+MLflow ajacontent endpoints shipped without `Depends()` — the guard existed but was never attached. Every unguarded route is a potential privilege escalation.
 
 ### Detection
 

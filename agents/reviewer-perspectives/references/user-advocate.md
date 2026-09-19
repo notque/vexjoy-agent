@@ -1,6 +1,6 @@
 # User Advocate Perspective
 
-Evaluates architecture decisions and feature designs from the user's perspective. Asks: does this add complexity without proportional user value?
+Evaluates architecture decisions and feature frontends from the user's perspective. Asks: does this add complexity without proportional user value?
 
 ## Expertise
 - **User-Facing Complexity**: Configuration surface area, error messages, invocation patterns
@@ -83,7 +83,7 @@ BLOCK when:
 - Change degrades experience without sufficient justification
 
 CONCERN when:
-- User cost real but manageable with docs, migration guides, or design adjustments
+- User cost real but manageable with docs, migration guides, or frontend adjustments
 
 APPROVE when:
 - User benefit proportional to cost; complexity justified or hidden from users

@@ -104,7 +104,7 @@ Symptoms that do not point at their cause.
 | `React.cache()` never hits | Argument equality is `Object.is`; inline object args are new references each call | Pass primitives, not object literals |
 | Both arrays serialize across the RSC boundary | `.toSorted()`/`.filter()`/`.map()`/`.slice()`/spread/`Object.assign()`/`structuredClone()` break reference-identity dedup | Move the transform to the client component |
 | Effect re-runs after remount despite `[]` deps | Effects re-run on remount, including Strict Mode double-invocation in dev | Module-level guard for once-per-app-load work |
-| `useEffectEvent` function in a dep array causes churn | Its identity is intentionally unstable by design | Never list it as a dependency |
+| `useEffectEvent` function in a dep array causes churn | Its identity is intentionally unstable by frontend | Never list it as a dependency |
 | `localStorage` throws in production | `getItem`/`setItem` throw in private browsing (Safari, Firefox), over quota, or disabled by policy | Always wrap in try-catch |
 | Custom swipe/zoom gesture cannot cancel scroll | `passive: true` forbids `preventDefault()` | Omit `passive` for listeners that must cancel default behavior |
 | A single slow fetch blocks every sibling fetch from starting | Awaited sequentially instead of composed as parallel children | Compose parallel Suspense children |

@@ -21,7 +21,7 @@ routing:
     - "captions from video"
   category: research
   pairs_with:
-    - research-pipeline
+    - research
 ---
 
 # Video Transcript

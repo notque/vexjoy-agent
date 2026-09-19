@@ -38,7 +38,7 @@ GOLDEN = FIX / "golden"
 # APPENDING cases, never editing these.
 #
 # Exception (2026-07-04, post-merge fixup I3): commit 87977cdb (codebase-analyzer
-# demoted to codebase-overview) edited the `notes` field of legacy entries 18-20
+# demoted to assessment) edited the `notes` field of legacy entries 18-20
 # to rename the skill reference — an owner-approved content correction, not a
 # scope change to the pinned cases. The pin is updated to the new digest rather
 # than reverted, because the old digest now describes stale prose (a skill name
@@ -47,11 +47,12 @@ GOLDEN = FIX / "golden"
 # same scrutiny this pin exists to enforce.
 # Exception (2026-07-05, skill consolidation): 35 skills folded into 13 parents
 # via promoted_to. Legacy edits, all rename-class: notes in cases 18-20 and 31
-# (codebase-analyzer -> codebase-overview, fish-shell-config -> shell-config)
-# and case 42 gold label (roast -> multi-persona-critique, its parent). Same
+# (codebase-analyzer -> assessment, fish-deploy -> deploy)
+# and case 42 gold label (roast -> assessment, its parent). Same
 # rationale as the 87977cdb exception above: the old digest pins gold labels
 # for skills that no longer exist.
-LEGACY_CASES_SHA = "f7b95f03ecd51857dd85adde93304caff5c9b29224afb082bf4298ce75738fd9"
+# Updated during skill consolidation (125→59 skills)
+LEGACY_CASES_SHA = "75265b07915051d9f76a3a42900c97fcdb3f282ccdda69731729e1222d68cadc"
 NEW_BUCKETS = {
     "stub-tier",
     "sibling-disambiguation",
@@ -343,12 +344,12 @@ class TestManifestArms:
         qids = ["q00", "q01", "q02", "q03"]
         # full: routes q00 correctly via safety net, misses q02.
         full = {
-            "q00": {"agent": None, "skill": "publish", "pipeline": None, "confidence": "medium"},
+            "q00": {"agent": None, "skill": "content", "pipeline": None, "confidence": "medium"},
             "q01": {"agent": None, "skill": None, "pipeline": None, "confidence": "low"},
             "q02": {"agent": None, "skill": "quick", "pipeline": None, "confidence": "low"},
             "q03": {
                 "agent": "python-general-engineer",
-                "skill": "python-quality-gate",
+                "skill": "code-quality",
                 "pipeline": None,
                 "confidence": "high",
             },
@@ -364,7 +365,7 @@ class TestManifestArms:
         assert raw["arms"] == ["full", "tiered"]
         assert raw["cost"]["haiku_calls_total"] == {"full": 4, "tiered": 4}
         q00 = raw["records"][0]
-        # Safety net: pre-route high force pr-workflow overrides the 'publish' pick.
+        # Safety net: pre-route high force pr-workflow overrides the 'content' pick.
         assert q00["arms"]["full"]["route"] == {
             "agent": None,
             "skill": "pr-workflow",
@@ -531,8 +532,8 @@ class TestGateLogic:
         rows = [
             _row(
                 "sibling-disambiguation",
-                (None, "systematic-code-review"),
-                (None, "systematic-code-review"),
+                (None, "review"),
+                (None, "review"),
                 (None, "quick"),
                 acceptable=[{"agent": None, "skill": "quick"}],
             )
@@ -544,9 +545,9 @@ class TestGateLogic:
         rec = {"expected_agent": None, "expected_skill": None}
         assert mod.route_correct(rec, {"agent": None, "skill": None})
         assert not mod.route_correct(rec, {"agent": None, "skill": "pr-workflow"})
-        rec2 = {"expected_agent": "golang-general-engineer", "expected_skill": "go-patterns"}
-        assert mod.route_correct(rec2, {"agent": "golang-general-engineer", "skill": "go-patterns"})
-        assert not mod.route_correct(rec2, {"agent": None, "skill": "go-patterns"})
+        rec2 = {"expected_agent": "golang-general-engineer", "expected_skill": "programming"}
+        assert mod.route_correct(rec2, {"agent": "golang-general-engineer", "skill": "programming"})
+        assert not mod.route_correct(rec2, {"agent": None, "skill": "programming"})
 
 
 # --------------------------------------------------------------------------- #

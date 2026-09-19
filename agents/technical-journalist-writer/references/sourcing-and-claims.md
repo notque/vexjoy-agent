@@ -111,7 +111,7 @@ Studies show that 80% of developers prefer this approach. It's 3x faster
 than the alternative in most workloads.
 ```
 
-**Why this matters**: "Studies show" without a specific study is not a source — it's a rhetorical move. "3x faster" without a benchmark methodology is marketing language. Both patterns erode credibility when readers verify them and find nothing.
+**Why this matters**: "Studies show" without a specific study is not a source — it's a rhetorical move. "3x faster" without a benchmark methodology is content language. Both patterns erode credibility when readers verify them and find nothing.
 
 **Preferred action:**
 ```

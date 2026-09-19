@@ -41,17 +41,17 @@ DB=~/.claude/learning/learning.db
 # general-purpose share  -> 128/301 = 42.5% (2026-08-15)
 sqlite3 "$DB" "SELECT COUNT(*) FILTER (WHERE agent='general-purpose'), COUNT(*) FROM evidence_route_decisions;"
 # named domain skill on those dispatches -> 92/128 = 72% (2026-08-15)
-sqlite3 "$DB" "SELECT COUNT(*) FILTER (WHERE skill IS NOT NULL AND skill NOT IN ('','-','objective-loop')), COUNT(*) FROM evidence_route_decisions WHERE agent='general-purpose';"
+sqlite3 "$DB" "SELECT COUNT(*) FILTER (WHERE skill IS NOT NULL AND skill NOT IN ('','-','process')), COUNT(*) FROM evidence_route_decisions WHERE agent='general-purpose';"
 ```
 
 State the metric as the query computes it. "Named domain skill, fallbacks excluded" is reproducible; "correct skill" is not.
 
-**Combination depth — the definition decides the number.** Depth counts filled slots with fallbacks excluded: agent named and other than `general-purpose`, skill named and other than `objective-loop`, pipeline present, stack present. The exclusion IS the metric: `general-purpose` plus `objective-loop` is the impoverished route, so scoring those slots as filled would count the failure mode as a success. Counting any value present instead returns 2.48 and 10.3% on the same rows — a healthier number for identical data, and the reason a depth figure quoted without its definition is worthless.
+**Combination depth — the definition decides the number.** Depth counts filled slots with fallbacks excluded: agent named and other than `general-purpose`, skill named and other than `process`, pipeline present, stack present. The exclusion IS the metric: `general-purpose` plus `process` is the impoverished route, so scoring those slots as filled would count the failure mode as a success. Counting any value present instead returns 2.48 and 10.3% on the same rows — a healthier number for identical data, and the reason a depth figure quoted without its definition is worthless.
 
 ```bash
 sqlite3 "$DB" "SELECT ROUND(AVG(depth),2), ROUND(100.0*SUM(depth<=1)/COUNT(*),1) FROM (
   SELECT (agent IS NOT NULL AND agent NOT IN ('','-','general-purpose'))
-       + (skill IS NOT NULL AND skill NOT IN ('','-','objective-loop'))
+       + (skill IS NOT NULL AND skill NOT IN ('','-','process'))
        + (pipeline IS NOT NULL AND pipeline NOT IN ('','-'))
        + (stack IS NOT NULL AND stack NOT IN ('','-','[]')) AS depth
   FROM evidence_route_decisions);"   # -> 2.01 | 29.2   (2026-08-15, n=301)

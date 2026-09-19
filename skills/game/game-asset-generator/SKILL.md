@@ -41,7 +41,7 @@ routing:
     - poly haven
   not_for: "AI-generated pixel art, illustration, or character art (use image-gen) — this skill is deterministic palette/matrix generation, not an AI backend; ad-hoc workflow composition (use workflow skill)"
   pairs_with:
-    - threejs-builder
+    - frontend
     - typescript-frontend-engineer
   complexity: Medium
   category: game-development
@@ -164,21 +164,6 @@ mixer.update(deltaTime);
 
 ---
 
-## Reference Loading Table
-
-| Signal | Load These Files | Why |
-|---|---|---|
-| "3D model", "character model", "generate model", GLB, mesh, rig, animate, humanoid | `meshyai.md` | **3D Model** |
-| "environment", "world", "scene background", "gaussian splat", "splat", volumetric | `worldlabs.md` | **Environment** |
-| "sprite", "pixel art", "2D character", "tile", "tileset", canvas sprite | `pixel-art-sprites.md` | **2D Sprite** |
-| "image", "texture", "concept art", "icon", "generate image", chroma key | `fal-ai-image.md` | **Image / Texture** |
-| No API key available, "free asset", "find model", "download asset", generation failed | `asset-sources.md` | **Existing Assets** |
-| `references/meshyai.md` | `meshyai.md` | 3D model generation request |
-| `references/worldlabs.md` | `worldlabs.md` | Environment / Gaussian Splat request |
-| `references/fal-ai-image.md` | `fal-ai-image.md` | Image, texture, or concept art request |
-| `references/asset-sources.md` | `asset-sources.md` | No API key, fallback chain, or "find free asset" |
-| `references/pixel-art-sprites.md` | `pixel-art-sprites.md` | 2D sprite or pixel art request |
-
 ## Error Handling
 
 ### Error: "GLB loads but model is in T-pose"
@@ -211,12 +196,14 @@ Solution: `npm install -g @gltf-transform/cli`
 
 ---
 
-## References
+## Deep References
 
-| Reference | When to load | Content |
-|-----------|-------------|---------|
-| `references/meshyai.md` | 3D model generation request | Meshy API: text-to-3D, image-to-3D, rig, animate, status polling, optimize-glb |
-| `references/worldlabs.md` | Environment / Gaussian Splat request | World Labs Marble API: SPZ generation, SplatMesh renderer, Y-flip gotcha |
-| `references/fal-ai-image.md` | Image, texture, or concept art request | fal.ai: 8 model endpoints, queue API, cost tracking, chroma-key |
-| `references/asset-sources.md` | No API key, fallback chain, or "find free asset" | Sketchfab, Poly Haven, Poly.pizza search and download workflows |
-| `references/pixel-art-sprites.md` | 2D sprite or pixel art request | Canvas sprite matrices, palette system, animation frames (no API needed) |
+Load the reference matching the asset type from Phase 1 DETECT.
+
+| Asset type | Reference |
+|-----------|-----------|
+| 3D model (Meshy API) | `references/meshyai.md` |
+| Environment (World Labs) | `references/worldlabs.md` |
+| Image / texture (fal.ai) | `references/fal-ai-image.md` |
+| Free assets (Sketchfab, Poly Haven) | `references/asset-sources.md` |
+| 2D sprite (canvas, no API) | `references/pixel-art-sprites.md` |

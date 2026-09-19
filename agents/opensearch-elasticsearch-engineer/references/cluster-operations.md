@@ -1,5 +1,5 @@
 ---
-description: Cluster health, shard allocation, capacity planning, rolling upgrades, and snapshot/restore operations
+description: Cluster health, shard allocation, capacity workflow, rolling upgrades, and snapshot/restore operations
 ---
 
 # OpenSearch/Elasticsearch Cluster Operations

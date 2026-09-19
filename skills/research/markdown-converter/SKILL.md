@@ -23,8 +23,8 @@ routing:
     - "xlsx to markdown"
   category: research
   pairs_with:
-    - research-pipeline
-    - enterprise-search
+    - research
+    - domain
 ---
 
 # Markdown Converter

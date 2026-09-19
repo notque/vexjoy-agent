@@ -102,8 +102,49 @@ def test_decide_payload_speculative_fanout():
         "DONE",
         "BLOCKED",
     }
-    assert set(q["select_target"]["criteria"]) == {"3:1", "3:2"}
-    assert set(q["type_text_target"]["criteria"]) == {"2"}
+    # Every target question offers a no-match option beside the observed elements.
+    assert set(q["select_target"]["criteria"]) == {"3:1", "3:2", "none"}
+    assert set(q["type_text_target"]["criteria"]) == {"2", "none"}
+
+
+def test_decide_no_target_scrolls_to_reveal_more():
+    req = {"goal": "g", "elements": ELEMENTS}
+    data = {
+        "answers": {
+            "operation": {"choice": "CLICK", "probabilities": {"CLICK": 0.8}, "confidence": 0.8},
+            "click_target": {"choice": "none", "probabilities": {"none": 0.7, "4": 0.3}, "confidence": 0.7},
+        }
+    }
+    r = decide.parse_response(data, req)
+    assert (r["operation"], r["target"]) == ("SCROLL_DOWN", None)
+    assert r["no_target"] is True
+    assert "invalid_answer" not in r
+
+
+def test_decide_no_match_share_is_kept_out_of_target_probabilities():
+    req = {"goal": "g", "elements": ELEMENTS}
+    data = {
+        "answers": {
+            "operation": {"choice": "SELECT", "probabilities": {"SELECT": 0.9}, "confidence": 0.9},
+            "select_target": {
+                "choice": "3:2",
+                "probabilities": {"3:2": 0.6, "3:1": 0.1, "none": 0.3},
+                "confidence": 0.6,
+            },
+        }
+    }
+    r = decide.parse_response(data, req)
+    assert r["target"] == "3:2"
+    assert r["target_probabilities"] == {"3:2": 0.6, "3:1": 0.1}
+    assert r["no_target_probability"] == 0.3
+
+
+def test_decide_rule_lives_in_instructions_and_state_holds_the_list():
+    history = [{"action": f"CLICK [{i}]"} for i in range(3)]
+    payload = decide.build_payload({"goal": "g", "elements": ELEMENTS, "page": PAGE, "history": history})
+    assert payload["state"]["actions_already_taken"] == ["CLICK [0]", "CLICK [1]", "CLICK [2]"]
+    assert not any("do NOT" in key for key in payload["state"])
+    assert "actions_already_taken" in payload["questions"]["operation"]["instructions"]["rules"]
 
 
 def test_decide_parse_consumes_only_matching_target():

@@ -22,7 +22,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "routing-manifest.py"
-PIPELINE_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
+PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 DO_SKILL = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
 _spec = importlib.util.spec_from_file_location("routing_manifest", SCRIPT)

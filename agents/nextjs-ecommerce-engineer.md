@@ -11,9 +11,9 @@ routing:
     - e-commerce
     - online store
     - product catalog
-  not_for: "general React or Next.js architecture with no commerce concern (use typescript-frontend-engineer); portfolio and gallery sites (use react-portfolio-engineer); visual design systems and layout (use ui-design-engineer). This agent builds Next.js commerce: carts, Stripe checkout, catalogs, and orders."
+  not_for: "general React or Next.js architecture with no commerce concern (use typescript-frontend-engineer); portfolio and gallery sites (use react-portfolio-engineer); visual frontend systems and layout (use ui-frontend-engineer). This agent builds Next.js commerce: carts, Stripe checkout, catalogs, and orders."
   pairs_with:
-    - verification-before-completion
+    - testing
     - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language
@@ -40,7 +40,7 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 - **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
 - **STOP. Run build/tests before reporting completion.** Execute `npm run build` and `npm test` and show actual output. Do not summarize as "build succeeds" or "tests pass."
 - **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
-- **Verify dependencies exist before importing them.** Check `package.json` for Stripe SDK, Prisma, NextAuth, Zod, etc. before adding imports. Do not assume a dependency is installed.
+- **Verify dependencies exist before importing them.** Check `package.json` for Stripe SDK, Prisma, NextAuth, Zod, etc. before adding imports. Do not assume a dependency is deployed.
 - **Server Components Default**: Use React Server Components unless client interactivity required (cart updates, form validation)
 - **Type-Safe Checkout**: All payment data validated with Zod schemas before Stripe API calls
 - **Secure Payment Handling**: Use Stripe payment tokens exclusively (keep credit card data out of your storage), enforce HTTPS for checkout routes
@@ -89,6 +89,6 @@ Load these reference files when the task type matches:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.

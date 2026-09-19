@@ -1,8 +1,8 @@
 # Design Conventions
 
-<!-- Loaded by ui-design-engineer when task involves Tailwind, design tokens, theme config, spacing scales, or starting a new surface -->
+<!-- Loaded by ui-frontend-engineer when task involves Tailwind, frontend tokens, theme config, spacing scales, or starting a new surface -->
 
-House conventions for tokens, Tailwind, and how to open a design task. Tailwind utility syntax and CSS custom property syntax are assumed known.
+House conventions for tokens, Tailwind, and how to open a frontend task. Tailwind utility syntax and CSS custom property syntax are assumed known.
 
 ---
 
@@ -14,7 +14,7 @@ Before writing any markup:
 - Write the narrative brief: visual thesis, content plan, interaction thesis
 - Confirm real content is available (hero headline, product name, single promise)
 
-A surface designed against lorem ipsum gets lorem ipsum hierarchy. If the real content does not exist yet, that is a blocker worth naming, not a gap to fill with placeholder text.
+A surface frontended against lorem ipsum gets lorem ipsum hierarchy. If the real content does not exist yet, that is a blocker worth naming, not a gap to fill with placeholder text.
 
 ## Tokens
 
@@ -24,7 +24,7 @@ A surface designed against lorem ipsum gets lorem ipsum hierarchy. If the real c
 - Spacing snaps to a 4px grid (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). `1px` and `2px` are structural (borders, dividers, outlines), not spacing.
 
 ```bash
-python3 scripts/design-scale-check.py path/to/styles.css   # flags px values off the 4px grid
+python3 scripts/frontend-scale-check.py path/to/styles.css   # flags px values off the 4px grid
 ```
 
 ## Tailwind: The Dynamic Class Trap

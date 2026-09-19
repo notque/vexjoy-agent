@@ -104,7 +104,7 @@ For import-time errors, ensure all non-stdlib imports are inside `main()` or wra
 
 Use `UserPromptSubmit` hooks only for session-wide, agent-agnostic concerns (error detection, performance logging, global context). Agent-scoped context injection belongs at routing time, inside the skill that the router invokes after selecting the agent.
 
-**Why this matters**: `UserPromptSubmit` fires BEFORE `/do` selects an agent. The hook has no knowledge of which agent will be chosen. Any agent-scoped injection (e.g., "you are the go-engineer agent, apply TDD") is either wrong (targets the wrong agent), a no-op (overwritten by routing), or both. This timing mismatch makes the pattern unreliable by design.
+**Why this matters**: `UserPromptSubmit` fires BEFORE `/do` selects an agent. The hook has no knowledge of which agent will be chosen. Any agent-scoped injection (e.g., "you are the go-engineer agent, apply TDD") is either wrong (targets the wrong agent), a no-op (overwritten by routing), or both. This timing mismatch makes the pattern unreliable by frontend.
 
 **Detection**: `grep -rn 'agent\|engineer\|specialist' hooks/ --include="*.py" | grep -i 'userprompt\|user_prompt'` finds hooks that may be injecting agent-scoped context at the wrong lifecycle point.
 

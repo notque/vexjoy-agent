@@ -39,7 +39,7 @@ skipped. A prior investigation showed that for the 29 files under
 matches are false positives for dispatch purposes:
 
 1. The pipeline dispatcher in ``scripts/index-router.py`` keys on JSON keys
-   from ``skills/workflow/references/pipeline-index.json`` and on file paths,
+   from ``skills/process/workflow/references/pipeline-index.json`` and on file paths,
    not on the YAML ``name:`` field inside the reference files themselves.
 2. The only script that reads the YAML ``name:`` field is
    ``scripts/generate-pipeline-catalog.py``. When ``name`` is absent it

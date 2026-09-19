@@ -10,7 +10,7 @@ routing:
     - integration guide
   not_for: "explainers, opinion pieces, or long-form articles for a public audience (use technical-journalist-writer); detecting drift between existing docs and code (use docs-sync-checker skill); building a local documentation MCP server (use mcp-local-docs-engineer). This agent writes API references, architecture docs, runbooks, and integration guides."
   pairs_with:
-    - verification-before-completion
+    - testing
   complexity: Complex
   category: documentation
 allowed-tools:
@@ -48,7 +48,7 @@ Write REST/GraphQL API references, architecture docs, integration guides, and ru
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. | Call the Skill tool with `verification-before-completion`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

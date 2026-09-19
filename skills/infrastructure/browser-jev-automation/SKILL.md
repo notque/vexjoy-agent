@@ -6,7 +6,7 @@ context: fork
 routing:
   category: infrastructure
   pairs_with:
-    - verification-before-completion
+    - testing
   triggers:
     - "browser automation"
     - "browser use"

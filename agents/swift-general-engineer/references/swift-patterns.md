@@ -11,7 +11,7 @@
 | Never pre-emptively declare `var` in case it changes | That change may never come; premature mutability creates data-race surface area |
 | Use `mutating func` in structs for controlled mutation | Keeps value semantics; each mutation is explicit at call sites |
 
-```swift
+```programming
 // Wrong — var when let suffices
 var name = "Alice"
 print(name)  // never reassigned
@@ -27,11 +27,11 @@ print(name)
 |----------------------|---------------------|
 | Data is copied between contexts (DTO, model, config) | Identity matters — two references must point to the same object |
 | Thread-safety via value semantics is desired | Objective-C interoperability requires `NSObject` subclassing |
-| No subclassing is needed | Reference sharing is an intentional design decision (e.g., shared cache) |
+| No subclassing is needed | Reference sharing is an intentional frontend decision (e.g., shared cache) |
 | All stored properties are value types or `Sendable` | Lifecycle management via `deinit` is required |
 | SwiftUI view models that do not need `ObservableObject` | `ObservableObject` / `@Published` Combine integration |
 
-```swift
+```programming
 // Prefer struct for DTOs
 struct UserProfile: Sendable {
     let id: UUID
@@ -57,7 +57,7 @@ Swift 6 strict concurrency treats data races as compile-time errors. Every type 
 
 ### Actor Isolation
 
-```swift
+```programming
 // Use actors for shared mutable state — not DispatchQueue or locks
 actor DownloadManager {
     private var activeTasks: [URL: Task<Data, Error>] = [:]
@@ -89,7 +89,7 @@ actor DownloadManager {
 | `Task {}` | Background work not in an async context (UI event handlers, Combine sinks) |
 | Prefer `async let` / `TaskGroup` over naked `Task {}` when applicable | Unstructured tasks escape scope, making cancellation and error propagation harder |
 
-```swift
+```programming
 // Prefer async let for fixed parallel fetches
 async let profile = fetchProfile(userID)
 async let posts = fetchPosts(userID)
@@ -106,7 +106,7 @@ let results = try await withThrowingTaskGroup(of: Item.self) { group in
 
 ### Typed Throws (Swift 6+)
 
-```swift
+```programming
 enum FetchError: Error {
     case networkUnavailable
     case decodingFailed(underlying: Error)
@@ -131,7 +131,7 @@ func fetchUser(id: UUID) async throws(FetchError) -> User {
 
 Define protocols around a single capability. Conformers implement only what they need.
 
-```swift
+```programming
 // Wrong — fat protocol
 protocol DataService {
     func fetch() async throws -> [Item]
@@ -148,7 +148,7 @@ protocol DataExporter { func export() -> Data }
 
 ### Protocol Extensions for Shared Defaults
 
-```swift
+```programming
 protocol Loggable {
     var logger: Logger { get }
 }
@@ -164,7 +164,7 @@ extension Loggable {
 
 Production code uses the real implementation by default; tests inject a mock without any additional configuration in the production call sites.
 
-```swift
+```programming
 protocol HTTPClient: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
@@ -197,7 +197,7 @@ struct MockHTTPClient: HTTPClient {
 
 Model async data loading states with an enum rather than multiple optionals.
 
-```swift
+```programming
 enum LoadState<T: Sendable>: Sendable {
     case idle
     case loading
@@ -221,7 +221,7 @@ final class ProfileViewModel {
 }
 ```
 
-```swift
+```programming
 // SwiftUI view consuming LoadState
 switch viewModel.state {
 case .idle: Color.clear

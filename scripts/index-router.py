@@ -30,7 +30,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 GO_SOURCE_OPERAND_RE = re.compile(r"\.go(?=(?::\d+|#L\d+)?(?:$|[\s`'\",;!?()\[\]{}]|\.(?=$|\s)))")
-PROTECTED_GO_COMPOSITE_ROUTES = {"pr-workflow", "pr-pipeline", "security-review"}
+PROTECTED_GO_COMPOSITE_ROUTES = {"pr-workflow", "pr-pipeline", "security"}
 PR_CREATE_INTENT_RE = re.compile(
     r"\b(?:create|open|make|draft|submit|raise|file)\b"
     r"(?:\s+\S+){0,5}?\s+(?:a\s+)?(?:pr|pull\s+request)\b",
@@ -45,23 +45,23 @@ from routing_index_merge import load_index_items as _load_index_items
 
 INDEX_PATHS: dict[str, tuple[Path, str | None]] = {
     "skills": (REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": (REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json", None),
+    "pipelines": (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json", None),
     "agents": (REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
 }
 
 # Composition chains encode common multi-skill workflows.
 # Key = entry skill, value = ordered sequence of skills in the chain.
 COMPOSITION_CHAINS: dict[str, list[str]] = {
-    "systematic-debugging": ["systematic-debugging", "test-driven-development", "pr-pipeline"],
+    "systematic-debugging": ["systematic-debugging", "testing", "pr-pipeline"],
     "research-to-article": [
         "research-to-article",
         "de-ai-pipeline",
-        "publish",
-        "wordpress-live-validation",
+        "content",
+        "writing",
     ],
-    "forensics": ["forensics", "testing-preferred-patterns", "learn"],
-    "docs-sync-checker": ["docs-sync-checker", "doc-pipeline", "generate-claudemd"],
-    "systematic-refactoring": ["systematic-refactoring", "code-linting", "verification-before-completion"],
+    "debugging": ["debugging", "testing"],
+    "docs-sync-checker": ["docs-sync-checker", "doc-pipeline", "toolkit"],
+    "code-quality": ["code-quality", "testing"],
 }
 
 MAX_CANDIDATES = 10
@@ -76,8 +76,8 @@ PHRASE_HIT_STEP = 0.1
 # When any guard word appears in the request, the match is discarded.
 SEMANTIC_GUARDS: dict[str, set[str]] = {
     "pr-workflow": {"against", "back", "pressure", "pushback", "pushed", "pushing"},
-    "shell-config": {"for", "bugs", "compliments", "information", "ideas", "answers"},
-    "voice-writer": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
+    "deploy": {"for", "bugs", "compliments", "information", "ideas", "answers"},
+    "writing": {"remove", "strip", "clean", "detect", "identify", "fix", "scan", "audit"},
 }
 
 # Multi-word disqualifying phrases (substring match in lowered request).
@@ -85,7 +85,7 @@ SEMANTIC_GUARDS: dict[str, set[str]] = {
 # (e.g. 'out' alone collides with "log out", "check out"; but "fish out"
 # reliably means search/extract, not the Fish shell).
 SEMANTIC_GUARD_PHRASES: dict[str, set[str]] = {
-    "shell-config": {"fish out", "fish for", "zsh out", "zsh for"},
+    "deploy": {"fish out", "fish for", "zsh out", "zsh for"},
 }
 
 
@@ -212,7 +212,7 @@ def _trigger_matches(trigger: str, request_lower: str) -> bool:
     full phrase must appear.
 
     Note: ``\b`` treats hyphens as word boundaries, so a trigger like
-    "go-patterns" is effectively matched as the phrase "go-patterns" appearing
+    "programming" is effectively matched as the phrase "programming" appearing
     between word boundaries on each end. This is the desired behavior for
     hyphenated compound triggers.
 
@@ -266,7 +266,7 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
         if PR_CREATE_INTENT_RE.search(request) or genuine_push:
             forced_name = "pr-workflow"
         elif re.search(r"\bsecurity\s+audit\b", lowered):
-            forced_name = "security-review"
+            forced_name = "security"
         if forced_name is not None:
             forced = next((entry for entry in entries if entry.name == forced_name and entry.force_route), None)
             if forced is not None:
@@ -279,7 +279,7 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
         if not entry.force_route:
             continue
         # Phrase-level guard: skip if a disqualifying phrase appears as a
-        # whole-word match (e.g. "fish out" suppresses shell-config
+        # whole-word match (e.g. "fish out" suppresses deploy
         # without blocking "log out" or substring-matching "selfish forum").
         phrase_guards = SEMANTIC_GUARD_PHRASES.get(entry.name)
         if phrase_guards and any(re.search(rf"\b{re.escape(phrase)}\b", lowered) for phrase in phrase_guards):
@@ -291,7 +291,7 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
         for trigger in entry.triggers:
             if _trigger_matches(trigger, lowered):
                 specificity = len(trigger)
-                if entry.name == "go-patterns" and go_operand:
+                if entry.name == "programming" and go_operand:
                     specificity += 100
                 if entry.name in PROTECTED_GO_COMPOSITE_ROUTES and go_operand:
                     specificity += 200
@@ -552,9 +552,9 @@ def route_request(request: str, force_only: bool = False, entries: list[IndexEnt
         if (
             force_match.name in PROTECTED_GO_COMPOSITE_ROUTES
             and GO_SOURCE_OPERAND_RE.search(request)
-            and "go-patterns" not in result.pairs_with
+            and "programming" not in result.pairs_with
         ):
-            result.pairs_with.append("go-patterns")
+            result.pairs_with.append("programming")
         result.composition_chains = check_composition_chains(force_match.name)
         if force_only:
             return result

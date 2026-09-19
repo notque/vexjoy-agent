@@ -582,3 +582,139 @@ class TestCountCallSessionId:
         )
         mock_record.assert_called_once()
         assert mock_record.call_args.kwargs["session_id"] is None
+
+
+# ---------------------------------------------------------------------------
+# Rate-limit retry and body-free errors
+# ---------------------------------------------------------------------------
+
+
+def _http_error(code: int, body: bytes = b"{}", headers: dict | None = None):
+    import io
+    from email.message import Message
+
+    hdrs = Message()
+    for k, v in (headers or {}).items():
+        hdrs[k] = v
+    return common.urllib.error.HTTPError(url="http://test", code=code, msg="err", hdrs=hdrs, fp=io.BytesIO(body))
+
+
+def _ok_response(answers: dict):
+    resp = MagicMock()
+    resp.read.return_value = json.dumps({"answers": answers}).encode()
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    return resp
+
+
+class TestRetry:
+    def _payload(self, tag: str) -> dict:
+        return {"model": "m", "state": {"t": tag}, "questions": {"q": {"type": "noul", "instructions": "x"}}}
+
+    def test_retries_429_then_succeeds(self, monkeypatch):
+        sleeps: list[float] = []
+        monkeypatch.setattr(common.time, "sleep", sleeps.append)
+        monkeypatch.setenv("JEV_RETRY_MAX", "2")
+        seq = [_http_error(429), _http_error(529), _ok_response({"q": {"noul": 0.9}})]
+
+        def fake(request, timeout=None):
+            item = seq.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        data, _ = common.call_jev(self._payload("retry-ok"), "k", 5)
+        assert data["answers"]["q"]["noul"] == 0.9
+        # Filter out daemon-thread sleeps (cleanup thread sleeps 10s)
+        retry_sleeps = [s for s in sleeps if s < 10]
+        assert retry_sleeps == [0.5, 1.0]
+
+    def test_honors_retry_after_up_to_the_cap(self, monkeypatch):
+        sleeps: list[float] = []
+        monkeypatch.setattr(common.time, "sleep", sleeps.append)
+        monkeypatch.setenv("JEV_RETRY_MAX", "2")
+        seq = [_http_error(429, headers={"Retry-After": "3"}), _http_error(429, headers={"Retry-After": "600"})]
+        seq.append(_ok_response({"q": {"noul": 0.1}}))
+
+        def fake(request, timeout=None):
+            item = seq.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        common.call_jev(self._payload("retry-after"), "k", 5)
+        # Filter out daemon-thread sleeps (cleanup thread sleeps 10s)
+        retry_sleeps = [s for s in sleeps if s < 10]
+        assert retry_sleeps == [3.0, common._RETRY_MAX_SLEEP_S]
+
+    def test_gives_up_after_the_retry_limit(self, monkeypatch):
+        sleeps: list[float] = []
+        monkeypatch.setattr(common.time, "sleep", sleeps.append)
+        monkeypatch.setenv("JEV_RETRY_MAX", "2")
+        calls = {"n": 0}
+
+        def fake(request, timeout=None):
+            calls["n"] += 1
+            raise _http_error(429)
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        with pytest.raises(RuntimeError, match="HTTP 429"):
+            common.call_jev(self._payload("retry-limit"), "k", 5)
+        assert calls["n"] == 3 and len(sleeps) == 2
+
+    @pytest.mark.parametrize("code", [400, 401, 402, 422, 500])
+    def test_other_statuses_are_not_retried(self, monkeypatch, code):
+        sleeps: list[float] = []
+        monkeypatch.setattr(common.time, "sleep", sleeps.append)
+        calls = {"n": 0}
+
+        def fake(request, timeout=None):
+            calls["n"] += 1
+            raise _http_error(code)
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        with pytest.raises(RuntimeError):
+            common.call_jev(self._payload(f"no-retry-{code}"), "k", 5)
+        assert calls["n"] == 1 and sleeps == []
+
+
+class TestErrorTextCarriesNoBody:
+    def _payload(self, tag: str) -> dict:
+        return {"model": "m", "state": {"t": tag}, "questions": {"q": {"type": "noul", "instructions": "x"}}}
+
+    def test_422_names_the_field_and_omits_the_echoed_input(self, monkeypatch):
+        body = json.dumps(
+            {
+                "detail": [
+                    {
+                        "type": "missing",
+                        "loc": ["body", "questions", "q", "score", "criteria"],
+                        "msg": "Field required",
+                        "input": {"instructions": "PRIVATE QUESTION TEXT"},
+                    }
+                ]
+            }
+        ).encode()
+
+        def fake(request, timeout=None):
+            raise _http_error(422, body)
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        with pytest.raises(RuntimeError) as err:
+            common.call_jev(self._payload("err-422"), "k", 5)
+        text = str(err.value)
+        assert "body.questions.q.score.criteria" in text
+        assert "PRIVATE QUESTION TEXT" not in text
+
+    def test_402_reports_the_error_type_only(self, monkeypatch):
+        body = json.dumps({"error": {"type": "billing_error", "message": "account 12345 has no credits"}}).encode()
+
+        def fake(request, timeout=None):
+            raise _http_error(402, body)
+
+        monkeypatch.setattr(common.urllib.request, "urlopen", fake)
+        with pytest.raises(RuntimeError) as err:
+            common.call_jev(self._payload("err-402"), "k", 5)
+        assert str(err.value) == "HTTP 402 (billing_error)"

@@ -21,19 +21,19 @@ Blocked unconditionally; replace with the fix in any code you edit.
 
 | Pattern to Replace | Risk | Detection | Fix |
 |-------------|------|-----------|-----|
-| Fat controller (Eloquent/DB in controllers) | Couples transport to domain, kills testability | `grep -rn --include="*.php" -E 'Eloquent\\Model\|DB::' app/Http/Controllers/` | Thin controller: validate (form request) → delegate to service → return response; business logic, queries, and API calls live in services |
-| Associative arrays where DTOs fit | Untyped arrays skip static analysis, risky refactors | `grep -rn --include="*.php" -E '\$data\s*=\s*\[' app/Services/` | `final readonly` DTO classes for commands/payloads; value objects validate in the constructor |
-| Raw SQL string interpolation | SQL injection | `grep -rn --include="*.php" -E '(query\|exec)\s*\(\s*["\x27].*\$' src/` | Prepared statements (below) |
-| `extract()` on user input | User-controlled variable names injected into scope | `grep -rn --include="*.php" 'extract(\$_' src/` | Explicit assignment from validated input |
-| Debug output left in code | `var_dump`/`dd`/`dump`/`die` leak state, break responses | `grep -rn --include="*.php" -E 'var_dump\s*\(\|dd\s*\(\|dump\s*\(\|die\s*\(' src/` | Remove before commit (PostToolUse hook also flags) |
-| Service-locator in business services | Hidden dependencies, untestable | `grep -rn --include="*.php" -E 'app\(\)->make\(\|Container::getInstance' app/Services/` | Constructor injection |
-| Missing `declare(strict_types=1)` | Implicit coercion hides type bugs | `grep -rLz 'declare(strict_types=1)' $(find src/ app/ -name "*.php" -not -path "*/vendor/*")` | Add to every application file |
-| `$guarded = []` | Mass assignment | `grep -rn --include="*.php" 'guarded\s*=\s*\[\s*\]' app/` | `$fillable` allowlist |
-| CSRF exclusions | Forgeable endpoints | `grep -rn --include="*.php" -E 'VerifyCsrfToken\|withoutMiddleware.*csrf\|except.*csrf' app/Http/` | Documented reason or removal |
+| Fat controller (Eloquent/DB in controllers) | Couples transport to domain, kills testability | `grep -rn --include="*.programming" -E 'Eloquent\\Model\|DB::' app/Http/Controllers/` | Thin controller: validate (form request) → delegate to service → return response; business logic, queries, and API calls live in services |
+| Associative arrays where DTOs fit | Untyped arrays skip static analysis, risky refactors | `grep -rn --include="*.programming" -E '\$data\s*=\s*\[' app/Services/` | `final readonly` DTO classes for commands/payloads; value objects validate in the constructor |
+| Raw SQL string interpolation | SQL injection | `grep -rn --include="*.programming" -E '(query\|exec)\s*\(\s*["\x27].*\$' src/` | Prepared statements (below) |
+| `extract()` on user input | User-controlled variable names injected into scope | `grep -rn --include="*.programming" 'extract(\$_' src/` | Explicit assignment from validated input |
+| Debug output left in code | `var_dump`/`dd`/`dump`/`die` leak state, break responses | `grep -rn --include="*.programming" -E 'var_dump\s*\(\|dd\s*\(\|dump\s*\(\|die\s*\(' src/` | Remove before commit (PostToolUse hook also flags) |
+| Service-locator in business services | Hidden dependencies, untestable | `grep -rn --include="*.programming" -E 'app\(\)->make\(\|Container::getInstance' app/Services/` | Constructor injection |
+| Missing `declare(strict_types=1)` | Implicit coercion hides type bugs | `grep -rLz 'declare(strict_types=1)' $(find src/ app/ -name "*.programming" -not -path "*/vendor/*")` | Add to every application file |
+| `$guarded = []` | Mass assignment | `grep -rn --include="*.programming" 'guarded\s*=\s*\[\s*\]' app/` | `$fillable` allowlist |
+| CSRF exclusions | Forgeable endpoints | `grep -rn --include="*.programming" -E 'VerifyCsrfToken\|withoutMiddleware.*csrf\|except.*csrf' app/Http/` | Documented reason or removal |
 
 ## SQL: Prepared Statements
 
-```php
+```programming
 // PDO
 $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email');
 $stmt->execute(['email' => $email]);
@@ -72,7 +72,7 @@ One test framework per test class — PHPUnit or Pest, exclusively.
 
 Generate fixture data through Laravel factories or custom builders; hand-written large arrays are brittle.
 
-```php
+```programming
 $user = User::factory()->verified()->withSubscription('pro')->create();
 
 $order = OrderBuilder::new()
@@ -94,6 +94,6 @@ Run unit tests in tight loops; run integration tests in CI. Database usage stays
 ### Coverage Commands
 
 ```bash
-./vendor/bin/phpunit --coverage-text --coverage-html=coverage/
+./vendor/bin/programmingunit --coverage-text --coverage-html=coverage/
 ./vendor/bin/pest --coverage --coverage-html=coverage/
 ```

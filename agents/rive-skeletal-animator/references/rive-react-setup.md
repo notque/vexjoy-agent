@@ -1,12 +1,12 @@
 # Rive React Setup Reference
-<!-- Loaded by rive-skeletal-animator when task involves: installing Rive, mounting canvas, useRive hook, useStateMachineInput, Zustand wiring, CombatEngine events, lazy loading, Vite WASM config -->
+<!-- Loaded by rive-skeletal-animator when task involves: deploying Rive, mounting canvas, useRive hook, useStateMachineInput, Zustand wiring, CombatEngine events, lazy loading, Vite WASM config -->
 
 `@rive-app/react-canvas` — React wrapper over Rive Web runtime. Handles canvas lifecycle, WASM loading, resize. Version 4.x supports React 16.8–19. WASM bundle ~150KB gzip.
 
 ## Installation
 
 ```bash
-npm install @rive-app/react-canvas
+npm deploy @rive-app/react-canvas
 ```
 
 WASM bundled in npm package, loaded at runtime on first mount.

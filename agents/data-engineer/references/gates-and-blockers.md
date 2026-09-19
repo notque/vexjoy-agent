@@ -32,7 +32,7 @@ If found: STOP, REPORT, FIX before continuing.
 
 ## Verification STOP Blocks
 
-- After dimensional model/pipeline design: "Validated against existing schema and source reality?"
+- After dimensional model/pipeline frontend: "Validated against existing schema and source reality?"
 - After performance optimization: "Providing before/after metrics?"
 - After modifying pipeline with downstream consumers: "Checked for breaking changes in dependent pipelines/dashboards/models?"
 
@@ -58,15 +58,15 @@ STOP and ask the user (get explicit confirmation) when:
 |-----------|----------|----------|
 | Batch vs. streaming unclear | Architecture-level decision with 10x complexity difference | "Do you need real-time (<1 min latency) or is daily/hourly batch sufficient?" |
 | Warehouse platform not chosen | Platform-specific SQL, partitioning, and optimization differ significantly | "Which warehouse: BigQuery, Snowflake, Redshift, DuckDB, or something else?" |
-| SCD type for a dimension | Affects schema design, surrogate key strategy, and query patterns permanently | "Do you need historical tracking for [dimension]? Full history (Type 2) or current only (Type 1)?" |
+| SCD type for a dimension | Affects schema frontend, surrogate key strategy, and query patterns permanently | "Do you need historical tracking for [dimension]? Full history (Type 2) or current only (Type 1)?" |
 | Fact table grain ambiguous | Wrong grain means wrong numbers in every report | "What does one row represent: one order, one order line item, one daily snapshot?" |
-| Source system ownership unclear | Affects data contract design and schema evolution strategy | "Who owns the source schema? Can we establish a data contract for change notification?" |
+| Source system ownership unclear | Affects data contract frontend and schema evolution strategy | "Who owns the source schema? Can we establish a data contract for change notification?" |
 | Orchestrator not chosen | DAG syntax, operator selection, and deployment differ by tool | "Which orchestrator: Airflow, Prefect, Dagster, or dbt Cloud scheduled jobs?" |
 
 ## Death Loop Prevention
 
-Max 3 attempts per pipeline design iteration. If not converging, re-examine requirements.
+Max 3 attempts per pipeline frontend iteration. If not converging, re-examine requirements.
 
-1. **Detection**: Repeated redesigns or cycling between SCD types
+1. **Detection**: Repeated refrontends or cycling between SCD types
 2. **Intervention**: Return to requirements -- grain or SCD choice is ambiguous
-3. **Prevention**: Resolve blocker criteria before starting design
+3. **Prevention**: Resolve blocker criteria before starting frontend

@@ -22,7 +22,7 @@ Group components by creator, dispatch one sub-agent per type in parallel.
 
 ```
 Orchestrator
-  ├── skill-creator (all new agents + skills)    ← parallel
+  ├── toolkit (all new agents + skills)    ← parallel
   ├── hook-development-engineer (all hooks)       ← parallel
   └── Direct (Python scripts)                     ← parallel
 
@@ -51,7 +51,7 @@ Agent(
   {relationships}
 
   ### Template Reference
-  Follow skills/meta/skill-creator/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
+  Follow skills/meta/toolkit/references/agent-template.md for agents. Standard frontmatter + operator context for skills.
 
   ### Architecture Rules
   See skills/workflow/references/architecture-rules.md.
@@ -88,7 +88,7 @@ done
 
 ```bash
 adr_context=$(python3 ~/.claude/scripts/adr-query.py context \
-  --adr adr/{pipeline-name}.md --role skill-creator)
+  --adr adr/{pipeline-name}.md --role toolkit)
 ```
 
 Manual injection only needed when sub-agent needs full role-targeted ADR context beyond session-level auto-injection.
@@ -103,7 +103,7 @@ Single skill/agent with one clear purpose?
 
   NO / broad domain →
     Domain: Full 7-phase flow with subdomain decomposition,
-    validate-chain, ADR hash gate, test-runner, retro.
+    validate-chain, ADR hash gate, test-runner, process.
 ```
 
 ---
@@ -130,7 +130,7 @@ Single skill/agent with one clear purpose?
 |-------|------------|-----|
 | `Agent tool: unknown subagent_type` | New agent not available until session restart | Restart Claude Code |
 | Hook import fails | Syntax error or wrong path | `python3 -m py_compile hooks/X.py` |
-| `routing-table-updater: no triggers` | Missing `routing.triggers` in frontmatter | Add triggers to frontmatter |
+| `toolkit: no triggers` | Missing `routing.triggers` in frontmatter | Add triggers to frontmatter |
 | Orphaned component | Wrong output path | Check actual vs expected path; rename |
 | `validate-chain: unknown step type` | Step not in step-menu.md | `python3 scripts/artifact-utils.py list-steps` |
 
@@ -169,7 +169,7 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 
 | Creator | Components | Template |
 |---------|-----------|----------|
-| `skill-creator` | Agent manifests + skill SKILL.md + references | `skills/meta/skill-creator/references/agent-template.md` / standard skill format |
+| `toolkit` | Agent manifests + skill SKILL.md + references | `skills/meta/toolkit/references/agent-template.md` / standard skill format |
 | `hook-development-engineer` | Python hooks | `hooks/lib/hook_utils.py` conventions |
 | Direct (orchestrator) | Python scripts | `scripts/` conventions |
 
@@ -189,7 +189,7 @@ PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
 [Why needed, what triggered creation]
 
 ## Decision
-[Pipeline design: components, flow, triggers]
+[Pipeline frontend: components, flow, triggers]
 
 ## Component Manifest
 [Agents, skills, hooks, scripts — updated during discovery]
@@ -208,7 +208,7 @@ PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
 
 ## Capabilities Summary
 
-**CAN Do**: Orchestrate complete pipelines; plan component graphs; fan out to skill-creator and hook-development-engineer in parallel; detect/reuse existing components; integrate into /do routing; research domains for subdomains; compose valid chains; validate chain compatibility.
+**CAN Do**: Orchestrate complete pipelines; plan component graphs; fan out to toolkit and hook-development-engineer in parallel; detect/reuse existing components; integrate into /do routing; research domains for subdomains; compose valid chains; validate chain compatibility.
 
 **CANNOT Do**: Write domain business logic; modify existing pipelines directly; create pipelines without routing integration; compose chains without validation; create monolithic single-skill for multi-subdomain domains.
 

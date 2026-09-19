@@ -148,8 +148,8 @@ async function recordTier(modUrl, tier) {
     tier,
     fixThreshold: 8000,
     roster: [
-      { agentType: "reviewer-system", skills: ["systematic-code-review", "verification-before-completion"], lens: "security" },
-      { agentType: "reviewer-code", skills: ["systematic-code-review", "verification-before-completion"], lens: "quality" },
+      { agentType: "reviewer-system", skills: ["review", "testing"], lens: "security" },
+      { agentType: "reviewer-code", skills: ["review", "testing"], lens: "quality" },
     ],
     synthAgentType: "research-coordinator-engineer",
   });

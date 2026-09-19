@@ -35,7 +35,7 @@ Extraction contract (deterministic):
 Resolution set:
   - skills/INDEX.json skill names (generated; run generate-skill-index.py)
   - agents/INDEX.json agent names (generated; run generate-agent-index.py)
-  - skills/workflow/references/pipeline-index.json pipeline names
+  - skills/process/workflow/references/pipeline-index.json pipeline names
   - skills/shared-patterns/*.md stems (Phase 3 injection patterns)
   - hooks/*.py stems (routing-telemetry hooks table)
   - BUILTIN_AGENTS: harness-provided agents outside agents/INDEX.json
@@ -168,7 +168,7 @@ def main() -> int:
     skills = load_index(root / "skills" / "INDEX.json", "skills", gen_hint)
     agents = load_index(root / "agents" / "INDEX.json", "agents", gen_hint)
     pipelines = load_index(
-        root / "skills" / "workflow" / "references" / "pipeline-index.json",
+        root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
         "pipelines",
         "checked-in pipeline index",
     )

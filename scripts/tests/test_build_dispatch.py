@@ -56,11 +56,11 @@ def _decision(**overrides):
     """A complete, valid routing decision; overrides replace top-level keys."""
     base = {
         "agent": "python-general-engineer",
-        "skill": "test-driven-development",
+        "skill": "testing",
         "complexity": "medium",
         "model": "opus",
         "health": {"confidence": 0.72, "n": 6, "failure": 0, "action": "keep"},
-        "stack": ["verification-before-completion"],
+        "stack": ["testing"],
         "task_spec": {
             "intent": "Fix the flaky retry test.",
             "constraints": "Branch from main; no force-push.",
@@ -84,7 +84,7 @@ ROUND_TRIP_CASES = [
     pytest.param(  # V1: everything — numeric health, all gate inputs, alts, stack, model
         {
             "agent": "golang-general-engineer",
-            "skill": "go-patterns",
+            "skill": "programming",
             "complexity": "complex",
             "model": "opus",
             "manual_model_override": True,
@@ -95,11 +95,11 @@ ROUND_TRIP_CASES = [
                 "action": "keep",
                 "alts": ["claude:quick", "python-general-engineer:tdd"],
             },
-            "stack": ["test-driven-development", "verification-before-completion"],
+            "stack": ["testing"],
         },
         {
             "agent": "golang-general-engineer",
-            "skill": "go-patterns",
+            "skill": "programming",
             "complexity": "complex",
             "model": "opus",
             "health": 0.72,
@@ -108,7 +108,7 @@ ROUND_TRIP_CASES = [
             "action": "keep",
             "alternates": ["claude:quick", "python-general-engineer:tdd"],
             "gate_inputs_present": True,
-            "stack": ["test-driven-development", "verification-before-completion"],
+            "stack": ["testing"],
         },
         id="full-gate-inputs-alts-stack-model",
     ),
@@ -116,7 +116,7 @@ ROUND_TRIP_CASES = [
         {"health": {}, "stack": ["quick"]},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "medium",
             "model": "opus",
             "health": None,
@@ -147,7 +147,7 @@ ROUND_TRIP_CASES = [
         {"health": {"confidence": 0.5}, "stack": []},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "medium",
             "model": "opus",
             "health": 0.5,
@@ -164,7 +164,7 @@ ROUND_TRIP_CASES = [
         {"complexity": "simple", "health": None, "stack": [], "model": None},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "simple",
             "model": None,
             "health": None,
@@ -177,7 +177,7 @@ ROUND_TRIP_CASES = [
         {"health": {"confidence": 1.0, "n": 12, "failure": 0, "action": "tiebreak"}, "stack": []},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "medium",
             "model": "opus",
             "health": 1.0,
@@ -206,7 +206,7 @@ ROUND_TRIP_CASES = [
         {"model": "gpt-5.5", "model_effort": "high", "manual_model_override": True},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "medium",
             "model": "gpt-5.5",
             "health": 0.72,
@@ -215,7 +215,7 @@ ROUND_TRIP_CASES = [
             "action": "keep",
             "alternates": None,
             "gate_inputs_present": True,
-            "stack": ["verification-before-completion"],
+            "stack": ["testing"],
         },
         id="gpt-5.5-manual-compatibility-model",
     ),
@@ -224,7 +224,7 @@ ROUND_TRIP_CASES = [
         {"complexity": "simple", "model": None, "health": None, "stack": []},
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "simple",
             "model": None,
             "health": None,
@@ -271,9 +271,8 @@ def test_marker_is_first_line_at_line_start():
 def test_preamble_contains_every_mandatory_block_in_order():
     preamble = _preamble(_decision(complexity="complex"))
     ordered = [
-        "[do-route] agent=python-general-engineer skill=test-driven-development complexity=complex model=opus",
-        "Call the Skill tool with `test-driven-development`.",
-        "Call the Skill tool with `verification-before-completion`.",
+        "[do-route] agent=python-general-engineer skill=testing complexity=complex model=opus",
+        "Call the Skill tool with `testing`.",
         bd.THINKING_SLOW,
         "~480000 tokens available for this task; prioritize accordingly.",
         "## Task Specification (auto-extracted)",
@@ -306,34 +305,33 @@ def test_worktree_and_local_only_blocks_follow_flags():
 
 def test_skill_calls_are_primary_first_ordered_and_deduplicated():
     decision = _decision(
-        skill="test-driven-development",
-        stack=["verification-before-completion", "test-driven-development", "quick", "quick"],
+        skill="testing",
+        stack=["testing", "quick"],
     )
     calls = bd.render_skill_calls(decision).splitlines()
     assert calls == [
-        "Call the Skill tool with `test-driven-development`.",
-        "Call the Skill tool with `verification-before-completion`.",
+        "Call the Skill tool with `testing`.",
         "Call the Skill tool with `quick`.",
     ]
 
 
 def test_shared_pattern_stack_entry_is_not_a_skill_call():
-    decision = _decision(stack=["anti-rationalization-core", "verification-before-completion"])
+    decision = _decision(stack=["anti-rationalization-core", "testing"])
     calls = bd.render_skill_calls(decision)
     assert "anti-rationalization-core" not in calls
-    assert calls.endswith("Call the Skill tool with `verification-before-completion`.")
+    assert calls.endswith("Call the Skill tool with `testing`.")
 
 
-@pytest.mark.parametrize("name", ["reviewer-code", "feature-pipeline", "not-a-real-component"])
+@pytest.mark.parametrize("name", ["reviewer-code", "agent-upgrade", "not-a-real-component"])
 def test_non_skill_stack_names_fail_closed(name):
     with pytest.raises(bd.InputError, match="skill call"):
         _preamble(_decision(stack=[name]))
 
 
 def test_pipeline_is_validated_and_marked_but_never_called_as_a_skill():
-    preamble = _preamble(_decision(pipeline="feature-pipeline"))
-    assert " pipeline=feature-pipeline " in preamble.splitlines()[0] + " "
-    assert "Call the Skill tool with `feature-pipeline`." not in preamble
+    preamble = _preamble(_decision(pipeline="agent-upgrade"))
+    assert " pipeline=agent-upgrade " in preamble.splitlines()[0] + " "
+    assert "Call the Skill tool with `agent-upgrade`." not in preamble
 
 
 def test_unknown_pipeline_fails_closed():
@@ -529,7 +527,7 @@ def test_unknown_agent_coerces_to_general_purpose_with_a_reason():
     assert "agent=general-purpose" in marker
     assert "fallback=invalid-agent:python-hook-wizard" in marker
     # The coerced marker still parses field-for-field with the shipped recorder.
-    assert recorder.parse_do_route_marker(marker) == ("general-purpose", "test-driven-development")
+    assert recorder.parse_do_route_marker(marker) == ("general-purpose", "testing")
     assert recorder.parse_marker_complexity(marker) == ("medium", "")
     assert recorder.parse_model(marker) == "opus"
     assert recorder.parse_health_inputs(marker)["health"] == 0.72

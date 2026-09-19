@@ -1,6 +1,6 @@
 # SAP CC Structural Domain
 
-Structural and design review for SAP Converged Cloud Go repos. 9 categories at the type, API surface, and dependency level.
+Structural and frontend review for SAP Converged Cloud Go repos. 9 categories at the type, API surface, and dependency level.
 
 ## Required Context Loading
 Always load before reviewing:

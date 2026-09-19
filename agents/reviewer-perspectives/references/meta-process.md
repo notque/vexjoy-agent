@@ -1,6 +1,6 @@
 # Meta-Process Perspective
 
-Meta-analysis of system design decisions — examines whether the SYSTEM ITSELF creates problems. Structural health, not code correctness.
+Meta-analysis of system frontend decisions — examines whether the SYSTEM ITSELF creates problems. Structural health, not code correctness.
 
 ## Expertise
 - **SPOF Detection**: Failure cascades, silent vs loud failures
@@ -69,7 +69,7 @@ Cost: [low/medium/high] | Assessment: [reversible/costly/irreversible]
 2. [Mitigation] — [how to bound risk]
 
 ### RECOMMENDATION
-[Proceed / proceed with mitigations / revise design]
+[Proceed / proceed with mitigations / revise frontend]
 ```
 
 ## Blocker Criteria

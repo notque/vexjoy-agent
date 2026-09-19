@@ -1,0 +1,819 @@
+{
+  "version": "2.0",
+  "generated": "2026-03-28T04:44:21Z",
+  "generated_by": "Relocated from pipelines/INDEX.json to skills/workflow/references/",
+  "pipelines": {
+    "agent-upgrade": {
+      "file": "skills/process/workflow/references/agent-upgrade.md",
+      "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
+      "triggers": [
+        "upgrade agent",
+        "improve agent",
+        "agent upgrade",
+        "fix agent quality",
+        "align agent to template"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "AUDIT",
+        "DIFF",
+        "PLAN",
+        "IMPLEMENT",
+        "RE-EVALUATE"
+      ],
+      "pairs_with": [
+        "toolkit",
+        "system-upgrade"
+      ]
+    },
+    "article-evaluation-pipeline": {
+      "file": "skills/process/workflow/references/article-evaluation-pipeline.md",
+      "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
+      "triggers": [
+        "evaluate article",
+        "check article voice",
+        "is this authentic",
+        "review my article",
+        "voice evaluation",
+        "article evaluation",
+        "check my voice"
+      ],
+      "category": "content",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "FETCH",
+        "VALIDATE",
+        "ANALYZE",
+        "REPORT"
+      ],
+      "pairs_with": [
+        "writing"
+      ]
+    },
+    "auto-pipeline": {
+      "file": "skills/process/workflow/references/auto-pipeline.md",
+      "description": "Automatic pipeline generation for unrouted tasks.",
+      "triggers": [
+        "auto-pipeline",
+        "ephemeral pipeline",
+        "no route found",
+        "unrouted task"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DEDUP CHECK",
+        "CHAIN SELECTION",
+        "CONTEXT CHECK",
+        "CRYSTALLIZE",
+        "EPHEMERAL EXECUTE"
+      ],
+      "pairs_with": [
+        "chain-composer",
+        "pipeline-scaffolder",
+        "domain-research",
+        "pipeline-test-runner"
+      ]
+    },
+    "chain-composer": {
+      "file": "skills/process/workflow/references/chain-composer.md",
+      "description": "Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.",
+      "triggers": [
+        "compose chains",
+        "build pipeline chains",
+        "chain composition",
+        "pipeline spec",
+        "compose pipeline"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "LOAD",
+        "COMPOSE",
+        "VALIDATE",
+        "PRODUCE"
+      ],
+      "pairs_with": [
+        "pipeline-scaffolder",
+        "domain-research"
+      ],
+      "agent": "pipeline-orchestrator-engineer",
+      "model": "opus"
+    },
+    "comprehensive-review": {
+      "file": "skills/process/workflow/references/comprehensive-review.md",
+      "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
+      "triggers": [
+        "comprehensive review",
+        "review everything",
+        "review and fix",
+        "thorough review",
+        "multi-agent review",
+        "complete code review",
+        "20-agent review",
+        "25-agent review",
+        "per-package review",
+        "3-wave review",
+        "4-wave review",
+        "adversarial review",
+        "full code review",
+        "review all packages"
+      ],
+      "category": "review",
+      "user_invocable": false,
+      "version": "4.0.0",
+      "pairs_with": [
+        "review",
+        "review"
+      ],
+      "model": "opus",
+      "phases": [
+        "STATIC ANALYSIS",
+        "SCOPE",
+        "WAVE 0 DISPATCH",
+        "WAVE 0 AGGREGATE",
+        "LIBRARY CONTRACT VERIFICATION",
+        "WAVE 1 DISPATCH",
+        "WAVE 0+1 AGGREGATE",
+        "WAVE 2 DISPATCH",
+        "WAVE 0+1+2 AGGREGATE",
+        "WAVE 3 DISPATCH",
+        "FULL AGGREGATE",
+        "FIX",
+        "REPORT"
+      ]
+    },
+    "de-ai-pipeline": {
+      "file": "skills/process/workflow/references/de-ai-pipeline.md",
+      "description": "Scan-fix-verify loop for removing AI writing patterns from docs.",
+      "triggers": [
+        "de-ai docs",
+        "clean ai patterns",
+        "fix ai writing",
+        "scan and fix docs",
+        "remove ai tells",
+        "de-ai pipeline"
+      ],
+      "category": "content",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "SCAN",
+        "FIX",
+        "VERIFY",
+        "REPORT"
+      ],
+      "pairs_with": [
+        "writing"
+      ]
+    },
+    "do-perspectives": {
+      "file": "skills/process/workflow/references/do-perspectives.md",
+      "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
+      "triggers": [
+        "multi-perspective analysis",
+        "do-perspectives",
+        "analyze from multiple angles"
+      ],
+      "category": "content",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "VALIDATE INPUTS",
+        "MULTI-PERSPECTIVE ANALYSIS",
+        "SYNTHESIZE",
+        "APPLY",
+        "VERIFY AND REPORT"
+      ],
+      "pairs_with": [
+        "writing"
+      ]
+    },
+    "doc-pipeline": {
+      "file": "skills/process/workflow/references/doc-pipeline.md",
+      "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
+      "triggers": [
+        "document this",
+        "create readme",
+        "write documentation",
+        "document codebase",
+        "generate docs",
+        "technical documentation",
+        "create documentation",
+        "write docs",
+        "generate README",
+        "document the API"
+      ],
+      "not_for": "a docstring, an inline comment, or a one-line README tweak \u2014 that is a direct edit or comment-quality. Pick this when the deliverable is a standalone document produced from a codebase survey (RESEARCH-to-OUTPUT).",
+      "category": "documentation",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "RESEARCH",
+        "OUTLINE",
+        "GENERATE",
+        "VERIFY",
+        "OUTPUT"
+      ],
+      "pairs_with": [
+        "assessment",
+        "technical-documentation-engineer"
+      ]
+    },
+    "domain-research": {
+      "file": "skills/process/workflow/references/domain-research.md",
+      "description": "Discover and classify subdomains within a target domain for pipeline generation.",
+      "triggers": [
+        "research domain",
+        "discover subdomains",
+        "domain decomposition",
+        "what pipelines",
+        "domain research"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DISCOVER",
+        "CLASSIFY",
+        "MAP",
+        "PRODUCE"
+      ],
+      "pairs_with": [
+        "pipeline-scaffolder",
+        "assessment"
+      ],
+      "agent": "pipeline-orchestrator-engineer",
+      "model": "opus"
+    },
+    "explore-pipeline": {
+      "file": "skills/process/workflow/references/explore-pipeline.md",
+      "description": "Systematic codebase exploration pipeline with parallel subagents and tiered depth.",
+      "triggers": [
+        "understand codebase",
+        "explore repo",
+        "how does this work",
+        "codebase exploration",
+        "understand this code",
+        "map architecture",
+        "analyze quality",
+        "assess consistency",
+        "evaluate patterns",
+        "explore codebase",
+        "understand this repo",
+        "map the codebase",
+        "what is in this repo"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "SCAN",
+        "MAP",
+        "ANALYZE",
+        "COMPILE",
+        "ASSESS",
+        "SYNTHESIZE",
+        "REFINE",
+        "REPORT"
+      ],
+      "pairs_with": [
+        "assessment",
+        "technical-documentation-engineer"
+      ]
+    },
+    "game-dev": {
+      "file": "skills/game/game-dev/SKILL.md",
+      "description": "Full evidence-to-live implementation workflow for large, multi-system, multi-wave, or CPU-delegated 5 Star Booker GM programs.",
+      "triggers": [
+        "large GM implementation",
+        "large GM feature",
+        "multi-system GM feature",
+        "multi-wave GM program",
+        "GM systems overhaul",
+        "CPU systems harmony",
+        "Auto Book multi-system improvement"
+      ],
+      "category": "game-development",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "1.0.0",
+      "agent": "project-coordinator-engineer",
+      "phases": [
+        "S01: Authority and current state",
+        "S02: Player evidence",
+        "S03: Core-loop extraction",
+        "S04: Player psychology and Fogg",
+        "S05: Attribution audit",
+        "S06: Choice and stakes",
+        "S07: Progression and economy",
+        "S08: Era, privacy, and trust",
+        "S09: CPU system inventory",
+        "S10: CPU conflict matrix",
+        "S11: CPU one-brain/two-hands parity",
+        "S12: CPU precedence and promise/policy preservation",
+        "S13: CPU failure, receipts, and control transfer",
+        "S14: CPU cross-system simulation and player-feeling review",
+        "S15: ADR and version envelope",
+        "S16: Architecture and data flow",
+        "S17: Simulation, determinism, and CPU-ignore path",
+        "S18: Mobile-360 information architecture",
+        "S19: Distinctive visual design",
+        "S20: Accessibility and reduced motion",
+        "S21: Copy and anti-AI editing",
+        "S22: Analytics and KPI guards",
+        "S23: Wave and worktree plan",
+        "S24: Backend implementation",
+        "S25: Frontend implementation",
+        "S26: Integration",
+        "S27: Focused tests",
+        "S28: Adversarial perspective, system, and security reviews",
+        "S29: Predeploy game-dev gate",
+        "S30: Emergency staging",
+        "S31: Staging verification",
+        "S32: Production deployment",
+        "S33: Exact live verification",
+        "S34: Feedback, process, and completion ledger"
+      ],
+      "pairs_with": [
+        "game-dev",
+        "workflow",
+        "workflow"
+      ]
+    },
+    "github": {
+      "file": "skills/process/workflow/references/github-profile-rules.md",
+      "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
+      "triggers": [
+        "github rules",
+        "profile analysis",
+        "coding style extraction",
+        "github conventions"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "ADR",
+        "FETCH",
+        "RESEARCH",
+        "SAMPLE",
+        "COMPILE",
+        "GENERATE",
+        "VALIDATE",
+        "OUTPUT"
+      ],
+      "pairs_with": [
+        "domain-research"
+      ],
+      "agent": "github-profile-rules-engineer",
+      "model": "opus"
+    },
+    "hook-development-pipeline": {
+      "file": "skills/process/workflow/references/hook-development-pipeline.md",
+      "description": "Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC \u2192 IMPLEMENT \u2192 TEST \u2192 REGISTER \u2192 DOCUMENT.",
+      "triggers": [
+        "create hook pipeline",
+        "new hook formal",
+        "hook with gates"
+      ],
+      "category": "infrastructure",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "SPEC",
+        "IMPLEMENT",
+        "TEST",
+        "REGISTER",
+        "DOCUMENT"
+      ],
+      "pairs_with": [
+        "hook-development-engineer",
+        "systematic-debugging"
+      ],
+      "agent": "hook-development-engineer"
+    },
+    "mcp-pipeline-builder": {
+      "file": "skills/process/workflow/references/mcp-pipeline-builder.md",
+      "description": "Convert any repository into a registered MCP server: ANALYZE \u2192 DESIGN \u2192 GENERATE \u2192 VALIDATE \u2192 EVALUATE \u2192 REGISTER.",
+      "triggers": [
+        "mcp pipeline",
+        "repo to mcp",
+        "create mcp from repo",
+        "generate mcp",
+        "mcp builder",
+        "mcp from repo"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "ANALYZE",
+        "DESIGN",
+        "GENERATE",
+        "VALIDATE",
+        "EVALUATE",
+        "REGISTER"
+      ],
+      "pairs_with": [
+        "workflow-orchestrator",
+        "systematic-debugging"
+      ],
+      "agent": "mcp-local-docs-engineer"
+    },
+    "pipeline-scaffolder": {
+      "file": "skills/process/workflow/references/pipeline-scaffolder.md",
+      "description": "Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.",
+      "triggers": [
+        "scaffold pipeline",
+        "create pipeline components",
+        "generate pipeline from spec"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "LOAD",
+        "SCAFFOLD AGENT",
+        "SCAFFOLD SKILLS",
+        "INTEGRATE",
+        "REPORT"
+      ],
+      "pairs_with": [
+        "chain-composer",
+        "pipeline-test-runner"
+      ],
+      "agent": "pipeline-orchestrator-engineer",
+      "model": "opus"
+    },
+    "pipeline-test-runner": {
+      "file": "skills/process/workflow/references/pipeline-test-runner.md",
+      "description": "Test generated pipeline skills against real targets.",
+      "triggers": [
+        "test generated pipelines",
+        "run pipeline tests",
+        "validate scaffolded skills",
+        "pipeline test runner"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DISCOVER TARGETS",
+        "EXECUTE",
+        "VALIDATE OUTPUTS",
+        "REPORT"
+      ],
+      "pairs_with": [
+        "pipeline-scaffolder",
+        "chain-composer"
+      ],
+      "agent": "pipeline-orchestrator-engineer",
+      "model": "opus"
+    },
+    "pr-pipeline": {
+      "file": "skills/process/pr-workflow/references/pipeline.md",
+      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
+      "triggers": [
+        "submit PR",
+        "create pull request",
+        "send for review",
+        "push and PR",
+        "submit changes",
+        "open PR"
+      ],
+      "category": "devops",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "CLASSIFY REPO",
+        "PREFLIGHT CHECKLIST",
+        "STAGE",
+        "REVIEW",
+        "COMMIT",
+        "PUSH",
+        "REVIEW-FIX LOOP",
+        "RETRO",
+        "ADR VALIDATION",
+        "CREATE PR",
+        "VERIFY",
+        "CLEANUP"
+      ],
+      "pairs_with": [
+        "pr-workflow",
+        "review"
+      ]
+    },
+    "quality-loop": {
+      "file": "skills/meta/do/references/quality-loop.md",
+      "description": "Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup",
+      "phases": [
+        "ADR",
+        "PLAN",
+        "IMPLEMENT",
+        "TEST",
+        "REVIEW",
+        "INTENT VERIFY",
+        "LIVE VALIDATE",
+        "FIX",
+        "RETEST",
+        "PR",
+        "CODEX REVIEW",
+        "ADR RECONCILE",
+        "REPORT",
+        "CLEANUP"
+      ],
+      "triggers": [
+        "code change",
+        "implement",
+        "build feature",
+        "fix bug",
+        "add feature"
+      ],
+      "skill": "do",
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0"
+    },
+    "skill-creation-pipeline": {
+      "file": "skills/process/workflow/references/skill-creation-pipeline.md",
+      "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
+      "triggers": [
+        "create skill pipeline",
+        "new skill formal",
+        "skill with gates",
+        "create skill formally",
+        "new skill with gates",
+        "skill creation pipeline",
+        "formal skill creation"
+      ],
+      "category": "meta",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DISCOVER",
+        "DESIGN",
+        "SCAFFOLD",
+        "VALIDATE",
+        "INTEGRATE"
+      ],
+      "pairs_with": [
+        "toolkit",
+        "toolkit"
+      ]
+    },
+    "system-upgrade": {
+      "file": "skills/process/workflow/references/system-upgrade.md",
+      "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or process-driven upgrades.",
+      "triggers": [
+        "system upgrade",
+        "upgrade agents",
+        "claude update",
+        "upgrade skills",
+        "adapt workflow",
+        "system health"
+      ],
+      "not_for": "upgrading one named agent or skill \u2014 that is agent-upgrade. Pick this only when an external change (a Claude Code release, a stated goal shift, or routing telemetry showing many weak routes) requires adapting many components at once.",
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "CHANGELOG",
+        "AUDIT",
+        "PLAN",
+        "IMPLEMENT",
+        "VALIDATE",
+        "DEPLOY"
+      ],
+      "pairs_with": [
+        "agent-upgrade",
+        "toolkit"
+      ],
+      "agent": "system-upgrade-engineer"
+    },
+    "systematic-debugging": {
+      "file": "skills/process/workflow/references/systematic-debugging.md",
+      "description": "Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.",
+      "triggers": [
+        "debug",
+        "find root cause",
+        "reproduce bug",
+        "fix this bug",
+        "this is broken",
+        "not working",
+        "why is this broken",
+        "getting an error",
+        "unexpected behavior",
+        "investigate error"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "OBSERVE",
+        "HYPOTHESIZE",
+        "TEST",
+        "FIX",
+        "RECORD"
+      ]
+    },
+    "systematic-refactoring": {
+      "file": "skills/process/workflow/references/systematic-refactoring.md",
+      "description": "Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.",
+      "triggers": [
+        "refactor safely",
+        "rename symbol",
+        "extract function",
+        "refactor",
+        "simplify this",
+        "restructure code",
+        "reduce complexity",
+        "split this file",
+        "restructure",
+        "move to separate file"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "CHARACTERIZE",
+        "PLAN",
+        "REFACTOR",
+        "VERIFY",
+        "RECORD"
+      ]
+    },
+    "toolkit-improvement": {
+      "file": "skills/process/workflow/references/toolkit-improvement.md",
+      "description": "Evaluate the entire toolkit from every angle, synthesize findings, challenge them with a skeptical grader, create validated ADRs for confirmed issu...",
+      "triggers": [
+        "improve the toolkit",
+        "evaluate the repo",
+        "find ways to improve",
+        "make the toolkit better",
+        "upgrade the toolkit",
+        "improve yourself",
+        "improve this system",
+        "repo health check",
+        "toolkit audit",
+        "audit the system",
+        "toolkit system health",
+        "health check",
+        "run a health check",
+        "check system health",
+        "audit everything",
+        "comprehensive improvement",
+        "full evaluation",
+        "toolkit evaluation",
+        "repo evaluation",
+        "evaluate everything",
+        "evaluate the system",
+        "deep evaluation",
+        "thorough evaluation",
+        "evaluate all components",
+        "find issues",
+        "find problems",
+        "find bugs",
+        "what needs fixing",
+        "what's broken",
+        "what can be better",
+        "how can we improve",
+        "show me what's wrong",
+        "diagnose the toolkit",
+        "scan for issues",
+        "self-improvement",
+        "meta improvement",
+        "improvement pipeline",
+        "continuous improvement",
+        "self-evaluate",
+        "introspect",
+        "self-audit",
+        "self-review",
+        "send agents to evaluate",
+        "multi-agent evaluation",
+        "30 agent review",
+        "wave evaluation",
+        "parallel evaluation",
+        "swarm evaluation",
+        "agent swarm",
+        "team evaluation",
+        "dispatch evaluation agents"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "comprehensive-review",
+        "toolkit",
+        "toolkit"
+      ],
+      "model": "opus",
+      "phases": [
+        "EVALUATE",
+        "RESEARCH",
+        "SYNTHESIZE",
+        "CRITIQUE",
+        "REPORT",
+        "ADR",
+        "IMPLEMENT",
+        "VALIDATE",
+        "REMEDIATE",
+        "REPORT"
+      ]
+    },
+    "writing": {
+      "file": "skills/content/writing/SKILL.md",
+      "description": "Unified voice content generation pipeline with mandatory validation and joy-check. 13-phase pipeline with per-phase agent dispatch.",
+      "triggers": [
+        "write article",
+        "write blog post",
+        "write in voice",
+        "generate voice content",
+        "voice workflow",
+        "draft article",
+        "write about",
+        "write post",
+        "blog about",
+        "create content",
+        "write blog",
+        "article about",
+        "content post",
+        "content for blog",
+        "hugo post",
+        "write for website",
+        "long-form content",
+        "write piece",
+        "write essay",
+        "ghost write",
+        "voice pipeline",
+        "writing",
+        "voice writer",
+        "use writing",
+        "use voice writer",
+        "rewrite article",
+        "rewrite this article",
+        "full voice pipeline",
+        "run voice pipeline",
+        "use voice pipeline",
+        "write for blog"
+      ],
+      "not_for": "scheduling or calendaring a content series (use content); drafting interpersonal emails, memos, meeting summaries, or professional pushback messages (use professional-communication). This skill generates articles and blog posts from a voice profile.",
+      "category": "content",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "2.0.0",
+      "phases": [
+        "LOAD",
+        "GROUND",
+        "STATS-CHECKPOINT",
+        "GENERATE",
+        "HOOK-GATE",
+        "VALIDATE",
+        "REFINE",
+        "VARIETY-GATE",
+        "JOY-CHECK",
+        "ANTI-AI",
+        "CLOSE-GATE",
+        "OUTPUT",
+        "CLEANUP"
+      ],
+      "pairs_with": [
+        "writing",
+        "writing",
+        "joy-check"
+      ]
+    },
+    "workflow-orchestrator": {
+      "file": "skills/process/workflow/references/workflow-orchestrator.md",
+      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
+      "triggers": [
+        "orchestrate",
+        "complex task",
+        "plan and execute",
+        "break this down",
+        "multi-step implementation"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "3.0.0",
+      "phases": [
+        "BRAINSTORM",
+        "WRITE-PLAN",
+        "VALIDATE-PLAN",
+        "EXECUTE-PLAN"
+      ],
+      "pairs_with": [
+        "workflow",
+        "research"
+      ]
+    }
+  }
+}

@@ -23,9 +23,8 @@ routing:
     - positive framing check
     - instruction framing
   pairs_with:
-    - voice-writer
-    - voice-validator
-    - skill-creator
+    - writing
+    - toolkit
   complexity: Simple
   category: content
 ---
@@ -41,12 +40,12 @@ By default the skill evaluates each paragraph/instruction independently, produce
 
 This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs to voice-validator, AI pattern detection belongs to the private de-AI editor skill.
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| When | Load | Content |
 |---|---|---|
-| scoring instruction files (agents, skills, pipelines): positive-framing rubric | `instruction-rubric.md` | Loads detailed guidance from `instruction-rubric.md`. |
-| scoring human-facing prose (blog posts, emails, docs): joy-grievance rubric | `writing-rubric.md` | Loads detailed guidance from `writing-rubric.md`. |
+| Scoring instruction files (agents, skills, pipelines) | `references/instruction-rubric.md` | Positive-framing patterns, rewrite rules, scoring, examples |
+| Scoring human-facing prose (blog posts, emails, docs) | `references/writing-rubric.md` | Joy-grievance spectrum, subtle patterns, scoring, examples |
 
 ## Instructions
 

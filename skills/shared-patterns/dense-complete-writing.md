@@ -38,6 +38,6 @@ Completeness clause: the measured winner of a 2026 clause race — control plus 
 
 ## Propagation
 
-This file holds the canonical wording. The model will not open it each turn, so surfaces that must guarantee the rules sit in context reproduce the five rules and the Completeness clause verbatim: `CLAUDE.md`, `agents/base-instructions.md`, and the `/do` router injection (`skills/meta/do/SKILL.md`). The duplication is intentional. Reference docs the model reads on demand — `docs/PHILOSOPHY.md` and `skill-creator` — carry a summary plus a pointer here.
+This file holds the canonical wording. The model will not open it each turn, so surfaces that must guarantee the rules sit in context reproduce the five rules and the Completeness clause verbatim: `CLAUDE.md`, `agents/base-instructions.md`, and the `/do` router injection (`skills/meta/do/SKILL.md`). The duplication is intentional. Reference docs the model reads on demand — `docs/PHILOSOPHY.md` and `toolkit` — carry a summary plus a pointer here.
 
 Propagation rule: edit this canonical wording first, then update the three verbatim surfaces to match.

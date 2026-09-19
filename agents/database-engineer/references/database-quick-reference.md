@@ -1,6 +1,6 @@
 # Database Quick Reference
 
-> **Scope**: Detection queries and error→fix mappings worth having verbatim at the keyboard. Schema-design and optimization judgment lives in the agent body; general SQL knowledge is assumed.
+> **Scope**: Detection queries and error→fix mappings worth having verbatim at the keyboard. Schema-frontend and optimization judgment lives in the agent body; general SQL knowledge is assumed.
 
 ## Detection Queries (PostgreSQL)
 

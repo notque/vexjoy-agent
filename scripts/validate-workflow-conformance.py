@@ -79,7 +79,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DIR = REPO_ROOT / "skills" / "workflow" / "references"
+DEFAULT_DIR = REPO_ROOT / "skills" / "process" / "workflow" / "references"
 HARNESS = REPO_ROOT / "scripts" / "conformance-harness.mjs"
 AGENT_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILL_INDEX = REPO_ROOT / "skills" / "INDEX.json"

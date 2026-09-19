@@ -1,5 +1,5 @@
 # Monorepo Config Reference
-<!-- Loaded by react-native-engineer when task involves monorepo, fonts, imports, design system, dependency versions, autolinking -->
+<!-- Loaded by react-native-engineer when task involves monorepo, fonts, imports, frontend system, dependency versions, autolinking -->
 
 ## Install Native Dependencies in the App Directory
 **Impact:** CRITICAL — required for autolinking

@@ -19,8 +19,8 @@ routing:
     - "outdated comment"
   category: code-quality
   pairs_with:
-    - code-cleanup
-    - systematic-code-review
+    - code-quality
+    - review
 ---
 
 # Comment Quality Skill
@@ -177,25 +177,15 @@ Solution:
 2. If purpose is clear from code, suggest removing the comment entirely
 3. If purpose is unclear, ask user for clarification before rewriting
 
-## References
+## Deep References
 
-### Reference Loading Table
+Load on demand when the current task matches the signal.
 
-Load on demand — only pull what the current task requires.
-
-| Task Signal | Load |
-|-------------|------|
-| Go files (`.go`) in scope | `references/go-comment-patterns.md` |
-| Error handling code (try/catch, `if err !=`, `raise`) | `references/error-handling-patterns.md` |
-| Performance code (cache, pool, batch, concurrency, goroutine) | `references/performance-patterns.md` |
-| General rewrite examples needed | `references/examples.md` |
-| Full failure mode reference | `references/preferred-patterns.md` |
-| Language-specific (Go, Python, JS/TS) or documentation (README, API) comments | `references/preferred-patterns-language-specific.md` |
-
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/preferred-patterns.md`: Core temporal failure mode catalog (language-agnostic)
-- `${CLAUDE_SKILL_DIR}/references/preferred-patterns-language-specific.md`: Language-specific and documentation-targeted failure modes
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples of comment rewrites
-- `${CLAUDE_SKILL_DIR}/references/go-comment-patterns.md`: Go-specific temporal patterns with grep/rg detection commands
-- `${CLAUDE_SKILL_DIR}/references/error-handling-patterns.md`: Temporal patterns in error handling code with detection commands
-- `${CLAUDE_SKILL_DIR}/references/performance-patterns.md`: Temporal patterns in performance-related comments with detection commands
+| Signal | Reference | Content |
+|--------|-----------|---------|
+| Go files in scope | `references/go-comment-patterns.md` | Go-specific temporal patterns with detection commands |
+| Error handling code | `references/error-handling-patterns.md` | Temporal patterns in try/catch, `if err !=`, raise |
+| Performance code | `references/performance-patterns.md` | Temporal patterns in cache, pool, concurrency comments |
+| Rewrite examples needed | `references/examples.md` | Before/after examples of comment rewrites |
+| Full failure mode reference | `references/preferred-patterns.md` | Core temporal failure mode catalog (language-agnostic) |
+| Language-specific or doc comments | `references/preferred-patterns-language-specific.md` | Go, Python, JS/TS, README, API failure modes |

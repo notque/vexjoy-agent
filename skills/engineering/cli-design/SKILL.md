@@ -19,19 +19,19 @@ routing:
     - "exit codes"
   category: engineering
   pairs_with:
-    - test-driven-development
-    - python-quality-gate
+    - testing
+    - code-quality
 ---
 
 # CLI Design
 
 Design a command-line tool's interface before implementation: human-first, script-friendly, Linux-only. Output is a compact spec the user or an agent can implement directly. Rubric source: clig.dev (rebuilt as `references/clig-checklist.md`).
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| When | Load | Content |
 |---|---|---|
-| designing a command-line interface | `clig-checklist.md` | Supplies the CLI design rubric. |
+| Phase 2: applying design rubric | `references/clig-checklist.md` | CLI design checklist condensed from clig.dev |
 
 ## Workflow
 

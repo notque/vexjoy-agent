@@ -40,7 +40,7 @@ Excludes: src/routes/ (owned by STREAM B)
 Success: `npm test -- auth` passes
 ```
 
-Explicit declaration makes conflicts visible at planning time.
+Explicit declaration makes conflicts visible at workflow time.
 
 ---
 

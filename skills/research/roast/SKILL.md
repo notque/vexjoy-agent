@@ -22,8 +22,8 @@ routing:
     - "poke holes in this"
   category: analysis
   pairs_with:
-    - multi-persona-critique
-    - systematic-code-review
+    - assessment
+    - review
 ---
 
 # Roast: Devil's Advocate Analysis
@@ -44,12 +44,11 @@ This skill produces evidence-based constructive critique through 5 specialized H
 
 ---
 
-## Reference Loading Table
+## Deep References
 
-| Signal | Load These Files | Why |
+| When | Load | Content |
 |---|---|---|
-| dispatching roast personas; claim format and validation verdicts | `personas.md` | Loads detailed guidance from `personas.md`. |
-| writing the synthesized roast report | `report-template.md` | Loads detailed guidance from `report-template.md`. |
+| Phase 5: writing the synthesized report | `references/report-template.md` | Full report template with tone transformation rules |
 
 ## Instructions
 
@@ -143,7 +142,7 @@ Launch 5 general-purpose agents in parallel via Task tool. Load the full persona
 - Provide concrete evidence for every claim — vague critiques are worthless and must be rejected during validation
 - Search for actual implementation details rather than analyzing verbal descriptions
 
-See `references/personas.md` for full prompt template and claim format.
+**Agent prompt template**: Tell each agent its persona name, role, target, and these requirements: (1) call `read-only-ops` first, (2) follow their systematic 5-step review process, (3) tag ALL claims as `[CLAIM-N]` with `file:line` references, (4) provide specific evidence for every claim. Load the appropriate reviewer agent file for each persona's lens.
 
 **CRITICAL**: Wait for all 5 agents to complete before proceeding to Phase 4. Do not begin validation on partial results. Every persona must contribute before synthesis can happen.
 
@@ -295,7 +294,6 @@ Solution:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full report output template with tone transformation rules
-- `${CLAUDE_SKILL_DIR}/references/personas.md`: Persona specifications, prompt template, and claim format
 - `agents/reviewer-code.md`: Code quality reviewer (senior and pedant lenses)
 - `agents/reviewer-perspectives.md`: Perspectives reviewer (newcomer and contrarian lenses)
 - `agents/reviewer-domain.md`: Domain reviewer (pragmatic-builder lens)

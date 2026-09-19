@@ -130,7 +130,7 @@ def _workflow_event(script, *, session="wf-s1", output="ok", is_error=False, des
 _TWO_MARKER_SCRIPT = (
     "results = []\n"
     'prompt_a = """\n'
-    "[do-route] agent=python-general-engineer skill=go-patterns complexity=Complex health=-\n"
+    "[do-route] agent=python-general-engineer skill=programming complexity=Complex health=-\n"
     "Fix the bug.\n"
     '"""\n'
     'prompt_b = """\n'
@@ -181,13 +181,13 @@ class TestDecisionRecorder:
         a = _load(A_PATH, "rdr_a1")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="test-driven-development", body="Write tests.")
+        event = _agent_event(skill="testing", body="Write tests.")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         rows = _query_routing(db_env)
         keys = {r["key"] for r in rows}
-        assert "python-general-engineer:test-driven-development" in keys
-        row = next(r for r in rows if r["key"] == "python-general-engineer:test-driven-development")
+        assert "python-general-engineer:testing" in keys
+        row = next(r for r in rows if r["key"] == "python-general-engineer:testing")
         assert "tool_errors=0" in row["value"]
 
     def test_agent_only_key_when_no_skill(self, db_env, monkeypatch):
@@ -210,7 +210,7 @@ class TestDecisionRecorder:
         # A reviewer-style prompt that even names a skill the OLD sniffer would catch.
         event = _agent_event(
             marker=False,
-            body='Review this PR. Skill("systematic-code-review") load the security-review skill.',
+            body='Review this PR. Skill("review") load the security skill.',
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -221,13 +221,13 @@ class TestDecisionRecorder:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
-            skill="go-patterns",
+            skill="programming",
             output="fatal: permission denied",
             is_error=True,
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
-        row = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:go-patterns")
+        row = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:programming")
         assert "tool_errors=1" in row["value"]
 
     def test_rightsizing_row_recorded(self, db_env, monkeypatch):
@@ -235,7 +235,7 @@ class TestDecisionRecorder:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
-            skill="systematic-code-review",
+            skill="review",
             output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17",
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -257,7 +257,7 @@ class TestDecisionRecorder:
             "rightsizing: tier=3 files=5 packages=3 agents_dispatched=17 "
             "findings=1C/13H/24M tokens=1984536 wall_clock_s=1667"
         )
-        event = _agent_event(skill="systematic-code-review")
+        event = _agent_event(skill="review")
         # Replace the Bash-style result with the LIVE content-block list shape
         # under tool_response (the key live Agent dispatches populate).
         event["tool_response"] = [{"type": "text", "text": f"summary...\n{banner}"}]
@@ -275,7 +275,7 @@ class TestDecisionRecorder:
         a = _load(A_PATH, "rdr_a5")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="go-patterns", output="plain output")
+        event = _agent_event(skill="programming", output="plain output")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         keys = {r["key"] for r in _query_routing(db_env)}
@@ -288,7 +288,7 @@ class TestDecisionRecorder:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
-            skill="systematic-code-review",
+            skill="review",
             output="done. rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/3H/5M",
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -310,7 +310,7 @@ class TestDecisionRecorder:
             ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=2C/1H/0M", "s1"),
             ("rightsizing: tier=3 files=15 packages=4 agents_dispatched=17 findings=5C/3H/4M", "s2"),
         ):
-            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            event = _agent_event(skill="review", output=f"done. {out}", session=sess)
             with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
                 a.main()
         row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier3")
@@ -324,7 +324,7 @@ class TestDecisionRecorder:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
-            skill="systematic-code-review",
+            skill="review",
             output=(
                 "done. rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 "
                 "findings=0C/1H/2M tokens=52000 wall_clock_s=180"
@@ -344,7 +344,7 @@ class TestDecisionRecorder:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         event = _agent_event(
-            skill="systematic-code-review",
+            skill="review",
             output="done. rightsizing: tier=1 files=3 packages=1 agents_dispatched=3",
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -366,7 +366,7 @@ class TestDecisionRecorder:
             ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12 findings=4C/2H/1M", "s1"),
             ("rightsizing: tier=2 files=8 packages=2 agents_dispatched=12", "s2"),  # legacy
         ):
-            event = _agent_event(skill="systematic-code-review", output=f"done. {out}", session=sess)
+            event = _agent_event(skill="review", output=f"done. {out}", session=sess)
             with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
                 a.main()
         row = next(r for r in _query_routing(db_env) if r["key"] == "rightsizing:tier2")
@@ -377,11 +377,11 @@ class TestDecisionRecorder:
     def test_idempotent_same_dispatch_recorded_once(self, db_env):
         # Use the real bridge state (redirected to tmp) so dedup engages.
         a = _load(A_PATH, "rdr_a6")
-        event = _agent_event(skill="go-patterns", session="dup-session")
+        event = _agent_event(skill="programming", session="dup-session")
         for _ in range(3):
             with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
                 a.main()
-        row = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:go-patterns")
+        row = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:programming")
         assert row["observation_count"] == 1
 
     def test_exit_zero_on_empty_and_malformed(self, db_env):
@@ -409,14 +409,14 @@ class TestDecisionRecorder:
         import telemetry_capture as tc
 
         monkeypatch.setattr(tc, "_STATE_DIR", tmp_path / "telstate")
-        event = _agent_event(skill="go-patterns", session="tel-s1")
+        event = _agent_event(skill="programming", session="tel-s1")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         rows = _query_telemetry(db_env)
         assert len(rows) == 1
         row = rows[0]
         assert row["topic"] == "routing"
-        assert row["key"] == "python-general-engineer:go-patterns"
+        assert row["key"] == "python-general-engineer:programming"
         assert row["session_id"] == "tel-s1"
         assert row["run_id"]
         assert row["git_sha"]
@@ -427,9 +427,9 @@ class TestDecisionRecorder:
         a = _load(A_PATH, "rdr_gpt_56_model_effort")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="go-patterns", session="gpt-56-effort")
+        event = _agent_event(skill="programming", session="gpt-56-effort")
         event["tool_input"]["prompt"] = (
-            "[do-route] agent=python-general-engineer skill=go-patterns complexity=complex "
+            "[do-route] agent=python-general-engineer skill=programming complexity=complex "
             "model=gpt-5.6-sol effort=xhigh health=-\nReview the implementation."
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -441,7 +441,7 @@ class TestDecisionRecorder:
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
 
-        context = ldb.get_evidence_route_context("python-general-engineer:go-patterns")
+        context = ldb.get_evidence_route_context("python-general-engineer:programming")
         assert context["recent"][0]["model"] == "gpt-5.6-sol@xhigh"
 
     def test_claude_model_effort_is_persisted_in_route_evidence(self, db_env, monkeypatch):
@@ -449,9 +449,9 @@ class TestDecisionRecorder:
         a = _load(A_PATH, "rdr_claude_effort")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="go-patterns", session="claude-effort")
+        event = _agent_event(skill="programming", session="claude-effort")
         event["tool_input"]["prompt"] = (
-            "[do-route] agent=python-general-engineer skill=go-patterns complexity=complex "
+            "[do-route] agent=python-general-engineer skill=programming complexity=complex "
             "model=sonnet effort=high health=-\nReview the implementation."
         )
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -463,7 +463,7 @@ class TestDecisionRecorder:
         sys.path.insert(0, str(LIB_DIR))
         import learning_db_v2 as ldb
 
-        context = ldb.get_evidence_route_context("python-general-engineer:go-patterns")
+        context = ldb.get_evidence_route_context("python-general-engineer:programming")
         assert context["recent"][0]["model"] == "sonnet@high"
 
     def test_no_telemetry_row_when_marker_absent(self, db_env, tmp_path, monkeypatch):
@@ -504,13 +504,13 @@ class TestRouteFitBanner:
     success inferred from the absence of a complaint.
     """
 
-    KEY: ClassVar[str] = "python-general-engineer:go-patterns"
+    KEY: ClassVar[str] = "python-general-engineer:programming"
 
     def _run(self, name, db_env, monkeypatch, output):
         a = _load(A_PATH, name)
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="go-patterns", output=output)
+        event = _agent_event(skill="programming", output=output)
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         return _routing_row(db_env, self.KEY)
@@ -557,7 +557,7 @@ class TestRouteFitBanner:
 
     def test_malformed_banner_never_blocks_the_dispatch(self, db_env):
         """Fail open: the hook still exits 0 and still records the decision."""
-        event = _agent_event(skill="go-patterns", output="route-fit: \x00\x00 garbage")
+        event = _agent_event(skill="programming", output="route-fit: \x00\x00 garbage")
         assert _run_hook(A_PATH, event).returncode == 0
 
     def test_scoring_failure_never_blocks_the_dispatch(self, db_env, monkeypatch):
@@ -570,7 +570,7 @@ class TestRouteFitBanner:
             raise RuntimeError("db on fire")
 
         monkeypatch.setattr(a, "record_route_fit", _boom)
-        event = _agent_event(skill="go-patterns", output="done.\nroute-fit: wrong-agent")
+        event = _agent_event(skill="programming", output="done.\nroute-fit: wrong-agent")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()  # must not raise
         assert _routing_row(db_env, self.KEY)["failure_count"] == 0
@@ -663,14 +663,14 @@ class TestWorkflowDecisionRecorder:
 
         # Two decision rows, one per marker.
         keys = {r["key"] for r in _query_routing(db_env)}
-        assert "python-general-engineer:go-patterns" in keys
+        assert "python-general-engineer:programming" in keys
         assert "hook-development-engineer:pr-workflow" in keys
 
         # Two DECISION events with per-marker complexity + gate inputs.
         decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
         assert len(decisions) == 2
         by_agent = {d["agent"]: d for d in decisions}
-        assert by_agent["python-general-engineer"]["skill"] == "go-patterns"
+        assert by_agent["python-general-engineer"]["skill"] == "programming"
         assert by_agent["hook-development-engineer"]["skill"] == "pr-workflow"
         # complexity is normalized to the lowercase enum at record time.
         assert all(d["complexity"] == "complex" for d in decisions)
@@ -684,12 +684,12 @@ class TestWorkflowDecisionRecorder:
 
         # One telemetry envelope row per marker.
         tel_keys = {r["key"] for r in _query_telemetry(db_env)}
-        assert tel_keys == {"python-general-engineer:go-patterns", "hook-development-engineer:pr-workflow"}
+        assert tel_keys == {"python-general-engineer:programming", "hook-development-engineer:pr-workflow"}
 
         # One pending outcome per marker for the finalizer / Stop fallback
         # (Workflow inner agents fire no SubagentStop; none is needed).
         pending_keys = {p["key"] for p in ros.peek_pending_outcomes("wf-two")}
-        assert pending_keys == {"python-general-engineer:go-patterns", "hook-development-engineer:pr-workflow"}
+        assert pending_keys == {"python-general-engineer:programming", "hook-development-engineer:pr-workflow"}
 
     def test_resubmitted_script_is_noop(self, db_env, monkeypatch):
         # Workflow resume resubmits the SAME script: the per-marker-line
@@ -711,7 +711,7 @@ class TestWorkflowDecisionRecorder:
         # Two workers with byte-identical marker lines = two real dispatches:
         # the occurrence index keeps their signatures distinct — while a
         # resubmit of the same script still re-claims both (no-op).
-        line = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium\n"
+        line = "[do-route] agent=python-general-engineer skill=programming complexity=Medium\n"
         script = f'a = """\n{line}task one\n"""\nb = """\n{line}task two\n"""\n'
         a = _load(A_PATH, "rdr_wf_dup")
         event = _workflow_event(script, session="wf-dup")
@@ -724,7 +724,7 @@ class TestWorkflowDecisionRecorder:
     def test_mid_line_marker_not_recorded(self, db_env):
         # Line-start anchor semantics carry over to the script path: a marker
         # quoted mid-line is prose, not a routing decision.
-        script = 'x = "see the [do-route] agent=python-general-engineer skill=go-patterns line"\n'
+        script = 'x = "see the [do-route] agent=python-general-engineer skill=programming line"\n'
         a = _load(A_PATH, "rdr_wf_midline")
         event = _workflow_event(script, session="wf-mid")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
@@ -755,18 +755,18 @@ class TestWorkflowDecisionRecorder:
         import routing_outcome_state as ros
 
         a = _load(A_PATH, "rdr_wf_agent_reg")
-        event = _agent_event(skill="go-patterns", description="do work", session="wf-agent-reg")
+        event = _agent_event(skill="programming", description="do work", session="wf-agent-reg")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         rows = _query_routing(db_env)
         assert len(rows) == 1
-        assert rows[0]["key"] == "python-general-engineer:go-patterns"
+        assert rows[0]["key"] == "python-general-engineer:programming"
         assert "tool_errors=0" in rows[0]["value"]
         decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
         assert len(decisions) == 1
         assert decisions[0]["request_snippet"] == "do work"
         assert decisions[0]["complexity"] == "medium"  # normalized enum value
-        assert [p["key"] for p in ros.peek_pending_outcomes("wf-agent-reg")] == ["python-general-engineer:go-patterns"]
+        assert [p["key"] for p in ros.peek_pending_outcomes("wf-agent-reg")] == ["python-general-engineer:programming"]
 
 
 # ---------------------------------------------------------------------------
@@ -774,7 +774,7 @@ class TestWorkflowDecisionRecorder:
 # ---------------------------------------------------------------------------
 
 
-def _seed_decision(key="python-general-engineer:go-patterns"):
+def _seed_decision(key="python-general-engineer:programming"):
     sys.path.insert(0, str(LIB_DIR))
     import learning_db_v2 as ldb
 
@@ -1171,7 +1171,7 @@ class TestRouteEventLog:
         a = _load(A_PATH, "rdr_evt1")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="go-patterns", body="Refactor the parser.", session="evt-s1")
+        event = _agent_event(skill="programming", body="Refactor the parser.", session="evt-s1")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         events = _read_events(db_env)
@@ -1179,7 +1179,7 @@ class TestRouteEventLog:
         assert len(decisions) == 1
         d = decisions[0]
         assert d["agent"] == "python-general-engineer"
-        assert d["skill"] == "go-patterns"
+        assert d["skill"] == "programming"
         assert d["session"] == "evt-s1"
         assert d["complexity"].lower() == "medium"
         assert "request_snippet" in d and "health_at_decision" in d
@@ -1231,12 +1231,12 @@ class TestRouteEventLog:
         a = _load(A_PATH, "rdr_evt_append")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        for i, skill in enumerate(("go-patterns", "test-driven-development")):
+        for i, skill in enumerate(("programming", "testing")):
             ev = _agent_event(skill=skill, body=f"task {i}", session=f"append-{i}")
             with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
                 a.main()
         decisions = [e for e in _read_events(db_env) if e["type"] == "decision"]
-        assert {d["skill"] for d in decisions} == {"go-patterns", "test-driven-development"}
+        assert {d["skill"] for d in decisions} == {"programming", "testing"}
         assert len(decisions) == 2
 
     def test_decision_event_write_error_does_not_break_hook(self, db_env, monkeypatch):
@@ -1252,12 +1252,12 @@ class TestRouteEventLog:
             "_append",
             lambda *_a, **_k: (_ for _ in ()).throw(OSError("disk full")),
         )
-        event = _agent_event(skill="go-patterns", session="evt-safe")
+        event = _agent_event(skill="programming", session="evt-safe")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()  # must not raise
         # Aggregate row still recorded despite the event-log failure.
         keys = {r["key"] for r in _query_routing(db_env)}
-        assert "python-general-engineer:go-patterns" in keys
+        assert "python-general-engineer:programming" in keys
 
     def test_malformed_events_dir_does_not_crash_recorder(self, db_env, monkeypatch):
         # CLAUDE_LEARNING_DIR pointing at a non-creatable path => event append
@@ -1266,7 +1266,7 @@ class TestRouteEventLog:
         bad.write_text("i am a file, not a directory")
         env = dict(os.environ)
         env["CLAUDE_LEARNING_DIR"] = str(bad)  # base path is a file => mkdir fails
-        event = _agent_event(skill="go-patterns", session="evt-baddir")
+        event = _agent_event(skill="programming", session="evt-baddir")
         p = subprocess.run(
             [sys.executable, str(A_PATH)],
             input=json.dumps(event),
@@ -1365,7 +1365,7 @@ class TestHealthMarkerParse:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         marker = (
-            "[do-route] agent=python-general-engineer skill=go-patterns "
+            "[do-route] agent=python-general-engineer skill=programming "
             "complexity=Medium health=0.20 n=6 fail=4 action=demote alts=direct:pr-workflow,explore:codebase-overview"
         )
         event = _health_event(marker, session="hs-demote")
@@ -1384,7 +1384,7 @@ class TestHealthMarkerParse:
         a = _load(A_PATH, "rdr_health2")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        marker = "[do-route] agent=python-general-engineer skill=programming complexity=Medium health=-"
         event = _health_event(marker, session="hs-null")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -1405,7 +1405,7 @@ class TestHealthMarkerParse:
         a = _load(A_PATH, "rdr_health3")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium"
+        marker = "[do-route] agent=python-general-engineer skill=programming complexity=Medium"
         event = _health_event(marker, session="hs-legacy")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -1439,7 +1439,7 @@ class TestHealthMarkerLineScoping:
                 "subagent_type": "python-general-engineer",
                 "description": "do work",
                 "prompt": (
-                    "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium\n"
+                    "[do-route] agent=python-general-engineer skill=programming complexity=Medium\n"
                     "Fix the gate: when health=0.9 and fail=3 the action=demote path is wrong."
                 ),
             },
@@ -1467,7 +1467,7 @@ class TestHealthMarkerLineScoping:
                 "subagent_type": "python-general-engineer",
                 "description": "do work",
                 "prompt": (
-                    "[do-route] agent=python-general-engineer skill=go-patterns "
+                    "[do-route] agent=python-general-engineer skill=programming "
                     "complexity=Medium health=0.20 fail=4 action=demote\n"
                     "Body text that says health=0.99 and fail=9 must be ignored."
                 ),
@@ -1489,7 +1489,7 @@ class TestHealthMarkerLineScoping:
         a = _load(A_PATH, "rdr_malformed_health")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=1.2.3"
+        marker = "[do-route] agent=python-general-engineer skill=programming complexity=Medium health=1.2.3"
         event = _health_event(marker, session="hs-malformed")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -1498,7 +1498,7 @@ class TestHealthMarkerLineScoping:
         assert d["gate_inputs_present"] is False  # state (c), honest "not instrumented"
         # The event is still recorded — the malformed value did NOT drop it.
         keys = {r["key"] for r in _query_routing(db_env)}
-        assert "python-general-engineer:go-patterns" in keys
+        assert "python-general-engineer:programming" in keys
 
     def test_valid_health_dash_still_state_b(self, db_env, monkeypatch):
         # Regression: the tightened regex must still accept `health=-` => state b
@@ -1506,7 +1506,7 @@ class TestHealthMarkerLineScoping:
         a = _load(A_PATH, "rdr_dash_stateb")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        marker = "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium health=-"
+        marker = "[do-route] agent=python-general-engineer skill=programming complexity=Medium health=-"
         event = _health_event(marker, session="hs-dash-b")
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -1527,7 +1527,7 @@ class TestHealthMarkerLineScoping:
 
         monkeypatch.setattr(a, "claim_dispatch", _boom)
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        event = _agent_event(skill="go-patterns", session="stderr-fail")
+        event = _agent_event(skill="programming", session="stderr-fail")
         with patch("sys.exit") as ex, patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
         ex.assert_called_with(0)  # still non-blocking
@@ -1557,7 +1557,7 @@ class TestComplexityNormalization:
         a = _load(A_PATH, "rdr_cx_case")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium", "cx-case")
+        self._record(a, "[do-route] agent=python-general-engineer skill=programming complexity=Medium", "cx-case")
         d = next(e for e in _read_events(db_env) if e["type"] == "decision")
         assert d["complexity"] == "medium"
         assert "complexity_invalid" not in d
@@ -1569,18 +1569,18 @@ class TestComplexityNormalization:
         a = _load(A_PATH, "rdr_cx_invalid")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns complexity=Low", "cx-invalid")
+        self._record(a, "[do-route] agent=python-general-engineer skill=programming complexity=Low", "cx-invalid")
         d = next(e for e in _read_events(db_env) if e["type"] == "decision")
         assert d["complexity"] == ""
         assert d["complexity_invalid"] == "Low"
         keys = {r["key"] for r in _query_routing(db_env)}
-        assert "python-general-engineer:go-patterns" in keys  # event not dropped
+        assert "python-general-engineer:programming" in keys  # event not dropped
 
     def test_absent_complexity_is_empty_without_invalid_field(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_cx_absent")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns", "cx-absent")
+        self._record(a, "[do-route] agent=python-general-engineer skill=programming", "cx-absent")
         d = next(e for e in _read_events(db_env) if e["type"] == "decision")
         assert d["complexity"] == ""
         assert "complexity_invalid" not in d
@@ -1591,7 +1591,7 @@ class TestComplexityNormalization:
         a = _load(A_PATH, "rdr_cx_body")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _health_event("[do-route] agent=python-general-engineer skill=go-patterns", session="cx-body")
+        event = _health_event("[do-route] agent=python-general-engineer skill=programming", session="cx-body")
         event["tool_input"]["prompt"] += "\nThe old complexity=Weird value must be ignored."
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
             a.main()
@@ -1620,18 +1620,17 @@ class TestStackTokenParse:
         d = self._decision(
             db_env,
             monkeypatch,
-            "[do-route] agent=python-general-engineer skill=go-patterns "
-            "complexity=Medium stack={test-driven-development,pr-workflow}",
+            "[do-route] agent=python-general-engineer skill=programming complexity=Medium stack={testing,pr-workflow}",
             "yes",
         )
-        assert d["stack"] == ["test-driven-development", "pr-workflow"]
+        assert d["stack"] == ["testing", "pr-workflow"]
         assert d["complexity"] == "medium"  # sibling tokens still parse
 
     def test_absent_stack_token_writes_no_field(self, db_env, monkeypatch):
         d = self._decision(
             db_env,
             monkeypatch,
-            "[do-route] agent=python-general-engineer skill=go-patterns complexity=Medium",
+            "[do-route] agent=python-general-engineer skill=programming complexity=Medium",
             "no",
         )
         assert "stack" not in d
@@ -1640,7 +1639,7 @@ class TestStackTokenParse:
         d = self._decision(
             db_env,
             monkeypatch,
-            "[do-route] agent=python-general-engineer skill=go-patterns stack={}",
+            "[do-route] agent=python-general-engineer skill=programming stack={}",
             "empty",
         )
         assert "stack" not in d
@@ -1651,7 +1650,7 @@ class TestStackTokenParse:
         d = self._decision(
             db_env,
             monkeypatch,
-            "[do-route] agent=python-general-engineer skill=go-patterns",
+            "[do-route] agent=python-general-engineer skill=programming",
             "body",
             body_suffix="\nDiscuss the stack={a,b} syntax in the docs.",
         )
@@ -1675,21 +1674,20 @@ class TestStackUsageRecording:
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         self._record(
             a,
-            "[do-route] agent=python-general-engineer skill=go-patterns "
-            "stack={test-driven-development,verification-before-completion}",
+            "[do-route] agent=python-general-engineer skill=programming stack={testing,testing}",
             "su-1",
         )
         rows = {r["key"]: r for r in _query_routing(db_env)}
-        assert "stack-usage:test-driven-development" in rows
-        assert "stack-usage:verification-before-completion" in rows
-        assert rows["stack-usage:test-driven-development"]["observation_count"] == 1
+        assert "stack-usage:testing" in rows
+        assert "stack-usage:testing" in rows
+        assert rows["stack-usage:testing"]["observation_count"] == 1
 
     def test_repeat_stacking_bumps_observation_count(self, db_env, monkeypatch):
         a = _load(A_PATH, "rdr_su2")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         for i in range(3):
-            self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns stack={joy-check}", f"su-r{i}")
+            self._record(a, "[do-route] agent=python-general-engineer skill=programming stack={joy-check}", f"su-r{i}")
         rows = {r["key"]: r for r in _query_routing(db_env)}
         assert rows["stack-usage:joy-check"]["observation_count"] == 3
 
@@ -1698,7 +1696,7 @@ class TestStackUsageRecording:
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
         self._record(
-            a, "[do-route] agent=python-general-engineer skill=go-patterns stack={joy-check,joy-check}", "su-dup"
+            a, "[do-route] agent=python-general-engineer skill=programming stack={joy-check,joy-check}", "su-dup"
         )
         rows = {r["key"]: r for r in _query_routing(db_env)}
         assert rows["stack-usage:joy-check"]["observation_count"] == 1
@@ -1707,7 +1705,7 @@ class TestStackUsageRecording:
         a = _load(A_PATH, "rdr_su4")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns", "su-none")
+        self._record(a, "[do-route] agent=python-general-engineer skill=programming", "su-none")
         keys = {r["key"] for r in _query_routing(db_env)}
         assert not any(k.startswith("stack-usage:") for k in keys)
 
@@ -1715,7 +1713,7 @@ class TestStackUsageRecording:
         a = _load(A_PATH, "rdr_su5")
         monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
         monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        self._record(a, "[do-route] agent=python-general-engineer skill=go-patterns stack={}", "su-empty")
+        self._record(a, "[do-route] agent=python-general-engineer skill=programming stack={}", "su-empty")
         keys = {r["key"] for r in _query_routing(db_env)}
         assert not any(k.startswith("stack-usage:") for k in keys)
 
@@ -1737,20 +1735,20 @@ class TestEndToEndLoop:
         b = _load(B_PATH, "ror_e1")
         f = _load(HOOKS_DIR / "routing-outcome-finalizer.py", "fin_e1")
         session = "loop-1"
-        event_a = _agent_event(skill="go-patterns", session=session)
+        event_a = _agent_event(skill="programming", session=session)
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event_a)):
             a.main()
         # SubagentStop validates only — confidence unchanged here.
         event_b = {"hook_event_name": "SubagentStop", "session_id": session}
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event_b)):
             b.main()
-        mid = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:go-patterns")
+        mid = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:programming")
         assert mid["success_count"] == 0
         # Next user turn (acceptance) finalizes => success.
         event_f = {"hook_event_name": "UserPromptSubmit", "session_id": session, "prompt": "great, thanks"}
         with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event_f)):
             f.main()
-        decision = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:go-patterns")
+        decision = next(r for r in _query_routing(db_env) if r["key"] == "python-general-engineer:programming")
         assert decision["success_count"] == 1
 
 
@@ -2542,7 +2540,7 @@ def _build_preamble_full() -> str:
     return mod.build_preamble(
         {
             "agent": "python-general-engineer",
-            "skill": "test-driven-development",
+            "skill": "testing",
             "complexity": "medium",
             "model": "opus",
             "task_spec": {
@@ -2597,7 +2595,7 @@ class TestSpecScore:
 
     def test_marker_only_scores_zero(self, db_env, monkeypatch):
         # (b) marker alone: every label absent, listed in fixed order.
-        prompt = "[do-route] agent=python-general-engineer skill=test-driven-development complexity=medium\n"
+        prompt = "[do-route] agent=python-general-engineer skill=testing complexity=medium\n"
         _run_recorder_prompt(monkeypatch, prompt, "marker_only")
         assert _spec_row(db_env) == {"spec_score": 0, "spec_missing": SPEC_LABELS_ALL, "prompt_chars": len(prompt)}
 

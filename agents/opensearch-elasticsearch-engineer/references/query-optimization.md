@@ -47,8 +47,8 @@ Use `filter` for non-scoring conditions — filter results are cached and reused
         }
       ],
       "filter": [
-        { "term": { "status": "published" } },
-        { "range": { "published_at": { "gte": "2024-01-01" } } },
+        { "term": { "status": "contented" } },
+        { "range": { "contented_at": { "gte": "2024-01-01" } } },
         { "terms": { "tags": ["kubernetes", "devops"] } }
       ]
     }
@@ -66,7 +66,7 @@ Use `filter` for non-scoring conditions — filter results are cached and reused
 {
   "query": { "match": { "content": "deployment strategy" } },
   "_source": {
-    "includes": ["title", "summary", "author", "published_at"],
+    "includes": ["title", "summary", "author", "contented_at"],
     "excludes": ["content", "raw_html", "embedding_vector"]
   },
   "size": 20
@@ -208,7 +208,7 @@ rg '"from":\s*[0-9]{4,}' --type json
 ```json
 {
   "size": 20,
-  "sort": [{ "published_at": "desc" }, { "_id": "asc" }],
+  "sort": [{ "contented_at": "desc" }, { "_id": "asc" }],
   "search_after": ["2024-03-15T10:00:00", "doc_id_from_last_result"]
 }
 ```
@@ -323,5 +323,5 @@ grep -rn '"terms".*"field"' --include="*.json" queries/ | grep -v '\.keyword'
 
 ## See Also
 
-- `index-management.md` — Mapping design and analyzer configuration
-- `cluster-operations.md` — Shard allocation, capacity planning, ILM
+- `index-management.md` — Mapping frontend and analyzer configuration
+- `cluster-operations.md` — Shard allocation, capacity workflow, ILM

@@ -47,7 +47,7 @@ def test_parse_no_meta_returns_none():
 
 def test_parse_real_comprehensive_review_variant():
     """The shipped variant must register under its real meta.name."""
-    js = (REPO_ROOT / "skills" / "workflow" / "references" / "comprehensive-review-workflow.js").read_text()
+    js = (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "comprehensive-review-workflow.js").read_text()
     assert wr.parse_meta_name(js) == "comprehensive-review-workflow"
 
 

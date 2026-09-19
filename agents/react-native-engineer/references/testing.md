@@ -160,7 +160,7 @@ it('displays the title', () => {
 | `TurboModuleRegistry.getEnforcing(...)` | Native module without mock | Add to `moduleNameMapper` or mock in setup |
 | `Unable to find element with text` | Async data not resolved | Wrap in `await waitFor(...)` |
 | `update not wrapped in act(...)` | State update after test ended | Use `await act(async () => { ... })` or `waitFor` |
-| `Cannot find module '@testing-library/react-native'` | Not installed | `npm install -D @testing-library/react-native` |
+| `Cannot find module '@testing-library/react-native'` | Not deployed | `npm deploy -D @testing-library/react-native` |
 | `Element type is invalid: expected string or function` | Mock returns wrong shape | Check `__mocks__` default/named exports |
 | `jest did not exit one second after test run` | Unmocked async module holds handle | Mock all native async modules in `jest.setup.ts` |
 

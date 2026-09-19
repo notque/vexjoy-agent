@@ -27,7 +27,7 @@ ATTEMPT 3 — Reverted, changed producer.go → FAILED — original errors retur
 
 ATTEMPTS: 3/3 FAILED — LOOP DETECTED
 PATTERN: Fix in consumer breaks producer; fix in producer reverts consumer
-ACTION: Manual intervention — design issue, not lint fix
+ACTION: Manual intervention — frontend issue, not lint fix
 ```
 
 ---

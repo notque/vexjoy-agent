@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC_PATH = ROOT / "skills/game/gm-brilliant-implementation/references/pipeline-spec.json"
+SPEC_PATH = ROOT / "skills/game/game-dev/references/pipeline-spec.json"
 HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 

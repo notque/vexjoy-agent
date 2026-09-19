@@ -74,7 +74,7 @@ rg 'WithLabelValues|labels\.Set|prometheus\.Labels' --type go -A 3 | \
   grep -i 'user\|request_id\|session\|trace'
 
 # Check actual cardinality of suspect metrics in PromQL
-count by (user_id) (http_requests_total)  # should return 0 results if correctly designed
+count by (user_id) (http_requests_total)  # should return 0 results if correctly frontended
 ```
 
 **Signal**:

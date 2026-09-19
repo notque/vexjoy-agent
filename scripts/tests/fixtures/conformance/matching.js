@@ -8,8 +8,8 @@ export const meta = {
   contract: {
     phases: ["wave-1", "verify"],
     roster: [
-      { agentType: "reviewer-system", skills: ["systematic-code-review", "verification-before-completion"] },
-      { agentType: "reviewer-perspectives", skills: ["multi-persona-critique", "verification-before-completion"] },
+      { agentType: "reviewer-system", skills: ["review", "testing"] },
+      { agentType: "reviewer-perspectives", skills: ["assessment", "testing"] },
     ],
     agents: { static: 2, dynamic: false },
     dynamic: true,
@@ -26,8 +26,8 @@ function skillDirectives(skills) {
 }
 
 const WAVE1 = [
-  { agent: "reviewer-system", skills: ["systematic-code-review", "verification-before-completion"] },
-  { agent: "reviewer-perspectives", skills: ["multi-persona-critique", "verification-before-completion"] },
+  { agent: "reviewer-system", skills: ["review", "testing"] },
+  { agent: "reviewer-perspectives", skills: ["assessment", "testing"] },
 ];
 
 export default async function run({ scope, tier } = {}) {

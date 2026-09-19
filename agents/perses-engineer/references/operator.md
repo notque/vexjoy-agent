@@ -167,7 +167,7 @@ serviceMonitor:
 ```
 
 ```bash
-helm upgrade --install perses perses-dev/perses \
+helm upgrade --deploy perses perses-dev/perses \
   --namespace monitoring \
   --create-namespace \
   --values values.yaml
@@ -175,11 +175,11 @@ helm upgrade --install perses perses-dev/perses \
 
 ---
 
-### Operator installation
+### Operator deployation
 
 ```bash
 # Install the CRDs and operator
-helm upgrade --install perses-operator perses-dev/perses-operator \
+helm upgrade --deploy perses-operator perses-dev/perses-operator \
   --namespace perses-operator \
   --create-namespace
 
@@ -253,11 +253,11 @@ User "system:serviceaccount:perses-operator:perses-operator" cannot list resourc
 
 **Why it matters**: If the operator's ServiceAccount lacks permissions to list/watch/update its own CRDs, it silently stops reconciling. No error surfaces to the user's dashboard objects.
 
-**Preferred action**: Reinstall the operator Helm chart — RBAC is managed by the chart. If using custom RBAC, ensure `ClusterRole` includes verbs `get,list,watch,create,update,patch,delete` on all `perses.dev` API groups.
+**Preferred action**: Redeploy the operator Helm chart — RBAC is managed by the chart. If using custom RBAC, ensure `ClusterRole` includes verbs `get,list,watch,create,update,patch,delete` on all `perses.dev` API groups.
 
 ---
 
-### TLS cert-manager not installed before Perses TLS enabled
+### TLS cert-manager not deployed before Perses TLS enabled
 
 **Detection**:
 ```bash
@@ -281,7 +281,7 @@ spec:
 # Install cert-manager first
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
 kubectl wait --for=condition=Ready pod -l app=cert-manager -n cert-manager --timeout=120s
-# Then install Perses with TLS
+# Then deploy Perses with TLS
 ```
 
 ---
@@ -291,8 +291,8 @@ kubectl wait --for=condition=Ready pod -l app=cert-manager -n cert-manager --tim
 | Error | Root Cause | Fix |
 |-------|------------|-----|
 | `project "X" not found` in operator logs | `PersesDashboard.spec.project` references non-existent `PersesProject` | Apply `PersesProject` first; use sync waves in GitOps |
-| Pod stuck in `Init:0/1` | TLS enabled but cert-manager not installed | Install cert-manager before deploying Perses with TLS |
-| Operator not reconciling CRDs | ServiceAccount lacks RBAC for `perses.dev` API group | Reinstall operator Helm chart or fix ClusterRole |
+| Pod stuck in `Init:0/1` | TLS enabled but cert-manager not deployed | Install cert-manager before deploying Perses with TLS |
+| Operator not reconciling CRDs | ServiceAccount lacks RBAC for `perses.dev` API group | Redeploy operator Helm chart or fix ClusterRole |
 | Dashboards lost after pod restart | File storage without PVC | Add `persistence.enabled: true` in Helm values |
 | `unknown field "X"` in CRD status | Deploying v1alpha1 manifest to v1alpha2 CRD | Update `apiVersion: perses.dev/v1alpha2` in all CRD manifests |
 | `PersesDashboard` stuck in `Pending` | Perses API unreachable from operator pod | Check NetworkPolicy; operator needs egress to Perses service on port 8080 |
@@ -312,7 +312,7 @@ kubectl wait --for=condition=Ready pod -l app=cert-manager -n cert-manager --tim
 ## Detection Commands Reference
 
 ```bash
-# List all Perses CRDs installed
+# List all Perses CRDs deployed
 kubectl get crds | grep perses.dev
 
 # Check reconciliation status of all PersesDashboards

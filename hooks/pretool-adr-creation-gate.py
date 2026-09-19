@@ -273,12 +273,12 @@ def main() -> None:
         f"  Alternative: adr/{component_name}.md (project root)",
         file=sys.stderr,
     )
-    print("[fix-with-skill] planning", file=sys.stderr)
+    print("[fix-with-skill] process", file=sys.stderr)
     deny_tool_use(
         "PreToolUse",
         f"Create ADR at {centralized_hint} (or adr/{component_name}.md in project root) "
-        "before creating this new component. [fix-with-skill] planning\n"
-        "Call the Skill tool with `planning`.",
+        "before creating this new component. [fix-with-skill] process\n"
+        "Call the Skill tool with `process`.",
     )
     sys.exit(0)
 

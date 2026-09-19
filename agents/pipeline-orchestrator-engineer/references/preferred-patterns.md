@@ -17,13 +17,13 @@ grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|dis
 
 ---
 
-### Run codebase-overview Before Scaffolding
+### Run assessment Before Scaffolding
 
 Always Phase 1 before Phase 3. If existing agent covers 80%+, bind new skills instead of duplicating. Two agents with overlapping triggers produce non-deterministic routing.
 
 **Detection**:
 ```bash
-grep -rn 'codebase-overview' adr/ --include="*.md" | wc -l
+grep -rn 'assessment' adr/ --include="*.md" | wc -l
 ```
 
 ---
@@ -41,10 +41,10 @@ grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & ' | grep -v "test\|s
 
 ### Validate Chain Before Scaffolding
 
-`validate-chain` on every chain before scaffolding. Catches type incompatibilities at design time.
+`validate-chain` on every chain before scaffolding. Catches type incompatibilities at frontend time.
 
 ```bash
-python3 scripts/artifact-utils.py validate-chain --chain "research,draft,review,publish" --domain prometheus
+python3 scripts/artifact-utils.py validate-chain --chain "research,draft,review,content" --domain prometheus
 ```
 
 **Detection**:
@@ -56,7 +56,7 @@ grep -rn 'validate-chain' adr/ --include="*.md"
 
 ### Integrate Routing in Same Session
 
-Phase 4 is not optional. Call the Skill tool with `routing-table-updater`. Do this in the same session as Phase 3. Unrouted pipeline = invisible dead code.
+Phase 4 is not optional. Call the Skill tool with `toolkit`. Do this in the same session as Phase 3. Unrouted pipeline = invisible dead code.
 
 **Detection**:
 ```bash
@@ -97,10 +97,10 @@ Agent, skill, and hook files have no data dependencies during creation. Sequenti
 | Error | Root Cause | Fix |
 |-------|------------|-----|
 | `validate-chain: type mismatch at step N` | Output/input type incompatibility | Choose compatible step or add adapter |
-| `routing-table-updater: trigger conflict` | Overlaps existing force-route | More specific triggers; preserve force-routes |
+| `toolkit: trigger conflict` | Overlaps existing force-route | More specific triggers; preserve force-routes |
 | `audit-tool-restrictions: missing allowed-tools` | No `allowed-tools` in frontmatter | Add role-appropriate list per ADR-063 |
 | `adr-enforcement: hash mismatch` | Spec hash doesn't match ADR | Recompute: `adr-query.py hash --adr {path}` |
-| `skill-creator: template section missing` | Missing frontmatter/operator context | Re-run with explicit template reference |
+| `toolkit: template section missing` | Missing frontmatter/operator context | Re-run with explicit template reference |
 | Duplicate Component | Existing agent/skill covers purpose | Bind existing instead of creating new |
 | Chain Validation Failure | Type incompatibilities | Re-invoke workflow (composition) with error |
 | Domain Research Insufficient | < 2 subdomains | Fall back to single-pipeline mode |

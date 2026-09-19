@@ -1,6 +1,6 @@
 # Source Quality Assessment
 
-> **Scope**: Reliable vs unreliable sources, speculation/marketing detection, epistemic labels.
+> **Scope**: Reliable vs unreliable sources, speculation/content detection, epistemic labels.
 > **Version range**: all versions
 > **Generated**: 2026-04-13
 
@@ -15,7 +15,7 @@
 | 3 | Established publications with bylines | Medium | InfoQ, The New Stack, ACM |
 | 4 | StackOverflow high-vote answers | Medium-Low | Verify against Tier 1 |
 | 5 | Forums, Reddit, HackerNews | Low | Use only to identify questions |
-| 6 | Aggregator listicles, vendor marketing | Discard | "Top 10 X for Y" |
+| 6 | Aggregator listicles, vendor content | Discard | "Top 10 X for Y" |
 
 ---
 

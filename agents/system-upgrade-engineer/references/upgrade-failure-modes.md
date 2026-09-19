@@ -32,10 +32,10 @@ Do instead: Follow `skills/workflow/references/system-upgrade.md` Phase 3. Prese
 
 **What it looks like**: Directly editing `hooks/posttool-rename-sweep.py` instead of
 dispatching `hook-development-engineer`. Writing new agent frontmatter inline instead of
-dispatching `skill-creator`.
+dispatching `toolkit`.
 
-Do instead: dispatch `hook-development-engineer` for hook changes, `skill-creator` for agent
-and skill changes, and `routing-table-updater` for routing table changes. Details follow.
+Do instead: dispatch `hook-development-engineer` for hook changes, `toolkit` for agent
+and skill changes, and `toolkit` for routing table changes. Details follow.
 
 **Detection**:
 ```bash
@@ -44,15 +44,15 @@ grep -rn "Edit\|Write" hooks/*.py agents/*.md --include="*.py" --include="*.md" 
 # system-upgrade-engineer should only create task_plan.md and branch setup files
 ```
 
-**Why wrong**: Domain specialists (hook-development-engineer, skill-creator) carry template
+**Why wrong**: Domain specialists (hook-development-engineer, toolkit) carry template
 conventions, event schema knowledge, and frontmatter validation that inline edits bypass.
 A hook written inline without hook-development-engineer's exit code contract knowledge will
 likely use wrong exit codes. An agent written inline will miss required frontmatter fields.
 
 Do instead:
 - Hook changes → dispatch `hook-development-engineer`
-- Agent/skill changes → dispatch `skill-creator`
-- Routing table changes → dispatch `routing-table-updater` skill
+- Agent/skill changes → dispatch `toolkit`
+- Routing table changes → dispatch `toolkit` skill
 - Only create `task_plan.md` and branch setup files directly
 
 ---
@@ -147,7 +147,7 @@ Dispatch parallel Agent calls when:
 | Critical | hooks/rename-sweep.py | upgrade | S | Group A |
 | Critical | hooks/branch-safety.py | upgrade | S | Group A |
 | Important | agents/hook-dev-engineer.md | inject-pattern | M | Group B |
-| Important | skills/routing-table-updater | upgrade | M | Group B |
+| Important | skills/toolkit | upgrade | M | Group B |
 | Minor | routing-tables.md | update | S | Group C |
 ```
 
@@ -169,7 +169,7 @@ Use a single agent when:
 | Session deadlock after hook deploy | Hook deployed before syntax verification | `python3 -m py_compile hook.py` before `cp` to `~/.claude/hooks/` |
 | PR merge fails — CI checks failed | Ruff lint or format error in .py files created during upgrade | `ruff check . && ruff format --check .` before push |
 | Agent dispatch returns empty output | Dispatched specialist had insufficient context | Re-dispatch with narrower scope and explicit file paths |
-| Routing gap after upgrade | New agent not added to routing tables | Call the Skill tool with `routing-table-updater`. Do this after every new agent. |
+| Routing gap after upgrade | New agent not added to routing tables | Call the Skill tool with `toolkit`. Do this after every new agent. |
 | Component scores unchanged (no improvement) | Upgrade changed names but not behavior | Verify upgrade touched functional content, not just formatting |
 
 ---
@@ -195,8 +195,8 @@ git branch --show-current
 # Check Phase 3 plan was presented before writes
 grep "PLAN\|approval\|proceed" task_plan.md
 
-# Verify agent-evaluation was run (Phase 5)
-grep "agent-evaluation\|score.*before\|score.*after" task_plan.md
+# Verify toolkit was run (Phase 5)
+grep "toolkit\|score.*before\|score.*after" task_plan.md
 
 # Check for regression rationalization phrases
 grep -i "necessary\|intentional\|expected trade" task_plan.md

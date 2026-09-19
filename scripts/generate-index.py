@@ -514,7 +514,7 @@ def main() -> int:
     skills_dir = repo_root / "skills"
     pipelines_dir = repo_root / "skills" / "workflow" / "references"
 
-    # Pipeline INDEX is now hand-maintained at skills/workflow/references/pipeline-index.json
+    # Pipeline INDEX is now hand-maintained at skills/process/workflow/references/pipeline-index.json
     # (flat .md files, not subdirectory-per-pipeline). Exclude from auto-generation.
     types = [args.type] if args.type != "all" else ["agents", "skills"]
 

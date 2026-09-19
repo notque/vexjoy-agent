@@ -12,8 +12,8 @@ Detection Logic:
 
 Output Format:
 - [fish-shell] Detected Fish shell user
-- [auto-skill] shell-config
-- Call the Skill tool with `shell-config`.
+- [auto-skill] deploy
+- Call the Skill tool with `deploy`.
 
 Design Principles:
 - Lightweight detection (no complex processing)
@@ -80,7 +80,7 @@ def get_fish_injection() -> str:
     Emits only tags. The shell-config skill carries its own knowledge.
     ADR hook-injection-condensation: removed tutorial block.
     """
-    return "[fish-shell] Detected Fish shell user\n[auto-skill] shell-config\nCall the Skill tool with `shell-config`."
+    return "[fish-shell] Detected Fish shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
 
 
 def main():

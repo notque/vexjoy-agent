@@ -1,5 +1,5 @@
 ---
-description: Mapping design, ILM policies, index templates, and reindexing strategies with failure mode detection
+description: Mapping frontend, ILM policies, index templates, and reindexing strategies with failure mode detection
 ---
 
 # OpenSearch/Elasticsearch Index Management
@@ -12,7 +12,7 @@ description: Mapping design, ILM policies, index templates, and reindexing strat
 
 ## Overview
 
-Index management failures are slow-moving disasters: dynamic mapping enables today, then causes mapping explosion in 3 months. ILM not configured today means manual deletion during a storage emergency. Mapping design is largely irreversible on live indices — reindexing 100GB of data takes hours. Get it right at creation time.
+Index management failures are slow-moving disasters: dynamic mapping enables today, then causes mapping explosion in 3 months. ILM not configured today means manual deletion during a storage emergency. Mapping frontend is largely irreversible on live indices — reindexing 100GB of data takes hours. Get it right at creation time.
 
 ---
 
@@ -56,7 +56,7 @@ PUT /articles
       },
       "content": { "type": "text", "analyzer": "english" },
       "author_id": { "type": "keyword" },
-      "published_at": { "type": "date", "format": "strict_date_time" },
+      "contented_at": { "type": "date", "format": "strict_date_time" },
       "tags": { "type": "keyword" },
       "view_count": { "type": "long" },
       "metadata": {
@@ -292,7 +292,7 @@ POST _reindex
 # Then discover v2 has "date" field mapped as "text" in v1
 ```
 
-**Why this matters**: If `published_at` is `text` in v1 and `date` in v2, reindex fails on any document where `published_at` doesn't parse as a date. `_reindex` continues by default, silently skipping failed documents. The result is an incomplete index with no clear indication of what was dropped.
+**Why this matters**: If `contented_at` is `text` in v1 and `date` in v2, reindex fails on any document where `contented_at` doesn't parse as a date. `_reindex` continues by default, silently skipping failed documents. The result is an incomplete index with no clear indication of what was dropped.
 
 **Preferred action**: Use `"conflicts": "proceed"` only intentionally, and check task results for failures:
 ```bash
@@ -352,4 +352,4 @@ GET /_all/_settings?filter_path=*.settings.index.lifecycle.name
 ## See Also
 
 - `query-optimization.md` — Query DSL performance and profiling
-- `cluster-operations.md` — Shard sizing, node roles, capacity planning
+- `cluster-operations.md` — Shard sizing, node roles, capacity workflow

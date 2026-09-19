@@ -59,7 +59,7 @@ def _index_paths(repo_root: Path) -> dict[str, Path]:
     return {
         "skills": repo_root / "skills" / "INDEX.json",
         "agents": repo_root / "agents" / "INDEX.json",
-        "pipelines": repo_root / "skills" / "workflow" / "references" / "pipeline-index.json",
+        "pipelines": repo_root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
     }
 
 
