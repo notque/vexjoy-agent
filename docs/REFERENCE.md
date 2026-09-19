@@ -193,7 +193,7 @@ Loaded automatically or by the exact action contract: `Call the Skill tool with 
 ### Workflows (formerly Pipelines)
 | Skill | Purpose |
 |-------|---------|
-| `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more. References in `skills/workflow/references/` contain workflow definitions including systematic-debugging, systematic-refactoring, research-to-article, explore-pipeline, pr-pipeline, doc-pipeline, etc. |
+| `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more. References in `skills/process/workflow/references/` contain workflow definitions including systematic-debugging, systematic-refactoring, research-to-article, explore-pipeline, pr-pipeline, doc-pipeline, etc. |
 | `research-pipeline` | Formal 5-phase research pipeline with artifact saving and source quality gates |
 
 ### Code Quality

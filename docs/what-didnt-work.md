@@ -120,7 +120,7 @@ Experiments recorded after the seed set. Same four bold fields; `###` headings k
 
 - **Expectation**: partition each complex skill into a knowledge-only semantic router plus a separate process executor.
 - **What happened**: refuted. The toolkit composes agent + skill at dispatch time, and most skills are intentionally hybrid (`/do` routes and orchestrates; `planning` interviews and executes). The `pairs_with` field already documents relationships declaratively. A forced binary split adds structure with no working gain.
-- **Evidence**: verified detail `skills-design` / "Pairwise knowledge + process skill splitting"; `skills/process/planning/SKILL.md` lines 92-95 (`pairs_with`); `skills/meta/do/SKILL.md` line 280.
+- **Evidence**: verified detail `skills-design` / "Pairwise knowledge + process skill splitting"; `skills/process/process/SKILL.md` (consolidated from planning) (`pairs_with`); `skills/meta/do/SKILL.md` line 280.
 - **Decision**: rejected.
 
 ## 2026-06-05 Eval-doc caveats left as unindexed prose

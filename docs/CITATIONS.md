@@ -60,8 +60,8 @@ Design-oriented system prompt with 14 procedural design skills for Claude Code. 
 - AI slop detection checklist (8 concrete failure modes for AI-generated UI). Rebuilt as `agents/ui-design-engineer/references/ai-slop-detection.md` with positive-instruction-first format and detection commands.
 - Interaction state coverage matrix (6-state exhaustive check per interactive element). Rebuilt as `agents/ui-design-engineer/references/motion-and-interaction.md` with timing bounds and the 5-second test.
 - Spacing/type scale enforcement (flag any px value not on a 4px/8px grid). Rebuilt as `scripts/design-scale-check.py` — fully deterministic, zero LLM involvement.
-- oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/frontend/distinctive-frontend-design/references/oklch-color-harmony.md`.
-- Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/frontend/distinctive-frontend-design/references/honest-placeholders.md`.
+- oklch() color harmony technique (perceptually uniform palette generation). Rebuilt as `skills/frontend/frontend/references/distinctive-frontend-design-refs/oklch-color-harmony.md`.
+- Honest placeholder pattern (striped backgrounds for missing assets). Rebuilt as `skills/frontend/frontend/references/distinctive-frontend-design-refs/honest-placeholders.md`.
 
 **Patterns noted but not adopted:**
 - Discovery questions failure mode #4 ("ask only what you lack"). Valuable general principle but already partially encoded in our blocker tables' "skip-if-answered" rules.
@@ -77,7 +77,7 @@ Focused collection of 12 active Claude Code skills centered on DDD-inspired doma
 
 **Patterns adopted:**
 - Architecture deepening vocabulary and methodology. Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. Rebuilt as `skills/research/architecture-deepening/` skill with 3-phase workflow (EXPLORE, PRESENT CANDIDATES, DESIGN CONVERSATION) and reference files for vocabulary, interface design, and deepening strategies.
-- Feedback-loop-first debugging methodology. Their `/diagnose` skill's 10 loop construction methods and "the loop IS the skill" philosophy. Rebuilt as `skills/workflow/references/feedback-loop-construction.md`, integrated into the OBSERVE phase of systematic-debugging.
+- Feedback-loop-first debugging methodology. Their `/diagnose` skill's 10 loop construction methods and "the loop IS the skill" philosophy. Rebuilt as `skills/process/workflow/references/feedback-loop-construction.md`, integrated into the OBSERVE phase of systematic-debugging.
 
 **Patterns noted but not adopted:**
 - Domain glossary convention (CONTEXT.md format). Formalized project-level domain vocabulary. Evaluated and reverted — our agents already carry domain vocabulary in their own files, and the convention solves a problem we don't have.

@@ -136,7 +136,7 @@ def mock_indexes(tmp_path: Path) -> Path:
     skills_dir.mkdir()
     (skills_dir / "INDEX.json").write_text(json.dumps(SAMPLE_SKILLS_INDEX))
 
-    pipelines_dir = tmp_path / "skills" / "workflow" / "references"
+    pipelines_dir = tmp_path / "skills" / "process" / "workflow" / "references"
     pipelines_dir.mkdir(parents=True, exist_ok=True)
     (pipelines_dir / "pipeline-index.json").write_text(json.dumps(SAMPLE_PIPELINES_INDEX))
 

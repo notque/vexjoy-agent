@@ -23,7 +23,7 @@ Work order for follow-up PRs. Covers every `docs/` file outside the value-clarit
 | `compaction-reference.md` | Agents (in-session) | What survives context compaction, when to compact | None. Agent-facing operational reference; paired with `suggest-compact.py`. | keep |
 | `deprecation-template.md` | Maintainers | Record form for retiring a skill/agent | None. Linked from README Maintenance section; part of the pruning loop. | keep |
 | `injected-context-contracts.md` | Agents, hook authors | Full spec for every injected context tag | None. Linked from CLAUDE.md as the tag catalog; behavioral contract, must stay. | keep |
-| `workflow-terminology-migration.md` | Maintainers | Plan to canonicalize "workflow" over "pipeline" | Plan document, not reference. Once steps 1-2 are verified landed it is history, and its frozen-identifier list belongs near the code it protects. | retire to `docs/archive/` after confirming steps landed; move the frozen-identifier list into `skills/workflow/` docs first |
+| `workflow-terminology-migration.md` | Maintainers | Plan to canonicalize "workflow" over "pipeline" | Plan document, not reference. Once steps 1-2 are verified landed it is history, and its frozen-identifier list belongs near the code it protects. | retire to `docs/archive/` after confirming steps landed; move the frozen-identifier list into `skills/process/workflow/` docs first |
 | `archive/positive-instruction-migration.md` | Maintainers | Completed migration loop for positive-instruction rewrites | Already archived; correct end state. | keep |
 
 ## Action counts
