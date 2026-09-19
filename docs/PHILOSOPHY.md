@@ -31,6 +31,10 @@ Prefer local tools with clear contracts. Declare external dependencies and obtai
 
 Use models for interpretation, diagnosis, design and synthesis. A structured prompt is still guidance, not a deterministic program. Define input formats, escaping and missing-value behavior. Check tool results and artifacts before relying on them. When an operation fails, identify what happened and revise the next action instead of repeating the same step without new evidence.
 
+## Install plugins through the Claude CLI
+
+A repo plugin reaches the engine only by `claude plugin install <name>@<marketplace>` (first time) or `claude plugin update <name>@<marketplace>` (after a version bump), followed by a restart. The engine runs its cached module, so edits to `~/.claude/plugins/installed_plugins.json` or files copied into `~/.claude/plugins/cache/` have no effect. Enforcement: `scripts/validate-plugin-install.py` compares each `plugins/*/.claude-plugin/plugin.json` version to `claude plugin list`; the Stop drift guard runs it whenever `plugins/**` changes and names the exact command to run.
+
 ## Match structure to failure and recovery
 
 Use phases, saved artifacts and explicit prerequisites when intermediate results have value, work needs resuming, or a failure must be isolated. Keep small tasks small. For phased work, `/do` coordinates the capabilities and workflow, assigning repeatable operations to programs and contextual exceptions to models; independent portions can run in parallel. Before synthesis, use a program to inventory required artifacts and check coverage and counts. An extra table or phase is useful only when it answers a real decision. When required artifacts are missing or evidence conflicts, surface the gap, repair prerequisites and resolve contradictions before synthesis; do not infer missing results.

@@ -3,7 +3,8 @@
   "autoMemoryEnabled": false,
   "env": {
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000"
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000",
+    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1"
   },
   "attribution": {
     "commit": "",
@@ -335,6 +336,12 @@
     "UserPromptSubmit": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pending-advisory-injector-userprompt.py\"",
+            "description": "Inject advisories deferred by Stop hooks (replaces async rewakes)",
+            "timeout": 2000
+          },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",

@@ -69,6 +69,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import (
     DiffDedup,
     async_rewake,
+    defer_advisory,
     hook_error,
     working_tree_diff,
 )
@@ -87,6 +88,7 @@ _STATE_FILE = _STATE_DIR / "last-diff-hash.json"
 SMOKE = "smoke-test-hooks"
 DOC_COUNTS = "validate-doc-counts"
 ROUTING = "check-routing-drift"
+PLUGIN_INSTALL = "validate-plugin-install"
 
 # Component class roots. A file ADDED or REMOVED under any of these flips a
 # count claim -> doc-counts. (Modifying an existing file does not change counts.)
@@ -210,6 +212,7 @@ def _relevant_checks(diff: str) -> list[str]:
     run_smoke = False
     run_doc_counts = False
     run_routing = False
+    run_plugin = False
 
     for f in _parse_diff(diff):
         path = f["path"]
@@ -221,14 +224,18 @@ def _relevant_checks(diff: str) -> list[str]:
             run_doc_counts = True
         if _is_frontmatter_relevant(path):
             run_routing = True
+        if path.startswith("plugins/"):
+            run_plugin = True
 
-    # Stable order: smoke, doc-counts, routing.
+    # Stable order: smoke, doc-counts, routing, plugin-install.
     if run_smoke:
         checks.append(SMOKE)
     if run_doc_counts:
         checks.append(DOC_COUNTS)
     if run_routing:
         checks.append(ROUTING)
+    if run_plugin:
+        checks.append(PLUGIN_INSTALL)
     return checks
 
 
@@ -363,9 +370,37 @@ def _check_routing(cwd: str | None) -> dict | None:
     }
 
 
+def _check_plugin_install(cwd: str | None) -> dict | None:
+    """validate-plugin-install.py --json: drift when a repo plugin is not installed
+    at its manifest version through the Claude CLI. Hand edits to
+    ~/.claude/plugins are ignored by the engine; only `claude plugin install|update`
+    counts, followed by a restart."""
+    if not cwd:
+        return None
+    proc = _run_script("validate-plugin-install.py", ["--json"], cwd)
+    if proc is None:
+        return None
+    try:
+        report = json.loads(proc.stdout)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    problems = report.get("problems") or []
+    if not problems:
+        return {"drift": False}
+    lines = ["repo plugin changed but is not installed at this version via the Claude CLI:"]
+    for pr in problems[:5]:
+        lines.append(f"  {pr.get('plugin', '?')}: {pr.get('problem', '?')}")
+    return {
+        "drift": True,
+        "detail": "\n".join(lines),
+        "fix": "; ".join(pr.get("fix", "") for pr in problems[:5]) + " -- then tell the owner to restart",
+    }
+
+
 _CHECK_RUNNERS = {
     SMOKE: _check_smoke,
     DOC_COUNTS: _check_doc_counts,
+    PLUGIN_INSTALL: _check_plugin_install,
     ROUTING: _check_routing,
 }
 
@@ -414,6 +449,7 @@ def _working_tree_diff(cwd: str | None) -> str:
 
 def handle_stop(event: dict) -> None:
     """Stop: run the relevant drift checks and ADVISORY re-wake on real drift."""
+    session_id = event.get("session_id") if isinstance(event.get("session_id"), str) else None
     # asyncRewake recursion guard: CC sets stop_hook_active while a rewake is in
     # flight — don't re-fire.
     if event.get("stop_hook_active"):
@@ -470,8 +506,15 @@ def handle_stop(event: dict) -> None:
     )
     message = "\n".join(lines) + "\n"
 
-    # async_rewake: rewakeSummary on stdout, context on stderr, exit 2. Advisory —
-    # never a permissionDecision:deny, never blocks.
+    # Deferred, not rewoken: a rewake is a full-context generation the model
+    # spends saying "acknowledged". The advisory lands as context on the next
+    # user prompt instead (pending-advisory-injector-userprompt.py).
+    runtime_delivers_deferred = os.environ.get("VEXJOY_HOOK_RUNTIME") != "codex"
+    if runtime_delivers_deferred and defer_advisory(
+        session_id, "stop-drift-guard", message, "Toolkit drift guard found drift to review"
+    ):
+        print("[stop-drift-guard] drift queued for next prompt", file=sys.stderr)
+        sys.exit(0)
     async_rewake(message, "Toolkit drift guard found drift to review")
 
 

@@ -1,0 +1,17 @@
+{
+  "name": "jev-auto-compact",
+  "description": "Jev-powered verbatim compaction plugin",
+  "owner": {
+    "name": "vexjoy-agent",
+    "url": "https://github.com/notque/vexjoy-agent"
+  },
+  "plugins": [
+    {
+      "name": "jev-auto-compact",
+      "source": "./",
+      "description": "Jev-powered verbatim compaction: once context reaches 60%, prunes stale tool calls with zero generation. Skips (never falls back to the LLM summarizer) when nothing is prunable; records evidence for learning.db.",
+      "version": "1.6.0",
+      "license": "MIT"
+    }
+  ]
+}

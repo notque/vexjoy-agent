@@ -48,6 +48,7 @@ def test_absolute_target_path_uses_trusted_checker_and_project_relative_command(
         "cwd": str(target),
         "tool_input": {"file_path": str(agent)},
     }
+    env = {**__import__("os").environ, "ADR_ENFORCEMENT": "1"}
     result = subprocess.run(
         [sys.executable, str(installed_hook)],
         input=json.dumps(event),
@@ -55,6 +56,7 @@ def test_absolute_target_path_uses_trusted_checker_and_project_relative_command(
         text=True,
         cwd="/",
         timeout=10,
+        env=env,
     )
 
     assert result.returncode == 0, result.stderr

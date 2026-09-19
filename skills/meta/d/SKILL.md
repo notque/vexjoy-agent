@@ -46,6 +46,8 @@ After Phase 1 resolves: `===` routing banner. Both required.
 
 `scripts/jev-route.py` owns the entire classification in one subprocess call.
 
+When `JEV_RESULT` is already in context (the `jev-route-injector` hook ran the script before your first token), use it and skip the command below.
+
 ```bash
 REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
 python3 "$SDIR/jev-route.py" --request-file "$REQUEST_FILE" --json-compact
@@ -148,14 +150,14 @@ script) map to stack entries:
 
 | Signal true | Stack |
 |---|---|
-| `tests_requested` | `test-driven-development` + `verification-before-completion` |
+| `tests_requested` | `testing` |
 | `research_needed` | add `research-coordinator-engineer` to agents (fan-out) |
-| `comprehensive_review` | `parallel-code-review` (drop if a real multi-file diff exists — `right-size-review.py` outranks it) |
+| `comprehensive_review` | `review` (drop if a real multi-file diff exists — `right-size-review.py` outranks it) |
 | `local_only` | inject `shared-patterns/local-only.md` |
-| `objective_loop_worthy` | `objective-loop` |
+| `objective_loop_worthy` | `process` |
 
 `anti-rationalization-core` always rides. When `source` is
-`pre-route-force` and `JEV_RESULT.stack` is non-empty (e.g. `go-patterns`),
+`pre-route-force` and `JEV_RESULT.stack` is non-empty (e.g. `programming`),
 keep it.
 
 **Fan-out agents**: union `JEV_RESULT.agents` (script-computed fan-out picks,
@@ -187,7 +189,8 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "stack": ["s1","s2"],
   "task_spec": {"request_verbatim": "<user message, unchanged>", "intent": "...",
                 "constraints": "<applicable rules, limits, and authorization>",
-                "decisions": "...", "prior_results": "...", "gaps": "...",
+                "decisions": "...",
+                "gaps": "...",
                 "acceptance": "<command> -> <expected>",
                 "files": "<owned paths; optional line ranges>", "ownership": "<worker scope>",
                 "operator_context": "..."},
@@ -218,3 +221,4 @@ Phase 1F reports the error and stops.
   redesigning this skill)
 - `scripts/jev-route.py`, `scripts/jev_router_common.py`, `scripts/pre-route.py`,
   `scripts/routing-manifest.py`, `scripts/build-dispatch.py`
+- Jev hook: `hooks/jev-route-injector-userprompt.py` (UserPromptSubmit) precomputes `JEV_RESULT`

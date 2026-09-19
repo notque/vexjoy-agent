@@ -42,7 +42,7 @@ target-version = "py310"
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 # Local-only backup virtualenv (untracked; absent in CI). Exclude its vendored
 # third-party scripts from lint/format so local gate runs stay clean.
-extend-exclude = ["venv.312.bak"]
+extend-exclude = ["venv.312.bak", "scripts/tests/fixtures/jev_review_recall/files"]
 
 [tool.ruff.lint]
 select = [

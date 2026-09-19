@@ -70,6 +70,9 @@ MODE_EVENTS = {
 # production code makes unsupported coverage machine-readable and forces every
 # Claude registration to have a precise reviewed decision.
 UNSUPPORTED_REGISTRATIONS = {
+    ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"): (
+        "Drains advisories deferred by Claude Stop hooks; Codex Stop hooks report inline, so there is no queue to drain."
+    ),
     ("PreToolUse", "reference-loading-enforcer.py"): (
         "Codex SubagentStart omits the Agent task prompt and tool input this reference injector requires."
     ),

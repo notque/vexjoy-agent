@@ -188,6 +188,10 @@ def format_pass(file_path: str, check_result: dict) -> str:
 
 def main() -> None:
     try:
+        # ADR enforcement is opt-in. Set ADR_ENFORCEMENT=1 to enable.
+        if os.environ.get("ADR_ENFORCEMENT") != "1":
+            sys.exit(0)
+
         raw = read_stdin(timeout=2)
         if not raw:
             empty_output(_EVENT_NAME).print_and_exit(0)

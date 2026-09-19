@@ -1020,6 +1020,33 @@ class DiffDedup:
             pass
 
 
+PENDING_ADVISORY_DIR = Path.home() / ".claude" / "state" / "pending-advisories"
+
+
+def defer_advisory(session_id: str | None, source: str, message: str, summary: str) -> bool:
+    """Queue an advisory for the NEXT user prompt instead of rewaking the model.
+
+    A rewake (exit 2) forces a full-context generation to read an advisory the
+    model cannot act on until the user speaks again. Deferral delivers the same
+    text as additionalContext on the next UserPromptSubmit (see
+    hooks/pending-advisory-injector-userprompt.py) at zero generation cost.
+    Never raises. Returns True when the advisory was written.
+    """
+    if not session_id or not isinstance(session_id, str) or "/" in session_id or "\\" in session_id:
+        return False
+    if session_id in (".", ".."):
+        return False
+    try:
+        PENDING_ADVISORY_DIR.mkdir(parents=True, exist_ok=True)
+        path = PENDING_ADVISORY_DIR / f"{session_id}.jsonl"
+        row = {"ts": time.time(), "source": source, "summary": summary, "message": message}
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row) + "\n")
+        return True
+    except Exception:
+        return False
+
+
 def async_rewake(message: str, summary: str) -> None:
     """Emit an asyncRewake signal: rewakeSummary on stdout, context on stderr,
     then exit 2 (the asyncRewake signal that mirrors the official plugin).

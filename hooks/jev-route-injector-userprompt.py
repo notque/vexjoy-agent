@@ -1,43 +1,34 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 3.0.0
 """
-UserPromptSubmit hook — pre-run jev-route.py on a /d invocation and inject
-its result before the model generates a single token this turn.
+UserPromptSubmit hook -- pre-run jev-route.py on a /d invocation and inject
+JEV_RESULT before the model generates a single token.
 
-Why this exists (2026-09-16): skills/meta/d/SKILL.md's Phase 1 prose said
-"call jev-route.py first, no thinking" — that is compliance by request, not
-enforcement. It already failed once this session: the model skipped the
-script call entirely on a meta-question and reasoned about routing itself
-instead. A stronger sentence in the skill file does not fix a model-choice
-failure mode; a mechanism that runs before the model has a choice does.
+A skill instruction to "run the route script first" depends on the model
+choosing to comply. This hook runs the script before the model has a choice.
 
-This hook detects a raw `/d ...` invocation at UserPromptSubmit (the
-earliest hook point in the turn, before /do or /d's own instructions are
-read), runs `scripts/jev-route.py` itself, and injects the resulting JSON as
+This hook detects a raw ``/d ...`` invocation at UserPromptSubmit (the
+earliest hook point in the turn, before /d's own instructions are read),
+runs ``scripts/jev-route.py`` itself, and injects the resulting JSON as
 additionalContext. By the time the model's first token for this turn is
-generated, JEV_RESULT already exists in context — Phase 1 of
-skills/meta/d/SKILL.md then reads it instead of running the script, for the
-case this hook successfully detects and completes in time.
+generated, JEV_RESULT already exists in context -- Phase 1 of
+skills/meta/d/SKILL.md then reads it instead of running the script, for
+the case this hook successfully detects and completes in time.
 
 Honest limit, not overclaimed: this is real, mechanical enforcement for a
-detected, on-time /d invocation — the classification happens outside the
+detected, on-time /d invocation -- the classification happens outside the
 model's control, deterministically, before generation starts. It is NOT
-100% immunity: an invocation shape the regex below does not recognize, or a
+100%% immunity: an invocation shape the regex below does not recognize, or a
 hook failure/timeout, silently falls through to Phase 1's own prose-driven
-script call (same behavior as before this hook existed) — this hook fails
+script call (same behavior as before this hook existed) -- this hook fails
 open in every failure mode, it never blocks the prompt. See
-docs/injected-context-contracts.md's `[jev-route-injector]` entry for the
+docs/injected-context-contracts.md's ``[jev-route-injector]`` entry for the
 full contract, and skills/meta/d/SKILL.md Phase 1 for how the injected
 result is consumed.
-
-/d and /do are explicitly a temporary split (owner: "/d will end up
-replacing do, but for now [they're separate]") — this hook matches /d only,
-by design, not because the split is assumed permanent. If /d's entry point
-changes (e.g. /do adopts the same Jev path), extend DETECT_PATTERN rather
-than writing a second parallel hook.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -51,24 +42,22 @@ from stdin_timeout import read_stdin
 EVENT_NAME = "UserPromptSubmit"
 
 # Matches a /d invocation at the start of the prompt: "/d", "/d <request>",
-# "/d\n<request>". \b after "d" prevents matching "/do" or "/design" etc --
-# same anchor style scripts/pre-route.py and other slash-command-detecting
-# hooks (e.g. codex-auto-review.py) use for skill-name prefixes.
+# "/d\n<request>". \b after "d" prevents matching "/do" or "/design" etc.
 DETECT_PATTERN = re.compile(r"^\s*/d\b\s*", re.IGNORECASE)
 
-JEV_ROUTE_TIMEOUT_SECONDS = 20  # covers 2 real Jev HTTP round trips + manifest subprocess load
+JEV_ROUTE_TIMEOUT_SECONDS = 20  # per-script timeout for route
 
 
 def extract_prompt(event: dict) -> str:
     """Extract the raw user prompt text.
 
     Defensive multi-field lookup: this repo's own UserPromptSubmit hooks
-    disagree with each other on the field name (`prompt` top-level in most,
-    `tool_input.prompt` in codex-auto-review.py, `userMessage` in
+    disagree with each other on the field name (``prompt`` top-level in most,
+    ``tool_input.prompt`` in codex-auto-review.py, ``userMessage`` in
     pipeline-context-detector.py) -- rather than picking one and silently
     breaking on a schema this hook wasn't tested against, check all three in
-    priority order. Top-level `prompt` first: majority convention among the
-    actively-maintained hooks in this repo as of 2026-09-16.
+    priority order. Top-level ``prompt`` first: majority convention among the
+    actively-maintained hooks in this repo.
     """
     if not isinstance(event, dict):
         return ""
@@ -85,21 +74,22 @@ def extract_prompt(event: dict) -> str:
 
 
 def extract_request_text(prompt: str) -> str | None:
-    """Return the request text after `/d`, or None if this isn't a /d invocation."""
+    """Return the request text after ``/d``, or None if not a /d invocation."""
     m = DETECT_PATTERN.match(prompt)
     if not m:
         return None
     return prompt[m.end() :].strip()
 
 
-def run_jev_route(request_text: str) -> dict | None:
+def run_jev_route(request_text: str, session_id: str = "") -> dict | None:
     """Run jev-route.py directly (list-argv subprocess -- no shell, so no
-    quoting risk from `request_text`; the request-file convention documented
-    in skills/meta/d/SKILL.md exists for a *bash* invocation of this same
-    script, not for a Python subprocess.run() list call like this one).
+    quoting risk from ``request_text``).
 
     Returns the parsed JEV_RESULT dict, or None on any failure -- every
     failure path here means "fail open," not "block."
+
+    ``session_id`` reaches the call log through ``JEV_SESSION_ID``, so spend can
+    be read per session.
     """
     script = Path(__file__).resolve().parent.parent / "scripts" / "jev-route.py"
     if not script.is_file():
@@ -111,6 +101,7 @@ def run_jev_route(request_text: str) -> dict | None:
             text=True,
             timeout=JEV_ROUTE_TIMEOUT_SECONDS,
             check=False,
+            env={**os.environ, "JEV_SESSION_ID": session_id} if session_id else None,
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -124,6 +115,7 @@ def run_jev_route(request_text: str) -> dict | None:
 
 
 def build_injection(jev_result: dict) -> str:
+    """Build the additionalContext string from JEV_RESULT."""
     return (
         "[jev-route-injector] JEV_RESULT precomputed by this hook before your first token this "
         "turn -- do NOT run scripts/jev-route.py again for this request; skills/meta/d/SKILL.md "
@@ -154,7 +146,8 @@ def main() -> None:
         empty_output(EVENT_NAME).print_and_exit()
         return
 
-    jev_result = run_jev_route(request_text)
+    session_id = event.get("session_id") if isinstance(event, dict) else ""
+    jev_result = run_jev_route(request_text, session_id if isinstance(session_id, str) else "")
     if jev_result is None:
         # Fail open: Phase 1's own prose-driven script call is the fallback,
         # unchanged from before this hook existed.

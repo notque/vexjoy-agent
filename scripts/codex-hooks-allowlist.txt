@@ -12,7 +12,7 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   62 registrations = 26 native + 27 adapted + 9 unsupported.
+#   63 registrations = 26 native + 28 adapted + 9 unsupported.
 
 # Native SessionStart (12)
 SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
@@ -97,6 +97,6 @@ Stop:session-summary.py class=adapted mode=stop failure=open
 Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
 Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=open
 
-# Unsupported 9 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
+# Unsupported 10 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
 # three PreToolUse:Agent; four PostToolUse:Skill/Agent/Workflow;
 # StopFailure; and PostCompact model-context reinjection.

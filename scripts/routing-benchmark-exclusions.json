@@ -1,5 +1,4 @@
 {
-  "schema_version": 1,
   "description": "Indexed skills intentionally outside the deterministic routing benchmark. Add a corpus case when an exclusion gains a stable, testable routing contract.",
   "exclusions": {
     "adr-consultation": "No deterministic fast-path contract; the route depends on the architecture decision context.",
@@ -8,6 +7,8 @@
     "architecture-deepening": "Architecture judgment route; no stable deterministic trigger contract.",
     "auto-dream": "Scheduled lifecycle component, not a direct user-intent route.",
     "bluesky-reader": "External-content route requires provider and task context beyond a stable trigger.",
+    "browser-jev-automation": "Infrastructure automation; no benchmark case yet.",
+    "building-with-jev": "Meta skill for Jev development; no benchmark case yet.",
     "business-ops": "Broad umbrella skill; benchmark it through its narrower business skills rather than one trigger.",
     "cli-design": "Semantic design route; no stable deterministic trigger contract.",
     "code-cleanup": "Semantic code-quality route; no stable deterministic trigger contract.",
@@ -18,10 +19,10 @@
     "condition-based-waiting": "Process companion selected by workflow state, not direct user intent.",
     "create-voice": "Voice-calibration route requires supplied samples and profile context.",
     "cron-automation": "Infrastructure route requires environment and scheduling context.",
+    "d": "Meta-router that classifies via Jev API, not a routing target.",
     "data-analysis": "Semantic analysis route; no stable deterministic trigger contract.",
     "decision-helper": "Semantic decision-support route; no stable deterministic trigger contract.",
     "design": "Semantic design route; no stable deterministic trigger contract.",
-    "d": "Meta-router that classifies via Jev API, not a routing target.",
     "do": "The router itself, not a routing target. /do is the entry point that selects agents and skills; it is never the result of a routing decision.",
     "e2e-testing": "Testing-method route; no stable deterministic trigger contract.",
     "enterprise-search": "Engineering route requires repository and search-system context.",
@@ -82,5 +83,6 @@
     "workflow": "Workflow selection is a fallback based on task complexity, not a stable trigger alone.",
     "workflow-help": "Help component is selected by workflow-discovery state, not a stable trigger.",
     "x-api": "External publishing route requires authenticated account and content context."
-  }
+  },
+  "schema_version": 1
 }

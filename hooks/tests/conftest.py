@@ -46,3 +46,19 @@ def _isolate_hook_dedup_state(request, tmp_path, monkeypatch):
         monkeypatch.setattr(mod, "_STATE_DIR", state_dir, raising=False)
         monkeypatch.setattr(mod, "_STATE_FILE", state_dir / "last-diff-hash.json", raising=False)
     yield
+
+
+@pytest.fixture(autouse=True)
+def _reset_learning_db_init_flag():
+    """Re-run schema setup for each test's database.
+
+    ``learning_db_v2`` creates its tables once per process. A test that points
+    the module at a fresh database needs that setup to run again.
+    """
+    ldb = sys.modules.get("learning_db_v2")
+    if ldb is not None and hasattr(ldb, "_initialized"):
+        ldb._initialized = False
+    yield
+    ldb = sys.modules.get("learning_db_v2")
+    if ldb is not None and hasattr(ldb, "_initialized"):
+        ldb._initialized = False

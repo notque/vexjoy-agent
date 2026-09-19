@@ -75,7 +75,7 @@ A year of daily use on real work. Finding gaps, filling them, and retiring the p
 The result:
 
 - 44 domain specialist agents across languages, infrastructure, review, research, content
-- 123 workflow skills covering everything from TDD to article writing to Reddit moderation
+- 125 workflow skills covering everything from TDD to article writing to Reddit moderation
 - Lifecycle hooks that fire at session boundaries to inject context and enforce gates
 - A telemetry database that records every routing decision and what it produced
 - Parallel review pipelines that catch issues before they reach production

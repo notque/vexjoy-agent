@@ -208,6 +208,9 @@ def compatibility_environment(event: dict[str, Any]) -> dict[str, str]:
         env["CLAUDE_PROJECT_DIR"] = cwd
     if isinstance(session_id, str) and session_id:
         env["CLAUDE_SESSION_ID"] = session_id
+    # Hooks that defer advisories to the next Claude prompt report inline here:
+    # Codex has no pending-advisory injector to deliver a deferred message.
+    env["VEXJOY_HOOK_RUNTIME"] = "codex"
     return env
 
 

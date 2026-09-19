@@ -76,6 +76,7 @@ SKILL_MAPPING: dict[str, str] = {
     "phaser-gamedev": "game",
     "motion-pipeline": "game",
     # infrastructure/ — ops, k8s, shell, cron
+    "browser-jev-automation": "infrastructure",
     "kubernetes": "infrastructure",
     "shell-config": "infrastructure",
     "shell-process-patterns": "infrastructure",
@@ -87,6 +88,7 @@ SKILL_MAPPING: dict[str, str] = {
     "cve-source-check": "infrastructure",
     "dev-branch-deploy": "infrastructure",
     # meta/ — toolkit self-management
+    "building-with-jev": "meta",
     "codex": "meta",
     "d": "meta",
     "do": "meta",

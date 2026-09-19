@@ -118,7 +118,7 @@ DEFAULT_GATE_THRESHOLD = 0.30
 DEFAULT_FITS_THRESHOLD = 0.30
 DEFAULT_TIMEOUT = 6.5
 
-STAGE1_SHORTLIST_N = 3
+STAGE1_SHORTLIST_N = 6  # accepted agent in top 6: 81% on dev; top 3: 63%
 
 # Router entry points: skills whose entire job is to dispatch a request to
 # ANOTHER skill/agent (they own the pre-route guard, the Jev call, and
@@ -163,7 +163,6 @@ def _sanitize_key(name: str) -> str:
     return _SANITIZE_RE.sub("_", name)
 
 
-# --------------------------------------------------------------------------- #
 # Jev question text. Semantics sourced from skills/meta/do/SKILL.md: Phase 1
 # (complexity/Trivial table), Phase 2 (SECTION-INTEGRITY, FORCE-ROUTE
 # semantic-not-keyword matching, SPECIFICITY, agent-handles-domain/
@@ -177,14 +176,19 @@ def _sanitize_key(name: str) -> str:
 # paraphrase of do/SKILL.md prose. There is no automated drift check today.
 # If /do's semantics change, update these instructions by hand, or Jev's
 # judgments silently diverge from /do's.
-# --------------------------------------------------------------------------- #
+AGENT_ROLE_RULES = (
+    " Agents named reviewer-* only read existing code and report findings; pick one only when the request asks "
+    "for a review or assessment of existing code, never for building, fixing, investigating, or operating. Pick "
+    "project-coordinator-engineer only when the request is a batch of unrelated deliverables in different parts "
+    "of the system. Two features of one subsystem, or one task with a condition attached, is a single deliverable."
+)
 AGENT_INSTRUCTIONS_STAGE1 = (
     "Pick the single agent whose domain best fits this request's technical or functional area, from this full "
     "list of short descriptions. This is a cheap wide pass -- your full probability spread across candidates "
     "matters as much as the top pick, since a shortlist of your highest-probability candidates gets full detail "
     "and a second look next. The agent owns the domain (language, framework, infrastructure); a skill, asked "
     "separately, owns the methodology."
-)
+) + AGENT_ROLE_RULES
 SKILL_INSTRUCTIONS_STAGE1 = (
     "Pick the single skill whose description best matches the methodology this request needs -- how the work "
     "should be done, not who does it -- from this full list of short descriptions. This is a cheap wide pass -- "
@@ -204,7 +208,7 @@ AGENT_INSTRUCTIONS_STAGE2 = (
     "short list of finalists only. Read each full description AND any NOT/exclusion clause carefully -- this is "
     "the precise pick, not the wide skim. Prefer a specific domain agent over general-purpose; pick "
     "general-purpose only when no listed agent's domain genuinely covers the request."
-)
+) + AGENT_ROLE_RULES
 SKILL_INSTRUCTIONS_STAGE2 = (
     "Pick the single skill whose description best matches the methodology this request needs, from this short "
     "list of finalists only. Read each full description AND any NOT/exclusion clause carefully -- this is the "
@@ -442,20 +446,111 @@ def _top_names_by_probability(probabilities: dict | None, valid_names: set[str],
     return [name for name, _ in items[:top_n]]
 
 
+PROJECT_CONTEXT_INSTRUCTIONS = (
+    " The state's `project` field lists the languages, frameworks, and datastores detected in the repository "
+    "this request is about. When the request names no language or framework, use `project` to pick the domain."
+)
+
+_LANGUAGE_MARKERS = (
+    ("python", ("pyproject.toml", "requirements.txt", "setup.py", "Pipfile")),
+    ("typescript", ("tsconfig.json",)),
+    ("javascript", ("package.json",)),
+    ("go", ("go.mod",)),
+    ("rust", ("Cargo.toml",)),
+    ("php", ("composer.json",)),
+    ("kotlin", ("build.gradle.kts",)),
+    ("swift", ("Package.swift",)),
+    ("ruby", ("Gemfile",)),
+)
+_DEPENDENCY_FILES = ("pyproject.toml", "requirements.txt", "Pipfile", "package.json", "go.mod", "composer.json")
+_FRAMEWORK_TOKENS = (
+    ("flask", "flask"),
+    ("django", "django"),
+    ("fastapi", "fastapi"),
+    ("react", '"react"'),
+    ("next.js", '"next"'),
+    ("express", '"express"'),
+    ("vue", '"vue"'),
+    ("laravel", "laravel/framework"),
+)
+_DATASTORE_TOKENS = (
+    ("sqlite", "sqlite"),
+    ("peewee", "peewee"),
+    ("postgres", "psycopg"),
+    ("postgres", '"pg"'),
+    ("mysql", "mysql"),
+    ("redis", "redis"),
+    ("mongodb", "mongo"),
+)
+_MAX_DEPENDENCY_BYTES = 200_000
+
+
+def detect_project_context(cwd: str | Path | None) -> dict | None:
+    """Languages, frameworks, and datastores of the repository at `cwd`, from marker files.
+
+    Pure code, no Jev call. Reads only file names and dependency manifests in
+    the top directory; returns names, never paths or file contents. Returns
+    None when nothing is detected, so the caller sends the bare request.
+    """
+    if not cwd:
+        return None
+    try:
+        root = Path(cwd)
+        if not root.is_dir():
+            return None
+        present = {name for _, names in _LANGUAGE_MARKERS for name in names if (root / name).is_file()}
+        languages = [lang for lang, names in _LANGUAGE_MARKERS if any(n in present for n in names)]
+        text = ""
+        for name in _DEPENDENCY_FILES:
+            path = root / name
+            if path.is_file() and path.stat().st_size <= _MAX_DEPENDENCY_BYTES:
+                text += path.read_text(encoding="utf-8", errors="replace").lower() + "\n"
+    except OSError:
+        return None
+    frameworks = list(dict.fromkeys(label for label, token in _FRAMEWORK_TOKENS if token in text))
+    datastores = list(dict.fromkeys(label for label, token in _DATASTORE_TOKENS if token in text))
+    if not (languages or frameworks or datastores):
+        return None
+    context: dict[str, list[str]] = {}
+    if languages:
+        context["languages"] = languages
+    if frameworks:
+        context["frameworks"] = frameworks
+    if datastores:
+        context["datastores"] = datastores
+    return context
+
+
+def _state(request_text: str, project: dict | None) -> str | dict:
+    """Bare request when no project facts exist; otherwise request plus observed project facts."""
+    if not project:
+        return request_text
+    return {"request": request_text, "project": project}
+
+
+def _with_project_note(instructions: str, project: dict | None) -> str:
+    return instructions + PROJECT_CONTEXT_INSTRUCTIONS if project else instructions
+
+
 def _build_stage1_payload(
     request_text: str,
     agent_criteria: dict[str, str],
     skill_criteria: dict[str, str],
     pipeline_criteria: dict[str, str],
+    project: dict | None = None,
 ) -> dict:
     questions = {
-        "agent": {"type": "choice", "instructions": AGENT_INSTRUCTIONS_STAGE1, "criteria": agent_criteria},
+        "agent": {
+            "type": "choice",
+            "instructions": _with_project_note(AGENT_INSTRUCTIONS_STAGE1, project),
+            "criteria": agent_criteria,
+        },
         "skill": {"type": "choice", "instructions": SKILL_INSTRUCTIONS_STAGE1, "criteria": skill_criteria},
         "pipeline": {"type": "choice", "instructions": PIPELINE_INSTRUCTIONS_STAGE1, "criteria": pipeline_criteria},
     }
     for key in GATE_NOUL_KEYS:
         questions[key] = {"type": "noul", "instructions": GATE_NOUL_INSTRUCTIONS[key]}
-    return {"state": request_text, "model": JEV_MODEL, "questions": questions}
+    return {"state": _state(request_text, project), "model": JEV_MODEL, "questions": questions}
 
 
 def _build_stage2_payload(
@@ -467,6 +562,7 @@ def _build_stage2_payload(
     pipeline_top1: str | None,
     pipeline_full: dict[str, str],
     fanout_candidates: list[str],
+    project: dict | None = None,
 ) -> dict:
     """Stage 2: shortlist rerank + per-candidate fits + stack signals + fan-out.
 
@@ -476,7 +572,11 @@ def _build_stage2_payload(
     questions: dict[str, dict] = {}
 
     agent_criteria = {name: agent_full[name] for name in agent_shortlist}
-    questions["agent"] = {"type": "choice", "instructions": AGENT_INSTRUCTIONS_STAGE2, "criteria": agent_criteria}
+    questions["agent"] = {
+        "type": "choice",
+        "instructions": _with_project_note(AGENT_INSTRUCTIONS_STAGE2, project),
+        "criteria": agent_criteria,
+    }
     for name in agent_shortlist:
         questions[f"agent_fit__{_sanitize_key(name)}"] = {
             "type": "noul",
@@ -512,40 +612,18 @@ def _build_stage2_payload(
             "instructions": _fanout_instructions(name, agent_full.get(name, "")),
         }
 
-    return {"state": request_text, "model": JEV_MODEL, "questions": questions}
+    return {"state": _state(request_text, project), "model": JEV_MODEL, "questions": questions}
 
 
 def _call_jev(payload: dict, api_key: str, timeout: float) -> tuple[dict, float]:
     """POST one Jev call (stage 1 or stage 2). Returns (response_json, latency_ms).
 
-    Stdlib `urllib.request` only (no third-party HTTP dependency -- matches
-    scripts/bench-http.py's convention; `requests` is not a declared project
-    dependency, and /d must degrade to unavailable, never hard-crash on
-    import, on a host that lacks it).
-
-    Raises on any failure (timeout, connection error, non-2xx, malformed
-    JSON, missing `answers` key) -- the caller catches broadly and never
-    includes the Authorization header or key value in any error message.
+    Delegates to ``jev_router_common.call_jev`` so the router shares the one
+    choke point: secret redaction before send, and per-script call telemetry.
+    Raises on any failure; the caller catches broadly and never includes the
+    Authorization header or key value in any error message.
     """
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        TYPESAFE_URL,
-        data=body,
-        method="POST",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-    )
-    start = time.monotonic()
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read()
-    except urllib.error.HTTPError as exc:
-        detail = exc.read(200).decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
-    latency_ms = (time.monotonic() - start) * 1000.0
-    data = json.loads(raw.decode("utf-8"))
-    if not isinstance(data, dict) or "answers" not in data:
-        raise ValueError("Jev response missing 'answers' key")
-    return data, latency_ms
+    return jev_router_common.call_jev(payload, api_key, timeout)
 
 
 def _extract_usage(data: dict) -> dict | None:
@@ -716,6 +794,7 @@ def _parse_stage1(
     agent_names: set[str],
     skill_names: set[str],
     pipeline_names: set[str],
+    shortlist_n: int = STAGE1_SHORTLIST_N,
 ) -> dict:
     """Parse stage 1's answers into shortlists + gate_score. Raises on malformed shape."""
     answers = data["answers"]
@@ -724,8 +803,8 @@ def _parse_stage1(
     skill_probs = answers["skill"].get("probabilities") or {}
     pipeline_probs = answers["pipeline"].get("probabilities") or {}
 
-    agent_shortlist = _top_names_by_probability(agent_probs, agent_names, STAGE1_SHORTLIST_N)
-    skill_shortlist = _top_names_by_probability(skill_probs, skill_names, STAGE1_SHORTLIST_N)
+    agent_shortlist = _top_names_by_probability(agent_probs, agent_names, shortlist_n)
+    skill_shortlist = _top_names_by_probability(skill_probs, skill_names, shortlist_n)
     # Pipeline: always forward the single highest-probability REAL (non-"none")
     # candidate into stage 2, regardless of whether "none" won stage 1's
     # truncated pass -- avoids the cheap pass prematurely foreclosing a real
@@ -768,7 +847,8 @@ def _select_fanout_candidates(
     top_prob = float((agent_probs or {}).get(ranked[0], 0.0))
     if top_prob >= FANOUT_DOMINANCE_PROB:
         return []
-    return ranked[FANOUT_RANK_START : FANOUT_RANK_START + FANOUT_MAX_CANDIDATES]
+    start = max(FANOUT_RANK_START, len(agent_shortlist))  # fan-out candidates rank just below the shortlist
+    return ranked[start : start + FANOUT_MAX_CANDIDATES]
 
 
 def _parse_stage2(
@@ -904,7 +984,14 @@ def _parse_stage2(
     }
 
 
-def route(request_text: str, gate_threshold: float, fits_threshold: float, timeout: float) -> dict:
+def route(
+    request_text: str,
+    gate_threshold: float,
+    fits_threshold: float,
+    timeout: float,
+    project: dict | None = None,
+    shortlist_n: int = STAGE1_SHORTLIST_N,
+) -> dict:
     """Run the two-stage classifier on one request string. Never raises."""
     pre_route = _run_pre_route(request_text)
     if (
@@ -936,9 +1023,9 @@ def route(request_text: str, gate_threshold: float, fits_threshold: float, timeo
     api_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
 
     try:
-        stage1_payload = _build_stage1_payload(request_text, agent_criteria, skill_criteria, pipeline_criteria)
+        stage1_payload = _build_stage1_payload(request_text, agent_criteria, skill_criteria, pipeline_criteria, project)
         data1, latency1 = _call_jev(stage1_payload, api_key, timeout)
-        stage1 = _parse_stage1(data1, agent_names, skill_names, pipeline_names)
+        stage1 = _parse_stage1(data1, agent_names, skill_names, pipeline_names, shortlist_n)
         usage1 = _extract_usage(data1)
     except Exception as exc:
         return _error_result(exc, jev_called=True, reason_prefix="jev stage-1 call failed")
@@ -971,6 +1058,7 @@ def route(request_text: str, gate_threshold: float, fits_threshold: float, timeo
             stage1["pipeline_top1"],
             pipeline_full,
             fanout_candidates,
+            project,
         )
         data2, latency2 = _call_jev(stage2_payload, api_key, timeout)
         decision = _parse_stage2(
@@ -1066,6 +1154,23 @@ def main() -> int:
         default=DEFAULT_TIMEOUT,
         help=f"Jev HTTP call timeout in seconds, per stage (default {DEFAULT_TIMEOUT}).",
     )
+    parser.add_argument(
+        "--shortlist",
+        type=int,
+        default=STAGE1_SHORTLIST_N,
+        help=f"How many stage-1 agent and skill candidates reach stage 2 (default {STAGE1_SHORTLIST_N}).",
+    )
+    parser.add_argument(
+        "--cwd",
+        default=None,
+        help="Repository directory the request is about. Its languages and frameworks are detected from marker "
+        "files and sent as state facts. Omit to send the bare request.",
+    )
+    parser.add_argument(
+        "--project-json",
+        default=None,
+        help='Project facts as JSON, e.g. {"languages":["python"]}. Overrides --cwd detection (eval use).',
+    )
     args = parser.parse_args()
 
     if args.confidence_floor != DEFAULT_CONFIDENCE_FLOOR:
@@ -1081,7 +1186,16 @@ def main() -> int:
         else:
             request_text = args.request
 
-        result = route(request_text, args.gate_threshold, args.fits_threshold, args.timeout)
+        project = None
+        if args.project_json:
+            parsed = json.loads(args.project_json)
+            project = parsed if isinstance(parsed, dict) and parsed else None
+        elif args.cwd:
+            project = detect_project_context(args.cwd)
+
+        result = route(
+            request_text, args.gate_threshold, args.fits_threshold, args.timeout, project, max(1, args.shortlist)
+        )
     except Exception as exc:
         import traceback
 

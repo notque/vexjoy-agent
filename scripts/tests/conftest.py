@@ -1,7 +1,9 @@
 """
-Pytest configuration and fixtures for voice analyzer and validator tests.
+Pytest configuration and shared fixtures.
 
 Provides:
+- Jev state isolation (autouse): every test gets its own JEV_STATE_DIR so
+  no test reads or writes the real ~/.claude/state breaker/cache files.
 - Path fixtures for the fixtures directory
 - Content fixtures for sample good/bad files
 - Expected output fixtures for golden file testing
@@ -10,11 +12,49 @@ Provides:
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Jev state isolation — autouse so every test is sandboxed
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _isolate_jev_state(tmp_path, monkeypatch):
+    """Point JEV_STATE_DIR at a per-test temp directory.
+
+    Ensures no test reads or writes the real ``~/.claude/state`` breaker
+    or cache files. Also clears the in-process breaker flag and forces the
+    cache connection to reopen against the new path.
+    """
+    state_dir = tmp_path / "jev_state"
+    state_dir.mkdir()
+    monkeypatch.setenv("JEV_STATE_DIR", str(state_dir))
+
+    # Clear in-process breaker so a previous test's trip does not leak.
+    scripts_dir = Path(__file__).resolve().parents[1]
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        import jev_router_common as _jrc
+
+        _jrc._jev_down = None
+        # Force the cache connection to reopen on the new path.
+        if _jrc._cache_conn is not None:
+            try:
+                _jrc._cache_conn.close()
+            except Exception:
+                pass
+            _jrc._cache_conn = None
+            _jrc._cache_conn_path = None
+    except Exception:
+        pass  # Module may not be importable in every test context
+
 
 # ---------------------------------------------------------------------------
 # Skill-eval-ablation fixtures (ADR: skill-eval-pr-ablation)

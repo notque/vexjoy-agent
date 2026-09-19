@@ -187,6 +187,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `auto-dream` | yes | Background memory consolidation -- overnight cleanup of stale, duplicate, and conflicting memory entries |
 | `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
+| `building-with-jev` | no | Write, compose, integrate, and improve programs that call Jev (TypeSafe System One): primitives, question design, state fitting, composition patterns, hook integration, calibration |
 | `skill-composer` | no | _(demoted to workflow)_ DAG-based multi-skill orchestration with dependency resolution |
 | `agent-evaluation` | no | Evaluate agents and skills for quality and standards compliance |
 | `agent-comparison` | no | A/B test agent variants for quality and token cost |

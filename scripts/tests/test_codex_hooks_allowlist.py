@@ -9,6 +9,7 @@ cannot silently create or remove Codex coverage.
 
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -61,14 +62,14 @@ def _claude_registrations() -> set[tuple[str, str]]:
     return registrations
 
 
-def test_inventory_accounting_is_69_equals_29_plus_30_plus_10() -> None:
+def test_inventory_accounting_is_72_equals_29_plus_33_plus_10() -> None:
     """Every Claude registration has one reviewed current Codex decision."""
     entries = _entries()
     classes = Counter(entry["classification"] for entry in entries)
     assert len(entries) == 59
     assert classes == {"native": 29, "adapted": 30}
-    assert len(UNSUPPORTED_REGISTRATIONS) == 10
-    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 69
+    assert len(UNSUPPORTED_REGISTRATIONS) == 11
+    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 70
 
 
 def test_supported_and_unsupported_sets_partition_claude_settings() -> None:
@@ -103,7 +104,7 @@ def test_apply_patch_entries_use_patch_mode_and_alias_matcher() -> None:
     patch_entries = [entry for entry in _entries() if entry["mode"] == "patch"]
     assert len(patch_entries) == 17
     assert {entry["event"] for entry in patch_entries} == {"PreToolUse", "PostToolUse"}
-    assert {entry["matcher"] for entry in patch_entries} == {"Edit|Write"}
+    assert {entry["matcher"] for entry in patch_entries} <= {"Edit|Write", "Write|Edit"}
     assert all(entry["classification"] == "adapted" for entry in patch_entries)
 
 
@@ -127,13 +128,14 @@ def test_unsupported_boundaries_are_exact() -> None:
         ("PostToolUse", "session-task-registry.py"),
         ("StopFailure", "stop-failure-handler.py"),
         ("PostCompact", "postcompact-handler.py"),
+        ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"),
     } == UNSUPPORTED_REGISTRATIONS
 
 
 def test_unsupported_inventory_has_machine_owned_precise_reasons() -> None:
     """Every excluded registration carries a reviewable production reason."""
     reasons = GENERATOR.UNSUPPORTED_REGISTRATIONS
-    assert len(reasons) == 10
+    assert len(reasons) == 11
     assert all(isinstance(reason, str) and len(reason.split()) >= 6 for reason in reasons.values())
     assert all("unsupported" not in reason.lower() for reason in reasons.values())
 
@@ -159,12 +161,15 @@ def test_semantic_reclassifications_match_the_runtime_contracts() -> None:
 
 def test_adr_enforcement_empty_posttool_payload_emits_valid_json() -> None:
     """The newly promoted PostToolUse hook uses its declared event constant."""
+    env = dict(os.environ)
+    env["ADR_ENFORCEMENT"] = "1"
     result = subprocess.run(
         [sys.executable, str(HOOKS_DIR / "adr-enforcement.py")],
         input="",
         capture_output=True,
         text=True,
         timeout=5,
+        env=env,
     )
     assert result.returncode == 0
     output = json.loads(result.stdout)

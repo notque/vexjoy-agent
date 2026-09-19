@@ -31,7 +31,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 10
+_CURRENT_SCHEMA_VERSION = 14
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -381,6 +381,54 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (10, 'add spec_score, spec_missing, prompt_chars columns to evidence_route_decisions')"
         )
 
+    if current < 11:
+        # v10 -> v11: compaction evidence. compaction_events holds one row per
+        # compaction claim or record (plugin, PreCompact hook, or the engine's
+        # own compact_boundary transcript row); session_usage samples the
+        # context window each turn. Same DDL a fresh DB gets from _SCHEMA.
+        conn.executescript(_COMPACTION_DDL)
+        conn.execute("PRAGMA user_version = 11")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (11, 'add compaction_events and session_usage tables')"
+        )
+
+    if current < 12:
+        # v11 -> v12: jev_calls, one row per Jev API call from jev_router_common.call_jev.
+        conn.executescript(_JEV_CALLS_DDL)
+        conn.execute("PRAGMA user_version = 12")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (12, 'add jev_calls per-script call telemetry')"
+        )
+
+    if current < 13:
+        # v12 -> v13: harness_runs, one row per Jev harness variant trial.
+        conn.executescript(_HARNESS_RUNS_DDL)
+        conn.execute("PRAGMA user_version = 13")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (13, 'add harness_runs table for jev improvement loop telemetry')"
+        )
+
+    if current < 14:
+        # v13 -> v14: add payload_hash, answers_json, cached to jev_calls.
+        for ddl in (
+            "ALTER TABLE jev_calls ADD COLUMN payload_hash TEXT",
+            "ALTER TABLE jev_calls ADD COLUMN answers_json TEXT",
+            "ALTER TABLE jev_calls ADD COLUMN cached INTEGER",
+        ):
+            try:
+                conn.execute(ddl)
+            except sqlite3.OperationalError:
+                pass  # column already present
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jev_calls_payload_hash ON jev_calls(payload_hash)")
+        conn.execute("PRAGMA user_version = 14")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (14, 'add payload_hash, answers_json, cached columns to jev_calls')"
+        )
+
     conn.commit()
 
 
@@ -606,6 +654,102 @@ CREATE INDEX IF NOT EXISTS idx_evidence_route_outcome ON evidence_route_decision
 """
 
 
+_JEV_CALLS_DDL = """
+CREATE TABLE IF NOT EXISTS jev_calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    script TEXT NOT NULL,
+    session_id TEXT,
+    ok INTEGER NOT NULL,
+    latency_ms REAL,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    n_questions INTEGER,
+    n_redacted INTEGER,
+    error TEXT,
+    payload_hash TEXT,
+    answers_json TEXT,
+    cached INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_jev_calls_script_ts ON jev_calls(script, ts);
+CREATE INDEX IF NOT EXISTS idx_jev_calls_payload_hash ON jev_calls(payload_hash);
+"""
+
+_HARNESS_RUNS_DDL = """
+CREATE TABLE IF NOT EXISTS harness_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    program TEXT NOT NULL,
+    round INTEGER NOT NULL,
+    lever TEXT NOT NULL,
+    variant TEXT NOT NULL,
+    metric_accuracy REAL,
+    metric_brier REAL,
+    metric_f1 REAL,
+    kept INTEGER NOT NULL,
+    reason TEXT,
+    answer_distribution TEXT,
+    dev_size INTEGER,
+    test_size INTEGER,
+    baseline_accuracy REAL,
+    baseline_brier REAL,
+    ts TEXT NOT NULL DEFAULT (datetime('now')),
+    session_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_harness_runs_run_id ON harness_runs(run_id);
+CREATE INDEX IF NOT EXISTS idx_harness_runs_program ON harness_runs(program);
+CREATE INDEX IF NOT EXISTS idx_harness_runs_ts ON harness_runs(ts);
+"""
+
+_COMPACTION_DDL = """
+CREATE TABLE IF NOT EXISTS compaction_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    ts TEXT NOT NULL,
+    source TEXT NOT NULL,
+    trigger TEXT,
+    engine TEXT,
+    agent_id TEXT,
+    messages_before INTEGER,
+    messages_after INTEGER,
+    tokens_before INTEGER,
+    tokens_after INTEGER,
+    reduction_ratio REAL,
+    dropped_calls INTEGER,
+    truncated_results INTEGER,
+    pinned INTEGER,
+    prefiltered INTEGER,
+    jev_judged INTEGER,
+    jev_api_calls INTEGER,
+    latency_ms INTEGER,
+    duration_ms INTEGER,
+    note TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(session_id, ts, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_compaction_session ON compaction_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_compaction_ts ON compaction_events(ts);
+CREATE INDEX IF NOT EXISTS idx_compaction_source ON compaction_events(source);
+
+CREATE TABLE IF NOT EXISTS session_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    ts TEXT NOT NULL,
+    phase TEXT NOT NULL,
+    turn INTEGER,
+    context_tokens INTEGER,
+    context_window INTEGER,
+    context_percent REAL,
+    cost_usd REAL,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(session_id, ts, phase)
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_usage_session ON session_usage(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_usage_ts ON session_usage(ts);
+"""
+
 _SCHEMA = (
     """
 CREATE TABLE IF NOT EXISTS learnings (
@@ -751,6 +895,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     + _TELEMETRY_DDL
     + _BASIS_DDL
     + _EVIDENCE_DDL
+    + _COMPACTION_DDL
+    + _JEV_CALLS_DDL
+    + _HARNESS_RUNS_DDL
 )
 
 
@@ -1075,6 +1222,336 @@ def record_telemetry_run(
             ),
         )
         conn.commit()
+
+
+_COMPACTION_INT_FIELDS = (
+    "messages_before",
+    "messages_after",
+    "tokens_before",
+    "tokens_after",
+    "dropped_calls",
+    "truncated_results",
+    "pinned",
+    "prefiltered",
+    "jev_judged",
+    "jev_api_calls",
+    "latency_ms",
+    "duration_ms",
+)
+
+
+def _opt_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _opt_float(value: object) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def record_jev_call(
+    *,
+    script: str,
+    ok: bool,
+    latency_ms: float | None = None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    n_questions: int | None = None,
+    n_redacted: int | None = None,
+    error: str | None = None,
+    session_id: str | None = None,
+    ts: str | None = None,
+    payload_hash: str | None = None,
+    answers_json: str | None = None,
+    cached: bool | None = None,
+) -> bool:
+    """Record one Jev API call. Called from ``jev_router_common.call_jev``; never raises."""
+    try:
+        init_db()
+        # Cap answers_json at 64 KB; store null if larger.
+        if answers_json is not None and len(answers_json) > 65536:
+            answers_json = None
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO jev_calls (ts, script, session_id, ok, latency_ms, input_tokens, output_tokens, "
+                "n_questions, n_redacted, error, payload_hash, answers_json, cached) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    ts or _now_iso(),
+                    script[:120],
+                    session_id,
+                    1 if ok else 0,
+                    latency_ms,
+                    _opt_int(input_tokens),
+                    _opt_int(output_tokens),
+                    _opt_int(n_questions),
+                    _opt_int(n_redacted),
+                    (error or None) and str(error)[:200],
+                    _bounded_text(payload_hash, 16),
+                    answers_json,
+                    None if cached is None else (1 if cached else 0),
+                ),
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+def record_harness_run(
+    *,
+    run_id: str,
+    program: str,
+    round: int,
+    lever: str,
+    variant: str,
+    metric_accuracy: float | None = None,
+    metric_brier: float | None = None,
+    metric_f1: float | None = None,
+    kept: bool,
+    reason: str | None = None,
+    answer_distribution: str | None = None,
+    dev_size: int | None = None,
+    test_size: int | None = None,
+    baseline_accuracy: float | None = None,
+    baseline_brier: float | None = None,
+    session_id: str | None = None,
+) -> bool:
+    """Record one harness variant trial. Never raises."""
+    try:
+        init_db()
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO harness_runs (run_id, program, round, lever, variant, "
+                "metric_accuracy, metric_brier, metric_f1, kept, reason, "
+                "answer_distribution, dev_size, test_size, baseline_accuracy, baseline_brier, "
+                "session_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    run_id,
+                    _bounded_text(program, 200),
+                    round,
+                    _bounded_text(lever, 100),
+                    _bounded_text(variant, 500),
+                    metric_accuracy,
+                    metric_brier,
+                    metric_f1,
+                    1 if kept else 0,
+                    _bounded_text(reason, 500),
+                    _bounded_text(answer_distribution, 4000),
+                    _opt_int(dev_size),
+                    _opt_int(test_size),
+                    baseline_accuracy,
+                    baseline_brier,
+                    _bounded_text(session_id, 160),
+                ),
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+def jev_call_stats(days: float = 7.0) -> list[dict]:
+    """Per-script call counts for the last ``days``: calls, failures, avg latency, tokens."""
+    init_db()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT script, COUNT(*) AS calls, SUM(1 - ok) AS failed, AVG(latency_ms) AS avg_ms, "
+            "SUM(COALESCE(input_tokens, 0)) AS input_tokens, SUM(COALESCE(n_questions, 0)) AS questions "
+            "FROM jev_calls WHERE ts >= datetime('now', ?) GROUP BY script ORDER BY calls DESC",
+            (f"-{int(days * 86400)} seconds",),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def jev_answers_for(payload_hash: str) -> list[dict]:
+    """Return all stored answers for a given payload hash, newest first."""
+    init_db()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT ts, script, answers_json, ok, cached FROM jev_calls "
+            "WHERE payload_hash = ? AND answers_json IS NOT NULL ORDER BY id DESC",
+            (payload_hash,),
+        ).fetchall()
+    results: list[dict] = []
+    for r in rows:
+        try:
+            answers = json.loads(r["answers_json"]) if r["answers_json"] else None
+        except (json.JSONDecodeError, TypeError):
+            answers = None
+        results.append(
+            {
+                "ts": r["ts"],
+                "script": r["script"],
+                "answers": answers,
+                "ok": bool(r["ok"]),
+                "cached": bool(r["cached"]) if r["cached"] is not None else None,
+            }
+        )
+    return results
+
+
+def jev_calls_with_answers(
+    *,
+    script: str | None = None,
+    since: str | None = None,
+    limit: int = 500,
+) -> list[dict]:
+    """Return jev_calls rows that have stored answers, newest first.
+
+    Args:
+        script: Filter by script name (exact match).
+        since: ISO timestamp lower bound on ``ts``.
+        limit: Maximum rows (capped at 5000).
+    """
+    init_db()
+    clauses = ["answers_json IS NOT NULL"]
+    params: list = []
+    if script:
+        clauses.append("script = ?")
+        params.append(script)
+    if since:
+        clauses.append("ts >= ?")
+        params.append(since)
+    where = " AND ".join(clauses)
+    params.append(max(1, min(int(limit), 5000)))
+    with get_connection() as conn:
+        rows = conn.execute(
+            f"SELECT id, ts, script, payload_hash, answers_json, ok, latency_ms, cached "  # security-review: ignore (fixed clauses; user values bound as ?)
+            f"FROM jev_calls WHERE {where} ORDER BY id DESC LIMIT ?",
+            params,
+        ).fetchall()
+    results: list[dict] = []
+    for r in rows:
+        try:
+            answers = json.loads(r["answers_json"]) if r["answers_json"] else None
+        except (json.JSONDecodeError, TypeError):
+            answers = None
+        results.append(
+            {
+                "id": r["id"],
+                "ts": r["ts"],
+                "script": r["script"],
+                "payload_hash": r["payload_hash"],
+                "answers": answers,
+                "ok": bool(r["ok"]),
+                "latency_ms": r["latency_ms"],
+                "cached": bool(r["cached"]) if r["cached"] is not None else None,
+            }
+        )
+    return results
+
+
+def record_compaction_event(
+    *,
+    session_id: str,
+    ts: str,
+    source: str,
+    trigger: str | None = None,
+    engine: str | None = None,
+    agent_id: str | None = None,
+    reduction_ratio: float | None = None,
+    note: str | None = None,
+    **counts: object,
+) -> bool:
+    """Append one compaction row. Returns False when the row already exists.
+
+    `source` names who reports: `plugin` (jev-auto-compact claim),
+    `precompact-hook` (Python PreCompact guidance), or `transcript` (the
+    engine's own compact_boundary record, the ground truth). `engine` says
+    what compacted: `jev`, `builtin`, `skipped`, `guidance`, or `error`.
+    Count fields (see _COMPACTION_INT_FIELDS) stay NULL when absent; any
+    other keyword raises TypeError naming it. A duplicate (session_id, ts,
+    source) is ignored, so ingestion is idempotent.
+    """
+    unknown = sorted(set(counts) - set(_COMPACTION_INT_FIELDS))
+    if unknown:
+        raise TypeError(f"record_compaction_event() got unexpected keyword arguments: {', '.join(unknown)}")
+    init_db()
+    ints = {name: _opt_int(counts.get(name)) for name in _COMPACTION_INT_FIELDS}
+    with get_connection() as conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO compaction_events (session_id, ts, source, trigger, engine, "
+            "agent_id, messages_before, messages_after, tokens_before, tokens_after, "
+            "reduction_ratio, dropped_calls, truncated_results, pinned, prefiltered, "
+            "jev_judged, jev_api_calls, latency_ms, duration_ms, note) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                session_id,
+                ts,
+                source,
+                _bounded_text(trigger, 32),
+                _bounded_text(engine, 32),
+                _bounded_text(agent_id, 128),
+                ints["messages_before"],
+                ints["messages_after"],
+                ints["tokens_before"],
+                ints["tokens_after"],
+                _opt_float(reduction_ratio),
+                ints["dropped_calls"],
+                ints["truncated_results"],
+                ints["pinned"],
+                ints["prefiltered"],
+                ints["jev_judged"],
+                ints["jev_api_calls"],
+                ints["latency_ms"],
+                ints["duration_ms"],
+                _bounded_text(note, 500),
+            ),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def record_session_usage(
+    *,
+    session_id: str,
+    ts: str,
+    phase: str,
+    turn: int | None = None,
+    context_tokens: int | None = None,
+    context_window: int | None = None,
+    context_percent: float | None = None,
+    cost_usd: float | None = None,
+) -> bool:
+    """Append one context-window sample. Returns False on a duplicate.
+
+    `phase` says when the sample was taken: `turn_complete` (before the
+    plugin triggers compaction) or `post_compact`. Absent figures stay NULL.
+    """
+    init_db()
+    with get_connection() as conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO session_usage (session_id, ts, phase, turn, context_tokens, "
+            "context_window, context_percent, cost_usd) VALUES (?,?,?,?,?,?,?,?)",
+            (
+                session_id,
+                ts,
+                _bounded_text(phase, 32),
+                _opt_int(turn),
+                _opt_int(context_tokens),
+                _opt_int(context_window),
+                _opt_float(context_percent),
+                _opt_float(cost_usd),
+            ),
+        )
+        conn.commit()
+        return cur.rowcount > 0
 
 
 def _bounded_text(value: object, limit: int = 2000) -> str | None:

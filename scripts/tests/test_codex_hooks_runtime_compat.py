@@ -390,6 +390,7 @@ def _prepare_case(
             compliance = scripts / "adr-compliance.py"
             compliance.write_text("import json\nprint(json.dumps({'verdict': 'PASS'}))\n", encoding="utf-8")
             evidence["workspace_component"] = target
+            env["ADR_ENFORCEMENT"] = "1"
         elif filename in {"posttool-security-scan.py", "security-review-hook.py"}:
             content = "user_value = input()\neval(user_value)\n"
             (cwd / patch_path).write_text(content, encoding="utf-8")

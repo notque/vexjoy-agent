@@ -67,6 +67,7 @@ SKILL_MAPPING: dict[str, str] = {
     "game-sprite-pipeline": "game",
     "phaser-gamedev": "game",
     "motion-pipeline": "game",
+    "browser-jev-automation": "infrastructure",
     "kubernetes": "infrastructure",
     "shell-config": "infrastructure",
     "shell-process-patterns": "infrastructure",
