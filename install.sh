@@ -1912,17 +1912,16 @@ if [ "$MIRROR_CODEX" = true ]; then
         CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
     done
 
-    # Public skills live under category directories in the repository. Codex
-    # scans its skills root, so mirror each nested skill by its stable name.
-    while IFS= read -r skill_file; do
-        skill_src=$(dirname "$skill_file")
-        skill_name=$(basename "$skill_src")
+    # The source tree also contains implementation leaves.  The merged skill
+    # index is the public catalog contract; mirroring every leaf made Codex
+    # discover retired/duplicate skills indefinitely.
+    while IFS=$'\t' read -r skill_name skill_src; do
         if _profile_disabled skills "$skill_name"; then
             continue
         fi
         sync_codex_entry "$skill_src" "${CODEX_SKILLS_DIR}/${skill_name}"
         CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
-    done < <(find "${SCRIPT_DIR}/skills" -mindepth 3 -maxdepth 3 -name SKILL.md | sort)
+    done < <(python3 "${SCRIPT_DIR}/scripts/codex-skill-manifest.py" --source "${SCRIPT_DIR}/skills")
 
     if [ -d "${SCRIPT_DIR}/private-voices" ]; then
         for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do

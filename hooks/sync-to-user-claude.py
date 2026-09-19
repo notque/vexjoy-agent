@@ -677,6 +677,51 @@ def _sync_codex_runtime_skill_indexes(src: Path, dst: Path) -> int:
     return changed
 
 
+def _codex_skill_sources(src: Path) -> dict[str, Path]:
+    """Resolve the public Codex catalog from the merged runtime index.
+
+    ``skills/`` includes aggregate public skills plus their implementation
+    leaves. The index is the deployment contract; mirroring every leaf makes
+    both forms discoverable as duplicate Codex skills.
+    """
+    merged = _merged_runtime_index(src / "INDEX.json", src / "INDEX.local.json")
+    root = src.parent.resolve()
+    result: dict[str, Path] = {}
+    # Minimal/test repositories without an index retain the legacy behavior;
+    # production repositories always carry the catalog index.
+    if not isinstance(merged, dict):
+        for skill_file in src.glob("*/*/SKILL.md"):
+            result[skill_file.parent.name] = skill_file.parent
+        return result
+    for name, entry in merged.get("skills", {}).items():
+        if not isinstance(name, str) or not isinstance(entry, dict):
+            continue
+        relative = entry.get("file")
+        if not isinstance(relative, str):
+            continue
+        skill_file = (root / relative).resolve()
+        if skill_file.name == "SKILL.md" and skill_file.is_file() and root in skill_file.parents:
+            result[name] = skill_file.parent
+    return result
+
+
+def _reconcile_codex_managed_skills(dst: Path, expected: set[str]) -> int:
+    """Prune only entries recorded as VexJoy-owned, then persist ownership."""
+    manifest = dst / ".vexjoy-managed-skills.json"
+    try:
+        previous = set(json.loads(manifest.read_text(encoding="utf-8")).get("entries", []))
+    except (OSError, json.JSONDecodeError, TypeError):
+        previous = set()
+    removed = 0
+    for name in previous - expected:
+        target = dst / name
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+            removed += 1
+    _atomic_json_write(manifest, {"version": 1, "entries": sorted(expected)})
+    return removed
+
+
 def _has_promoted_to(skill_dir: Path, skills_root: "Path | None" = None) -> bool:
     """True when SKILL.md has promoted_to: and the target skill exists.
 
@@ -1579,6 +1624,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     codex_skills_dst = Path.home() / ".codex" / "skills"
     codex_count = 0
     repo_skills = repo_root / "skills"
+    codex_expected_skills = set(_codex_skill_sources(repo_skills))
     if repo_skills.is_dir():
         try:
             _tolerant_mkdir(codex_skills_dst)
@@ -1606,20 +1652,19 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                             if _copy_if_changed(item, target):
                                 codex_count += 1
                 elif child.is_dir() and not child.name.startswith("."):
-                    # Category folder: copy each skill inside as a flat entry
-                    for skill_dir in sorted(child.iterdir()):
-                        if not skill_dir.is_dir():
-                            continue
-                        if _has_promoted_to(skill_dir, skills_root=repo_skills):
-                            continue  # Folded into parent; skip mirror
-                        for item in skill_dir.rglob("*"):
-                            if item.is_file():
-                                # Flatten: category/skill-name/SKILL.md → ~/.codex/skills/skill-name/SKILL.md
-                                rel = item.relative_to(skill_dir)
-                                target = codex_skills_dst / skill_dir.name / rel
-                                _tolerant_mkdir(target.parent)
-                                if _copy_if_changed(item, target):
-                                    codex_count += 1
+                    # Categories are copied below from INDEX.json.  Do not
+                    # flatten every nested SKILL.md: most are implementation
+                    # leaves of an aggregate public skill.
+                    continue
+
+            for skill_name, skill_dir in _codex_skill_sources(repo_skills).items():
+                for item in skill_dir.rglob("*"):
+                    if item.is_file():
+                        rel = item.relative_to(skill_dir)
+                        target = codex_skills_dst / skill_name / rel
+                        _tolerant_mkdir(target.parent)
+                        if _copy_if_changed(item, target):
+                            codex_count += 1
         except Exception as e:
             errors.append(f"codex-skills: {e}")
     # Also sync private skills to Codex (same category pattern as ~/.claude/skills)
@@ -1637,6 +1682,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
                     deploy_name = f"voice-{skill_dir.name}"
                 else:
                     deploy_name = skill_dir.name
+                codex_expected_skills.add(deploy_name)
                 codex_skill_dst = codex_skills_dst / deploy_name
                 try:
                     _tolerant_mkdir(codex_skill_dst)
@@ -1657,6 +1703,7 @@ def _main_inner(repo_root: Path, user_claude: Path) -> None:
     # would list every skill inside it a second time. Scoped to repo category
     # names only, so foreign skills are never touched.
     try:
+        codex_count += _reconcile_codex_managed_skills(codex_skills_dst, codex_expected_skills)
         orphans = _clean_codex_orphan_categories(repo_skills, codex_skills_dst)
         if orphans:
             codex_count += orphans

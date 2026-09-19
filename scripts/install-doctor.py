@@ -189,24 +189,31 @@ def check_codex_skills() -> dict:
     except (json.JSONDecodeError, OSError, TypeError):
         pass
 
-    # Build expected entries by walking the nested skill structure.
-    # The Codex mirror is flat (same as ~/.claude/skills deployment), so we
-    # need to list individual skills, not category folders.
+    # The Codex mirror is index-driven.  The source tree also has private
+    # implementation leaves; walking every SKILL.md would report those as
+    # missing even though they must not be separately discoverable.
     repo_skills = repo_root / "skills"
     expected_entries = []
     expected_skill_sources: dict[str, Path] = {}
-    root_utility = {"shared-patterns", "workflow", "kb"}
-    for item in sorted(repo_skills.iterdir()):
-        if item.is_file():
-            expected_entries.append(item.name)  # INDEX.json, README.md, etc.
-        elif item.is_dir() and item.name in root_utility:
-            expected_entries.append(item.name)  # Utility dirs kept at root
-        elif item.is_dir():
-            # Category folder: list individual skills inside
-            for skill_dir in sorted(item.iterdir()):
-                if (skill_dir / "SKILL.md").is_file():
-                    expected_entries.append(skill_dir.name)
-                    expected_skill_sources[skill_dir.name] = skill_dir
+    try:
+        tracked = json.loads((repo_skills / "INDEX.json").read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        tracked = {"skills": {}}
+    if not tracked.get("skills"):
+        # Compatibility for minimal test/legacy repositories without a catalog.
+        tracked = {
+            "skills": {
+                source.parent.name: {"file": str(source.relative_to(repo_root))}
+                for source in repo_skills.glob("*/*/SKILL.md")
+            }
+        }
+    for name, entry in tracked.get("skills", {}).items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("file"), str):
+            continue
+        source = (repo_root / entry["file"]).resolve()
+        if source.name == "SKILL.md" and source.is_file() and repo_root.resolve() in source.parents:
+            expected_entries.append(name)
+            expected_skill_sources[name] = source.parent
 
     private_skills_dir = repo_root / "private-skills"
     if private_skills_dir.is_dir():
@@ -224,13 +231,8 @@ def check_codex_skills() -> dict:
                 expected_entries.append(deployed_name)
                 expected_skill_sources[deployed_name] = skill_dir
 
-    private_voices_dir = repo_root / "private-voices"
-    if private_voices_dir.is_dir():
-        for voice_dir in sorted(private_voices_dir.iterdir()):
-            if (voice_dir / "skill").is_dir():
-                deployed_name = f"voice-{voice_dir.name}"
-                expected_entries.append(deployed_name)
-                expected_skill_sources[deployed_name] = voice_dir / "skill"
+    # Private voices are installed only when their optional source is enabled;
+    # they are not part of the public index-driven Codex contract.
 
     expected_entries = list(dict.fromkeys(expected_entries))
     expected_entries = [name for name in expected_entries if name not in disabled_skills]
