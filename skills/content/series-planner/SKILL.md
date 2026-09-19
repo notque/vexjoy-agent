@@ -1,6 +1,6 @@
 ---
 name: series-planner
-promoted_to: content-calendar
+promoted_to: content
 description: "Plan multi-part content series: structure, cross-linking, cadence."
 user-invocable: false
 allowed-tools:

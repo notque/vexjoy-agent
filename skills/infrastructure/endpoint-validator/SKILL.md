@@ -1,6 +1,6 @@
 ---
 name: endpoint-validator
-promoted_to: service-health-check
+promoted_to: deploy
 description: "Deterministic API endpoint validation with pass/fail reporting."
 user-invocable: false
 allowed-tools:

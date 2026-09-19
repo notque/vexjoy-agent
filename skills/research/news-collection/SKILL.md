@@ -1,6 +1,6 @@
 ---
 name: news-collection
-promoted_to: content-calendar
+promoted_to: content
 description: "Collect, filter, and freshness-qualify news items."
 user-invocable: false
 routing:

@@ -1,6 +1,6 @@
 ---
 name: with-anti-rationalization
-promoted_to: verification-before-completion
+promoted_to: process
 description: "Anti-rationalization enforcement for maximum-rigor task execution."
 user-invocable: false
 argument-hint: "<task>"

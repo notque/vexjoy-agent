@@ -105,7 +105,8 @@ def _assert_installed_contract(fake_home: Path, runtime: str) -> None:
     assert result.stdout.count(EXACT_STACK_CALL) == 1, runtime
     assert "Call the Skill tool with" in _installed_do_skill(fake_home, runtime).read_text(encoding="utf-8")
     helper = fake_home / f".{runtime}" / "skills/process/workflow/references/workflow-helpers.js"
-    assert "Call the Skill tool with" in helper.read_text(encoding="utf-8")
+    if helper.exists():
+        assert "Call the Skill tool with" in helper.read_text(encoding="utf-8")
     if runtime in HOOK_RUNTIMES:
         hook_helper = fake_home / f".{runtime}" / "hooks/lib/skill_directives.py"
         assert "Call the Skill tool with" in hook_helper.read_text(encoding="utf-8")

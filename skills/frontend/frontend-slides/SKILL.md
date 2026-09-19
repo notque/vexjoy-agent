@@ -1,6 +1,6 @@
 ---
 name: frontend-slides
-promoted_to: distinctive-frontend-design
+promoted_to: frontend
 description: "Browser-based HTML presentation generation."
 user-invocable: false
 agent: typescript-frontend-engineer
