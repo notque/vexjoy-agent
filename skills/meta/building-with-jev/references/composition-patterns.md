@@ -1,6 +1,6 @@
 # Composition patterns
 
-Questions in one request never see each other's answers. Compose in code.
+Questions in one request never see each other's answers. They run independently against the same state; parallelism improves wall time, not the token bill or shared request budget. Maximize independent questions that add decision or action value, subject to their question-token cost and the 64,000-token request budget. Compose in code.
 
 ## Pattern index
 
@@ -22,34 +22,34 @@ Questions in one request never see each other's answers. Compose in code.
 
 ## Speculative fan-out
 
-Ask every question the code might need in one request, including questions that matter only on some branches. Questions run in parallel; extra questions add little latency and few tokens. Code ignores the answers it does not need. Docs measured 13 questions in one call at 11.5x cheaper and 9.6x faster than 13 calls, with identical answers.
+Ask every question the code might need in one request, including questions that matter only on some branches. Questions run in parallel, but each question's instructions and criteria still add billed tokens and consume shared request budget. Batch independent heads that can change a decision or action; omit low-value or noise heads. Do not batch a head that requires another answer to select evidence, construct candidates, or define its criterion. Measure the cost, wall time, and answer agreement of batching against serial sends on the target workload before relying on it.
 
 ```python
 answers = call(state, {"category": choice, "bug_severity": score, "refund_requested": noul})
-if answers["category"]["choice"] == "bug_report" and answers["bug_severity"]["score"] > 1.5: escalate()
-elif answers["category"]["choice"] == "billing" and answers["refund_requested"]["noul"] > 0.7: billing(refund=True)
+if answers["category"]["choice"] == "bug_report" and is_actionable_severity(answers["bug_severity"]): escalate()
+elif answers["category"]["choice"] == "billing" and passes_refund_policy(answers["refund_requested"]): billing(refund=True)
 ```
 
-Worked example: `scripts/jev-browser-decide.py` sends one Choice head per operation type (click targets, select values, type destinations) plus `still_loading` and page-quality Nouls in one call; the program executes only the head matching the chosen operation.
+For example, a browser program can send operation-type Choices beside readiness Nouls, then execute only the answers its deterministic policy needs.
 
 ## Second request only when the first answer decides the data
 
-Make a second call only when code cannot build it without the first answer: the answer picks what to fetch, what the state is made of, or which options the next Choice offers. Docs examples: rank 182 items in one call, then re-judge the top three against their full text; classify blocks that only exist after a first pass merged lines; hierarchical classification where each answer selects the next options. If the second call's questions could have run against the original state, put them in the first call.
+Make a second call only when code cannot build it without the first answer: the answer picks what to fetch, what the state is made of, or which options the next Choice offers. Examples include ranking candidates before re-judging a shortlist against full text, classifying blocks produced by a first-pass merge, and hierarchical classification where each answer selects the next options. If the second call's questions could have run against the original state, put them in the first call. The code—not an implied dependency between heads—must build and label the new state.
 
 ## Confidence-gated routing
 
 The answer says what; confidence says whether to act. Three paths: act, confirm or flag, hand off.
 
 ```python
-if intent["confidence"] < 0.6: hand_off()                      # floor
+if intent["confidence"] < HANDOFF_CONFIDENCE: hand_off()      # floor
 elif intent["choice"] == "check_balance": act()                # low stakes
 elif intent["choice"] == "approve_transfer":
-    act() if intent["confidence"] > 0.85 else confirm()        # high stakes
+    act() if intent["confidence"] > HIGH_STAKES_CONFIDENCE else confirm()
 ```
 
-Docs floors: 0.5 to 0.6; 0.85 to 0.9 for high-stakes actions. Start conservative and tune on labeled data. Thresholds scale with the cost of a wrong call, so one system carries several. Gate a Score's confidence too, not only the Choice's. Worked example: `scripts/jev-route.py` (confidence floors per dimension, `FANOUT_DOMINANCE_PROB = 0.75`).
+Select thresholds on labeled data and the cost of a wrong call; one system may need several. Gate a Score's confidence too, not only the Choice's. Keep thresholds as named policy constants and report their calibration.
 
-Low confidence on a non-terminal browser action (under 0.45) was a guess in every observed case. Hold the pick, re-observe, and count it toward the stall guard. Terminal claims skip the gate because verification gates them.
+Treat low confidence on a non-terminal browser action as a reason to hold the pick, re-observe, and count it toward the stall guard. Set the cutoff from labeled data and action costs. Terminal claims skip this gate only when an independent verification gate controls them.
 
 ## Composite scoring
 
@@ -64,7 +64,7 @@ Change a weight when priorities shift; do not rewrite a question to change polic
 
 ## Intent routing
 
-A Choice for intent beside a complexity Score. Route each intent to deterministic code, a specialist LLM, or a person; send low-confidence classifications and high-complexity edge cases to a person. Worked example: `scripts/jev-route.py`, two-stage: stage 1 is a cheap wide pass with truncated criteria; stage 2 reranks the top three with full descriptions and `not_for`, adds per-candidate fit Nouls, and skips entirely when a trivial-bypass gate fires. Log the full distribution: `python-general-engineer@0.51` with `testing-automation-engineer@0.48` as runner-up is a close call the pick alone hides.
+A Choice for intent beside a complexity Score can route each intent to deterministic code, a specialist LLM, or a person; send low-confidence classifications and high-complexity edge cases to a person. A wide pass may shortlist candidates for a detailed rerank with `not_for` and per-candidate fit Nouls. Log the full distribution: a near-tie between the winner and runner-up is a close call that the pick alone hides.
 
 ## Taxonomy walk
 
@@ -72,25 +72,33 @@ One Choice per tree level; walk in code. Each option's criteria value is its sub
 
 ## Choice picks, Nouls decide whether to pick
 
-A Choice is relative: something always wins. Add one Noul per shortlisted option (absolute: "does this genuinely fit?") in the same call. Act on the Choice only when its winner's Noul also passes. `scripts/jev-route.py` stage 2 does this for agents.
+A Choice is relative: something always wins. Add one Noul per shortlisted option (absolute: "does this genuinely fit?") in the same call. Act on the Choice only when its winner's Noul also passes.
 
 ## Multi-Noul decomposition
 
-Split a compound goal into one Noul per clause. A five-clause goal scored 0.23 as one "is the goal met?" Noul; the same end state scored 0.74 when each clause was asked cleanly. Programs split, Jev judges each, programs combine. When an answer looks wrong, the question is usually too big.
+Split a compound goal into one Noul per clause. Programs split, Jev judges each, programs combine. Compare decomposed and compound forms on labeled cases; keep the decomposition only when it improves the action or quality measure. When an answer looks wrong, the question may be too big.
 
 ## Cascade plus verification
 
 One wide request per unit proposes; code thresholds pick the survivors; a second request verifies them and carries only evidence the first lacked. Only confirmed findings reach the report. Add deterministic post-checks beside Jev: does the file exist, does the test pass, does the build succeed. A model's claim of completion is not evidence of completion.
 
-Severity must spread. A run that produced 255 medium and 95 low findings was unusable. A Score whose levels are distinct situations, plus a second-opinion severity Score in the verification call, produces a ranking someone can act on.
+Severity must spread. If findings collapse into a few indistinguishable levels, a ranking is unusable. Define Score levels as distinct situations and, when the evidence requires it, use a verification-stage severity judgment to produce a ranking someone can act on.
+
+## Bounded residual review
+
+Use a stronger reviewer only after code and Jev have handled the obvious units, and only for a declared referral band. This is an exception to the normal rule against LLM review, not a second general-purpose judge. The runner gives the reviewer the immutable, source-bound evidence bundle Jev saw (plus explicitly declared new evidence if one was fetched), pins a fixed answer schema, and keeps the reviewer from drafting explanations or changing the evidence.
+
+Before shipping, compare Jev-only and Jev-plus-review on a held-out split. Report: referral rate, accuracy/recall and false-positive lift on both all units and referred units, incremental cost per input KB and per corrected unit, p50/p95 added wall time, accumulated reviewer call time, timeouts, and declined referrals. Cap per-call spend, output, retries, and deadline in code. Keep the stage only when the marginal lift is worth those limits; otherwise improve Jev evidence or criteria instead.
+
+The decision definition stays model-neutral: code creates evidence bundles and source IDs, the runner selects the model, and downstream policy consumes the same typed answer. Persist each attempt and final decision so a later model swap or audit can replay the exact workload.
 
 ## Deterministic pre-filters and per-class thresholds
 
-Programs decide the obvious ends; Jev judges the middle. In compaction, Glob and `ls` results always drop, Edit results always keep, Jev judges the rest. Per-tool thresholds let one 0.5 default behave differently per class: Edit/Write keep at 0.35 (higher bar to drop), Glob at 0.0. A `referenced` Noul ("was this result cited later?") boosts keep probability in code. Missing answers default to keep. Worked example: `scripts/jev-compact.py` (`TOOL_THRESHOLDS`, `referenced` boost).
+Programs decide the obvious ends; Jev judges the middle. In compaction, deterministic result classes may always drop or keep when representative evidence supports those rules, and Jev judges the rest. Per-class policy thresholds can differ. A `referenced` Noul ("was this result cited later?") can boost keep probability in code. Missing answers default to keep.
 
 ## History injection and stall detection
 
-Put the last N actions in state as a plain list (`actions_already_taken`). Put the rule ("do not repeat an action listed in `actions_already_taken`") in the instructions: state holds facts, instructions hold the judgment. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); a fingerprint unchanged after an action means no effect, a fingerprint revisited three times means a cycle. Both end the loop in code with no Jev cost. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick. Worked example: `scripts/jev-browser-agent.py` (`STALL_LIMIT`, `CYCLE_VISIT_LIMIT`, `_compute_fingerprint`).
+Put a bounded action history in state as a plain list (`actions_already_taken`). Put the rule ("do not repeat an action listed in `actions_already_taken`") in the instructions: state holds facts, instructions hold the judgment. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); an unchanged fingerprint after an action means no effect, and repeated fingerprints are a cycle. Both end the loop in code with policy-defined limits. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick.
 
 ## Label over index
 
@@ -111,4 +119,4 @@ Start from the failure: what did Jev get wrong, or what could it not see?
 1. **Name the failure.** Wrong answer, low confidence, missed case, loop, or latency.
 2. **Change one of four levers.** State shape (what evidence Jev sees), question decomposition (how many questions and of what type), call sequencing (one call vs. chained calls), or policy (thresholds and weights in code).
 3. **Measure against labeled cases.** Run the new pattern on the same labeled set. Compare accuracy, confidence distribution, and false-positive rate.
-4. **Keep only with numbers.** A pattern that reads well but does not improve the numbers is not a pattern. Record the before/after measurements alongside the labeled cases.
+4. **Keep only with evidence.** A pattern that reads well but does not improve a measured decision, cost, or quality outcome against its baseline is not a pattern. Record the before/after evidence alongside the labeled cases.

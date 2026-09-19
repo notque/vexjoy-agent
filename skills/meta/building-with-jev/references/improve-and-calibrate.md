@@ -32,6 +32,8 @@ Find the failing question before changing anything. Collect labeled examples, ru
 - General rules in instructions and criteria; specific names and values only in `examples`.
 - Do not loosen criteria to remove a false positive. Sharpen the boundary by adding the misjudged case to `not_for` or the `false` side.
 - Pin the model version when thresholds are tuned on measured behavior. Rerun the labeled set and reread the jaggedness page when the model changes.
+- Treat state as a design lever only when it supplies evidence needed by the decision. More context is not a fix. Change one state, instruction, criterion, or policy lever at a time so a result remains attributable.
+- Do not use a generic probability label, bundled cues, or a list of loosely related tells as a decision surface. Ask a narrow, observable question with `not_for` or restraint cases that protect valid exceptions, quoted input, domain-specific values, and already-supported conclusions.
 
 ## Labeled-example loop
 
@@ -41,9 +43,18 @@ Find the failing question before changing anything. Collect labeled examples, ru
 4. Revise one or two questions. Rerun the whole set, not just the miss.
 5. Keep the set and the results under version control or in the assessment store so the next model version can be compared.
 
+## Labels, holdouts, and failures
+
+Hash frozen fixtures and the rubric that produced their labels. Record label provenance. Human-confirmed labels may evaluate or promote an action; agent or provisional labels are useful for finding cases but remain diagnostic until confirmed.
+
+Keep one untouched, group-disjoint heldout split out of selection and tuning. Use it once for the final report. If work resumes after seeing it, create a new independent heldout before making another claim. This prevents repeated inspection from turning a test result into another dev signal.
+
+Treat an unavailable service, malformed response, missing answer, or failed validation as `unknown`, not a negative label or passing score. Store a failure receipt (request identity, stage, error, timestamps, retry outcome) separately from quality metrics. Never let missingness improve an accuracy, pass, or action-rate metric.
+
+For any action-changing selector, run the policy in shadow mode until human-confirmed, disjoint-heldout results show that the action helps. Confidence cannot authorize an action or override source evidence, permissions, or deterministic policy. Evidence quality is evaluated against a supplied source-evidence ledger; plausibility and stated intent do not substitute for that evidence.
+
 `scripts/jev-compact-evidence.py` shows the measurement side: read the engine's own records, not the tool's claims.
 
 ## Reading `score`
 
 Jev's `score` is the probability-weighted mean of 0-based level numbers. Adding an offset or rounding is a bucketing step: say so in the code, and read `probabilities` when the decision hinges on which level won. Label levels with situations, and keep the 0-based numbering out of user-facing text.
-

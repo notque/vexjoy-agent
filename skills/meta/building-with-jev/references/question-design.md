@@ -25,6 +25,14 @@ Criteria extend the instruction. Both must ask for the same thing in the same di
 
 Write criteria for the hard cases. Jev already handles "agent rewrote an unrelated README" as scope creep. Criteria exist for "agent fixed a type import in `utils.py` because the edited function depends on it" (justified). Encode each case that was misjudged: false positive goes into `not_for` or the `false` side; a miss goes into `what` or the `true` side. Criteria are a living test suite for judgment.
 
+### Start with sufficient evidence
+
+For an affirmative decision, say what is sufficient before listing what is not. A long catalogue of exclusions teaches a cautious model to reject every imperfect case. Write the observable conjunction that earns `true`, then name the few lookalikes that must remain false. Add clerical equivalence only when labels support it: punctuation, abbreviations, spacing, nicknames, a middle initial, or a suffix present on one record may be equivalent; contradictory given names, incompatible dates, or different house numbers are not silently equivalent.
+
+For example, a candidate-selection question should name the evidence combination sufficient to select one candidate, then list similar-looking but insufficient cases. Formatting differences or a missing optional field may be equivalent when labels support it; a conflicting required field is not. The exact evidence and exceptions belong in the question; the action threshold belongs in code.
+
+Do not collapse distinct decisions into one broad `same` label. Keep classification, linkage, selection, and action authorization as separate questions or choices with separate policies. Preserve source IDs, evidence fields, question version, answer distribution, and policy decision for every action so a later correction can explain and undo it.
+
 ### Choice
 
 ```json
@@ -36,13 +44,13 @@ Write criteria for the hard cases. Jev already handles "agent rewrote an unrelat
 - Make descriptions contrastive when options sit close: `not_for` names the neighbor.
 - Add `other` or `none` when the list may not cover the input; otherwise probability piles onto the least-wrong option.
 - Examples are concrete instances, not descriptions of instances. "I was charged twice" helps; "a message about a billing problem" does not.
-- Examples steer only when they resemble real inputs. Docs measured a matching example moving a Score from 1.30 at 0.54 confidence to 1.07 at 0.90; an unrelated example left it at 1.28 and 0.57.
+- Examples steer only when they resemble real inputs. Test matching and non-matching examples on representative labeled cases; keep examples only when they improve the relevant decision without harming boundary cases.
 - Keep specific names and values in `examples`; keep general rules in `what`.
 
 ### Score
 
 - Two to ten levels, low to high, only as many as you can describe distinctly. Three is fine.
-- Each level is a standalone situation. Jev sees neither the number nor the neighbors; "worse than the previous level" means nothing. Numerals-only levels put the misaligned-button report at 0.57 with 0.35 confidence; descriptive levels put it at 0.0 with 1.0 confidence.
+- Each level is a standalone situation. Jev sees neither the number nor the neighbors; "worse than the previous level" means nothing. Validate that descriptive levels improve decisions on representative labeled inputs; confidence alone is not evidence.
 - One dimension per Score. "Punctual and smart and experienced" cannot place an input that is high on one and low on another.
 - Give a rare extreme its own level when code must treat it differently ("abusive or threatening" above "very angry").
 - Level objects: `{"summary": ..., "signals": [...]}`; same keys on every level.
@@ -68,17 +76,17 @@ Criteria optional. When the boundary is subtle:
 | gate (proceed/block) | Noul | `is_safe`, `has_tests`, `addresses_request` |
 | classify, route, pick | Choice | `error_type`, `next_action`, `merge_strategy` |
 | rate quality, severity, risk | Score | `readiness`, `risk_level` |
-| multi-aspect check | many Nouls | ten scope-creep dimensions in one call |
+| multi-aspect check | many Nouls | scope-creep dimensions in one call |
 | taxonomy walk | chained Choices | category, subcategory, type |
 | prioritize a list | Score each item | rank findings |
 | ambiguous threshold | Noul plus Score | is it bad, how bad |
 
 Scores calibrate magnitude; Nouls decide. Do not use a Score as a boolean proxy. When the answer has no in-between, use a Choice or several Nouls. If two types fit, prefer the one code acts on directly.
 
-Use all three where they fit and ask them in the same call: "is the commit ready" (Noul), "how ready on five dimensions" (five Nouls), "overall readiness" (Score), "what happens next: commit, cleanup, block" (Choice).
+Use all three where they fit and ask them in the same call: "is the commit ready" (Noul), designated readiness dimensions (Nouls), "overall readiness" (Score), "what happens next: commit, cleanup, block" (Choice).
 
 ## Ask many specific questions
 
-One Noul "did the agent expand scope?" returns a vague probability. Eleven Nouls each isolating one dimension (files outside the import chain, reformatting of read-only code, unrequested features, unrelated error handling, new abstractions, unrelated tests, unrelated docs, extra dependencies, unrelated config, debug artifacts) plus one severity Score tell a richer story. Each added question is billed as input text, so keep each one short.
+One Noul "did the agent expand scope?" can return a vague probability. Separate Nouls isolating relevant dimensions (files outside the import chain, reformatting of read-only code, unrequested features, unrelated error handling, new abstractions, unrelated tests, unrelated docs, extra dependencies, unrelated config, debug artifacts) plus a severity Score can tell a richer story. Add only heads that improve an action or decision on labeled cases; each one is billed as input text.
 
 Replace every heuristic that encodes a judgment with a question: label-substring matching for a secret field became a Choice over configured names plus `NONE`; a DOM-mutation timer for "page still loading" became a `still_loading` Noul with the timer kept only as a settle mechanism. Keep deterministic code for policy, safety, and measurement.

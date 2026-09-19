@@ -29,6 +29,13 @@ constrains the design; an empty field is a gap, not an option.
 8. **Versions.** Pin the Jev model id, the rubric version (date or hash), and
    the policy version. State what triggers re-evaluation: a model upgrade, a
    rubric edit, a data distribution shift, or a policy change.
+9. **Evaluation integrity.** Record fixture and rubric hashes, human/provisional
+   label provenance, and an untouched group-disjoint heldout. State
+   that unavailable or invalid answers are `unknown` with separate failure
+   receipts, not quality scores. Reserve the heldout for one post-selection run.
+10. **Action safety.** For any action-changing selector, define shadow-mode
+    evidence required before enforcement. Name the source-evidence ledger and
+    constraints such as permissions that confidence cannot override.
 
 ## Usage
 

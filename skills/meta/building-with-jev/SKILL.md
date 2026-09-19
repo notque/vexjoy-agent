@@ -38,7 +38,7 @@ allowed-tools:
 
 # Building with Jev
 
-Jev reads one `state`, answers every question in the request independently and in parallel, and returns a probability distribution over answers you defined. It does not reason in steps, count, do arithmetic, or generate text. Code owns control flow, arithmetic, and policy; Jev owns the snap judgment. Use this skill to design the questions, fit the state, compose answers in code, wire the call into a hook or script, and fix a call that answers wrong.
+Jev reads one `state`, answers every question in the request independently and in parallel, and returns a probability distribution over answers you defined. A head cannot read another head's answer: parallel heads share evidence, not reasoning. For one state, maximize independent heads that can change a decision or action, subject to their token cost and the 64,000-token request budget; omit noise heads. Code owns control flow, arithmetic, policy, and every serial dependency; Jev owns the snap judgment. It does not reason in steps, count, do arithmetic, or generate text. Use this skill to design the questions, fit the state, compose answers in code, wire the call into a hook or script, and fix a call that answers wrong.
 
 ## Reference Loading Table
 
@@ -73,11 +73,11 @@ Three things run this toolkit: deterministic programs, Jev, and LLMs. Apply the 
 | 2. Jev | The answer is a judgment over evidence in hand | classify, gate, score, triage, verify, choose from a fixed set, decide to escalate |
 | 3. LLM | The output is a new artifact | write code, draft prose, produce a plan, diagnose a novel problem, synthesize across sources |
 
-An LLM call in a hook, gate, router, or review is a defect unless the output is generative. A Score, a Choice, or a yes/no decision is never generative. When you catch an LLM doing a job Jev can do, replace it.
+An LLM call in a hook, gate, router, or review is a defect unless the output is generative. A Score, a Choice, or a yes/no decision is never generative. The narrow exception is a bounded review of Jev-referred residuals: the reviewer receives a frozen, source-bound evidence bundle and returns a fixed answer, never new prose or a replacement pipeline. Use it only when a held-out benchmark shows its marginal quality lift justifies its referral rate, marginal cost, and added wall time. When you catch an LLM doing a job Jev can do, replace it.
 
-Jev bills input tokens: the state plus the full text of every question. Output is free. One call is cheap and returns in under 200 ms; the bill comes from call count times tokens per call, so measure both (see "Build procedure"). An LLM costs far more per call, takes seconds, and can rationalize a wrong answer. The toolkit metric is **LLM calls per request**; Jev programs exist to drive it toward zero.
+Jev bills input tokens: the state plus the full text of every question. Output is free. Questions in one request run concurrently, so batching avoids serial call latency, but every question still consumes tokens and shared request budget. Measure actual p50/p95 wall time and accumulated model call time on the workload; do not rely on a universal latency promise. An LLM costs far more per call, takes seconds, and can rationalize a wrong answer. The toolkit metric is **LLM calls per request**; Jev programs exist to drive it toward zero, with benchmarked residual review as the stated exception.
 
-Programs produce the evidence. Jev judges it. The LLM acts on those judgments creatively, receiving tier 1 and 2 findings as `prior_results`, not re-judging them. When all phases of a skill are tier 1 and 2, the skill dissolves into a Jev program and no LLM runs at all.
+Programs produce the evidence. Jev judges it. The LLM acts on those judgments creatively, receiving tier 1 and 2 findings as `prior_results`, not re-judging them. The only exception is the bounded residual-review stage above. When all phases of a skill are tier 1 and 2, the skill dissolves into a Jev program and no LLM runs at all.
 
 Tier 1 goes first on every unit; tier 2 receives the residual tier 1 leaves undecided. That is what "program first" means in practice: a rule the data supports is written in code and scored before any question is written.
 
@@ -88,7 +88,7 @@ Name the shape of the problem first. The shape decides what code does, what Jev 
 | Shape | Signs | Build |
 |---|---|---|
 | Decide from history | labeled outcomes exist; signals are computable from data | Code builds a correlation table and writes rules for the sure units. Jev judges the residual the rules leave undecided. |
-| One document, many properties | review a file, grade a draft, check a diff | One request per document: the state once, every question once. Stages are code thresholds over that one answer set. A second request carries only evidence the first lacked. |
+| One document, many properties | review a file, grade a draft, check a diff | One request per document: the state once, every independent, action-changing question once. Stages are code thresholds over that one answer set. A second request carries only evidence the first lacked. |
 | Pick from known options | route a request, classify an error, choose a template | Code produces the candidates. A cheap wide Choice ranks them; a second Choice reranks the shortlist with full detail; a confidence gate decides act, confirm, or hand off. |
 | Many items, same question | rank comments, filter tool results, triage files | Code decides the obvious ends. The middle goes in one request as short per-item Nouls. Code counts and sums. |
 | Event stream | something to check on every tool call, reply, or commit | Build it as an on-demand command. Promote it to a hook after the four conditions in step 11. |
@@ -104,21 +104,21 @@ Evidence of value is a labeled run. Unit tests with fake Jev answers show that t
 | Step | Tier | Do | Exit gate |
 |---|---|---|---|
 | 1. State the decision | - | Write one sentence: the decision, the unit it applies to (a match, a diff hunk, a prompt), and the action code takes on each answer. | A person can label one unit by hand in under a minute. |
-| 2. Build the grader | 1 | Collect labeled units `(x, y)`. Split train, dev, and test, by time when time exists. Freeze the inputs as fixture copies. Cut a three-unit smoke set and a dev sample of about 100. | `score(predictions)` runs on dev and prints the majority-class baseline. |
+| 2. Build the grader | 1 | Collect human-confirmed labeled units `(x, y)` with label provenance. Freeze fixture copies and hash both fixtures and rubric. Split train/dev from an untouched group-disjoint heldout. Provisional or agent labels are diagnostics, never action-promoting ground truth. | `score(predictions)` runs on dev and prints the majority-class baseline; the heldout is sealed. |
 | 3. Discover signals | 1 | Run SQL or Python over train. For every computable signal, record accuracy against `y`, count, and the same per slice. Start from existing analytics code. Keep every signal; the table decides. | A correlation table sorted by accuracy, with counts. |
 | 4. Write the policy | 1 | Turn the table into rules: `rule(x) -> (action, sure)`. The strongest signal decides; a near-certain signal overrides. Score the rules on dev. | The rules and their dev score are row one of the run log. The residual (every unit where `sure` is false) is counted. |
-| 5. Design the request | 1+2 | Build state for residual units only: correlated signals, bounded, labeled, arithmetic done in code, plus the rules' verdict and why it was unsure. Write one atomic question per judgment, worded from the table. Match the primitive to the action. Put every question about one state in one request. | The decision card is filled in (`references/decision-card.md`). |
-| 6. Price the run | 1 | Run the program on a ten-word input: the billed tokens are the fixed floor, your question text. Compute calls per run = units x calls per unit x rounds, and tokens per call. State both numbers. | The numbers are ones you would approve. When the floor exceeds the typical state, shorten the questions first. |
+| 5. Design the request | 1+2 | Build state for residual units only: correlated signals, bounded, labeled, arithmetic done in code, plus the rules' verdict and why it was unsure. Write one atomic question per judgment, worded from the table. Match the primitive to the action. Put every independent question about one state in one request. A question whose evidence/options depend on another answer is a second request after code builds the new state. | The decision card is filled in (`references/decision-card.md`). |
+| 6. Price the run | 1 | Run the program on a ten-word input: the billed tokens are the fixed floor, your question text. Compute calls per run = units x calls per unit x rounds, tokens per call, referrals per run, and worst-case retry sends. State all numbers. | The numbers are ones you would approve. When the floor exceeds the typical state, shorten the questions first. |
 | 7. Smoke run | 2 | Run the three-unit set, then the dev sample. | `calls_failed` is zero, every answer parses, and `python3 scripts/jev-cost-report.py --since 1h` matches the step 6 estimate. |
 | 8. Score | 1 | On the same dev set, report the rules alone, Jev on the residual, and the combined system, per slice, with Brier and a calibration curve. Count false positives beside recall. Run judge variance once over frozen rows. | The combined score and its cost per run are in the run log. |
-| 9. Improve | 1+2 | First separate code errors and service failures (HTTP errors, timeouts) from wrong answers, by reading the exact state, questions, candidates, and answers of each miss. Then classify the wrong answers (`state_lacked_evidence`, `criteria_ambiguous`, `wrong_primitive`, `label_noise`). Change one lever. Re-score. Keep the change when the combined score climbs and every slice holds. | Each variant is logged with score and cost. |
-| 10. Report | 1 | Score the test split once. | One test number, reported beside the dev number. |
-| 11. Integrate | 1+2 | Ship an on-demand command with a reader, storage, and an action. Log whether each answer changed the action. Promote to a hook when four conditions hold: code decides the obvious cases first; the labeled set shows the answers are right; under 90% of answers are the same; something acts on the answer. Run a new hook in shadow mode first, and promote one hook at a time. | A day of use shows the cost report and the action-changed rate you expected. |
+| 9. Improve | 1+2 | First separate code errors and service failures (HTTP errors, timeouts) from wrong answers, by reading the exact state, questions, candidates, and answers of each miss. Then classify the wrong answers (`state_lacked_evidence`, `criteria_ambiguous`, `wrong_primitive`, `label_noise`). Change one state, instruction, criterion, or policy lever at a time. State changes must add needed decision evidence, not decorative context. Re-score. Keep the change when the combined score climbs and every slice holds. | Each variant is logged with score and cost. |
+| 10. Report | 1 | Score the untouched heldout once after selection. Report p50/p95 wall time, accumulated model call time, throughput, and (when used) referral rate, marginal reviewer lift, cost, and time. Before later tuning, create a new independent heldout. | One heldout number and workload metrics, reported beside the dev number. |
+| 11. Integrate | 1+2 | Ship an on-demand command with a reader, storage, and an action. Log whether each answer changed the action. Promote to a hook when four conditions hold: code decides the obvious cases first; the labeled set shows the answers are right; the answer distribution is meaningfully non-constant; something acts on the answer. Run a new hook in shadow mode first, and promote one hook at a time. | A day of use shows the cost report and the action-changed rate you expected. |
 | 12. Next system | - | Start step 1 for the next decision. | - |
 
 **Step 9 levers, in search order:** evidence in state; decomposition (one Score into several Nouls); criteria wording; thresholds; few-shot examples in state. Evidence comes first because the other levers work only on a signal that is present. Retune thresholds from stored probabilities, which costs zero calls. Derive a gate threshold from action costs, `t = C_FP / (C_FP + C_FN)`, select it on one split, and report on another.
 
-**Cost model.** Cost = calls x input tokens per call. Input tokens = state + the text of every question, with its criteria and examples. Output is free. Three numbers govern a run:
+**Cost model.** Cost = calls x input tokens per call. Input tokens = state + the text of every question, with its criteria and examples. Output is free. Parallel questions reduce wall time relative to serial sends but do not make question text free. Fill a request with independent heads only while each has decision/action value and the total fits its 64,000-token budget; sequence only a head whose evidence or candidates are derived from a prior answer. Measure wall time separately from accumulated model call time (the sum of attempt durations): concurrency can lower the former while leaving the latter high. Throughput is units or KB divided by the chosen clock; label the clock. Three numbers govern a run:
 
 | Number | Target | Reach it by |
 |---|---|---|
@@ -126,11 +126,13 @@ Evidence of value is a labeled run. Unit tests with fake Jev answers show that t
 | Fixed floor per call | below the typical state size | one- or two-line questions; `what`, `not_for`, and `examples` only where labeled misses call for them |
 | Firing rate | matches how often the answer changes an action | on-demand commands first; hooks after step 11's conditions |
 
-**Iteration is cheap when requests repeat.** Identical payloads return nearly identical answers: zero variance on small requests, and up to 0.04 per answer on a 246-question request, which flipped 1 of 85 decisions. Keep thresholds away from where answers cluster, and measure this noise floor before you compare two variants. `call_jev` caches by payload hash for 30 minutes, longer than a loop round, so a round re-bills only the requests whose questions changed. A breaker trips on HTTP 401 and 402, so an auth or billing failure costs one call.
+**Measure repeatability before iterating.** Run repeated frozen requests and measure answer variance and decision flips on the workload. Keep thresholds away from where answers cluster, and establish this noise floor before comparing variants. Treat cache behavior and circuit-breaker behavior as implementation details to verify in the current runner rather than performance guarantees.
 
-**Telemetry is part of the system.** `call_jev` logs every call: script name, session id, input tokens, question count, payload hash, cached or not, error. Read the cost report after every multi-call run and compare it with the step 6 estimate.
+**Telemetry is part of the system.** `call_jev` logs every call: script name, session id, input tokens, question count, payload hash, cached or not, error. An evidence-pipeline runner also persists the evidence-bundle ID/version, prompt/question version, model/version, attempt number, retry reason, deadline/cap, response, accounting, and final keep/refer/action outcome. Preserve source rows and provenance through joins: a relationship label is not permission to merge identities. Read the cost report after every multi-call run and compare it with the step 6 estimate.
 
 **Graders see only what you send.** Send the richest available output and the evidence itself: command output, file content, stored answers. Tune on one label set and report on another.
+
+**Action-changing gates stay conservative.** An unavailable, missing, or invalid Jev answer is `unknown`: exclude it from quality scores, retain its failure receipt, and never reinterpret it as `no`, pass, or permission to act. Keep any action-changing selector in shadow mode until human-confirmed, disjoint-heldout results show that its action improves the intended outcome. Confidence measures concentration, not authority: it cannot authorize an action or override source evidence, permissions, or deterministic safety rules. An evidence question needs a supplied source-evidence ledger; plausibility and apparent intent are not source evidence.
 
 Sanity floors (majority class, the single strongest signal) prove the pipeline is wired. The bar is higher: the combined system climbs across iterations, calibration holds on the residual, and the test set agrees once. Spend scales with the residual, so a good policy keeps each round to hundreds of calls.
 
@@ -178,13 +180,14 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 
 | Pattern | Shape | Worked example |
 |---|---|---|
-| Speculative fan-out | every branch's questions in one call, each stating its own premise ("if this is a refund request, ..."); questions cannot see one another's answers; code ignores unused heads and their uncertainty | `scripts/jev-browser-decide.py` |
-| Confidence-gated routing | a floor below which nothing acts and a higher bar for high-stakes actions; paths act / confirm / hand off. Start near 0.5-0.6 and 0.85-0.9, then set both from your labeled data and action costs | `scripts/jev-route.py` |
+| Speculative fan-out | every branch's questions in one call, each stating its own premise ("if this is a refund request, ..."); heads are independent and cannot see one another's answers; code ignores unused heads and their uncertainty | `scripts/jev-browser-decide.py` |
+| Confidence-gated routing | a floor below which nothing acts and a higher bar for high-stakes actions; paths act / confirm / hand off. Select both thresholds from labeled data and action costs | `scripts/jev-route.py` |
 | Composite scoring | one Score per dimension, normalize by `len(criteria) - 1`, weights in code. Weighted sums suit preferences that offset one another; an "any serious violation" rule needs its own Noul per condition | `references/composition-patterns.md` |
 | Intent routing | Choice for intent plus complexity Score, both confidence-gated | `scripts/jev-route.py` |
 | Taxonomy walk | one Choice per level; each option's criteria is its trimmed subtree; follow several branches when close | `references/composition-patterns.md` |
 | Multi-Noul decomposition | split a compound goal into one Noul per clause; combine in code | `references/composition-patterns.md` |
 | Cascade plus verification | one wide request per unit; code thresholds pick survivors. Send a second request when the first answer is needed to fetch evidence, build new state, or decide the next options; it carries only what the first lacked | `references/composition-patterns.md` |
+| Bounded residual review | Jev handles most units, a fixed-answer reviewer checks benchmarked referrals | runner sends the same source-bound bundle with immutable provenance; code accepts only the declared answer schema | `references/composition-patterns.md` |
 | Deterministic pre-filter | programs decide the obvious ends; Jev judges the middle | `scripts/jev-compact.py` |
 | History injection | recent actions as "already taken, do not repeat" | `scripts/jev-browser-agent.py` |
 
@@ -199,6 +202,8 @@ Every integration has a reader (runs Jev), storage (findings persist somewhere r
 ## Improve a program
 
 This is step 9 of the build procedure. Find the failing question on labeled data before changing anything.
+
+**Promote lessons deliberately.** Experimental Jevmaxxing is hypothesis discovery, not guidance. Add a durable rule only when it has a clear mechanism, representative labeled evidence, a stated boundary or counterexample, and a measured improvement to an action, cost, or quality decision against a baseline. Otherwise leave the observation out; prune copied lore that cannot meet this standard.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -256,17 +261,25 @@ A dissolution is the build procedure with the skill as the request. The method:
 - [ ] Code does all counting, arithmetic, and date comparison.
 - [ ] State holds only what questions need, every field bounded by a named constant, sections labeled.
 - [ ] Every stage that calls Jev fits state and batches questions; `calls_failed` is zero on a labeled run.
-- [ ] All questions on one state travel in one request.
+- [ ] All independent questions on one state travel in one request; serial dependencies are explicit second requests built by code.
 - [ ] Responses are validated; a pure policy function decides; thresholds sit in the policy.
-- [ ] Reader, storage, and action all exist; assessments persist with full distributions.
+- [ ] Reader, storage, and action all exist; assessments persist with full distributions, prompt/model versions, attempts, and final actions.
+- [ ] Entity or linkage systems preserve original rows and provenance; relationship labels and identity merges are separate actions.
+- [ ] Workload reports distinguish wall time from accumulated model call time and label throughput's clock.
+- [ ] Any non-Jev residual reviewer is fixed-answer, source-bound, capped, and justified by a held-out marginal benchmark.
 - [ ] `score` is read as a weighted mean; code that rounds says so.
 - [ ] Adversarial and self-describing inputs are in the test set.
 - [ ] Labeled examples back every revision; the model version is pinned or the jaggedness page rechecked.
+- [ ] Fixtures and rubrics are hashed; labels record human/provisional provenance, and provisional labels never promote an action.
+- [ ] An untouched group-disjoint heldout is used once after selection; later tuning starts with a new independent heldout.
+- [ ] Missing, invalid, and unavailable answers are stored as `unknown` with separate failure receipts, never scored as pass or no.
+- [ ] Any action-changing selector remains shadow-only until human-confirmed, disjoint-heldout evidence shows the action is useful.
+- [ ] Evidence questions receive an explicit source-evidence ledger; confidence cannot override evidence or permission constraints.
 - [ ] Every script passes a validation probe: imports without error, `--help` exits 0, and a live call with representative input returns valid JSON with `source != "error"`.
 - [ ] Hooks that grade agent output read the richest available text (task-notification result, not just the last assistant message).
 - [ ] Hooks that check grounding receive verifiable evidence (stored Jev answers, tool output summaries), not just file paths.
-- [ ] In development, run on a small sample (50–200 rows) before the full dataset. A bad question wastes every call.
-- [ ] `jev-cost-report.py --since 1h` after every multi-call run. Watch for: 0-ok scripts, duplicate payload hashes, and failed calls above 1%.
+- [ ] In development, run on a small representative sample before the full dataset. A bad question wastes every call.
+- [ ] Read the cost report after every multi-call run. Investigate scripts with no successful calls, duplicate payload hashes, or any unexpected failures.
 
 ## Error handling
 
@@ -280,7 +293,7 @@ A dissolution is the build procedure with the skill as the request. The method:
 
 **Error: HTTP 429 or 529**
 - Cause: rate limit (tokens per second or requests per minute) or an overloaded service.
-- Solution: retry with exponential backoff and honor `retry-after`. The official SDKs do this by default; `call_jev` callers keep the existing retry path. Fewer, fuller requests lower the request rate.
+- Solution: retry with exponential backoff and honor `retry-after`, inside named attempt and deadline caps. Persist every failed and retried attempt with its reason; timeouts and retries count in workload cost and latency. The official SDKs do this by default; `call_jev` callers keep the existing retry path. Fewer, fuller requests lower the request rate.
 
 **Error: HTTP 401 or 402**
 - Cause: bad key or exhausted credits. A retry never succeeds.

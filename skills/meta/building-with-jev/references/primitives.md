@@ -74,8 +74,8 @@ Reading `confidence`:
 Every answer is constrained to the options you supplied; code never parses prose. Every answer is independent: adding or removing a question does not change the others. Jev is consistent: similar inputs give similar outputs, so a labeled set stays meaningful across runs.
 
 Structural identities you might expect are not guaranteed:
-- A Noul and a yes/no Choice on the same question return different numbers (docs measured `noul` 0.22 against Choice yes 0.01). Do not carry a threshold from one primitive to the other.
-- `P(noul)` and `1 - P(not noul)` do not sum to 1 (docs measured 0.72 and 0.47).
+- A Noul and a yes/no Choice on the same question can return different numbers. Do not carry a threshold from one primitive to the other.
+- Do not assume `P(noul)` and `1 - P(not noul)` sum to 1; test the primitive and wording you will deploy.
 - A Choice is relative (which option wins); a Noul is absolute (it can be low for every option). Use both on a shortlist: the Choice picks, per-option Nouls decide whether to pick at all.
 
 Validate before acting: `validate_jev_response` checks Noul in [0,1], Choice is a string, Score is numeric, probabilities in [0,1] summing to about 1, confidence in [0,1]. Advisory callers log and continue; safety callers treat an invalid response as unavailable.
