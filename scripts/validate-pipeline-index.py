@@ -54,7 +54,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
+DEFAULT_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 
 
 def heading_text(doc: Path) -> str:

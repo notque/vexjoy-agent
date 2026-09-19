@@ -48,7 +48,7 @@ def input_paths(scripts_dir: Path) -> list[Path]:
         base / "skills" / "INDEX.local.json",
         base / "agents" / "INDEX.json",
         base / "agents" / "INDEX.local.json",
-        base / "skills" / "workflow" / "references" / "pipeline-index.json",
+        base / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
     ]
 
 

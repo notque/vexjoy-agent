@@ -17,7 +17,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-PIPELINE_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
+PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 
 # (trigger phrase, expected component name). Component is looked up in
 # skills/INDEX.json first, then pipeline-index.json.

@@ -151,7 +151,7 @@ def _patched_paths(root: Path) -> dict:
     """Build an INDEX_PATHS dict (tracked path, local override name) for tmp files."""
     return {
         "skills": (root / "skills" / "INDEX.json", "INDEX.local.json"),
-        "pipelines": (root / "skills" / "workflow" / "references" / "pipeline-index.json", None),
+        "pipelines": (root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json", None),
         "agents": (root / "agents" / "INDEX.json", "INDEX.local.json"),
     }
 

@@ -34,7 +34,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE = REPO_ROOT / "scripts" / "routing-benchmark.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-PIPELINES_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
+PIPELINES_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 COVERAGE_EXCLUSIONS = REPO_ROOT / "scripts" / "routing-benchmark-exclusions.json"
 
 # Harness-provided agents that are routable but carry no agents/*.md file, so
