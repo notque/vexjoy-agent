@@ -9,18 +9,35 @@ Or directly: python3 hooks/tests/test_learning_system.py
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add parent lib directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from learning_db_v2 import (
-    classify_error,
-    generate_signature,
-    get_stats,
-    init_db,
-    lookup_error_solution,
-    normalize_error,
-    record_learning,
-)
+import learning_db_v2 as ldb
+
+
+@pytest.fixture(autouse=True)
+def _isolate_learning_db(tmp_path, monkeypatch):
+    """Give each test a fresh learning DB so earlier tests cannot contaminate.
+
+    Scripts tests may delete and reimport learning_db_v2, creating a second
+    module object.  Ensure sys.modules points at our copy and reset its
+    _initialized flag so init_db() reruns against the temp directory.
+    """
+    sys.modules["learning_db_v2"] = ldb
+    monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
+    monkeypatch.setattr(ldb, "_initialized", False)
+
+
+# Module-level aliases used by tests.
+classify_error = ldb.classify_error
+generate_signature = ldb.generate_signature
+get_stats = ldb.get_stats
+init_db = ldb.init_db
+lookup_error_solution = ldb.lookup_error_solution
+normalize_error = ldb.normalize_error
+record_learning = ldb.record_learning
 
 
 def test_error_normalizer():

@@ -29,7 +29,7 @@ def fresh_db(tmp_path, monkeypatch):
         del sys.modules["learning_db_v2"]
     import learning_db_v2
 
-    learning_db_v2._initialized = False
+    monkeypatch.setattr(learning_db_v2, "_initialized", False)
     return learning_db_v2
 
 

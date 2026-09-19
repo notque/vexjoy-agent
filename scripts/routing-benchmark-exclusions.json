@@ -39,7 +39,6 @@
     "joy-check": "Editorial judgment companion selected by content workflow state.",
     "kotlin": "Language route is selected with implementation context and agent pairing.",
     "kubernetes": "Infrastructure route requires cluster and deployment context.",
-    "learn": "Lifecycle component for recorded corrections, not a direct user-intent route.",
     "markdown-converter": "Conversion route depends on supplied input format and tooling context.",
     "marketing": "Semantic business route; no stable deterministic trigger contract.",
     "objective-loop": "Execution companion selected by objective lifecycle, not direct user intent.",
