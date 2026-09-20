@@ -364,14 +364,21 @@ def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
 def check_workflow_instructions(content: str) -> CheckResult:
     """Check: Instructions section with workflow-first structure (15 pts).
 
-    Workflow-first model: Instructions section with phases/steps and inline
-    constraints using "because X" reasoning. Replaces the old Operator Context
-    check (Hardcoded/Default/Optional subsections were removed in the
-    workflow-first migration).
+    Accept either the legacy Instructions/Phase/Gate labels or a compact,
+    numbered workflow whose prose states enforceable checkpoints.
     """
-    has_instructions = bool(re.search(r"#{2,4}\s+Instructions", content, re.IGNORECASE))
-    has_phases = bool(re.search(r"#{2,4}\s+(Phase|Step)\s+\d", content, re.IGNORECASE))
-    has_gates = bool(re.search(r"\*\*Gate\*\*", content))
+    numbered_sections = re.findall(r"^#{2,4}\s+\d+[.)]?\s+\S", content, re.IGNORECASE | re.MULTILINE)
+    compact_workflow = len(numbered_sections) >= 3
+    has_instructions = bool(re.search(r"^#{2,4}\s+Instructions\s*$", content, re.IGNORECASE | re.MULTILINE))
+    has_instructions = has_instructions or compact_workflow
+    has_phases = (
+        bool(re.search(r"^#{2,4}\s+(?:Phase|Step)\s+\d", content, re.IGNORECASE | re.MULTILINE)) or compact_workflow
+    )
+    has_gates = bool(re.search(r"\*\*Gate\*\*", content, re.IGNORECASE))
+    if compact_workflow:
+        has_gates = has_gates or bool(
+            re.search(r"\b(?:requires?|reject|fails?|must|acceptance)\b", content, re.IGNORECASE)
+        )
 
     found = sum([has_instructions, has_phases, has_gates])
     earned = round((found / 3) * 15)
@@ -381,11 +388,11 @@ def check_workflow_instructions(content: str) -> CheckResult:
 
     missing = []
     if not has_instructions:
-        missing.append("Instructions section")
+        missing.append("Instructions section or numbered workflow")
     if not has_phases:
         missing.append("Phase/Step numbering")
     if not has_gates:
-        missing.append("Gate checkpoints")
+        missing.append("Gate labels or enforceable checkpoints")
     return CheckResult("Workflow instructions", 15, earned, f"{found}/3 elements (missing: {', '.join(missing)})")
 
 

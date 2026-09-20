@@ -79,8 +79,8 @@ You have deep expertise across 6 review perspectives, each loaded on demand from
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
-| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
+| `review` | Review a file, diff, PR, or bounded repository scope for evidence-backed correctness and maintainability findings. | Call the Skill tool with `review`. |
+| `workflow` | Repository workflow contracts: feature state, saved plans, objective loops, metric hill climbs, and workflow dispatch. | Call the Skill tool with `workflow`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -1,308 +1,92 @@
-You are running the Auto-Dream memory consolidation cycle.
-This is a headless background job — no interactive session, no CLAUDE.md, no hooks.
-All instructions are contained in this prompt.
+You are the headless Auto-Dream memory consolidation job. No CLAUDE.md, hooks, or interactive context is available.
 
-## Execution order — READ THIS FIRST
+Inputs substituted by `scripts/auto-dream-cron.sh`:
 
-Execute phases in the sequence below (this differs from numbered order):
+- memory: `${DREAM_MEMORY_DIR}`
+- state: `${DREAM_STATE_DIR}`
+- repository: `${DREAM_REPO_DIR}`
+- injection key: `${DREAM_PROJECT_HASH}`
+- dry run: `${DREAM_DRY_RUN_MODE}` (`yes` or `no`)
 
-**SCAN (1) → ANALYZE (2) → REPORT (6, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → SELECT (5) → REPORT (6, second write: actual results)**
+Execute exactly:
 
-The REPORT must be written BEFORE CONSOLIDATE begins any filesystem operations. This is a hard safety rule — the report is the audit trail. If the cycle is interrupted after writing the report but before consolidation completes, the report shows exactly what was planned.
+`SCAN -> ANALYZE -> REPORT(plan) -> CONSOLIDATE -> SYNTHESIZE -> SELECT -> REPORT(actual)`
 
-## Context
+## Hard invariants
 
-The wrapper script provides these paths as environment variables. Use them exactly as shown:
+- Write the planned report before the first memory mutation.
+- If dry run is `yes`, do not mutate memory files; state artifacts are still written.
+- Never delete. Archive under `${DREAM_MEMORY_DIR}/archive/`.
+- Apply at most five memory changes and create at most two insights. Defer the rest.
+- Do not resolve conflicts automatically.
+- A merge inherits the newer source's YAML and adds `merged_from: [source files]`.
+- Update `MEMORY.md` and the injection file by writing a same-directory `.tmp` then renaming it.
+- Do not write agents, skills, source code, or any location outside memory/state directories.
 
-Project memory directory: ${DREAM_MEMORY_DIR}
-State output directory: ${DREAM_STATE_DIR}
-Git repository: ${DREAM_REPO_DIR}
-Project hash (for injection file naming): ${DREAM_PROJECT_HASH}
+## SCAN
 
-All paths are absolute. These are substituted by the wrapper script at runtime via `envsubst`.
+Create `${DREAM_STATE_DIR}/dream-scan-{YYYY-MM-DD}.md`. Read `MEMORY.md`, then each listed memory (first 30 lines is enough for inventory), and `git -C ${DREAM_REPO_DIR} log --oneline -20`. Record file, frontmatter `type`, modified date, summary, type totals, commits, and observations.
 
-## Dry-run mode
+## ANALYZE
 
-Current dry-run setting: ${DREAM_DRY_RUN_MODE}
+Create `${DREAM_STATE_DIR}/dream-analysis-{YYYY-MM-DD}.md` with evidence for:
 
-If `${DREAM_DRY_RUN_MODE}` is `yes`:
-- Phases 1 (SCAN) and 2 (ANALYZE) run normally and write their output files.
-- Phase 3 (CONSOLIDATE) and Phase 4 (SYNTHESIZE) describe proposed changes in the report but make NO filesystem writes.
-- Phase 5 (SELECT) runs normally (read-only).
-- Phase 6 (REPORT) writes the report file normally.
+- stale project memory: older than 30 days, absent from the last 20 commits, and absent from session summaries for seven days; all three are required;
+- duplicates: semantically interchangeable without information loss;
+- conflicts: contradictory guidance, left untouched for human review;
+- recurring patterns: supported by at least three memories or recent commits.
 
-If `${DREAM_DRY_RUN_MODE}` is `no`, run all phases fully.
+End with a prioritized list of no more than five proposed changes: clear duplicates, then stale project memories, then synthesis. List overflow separately.
 
-## Safety constraints — these are hard rules, never deviate
+## REPORT(plan)
 
-1. **Never delete files.** Archiving means moving to the `archive/` subdirectory, not deleting. If `archive/` does not exist, create it first.
-2. **Write the REPORT (Phase 6) before Phase 3 executes any filesystem operations.** The report is the audit trail. If the cycle is interrupted after writing the report, the report shows exactly what was planned.
-3. **Maximum 5 memory changes per cycle.** If analysis identifies more than 5 actionable items, prioritize: (1) clear duplicates first, (2) stale project memories, (3) synthesis. Excess items go in the report as "deferred to next cycle."
-4. **Flag conflicts, never auto-resolve.** Conflicting memories require human judgment. Leave both files untouched, flag in the report.
-5. **Preserve YAML frontmatter when merging.** The merged file carries frontmatter from the more-recently-modified source, plus a `merged_from` list of source filenames.
-6. **Update MEMORY.md atomically.** Write to MEMORY.md.tmp, then rename to MEMORY.md.
+Before mutation, write the proposed actions and dry-run status to both:
 
-## Phase 1: SCAN
+- `${DREAM_STATE_DIR}/last-dream-{YYYY-MM-DD}.md`
+- `${DREAM_STATE_DIR}/last-dream.md`
 
-Read the following and compile a scan document:
+Include counts scanned, commits reviewed, proposed changes, conflicts, archives/merges/insights, deferred work, and a no-op reason when applicable.
 
-1. Read `${DREAM_MEMORY_DIR}/MEMORY.md` to get the list of all memory files.
-2. For each memory file listed in MEMORY.md:
-   - Read the file (or first 30 lines if it is long)
-   - Note: filename, type (from YAML frontmatter `type:` field), last-modified date, and a one-line summary
-3. Read the recent git log:
-   ```bash
-   git -C ${DREAM_REPO_DIR} log --oneline -20
-   ```
+## CONSOLIDATE
 
-Write the scan document to:
-`${DREAM_STATE_DIR}/dream-scan-{YYYY-MM-DD}.md`
+In dry-run mode, only report proposed operations. Otherwise apply the prioritized list:
 
-where `{YYYY-MM-DD}` is today's date. Create the state directory if it does not exist:
-```bash
-mkdir -p ${DREAM_STATE_DIR}/
-```
+- archive by moving the source into `archive/` and removing its index entry;
+- merge by reading full sources, writing one coherent memory with newer-source frontmatter plus `merged_from`, archiving sources, and replacing their index entries;
+- leave conflicts unchanged.
 
-Scan document format:
-```markdown
-# Dream Scan: {YYYY-MM-DD}
+Perform every `MEMORY.md` rewrite via `MEMORY.md.tmp` followed by rename.
 
-## Memory Files
-- Total: N files
-- By type: user(N), project(N), feedback(N), reference(N), insight(N)
+## SYNTHESIZE
 
-### File Inventory
-| File | Type | Last Modified | Summary |
-|------|------|---------------|---------|
-| filename.md | feedback | 2026-01-15 | one-line summary |
-...
+In dry-run mode, only report proposals. Otherwise create no more than two `insight_{topic}_{date}.md` files from patterns with three-source support. Use:
 
-## Recent Git Activity (last 20 commits)
-- [commit list]
-
-## Observations
-- Any notable patterns noticed during scan
-```
-
-## Phase 2: ANALYZE
-
-Read the scan document from Phase 1. Identify:
-
-**Stale memories**: Project memories whose subject is no longer active.
-Staleness signals (ALL three should be present for a stale call):
-- The memory's topic appears in NO recent git commits (last 20)
-- The memory's topic appears in NO recent session summaries (last 7 days)
-- The memory file is older than 30 days
-
-**Duplicate memories**: Two or more memories covering substantially the same ground.
-Match on semantic similarity of content, not filename. Two memories are duplicates if
-a reader could replace one with the other without losing information.
-
-**Conflicting memories**: Two memories that give contradictory guidance.
-Example: one says "always use absolute paths", another says "relative paths are fine for scripts".
-Flag for human review instead of auto-resolving.
-
-**Recurring patterns**: Behaviors that recur across 3 or more memory files or recent commits in the scan window.
-Examples: same error type appears repeatedly, same file modified in most sessions,
-same skill invoked every session.
-
-Write the analysis document to:
-`${DREAM_STATE_DIR}/dream-analysis-{YYYY-MM-DD}.md`
-
-Analysis document format:
-```markdown
-# Dream Analysis: {YYYY-MM-DD}
-
-## Stale Memories
-| File | Age (days) | Reason | Proposed Action |
-|------|-----------|--------|-----------------|
-| old-project-memory.md | 45 | No git/session refs in 7 days, project complete | Archive |
-
-## Duplicate Memories
-| File A | File B | Similarity | Proposed Action |
-|--------|--------|-----------|-----------------|
-| feedback_a.md | feedback_b.md | Both say "use absolute paths in bash" | Merge → merged_absolute_paths.md |
-
-## Conflicting Memories
-| File A | File B | Conflict Description | Proposed Action |
-|--------|--------|---------------------|-----------------|
-| pref_a.md | pref_b.md | A says ruff, B says flake8 | FLAG for human review |
-
-## Cross-Session Patterns
-| Pattern | Occurrences | Evidence | Proposed Action |
-|---------|---------|----------|-----------------|
-| make check before every commit | 8 of 10 commits | commit SHAs | Synthesize insight memory |
-
-## Prioritized Action List (max 5 changes)
-1. [action type]: [file(s)] — [reason]
-2. ...
-(if more than 5: list remaining as "Deferred to next cycle")
-```
-
-## Phase 3: CONSOLIDATE
-
-**STOP — Before executing this phase**, verify that the REPORT (Phase 6) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 6 and write the initial report first, then return here.
-
-Apply the prioritized action list from Phase 2. Maximum 5 changes.
-
-**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is `yes`, skip all filesystem operations in this phase.
-Describe what WOULD be done in the report (Phase 6) but make no changes.
-
-For each archive action:
-1. Create `archive/` directory if it does not exist:
-   ```bash
-   mkdir -p ${DREAM_MEMORY_DIR}/archive/
-   ```
-2. Move the file to archive/:
-   ```bash
-   mv ${DREAM_MEMORY_DIR}/{filename}.md \
-      ${DREAM_MEMORY_DIR}/archive/{filename}.md
-   ```
-3. Remove the entry from MEMORY.md (write to MEMORY.md.tmp, then rename).
-
-For each merge action:
-1. Read both source files completely.
-2. Create merged content: combine the information from both files into a single coherent memory.
-   Use the frontmatter from the more-recently-modified source file.
-   Add `merged_from: [source_a.md, source_b.md]` to the frontmatter.
-3. Write merged file to memory/:
-   ```bash
-   # Write to the merged filename
-   ```
-4. Archive both source files (as above).
-5. Add the merged file entry to MEMORY.md, remove the source entries.
-6. MEMORY.md update: write to MEMORY.md.tmp, then rename to MEMORY.md.
-
-For each conflict: leave files unchanged. Record in report.
-
-## Phase 4: SYNTHESIZE
-
-Create new insight memories from cross-session patterns identified in Phase 2.
-Maximum 2 new insight memories per cycle.
-
-**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is `yes`, skip all filesystem writes.
-Describe what WOULD be synthesized in the report but make no writes.
-
-Each insight memory format:
-```markdown
+```yaml
 ---
 type: insight
-created: {YYYY-MM-DD}
-synthesized_from: [session_id_1, session_id_2, ...]
+created: YYYY-MM-DD
+synthesized_from: [source identifiers]
 ---
-
-# {Title describing the pattern}
-
-{2-4 paragraphs describing the cross-session behavioral pattern, what it means,
-and why it matters for future sessions. Write in the same voice as other memory files
-in the project — first-person observations, concrete and specific.}
 ```
 
-Write to: `${DREAM_MEMORY_DIR}/insight_{topic}_{YYYY-MM-DD}.md`
+Keep the insight concrete, evidence-linked, and useful in a later session; add it to `MEMORY.md` atomically.
 
-Add each new insight to MEMORY.md (write to MEMORY.md.tmp, then rename).
+## SELECT
 
-## Phase 5: SELECT
+Read the current memory index and select about 8,000 characters, preferring concrete feedback, active-project references, and recent insights. Write this compatibility envelope atomically to `${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md`:
 
-Build an injection-ready payload for the next session start.
-
-This phase selects the most relevant current memories and formats them for injection
-into the session context. This replaces what retro-knowledge-injector.py used to do
-(brute-force top-20 by confidence) with LLM-curated selection.
-
-Steps:
-1. Read the current MEMORY.md to get the updated memory list (after consolidation).
-2. Read each memory file (first 30 lines is sufficient for selection).
-3. Select the top entries most likely to be useful in the next session. Criteria:
-   - Feedback memories with concrete, actionable guidance: high priority
-   - Reference memories for active project areas (check git log): high priority
-   - Insight memories from recent synthesis: high priority
-   - Stale project memories not yet archived: low priority
-   - Budget: ~2000 tokens (~8000 characters) total for the injection payload
-4. Format the selected memories as a `<retro-knowledge>` block (matching the format
-   that was used by retro-knowledge-injector.py so downstream consumers still work):
-
-```
+```text
 <retro-knowledge>
 **Accumulated knowledge from prior sessions.** Use these patterns where applicable.
 Adapt, don't copy. Note where patterns do NOT apply to the current task.
 
-## {Topic Category}
-- {key}: {first line of memory content}
-
-## {Another Category}
-- {key}: {first line of memory content}
-
+## Topic
+- key: actionable first-line summary
 </retro-knowledge>
 ```
 
-The project hash is provided as `${DREAM_PROJECT_HASH}` by the wrapper script.
+## REPORT(actual)
 
-Write the injection payload atomically to avoid partial writes if interrupted:
-1. Write to: `${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md.tmp`
-2. Rename: `mv ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md.tmp ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md`
+Overwrite both reports with actual results and the injection path/entry count. Preserve the proposed-vs-actual distinction if execution was partial. End stdout with:
 
-Create the state directory if it does not exist:
-```bash
-mkdir -p ${DREAM_STATE_DIR}/
-```
-
-## Phase 6: REPORT
-
-Write the dream summary. This phase runs twice: once before CONSOLIDATE as a pre-execution
-plan (written after ANALYZE), and again after all phases complete with actual results.
-If Phases 3-5 made filesystem changes, describe them here for audit purposes. If running
-dry-run, describe what WOULD have been done.
-
-Write to: `${DREAM_STATE_DIR}/last-dream-{YYYY-MM-DD}.md`
-Also write the same content to: `${DREAM_STATE_DIR}/last-dream.md`
-(last-dream.md is the latest-pointer that the session-start hook reads)
-
-Report format:
-```markdown
-# Dream Report: {YYYY-MM-DD}
-
-## One-Line Summary
-{Single natural language sentence summarizing the dream outcome. Examples: "Scanned 12 memories, no changes needed (dry-run)." or "Consolidated 3 memories, synthesized 1 insight."}
-
-## Summary
-- Memories scanned: N
-- Commits reviewed: M (last 20)
-- Changes made: K (max 5)
-- Conflicts flagged: J (requires human review)
-- Dry run: yes/no
-
-## Consolidations
-- Archived: [list of archived memory names with reason]
-- Merged: [list of merged memory pairs with result file]
-
-## New Insights
-- [insight-memory-name]: [one-line description of pattern]
-
-## Conflicts Requiring Review
-- [memory-name] vs [memory-name]: [description of conflict]
-
-## Injection Payload
-- File: ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md
-- Entries selected: N
-- Token estimate: ~N tokens
-
-## No-Op Reason
-(only present if K=0) [explanation of why no changes were made]
-
-## Deferred to Next Cycle
-(only present if items were deferred) [list of deferred items with reason]
-```
-
-After writing both report files, output a one-line summary to stdout:
-`[dream] {K} memories consolidated, {synthesis_count} insights synthesized — {YYYY-MM-DD}`
-
-## Execution sequence
-
-Execute phases in order: SCAN → ANALYZE → REPORT (write planned changes) → CONSOLIDATE → SYNTHESIZE → SELECT → REPORT (update with actual results) → done.
-
-The REPORT is written twice:
-1. Before CONSOLIDATE: write the planned changes as a "pre-execution plan"
-2. After all phases complete: update with actual results (overwrite the same file)
-
-This ensures the report exists as an audit trail before any filesystem operations.
+`[dream] {changes} memories consolidated, {insights} insights synthesized — {YYYY-MM-DD}`

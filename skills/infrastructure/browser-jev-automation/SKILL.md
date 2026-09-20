@@ -1,191 +1,67 @@
 ---
 name: browser-jev-automation
-description: "Jev-driven browser automation: Jev picks operations, programs execute, a text model writes field values only when Jev cannot pick one from the goal."
+description: "Run or modify the repository's Jev-driven browser harness, where programs own DOM actions, Jev selects bounded operations, and a text model only supplies missing field text."
 version: 1.1.0
 context: fork
 routing:
   category: infrastructure
-  pairs_with:
-    - testing
-  triggers:
-    - "browser automation"
-    - "browser use"
-    - "web scraping with jev"
-    - "jev browser"
-    - "automated browsing"
-    - "fill form"
-    - "click through"
-    - "navigate site"
-  not_for: "Manual browser testing, Playwright E2E test suites, or screenshot comparison. Use e2e-testing or testing-preferred-patterns for those."
+  triggers: ["browser automation", "jev browser", "automated browsing", "fill form", "click through"]
+  not_for: "Playwright test suites, manual browser testing, or screenshot comparison."
 ---
 
 # Browser Jev Automation
 
-Zero-dependency browser harness. Programs read the DOM and execute actions, Jev makes every judgment call, an LLM writes text only when the goal does not already contain the value. Built in-house; no pip or npm packages.
-
-## Quick start
+Use the in-house, zero-package harness. Node 22+, Chromium, and `TYPESAFE_API_KEY` are required.
 
 ```bash
-python3 scripts/jev-browser-agent.py \
-  --url http://127.0.0.1:8000/ \
+python3 scripts/jev-browser-agent.py --url http://127.0.0.1:8000/ \
   --goal "Sign in with username alice, choose country Canada, and submit." \
   --check-text-contains "Welcome alice" --json-compact
 ```
 
-Requires `TYPESAFE_API_KEY`, Node 22+, and a local Chromium (Playwright cache or `CHROME_PATH`). Output is one JSON object: `status` (`done|blocked|budget|error`), `reason`, `steps`, `requests`, `final_url`, `verify`, `log` (full probability distributions per step), `usage`.
+Output is one JSON object: `status` (`done|blocked|budget|error`), `reason`, `steps`, `requests`, `final_url`, `verify`, `log`, and `usage`. Scripts normally exit 0 with status in JSON.
 
-Measured on a local login form: 5 steps, 7 Jev calls, 1.4 s wall, zero LLM tokens, goal verified.
+## Local architecture
 
-## Architecture: three tiers applied to browser control
-
-| Tier | Role | Cost |
-|---|---|---|
-| Programs (tier 1) | Snapshot DOM, extract goal candidates, execute actions, deterministic checks, secret scrubbing | CPU only |
-| Jev (tier 2) | Pick operation + target, pick field value from goal candidates, verify goal | ~$0.042/M tokens, <300 ms |
-| LLM (tier 3) | Compose text for TYPE_TEXT only when Jev says no goal candidate fits | Per-token, rare |
-
-One Jev call per decision cycle. Speculative fan-out: operation Choice + per-operation target Choices evaluated in one forward pass. Only the target matching the selected operation executes.
-
-## Components
-
-| File | Role |
+| File | Contract |
 |---|---|
-| `scripts/lib/jev_browser/snapshot.js` | In-page snapshot: viewport-visible controls, labels, values, operations, code-owned node ids, freshness guards |
-| `scripts/lib/jev_browser/cdp_driver.mjs` | Node ESM, `node:` builtins only. Launches Chromium, speaks CDP over the built-in `WebSocket`, evaluates in an isolated world, serves JSON-lines commands: `open`, `observe`, `fresh`, `act`, `navigate`, `screenshot`, `close` |
-| `scripts/jev-browser-decide.py` | One Jev call: operation + target with speculative fan-out, validated against observed ids |
-| `scripts/jev-browser-verify.py` | Independent Jev goal check (`goal_met` Noul, evidence Score, `has_error`, `page_loaded`, `evidence_element` Choice) plus deterministic `url_contains` / `text_contains` checks that veto |
-| `scripts/jev-browser-agent.py` | Loop: preflight, observe, scrub, decide, text (secret, Jev pick, LLM), freshness, act, log, verify |
+| `scripts/lib/jev_browser/snapshot.js` | Visible/actionable elements, integer node IDs, guards, page marker |
+| `scripts/lib/jev_browser/cdp_driver.mjs` | Builtins-only CDP driver; JSONL commands `open`, `observe`, `fresh`, `act`, `navigate`, `screenshot`, `close` |
+| `scripts/jev-browser-decide.py` | One Jev request: operation plus speculative target choices; validates IDs |
+| `scripts/jev-browser-verify.py` | Independent Jev goal check; deterministic URL/text checks veto success |
+| `scripts/jev-browser-agent.py` | Preflight, observe, scrub, decide, text selection, freshness check, act, verify |
 
-## CLI
+One cycle reads the DOM once. Operation and per-operation target heads run in one Jev request; only the chosen operation's target executes. Code, never model output, resolves selectors and geometry.
 
-| Flag | Meaning |
-|---|---|
-| `--url`, `--goal` | Required. Loopback URLs only unless `--allow-remote` |
-| `--check-url-contains X`, `--check-text-contains Y` | Deterministic checks that must pass for DONE |
-| `--secret-env LABEL=ENV_VAR` | Type the variable's value into fields whose label contains `LABEL`; unset variable fails preflight |
-| `--allow-host HOST` | Permit one host and its subdomains (repeatable). Off-origin navigation elsewhere is reverted |
-| `--allow-remote` | Permit any host. Page text then reaches Jev and, for composed text, the text model |
-| `--header NAME=ENV_VAR` | Send a header on every request with the variable's value (staging bypass tokens). Never logged |
-| `--trace FILE` | Write every observed, scrubbed snapshot to FILE |
-| `--headed` | Show the browser window |
-| `--max-steps` (60), `--max-requests` (120) | Budgets; requests count Jev calls including text picks and verifies |
-| `--json-compact` | Single-line output |
+## Important controls
 
-| Env | Meaning |
-|---|---|
-| `TYPESAFE_API_KEY` | Required |
-| `JEV_KEY_ONLY=1` | Skip the Claude Code plugin toggle check (cron, standalone) |
-| `CHROME_PATH` | Chromium binary; default is the newest Playwright cache build |
-| `JEV_BROWSER_SANDBOX=1` | Forbid the `--no-sandbox` fallback |
-| `TEXT_MODEL` (`claude-opus-4-6`), `TEXT_MODEL_BACKEND` (`auto` \| `api` \| `claude-cli`), `TEXT_MODEL_BASE_URL` (`https://api.anthropic.com`), `TEXT_MODEL_API_KEY` (falls back to `ANTHROPIC_API_KEY`), `TEXT_MODEL_REASONING` (`none`) | Tier 3 text model. `auto` uses the API when a key is set, else `claude -p` (logged-in CLI, run from `/tmp`, no tools). Owner prefers opus 4.6 here |
-| `JEV_BROWSER_DEBUG=1` | Enables the driver's `debug_eval` command for development |
+- Remote navigation is denied by default. Use repeatable `--allow-host HOST` or broader `--allow-remote`; off-origin navigation is reverted and blocks after three trips.
+- `--secret-env LABEL=ENV_VAR` types the environment value into matching fields. Unset variables fail preflight. Logs show `(secret)` and all later snapshots are scrubbed; password values are always `(filled)`.
+- `--header NAME=ENV_VAR` sends a secret header without logging it.
+- `--max-steps` defaults to 60; `--max-requests` to 120 and counts decide, text-pick, and verify calls.
+- `--trace FILE`, `--headed`, `CHROME_PATH`, and `JEV_BROWSER_DEBUG=1` support diagnosis. `JEV_KEY_ONLY=1` skips the plugin-toggle check for standalone/cron use.
+- Chromium tries sandboxed launch first. `--no-sandbox` is only a fallback for the explicit "No usable sandbox" failure; `JEV_BROWSER_SANDBOX=1` forbids that fallback.
 
-## Standalone page checks and audits
+## Execution invariants
 
-`jev-browser-verify.py` also opens pages itself:
+- The node registry is in an isolated CDP world. The driver rejects covered, hidden, disabled, read-only, or stale targets.
+- Freshness compares `page_key` plus a target guard, or the page marker for scroll/wait. Stale results re-observe without a stall penalty, capped at 5.
+- Write the decision log before mutation. Store full operation and target probability maps.
+- A non-DONE pick below confidence 0.45 is held and counts toward the stall guard. Transient Jev errors become bounded WAIT retries (3); unavailable blocks immediately.
+- DONE is only a claim. The independent verifier must accept it; deterministic checks veto. Three rejected DONEs block.
+- Observe settles for DOM quiet (600 ms, capped at 3 s). WAIT sleeps 1.5 s and may settle for 8 s.
+- Cache generated text only for identical `(url, target, label, current value)`.
+
+TYPE_TEXT value order is: matching secret; literals extracted from the goal; Jev Choice over candidates plus `NONE` at confidence >= 0.5; finally the text model. The text model returns strict `{"text":"..."}` and never chooses actions or judges completion. Backend controls are `TEXT_MODEL`, `TEXT_MODEL_BACKEND=auto|api|claude-cli`, `TEXT_MODEL_BASE_URL`, `TEXT_MODEL_API_KEY` (then `ANTHROPIC_API_KEY`), and `TEXT_MODEL_REASONING`.
+
+## Standalone verification
 
 ```bash
 python3 scripts/jev-browser-verify.py --url http://127.0.0.1:8002/five-star \
   --goal "at least 8 promotions can be toggled" --goal "there is a Start button"
-python3 scripts/jev-browser-verify.py --audit-file pages.json   # {"base": "...", "pages": {"/path": ["goal", ...]}}
+python3 scripts/jev-browser-verify.py --audit-file pages.json
 ```
 
-One browser per audit, one snapshot per page, one Jev call per goal (~100-200 ms each). `passed` needs `goal_met` and evidence score >= 0.5. Same `--allow-host`, `--header`, `--check-*` flags as the agent.
+Audit JSON is `{"base":"...","pages":{"/path":["goal"]}}`. One browser and snapshot are reused per page. Passing requires `goal_met` and evidence score >= 0.5.
 
-## Safety invariants
-
-- Model output never becomes selectors, coordinates, or JavaScript. Every action carries an integer node id issued by `snapshot.js`; the driver resolves geometry itself and rejects covered, hidden, disabled, or read-only targets.
-- The node registry lives in a CDP isolated world. Page scripts cannot see or rewrite it (live test asserts `typeof window.__jevBrowser === "undefined"` from the page).
-- Loopback URLs only by default. `--allow-host` widens per host. If a click leaves the allowed origin (sign-in redirect, external link), the agent returns to the last good URL, tells Jev which action caused it, and blocks after three such trips.
-- Secrets: the log shows `(secret)`; after a secret is typed, every later snapshot is scrubbed before Jev, the text model, or the log sees it. Password inputs never expose their value (`(filled)`).
-- Page text reaches Jev and the text model as untrusted data. Instructions say so explicitly.
-- Chromium runs a throwaway profile. Sandboxed launch first; `--no-sandbox` only when Chromium reports "No usable sandbox" (user namespaces disabled). The ready line reports `sandbox: true|false`.
-
-## Key patterns (learned from jev-ultrafast)
-
-- **Speculative fan-out**: one request asks "which operation?" and "which target for CLICK/TYPE_TEXT/SELECT?" at once. Unused heads are discarded.
-- **One read per cycle**: `observe` runs `snapshot.js` once. Jev sees that snapshot.
-- **Semantic freshness guards**: `act` compares `page_key` + the target's guard (value, enabled state, position, nearby text) for targeted actions, or the page `marker` for scroll/wait. A stale page returns `stale: true`; the loop re-observes without a stall penalty, capped at `STALE_LIMIT` (5).
-- **Decision consumed before mutation**: the log entry is written before `act`, so a navigation cannot erase the record.
-- **Independent verification**: DONE is a claim. `jev-browser-verify.py` runs as a separate question set; a rejected DONE goes back into history so Jev re-decides with that evidence. Three rejected DONEs mean BLOCKED.
-- **Full distributions logged**: every step records `operation_probabilities` and `target_probabilities`.
-- **Text reuse only on identical context**: cached by `(url, target, label, current value)`.
-- **Transient Jev errors retry as WAIT** up to `STALL_LIMIT` (3); `unavailable` blocks at once.
-- **Low-confidence picks are held**: a non-DONE operation under `LOW_CONFIDENCE` (0.45) is not executed; the loop re-observes and counts toward the stall guard.
-- **Settle before judging**: `observe` waits for the DOM to be quiet (600 ms, capped at 3 s) and reports `quiet`; WAIT pauses 1.5 s then settles up to 8 s; a rejected DONE triggers a WAIT before the next decision. Jev sees `page.settled` and history notes when content was still changing.
-- **Whole-page element table**: rendered controls below the fold are offered too, marked `offscreen`; the driver scrolls them into view. Covered controls (modal backdrop, sticky header) are dropped at snapshot time, so an open modal leaves only its own controls.
-- **Links say where they go**: `navigates away to /path` or `leaves this site`, and decide's rules forbid them unless the goal names that page.
-
-## Text value selection
-
-Order for a TYPE_TEXT target:
-
-1. `--secret-env` match on the field label.
-2. Program extracts candidate literals from the goal (quoted strings, emails, `username X`, `search for X`, numbers).
-3. Jev Choice over candidates plus `NONE`. Accepted at confidence >= 0.5.
-4. LLM via Anthropic Messages API (`urllib`, no SDK). Strict `{"text": "..."}` reply.
-
-The text model writes one value. It never picks actions or judges progress.
-
----
-
-## Phase 1: OBSERVE
-
-`observe` evaluates `snapshot.js` in the isolated world. Output:
-
-```text
-[1] heading  Sign in                          []
-[2] textbox  Username                         [CLICK, TYPE_TEXT]
-[3] combobox Country (value=USA)              [SELECT]   options 3:1 USA, 3:2 Canada
-[4] checkbox Remember (checked=False)         [CLICK]
-[5] button   Sign in                          [CLICK]
-```
-
-Plus `actions` (`e2:fill`, `e3:sel:ca`, `scroll_down`, `wait`), `page_key`, `guards`, `marker`, and page text (<= 6000 chars).
-
-**Gate**: snapshot captured and scrubbed. Phase 2.
-
-## Phase 2: DECIDE
-
-`jev-browser-decide.py` returns `operation`, `target`, `confidence`, `needs_text`, and both probability maps. Invalid targets resolve to BLOCKED. Jev unavailable resolves to BLOCKED with `source: unavailable`.
-
-**Gate**: operation and target decided and logged. Phase 3.
-
-## Phase 3: EXECUTE
-
-1. Resolve the observed action by `(kind, index)`. Missing action: record, count toward stall.
-2. TYPE_TEXT: pick text per the order above.
-3. `act` with the snapshot's `page_key`, `guards`, `marker`. Stale: re-observe.
-4. Driver settles: two animation frames or 50 ms; combobox fills wait up to 200 ms for visible options.
-
-**Gate**: action executed. Phase 4.
-
-## Phase 4: VERIFY
-
-- DONE: `jev-browser-verify.py` with deterministic checks. Verified: stop `done`. Rejected: history entry, re-decide.
-- BLOCKED: stop.
-- Stall guard: `STALL_LIMIT` (3) consecutive non-WAIT actions with an unchanged marker: stop `blocked`.
-- Budget: `MAX_STEPS` 60, `MAX_REQUESTS` 120.
-
-**Gate**: loop or stop. Every exit carries `reason`.
-
----
-
-## Error handling
-
-Every Jev failure resolves to BLOCKED or a bounded WAIT retry. Scripts exit 0 with JSON. Preflight fails before Chromium launches on: remote URL without `--allow-remote`, Jev unavailable, unset secret variable, malformed `--secret-env`. A failed text tier blocks the run and names the cause in `reason`. Driver failures return `status: error` with the Node stderr tail.
-
-## Tests
-
-| File | Covers |
-|---|---|
-| `scripts/tests/test_jev_browser_harness.py` | Offline: decide payload/parse, verify parse and veto, agent loop with fake driver (secrets, stale, stall, budget, rejected DONE, Jev-error retry, preflight, scrub) |
-| `scripts/tests/test_jev_browser_live.py` | Real Chromium on a loopback fixture: snapshot contract, password masking, isolated world, covered-target rejection, stale guard, select/checkbox/scroll/submit, end-to-end secret scrubbing. Skips without Node + Chromium |
-
-Field-tested on 5 Star Booker (loopback dev server): closes the help modal, selects promotions, picks a mode, starts booking, spins the venue; the three-page audit from `mmr-ratings-dev/scripts/jev_browser_validate.py` runs through `--audit-file` unchanged.
-
-## References
-
-- [jev-ultrafast](https://github.com/browser-use/jev-ultrafast): patterns studied, code not reused
-- `docs/PHILOSOPHY.md`: three execution tiers
-- `scripts/jev_router_common.py`: `validated_call_jev`, `bound_text`, `typesafe_available`
+Run offline coverage in `scripts/tests/test_jev_browser_harness.py`; live Chromium/security coverage is in `scripts/tests/test_jev_browser_live.py`.

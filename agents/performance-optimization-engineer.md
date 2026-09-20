@@ -62,7 +62,7 @@ Each optimization recommendation MUST include these four fields. Omitting any fi
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
+| `testing` | Testing contracts: evidence, agent evaluation, Playwright edge domains, and completion verification. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

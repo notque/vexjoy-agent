@@ -107,6 +107,6 @@ Load these reference files when the task type matches:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `data` | Data analysis and reference enrichment. | Call the Skill tool with `data`. |
+| `data` | Analyze datasets, metrics, experiments, funnels, cohorts, trends, and distributions with explicit estimands, provenan... | Call the Skill tool with `data`. |
 
 **Rule**: Use the exact action in each applicable row.

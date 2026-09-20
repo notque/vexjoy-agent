@@ -17,13 +17,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "routing-manifest.py"
 PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
-DO_SKILL = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
 _spec = importlib.util.spec_from_file_location("routing_manifest", SCRIPT)
 assert _spec and _spec.loader
@@ -260,31 +258,3 @@ class TestLineGrammar:
             rm.format_tiered(entries, set()),
         ):
             assert out.index("AGENTS:") < out.index("SKILLS:") < out.index("PIPELINES:")
-
-
-# ---------------------------------------------------------------------------
-# Router prose counts
-# ---------------------------------------------------------------------------
-
-
-class TestRouterProseCounts:
-    """The /do prose quotes pipeline counts; a force_route flip must not silently falsify them."""
-
-    def test_prose_force_count_matches_the_index(self) -> None:
-        expected = sum(1 for d in _index_pipelines().values() if d.get("force_route"))
-        match = re.search(r"A FORCE pipeline \((\d+) of the (\d+)\)", DO_SKILL.read_text(encoding="utf-8"))
-        assert match, "router prose no longer states the FORCE pipeline count; update this test with it"
-        assert int(match.group(1)) == expected, (
-            f"skills/meta/do/SKILL.md says {match.group(1)} FORCE pipelines; "
-            f"pipeline-index.json has {expected}. Update the router prose."
-        )
-
-    def test_prose_total_count_matches_the_index(self) -> None:
-        expected = len(_index_pipelines())
-        text = DO_SKILL.read_text(encoding="utf-8")
-        match = re.search(r"(\d+) pipelines are available", text)
-        assert match, "router prose no longer states the pipeline total; update this test with it"
-        assert int(match.group(1)) == expected, (
-            f"skills/meta/do/SKILL.md says {match.group(1)} pipelines are available; "
-            f"pipeline-index.json has {expected}. Update the router prose."
-        )

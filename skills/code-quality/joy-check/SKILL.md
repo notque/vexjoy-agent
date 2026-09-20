@@ -23,8 +23,9 @@ routing:
     - positive framing check
     - instruction framing
   pairs_with:
-    - writing
-    - toolkit
+    - voice-writer
+    - voice-validator
+    - skill-creator
   complexity: Simple
   category: content
 ---
@@ -44,8 +45,8 @@ Checks *framing*, not *topic* or *voice*. The writing workflow owns voice fideli
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| Scoring agents, skills, pipelines, or toolkit documentation | `references/instruction-rubric.md` | Positive-framing patterns, scoring, and examples. |
-| Scoring articles, emails, posts, or other human-facing prose | `references/writing-rubric.md` | Joy-grievance patterns, scoring, and examples. |
+| Reviewing agent, skill, pipeline, README, or other LLM-facing instructions | `instruction-rubric.md` | Score positive, action-oriented instruction framing. |
+| Reviewing an article, email, post, or other human-facing prose | `writing-rubric.md` | Score joy-versus-grievance framing. |
 
 ## Instructions
 
@@ -162,9 +163,9 @@ SKILL.md --> joy-check --mode instruction --> fix flagged patterns --> re-verify
 ```
 
 **Auto-invocation points**:
-- `toolkit`: after generating a new skill
+- `skill-creator`: after generating a new skill
 - `agent-upgrade`: after modifying an agent
-- `writing`: during validation
+- `voice-writer`: during validation
 - `doc-pipeline`: for toolkit documentation
 
 Invoke standalone via `/joy-check [file]` (auto-detects mode) or with explicit `--mode`.
@@ -197,5 +198,6 @@ Output best version with remaining concerns. Explain which rubric dimensions res
 - `scan-negative-framing.py` — Regex pre-filter for grievance patterns (writing mode, Phase 1)
 
 ### Complementary Skills
-- `writing` — Voice, prose quality, and content validation
-- `toolkit` — Skill creation and instruction validation
+- `voice-validator` — Voice fidelity (different concern)
+- `voice-writer` — Invokes joy-check during validation
+- `skill-creator` — Invokes joy-check in instruction mode

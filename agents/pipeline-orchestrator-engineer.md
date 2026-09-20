@@ -54,9 +54,9 @@ Priority order: (1) reuse existing components, (2) parallel scaffolding, (3) tem
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
+| `workflow` | Repository workflow contracts: feature state, saved plans, objective loops, metric hill climbs, and workflow dispatch. | Call the Skill tool with `workflow`. |
+| `assessment` | Read-only inspection and decision support: codebase orientation, repository comparison, service health, ADR consultat... | Call the Skill tool with `assessment`. |
+| `toolkit` | Maintain this repository's skills, agents, routing indexes, evaluations, compositions, and toolkit evolution workflows. | Call the Skill tool with `toolkit`. |
 
 **Rule**: Use the exact action in each applicable row.
 

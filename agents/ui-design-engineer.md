@@ -95,7 +95,7 @@ Framer Motion is the recommended stack for React work, CSS transitions for simpl
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `frontend` | Frontend: UI design, distinctive visual styles, HTML artifacts, Three.js 3D. | Call the Skill tool with `frontend`. |
+| `frontend` | Build or assess coded frontend experiences, self-contained HTML artifacts, and Three.js scenes. | Call the Skill tool with `frontend`. |
 
 **Rule**: Use the exact action in each applicable row.
 

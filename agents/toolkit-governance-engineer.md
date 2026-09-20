@@ -62,9 +62,9 @@ Before editing, read the applicable sources below. Reuse them while unchanged; r
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `docs-sync-checker` | Detect documentation drift against filesystem state. | Call the Skill tool with `docs-sync-checker`. |
+| `assessment` | Read-only inspection and decision support: codebase orientation, repository comparison, service health, ADR consultat... | Call the Skill tool with `assessment`. |
+| `toolkit` | Maintain this repository's skills, agents, routing indexes, evaluations, compositions, and toolkit evolution workflows. | Call the Skill tool with `toolkit`. |
+| `docs-sync-checker` | Detect documentation drift against filesystem state using the repository's deterministic scanner, parser, and report ... | Call the Skill tool with `docs-sync-checker`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -168,7 +168,7 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 | hook registration, event types, timeout config, exit code review | [hook-standardization.md](toolkit-governance-engineer/references/hook-standardization.md) | settings.json format, advisory vs blocking exit codes |
 | routing table edits, `pairs_with` validation, trigger conflicts, INDEX.json | [routing-table-patterns.md](toolkit-governance-engineer/references/routing-table-patterns.md) | Phantom route detection, trigger conflict checks, index validation |
 | routing change, measurement change, gate change | [what-didnt-work.md](../docs/what-didnt-work.md) and [router-ab-runbook.md](../docs/router-ab-runbook.md) | Past reversals and their root causes; A/B protocol and corpus requirements |
-| validator, hook, or CI-gate work | [verify-adversarial-methodology.md](../skills/process/testing/references/verify-adversarial-methodology.md) | L1 EXISTS / L3 WIRED / L4 DATA FLOWS verification layers |
+| validator, hook, or CI-gate work | [verify-checklist.md](../skills/process/testing/references/verify-checklist.md) | Layered structural, wiring, data-flow, and adversarial verification |
 
 ## Agent Reference File Validation
 

@@ -123,9 +123,9 @@ These rules are stated here AND duplicated inline above at each phase where they
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
-| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
-| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
+| `workflow` | Repository workflow contracts: feature state, saved plans, objective loops, metric hill climbs, and workflow dispatch. | Call the Skill tool with `workflow`. |
+| `review` | Review a file, diff, PR, or bounded repository scope for evidence-backed correctness and maintainability findings. | Call the Skill tool with `review`. |
+| `programming` | Apply repository-specific language contracts for Go—especially SAPCC/go-bits—and a small set of version-sensitive Kot... | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 

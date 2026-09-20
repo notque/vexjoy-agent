@@ -77,8 +77,8 @@ This agent operates as an operator for TypeScript frontend development, configur
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
-| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
+| `code-quality` | Run this repository's configured cleanup and multi-language quality gates; use for linting, formatting, or technical-... | Call the Skill tool with `code-quality`. |
+| `programming` | Apply repository-specific language contracts for Go—especially SAPCC/go-bits—and a small set of version-sensitive Kot... | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 

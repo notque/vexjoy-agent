@@ -59,7 +59,7 @@ Diagnose TypeScript type errors, async races, floating promises, waterfall reque
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
+| `workflow` | Repository workflow contracts: feature state, saved plans, objective loops, metric hill climbs, and workflow dispatch. | Call the Skill tool with `workflow`. |
 
 **Rule**: Use the exact action in each applicable row.
 

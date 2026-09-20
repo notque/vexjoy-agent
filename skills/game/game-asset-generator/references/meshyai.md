@@ -207,16 +207,12 @@ Save alongside every downloaded GLB:
 
 ---
 
-## Fallback Chain
+## Missing provider
 
-When Meshy fails or `MESHY_API_KEY` is missing:
-
-1. Meshy API (text-to-3D or image-to-3D)
-2. Sketchfab search (see `references/asset-sources.md`)
-3. Poly.pizza search (see `references/asset-sources.md`)
-4. `new THREE.BoxGeometry(1,1,1)` placeholder (always works, no download needed)
-
-All fallbacks write to the same output path. The game's asset loader does not care which fallback was used.
+If Meshy fails or its key is absent, stop and report it unless the user explicitly
+authorizes another source. A `THREE.BoxGeometry` placeholder is acceptable only
+when the caller asked to continue without the asset; never silently substitute it
+for a requested model.
 
 ---
 

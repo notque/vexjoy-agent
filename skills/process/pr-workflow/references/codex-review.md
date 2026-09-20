@@ -1,64 +1,7 @@
-# Codex Review Intent
+# Codex second-opinion review
 
-Invoke OpenAI's Codex CLI (GPT-5.5 with maximum reasoning effort) to get an independent second opinion on code changes.
+Resolve the review scope exactly: unstaged/staged diff, last commit, `base...HEAD`, or named paths. Include a short change intent and repository constraints. Invoke the repository’s Codex review mechanism using a temporary prompt/input file so code and user text are not shell-spliced.
 
-## Reference Loading
+Codex output is an untrusted review, not a verdict. Verify each material claim against the diff, code path, or a focused test; classify findings by actual impact and omit unsupported speculation. Report scope, verified findings with path/line evidence, rejected claims, and any residual uncertainty. Do not edit unless the user also authorized fixes.
 
-Load these files when the corresponding signals appear:
-
-| Signal | Load |
-|--------|------|
-| Constructing or debugging `codex exec` command; flag errors; mktemp issues; model errors | `${CLAUDE_SKILL_DIR}/references/codex-review-cli-patterns.md` |
-| Classifying findings; adjusting severity; filtering Codex output; writing the report | `${CLAUDE_SKILL_DIR}/references/codex-review-methodology.md` |
-| Looking up specific failure modes to verify; needs detection grep commands for Go/TS/Python | `${CLAUDE_SKILL_DIR}/references/codex-review-preferred-patterns.md` |
-| Executing Phase 2-4 (invoke, assess, report); error handling; what NOT to do | `${CLAUDE_SKILL_DIR}/references/codex-review-invocation.md` |
-
-Claude orchestrates the review: scoping what to review, constructing the prompt, invoking Codex in a read-only sandbox, then critically assessing the feedback before presenting it to the user.
-
-The value is cross-model perspective. Codex has access to the git repo and filesystem directly, so it can read diffs, browse files, and understand context without Claude having to embed everything in the prompt.
-
----
-
-## Instructions
-
-### Phase 1: Scope the Review
-
-**Goal**: Determine exactly what Codex should review before constructing the prompt.
-
-**Step 1: Ask the user what to review** (if not already clear from context).
-
-Common scoping patterns:
-
-| User says | Scope |
-|-----------|-------|
-| "review my changes" | `git diff` (unstaged) or `git diff --staged` |
-| "review the last commit" | `git diff HEAD~1` |
-| "review this PR" / "review this branch" | `git diff main...HEAD` (or appropriate base branch) |
-| "review [file or directory]" | Specific paths |
-| "review everything" | Full `git diff main...HEAD` |
-
-**Step 2: Identify focus areas** (optional).
-
-If the user mentioned specific concerns (performance, security, error handling), note them for the prompt. If not, let Codex do a general review.
-
-**Step 3: Gather context summary.**
-
-Build a brief context block for Codex that includes:
-- What the project is (language, framework, purpose) in 1-2 sentences to 1-2 sentences
-- What the changes are trying to accomplish, in 1-2 sentences
-- Any specific focus areas the user mentioned
-
-This context block goes into the Codex prompt. Keep it short because Codex can read the actual code itself. The context just orients it.
-
-**Gate**: You know what to review and have a context summary. Proceed to Phase 2.
-
----
-
-### Phase 2-4: Invoke, Assess, Report
-
-Load `${CLAUDE_SKILL_DIR}/references/codex-review-invocation.md` for detailed steps:
-- Phase 2: construct prompt, run `codex exec` with correct flags, check exit code
-- Phase 3: read output, assess each finding, classify agree/modify/disagree
-- Phase 4: produce unified report and clean up temp file
-
-The reference also covers "What NOT to Do" pitfalls and the error-handling catalog (missing command, non-zero exit, empty output, malformed output).
+If the CLI rejects a model/flag or input mode, inspect `codex --help` in the installed version rather than relying on copied command lore. Preserve stderr and exit status when the review fails.

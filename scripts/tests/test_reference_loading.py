@@ -672,33 +672,8 @@ ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
 #
 # Set SKILL_REFS_STRICT=1 to force all entries to hard-fail for a decomposition audit.
 _KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
-    "frontend/frontend/references/distinctive-frontend-design-refs/animation-patterns.md": "2026-09-18",
-    "frontend/frontend/references/distinctive-frontend-design-refs/shader-integration-react.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/react-three-fiber.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/visual-polish.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/webgpu.md": "2026-09-18",
-    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-09-18",
-    "meta/toolkit/references/skill-composer/examples.md": "2026-09-18",
-    "meta/toolkit/references/skill-creator/agent-template.md": "2026-09-18",
-    "meta/toolkit/references/skill-creator.md": "2026-09-18",
-    "process/pr-workflow/references/commit-staging-rules.md": "2026-07-09",
-    "process/pr-workflow/references/miner.md": "2026-07-09",
-    "process/pr-workflow/references/pipeline.md": "2026-07-09",
-    "process/process/references/cbw-implementation-patterns.md": "2026-09-18",
-    "process/testing/references/patterns-preferred-pattern-catalog.md": "2026-09-18",
-    "process/testing/references/tdd-examples.md": "2026-09-18",
-    "process/testing/references/verify-verification-examples.md": "2026-09-18",
-    "process/workflow/references/comprehensive-review.md": "2026-07-09",
-    "process/workflow/references/domain-research.md": "2026-07-09",
     "process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md": "2026-07-09",
-    "process/workflow/references/toolkit-improvement.md": "2026-07-09",
     "process/workflow/references/workflow-orchestrator/references/task-patterns.md": "2026-07-09",
-    "programming/programming/references/go/sapcc-conventions/api-design-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/architecture-patterns.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/build-ci-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/error-handling-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/sapcc-code-patterns.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions.md": "2026-09-18",
 }
 
 _SKILLS_WITH_REFERENCES: list[str] = _collect_skills_with_references()

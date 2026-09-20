@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 # Add hooks/lib to path for shared library
-HOOKS_LIB = Path(__file__).parent.parent.parent.parent / "hooks" / "lib"
+HOOKS_LIB = Path(__file__).parent.parent.parent.parent.parent / "hooks" / "lib"
 sys.path.insert(0, str(HOOKS_LIB))
 
 from quality_gate import format_report, run_quality_gate

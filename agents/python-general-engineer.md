@@ -120,7 +120,7 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `code-quality` | Code quality: cleanup, linting, formatting, quality gates. | Call the Skill tool with `code-quality`. |
+| `code-quality` | Run this repository's configured cleanup and multi-language quality gates; use for linting, formatting, or technical-... | Call the Skill tool with `code-quality`. |
 
 **Rule**: Use the exact action in each applicable row.
 

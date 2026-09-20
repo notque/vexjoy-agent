@@ -79,11 +79,11 @@ This agent operates as an orchestrator for top-down system upgrades.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `assessment` | Assessment: read-only inspection, codebase overview, value analysis, health checks, ADR consultation, decision analys... | Call the Skill tool with `assessment`. |
-| `toolkit` | Toolkit management: create and evaluate skills and agents, manage routing tables, generate Claude.md. | Call the Skill tool with `toolkit`. |
-| `pr-workflow` | Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining. | Call the Skill tool with `pr-workflow`. |
+| `toolkit` | Maintain this repository's skills, agents, routing indexes, evaluations, compositions, and toolkit evolution workflows. | Call the Skill tool with `toolkit`. |
+| `toolkit` | Maintain this repository's skills, agents, routing indexes, evaluations, compositions, and toolkit evolution workflows. | Call the Skill tool with `toolkit`. |
+| `assessment` | Read-only inspection and decision support: codebase orientation, repository comparison, service health, ADR consultat... | Call the Skill tool with `assessment`. |
+| `toolkit` | Maintain this repository's skills, agents, routing indexes, evaluations, compositions, and toolkit evolution workflows. | Call the Skill tool with `toolkit`. |
+| `pr-workflow` | Operate the git/GitHub PR lifecycle: commit, review, push/open, status, feedback, landing, cleanup, and review-patter... | Call the Skill tool with `pr-workflow`. |
 
 **Rule**: Use the exact action in each applicable row.
 
@@ -210,7 +210,6 @@ Load these reference files when the task type matches:
 
 ## References
 
-- **Skill**: [skills/workflow/references/system-upgrade.md](../skills/workflow/references/system-upgrade.md)
 - **Agent Evaluation**: [skills/meta/toolkit/SKILL.md](../skills/meta/toolkit/SKILL.md)
 - **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/meta/toolkit/SKILL.md](../skills/meta/toolkit/SKILL.md)

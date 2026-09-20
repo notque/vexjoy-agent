@@ -76,8 +76,8 @@ This agent operates as an operator for multi-agent project orchestration, config
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
-| `process` | Process: retrospectives, session handoff, pair programming, subagent-driven development, condition-based waiting. | Call the Skill tool with `process`. |
+| `workflow` | Repository workflow contracts: feature state, saved plans, objective loops, metric hill climbs, and workflow dispatch. | Call the Skill tool with `workflow`. |
+| `process` | Run retrospectives, package or resume session state, pair in gated micro-steps, execute plans with fresh subagents, o... | Call the Skill tool with `process`. |
 
 **Rule**: Use the exact action in each applicable row.
 

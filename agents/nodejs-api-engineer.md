@@ -91,7 +91,7 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
+| `review` | Review a file, diff, PR, or bounded repository scope for evidence-backed correctness and maintainability findings. | Call the Skill tool with `review`. |
 
 **Rule**: Use the exact action in each applicable row.
 

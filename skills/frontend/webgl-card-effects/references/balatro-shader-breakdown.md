@@ -22,7 +22,7 @@ Each layer is blended together with the card's final color output using `mix-ble
 
 ## Complete Legendary Holographic Shader
 
-This is the full copy-pasteable shader for the `legendary` tier. Import the noise functions from `card-shader-patterns.md` or inline them.
+This is the full copy-pasteable shader for the `legendary` tier, including its noise functions.
 
 ```glsl
 #version 300 es
@@ -39,7 +39,7 @@ uniform vec2  u_mouse;       // card-space [0,1], (0.5,0.5) at rest
 uniform vec2  u_resolution;  // canvas pixel size
 uniform float u_upgraded;    // 0.0 or 1.0
 
-// --- Noise functions (paste from card-shader-patterns.md or include via import) ---
+// --- Noise functions ---
 
 // Hash for value noise
 float hash(vec2 p) {

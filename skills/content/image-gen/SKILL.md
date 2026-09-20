@@ -35,7 +35,7 @@ routing:
 
 # image-gen
 
-Backend-agnostic image generation: single images, series with anchor-chain consistency, batch pipelines. Two backends: Gemini (API) and Nano Banana (local scripts with post-processing).
+Use the repository scripts instead of constructing API calls.
 
 ## Deep References
 
@@ -55,31 +55,7 @@ python3 skills/content/image-gen/scripts/detect-backend.py
 
 **Gate**: backend confirmed.
 
-## Phase 2: Write Prompt Files
-
-Write all prompts to disk before any API call. Prompt files are the generation record and anchor-chain input for series.
-
-File naming: single `prompts/YYYY-MM-DD-{slug}.md`, series `prompts/{series-name}-01.md` through `-NN.md`.
-
-```markdown
----
-model: gemini-3-pro-image-preview
-aspect-ratio: 1:1
-flags: []
----
-
-Full prompt text. Be explicit about subject, style, background, constraints.
-```
-
-```bash
-mkdir -p prompts
-```
-
-For series: write ALL prompt files before calling any generation script.
-
-**Gate**: all prompt files written and reviewed.
-
-## Phase 3: Select Script
+## Select Script
 
 | Use case | Script | Subcommand |
 |---|---|---|
@@ -91,28 +67,9 @@ For series: write ALL prompt files before calling any generation script.
 | Series (anchor chain) | `scripts/nano-banana-generate.py` | `generate` then `with-reference` |
 | Post-processing only | `scripts/nano-banana-process.py` | `crop` / `remove-bg` / `pipeline` |
 
-Model selection:
-
-| Scenario | Model |
-|---|---|
-| Draft, testing, batch, cost-sensitive | `gemini-2.5-flash-image` (2-5s) |
-| Final asset, character art, typography | `gemini-3-pro-image-preview` (~30s) |
-
-Aspect ratio by use case:
-
-| Asset type | Ratio |
-|---|---|
-| Sprites, characters, icons | `1:1` |
-| Card art, landscape | `16:9` |
-| Vertical maps, portrait bg | `9:16` |
-| Portrait cards | `3:4` |
-| Wide banners | `21:9` |
-
 Generate at the target ratio. Generating 1:1 and cropping to 16:9 loses 56% of pixels.
 
-**Gate**: script and subcommand identified.
-
-## Phase 4: Generate
+## Generate
 
 Use absolute paths for output files. Show full script output.
 
@@ -124,15 +81,11 @@ Character drift occurs when images are generated independently. Prevent it by pa
 image-01.png (no ref) -> image-02.png (ref=01) -> image-03.png (ref=02) -> ...
 ```
 
-1. Generate image 1 with no reference.
-2. Use output of image 1 as `--reference` for image 2.
-3. Continue: each image N references image N-1.
+Write every series prompt before spending quota. Generate image 1 without a reference; each later image references its immediate predecessor.
 
 Save originals with `--save-original` for any batch or expensive generation. Re-processing a saved original is free; re-generating costs quota and may break the chain.
 
-**Gate**: script exits 0.
-
-## Phase 5: Verify and Report
+## Verify and Report
 
 Read the generated image to verify:
 - Subject matches prompt
@@ -143,14 +96,3 @@ Read the generated image to verify:
 If inspection fails: regenerate with adjusted prompt. Report the issue before retrying.
 
 Report: output file path (absolute), dimensions, model, post-processing applied, verification result. Report only what was requested.
-
-## Error Handling
-
-| Error | Cause | Resolution |
-|---|---|---|
-| `GEMINI_API_KEY not set` | Missing env var | `export GEMINI_API_KEY=your_key` |
-| `No image in response` | Safety filter or text-only response | Adjust prompt; remove policy-adjacent content |
-| `Missing dependency: google-genai` | Package absent | `pip install google-genai pillow` |
-| `Rate limit exceeded (429)` | Too many requests | Increase `--delay`; script retries automatically |
-| `Content policy violation (400)` | Restricted content | Rephrase using neutral language |
-| Model not found | Wrong model string | Use exact strings: `gemini-2.5-flash-image` or `gemini-3-pro-image-preview` |

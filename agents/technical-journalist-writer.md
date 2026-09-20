@@ -60,7 +60,7 @@ You have deep expertise in:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `writing` | Writing: voice creation and validation, prose editing, anti-AI cleanup, professional communication, translation. | Call the Skill tool with `writing`. |
+| `writing` | Write or validate voice-matched prose, derive a reusable voice from samples, reshape technical notes for an audience,... | Call the Skill tool with `writing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

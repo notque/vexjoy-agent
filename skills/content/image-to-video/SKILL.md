@@ -1,100 +1,52 @@
 ---
 name: image-to-video
 promoted_to: video-editing
-description: "FFmpeg-based video creation from image and audio."
+description: "Create an H.264/AAC MP4 from one image and one audio file with this repository's FFmpeg wrapper."
 user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
+allowed-tools: [Read, Write, Bash, Grep, Glob, Edit]
 routing:
-  triggers:
-    - image to video
-    - audio visualization
-    - static video
-    - mp4 from image
-    - music video
-    - podcast video
-    - video from image
-    - combine image audio
-    - album art video
-    - cover art video
-  pairs_with:
-    - workflow
+  triggers: [image to video, audio visualization, static video, mp4 from image, music video, podcast video, video from image, combine image audio, album art video, cover art video]
+  pairs_with: [workflow]
   complexity: simple
   category: video-creation
 ---
 
-# Image to Video Skill
+# Image to Video
 
-Combine a static image with an audio file to produce an MP4 via FFmpeg. Supports resolution presets, audio visualization overlays, and batch processing. For image generation, use `image-gen`.
+Use `scripts/image_to_video.py`; use `image-gen` when the source image must first be created. Load `references/ffmpeg-filters.md` only when selecting or debugging a visualization.
 
-## Deep References
+## Contract
 
-| Signal | Load | Why |
-|---|---|---|
-| FFmpeg filter graphs for visualization modes | `references/ffmpeg-filters.md` | Scale/pad, showwaves, showspectrum, overlay filters |
+- Inputs: image `.png/.jpg/.jpeg/.gif/.webp/.bmp`; audio `.mp3/.wav/.m4a/.ogg/.flac`.
+- Resolutions: `1080p` (default, 1920x1080), `720p` (1280x720), `square` (1080x1080), `vertical` (1080x1920).
+- Visualizations: `static` (default), `waveform`, `spectrum`, `cqt`, `bars`. Preserve an explicitly requested visualization.
+- Output: H.264 (`libx264`, medium, CRF 23; CQT/bars use CRF 20), `yuv420p`, AAC 192k, ending with the audio via `-shortest`.
 
-## Phase 1: VALIDATE
-
-1. Check FFmpeg: `ffmpeg -version`. If missing, stop with install instructions.
-2. Verify both input files exist with absolute paths and non-zero size. Supported: PNG/JPG/JPEG/GIF/WEBP/BMP (image), MP3/WAV/M4A/OGG/FLAC (audio).
-3. Determine parameters from the user's request -- do not default to static when the user requested a visualization.
-
-| Preset | Dimensions | Platform |
-|--------|------------|----------|
-| `1080p` | 1920x1080 | YouTube HD (default) |
-| `720p` | 1280x720 | Standard HD |
-| `square` | 1080x1080 | Instagram, social |
-| `vertical` | 1080x1920 | Stories, Reels, TikTok |
-
-Visualization modes (off unless requested): `waveform`, `spectrum`, `cqt`, `bars`.
-
-**Gate**: FFmpeg installed, both files exist, parameters resolved.
-
-## Phase 2: PREPARE
-
-Use the user's output path or derive from audio filename (`/same/dir/filename.mp4`). Verify directory is writable.
-
-## Phase 3: ENCODE
-
-Defaults: libx264 preset medium, CRF 23, yuv420p, 192k AAC.
+Single-file mode requires all three paths:
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/content/image-to-video/scripts/image_to_video.py \
-  --image /path/to/image.png --audio /path/to/audio.mp3 \
-  --output /path/to/output.mp4 --resolution 1080p --visualization static
+python3 skills/content/image-to-video/scripts/image_to_video.py \
+  --image /abs/cover.png --audio /abs/audio.mp3 --output /abs/video.mp4 \
+  --resolution 1080p --visualization static
 ```
 
-Batch mode (matched pairs in `workspace/input/`):
+Workspace mode matches image/audio by case-insensitive stem in `workspace/input/`, writes `workspace/output/<image-stem>.mp4`, then moves both successful inputs to `workspace/completed/`:
 
 ```bash
-python3 $HOME/vexjoy-agent/skills/content/image-to-video/scripts/image_to_video.py \
+python3 skills/content/image-to-video/scripts/image_to_video.py \
   --process-workspace --visualization waveform
 ```
 
-**Gate**: Script exits 0.
+Because workspace mode moves inputs, confirm the user intends archival processing before running it. A no-pairs run exits 0; any failed pair makes the batch exit 2.
 
-## Phase 4: VERIFY
+## Verification
 
-FFmpeg can exit 0 but produce a corrupt file. Always probe:
+The wrapper only checks that FFmpeg returned success and the output path exists. Independently run:
 
 ```bash
-ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height \
-  -of default=noprint_wrappers=1 /path/to/output.mp4
+ffprobe -v error \
+  -show_entries format=duration,size -show_entries stream=codec_name,width,height \
+  -of default=noprint_wrappers=1 /abs/video.mp4
 ```
 
-Confirm video duration matches audio (within 1s). Report: file path, size, duration, resolution, visualization mode.
-
-## Error Handling
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| FFmpeg not found | Not installed | `apt install ffmpeg` or `brew install ffmpeg` |
-| Image/audio not found | Wrong or relative path | Use absolute paths; check with `ls -la` |
-| FFmpeg filter errors | Minimal build lacks showwaves/showcqt | Install full FFmpeg; fall back to `--visualization static` |
-| Cannot determine audio duration | Corrupted audio file | Test with `ffprobe`; convert: `ffmpeg -i input -acodec pcm_s16le output.wav` |
-
+Require a non-empty H.264/AAC output, requested dimensions (except the CQT caveat in the reference), and duration within one second of the audio. If a visualization filter is absent, report that build limitation and offer `static`; do not silently change modes.

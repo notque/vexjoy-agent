@@ -106,11 +106,6 @@ python3 skills/content/image-gen/scripts/nano-banana-process.py remove-bg \
 | `--bg-color` | `3a3a3a` | Hex color to make transparent (without #) |
 | `--tolerance` | 30 | Color variance (0-255); increase for noisy backgrounds |
 
-Common background colors:
-- `3a3a3a` — dark gray ("solid dark gray background")
-- `ffffff` — white
-- `000000` — black
-
 ### remove-watermarks
 
 Replaces bright corner pixels with the background color.
@@ -150,17 +145,7 @@ python3 skills/content/image-gen/scripts/nano-banana-process.py pipeline \
   staging/originals/ output/cards/
 ```
 
-## Aspect Ratio Table
-
-| Ratio | Use for |
-|---|---|
-| `1:1` | Sprites, characters, icons |
-| `16:9` | Card art, landscape backgrounds |
-| `9:16` | Vertical maps, portrait backgrounds |
-| `3:4` | Portrait cards |
-| `4:3` | Standard cards |
-| `21:9` | Wide banners |
-| `2:3`, `3:2`, `4:5`, `5:4` | Specialty uses |
+Supported ratios: `1:1`, `16:9`, `9:16`, `3:4`, `4:3`, `21:9`, `2:3`, `3:2`, `4:5`, `5:4`.
 
 ## Model Aliases
 
@@ -170,28 +155,3 @@ python3 skills/content/image-gen/scripts/nano-banana-process.py pipeline \
 | `pro` | `gemini-3-pro-image-preview` | Quality (~30s), best for final assets |
 
 Pass `--model flash` or `--model pro` to the generate scripts. The scripts reject any other string.
-
-## Prompt Patterns by Asset Type
-
-**Sprites/Characters** (model pro, aspect-ratio 1:1):
-- "solid dark gray background color only" → enables remove-bg with `--bg-color 3a3a3a`
-- "ONE character only, full body visible from head to feet, centered in frame"
-- "no text, no labels, no background details"
-- Style example: "Slay the Spire card game style, heavy ink outlines, golden glowing outline"
-
-**Card Art** (model flash, aspect-ratio 16:9):
-- "WIDE SHOT, full bodies with space around them"
-- "sketchy rough painterly, muted desaturated sepia palette"
-- "wrestling ring ropes in background" (context-specific)
-
-**Backgrounds** (model flash, aspect-ratio 9:16 or 16:9):
-- "Very dark overall (UI elements need to be readable on top)"
-- "no text, no labels, no characters"
-
-## Dependencies
-
-```bash
-pip install google-genai pillow
-```
-
-Both scripts require `google-genai` (generation) and `pillow` (post-processing). Install together.

@@ -4,7 +4,7 @@
   "generated_by": "Relocated from pipelines/INDEX.json to skills/workflow/references/",
   "pipelines": {
     "agent-upgrade": {
-      "file": "skills/process/workflow/references/agent-upgrade.md",
+      "file": "skills/meta/toolkit/SKILL.md",
       "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
       "triggers": [
         "upgrade agent",
@@ -17,11 +17,8 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "AUDIT",
-        "DIFF",
-        "PLAN",
-        "IMPLEMENT",
-        "RE-EVALUATE"
+        "Toolkit",
+        "Repository invariants"
       ],
       "pairs_with": [
         "toolkit",
@@ -29,7 +26,7 @@
       ]
     },
     "article-evaluation-pipeline": {
-      "file": "skills/process/workflow/references/article-evaluation-pipeline.md",
+      "file": "skills/content/writing/SKILL.md",
       "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
       "triggers": [
         "evaluate article",
@@ -44,10 +41,7 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "FETCH",
-        "VALIDATE",
-        "ANALYZE",
-        "REPORT"
+        "Voice validation"
       ],
       "pairs_with": [
         "writing"
@@ -106,7 +100,7 @@
       "model": "opus"
     },
     "comprehensive-review": {
-      "file": "skills/process/workflow/references/comprehensive-review.md",
+      "file": "skills/review/review/SKILL.md",
       "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
       "triggers": [
         "comprehensive review",
@@ -133,23 +127,11 @@
       ],
       "model": "opus",
       "phases": [
-        "STATIC ANALYSIS",
-        "SCOPE",
-        "WAVE 0 DISPATCH",
-        "WAVE 0 AGGREGATE",
-        "LIBRARY CONTRACT VERIFICATION",
-        "WAVE 1 DISPATCH",
-        "WAVE 0+1 AGGREGATE",
-        "WAVE 2 DISPATCH",
-        "WAVE 0+1+2 AGGREGATE",
-        "WAVE 3 DISPATCH",
-        "FULL AGGREGATE",
-        "FIX",
-        "REPORT"
+        "Review"
       ]
     },
     "de-ai-pipeline": {
-      "file": "skills/process/workflow/references/de-ai-pipeline.md",
+      "file": "skills/content/writing/SKILL.md",
       "description": "Scan-fix-verify loop for removing AI writing patterns from docs.",
       "triggers": [
         "de-ai docs",
@@ -164,17 +146,14 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "SCAN",
-        "FIX",
-        "VERIFY",
-        "REPORT"
+        "Voice validation"
       ],
       "pairs_with": [
         "writing"
       ]
     },
     "do-perspectives": {
-      "file": "skills/process/workflow/references/do-perspectives.md",
+      "file": "skills/analysis/assessment/SKILL.md",
       "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
       "triggers": [
         "multi-perspective analysis",
@@ -185,18 +164,15 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "VALIDATE INPUTS",
-        "MULTI-PERSPECTIVE ANALYSIS",
-        "SYNTHESIZE",
-        "APPLY",
-        "VERIFY AND REPORT"
+        "Adversarial critique",
+        "Handoff"
       ],
       "pairs_with": [
         "writing"
       ]
     },
     "doc-pipeline": {
-      "file": "skills/process/workflow/references/doc-pipeline.md",
+      "file": "skills/content/writing/SKILL.md",
       "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
       "triggers": [
         "document this",
@@ -215,11 +191,7 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "RESEARCH",
-        "OUTLINE",
-        "GENERATE",
-        "VERIFY",
-        "OUTPUT"
+        "Professional communication"
       ],
       "pairs_with": [
         "assessment",
@@ -240,10 +212,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "DISCOVER",
-        "CLASSIFY",
-        "MAP",
-        "PRODUCE"
+        "Domain-to-toolkit research contract"
       ],
       "pairs_with": [
         "pipeline-scaffolder",
@@ -253,7 +222,7 @@
       "model": "opus"
     },
     "explore-pipeline": {
-      "file": "skills/process/workflow/references/explore-pipeline.md",
+      "file": "skills/analysis/assessment/SKILL.md",
       "description": "Systematic codebase exploration pipeline with parallel subagents and tiered depth.",
       "triggers": [
         "understand codebase",
@@ -274,14 +243,8 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "SCAN",
-        "MAP",
-        "ANALYZE",
-        "COMPILE",
-        "ASSESS",
-        "SYNTHESIZE",
-        "REFINE",
-        "REPORT"
+        "Inspection and codebase orientation",
+        "Handoff"
       ],
       "pairs_with": [
         "assessment",
@@ -306,11 +269,9 @@
       "version": "1.0.0",
       "agent": "project-coordinator-engineer",
       "phases": [
-        "Design Mode",
-        "Pipeline Mode",
-        "Sprite Mode",
-        "Phaser Mode",
-        "GM Mode"
+        "Route by artifact",
+        "Failure-derived invariants",
+        "Completion"
       ],
       "pairs_with": [
         "game-dev",
@@ -319,7 +280,7 @@
       ]
     },
     "github": {
-      "file": "skills/process/workflow/references/github-profile-rules.md",
+      "file": "skills/integrations/github/SKILL.md",
       "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
       "triggers": [
         "github rules",
@@ -331,14 +292,8 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "ADR",
-        "FETCH",
-        "RESEARCH",
-        "SAMPLE",
-        "COMPILE",
-        "GENERATE",
-        "VALIDATE",
-        "OUTPUT"
+        "Notifications",
+        "Issue/PR queues"
       ],
       "pairs_with": [
         "domain-research"
@@ -358,11 +313,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "SPEC",
-        "IMPLEMENT",
-        "TEST",
-        "REGISTER",
-        "DOCUMENT"
+        "Hook development contract"
       ],
       "pairs_with": [
         "hook-development-engineer",
@@ -436,10 +387,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "DISCOVER TARGETS",
-        "EXECUTE",
-        "VALIDATE OUTPUTS",
-        "REPORT"
+        "Pipeline test-runner contract"
       ],
       "pairs_with": [
         "pipeline-scaffolder",
@@ -449,7 +397,7 @@
       "model": "opus"
     },
     "pr-pipeline": {
-      "file": "skills/process/pr-workflow/references/pipeline.md",
+      "file": "skills/process/pr-workflow/SKILL.md",
       "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
       "triggers": [
         "submit PR",
@@ -464,18 +412,8 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "CLASSIFY REPO",
-        "PREFLIGHT CHECKLIST",
-        "STAGE",
-        "REVIEW",
-        "COMMIT",
-        "PUSH",
-        "REVIEW-FIX LOOP",
-        "RETRO",
-        "ADR VALIDATION",
-        "CREATE PR",
-        "VERIFY",
-        "CLEANUP"
+        "PR Workflow",
+        "Shared contracts"
       ],
       "pairs_with": [
         "pr-workflow",
@@ -486,20 +424,7 @@
       "file": "skills/meta/do/references/quality-loop.md",
       "description": "Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup",
       "phases": [
-        "ADR",
-        "PLAN",
-        "IMPLEMENT",
-        "TEST",
-        "REVIEW",
-        "INTENT VERIFY",
-        "LIVE VALIDATE",
-        "FIX",
-        "RETEST",
-        "PR",
-        "CODEX REVIEW",
-        "ADR RECONCILE",
-        "REPORT",
-        "CLEANUP"
+        "Routed quality loop"
       ],
       "triggers": [
         "code change",
@@ -514,7 +439,7 @@
       "version": "1.0.0"
     },
     "skill-creation-pipeline": {
-      "file": "skills/process/workflow/references/skill-creation-pipeline.md",
+      "file": "skills/meta/toolkit/SKILL.md",
       "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
       "triggers": [
         "create skill pipeline",
@@ -530,11 +455,8 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "DISCOVER",
-        "DESIGN",
-        "SCAFFOLD",
-        "VALIDATE",
-        "INTEGRATE"
+        "Toolkit",
+        "Repository invariants"
       ],
       "pairs_with": [
         "toolkit",
@@ -542,7 +464,7 @@
       ]
     },
     "system-upgrade": {
-      "file": "skills/process/workflow/references/system-upgrade.md",
+      "file": "skills/meta/toolkit/SKILL.md",
       "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or process-driven upgrades.",
       "triggers": [
         "system upgrade",
@@ -557,12 +479,8 @@
       "user_invocable": false,
       "version": "1.0.0",
       "phases": [
-        "CHANGELOG",
-        "AUDIT",
-        "PLAN",
-        "IMPLEMENT",
-        "VALIDATE",
-        "DEPLOY"
+        "Toolkit",
+        "Repository invariants"
       ],
       "pairs_with": [
         "agent-upgrade",
@@ -571,7 +489,7 @@
       "agent": "system-upgrade-engineer"
     },
     "systematic-debugging": {
-      "file": "skills/process/workflow/references/systematic-debugging.md",
+      "file": "skills/process/debugging/SKILL.md",
       "description": "Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.",
       "triggers": [
         "debug",
@@ -589,15 +507,13 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "OBSERVE",
-        "HYPOTHESIZE",
-        "TEST",
-        "FIX",
-        "RECORD"
+        "Debugging",
+        "Socratic mode",
+        "Forensics mode"
       ]
     },
     "systematic-refactoring": {
-      "file": "skills/process/workflow/references/systematic-refactoring.md",
+      "file": "skills/code-quality/code-quality/SKILL.md",
       "description": "Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.",
       "triggers": [
         "refactor safely",
@@ -615,11 +531,9 @@
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
-        "CHARACTERIZE",
-        "PLAN",
-        "REFACTOR",
-        "VERIFY",
-        "RECORD"
+        "Code Quality",
+        "Repository quality gate",
+        "Cleanup requests"
       ]
     },
     "toolkit-improvement": {
@@ -688,16 +602,7 @@
       ],
       "model": "opus",
       "phases": [
-        "EVALUATE",
-        "RESEARCH",
-        "SYNTHESIZE",
-        "CRITIQUE",
-        "REPORT",
-        "ADR",
-        "IMPLEMENT",
-        "VALIDATE",
-        "REMEDIATE",
-        "REPORT"
+        "Toolkit improvement contract"
       ]
     },
     "writing": {
@@ -742,11 +647,11 @@
       "user_invocable": true,
       "version": "2.0.0",
       "phases": [
-        "Voice Writing",
+        "Voice-matched writing",
         "Voice Creation",
         "Voice Validation",
         "Professional Communication",
-        "Translation"
+        "Translation and localization"
       ],
       "pairs_with": [
         "writing",

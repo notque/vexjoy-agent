@@ -135,7 +135,7 @@ See `agents/golang-general-engineer/references/go-version-idioms.md` for the mod
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `programming` | Language-specific patterns and tooling: Go, Kotlin, PHP, Swift, TypeScript. | Call the Skill tool with `programming`. |
+| `programming` | Apply repository-specific language contracts for Go—especially SAPCC/go-bits—and a small set of version-sensitive Kot... | Call the Skill tool with `programming`. |
 
 **Rule**: Use the exact action in each applicable row.
 

@@ -1,125 +1,53 @@
 ---
 name: auto-dream
-description: Background memory consolidation — overnight review, merge, and injection payload for memory files.
+version: "1.0.0"
+description: Background consolidation of this repository's Claude memory files, including the nightly cron wrapper and injection payload.
 user-invocable: true
 command: dream
 context: fork
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Bash
+allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 routing:
-  triggers:
-    - dream
-    - consolidate memories
-    - clean up memories
-    - memory maintenance
-    - memory consolidation
-    - deduplicate memories
+  triggers: [dream, consolidate memories, clean up memories, memory maintenance, deduplicate memories]
   category: meta-tooling
   pairs_with: []
 ---
 
-Background memory consolidation cycle. Scans memory files, finds stale, duplicate, and conflicting entries, consolidates them, synthesizes cross-session insights, builds an injection-ready payload for the next session start, and writes a dated dream report.
+# Auto-Dream
 
-## When to invoke
+For an interactive run, read and execute `dream-prompt.md`. The same prompt is passed to a headless `claude -p` process by `scripts/auto-dream-cron.sh`; it therefore cannot depend on CLAUDE.md, hooks, or conversation context.
 
-- User says "run dream", "consolidate memories", "clean up memories", "memory maintenance", "deduplicate memories"
-- Cron job at 2 AM nightly via wrapper script: `scripts/auto-dream-cron.sh --execute`
-- Manual trigger for testing: `./scripts/auto-dream-cron.sh` (dry-run by default)
+The local execution order is deliberately non-numeric:
 
-## Instructions
+`SCAN -> ANALYZE -> REPORT(plan) -> CONSOLIDATE -> SYNTHESIZE -> SELECT -> REPORT(actual)`
 
-When invoked interactively (not via cron), read `skills/meta/auto-dream/dream-prompt.md` and execute its phases directly. The prompt is self-contained -- it describes the full cycle including safety constraints, file paths, and output formats.
+The first report is the recovery/audit record and must exist before any memory mutation.
 
-For cron invocation: the dream prompt is passed directly to `claude -p` and runs as a standalone headless session with no CLAUDE.md, no hooks, no project context. All instructions are embedded in the prompt.
+## Local contracts
 
-## Phases
+- Dry-run is the wrapper default. Only `scripts/auto-dream-cron.sh --execute` may apply consolidation and synthesis.
+- Never delete memories. Move retired and merged sources to `memory/archive/`.
+- At most five memory changes and two new insight memories per cycle; report overflow as deferred.
+- Never auto-resolve conflicting memories.
+- A merge keeps the newer source's YAML and adds `merged_from` provenance.
+- Rewrite `MEMORY.md` and the injection payload through a same-directory `.tmp` rename.
+- The cycle may write only memory files and `${DREAM_STATE_DIR}` artifacts. Moving knowledge into skills or agents requires human review.
+- The injection file must remain a `<retro-knowledge>` block at `dream-injection-${DREAM_PROJECT_HASH}.md`; the session-start consumer depends on both.
 
-1. **SCAN** — Read all memory files and the recent git log. Write the scan document to `~/.claude/state/dream-scan-{date}.md`.
-2. **ANALYZE** — Identify stale, duplicate, conflicting memories and cross-session patterns. Write analysis to `~/.claude/state/dream-analysis-{date}.md`.
-3. **CONSOLIDATE** — Apply consolidation actions (max 5 changes). Archive stale/merged files, update MEMORY.md atomically.
-4. **SYNTHESIZE** — Create insight memories from cross-session patterns (max 2 new memories per cycle).
-5. **SELECT** — Build the injection-ready payload for session start. Write to `~/.claude/state/dream-injection-{project-hash}.md`.
-6. **REPORT** — Write the dream summary to `~/.claude/state/last-dream.md`.
-
-## Safety constraints (always enforced)
-
-- Never delete files — archive to `memory/archive/`, never `rm`
-- Write the REPORT before executing any CONSOLIDATE filesystem operations
-- Maximum 5 memory changes per cycle — excess items deferred to next cycle
-- Flag conflicts for human review, never auto-resolve
-- Preserve YAML frontmatter when merging; use `merged_from` field for provenance
-- Memory files are the only write target. Knowledge reaches an agent or skill file through a reviewed human edit, never through this cycle.
-- In dry-run mode (the default), CONSOLIDATE and SYNTHESIZE describe proposed changes only — no filesystem writes. The wrapper script sets `DREAM_DRY_RUN_MODE=yes`, substituted into the prompt at runtime.
-
-## Testing
+## Operations
 
 ```bash
-# Dry run (read-only, no filesystem changes — dry-run is the default)
-./scripts/auto-dream-cron.sh
-
-# Full run (execute consolidation)
-./scripts/auto-dream-cron.sh --execute
-
-# Check output
+./scripts/auto-dream-cron.sh             # dry run
+./scripts/auto-dream-cron.sh --execute   # live run
 cat ~/.claude/state/last-dream.md
-
-# Verify cron registration
-python3 ~/.claude/scripts/crontab-manager.py list
-```
-
-## Cost estimate
-
-~0.09 USD per nightly run with 50 memory files (~20-30K input tokens at Sonnet pricing). ~33 USD/year for automated overnight operation. Budget capped at 3.00 USD/run via wrapper script.
-
-## Cron setup
-
-Use `crontab-manager.py` (not raw `crontab -e`) to install. The wrapper script handles PATH, lockfile, logging, budget cap, and dry-run/execute toggle.
-
-```bash
-# Preview the cron entry
-python3 ~/.claude/scripts/crontab-manager.py add \
-  --tag "auto-dream" \
-  --schedule "7 2 * * *" \
-  --command "/home/feedgen/vexjoy-agent/scripts/auto-dream-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/auto-dream/cron.log 2>&1" \
-  --dry-run
-
-# Install (after dry-run testing passes)
-python3 ~/.claude/scripts/crontab-manager.py add \
-  --tag "auto-dream" \
-  --schedule "7 2 * * *" \
-  --command "/home/feedgen/vexjoy-agent/scripts/auto-dream-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/auto-dream/cron.log 2>&1"
-
-# Verify
 python3 ~/.claude/scripts/crontab-manager.py verify --tag auto-dream
 ```
 
-Note: schedule uses 2:07 AM (off-minute) per cron best practice — avoids load spikes from jobs firing at :00.
+Install cron through `crontab-manager.py`, not `crontab -e`. Preserve the shipped wrapper contract in `references/headless-cron-patterns.md`.
 
-## Wrapper script details
+## Conditional references
 
-`scripts/auto-dream-cron.sh` follows the established headless cron pattern (see `skills/content/reddit-moderate/scripts/reddit-automod-cron.sh`):
-- `flock` lockfile prevents concurrent runs
-- `--permission-mode auto` (never `--dangerously-skip-permissions`)
-- `--max-budget-usd 3.00` caps spend per run
-- `--no-session-persistence` for clean headless operation
-- `envsubst` templates `dream-prompt.md` with project-specific paths at runtime
-- `tee` to timestamped per-run log file
-- Dry-run by default, `--execute` for live runs
-- Exit code propagation via `PIPESTATUS[0]`
-
-## Deep References
-
-Load when the task requires detailed guidance beyond the phases above.
-
-| Signal | Reference |
-|--------|-----------|
-| Failed cron run, wrapper script setup, budget cap | `references/headless-cron-patterns.md` |
-| Memory file writes, YAML frontmatter, staleness, merging | `references/memory-file-operations.md` |
-| Dry-run validation, output file verification | `references/dream-cycle-testing.md` |
-| Cron log interpretation, rotation, phase markers | `references/logging-patterns.md` |
-| Concurrent runs, lockfile, partial write recovery | `references/concurrency.md` |
+- `references/memory-file-operations.md`: memory schema, stale/duplicate rules, merge and archive invariants.
+- `references/headless-cron-patterns.md`: wrapper and cron failures.
+- `references/dream-cycle-testing.md`: safe dry/live verification.
+- `references/logging-patterns.md`: artifacts, phase completion, and rotation.
+- `references/concurrency.md`: lock and interrupted atomic-write recovery.

@@ -70,6 +70,7 @@ json_escape() {
 }
 
 FINDINGS=()
+HANDLER_SIGNATURE_RE='func[[:space:]]+(\([^)]*\)[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*\('
 
 # Scan a file for handler functions missing IdentifyEndpoint
 check_file() {
@@ -86,7 +87,7 @@ check_file() {
         line_num=$((line_num + 1))
 
         # Detect handler function signature: func ... (w http.ResponseWriter, r *http.Request)
-        if [[ "$line" =~ func[[:space:]]+\(?[^)]*\)?[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*\( ]] && \
+        if [[ "$line" =~ $HANDLER_SIGNATURE_RE ]] && \
            [[ "$line" =~ http\.ResponseWriter ]] && [[ "$line" =~ \*http\.Request ]]; then
             in_handler=true
             handler_line=$line_num

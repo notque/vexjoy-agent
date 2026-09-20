@@ -222,12 +222,11 @@ the Opus orchestrator session driving it.
 
 ## Prior results
 
-- Semantic-first experiment (49-case corpus, Arm A deterministic-first vs Arm B
-  semantic-first): artifacts in `scripts/routing-ab-results/` (answers,
-  `answers-v2/` git-rule fix retest, scoreboard). Results doc:
-  `skills/meta/do/references/semantic-first-ab-results.md`. Outcome:
-  A ≡ B at 89.8% strict; the win was the git-rule prompt fix (~91.8%, zero
-  guard violations); Option B (semantic-first + safety net) shipped.
+- The planned semantic-first experiment used a 49-case corpus with Arm A
+  deterministic-first and Arm B semantic-first. The committed tree contains no
+  routing answers or measured result: `scripts/routing-ab-results/answers/README.md`
+  records that the live Haiku run was not executed. Do not cite projected
+  89.8%/92.8% figures as observations.
 - Fast-path eligibility map for corpus v1.1:
   `scripts/routing-ab-results/pre-route-map-v1.1/` (deterministic, regenerate
   any time with `--pre-route-map`).
