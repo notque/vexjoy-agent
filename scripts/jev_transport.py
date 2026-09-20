@@ -1,7 +1,9 @@
 """Selectable Jev transport for /d.
 
 ``JEV_TRANSPORT`` accepts ``auto`` (default), ``vercel``, or ``direct``.
-Auto prefers Vercel AI Gateway and falls back to TypeSafe's Jev API.
+Auto selects Vercel AI Gateway when its key is configured; otherwise it
+selects TypeSafe's direct Jev API. A failed selected transport is not retried
+through the other provider.
 """
 
 from __future__ import annotations

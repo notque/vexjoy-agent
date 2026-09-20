@@ -774,8 +774,8 @@ def _is_support_dir(item: Path) -> bool:
         return False
     children = list(item.iterdir())
     has_md = any(child.is_file() and child.suffix == ".md" for child in children)
-    has_skill_subdir = any(child.is_dir() and (child / "SKILL.md").exists() for child in children)
-    return has_md and not has_skill_subdir
+    has_nested_skill = any(path != item / "SKILL.md" for path in item.rglob("SKILL.md"))
+    return has_md and not has_nested_skill
 
 
 def _copy_if_changed(item: Path, target: Path) -> bool:
@@ -808,11 +808,10 @@ def _clean_codex_orphan_categories(repo_skills: Path, codex_skills_dst: Path) ->
     old nested copies persist. Codex scans the mirror recursively, so it
     discovers every skill twice — once flat, once nested.
 
-    Fix uses a structural invariant, not a name list: the flat strategy never
-    creates a top-level directory that itself contains skill subdirectories
-    (child dirs with SKILL.md). So any top-level real dir holding nested
-    SKILL.md is an orphan from the old strategy — including categories that were
-    renamed or removed from the repo (e.g. a former opensearch/ or .system/).
+    Cleanup requires ownership proof. A nested copy is toolkit-owned only when
+    its SKILL.md is a symlink to, or byte-identical with, the corresponding
+    repository SKILL.md. Shape alone is insufficient because users may keep
+    their own nested skill catalogs in this additive mirror.
 
     Preserved, so the additive-only contract holds for anything we do not own:
       - flat skills (a dir whose own SKILL.md is at the top level)
@@ -839,10 +838,31 @@ def _clean_codex_orphan_categories(repo_skills: Path, codex_skills_dst: Path) ->
         # Never touch a tree a foreign tool marks as its own.
         if any(m.name.endswith(".marker") for m in entry.iterdir() if m.is_file()):
             continue
-        # Orphan only if it holds skill subdirectories (nested SKILL.md).
-        has_nested_skill = any(sub.is_dir() and (sub / "SKILL.md").exists() for sub in entry.iterdir())
-        if has_nested_skill:
-            shutil.rmtree(entry)
+        source_category = repo_skills / entry.name
+        if not source_category.is_dir():
+            continue  # no source path means no ownership proof
+        removed_owned = False
+        for deployed_md in sorted(entry.glob("*/SKILL.md")):
+            deployed_skill = deployed_md.parent
+            source_md = source_category / deployed_skill.name / "SKILL.md"
+            if not source_md.is_file():
+                continue
+            try:
+                owned = (
+                    deployed_md.resolve() == source_md.resolve()
+                    if deployed_md.is_symlink()
+                    else filecmp.cmp(deployed_md, source_md, shallow=False)
+                )
+            except OSError:
+                owned = False
+            if owned:
+                shutil.rmtree(deployed_skill)
+                removed_owned = True
+        if removed_owned:
+            try:
+                entry.rmdir()
+            except OSError:
+                pass  # foreign siblings or support files remain
             removed += 1
     return removed
 
@@ -951,13 +971,18 @@ def _sync_skills_flat_symlinks(src: Path, dst: Path, repo_root: "Path | list[Pat
         if category_dir.name.startswith("."):
             continue
 
-        # Check if this is a category folder (contains subdirectories with SKILL.md)
-        # vs a flat skill (contains SKILL.md directly — shouldn't exist but handle it)
-        if (category_dir / "SKILL.md").exists():
+        nested_skills = [child for child in category_dir.iterdir() if child.is_dir() and (child / "SKILL.md").exists()]
+        # A category can also carry a generated aggregate SKILL.md. Linking the
+        # whole directory would expose that file and every child skill, then the
+        # flat aliases below would expose the children a second time.
+        if (category_dir / "SKILL.md").exists() and not nested_skills:
             # Flat skill at root level (legacy or special case)
             expected_names.add(category_dir.name)
             _ensure_symlink(category_dir, dst / category_dir.name, repo_root=repo_root)
         else:
+            old_category = dst / category_dir.name
+            if old_category.is_symlink() and old_category.resolve() == category_dir.resolve():
+                old_category.unlink()
             # Category folder: create symlinks for each skill inside
             for skill_dir in sorted(category_dir.iterdir()):
                 if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():

@@ -50,7 +50,9 @@ routing:
   category: language
   pairs_with:
     - golang-general-engineer
-    - programming-general-engineer
+    - kotlin-general-engineer
+    - php-general-engineer
+    - swift-general-engineer
     - typescript-frontend-engineer
 ---
 

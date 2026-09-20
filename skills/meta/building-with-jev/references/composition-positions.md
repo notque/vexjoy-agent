@@ -18,7 +18,7 @@ A Jev judgment occupies one of 11 positions relative to a function F.
 
 ## Logical operators
 
-- **Negation**: `p(not X) = 1 - p(X)`. Ask the question in the form you branch on; double negatives cost accuracy.
+- **Negation**: ask one question in the form code branches on. Code may compute `1 - p(X)` from that same answer; a separately asked `not X` Noul is another judgment and need not equal the complement. Double negatives cost accuracy.
 - **AND / OR over parallel Nouls**: combine in code with an explicit labeled policy. Never multiply — same-state answers are not independent.
 - **FOR-ALL / EXISTS**: batch one Noul per item in one request, then aggregate in code (`min` = AND, `max` = EXISTS) with an explicit escalation rule.
 - **Chains**: decompose into gate -> act -> post-judge. Never encode multi-hop logic in one question.

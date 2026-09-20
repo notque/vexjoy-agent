@@ -42,6 +42,24 @@ def test_default_intent_preserves_verbatim_request() -> None:
     assert align.build_payload(request, " intent ", _route())["state"]["user_request"] == request
 
 
+def test_python_310_fallback_reads_codex_agent_profile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Optional telemetry still works when stdlib tomllib is unavailable."""
+    config_dir = tmp_path / ".codex"
+    config_dir.mkdir()
+    (config_dir / "config.toml").write_text(
+        'model = "gpt-test"\nmodel_reasoning_effort = "high"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("CODEX_SESSION_ID", "session")
+    monkeypatch.delenv("JEV_AGENT_MODEL", raising=False)
+    monkeypatch.delenv("JEV_AGENT_EFFORT", raising=False)
+    monkeypatch.delenv("JEV_AGENT_RUNTIME", raising=False)
+    monkeypatch.setattr(align, "tomllib", None)
+
+    assert align._agent_profile() == ("gpt-test", "high", "codex")
+
+
 def test_alignment_reports_scope_loss(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
     answers = {key: {"noul": 0.9} for key in align.build_payload("r", "i", _route())["questions"]}
@@ -107,6 +125,51 @@ def test_unavailable_gateway_is_a_receipt_not_a_crash(monkeypatch: pytest.Monkey
     result = align.evaluate_alignment("fix it", _route(), None)
     assert result["alignment"] == "unavailable"
     assert result["available"] is False
+
+
+@pytest.mark.parametrize("mode", ["unavailable", "oversized", "transport_error", "incomplete"])
+def test_all_failure_receipts_have_uniform_schema(monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    if mode == "unavailable":
+        monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+        result = align.evaluate_alignment("r", _route(), "i")
+    elif mode == "oversized":
+        monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+        result = align.evaluate_alignment("r" * (align.MAX_ALIGNMENT_STATE_CHARS + 1), _route(), "i")
+    elif mode == "transport_error":
+        monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+        monkeypatch.setattr(
+            align.jev_transport,
+            "evaluate",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                align.jev_transport.JevTransportError("boom", source=align.jev_transport.VERCEL)
+            ),
+        )
+        result = align.evaluate_alignment("r", _route(), "i")
+    else:
+        monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+        monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_args, **_kwargs: {"answers": {}})
+        result = align.evaluate_alignment("r", _route(), "i")
+
+    assert set(result) >= {
+        "available",
+        "source",
+        "model",
+        "proposed_intent",
+        "alignment",
+        "aligned",
+        "clarification_needed",
+        "issues",
+        "scores",
+        "questions_version",
+        "latency_ms",
+        "usage",
+        "transport_retry",
+        "reason",
+    }
+    assert result["aligned"] is False
+    assert isinstance(result["issues"], list)
+    assert isinstance(result["scores"], dict)
 
 
 def test_proposed_alignment_records_model_and_material_difference(monkeypatch: pytest.MonkeyPatch) -> None:

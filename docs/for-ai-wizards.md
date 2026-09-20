@@ -6,32 +6,13 @@ read_when:
 
 # Architecture Deep-Dive
 
-This guide explains routing, hooks, and telemetry: how a request reaches an agent and skill, which checks run, and how the result is recorded.
+This guide traces a request through routing, agents, skills, hooks, and telemetry, then covers the supporting pipeline, ADR, and quality systems.
 
 ## The Router
 
-`skills/meta/do/SKILL.md` defines routing. Phase 1 classifies complexity. In Phase 2, the orchestrator reads the cached or generated manifest from `scripts/routing-manifest.py` and selects an agent and skill by intent. It then runs `scripts/pre-route.py` as a guardrail. A high-confidence PR or security force-route can override the semantic skill choice.
+`skills/meta/do/SKILL.md` is the routing source of truth. It classifies request complexity, reads the cached or generated manifest from `scripts/routing-manifest.py`, and selects an agent and skill by intent. `scripts/pre-route.py` checks that selection. A high-confidence PR or security force-route can override the semantic skill choice.
 
-A `skill-evaluator` hook exists but is disabled. Its routing cheat sheet became redundant once the `/do` skill got its own routing tables.
-
-### Complexity Classification
-
-The disabled `skill-evaluator.py` used these historical heuristics. Active `/do` classification is defined in the skill, not by these word-count thresholds:
-
-| Tier | Heuristic | What Gets Injected |
-|------|-----------|-------------------|
-| **Trivial** | <10 words + has `?` | Nothing. No routing. |
-| **Simple** | 0 signals AND <=20 words (fallback) | `UNDERSTAND -> EXECUTE -> VERIFY` |
-| **Medium** | 1+ signal OR >20 words | `UNDERSTAND -> PLAN -> EXECUTE -> VERIFY` |
-| **Complex** | 2+ signals OR >50 words | Full 4-phase with requirements, risks, criteria |
-
-Complex signals: verbs like `implement`, `create`, `build`, `refactor`, `review`, `analyze`, `debug`, `fix`, `add feature`. Multi-step indicators like `and also`, `then`, `first`, `after that`. Word count is a rough proxy for scope.
-
-The `auto-plan-detector` hook was removed. Plan detection lives in the `/do` skill's Phase 1 (CLASSIFY) and Phase 4 Step 1, making per-prompt injection redundant. The `pretool-plan-gate` hook (PreToolUse) enforces the plan requirement by blocking Write/Edit without a `task_plan.md`.
-
-### Agent Selection
-
-The router matches intent to agent descriptions. Frontmatter triggers are hints:
+The router matches intent against agent and skill descriptions; frontmatter triggers are hints:
 
 ```yaml
 routing:
@@ -46,19 +27,15 @@ routing:
     - concurrency
 ```
 
-The disabled evaluator's `AGENT_ROUTING` dictionary is unused. The active router selects from the manifest in-session and uses `scripts/build-dispatch.py` to prepare the agent dispatch.
+Force-route entries bind when their domain matches the request's meaning. If PR or security intent owns the primary skill, the router retains that skill and stacks relevant domain guidance. `scripts/build-dispatch.py` prepares the resulting agent dispatch.
 
-### Force-Route Triggers
+A dispatch should preserve both the selected route and the evidence used to select it. That distinction powers later evaluation: a route can be syntactically valid yet semantically wrong, and a successful task does not prove every stacked enhancement helped. The feedback loop therefore records the agent, primary skill, enhancements, and eventual outcome separately. Health-aware reranking can adjust future choices without rewriting the routing taxonomy after one anecdote.
 
-FORCE entries bind when their domain matches the request's meaning. Go-related examples include:
-
-- Go test, `_test.go`, table-driven, goroutine, channel, `sync.Mutex`, error handling, `fmt.Errorf`, sapcc, make check -> `go-patterns`
-
-For a goroutine-pool task, pair the Go agent with `go-patterns`. If PR or security intent owns the primary skill, retain it and stack `go-patterns`. Read the `/do` skill for the full precedence rules.
+The former `skill-evaluator` and `auto-plan-detector` hooks are disabled or removed. Their routing and planning responsibilities now live in `/do`; `pretool-plan-gate` enforces any plan requirement before Write/Edit.
 
 ## Agent Architecture
 
-An agent is a markdown file in `agents/` with YAML frontmatter. Full schema in practice:
+An agent is a Markdown file in `agents/` with YAML frontmatter. A representative schema:
 
 ```yaml
 ---
@@ -84,25 +61,15 @@ routing:
 ---
 ```
 
-Key fields. `name` identifies it in routing. `hooks` lets agents register their own PostToolUse handlers. The Go agent reminds you to run `gofmt` after editing `.go` files. `routing.triggers` supplies routing hints. `routing.retro-topics` names the knowledge topics this agent covers; `scripts/feature-state.py` reads them to match agents to a feature. `memory: project` scopes remembered context to the current project.
+`name` identifies the agent in routing. `hooks` registers agent-specific handlers. `routing.triggers` supplies routing hints, while `routing.retro-topics` names knowledge areas that `scripts/feature-state.py` can match to a feature. `memory: project` scopes remembered context to the project.
 
-### The Operator Context Pattern
+Agent bodies distinguish hardcoded behaviors, overridable defaults, and opt-in behaviors. Repository and user instructions determine which defaults and options apply.
 
-Every agent body follows the same three-tier structure:
-
-1. **Hardcoded Behaviors** always apply, no exceptions. "Read CLAUDE.md before starting." "Never commit to main."
-2. **Default Behaviors** on unless explicitly disabled. "Use conventional commits." "Run tests after changes."
-3. **Optional Behaviors** off unless enabled. "Multi-language examples." "Interactive playground."
-
-Defaults allow user overrides; optional behaviors need explicit activation. Repository and user instructions determine which requirements apply.
-
-### Reviewer Agents
-
-Reviewer agents: `reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewer-perspectives`. They get dispatched by the `parallel-code-review` and `roast` skills. Each umbrella agent loads the relevant reference file for its review dimension. They never modify code.
+Reviewer agents (`reviewer-code`, `reviewer-system`, `reviewer-domain`, and `reviewer-perspectives`) are dispatched by review skills. They inspect and report; they do not modify code.
 
 ## Skill System
 
-A skill is `skills/{category}/{name}/SKILL.md`. A workflow methodology, not a domain expert. Where agents know *what*, skills know *how*.
+A skill is `skills/{category}/{name}/SKILL.md`. Agents supply domain expertise; skills define execution methods.
 
 ```yaml
 ---
@@ -124,49 +91,18 @@ routing:
 ---
 ```
 
-`context: fork` means the skill runs in an isolated sub-agent context. It cannot accidentally corrupt the parent's state. `user-invocable: false` hides it from the slash menu; it gets invoked by the router or other skills. `allowed-tools` is a whitelist. If a skill doesn't list `Edit`, it cannot edit files.
+`context: fork` isolates execution in a subagent context. `user-invocable: false` hides a skill from the slash menu while leaving it available to routers and other skills. `allowed-tools` is a whitelist.
 
-### Progressive Disclosure
-
-Keep instructions in SKILL.md. Put step menus, spec formats, and voice profiles in `references/`, loaded only when needed.
-
-### Gate Enforcement
-
-Every skill phase ends with a gate. A condition that must be true before proceeding. The `/do` skill's gates:
-
-- Phase 1 (CLASSIFY): "Complexity set"
-- Phase 2 (ROUTE): "Agent+skill set, banner shown"
-- Phase 3 (ENHANCE): "Enhancements applied"
-- Phase 4 (EXECUTE): "Agent invoked, results delivered"
-
-Check the exit condition before advancing to the next phase.
+Keep the core procedure in `SKILL.md`; put specialized formats and detailed references in `references/` for progressive loading. Skills use explicit exit gates so a phase advances only after its required condition is true.
 
 ## Hook System
 
-Hooks are Python scripts registered in `~/.claude/settings.json` under event type keys. They fire on lifecycle events and can inject context, block tools, or stay silent.
+Hooks are Python scripts registered by event type in `~/.claude/settings.json`. They receive JSON on stdin and emit JSON on stdout. A hook can inject context, block a tool, or remain silent.
 
-### Event Types
+### Execution contract
 
-Ten event types, registered in settings.json:
+Input varies by event:
 
-| Event | When | Hooks Registered |
-|-------|------|-----------------|
-| `SessionStart` | Session begins | sync-to-user-claude, afk-mode, session-context, cross-repo-agents, fish-shell-detector, zsh-shell-detector, sapcc-go-detector, operator-context-detector, session-github-briefing, session-adr-health-check, team-config-loader, rules-distill-injector, hook-version-parity-check, session-manifest-cache |
-| `UserPromptSubmit` | Before processing each prompt | pipeline-context-detector, review-false-positive-capture, codex-auto-review, prompt-capture, routing-outcome-finalizer |
-| `PreToolUse` | Before tool execution | suggest-compact, pretool-unified-gate, pretool-worktree-edit-guard, pretool-branch-safety, ci-merge-gate, pretool-ruff-format-gate, pretool-private-name-leak-gate, security-review-hook, pretool-synthesis-gate, pretool-plan-gate, pretool-prompt-injection-scanner, pipeline-phase-gate, pretool-adr-creation-gate, pretool-file-backup, reference-loading-enforcer, creation-protocol-enforcer, pretool-section-integrity-validator, pretool-dispatch-spec-gate |
-| `PostToolUse` | After tool execution | adr-enforcement, posttool-security-scan, posttool-skill-frontmatter-check, posttooluse-joy-check-warn, posttooluse-sync-skill-index, posttooluse-sync-agent-index, posttool-docs-drift-alert, security-review-hook, adr-lifecycle-on-merge, posttool-rename-sweep, posttool-bash-injection-scan, posttool-session-reads, usage-tracker, review-capture, routing-decision-recorder |
-| `PreCompact` | Before context compression | precompact-archive |
-| `PostCompact` | After context compression | postcompact-handler |
-| `SubagentStart` | When a subagent starts | subagent-start-warmstart |
-| `SubagentStop` | When a subagent exits | subagent-completion-guard, routing-outcome-recorder |
-| `Stop` | Session ends | session-summary, routing-outcome-stop-fallback, rules-distill-trigger, stop-drift-guard |
-| `StopFailure` | Session ends abnormally | stop-failure-handler |
-
-### Execution Model
-
-Every hook receives JSON on stdin, emits JSON on stdout. The contract:
-
-**Input** (varies by event):
 ```json
 {
   "hook_event_name": "PostToolUse",
@@ -176,7 +112,8 @@ Every hook receives JSON on stdin, emits JSON on stdout. The contract:
 }
 ```
 
-**Output** (via `hook_utils.py`):
+Output uses `hook_utils.py`:
+
 ```json
 {
   "hookSpecificOutput": {
@@ -187,25 +124,40 @@ Every hook receives JSON on stdin, emits JSON on stdout. The contract:
 }
 ```
 
-**Exit codes**: `0` = pass (always for non-blocking hooks). `2` = block the tool (PreToolUse only). Several PreToolUse hooks use exit 2: `pretool-unified-gate` blocks gitignore bypass, raw git push/merge, dangerous commands, and sensitive file writes; `pretool-branch-safety` blocks git commits on main/master; `ci-merge-gate` blocks merges when CI checks are red. AI attribution is handled via `settings.json` `attribution` config (empty strings suppress all AI watermarks).
+Exit `0` passes. Exit `2` blocks a tool and is valid only for `PreToolUse`. Blocking hooks must preserve that denial code. `once: true` limits a hook to the first matching event in a session.
 
-Hooks target sub-50ms execution. `once: true` limits a hook to the first matching event per session. Error handling is hook-specific; blocking hooks must preserve their denial exit codes.
+Hook output is part of the user-facing contract. `additionalContext` changes the model's working context; `userMessage` is text the user must see. A hook that has nothing actionable to add should stay silent. Blocking decisions must be deterministic enough to explain from the submitted tool call, because retries and alternate clients still need the same boundary.
 
-### Key Hooks
+### Lifecycle
 
-**routing-decision-recorder** (PostToolUse): Fires on every Agent dispatch and on the Workflow tool. Reads the `[do-route]` marker out of the dispatch prompt and writes one routing-decision row per marker, keyed per marker line so a resubmitted script is a no-op. This is the write side of the routing feedback loop that `learning-db.py route-health` reads.
+The configured lifecycle includes `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `SubagentStart`, `SubagentStop`, `Stop`, and `StopFailure`. Inspect `~/.claude/settings.json` for the current hook list; registrations change more often than the execution contract.
 
-**routing-outcome-finalizer** (UserPromptSubmit): Resolves each pending dispatch at the one point where the signal exists, the user's next prompt. Scores three ways: failure on a recorded tool error or a clear rejection, success on explicit acceptance, neutral otherwise. Neutral is a no-op, so an unrelated next prompt never moves a route weight. Each pending is drained atomically and scored once.
+| Event | Architectural role |
+|---|---|
+| `SessionStart` | Synchronize configuration and inject project, operator, ADR, and cached routing context. |
+| `UserPromptSubmit` | Capture prompt-level evidence and resolve outcomes whose signal appears in the user's next message. |
+| `PreToolUse` | Enforce safety, branch, planning, pipeline-phase, and creation constraints before mutation. |
+| `PostToolUse` | Record usage and routing evidence, run advisory checks, and update generated indexes after successful work. |
+| `PreCompact` / `PostCompact` | Preserve and restore durable session context across compression. |
+| `SubagentStart` / `SubagentStop` | Give delegated work its operating context and close its routing records. |
+| `Stop` / `StopFailure` | Finalize session records on normal or abnormal termination. |
 
-**session-context** (SessionStart): Reads the pre-built dream payload from `~/.claude/state/dream-injection-{project-hash}.md` and injects it, plus a one-line notice when the nightly cycle ran in the last 24 hours. A pure file read: no database queries, silent when no fresh payload exists.
+This split matters when adding a hook. A check that can deny an unsafe operation belongs before the tool; an observer that records what happened belongs after it. Prompt and stop hooks should not impersonate tool gates because they lack the same action boundary.
 
-**pretool-unified-gate** (PreToolUse): Consolidates five blocking checks into one hook. Gitignore-bypass detection, raw git submission blocking (push, PR create/merge), dangerous command guard, creation gate (new agent/skill blocked unless an ADR named for the component is registered via `scripts/adr-query.py register`, the handshake worktree agents perform; `CREATION_GATE_BYPASS` is deprecated and audit-logged), sensitive file guard (.env, credentials, SSH keys). Exits 2 to block when violations are detected. AI attribution blocking was removed from hooks and is now handled declaratively via `settings.json` `attribution` config.
+Four hooks carry most of the architecture:
+
+- `routing-decision-recorder` reads the `[do-route]` marker after an agent or workflow dispatch and stores one idempotent routing decision per marker.
+- `routing-outcome-finalizer` resolves pending dispatches on the next user prompt: explicit acceptance succeeds, recorded tool errors or clear rejection fail, and unrelated prompts remain neutral.
+- `session-context` injects a fresh pre-built dream payload from `~/.claude/state/` without querying the database.
+- `pretool-unified-gate` blocks prohibited git operations, dangerous commands, unregistered component creation, and sensitive-file writes. Branch safety and CI merge gates add narrower checks.
+
+AI attribution is configured declaratively in `settings.json`, not by a hook.
 
 ## Telemetry Database
 
-The database is a SQLite file at `~/.claude/learning/learning.db`. WAL mode for concurrent reads across sessions. FTS5 for full-text search. Three subsystems share it: routing telemetry, safety governance, and the voice corpus. `hooks/lib/learning_db_v2.py` is the storage layer all three go through.
+Telemetry lives in the WAL-mode SQLite database `~/.claude/learning/learning.db`; FTS5 provides full-text search. `hooks/lib/learning_db_v2.py` is the shared storage layer for routing telemetry, safety governance, and the voice corpus.
 
-### Schema
+### Core schema
 
 ```sql
 CREATE TABLE learnings (
@@ -234,30 +186,34 @@ CREATE TABLE learnings (
 );
 ```
 
-Additional tables: `telemetry_runs` (append-only per-run envelope: run id, git SHA, model, token count, wall clock, tool errors), `routing_outcome_basis` (per-route counters labelling how each outcome was decided, so route-health can report the silent-success share), `evidence_sessions` / `evidence_events` / `evidence_route_decisions` (the agent evidence read model), `governance_events` (security and policy event log, written through `record_governance_event()` by the branch-safety, config-protection, private-name-leak, worktree-edit, unified, and CI-merge gates), `route_failure_dedup` (idempotency keys for orchestrator-reported route failures), `sessions` and `session_stats` (per-session metrics), `learnings_fts` (FTS5 index), `schema_migrations` (version tracking).
+Supporting tables store run envelopes, routing outcome bases, evidence events and decisions, governance events, failure-deduplication keys, session metrics, FTS data, and migrations.
 
-### Who writes what
+| Table group | What it preserves |
+|---|---|
+| `telemetry_runs` | Per-run envelope such as run ID, git SHA, model, token count, wall time, and tool errors. |
+| `routing_outcome_basis` | Counters describing how route outcomes were decided, including the silent-success share. |
+| `evidence_sessions`, `evidence_events`, `evidence_route_decisions` | The evidence read model used to reconstruct agent activity and routing decisions. |
+| `governance_events` | Security and policy events emitted by branch, configuration, privacy, worktree, unified, and merge gates. |
+| `route_failure_dedup` | Idempotency keys that prevent duplicate route-failure reporting. |
+| `sessions`, `session_stats` | Session-level accounting and aggregate metrics. |
+| `learnings_fts`, `schema_migrations` | Search support and database-version history. |
 
-Two subsystems share the `learnings` table. Each owns a topic and never reads the other's:
+The active `learnings` topics have separate ownership:
 
-| topic | category | Written by | Read by |
-|-------|----------|------------|---------|
-| `routing` | `effectiveness` | `routing-decision-recorder` inserts, `routing-outcome-finalizer` scores | `learning-db.py route-health`, `route-stats`, `route-weights`, `stack-usage` |
-| `voice-sample` | `voice` | `prompt-capture` | no automated reader; the rows accumulate as a corpus for voice-profile work |
+| Topic | Category | Writer | Reader |
+|---|---|---|---|
+| `routing` | `effectiveness` | `routing-decision-recorder`, then `routing-outcome-finalizer` | routing health, statistics, weights, and stack-usage commands |
+| `voice-sample` | `voice` | `prompt-capture` | corpus consumers; no automated reader |
 
-Two review paths are wired but near-dormant: `review-capture` writes `review-findings`, and `review-false-positive-capture` plus `learning-db.py record-review-fp` write `review-false-positive`, which `review-fps` reads. As of 2026-08-28 those topics hold 1 and 2 rows. `review-roi` reads review-tier cost from the rightsizing banner, not from this table.
+Review findings and false positives have dedicated, lightly used paths. Older categories are historical unless current code names them.
 
-Older rows in other categories are historical. Nothing writes them and nothing reads them.
+### Routing feedback loop
 
-### The Routing Feedback Loop
-
-1. **Decide**: `/do` picks an agent and skill and stamps a `[do-route]` marker into the dispatch prompt.
-2. **Record**: `routing-decision-recorder` reads the marker on `PostToolUse` and writes one decision row plus a pending outcome.
-3. **Resolve**: `routing-outcome-finalizer` scores the pending on the user's next prompt. `routing-outcome-recorder` validates each pending at SubagentStop without scoring it, and `routing-outcome-stop-fallback` drains whatever is left when the session ends.
-4. **Report**: `learning-db.py route-health` prints the loop's own correctness metrics; `route-stats` and `route-delta` compare cohorts across a change.
-5. **Re-rank**: `route-weights` emits the weights as JSON for health-aware re-ranking.
-
-### CLI
+1. `/do` chooses an agent and skill and stamps a `[do-route]` marker into the dispatch.
+2. `routing-decision-recorder` stores the decision and a pending outcome.
+3. `routing-outcome-finalizer` scores it when the next prompt provides evidence. Subagent-stop handling validates pending records, and the stop fallback drains leftovers.
+4. Reporting commands measure route health and compare cohorts.
+5. `route-weights` exposes health-aware reranking weights as JSON.
 
 ```bash
 # Loop health: pending vs resolved, outcome basis, silent-success share
@@ -275,35 +231,15 @@ python3 scripts/learning-db.py stack-usage
 
 ## Pipeline Architecture
 
-Pipeline skills follow a standard template. Not all use every phase, but the shape is consistent:
+Pipeline skills use a fan-out/fan-in shape: gather independent evidence, compile it, generate or act, validate deterministically, refine within a bound, and deliver the result. They commonly set `context: fork`, allow `Task` for subagent dispatch, bound each phase, and persist artifacts at phase boundaries so results survive ephemeral context.
 
-```
-PHASE 1: GATHER    -> Launch parallel agents for research/analysis
-PHASE 2: COMPILE   -> Structure findings into coherent format
-PHASE 3: GROUND    -> Establish context (audience, tone, mode)
-PHASE 4: GENERATE  -> Load skill/agent, create content
-PHASE 5: VALIDATE  -> Run deterministic validation scripts
-PHASE 6: REFINE    -> Fix validation errors (max 3 iterations)
-PHASE 7: OUTPUT    -> Final content with validation report
-```
+The exact phase names vary. For example, a research-to-article workflow may use GATHER, COMPILE, GROUND, GENERATE, VALIDATE, REFINE, and OUTPUT, while parallel review compresses this to IDENTIFY SCOPE, DISPATCH, AGGREGATE, and VERDICT. The invariant is explicit boundaries with evidence saved before fan-in.
 
-The `research-to-article` workflow reference (now in `skills/process/workflow/references/`) uses all seven phases. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice-validator.py` in VALIDATE, iterates in REFINE, outputs with a validation report.
-
-`parallel-code-review` uses a compressed version: IDENTIFY SCOPE -> DISPATCH (3 reviewers in parallel) -> AGGREGATE -> VERDICT. The fan-out/fan-in pattern. Dispatch independent subagents, collect results, merge by severity.
-
-Pipeline skills differ from standard skills:
-- Almost always set `context: fork` to isolate execution
-- List `Task` in `allowed-tools` because they dispatch subagents
-- Enforce timeouts per phase (5 minutes default per agent)
-- Save artifacts to disk at each phase boundary. Context is ephemeral, files persist.
+The coordinator, not an individual worker, owns fan-in. It resolves duplicated findings, checks source support, and applies the workflow's acceptance rule. Per-phase timeouts prevent one branch from holding the whole run open. Persisting intermediate outputs also makes a partial failure inspectable and lets a later phase restart from evidence instead of regenerating earlier work.
 
 ## ADR System
 
-Architectural Decision Records live in `adr/`. Numbered markdown files tracking major design decisions. Why routing telemetry uses SQLite instead of markdown files. Why hooks replace L1/L2 retro files. How the creation gate binds an ADR to a session.
-
-### The session-adr-health-check Hook
-
-When you start a pipeline session, you create `.adr-session.json` in the project root:
+Architectural Decision Records in `adr/` explain consequential design choices and bind component creation to recorded decisions. A pipeline can identify its governing ADR in `.adr-session.json`:
 
 ```json
 {
@@ -313,73 +249,28 @@ When you start a pipeline session, you create `.adr-session.json` in the project
 }
 ```
 
-The `session-adr-health-check` hook (SessionStart) detects this file and surfaces the active ADR as context at session start. The `adr-enforcement` hook (PostToolUse) then verifies written files comply with the active ADR after every Write/Edit, including:
-
-- Mandatory `adr-query.py context` command before creating components
-- Compliance check command after writing files
-- ADR integrity verification via hash
-
-Every subagent in a pipeline session knows about the governing ADR, because the active session context propagates from the orchestrator.
-
-### ADR Enforcement
-
-The `adr-enforcement` hook reports active-ADR compliance after Write/Edit. Its findings are advisory.
+At session start, `session-adr-health-check` surfaces this context. After writes, `adr-enforcement` checks that the session consulted ADR context, the written files comply, and the ADR hash remains intact. Its findings are advisory; creation gates can separately block unregistered components.
 
 ## MCP Integration
 
-Four MCP servers are configured:
-
-| Server | Purpose | Key Tools |
-|--------|---------|-----------|
-| **gopls** | Go workspace intelligence | `go_diagnostics`, `go_search`, `go_file_context`, `go_symbol_references`, `go_vulncheck` |
-| **Context7** | Library documentation lookup | `resolve-library-id`, `query-docs` |
-| **Playwright** | Browser automation | `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_fill_form` |
-| **Chrome DevTools** | Chrome debugging | Network inspection, console access |
-
-MCP tools are **deferred** in subagent contexts. A subagent dispatched through `Task` must fetch the schema with `ToolSearch` before calling a tool such as `mcp__gopls__go_diagnostics`:
+Configured MCP servers provide workspace intelligence, external documentation, browser automation, and browser debugging. Their exact inventory is environment-dependent. MCP tools may be deferred in subagent contexts; fetch a tool's schema before invoking it. For example:
 
 ```
 ToolSearch("gopls")
 ```
 
-Invoke the tool after ToolSearch returns its full schema. Skipping this step can cause silent failures.
+Then call the returned tool using its declared schema.
 
 ## Quality Gates
 
-### The Wave Review Pattern
+Review skills fan out independent perspectives, then validate their claims against file contents and other concrete evidence before aggregation. Findings are classified by validity and severity; unsupported opinions do not become required fixes.
 
-The `roast` skill dispatches 5 parallel reviewer personas. Contrarian, Newcomer, Pragmatic Builder, Skeptical Senior, Pedant. Each reads the same target from a different critical angle. The coordinator validates every claim against actual evidence (file contents, line numbers) and categorizes findings as VALID, PARTIAL, UNFOUNDED, or SUBJECTIVE. Only VALID and PARTIAL findings make the final report.
+The `roast` pattern uses several reader perspectives—such as newcomer, contrarian, pragmatic builder, skeptical senior, and pedant—to expose different failure modes. Parallel code review instead separates security, business logic, and architecture. These are discovery roles, not independent authorities: the coordinator verifies file paths, line references, and claimed behavior before producing a verdict such as BLOCK, FIX, or APPROVE.
 
-`parallel-code-review` does something similar with 3 reviewers: Security, Business Logic, Architecture. Each runs in a separate subagent. Findings are aggregated by severity into a BLOCK/FIX/APPROVE verdict.
+The negative-results registry prevents repeated failed experiments. Record a failure or rollback in `docs/what-didnt-work.md` with the expectation, observed result, evidence location, and decision. `scripts/tests/test_negative_results_registry.py` checks the format. Nothing promotes those observations into an agent or skill automatically; a human edits the relevant instruction.
 
-### The Negative-Results Registry
+For prose, `scripts/scan-ai-patterns.py` checks documentation against `scripts/data/banned-patterns.json`. Treat it as a mechanical signal, not a substitute for editorial judgment.
 
-The quality feedback loop that keeps the toolkit from rebuilding what already lost:
+## Evidence for Completion
 
-1. An experiment fails, weakens, or gets reverted.
-2. You record it in `docs/what-didnt-work.md` under a dated heading with four fields: expectation, what happened, evidence, decision.
-3. Evidence must be a location, a `file:line`, an eval path, a PR number, or a `learning.db` topic and key. A bare claim is not evidence.
-4. `scripts/tests/test_negative_results_registry.py` enforces the format and the seed-entry count.
-5. The next session greps the registry before re-running an experiment.
-
-Knowledge reaches an agent or skill only by a human editing the file. Nothing writes to a skill on its own.
-
-### Anti-AI Validation
-
-`scripts/scan-ai-patterns.py` checks documentation against 397 banned patterns across 33 categories (pulled from `scripts/data/banned-patterns.json`). Run it as a CI gate or invoke it from a content workflow to catch flagged phrasing before publishing.
-
-Banned words include the usual suspects: "delve", "leverage", "streamline", "foster", "spearheaded". Also structural patterns. The list-of-three. The "In conclusion" wrapper. The "It's important to note" throat-clearing.
-
-## Anti-Rationalization
-
-Require evidence for completion claims. Confidence, a small diff, or familiar code does not establish that checks passed.
-
-Three layers:
-
-**Shared instructions**: `skills/shared-patterns/anti-rationalization-core.md` requires evidence for completion claims and is injected at dispatch.
-
-**Re-injection via hooks**: SessionStart hooks reload the operator context and the distilled rule set every session, and `precompact-archive` re-anchors the active ADR before context compression. As conversations get long, early instructions fade from attention. Re-injection at those boundaries brings them back.
-
-**Skill checks**: Skills define their completion evidence. `verification-before-completion` includes an anti-rationalization enforcement reference for maximum-rigor tasks. Check each required phase before advancing.
-
-Hooks and exit codes provide checks beyond written instructions.
+Completion claims require current evidence: the relevant test, build, validator, exit code, or inspected artifact. Shared instructions establish that rule; lifecycle hooks re-inject durable context at session and compaction boundaries; individual skills define the checks their own work must pass. Written confidence does not replace an executed check.

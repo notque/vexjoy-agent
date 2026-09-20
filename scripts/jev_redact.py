@@ -40,7 +40,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str], int]] = [
     (
         "pem",
         re.compile(
-            r"(-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)",
+            r"(-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)",  # security-review: ignore - detection regex, not a credential
         ),
         1,
     ),
@@ -156,13 +156,18 @@ def redact_payload(payload: dict) -> tuple[dict, int]:
     if "state" in out:
         out["state"] = _walk(out["state"], counter)
     questions = out.get("questions")
-    if isinstance(questions, list):
-        for q in questions:
-            if not isinstance(q, dict):
-                continue
-            for field in ("instructions", "criteria"):
-                if field in q:
-                    q[field] = _walk(q[field], counter)
+    if isinstance(questions, dict):
+        question_values = questions.values()
+    elif isinstance(questions, list):
+        question_values = questions
+    else:
+        question_values = ()
+    for q in question_values:
+        if not isinstance(q, dict):
+            continue
+        for field in ("instructions", "criteria"):
+            if field in q:
+                q[field] = _walk(q[field], counter)
     return out, counter[0]
 
 

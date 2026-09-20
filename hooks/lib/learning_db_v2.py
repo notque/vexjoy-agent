@@ -1441,7 +1441,7 @@ def jev_intent_alignment_stats(days: float = 30.0) -> list[dict]:
             "SUM(CASE WHEN alignment IN ('error', 'unavailable') THEN 1 ELSE 0 END) AS unavailable, "
             "COUNT(materially_differs) AS measured_differences, "
             "AVG(latency_ms) AS avg_latency_ms "
-            "FROM jev_intent_alignments WHERE phase = 'proposed' AND ts >= datetime('now', ?) "
+            "FROM jev_intent_alignments WHERE phase = 'proposed' AND julianday(ts) >= julianday('now', ?) "
             "GROUP BY model, agent_model, agent_effort, agent_runtime, transport, phase ORDER BY judgments DESC",
             (f"-{int(days * 86400)} seconds",),
         ).fetchall()
@@ -1574,7 +1574,7 @@ def jev_calls_with_answers(
     with get_connection() as conn:
         rows = conn.execute(
             f"SELECT id, ts, script, payload_hash, answers_json, ok, latency_ms, cached "  # security-review: ignore (fixed clauses; user values bound as ?)
-            f"FROM jev_calls WHERE {where} ORDER BY id DESC LIMIT ?",
+            f"FROM jev_calls WHERE {where} ORDER BY id DESC LIMIT ?",  # security-review: ignore (where contains fixed clauses; all values use bound parameters)
             params,
         ).fetchall()
     results: list[dict] = []

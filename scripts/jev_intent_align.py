@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -22,8 +23,8 @@ import jev_transport
 
 try:
     import tomllib
-except ModuleNotFoundError:  # Python 3.10 runtime compatibility
-    tomllib = None
+except ModuleNotFoundError:  # Python 3.10; keep the runtime dependency-free.
+    tomllib = None  # type: ignore[assignment]
 
 _HOOKS_LIB = Path(__file__).resolve().parent.parent / "hooks" / "lib"
 if str(_HOOKS_LIB) not in sys.path:
@@ -147,13 +148,26 @@ def _agent_profile() -> tuple[str | None, str | None, str | None]:
         return model, effort, runtime or "explicit"
 
     if os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_THREAD_ID"):
-        if tomllib is None:
+        try:
+            config_text = (Path.home() / ".codex" / "config.toml").read_text(encoding="utf-8")
+            if tomllib is not None:
+                config = tomllib.loads(config_text)
+            else:
+                # Python 3.10 has no stdlib TOML parser. These two top-level
+                # string keys are all telemetry needs, so avoid adding a
+                # runtime dependency solely for optional metadata.
+                config = {
+                    match.group(1): match.group(3)
+                    for line in config_text.splitlines()
+                    if (
+                        match := re.fullmatch(
+                            r"\s*(model|model_reasoning_effort)\s*=\s*(['\"])(.*?)\2\s*(?:#.*)?",
+                            line,
+                        )
+                    )
+                }
+        except (OSError, ValueError):
             config = {}
-        else:
-            try:
-                config = tomllib.loads((Path.home() / ".codex" / "config.toml").read_text(encoding="utf-8"))
-            except (OSError, tomllib.TOMLDecodeError):
-                config = {}
         return (
             config.get("model") if isinstance(config.get("model"), str) else None,
             config.get("model_reasoning_effort") if isinstance(config.get("model_reasoning_effort"), str) else None,
@@ -189,7 +203,31 @@ def _finish_receipt(
     phase: str,
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Persist one privacy-bounded alignment receipt, then return it unchanged."""
+    """Normalize and persist one privacy-bounded alignment receipt."""
+    source = str(result.get("source") or "unavailable")
+    default_model = None
+    if source == jev_transport.VERCEL:
+        default_model = "typesafe-ai/jev"
+    elif source == jev_transport.DIRECT:
+        default_model = "jev-latest"
+    normalized = {
+        "available": False,
+        "source": source,
+        "model": default_model,
+        "proposed_intent": candidate,
+        "alignment": "error",
+        "aligned": False,
+        "clarification_needed": False,
+        "issues": [],
+        "scores": {},
+        "questions_version": "d-intent-v1",
+        "latency_ms": None,
+        "usage": None,
+        "transport_retry": None,
+        "reason": None,
+    }
+    normalized.update(result)
+    result = normalized
     if _record_intent_alignment is None:
         return result
     scores = result.get("scores") if isinstance(result.get("scores"), dict) else None
@@ -202,10 +240,7 @@ def _finish_receipt(
             or scores.get("route_omits_material_scope", 0.5) >= YES_THRESHOLD
         )
     model = data.get("model") if isinstance(data, dict) and isinstance(data.get("model"), str) else None
-    if model is None and result.get("source") == jev_transport.VERCEL:
-        model = "typesafe-ai/jev"
-    elif model is None and result.get("source") == jev_transport.DIRECT:
-        model = "jev-latest"
+    model = model or result.get("model")
     agent_model, agent_effort, agent_runtime = _agent_profile()
     _record_intent_alignment(
         phase=phase,
@@ -393,13 +428,17 @@ def main() -> int:
         )
         result = evaluate_alignment(request or "", route, intent, args.timeout)
     except Exception as exc:
-        result = {
-            "available": False,
-            "source": "unavailable",
-            "alignment": "error",
-            "reason": f"{type(exc).__name__}: {str(exc)[:200]}",
-            "questions_version": "d-intent-v1",
-        }
+        result = _finish_receipt(
+            {
+                "available": False,
+                "source": "unavailable",
+                "alignment": "error",
+                "reason": f"{type(exc).__name__}: {str(exc)[:200]}",
+            },
+            request=locals().get("request") or "",
+            candidate=locals().get("intent") or "",
+            phase="proposed" if locals().get("intent") else "baseline",
+        )
     print(json.dumps(result, indent=None if args.json_compact else 2))
     return 0
 

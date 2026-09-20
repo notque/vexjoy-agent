@@ -1286,7 +1286,7 @@ class TestCleanCodexOrphanCategories:
         # Orphan nested category dir (old strategy) — must be removed.
         orphan = codex / "content" / "create-voice"
         orphan.mkdir(parents=True)
-        (orphan / "SKILL.md").write_text("nested")
+        (orphan / "SKILL.md").write_text((repo_skills / "content" / "create-voice" / "SKILL.md").read_text())
 
         removed = sync_mod._clean_codex_orphan_categories(repo_skills, codex)
 
@@ -1337,9 +1337,7 @@ class TestCleanCodexOrphanCategories:
     def test_missing_dirs_return_zero(self, tmp_path: Path) -> None:
         assert sync_mod._clean_codex_orphan_categories(tmp_path / "nope", tmp_path / "gone") == 0
 
-    def test_removes_renamed_or_removed_category(self, tmp_path: Path) -> None:
-        # A category the repo no longer has (e.g. opensearch/ folded into
-        # engineering/). Structural rule must still remove it.
+    def test_preserves_unproven_removed_category(self, tmp_path: Path) -> None:
         repo_skills = self._make_repo_skills(tmp_path)
         codex = tmp_path / "codex-skills"
         orphan = codex / "opensearch" / "opensearch-detection-engineer"
@@ -1348,8 +1346,24 @@ class TestCleanCodexOrphanCategories:
 
         removed = sync_mod._clean_codex_orphan_categories(repo_skills, codex)
 
+        assert removed == 0
+        assert (codex / "opensearch").exists()
+
+    def test_removes_owned_children_but_preserves_foreign_nested_siblings(self, tmp_path: Path) -> None:
+        repo_skills = self._make_repo_skills(tmp_path)
+        codex = tmp_path / "codex-skills"
+        owned = codex / "content" / "create-voice"
+        owned.mkdir(parents=True)
+        (owned / "SKILL.md").write_text((repo_skills / "content" / "create-voice" / "SKILL.md").read_text())
+        foreign = codex / "content" / "my-private-skill"
+        foreign.mkdir(parents=True)
+        (foreign / "SKILL.md").write_text("private")
+
+        removed = sync_mod._clean_codex_orphan_categories(repo_skills, codex)
+
         assert removed == 1
-        assert not (codex / "opensearch").exists()
+        assert not owned.exists()
+        assert (foreign / "SKILL.md").read_text() == "private"
 
     def test_preserves_marked_foreign_tree(self, tmp_path: Path) -> None:
         # Codex's own .system/ tree (marker file + nested skills) must survive,

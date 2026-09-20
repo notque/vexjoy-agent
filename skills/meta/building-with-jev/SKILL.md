@@ -40,6 +40,8 @@ allowed-tools:
 
 Jev reads one `state`, answers every question in the request independently and in parallel, and returns a probability distribution over answers you defined. A head cannot read another head's answer: parallel heads share evidence, not reasoning. For one state, maximize independent heads that can change a decision or action, subject to their token cost and the 64,000-token request budget; omit noise heads. Code owns control flow, arithmetic, policy, and every serial dependency; Jev owns the snap judgment. It does not reason in steps, count, do arithmetic, or generate text. Use this skill to design the questions, fit the state, compose answers in code, wire the call into a hook or script, and fix a call that answers wrong.
 
+Prefer direct judgments over supplied evidence. Bounded action selection is valid when candidates and decision evidence are supplied. If answering requires an intermediate result that changes later evidence or candidates, code must resolve that dependency before a later Jev request.
+
 ## Reference Loading Table
 
 | Signal | Load These Files | Why |
@@ -53,12 +55,15 @@ Jev reads one `state`, answers every question in the request independently and i
 | dissolving a skill, replacing an LLM with Jev, three-tier classification | `references/dissolving-a-skill.md` | Method, phase table, worked example |
 | decision surface, card, gate design, threshold, what numbers mean, failure behavior, versions | `references/decision-card.md` | Decision card template: fields every gate must define before code ships |
 | position of a judgment, operand, gate, post-judge, selector, verifier, logical operators, dissolve a skill phase | `references/composition-positions.md` | 11 positions a judgment can occupy relative to a function, mapped to our scripts, with the walk-the-positions procedure |
+| iteratively improve a skill, rubric, prompt, policy, or other artifact with broad Jev feedback | `references/iteration-with-jev.md` | Controlled A/B iteration, wide independent question batteries, variance checks, stopping rules, and avoiding optimization artifacts |
+| model limitations, version changes, or a failure-mode audit | `references/question-design.md`, `references/state-and-budget.md`, `references/primitives.md`, `references/improve-and-calibrate.md` | Literal wording, arithmetic and dates, indirection, state filtering, hostile state, structural invariants, generation boundaries, and labeled retesting |
 
 ## Read the live docs
 
 The TypeSafe docs are the source of truth for the API, SDKs, models, limits, and prices. Read them as part of the task; this skill carries our build procedure and measured lessons.
 
 - Start at the [documentation index](https://docs.typesafe.ai/llms.txt). Append `.md` to a page path for Markdown.
+- Read the jaggedness page for the exact model version you deploy. Pin that version; when it changes, reread the page and rerun the labeled set before reusing thresholds.
 - Before you write an integration, read the [API page](https://docs.typesafe.ai/api.md), the page for each primitive you use, and the closest cookbook. A cookbook often shows a better decomposition than a plain classifier.
 - The `typesafe:typesafe-ai` skill lists the design patterns the docs cover (route and fill arguments, select instead of generate, rerank, feature discovery, verify and escalate). Load it when you explore what to build.
 - Treat thresholds and results in cookbooks as examples to test on your data.
@@ -216,7 +221,7 @@ This is step 9 of the build procedure. Find the failing question on labeled data
 | Accuracy falls with input size | irrelevant state | filter in code; send fields, not blobs |
 | Count, sum, date errors | Jev doing arithmetic | move it to code; per-item Nouls |
 | Nested or negated questions fail | indirection | ask directly; split into two literal questions |
-| Answer follows text in state | state steering | tighten criteria; adversarial tests; confidence gate |
+| Answer follows text in state | state steering | separate trusted policy from untrusted text; require source evidence in code; adversarial tests; thresholds may abstain or refer, not authorize |
 | Rewording trades one error for another | one question, several properties | split into atomic questions |
 | Answers right, decision wrong | policy | change weights or thresholds in code, not questions |
 | Slow or costly | sequential calls | merge into one request |

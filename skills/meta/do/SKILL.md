@@ -164,7 +164,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 | TypeScript UI, React, bundling, state | typescript-frontend-engineer |
 | TypeScript runtime bug, async race, type error | typescript-debugging-engineer |
 | Node backend, REST, auth, webhooks | nodejs-api-engineer |
-| Swift, Kotlin, PHP | programming-general-engineer, programming-general-engineer, programming-general-engineer |
+| Swift, Kotlin, PHP | swift-general-engineer, kotlin-general-engineer, php-general-engineer |
 | SQL schema, query plans, migrations | database-engineer (SQLite + Peewee → sqlite-peewee-engineer) |
 | ETL, warehouse, stream processing | data-engineer |
 | Kubernetes, Helm, Ansible | kubernetes-helm-engineer, ansible-automation-engineer |

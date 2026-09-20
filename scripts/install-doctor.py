@@ -261,9 +261,14 @@ def check_codex_skills() -> dict:
     for deployed_name, source_dir in expected_skill_sources.items():
         target_dir = codex_skills_dir / deployed_name
         for source_file in source_dir.rglob("*"):
-            if not source_file.is_file() or "__pycache__" in source_file.parts or source_file.suffix == ".pyc":
-                continue
             relative = source_file.relative_to(source_dir)
+            if (
+                not source_file.is_file()
+                or "__pycache__" in source_file.parts
+                or source_file.suffix == ".pyc"
+                or any(part.startswith(".") for part in relative.parts)
+            ):
+                continue
             target_file = target_dir / relative
             try:
                 matches = target_file.is_file() and target_file.read_bytes() == source_file.read_bytes()

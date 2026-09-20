@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 domain agents, 59 workflow skills, 78 hooks, 159 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+43 agents, 59 skills, 78 hooks, 159 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -103,11 +103,11 @@ Checks require evidence rather than confidence.
 | "User is in a hurry" | Protocol overrides time pressure. |
 | "I'm confident" | Gate demands exit code, not assertion. |
 
-Hooks run at configured events. Skills state what to verify; blocking78 hooks enforce the checks they cover. Coverage depends on the runtime and tool path.
+Hooks run at configured events. Skills state what to verify; blocking hooks enforce the checks they cover. Coverage depends on the runtime and tool path.
 
 ## Knowledge Work Is First-Class
 
-The content engine researches, drafts in a calibrated voice, checks 397 writing patterns, and adapts finished pieces for each platform. `/html` produces a self-contained report, slide deck, prototype, chart, or diagram. It needs no coding or setup beyond installation.
+The content engine researches, drafts in a calibrated voice, checks 397 writing patterns, and adapts finished pieces for each platform. `/html` produces a self-contained report, deck, prototype, chart, or diagram.
 
 ## It Proves Its Own Changes
 
@@ -125,7 +125,7 @@ cd ~/vexjoy-agent
 
 Installs into `~/.claude/` and mirrors into `~/.codex/`, `~/.factory/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. Choose symlinks for live updates through `git pull`, or copies for a stable snapshot.
 
-Want only part of the toolkit? Run `./install.sh --configure` to pick which skills, agents, and78 hooks install, or copy `.local.example/profile.yaml` to `.local/profile.yaml` and edit. No profile file = full install, unchanged behavior. Credit: [@thomasvan](https://github.com/thomasvan). Details: [.local.example/README.md](.local.example/README.md).
+Want only part of the toolkit? Run `./install.sh --configure`, or copy `.local.example/profile.yaml` to `.local/profile.yaml` and edit it. Without a profile, the full toolkit installs. Details: [.local.example/README.md](.local.example/README.md).
 
 | CLI | Entry Point |
 |-----|-------------|
@@ -141,47 +141,32 @@ claude plugin marketplace add ./plugins/jev-auto-compact
 claude plugin install jev-auto-compact@jev-auto-compact -y
 ```
 
-Replaces LLM-generated compaction summaries with Jev-judged verbatim pruning. Once context reaches 60%, Jev evaluates each old tool call (keep, truncate result, or drop) and returns the pruned transcript with zero rewriting, in about a second instead of one to three minutes. The threshold matters: every compaction is a cold KV-cache rewrite of the prefix, so compacting every turn multiplies cost. Evidence lives in `learning.db` (`python3 scripts/jev-compact-evidence.py`).
-
-**Proof it works:** `python3 scripts/jev-compact-evidence.py` prints every compaction from two sources side by side — the plugin's claim and the engine's own `compact_boundary` record (tokens before/after, duration). A Jev compaction shows as a sub-second engine record next to a matching plugin claim; a built-in LLM compaction shows as a 30–150s record. Rows live in `~/.claude/learning/learning.db` (`compaction_events`, `session_usage`).
+Replaces generated compaction summaries with Jev-judged verbatim pruning after context reaches 60%. Inspect recorded before/after tokens and duration with `python3 scripts/jev-compact-evidence.py`.
 
 **Full setup:** [docs/start-here.md](docs/start-here.md)
 
 <details>
 <summary><b>Codex CLI Parity</b></summary>
 
-Mirrors agents, skills, and supported78 hooks into `~/.codex/`. The original six-hook allowlist was correct for Codex v0.114, when tool hooks only intercepted Bash. Current support requires Codex v0.144.1+ and classifies the 62 Claude hook registrations as **26 native, 27 adapter-backed, and 9 unsupported** (53 supported). These are registration counts, not unique hook files. The installer also preserves explicit per-subagent model routing for GPT-5.6 Sol by setting the MultiAgent V2 compatibility keys documented in [openai/codex#31814](https://github.com/openai/codex/issues/31814).
+Mirrors agents, skills, and supported hooks into `~/.codex/`. Codex v0.144.1+ supports 59 of the 70 unique Claude hook registrations: **29 native, 30 adapter-backed, and 11 unsupported**. These are registrations, not unique hook files.
 
-Codex now exposes `apply_patch` to tool78 hooks. VexJoy's adapter converts each patch operation into the Write/Edit payload expected by existing guards, but it cannot intercept writes performed through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported tool paths. PreCompact and Stop adapters also receive less telemetry than Claude Code: Codex does not provide Claude's `conversation_history` or `session_data`. This is expanded compatibility, not full Claude parity.
+The adapter converts `apply_patch` operations into the Write/Edit payload expected by existing guards. It cannot intercept writes through `unified_exec`, unmatched MCP tools, WebSearch, or other unsupported paths. PreCompact and Stop receive less telemetry than in Claude Code. This is expanded compatibility, not full parity.
 
 After install or any hook-definition change, run `/hooks` in Codex and review the new definitions before trusting them. Codex hash-trusts hook commands and skips changed, unreviewed definitions.
 
 </details>
 
 <details>
-<summary><b>Gemini CLI / Antigravity CLI Support (removed)</b></summary>
-
-Gemini CLI support removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support pending CLI maturity. Per Google's [transition announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), Gemini CLI stops serving requests on **2026-06-18** for Google AI Pro / Ultra and free Gemini Code Assist for individuals. Gemini **API** integrations (image-gen backends, sprite pipeline, `GEMINI_API_KEY`) are unaffected and stay in the toolkit.
-
-If a prior install mirrored into `~/.gemini/`, remove the stale mirrors with:
-
-```bash
-rm -rf ~/.gemini/skills ~/.gemini/agents ~/.gemini/hooks ~/.gemini/scripts ~/.gemini/antigravity/plugins/vexjoy-agent
-```
-
-</details>
-
-<details>
 <summary><b>Factory CLI Support</b></summary>
 
-Mirrors agents (as "droids"), skills, and all78 hooks into `~/.factory/`. Hook config merges into `~/.factory/settings.json` with paths rewritten.
+Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. Hook config merges into `~/.factory/settings.json` with paths rewritten.
 
 </details>
 
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 159 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, 159 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
 
 </details>
 
@@ -194,7 +179,7 @@ The toolkit supplies its own routing, domain knowledge, methodology, and enforce
 claude --system-prompt "."
 ```
 
-Strips built-in tool-use instructions. The toolkit's agents, skills,78 hooks, and CLAUDE.md provide equivalent coverage.
+Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and CLAUDE.md provide the project-specific guidance.
 
 </details>
 
@@ -205,9 +190,9 @@ Strips built-in tool-use instructions. The toolkit's agents, skills,78 hooks, an
 | Layer | Count | Does |
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
-| Skills | 59 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
-| Hooks | 78 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 159 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Skills | 59 | Reusable guidance and methodology for recurring work. |
+| Hooks | 78 | Lifecycle checks, context injection, and telemetry. |
+| Scripts | 159 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -239,16 +224,14 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 
 **[I'm a developer](docs/for-developers.md)** Architecture, extension points, adding agents and skills.
 
-**[I'm an AI power user](docs/for-ai-wizards.md)** Routing tables, pipelines,78 hooks, telemetry DB.
+**[I'm an AI power user](docs/for-ai-wizards.md)** Routing tables, pipelines, hooks, telemetry DB.
 
 **[I'm an AI agent](docs/for-claude-code.md)** Machine-dense inventory. Tables, paths, schemas.
 
-**[I'm on LinkedIn](docs/for-linkedin.md)** 🚀 Thought leadership. Agree? 👇
-
 ## Philosophy
 
-- **Zero-expertise operation.** Say what you want. The system classifies, dispatches, enforces, delivers.
-- **LLMs orchestrate, programs execute.** Deterministic work belongs to 159 scripts. LLM judgment handles design decisions, diagnosis, review.
+- **Outcome-first operation.** Describe the result; routing selects the relevant catalog entries.
+- **Programs compute; models judge and generate.** Use deterministic code where the answer is computable.
 - **Density.** Every word carries instruction, rule, or decision. Cut everything else.
 - **Breadth over depth.** Right context ensures correctness. Unfocused context adds cost.
 - **Structural enforcement.** Exit codes enforce what instructions can't. Quality gates are automated, not advisory.
@@ -262,7 +245,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses 159 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 159 scripts.
 
 | Need | Use |
 |---|---|

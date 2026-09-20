@@ -15,7 +15,8 @@ Find the failing question before changing anything. Collect labeled examples, ru
 | Accuracy falls as inputs grow | irrelevant state | filter in code; send only needed fields; judge per unit |
 | Errors on counts, sums, dates, nearness | Jev doing arithmetic | move it to code; per-item Nouls; Choice per date part |
 | Errors on nested or negated questions | indirection | ask directly; name the path; two literal questions combined in code |
-| Answer follows text inside the state | state steering | tighten criteria; adversarial and self-reference tests; confidence gate |
+| Answer follows text inside the state | state steering | separate trusted policy from untrusted text; require source evidence in code; adversarial and self-reference tests; thresholds may abstain or refer, not authorize |
+| Instruction and criteria point in different directions | contradictory question definition | rewrite both to ask the same condition in the same direction; a Noul's `true` side describes yes |
 | Rewording one question trades errors | one question weighs several properties | split into atomic questions |
 | Each answer right, decision wrong | policy | change weights or thresholds in code; leave questions alone |
 | Slow or costly | sequential calls | merge into one request; keep a second only when it depends on the first |

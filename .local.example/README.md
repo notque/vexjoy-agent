@@ -1,124 +1,107 @@
-# Local Overlay Directory
+# Local Customization Templates
 
-This directory contains **templates** for your private/organization-specific customizations.
+This directory contains tracked examples for private or organization-specific
+configuration. Put your edited copies under `.local/`; that directory is
+gitignored.
 
-## Quick Start
+## Quick start
 
-```bash
-# One-time setup: Copy templates to .local/
-cp -r .local.example/* .local/
+Running `./install.sh` creates `.local/` and copies these templates when the
+directory has no files other than `.gitkeep`. It does not overwrite an existing
+local setup.
 
-# Edit files in .local/ with your real data
-# .local/ is gitignored - your changes stay private
-```
-
-## How It Works
-
-```
-repo/
-├── skills/vault-helper/...        ← Generic (public, tracked)
-└── .local/skills/vault-helper/...     ← Yours (private, gitignored)
-```
-
-**Rule**: Files in `.local/` mirror the repo structure and contain your private data.
-
-## What to Customize
-
-| File | What to Add |
-|------|-------------|
-| `agents/*.md` | Your internal paths, service names, team conventions |
-| `skills/*/references/*.md` | Real examples from your organization |
-| `config.yaml` | Environment-specific variables |
-| `github-actions-check.yaml` | Your repository mappings |
-
-## Usage
-
-The install script (`./install.sh`) handles overlay merging automatically. Files in `.local/` take precedence when you reference them explicitly.
-
-When you want **your version**:
-```
-"Read .local/skills/vault-helper/references/examples.md"
-```
-
-When you want **generic version** (or sharing):
-```
-"Read skills/vault-helper/references/examples.md"
-```
-
-## Files in This Template
-
-```
-.local.example/
-├── README.md                              # This file
-├── profile.yaml                           # Disable specific skills/agents/hooks
-├── config.yaml                            # Environment configuration template
-├── github-actions-check.yaml              # Repository mapping template
-├── agents/
-│   └── example-customization.md           # Example customized agent
-└── skills/
-    └── vault-helper/
-        └── references/
-            └── examples.md                # Example: your real vault paths
-```
-
-### Profile filtering (`profile.yaml`)
-
-Pick which components `./install.sh` should skip. Run the interactive picker
-and the file is generated for you:
+To copy only one template, create its destination first. For example:
 
 ```bash
-./install.sh --configure       # pick items, then install
-./install.sh --configure-only  # pick items, then exit
+mkdir -p .local/skills/vault-helper/references
+cp .local.example/skills/vault-helper/references/examples.md \
+  .local/skills/vault-helper/references/examples.md
 ```
 
-Or copy the template and edit by hand:
+Edit the copy, not the tracked template.
+
+## How local files are used
+
+`.local/` mirrors repository paths, but it is private storage rather than a
+general automatic override system. Use a local agent, skill reference, or
+configuration file only through the command or workflow that reads it.
+
+For example, explicitly ask an agent to read a customized reference:
+
+```text
+Read .local/skills/vault-helper/references/examples.md
+```
+
+Use the tracked version when you want the public example:
+
+```text
+Read skills/vault-helper/references/examples.md
+```
+
+The install profile is the exception: `./install.sh` automatically reads
+`.local/profile.yaml` when it exists.
+
+## Install profile
+
+Use `.local/profile.yaml` to exclude selected skills, agents, or hooks during
+installation. The easiest setup is the interactive picker:
+
+```bash
+./install.sh --configure       # write the profile, then install
+./install.sh --configure-only  # write the profile, then exit
+```
+
+Or edit a copy by hand:
 
 ```bash
 cp .local.example/profile.yaml .local/profile.yaml
 $EDITOR .local/profile.yaml
-./install.sh                   # honors the disable lists
+./install.sh
 ```
 
-When `.local/profile.yaml` is absent, `./install.sh` installs the full toolkit
-exactly as before — the feature is opt-in.
+Without `.local/profile.yaml`, the installer includes the full toolkit. The
+picker uses `questionary` when available and falls back to a numbered prompt;
+it adds no required dependency.
 
-The picker uses `questionary` (checkbox UI) when installed; without it, a
-plain numbered prompt runs instead. No new required dependency. The Codex
-mirror filters top-level skills, agents, and hooks; nested category skills
-are filtered in the Claude tree.
+Profile filtering applies to top-level skills, agents, and hooks. Nested
+category skills remain in the Claude tree, while the Codex mirror filters its
+top-level skills, agents, and hooks.
 
-## Tips
+## Included templates
 
-1. **Start small**: Only copy files you need to customize
-2. **Keep generic versions**: Don't delete the public versions
-3. **Document your changes**: Add comments explaining org-specific parts
-4. **Share templates**: If others in your org use this, share your `.local/` structure
-5. **Use config.yaml**: Store common variables (team name, repo URLs, etc.)
+| Path | Intended use |
+|---|---|
+| `profile.yaml` | Components for `./install.sh` to exclude |
+| `config.yaml` | Example organization and project values |
+| `github-actions-check.yaml` | Example working-directory-to-repository mappings |
+| `inject.yaml` | Example placeholder values; no automatic rendering is performed |
+| `agents/kubernetes-helm-engineer.md` | Organization-specific agent instructions |
+| `skills/vault-helper/references/examples.md` | Organization-specific Vault examples |
 
-## Common Customizations
+Except for `profile.yaml`, these files are examples for workflows that
+explicitly read them; copying them alone does not activate new behavior.
 
-### GitHub Actions Check
-Create `.local/github-actions-check.yaml`:
+## Common customizations
+
+Repository mappings:
+
 ```yaml
-# Map your working directories to repositories
+# .local/github-actions-check.yaml
 repositories:
   /home/youruser/project1: your-org/project1
   /home/youruser/project2: your-org/project2
 ```
 
-### Vault/Secrets Helper
-Create `.local/skills/vault-helper/references/examples.md`:
-```markdown
-# Your team's Vault paths
-- secrets/your-team/production
-- secrets/your-team/staging
+Default repositories:
+
+```yaml
+# .local/config.yaml
+github:
+  repos:
+    - your-org/main-repo
+    - your-org/shared-libs
 ```
 
-### PR Mining
-Create `.local/config.yaml`:
-```yaml
-# Default repositories for PR mining
-default_repos:
-  - your-org/main-repo
-  - your-org/shared-libs
-```
+Private references can contain real paths and service names, but avoid storing
+credentials in them. Prefer environment variables or your secret manager for
+tokens and secrets.

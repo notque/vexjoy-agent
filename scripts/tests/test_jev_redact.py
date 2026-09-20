@@ -25,7 +25,7 @@ FAKE_STRIPE_TEST = "sk_test_" + "x" * 24
 FAKE_SLACK = "xoxb-" + "1234567890-" + "x" * 24
 FAKE_GOOGLE = "AIza" + "x" * 35
 FAKE_JWT = "eyJ" + "a" * 20 + "." + "b" * 30 + "." + "c" * 40
-FAKE_PEM = "-----BEGIN RSA PRIVATE KEY-----\nMIIEfakefakefake\nfakefake==\n-----END RSA PRIVATE KEY-----"
+FAKE_PEM = "-----BEGIN RSA PRIVATE KEY-----\nMIIEfakefakefake\nfakefake==\n-----END RSA PRIVATE KEY-----"  # security-review: ignore - synthetic redaction fixture
 FAKE_HEX40 = "a" * 40
 
 
@@ -90,7 +90,7 @@ class TestKeyValue:
             "API_KEY=supersecretvalue123",
             "api-key: supersecretvalue123",
             '"password": "supersecretvalue123"',
-            "DB_PASSWORD='supersecretvalue123'",
+            "DB_PASSWORD='supersecretvalue123'",  # security-review: ignore - synthetic redaction fixture
             "private_token=supersecretvalue123",
             "credential = supersecretvalue123",
             "auth_secret=supersecretvalue123",
@@ -126,7 +126,7 @@ class TestKeyValue:
         assert types == ["entropy"]
 
     def test_aws_secret_key_pair(self) -> None:
-        secret = "w" * 40
+        secret = "w" * 40  # security-review: ignore - synthetic redaction fixture
         text = f"aws_access_key_id = {FAKE_AWS}\naws_secret_access_key = {secret}"
         out, types = jev_redact.redact_text(text)
         assert FAKE_AWS not in out
@@ -181,6 +181,27 @@ class TestRedactPayload:
         assert out["model"] == "jev-latest"
         assert out["state"]["history"][1] == {"n": 3}
         assert out["questions"][1]["instructions"] == "no secrets here"
+
+    def test_walks_dict_shaped_question_instructions_and_criteria(self) -> None:
+        payload = {
+            "state": {"safe": True},
+            "questions": {
+                "first": {
+                    "type": "noul",
+                    "instructions": f"classify token={FAKE_GHP}",
+                    "criteria": {"yes": f"contains {FAKE_OPENAI}"},
+                },
+                "second": {"type": "noul", "instructions": "no secrets"},
+            },
+        }
+
+        out, n = jev_redact.redact_payload(payload)
+
+        assert n == 2
+        dumped = repr(out)
+        assert FAKE_GHP not in dumped
+        assert FAKE_OPENAI not in dumped
+        assert FAKE_GHP in repr(payload)
 
     def test_clean_payload_count_zero(self) -> None:
         payload = {"state": {"text": "hello world"}, "questions": [{"id": "q", "instructions": "ok"}]}

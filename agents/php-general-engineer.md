@@ -1,5 +1,5 @@
 ---
-name: programming-general-engineer
+name: php-general-engineer
 description: "PHP development: features, debugging, code quality, security, modern PHP 8.x patterns."
 color: purple
 hooks:

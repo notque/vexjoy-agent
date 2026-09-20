@@ -1,5 +1,5 @@
 ---
-name: programming-general-engineer
+name: swift-general-engineer
 description: "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing."
 color: orange
 hooks:

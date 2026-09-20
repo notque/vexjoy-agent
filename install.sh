@@ -301,17 +301,21 @@ clean_hooks_mirror_if_source_link() {
 unlink_skills_nested() {
     local target=$1
     local source=${2:-${SCRIPT_DIR}/skills}
-    local entry entry_name child child_name
+    local entry entry_name child child_name entry_target source_canonical
 
     [ -d "$target" ] || return 0
+    source_canonical=$(_canonical_path "$source") || source_canonical=""
 
     for entry in "$target"/*; do
         [ -e "$entry" ] || [ -L "$entry" ] || continue
         entry_name=$(basename "$entry")
         if [ -L "$entry" ]; then
-            # Top-level skill or file symlink (or a whole-category symlink from
-            # an older install): remove it only when it points at this toolkit.
-            if _symlink_points_to "$entry" "$source/$entry_name"; then
+            # Top-level skill/file alias (or a whole-category link from an old
+            # install): remove it only when its resolved target is inside this
+            # toolkit's skills tree. Flat aliases point at source/category/name,
+            # so comparing only source/basename leaves them stale.
+            entry_target=$(_canonical_path "$entry") || entry_target=""
+            if [ -n "$source_canonical" ] && { [ "$entry_target" = "$source_canonical" ] || [[ "$entry_target" == "$source_canonical/"* ]]; }; then
                 if [ "$DRY_RUN" = true ]; then
                     echo -e "${BLUE}  Would remove skills entry: ${entry}${NC}"
                 else
@@ -1316,24 +1320,21 @@ install_component() {
     fi
 }
 
-# link_skills_nested SOURCE TARGET — build a nested skills tree (symlink mode).
+# link_skills_nested SOURCE TARGET — deploy one flat alias per skill.
 #
-# The repo skills/ tree is category/skill (e.g. skills/business/csuite), plus a
-# few top-level entries that are skills themselves (a dir holding SKILL.md) or
-# loose files (INDEX.json). To let users drop their own skills alongside ours at
-# any level, we retain category links and add a root alias for every nested
-# skill. Runtimes that scan one level deep can therefore discover every skill.
-# This is add-only — existing external entries are preserved, never overwritten.
+# Claude recursively scans ~/.claude/skills. Keeping category links alongside
+# flat aliases registers the same SKILL.md twice. The source may stay nested,
+# but the runtime catalog must be flat. Existing external entries are preserved.
 link_skills_nested() {
     local source=$1
     local target=$2
-    local entry entry_name child child_name
+    local entry entry_name child child_name nested_skill
 
     if [ "$DRY_RUN" = true ]; then
         if [ -L "$target" ]; then
             echo -e "${BLUE}  Would convert whole-dir symlink to nested skills dir: ${target}${NC}"
         else
-            echo -e "${BLUE}  Would nest per-skill symlinks into: ${target}${NC}"
+            echo -e "${BLUE}  Would create flat per-skill symlinks in: ${target}${NC}"
         fi
         return
     fi
@@ -1345,16 +1346,29 @@ link_skills_nested() {
         echo "  Converting whole-dir symlink to nested skills dir: $target"
         rm "$target"
     fi
+    # Remove only links previously installed from this source, including the
+    # old category+alias layout. Foreign files and links remain untouched.
+    unlink_skills_nested "$target" "$source"
+    # unlink_skills_nested deliberately removes an empty runtime skills
+    # directory. Recreate it before adding the new flat aliases.
     mkdir -p "$target"
 
     for entry in "$source"/*; do
         [ -e "$entry" ] || [ -L "$entry" ] || continue
         entry_name=$(basename "$entry")
 
-        # Top-level file (e.g. INDEX.json) or a top-level skill dir (has SKILL.md):
-        # link the whole thing at the top level.
-        if [ ! -d "$entry" ] || [ -f "$entry/SKILL.md" ]; then
-            if [ -d "$entry" ] && _profile_disabled skills "$entry_name"; then
+        if [ ! -d "$entry" ]; then
+            if [ ! -e "$target/$entry_name" ] && [ ! -L "$target/$entry_name" ]; then
+                ln -s "$entry" "$target/$entry_name"
+            fi
+            continue
+        fi
+
+        nested_skill=$(find "$entry" -mindepth 2 -maxdepth 2 -name SKILL.md -print -quit 2>/dev/null)
+        if [ -z "$nested_skill" ]; then
+            # A standalone root skill or support/reference directory is safe
+            # to expose whole because it contains no nested skill definition.
+            if [ -f "$entry/SKILL.md" ] && _profile_disabled skills "$entry_name"; then
                 echo -e "${YELLOW}  Skipping ${entry_name} (not selected)${NC}"
                 continue
             fi
@@ -1366,14 +1380,8 @@ link_skills_nested() {
             continue
         fi
 
-        # Category / support dir (no SKILL.md at this level): make a real dir and
-        # link each child individually so external skills can coexist.
-        # If a prior install left this category as a whole-dir symlink into the
-        # repo, convert it. Preserve category symlinks pointing elsewhere.
-        if [ -L "$target/$entry_name" ] && _symlink_points_to "$target/$entry_name" "$entry"; then
-            rm "$target/$entry_name"
-        fi
-        mkdir -p "$target/$entry_name"
+        # Category: expose each child directly at the runtime root. Never link
+        # the category itself, even when a generated category SKILL.md exists.
         for child in "$entry"/*; do
             [ -e "$child" ] || [ -L "$child" ] || continue
             child_name=$(basename "$child")
@@ -1399,17 +1407,11 @@ link_skills_nested() {
                     fi
                 fi
             fi
-            if [ -e "$target/$entry_name/$child_name" ] || [ -L "$target/$entry_name/$child_name" ]; then
-                continue  # external/existing entry; keep it
-            fi
-            ln -s "$child" "$target/$entry_name/$child_name"
-            # Expose nested skills to one-level runtime scanners as well. Keep
-            # an external root skill when a name collision exists.
             if [ -f "$child/SKILL.md" ] && [ ! -e "$target/$child_name" ] && [ ! -L "$target/$child_name" ]; then
                 ln -s "$child" "$target/$child_name"
+                echo -e "${GREEN}  ✓ Linked ${child_name}${NC}"
             fi
         done
-        echo -e "${GREEN}  ✓ Nested ${entry_name}/${NC}"
     done
 }
 
@@ -1906,27 +1908,41 @@ echo ""
 if [ "$MIRROR_CODEX" = true ]; then
     echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
     CODEX_ENTRY_COUNT=0
-    for item in "${SCRIPT_DIR}/skills/"*; do
-        [ -e "$item" ] || continue
-        if [ -d "$item" ] && [ -f "$item/SKILL.md" ] && _profile_disabled skills "$(basename "$item")"; then
-            echo -e "${YELLOW}  Skipping $(basename "$item") (not selected)${NC}"
-            continue
-        fi
-        target="${CODEX_SKILLS_DIR}/$(basename "$item")"
-        sync_codex_entry "$item" "$target"
-        CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
-    done
+    if [ "$MODE" = "symlink" ]; then
+        # Codex scans this directory recursively too. Remove the legacy
+        # category mirrors before adding the manifest-selected flat aliases.
+        unlink_skills_nested "$CODEX_SKILLS_DIR" "${SCRIPT_DIR}/skills"
+        mkdir -p "$CODEX_SKILLS_DIR"
+    else
+        for item in "${SCRIPT_DIR}/skills/"*; do
+            [ -e "$item" ] || continue
+            if [ -d "$item" ] && [ -f "$item/SKILL.md" ] && _profile_disabled skills "$(basename "$item")"; then
+                echo -e "${YELLOW}  Skipping $(basename "$item") (not selected)${NC}"
+                continue
+            fi
+            target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+            sync_codex_entry "$item" "$target"
+            CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+        done
+    fi
 
     # The source tree also contains implementation leaves.  The merged skill
     # index is the public catalog contract; mirroring every leaf made Codex
     # discover retired/duplicate skills indefinitely.
-    while IFS=$'\t' read -r skill_name skill_src; do
-        if _profile_disabled skills "$skill_name"; then
-            continue
-        fi
-        sync_codex_entry "$skill_src" "${CODEX_SKILLS_DIR}/${skill_name}"
-        CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
-    done < <(python3 "${SCRIPT_DIR}/scripts/codex-skill-manifest.py" --source "${SCRIPT_DIR}/skills")
+    if [ -f "${SCRIPT_DIR}/scripts/codex-skill-manifest.py" ]; then
+        while IFS=$'\t' read -r skill_name skill_src; do
+            if _profile_disabled skills "$skill_name"; then
+                continue
+            fi
+            sync_codex_entry "$skill_src" "${CODEX_SKILLS_DIR}/${skill_name}"
+            CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+        done < <(python3 "${SCRIPT_DIR}/scripts/codex-skill-manifest.py" --source "${SCRIPT_DIR}/skills")
+    elif [ "$MODE" = "symlink" ]; then
+        # Minimal/legacy source fixtures may predate the manifest helper.
+        # Preserve their supported nested-skill behavior without making the
+        # current indexed catalog fall back to broad discovery.
+        link_skills_nested "${SCRIPT_DIR}/skills" "$CODEX_SKILLS_DIR"
+    fi
 
     if [ -d "${SCRIPT_DIR}/private-voices" ]; then
         for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do

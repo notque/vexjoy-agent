@@ -8,6 +8,7 @@ failure behavior and receipt format.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 from collections.abc import Callable
@@ -22,11 +23,34 @@ _BRIDGE = Path(__file__).with_name("jev_gateway") / "jev_vercel_gateway.mjs"
 # retries short and bounded: callers may issue many evidence packs in parallel.
 DEFAULT_MAX_ATTEMPTS = 3
 
+# The bridge needs the gateway credential and a small set of process/network
+# settings. Do not expose unrelated exported credentials to its npm dependency
+# tree. In particular, NODE_OPTIONS is intentionally excluded because it can
+# cause Node to load arbitrary code before the bridge starts.
+_BRIDGE_ENV_KEYS = (
+    "AI_GATEWAY_API_KEY",
+    "PATH",
+    "LANG",
+    "LC_ALL",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "no_proxy",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "NODE_EXTRA_CA_CERTS",
+)
+
+
+def _bridge_env() -> dict[str, str]:
+    """Return the minimum environment required by the gateway bridge."""
+    return {key: os.environ[key] for key in _BRIDGE_ENV_KEYS if key in os.environ}
+
 
 def available() -> tuple[bool, str]:
     """Return whether this process can call Jev through Vercel AI Gateway."""
-    import os
-
     return (
         (True, "AI_GATEWAY_API_KEY set")
         if os.environ.get("AI_GATEWAY_API_KEY", "").strip()
@@ -146,6 +170,7 @@ def evaluate(
                 capture_output=True,
                 timeout=timeout,
                 check=False,
+                env=_bridge_env(),
             )
         except FileNotFoundError as exc:
             message = "node is unavailable for the Vercel gateway bridge"

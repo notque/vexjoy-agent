@@ -1,167 +1,32 @@
 ---
-summary: "30-second start: install, /do, mental model."
+summary: "30-second start: install, verify, and request an outcome."
 read_when:
   - "first-time setup"
 ---
 
 # Quick Start
 
-**Read time: 30 seconds**
-
----
-
-## Installation
-
-Run the installer:
+Install the toolkit from its repository:
 
 ```bash
 cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Claude Code is the primary runtime. If you also use Codex CLI, Factory, or Reasonix, the same install mirrors toolkit skills (and agents where the harness supports them) into `~/.codex/`, `~/.factory/`, and `~/.reasonix/` so all the CLIs share the same skill library. Reasonix has no agent surface, so it gets skills + scripts + hooks only. Gemini CLI support was removed (deprecated upstream, transitioned to Antigravity CLI); Antigravity support awaits CLI maturity. See README § "Gemini CLI / Antigravity CLI Support (removed)".
-
-Codex hook support requires v0.144.1+. The six hooks shipped for v0.114 were correct for that Bash-only hook surface; current support covers 26 native and 27 adapter-backed registrations (53 supported), with 9 unsupported. The adapter covers `apply_patch`, not writes through `unified_exec` or other unmatched tools, and PreCompact/Stop hooks receive less telemetry than on Claude Code. After install or a hook update, run `/hooks` in Codex to review and trust changed definitions.
-
-Command entry points:
-- Claude Code: `/do`
-- Codex: `$do`
-- Factory: `/do`
-- Reasonix: `/do`
-
-**Alternative (bootstrap via Claude):** Start Claude Code in the vexjoy-agent directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
-
-```bash
-cd ~/vexjoy-agent
-claude
-```
-
-> **Note:** The initial sync must run from the vexjoy-agent directory. After that, hooks work globally from any directory.
-
-Verify the install:
+Verify the installation:
 
 ```bash
 python3 ~/.claude/scripts/install-doctor.py check
-python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-If Codex should pick up newly added skills or agents after a `git pull`, rerun `./install.sh`.
+Open a project and describe the outcome you want:
 
----
-
-## The Simple Version
-
-```
-╔════════════════════════════════════════════════════════════════╗
-║                                                                ║
-║   Just tell Claude what you want.                              ║
-║                                                                ║
-║   "I want to debug this failing test"                          ║
-║   "Review my Go code for quality"                              ║
-║   "Add this feature using TDD"                                 ║
-║                                                                ║
-║   Claude routes to the right tools automatically.              ║
-║                                                                ║
-╚════════════════════════════════════════════════════════════════╝
+```text
+/do debug this failing test
+/do review this change before I ship it
+/do research current WebAssembly adoption
 ```
 
-Describe the task; the router selects the tools.
+Use `/do` in Claude Code, Factory, and Reasonix. Use `$do` in Codex. The router selects the relevant agent, skill, and checks; you do not need to know their names.
 
----
-
-## Want More Control?
-
-### Option A: Use the Smart Router
-
-```
-/do [what you want in plain language]
-$do [what you want in plain language]
-```
-
-Examples:
-- `/do Debug why authentication is broken`
-- `/do Extract coding patterns from this repo`
-- `/do Make this status update professional`
-- `$do Debug why authentication is broken`
-
-Use `/do` in Claude Code and `$do` in Codex.
-
-The system figures out which tools to use and tells you what it selected.
-
----
-
-### Option B: Use the Router for Specific Workflows
-
-Use `/do` in Claude Code and Factory, or `$do` in Codex:
-
-| Want This? | Try This |
-|------------|----------|
-| Test-driven development | `/do write tests for this function using TDD` |
-| Systematic debugging | `/do debug this test failure` |
-| Code linting/formatting | `/do lint this project` |
-| Verification before shipping | `/do verify this change is correct` |
-| Go quality checks | `/do run Go quality checks on this package` |
-
-Full list of available agents and skills: [REFERENCE.md](./REFERENCE.md)
-
----
-
-### Option C: Request Specific Expertise
-
-For complex domain work, ask for a specialized agent:
-
-```
-"Use the golang-general-engineer agent to review this code"
-"Use the kubernetes-helm-engineer agent to help with deployment"
-```
-
-Specialized agents available across: Go, Python, Kubernetes, React, TypeScript, databases, monitoring, and more.
-
----
-
-## Natural Language Triggers
-
-These phrases automatically activate the right tools:
-
-| Say This | Gets You |
-|----------|----------|
-| "TDD" or "test first" | Test-driven development workflow |
-| "debug" or "investigate" | Systematic debugging methodology |
-| "lint" or "format" | Code linting and formatting |
-| "read only" | Exploration without modifications |
-| "verify" or "make sure" | Multi-layer verification |
-
----
-
-## The Mental Model (Optional)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Your Request                         │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│   /do in Claude | $do in Codex | /do in Factory         │
-│         (or natural-language routing)                   │
-└─────────────────────────────────────────────────────────┘
-                          │
-          ┌───────────────┼───────────────┐
-          ▼               ▼               ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │  Agents  │    │  Skills  │    │ Commands │
-    │          │    │          │    │          │
-    │ Deep     │    │ Workflow │    │ Explicit │
-    │ expertise│    │ patterns │    │ actions  │
-    └──────────┘    └──────────┘    └──────────┘
-```
-
-The router combines these components for your task.
-
----
-
-## Next Steps
-
-- **Ready to work?** Just start. Describe your task.
-- **Want the full command list?** See [REFERENCE.md](./REFERENCE.md)
-- **Building your own tools?** See [CLAUDE.md](../CLAUDE.md)
+For prerequisites, optional runtimes, installation choices, and troubleshooting, continue to [Start Here](start-here.md). Developers extending the toolkit should use [For Developers](for-developers.md).

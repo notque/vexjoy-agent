@@ -1,5 +1,5 @@
 ---
-name: programming-general-engineer
+name: kotlin-general-engineer
 description: "Kotlin development: features, coroutines, debugging, code quality, multiplatform."
 color: purple
 hooks:

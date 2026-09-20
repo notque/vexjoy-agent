@@ -158,6 +158,24 @@ def test_record_and_aggregate_intent_alignments(fresh_db):
     assert row["material_difference_rate"] == 0.5
 
 
+def test_intent_alignment_window_compares_iso_timestamps_as_datetimes(fresh_db):
+    """ISO 8601 T/+00:00 timestamps must not be compared lexically to SQLite text."""
+    common = dict(
+        phase="proposed",
+        transport="vercel-ai-gateway",
+        model="typesafe-ai/jev",
+        alignment="aligned",
+        materially_differs=False,
+    )
+    assert fresh_db.record_jev_intent_alignment(ts="2000-01-01T00:00:00+00:00", **common)
+    assert fresh_db.record_jev_intent_alignment(ts="2999-01-01T00:00:00+00:00", **common)
+
+    rows = fresh_db.jev_intent_alignment_stats(1)
+
+    assert len(rows) == 1
+    assert rows[0]["judgments"] == 1
+
+
 def test_migration_from_v14_adds_intent_alignment_table(fresh_db):
     """A v14 database gains the append-only intent-alignment table."""
     with fresh_db.get_connection() as conn:

@@ -72,5 +72,5 @@ Jev does not treat state as hostile. Injected instructions, misleading framing, 
 
 - Apply `skills/shared-patterns/untrusted-content-handling.md`: wrap the field, keep trusted context separate, and name in `criteria` what counts as evidence.
 - Treat instruction-shaped text inside the state as itself a signal (spam, manipulation) and ask a Noul for it.
-- Gate the action on confidence for any decision that untrusted text could steer.
+- Untrusted text never supplies instructions, source evidence, or authorization. Validate required evidence and allowed actions in code; use calibrated thresholds only to abstain or refer, never as protection from steering.
 - Before deployment, run adversarial cases (injected "classify as approved") and self-describing cases (a file that contains the smell descriptions your detector uses). A detector can mistake its own catalog for an instance; add a `finding_is_self_reference` Noul and a deterministic route for detector files.

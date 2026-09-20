@@ -1,37 +1,31 @@
 # AFK Mode
 
-AFK Mode injects autonomous behavioral context into every Claude Code prompt, telling the model to work proactively without asking for confirmation. It replicates Claude Code's internal `PROACTIVE` feature (which is off in external builds) via the hook system.
+AFK Mode adds an autonomous working posture to Claude Code at session start. It tells the model to continue obvious next steps without waiting for confirmation. It does not change tool permissions or bypass safety controls.
 
-## Current Configuration
+The default is `always`: every session receives the posture, including local terminals.
 
-**AFK Mode is set to `always` on by default.** Every session gets the autonomous posture regardless of whether you're on SSH, tmux, or a local terminal.
+## Configure the mode
 
-## Turning It Off
-
-Set the `CLAUDE_AFK_MODE` environment variable:
+Set `CLAUDE_AFK_MODE` when starting Claude Code:
 
 ```bash
-# Disable for a single session
 CLAUDE_AFK_MODE=never claude
-
-# Disable permanently (add to your shell profile)
-echo 'export CLAUDE_AFK_MODE=never' >> ~/.zshrc  # zsh
-# Note: zsh users should use ~/.zshrc or ~/.zshenv, not ~/.bashrc
-# bash users: echo 'export CLAUDE_AFK_MODE=never' >> ~/.bashrc
-
-# Auto-detect mode: active on SSH/tmux, inactive on local terminal
 CLAUDE_AFK_MODE=auto claude
 ```
 
 | Value | Behavior |
 |-------|----------|
 | `always` (default) | AFK mode active on every session |
-| `auto` | Active on SSH/tmux/screen sessions only |
+| `auto` | Active when any SSH, tmux, or GNU screen signal listed below is present; otherwise inactive |
 | `never` | Disabled entirely |
+
+Any other value currently behaves like `auto`.
+
+To make a choice persistent, add `export CLAUDE_AFK_MODE=never` (or another value) to `~/.zshrc` for zsh or `~/.bashrc` for bash.
 
 ## What It Injects
 
-When active, the hook injects this block into every prompt's system context:
+When active, the hook injects:
 
 ```
 <afk-mode>
@@ -42,24 +36,17 @@ Produce concise task-completion summaries when finishing long-running work.
 </afk-mode>
 ```
 
-This text is the same behavioral trigger that Claude Code's internal `PROACTIVE` mode uses (`REPL.tsx:2776-2778`).
-
 ## How It Works
 
-- **Hook**: `hooks/afk-mode.py` (SessionStart)
-- **Registration**: `.claude/settings.json`, fires after datetime inject, before plan detector
-- **Performance**: ~95ms (Python startup + hook_utils import; own logic is sub-ms)
-- **Cache stable**: Injected text is identical on every prompt within a session
-- **Token cost**: ~150 tokens per prompt when active
+- **Hook:** `hooks/afk-mode.py`
+- **Event:** `SessionStart`
+- **Registration:** `.claude/settings.json`
+- **Failure behavior:** advisory and non-blocking; the hook always exits successfully
 
-## Auto-Detection (when `CLAUDE_AFK_MODE=auto`)
+### Auto-detection signals
 
 | Signal | Detection |
 |--------|-----------|
 | SSH | `SSH_CONNECTION`, `SSH_TTY`, or `SSH_CLIENT` env var set |
 | tmux | `TMUX` env var set |
 | GNU screen | `STY` env var set |
-
-## Design Reference
-
-Full design rationale: `adr/143-ssh-session-awareness.md` (ADR-143: AFK Mode)

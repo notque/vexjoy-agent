@@ -33,9 +33,36 @@ def test_gateway_redacts_before_node_receives_payload(monkeypatch: pytest.Monkey
     monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
     monkeypatch.setattr(jev_vercel.subprocess, "run", run)
     token = "ghp_" + "x" * 36
-    result = jev_vercel.evaluate({"request": token}, {"ok": {"type": "noul"}}, timeout=1)
+    result = jev_vercel.evaluate(
+        {"request": token},
+        {"ok": {"type": "noul", "instructions": f"check {token}"}},
+        timeout=1,
+    )
     assert token not in json.dumps(seen["payload"])
     assert result["answers"]["ok"]["noul"] == 0.9
+
+
+def test_gateway_subprocess_receives_allowlisted_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    bridge = tmp_path / "gateway.mjs"
+    bridge.write_text("// bridge")
+    seen: dict[str, object] = {}
+
+    def run(*args, **kwargs):
+        seen["env"] = kwargs["env"]
+        return subprocess.CompletedProcess([], 0, '{"answers":{}}', "")
+
+    monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
+    monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway-test-key")
+    monkeypatch.setenv("UNRELATED_SECRET_TOKEN", "must-not-reach-node")
+    monkeypatch.setenv("NODE_OPTIONS", "--require=/tmp/untrusted.js")
+
+    jev_vercel.evaluate({}, {}, timeout=1)
+
+    assert isinstance(seen["env"], dict)
+    assert seen["env"]["AI_GATEWAY_API_KEY"] == "gateway-test-key"
+    assert "UNRELATED_SECRET_TOKEN" not in seen["env"]
+    assert "NODE_OPTIONS" not in seen["env"]
 
 
 def test_gateway_retries_503(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

@@ -17,9 +17,9 @@
 | Ansible playbooks | `ansible-automation-engineer` | — | kubernetes-helm-engineer |
 | OpenSearch/Elasticsearch | `opensearch-elasticsearch-engineer` | — | database-engineer |
 | Prometheus/Grafana | `prometheus-grafana-engineer` | — | — |
-| Swift iOS/macOS | `programming-general-engineer` | — | — |
-| Kotlin Android/JVM | `programming-general-engineer` | — | — |
-| PHP backend | `programming-general-engineer` | — | — |
+| Swift iOS/macOS | `swift-general-engineer` | — | — |
+| Kotlin Android/JVM | `kotlin-general-engineer` | — | — |
+| PHP backend | `php-general-engineer` | — | — |
 | React Native / Expo | `react-native-engineer` | — | typescript-frontend-engineer |
 | Code review | `reviewer-code-playbook` | `reviewer-system-playbook` | — |
 | Security audit | `security` | — | — |

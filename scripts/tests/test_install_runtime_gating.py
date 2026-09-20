@@ -36,11 +36,16 @@ def _run_install(
     fake_home: Path,
     args: tuple[str, ...] = ("--copy", "--force"),
     *,
-    install_sh: Path = INSTALL_SH,
+    install_sh: Path | None = None,
     profile: Path | None = None,
     stdin: str | None = None,
     extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
+    # Use a tracked-only source by default. Developer checkouts may contain
+    # ignored private skills and installer-created links; those are valid user
+    # state, but must not make this public installer suite non-hermetic.
+    if install_sh is None:
+        install_sh = _isolated_source(fake_home.parent) / "install.sh"
     env = {**os.environ, "HOME": str(fake_home), "TERM": "dumb"}
     if profile is not None:
         env["VEXJOY_INSTALL_PROFILE"] = str(profile)
@@ -145,6 +150,8 @@ def _fake_npm(tmp_path: Path) -> tuple[Path, Path]:
 def _isolated_source(tmp_path: Path) -> Path:
     """Copy tracked installer inputs without local private/untracked state."""
     source = tmp_path / "source"
+    if source.exists():
+        return source
     source.mkdir()
     tracked = subprocess.run(
         ["git", "ls-files", "-z"],
@@ -162,6 +169,19 @@ def _isolated_source(tmp_path: Path) -> Path:
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(original, target)
+    subprocess.run(
+        [
+            "python3",
+            str(source / "scripts/generate-skill-index.py"),
+            "--repo-root",
+            str(source),
+            "--output",
+            str(source / "skills/INDEX.json"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     return source
 
 

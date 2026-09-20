@@ -13,7 +13,7 @@ def test_support_directory_detection_is_shape_based() -> None:
     hook = (REPO_ROOT / "hooks/sync-to-user-claude.py").read_text()
 
     assert "def _is_support_dir(item: Path) -> bool:" in hook
-    assert "has_md and not has_skill_subdir" in hook
+    assert "has_md and not has_nested_skill" in hook
     assert "child.is_dir() and _is_support_dir(child)" in hook
 
 
