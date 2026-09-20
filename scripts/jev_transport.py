@@ -1,8 +1,8 @@
 """Selectable Jev transport for /d.
 
 ``JEV_TRANSPORT`` accepts ``auto`` (default), ``vercel``, or ``direct``.
-Auto selects Vercel AI Gateway when its key is configured; otherwise it
-selects TypeSafe's direct Jev API. A failed selected transport is not retried
+Auto selects TypeSafe's direct Jev API when its key is configured; otherwise
+it selects Vercel AI Gateway. A failed selected transport is not retried
 through the other provider.
 """
 
@@ -66,10 +66,10 @@ def select() -> tuple[str | None, str]:
             if has_direct
             else (None, "JEV_TRANSPORT=direct but TYPESAFE_API_KEY is unset")
         )
-    if has_vercel:
-        return VERCEL, "auto selected AI_GATEWAY_API_KEY"
     if has_direct:
         return DIRECT, "auto selected TYPESAFE_API_KEY"
+    if has_vercel:
+        return VERCEL, "auto selected AI_GATEWAY_API_KEY"
     return None, "neither AI_GATEWAY_API_KEY nor TYPESAFE_API_KEY is set"
 
 

@@ -64,9 +64,8 @@ Flow, in order:
      the Jev call entirely in v2.
 
 Cost model (hard constraint): classification uses at most 2 Jev evaluations
-(0 on force-route/unavailable, 1 on trivial-bypass, 2
-otherwise), and every /d invocation adds one batched intent-alignment
-evaluation — never one request per question.
+(0 on force-route/unavailable, 1 on trivial-bypass, 2 otherwise) — never
+one request per question. Routing does not run a separate intent evaluation.
 
 Mirrors `pre-route.py`'s CLI shape and JSON-output discipline: exit 0 always,
 JSON to stdout, never raise past `main()`. Jev transport is selected by
@@ -97,7 +96,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-import jev_intent_align
 import jev_transport
 
 JEV_MODEL = "typesafe-ai/jev"
@@ -1196,29 +1194,6 @@ def main() -> int:
         result = route(
             request_text, args.gate_threshold, args.fits_threshold, args.timeout, project, max(1, args.shortlist)
         )
-        if result.get("fallback") and result.get("source") in {"unavailable", "error"}:
-            # Preserve a hook-time receipt without multiplying a known gateway
-            # outage by another full retry cycle. Runtime /d still validates its
-            # actual PROPOSED_INTENT and fails open if the service remains down.
-            result["intent_alignment"] = {
-                "available": False,
-                "source": jev_transport.select()[0] or "unavailable",
-                "proposed_intent": jev_intent_align.proposed_intent(request_text, result),
-                "alignment": "unavailable",
-                "aligned": False,
-                "clarification_needed": False,
-                "issues": ["baseline intent alignment unavailable because classification transport failed"],
-                "reason": result.get("fallback_reason"),
-                "transport_retry": result.get("transport_retry"),
-                "questions_version": "d-intent-v1",
-            }
-        else:
-            # Validate the hook-owned literal restatement before the model gets
-            # a token; Phase 2 cannot then be skipped by model behavior.
-            candidate = jev_intent_align.proposed_intent(request_text, result)
-            result["intent_alignment"] = jev_intent_align.evaluate_alignment(
-                request_text, result, candidate, args.timeout
-            )
     except Exception as exc:
         import traceback
 

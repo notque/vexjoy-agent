@@ -34,21 +34,14 @@ out of `/d`'s scope to fix; it affects `/do` identically, since `/do` calls
 the same `pre-route.py`. Case 6 therefore remains a known failing regression
 case; it must not be listed among the cases that resolve correctly.
 
-## Intent-alignment checks
-- A proposed intent that drops material scope, adds unrequested work, or uses a
-  route that visibly conflicts with the request must return `alignment: review`.
-- The instruction gate must use the receipt produced for the exact runtime
-  `PROPOSED_INTENT`; the hook-time baseline receipt cannot satisfy it. This is
-  not hook enforcement, so tests must not claim a technical boundary that the
-  implementation does not provide.
-- Every matched route, including force-route and trivial-bypass, must attempt
-  runtime alignment. A classification fallback delegates to `/do` and must not
-  claim that intent validation succeeded.
-- Essential ambiguity must return `clarification_needed: true`; routine
-  implementation choices must not.
+## Routing call boundaries and transport checks
+- Force routes make no Jev calls. Trivial routes make only the stage-1 call;
+  ordinary routes make stage-1 and stage-2 calls.
+- Neither the router nor its injector invokes intent alignment or requests a
+  proposed-intent restatement before dispatch.
 - A 429, 503, 529, or timeout from Vercel retries at most twice and persists a
   safe receipt; other gateway errors fail open.
-- `auto` prefers Vercel, explicit transport selection never switches, and
+- `auto` prefers direct Jev, explicit transport selection never switches, and
   `direct` sends the same state and questions to the Jev API.
 
 ## Known failure modes
@@ -62,7 +55,7 @@ case; it must not be listed among the cases that resolve correctly.
   installed by `install.sh`, and a missing bridge fails open to `/do`.
 - Confidently-wrong classification on `paraphrase-security`/
   `false-positive-guard` — no runtime backstop exists (see
-  `references/jev-classifier-design.md` "Confident-wrong risk"); caught
+  `references/jev-classifier-design.md` "Known risk and coupling"); caught
   only by the per-bucket `SAFETY_BUCKETS` gate on the full corpus run, not
   by any single-request check.
 
@@ -72,6 +65,5 @@ Do not cite a run unless its verdict exists in the repository and was produced
 from the current corpus, manifest, and implementation. The previously cited
 2026-09-16 v1/v2 verdict paths are absent, so their historical percentages are
 not part of this maintenance contract. Generate a fresh output directory with
-the command above when comparative routing evidence is needed. Intent alignment
-is production functionality established by repeated use; the corpus remains a
-regression tool for route quality.
+the command above when comparative routing evidence is needed. The corpus
+remains a regression tool for route quality.

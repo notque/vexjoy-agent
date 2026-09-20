@@ -43,35 +43,29 @@ The router pairs a Go agent with a debugging skill, then follows the task throug
 
 ## /d — Jev-Powered Router
 
-`/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). Jev classifies the
-request, checks that the selected route preserves the requested outcome, and
-then dispatches the agent, skill, and pipeline.
-
-Intent preservation is production behavior: `/d` restates the requested
-outcome and gates dispatch on a Jev receipt for that exact proposed intent,
-preventing an agent from quietly expanding an apple into an orchard.
+`/d` uses [TypeSafe's Jev](https://docs.typesafe.ai) to classify the request
+and dispatch the matched agent, skill, and pipeline. If Jev is unavailable,
+`/d` falls back to `/do`.
 
 Choose either transport:
 
 ```bash
-# Preferred: Jev through Vercel AI Gateway
+# Alternative: Jev through Vercel AI Gateway
 export JEV_TRANSPORT=vercel
 export AI_GATEWAY_API_KEY=...
 
-# Alternative: Jev's direct API
+# Preferred: Jev's direct API
 export JEV_TRANSPORT=direct
 export TYPESAFE_API_KEY=...
 ```
 
-`JEV_TRANSPORT=auto` is the default. It prefers Vercel when
-`AI_GATEWAY_API_KEY` is set, then uses the direct API when only
-`TYPESAFE_API_KEY` is set. An explicit transport never silently switches to
+`JEV_TRANSPORT=auto` is the default. It prefers the direct API when
+`TYPESAFE_API_KEY` is set, then uses Vercel when only
+`AI_GATEWAY_API_KEY` is set. An explicit transport never silently switches to
 the other one. The TypeSafe MCP plugin is not required for `/d`.
 
-Intent-alignment judgments are recorded in `learning.db` without raw request
-text. Receipts keep the Jev judge model separate from the executing agent's
-configured model and effort level. View proposed-intent difference rates by
-agent profile, judge model, and transport:
+Historical intent-alignment receipts remain in `learning.db`; routing no longer
+adds alignment checks. The standalone reporting command remains available:
 
 ```bash
 python3 scripts/jev-intent-stats.py --days 30
@@ -81,10 +75,6 @@ Example:
 
 ```
 > /d fix the flaky test in the payments module
-
-  Intent alignment (/d):
-    -> Restated outcome: Fix the flaky payments test without changing unrelated behavior.
-    -> Jev: aligned
 
   ROUTING (/d): testing-automation-engineer + testing-preferred-patterns
   Source: jev (confidence: medium)

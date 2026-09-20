@@ -7,30 +7,14 @@ contract).
 ## Purpose
 Alternate entry point to `/do` that replaces the in-context routing-manifest
 read with bounded external Jev classification calls, cutting per-dispatch router
-context cost when Jev is available. Intent preservation is production behavior:
-the router must return the requested apple, not expand it into an orchard.
+context cost when Jev is available.
 
 ## Scope
 - Classify agent/skill/pipeline/complexity/stack-signals for one user
   request, via `scripts/jev-route.py`.
 - Defer entirely to `/do`'s Phase 1-4 when Jev is unavailable, a Jev
   call errors, or Jev names an invalid/off-manifest pick.
-- Execute Phase 5 (Task Spec + `build-dispatch.py`) identically to `/do`.
-
-## Intent alignment
-Every matched `/d` route receives a hook-time baseline and a required runtime
-intent restatement. One batched Jev judgment checks that the intended outcome
-and constraints survive routing; it reports scope loss, added work, route
-mismatch, and essential ambiguity without fabricating a task. The runtime
-receipt for the agent's actual `PROPOSED_INTENT` satisfies the instruction
-gate; the hook-time baseline receipt is evidence, not a substitute for it.
-This is not hook enforcement, so the user remains the final backstop if an
-agent violates the contract.
-
-This is a production requirement grounded in repeated daily use: preventing
-unrequested scope expansion is the feature's primary value. If classification
-falls back before a route exists, intent checking
-cannot run and `/d` delegates to `/do` rather than pretending it was validated.
+- Execute Phase 4 (Task Spec + `build-dispatch.py`) identically to `/do`.
 
 ## Non-goals
 - Not a replacement for `/do`: `/d` is a production Jev-backed entry point,
@@ -69,25 +53,24 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
    this invariant's rewrite — it decides whether routing is needed at all,
    not which candidate wins among real options.
 4. `JEV_TRANSPORT=auto|vercel|direct` selects the transport. Auto prefers
-   `AI_GATEWAY_API_KEY`, then `TYPESAFE_API_KEY`. Credential values are never
+   `TYPESAFE_API_KEY`, then `AI_GATEWAY_API_KEY`. Credential values are never
    passed as arguments, logged, printed, or persisted.
 5. `skills/meta/do/SKILL.md` and `commands/do.md` are never modified by this
    skill or its scripts.
 6. On any fallback signal, `/d` executes `/do`'s full Phase 1-4 instructions
    unmodified — never a partial/degraded `/d`-only path. `jev-trivial-bypass`
-   is not a fallback signal; it is handled directly (Phase 1T), matching
+   is not a fallback signal; it is handled directly during classification, matching
    `/do`'s own Trivial contract.
 7. `jev-route.py` uses the shared transport selector. A missing Gateway bridge
    or unavailable direct API must never crash `/d`; it must fail open to `/do`.
-8. Classification uses at most two Vercel AI Gateway Jev evaluations (one for
-   a trivial bypass, two for a routed request). Every matched `/d` route adds
-   one batched runtime intent-alignment evaluation; it never makes one request
-   per question. The Vercel transport is a supported production dependency.
+8. Classification uses at most two Jev evaluations through the selected
+   transport: none for force routes, one for a trivial bypass, and two for a
+   routed request. Routing does not call the intent-alignment validator.
 
 ## Dependencies
-- `scripts/jev-route.py`, `scripts/jev_intent_align.py` (classification and alignment)
+- `scripts/jev-route.py` (classification)
 - `scripts/pre-route.py`, `scripts/routing-manifest.py` (reused, unmodified)
-- `scripts/build-dispatch.py` (reused, unmodified — Phase 5)
+- `scripts/build-dispatch.py` (reused, unmodified — Phase 4)
 - Jev transport selector (`scripts/jev_transport.py`), Vercel AI Gateway bridge
   (`scripts/jev_vercel.py` and `scripts/jev_gateway/jev_vercel_gateway.mjs`),
   direct client (`scripts/jev_router_common.py`), and their credentials
@@ -95,7 +78,7 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
 ## Known limitations (not blocking, tracked)
 - Hidden prose coupling: `jev-route.py`'s classifier instructions
   hand-paraphrase `/do`'s Phase 1-3 text with no automated drift check (see
-  `references/jev-classifier-design.md` "Hidden coupling").
+  `references/jev-classifier-design.md` "Known risk and coupling").
 - Route classification has no independent verification beyond Jev's own
   self-reported fit scores
   (`/do`'s Step 0 has the orchestrator's live reasoning as an implicit
@@ -104,22 +87,16 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
   less: a low-fit pick is no longer deferred to `/do`, it is dispatched
   as-is. Monitored via regression evaluation, not solved structurally in this
   pass — see `references/jev-classifier-design.md`
-  "Confident-wrong risk," strengthened (not softened) by that change.
+  "Known risk and coupling," strengthened (not softened) by that change.
 - Removing the primary fits threshold means fallback no longer acts as an
-  uncertainty backstop for a low-fit but manifest-valid pick. The intent gate
-  constrains outcome drift, but does not prove that route classification is
-  optimal.
-- The two-stage classifier plus runtime alignment adds network latency. Vercel
-  is preferred in `auto` mode because it is the required, currently cost-free
-  production path; direct Jev remains the explicit alternative.
+  uncertainty backstop for a low-fit but manifest-valid pick.
+- The two-stage classifier adds network latency. `auto` prefers direct Jev
+  when configured; explicit Vercel and gateway-only setups remain supported.
 
 ## Release criteria
-- The instructions require a matched route to obtain a runtime receipt for the
-  exact proposed intent before acting, unless validation is explicitly reported
-  unavailable and the fail-open contract is followed.
-- Added work, lost scope, route mismatch, and essential ambiguity exercise the
-  alignment gates in `EVAL.md`.
-- Vercel `auto` preference, explicit transport isolation, retry bounds,
+- Matched routes proceed to dispatch or direct trivial handling without an
+  extra baseline or proposed-intent Jev call.
+- Direct Jev `auto` preference, explicit transport isolation, retry bounds,
   credential redaction, and direct-transport parity remain covered.
 - Force-route, trivial-bypass, unavailable, error, and invalid-pick paths
   resolve according to their documented contracts.

@@ -45,11 +45,7 @@ EVENT_NAME = "UserPromptSubmit"
 # "/d\n<request>". \b after "d" prevents matching "/do" or "/design" etc.
 DETECT_PATTERN = re.compile(r"^\s*/d\b\s*", re.IGNORECASE)
 
-# A Vercel attempt gets four seconds. Three attempts plus two maximum
-# Retry-After delays (5s each) take at most 22s, leaving two seconds for Python
-# startup, JSON work, and process teardown under the host's 26s hook timeout.
-JEV_ROUTE_ATTEMPT_TIMEOUT_SECONDS = 4
-JEV_ROUTE_TIMEOUT_SECONDS = 24
+JEV_ROUTE_TIMEOUT_SECONDS = 20  # per-script timeout for route
 
 
 def extract_prompt(event: dict) -> str:
@@ -108,8 +104,6 @@ def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dic
                 "--request",
                 request_text,
                 "--json-compact",
-                "--timeout",
-                str(JEV_ROUTE_ATTEMPT_TIMEOUT_SECONDS),
                 *(["--cwd", cwd] if cwd else []),
             ],
             capture_output=True,

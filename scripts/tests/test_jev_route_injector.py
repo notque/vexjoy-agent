@@ -52,11 +52,6 @@ class TestModuleConstants:
     def test_route_timeout_exists(self) -> None:
         assert hasattr(hook, "JEV_ROUTE_TIMEOUT_SECONDS")
 
-    def test_outer_timeout_covers_bounded_gateway_retries(self) -> None:
-        worst_gateway_seconds = 3 * hook.JEV_ROUTE_ATTEMPT_TIMEOUT_SECONDS + 2 * 5
-        assert worst_gateway_seconds + 2 <= hook.JEV_ROUTE_TIMEOUT_SECONDS
-        assert hook.JEV_ROUTE_TIMEOUT_SECONDS < 26
-
 
 # ------------------------------------------------------------------ #
 # extract_prompt
@@ -166,6 +161,8 @@ class TestRunJevRoute:
         assert "jev-route.py" in call_args[1]
         assert "--request" in call_args
         assert "fix the bug" in call_args
+        assert "--timeout" not in call_args
+        assert mock_run.call_args.kwargs["timeout"] == 20
 
     @patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="x", timeout=20))
     def test_timeout_returns_none(self, _mock: MagicMock) -> None:

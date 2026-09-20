@@ -9,12 +9,80 @@ import sys
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
 spec = importlib.util.spec_from_file_location("jev_route", SCRIPTS / "jev-route.py")
 jev_route = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev_route)
 FAKE = "ghp_" + "x" * 36
+
+
+@pytest.mark.parametrize(
+    ("scenario", "expected_calls", "expected_source"),
+    [
+        ("normal", 2, "jev"),
+        ("force", 0, "pre-route-force"),
+        ("trivial", 1, "jev-trivial-bypass"),
+        ("unavailable", 0, "unavailable"),
+        ("error", 1, "error"),
+    ],
+)
+def test_cli_only_evaluates_classification(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    scenario: str,
+    expected_calls: int,
+    expected_source: str,
+) -> None:
+    """CLI and hook callers keep the original classification call budget."""
+    monkeypatch.setattr(sys, "argv", ["jev-route.py", "--request", "fix it", "--json-compact"])
+    monkeypatch.setattr(
+        jev_route,
+        "_run_pre_route",
+        lambda _request: {
+            "matched": scenario == "force",
+            "confidence": "high",
+            "match_type": "force_route",
+            "agent": "python-general-engineer",
+            "skill": "quick",
+        },
+    )
+    monkeypatch.setattr(jev_route.jev_transport, "available", lambda: (scenario != "unavailable", "test"))
+    monkeypatch.setattr(
+        jev_route,
+        "_load_manifest_entries",
+        lambda: [
+            {"type": "agent", "name": "python-general-engineer", "description": "Python"},
+            {"type": "skill", "name": "quick", "description": "Contained fixes"},
+        ],
+    )
+    stage1 = {
+        "answers": {
+            "agent": {"probabilities": {"python-general-engineer": 1.0}},
+            "skill": {"probabilities": {"quick": 1.0}},
+            "pipeline": {"probabilities": {}},
+            "needs_skill": {"noul": 0.0 if scenario == "trivial" else 1.0},
+            "needs_pipeline": {"noul": 0.0},
+            "prose_suffices": {"noul": 1.0 if scenario == "trivial" else 0.0},
+        }
+    }
+    stage2 = {
+        "answers": {
+            "agent": {"choice": "python-general-engineer"},
+            "skill": {"choice": "quick"},
+            **{key: {"noul": 0.0} for key in jev_route.NOUL_SIGNAL_KEYS},
+        }
+    }
+    responses = RuntimeError("gateway unavailable") if scenario == "error" else [stage1, stage2]
+    with mock.patch.object(jev_route.jev_transport, "evaluate", side_effect=responses) as evaluate:
+        assert jev_route.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert evaluate.call_count == expected_calls
+    assert result["source"] == expected_source
+    assert "intent_alignment" not in result
+    assert result["matched"] is (scenario not in {"unavailable", "error"})
 
 
 def test_call_jev_uses_vercel_gateway_and_never_passes_a_direct_api_key():

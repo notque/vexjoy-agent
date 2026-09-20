@@ -17,11 +17,11 @@ def _clear(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-def test_auto_prefers_vercel(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_auto_prefers_direct(monkeypatch: pytest.MonkeyPatch) -> None:
     _clear(monkeypatch)
     monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway")
     monkeypatch.setenv("TYPESAFE_API_KEY", "direct")
-    assert jev_transport.select()[0] == jev_transport.VERCEL
+    assert jev_transport.select()[0] == jev_transport.DIRECT
 
 
 def test_auto_uses_direct_when_gateway_is_absent(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -30,12 +30,20 @@ def test_auto_uses_direct_when_gateway_is_absent(monkeypatch: pytest.MonkeyPatch
     assert jev_transport.select()[0] == jev_transport.DIRECT
 
 
+def test_auto_uses_gateway_when_direct_is_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear(monkeypatch)
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway")
+    assert jev_transport.select()[0] == jev_transport.VERCEL
+
+
 @pytest.mark.parametrize(
     ("choice", "key", "expected"),
     [("vercel", "AI_GATEWAY_API_KEY", jev_transport.VERCEL), ("direct", "TYPESAFE_API_KEY", jev_transport.DIRECT)],
 )
 def test_explicit_transport_selection(monkeypatch: pytest.MonkeyPatch, choice: str, key: str, expected: str) -> None:
     _clear(monkeypatch)
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "direct")
     monkeypatch.setenv("JEV_TRANSPORT", choice)
     monkeypatch.setenv(key, "configured")
     assert jev_transport.select()[0] == expected
