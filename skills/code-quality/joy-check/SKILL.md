@@ -23,9 +23,8 @@ routing:
     - positive framing check
     - instruction framing
   pairs_with:
-    - voice-writer
-    - voice-validator
-    - skill-creator
+    - writing
+    - toolkit
   complexity: Simple
   category: content
 ---
@@ -163,9 +162,9 @@ SKILL.md --> joy-check --mode instruction --> fix flagged patterns --> re-verify
 ```
 
 **Auto-invocation points**:
-- `skill-creator`: after generating a new skill
+- `toolkit`: after generating a new skill
 - `agent-upgrade`: after modifying an agent
-- `voice-writer`: during validation
+- `writing`: during validation
 - `doc-pipeline`: for toolkit documentation
 
 Invoke standalone via `/joy-check [file]` (auto-detects mode) or with explicit `--mode`.
@@ -198,6 +197,5 @@ Output best version with remaining concerns. Explain which rubric dimensions res
 - `scan-negative-framing.py` — Regex pre-filter for grievance patterns (writing mode, Phase 1)
 
 ### Complementary Skills
-- `voice-validator` — Voice fidelity (different concern)
-- `voice-writer` — Invokes joy-check during validation
-- `skill-creator` — Invokes joy-check in instruction mode
+- `writing` — Voice, prose quality, and content validation
+- `toolkit` — Skill creation and instruction validation
