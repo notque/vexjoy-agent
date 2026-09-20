@@ -8,7 +8,7 @@ read_when:
 
 Work order for follow-up PRs. Covers every `docs/` file outside the value-clarity rewrite set (README.md, start-here.md, for-knowledge-workers.md, for-developers.md, for-ai-wizards.md, rewritten in the same PR that adds this file). One row per file. Actions: keep / rewrite / merge-into-X / retire.
 
-`docs/images/` and `docs/repo-hero.png` are assets, not docs; excluded.
+`docs/repo-hero.png` is an asset, not documentation; excluded.
 
 | File | Audience | What it claims | Clarity / value issue | Action |
 |---|---|---|---|---|
