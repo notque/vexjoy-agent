@@ -36,6 +36,9 @@ adr/
 *.db-wal
 *.db-shm
 
+# Node packages for the Vercel Jev bridge
+node_modules/
+
 # Python cache
 __pycache__/
 *.pyc

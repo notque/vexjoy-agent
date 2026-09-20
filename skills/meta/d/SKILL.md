@@ -1,7 +1,7 @@
 ---
 name: d
-version: "1.0.0"
-description: "Jev-powered request router: classifies via TypeSafe's Jev API, then dispatches to the matched agent, skill, and pipeline."
+version: "1.1.0"
+description: "Jev request router: validates the requested outcome, then dispatches to the matched agent, skill, and pipeline."
 user-invocable: true
 argument-hint: "[request]"
 allowed-tools:
@@ -22,13 +22,13 @@ routing:
 
 # /d — Jev Router
 
-Classifies requests via TypeSafe's Jev API and dispatches to the matched
-agent, skill, and pipeline. One API call replaces reading the full routing
-manifest into context.
+Classifies requests through Jev and dispatches to the matched
+agent, skill, and pipeline. Before every dispatch, it restates the requested
+outcome and uses Jev to check that the restatement and route preserve it.
 
 The classification path has three layers: a deterministic `pre-route.py`
 force-route guard (offline, runs first, authoritative for git/security), a
-TypeSafe presence check, and a two-stage Jev classification — a cheap
+configured Jev transport presence check, and a two-stage classification — a cheap
 wide-rank stage 1 over all manifest candidates plus a trivial-bypass gate,
 then a full-detail shortlist-rerank stage 2 with per-candidate fit checks
 and stack/fan-out signals.
@@ -38,7 +38,7 @@ Design rationale: `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`.
 ### Phase Banners
 
 Every phase: `/d > Phase N: PHASE_NAME — description...`
-After Phase 1 resolves: `===` routing banner. Both required.
+After intent alignment resolves: `===` routing banner. Both required.
 
 ---
 
@@ -64,24 +64,26 @@ full schema):
 `available`, `jev_called`, `matched`, `fallback`, `fallback_reason`,
 `agent`, `skill`, `pipeline`, `complexity`, `confidence`, `match_type`,
 `reasoning`, `stack`, `signals`, `signal_scores`, `source`, `latency_ms`,
-`usage`, `agents`, `gate_score`, `fits_scores`, `stage1_shortlist`.
+`usage`, `agents`, `gate_score`, `fits_scores`, `stage1_shortlist`, and
+`intent_alignment` (the hook-generated baseline alignment receipt).
 
 `latency_ms` and `usage` are itemized dicts
 (`{"stage1_ms","stage2_ms","total_ms"}` and `{"stage1","stage2"}`). Read
 `.total_ms` for a single latency figure.
 
-**Gate**: `source == "jev-trivial-bypass"` → Phase 1T.
-`fallback == true` → Phase 1F (stop). Otherwise → Phase 2.
+**Gate**: `fallback == true` → Phase 1F. Every matched result,
+including `source == "jev-trivial-bypass"`, proceeds to Phase 2: ALIGN INTENT.
 
 ---
 
 ### Phase 1T: TRIVIAL-BYPASS (source == "jev-trivial-bypass")
 
 Stage 1's gate fired: `gate_score` below threshold, no agent/skill/pipeline
-needed. Terminal state (`matched: true`, `fallback: false`). Show the routing
-banner with `Classification: Trivial` and `Source: jev-trivial-bypass`, then
-handle the request directly — answer the question, do the one-line action.
-Do not run Phase 3 or Phase 4; do not call `build-dispatch.py`. Stop here.
+is needed. It remains a direct-handling path, but it must still pass through
+Phase 2 so the user outcome is restated and Jev validates it. After an
+aligned Phase 2 result, show `Classification: Trivial` and
+`Source: jev-trivial-bypass`, then answer or do the one-line action directly.
+Do not run Phases 3–5 or call `build-dispatch.py`. Stop there.
 
 ---
 
@@ -89,8 +91,9 @@ Do not run Phase 3 or Phase 4; do not call `build-dispatch.py`. Stop here.
 
 Jev could not classify this request. `JEV_RESULT.source` explains why:
 
-- `unavailable` — TypeSafe not configured (missing `TYPESAFE_API_KEY` or
-  plugin disabled).
+- `unavailable` — neither configured Jev transport is available. `/d` accepts
+  Vercel AI Gateway (`AI_GATEWAY_API_KEY`) or the direct Jev API
+  (`TYPESAFE_API_KEY`), selected by `JEV_TRANSPORT=auto|vercel|direct`.
 - `invalid-pick` — Jev's pick was not a valid manifest name.
 - `error` — a Jev call timed out or failed.
 
@@ -103,14 +106,81 @@ Show:
 ===================================================================
 ```
 
-Stop here. Do not attempt the request.
+Fail open to `/do`'s full routing flow and continue the request. Do not reject
+the request merely because Vercel AI Gateway is unavailable.
 
 ---
 
-### Phase 2: DECIDE (fallback == false, not trivial-bypass)
+### Phase 2: ALIGN INTENT (required for every matched /d route)
 
-`JEV_RESULT.source` is either `pre-route-force` (deterministic guard
-matched, Jev not called) or `jev` (Jev classification, manifest-validated).
+**MANDATORY STOP:** For every matched `/d` invocation, write
+`PROPOSED_INTENT` and run the validator on that exact text before any routing
+banner, dispatch, answer, edit, or other action. `JEV_RESULT.intent_alignment`
+is only the hook baseline and does not satisfy Phase 2. This requirement has no
+exception for force routes, trivial routes, or an apparently aligned baseline.
+
+Before selecting the work method, write `PROPOSED_INTENT`: a concise one- or
+ two-sentence restatement of what the user wants accomplished. State the
+outcome, material surfaces or deliverables, and every explicit constraint.
+Do not describe the selected agent, skill, or implementation mechanics as the
+outcome. Preserve the user's words where precision matters.
+
+Run the Jev validator even when the hook already supplied
+`JEV_RESULT.intent_alignment`; that receipt validates a conservative baseline,
+while this call validates the actual restatement that will enter the task spec.
+Put the request, route JSON, and proposed intent in temporary files rather
+than shell-splicing user text, then call:
+
+```bash
+python3 "$SDIR/jev-intent-align.py" \
+  --request-file "$REQUEST_FILE" \
+  --route-file "$ROUTE_FILE" \
+  --proposed-intent-file "$INTENT_FILE" \
+  --json-compact
+```
+
+The validator sends one bounded state and all independent questions together
+through the selected Jev transport. It checks whether the outcome and constraints
+are preserved, the route can cover the material scope, the restatement is too
+narrow, it introduces unrequested work, and essential clarification is needed.
+It returns `aligned`, `clarification_needed`, `issues`, and raw `scores`.
+
+Show this before the routing banner:
+
+```
+Intent alignment (/d):
+  -> Restated outcome: [PROPOSED_INTENT]
+  -> Jev: [aligned|review|unavailable] [issues, if any]
+```
+
+**Gate:**
+
+- `clarification_needed == true` → ask one concise question that names the
+  essential ambiguity; do not dispatch until answered.
+- `alignment == aligned` and `source == jev-trivial-bypass` → direct handling
+  in Phase 1T; otherwise → Phase 3.
+- `alignment == review` because scope is lost, work was added, or the route
+  cannot cover the request → correct `PROPOSED_INTENT` or the route and run
+  this validator once more. Carry unresolved issues into `task_spec.gaps`; do
+  not silently proceed as though Jev approved it.
+- `alignment == unavailable` or `error` → state that validation was
+  unavailable, preserve the verbatim request and proposed intent in the task
+  spec, then continue under the normal `/d` routing result. Gateway outage
+  must not become a false request rejection.
+
+This runtime gate applies to every matched route, including force-routes and
+trivial bypasses. A Phase 1 fallback cannot run this gate because no usable Jev
+route exists; it fails open to `/do` as described in Phase 1F.
+
+This is an instruction gate enforced by the `/d` contract, not a hook-enforced
+technical boundary. The user remains the final backstop if an agent violates it.
+
+---
+
+### Phase 3: DECIDE (fallback == false, after aligned intent)
+
+`JEV_RESULT.source` is either `pre-route-force` (deterministic guard matched)
+or `jev` (Jev classification, manifest-validated).
 
 Apply directly:
 
@@ -121,7 +191,7 @@ Apply directly:
   fix → `simple`.
 - Confidence: `JEV_RESULT.confidence` (`high`/`medium`/`low`).
 
-**Routing banner** (first visible output):
+**Routing banner** (first visible output after the required intent record):
 
 ```
 ===================================================================
@@ -136,14 +206,11 @@ Apply directly:
 ===================================================================
 ```
 
-Always include `Source:` — it distinguishes a Jev decision from a force-route
-match.
-
-**Gate**: Agent+skill set, banner shown. Phase 3.
+**Gate**: Agent+skill set, banner shown. Phase 4.
 
 ---
 
-### Phase 3: ENHANCE (stack signals)
+### Phase 4: ENHANCE (stack signals)
 
 `JEV_RESULT.signals` (booleans at 0.6 confidence threshold, computed by the
 script) map to stack entries:
@@ -165,14 +232,14 @@ each passed its per-candidate fit check) into the `research_needed` agent
 list, deduped. Dispatch fan-out agents as separate parallel `Agent` tool
 calls alongside the primary `build-dispatch.py` dispatch.
 
-**Gate**: Stack applied. Phase 4.
+**Gate**: Stack applied. Phase 5.
 
 ---
 
-### Phase 4: EXECUTE
+### Phase 5: EXECUTE
 
-Build the task spec (request_verbatim unchanged; intent, constraints, files,
-ownership, acceptance filled from this turn's context), then invoke
+Build the task spec with `request_verbatim` unchanged and `intent` exactly
+`PROPOSED_INTENT`; include any unresolved alignment issue in `gaps`, then invoke
 `build-dispatch.py`:
 
 ```bash
@@ -210,7 +277,7 @@ gating, quality-loop, workflow dispatch, fan-out, and auto-pipeline fallback.
 ## Error handling
 
 Errors inside `jev-route.py` resolve to `fallback: true, source: "error"` —
-Phase 1F reports the error and stops.
+Phase 1F reports the error and fails open to `/do`.
 
 ## References
 
@@ -219,6 +286,7 @@ Phase 1F reports the error and stops.
 - `${CLAUDE_SKILL_DIR}/SPEC.md`, `${CLAUDE_SKILL_DIR}/EVAL.md` — maintenance
   contract and regression cases (load only when creating, evaluating, or
   redesigning this skill)
-- `scripts/jev-route.py`, `scripts/jev_router_common.py`, `scripts/pre-route.py`,
+- `scripts/jev-route.py`, `scripts/jev-intent-align.py`, `scripts/jev_transport.py`, `scripts/jev_vercel.py`,
+  `scripts/jev_gateway/jev_vercel_gateway.mjs`, `scripts/pre-route.py`,
   `scripts/routing-manifest.py`, `scripts/build-dispatch.py`
 - Jev hook: `hooks/jev-route-injector-userprompt.py` (UserPromptSubmit) precomputes `JEV_RESULT`

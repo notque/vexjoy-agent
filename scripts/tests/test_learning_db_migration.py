@@ -1,7 +1,6 @@
 """Tests for learning_db_v2 schema migrations.
 
-Covers: harness_runs table creation (v13), record_harness_run() insert,
-and schema version correctness.
+Covers harness telemetry, intent-alignment telemetry, and schema migrations.
 """
 
 from __future__ import annotations
@@ -41,12 +40,12 @@ def test_harness_runs_table_exists(fresh_db):
     assert "harness_runs" in tables
 
 
-def test_schema_version_is_14(fresh_db):
-    """A fresh DB reaches schema version 14."""
+def test_schema_version_is_16(fresh_db):
+    """A fresh DB reaches schema version 16."""
     fresh_db.init_db()
     with fresh_db.get_connection() as conn:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
-    assert version == 14
+    assert version == 16
 
 
 def test_record_harness_run_inserts(fresh_db):
@@ -101,7 +100,7 @@ def test_record_harness_run_minimal(fresh_db):
 
 
 def test_migration_from_v12(fresh_db):
-    """Migration from v12 adds harness_runs and v14 columns without breaking existing tables."""
+    """Migration from v12 adds later telemetry without breaking existing tables."""
     # Create a DB at v12 (no harness_runs, no v14 columns)
     with fresh_db.get_connection() as conn:
         conn.execute("PRAGMA user_version = 12")
@@ -116,8 +115,9 @@ def test_migration_from_v12(fresh_db):
         tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
         # v14 columns present on jev_calls
         cols = [c[1] for c in conn.execute("PRAGMA table_info(jev_calls)").fetchall()]
-    assert version == 14
+    assert version == 16
     assert "harness_runs" in tables
+    assert "jev_intent_alignments" in tables
     # Other tables still present
     assert "learnings" in tables
     assert "jev_calls" in tables
@@ -125,3 +125,72 @@ def test_migration_from_v12(fresh_db):
     assert "payload_hash" in cols
     assert "answers_json" in cols
     assert "cached" in cols
+
+
+def test_record_and_aggregate_intent_alignments(fresh_db):
+    """Proposed-intent rates exclude baseline and unavailable judgments."""
+    common = dict(
+        transport="vercel-ai-gateway",
+        model="typesafe-ai/jev",
+        alignment="aligned",
+        questions_version="d-intent-v1",
+    )
+    assert fresh_db.record_jev_intent_alignment(phase="baseline", materially_differs=True, **common)
+    assert fresh_db.record_jev_intent_alignment(phase="proposed", materially_differs=False, **common)
+    assert fresh_db.record_jev_intent_alignment(
+        phase="proposed", materially_differs=True, route_mismatch=False, **common
+    )
+    assert fresh_db.record_jev_intent_alignment(
+        phase="proposed",
+        transport="vercel-ai-gateway",
+        model="typesafe-ai/jev",
+        alignment="unavailable",
+        materially_differs=None,
+        questions_version="d-intent-v1",
+    )
+    rows = fresh_db.jev_intent_alignment_stats(1)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["phase"] == "proposed"
+    assert row["judgments"] == 3
+    assert row["measured_differences"] == 2
+    assert row["material_differences"] == 1
+    assert row["material_difference_rate"] == 0.5
+
+
+def test_migration_from_v14_adds_intent_alignment_table(fresh_db):
+    """A v14 database gains the append-only intent-alignment table."""
+    with fresh_db.get_connection() as conn:
+        conn.executescript(fresh_db._SCHEMA.replace(fresh_db._JEV_INTENT_ALIGNMENTS_DDL, ""))
+        conn.execute("DROP TABLE IF EXISTS jev_intent_alignments")
+        conn.execute("PRAGMA user_version = 14")
+        conn.commit()
+    fresh_db._initialized = False
+    fresh_db.init_db()
+    with fresh_db.get_connection() as conn:
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)")}
+    assert version == 16
+    assert {
+        "model",
+        "agent_model",
+        "agent_effort",
+        "agent_runtime",
+        "transport",
+        "materially_differs",
+        "questions_version",
+    } <= columns
+
+
+def test_repairs_preliminary_v15_intent_alignment_schema(fresh_db):
+    """A development-era v15 table gains final receipt columns."""
+    with fresh_db.get_connection() as conn:
+        conn.execute("DROP TABLE IF EXISTS jev_intent_alignments")
+        conn.executescript(fresh_db._JEV_INTENT_ALIGNMENTS_DDL.replace("    questions_version TEXT,\n", ""))
+        conn.execute("PRAGMA user_version = 15")
+        conn.commit()
+    fresh_db._initialized = False
+    fresh_db.init_db()
+    with fresh_db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)")}
+    assert "questions_version" in columns

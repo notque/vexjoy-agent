@@ -21,7 +21,7 @@ Flow, in order:
      force_route match is the final answer; Jev is never consulted. This is
      the safety invariant, enforced structurally: Jev cannot override a
      force-route match because it is never called for one.
-  2. TypeSafe presence check (`jev_router_common.typesafe_available`).
+  2. Jev transport presence check (Vercel Gateway or direct Jev API).
   3. Live manifest membership (`routing-manifest.py --json`, subprocess —
      hyphenated filename, not import-able).
   4. STAGE 1 (one Jev HTTP call): a wide, cheap rank over ALL manifest
@@ -63,14 +63,14 @@ Flow, in order:
      question — see the design reference for why this slot was dropped from
      the Jev call entirely in v2.
 
-Cost model (hard constraint): exactly 2 TypeSafe HTTP round trips per routing
-decision that reaches Jev at all (0 on force-route/unavailable, 1 on
-trivial-bypass, 2 otherwise) — never per-dimension, never proliferating.
+Cost model (hard constraint): classification uses at most 2 Jev evaluations
+(0 on force-route/unavailable, 1 on trivial-bypass, 2
+otherwise), and every /d invocation adds one batched intent-alignment
+evaluation — never one request per question.
 
 Mirrors `pre-route.py`'s CLI shape and JSON-output discipline: exit 0 always,
-JSON to stdout, never raise past `main()`. `urllib.request`/`urllib.error`
-stdlib-only HTTP (no `requests` — a real bug fixed earlier this project, do
-not reintroduce a third-party HTTP dependency).
+JSON to stdout, never raise past `main()`. Jev transport is selected by
+`jev_transport.py`; transport clients own their retry behavior.
 
 Usage:
     python3 scripts/jev-route.py --request "push my changes" --json-compact
@@ -90,8 +90,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -99,10 +97,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-import jev_router_common
+import jev_intent_align
+import jev_transport
 
-TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
-JEV_MODEL = "jev-latest"
+JEV_MODEL = "typesafe-ai/jev"
 
 # Noul signal -> booleans at this threshold (raw scores also reported).
 STACK_SIGNAL_THRESHOLD = 0.6
@@ -615,15 +613,15 @@ def _build_stage2_payload(
     return {"state": _state(request_text, project), "model": JEV_MODEL, "questions": questions}
 
 
-def _call_jev(payload: dict, api_key: str, timeout: float) -> tuple[dict, float]:
-    """POST one Jev call (stage 1 or stage 2). Returns (response_json, latency_ms).
+def _call_jev(payload: dict, timeout: float) -> tuple[dict, float]:
+    """Evaluate one Jev payload through the selected transport.
 
-    Delegates to ``jev_router_common.call_jev`` so the router shares the one
-    choke point: secret redaction before send, and per-script call telemetry.
-    Raises on any failure; the caller catches broadly and never includes the
-    Authorization header or key value in any error message.
+    Both transports redact before sending. Transport failures retain safe
+    receipts; callers still own fail-open routing behavior.
     """
-    return jev_router_common.call_jev(payload, api_key, timeout)
+    started = time.monotonic()
+    data = jev_transport.evaluate(payload.get("state", {}), payload.get("questions", {}), timeout=timeout)
+    return data, (time.monotonic() - started) * 1000.0
 
 
 def _extract_usage(data: dict) -> dict | None:
@@ -719,7 +717,7 @@ def _unavailable_result(reason: str) -> dict:
         jev_called=False,
         matched=False,
         fallback=True,
-        fallback_reason=f"typesafe unavailable: {reason}",
+        fallback_reason=f"Jev unavailable: {reason}",
         agent=None,
         skill=None,
         pipeline=None,
@@ -738,7 +736,7 @@ def _unavailable_result(reason: str) -> dict:
 
 def _error_result(exc: Exception, jev_called: bool, reason_prefix: str) -> dict:
     reason = f"{reason_prefix}: {type(exc).__name__}: {str(exc)[:200]}"
-    return _build_result(
+    result = _build_result(
         available=True,
         jev_called=jev_called,
         matched=False,
@@ -758,6 +756,10 @@ def _error_result(exc: Exception, jev_called: bool, reason_prefix: str) -> dict:
         latency_ms=None,
         usage=None,
     )
+    telemetry = getattr(exc, "telemetry", None)
+    if isinstance(telemetry, dict):
+        result["transport_retry"] = telemetry
+    return result
 
 
 def _trivial_bypass_result(gate_score: float, stage1_shortlist: dict, latency_ms: dict, usage: dict | None) -> dict:
@@ -1001,7 +1003,7 @@ def route(
     ):
         return _force_route_result(pre_route)
 
-    available, reason = jev_router_common.typesafe_available()
+    available, reason = jev_transport.available()
     if not available:
         return _unavailable_result(reason)
 
@@ -1020,11 +1022,9 @@ def route(
     except Exception as exc:
         return _error_result(exc, jev_called=False, reason_prefix="manifest load failed")
 
-    api_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
-
     try:
         stage1_payload = _build_stage1_payload(request_text, agent_criteria, skill_criteria, pipeline_criteria, project)
-        data1, latency1 = _call_jev(stage1_payload, api_key, timeout)
+        data1, latency1 = _call_jev(stage1_payload, timeout)
         stage1 = _parse_stage1(data1, agent_names, skill_names, pipeline_names, shortlist_n)
         usage1 = _extract_usage(data1)
     except Exception as exc:
@@ -1060,7 +1060,7 @@ def route(
             fanout_candidates,
             project,
         )
-        data2, latency2 = _call_jev(stage2_payload, api_key, timeout)
+        data2, latency2 = _call_jev(stage2_payload, timeout)
         decision = _parse_stage2(
             data2,
             stage1["agent_shortlist"],
@@ -1196,6 +1196,29 @@ def main() -> int:
         result = route(
             request_text, args.gate_threshold, args.fits_threshold, args.timeout, project, max(1, args.shortlist)
         )
+        if result.get("fallback") and result.get("source") in {"unavailable", "error"}:
+            # Preserve a hook-time receipt without multiplying a known gateway
+            # outage by another full retry cycle. Runtime /d still validates its
+            # actual PROPOSED_INTENT and fails open if the service remains down.
+            result["intent_alignment"] = {
+                "available": False,
+                "source": jev_transport.select()[0] or "unavailable",
+                "proposed_intent": jev_intent_align.proposed_intent(request_text, result),
+                "alignment": "unavailable",
+                "aligned": False,
+                "clarification_needed": False,
+                "issues": ["baseline intent alignment unavailable because classification transport failed"],
+                "reason": result.get("fallback_reason"),
+                "transport_retry": result.get("transport_retry"),
+                "questions_version": "d-intent-v1",
+            }
+        else:
+            # Validate the hook-owned literal restatement before the model gets
+            # a token; Phase 2 cannot then be skipped by model behavior.
+            candidate = jev_intent_align.proposed_intent(request_text, result)
+            result["intent_alignment"] = jev_intent_align.evaluate_alignment(
+                request_text, result, candidate, args.timeout
+            )
     except Exception as exc:
         import traceback
 

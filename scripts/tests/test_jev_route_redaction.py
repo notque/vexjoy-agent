@@ -1,10 +1,8 @@
-"""jev-route.py must redact the request before it reaches the API (choke point)."""
+"""The /d Vercel transport must redact a request before Node receives it."""
 
 from __future__ import annotations
 
 import importlib.util
-import io
-import json
 import sys
 from pathlib import Path
 from unittest import mock
@@ -18,28 +16,20 @@ spec.loader.exec_module(jev_route)
 FAKE = "ghp_" + "x" * 36
 
 
-class _Resp(io.BytesIO):
-    def __enter__(self):
-        return self
+def test_call_jev_uses_vercel_gateway_and_never_passes_a_direct_api_key():
+    payload = {"state": f"deploy with token {FAKE} now", "model": "typesafe-ai/jev", "questions": {}}
+    sent: dict[str, object] = {}
 
-    def __exit__(self, *a):
-        return False
+    def evaluate(state, questions, *, timeout):
+        sent.update({"state": state, "questions": questions, "timeout": timeout})
+        return {"answers": {}}
 
-
-def test_call_jev_redacts_request_state(capsys):
-    sent = {}
-
-    def fake_urlopen(request, timeout):
-        sent["body"] = request.data.decode()
-        return _Resp(json.dumps({"answers": {}}).encode())
-
-    payload = {"state": f"deploy with token {FAKE} now", "model": "jev-latest", "questions": {}}
-    with mock.patch.object(jev_route.urllib.request, "urlopen", fake_urlopen):
-        jev_route._call_jev(payload, "k", 5)
-    assert FAKE not in sent["body"]
-    assert "<redacted:github:xxxx>" in sent["body"]
-    assert "[jev-redact] 1 value(s)" in capsys.readouterr().err
-    assert FAKE in payload["state"], "caller's payload must not be mutated"
+    with mock.patch.object(jev_route.jev_transport, "evaluate", side_effect=evaluate):
+        result, _ = jev_route._call_jev(payload, 5)
+    assert result == {"answers": {}}
+    assert sent["state"] == payload["state"]
+    assert sent["questions"] == {}
+    assert "api_key" not in sent
 
 
 class TestProjectContext:

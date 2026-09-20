@@ -31,7 +31,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 14
+_CURRENT_SCHEMA_VERSION = 16
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -429,6 +429,35 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
             "VALUES (14, 'add payload_hash, answers_json, cached columns to jev_calls')"
         )
 
+    if current < 15:
+        # v14 -> v15: one privacy-bounded receipt per /d intent-alignment
+        # judgment. Request and proposed-intent text are represented by hashes.
+        conn.executescript(_JEV_INTENT_ALIGNMENTS_DDL)
+        conn.execute("PRAGMA user_version = 15")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (15, 'add Jev intent-alignment telemetry')"
+        )
+
+    if current < 16:
+        conn.execute("PRAGMA user_version = 16")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (16, 'add executing agent model and effort to intent alignment telemetry')"
+        )
+
+    # Reconcile development-era v15 databases whose table predates the final
+    # receipt shape. CREATE TABLE IF NOT EXISTS cannot add missing columns.
+    intent_columns = {row[1] for row in conn.execute("PRAGMA table_info(jev_intent_alignments)").fetchall()}
+    for column, sql_type in (
+        ("questions_version", "TEXT"),
+        ("agent_model", "TEXT"),
+        ("agent_effort", "TEXT"),
+        ("agent_runtime", "TEXT"),
+    ):
+        if column not in intent_columns:
+            conn.execute(f"ALTER TABLE jev_intent_alignments ADD COLUMN {column} {sql_type}")
+
     conn.commit()
 
 
@@ -675,6 +704,32 @@ CREATE INDEX IF NOT EXISTS idx_jev_calls_script_ts ON jev_calls(script, ts);
 CREATE INDEX IF NOT EXISTS idx_jev_calls_payload_hash ON jev_calls(payload_hash);
 """
 
+_JEV_INTENT_ALIGNMENTS_DDL = """
+CREATE TABLE IF NOT EXISTS jev_intent_alignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    session_id TEXT,
+    phase TEXT NOT NULL,
+    transport TEXT NOT NULL,
+    model TEXT,
+    agent_model TEXT,
+    agent_effort TEXT,
+    agent_runtime TEXT,
+    alignment TEXT NOT NULL,
+    materially_differs INTEGER,
+    route_mismatch INTEGER,
+    clarification_needed INTEGER,
+    questions_version TEXT,
+    issues_json TEXT,
+    scores_json TEXT,
+    request_hash TEXT,
+    proposed_intent_hash TEXT,
+    latency_ms REAL
+);
+CREATE INDEX IF NOT EXISTS idx_jev_intent_alignment_ts ON jev_intent_alignments(ts);
+CREATE INDEX IF NOT EXISTS idx_jev_intent_alignment_model ON jev_intent_alignments(model, transport);
+"""
+
 _HARNESS_RUNS_DDL = """
 CREATE TABLE IF NOT EXISTS harness_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -897,6 +952,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     + _EVIDENCE_DDL
     + _COMPACTION_DDL
     + _JEV_CALLS_DDL
+    + _JEV_INTENT_ALIGNMENTS_DDL
     + _HARNESS_RUNS_DDL
 )
 
@@ -1311,6 +1367,91 @@ def record_jev_call(
         return True
     except Exception:
         return False
+
+
+def record_jev_intent_alignment(
+    *,
+    phase: str,
+    transport: str,
+    alignment: str,
+    model: str | None = None,
+    agent_model: str | None = None,
+    agent_effort: str | None = None,
+    agent_runtime: str | None = None,
+    materially_differs: bool | None = None,
+    route_mismatch: bool | None = None,
+    clarification_needed: bool | None = None,
+    questions_version: str | None = None,
+    issues: list[str] | None = None,
+    scores: dict[str, float] | None = None,
+    request_hash: str | None = None,
+    proposed_intent_hash: str | None = None,
+    latency_ms: float | None = None,
+    session_id: str | None = None,
+    ts: str | None = None,
+) -> bool:
+    """Record one privacy-bounded /d intent-alignment judgment; never raises."""
+    try:
+        init_db()
+        issues_json = json.dumps(issues or [], separators=(",", ":"))[:4000]
+        scores_json = json.dumps(scores or {}, sort_keys=True, separators=(",", ":"))[:8000]
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO jev_intent_alignments "
+                "(ts, session_id, phase, transport, model, agent_model, agent_effort, agent_runtime, alignment, materially_differs, route_mismatch, "
+                "clarification_needed, questions_version, issues_json, scores_json, request_hash, proposed_intent_hash, latency_ms) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    ts or _now_iso(),
+                    _bounded_text(session_id, 160),
+                    _bounded_text(phase, 20) or "unknown",
+                    _bounded_text(transport, 80) or "unknown",
+                    _bounded_text(model, 160),
+                    _bounded_text(agent_model, 160),
+                    _bounded_text(agent_effort, 40),
+                    _bounded_text(agent_runtime, 40),
+                    _bounded_text(alignment, 40) or "unknown",
+                    None if materially_differs is None else (1 if materially_differs else 0),
+                    None if route_mismatch is None else (1 if route_mismatch else 0),
+                    None if clarification_needed is None else (1 if clarification_needed else 0),
+                    _bounded_text(questions_version, 80),
+                    issues_json,
+                    scores_json,
+                    _bounded_text(request_hash, 64),
+                    _bounded_text(proposed_intent_hash, 64),
+                    _opt_float(latency_ms),
+                ),
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+def jev_intent_alignment_stats(days: float = 30.0) -> list[dict]:
+    """Aggregate alignment and material-difference rates by model and transport."""
+    init_db()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT model, agent_model, agent_effort, agent_runtime, transport, phase, COUNT(*) AS judgments, "
+            "SUM(CASE WHEN materially_differs = 1 THEN 1 ELSE 0 END) AS material_differences, "
+            "SUM(CASE WHEN route_mismatch = 1 THEN 1 ELSE 0 END) AS route_mismatches, "
+            "SUM(CASE WHEN clarification_needed = 1 THEN 1 ELSE 0 END) AS clarifications, "
+            "SUM(CASE WHEN alignment = 'review' THEN 1 ELSE 0 END) AS reviews, "
+            "SUM(CASE WHEN alignment IN ('error', 'unavailable') THEN 1 ELSE 0 END) AS unavailable, "
+            "COUNT(materially_differs) AS measured_differences, "
+            "AVG(latency_ms) AS avg_latency_ms "
+            "FROM jev_intent_alignments WHERE phase = 'proposed' AND ts >= datetime('now', ?) "
+            "GROUP BY model, agent_model, agent_effort, agent_runtime, transport, phase ORDER BY judgments DESC",
+            (f"-{int(days * 86400)} seconds",),
+        ).fetchall()
+    results = []
+    for row in rows:
+        item = dict(row)
+        measured = item["measured_differences"]
+        item["material_difference_rate"] = item["material_differences"] / measured if measured > 0 else None
+        results.append(item)
+    return results
 
 
 def record_harness_run(

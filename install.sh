@@ -1494,6 +1494,11 @@ sync_mirror_entry() {
         else
             if [ -d "$source" ]; then
                 cp -r "$source" "$target"
+                # Gateway packages are installed from the target lockfile below.
+                # Do not duplicate a developer checkout's node_modules tree.
+                if [ "$name" = "scripts" ]; then
+                    rm -rf "$target/jev_gateway/node_modules"
+                fi
             else
                 cp "$source" "$target"
             fi
@@ -2753,6 +2758,35 @@ else
     else
         echo -e "${YELLOW}  ⚠ Could not auto-install Python dependencies${NC}"
         print_manual_pip_command "$USE_BREAK_SYSTEM_PACKAGES"
+    fi
+fi
+
+# Install isolated Vercel Jev dependencies in the repository and every real
+# copy-mode scripts mirror. Symlink mirrors share the repository install.
+echo ""
+echo -e "${YELLOW}Installing Vercel Jev gateway dependencies...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would run: npm ci --ignore-scripts in each installed scripts/jev_gateway${NC}"
+elif ! command -v npm &> /dev/null; then
+    echo -e "${YELLOW}  ⚠ npm is unavailable; /d will report Vercel Jev unavailable until npm is installed${NC}"
+else
+    NODE_MAJOR=$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)
+    if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 22 ]; then
+        echo -e "${YELLOW}  ⚠ Vercel Jev gateway requires Node 22+; /d will fail open to /do${NC}"
+    else
+        for scripts_dir in "${SCRIPT_DIR}/scripts" "$CLAUDE_DIR/scripts" "$CODEX_SCRIPTS_DIR" "$FACTORY_SCRIPTS_DIR" "$HERMES_SCRIPTS_DIR" "$REASONIX_SCRIPTS_DIR"; do
+            [ -d "$scripts_dir" ] || continue
+            [ -L "$scripts_dir" ] && continue
+            JEV_GATEWAY_DIR="$scripts_dir/jev_gateway"
+            [ -d "$JEV_GATEWAY_DIR" ] || continue
+            if [ ! -f "$JEV_GATEWAY_DIR/package-lock.json" ]; then
+                echo -e "${YELLOW}  ⚠ Missing gateway lockfile in ${JEV_GATEWAY_DIR}; this runtime will fail open to /do${NC}"
+            elif (cd "$JEV_GATEWAY_DIR" && npm ci --ignore-scripts --no-audit --no-fund); then
+                echo -e "${GREEN}  ✓ Gateway dependencies installed in ${JEV_GATEWAY_DIR}${NC}"
+            else
+                echo -e "${YELLOW}  ⚠ Could not install gateway dependencies in ${JEV_GATEWAY_DIR}; this runtime will fail open to /do${NC}"
+            fi
+        done
     fi
 fi
 

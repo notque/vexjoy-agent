@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 domain agents, 59 workflow skills, 78 hooks, 154 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
+43 domain agents, 59 workflow skills, 78 hooks, 159 scripts. Agents carry knowledge, skills enforce methodology, hooks block incomplete work, scripts handle determinism.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -43,12 +43,48 @@ The router pairs a Go agent with a debugging skill, then follows the task throug
 
 ## /d — Jev-Powered Router
 
-`/d` routes requests through [TypeSafe's Jev](https://docs.typesafe.ai) classifier. One API call picks the agent, skill, and pipeline — no manifest read into context. Requires Jev; use `/do` if TypeSafe is not configured.
+`/d` requires [TypeSafe's Jev](https://docs.typesafe.ai). Jev classifies the
+request, checks that the selected route preserves the requested outcome, and
+then dispatches the agent, skill, and pipeline.
 
-**Setup:** install the `typesafe` MCP plugin and set `TYPESAFE_API_KEY` in your environment.
+Intent preservation is production behavior: `/d` restates the requested
+outcome and gates dispatch on a Jev receipt for that exact proposed intent,
+preventing an agent from quietly expanding an apple into an orchard.
+
+Choose either transport:
+
+```bash
+# Preferred: Jev through Vercel AI Gateway
+export JEV_TRANSPORT=vercel
+export AI_GATEWAY_API_KEY=...
+
+# Alternative: Jev's direct API
+export JEV_TRANSPORT=direct
+export TYPESAFE_API_KEY=...
+```
+
+`JEV_TRANSPORT=auto` is the default. It prefers Vercel when
+`AI_GATEWAY_API_KEY` is set, then uses the direct API when only
+`TYPESAFE_API_KEY` is set. An explicit transport never silently switches to
+the other one. The TypeSafe MCP plugin is not required for `/d`.
+
+Intent-alignment judgments are recorded in `learning.db` without raw request
+text. Receipts keep the Jev judge model separate from the executing agent's
+configured model and effort level. View proposed-intent difference rates by
+agent profile, judge model, and transport:
+
+```bash
+python3 scripts/jev-intent-stats.py --days 30
+```
+
+Example:
 
 ```
 > /d fix the flaky test in the payments module
+
+  Intent alignment (/d):
+    -> Restated outcome: Fix the flaky payments test without changing unrelated behavior.
+    -> Jev: aligned
 
   ROUTING (/d): testing-automation-engineer + testing-preferred-patterns
   Source: jev (confidence: medium)
@@ -145,7 +181,7 @@ Mirrors agents (as "droids"), skills, and all78 hooks into `~/.factory/`. Hook c
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 154 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
+Mirrors skills, 159 scripts, and the allowlisted 78 hooks (`scripts/reasonix-hooks-allowlist.txt`) into `~/.reasonix/` (no agent or custom-command surface, so neither is installed; the `/do` router rides in as a skill). Reasonix fires only 4 events (PreToolUse, PostToolUse, UserPromptSubmit, Stop), so only hooks for those events are allowlisted. Hook config is written to the `hooks` key of `~/.reasonix/settings.json` in Reasonix's native flat shape (one entry per hook, `match` regex over the tool name); the generator builds absolute `python3` commands, so no path rewrite is applied. MCP/model/permissions in `~/.reasonix/config.json` are user-owned and left untouched.
 
 </details>
 
@@ -171,7 +207,7 @@ Strips built-in tool-use instructions. The toolkit's agents, skills,78 hooks, an
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 59 | Phased methodology with gates. Can't skip steps. Each phase has exit criteria requiring evidence. |
 | Hooks | 78 | Fire on lifecycle events. Block incomplete work. Zero LLM cost. |
-| Scripts | 154 | Determinism: test runners, linters, validators. No LLM judgment. |
+| Scripts | 159 | Determinism: test runners, linters, validators. No LLM judgment. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -212,7 +248,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines:
 ## Philosophy
 
 - **Zero-expertise operation.** Say what you want. The system classifies, dispatches, enforces, delivers.
-- **LLMs orchestrate, programs execute.** Deterministic work belongs to 154 scripts. LLM judgment handles design decisions, diagnosis, review.
+- **LLMs orchestrate, programs execute.** Deterministic work belongs to 159 scripts. LLM judgment handles design decisions, diagnosis, review.
 - **Density.** Every word carries instruction, rule, or decision. Cut everything else.
 - **Breadth over depth.** Right context ensures correctness. Unfocused context adds cost.
 - **Structural enforcement.** Exit codes enforce what instructions can't. Quality gates are automated, not advisory.
@@ -226,7 +262,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses 154 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses agents; repeatable plumbing uses 159 scripts.
 
 | Need | Use |
 |---|---|

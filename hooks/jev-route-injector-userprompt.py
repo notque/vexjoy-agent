@@ -45,7 +45,7 @@ EVENT_NAME = "UserPromptSubmit"
 # "/d\n<request>". \b after "d" prevents matching "/do" or "/design" etc.
 DETECT_PATTERN = re.compile(r"^\s*/d\b\s*", re.IGNORECASE)
 
-JEV_ROUTE_TIMEOUT_SECONDS = 20  # per-script timeout for route
+JEV_ROUTE_TIMEOUT_SECONDS = 22  # covers one bounded 3-attempt gateway failure
 
 
 def extract_prompt(event: dict) -> str:
@@ -104,6 +104,8 @@ def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dic
                 "--request",
                 request_text,
                 "--json-compact",
+                "--timeout",
+                "6",
                 *(["--cwd", cwd] if cwd else []),
             ],
             capture_output=True,

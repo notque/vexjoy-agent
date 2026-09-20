@@ -36,14 +36,18 @@ def _run_install(
     fake_home: Path,
     args: tuple[str, ...] = ("--copy", "--force"),
     *,
+    install_sh: Path = INSTALL_SH,
     profile: Path | None = None,
     stdin: str | None = None,
+    extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
     env = {**os.environ, "HOME": str(fake_home), "TERM": "dumb"}
     if profile is not None:
         env["VEXJOY_INSTALL_PROFILE"] = str(profile)
+    if extra_env is not None:
+        env.update(extra_env)
     return subprocess.run(
-        ["bash", str(INSTALL_SH), *args],
+        ["bash", str(install_sh), *args],
         env=env,
         input=stdin,
         capture_output=True,
@@ -117,6 +121,118 @@ def fake_home(tmp_path: Path) -> Path:
     home = tmp_path / "home"
     home.mkdir()
     return home
+
+
+def _fake_npm(tmp_path: Path) -> tuple[Path, Path]:
+    """Return a PATH prefix with a network-free npm that records clean installs."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    npm_log = tmp_path / "npm.log"
+    npm = fake_bin / "npm"
+    npm.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -eu\n"
+        'printf \'%s|%s\\n\' "$PWD" "$*" >> "$FAKE_NPM_LOG"\n'
+        'rm -rf "$PWD/node_modules"\n'
+        'mkdir -p "$PWD/node_modules"\n'
+        'touch "$PWD/node_modules/.installed-by-test"\n',
+        encoding="utf-8",
+    )
+    npm.chmod(0o755)
+    return fake_bin, npm_log
+
+
+def _isolated_source(tmp_path: Path) -> Path:
+    """Copy tracked installer inputs without local private/untracked state."""
+    source = tmp_path / "source"
+    source.mkdir()
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout.split(b"\0")
+    for raw_path in tracked:
+        if not raw_path:
+            continue
+        relative = Path(os.fsdecode(raw_path))
+        original = REPO_ROOT / relative
+        if not original.is_file() or "node_modules" in relative.parts:
+            continue
+        target = source / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(original, target)
+    return source
+
+
+def _gateway_install_dirs(npm_log: Path) -> set[Path]:
+    lines = npm_log.read_text(encoding="utf-8").splitlines()
+    expected_args = "ci --ignore-scripts --no-audit --no-fund"
+    assert lines
+    assert all(line.endswith(f"|{expected_args}") for line in lines)
+    return {Path(line.split("|", 1)[0]) for line in lines}
+
+
+def test_copy_mode_installs_gateway_in_repository_and_each_runtime_copy(
+    fake_home: Path,
+    tmp_path: Path,
+) -> None:
+    """Every real scripts copy gets an isolated, lockfile-backed npm install."""
+    for runtime in RUNTIMES:
+        (fake_home / f".{runtime}").mkdir()
+    source = _isolated_source(tmp_path)
+    fake_bin, npm_log = _fake_npm(tmp_path)
+
+    result = _run_install(
+        fake_home,
+        install_sh=source / "install.sh",
+        extra_env={
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            "FAKE_NPM_LOG": str(npm_log),
+        },
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+
+    expected = {source / "scripts/jev_gateway"}
+    expected.update(fake_home / f".{runtime}/scripts/jev_gateway" for runtime in ALL_RUNTIMES)
+    assert _gateway_install_dirs(npm_log) == expected
+    for gateway_dir in expected:
+        assert (gateway_dir / "package-lock.json").is_file()
+        assert (gateway_dir / "node_modules/.installed-by-test").is_file()
+
+
+def test_symlink_mode_installs_gateway_once_and_runtime_links_share_it(
+    fake_home: Path,
+    tmp_path: Path,
+) -> None:
+    """Symlink mirrors do not repeat npm ci against the same repository tree."""
+    for runtime in RUNTIMES:
+        (fake_home / f".{runtime}").mkdir()
+    # Force the installer's conflict prompt into whole-directory replacement
+    # mode; otherwise skills use the independent per-item layout path.
+    existing_skills = fake_home / ".claude/skills"
+    existing_skills.mkdir(parents=True)
+    (existing_skills / "external-skill").mkdir()
+    source = _isolated_source(tmp_path)
+    fake_bin, npm_log = _fake_npm(tmp_path)
+
+    result = _run_install(
+        fake_home,
+        ("--symlink", "--force"),
+        install_sh=source / "install.sh",
+        extra_env={
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            "FAKE_NPM_LOG": str(npm_log),
+        },
+        stdin="2\n",
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert _gateway_install_dirs(npm_log) == {source / "scripts/jev_gateway"}
+
+    for runtime in ALL_RUNTIMES:
+        scripts_dir = fake_home / f".{runtime}/scripts"
+        assert scripts_dir.is_symlink(), runtime
+        assert (scripts_dir / "jev_gateway/node_modules/.installed-by-test").is_file(), runtime
 
 
 def test_clean_home_skips_absent_runtimes(fake_home: Path) -> None:
