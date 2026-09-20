@@ -44,8 +44,8 @@ Checks *framing*, not *topic* or *voice*. The writing workflow owns voice fideli
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| tasks related to this reference | `instruction-rubric.md` | Loads detailed guidance from `instruction-rubric.md`. |
-| tasks related to this reference | `writing-rubric.md` | Loads detailed guidance from `writing-rubric.md`. |
+| Scoring agents, skills, pipelines, or toolkit documentation | `references/instruction-rubric.md` | Positive-framing patterns, scoring, and examples. |
+| Scoring articles, emails, posts, or other human-facing prose | `references/writing-rubric.md` | Joy-grievance patterns, scoring, and examples. |
 
 ## Instructions
 
