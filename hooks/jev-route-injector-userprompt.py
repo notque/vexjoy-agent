@@ -134,7 +134,11 @@ def build_injection(jev_result: dict) -> str:
     return (
         "[jev-route-injector] JEV_RESULT precomputed by this hook before your first token this "
         "turn -- do NOT run scripts/jev-route.py again for this request; skills/meta/d/SKILL.md "
-        f"Phase 1 gates on this being present. JEV_RESULT = {json.dumps(jev_result)}"
+        "Phase 1 gates on this being present. The carried JEV_RESULT.intent_alignment is the "
+        "Phase-1 baseline receipt (JEV_RESULT.intent_alignment) ONLY; it does NOT satisfy Phase 2. "
+        "You MUST still write PROPOSED_INTENT and run scripts/jev-intent-align.py on that text "
+        "before any routing banner or dispatch. JEV_RESULT = "
+        f"{json.dumps(jev_result)}"
     )
 
 
