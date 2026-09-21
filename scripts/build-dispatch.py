@@ -75,7 +75,7 @@ Exit codes:
     0 — preamble printed to stdout
     2 — invalid input (message on stderr, nothing on stdout)
 
-Stdlib only. Deterministic: same input, same output, byte for byte.
+Non-router callers are deterministic. Router handoffs require a fresh Jev intent check.
 """
 
 from __future__ import annotations
@@ -137,7 +137,7 @@ THINKING_SLOW = "Think carefully and step-by-step before responding; this proble
 WORKTREE_RULES = (
     "Worktree rules: Use the assigned worktree; verify its Git registration, top-level, and feature branch before edits. "
     "Follow skills/meta/do/references/worktree-rules.md. "
-    "Skip task_plan.md. Stage specific files only."
+    "Use the router-owned task_plan.md; do not create a competing worker plan. Stage specific files only."
 )
 
 # Injection template from skills/shared-patterns/local-only.md.
@@ -241,6 +241,7 @@ _TASK_SPEC_FIELDS = (
     ("ownership", "File ownership"),
     ("decisions", "Decisions"),
     ("prior_results", "Prior results"),
+    ("prior_context", "Prior user messages (verbatim)"),
     ("gaps", "Gaps"),
     ("operator_context", "Operator context"),
 )
@@ -723,7 +724,8 @@ def build_task_spec(decision: dict) -> str:
         value = spec.get(key)
         if value is None or not str(value).strip():
             continue
-        lines.append(f"**{label}:** {str(value).strip()}")
+        rendered = str(value) if key == "request_verbatim" else str(value).strip()
+        lines.append(f"**{label}:** {rendered}")
     if not lines:
         complexity = str(decision.get("complexity") or "").lower()
         if complexity in _TASK_SPEC_REQUIRED_COMPLEXITY:
@@ -1030,7 +1032,81 @@ def build_preamble(
         WORKTREE_RULES if flags.get("worktree") else "",
         LOCAL_ONLY_BLOCK if flags.get("local_only") else "",
     ]
-    return "\n\n".join(block for block in blocks if block) + "\n"
+    receipt = _router_check(decision, repo_root)
+    if receipt is not None:
+        blocks.insert(0, "Intent alignment: " + json.dumps(receipt, sort_keys=True))
+    output = "\n\n".join(block for block in blocks if block) + "\n"
+    if receipt is not None:
+        gate = _router_module()
+        try:
+            gate.authorize_dispatch(
+                gate.session_id(),
+                decision["task_spec"]["request_verbatim"],
+                output,
+                expected_generation=receipt.get("_router_generation"),
+            )
+        except gate.RouterGateError as exc:
+            raise InputError(str(exc)) from exc
+    return output
+
+
+def _router_module():
+    scripts_dir = str(Path(__file__).resolve().parent)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import router_gate
+
+    return router_gate
+
+
+def _router_check(decision: dict, repo_root: Path, *, direct: bool = False):
+    gate = _router_module()
+    try:
+        active = decision.get("router") is not None or gate.get_required_router(gate.session_id()) is not None
+        if active and not direct:
+            known = load_known_agents()
+            if not known or decision.get("agent") not in known:
+                raise InputError("router agent must be in the live manifest; silent fallback is forbidden")
+            if resolve_agent(decision)[0] != decision.get("agent"):
+                raise InputError("router agent must exactly match the validated dispatch agent")
+            known_skills, known_pipelines = load_known_skills(), load_known_pipelines()
+            for name in decision.get("agents", []):
+                if name not in known:
+                    raise InputError(f"router composition agent {name!r} is not in the live manifest")
+            for name in decision.get("skills", []):
+                if name not in known_skills:
+                    raise InputError(f"router composition skill {name!r} is not in the live manifest")
+            if decision.get("pipeline") and decision["pipeline"] not in known_pipelines:
+                raise InputError("router pipeline must exactly match a live manifest pipeline")
+        return gate.validate_router_handoff(decision, repo_root, direct=direct)
+    except gate.RouterGateError as exc:
+        raise InputError(str(exc)) from exc
+
+
+def _router_complete(decision: dict, receipt: dict) -> None:
+    gate = _router_module()
+    spec = decision["task_spec"]
+    route = {key: decision.get(key) for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning")}
+    try:
+        gate.mark_validated(
+            gate.session_id(),
+            spec["request_verbatim"],
+            spec["intent"],
+            route,
+            expected_generation=receipt.get("_router_generation"),
+        )
+    except gate.RouterGateError as exc:
+        raise InputError(str(exc)) from exc
+
+
+def finalize_router(decision: dict, repo_root: Path | None = None) -> str:
+    if not isinstance(decision, dict):
+        raise InputError("routing decision must be a JSON object")
+    repo_root = repo_root or default_repo_root()
+    validate_spec_paths(decision, repo_root)
+    receipt = _router_check(decision, repo_root, direct=True)
+    _router_complete(decision, receipt)
+    return json.dumps({"router_finalized": True, "intent_alignment": receipt}, sort_keys=True) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1038,6 +1114,11 @@ def main(argv: list[str] | None = None) -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--json", help="Routing decision as a JSON string")
     source.add_argument("--json-file", help="Path to a routing-decision JSON file ('-' = stdin)")
+    parser.add_argument(
+        "--router-finalize",
+        action="store_true",
+        help="Validate a trivial router completion without emitting a dispatch",
+    )
     parser.add_argument("--no-gather", action="store_true", help="Skip the '## Repo state (auto-gathered)' block")
     parser.add_argument(
         "--repo-root",
@@ -1063,7 +1144,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
+        if args.router_finalize:
+            sys.stdout.write(finalize_router(decision, repo_root=args.repo_root))
+        else:
+            sys.stdout.write(build_preamble(decision, gather=not args.no_gather, repo_root=args.repo_root))
     except InputError as exc:
         print(f"build-dispatch: {exc}", file=sys.stderr)
         return 2

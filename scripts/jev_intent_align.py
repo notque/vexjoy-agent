@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -54,7 +55,9 @@ def _noul(question: str, *paths: str) -> dict[str, Any]:
     return {"type": "noul", "instructions": {"question": question, "inspect": list(paths)}}
 
 
-def build_payload(request: str, intent: str, route: dict[str, Any]) -> dict[str, Any]:
+def build_payload(
+    request: str, intent: str, route: dict[str, Any], prior_context: list[str] | None = None
+) -> dict[str, Any]:
     """Build one evidence state and all independent validation questions."""
     route_state = {key: route.get(key) for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning")}
     route_state["validation_context"] = (
@@ -108,6 +111,16 @@ def build_payload(request: str, intent: str, route: dict[str, Any]) -> dict[str,
             "selected_route",
         ),
     }
+    if prior_context:
+        state["prior_user_messages"] = prior_context
+        for question in questions.values():
+            instructions = question["instructions"]
+            instructions["question"] = (
+                "Interpret user_request using prior_user_messages only for references and still-active "
+                "requested scope or constraints; the latest user_request overrides earlier messages. "
+                + instructions["question"]
+            )
+            instructions["inspect"].append("prior_user_messages")
     return {"state": state, "questions": questions}
 
 
@@ -129,7 +142,9 @@ def _complete_answers(answers: Any, keys: Any) -> bool:
         if not isinstance(answer, dict) or isinstance(answer.get("noul"), bool):
             return False
         try:
-            float(answer["noul"])
+            value = float(answer["noul"])
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                return False
         except (KeyError, TypeError, ValueError):
             return False
     return True
@@ -227,10 +242,11 @@ def _finish_receipt(
         "reason": None,
     }
     normalized.update(result)
+    normalized["phase"] = phase
     result = normalized
     if _record_intent_alignment is None:
         return result
-    scores = result.get("scores") if isinstance(result.get("scores"), dict) else None
+    scores = result.get("scores") if isinstance(result.get("scores"), dict) and result["scores"] else None
     materially_differs = None
     route_mismatch = None
     if scores is not None:
@@ -266,10 +282,40 @@ def _finish_receipt(
     return result
 
 
+def validate_prior_context(prior_context: list[str] | None) -> None:
+    """Share the context shape contract between dispatch and standalone checks."""
+    if prior_context is not None and (
+        not isinstance(prior_context, list)
+        or len(prior_context) > 8
+        or not all(isinstance(message, str) and message.strip() for message in prior_context)
+    ):
+        raise ValueError("prior_context must contain at most 8 nonempty verbatim user messages")
+
+
+def alignment_budget_error(request: str, intent: str, prior_context: list[str] | None) -> str | None:
+    """One input budget applies to both first requests and their continuations."""
+    validate_prior_context(prior_context)
+    total = len(request) + len(intent) + sum(len(message) for message in (prior_context or []))
+    if total > MAX_ALIGNMENT_STATE_CHARS:
+        return (
+            f"Intent input exceeds the {MAX_ALIGNMENT_STATE_CHARS}-character combined request, intent and "
+            "prior_context budget. Do not truncate the required original request. Start a fresh /d or /do "
+            "request restating the full active outcome and constraints within this budget, then validate it again."
+        )
+    return None
+
+
 def evaluate_alignment(
-    request: str, route: dict[str, Any], intent: str | None, timeout: float = DEFAULT_TIMEOUT
+    request: str,
+    route: dict[str, Any],
+    intent: str | None,
+    timeout: float = DEFAULT_TIMEOUT,
+    *,
+    prior_context: list[str] | None = None,
 ) -> dict[str, Any]:
     """Evaluate candidate intent through the selected Jev transport."""
+    validate_prior_context(prior_context)
+    questions_version = "d-intent-v1-context-v1" if prior_context else "d-intent-v1"
     phase = "proposed" if isinstance(intent, str) and intent.strip() else "baseline"
     candidate = intent if isinstance(intent, str) and intent.strip() else proposed_intent(request, route)
     transport, transport_reason = jev_transport.select()
@@ -282,13 +328,14 @@ def evaluate_alignment(
                 "proposed_intent": candidate,
                 "reason": transport_reason,
                 "alignment": "unavailable",
-                "questions_version": "d-intent-v1",
+                "questions_version": questions_version,
             },
             request=request,
             candidate=candidate,
             phase=phase,
         )
-    if len(request) + len(candidate) > MAX_ALIGNMENT_STATE_CHARS:
+    budget_error = alignment_budget_error(request, candidate, prior_context)
+    if budget_error:
         return _finish_receipt(
             {
                 "available": True,
@@ -297,15 +344,15 @@ def evaluate_alignment(
                 "alignment": "error",
                 "aligned": False,
                 "clarification_needed": False,
-                "issues": ["intent-alignment state exceeds the safe request budget"],
-                "reason": "intent-alignment state exceeds the safe request budget",
-                "questions_version": "d-intent-v1",
+                "issues": [budget_error],
+                "reason": budget_error,
+                "questions_version": questions_version,
             },
             request=request,
             candidate=candidate,
             phase=phase,
         )
-    payload = build_payload(request, candidate, route)
+    payload = build_payload(request, candidate, route, prior_context)
     started = time.monotonic()
     try:
         data = jev_transport.evaluate(payload["state"], payload["questions"], timeout=timeout)
@@ -318,7 +365,7 @@ def evaluate_alignment(
                 "alignment": "error",
                 "reason": str(exc)[:300],
                 "transport_retry": exc.telemetry,
-                "questions_version": "d-intent-v1",
+                "questions_version": questions_version,
             },
             request=request,
             candidate=candidate,
@@ -337,7 +384,7 @@ def evaluate_alignment(
                 "clarification_needed": False,
                 "issues": ["Jev returned an incomplete intent-alignment response"],
                 "reason": "incomplete intent-alignment response",
-                "questions_version": "d-intent-v1",
+                "questions_version": questions_version,
                 "latency_ms": round((time.monotonic() - started) * 1000, 2),
                 "usage": data.get("usage") if isinstance(data, dict) else None,
                 "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,
@@ -394,7 +441,7 @@ def evaluate_alignment(
         "clarification_needed": clarification,
         "issues": issues,
         "scores": scores,
-        "questions_version": "d-intent-v1",
+        "questions_version": questions_version,
         "latency_ms": round((time.monotonic() - started) * 1000, 2),
         "usage": data.get("usage") if isinstance(data, dict) else None,
         "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,
@@ -412,6 +459,7 @@ def main() -> int:
     route_group.add_argument("--route-file", help="File containing JSON from jev-route.py")
     parser.add_argument("--proposed-intent", default=None)
     parser.add_argument("--proposed-intent-file", default=None)
+    parser.add_argument("--prior-context-file", help="JSON array of up to eight verbatim prior user messages")
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--json-compact", action="store_true")
     args = parser.parse_args()
@@ -426,7 +474,10 @@ def main() -> int:
             if args.proposed_intent_file
             else args.proposed_intent
         )
-        result = evaluate_alignment(request or "", route, intent, args.timeout)
+        prior_context = (
+            json.loads(Path(args.prior_context_file).read_text(encoding="utf-8")) if args.prior_context_file else None
+        )
+        result = evaluate_alignment(request or "", route, intent, args.timeout, prior_context=prior_context)
     except Exception as exc:
         result = _finish_receipt(
             {

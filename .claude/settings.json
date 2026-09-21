@@ -383,6 +383,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/router-required-gate.py\"",
+            "description": "Require router intent validation before native dispatch or completion",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "type": "command",
@@ -797,6 +808,16 @@
       }
     ],
     "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/router-required-gate.py\"",
+            "description": "Require router intent validation before native dispatch or completion",
+            "timeout": 5000
+          }
+        ]
+      },
       {
         "hooks": [
           {

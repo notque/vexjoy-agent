@@ -70,6 +70,9 @@ MODE_EVENTS = {
 # production code makes unsupported coverage machine-readable and forces every
 # Claude registration to have a precise reviewed decision.
 UNSUPPORTED_REGISTRATIONS = {
+    ("PreToolUse", "router-required-gate.py"): (
+        "Codex does not publish native Agent or Task dispatch through PreToolUse; builder and Stop checks remain enforced."
+    ),
     ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"): (
         "Drains advisories deferred by Claude Stop hooks; Codex Stop hooks report inline, so there is no queue to drain."
     ),

@@ -227,3 +227,43 @@ def test_unrequested_work_is_corrected_without_false_clarification(monkeypatch: 
     assert result["clarification_needed"] is False
     assert "proposed intent adds unrequested work" in result["issues"]
     assert "essential clarification is needed" not in result["issues"]
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf"), -0.1, 1.1, True])
+def test_malformed_probability_never_approves(monkeypatch, invalid):
+    monkeypatch.setattr(align.jev_transport, "select", lambda: (align.jev_transport.DIRECT, ""))
+    answers = {key: {"noul": 0.9} for key in align.build_payload("r", "i", _route())["questions"]}
+    answers["intent_preserves_requested_outcome"] = {"noul": invalid}
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_args, **_kwargs: {"answers": answers})
+    result = align.evaluate_alignment("r", _route(), "i")
+    assert result["alignment"] == "error"
+    assert result["aligned"] is False
+
+
+def test_receipt_phase_distinguishes_actual_from_baseline(monkeypatch):
+    monkeypatch.setattr(align.jev_transport, "select", lambda: (None, "offline"))
+    assert align.evaluate_alignment("r", _route(), None)["phase"] == "baseline"
+    assert align.evaluate_alignment("r", _route(), "actual proposed intent")["phase"] == "proposed"
+
+
+@pytest.mark.parametrize("context", ["not-a-list", [""], [None], ["x"] * 9])
+def test_prior_context_bounds(context):
+    with pytest.raises(ValueError, match="prior_context"):
+        align.evaluate_alignment("r", _route(), "i", prior_context=context)
+
+
+def test_prior_context_is_labeled_evidence_without_changing_latest_request():
+    context = ["Make intent checks mandatory and keep all routing phases."]
+    payload = align.build_payload("fix it", "Restore mandatory intent checks and routing phases.", _route(), context)
+    assert payload["state"]["user_request"] == "fix it"
+    assert payload["state"]["prior_user_messages"] == context
+    assert all("prior_user_messages" in head["instructions"]["inspect"] for head in payload["questions"].values())
+
+
+def test_prior_context_uses_shared_total_budget_and_explicit_restart_diagnostic(monkeypatch):
+    assert align.alignment_budget_error("yes proceed", "Preserve intent checks.", ["/d " + "x" * 16000]) is None
+    monkeypatch.setattr(align.jev_transport, "select", lambda: (align.jev_transport.DIRECT, ""))
+    result = align.evaluate_alignment("r" * 90000, _route(), "i", prior_context=["/d " + "x" * 100000])
+    assert result["alignment"] == "error"
+    assert "Start a fresh /d or /do" in result["reason"]
+    assert "Do not truncate" in result["reason"]

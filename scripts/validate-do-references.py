@@ -12,13 +12,12 @@ shared-patterns directory.
 
 Scoped regions (anchor -> end anchor; a missing anchor is an error so file
 restructuring cannot silently drop coverage):
-  1. Combination doctrine + Step 0b (composition rules, skill-greediness verb
-     map, fallback clause). The doctrine names components and sits outside the
-     fenced routing rules, so it needs the same coverage as the verb maps.
-  2. Step 2  (Common overrides verb map)
-  3. Step 4  (Auto-Pipeline Fallback clause)
-  4. Error Handling section
-  5. Phase 3 ENHANCE section (enhancement + injection tables, prose rules)
+  1. SELECT (methodology map, protected routes, composition rules)
+  2. ENHANCE (enhancement and injection rows)
+  3. GATHER AND PLAN (planning, workflow, and pipeline fallback gates)
+  4. VALIDATE INTENT AND BUILD (intent gate and builder contract)
+  5. EXECUTE AND VERIFY (dispatch and completion requirements)
+  6. Errors and telemetry (through end of file)
 
 Cold reference files (REF_FILES) are scanned in full: the error-handling and
 routing-telemetry tables moved out of the hot file but route the same class of
@@ -65,13 +64,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_FILE = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
-# (region name, start anchor, end anchor). Matched as line prefixes after strip.
+# (region name, start anchor, end anchor). None ends at EOF.
+# Anchors are matched as line prefixes after strip.
 REGIONS = [
-    ("doctrine-and-step-0b-verb-map-and-fallback", "**COMBINATION DOCTRINE.**", "**Step 1:"),
-    ("step-2-overrides", "**Step 2: Apply skill override**", "**Step 3:"),
-    ("step-4-fallback", "**Step 4: Auto-Pipeline Fallback**", "**Lazy-completion"),
-    ("error-handling", "## Error Handling", "## References"),
-    ("phase-3-rows", "### Phase 3", "### Phase 4"),
+    ("selection-and-composition", "## 2. SELECT", "## 3. ENHANCE"),
+    ("enhancement-rows", "## 3. ENHANCE", "## 4. GATHER AND PLAN"),
+    ("planning-and-fallback", "## 4. GATHER AND PLAN", "## 5. VALIDATE INTENT AND BUILD"),
+    ("intent-and-builder", "## 5. VALIDATE INTENT AND BUILD", "## 6. EXECUTE AND VERIFY"),
+    ("execution-and-completion", "## 6. EXECUTE AND VERIFY", "## Errors and telemetry"),
+    ("errors-and-telemetry", "## Errors and telemetry", None),
 ]
 
 # Cold reference files under the skill's references/ dir, scanned in full.
@@ -88,19 +89,24 @@ VOICE_PROFILE_RE = re.compile(r"^voice-[a-z0-9]+(?:-[a-z0-9]+)*$")
 # component name; a new entry needs the same justification.
 PROSE_TERMS = frozenset(
     {
-        "built-in",  # "built-in verification gates"
-        "cross-repo",  # the [cross-repo] output tag
+        "actual-intent",  # "actual-intent check"
+        "decision-record",  # "decision-record reconciliation"
+        "direct-handling",  # "direct-handling reason"
+        "do-route",  # builder's routing marker, not a component
         "done-criteria",  # "Objective with done-criteria"
-        "fan-out",  # "plus `agents` for fan-out" (combination doctrine)
-        "force-route",  # "force-route triggers"
-        "near-matches",  # "check INDEX files for near-matches"
-        "non-negotiable",  # "HARD — non-negotiable"
-        "real-diff",  # "the real-diff row wins"
-        "re-dispatch",  # "lazy re-dispatch" (route-failure triggers)
-        "re-route",  # "Triggers: re-route, ..." (route-failure triggers)
-        "right-sizing",  # "right-sizing feedback" (learning-capture table)
-        "session-end",  # "session-end fallback" (learning-capture table)
-        "whole-repo",  # "whole-repo audits"
+        "fan-out",  # composition and worker ownership
+        "hand-assemble",  # "Never hand-assemble a dispatch"
+        "multi-file",  # "Real multi-file diff"
+        "near-match",  # "domain/near-match descriptions"
+        "near-matches",  # "domain agents and near-matches"
+        "read-only",  # "bounded read-only worker"
+        "re-dispatch",  # retry incomplete worker output
+        "required-router",  # "shared required-router protocol"
+        "route-selection",  # "route-selection recovery"
+        "self-review",  # a self-review cannot replace intent validation
+        "session-end",  # "session-end telemetry"
+        "single-owner",  # "single-owner exceptions"
+        "task-owned",  # "task-owned task_plan.md"
     }
 )
 
@@ -124,16 +130,18 @@ def load_index(path: Path, key: str, hint: str) -> set[str]:
     return set(data.get(key, {}))
 
 
-def region_lines(lines: list[str], start: str, end: str, name: str) -> list[tuple[int, str]]:
-    """Return (1-based line number, text) pairs between the two anchors."""
+def region_lines(lines: list[str], start: str, end: str | None, name: str) -> list[tuple[int, str]]:
+    """Return numbered lines between anchors, or through EOF when end is None."""
     start_idx = end_idx = None
     for i, line in enumerate(lines):
         stripped = line.strip()
         if start_idx is None and stripped.startswith(start):
             start_idx = i
-        elif start_idx is not None and stripped.startswith(end):
+        elif start_idx is not None and end is not None and stripped.startswith(end):
             end_idx = i
             break
+    if end is None and start_idx is not None:
+        end_idx = len(lines)
     if start_idx is None or end_idx is None:
         missing = start if start_idx is None else end
         print(f"ERROR: region '{name}' anchor not found: {missing!r} — update REGIONS to match the file")

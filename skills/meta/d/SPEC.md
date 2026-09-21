@@ -12,15 +12,15 @@ context cost when Jev is available.
 ## Scope
 - Classify agent/skill/pipeline/complexity/stack-signals for one user
   request, via `scripts/jev-route.py`.
-- Defer entirely to `/do`'s Phase 1-4 when Jev is unavailable, a Jev
+- Defer entirely to `/do`'s complete ordered phases when Jev is unavailable, a Jev
   call errors, or Jev names an invalid/off-manifest pick.
-- Execute Phase 4 (Task Spec + `build-dispatch.py`) identically to `/do`.
+- Execute the shared mandatory handoff, intent validation, and delivery protocol identically to `/do`.
 
 ## Non-goals
 - Not a replacement for `/do`: `/d` is a production Jev-backed entry point,
   while `/do` remains the manifest-based fallback and separate default route.
-- Not a new manifest format, INDEX schema, or `build-dispatch.py` contract
-  change.
+- Not a new manifest or INDEX format. The required-router builder protocol
+  validates phase evidence and actual intent for both entrypoints.
 - Not a new telemetry/marker schema — dispatches still emit `[do-route]` via
   the shared `build-dispatch.py`.
 - Does not reimplement `/do`'s Phase 1-3 semantic reasoning in Python; it
@@ -33,7 +33,7 @@ context cost when Jev is available.
 2. Every agent/skill/pipeline name returned to the caller is validated
    against the live `AGENTS:`/`SKILLS:`/`PIPELINES:` manifest membership
    before use.
-3. Manifest-membership validation is the ONLY thing that can invalidate a
+3. Within classification, manifest-membership validation is the ONLY thing that can invalidate a
    primary agent/skill/pipeline pick (2026-09-16, fits-threshold removal):
    every name returned to the caller must be a real, shortlisted manifest
    entry, or that dimension is rejected to `null` -> fallback, never a
@@ -57,20 +57,21 @@ context cost when Jev is available.
    passed as arguments, logged, printed, or persisted.
 5. `skills/meta/do/SKILL.md` and `commands/do.md` are never modified by this
    skill or its scripts.
-6. On any fallback signal, `/d` executes `/do`'s full Phase 1-4 instructions
+6. On any fallback signal, `/d` executes `/do`'s complete ordered instructions
    unmodified — never a partial/degraded `/d`-only path. `jev-trivial-bypass`
-   is not a fallback signal; it is handled directly during classification, matching
-   `/do`'s own Trivial contract.
+   is not a fallback signal; direct handling requires the same actual-intent
+   gate through `--router-finalize`.
 7. `jev-route.py` uses the shared transport selector. A missing Gateway bridge
    or unavailable direct API must never crash `/d`; it must fail open to `/do`.
 8. Classification uses at most two Jev evaluations through the selected
    transport: none for force routes, one for a trivial bypass, and two for a
-   routed request. Routing does not call the intent-alignment validator.
+   routed request. The builder separately invokes the actual-intent validator on every route,
+   including force, trivial, fallback, and injected classifications.
 
 ## Dependencies
 - `scripts/jev-route.py` (classification)
 - `scripts/pre-route.py`, `scripts/routing-manifest.py` (reused, unmodified)
-- `scripts/build-dispatch.py` (reused, unmodified — Phase 4)
+- `scripts/build-dispatch.py` and required-router gate (fresh intent validation)
 - Jev transport selector (`scripts/jev_transport.py`), Vercel AI Gateway bridge
   (`scripts/jev_vercel.py` and `scripts/jev_gateway/jev_vercel_gateway.mjs`),
   direct client (`scripts/jev_router_common.py`), and their credentials
@@ -79,23 +80,23 @@ context cost when Jev is available.
 - Hidden prose coupling: `jev-route.py`'s classifier instructions
   hand-paraphrase `/do`'s Phase 1-3 text with no automated drift check (see
   `references/jev-classifier-design.md` "Known risk and coupling").
-- Route classification has no independent verification beyond Jev's own
-  self-reported fit scores
-  (`/do`'s Step 0 has the orchestrator's live reasoning as an implicit
-  check; `/d` does not have an equivalent for a confident-but-wrong pick).
-  Since the 2026-09-16 fits-threshold removal, this is more relevant, not
-  less: a low-fit pick is no longer deferred to `/do`, it is dispatched
-  as-is. Monitored via regression evaluation, not solved structurally in this
-  pass — see `references/jev-classifier-design.md`
-  "Known risk and coupling," strengthened (not softened) by that change.
+- Proposed-intent verification is another Jev judgment, not independent ground
+  truth. It can miss a semantic error; realistic labeled evaluation and final
+  outcome verification remain required. Successful alignment does not prove
+  the route will implement the full task correctly.
 - Removing the primary fits threshold means fallback no longer acts as an
   uncertainty backstop for a low-fit but manifest-valid pick.
 - The two-stage classifier adds network latency. `auto` prefers direct Jev
   when configured; explicit Vercel and gateway-only setups remain supported.
 
 ## Release criteria
-- Matched routes proceed to dispatch or direct trivial handling without an
-  extra baseline or proposed-intent Jev call.
+- Every route validates the actual proposed intent before dispatch/direct
+  handling. Automatic baseline receipts never satisfy this requirement.
+- Missing phase evidence, missing Simple+ plan, false conditional skips,
+  unavailable/error/review intent outcomes all block execution.
+- Classifier fallback can select through `/do`, but cannot bypass validation.
+- Supported native session hooks reject pending worker dispatch/completion;
+  other harnesses must follow the builder protocol explicitly.
 - Direct Jev `auto` preference, explicit transport isolation, retry bounds,
   credential redaction, and direct-transport parity remain covered.
 - Force-route, trivial-bypass, unavailable, error, and invalid-pick paths

@@ -38,6 +38,12 @@ _spec.loader.exec_module(_mod)
 hook = _mod  # alias for readability
 
 
+@pytest.fixture(autouse=True)
+def isolated_router_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("JEV_ROUTER_STATE_DIR", str(tmp_path))
+    monkeypatch.setenv("JEV_SESSION_ID", "injector-test")
+
+
 # ------------------------------------------------------------------ #
 # Module-level constants (v3: compose/tools removed)
 # ------------------------------------------------------------------ #
@@ -126,7 +132,7 @@ class TestExtractRequestText:
         assert hook.extract_request_text("/d\nfix the bug") == "fix the bug"
 
     def test_do_does_not_match(self) -> None:
-        assert hook.extract_request_text("/do something") is None
+        assert hook.extract_request_text("/do something") == "something"
 
     def test_design_does_not_match(self) -> None:
         assert hook.extract_request_text("/design a page") is None

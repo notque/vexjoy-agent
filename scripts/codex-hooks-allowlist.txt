@@ -12,7 +12,7 @@
 # entry is explicit; generator legacy parsing exists only for upgrade errors.
 #
 # Accounting against .claude/settings.json:
-#   70 registrations = 29 native + 30 adapted + 11 unsupported.
+#   72 registrations = 30 native + 30 adapted + 12 unsupported.
 
 # Native SessionStart (12)
 SessionStart:afk-mode.py matcher=startup|resume|clear|compact class=native mode=native failure=open
@@ -42,7 +42,7 @@ UserPromptSubmit:routing-outcome-finalizer.py class=native mode=native failure=o
 # Adapted UserPromptSubmit: top-level prompt/userMessage normalization (3)
 UserPromptSubmit:pipeline-context-detector.py class=adapted mode=prompt failure=open
 UserPromptSubmit:codex-auto-review.py class=adapted mode=prompt failure=open
-UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=open
+UserPromptSubmit:jev-route-injector-userprompt.py class=adapted mode=prompt failure=closed
 
 # Native PreToolUse Bash enforcement (5)
 PreToolUse:pretool-branch-safety.py matcher=Bash class=native mode=native failure=closed
@@ -97,6 +97,9 @@ Stop:session-summary.py class=adapted mode=stop failure=open
 Stop:rules-distill-trigger.py class=adapted mode=stop failure=open
 Stop:routing-outcome-stop-fallback.py class=adapted mode=stop failure=open
 
-# Unsupported 10 remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
+# Unsupported registrations remain explicit in scripts/tests/test_codex_hooks_allowlist.py:
 # three PreToolUse:Agent; four PostToolUse:Skill/Agent/Workflow;
 # StopFailure; and PostCompact model-context reinjection.
+
+# Router completion is native; Codex does not expose Agent/Task PreToolUse.
+Stop:router-required-gate.py class=native mode=native failure=closed

@@ -116,6 +116,7 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("SubagentStop", "noaction:herdr-absent", "herdr-state-reporter.py")
     add("SubagentStop", "state:subagent-registry", "subagent-state-tracker.py")
     add("SubagentStop", "state:task-registry", "session-task-registry.py")
+    add("Stop", "noaction:no-router-obligation", "router-required-gate.py")
     add("Stop", "state:learning-db", "session-summary.py")
     add("Stop", "deny:Toolkit drift detected", "stop-drift-guard.py")
     add("Stop", "context:[rules-distill]", "rules-distill-trigger.py")
@@ -612,9 +613,9 @@ def _cleanup_global_state(session_id: str) -> None:
 
 
 def test_runtime_inventory_contains_all_supported_registrations() -> None:
-    assert len(REGISTRATIONS) == 59, "runtime matrix must execute every supported registration"
+    assert len(REGISTRATIONS) == 60, "runtime matrix must execute every supported registration"
     registrations = {(item["event"], item["filename"]) for item in REGISTRATIONS}
-    assert len(registrations) == 59
+    assert len(registrations) == 60
     assert set(SEMANTIC_CONTRACTS) == registrations, "every registration needs one explicit semantic contract"
 
 

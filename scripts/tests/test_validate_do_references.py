@@ -63,7 +63,7 @@ def test_shipped_skill_file_passes() -> None:
 
 def test_phantom_in_verb_map_fails(tmp_path: Path) -> None:
     """Re-introducing the audited phantom 'audit-report' exits 1 and names it."""
-    modified = _skill_copy(tmp_path, "audit→review", "audit→audit-report")
+    modified = _skill_copy(tmp_path, "audit→`review`", "audit→`audit-report`")
     result = _run(modified)
     assert result.returncode == 1
     assert "audit-report" in result.stdout
@@ -78,9 +78,10 @@ def test_phantom_in_phase3_row_fails(tmp_path: Path) -> None:
     assert "made-up-skill-zz" in result.stdout
 
 
-def test_phantom_pipeline_in_overrides_fails(tmp_path: Path) -> None:
+def test_phantom_pipeline_in_fallback_fails(tmp_path: Path) -> None:
     """A pipeline annotation naming a nonexistent pipeline exits 1."""
-    modified = _skill_copy(tmp_path, "(systematic-debugging pipeline)", "(not-a-real-pipeline pipeline)")
+    anchor = "**Auto-Pipeline Fallback:**"
+    modified = _skill_copy(tmp_path, anchor, anchor + " Select `not-a-real-pipeline`.")
     result = _run(modified)
     assert result.returncode == 1
     assert "not-a-real-pipeline" in result.stdout
@@ -88,7 +89,7 @@ def test_phantom_pipeline_in_overrides_fails(tmp_path: Path) -> None:
 
 def test_voice_profile_names_accepted(tmp_path: Path) -> None:
     """voice-* names pass: profiles are user-level skills outside the repo index."""
-    modified = _skill_copy(tmp_path, "voice-example-profile", "voice-zz-test-profile")
+    modified = _skill_copy(tmp_path, "retain the named profile", "retain the named profile `voice-zz-test-profile`")
     result = _run(modified)
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -96,16 +97,16 @@ def test_voice_profile_names_accepted(tmp_path: Path) -> None:
 def test_stale_prose_term_fails(tmp_path: Path) -> None:
     """A PROSE_TERMS entry with zero occurrences in scope exits 1 — a stale
     allowlist entry would let a future phantom silently reuse the name."""
-    modified = _skill_copy(tmp_path, "HARD — non-negotiable", "HARD")
+    modified = _skill_copy(tmp_path, "done-criteria", "completion criteria")
     result = _run(modified)
     assert result.returncode == 1
     assert "STALE ALLOWLIST" in result.stdout
-    assert "non-negotiable" in result.stdout
+    assert "done-criteria" in result.stdout
 
 
 def test_missing_region_anchor_fails(tmp_path: Path) -> None:
     """Restructuring an anchored region away fails loudly, not silently."""
-    modified = _skill_copy(tmp_path, "## Error Handling", "## Renamed Section")
+    modified = _skill_copy(tmp_path, "## 5. VALIDATE INTENT AND BUILD", "## Renamed Section")
     result = _run(modified)
     assert result.returncode == 1
     assert "anchor not found" in result.stdout
@@ -113,12 +114,12 @@ def test_missing_region_anchor_fails(tmp_path: Path) -> None:
 
 def test_phantom_in_cold_reference_fails(tmp_path: Path) -> None:
     """A phantom name in a scanned cold reference file exits 1 and names it."""
-    modified = _skill_copy(tmp_path, "# /do - Smart Router", "# /do - Smart Router")
+    modified = _skill_copy(tmp_path, "# /do — Smart router", "# /do — Smart router")
     ref = tmp_path / "references" / "error-handling.md"
     text = ref.read_text(encoding="utf-8")
-    anchor = "process"
+    anchor = "`workflow` fallback"
     assert anchor in text, "fixture drift: update this test"
-    ref.write_text(text.replace(anchor, "made-up-verifier-zz", 1), encoding="utf-8")
+    ref.write_text(text.replace(anchor, "`made-up-verifier-zz` fallback", 1), encoding="utf-8")
     result = _run(modified)
     assert result.returncode == 1
     assert "made-up-verifier-zz" in result.stdout
@@ -126,8 +127,47 @@ def test_phantom_in_cold_reference_fails(tmp_path: Path) -> None:
 
 def test_missing_cold_reference_fails(tmp_path: Path) -> None:
     """Deleting a scanned cold reference fails loudly — coverage cannot drop."""
-    modified = _skill_copy(tmp_path, "# /do - Smart Router", "# /do - Smart Router")
+    modified = _skill_copy(tmp_path, "# /do — Smart router", "# /do — Smart router")
     (tmp_path / "references" / "routing-telemetry.md").unlink()
     result = _run(modified)
     assert result.returncode == 1
     assert "cold reference not found" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "## 2. SELECT",
+        "## 3. ENHANCE",
+        "## 4. GATHER AND PLAN",
+        "## 5. VALIDATE INTENT AND BUILD",
+        "## 6. EXECUTE AND VERIFY",
+        "## Errors and telemetry",
+    ],
+)
+def test_each_phase_rejects_phantom(tmp_path: Path, heading: str) -> None:
+    """Every scoped phase detects a phantom even when other regions are valid."""
+    modified = _skill_copy(tmp_path, heading, heading + "\nUse `made-up-phase-route-zz`.\n")
+    result = _run(modified)
+    assert result.returncode == 1
+    assert "PHANTOM: 'made-up-phase-route-zz'" in result.stdout
+    assert "1 violation(s)" in result.stdout
+
+
+def test_fenced_examples_and_file_paths_are_not_routes(tmp_path: Path) -> None:
+    """Non-route examples must not trigger phantom errors."""
+    heading = "## 2. SELECT"
+    extra = "\n```bash\nmade-up-example-zz\n```\nRead `made-up-reference-zz.md`.\n"
+    modified = _skill_copy(tmp_path, heading, heading + extra)
+    result = _run(modified)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_final_region_is_checked_through_eof(tmp_path: Path) -> None:
+    modified = _skill_copy(tmp_path, "# /do — Smart router", "# /do — Smart router")
+    with modified.open("a", encoding="utf-8") as handle:
+        handle.write("\nUse `made-up-terminal-route-zz`.\n")
+    result = _run(modified)
+    assert result.returncode == 1
+    assert "PHANTOM: 'made-up-terminal-route-zz' (errors-and-telemetry" in result.stdout
+    assert "1 violation(s)" in result.stdout

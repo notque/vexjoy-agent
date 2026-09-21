@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 59 skills, 78 hooks, 160 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 59 skills, 79 hooks, 161 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -44,8 +44,8 @@ The router pairs a Go agent with a debugging skill, then follows the task throug
 ## /d — Jev-Powered Router
 
 `/d` uses [TypeSafe's Jev](https://docs.typesafe.ai) to classify the request
-and dispatch the matched agent, skill, and pipeline. If Jev is unavailable,
-`/d` falls back to `/do`.
+and select the matched agent, skill, and pipeline. Classification failures
+fall back to `/do` selection; they do not bypass the required intent check.
 
 Choose either transport:
 
@@ -64,8 +64,18 @@ export TYPESAFE_API_KEY=...
 `AI_GATEWAY_API_KEY` is set. An explicit transport never silently switches to
 the other one. The TypeSafe MCP plugin is not required for `/d`.
 
-Historical intent-alignment receipts remain in `learning.db`; routing no longer
-adds alignment checks. The standalone reporting command remains available:
+Both `/d` and `/do` require every applicable routing phase and a fresh Jev check
+of the actual proposed intent before dispatch or direct completion. Trivial,
+force, fallback, and injected-result routes use the same gate. Missing evidence
+or unavailable, errored, or unaligned intent results block execution; the agent
+reports the diagnostic and resolves it before continuing. The shared builder
+validates handoffs, while installed hooks enforce supported dispatch/completion
+boundaries. Clarifications to unfinished routed tasks retain the intent gate
+and require a fresh check with the original request context. Claude also blocks
+completion while checked worker prompts remain undispatched; Codex cannot
+observe native worker dispatch and has a narrower completion guard. See the [required router protocol](skills/meta/d/references/required-router-protocol.md).
+
+Intent-alignment receipts remain in `learning.db`. Inspect them with:
 
 ```bash
 python3 scripts/jev-intent-stats.py --days 30
@@ -76,7 +86,7 @@ Example:
 ```
 > /d fix the flaky test in the payments module
 
-  ROUTING (/d): testing-automation-engineer + testing-preferred-patterns
+  ROUTING (/d): testing-automation-engineer + testing
   Source: jev (confidence: medium)
   Invoking...
 ```
@@ -156,7 +166,7 @@ Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. Hook config 
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 160 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
+Mirrors skills, 161 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
 
 </details>
 
@@ -181,8 +191,8 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 |---|---|---|
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 59 | Reusable guidance and methodology for recurring work. |
-| Hooks | 78 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 160 | Repeatable validation, orchestration, and plumbing. |
+| Hooks | 79 | Lifecycle checks, context injection, and telemetry. |
+| Scripts | 161 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -235,7 +245,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 160 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 161 scripts.
 
 | Need | Use |
 |---|---|

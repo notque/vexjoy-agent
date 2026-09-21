@@ -176,6 +176,8 @@ def parse_apply_patch(command: str) -> list[PatchEdit]:
 def normalize_event(event: dict[str, Any], *, mode: str) -> dict[str, Any]:
     """Add Claude-compatible fields while retaining the Codex payload."""
     normalized = copy.deepcopy(event)
+    # Host-owned metadata: native Codex agent dispatch has no PreToolUse event.
+    normalized["_vexjoy_hook_host"] = "codex"
     tool_input = normalized.get("tool_input")
     if not isinstance(tool_input, dict):
         tool_input = {}

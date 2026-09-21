@@ -19,3 +19,20 @@ declared paths; record why a full checkout is required.
 After merge, confirm the task is inactive, the branch is integrated, and the
 checkout is clean. Then authorized cleanup may run
 `git worktree remove -- <accepted-worktree-path>`.
+
+## Required worker preflight and plan
+
+Run `bash scripts/worktree-preflight.sh <assigned-branch>` before edits. Confirm
+this is the assigned linked checkout and feature branch; stop on another task's
+branch. Reuse the assigned branch or create a unique one; never delete a
+colliding branch or change the main checkout. Use checkout-relative paths.
+
+The router must prepare the Simple+ `task_plan.md` inside this task's checkout
+before dispatch. The worker reads and updates it as needed; an auto-plan hook
+cannot authorize ignoring it. Never write another checkout's plan or state.
+
+Stage explicit owned paths only, never `git add .`, `git add -A`, or
+`git add --all`; inspect the staged diff. Follow the user's commit wording and
+omit attribution lines. Python changes require both configured Ruff lint and
+format checks before claiming CI-ready. After a merge command's local checkout
+error, verify the remote PR state before retrying or claiming success.

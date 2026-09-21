@@ -4,9 +4,9 @@ This file records behavior that callers/tests depend on; implementation lives in
 
 ## Transport and fallback
 
-`JEV_TRANSPORT=auto|vercel|direct`; Vercel uses `AI_GATEWAY_API_KEY`, direct uses `TYPESAFE_API_KEY`. Auto prefers direct Jev when configured, then Vercel; explicit selection never switches. Missing transport yields `fallback: true, source: unavailable`. Timeout/transport failure yields `source: error`; a non-manifest selection yields `source: invalid-pick`. All fail open to `/do`.
+`JEV_TRANSPORT=auto|vercel|direct`; Vercel uses `AI_GATEWAY_API_KEY`, direct uses `TYPESAFE_API_KEY`. Auto prefers direct Jev when configured, then Vercel; explicit selection never switches. Missing transport yields `fallback: true, source: unavailable`. Timeout/transport failure yields `source: error`; a non-manifest selection yields `source: invalid-pick`. Classification failures select through `/do`; required intent validation still blocks execution until aligned.
 
-`pre-route.py` runs first and is authoritative for deterministic git/security force routes. It bypasses all Jev calls.
+`pre-route.py` runs first and is authoritative for deterministic git/security force routes. It bypasses classification Jev calls, never the subsequent actual-intent check.
 
 ## Classification topology
 
@@ -16,7 +16,7 @@ Stage 1 sends one bounded state containing the verbatim request and compact entr
 - a triviality gate (`gate_score`);
 - task signals used by stack policy.
 
-Below the configured gate threshold, return `source: jev-trivial-bypass`; this is a matched result handled directly without further Jev calls.
+Below the configured gate threshold, return `source: jev-trivial-bypass`; this is a matched result requiring builder `--router-finalize` intent validation before direct handling.
 
 When the gate clears, code forms a bounded shortlist. Stage 2 receives full detail only for that shortlist and runs a route Choice, per-candidate fitness Nouls, and fan-out/multi-select heads. Code validates membership and applies fitness thresholds; Jev never emits an executable name outside supplied candidates.
 
@@ -46,3 +46,13 @@ The request and manifest descriptions leave the machine through the configured J
 - `scripts/jev_transport.py`, `jev_vercel.py`, `jev_gateway/jev_vercel_gateway.mjs`: transport
 - `scripts/build-dispatch.py`: validated dispatch construction
 - `hooks/jev-route-injector-userprompt.py`: optional classification precompute
+
+## Required actual-intent validation
+
+Classification and alignment are separate boundaries. The classification
+receipt authorizes route preparation only. Both routers pass their actual task
+spec to the builder under `required-router-protocol.md`. The builder validates
+required phase/gate evidence and invokes Jev on the proposed intent and route;
+baseline receipts are not accepted. Unavailable, error, review, and essential
+clarification block worker dispatch and direct finalization. Manifest validity
+alone cannot prove intent alignment, and aligned intent cannot prove completion.
