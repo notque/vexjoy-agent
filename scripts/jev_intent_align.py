@@ -112,15 +112,18 @@ def build_payload(
         ),
     }
     if prior_context:
-        state["prior_user_messages"] = prior_context
+        state["active_user_request"] = {"prior_user_messages": prior_context, "latest_user_message": request}
         for question in questions.values():
             instructions = question["instructions"]
             instructions["question"] = (
-                "Interpret user_request using prior_user_messages only for references and still-active "
-                "requested scope or constraints; the latest user_request overrides earlier messages. "
-                + instructions["question"]
+                "The active_user_request contains verbatim user messages in chronological order. "
+                "The latest message overrides earlier instructions only where it explicitly changes them; "
+                "short assent or continuation preserves the earlier requested outcome and constraints. "
+                + instructions["question"].replace("`user_request`", "`active_user_request`")
             )
-            instructions["inspect"].append("prior_user_messages")
+            instructions["inspect"] = [
+                "active_user_request" if path == "user_request" else path for path in instructions["inspect"]
+            ]
     return {"state": state, "questions": questions}
 
 
@@ -315,7 +318,7 @@ def evaluate_alignment(
 ) -> dict[str, Any]:
     """Evaluate candidate intent through the selected Jev transport."""
     validate_prior_context(prior_context)
-    questions_version = "d-intent-v1-context-v1" if prior_context else "d-intent-v1"
+    questions_version = "d-intent-v1-context-v2" if prior_context else "d-intent-v1"
     phase = "proposed" if isinstance(intent, str) and intent.strip() else "baseline"
     candidate = intent if isinstance(intent, str) and intent.strip() else proposed_intent(request, route)
     transport, transport_reason = jev_transport.select()

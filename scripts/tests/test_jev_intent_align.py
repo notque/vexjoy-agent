@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -256,8 +257,10 @@ def test_prior_context_is_labeled_evidence_without_changing_latest_request():
     context = ["Make intent checks mandatory and keep all routing phases."]
     payload = align.build_payload("fix it", "Restore mandatory intent checks and routing phases.", _route(), context)
     assert payload["state"]["user_request"] == "fix it"
-    assert payload["state"]["prior_user_messages"] == context
-    assert all("prior_user_messages" in head["instructions"]["inspect"] for head in payload["questions"].values())
+    assert payload["state"]["active_user_request"] == {"prior_user_messages": context, "latest_user_message": "fix it"}
+    assert all("active_user_request" in head["instructions"]["inspect"] for head in payload["questions"].values())
+    assert all("user_request" not in head["instructions"]["inspect"] for head in payload["questions"].values())
+    assert all("`user_request`" not in head["instructions"]["question"] for head in payload["questions"].values())
 
 
 def test_prior_context_uses_shared_total_budget_and_explicit_restart_diagnostic(monkeypatch):
@@ -267,3 +270,37 @@ def test_prior_context_uses_shared_total_budget_and_explicit_restart_diagnostic(
     assert result["alignment"] == "error"
     assert "Start a fresh /d or /do" in result["reason"]
     assert "Do not truncate" in result["reason"]
+
+
+def test_no_context_payload_remains_latest_request_only():
+    payload = align.build_payload("Review the router", "Review the router", _route())
+    assert "active_user_request" not in payload["state"]
+    assert payload["state"]["user_request"] == "Review the router"
+    assert all("user_request" in head["instructions"]["inspect"] for head in payload["questions"].values())
+    assert align.build_payload("Review the router", "Review the router", _route(), []) == payload
+
+
+def test_context_rubric_version_is_distinct(monkeypatch):
+    monkeypatch.setattr(align.jev_transport, "select", lambda: (None, "offline"))
+    assert (
+        align.evaluate_alignment("r", _route(), "i", prior_context=["earlier request"])["questions_version"]
+        == "d-intent-v1-context-v2"
+    )
+    assert align.evaluate_alignment("r", _route(), "i")["questions_version"] == "d-intent-v1"
+
+
+_CONTEXT_EVAL = json.loads((Path(__file__).parent / "fixtures/jev_intent_context_eval.json").read_text())
+
+
+@pytest.mark.parametrize("case", _CONTEXT_EVAL["cases"], ids=lambda case: case["name"])
+def test_recorded_context_candidate_scores_keep_negative_controls_blocked(monkeypatch, case):
+    # Replaying scores tests policy, not live semantic accuracy. Preserve the
+    # original provisional labels and observed residual in the fixture.
+    monkeypatch.setattr(align.jev_transport, "select", lambda: (align.jev_transport.DIRECT, ""))
+    answers = {key: {"noul": value} for key, value in case["candidate"]["scores"].items()}
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_args, **_kwargs: {"answers": answers})
+    result = align.evaluate_alignment(
+        case["request"], _CONTEXT_EVAL["route"], case["intent"], prior_context=case["prior_context"]
+    )
+    assert result["alignment"] == case["candidate"]["alignment"]
+    assert result["issues"] == case["candidate"]["issues"]

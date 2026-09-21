@@ -1,0 +1,240 @@
+{
+  "provenance": "Five agent-provisionally-labeled cases frozen before one candidate experiment. No heldout or accuracy claim. Original labels retained, including disputed latest-override positive that omits earlier simple-commit constraint. No thresholds changed; no further prompt search.",
+  "model": "jev-1.13.0",
+  "route": {
+    "agent": "python-general-engineer",
+    "skill": "pr-workflow",
+    "pipeline": "pr-pipeline",
+    "complexity": "complex",
+    "source": "jev"
+  },
+  "cases": [
+    {
+      "name": "context_correct",
+      "provisional_expected": "aligned",
+      "request": "get it merged",
+      "intent": "Merge the mandatory /d and /do steps fix through a simple commit and simple PR with GitHub Actions passing.",
+      "prior_context": [
+        "github actions must pass, fix until they do, merge.",
+        "i really want all the d and do steps mandatory. i think our clean up messed them up. get them all in and fixed. pr, simple commit, simple pr, merged."
+      ],
+      "baseline": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent drops explicit constraints",
+          "proposed intent adds unrequested work"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.86,
+          "intent_preserves_requested_outcome": 0.74,
+          "intent_preserves_explicit_constraints": 0.45,
+          "route_supports_requested_outcome": 0.91,
+          "intent_is_too_narrow": 0.33,
+          "intent_adds_unrequested_work": 0.84,
+          "route_omits_material_scope": 0.13,
+          "essential_clarification_needed": 0.34,
+          "can_proceed_with_proposed_intent": 0.72
+        }
+      },
+      "candidate": {
+        "alignment": "aligned",
+        "issues": [],
+        "scores": {
+          "has_actionable_outcome": 0.94,
+          "intent_preserves_requested_outcome": 0.89,
+          "intent_preserves_explicit_constraints": 0.64,
+          "route_supports_requested_outcome": 0.93,
+          "intent_is_too_narrow": 0.27,
+          "intent_adds_unrequested_work": 0.28,
+          "route_omits_material_scope": 0.13,
+          "essential_clarification_needed": 0.22,
+          "can_proceed_with_proposed_intent": 0.9
+        }
+      }
+    },
+    {
+      "name": "context_unrelated",
+      "provisional_expected": "review",
+      "request": "get it merged",
+      "intent": "Merge the mandatory /d and /do steps fix through a simple commit and simple PR with GitHub Actions passing, and rewrite the production payment service.",
+      "prior_context": [
+        "github actions must pass, fix until they do, merge.",
+        "i really want all the d and do steps mandatory. i think our clean up messed them up. get them all in and fixed. pr, simple commit, simple pr, merged."
+      ],
+      "baseline": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent changes the requested outcome",
+          "proposed intent drops explicit constraints",
+          "cannot proceed with the proposed intent",
+          "proposed intent adds unrequested work"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.81,
+          "intent_preserves_requested_outcome": 0.21,
+          "intent_preserves_explicit_constraints": 0.22,
+          "route_supports_requested_outcome": 0.54,
+          "intent_is_too_narrow": 0.52,
+          "intent_adds_unrequested_work": 0.94,
+          "route_omits_material_scope": 0.38,
+          "essential_clarification_needed": 0.82,
+          "can_proceed_with_proposed_intent": 0.34
+        }
+      },
+      "candidate": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent changes the requested outcome",
+          "proposed intent drops explicit constraints",
+          "proposed intent adds unrequested work"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.92,
+          "intent_preserves_requested_outcome": 0.22,
+          "intent_preserves_explicit_constraints": 0.14,
+          "route_supports_requested_outcome": 0.66,
+          "intent_is_too_narrow": 0.53,
+          "intent_adds_unrequested_work": 0.93,
+          "route_omits_material_scope": 0.37,
+          "essential_clarification_needed": 0.52,
+          "can_proceed_with_proposed_intent": 0.7
+        }
+      }
+    },
+    {
+      "name": "context_dropped_ci",
+      "provisional_expected": "review",
+      "request": "get it merged",
+      "intent": "Merge the mandatory /d and /do steps fix through a simple commit and simple PR, even if GitHub Actions fails.",
+      "prior_context": [
+        "github actions must pass, fix until they do, merge.",
+        "i really want all the d and do steps mandatory. i think our clean up messed them up. get them all in and fixed. pr, simple commit, simple pr, merged."
+      ],
+      "baseline": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent changes the requested outcome",
+          "proposed intent drops explicit constraints",
+          "cannot proceed with the proposed intent",
+          "proposed intent drops material scope",
+          "proposed intent adds unrequested work"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.86,
+          "intent_preserves_requested_outcome": 0.34,
+          "intent_preserves_explicit_constraints": 0.28,
+          "route_supports_requested_outcome": 0.6,
+          "intent_is_too_narrow": 0.61,
+          "intent_adds_unrequested_work": 0.9,
+          "route_omits_material_scope": 0.3,
+          "essential_clarification_needed": 0.83,
+          "can_proceed_with_proposed_intent": 0.37
+        }
+      },
+      "candidate": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent changes the requested outcome",
+          "proposed intent drops explicit constraints",
+          "selected route conflicts with the requested outcome",
+          "cannot proceed with the proposed intent",
+          "proposed intent drops material scope",
+          "proposed intent adds unrequested work",
+          "selected route omits material scope"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.9,
+          "intent_preserves_requested_outcome": 0.15,
+          "intent_preserves_explicit_constraints": 0.06,
+          "route_supports_requested_outcome": 0.31,
+          "intent_is_too_narrow": 0.92,
+          "intent_adds_unrequested_work": 0.87,
+          "route_omits_material_scope": 0.63,
+          "essential_clarification_needed": 0.83,
+          "can_proceed_with_proposed_intent": 0.33
+        }
+      }
+    },
+    {
+      "name": "context_latest_override",
+      "provisional_expected": "aligned",
+      "request": "Do not merge yet; create a simple PR and wait for GitHub Actions to pass.",
+      "intent": "Create a simple PR for the mandatory /d and /do steps fix and wait for GitHub Actions to pass without merging.",
+      "prior_context": [
+        "github actions must pass, fix until they do, merge.",
+        "i really want all the d and do steps mandatory. i think our clean up messed them up. get them all in and fixed. pr, simple commit, simple pr, merged."
+      ],
+      "baseline": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent adds unrequested work"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.94,
+          "intent_preserves_requested_outcome": 0.84,
+          "intent_preserves_explicit_constraints": 0.64,
+          "route_supports_requested_outcome": 0.87,
+          "intent_is_too_narrow": 0.16,
+          "intent_adds_unrequested_work": 0.74,
+          "route_omits_material_scope": 0.14,
+          "essential_clarification_needed": 0.27,
+          "can_proceed_with_proposed_intent": 0.83
+        }
+      },
+      "candidate": {
+        "alignment": "review",
+        "issues": [
+          "proposed intent drops explicit constraints"
+        ],
+        "scores": {
+          "has_actionable_outcome": 0.93,
+          "intent_preserves_requested_outcome": 0.78,
+          "intent_preserves_explicit_constraints": 0.48,
+          "route_supports_requested_outcome": 0.91,
+          "intent_is_too_narrow": 0.32,
+          "intent_adds_unrequested_work": 0.4,
+          "route_omits_material_scope": 0.12,
+          "essential_clarification_needed": 0.23,
+          "can_proceed_with_proposed_intent": 0.85
+        }
+      }
+    },
+    {
+      "name": "explicit_control",
+      "provisional_expected": "aligned",
+      "request": "Merge the mandatory /d and /do steps fix through a simple commit and simple PR with GitHub Actions passing.",
+      "intent": "Merge the mandatory /d and /do steps fix through a simple commit and simple PR with GitHub Actions passing.",
+      "prior_context": null,
+      "baseline": {
+        "alignment": "aligned",
+        "issues": [],
+        "scores": {
+          "has_actionable_outcome": 0.89,
+          "intent_preserves_requested_outcome": 0.99,
+          "intent_preserves_explicit_constraints": 0.98,
+          "route_supports_requested_outcome": 0.85,
+          "intent_is_too_narrow": 0.03,
+          "intent_adds_unrequested_work": 0.02,
+          "route_omits_material_scope": 0.16,
+          "essential_clarification_needed": 0.56,
+          "can_proceed_with_proposed_intent": 0.82
+        }
+      },
+      "candidate": {
+        "alignment": "aligned",
+        "issues": [],
+        "scores": {
+          "has_actionable_outcome": 0.9,
+          "intent_preserves_requested_outcome": 0.99,
+          "intent_preserves_explicit_constraints": 0.98,
+          "route_supports_requested_outcome": 0.85,
+          "intent_is_too_narrow": 0.02,
+          "intent_adds_unrequested_work": 0.02,
+          "route_omits_material_scope": 0.15,
+          "essential_clarification_needed": 0.56,
+          "can_proceed_with_proposed_intent": 0.83
+        }
+      }
+    }
+  ]
+}
