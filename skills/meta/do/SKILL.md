@@ -76,8 +76,9 @@ python3 "$SDIR/pre-route.py" --request-file "$REQUEST_FILE" --json-compact
 ```
 
 High-confidence protected git/security force routes override a conflicting
-semantic skill; retain domain agent ownership and the returned stack. Other
-guard results do not replace the semantic route. Apply an explicit methodology
+semantic skill; retain domain agent ownership and the returned stack.
+Keep stacks returned for protected language/domain
+operands. Other guard results do not replace the semantic route. Apply an explicit methodology
 verb override only when compatible with that protected route.
 
 **COMBINATION DOCTRINE:** Agent, skill, pipeline, and stack compose. Simple:
@@ -182,7 +183,13 @@ receipts. Use the shared protocol in
 against the actual proposed intent and selected route. A baseline, self-review,
 cached receipt, or statement that intent is obvious cannot replace this call.
 
-Run `build-dispatch.py` from a JSON file. Trivial uses its finalization mode;
+Run the builder from a JSON file using the resolved scripts directory:
+
+```bash
+python3 "$SDIR/build-dispatch.py" --json-file "$DECISION_FILE"
+```
+
+Trivial uses its finalization mode;
 it still requires intent validation before the direct answer/action. If Jev
 cannot validate, or requests clarification or correction, stop the dependent
 action, report the real diagnostic, resolve the issue, and retry. Never label
