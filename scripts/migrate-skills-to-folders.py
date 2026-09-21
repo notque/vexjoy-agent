@@ -44,6 +44,7 @@ SKILL_MAPPING: dict[str, str] = {
     "cli-design": "engineering",
     # frontend/
     "frontend": "frontend",
+    "jev-design": "frontend",
     "frontend-slides": "frontend",
     "webgl-card-effects": "frontend",
     # game/
