@@ -60,6 +60,7 @@ def test_do_does_not_run_jev_classifier(monkeypatch, capsys):
 def test_nonrouter_turn_clears_only_completed_own_marker(monkeypatch, capsys):
     router_gate.set_required_router("turn-test", "d", "/d old")
     router_gate.mark_validated("turn-test", "/d old", "old", {})
+    assert guard.evaluate({"hook_event_name": "Stop", "session_id": "turn-test"}) == {}
     router_gate.set_required_router("other", "d", "/d other")
     submit(monkeypatch, capsys, "new unrelated task")
     assert router_gate.get_required_router("turn-test") is None
@@ -225,18 +226,24 @@ def test_codex_adapter_explicitly_marks_limited_dispatch_observability(tmp_path)
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {}
-    # The adapter exception never consumes or claims that the worker ran.
-    assert router_gate.get_required_router("turn-test")["status"] == "dispatch_ready"
+    # Codex completion retires approvals without claiming a native dispatch ran.
+    marker = router_gate.get_required_router("turn-test")
+    assert marker["status"] == "completed"
+    assert marker["dispatch_prompt_hashes"] == []
 
 
-@pytest.mark.parametrize("phase", ["pending", "checked_blocked", "dispatch_ready"])
+@pytest.mark.parametrize("phase", ["pending", "checked_blocked", "dispatch_ready", "validated", "dispatched"])
 def test_unprefixed_continuation_retains_unfinished_obligation(monkeypatch, capsys, phase):
     request = "$d fix the checks"
     router_gate.set_required_router("turn-test", "d", request)
     if phase == "checked_blocked":
         router_gate.mark_checked_blocked("turn-test", request)
-    elif phase == "dispatch_ready":
+    elif phase in {"dispatch_ready", "dispatched"}:
         router_gate.authorize_dispatch("turn-test", request, "old handoff")
+        if phase == "dispatched":
+            assert router_gate.consume_dispatch("turn-test", "old handoff")
+    elif phase == "validated":
+        router_gate.mark_validated("turn-test", request, "fix the checks", {})
     previous = router_gate.get_required_router("turn-test")
     result = submit(monkeypatch, capsys, "yes, both routers")
     marker = router_gate.get_required_router("turn-test")
@@ -251,3 +258,27 @@ def test_unprefixed_continuation_retains_unfinished_obligation(monkeypatch, caps
         == "deny"
     )
     assert guard.evaluate({"hook_event_name": "Stop", "session_id": "turn-test"})["decision"] == "block"
+
+
+def test_stale_stop_cannot_complete_a_new_generation(monkeypatch):
+    request = "$d task"
+    router_gate.set_required_router("turn-test", "d", request)
+    router_gate.mark_validated("turn-test", request, "task", {})
+    complete = router_gate.complete_required_router
+
+    def raced_stop(session, generation):
+        router_gate.continue_required_router(session, "also fix do")
+        return complete(session, generation)
+
+    monkeypatch.setattr(router_gate, "complete_required_router", raced_stop)
+    assert guard.evaluate({"hook_event_name": "Stop", "session_id": "turn-test"})["decision"] == "block"
+    assert router_gate.get_required_router("turn-test")["pending"] is True
+
+
+def test_repeated_stop_after_completion_is_allowed():
+    router_gate.set_required_router("turn-test", "d", "$d task")
+    router_gate.mark_validated("turn-test", "$d task", "task", {})
+    event = {"hook_event_name": "Stop", "session_id": "turn-test"}
+    assert guard.evaluate(event) == {}
+    assert router_gate.get_required_router("turn-test")["status"] == "completed"
+    assert guard.evaluate(event) == {}

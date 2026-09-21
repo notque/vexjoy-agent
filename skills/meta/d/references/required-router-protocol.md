@@ -107,8 +107,8 @@ only relevant user context; the validator treats it as labeled evidence while
 preserving the latest raw `request_verbatim`, including its router prefix. The
 builder includes this context in the checked task spec and emitted prompt.
 
-An unprefixed clarification while the native session still has a pending,
-checked-blocked, or queued handoff continues the same router obligation. Use the
+An unprefixed clarification while the native session has a pending, checked-blocked,
+queued, validated, or dispatched handoff continues the same router obligation. Use the
 latest message unchanged as `request_verbatim`, include the prior pending user
 requests and clarifications verbatim in `prior_context`, and reclassify with
 that context. The bounded required history retains the original request anchor
@@ -124,6 +124,7 @@ invoke every queued prompt once before reporting completion. The Codex adapter
 explicitly permits Stop after successful validation because native dispatch
 consumption is not observable there; it does not claim workers were invoked.
 Execution and outcome verification remain mandatory skill steps on both hosts.
-A `checked_blocked` result permits a diagnostic response only. After validated
-direct completion or observed native dispatch, an ordinary later prompt clears
-the finished routing marker.
+A `checked_blocked` result permits a diagnostic response only. A successful Stop
+marks the matching request generation `completed`; only then does an ordinary
+later prompt clear the finished routing marker. A stale Stop cannot complete
+a newer generation.

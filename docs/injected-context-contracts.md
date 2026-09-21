@@ -86,14 +86,15 @@ still queued; all queued prompts must be consumed. Codex's adapter explicitly
 allows Stop with validated queued prompts because it cannot observe native
 dispatch; this does not establish execution or completion of the work.
 
-An unprefixed follow-up while the task is pending, `checked_blocked`, or
-`dispatch_ready` re-arms the same router with a new request generation and
+An unprefixed follow-up while the task is pending, `checked_blocked`,
+`dispatch_ready`, `validated`, or `dispatched` re-arms the same router with a new request generation and
 invalidates prior approvals. Preserve the original outcome: put the latest
 message unchanged in `request_verbatim`, supply prior pending user messages
 verbatim in `prior_context`, and reclassify using that context. The builder
 checks that required earlier request hashes are represented. The hook does not
-classify a bare clarification fragment in isolation. An ordinary later prompt
-clears the marker after validated direct handling or observed native dispatch.
+classify a bare clarification fragment in isolation. A successful Stop marks
+the matching generation `completed`; only then does an ordinary later prompt
+clear the marker. A stale Stop cannot complete a newer generation.
 
 ### `[jev-route-injector] JEV_RESULT precomputed by this hook...` (plus the full JEV_RESULT JSON)
 

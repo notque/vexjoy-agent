@@ -197,6 +197,28 @@ def consume_dispatch(session: str, prompt: str) -> bool:
         return True
 
 
+def complete_required_router(session: str, expected_generation: str) -> bool:
+    """Complete only the checked turn accepted by the host's Stop policy.
+
+    The hook decides whether dispatch_ready is a valid Stop state for its
+    harness. A concurrent user turn must never be completed by an older Stop.
+    """
+    if not session or not expected_generation:
+        return False
+    with _marker_lock(session):
+        marker = get_required_router(session)
+        if (
+            marker is None
+            or marker.get("generation") != expected_generation
+            or marker.get("pending")
+            or marker.get("status") not in {"validated", "dispatched", "dispatch_ready", "completed"}
+        ):
+            return False
+        marker.update(pending=False, status="completed", dispatch_prompt_hashes=[])
+        _write_marker(session, marker)
+        return True
+
+
 def mark_checked_blocked(session: str, request: str, *, expected_generation: str | None = None) -> None:
     if not session:
         return

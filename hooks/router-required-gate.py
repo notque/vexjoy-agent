@@ -26,7 +26,7 @@ def evaluate(event: dict) -> dict:
     if event_name == "PreToolUse" and event.get("tool_name") not in {"Agent", "Task"}:
         return {}
     try:
-        from router_gate import consume_dispatch, get_required_router, session_id
+        from router_gate import complete_required_router, consume_dispatch, get_required_router, session_id
 
         session = event.get("session_id") or session_id()
         if not session:
@@ -38,15 +38,17 @@ def evaluate(event: dict) -> dict:
             status = marker.get("status")
             if status == "checked_blocked":
                 return {}
-            if marker.get("pending") is False and status in {"validated", "dispatched"}:
-                return {}
+            if marker.get("pending") is False and status in {"validated", "dispatched", "completed"}:
+                if complete_required_router(session, marker["generation"]):
+                    return {}
             if (
                 event.get("_vexjoy_hook_host") == "codex"
                 and marker.get("pending") is False
                 and status == "dispatch_ready"
             ):
                 # Codex does not expose native agent dispatch consumption.
-                return {}
+                if complete_required_router(session, marker["generation"]):
+                    return {}
         if event_name == "PreToolUse" and marker.get("status") == "dispatch_ready":
             tool_input = event.get("tool_input")
             prompt = tool_input.get("prompt", "") if isinstance(tool_input, dict) else ""

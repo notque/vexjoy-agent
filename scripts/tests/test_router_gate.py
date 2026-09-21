@@ -424,3 +424,39 @@ def test_continuation_cannot_remove_original_protected_guard(tmp_path, monkeypat
     monkeypatch.setattr(jev_intent_align, "evaluate_alignment", evaluate)
     assert gate.validate_router_handoff(decision, tmp_path)["aligned"]
     assert seen == [(latest, [original])]
+
+
+@pytest.mark.parametrize("status", ["validated", "dispatched", "dispatch_ready", "completed"])
+def test_complete_router_accepts_host_approved_checked_turn(tmp_path, status):
+    gate.set_required_router("test-session", "d", "request")
+    marker = gate.get_required_router("test-session")
+    marker.update(status=status, pending=False, dispatch_prompt_hashes=[gate.text_hash("prompt")])
+    gate._write_marker("test-session", marker)
+    assert gate.complete_required_router("test-session", marker["generation"])
+    result = gate.get_required_router("test-session")
+    assert result["status"] == "completed"
+    assert result["pending"] is False
+    assert result["dispatch_prompt_hashes"] == []
+    assert not gate.consume_dispatch("test-session", "prompt")
+
+
+def test_old_stop_cannot_complete_new_continuation(tmp_path):
+    gate.set_required_router("test-session", "d", "request")
+    generation = gate.get_required_router("test-session")["generation"]
+    gate.mark_validated("test-session", "request", "intent", {})
+    gate.continue_required_router("test-session", "and keep CI passing")
+    assert not gate.complete_required_router("test-session", generation)
+    marker = gate.get_required_router("test-session")
+    assert marker["pending"] is True
+    assert marker.get("status") != "completed"
+
+
+@pytest.mark.parametrize("blocked", [False, True])
+def test_pending_or_checked_blocked_stop_cannot_complete_router(tmp_path, blocked):
+    gate.set_required_router("test-session", "d", "request")
+    if blocked:
+        gate.mark_checked_blocked("test-session", "request")
+    marker = gate.get_required_router("test-session")
+    assert not gate.complete_required_router("test-session", marker["generation"])
+    assert gate.get_required_router("test-session")["pending"] is True
+    assert not gate.complete_required_router("missing-session", marker["generation"])

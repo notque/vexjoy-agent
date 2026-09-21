@@ -150,7 +150,7 @@ def main() -> None:
     continuation = False
     if invocation is None:
         marker = get_required_router(session) if session else None
-        if marker and (marker.get("pending") or marker.get("status") in {"checked_blocked", "dispatch_ready"}):
+        if marker and marker.get("status") != "completed":
             continue_required_router(session, prompt)
             invocation = (marker["router"], prompt)
             continuation = True
