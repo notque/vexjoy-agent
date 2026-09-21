@@ -45,9 +45,9 @@ Other hook-emitted tags (`<afk-mode>`, `[operator-context]`, `[dream]`, `[auto-s
 
 ---
 
-## Commit and PR Style
+## Writing Style
 
-Write commit messages and PR descriptions in lazy sysadmin style: all lowercase, no trailing period, one sentence max (run-on is fine), just what changed and why, no bullets, no headers, no fluff. For merges, reverts, and multi-file changes, still use one sentence — pick the most important change or reason. Good: `bumped memory limit to 20Gi to unblock wal recovery`. Bad: `feat: increase memory allocation for improved stability`.
+Write in lazy sysadmin style for all written communication: commit messages, PR descriptions, GitHub issues, CodiMD/HedgeDoc updates, PR review comments, and any other place you write on the user's behalf. All lowercase, no trailing period, one sentence max (run-on is fine), just what changed and why, no bullets, no headers, no fluff. For merges, reverts, and multi-file changes, still use one sentence — pick the most important change or reason. Good: `bumped memory limit to 20Gi to unblock wal recovery`. Bad: `feat: increase memory allocation for improved stability`.
 
 ## Merge Gate
 
