@@ -1,0 +1,20 @@
+{
+  "version": "shadcn-style-catalog-v1",
+  "components": [
+    {"id": "card", "package": "card", "capabilities": ["content-group", "summary", "actions"], "use_when": "A bounded content group needs metadata or actions."},
+    {"id": "data-table", "package": "table", "capabilities": ["tabular-data", "sort", "filter", "pagination", "row-actions"], "use_when": "Users compare and act on structured records."},
+    {"id": "form", "package": "form", "capabilities": ["data-entry", "validation", "field-errors", "submit"], "use_when": "Users enter validated structured data."},
+    {"id": "dialog", "package": "dialog", "capabilities": ["modal", "confirmation", "focused-task"], "use_when": "A short blocking decision or focused task interrupts the page."},
+    {"id": "sheet", "package": "sheet", "capabilities": ["overlay", "details", "secondary-task", "mobile-panel"], "use_when": "Supporting details preserve page context."},
+    {"id": "command", "package": "command", "capabilities": ["search", "keyboard", "quick-action", "large-option-set"], "use_when": "Users search or invoke actions from a large set."},
+    {"id": "tabs", "package": "tabs", "capabilities": ["section-switching", "peer-views"], "use_when": "A few peer views share one page context."},
+    {"id": "accordion", "package": "accordion", "capabilities": ["progressive-disclosure", "dense-content"], "use_when": "Users selectively reveal independent sections."},
+    {"id": "carousel", "package": "carousel", "capabilities": ["sequential-browse", "media"], "use_when": "Users browse a sequence without simultaneous comparison."}
+  ],
+  "styles": [
+    {"id": "quiet-product", "tags": ["calm", "neutral", "dense", "professional"], "tokens": {"radius": "0.5rem", "shadow": "subtle", "spacing": "compact", "contrast": "clear"}},
+    {"id": "editorial-warm", "tags": ["editorial", "warm", "expressive", "spacious"], "tokens": {"radius": "0.375rem", "shadow": "none", "spacing": "open", "contrast": "typographic"}},
+    {"id": "technical-console", "tags": ["technical", "dense", "precise", "dark-ready"], "tokens": {"radius": "0.25rem", "shadow": "none", "spacing": "tight", "contrast": "high"}},
+    {"id": "friendly-service", "tags": ["friendly", "approachable", "spacious", "soft"], "tokens": {"radius": "0.75rem", "shadow": "soft", "spacing": "comfortable", "contrast": "clear"}}
+  ]
+}
