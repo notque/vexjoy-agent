@@ -45,6 +45,14 @@ Other hook-emitted tags (`<afk-mode>`, `[operator-context]`, `[dream]`, `[auto-s
 
 ---
 
+## Commit and PR Style
+
+Write commit messages and PR descriptions in lazy sysadmin style: all lowercase, no trailing period, one sentence max (run-on is fine), just what changed and why, no bullets, no headers, no fluff. For merges, reverts, and multi-file changes, still use one sentence — pick the most important change or reason. Good: `bumped memory limit to 20Gi to unblock wal recovery`. Bad: `feat: increase memory allocation for improved stability`.
+
+## Merge Gate
+
+Never merge a pull request until all GitHub Actions checks have passed. Do not merge if any check is failing, pending, or still running — wait for the full green status before merging.
+
 ## Project Conventions
 
 - **CI:** run `ruff check . --config pyproject.toml` AND `ruff format --check . --config pyproject.toml` before pushing. Full CI policy: `skills/process/pr-workflow/SKILL.md`.
