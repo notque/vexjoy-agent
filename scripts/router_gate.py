@@ -35,6 +35,15 @@ def text_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def dispatch_hash(prompt: str) -> str:
+    """Hash a dispatch while ignoring one transport-level terminal newline."""
+    if prompt.endswith("\r\n"):
+        prompt = prompt[:-2]
+    elif prompt.endswith("\n"):
+        prompt = prompt[:-1]
+    return text_hash(prompt)
+
+
 def session_id() -> str:
     return next(
         (
@@ -136,7 +145,13 @@ def get_required_router(session: str) -> dict[str, Any] | None:
 
 
 def mark_validated(
-    session: str, request: str, intent: str, route: dict[str, Any], *, expected_generation: str | None = None
+    session: str,
+    request: str,
+    intent: str,
+    route: dict[str, Any],
+    *,
+    expected_generation: str | None = None,
+    expected_banner: str | None = None,
 ) -> None:
     if not session:
         return
@@ -156,10 +171,19 @@ def mark_validated(
             intent_hash=text_hash(intent),
             route_hash=text_hash(json.dumps(route, sort_keys=True)),
         )
+        if expected_banner:
+            marker["expected_banner"] = expected_banner
         _write_marker(session, marker)
 
 
-def authorize_dispatch(session: str, request: str, prompt: str, *, expected_generation: str | None = None) -> None:
+def authorize_dispatch(
+    session: str,
+    request: str,
+    prompt: str,
+    *,
+    expected_generation: str | None = None,
+    expected_banner: str | None = None,
+) -> None:
     """Queue an exact checked dispatch; concurrent fan-out retains every hash."""
     if not session:
         return
@@ -174,8 +198,10 @@ def authorize_dispatch(session: str, request: str, prompt: str, *, expected_gene
         ):
             raise RouterGateError("request changed before dispatch authorization")
         hashes = marker.get("dispatch_prompt_hashes", [])
-        hashes.append(text_hash(prompt))
+        hashes.append(dispatch_hash(prompt))
         marker.update(pending=False, status="dispatch_ready", dispatch_prompt_hashes=hashes)
+        if expected_banner:
+            marker["expected_banner"] = expected_banner
         _write_marker(session, marker)
 
 
@@ -188,7 +214,7 @@ def consume_dispatch(session: str, prompt: str) -> bool:
         if marker is None or marker.get("status") != "dispatch_ready":
             return False
         hashes = marker.get("dispatch_prompt_hashes", [])
-        digest = text_hash(prompt)
+        digest = dispatch_hash(prompt)
         if digest not in hashes:
             return False
         hashes.remove(digest)

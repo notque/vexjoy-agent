@@ -1,0 +1,10 @@
+/* === Drag and Drop Component === */
+.drag-list { list-style: none; padding: 0; }
+.drag-item {
+  padding: var(--sp-3) var(--sp-4); background: var(--bg-surface);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: var(--sp-2);
+  cursor: grab; transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; user-select: none;
+}
+.drag-item:active { cursor: grabbing; }
+.drag-item.dragging { opacity: 0.35; transform: rotate(2deg); }
+.drag-item.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }

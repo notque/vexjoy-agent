@@ -63,6 +63,7 @@ SKILL_MAPPING: dict[str, str] = {
     # meta/ — toolkit self-management
     "building-with-jev": "meta",
     "codex": "meta",
+    "html-artifact": "meta",
     "d": "meta",
     "do": "meta",
     "auto-dream": "meta",

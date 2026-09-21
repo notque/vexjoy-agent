@@ -1,0 +1,42 @@
+/* === Interactive Warm Theme === */
+:root {
+  --color-primary: #5B8DEF; --color-primary-hover: #4A7DE0;
+  --color-bg: #FAFAF8; --color-surface: #FFFFFF; --color-surface-raised: #F5F5F2;
+  --color-text: #2D2D2D; --color-text-secondary: #5A5A5A; --color-text-muted: #8A8A8A;
+  --color-border: #D4D4D0; --color-border-subtle: #E8E8E4; --color-border-focus: var(--color-primary);
+  --color-success: #4CAF50; --color-warning: #F9A825; --color-danger: #E53935; --color-info: #5B8DEF;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --type-display: 600 48px/1.1 var(--font-sans); --type-h1: 600 32px/1.2 var(--font-sans);
+  --type-h2: 600 24px/1.3 var(--font-sans); --type-body: 400 16px/1.55 var(--font-sans);
+  --type-small: 400 14px/1.5 var(--font-sans); --type-caption: 500 12px/1.4 var(--font-sans);
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05); --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-interactive: 0 2px 8px rgba(91,141,239,0.2);
+  --shadow-interactive-hover: 0 4px 16px rgba(91,141,239,0.3);
+  --bg-page: var(--color-bg); --bg-surface: var(--color-surface); --bg-muted: var(--color-surface-raised);
+  --bg-card: var(--color-surface); --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary); --text-muted: var(--color-text-muted);
+  --border-default: var(--color-border); --border-subtle: var(--color-border-subtle);
+  --accent: var(--color-primary);
+}
+body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
+button, [role="button"] {
+  background: var(--color-primary); color: #FFFFFF; border: none;
+  border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-4);
+  font: var(--type-small); font-weight: 500; cursor: pointer;
+  box-shadow: var(--shadow-interactive); transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+button:hover, [role="button"]:hover { background: var(--color-primary-hover); box-shadow: var(--shadow-interactive-hover); }
+button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+input, textarea, select {
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3); font: var(--type-body); background: var(--bg-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-border-focus); box-shadow: 0 0 0 3px rgba(91,141,239,0.15); outline: none;
+}

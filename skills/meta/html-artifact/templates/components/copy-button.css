@@ -1,0 +1,8 @@
+/* === Copy Button Component === */
+.copy-btn {
+  background: var(--bg-muted); border: 1px solid var(--border-default); border-radius: var(--radius-xs);
+  padding: var(--sp-1) var(--sp-2); font: var(--type-caption); cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.copy-btn:hover { background: var(--bg-surface); border-color: var(--accent); }
+.copy-btn.copied { background: color-mix(in srgb, var(--color-success) 12%, transparent); border-color: var(--color-success); color: var(--color-success); }

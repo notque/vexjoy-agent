@@ -1,0 +1,21 @@
+/* === Code Review Shape === */
+.review-layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+@media (max-width: 768px) { .review-layout { grid-template-columns: 1fr; } }
+.file-nav { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: var(--sp-5) var(--sp-4); border-right: 1px solid var(--border-default); background: var(--bg-surface); }
+.severity-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); font-size: var(--type-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.severity-badge.blocking { background: color-mix(in srgb, var(--color-danger) 12%, transparent); color: var(--color-danger); }
+.severity-badge.attention { background: color-mix(in srgb, var(--color-warning) 12%, transparent); color: var(--color-warning); }
+.severity-badge.safe { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); }
+.diff-file { border: 1px solid var(--border-default); border-radius: var(--radius-md); margin: var(--sp-5) var(--sp-7); overflow: hidden; background: var(--bg-surface); }
+.diff-header { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg-muted); border-bottom: 1px solid var(--border-default); }
+.diff-line { display: flex; align-items: stretch; font-family: var(--font-mono); font-size: var(--type-small); line-height: 1.5; min-height: 24px; }
+.diff-line.addition { background: var(--color-diff-add, rgba(129, 199, 132, 0.12)); }
+.diff-line.deletion { background: var(--color-diff-remove, rgba(239, 83, 80, 0.12)); }
+.line-num { display: inline-block; width: 48px; min-width: 48px; text-align: right; padding: 0 8px 0 0; color: var(--text-muted); font-size: var(--type-caption); border-right: 1px solid var(--border-default); user-select: none; line-height: 24px; }
+.line-code { flex: 1; padding: 0 var(--sp-4); white-space: pre; overflow-x: auto; tab-size: 4; line-height: 24px; }
+.annotation { margin: 0 var(--sp-4) var(--sp-3); padding: var(--sp-4); border-radius: var(--radius-sm); border-left: 3px solid var(--border-default); background: var(--bg-muted); }
+.annotation.blocking { border-left-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 4%, transparent); }
+.annotation.attention { border-left-color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 4%, transparent); }
+.stat-add { color: var(--color-success); font-weight: 600; }
+.stat-del { color: var(--color-danger); font-weight: 600; }
+@media (max-width: 768px) { .file-nav { position: static; height: auto; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border-default); } }

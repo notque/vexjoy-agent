@@ -131,7 +131,12 @@ or errored, report that failure and stop dependent execution until validation
 can succeed. Never invent scores, mark an unavailable receipt aligned, remove
 `router`, or fall back to a manual invocation to get around the gate.
 
-Only after success, show:
+Only after success, print the builder-generated canonical banner verbatim before
+execution. For routed work it is the first block of builder output; for Trivial
+it is the `banner` field in the `--router-finalize` JSON result. Raw receipt
+JSON, a paraphrase, or a banner shown only inside a worker prompt does not
+satisfy this requirement. Retain or repeat the exact banner in the final reply;
+supported Stop hooks enforce that final user-visible copy. The canonical form is:
 
 ```text
 Intent alignment (/d):

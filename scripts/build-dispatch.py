@@ -1033,8 +1033,10 @@ def build_preamble(
         LOCAL_ONLY_BLOCK if flags.get("local_only") else "",
     ]
     receipt = _router_check(decision, repo_root)
+    banner = None
     if receipt is not None:
-        blocks.insert(0, "Intent alignment: " + json.dumps(receipt, sort_keys=True))
+        banner = render_router_banner(decision, receipt)
+        blocks.insert(0, banner)
     output = "\n\n".join(block for block in blocks if block) + "\n"
     if receipt is not None:
         gate = _router_module()
@@ -1044,6 +1046,7 @@ def build_preamble(
                 decision["task_spec"]["request_verbatim"],
                 output,
                 expected_generation=receipt.get("_router_generation"),
+                expected_banner=banner,
             )
         except gate.RouterGateError as exc:
             raise InputError(str(exc)) from exc
@@ -1083,7 +1086,7 @@ def _router_check(decision: dict, repo_root: Path, *, direct: bool = False):
         raise InputError(str(exc)) from exc
 
 
-def _router_complete(decision: dict, receipt: dict) -> None:
+def _router_complete(decision: dict, receipt: dict, banner: str) -> None:
     gate = _router_module()
     spec = decision["task_spec"]
     route = {key: decision.get(key) for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning")}
@@ -1094,9 +1097,67 @@ def _router_complete(decision: dict, receipt: dict) -> None:
             spec["intent"],
             route,
             expected_generation=receipt.get("_router_generation"),
+            expected_banner=banner,
         )
     except gate.RouterGateError as exc:
         raise InputError(str(exc)) from exc
+
+
+def _banner_value(value: object, default: str = "none") -> str:
+    """Render one untrusted decision value without allowing banner forgery."""
+    text = str(value).strip() if value is not None else ""
+    text = re.sub(r"[\x00-\x1f\x7f-\x9f]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip() or default
+
+
+def _score(receipt: dict, name: str) -> str:
+    scores = receipt.get("scores")
+    value = scores.get(name) if isinstance(scores, dict) else None
+    return f"{value:.2f}" if isinstance(value, (int, float)) else "unreported"
+
+
+def render_router_banner(decision: dict, receipt: dict) -> str:
+    """Return the canonical user-visible banner for a validated router handoff."""
+    router = _banner_value(decision.get("router"), "d")
+    spec = decision.get("task_spec") if isinstance(decision.get("task_spec"), dict) else {}
+    intent = _banner_value(spec.get("intent"))
+    model = _banner_value(receipt.get("model"), "unreported model")
+    reasoning = _banner_value(decision.get("reasoning"), "validated route")
+    source = _banner_value(decision.get("source"), "unknown")
+    confidence = _banner_value(decision.get("confidence"), "unreported")
+    trivial = str(decision.get("complexity", "")).lower() == "trivial"
+    lines = [
+        f"Intent alignment (/{router}):",
+        f"  -> Restated outcome: {intent}",
+        "  -> Jev: aligned "
+        f"(model: {model}; can proceed: {_score(receipt, 'can_proceed_with_proposed_intent')}; "
+        f"route support: {_score(receipt, 'route_supports_requested_outcome')})",
+        "===================================================================",
+        f" ROUTING (/{router}): {reasoning}",
+    ]
+    if trivial:
+        lines.append(f" Classification: Trivial (source: {source})")
+    lines.extend(
+        [
+            " Selected:",
+            (
+                "   -> Agent: direct trivial handling"
+                if trivial
+                else f"   -> Agent: {_banner_value(decision.get('agent'))} — {reasoning}"
+            ),
+        ]
+    )
+    if not trivial:
+        lines.append(f"   -> Skill: {_banner_value(decision.get('skill'))} — {reasoning}")
+        if decision.get("pipeline"):
+            lines.append(f"   -> Pipeline: {_banner_value(decision['pipeline'])}")
+    lines.extend(
+        [
+            f"   -> Source: {source} (confidence: {confidence})",
+            "===================================================================",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def finalize_router(decision: dict, repo_root: Path | None = None) -> str:
@@ -1105,8 +1166,19 @@ def finalize_router(decision: dict, repo_root: Path | None = None) -> str:
     repo_root = repo_root or default_repo_root()
     validate_spec_paths(decision, repo_root)
     receipt = _router_check(decision, repo_root, direct=True)
-    _router_complete(decision, receipt)
-    return json.dumps({"router_finalized": True, "intent_alignment": receipt}, sort_keys=True) + "\n"
+    banner = render_router_banner(decision, receipt)
+    _router_complete(decision, receipt, banner)
+    return (
+        json.dumps(
+            {
+                "router_finalized": True,
+                "intent_alignment": receipt,
+                "banner": banner,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

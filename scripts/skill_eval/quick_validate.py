@@ -58,6 +58,7 @@ def validate_skill(skill_path):
         "color",
         "hooks",
         "command",
+        "argument-hint",
     }
 
     # Check for unexpected properties (excluding nested keys under metadata)

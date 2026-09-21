@@ -367,6 +367,14 @@
       "notes": "WebGL card effects — agent resolved via pairs_with. distinctive-frontend-design pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
     },
     {
+      "request": "make a self-contained HTML artifact for this system design",
+      "expected_agent": null,
+      "expected_skill": "html-artifact",
+      "category": "content-creation",
+      "routing_tier": "candidate",
+      "notes": "Explicit standalone HTML artifact request should discover the restored full skill."
+    },
+    {
       "request": "run a security threat model audit on the toolkit",
       "expected_agent": "python-general-engineer",
       "expected_skill": "security",

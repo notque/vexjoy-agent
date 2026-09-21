@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>{{TITLE}}</title>
+  <style>
+    /* vexjoy-artifact: shape=report theme=dark-focus contrast=n/a */
+
+    /* === Reset === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body { min-height: 100vh; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    img, svg { display: block; max-width: 100%; }
+    input, button, textarea, select { font: inherit; }
+    p, h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    :focus:not(:focus-visible) { outline: none; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .hidden { display: none !important; }
+
+    /* === Dark Focus Theme === */
+    :root {
+      --color-primary: #64B5F6; --color-bg: #1A1A2E; --color-surface: #232340;
+      --color-surface-raised: #2C2C4A; --color-text: #E0E0E0;
+      --color-text-secondary: #A0A0B8; --color-text-muted: #6E6E8A;
+      --color-border: #3A3A5C; --color-border-subtle: #2E2E4E;
+      --color-success: #81C784; --color-warning: #FFB74D; --color-danger: #EF5350; --color-info: #64B5F6;
+      --color-purple: #B39DDB; --color-pink: #F48FB1;
+      --color-code-bg: #16162A;
+      --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+      --type-display: 500 36px/1.1 var(--font-sans); --type-h1: 500 28px/1.2 var(--font-sans);
+      --type-h2: 500 20px/1.3 var(--font-sans); --type-body: 400 15px/1.55 var(--font-sans);
+      --type-small: 400 13px/1.5 var(--font-sans); --type-caption: 500 11px/1.4 var(--font-sans);
+      --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px;
+      --bg-page: var(--color-bg); --bg-surface: var(--color-surface); --bg-muted: var(--color-surface-raised);
+      --bg-card: var(--color-surface); --text-primary: var(--color-text);
+      --text-secondary: var(--color-text-secondary); --text-muted: var(--color-text-muted);
+      --border-default: var(--color-border); --border-subtle: var(--color-border-subtle);
+      --accent: var(--color-primary);
+    }
+    body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
+    code { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--radius-xs); padding: 1px 6px; font-family: var(--font-mono); font-size: 12px; }
+
+    /* === Layout === */
+    .page { max-width: 1100px; margin: 0 auto; padding: var(--sp-6) var(--sp-5); }
+    header.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-5); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--sp-4); }
+    header.page-head h1 { font: var(--type-display); }
+    header.page-head .meta { font: var(--type-small); color: var(--text-muted); }
+
+    /* === Toolbar === */
+    .toolbar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-5); padding: var(--sp-3) var(--sp-4); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+    .toolbar label { font: var(--type-caption); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+    .toolbar select { background: var(--bg-muted); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-xs); padding: var(--sp-2) var(--sp-3); cursor: pointer; }
+    .toolbar select:focus { border-color: var(--accent); outline: none; }
+    .toolbar .count { margin-left: auto; font: var(--type-small); color: var(--text-secondary); }
+
+    /* === Issue list === */
+    .issue-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .issue-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--sp-4) var(--sp-5); transition: border-color 0.15s ease; }
+    .issue-card:hover { border-color: var(--border-default); }
+    .issue-head { display: flex; gap: var(--sp-3); align-items: flex-start; }
+    .issue-title { flex: 1; font: var(--type-h2); font-weight: 500; }
+    .issue-title a { color: var(--text-primary); }
+    .issue-title a:hover { color: var(--accent); }
+    .issue-num { color: var(--text-muted); font-family: var(--font-mono); font-weight: 400; margin-right: var(--sp-2); }
+    .issue-meta { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-top: var(--sp-3); font: var(--type-small); color: var(--text-secondary); }
+
+    /* === Badges === */
+    .badge { display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px 8px; border-radius: 999px; font: var(--type-caption); font-weight: 600; letter-spacing: 0.02em; }
+    .badge-repo { background: var(--bg-muted); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 11px; text-transform: none; letter-spacing: 0; }
+    .badge-state { text-transform: uppercase; }
+    .badge-state.open { background: color-mix(in srgb, var(--color-success) 15%, transparent); color: var(--color-success); }
+    .badge-state.closed { background: color-mix(in srgb, var(--color-purple) 18%, transparent); color: var(--color-purple); }
+    .badge-comments { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+    .badge-author { background: var(--bg-muted); color: var(--text-secondary); padding: 2px 8px 2px 2px; }
+    .badge-author img { width: 18px; height: 18px; border-radius: 50%; }
+    .label-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font: var(--type-caption); font-weight: 500; }
+    .ago { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    /* === Discussion expander === */
+    .accordion-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; background: transparent; border: 1px solid var(--border-subtle); color: var(--text-secondary); padding: var(--sp-2) var(--sp-3); font: var(--type-small); font-weight: 500; cursor: pointer; text-align: left; border-radius: var(--radius-xs); margin-top: var(--sp-3); }
+    .accordion-trigger:hover { border-color: var(--border-default); color: var(--text-primary); }
+    .accordion-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .accordion-trigger::after { content: '+'; font-size: 16px; color: var(--text-muted); }
+    .accordion-trigger[aria-expanded="true"]::after { content: '\2212'; }
+    .accordion-panel { max-height: 0; overflow: hidden; transition: max-height 0.25s cubic-bezier(.16, 1, .3, 1); }
+    .accordion-inner { padding: var(--sp-3) 0 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+    .comment { background: var(--bg-muted); border-left: 2px solid var(--border-default); border-radius: var(--radius-xs); padding: var(--sp-3) var(--sp-4); }
+    .comment-head { display: flex; gap: var(--sp-2); align-items: center; font: var(--type-caption); color: var(--text-muted); margin-bottom: var(--sp-2); }
+    .comment-head img { width: 16px; height: 16px; border-radius: 50%; }
+    .comment-author { color: var(--text-secondary); font-weight: 600; }
+    .comment-body { font: var(--type-small); color: var(--text-primary); white-space: pre-wrap; word-wrap: break-word; }
+    .no-comments { font: var(--type-small); color: var(--text-muted); font-style: italic; padding: var(--sp-2) 0; }
+
+    /* === Empty state === */
+    .empty { text-align: center; padding: var(--sp-8) var(--sp-4); color: var(--text-muted); }
+
+    /* === Footer === */
+    footer.page-foot { margin-top: var(--sp-7); padding-top: var(--sp-4); border-top: 1px solid var(--border-subtle); font: var(--type-caption); color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-2); }
+  </style>
+</head>
+<body data-shape="report">
+  <div class="page">
+    <header class="page-head">
+      <h1>{{TITLE}}</h1>
+      <span class="meta">Generated <span id="generated-at">{{GENERATED_AT}}</span></span>
+    </header>
+
+    <div class="toolbar">
+      <label for="sort-select">Sort by</label>
+      <select id="sort-select" aria-label="Sort issues">
+        <option value="updated-desc">Last updated (most recent)</option>
+        <option value="age-newest">Age, newest first</option>
+        <option value="age-oldest">Age, oldest first</option>
+        <option value="comments-desc">Most discussed</option>
+        <option value="repo-age">Repo, then age within repo</option>
+      </select>
+      <span class="count" id="count">0 issues</span>
+    </div>
+
+    <main>
+      <div class="issue-list" id="issue-list" aria-live="polite"></div>
+      <div class="empty hidden" id="empty">No issues to display.</div>
+    </main>
+
+    <footer class="page-foot">
+      <span>Source: <code>gh search issues --involves @me --state open</code></span>
+      <span>Self-contained HTML artifact</span>
+    </footer>
+  </div>
+
+  <!--
+    Issues payload. The renderer (scripts/render-github-issues.py) replaces the
+    contents of this <script> block with live JSON. The sample dataset below
+    lets the template open standalone in a browser for testing.
+  -->
+  <script id="issues-data" type="application/json">
+[
+  {"number":42,"title":"Sample: streaming reader hangs on empty channel","url":"https://example.com/issues/42","repo":"acme/widgets","state":"open","createdAt":"2026-04-01T12:00:00Z","updatedAt":"2026-06-08T09:30:00Z","commentsCount":3,"author":"alice","authorAvatar":"","labels":[{"name":"bug","color":"d73a4a"},{"name":"good first issue","color":"7057ff"}],"discussion":[{"author":"alice","authorAvatar":"","createdAt":"2026-04-01T12:05:00Z","summary":"Repro steps: open the reader, send no events, wait. Goroutine never returns."},{"author":"bob","authorAvatar":"","createdAt":"2026-05-12T08:00:00Z","summary":"Likely a missing context cancel. Will look this week."},{"author":"alice","authorAvatar":"","createdAt":"2026-06-08T09:30:00Z","summary":"Bumping — still hits us in CI."}]},
+  {"number":17,"title":"Sample: docs link 404 in onboarding flow","url":"https://example.com/issues/17","repo":"acme/site","state":"open","createdAt":"2026-05-20T10:00:00Z","updatedAt":"2026-05-21T14:00:00Z","commentsCount":1,"author":"carol","authorAvatar":"","labels":[{"name":"docs","color":"0075ca"}],"discussion":[{"author":"dave","authorAvatar":"","createdAt":"2026-05-21T14:00:00Z","summary":"Found the broken anchor — fix in #18."}]},
+  {"number":7,"title":"Sample: feature request — dark mode for printable view","url":"https://example.com/issues/7","repo":"acme/widgets","state":"open","createdAt":"2025-11-10T08:00:00Z","updatedAt":"2026-01-05T10:00:00Z","commentsCount":0,"author":"erin","authorAvatar":"","labels":[{"name":"enhancement","color":"a2eeef"}],"discussion":[]}
+]
+  </script>
+  <script>
+    (function () {
+      'use strict';
+
+      // === Load data from inline JSON. textContent is safe; JSON.parse rejects non-JSON. ===
+      var raw = document.getElementById('issues-data').textContent;
+      var issues = [];
+      try { issues = JSON.parse(raw); } catch (e) { issues = []; }
+      if (!Array.isArray(issues)) issues = [];
+
+      // === Helpers ===
+      function el(tag, opts) {
+        var node = document.createElement(tag);
+        if (!opts) return node;
+        if (opts.cls) node.className = opts.cls;
+        if (opts.text != null) node.textContent = String(opts.text);
+        if (opts.title != null) node.title = String(opts.title);
+        if (opts.style) node.setAttribute('style', opts.style);
+        if (opts.attrs) {
+          Object.keys(opts.attrs).forEach(function (k) { node.setAttribute(k, opts.attrs[k]); });
+        }
+        return node;
+      }
+
+      function relAgo(iso, now) {
+        if (!iso) return '';
+        var t = new Date(iso).getTime();
+        if (isNaN(t)) return '';
+        var diff = Math.max(0, (now - t) / 1000);
+        if (diff < 60) return Math.floor(diff) + 's ago';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        if (diff < 86400 * 30) return Math.floor(diff / 86400) + 'd ago';
+        if (diff < 86400 * 365) return Math.floor(diff / (86400 * 30)) + 'mo ago';
+        return Math.floor(diff / (86400 * 365)) + 'y ago';
+      }
+
+      function labelStyle(color) {
+        // GitHub label colors are hex without leading #. Pick readable text on top.
+        if (!color) return 'background: var(--bg-muted); color: var(--text-secondary);';
+        var hex = String(color).replace('#', '');
+        if (!/^[0-9a-fA-F]{6}$/.test(hex)) return 'background: var(--bg-muted); color: var(--text-secondary);';
+        var r = parseInt(hex.slice(0, 2), 16);
+        var g = parseInt(hex.slice(2, 4), 16);
+        var b = parseInt(hex.slice(4, 6), 16);
+        var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        var fg = lum > 0.55 ? '#1A1A2E' : '#F0F0F8';
+        return 'background: #' + hex + '; color: ' + fg + ';';
+      }
+
+      // === Sort comparators ===
+      // Each comparator returns negative when `a` sorts before `b`.
+      var SORTS = {
+        // Most-recent updatedAt first.
+        'updated-desc': function (a, b) {
+          return new Date(b.updatedAt) - new Date(a.updatedAt);
+        },
+        // Newest issue first = most-recent createdAt first.
+        'age-newest': function (a, b) {
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        },
+        // Oldest issue first = least-recent createdAt first.
+        'age-oldest': function (a, b) {
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        },
+        // Most-discussed first.
+        'comments-desc': function (a, b) {
+          return (b.commentsCount || 0) - (a.commentsCount || 0);
+        },
+        // Group by repo (alpha asc), then oldest-first within repo.
+        'repo-age': function (a, b) {
+          var ra = (a.repo || '').toLowerCase();
+          var rb = (b.repo || '').toLowerCase();
+          if (ra < rb) return -1;
+          if (ra > rb) return 1;
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        }
+      };
+
+      // === Render (DOM construction; no innerHTML on dynamic data) ===
+      var listEl = document.getElementById('issue-list');
+      var emptyEl = document.getElementById('empty');
+      var countEl = document.getElementById('count');
+      var now = Date.now();
+
+      function buildAvatar(url, size) {
+        // Avatar URL: only honor http/https. Anything else, drop it.
+        if (!url || !/^https?:\/\//.test(String(url))) return null;
+        var img = el('img', { attrs: { src: String(url), alt: '', loading: 'lazy' } });
+        if (size) img.style.width = img.style.height = size + 'px';
+        return img;
+      }
+
+      function buildIssueLink(it) {
+        // Issue URL: only honor http/https.
+        var safeUrl = (typeof it.url === 'string' && /^https?:\/\//.test(it.url)) ? it.url : '#';
+        var a = el('a', { attrs: { href: safeUrl, target: '_blank', rel: 'noopener noreferrer' } });
+        a.appendChild(el('span', { cls: 'issue-num', text: '#' + it.number }));
+        a.appendChild(document.createTextNode(' ' + (it.title || '')));
+        return a;
+      }
+
+      function buildComment(c) {
+        var wrap = el('div', { cls: 'comment' });
+        var head = el('div', { cls: 'comment-head' });
+        var av = buildAvatar(c.authorAvatar, 16);
+        if (av) head.appendChild(av);
+        head.appendChild(el('span', { cls: 'comment-author', text: c.author || 'unknown' }));
+        head.appendChild(el('span', { cls: 'ago', text: relAgo(c.createdAt, now) }));
+        wrap.appendChild(head);
+        wrap.appendChild(el('div', { cls: 'comment-body', text: c.summary || '' }));
+        return wrap;
+      }
+
+      function buildCard(it, idx) {
+        var card = el('article', { cls: 'issue-card', attrs: { 'data-issue': String(it.number) } });
+
+        var head = el('div', { cls: 'issue-head' });
+        var title = el('h2', { cls: 'issue-title' });
+        title.appendChild(buildIssueLink(it));
+        head.appendChild(title);
+        card.appendChild(head);
+
+        var meta = el('div', { cls: 'issue-meta' });
+        meta.appendChild(el('span', { cls: 'badge badge-repo', text: it.repo || '' }));
+        var stateClass = (it.state || 'open').toLowerCase();
+        meta.appendChild(el('span', { cls: 'badge badge-state ' + stateClass, text: it.state || 'open' }));
+        meta.appendChild(el('span', { cls: 'badge badge-comments', text: (it.commentsCount || 0) + ' 💬', title: 'comment count' }));
+
+        var authorBadge = el('span', { cls: 'badge badge-author' });
+        var av = buildAvatar(it.authorAvatar, 18);
+        if (av) authorBadge.appendChild(av);
+        authorBadge.appendChild(document.createTextNode(it.author || 'unknown'));
+        meta.appendChild(authorBadge);
+
+        meta.appendChild(el('span', { cls: 'ago', text: 'opened ' + relAgo(it.createdAt, now), title: 'created ' + (it.createdAt || '') }));
+        meta.appendChild(el('span', { cls: 'ago', text: 'updated ' + relAgo(it.updatedAt, now), title: 'updated ' + (it.updatedAt || '') }));
+
+        (it.labels || []).forEach(function (l) {
+          meta.appendChild(el('span', { cls: 'label-pill', text: l.name || '', style: labelStyle(l.color) }));
+        });
+        card.appendChild(meta);
+
+        var panelId = 'panel-' + idx;
+        var comments = it.discussion || [];
+        var trigger = el('button', {
+          cls: 'accordion-trigger',
+          text: 'Show discussion (' + comments.length + ')',
+          attrs: { type: 'button', 'aria-expanded': 'false', 'aria-controls': panelId }
+        });
+        card.appendChild(trigger);
+
+        var panel = el('div', { cls: 'accordion-panel', attrs: { id: panelId, role: 'region' } });
+        var inner = el('div', { cls: 'accordion-inner' });
+        if (comments.length === 0) {
+          inner.appendChild(el('div', { cls: 'no-comments', text: 'No comments on this issue.' }));
+        } else {
+          comments.forEach(function (c) { inner.appendChild(buildComment(c)); });
+        }
+        panel.appendChild(inner);
+        card.appendChild(panel);
+
+        return card;
+      }
+
+      function render(sortKey) {
+        var sorted = issues.slice().sort(SORTS[sortKey] || SORTS['updated-desc']);
+        countEl.textContent = sorted.length + (sorted.length === 1 ? ' issue' : ' issues');
+        // Clear previous render.
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        if (sorted.length === 0) {
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+        emptyEl.classList.add('hidden');
+        var frag = document.createDocumentFragment();
+        sorted.forEach(function (it, idx) { frag.appendChild(buildCard(it, idx)); });
+        listEl.appendChild(frag);
+        wireAccordions();
+      }
+
+      function wireAccordions() {
+        listEl.querySelectorAll('.accordion-trigger').forEach(function (trigger) {
+          trigger.addEventListener('click', function () {
+            var expanded = trigger.getAttribute('aria-expanded') === 'true';
+            var panel = document.getElementById(trigger.getAttribute('aria-controls'));
+            trigger.setAttribute('aria-expanded', String(!expanded));
+            if (!expanded) {
+              panel.style.maxHeight = panel.scrollHeight + 'px';
+            } else {
+              panel.style.maxHeight = '0';
+            }
+          });
+        });
+      }
+
+      // === Wire sort dropdown ===
+      var select = document.getElementById('sort-select');
+      select.addEventListener('change', function () { render(select.value); });
+
+      // === Initial render ===
+      render('updated-desc');
+    })();
+  </script>
+</body>
+</html>

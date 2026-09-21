@@ -8,6 +8,11 @@ handoffs on either host. Claude Stop also requires queued dispatches to be
 consumed. Codex Stop can verify intent validation but cannot verify agent
 invocation; its adapter explicitly tags this narrower host guarantee.
 This is not a general shell-command sandbox.
+
+Successful completion also requires the builder's exact canonical banner in
+the host-provided final assistant message. This verifies a user-visible final
+emission. The skill separately requires the first emission before execution;
+Stop payloads cannot prove that earlier timing, so the final reply repeats it.
 """
 
 from __future__ import annotations
@@ -38,6 +43,16 @@ def evaluate(event: dict) -> dict:
             status = marker.get("status")
             if status == "checked_blocked":
                 return {}
+            expected_banner = marker.get("expected_banner")
+            if expected_banner and expected_banner not in event.get("last_assistant_message", ""):
+                return {
+                    "decision": "block",
+                    "reason": (
+                        "[router-required] The final user-visible reply must include the exact canonical "
+                        "intent-alignment banner emitted by scripts/build-dispatch.py. Repeat that banner "
+                        "verbatim, then complete the response."
+                    ),
+                }
             if marker.get("pending") is False and status in {"validated", "dispatched", "completed"}:
                 if complete_required_router(session, marker["generation"]):
                     return {}

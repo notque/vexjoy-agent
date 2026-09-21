@@ -1,0 +1,81 @@
+/* === Scrollytelling Component === */
+
+/* --- Fade Up (Default Reveal) --- */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Fade In (No Movement) --- */
+.fade-in {
+  opacity: 0;
+  transition: opacity 800ms ease-out;
+}
+
+.fade-in.visible {
+  opacity: 1;
+}
+
+/* --- Slide From Left --- */
+.slide-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 500ms ease-out, transform 500ms ease-out;
+}
+
+.slide-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Stagger Children --- */
+.stagger-child {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 400ms ease-out, transform 400ms ease-out;
+  transition-delay: calc(var(--i) * 100ms);
+}
+
+.stagger-group.visible .stagger-child {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Reading Progress Bar --- */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  z-index: 9999;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary, #D97757);
+  width: 0%;
+  transition: width 100ms linear;
+}
+
+/* --- Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .fade-in,
+  .slide-left,
+  .stagger-child {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .progress-fill {
+    transition: none !important;
+  }
+}

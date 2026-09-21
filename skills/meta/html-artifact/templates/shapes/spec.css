@@ -1,0 +1,34 @@
+/* === Spec / Exploration Shape === */
+.comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-5); }
+.approach-card {
+  border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--sp-6);
+  background: var(--bg-surface); transition: border-color 0.15s ease;
+}
+.approach-card:hover { border-color: var(--text-muted); }
+.approach-card:has(.approach-tag) { border-color: var(--accent); border-width: 2px; }
+.approach-header { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-4); flex-wrap: wrap; }
+.approach-number { font-family: var(--font-mono); font-size: var(--type-h2); font-weight: 700; color: var(--border-default); line-height: 1; }
+.approach-header h3 { font-size: var(--type-h3, 1.125rem); font-weight: 600; flex: 1; }
+.approach-tag {
+  font-size: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 2px 8px; border-radius: var(--radius-xs);
+}
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.pros-cons h4 { font-size: var(--type-small); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--sp-2); }
+.pros h4 { color: var(--color-success); }
+.cons h4 { color: var(--color-danger); }
+.pros-cons ul { list-style: none; padding: 0; }
+.pros-cons li { font-size: var(--type-small); padding: var(--sp-1) 0; padding-left: var(--sp-5); position: relative; }
+.pros li::before { content: '+'; position: absolute; left: 0; color: var(--color-success); font-weight: 700; font-family: var(--font-mono); }
+.cons li::before { content: '\2212'; position: absolute; left: 0; color: var(--color-danger); font-weight: 700; font-family: var(--font-mono); }
+.recommendation { border-left: 3px solid var(--accent); padding-left: var(--sp-6); margin-top: var(--sp-7); }
+.tradeoff-matrix { width: 100%; border-collapse: collapse; font-size: var(--type-small); }
+.tradeoff-matrix th, .tradeoff-matrix td { padding: var(--sp-3) var(--sp-4); text-align: left; border-bottom: 1px solid var(--border-subtle); }
+.tradeoff-matrix th { font-weight: 600; font-size: var(--type-caption); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.cell-success { color: var(--color-success); font-weight: 600; }
+.cell-warning { color: var(--color-warning); font-weight: 600; }
+.cell-danger { color: var(--color-danger); font-weight: 600; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); background: var(--bg-muted); font-size: var(--type-caption); font-weight: 500; color: var(--text-secondary); }
+@media (max-width: 1024px) { .comparison-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+@media (max-width: 640px) { .comparison-grid { grid-template-columns: 1fr; } .pros-cons { grid-template-columns: 1fr; } }

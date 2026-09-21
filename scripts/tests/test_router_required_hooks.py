@@ -154,6 +154,29 @@ def test_validated_dispatch_is_exact_and_single_use():
     assert guard.evaluate({"hook_event_name": "Stop", "session_id": "turn-test"}) == {}
 
 
+@pytest.mark.parametrize("authorized", ["validated handoff\n", "validated handoff\r\n"])
+def test_dispatch_accepts_one_omitted_transport_newline(authorized):
+    request = "$d fix intent"
+    router_gate.set_required_router("turn-test", "d", request)
+    router_gate.authorize_dispatch("turn-test", request, authorized)
+    event = {
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Agent",
+        "session_id": "turn-test",
+        "tool_input": {"prompt": "validated handoff"},
+    }
+    assert guard.evaluate(event) == {}
+
+
+def test_dispatch_newline_normalization_remains_byte_strict():
+    request = "$d fix intent"
+    router_gate.set_required_router("turn-test", "d", request)
+    router_gate.authorize_dispatch("turn-test", request, "validated handoff\n")
+    assert not router_gate.consume_dispatch("turn-test", "validated handoff\n\n")
+    assert not router_gate.consume_dispatch("turn-test", "validated handoff extra")
+    assert router_gate.consume_dispatch("turn-test", "validated handoff")
+
+
 def test_direct_finalize_does_not_authorize_agent():
     request = "$d fix intent"
     router_gate.set_required_router("turn-test", "d", request)
@@ -163,6 +186,55 @@ def test_direct_finalize_does_not_authorize_agent():
         guard.evaluate({"tool_name": "Agent", "session_id": "turn-test"})["hookSpecificOutput"]["permissionDecision"]
         == "deny"
     )
+
+
+def test_successful_router_stop_requires_exact_user_visible_banner():
+    request = "$d fix intent"
+    banner = "Intent alignment (/d):\n  -> Restated outcome: Fix intent."
+    router_gate.set_required_router("turn-test", "d", request)
+    router_gate.mark_validated("turn-test", request, "Fix intent.", {}, expected_banner=banner)
+    event = {"hook_event_name": "Stop", "session_id": "turn-test"}
+
+    missing = guard.evaluate(event)
+    assert missing["decision"] == "block"
+    assert "exact canonical" in missing["reason"]
+
+    event["last_assistant_message"] = banner.replace("Fix intent.", "Fix something else.")
+    assert guard.evaluate(event)["decision"] == "block"
+
+    event["last_assistant_message"] = f"Work complete.\n\n{banner}\n\nDetails follow."
+    assert guard.evaluate(event) == {}
+    assert router_gate.get_required_router("turn-test")["status"] == "completed"
+
+
+def test_new_generation_rejects_stale_banner():
+    first = "$d first"
+    old_banner = "Intent alignment (/d): old"
+    router_gate.set_required_router("turn-test", "d", first)
+    router_gate.mark_validated("turn-test", first, "First", {}, expected_banner=old_banner)
+
+    second = "$d second"
+    new_banner = "Intent alignment (/d): new"
+    router_gate.set_required_router("turn-test", "d", second)
+    router_gate.mark_validated("turn-test", second, "Second", {}, expected_banner=new_banner)
+    event = {
+        "hook_event_name": "Stop",
+        "session_id": "turn-test",
+        "last_assistant_message": old_banner,
+    }
+    assert guard.evaluate(event)["decision"] == "block"
+    event["last_assistant_message"] = new_banner
+    assert guard.evaluate(event) == {}
+
+
+def test_checked_blocker_can_report_without_banner_even_if_one_was_previously_expected():
+    request = "$d fix intent"
+    router_gate.set_required_router("turn-test", "d", request)
+    marker = router_gate.get_required_router("turn-test")
+    marker["expected_banner"] = "stale banner"
+    router_gate._write_marker("turn-test", marker)
+    router_gate.mark_checked_blocked("turn-test", request)
+    assert guard.evaluate({"hook_event_name": "Stop", "session_id": "turn-test"}) == {}
 
 
 def test_new_turn_same_text_invalidates_previous_dispatch():

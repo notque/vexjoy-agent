@@ -1,0 +1,73 @@
+/* Deck Print Stylesheet — 16:9 widescreen landscape, one slide per page, no margin. */
+
+@page {
+  size: 13.333in 7.5in;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Un-stick deck navigation (progress bar, slide counter, controls). */
+  .deck-nav,
+  .progress-bar,
+  .slide-counter,
+  .deck-controls,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  /* One slide per page. */
+  .slide {
+    width: 13.333in !important;
+    height: 7.5in !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex !important;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .slide:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* If deck uses a stacked layout where only the active slide is visible on screen,
+     reveal all slides for printing. */
+  .slide,
+  .slide-deck .slide,
+  .slide:not(.active) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: relative !important;
+  }
+
+  /* Images and SVGs should fit slide bounds. */
+  .slide img,
+  .slide svg {
+    max-width: 100%;
+    max-height: 6in;
+  }
+}

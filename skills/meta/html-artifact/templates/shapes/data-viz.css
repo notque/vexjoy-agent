@@ -1,0 +1,28 @@
+/* === Data Visualization Shape === */
+.chart { width: 100%; height: auto; }
+.axis { stroke: var(--border-default); stroke-width: 1; }
+.grid { stroke: var(--border-subtle); stroke-width: 1; stroke-dasharray: 4; }
+.axis-label { font: 11px var(--font-mono, monospace); fill: var(--text-muted); }
+.chart-title { font: 500 14px var(--font-sans, system-ui); fill: var(--text-primary); }
+.data-point { transition: r 0.15s ease, opacity 0.15s ease; cursor: pointer; }
+.data-point:hover { r: 7; opacity: 1; }
+.bar { transition: opacity 0.15s ease; cursor: pointer; }
+.bar:hover { opacity: 1; filter: brightness(1.1); }
+.chart-tooltip {
+  display: none; position: fixed; background: var(--bg-surface); color: var(--text-primary);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-xs); font: var(--type-caption); font-weight: 500;
+  pointer-events: none; z-index: 100; box-shadow: var(--shadow-md); border: 1px solid var(--border-default); white-space: nowrap;
+}
+.legend { display: flex; gap: var(--sp-4); }
+.legend-horizontal { flex-direction: row; flex-wrap: wrap; justify-content: center; padding: var(--sp-3) 0; }
+.legend-vertical { flex-direction: column; gap: var(--sp-2); }
+.legend-item { display: flex; align-items: center; gap: var(--sp-2); }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.legend-label { font: var(--type-caption); color: var(--text-secondary); }
+.legend-value { font: var(--type-caption); font-family: var(--font-mono); color: var(--text-muted); margin-left: auto; }
+.dash-header { display: flex; justify-content: space-between; align-items: flex-start; padding: var(--sp-5); border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: var(--sp-3); }
+.dash-charts { display: grid; grid-template-columns: 2fr 1fr; gap: var(--sp-5); }
+@media (max-width: 768px) { .dash-charts { grid-template-columns: 1fr; } }
+.chart-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--sp-4); }
+@media (max-width: 640px) { .chart { min-width: 480px; } .chart-card { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+@media print { .chart-tooltip, .btn-primary, .btn-secondary { display: none !important; } .chart-card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; } }

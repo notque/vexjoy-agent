@@ -68,6 +68,7 @@ name: my-skill
 description: "Full featured skill."
 version: "1.0.0"
 user-invocable: true
+argument-hint: "[description]"
 allowed-tools:
   - Read
   - Write
