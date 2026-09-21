@@ -13,6 +13,7 @@
         "do": "The router itself, not a routing target. /do is the entry point that selects agents and skills; it is never the result of a routing decision.",
         "image-gen": "Image-generation route depends on visual task context and available provider.",
         "integration-checker": "Integration-review route requires changed-component scope.",
+        "jev-design": "Design-planning companion selected by frontend workflow state, not a standalone deterministic route.",
         "joy-check": "Editorial judgment companion selected by content workflow state.",
         "kubernetes": "Infrastructure route requires cluster and deployment context.",
         "markdown-converter": "Conversion route depends on supplied input format and tooling context.",
