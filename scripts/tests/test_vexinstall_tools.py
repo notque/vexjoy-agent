@@ -17,6 +17,7 @@ from scripts.tests.vexinstall_support import (
     Env,
     commit_all,
     common,
+    find_named,
     git,
     skill_md,
     sources,
@@ -212,7 +213,7 @@ def test_prune_unowned_requires_confirm(world: Env, target: str) -> None:
     assert world.run("prune", "--target", target).code == 2
     assert world.run("prune", "--unowned", "--confirm", "--target", target).code == 0
     assert not os.path.lexists(ghost)
-    assert list((world.home / ".claude" / "vexjoy" / "trash").rglob("ghost"))
+    assert find_named(world.home / ".claude" / "vexjoy" / "trash", "ghost")
 
 
 # ---------------------------------------------------------------- leak + repair

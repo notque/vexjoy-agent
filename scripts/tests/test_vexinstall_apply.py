@@ -17,6 +17,7 @@ from scripts.tests.vexinstall_support import (
     bulk_world,
     commit_all,
     expected_skill_names,
+    find_named,
     git,
     make_world,
     tree_hash,
@@ -197,7 +198,7 @@ def test_dangling_owned_pruned_unowned_kept(world: Env, target: str, mode: str) 
     assert not os.path.lexists(world.skills(target) / "zeta")
     assert os.path.islink(ghost), "unowned dangling link must be left for prune --unowned"
     trash = world.home / ".claude" / "vexjoy" / "trash"
-    moved = [p for p in trash.rglob("zeta") if "files" in p.parts]
+    moved = [p for p in find_named(trash, "zeta") if "files" in p.parts]
     assert moved, "removal must land in trash"
 
 

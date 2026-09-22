@@ -278,3 +278,19 @@ def bulk_world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Env]
     env = make_world(tmp_path, monkeypatch, bulk=True)
     yield env
     assert_repo_clean(env.repo)
+
+
+def find_named(root: Path, name: str) -> list[Path]:
+    """Every path under *root* named *name*, including dangling symlinks.
+
+    ``Path.rglob`` skips broken symlinks on Python 3.10, and trashed dangling
+    links are exactly what the prune tests look for.
+    """
+    import os
+
+    hits: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        for entry in (*dirnames, *filenames):
+            if entry == name:
+                hits.append(Path(dirpath) / entry)
+    return hits
