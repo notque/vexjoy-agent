@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from scripts.tests.vexinstall_support import TARGETS, Env, commit_all, repo_hash, world
 
@@ -149,7 +149,10 @@ def _add_codex_adapter(env: Env) -> None:
     commit_all(env.repo, "adapter")
 
 
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="tomllib requires Python 3.11+")
 def test_codex_external_files_generated_and_idempotent(world: Env) -> None:
+    import tomllib
+
     _add_codex_adapter(world)
     root = world.root("codex")
     root.mkdir()

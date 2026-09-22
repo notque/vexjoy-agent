@@ -17,19 +17,19 @@ Checked on 2026-09-22 against these pages:
 
 | Fact | Status | What the engine does about it |
 |---|---|---|
-| Skill precedence is enterprise > personal > project. A project skill with the same name as a personal skill shadows it. | Documented | `doctor` reports a name in both `~/.claude/skills` and a project `.claude/skills` as `duplicate-skill-name` (error). |
+| Skill precedence is enterprise > personal > project. A project skill with the same name as a personal skill shadows it. | Documented | `doctor` reports a name in both `~/.claude/skills` and a project `<repo>/.claude/skills` as `duplicate-skill-name` (error). |
 | Plugin skills are namespaced `<plugin>:<skill>`, so they never collide with a bare name. | Documented | `doctor` reports a bare name also shipped by an enabled plugin as `plugin-bare-name` (warn, routing ambiguity only). |
 | A skill and a command with the same name: the skill wins. | Documented | `plan` skips the command and lists it in `shadowed_commands`. `doctor` flags a leftover command file. |
-| Agent dirs are scanned recursively. Project `.claude/agents` beats personal `~/.claude/agents`. | Documented | Agents install as per-file entries in a real `agents/` dir, never a whole-dir link. `doctor` flags a whole-dir `agents` link (error) and project-scope agent duplicates (warn). |
-| Nested `<subdir>/.claude/skills` dirs are discovered. | Documented | `doctor` lists every nested `.claude/skills` or `.claude/agents` under the repo, including `.claude/worktrees/*/.claude/...`, as `project-scope-nested-source` (warn), and names found there that are also installed as `duplicate-skill-name` (error). |
+| Agent dirs are scanned recursively. Project `<repo>/.claude/agents` beats personal `~/.claude/agents`. | Documented | Agents install as per-file entries in a real `agents/` dir, never a whole-dir link. `doctor` flags a whole-dir `agents` link (error) and project-scope agent duplicates (warn). |
+| Nested `<subdir>/.claude/skills` dirs are discovered. | Documented | `doctor` lists every nested `<repo>/.claude/skills` or `<repo>/.claude/agents` under the repo, including `.claude/worktrees/*/.claude/...`, as `project-scope-nested-source` (warn), and names found there that are also installed as `duplicate-skill-name` (error). |
 | A symlinked skill dir under `~/.claude/skills` loads. | Undocumented; observed working | Symlink mode depends on it. Copy mode (`apply --mode copy`) builds the same shape without links if this ever breaks. |
-| Nested dirs in the personal skills root (`~/.claude/skills/<cat>/<name>`) load as skills. | Undocumented | Not relied on. Every skill installs flat as `skills/<name>`. A category dir or link in a flat root is a `doctor` error. |
+| Nested dirs in the personal skills root (`~/.claude/skills/<cat>/<name>`) load as skills. | Undocumented | Not relied on. Every skill installs flat as `<root>/skills/<name>`. A category dir or link in a flat root is a `doctor` error. |
 | Unknown keys inside a hook entry in `settings.json` are accepted. | Undocumented | Not relied on. Owned hook entries carry no marker key. Ownership comes from the command path (spec 10) and the ledger hashes. |
 | Stray non-skill dirs in a skills root (no `SKILL.md`) are ignored. | Undocumented | Only `SUPPORT_DIRS` are installed there. `doctor` warns on any other non-skill dir. |
 
 ## Shared rules
 
-- **Flat names.** `skills/<category>/<name>` installs as `<name>`. `scripts/validate-skill-names.py` fails CI when two public skills share a name. Overlay entries may add a prefix, such as `voice-`.
+- **Flat names.** `<root>/skills/<category>/<name>` installs as `<name>`. `scripts/validate-skill-names.py` fails CI when two public skills share a name. Overlay entries may add a prefix, such as `voice-`.
 - **One owner per name.** Overlays never replace public entries, and an `overrides` key in `overlays.json` is rejected. A collision makes `plan` and `apply` exit 3. `sync` leaves that one name as it is on disk and warns.
 - **Support dirs** (`SUPPORT_DIRS`): `shared-patterns`, `kb`, `voice-shared`. These install next to skills and have no `SKILL.md`.
 - **Data dirs** (`DATA_DIRS`): `reddit-data`, `synced`. Other tools write these under a skills root. The engine never installs, adopts, or removes them, and `doctor` names them as runtime data dirs.
@@ -45,11 +45,11 @@ Checked on 2026-09-22 against these pages:
 
 | Target | Root | Skills (+ support) | Agents | Commands | Hooks | Scripts | Settings |
 |---|---|---|---|---|---|---|---|
-| claude | `~/.claude` | `skills/<name>`, mode | `agents/<entry>`, mode | `commands/<name>.md`, mode | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `settings.json`, owned entries merged |
-| codex | `~/.codex` | `skills/<name>`, copy; support copy | `agents/<entry>`, copy | none | `hooks/<entry>` + `hooks/lib/<entry>` | `scripts/<entry>` | `hooks.json`, `config.toml`: external |
-| factory | `~/.factory` | `skills/<name>`, mode | `droids/<entry>`, mode | `commands/<name>.md`, mode | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `settings.json`: external |
-| hermes | `~/.hermes` | `skills/<name>`, mode | none | none | none | `scripts/<entry>` | none |
-| reasonix | `~/.reasonix` | `skills/<name>`, mode; support copy | none | none | `hooks/<allowlisted>` + `hooks/lib` | `scripts/<entry>` | `settings.json`: external |
+| claude | `~/.claude` | `<root>/skills/<name>`, mode | `<root>/agents/<entry>`, mode | `commands/<name>.md`, mode | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `settings.json`, owned entries merged |
+| codex | `~/.codex` | `<root>/skills/<name>`, copy; support copy | `<root>/agents/<entry>`, copy | none | `<root>/hooks/<entry>` + `<root>/hooks/lib/<entry>` | `<root>/scripts/<entry>` | `hooks.json`, `config.toml`: external |
+| factory | `~/.factory` | `<root>/skills/<name>`, mode | `<root>/droids/<entry>`, mode | `commands/<name>.md`, mode | `hooks`, whole-dir entry | `scripts`, whole-dir entry | `settings.json`: external |
+| hermes | `~/.hermes` | `<root>/skills/<name>`, mode | none | none | none | `<root>/scripts/<entry>` | none |
+| reasonix | `~/.reasonix` | `<root>/skills/<name>`, mode; support copy | none | none | `<root>/hooks/<allowlisted>` + `hooks/lib` | `<root>/scripts/<entry>` | `settings.json`: external |
 
 Allowlists:
 
