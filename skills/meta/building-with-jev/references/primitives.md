@@ -40,6 +40,18 @@ Instruction object keys the docs use:
                  "focus": "A request to send the credential itself, not to reset it."}
 ```
 
+Array instructions: use `compare` with an array when two or more state paths must be compared side by side.
+
+```json
+"instructions": {
+  "question": "Does the claimed sender identity conflict with the sending domain?",
+  "compare": ["ticket.sender.display_name", "ticket.sender.email"],
+  "focus": "Compare the named organization with the email domain."
+}
+```
+
+Use an array for `inspect` when the question needs evidence from multiple fields simultaneously. Arrays keep the model's attention on the right fields without requiring you to name every path in the prose.
+
 Choice option object: `{"what": ..., "not_for": ..., "examples": [...]}`. Option value `null` is allowed: a bare candidate list for extraction, where code generated the candidates and Jev picks.
 
 Score level object: `{"summary": ..., "signals": [...]}` or `{"what": ..., "examples": [...]}`. Use the same keys on every level so the model compares like with like.

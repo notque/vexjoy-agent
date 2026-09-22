@@ -24,6 +24,7 @@
         "data": "Umbrella data-analysis skill; routing depends on dataset and analysis context.",
         "debugging": "Umbrella debugging skill; routing depends on error and investigation context.",
         "domain": "Umbrella domain skill; routing depends on domain-specific context.",
-        "github": "Umbrella GitHub integration skill; routing depends on repository and notification context."
+        "github": "Umbrella GitHub integration skill; routing depends on repository and notification context.",
+        "grill-jev": "Artifact interrogation is invoked explicitly or after a structured plan; it has no stable single-query routing benchmark contract."
     }
 }

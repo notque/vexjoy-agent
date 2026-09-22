@@ -69,6 +69,7 @@ SKILL_MAPPING: dict[str, str] = {
     "toolkit": "meta",
     "workflow-help": "meta",
     "docs-sync-checker": "meta",
+    "grill-jev": "meta",
     # process/ — methodologies, git, debugging, testing, workflow
     "debugging": "process",
     "quick": "process",

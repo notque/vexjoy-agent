@@ -1736,6 +1736,16 @@ generate_installed_skill_index() {
             rm -f "$REASONIX_INDEX_BACKUP"
         fi
     fi
+    case "$index_output" in
+        *"Error: No skills found. Index file not written."*)
+            echo -e "${YELLOW}  ! No valid ${label} skills found; preserved external skill directory without an inventory${NC}"
+            return 0
+            ;;
+    esac
+    if [[ "$index_output" == *"Error: No skills found. Index file not written."* ]]; then
+        echo -e "${YELLOW}  ! No valid ${label} skills found; preserved external skill directory without an inventory${NC}"
+        return 0
+    fi
     echo -e "${RED}  ✗ Failed to generate ${label} installed skill index${NC}"
     echo -e "${RED}${index_output}${NC}"
     return 1

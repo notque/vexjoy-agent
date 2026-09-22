@@ -62,7 +62,7 @@ echo "==================================================================="
 
 # --- Pre-flight: simulate a prior --force install that left whole-dir symlinks.
 # ~/.claude/skills and ~/.claude/agents point straight at the repo source dirs.
-mkdir -p "$TEST_HOME/.claude"
+mkdir -p "$TEST_HOME/.claude" "$TEST_HOME/.factory" "$TEST_HOME/.hermes"
 ln -s "$REPO_ROOT/skills" "$TEST_HOME/.claude/skills"
 ln -s "$REPO_ROOT/agents" "$TEST_HOME/.claude/agents"
 log "Seeded whole-dir symlinks: ~/.claude/skills, ~/.claude/agents"
@@ -117,26 +117,26 @@ else
     log "    state: $( [ -L "$TEST_HOME/.claude/skills" ] && echo "symlink -> $(readlink "$TEST_HOME/.claude/skills")" || echo "not a symlink" )"
 fi
 
-# A repo category (e.g. business) must be a REAL dir, not a category symlink,
+# A repo category (e.g. analysis) must be a REAL dir, not a category symlink,
 # so users can drop their own skills inside it.
-if [ -d "$TEST_HOME/.claude/skills/business" ] && [ ! -L "$TEST_HOME/.claude/skills/business" ]; then
-    pass "~/.claude/skills/business is a real category dir"
+if [ -d "$TEST_HOME/.claude/skills/analysis" ] && [ ! -L "$TEST_HOME/.claude/skills/analysis" ]; then
+    pass "~/.claude/skills/analysis is a real category dir"
 else
-    fail "~/.claude/skills/business should be a real dir (nested layout)"
+    fail "~/.claude/skills/analysis should be a real dir (nested layout)"
 fi
 
 # Inside the category, each skill must be a per-skill symlink into the repo.
-SAMPLE_SKILL=$(find "$TEST_HOME/.claude/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
+SAMPLE_SKILL=$(find "$TEST_HOME/.claude/skills/analysis" -maxdepth 1 -type l 2>/dev/null | head -1)
 if [ -n "$SAMPLE_SKILL" ]; then
-    pass "~/.claude/skills/business contains per-skill symlinks"
+    pass "~/.claude/skills/analysis contains per-skill symlinks"
 else
-    fail "~/.claude/skills/business should contain per-skill symlinks"
+    fail "~/.claude/skills/analysis should contain per-skill symlinks"
 fi
 SKILL_TARGET=$(readlink "$SAMPLE_SKILL" 2>/dev/null || echo "")
-if [[ "$SKILL_TARGET" == "$REPO_ROOT/skills/business/"* ]]; then
-    pass "per-skill symlink points into repo skills/business tree"
+if [[ "$SKILL_TARGET" == "$REPO_ROOT/skills/analysis/"* ]]; then
+    pass "per-skill symlink points into repo skills/analysis tree"
 else
-    fail "per-skill symlink should point into repo skills/business (got '$SKILL_TARGET')"
+    fail "per-skill symlink should point into repo skills/analysis (got '$SKILL_TARGET')"
 fi
 
 # A top-level skill dir (one holding SKILL.md, e.g. workflow) is symlinked whole.
@@ -146,16 +146,29 @@ else
     fail "~/.claude/skills/workflow should be a whole-dir symlink"
 fi
 
-# A top-level loose file (INDEX.json) is symlinked at the top level.
-if [ -L "$TEST_HOME/.claude/skills/INDEX.json" ]; then
-    pass "~/.claude/skills/INDEX.json is symlinked"
+# The installer writes a runtime-local inventory over the source-index symlink.
+if [ -f "$TEST_HOME/.claude/skills/INDEX.json" ] && [ ! -L "$TEST_HOME/.claude/skills/INDEX.json" ]; then
+    pass "~/.claude/skills/INDEX.json is a generated local inventory"
 else
-    fail "~/.claude/skills/INDEX.json should be symlinked"
+    fail "~/.claude/skills/INDEX.json should be a generated local inventory"
+fi
+
+if python3 - "$TEST_HOME/.claude/skills/INDEX.json" <<'PY'
+import json
+import sys
+
+skills = json.load(open(sys.argv[1], encoding="utf-8"))["skills"]
+assert "grill-jev" in skills
+PY
+then
+    pass "generated Claude inventory contains grill-jev exactly once"
+else
+    fail "generated Claude inventory should contain grill-jev"
 fi
 
 # A user-dropped external skill inside a category must be preserved on re-run.
-mkdir -p "$TEST_HOME/.claude/skills/business/my-external-skill"
-echo "external" > "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md"
+mkdir -p "$TEST_HOME/.claude/skills/analysis/my-external-skill"
+echo "external" > "$TEST_HOME/.claude/skills/analysis/my-external-skill/SKILL.md"
 
 # --- Assert ~/.claude/agents was converted too ---
 echo ""
@@ -171,11 +184,11 @@ echo ""
 echo "[4] ~/.hermes/skills is a per-item dir (sync_mirror_entry path)"
 if [ -d "$TEST_HOME/.hermes/skills" ] && [ ! -L "$TEST_HOME/.hermes/skills" ]; then
     pass "~/.hermes/skills is a real dir"
-    HERMES_SAMPLE=$(find "$TEST_HOME/.hermes/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
+    HERMES_SAMPLE=$(find "$TEST_HOME/.hermes/skills/analysis" -maxdepth 1 -type l 2>/dev/null | head -1)
     if [ -n "$HERMES_SAMPLE" ]; then
-        pass "~/.hermes/skills/business contains per-item symlinks"
+        pass "~/.hermes/skills/analysis contains per-item symlinks"
     else
-        fail "~/.hermes/skills/business should contain per-item symlinks"
+        fail "~/.hermes/skills/analysis should contain per-item symlinks"
     fi
 else
     fail "~/.hermes/skills should be a real dir after per-item install"
@@ -197,7 +210,7 @@ else
     fail "~/.claude/skills should remain a real dir after re-run"
 fi
 # The user's external skill inside a category must survive the re-run.
-if [ -f "$TEST_HOME/.claude/skills/business/my-external-skill/SKILL.md" ]; then
+if [ -f "$TEST_HOME/.claude/skills/analysis/my-external-skill/SKILL.md" ]; then
     pass "external skill inside category preserved on re-run"
 else
     fail "external skill inside category should be preserved on re-run"
@@ -206,16 +219,16 @@ fi
 # --- Factory gets the same nested layout ---
 echo ""
 echo "[6] ~/.factory/skills is a nested per-skill dir"
-if [ -d "$TEST_HOME/.factory/skills/business" ] && [ ! -L "$TEST_HOME/.factory/skills/business" ]; then
-    pass "~/.factory/skills/business is a real category dir"
-    FAC_SAMPLE=$(find "$TEST_HOME/.factory/skills/business" -maxdepth 1 -type l 2>/dev/null | head -1)
+if [ -d "$TEST_HOME/.factory/skills/analysis" ] && [ ! -L "$TEST_HOME/.factory/skills/analysis" ]; then
+    pass "~/.factory/skills/analysis is a real category dir"
+    FAC_SAMPLE=$(find "$TEST_HOME/.factory/skills/analysis" -maxdepth 1 -type l 2>/dev/null | head -1)
     if [ -n "$FAC_SAMPLE" ]; then
-        pass "~/.factory/skills/business contains per-skill symlinks"
+        pass "~/.factory/skills/analysis contains per-skill symlinks"
     else
-        fail "~/.factory/skills/business should contain per-skill symlinks"
+        fail "~/.factory/skills/analysis should contain per-skill symlinks"
     fi
 else
-    fail "~/.factory/skills/business should be a real category dir"
+    fail "~/.factory/skills/analysis should be a real category dir"
 fi
 
 # --- External whole-dir symlinks must be preserved, not converted ---

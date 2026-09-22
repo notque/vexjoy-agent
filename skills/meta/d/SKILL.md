@@ -191,20 +191,30 @@ Apply directly:
   fix → `simple`.
 - Confidence: `JEV_RESULT.confidence` (`high`/`medium`/`low`).
 
-**Routing banner** (first visible output after the required intent record):
+**Routing banner** (Phase 2 intent block + routing block, both required, printed together):
 
 ```
 ===================================================================
  ROUTING (/d): [brief summary]
 ===================================================================
+
+ Intent (/d):
+   -> Restated: [PROPOSED_INTENT]
+   -> Alignment: [aligned|review|unavailable] [— issues, if any]
+
  Selected:
    -> Agent: [JEV_RESULT.agent] - [JEV_RESULT.reasoning]
    -> Skill: [JEV_RESULT.skill] - [JEV_RESULT.reasoning]
    -> Pipeline: [JEV_RESULT.pipeline, if set]
    -> Source: [JEV_RESULT.source] (confidence: [JEV_RESULT.confidence])
+
  Invoking...
 ===================================================================
 ```
+
+The `Intent` block must be populated from the Phase 2 validator run. Printing
+the banner with a placeholder or omitting the `Intent` block is a Phase 2 skip
+and is not allowed.
 
 **Gate**: Agent+skill set, banner shown. Phase 4.
 
@@ -271,6 +281,37 @@ action. For Complex or creation requests, apply creation detection, plan-file
 gating, quality-loop, workflow dispatch, fan-out, and auto-pipeline fallback.
 
 **Gate**: Agent invoked, results delivered.
+
+---
+
+### Post-execute: GRILL-JEV (plan/spec/design output)
+
+After any execution that produces a plan, spec, or design artifact, run
+`grill-jev` automatically before declaring the work complete. This applies
+whenever the agent's output contains phases, steps, checklists, or a
+structured implementation plan.
+
+Detection: the agent wrote `task_plan.md`, a spec file, a design document,
+or the response itself is a structured plan with numbered steps or phases.
+
+```bash
+# File artifact
+python3 scripts/grill-jev.py --file task_plan.md --mode plan
+
+# Inline plan (write to temp file first, then grill)
+python3 scripts/grill-jev.py --file /tmp/plan_output.md --mode plan
+```
+
+Print the findings report. If high-signal findings exist (exit code 1):
+- Show findings to the user
+- Ask whether to address findings before proceeding or accept and move on
+
+If no high-signal findings (exit code 0): proceed, note "grill-jev: clean".
+
+Skip grill-jev when:
+- The output is code only (no plan structure) — use `--mode code` instead
+- The output is a pure research response with no actionable steps
+- grill-jev is itself the requested action (avoid recursion)
 
 ---
 
