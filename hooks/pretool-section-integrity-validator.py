@@ -50,6 +50,38 @@ def _load_index_names(index_path: Path, key: str) -> set[str]:
         return set()
 
 
+def _resolver():
+    """``routing_index_merge`` from the toolkit's scripts/, or None (fail open)."""
+    scripts = Path(__file__).resolve().parent.parent / "scripts"
+    if not (scripts / "routing_index_merge.py").is_file():
+        return None
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    try:
+        import routing_index_merge
+    except Exception:
+        return None
+    return routing_index_merge
+
+
+def _resolved_names(kind: str, project_root: Path) -> set[str]:
+    """Names of *kind* via the resolver (installer spec 7.2): installed index
+    first, else the project's ``<kind>/INDEX.json`` (+ legacy local). Falls back
+    to the plain project index when the resolver is unavailable or fails."""
+    tracked = project_root / kind / "INDEX.json"
+    rim = _resolver()
+    if rim is not None:
+        try:
+            target = rim.detect_target(__file__)
+            items = rim.load_resolved_items(
+                kind, target, fallback=(tracked, "INDEX.local.json"), repo_root=project_root
+            )
+            return {str(name) for name in items}
+        except Exception:
+            pass
+    return _load_index_names(tracked, kind)
+
+
 def _find_project_root(event: dict) -> Path:
     """Resolve project root from event cwd or env fallback."""
     cwd_str = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR", ".")
@@ -57,11 +89,11 @@ def _find_project_root(event: dict) -> Path:
 
 
 def _get_agent_names(project_root: Path) -> set[str]:
-    """Return set of valid agent names from agents/INDEX.json."""
+    """Return set of valid agent names from the resolved agents index."""
     global _agents_cache
     if _agents_cache is not None:
         return _agents_cache
-    _agents_cache = _load_index_names(project_root / "agents" / "INDEX.json", "agents")
+    _agents_cache = _resolved_names("agents", project_root)
     # Always include "general-purpose" -- it's the default agent, not listed
     # in INDEX.json but always valid.
     _agents_cache.add("general-purpose")
@@ -69,11 +101,11 @@ def _get_agent_names(project_root: Path) -> set[str]:
 
 
 def _get_skill_names(project_root: Path) -> set[str]:
-    """Return set of skill names from skills/INDEX.json."""
+    """Return set of skill names from the resolved skills index."""
     global _skills_cache
     if _skills_cache is not None:
         return _skills_cache
-    _skills_cache = _load_index_names(project_root / "skills" / "INDEX.json", "skills")
+    _skills_cache = _resolved_names("skills", project_root)
     return _skills_cache
 
 

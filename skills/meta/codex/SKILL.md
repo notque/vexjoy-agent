@@ -67,7 +67,7 @@ Codex runs in its own process with no conversation history. The prompt must carr
 2. **Task** — the concrete operation, with file paths relative to the working directory. Let codex read files itself; embedding large content wastes tokens and loses formatting.
 3. **Output format** — the exact structure to return (table, JSON, diff), so the wrapper can consume it without a second pass.
 
-**Prompt hygiene (hard rule)**: codex prompts leave the machine. Send only public content — secrets, credentials, and private component names (anything sourced from `INDEX.local.json` or other local-only inventories) stay out. Run the deterministic scan on the prompt text before executing:
+**Prompt hygiene (hard rule)**: codex prompts leave the machine. Send only public content — secrets, credentials, and private component names (anything from the installed index in `~/.claude/vexjoy/index/`, overlay skills, or other local-only inventories) stay out. Run the deterministic scan on the prompt text before executing:
 
 ```bash
 printf '%s' "$PROMPT" | rg -n "Bearer|Authorization|token|secret|api[_-]?key|password|PRIVATE KEY" && echo "HYGIENE VIOLATION"

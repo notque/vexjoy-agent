@@ -105,8 +105,10 @@ def _semantic_contracts() -> dict[tuple[str, str], str]:
     add("PostToolUse", "context:[SECURITY-HINT]", "posttool-security-scan.py")
     add("PostToolUse", "context:[skill-frontmatter]", "posttool-skill-frontmatter-check.py")
     add("PostToolUse", "context:[joy-check]", "posttooluse-joy-check-warn.py")
-    add("PostToolUse", "context:[sync-skill-index]", "posttooluse-sync-skill-index.py")
-    add("PostToolUse", "context:[sync-agent-index]", "posttooluse-sync-agent-index.py")
+    # Installer spec 7.3: the index hooks never write into a repo; with no
+    # engine target in the sandbox HOME they are silent no-ops.
+    add("PostToolUse", "noaction:no-engine-target", "posttooluse-sync-skill-index.py")
+    add("PostToolUse", "noaction:no-engine-target", "posttooluse-sync-agent-index.py")
     add("PostToolUse", "context:[docs-drift] WARNING", "posttool-docs-drift-alert.py")
     add("PostToolUse", "context:[security-review]", "security-review-hook.py")
     add("PostToolUse", "state:session-reads", "posttool-session-reads.py")
@@ -412,7 +414,7 @@ def _prepare_case(
                 "---\nname: runtime\ndescription: Runtime Codex hook probe.\n---\n\n# Runtime\n",
                 encoding="utf-8",
             )
-            evidence["generated_index"] = cwd / "skills" / "INDEX.json"
+            evidence["absent_repo_index"] = cwd / "skills" / "INDEX.json"
         elif filename == "posttooluse-sync-agent-index.py":
             patch_path = "agents/runtime-agent.md"
             target = cwd / patch_path
@@ -421,7 +423,7 @@ def _prepare_case(
                 "---\nname: runtime-agent\ndescription: Runtime Codex hook probe.\n---\n\n# Runtime Agent\n",
                 encoding="utf-8",
             )
-            evidence["generated_index"] = cwd / "agents" / "INDEX.json"
+            evidence["absent_repo_index"] = cwd / "agents" / "INDEX.json"
         elif filename == "posttool-docs-drift-alert.py":
             patch_path = "agents/runtime-agent.md"
             agents = cwd / "agents"
@@ -556,7 +558,7 @@ def _assert_meaningful(
         checkout = evidence["ephemeral_checkout"]
         assert isinstance(checkout, Path) and str(checkout.resolve()).startswith("/tmp/")
         assert all((checkout / name).is_dir() for name in ("skills", "agents", "hooks"))
-        assert "[sync] Skipping: running inside a git worktree" in result.stderr
+        assert "[sync] skipped: running inside an ephemeral checkout" in result.stderr
         assert output == {}, f"{key} must refuse to deploy an ephemeral checkout, got {output}"
     elif contract == "state:compact":
         assert Path(f"/tmp/claude-compact-count-{session_id}.state").read_text().strip() == "3"
@@ -598,8 +600,8 @@ def _assert_meaningful(
         assert "runtime-agent" in Path(evidence["manifest_cache"]).read_text(encoding="utf-8")
     if "distill_state" in evidence:
         assert Path(evidence["distill_state"]).is_file()
-    if "generated_index" in evidence:
-        assert Path(evidence["generated_index"]).is_file()
+    if "absent_repo_index" in evidence:
+        assert not Path(evidence["absent_repo_index"]).exists(), f"{key} wrote an index into the project"
 
 
 def _cleanup_global_state(session_id: str) -> None:

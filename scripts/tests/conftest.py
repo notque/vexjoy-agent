@@ -338,3 +338,18 @@ def voice_b_profile() -> dict:
             "uses_second_person": True,
         },
     }
+
+
+@pytest.fixture(autouse=True)
+def _isolate_installed_index(tmp_path, monkeypatch):
+    """Pin routing readers to their repo/fixture index (installer spec 7.2).
+
+    ``VEXJOY_INDEX_DIR`` set to an absent dir makes ``resolve_index`` skip the
+    real ``~/.claude/vexjoy/index`` and fall back to the tracked + legacy local
+    index each test supplies. Tests of the resolver override this. Also sets
+    ``VEXJOY_NO_GIT_HOOKS`` so install.sh runs never touch the real
+    checkout's ``.git/hooks``.
+    """
+    monkeypatch.setenv("VEXJOY_NO_GIT_HOOKS", "1")
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(tmp_path / "no-installed-index"))
+    monkeypatch.delenv("VEXJOY_INDEX_TARGET", raising=False)

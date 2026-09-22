@@ -6,9 +6,7 @@ gitignored.
 
 ## Quick start
 
-Running `./install.sh` creates `.local/` and copies these templates when the
-directory has no files other than `.gitkeep`. It does not overwrite an existing
-local setup.
+`./install.sh` does not create `.local/`. Copy the templates you want by hand.
 
 To copy only one template, create its destination first. For example:
 

@@ -52,7 +52,14 @@ PR_CREATE_INTENT_RE = re.compile(
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import detect_target as _detect_target
 from routing_index_merge import load_index_items as _load_index_items
+from routing_index_merge import load_items_for as _load_items_for
+from routing_index_merge import resolve_index_with_base as _resolve_index_with_base
+
+# Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
+# ~/.<runtime>/vexjoy/index/<kind>.json, then the repo index + legacy local.
+_INDEX_TARGET = _detect_target(__file__)
 
 # INDEX.json is a generated artifact (untracked). When the tracked path is
 # missing — fresh checkout, no deploy.sh run — regenerate it on the fly from
@@ -69,9 +76,18 @@ def _ensure_index(index_type: str, path: Path) -> None:
     Fail-safe: any failure (generator missing, non-zero exit, timeout) is
     swallowed so routing never crashes. A missing index simply means
     load_entries() reads nothing for that type and the request falls through.
+
+    Skipped when the resolver (installer spec 7.2) finds an installed index:
+    readers use that index, so a missing repo index needs no regeneration and
+    the repo is never written.
     """
     if path.exists():
         return
+    try:
+        if _resolve_index_with_base(index_type, _INDEX_TARGET, repo_root=REPO_ROOT)[2]:
+            return
+    except Exception:
+        pass
     generator = _INDEX_GENERATORS.get(index_type)
     if generator is None or not generator.exists():
         return
@@ -524,7 +540,7 @@ def load_entries() -> list[dict]:
 
     for index_type, (tracked, local_name) in INDEX_PATHS.items():
         if index_type == "pipelines":
-            items = _load_index_items(tracked, local_name, index_type)
+            items = _load_items_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
             for name, data in items.items():
                 if not isinstance(data, dict):
                     continue
@@ -546,7 +562,7 @@ def load_entries() -> list[dict]:
         # Auto-regenerate a missing (untracked) tracked index before reading.
         # Fail-safe.
         _ensure_index(index_type, tracked)
-        items = _load_index_items(tracked, local_name, index_type)
+        items = _load_items_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
 
         for name, data in items.items():
             if not isinstance(data, dict):

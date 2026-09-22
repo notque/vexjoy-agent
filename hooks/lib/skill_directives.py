@@ -4,16 +4,50 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from functools import lru_cache
 from pathlib import Path
 
 _SKILL_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
+_RUNTIME_TARGETS = {
+    ".claude": "claude",
+    ".codex": "codex",
+    ".factory": "factory",
+    ".hermes": "hermes",
+    ".reasonix": "reasonix",
+}
+
+
 def _default_index_paths() -> tuple[Path, ...]:
-    """Return the active runtime's authoritative skill index."""
+    """Return the active runtime's authoritative skill index.
+
+    Resolved through ``routing_index_merge.resolve_index`` (installer spec 7.2)
+    against this runtime: ``$VEXJOY_INDEX_DIR``, then
+    ``<runtime>/vexjoy/index/skills.json``, then ``<runtime>/skills/INDEX.json``.
+    Outside a runtime dir, or when the resolver cannot be imported, the
+    runtime's ``skills/INDEX.json`` is used as before.
+    """
     runtime_root = Path(__file__).absolute().parents[2]
-    return (runtime_root / "skills" / "INDEX.json",)
+    fallback = (runtime_root / "skills" / "INDEX.json",)
+    target = _RUNTIME_TARGETS.get(runtime_root.name)
+    if target is None:
+        return fallback
+    for scripts in (runtime_root / "scripts", Path(__file__).resolve().parents[2] / "scripts"):
+        if not (scripts / "routing_index_merge.py").is_file():
+            continue
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        try:
+            import routing_index_merge
+
+            return (
+                routing_index_merge.resolve_index("skills", target, repo_root=runtime_root, home=runtime_root.parent),
+            )
+        except Exception:
+            return fallback
+    return fallback
 
 
 @lru_cache(maxsize=8)

@@ -13,6 +13,7 @@ Covers ADR windows-locking-deploy-warning:
 Run with: python3 -m pytest hooks/tests/test_routing_locking.py -v
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -89,37 +90,96 @@ def test_lock_backend_not_noop_on_windows():
 
 
 # ---------------------------------------------------------------------------
-# Fix 2 — generated post-merge hook: valid bash, staleness notice, exit 0
+# Fix 2 — generated git hooks: post-merge (sync via engine / sync hook, never
+# links) and pre-commit (private-leak gate). Installer spec 5.1 and 7.5.
 # ---------------------------------------------------------------------------
 
 
-def _extract_post_merge_hook() -> str:
-    """Pull the heredoc body the post-merge hook is generated from."""
+def _extract_git_hook(name: str) -> str:
+    """Pull the heredoc body a generated git hook is written from."""
     text = INSTALL_SH.read_text(encoding="utf-8")
-    m = re.search(r"cat > \"\$hook\" << 'HOOK'\n(.*?)\nHOOK\n", text, re.DOTALL)
-    assert m, "could not find the post-merge heredoc in install.sh"
+    m = re.search(rf"_write_git_hook {name} << 'HOOK'\n(.*?)\nHOOK\n", text, re.DOTALL)
+    assert m, f"could not find the {name} heredoc in install.sh"
     return m.group(1)
 
 
+def _extract_post_merge_hook() -> str:
+    return _extract_git_hook("post-merge")
+
+
 @pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
-def test_generated_post_merge_hook_is_valid_bash(tmp_path):
-    body = _extract_post_merge_hook()
-    hook_file = tmp_path / "post-merge"
+@pytest.mark.parametrize("name", ["post-merge", "pre-commit"])
+def test_generated_git_hooks_are_valid_bash(tmp_path, name):
+    body = _extract_git_hook(name)
+    hook_file = tmp_path / name
     hook_file.write_text(body, encoding="utf-8")
     r = subprocess.run(["bash", "-n", str(hook_file)], capture_output=True, text=True)
-    assert r.returncode == 0, f"post-merge hook is not valid bash: {r.stderr}"
+    assert r.returncode == 0, f"{name} hook is not valid bash: {r.stderr}"
+    assert "Written by vexjoy-agent" in body, "marker line keeps re-installs from clobbering user hooks"
 
 
-def test_post_merge_hook_warns_on_hook_script_changes():
+def test_post_merge_hook_syncs_and_never_links():
     body = _extract_post_merge_hook()
-    # The staleness notice points the user at the sync script.
-    assert "sync-to-user-claude.py" in body, "no deploy-staleness notice in post-merge hook"
-    # It is gated on hooks/ or scripts/ being touched by the merge.
-    assert "diff-tree" in body or "diff --name-only" in body, "notice is not gated on a merge diff"
-    assert "hooks" in body and "scripts" in body, "notice gate does not check hooks/ and scripts/"
+    assert "ln -s" not in body, "post-merge must never link anything itself (spec 5.1)"
+    assert "-m vexinstall sync --target all" in body
+    assert "sync-to-user-claude.py" not in body and "rollout" not in body, "no legacy path remains"
+
+
+def _post_merge_world(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:
+    """Fake checkout with a stub vexinstall package that logs its argv."""
+    repo = tmp_path / "repo"
+    log = tmp_path / "calls.log"
+    pkg = repo / "scripts" / "vexinstall"
+    pkg.mkdir(parents=True)
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    logger = (
+        f"import sys\nwith open({str(log)!r}, 'a') as f:\n    f.write('vexinstall ' + ' '.join(sys.argv[1:]) + '\\n')\n"
+    )
+    (pkg / "__init__.py").write_text("")
+    (pkg / "__main__.py").write_text(logger + ("raise SystemExit(3)\n" if fail else ""))
+    hook = repo / ".git" / "hooks" / "post-merge"
+    hook.write_text(_extract_post_merge_hook(), encoding="utf-8")
+    hook.chmod(0o755)
+    return hook, log
+
+
+def _run_post_merge(hook: Path, tmp_path: Path) -> tuple[int, list[str]]:
+    env = {"PATH": os.environ.get("PATH", ""), "HOME": str(tmp_path / "home")}
+    r = subprocess.run(["bash", str(hook)], capture_output=True, text=True, env=env, timeout=60)
+    log = tmp_path / "calls.log"
+    return r.returncode, log.read_text().splitlines() if log.exists() else []
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_post_merge_calls_only_vexinstall_sync_all(tmp_path):
+    hook, _ = _post_merge_world(tmp_path)
+    rc, calls = _run_post_merge(hook, tmp_path)
+    repo = hook.parents[2]
+    assert rc == 0
+    assert calls == [f"vexinstall sync --target all --source-root {repo}"], calls
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_post_merge_engine_failure_still_exits_zero(tmp_path):
+    hook, _ = _post_merge_world(tmp_path, fail=True)
+    rc, calls = _run_post_merge(hook, tmp_path)
+    assert rc == 0
+    assert len(calls) == 1 and calls[0].startswith("vexinstall sync --target all"), calls
 
 
 def test_post_merge_hook_always_exits_zero():
     body = _extract_post_merge_hook()
-    # Warn-only: the hook must end exit 0 so the notice can never fail a merge.
     assert re.search(r"^exit 0\s*$", body, re.MULTILINE), "post-merge hook must end with `exit 0`"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+@pytest.mark.parametrize(("checker_rc", "hook_rc"), [(0, 0), (1, 1), (2, 0)])
+def test_pre_commit_hook_blocks_only_on_leak(tmp_path, checker_rc, hook_rc):
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    (repo / "scripts" / "check-private-leak.py").write_text(f"import sys\nsys.exit({checker_rc})\n")
+    hook = tmp_path / "pre-commit"
+    hook.write_text(_extract_git_hook("pre-commit"), encoding="utf-8")
+    r = subprocess.run(["bash", str(hook)], cwd=repo, capture_output=True, text=True)
+    assert r.returncode == hook_rc, r.stderr

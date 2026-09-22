@@ -40,6 +40,20 @@ jobs:
       # Static routing map: stale map, empty description, zero triggers, phantom
       # pairs_with. Enforcement date: 2026-08-15. --check is the strict command.
       - run: python scripts/generate-routing-map.py --check
+      # Installer spec 4.3: flat install names, so two public skills may not
+      # share a leaf name across categories.
+      - run: python scripts/validate-skill-names.py
+      # Installer spec 7.5: CI cannot see private names, so it enforces the
+      # public side. No private-inclusive local index is ever tracked, and the
+      # routing map regenerates byte-identically from the public indexes built
+      # above (the generator is deterministic; --check also compares).
+      - name: No tracked INDEX.local.json
+        run: |
+          if git ls-files | grep -E '(^|/)INDEX\.local\.json$'; then
+            echo "tracked INDEX.local.json found (private-inclusive index must stay local)"; exit 1
+          fi
+      - name: routing-map regenerates identically from public sources
+        run: python scripts/generate-routing-map.py && git diff --exit-code -- docs/routing-map.md
       # Advisory until 2026-10-01: new hard gates must carry a collected
       # CLI-level negative control or explicit debt. On 2026-10-01, remove
       # continue-on-error and change the command to:
@@ -77,6 +91,8 @@ jobs:
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
       # -m "" clears the default marker filter in pyproject.toml, so CI still
       # runs the install.sh end-to-end tests and the performance benchmarks.
+      # The vexinstall engine suite (scripts/tests/test_vexinstall_*.py) is
+      # unmarked, so it runs here and in the default local run.
       - run: python -m pytest --tb=short -q -m ""
 
   routing-benchmark:

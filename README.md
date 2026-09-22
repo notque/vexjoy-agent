@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 61 skills, 78 hooks, 160 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 61 skills, 78 hooks, 159 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -123,7 +123,16 @@ cd ~/vexjoy-agent
 ./install.sh
 ```
 
-Installs into `~/.claude/` and mirrors into `~/.codex/`, `~/.factory/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. Choose symlinks for live updates through `git pull`, or copies for a stable snapshot.
+Installs into `~/.claude/` and into `~/.codex/`, `~/.factory/`, `~/.hermes/`, and `~/.reasonix/` when the runtime command is on PATH or its home directory exists. `install.sh` wraps the `vexinstall` engine (`scripts/vexinstall/`). Each SessionStart in the repo re-syncs through the same engine. Symlinks (default in a git checkout) follow `git pull`; `--copy` gives a stable snapshot.
+
+| Flag | Effect |
+|---|---|
+| `--dry-run` | Print the plan; write nothing |
+| `--target <t>` | Only `claude`, `codex`, `factory`, `hermes`, `reasonix`, or `all` |
+| `--no-takeover` | Leave old unowned copies in place (default: move them to trash and replace) |
+| `--uninstall` / `--rollback` | Remove owned entries / restore the newest trash and settings backup |
+
+Layout and safety rules: [docs/installer-layout.md](docs/installer-layout.md).
 
 Want only part of the toolkit? Run `./install.sh --configure`, or copy `.local.example/profile.yaml` to `.local/profile.yaml` and edit it. Without a profile, the full toolkit installs. Details: [.local.example/README.md](.local.example/README.md).
 
@@ -166,7 +175,7 @@ Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. Hook config 
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 160 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
+Mirrors skills, 159 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
 
 </details>
 
@@ -192,7 +201,7 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 61 | Reusable guidance and methodology for recurring work. |
 | Hooks | 78 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 160 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 159 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
@@ -245,7 +254,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 160 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 159 scripts.
 
 | Need | Use |
 |---|---|

@@ -113,17 +113,7 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 
 ## Sync Lifecycle
 
-`hooks/sync-to-user-claude.py` fires on `SessionStart` when cwd is this repo. Copies into `~/.claude/` so Claude Code in *other* repos gets agents, skills, hooks, scripts. When `~/.codex/hooks/` exists, it also adds per-file symlinks for new `hooks/*.py` and `hooks/lib/*.py` there (never overwrites, never deletes; reported as `.codex/hooks(+N linked, M current)`).
-
-| Source | Destination | Sync Mode |
-|--------|-------------|-----------|
-| `agents/` | `~/.claude/agents/` | File-by-file copy, stale removed |
-| `skills/` | `~/.claude/skills/` | File-by-file copy, stale removed |
-| `hooks/` | `~/.claude/hooks/` | File-by-file copy, stale removed |
-| `scripts/` | `~/.claude/scripts/` | File-by-file copy, stale removed |
-| `commands/` | `~/.claude/commands/` | Additive only (never removes) |
-| `.claude/settings.json` hooks | `~/.claude/settings.json` hooks | Replace hook section |
-| `.mcp.json` | `~/.mcp.json` | Merge servers (don't overwrite existing) |
+`hooks/sync-to-user-claude.py` fires on `SessionStart` when cwd is this repo. It runs `python3 -m vexinstall sync --target all`, so Claude Code in *other* repos, plus Codex, Factory, Hermes, and Reasonix when their homes exist, see the current agents, skills, commands, hooks, and scripts. The engine tracks every owned entry in `~/.claude/vexjoy/ledger.json`, removes owned entries that left the repo, never touches unowned ones during sync, and merges only its own hook entries into `~/.claude/settings.json`. Layout per target: [installer-layout.md](installer-layout.md).
 
 ---
 

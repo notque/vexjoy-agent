@@ -62,3 +62,15 @@ def _reset_learning_db_init_flag():
     ldb = sys.modules.get("learning_db_v2")
     if ldb is not None and hasattr(ldb, "_initialized"):
         ldb._initialized = False
+
+
+@pytest.fixture(autouse=True)
+def _isolate_installed_index(tmp_path, monkeypatch):
+    """Pin routing readers to their repo/fixture index (installer spec 7.2).
+
+    ``VEXJOY_INDEX_DIR`` set to an absent dir makes ``resolve_index`` skip the
+    real ``~/.claude/vexjoy/index`` and fall back to the tracked + legacy local
+    index each test supplies. Tests of the resolver override this.
+    """
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(tmp_path / "no-installed-index"))
+    monkeypatch.delenv("VEXJOY_INDEX_TARGET", raising=False)

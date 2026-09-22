@@ -25,8 +25,6 @@ from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
-HERMES_DIR = Path.home() / ".hermes"
-REASONIX_DIR = Path.home() / ".reasonix"
 COMPONENTS = ["agents", "skills", "hooks", "commands", "scripts"]
 
 
@@ -36,23 +34,21 @@ def _is_toolkit_repo(path: Path) -> bool:
 
 
 def get_toolkit_repo_root() -> Path | None:
-    """Locate the source repo root for comparisons against the Codex mirror."""
+    """Locate the toolkit checkout: this script's repo, else the ledger's source_root."""
     repo_candidate = Path(__file__).resolve().parent.parent
     if _is_toolkit_repo(repo_candidate):
         return repo_candidate
 
-    manifest_path = CLAUDE_DIR / ".install-manifest.json"
+    # Copy-mode installs: the engine ledger records the source checkout.
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        ledger = json.loads((CLAUDE_DIR / "vexjoy" / "ledger.json").read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
-
-    toolkit_path = manifest.get("toolkit_path")
-    if not toolkit_path:
+    source = ledger.get("source_root") if isinstance(ledger, dict) else None
+    if not source:
         return None
-
-    manifest_repo = Path(toolkit_path).expanduser()
-    return manifest_repo if _is_toolkit_repo(manifest_repo) else None
+    repo = Path(source).expanduser()
+    return repo if _is_toolkit_repo(repo) else None
 
 
 def check_claude_dir() -> dict:
@@ -64,65 +60,6 @@ def check_claude_dir() -> dict:
         "passed": exists,
         "detail": str(CLAUDE_DIR) if exists else "Directory not found. Run install.sh first.",
     }
-
-
-def check_components_installed() -> list[dict]:
-    """Check each component directory exists in ~/.claude and validate symlink targets."""
-    results = []
-    for comp in COMPONENTS:
-        target = CLAUDE_DIR / comp
-        is_symlink = target.is_symlink()
-        is_dir = target.is_dir()
-        is_file = target.is_file() and not is_symlink  # Regular file (not a symlink)
-        exists = is_symlink or is_dir
-
-        if is_file:
-            # A regular file where a directory/symlink is expected — broken state.
-            # This can happen from interrupted installs or shell misuse.
-            results.append(
-                {
-                    "name": f"component_{comp}",
-                    "label": f"~/.claude/{comp}",
-                    "passed": False,
-                    "detail": (
-                        f"EXISTS AS REGULAR FILE (expected directory or symlink). "
-                        f"Fix: rm ~/.claude/{comp} && install.sh --symlink"
-                    ),
-                }
-            )
-            continue
-
-        if is_symlink:
-            try:
-                link_target = os.readlink(target)
-            except OSError as e:
-                results.append(
-                    {
-                        "name": f"component_{comp}",
-                        "label": f"~/.claude/{comp}",
-                        "passed": False,
-                        "detail": f"Symlink exists but cannot be read: {e}",
-                    }
-                )
-                continue
-            detail = f"symlink -> {link_target}"
-            if not target.resolve().exists():
-                detail = f"BROKEN symlink -> {link_target}"
-                exists = False
-        elif is_dir:
-            detail = "copied directory"
-        else:
-            detail = "Not found. Run install.sh."
-
-        results.append(
-            {
-                "name": f"component_{comp}",
-                "label": f"~/.claude/{comp}",
-                "passed": exists,
-                "detail": detail,
-            }
-        )
-    return results
 
 
 def check_settings_json() -> dict:
@@ -167,268 +104,62 @@ def check_settings_json() -> dict:
     }
 
 
-def check_codex_skills() -> dict:
-    """Check that toolkit skills are mirrored into ~/.codex/skills."""
-    codex_skills_dir = CODEX_DIR / "skills"
-    repo_root = get_toolkit_repo_root()
+def check_install_layout() -> list[dict]:
+    """Delegate install layout checks to ``vexinstall doctor`` (one engine, spec 12).
 
-    if repo_root is None:
-        return {
-            "name": "codex_skills",
-            "label": "~/.codex/skills mirror",
-            "passed": codex_skills_dir.is_dir(),
-            "detail": str(codex_skills_dir)
-            if codex_skills_dir.is_dir()
-            else "Codex skills mirror not found. Run install.sh from the toolkit repo.",
-        }
-
-    disabled_skills: set[str] = set()
-    try:
-        install_manifest = json.loads((CLAUDE_DIR / ".install-manifest.json").read_text(encoding="utf-8"))
-        disabled_skills = {name for name in install_manifest.get("disabled_skills", []) if isinstance(name, str)}
-    except (json.JSONDecodeError, OSError, TypeError):
-        pass
-
-    # The Codex mirror is index-driven.  The source tree also has private
-    # implementation leaves; walking every SKILL.md would report those as
-    # missing even though they must not be separately discoverable.
-    repo_skills = repo_root / "skills"
-    expected_entries = []
-    expected_skill_sources: dict[str, Path] = {}
-    try:
-        tracked = json.loads((repo_skills / "INDEX.json").read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        tracked = {"skills": {}}
-    if not tracked.get("skills"):
-        # Compatibility for minimal test/legacy repositories without a catalog.
-        tracked = {
-            "skills": {
-                source.parent.name: {"file": str(source.relative_to(repo_root))}
-                for source in repo_skills.glob("*/*/SKILL.md")
-            }
-        }
-    for name, entry in tracked.get("skills", {}).items():
-        if not isinstance(entry, dict) or not isinstance(entry.get("file"), str):
-            continue
-        source = (repo_root / entry["file"]).resolve()
-        if source.name == "SKILL.md" and source.is_file() and repo_root.resolve() in source.parents:
-            expected_entries.append(name)
-            expected_skill_sources[name] = source.parent
-
-    private_skills_dir = repo_root / "private-skills"
-    if private_skills_dir.is_dir():
-        for category_dir in sorted(private_skills_dir.iterdir()):
-            if not category_dir.is_dir() or category_dir.name.startswith("."):
-                continue
-            for skill_dir in sorted(category_dir.iterdir()):
-                if not (skill_dir / "SKILL.md").is_file():
-                    continue
-                # Voice category deploys as voice-{name}
-                if category_dir.name == "voice":
-                    deployed_name = f"voice-{skill_dir.name}"
-                else:
-                    deployed_name = skill_dir.name
-                expected_entries.append(deployed_name)
-                expected_skill_sources[deployed_name] = skill_dir
-
-    # Private voices are installed only when their optional source is enabled;
-    # they are not part of the public index-driven Codex contract.
-
-    expected_entries = list(dict.fromkeys(expected_entries))
-    expected_entries = [name for name in expected_entries if name not in disabled_skills]
-    expected_skill_sources = {
-        name: source for name, source in expected_skill_sources.items() if name not in disabled_skills
-    }
-
-    if not codex_skills_dir.is_dir():
-        return {
-            "name": "codex_skills",
-            "label": "~/.codex/skills mirror",
-            "passed": False,
-            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Codex.",
-        }
-
-    missing = [entry for entry in expected_entries if not (codex_skills_dir / entry).exists()]
-    if missing:
-        return {
-            "name": "codex_skills",
-            "label": "~/.codex/skills mirror",
-            "passed": False,
-            "detail": f"{len(expected_entries) - len(missing)}/{len(expected_entries)} entries present; missing: {', '.join(missing[:5])}",
-        }
-
-    drifted: list[str] = []
-    for deployed_name, source_dir in expected_skill_sources.items():
-        target_dir = codex_skills_dir / deployed_name
-        for source_file in source_dir.rglob("*"):
-            relative = source_file.relative_to(source_dir)
-            if (
-                not source_file.is_file()
-                or "__pycache__" in source_file.parts
-                or source_file.suffix == ".pyc"
-                or any(part.startswith(".") for part in relative.parts)
-            ):
-                continue
-            target_file = target_dir / relative
-            try:
-                matches = target_file.is_file() and target_file.read_bytes() == source_file.read_bytes()
-            except OSError:
-                matches = False
-            if not matches:
-                drifted.append(f"{deployed_name}/{relative}")
-
-    if drifted:
-        return {
-            "name": "codex_skills",
-            "label": "~/.codex/skills mirror",
-            "passed": False,
-            "detail": f"content drift in {len(drifted)} mirrored files: {', '.join(drifted[:5])}",
-        }
-
-    return {
-        "name": "codex_skills",
-        "label": "~/.codex/skills mirror",
-        "passed": True,
-        "detail": f"All {len(expected_entries)} toolkit entries mirrored",
-    }
-
-
-def check_codex_agents() -> dict:
-    """Check that toolkit agents are mirrored into ~/.codex/agents."""
-    codex_agents_dir = CODEX_DIR / "agents"
-    repo_root = get_toolkit_repo_root()
-
-    if repo_root is None:
-        return {
-            "name": "codex_agents",
-            "label": "~/.codex/agents mirror",
-            "passed": codex_agents_dir.is_dir(),
-            "detail": str(codex_agents_dir)
-            if codex_agents_dir.is_dir()
-            else "Codex agents mirror not found. Run install.sh from the toolkit repo.",
-        }
-
-    expected_entries = [item.name for item in sorted((repo_root / "agents").iterdir())]
-
-    private_agents_dir = repo_root / "private-agents"
-    if private_agents_dir.is_dir():
-        for agent_item in sorted(private_agents_dir.iterdir()):
-            expected_entries.append(agent_item.name)
-
-    expected_entries = list(dict.fromkeys(expected_entries))
-
-    if not codex_agents_dir.is_dir():
-        return {
-            "name": "codex_agents",
-            "label": "~/.codex/agents mirror",
-            "passed": False,
-            "detail": "Directory not found. Run install.sh to mirror toolkit agents for Codex.",
-        }
-
-    missing = [entry for entry in expected_entries if not (codex_agents_dir / entry).exists()]
-    if missing:
-        return {
-            "name": "codex_agents",
-            "label": "~/.codex/agents mirror",
-            "passed": False,
-            "detail": f"{len(expected_entries) - len(missing)}/{len(expected_entries)} entries present; missing: {', '.join(missing[:5])}",
-        }
-
-    return {
-        "name": "codex_agents",
-        "label": "~/.codex/agents mirror",
-        "passed": True,
-        "detail": f"All {len(expected_entries)} toolkit entries mirrored",
-    }
-
-
-def check_hermes_skills() -> dict:
-    """Check that toolkit skills are mirrored into ~/.hermes/skills."""
-    hermes_skills_dir = HERMES_DIR / "skills"
-
-    if not hermes_skills_dir.is_dir():
-        return {
-            "name": "hermes_skills",
-            "label": "~/.hermes/skills mirror",
-            "passed": True,
-            "detail": "not installed (optional runtime)",
-        }
-
-    repo_root = get_toolkit_repo_root()
-    if repo_root is None:
-        return {
-            "name": "hermes_skills",
-            "label": "~/.hermes/skills mirror",
-            "passed": True,
-            "detail": str(hermes_skills_dir),
-        }
-
-    # Count entries present (simplified check — Hermes uses same flat structure)
-    entry_count = sum(1 for _ in hermes_skills_dir.iterdir())
-    return {
-        "name": "hermes_skills",
-        "label": "~/.hermes/skills mirror",
-        "passed": entry_count > 0,
-        "detail": f"{entry_count} entries present in Hermes skills mirror",
-    }
-
-
-def check_reasonix_skills() -> dict:
-    """Verify toolkit skills are DISCOVERABLE by Reasonix in ~/.reasonix/skills.
-
-    Reasonix scans skill roots exactly one level deep (src/skills.ts:251-258): a dir
-    entry ``<name>`` is a skill only when ``<name>/SKILL.md`` exists, and it never
-    recurses. The shipped npm build also skips symlinked entries. So a passing check
-    requires a REAL ``~/.reasonix/skills/<name>/SKILL.md`` one level deep — counting
-    top-level entries is not enough (category dirs / symlinks count but stay invisible).
+    One result per error-level finding; a single passing result when there are none.
+    Warnings are summarized in the detail only.
     """
-    reasonix_skills_dir = REASONIX_DIR / "skills"
+    import subprocess
 
-    if not reasonix_skills_dir.is_dir():
-        return {
-            "name": "reasonix_skills",
-            "label": "~/.reasonix/skills discoverable",
-            "passed": True,
-            "detail": "not installed (optional runtime)",
+    repo = get_toolkit_repo_root()
+    if repo is None or not (repo / "scripts" / "vexinstall" / "__init__.py").is_file():
+        return [
+            {
+                "name": "install_layout",
+                "label": "Install layout (vexinstall doctor)",
+                "passed": False,
+                "detail": "vexinstall engine not found; run install.sh from the toolkit checkout.",
+            }
+        ]
+    env = {**os.environ, "PYTHONPATH": str(repo / "scripts")}
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "vexinstall", "doctor", "--json", "--target", "all"],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=120,
+        )
+        data = json.loads(proc.stdout).get("data", {})
+    except (subprocess.SubprocessError, OSError, ValueError) as exc:
+        return [
+            {
+                "name": "install_layout",
+                "label": "Install layout (vexinstall doctor)",
+                "passed": False,
+                "detail": f"vexinstall doctor did not run: {type(exc).__name__}",
+            }
+        ]
+    errors = [f for f in data.get("findings", []) if f.get("level") == "error"]
+    if not errors:
+        return [
+            {
+                "name": "install_layout",
+                "label": "Install layout (vexinstall doctor)",
+                "passed": True,
+                "detail": f"0 errors, {data.get('warnings', 0)} warnings",
+            }
+        ]
+    return [
+        {
+            "name": f"install_layout_{f.get('check')}",
+            "label": f"Install layout: {f.get('check')} ({f.get('target')})",
+            "passed": False,
+            "detail": f"{f.get('path')} {f.get('detail', '')}".strip() + " — see vexinstall doctor",
         }
-
-    # The /do router is always installed; use it as the canary for discoverability.
-    # Reasonix v0.53.2 ignores symlinked skill ENTRIES (only real dirs are scanned),
-    # so the doctor must reject a stale symlinked entry from a pre-fix install even
-    # though `is_file()` would otherwise traverse the symlink and report success.
-    do_entry = reasonix_skills_dir / "do"
-    do_skill = do_entry / "SKILL.md"
-    if do_entry.is_dir() and not do_entry.is_symlink() and do_skill.is_file():
-        return {
-            "name": "reasonix_skills",
-            "label": "~/.reasonix/skills discoverable",
-            "passed": True,
-            "detail": f"'do' skill resolves at {do_skill} (real dir, one level deep)",
-        }
-
-    # Fallback: any flattened skill resolving one level deep also proves discoverability.
-    discoverable = sum(
-        1
-        for entry in reasonix_skills_dir.iterdir()
-        if entry.is_dir() and not entry.is_symlink() and (entry / "SKILL.md").is_file()
-    )
-    if discoverable > 0:
-        return {
-            "name": "reasonix_skills",
-            "label": "~/.reasonix/skills discoverable",
-            "passed": True,
-            "detail": f"{discoverable} skill(s) resolve one level deep (canary 'do' missing)",
-        }
-
-    return {
-        "name": "reasonix_skills",
-        "label": "~/.reasonix/skills discoverable",
-        "passed": False,
-        "detail": (
-            "No <name>/SKILL.md resolves one level deep as a real dir — Reasonix sees zero skills. "
-            "Skills must be flattened+copied (not symlinked, not category-nested). Re-run install.sh."
-        ),
-    }
+        for f in errors
+    ]
 
 
 def check_hook_files() -> list[dict]:
@@ -954,11 +685,7 @@ def run_all_checks() -> list[dict]:
     """Run all checks and return results."""
     results = []
     results.append(check_claude_dir())
-    results.extend(check_components_installed())
-    results.append(check_codex_skills())
-    results.append(check_codex_agents())
-    results.append(check_hermes_skills())
-    results.append(check_reasonix_skills())
+    results.extend(check_install_layout())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())

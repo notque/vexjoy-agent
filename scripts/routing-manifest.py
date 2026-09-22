@@ -59,7 +59,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import detect_target as _detect_target
 from routing_index_merge import load_index_items as _load_index_items
+from routing_index_merge import load_items_for as _load_items_for
+
+# Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
+# ~/.<runtime>/vexjoy/index/<kind>.json, then the repo index + legacy local.
+_INDEX_TARGET = _detect_target(__file__)
 
 # Canonical DB-dir resolver (ADR-122 hardening lives there)
 _HOOKS_LIB = Path(__file__).resolve().parent.parent / "hooks" / "lib"
@@ -93,7 +99,7 @@ def load_entries() -> list[dict]:
     entries = []
 
     for index_type, (tracked, local_name) in INDEX_PATHS.items():
-        items = _load_index_items(tracked, local_name, index_type)
+        items = _load_items_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
 
         for name, data in items.items():
             if not isinstance(data, dict):

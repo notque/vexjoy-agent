@@ -3,10 +3,14 @@
 Keeps a disk copy of `routing-manifest.py` output so /do Phase 2 reads a
 file instead of starting Python. Staleness = sha256 over the generator's
 inputs: routing-manifest.py, routing_index_merge.py, skills/INDEX.json,
-skills/INDEX.local.json, agents/INDEX.json, agents/INDEX.local.json, and
-pipeline-index.json — missing files are skipped, so the digest is
-byte-identical to the bash check in skills/meta/do/SKILL.md Phase 2:
+skills/INDEX.local.json, agents/INDEX.json, agents/INDEX.local.json,
+pipeline-index.json, and the installed indexes ``<index dir>/{skills,agents}.json``
+(installer spec 7.2) — missing files are skipped, so the digest is
+byte-identical to the bash check in scripts/get-routing-manifest.sh:
 `cat <inputs> 2>/dev/null | sha256sum`. Keep both sides in step.
+
+Index dir: ``$VEXJOY_INDEX_DIR``, else ``<runtime>/vexjoy/index`` when the
+scripts dir sits in a ``~/.<runtime>`` root, else ``~/.claude/vexjoy/index``.
 
 Writers: hooks/session-manifest-cache.py (SessionStart) and the two
 posttooluse-sync-*-index.py hooks (after INDEX regeneration).
@@ -15,6 +19,7 @@ posttooluse-sync-*-index.py hooks (after INDEX regeneration).
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 from pathlib import Path
 
@@ -38,9 +43,21 @@ def resolve_scripts_dir(home: Path | None = None) -> Path | None:
     return None
 
 
+def installed_index_dir(scripts_dir: Path) -> Path:
+    """Where the installed routing indexes live for this scripts dir."""
+    env = os.environ.get("VEXJOY_INDEX_DIR")
+    if env:
+        return Path(env)
+    base = scripts_dir.parent
+    if base.name.startswith("."):
+        return base / "vexjoy" / "index"
+    return Path.home() / ".claude" / "vexjoy" / "index"
+
+
 def input_paths(scripts_dir: Path) -> list[Path]:
     """Generator inputs in the fixed order the digest concatenates them."""
     base = scripts_dir.parent
+    index_dir = installed_index_dir(scripts_dir)
     return [
         scripts_dir / "routing-manifest.py",
         scripts_dir / "routing_index_merge.py",
@@ -49,6 +66,8 @@ def input_paths(scripts_dir: Path) -> list[Path]:
         base / "agents" / "INDEX.json",
         base / "agents" / "INDEX.local.json",
         base / "skills" / "process" / "workflow" / "references" / "pipeline-index.json",
+        index_dir / "skills.json",
+        index_dir / "agents.json",
     ]
 
 

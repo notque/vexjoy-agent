@@ -8,7 +8,7 @@ The sections below cover the learning system internals, shared library API, and 
 
 | Hook | Event | Purpose |
 |------|-------|---------|
-| [`sync-to-user-claude.py`](#sync-hook) | SessionStart | Sync repo to ~/.claude (bootstrap) |
+| [`sync-to-user-claude.py`](#sync-hook) | SessionStart | Run `vexinstall sync --target all` |
 | [`error-learner.py`](#error-learning-system) | PostToolUse | Learn from errors, suggest fixes |
 | [`instruction-reminder.py`](#instruction-reminder) | UserPromptSubmit | Stub — previously re-injected CLAUDE.md (now handled natively) |
 | [`skill-evaluator.py`](#skill-evaluation) | UserPromptSubmit | Inject skill/agent evaluation |
@@ -20,46 +20,7 @@ The sections below cover the learning system internals, shared library API, and 
 
 ## Sync Hook
 
-The `sync-to-user-claude.py` hook is responsible for bootstrapping the hooks system. It copies agents, skills, hooks, and commands from the repo to `~/.claude/` for global access.
-
-### Bootstrap Requirement
-
-**Important:** The sync hook must be run from the agents repository directory on first use. This is because:
-
-1. The sync hook command uses `$CLAUDE_PROJECT_DIR/hooks/sync-to-user-claude.py` (repo path)
-2. The script copies hooks to `~/.claude/hooks/`
-3. After initial sync, other hooks run from `$HOME/.claude/hooks/` (global path)
-
-```bash
-# First time setup - run Claude from the agents repo
-cd /path/to/agents
-claude
-# Sync happens automatically on SessionStart
-
-# After that, hooks work from anywhere
-cd ~/any-other-project
-claude
-# Hooks loaded from ~/.claude/hooks/
-```
-
-### What Gets Synced
-
-| Source | Destination | Description |
-|--------|-------------|-------------|
-| `agents/` | `~/.claude/agents/` | Agent definitions |
-| `skills/` | `~/.claude/skills/` | Skill methodologies |
-| `hooks/` | `~/.claude/hooks/` | Hook scripts |
-| `.claude/settings.json` | `~/.claude/settings.json` | Hook registrations (merged) |
-
-### Alternative: Use install.sh
-
-Instead of bootstrapping via Claude, you can run the installer directly:
-
-```bash
-cd /path/to/agents
-./install.sh --symlink  # For development (changes reflect immediately)
-./install.sh --copy     # For stability (manual re-run to update)
-```
+`sync-to-user-claude.py` is a thin SessionStart wrapper. From a toolkit checkout it runs `python3 -m vexinstall sync --target all` and prints the engine's one-line summary. It always exits 0. It skips when `VEXJOY_SYNC_DISABLED=1` or when HOME resolves inside the repo. First install and layout: `install.sh` and [docs/installer-layout.md](../../docs/installer-layout.md).
 
 ---
 

@@ -25,88 +25,46 @@ def _make_repo(repo_root: Path) -> None:
         (skill_dir / "SKILL.md").write_text(f"# {name}\n", encoding="utf-8")
 
 
-def test_get_toolkit_repo_root_uses_manifest_when_installed_copy(tmp_path, monkeypatch) -> None:
+def test_get_toolkit_repo_root_uses_ledger_source_when_installed_copy(tmp_path, monkeypatch) -> None:
     repo_root = tmp_path / "toolkit"
     _make_repo(repo_root)
-
     claude_dir = tmp_path / ".claude"
-    claude_dir.mkdir()
-    manifest = {"toolkit_path": str(repo_root)}
-    (claude_dir / ".install-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-
-    fake_runtime_script = tmp_path / "runtime" / "scripts" / "install-doctor.py"
+    (claude_dir / "vexjoy").mkdir(parents=True)
+    ledger = {"schema": 1, "source_root": str(repo_root), "entries": []}
+    (claude_dir / "vexjoy" / "ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
     monkeypatch.setattr(install_doctor, "CLAUDE_DIR", claude_dir)
-    monkeypatch.setattr(install_doctor, "__file__", str(fake_runtime_script))
+    monkeypatch.setattr(install_doctor, "__file__", str(tmp_path / "copy" / "scripts" / "install-doctor.py"))
 
     assert install_doctor.get_toolkit_repo_root() == repo_root
 
 
-def test_check_codex_skills_reports_missing_entries(tmp_path, monkeypatch) -> None:
-    repo_root = tmp_path / "toolkit"
-    _make_repo(repo_root)
+def _fake_doctor(findings: list[dict], warnings: int = 0):
+    class Proc:
+        stdout = json.dumps({"exit": 0, "data": {"findings": findings, "warnings": warnings}})
 
-    codex_dir = tmp_path / ".codex"
-    mirrored_skill = codex_dir / "skills" / "install"
-    mirrored_skill.mkdir(parents=True)
-    (mirrored_skill / "SKILL.md").write_text("# install\n", encoding="utf-8")
-
-    monkeypatch.setattr(install_doctor, "CODEX_DIR", codex_dir)
-    monkeypatch.setattr(install_doctor, "get_toolkit_repo_root", lambda: repo_root)
-
-    result = install_doctor.check_codex_skills()
-
-    assert result["passed"] is False
-    assert result["name"] == "codex_skills"
-    assert "missing" in result["detail"]
-    assert "do" in result["detail"]
+    return lambda *_a, **_k: Proc()
 
 
-def test_check_codex_skills_reports_content_drift(tmp_path, monkeypatch) -> None:
-    repo_root = tmp_path / "toolkit"
-    _make_repo(repo_root)
+def test_check_install_layout_passes_without_engine_errors(monkeypatch) -> None:
+    import subprocess
 
-    codex_dir = tmp_path / ".codex"
-    (codex_dir / "skills").mkdir(parents=True)
-    (codex_dir / "skills" / "INDEX.json").write_text("{}\n", encoding="utf-8")
-    for name in ("install", "do"):
-        mirrored_skill = codex_dir / "skills" / name
-        mirrored_skill.mkdir(parents=True)
-        source = repo_root / "skills" / "meta" / name / "SKILL.md"
-        (mirrored_skill / "SKILL.md").write_bytes(source.read_bytes())
-    (codex_dir / "skills" / "do" / "SKILL.md").write_text("# stale do\n", encoding="utf-8")
-
-    monkeypatch.setattr(install_doctor, "CODEX_DIR", codex_dir)
-    monkeypatch.setattr(install_doctor, "get_toolkit_repo_root", lambda: repo_root)
-
-    result = install_doctor.check_codex_skills()
-
-    assert result["passed"] is False
-    assert "content drift" in result["detail"]
-    assert "do/SKILL.md" in result["detail"]
+    monkeypatch.setattr(subprocess, "run", _fake_doctor([{"level": "warn", "check": "unowned"}], warnings=1))
+    results = install_doctor.check_install_layout()
+    assert [r["passed"] for r in results] == [True]
+    assert "1 warnings" in results[0]["detail"]
 
 
-def test_check_codex_skills_ignores_runtime_specific_extras(tmp_path, monkeypatch) -> None:
-    repo_root = tmp_path / "toolkit"
-    _make_repo(repo_root)
+def test_check_install_layout_fails_per_engine_error(monkeypatch) -> None:
+    import subprocess
 
-    codex_dir = tmp_path / ".codex"
-    (codex_dir / "skills").mkdir(parents=True)
-    (codex_dir / "skills" / "INDEX.json").write_text("{}\n", encoding="utf-8")
-    for name in ("install", "do"):
-        mirrored_skill = codex_dir / "skills" / name
-        mirrored_skill.mkdir(parents=True)
-        source = repo_root / "skills" / "meta" / name / "SKILL.md"
-        (mirrored_skill / "SKILL.md").write_bytes(source.read_bytes())
-    extra = codex_dir / "skills" / "codex-only"
-    extra.mkdir(parents=True)
-    (extra / "SKILL.md").write_text("# Codex-only\n", encoding="utf-8")
-
-    monkeypatch.setattr(install_doctor, "CODEX_DIR", codex_dir)
-    monkeypatch.setattr(install_doctor, "get_toolkit_repo_root", lambda: repo_root)
-
-    result = install_doctor.check_codex_skills()
-
-    assert result["passed"] is True
+    findings = [
+        {"level": "error", "check": "dangling-link", "target": "codex", "path": "/h/.codex/skills/x", "detail": ""},
+        {"level": "warn", "check": "unowned", "target": "claude", "path": "/h/.claude/skills/y", "detail": ""},
+    ]
+    monkeypatch.setattr(subprocess, "run", _fake_doctor(findings))
+    results = install_doctor.check_install_layout()
+    assert len(results) == 1 and results[0]["passed"] is False
+    assert results[0]["name"] == "install_layout_dangling-link"
 
 
 def test_inventory_counts_codex_skills(tmp_path, monkeypatch) -> None:
@@ -126,19 +84,6 @@ def test_inventory_counts_codex_skills(tmp_path, monkeypatch) -> None:
     counts = install_doctor.inventory()
 
     assert counts["codex_skills"] == 2
-
-
-def test_optional_runtime_absence_is_healthy(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(install_doctor, "HERMES_DIR", tmp_path / ".hermes")
-    monkeypatch.setattr(install_doctor, "REASONIX_DIR", tmp_path / ".reasonix")
-
-    hermes = install_doctor.check_hermes_skills()
-    reasonix = install_doctor.check_reasonix_skills()
-
-    assert hermes["passed"] is True
-    assert reasonix["passed"] is True
-    assert "optional" in hermes["detail"]
-    assert "optional" in reasonix["detail"]
 
 
 def test_python_runtime_files_only_require_read_permission(tmp_path, monkeypatch) -> None:

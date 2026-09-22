@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -132,12 +133,18 @@ def load_registered_hooks(
     return results
 
 
-def _safe_execution_environment(trusted_root: Path, untrusted_root: Path) -> dict[str, str]:
-    """Build an environment with no target-derived or interpreter injection state."""
+def _safe_execution_environment(trusted_root: Path, untrusted_root: Path, home: Path) -> dict[str, str]:
+    """Build an environment with no target-derived or interpreter injection state.
+
+    HOME is a throwaway dir, never the trusted root: hooks write ``~/.claude``
+    state, and the trusted root is a repo checkout (HOME=repo made the sync
+    hook install a full runtime tree into ``repo/.claude``).
+    """
     trusted = str(trusted_root.resolve())
     untrusted = str(untrusted_root.resolve())
     env = {
-        "HOME": trusted,
+        "HOME": str(home),
+        "VEXJOY_SYNC_DISABLED": "1",
         "PATH": _SAFE_PATH,
         "PWD": trusted,
         "TMPDIR": "/tmp",
@@ -177,6 +184,7 @@ def run_hook(
     *,
     trusted_root: Path | None = None,
     untrusted_root: Path | None = None,
+    home: Path | None = None,
 ) -> dict:
     """Run a single hook with mock stdin. Return result dict."""
     script = hook["script"]
@@ -192,11 +200,17 @@ def run_hook(
         if safe_mode
         else json.dumps(MOCK_INPUTS.get(event, MOCK_INPUTS["PostToolUse"]))
     )
+    if home is None:
+        home = Path(tempfile.gettempdir()) / "vexjoy-smoke-home"
+        home.mkdir(exist_ok=True)
     child_env = (
-        _safe_execution_environment(trusted_root, untrusted_root)
+        _safe_execution_environment(trusted_root, untrusted_root, home)
         if safe_mode
         else {
             **os.environ,
+            # Never the real HOME: hooks would sync installs and log into ~/.claude.
+            "HOME": str(home),
+            "VEXJOY_SYNC_DISABLED": "1",
             "CLAUDE_HOOKS_DEBUG": "",
             "REF_GATE_BYPASS": "1",
         }
@@ -262,14 +276,16 @@ def main() -> int:
     compact = args.compact or (len(hooks) > 20 and not args.verbose)
 
     results = []
-    for hook in hooks:
-        r = run_hook(
-            hook,
-            verbose=args.verbose,
-            trusted_root=trusted_root,
-            untrusted_root=untrusted_root,
-        )
-        results.append(r)
+    with tempfile.TemporaryDirectory(prefix="vexjoy-smoke-home-") as home_dir:
+        for hook in hooks:
+            r = run_hook(
+                hook,
+                verbose=args.verbose,
+                trusted_root=trusted_root,
+                untrusted_root=untrusted_root,
+                home=Path(home_dir),
+            )
+            results.append(r)
 
     # Print results
     fails = 0

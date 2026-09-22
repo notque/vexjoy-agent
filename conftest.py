@@ -71,3 +71,61 @@ def isolate_learning_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iter
     _assert_db_is_isolated("setup")
     yield db_dir
     _assert_db_is_isolated("teardown")
+
+
+# ---------------------------------------------------------------------------
+# Repo .claude/ stays install-free across the whole suite (installer spec 11).
+#
+# A test (or a harness it drives) that runs an installer or the sync hook with
+# HOME or ~/.claude resolving to this checkout writes a runtime tree into
+# repo/.claude, which Claude Code then loads as project scope. .gitignore hides
+# it from `git status`, so this check compares the directory itself.
+# ---------------------------------------------------------------------------
+
+_REPO_DOTCLAUDE = _REPO_ROOT / ".claude"
+_INSTALL_SHAPED = (
+    "skills",
+    "agents",
+    "commands",
+    "hooks",
+    "scripts",
+    "vexjoy",
+    "retro",
+    ".vexjoy-managed-hooks-settings",
+    ".install-manifest.json",
+)
+_RUNTIME_ROOTS = (".codex", ".factory", ".hermes", ".reasonix")
+
+
+def _install_shaped_snapshot() -> dict[str, int]:
+    """Install-shaped paths under repo/.claude and runtime roots at the repo top, with mtimes."""
+    paths = [_REPO_DOTCLAUDE / name for name in _INSTALL_SHAPED]
+    paths += list(_REPO_DOTCLAUDE.glob("settings.json.backup.*"))
+    paths += [_REPO_ROOT / name for name in _RUNTIME_ROOTS]
+    out: dict[str, int] = {}
+    for p in paths:
+        try:
+            out[str(p.relative_to(_REPO_ROOT))] = p.lstat().st_mtime_ns
+        except OSError:
+            continue
+    return out
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    session.config._vexjoy_dotclaude = _install_shaped_snapshot()  # type: ignore[attr-defined]
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    before = getattr(session.config, "_vexjoy_dotclaude", None)
+    if before is None or hasattr(session.config, "workerinput"):
+        return
+    after = _install_shaped_snapshot()
+    changed = sorted(p for p, m in after.items() if before.get(p) != m)
+    if changed:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+        reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+        msg = f"repo install guard: the suite created or changed install-shaped paths in the checkout: {changed}"
+        if reporter is not None:
+            reporter.write_line(msg, red=True)
+        else:
+            print(msg, file=sys.stderr)

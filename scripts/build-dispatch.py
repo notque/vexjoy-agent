@@ -207,6 +207,31 @@ SKILL_INDEX_PATH = INSTALL_ROOT / "skills" / "INDEX.json"
 SKILL_INDEX_LOCAL = "INDEX.local.json"
 PIPELINE_INDEX_PATH = INSTALL_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 SHARED_PATTERNS_DIR = INSTALL_ROOT / "skills" / "shared-patterns"
+# Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
+# ~/.<runtime>/vexjoy/index/<kind>.json, then the deploy-dir index + legacy
+# local. The resolver sits next to this script; without it, the deploy-dir
+# index is read as before.
+if str(Path(__file__).absolute().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).absolute().parent))
+try:
+    import routing_index_merge as _rim
+except ImportError:  # pragma: no cover - resolver shipped alongside
+    _rim = None
+_INDEX_TARGET = _rim.detect_target(__file__) if _rim is not None else "claude"
+
+
+def _resolved_source(kind: str, tracked: Path, local_name: str | None) -> tuple[Path, str | None]:
+    """(index path, legacy local name) for *kind*: the installed index when the
+    resolver finds one, else the given deploy-dir index plus its local overlay."""
+    if _rim is None:
+        return tracked, local_name
+    try:
+        path, _base, installed = _rim.resolve_index_with_base(kind, _INDEX_TARGET, repo_root=tracked.parent.parent)
+    except Exception:
+        return tracked, local_name
+    return (path, None) if installed else (tracked, local_name)
+
+
 # Harness-provided agents that exist outside agents/INDEX.json. Superset of
 # validate-do-references.py's set: the Agent tool accepts these names, so
 # coercing them would MANUFACTURE fallbacks instead of catching them.
@@ -403,27 +428,23 @@ def _key_list(raw: object, field: str) -> list[str]:
     return items
 
 
-@lru_cache(maxsize=16)
-def load_known_agents(index_path: Path = AGENT_INDEX_PATH) -> frozenset[str]:
-    """Dispatchable agent names: agents/INDEX.json + INDEX.local.json + built-ins.
+def load_known_agents(index_path: Path | None = None) -> frozenset[str]:
+    """Dispatchable agent names from the resolved agents index + built-ins.
 
-    Add-only merge of the tracked index and the gitignored local overlay — the
-    same semantics as scripts/routing_index_merge.py, inlined (names only) to
-    keep this script import-free and deterministic.
+    Default: the installed index (installer spec 7.2) when present, else
+    agents/INDEX.json + INDEX.local.json (add-only merge, same semantics as
+    scripts/routing_index_merge.py). An explicit *index_path* reads that file
+    plus its local overlay.
 
-    Returns an EMPTY set when neither file is readable. Callers treat empty as
+    Returns an EMPTY set when nothing is readable. Callers treat empty as
     "cannot validate" and keep the agent as given: a missing index must never
     coerce a valid pick into a fallback.
     """
-    names: set[str] = set()
-    for path in (index_path, index_path.parent / AGENT_INDEX_LOCAL):
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        agents = raw.get("agents")
-        if isinstance(agents, dict):
-            names.update(str(name).strip().lower() for name in agents if str(name).strip())
+    if index_path is None:
+        path, local = _resolved_source("agents", AGENT_INDEX_PATH, AGENT_INDEX_LOCAL)
+    else:
+        path, local = index_path, AGENT_INDEX_LOCAL
+    names = _load_index_names(path, "agents", local)
     if not names:
         return frozenset()
     return frozenset(names | BUILTIN_AGENTS)
@@ -447,8 +468,12 @@ def _load_index_names(index_path: Path, field: str, local_name: str | None = Non
     return frozenset(names)
 
 
-def load_known_skills(index_path: Path = SKILL_INDEX_PATH) -> frozenset[str]:
-    """Return active skill names from the tracked index plus local overlay."""
+def load_known_skills(index_path: Path | None = None) -> frozenset[str]:
+    """Return active skill names from the resolved index (installed first), else
+    the tracked index plus local overlay."""
+    if index_path is None:
+        path, local = _resolved_source("skills", SKILL_INDEX_PATH, SKILL_INDEX_LOCAL)
+        return _load_index_names(path, "skills", local)
     return _load_index_names(index_path, "skills", SKILL_INDEX_LOCAL)
 
 

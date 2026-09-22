@@ -12,12 +12,11 @@ files reflect only directly-committed content.
 
 ### Local development workflow
 
-To index symlinked entries for local workflows, use `--include-private` with
-a separate output target:
+Indexes that include private overlay skills are written only to the installed
+runtime (`~/.claude/vexjoy/index/`) by the installer engine, never to the repo:
 
 ```bash
-python3 scripts/generate-skill-index.py --include-private --output skills/INDEX.local.json
-python3 scripts/generate-agent-index.py --include-private --output agents/INDEX.local.json
+PYTHONPATH=scripts python3 -m vexinstall sync --index-only
 ```
 
 The router (`scripts/routing-manifest.py`) prefers the local file when present,

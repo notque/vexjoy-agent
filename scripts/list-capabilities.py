@@ -22,6 +22,14 @@ from pathlib import Path
 
 # Resolve repo root relative to this script (scripts/ -> repo root)
 REPO_ROOT = Path(__file__).resolve().parent.parent
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+# Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
+# ~/.<runtime>/vexjoy/index/<kind>.json, then the repo index + legacy local.
+import routing_index_merge
+
+_INDEX_TARGET = routing_index_merge.detect_target(__file__)
 
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
 PIPELINES_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
@@ -37,36 +45,55 @@ STALE_EXIT_CODE = 2
 # ---------------------------------------------------------------------------
 
 
-def load_skills_index() -> tuple[dict, str | None]:
-    """Load skills/INDEX.json and return the skills dict keyed by name."""
-    if not SKILLS_INDEX.exists():
-        print(f"ERROR: {SKILLS_INDEX} not found", file=sys.stderr)
+def resolved_index_path(kind: str) -> Path:
+    """Index file a reader uses for *kind* (``skills`` or ``agents``)."""
+    return routing_index_merge.resolve_index(kind, _INDEX_TARGET, repo_root=REPO_ROOT)
+
+
+def _load_resolved(kind: str) -> tuple[dict, str | None]:
+    """Items plus ``generated`` stamp of the resolved *kind* index; exits 1 when absent."""
+    path = resolved_index_path(kind)
+    if not path.exists():
+        print(f"ERROR: {path} not found", file=sys.stderr)
         sys.exit(1)
-    data = json.loads(SKILLS_INDEX.read_text())
-    return data.get("skills", {}), data.get("generated")
+    items = routing_index_merge.load_resolved_items(kind, _INDEX_TARGET, repo_root=REPO_ROOT)
+    try:
+        generated = json.loads(path.read_text(encoding="utf-8")).get("generated")
+    except (OSError, ValueError, AttributeError):
+        generated = None
+    return items, generated
+
+
+def load_skills_index() -> tuple[dict, str | None]:
+    """Load the resolved skills index and return the skills dict keyed by name."""
+    return _load_resolved("skills")
 
 
 def load_pipelines_index() -> tuple[dict, str | None]:
-    """Load skills/INDEX.json and return the pipelines dict keyed by name."""
+    """Load pipeline-index.json and return the pipelines dict keyed by name."""
     if not PIPELINES_INDEX.exists():
         return {}, None
     data = json.loads(PIPELINES_INDEX.read_text())
     return data.get("pipelines", {}), data.get("generated")
 
 
-def load_agents_index() -> dict:
-    """Load agents/INDEX.json and return the agents dict keyed by name."""
-    if not AGENTS_INDEX.exists():
-        print(f"ERROR: {AGENTS_INDEX} not found", file=sys.stderr)
-        sys.exit(1)
-    data = json.loads(AGENTS_INDEX.read_text())
-    return data.get("agents", {}), data.get("generated")
+def load_agents_index() -> tuple[dict, str | None]:
+    """Load the resolved agents index and return the agents dict keyed by name."""
+    return _load_resolved("agents")
 
 
 def _newest_mtime(glob_pattern: str, base: Path) -> float | None:
     """Return the mtime of the newest file matching the glob, or None."""
     mtimes = [p.stat().st_mtime for p in base.glob(glob_pattern) if p.is_file()]
     return max(mtimes) if mtimes else None
+
+
+def _display(path: Path) -> str:
+    """Repo-relative path when inside the repo, else the full path."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def check_staleness(index_path: Path, generated: str | None, glob_pattern: str, base: Path, label: str) -> bool:
@@ -96,8 +123,7 @@ def check_staleness(index_path: Path, generated: str | None, glob_pattern: str, 
         else:
             regen_script = "scripts/generate-skill-index.py"
         print(
-            f"⚠ {index_path.relative_to(REPO_ROOT)} may be stale ({newer_count} files newer). "
-            f"Run: python3 {regen_script}",
+            f"⚠ {_display(index_path)} may be stale ({newer_count} files newer). Run: python3 {regen_script}",
             file=sys.stderr,
         )
         return True
@@ -152,10 +178,10 @@ def cmd_summary(args) -> int:
     agents_dict, agents_gen = load_agents_index()
 
     stale = False
-    stale |= check_staleness(SKILLS_INDEX, skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
+    stale |= check_staleness(resolved_index_path("skills"), skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
     if pipelines_gen:
         stale |= check_staleness(PIPELINES_INDEX, pipelines_gen, "*/SKILL.md", REPO_ROOT / "pipelines", "pipelines")
-    stale |= check_staleness(AGENTS_INDEX, agents_gen, "*.md", REPO_ROOT / "agents", "agents")
+    stale |= check_staleness(resolved_index_path("agents"), agents_gen, "*.md", REPO_ROOT / "agents", "agents")
 
     total_skills = len(skills_dict)
     total_pipelines = len(pipelines_dict)
@@ -200,7 +226,7 @@ def _filter_skills_by_category(skills: list[dict], category: str) -> list[dict]:
 
 def cmd_skills(args) -> int:
     skills_dict, skills_gen = load_skills_index()
-    stale = check_staleness(SKILLS_INDEX, skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
+    stale = check_staleness(resolved_index_path("skills"), skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
 
     skills = _dict_as_list(skills_dict)
 
@@ -250,7 +276,7 @@ def _filter_agents_by_category(agents: list[dict], category: str) -> list[dict]:
 
 def cmd_agents(args) -> int:
     agents_dict, agents_gen = load_agents_index()
-    stale = check_staleness(AGENTS_INDEX, agents_gen, "*.md", REPO_ROOT / "agents", "agents")
+    stale = check_staleness(resolved_index_path("agents"), agents_gen, "*.md", REPO_ROOT / "agents", "agents")
 
     agents = _dict_as_list(agents_dict)
 
