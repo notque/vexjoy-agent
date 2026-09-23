@@ -376,3 +376,7 @@ Walk-through of the full loop applied to a real toolkit skill.
 - Variant B: wins 1/4 cases (25% win rate). Recorded as a negative result in `docs/what-didnt-work.md`.
 
 Commit: `improve(fast): add casual trigger vocabulary — A/B winner (75%)`
+
+## Related: uplift for weaker models
+
+To make a skill work for a weaker model rather than improve it for the current one, use `references/weak-model-uplift.md`: it runs the weaker model on tasks with and without the guidance and turns its observed failures into concrete rules.

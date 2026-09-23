@@ -42,6 +42,9 @@ routing:
     - "compose skills"
     - "bake-off"
     - "skill quality"
+    - "weaker model"
+    - "weak model uplift"
+    - "improve skill for weaker models"
   category: meta-tooling
   pairs_with:
     - review
@@ -50,7 +53,7 @@ routing:
 
 # Toolkit
 
-Nine modes covering the full toolkit lifecycle: creating, evaluating, and
+Ten modes covering the full toolkit lifecycle: creating, evaluating, and
 improving skills and agents; maintaining routing tables; generating CLAUDE.md;
 composing multi-skill DAGs; and running the evolution loop. Classify the request
 and follow the matching section.
@@ -62,6 +65,7 @@ and follow the matching section.
 | **Skill Creator** | create skill, scaffold skill, new skill, build a skill | Create Skill |
 | **Agent Creator** | create agent, scaffold agent, new agent | Create Agent |
 | **Skill Eval** | eval skill, benchmark skill, improve skill, bake-off | Evaluate Skill |
+| **Weak-Model Uplift** | weaker model, uplift skill, make a skill work for Opus 4.6, improve guidance from generated output | Uplift for Weaker Models |
 | **Agent Comparison** | compare agents, A/B test agents, benchmark agents | Compare Agents |
 | **Agent Evaluation** | evaluate agent quality, audit agent, grade agent | Evaluate Agent |
 | **Skill Composer** | compose skills, DAG orchestration, skill pipeline | Compose Skills |
@@ -112,6 +116,20 @@ Three evaluation types: **trigger testing**, **A/B benchmark**, and **bake-off**
 4. **Self-improve loop.** After eval, identify weaknesses, modify the SKILL.md, re-eval. Load `references/skill-eval/self-improve-loop.md`.
 
 Load `references/skill-eval.md` for the full methodology.
+
+---
+
+## Uplift for Weaker Models
+
+Improve a skill, agent, or shared guide until a weaker model produces strong output with it. Load `references/weak-model-uplift.md` and follow its steps:
+
+1. **Pick the target from data.** Query `~/.claude/learning/usage.db` and `learning.db` for heavily used or failing skills.
+2. **Build tasks and checks first.** 4–8 tasks plus 1–2 held-out tasks; deterministic checks and a yes/no rubric written before any run.
+3. **Run the arms.** No guidance and current guidance, two samples per task minimum, with `python3 scripts/weak_model_run.py`.
+4. **Score and look.** Checks, rubric, your own review of every artifact, optional Jev questions on extracted facts.
+5. **Turn failures into rules.** Concrete values, before/after examples, runnable checks; delete stale instructions; examples from unrelated products.
+6. **Rerun** the guided arm and held-out tasks; stop when gains flatten or after three rounds.
+7. **Report and ship** a per-round table with held-out results, cost, and caveats in the PR body.
 
 ---
 
@@ -210,6 +228,7 @@ Load when the task needs detailed schemas, templates, or methodology.
 |------|---------------|
 | Skill Creator | `references/skill-creator.md`, `references/skill-creator/{skill-template,progressive-disclosure,complexity-tiers,error-catalog,enrichment-workflow}.md` |
 | Agent Creator | `references/agent-creator.md`, `references/agent-creator/{agent-design-patterns,agent-frontmatter-template,agent-eval-design}.md` |
+| Weak-Model Uplift | `references/weak-model-uplift.md` |
 | Skill Eval | `references/skill-eval.md`, `references/skill-eval/{schemas,self-improve-loop,bake-off-methodology}.md` |
 | Agent Comparison | `references/agent-comparison.md`, `references/agent-comparison/{methodology,grading-rubric,benchmark-tasks,report-template,optimize-phase}.md` |
 | Agent Evaluation | `references/agent-evaluation.md`, `references/agent-evaluation/{scoring-rubric,report-templates,batch-evaluation}.md` |
@@ -225,5 +244,6 @@ Load when the task needs detailed schemas, templates, or methodology.
 | Skill Creator | `scripts/skill-creator/` | `agents/skill-creator/` |
 | Skill Composer | `scripts/skill-composer/` | -- |
 | Skill Eval | -- | `agents/skill-eval/` |
+| Weak-Model Uplift | `scripts/weak_model_run.py` (repo root) | -- |
 | Routing Tables | `scripts/routing-table-updater/` | -- |
 | Agent Comparison | `scripts/agent-comparison/` | -- |
