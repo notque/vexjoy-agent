@@ -164,22 +164,30 @@ def execute_target(tp: TargetPlan, ctx: Context, trash: Trash, guard: Guard, led
 
 
 def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict | None) -> dict:
-    """Merge owned hook entries into ~/.claude/settings.json. Returns a report dict."""
+    """Merge owned hook entries and missing repo env vars into ~/.claude/settings.json.
+
+    Env vars are added only on install (``desired`` is None), never overwritten, and
+    never removed on uninstall. Returns a report dict.
+    """
     home = ctx.home
     spath = home / ".claude" / "settings.json"
+    desired_env: dict[str, str] = {}
     if desired is None:
         repo_settings = ctx.source_root / ".claude" / "settings.json"
         if not repo_settings.is_file():
             return {"skipped": "repo .claude/settings.json missing"}
         desired = filter_settings_hooks(settings_mod.desired_from_repo(ctx.source_root), ctx.profile)
+        desired_env = settings_mod.desired_env_from_repo(ctx.source_root)
     try:
         current = settings_mod.read_settings(spath)
     except ValueError as exc:
         return {"skipped": f"settings.json unreadable: {exc}"}
     rule = settings_mod.OwnerRule(home=home, hooks_dir=home / ".claude" / "hooks", source_root=ctx.source_root)
     res = settings_mod.merge(current, desired, rule)
+    env_added = settings_mod.merge_env(res.settings, desired_env)
+    env_removed = settings_mod.remove_retired_env(res.settings) if desired_env else []
     backup_ts = None
-    if res.changed:
+    if res.changed or env_added or env_removed:
         backup_ts = settings_mod.backup(spath, state_dir(home) / "backups", guard)
         settings_mod.write(spath, res.settings, guard)
     ledger.settings["claude"] = res.owned_hashes
@@ -187,6 +195,8 @@ def apply_settings(ctx: Context, ledger: Ledger, guard: Guard, *, desired: dict 
         "added": res.added,
         "removed": res.removed,
         "deduped": res.deduped,
+        "env_added": env_added,
+        "env_removed": env_removed,
         "unmanaged_in_repo": res.unmanaged,
         "backup": backup_ts,
     }

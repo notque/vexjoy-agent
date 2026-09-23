@@ -2,9 +2,9 @@
   "effortLevel": "max",
   "autoMemoryEnabled": false,
   "env": {
-    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000",
-    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1"
+    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"
   },
   "attribution": {
     "commit": "",

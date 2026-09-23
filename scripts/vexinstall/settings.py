@@ -113,6 +113,54 @@ def desired_from_repo(source_root: Path) -> dict:
     return hooks if isinstance(hooks, dict) else {}
 
 
+def desired_env_from_repo(source_root: Path) -> dict[str, str]:
+    """The ``env`` key of repo ``.claude/settings.json`` (string values only)."""
+    path = source_root / ".claude" / "settings.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    env = data.get("env", {})
+    if not isinstance(env, dict):
+        return {}
+    return {k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str)}
+
+
+RETIRED_ENV: dict[str, str] = {
+    # name -> value the installer used to ship; removed only while it still has that value
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
+}
+
+
+def remove_retired_env(settings: dict, retired: dict[str, str] = RETIRED_ENV) -> list[str]:
+    """Remove retired env vars in place when they still hold the shipped value; keep user-changed ones."""
+    env = settings.get("env")
+    if not isinstance(env, dict):
+        return []
+    removed = []
+    for key, shipped in retired.items():
+        if env.get(key) == shipped:
+            del env[key]
+            removed.append(key)
+    return removed
+
+
+def merge_env(settings: dict, desired_env: dict[str, str]) -> list[str]:
+    """Add desired env vars missing from *settings* in place; never overwrite a user value."""
+    if not desired_env:
+        return []
+    env = settings.get("env")
+    if not isinstance(env, dict):
+        env = {}
+        settings["env"] = env
+    added = []
+    for key, value in desired_env.items():
+        if key not in env:
+            env[key] = value
+            added.append(f"{key}={value}")
+    return added
+
+
 def owned_entries(settings: dict, rule: OwnerRule) -> list[tuple[str, dict, dict]]:
     """(event, group meta, entry) for every owned entry in *settings*."""
     out = []

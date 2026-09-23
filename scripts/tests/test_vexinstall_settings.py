@@ -80,7 +80,7 @@ def test_merge_preserves_user_entries_and_collapses_owned(tmp_path: Path) -> Non
     assert not again.changed
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_apply_settings_merge_per_target(world: Env, target: str) -> None:
     spath = world.home / ".claude" / "settings.json"
     user = {"type": "command", "command": "python3 /opt/user/hook.py"}
@@ -140,3 +140,43 @@ def test_doctor_reports_settings_drift_and_duplicates(world: Env) -> None:
     spath.write_text(json.dumps(data))
     out = "\n".join(world.run("doctor", "--target", "claude").out)
     assert "settings-drift" in out and "settings-duplicate-owned" in out
+
+
+def test_merge_env_adds_missing_keeps_user_values() -> None:
+    settings = {"env": {"KEEP": "user", "OTHER": "x"}}
+    added = sm.merge_env(settings, {"KEEP": "repo", "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"})
+    assert added == ["CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false"]
+    assert settings["env"] == {"KEEP": "user", "OTHER": "x", "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false"}
+    assert sm.merge_env(settings, {"KEEP": "repo"}) == []
+
+
+def test_merge_env_creates_env_block() -> None:
+    settings: dict = {}
+    assert sm.merge_env(settings, {"A": "1"}) == ["A=1"]
+    assert settings == {"env": {"A": "1"}}
+
+
+def test_desired_env_from_repo(tmp_path: Path) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"env": {"A": "1", "B": 2}}))
+    assert sm.desired_env_from_repo(tmp_path) == {"A": "1"}
+    assert sm.desired_env_from_repo(tmp_path / "missing") == {}
+
+
+def test_repo_settings_disable_prompt_suggestion() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert sm.desired_env_from_repo(root).get("CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION") == "false"
+
+
+def test_remove_retired_env_only_shipped_value() -> None:
+    settings = {"env": {"CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1", "KEEP": "x"}}
+    assert sm.remove_retired_env(settings) == ["CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING"]
+    assert settings["env"] == {"KEEP": "x"}
+    changed = {"env": {"CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "0"}}
+    assert sm.remove_retired_env(changed) == []
+    assert sm.remove_retired_env({}) == []
+
+
+def test_repo_settings_do_not_ship_retired_env() -> None:
+    root = Path(__file__).resolve().parents[2]
+    assert not set(sm.desired_env_from_repo(root)) & set(sm.RETIRED_ENV)
