@@ -16,11 +16,14 @@ writeup, including exactly which cookbook ideas were reused and where this
 design deliberately diverges and why.
 
 Flow, in order:
-  1. Deterministic force-route guard (`pre-route.py`), run exactly as
+  1. Deterministic force-route guard (`pre-route.py`), applied as
      `skills/meta/do/SKILL.md` Phase 2 Step 1 does. A high-confidence
-     force_route match is the final answer; Jev is never consulted. This is
-     the safety invariant, enforced structurally: Jev cannot override a
-     force-route match because it is never called for one.
+     force_route match for pr-workflow, pr-pipeline, or security keeps its
+     skill and pipeline; Jev never overrides them and only supplies the
+     agent and attachments. Any other force match is a hint that joins the
+     stage-2 skill shortlist (2026-09-22: keyword matches such as "write
+     post" in "Write a PostToolUse hook" were ending classification with no
+     agent). If Jev fails, a force match stands as before.
   2. Jev transport presence check (Vercel Gateway or direct Jev API).
   3. Live manifest membership (`routing-manifest.py --json`, subprocess —
      hyphenated filename, not import-able).
@@ -57,16 +60,22 @@ Flow, in order:
      scoped down to gating optional fan-out-candidate inclusion only (a
      genuine "does this extra agent apply at all" decision, not "which real
      option wins").
-  7. Complexity is derived deterministically in Python from the final
+  7. Attachment (pure code, `_attachments`): extra skills that ride with
+     the primary skill, from the pre-route stack, the agent's domain floor,
+     stage-2 domain Nouls, and stack signals; at most MAX_ATTACHMENTS. A
+     route with no domain agent takes the skill's owning agent
+     (`_default_agent`). Measured by scripts/router_attachment/.
+  8. Complexity is derived deterministically in Python from the final
      picks and signals (pipeline or fan-out present -> complex; any stack
      signal true -> medium; else simple) rather than asked as a Jev
      question — see the design reference for why this slot was dropped from
      the Jev call entirely in v2.
 
 Cost model (hard constraint): classification uses at most 2 Jev evaluations
-(0 on force-route/unavailable, 1 on trivial-bypass, 2
-otherwise), and every /d invocation adds one batched intent-alignment
-evaluation — never one request per question.
+(0 when unavailable, 1 on trivial-bypass, 2 otherwise, force routes
+included), each packed at the reliable request size, and every /d
+invocation adds one batched intent-alignment evaluation — never one request
+per question.
 
 Mirrors `pre-route.py`'s CLI shape and JSON-output discipline: exit 0 always,
 JSON to stdout, never raise past `main()`. Jev transport is selected by
@@ -253,6 +262,88 @@ OBJECTIVE_LOOP_WORTHY_INSTRUCTIONS = (
     "True when the request states an objective with explicit done-criteria and asks the work to continue, "
     'retrying or iterating, until that objective is met (e.g. "loop until done", an explicit definition of done).'
 )
+
+# Domain-attachment Nouls (stage 2, multi-select). The primary `skill` slot
+# holds ONE methodology; these ask, one property each, whether a domain
+# umbrella skill must ride along so its references load (Go patterns, UI
+# design, Kubernetes, testing, Jev program design). Policy (threshold, cap,
+# ordering) stays in `_attachments`. Keys are the manifest skill names.
+DOMAIN_NOUL_INSTRUCTIONS = {
+    "programming": (
+        "True when the work reads, writes, reviews, tests, or fixes Go, Kotlin, PHP, Swift, or TypeScript source "
+        "code. False when the only code is Python, when no source code is involved, or when 'go' is an ordinary "
+        'verb ("go ahead", "go through").'
+    ),
+    "frontend": (
+        "True when the work creates, changes, or judges a web page's visual design, layout, styling, UI "
+        "components, or accessibility. False for type errors, build configuration, or backend work with no "
+        "visible interface change."
+    ),
+    "kubernetes": (
+        "True when the work creates, changes, or diagnoses Kubernetes or Helm resources: pods, deployments, "
+        "charts, namespaces, RBAC, or resource limits."
+    ),
+    "testing": (
+        "True when writing, fixing, or running automated tests is part of the deliverable (new tests, a flaky "
+        "test, a regression test, coverage). False when tests are not mentioned and the request only builds or "
+        "explains something."
+    ),
+    "building-with-jev": (
+        "True when the work writes, changes, tunes, or evaluates a program that calls Jev, TypeSafe's judgment "
+        "model, including its questions and criteria."
+    ),
+    "research": (
+        "True when the deliverable is findings gathered from external sources (web pages, documentation, papers, "
+        "public claims) and checked or cited. False when the investigation only reads this repository's code, "
+        "logs, or runtime behavior."
+    ),
+}
+DOMAIN_NOUL_PREFIX = "domain__"
+
+# Deterministic domain floor: an agent whose whole domain is one umbrella
+# skill always carries that skill. Only unambiguous pairs belong here; mixed
+# agents (TypeScript, Python) rely on the domain Nouls above.
+DOMAIN_SKILL_BY_AGENT = {
+    "golang-general-engineer": "programming",
+    "kotlin-general-engineer": "programming",
+    "php-general-engineer": "programming",
+    "swift-general-engineer": "programming",
+    "kubernetes-helm-engineer": "kubernetes",
+    "ui-frontend-engineer": "frontend",
+}
+
+# Stack signal -> callable skill (or shared pattern) it attaches.
+SIGNAL_SKILLS = {
+    "tests_requested": "testing",
+    "comprehensive_review": "review",
+    "objective_loop_worthy": "workflow",
+    "local_only": "local-only",
+}
+# research_needed is not mapped: it fires on ordinary diagnosis ("find why"),
+# and /d answers it with a research-coordinator-engineer fan-out, not a skill.
+
+# Agent default when the route has no domain agent (null or general-purpose):
+# the skill's owning agent, mirroring /do's Agent-greediness table.
+AGENT_BY_SKILL = {
+    "building-with-jev": "python-general-engineer",
+    "jev-design": "typescript-frontend-engineer",
+    "kubernetes": "kubernetes-helm-engineer",
+    "frontend": "ui-frontend-engineer",
+    "research": "research-coordinator-engineer",
+    "testing": "testing-automation-engineer",
+    "toolkit": "toolkit-governance-engineer",
+    "docs-sync-checker": "technical-documentation-engineer",
+    "security": "reviewer-system",
+    "review": "reviewer-code",
+    "writing": "technical-journalist-writer",
+}
+
+# Force routes that stay authoritative for their slot. Mirrors /do Phase 2
+# Step 1(a): only genuine git/PR work and security work override the semantic
+# pick. Every other force match is a hint that joins Jev's stage-2 shortlist.
+SAFETY_FORCE_NAMES = frozenset({"pr-workflow", "pr-pipeline", "security"})
+
+MAX_ATTACHMENTS = 3  # extra skills beyond the primary; keeps precision high
 
 NOUL_INSTRUCTIONS = {
     "tests_requested": TESTS_REQUESTED_INSTRUCTIONS,
@@ -604,6 +695,9 @@ def _build_stage2_payload(
     for key in NOUL_SIGNAL_KEYS:
         questions[key] = {"type": "noul", "instructions": NOUL_INSTRUCTIONS[key]}
 
+    for name, instructions in DOMAIN_NOUL_INSTRUCTIONS.items():
+        questions[f"{DOMAIN_NOUL_PREFIX}{_sanitize_key(name)}"] = {"type": "noul", "instructions": instructions}
+
     for name in fanout_candidates:
         questions[f"fanout__{_sanitize_key(name)}"] = {
             "type": "noul",
@@ -620,7 +714,9 @@ def _call_jev(payload: dict, timeout: float) -> tuple[dict, float]:
     receipts; callers still own fail-open routing behavior.
     """
     started = time.monotonic()
-    data = jev_transport.evaluate(payload.get("state", {}), payload.get("questions", {}), timeout=timeout)
+    # Packed: split at the reliable request size up front (jev-production-lessons
+    # fact 2); stage 1's full candidate lists sit near the single-request limit.
+    data = jev_transport.evaluate_packed(payload.get("state", {}), payload.get("questions", {}), timeout=timeout)
     return data, (time.monotonic() - started) * 1000.0
 
 
@@ -931,6 +1027,12 @@ def _parse_stage2(
 
     fits_scores = {"agent": agent_fit, "skill": skill_fit, "pipeline": pipeline_fit}
 
+    domain_scores: dict[str, float] = {}
+    for name in DOMAIN_NOUL_INSTRUCTIONS:
+        key = f"{DOMAIN_NOUL_PREFIX}{_sanitize_key(name)}"
+        if key in answers:
+            domain_scores[name] = float(answers[key]["noul"])
+
     # Fallback now means exactly one thing here: Jev's agent or skill answer
     # was not a valid manifest-member/shortlisted name (a real "nothing to
     # act on" condition, same class as TypeSafe-unavailable or a call error
@@ -980,32 +1082,31 @@ def _parse_stage2(
         "signals": signals,
         "signal_scores": signal_scores,
         "fits_scores": fits_scores,
+        "domain_scores": domain_scores,
         "fallback": fallback,
         "fallback_reason": reasoning if fallback else None,
         "source": source,
     }
 
 
-def route(
+def _classify(
     request_text: str,
     gate_threshold: float,
     fits_threshold: float,
     timeout: float,
-    project: dict | None = None,
-    shortlist_n: int = STAGE1_SHORTLIST_N,
-) -> dict:
-    """Run the two-stage classifier on one request string. Never raises."""
-    pre_route = _run_pre_route(request_text)
-    if (
-        pre_route.get("matched")
-        and pre_route.get("confidence") == "high"
-        and pre_route.get("match_type") == "force_route"
-    ):
-        return _force_route_result(pre_route)
+    project: dict | None,
+    shortlist_n: int,
+    hint_skill: str | None = None,
+) -> tuple[dict, set[str]]:
+    """Two-stage Jev classification. Returns (result, live skill names). Never raises.
 
+    `hint_skill` is a non-safety pre-route force match: it joins the stage-2
+    skill shortlist so Jev judges it with its full description, but it does
+    not win by keyword alone.
+    """
     available, reason = jev_transport.available()
     if not available:
-        return _unavailable_result(reason)
+        return _unavailable_result(reason), set()
 
     try:
         entries = _load_manifest_entries()
@@ -1020,7 +1121,7 @@ def route(
         )
         agent_full, skill_full, pipeline_full = _build_full_criteria_maps(entries)
     except Exception as exc:
-        return _error_result(exc, jev_called=False, reason_prefix="manifest load failed")
+        return _error_result(exc, jev_called=False, reason_prefix="manifest load failed"), set()
 
     try:
         stage1_payload = _build_stage1_payload(request_text, agent_criteria, skill_criteria, pipeline_criteria, project)
@@ -1028,7 +1129,10 @@ def route(
         stage1 = _parse_stage1(data1, agent_names, skill_names, pipeline_names, shortlist_n)
         usage1 = _extract_usage(data1)
     except Exception as exc:
-        return _error_result(exc, jev_called=True, reason_prefix="jev stage-1 call failed")
+        return _error_result(exc, jev_called=True, reason_prefix="jev stage-1 call failed"), skill_names
+
+    if hint_skill and hint_skill in skill_names and hint_skill not in stage1["skill_shortlist"]:
+        stage1["skill_shortlist"].append(hint_skill)
 
     stage1_shortlist = {
         "agent": stage1["agent_shortlist"],
@@ -1039,7 +1143,7 @@ def route(
     if stage1["gate_score"] < gate_threshold:
         latency_ms = {"stage1_ms": latency1, "stage2_ms": None, "total_ms": latency1}
         usage = {"stage1": usage1, "stage2": None}
-        return _trivial_bypass_result(stage1["gate_score"], stage1_shortlist, latency_ms, usage)
+        return _trivial_bypass_result(stage1["gate_score"], stage1_shortlist, latency_ms, usage), skill_names
 
     fanout_candidates = _select_fanout_candidates(
         stage1["agent_shortlist"], stage1["agent_probs"], agent_names, stage1["gate_score"]
@@ -1074,12 +1178,12 @@ def route(
         )
         usage2 = _extract_usage(data2)
     except Exception as exc:
-        return _error_result(exc, jev_called=True, reason_prefix="jev stage-2 call failed")
+        return _error_result(exc, jev_called=True, reason_prefix="jev stage-2 call failed"), skill_names
 
     latency_ms = {"stage1_ms": latency1, "stage2_ms": latency2, "total_ms": latency1 + latency2}
     usage = {"stage1": usage1, "stage2": usage2}
 
-    return _build_result(
+    result = _build_result(
         available=True,
         jev_called=True,
         matched=not decision["fallback"],
@@ -1103,6 +1207,149 @@ def route(
         fits_scores=decision["fits_scores"],
         stage1_shortlist=stage1_shortlist,
     )
+    result["domain_scores"] = decision["domain_scores"]
+    return result, skill_names
+
+
+def _is_force(pre_route: dict) -> bool:
+    return bool(
+        pre_route.get("matched")
+        and pre_route.get("confidence") == "high"
+        and pre_route.get("match_type") == "force_route"
+    )
+
+
+def _is_safety_force(forced: dict) -> bool:
+    return forced.get("skill") in SAFETY_FORCE_NAMES or forced.get("pipeline") in SAFETY_FORCE_NAMES
+
+
+def _attachments(result: dict, skill_names: set[str]) -> list[str]:
+    """Extra skills (and shared patterns) that ride with the primary skill. Pure policy.
+
+    Order: pre-route stack, the agent's domain floor, domain Nouls by score,
+    then stack signals. Unknown names are dropped; at most MAX_ATTACHMENTS
+    skills are kept (shared patterns such as local-only do not count).
+    """
+    primary = result.get("skill")
+    candidates: list[str] = list(result.get("stack") or [])
+    floor = DOMAIN_SKILL_BY_AGENT.get(result.get("agent") or "")
+    if floor:
+        candidates.append(floor)
+    domain_scores = result.get("domain_scores") or {}
+    candidates += [
+        name for name, score in sorted(domain_scores.items(), key=lambda kv: -kv[1]) if score >= STACK_SIGNAL_THRESHOLD
+    ]
+    signals = result.get("signals") or {}
+    candidates += [skill for key, skill in SIGNAL_SKILLS.items() if signals.get(key)]
+
+    attach: list[str] = []
+    n_skills = 0
+    for name in candidates:
+        if not name or name == primary or name in attach:
+            continue
+        if name == "local-only":
+            attach.append(name)
+            continue
+        if skill_names and name not in skill_names:
+            continue
+        if n_skills >= MAX_ATTACHMENTS:
+            continue
+        attach.append(name)
+        n_skills += 1
+    return attach
+
+
+def _default_agent(result: dict) -> str | None:
+    """Owning agent for the primary or an attached skill when the route has no domain agent."""
+    for name in [result.get("skill")] + list(result.get("attach") or []):
+        agent = AGENT_BY_SKILL.get(name or "")
+        if agent:
+            return agent
+    return None
+
+
+def _merge_safety_force(forced: dict, classified: dict) -> dict:
+    """Safety force route keeps its skill and pipeline; Jev supplies the agent and attachments."""
+    merged = dict(forced)
+    for key in ("agents", "signals", "signal_scores", "domain_scores", "gate_score", "fits_scores"):
+        merged[key] = classified.get(key)
+    merged["agents"] = classified.get("agents") or []
+    merged["agent"] = forced.get("agent") or classified.get("agent")
+    merged["jev_called"] = True
+    merged["latency_ms"] = classified.get("latency_ms")
+    merged["usage"] = classified.get("usage")
+    merged["stage1_shortlist"] = classified.get("stage1_shortlist")
+    merged["complexity"] = classified.get("complexity")
+    merged["reasoning"] = (
+        f"{forced.get('reasoning', '')}; agent and attachments from jev ({classified.get('reasoning')})"
+    )
+    return merged
+
+
+def route(
+    request_text: str,
+    gate_threshold: float,
+    fits_threshold: float,
+    timeout: float,
+    project: dict | None = None,
+    shortlist_n: int = STAGE1_SHORTLIST_N,
+) -> dict:
+    """Guard, classify, and attach for one request string. Never raises.
+
+    - Safety force route (pr-workflow, pr-pipeline, security): its skill and
+      pipeline are final; Jev never overrides them. Jev still runs to pick the
+      agent and attachments. If Jev fails, the force route stands alone.
+    - Other force route: Jev classifies with the forced skill on its stage-2
+      shortlist (a hint, matching /do Phase 2 Step 1(b)). If Jev fails or
+      calls the request trivial, the force route stands, as before.
+    - Every matched route then gets `attach` (extra skills that ride with the
+      primary) and, when no domain agent was picked, a skill-owned agent.
+    """
+    pre_route = _run_pre_route(request_text)
+    forced = _force_route_result(pre_route) if _is_force(pre_route) else None
+    safety = forced is not None and _is_safety_force(forced)
+    hint = forced.get("skill") if forced is not None and not safety else None
+
+    classified, skill_names = _classify(
+        request_text, gate_threshold, fits_threshold, timeout, project, shortlist_n, hint_skill=hint
+    )
+    usable = not classified.get("fallback") and classified.get("source") == "jev"
+
+    if forced is None:
+        result = classified
+    elif not usable:
+        result = forced
+        if classified.get("jev_called"):
+            result["jev_called"] = True
+            result["latency_ms"] = classified.get("latency_ms")
+            result["usage"] = classified.get("usage")
+    elif safety:
+        result = _merge_safety_force(forced, classified)
+    else:
+        result = classified
+        result["pre_route_hint"] = {
+            "skill": forced.get("skill"),
+            "pipeline": forced.get("pipeline"),
+            "reasoning": forced.get("reasoning"),
+        }
+
+    if result.get("fallback") or result.get("source") == "jev-trivial-bypass":
+        result["attach"] = []
+        result["agent_source"] = None
+        return result
+
+    result["attach"] = _attachments(result, skill_names)
+    result["agent_source"] = (
+        "pre-route"
+        if forced is not None and forced.get("agent") == result.get("agent") and result.get("agent")
+        else "jev"
+    )
+    if result.get("agent") in (None, "general-purpose"):
+        default = _default_agent(result)
+        if default:
+            result["agent"] = default
+            result["agent_source"] = "skill-default"
+    return result
 
 
 def main() -> int:
@@ -1210,7 +1457,7 @@ def main() -> int:
                 "issues": ["baseline intent alignment unavailable because classification transport failed"],
                 "reason": result.get("fallback_reason"),
                 "transport_retry": result.get("transport_retry"),
-                "questions_version": "d-intent-v1",
+                "questions_version": jev_intent_align.QUESTIONS_VERSION,
             }
         else:
             # Validate the hook-owned literal restatement before the model gets

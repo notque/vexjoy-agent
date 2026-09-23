@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import io
 import json
 import sys
@@ -21,6 +20,19 @@ def _isolate_jev_state(tmp_path, monkeypatch):
     monkeypatch.setenv("JEV_STATE_DIR", str(tmp_path / "jev_state"))
     monkeypatch.setenv("JEV_CACHE_TTL_S", "0")
     monkeypatch.setenv("JEV_BREAKER_TTL_S", "0")
+
+
+def _reset_jrc_state(jrc, monkeypatch):
+    """Fresh breaker/cache/in-flight state, restored after the test.
+
+    Replaces importlib.reload(), which rebinds module globals for every later
+    test in the same worker (order-dependent under pytest-xdist).
+    """
+    monkeypatch.setattr(jrc, "_jev_down", None)
+    monkeypatch.setattr(jrc, "_cache_conn", None)
+    monkeypatch.setattr(jrc, "_cache_conn_path", None)
+    monkeypatch.setattr(jrc, "_inflight", {})
+    monkeypatch.setattr(jrc, "_inflight_results", {})
 
 
 def _isolate_db(tmp_path, monkeypatch):
@@ -50,7 +62,7 @@ def test_call_jev_records_success_and_failure(tmp_path, monkeypatch):
     db = _isolate_db(tmp_path, monkeypatch)
     import jev_router_common as jrc
 
-    importlib.reload(jrc)
+    _reset_jrc_state(jrc, monkeypatch)
     monkeypatch.setattr(sys, "argv", ["jev-fake-script.py"])
     body = json.dumps({"answers": {"q": {"noul": 0.7}}, "usage": {"input_tokens": 123, "output_tokens": 4}}).encode()
 
@@ -83,7 +95,7 @@ def test_call_jev_records_success_and_failure(tmp_path, monkeypatch):
 def test_telemetry_failure_never_breaks_call(tmp_path, monkeypatch):
     import jev_router_common as jrc
 
-    importlib.reload(jrc)
+    _reset_jrc_state(jrc, monkeypatch)
     monkeypatch.setattr(jrc, "_record_jev_call", lambda **_k: (_ for _ in ()).throw(RuntimeError("db down")))
     body = json.dumps({"answers": {}}).encode()
 

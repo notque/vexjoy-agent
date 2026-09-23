@@ -69,6 +69,16 @@ Criteria optional. When the boundary is subtle:
 
 `criteria.true`/`criteria.false` accept JSON objects for complex boundaries.
 
+### Progress comparison
+
+In a multi-step task, "correct" depends on the path, which a snapshot does not show. Compare candidate resulting states against a named, observable subgoal instead. List the current state as an option so "no candidate makes progress" can win.
+
+| Weak | Strong |
+|---|---|
+| Noul per action: "Is clicking `button:Next` the correct action?" | Choice over `candidates` plus `current`: "Which state in `candidates` is closest to `subgoal` (the shipping form shows a saved address)?" |
+
+Each option's `what` summarizes its resulting state, not the action that produced it. Code maps the winning state back to its action (`composition-patterns.md`, Checkpoint search).
+
 ## Choosing the primitive
 
 | Need | Primitive | Example |

@@ -51,8 +51,11 @@ changed, and why.
 ## Request/response shape (v2, two calls)
 
 Up to TWO `POST https://api.typesafe.ai/v1/systemone` calls per routing
-decision that reaches Jev at all: 0 on force-route or TypeSafe-unavailable, 1
-on trivial-bypass (stage 1 only), 2 otherwise (stage 1 + stage 2). Never
+decision that reaches Jev at all: 0 when TypeSafe is unavailable, 1 on
+trivial-bypass (stage 1 only), 2 otherwise (stage 1 + stage 2), force routes
+included since v1.2. Each evaluation is packed at the reliable request size
+(`jev_transport.evaluate_packed`), so one evaluation can be several small
+requests sent at once. Never
 per-dimension, never more than 2 — this is a hard cost constraint, not a
 default that grows with manifest size.
 
@@ -293,6 +296,29 @@ cookbook figure only as the stated rationale for trying the pattern at all.
   simplification enabled by already having gate_score, the final picks, and
   the stack signals to derive it from.
 
+## Attachment step (v1.2, 2026-09-22)
+
+v1.1 filled one `skill` slot and left `stack` empty on every Jev route, so a
+Go bug fix loaded `debugging` but not `programming`, and "add a regression
+test" never loaded `testing`. The Phase 4 signal table named four skills that
+no longer existed, and `build-dispatch.py` rejects unknown names. Non-safety
+force matches ended classification with `agent: null` (21 of 57 eval
+requests; "write post" matched "Write a PostToolUse hook").
+
+Decision card:
+
+| Field | Value |
+|---|---|
+| Desired behavior | Per request, attach the domain umbrella skills whose references the work needs. Baseline: v1.1 `/d`, dev full attach 0.558; `/do` 0.837. |
+| Judgments | Stage 2 adds one Noul per domain skill (`programming`, `frontend`, `kubernetes`, `testing`, `building-with-jev`, `research`), one property each. Above 0.6 means the work touches that domain. |
+| Evidence | The request text, same state as the other stage-2 questions. |
+| Policy | `_attachments`: pre-route stack, agent domain floor (`DOMAIN_SKILL_BY_AGENT`), domain Nouls at 0.6 or higher by score, then signal skills (`SIGNAL_SKILLS`); unknown names dropped; at most 3 skills. `_default_agent` fills a null or `general-purpose` agent from `AGENT_BY_SKILL`. |
+| Batchable | All attachment Nouls ride in the stage-2 call; no extra request. |
+| Failure | Jev failure keeps the pre-route force result or falls back to `/do`; missing domain Nouls attach only the floor and signals. |
+| Falsifying test | `scripts/router_attachment/`: ship only if dev full attach beats `/do` and held-out does not fall below 0.85. Measured 0.930 dev, 0.929 held-out. |
+| Versions | `typesafe-ai/jev` through Vercel; Noul text in `DOMAIN_NOUL_INSTRUCTIONS`; policy tables in `jev-route.py`. Re-run the eval after any edit to either or a catalog rename. |
+| Integrity | Held-out results were visible after round 1; the `research` Noul answered a dev miss and a held-out miss together, so the held-out split is not fully untouched. `fixtures/jev-answers-r2.json` pins the recorded answers the offline test replays. |
+
 ## Fallback-to-`/do` behavior
 
 `fallback: true` on any of: `unavailable` (presence check failed), a
@@ -354,6 +380,7 @@ gate exists for this yet.
 Stage 1 sends the raw request text and truncated agent/skill/pipeline
 names+descriptions to `api.typesafe.ai`; stage 2 (when reached) sends the
 request text again plus the shortlisted candidates' full descriptions. Same
-kind of call as any other model API this toolkit already talks to. Force-
-routed and trivial-bypassed requests send less (trivial: stage 1 only) or
-nothing (force-route: Jev isn't called at all).
+kind of call as any other model API this toolkit already talks to.
+Trivial-bypassed requests send less (stage 1 only). Since v1.2, force-routed
+requests go through both stages too, so Jev can pick the agent and
+attachments.

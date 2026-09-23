@@ -45,7 +45,12 @@ def _have_chrome() -> bool:
     return cache.exists() and any(cache.glob("chromium-*/chrome-linux*/chrome"))
 
 
-pytestmark = pytest.mark.skipif(not _have_chrome(), reason="node + local Chromium required")
+pytestmark = [
+    pytest.mark.skipif(not _have_chrome(), reason="node + local Chromium required"),
+    # Drives real Chromium (~86 s): excluded from the default run, runs in the full CI tier.
+    pytest.mark.slow,
+    pytest.mark.integration,
+]
 
 
 class _Quiet(http.server.SimpleHTTPRequestHandler):
@@ -171,7 +176,11 @@ def test_select_checkbox_scroll_and_submit(drv):
     assert "Welcome" in snap["text"]
 
 
-def test_agent_loop_scrubs_secret_from_snapshots(site):
+def test_agent_loop_scrubs_secret_from_snapshots(site, monkeypatch):
+    # Hermetic: without these keys run() skips the Jev page classifier and no
+    # default helper can reach Jev, a text model, or the `claude` CLI.
+    for var in ("TYPESAFE_API_KEY", "TEXT_MODEL_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
     spec = importlib.util.spec_from_file_location("agent", SCRIPTS / "jev-browser-agent.py")
     agent = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(agent)
@@ -180,9 +189,18 @@ def test_agent_loop_scrubs_secret_from_snapshots(site):
 
     def decide(req):
         seen.append(req)
-        op, label = next(plan)
+        # An exhausted plan means verification kept failing: stop with BLOCKED so
+        # the status assertion below reports it instead of a bare StopIteration.
+        op, label = next(plan, ("BLOCKED", None))
         target = next((e["index"] for e in req["elements"] if e["label"] == label and e["operations"]), None)
         return {"operation": op, "target": target, "confidence": 0.9, "needs_text": op == "TYPE_TEXT", "source": "test"}
+
+    def pick_secret(goal, field, page, labels):
+        # run() asks which configured secret a field takes; the default asks Jev.
+        return ("username", "test") if field.get("label") == "Username" else (None, "test-none")
+
+    def no_text(*_a, **_k):
+        raise AssertionError("the secret field must not fall through to plain-text generation")
 
     r = agent.run(
         site,
@@ -191,6 +209,9 @@ def test_agent_loop_scrubs_secret_from_snapshots(site):
         # The verifier sees the scrubbed page, never the secret.
         verify_fn=lambda req: {"goal_met": "welcome (secret)" in req["page"]["text"].lower(), "source": "test"},
         secrets={"username": "s3cr3t"},
+        secret_pick_fn=pick_secret,
+        pick_fn=no_text,
+        text_fn=no_text,
     )
     assert r["status"] == "done", r
     assert "s3cr3t" not in json.dumps(r)

@@ -45,7 +45,10 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
 
 ## Invariants
 1. `scripts/pre-route.py`'s deterministic force-route guard always runs
-   first and is never overridden by Jev.
+   first. Its pr-workflow, pr-pipeline, and security matches are never
+   overridden by Jev. Other force matches are hints on Jev's stage-2
+   shortlist, matching `/do` Phase 2 Step 1(b); they stand alone only when
+   Jev fails or calls the request trivial.
 2. Every agent/skill/pipeline name returned to the caller is validated
    against the live `AGENTS:`/`SKILLS:`/`PIPELINES:` manifest membership
    before use.
@@ -80,9 +83,14 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
 7. `jev-route.py` uses the shared transport selector. A missing Gateway bridge
    or unavailable direct API must never crash `/d`; it must fail open to `/do`.
 8. Classification uses at most two Vercel AI Gateway Jev evaluations (one for
-   a trivial bypass, two for a routed request). Every matched `/d` route adds
+   a trivial bypass, two for a routed request, force routes included). Every matched `/d` route adds
    one batched runtime intent-alignment evaluation; it never makes one request
    per question. The Vercel transport is a supported production dependency.
+
+9. Every matched route carries `attach`: manifest-valid extra skills from
+   code policy (`_attachments` in `jev-route.py`), at most three. `/d`
+   passes it as the dispatch `stack` unchanged. A route with no domain agent
+   takes the primary or attached skill's owning agent.
 
 ## Dependencies
 - `scripts/jev-route.py`, `scripts/jev_intent_align.py` (classification and alignment)
@@ -123,6 +131,9 @@ cannot run and `/d` delegates to `/do` rather than pretending it was validated.
   credential redaction, and direct-transport parity remain covered.
 - Force-route, trivial-bypass, unavailable, error, and invalid-pick paths
   resolve according to their documented contracts.
+- `scripts/tests/test_router_attachment_eval.py` passes, and a live run of
+  `scripts/router_attachment/` does not drop below the last recorded run in
+  `EVAL.md`.
 - `SAFETY_BUCKETS` have no critical regressions in any new full-corpus run.
 
 Historical percentages are not release criteria. Only results present in the

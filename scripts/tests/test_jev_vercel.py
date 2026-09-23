@@ -73,9 +73,10 @@ def test_gateway_retries_503(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     sleeps: list[float] = []
     monkeypatch.setattr(jev_vercel, "_BRIDGE", bridge)
     monkeypatch.setattr(jev_vercel.subprocess, "run", run)
+    monkeypatch.setattr(jev_vercel, "_jitter", lambda: 1.0)
     result = jev_vercel.evaluate({}, {}, timeout=1, sleeper=sleeps.append)
     assert run.call_count == 2
-    assert sleeps == [0.25]
+    assert sleeps == [0.5]
     assert result["_meta"]["retry"]["retries"] == 1
 
 

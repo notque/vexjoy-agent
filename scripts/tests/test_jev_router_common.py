@@ -608,6 +608,14 @@ def _ok_response(answers: dict):
 
 
 class TestRetry:
+    @pytest.fixture(autouse=True)
+    def _pin_jitter(self, monkeypatch):
+        monkeypatch.setattr(common, "_jitter", lambda: 1.0)
+
+    def test_jitter_spreads_parallel_retries(self, monkeypatch):
+        monkeypatch.setattr(common, "_jitter", lambda: 0.0)
+        assert common._retry_delay(_http_error(429), 1) == pytest.approx(0.5)  # half of the 1.0 s step
+
     def _payload(self, tag: str) -> dict:
         return {"model": "m", "state": {"t": tag}, "questions": {"q": {"type": "noul", "instructions": "x"}}}
 

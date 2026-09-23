@@ -38,6 +38,8 @@ DEFAULT_TIMEOUT = 8.0
 YES_THRESHOLD = 0.60
 CORE_ALIGNMENT_THRESHOLD = 0.50
 MAX_ALIGNMENT_STATE_CHARS = 180_000
+# v2 (2026-09-22): route state carries attached skills and fan-out agents.
+QUESTIONS_VERSION = "d-intent-v2"
 
 
 def proposed_intent(request: str, route: dict[str, Any]) -> str:
@@ -57,8 +59,12 @@ def _noul(question: str, *paths: str) -> dict[str, Any]:
 def build_payload(request: str, intent: str, route: dict[str, Any]) -> dict[str, Any]:
     """Build one evidence state and all independent validation questions."""
     route_state = {key: route.get(key) for key in ("agent", "skill", "pipeline", "complexity", "source", "reasoning")}
+    # Attached skills and fan-out agents are part of the route's coverage; without
+    # them a mixed request (Go fix plus Kubernetes limits) looks uncovered.
+    route_state["attached_skills"] = list(route.get("attach") or [])
+    route_state["fanout_agents"] = list(route.get("agents") or [])
     route_state["validation_context"] = (
-        "The route was selected by a deterministic force-route guard or a manifest-validated Jev classifier. Treat opaque agent and skill labels as valid execution methods unless the route visibly conflicts with the user request."
+        "The route was selected by a deterministic force-route guard or a manifest-validated Jev classifier. Treat opaque agent and skill labels as valid execution methods unless the route visibly conflicts with the user request. The route covers the work of its agent, its skill, every attached skill, and every fan-out agent."
     )
     state = {"user_request": request, "proposed_intent": intent, "selected_route": route_state}
     questions = {
@@ -220,7 +226,7 @@ def _finish_receipt(
         "clarification_needed": False,
         "issues": [],
         "scores": {},
-        "questions_version": "d-intent-v1",
+        "questions_version": QUESTIONS_VERSION,
         "latency_ms": None,
         "usage": None,
         "transport_retry": None,
@@ -255,7 +261,7 @@ def _finish_receipt(
         clarification_needed=result.get("clarification_needed")
         if isinstance(result.get("clarification_needed"), bool)
         else None,
-        questions_version=str(result.get("questions_version") or "d-intent-v1"),
+        questions_version=str(result.get("questions_version") or QUESTIONS_VERSION),
         issues=result.get("issues") if isinstance(result.get("issues"), list) else None,
         scores=scores,
         request_hash=_text_hash(request),
@@ -282,7 +288,7 @@ def evaluate_alignment(
                 "proposed_intent": candidate,
                 "reason": transport_reason,
                 "alignment": "unavailable",
-                "questions_version": "d-intent-v1",
+                "questions_version": QUESTIONS_VERSION,
             },
             request=request,
             candidate=candidate,
@@ -299,7 +305,7 @@ def evaluate_alignment(
                 "clarification_needed": False,
                 "issues": ["intent-alignment state exceeds the safe request budget"],
                 "reason": "intent-alignment state exceeds the safe request budget",
-                "questions_version": "d-intent-v1",
+                "questions_version": QUESTIONS_VERSION,
             },
             request=request,
             candidate=candidate,
@@ -318,7 +324,7 @@ def evaluate_alignment(
                 "alignment": "error",
                 "reason": str(exc)[:300],
                 "transport_retry": exc.telemetry,
-                "questions_version": "d-intent-v1",
+                "questions_version": QUESTIONS_VERSION,
             },
             request=request,
             candidate=candidate,
@@ -337,7 +343,7 @@ def evaluate_alignment(
                 "clarification_needed": False,
                 "issues": ["Jev returned an incomplete intent-alignment response"],
                 "reason": "incomplete intent-alignment response",
-                "questions_version": "d-intent-v1",
+                "questions_version": QUESTIONS_VERSION,
                 "latency_ms": round((time.monotonic() - started) * 1000, 2),
                 "usage": data.get("usage") if isinstance(data, dict) else None,
                 "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,
@@ -394,7 +400,7 @@ def evaluate_alignment(
         "clarification_needed": clarification,
         "issues": issues,
         "scores": scores,
-        "questions_version": "d-intent-v1",
+        "questions_version": QUESTIONS_VERSION,
         "latency_ms": round((time.monotonic() - started) * 1000, 2),
         "usage": data.get("usage") if isinstance(data, dict) else None,
         "transport_retry": meta.get("retry") if isinstance(meta, dict) else None,

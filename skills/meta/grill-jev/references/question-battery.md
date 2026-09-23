@@ -22,6 +22,7 @@ one generic question per heading:
 | Consistency | Contradictions, duplicate work, naming, conventions, assumptions, documentation |
 | Reversibility | Rollback, migration, cleanup, rollback testing, audit trail |
 | Security | Credentials, authorization, input validation, destructive actions, rate limits, logs |
+| Cost & throughput | Calls, tokens, and requests per run and per second vs documented limits; fan-out; concurrency cap; retry backoff and budget; eval cost; production transport |
 
 ## Battery Format
 
@@ -170,6 +171,36 @@ artifact gives more precise nouns, steps, or constraints.
 - What exact signal pauses progression or starts rollback?
 - Who verifies recovery, and where is that evidence recorded?
 
+### Cost and Throughput
+
+Ask these whenever the artifact calls Jev, an LLM, or any metered API. Put
+`jev-budget-check.py` output in state as `budget` when it exists.
+
+- Does the plan state tokens per run and peak tokens per second, and compare them with the provider's documented rate limits (not only the per-request limit)?
+- Does one run send the full question set for every unit in parallel, where a cheap wide stage followed by full detail for a shortlist would do?
+- How many requests are in flight at once, and what caps it for many concurrent users?
+- Do retries use exponential backoff with jitter, honor `Retry-After` as a floor, and stop at a per-run retry budget, or do parallel requests retry together on a short fixed delay?
+- Which status codes mean "back off" on the production transport (for Jev through Vercel AI Gateway: 429, 503, 529), and which mean stop (401, 402, 422)?
+- What does the eval or benchmark cost in tokens, how is it paced, and could it trip limits a live app on the same account depends on?
+- Was latency and error behavior measured on the transport production uses?
+- Was the request size chosen from a measured transient-failure rate at several sizes on that transport, given that a retry resends the whole request?
+- When the artifact attributes a failure to an outage, size cap, or payload bug, what measurement rules out the program's own rate and retries?
+
+Example Noul with structured criteria:
+
+```json
+{
+  "id": "cost_priced_per_second",
+  "report_when": "false",
+  "question": "Does the plan price one run in tokens per second and requests per minute against the provider's documented rate limits, counting retries and concurrent users?",
+  "inspect": "artifact",
+  "criteria": {
+    "true": {"what": "Per-second and per-minute numbers are stated and compared with documented limits", "examples": ["~45k tokens/run, peak ~40k tokens/s at 3 users, under 25% of 250k"]},
+    "false": {"what": "Only per-request fit, or no numbers", "examples": ["each batch stays under 64k tokens", "requests run in parallel for speed"]}
+  }
+}
+```
+
 ### Consistency and Reversibility
 
 - Which statements, dates, or constraints contradict one another?
@@ -186,4 +217,5 @@ Before writing the JSON file, verify that the battery:
 2. Includes evidence criteria for high-impact claims.
 3. Avoids duplicate questions phrased differently.
 4. Balances completion, feasibility, risk, verification, and recovery.
-5. Fits the requested depth and never exceeds 50 questions.
+5. Includes Cost and Throughput questions when the artifact calls a metered API.
+6. Fits the requested depth and never exceeds 50 questions.

@@ -40,6 +40,8 @@ allowed-tools:
 
 Jev reads one `state`, answers every question in the request independently and in parallel, and returns a probability distribution over answers you defined. A head cannot read another head's answer: parallel heads share evidence, not reasoning. For one state, maximize independent heads that can change a decision or action, subject to their token cost and the 64,000-token request budget; omit noise heads. Code owns control flow, arithmetic, policy, and every serial dependency; Jev owns the snap judgment. It does not reason in steps, count, do arithmetic, or generate text. Use this skill to design the questions, fit the state, compose answers in code, wire the call into a hook or script, and fix a call that answers wrong.
 
+**Before writing or changing any Jev request, apply [Jev production rules](../../shared-patterns/jev-production-lessons.md) and tick its pre-ship checklist.** It sets request size (2.5–4k tokens via Gateway until measured), per-run budget (~50k tokens), screen-then-detail above ~50 items, sending each stage at once with an instance cap of `floor(0.25 × 250,000 / tokens_per_request)`, retries by status code, eval pacing, caching, logging, and the order to measure failures. The rest of this skill is the method for designing questions; those rules govern how requests are sent. Its four facts come first: use Vercel AI Gateway; too much context is the most common failure, so split an oversized request into as many small requests as it takes (the toolkit transports do this automatically); a small request is the first diagnostic; rate limits are normal, so retry them.
+
 Prefer direct judgments over supplied evidence. Bounded action selection is valid when candidates and decision evidence are supplied. If answering requires an intermediate result that changes later evidence or candidates, code must resolve that dependency before a later Jev request.
 
 ## Reference Loading Table
@@ -49,9 +51,11 @@ Prefer direct judgments over supplied evidence. Bounded action selection is vali
 | request or response shape, instruction objects, criteria objects, reading `score`/`probabilities`/`confidence` | `references/primitives.md` | Full API shape and answer semantics |
 | writing or rewriting instructions, criteria, levels, options, examples | `references/question-design.md` | Question rules with before/after pairs |
 | `max_tokens_exceeded`, large inputs, batching, truncation, untrusted text in state | `references/state-and-budget.md` | Fitting stages, batching, bounds, adversarial state |
-| fan-out, confidence gates, composite scores, taxonomy walks, cascades, second requests | `references/composition-patterns.md` | Docs patterns plus ours, with script paths as worked examples |
+| any production Jev call: request size, run budget, parallelism, retries, caching, logging, failure diagnosis | `skills/shared-patterns/jev-production-lessons.md` | The concrete rules and checklist; read before shipping |
+| 429, 529, Gateway 503, rate limits, tokens per second, concurrency, fan-out size, retries, eval pacing, "works locally but fails in production" | `references/state-and-budget.md` (Rate limits), `references/improve-and-calibrate.md` (Service failure or wrong design) | Per-second pricing, pacing, backoff numbers, and the diagnosis order |
+| fan-out, confidence gates, composite scores, taxonomy walks, cascades, second requests, long horizon, multi-step, agent loop, beam, branching, checkpoint | `references/composition-patterns.md` | Docs patterns plus ours, with script paths as worked examples |
 | hooks, reader/storage/action, fail modes, persistence, calibration store | `references/integration-lifecycle.md` | Where a call lives and what happens when Jev is down |
-| wrong answers, low confidence, clustered scores, revision discipline, known debt | `references/improve-and-calibrate.md` | Symptom table and labeled-example loop |
+| wrong answers, low confidence, clustered scores, revision discipline, known debt, baseline, OOD, holdout | `references/improve-and-calibrate.md` | Symptom table and labeled-example loop |
 | dissolving a skill, replacing an LLM with Jev, three-tier classification | `references/dissolving-a-skill.md` | Method, phase table, worked example |
 | decision surface, card, gate design, threshold, what numbers mean, failure behavior, versions | `references/decision-card.md` | Decision card template: fields every gate must define before code ships |
 | position of a judgment, operand, gate, post-judge, selector, verifier, logical operators, dissolve a skill phase | `references/composition-positions.md` | 11 positions a judgment can occupy relative to a function, mapped to our scripts, with the walk-the-positions procedure |
@@ -67,6 +71,18 @@ The TypeSafe docs are the source of truth for the API, SDKs, models, limits, and
 - Before you write an integration, read the [API page](https://docs.typesafe.ai/api.md), the page for each primitive you use, and the closest cookbook. A cookbook often shows a better decomposition than a plain classifier.
 - The `typesafe:typesafe-ai` skill lists the design patterns the docs cover (route and fill arguments, select instead of generate, rerank, feature discovery, verify and escalate). Load it when you explore what to build.
 - Treat thresholds and results in cookbooks as examples to test on your data.
+- Read the documented rate limits on the models page, not just the request limits. On 2026-09-22 they were 64,000 tokens per request, 32,000 for state plus the longest question, **250,000 input tokens per second, and 1,200 requests per minute**, "subject to dynamic adjustment". `scripts/jev_limits.py` holds these numbers; update it when the page changes.
+
+## Transports
+
+A program reaches Jev through one of two transports. Use Vercel AI Gateway (`JEV_TRANSPORT=vercel`); the direct API is for measurement only. Benchmark and price on the transport production uses; their latencies and error codes differ.
+
+| Transport | How | Errors to back off on | Notes |
+|---|---|---|---|
+| Direct API | `POST https://api.typesafe.ai/...` with `TYPESAFE_API_KEY`; `scripts/jev_router_common.py` | 429, 529 | Official SDKs retry with backoff by default. |
+| Vercel AI Gateway | AI SDK `experimental_evaluate` with a plain model string, or `scripts/jev_vercel.py`; key is `AI_GATEWAY_API_KEY` (or OIDC on Vercel) | 429, **503**, 529 | The Gateway passes the payload to Jev verbatim. It reports upstream rate limiting or overload as HTTP 503 `GatewayInternalServerError` ("Service temporarily unavailable"), and it uses the same 503 for fast transient failures whose rate grew with tokens per request in our measurements (2026-09-22: ~1.6k tokens 0/8, ~3k 1/8, ~5k 3/8, ~13k 5/8, one request at a time). A 503 is a retry signal, not proof of an outage, a bad payload, or rate limiting; measure which before redesigning. The Gateway question type `"boolean"` is Noul. Read `providerMetadata.gateway.routing` on failures. |
+
+Both transports share the same account-level rate limits. A direct-API probe that succeeds says nothing about the Gateway path, and the reverse; a direct-key 401/402 says nothing about a Gateway-routed app.
 
 ## The three tiers
 
@@ -95,7 +111,7 @@ Name the shape of the problem first. The shape decides what code does, what Jev 
 | Decide from history | labeled outcomes exist; signals are computable from data | Code builds a correlation table and writes rules for the sure units. Jev judges the residual the rules leave undecided. |
 | One document, many properties | review a file, grade a draft, check a diff | One request per document: the state once, every independent, action-changing question once. Stages are code thresholds over that one answer set. A second request carries only evidence the first lacked. |
 | Pick from known options | route a request, classify an error, choose a template | Code produces the candidates. A cheap wide Choice ranks them; a second Choice reranks the shortlist with full detail; a confidence gate decides act, confirm, or hand off. |
-| Many items, same question | rank comments, filter tool results, triage files | Code decides the obvious ends. The middle goes in one request as short per-item Nouls. Code counts and sums. |
+| Many items, same question | rank comments, filter tool results, triage files | Code decides the obvious ends. The middle goes in one request as short per-item Nouls. Code counts and sums. Past about 50 items, or when one run would spend more than about 50,000 tokens, build a cascade instead: stage 1 asks one short fit Noul per item over compact state; stage 2 asks the full question set for the top survivors only. Do not fan the full question set out over every item in parallel. |
 | Event stream | something to check on every tool call, reply, or commit | Build it as an on-demand command. Promote it to a hook after the four conditions in step 11. |
 | Select, then copy | extract a value, pick a source span, recover structure | Code finds the candidate values or spans. Jev selects the intended one. Code copies or normalizes it. No text is generated. |
 | New text needed | write, rewrite, plan, diagnose | First check whether "Select, then copy" fits. When it does not, an LLM writes. Jev grades the result against a rubric that has its own labeled set. |
@@ -113,7 +129,7 @@ Evidence of value is a labeled run. Unit tests with fake Jev answers show that t
 | 3. Discover signals | 1 | Run SQL or Python over train. For every computable signal, record accuracy against `y`, count, and the same per slice. Start from existing analytics code. Keep every signal; the table decides. | A correlation table sorted by accuracy, with counts. |
 | 4. Write the policy | 1 | Turn the table into rules: `rule(x) -> (action, sure)`. The strongest signal decides; a near-certain signal overrides. Score the rules on dev. | The rules and their dev score are row one of the run log. The residual (every unit where `sure` is false) is counted. |
 | 5. Design the request | 1+2 | Build state for residual units only: correlated signals, bounded, labeled, arithmetic done in code, plus the rules' verdict and why it was unsure. Write one atomic question per judgment, worded from the table. Match the primitive to the action. Put every independent question about one state in one request. A question whose evidence/options depend on another answer is a second request after code builds the new state. | The decision card is filled in (`references/decision-card.md`). |
-| 6. Price the run | 1 | Run the program on a ten-word input: the billed tokens are the fixed floor, your question text. Compute calls per run = units x calls per unit x rounds, tokens per call, referrals per run, and worst-case retry sends. State all numbers. | The numbers are ones you would approve. When the floor exceeds the typical state, shorten the questions first. |
+| 6. Price the run | 1 | Run the program on a ten-word input: the billed tokens are the fixed floor, your question text. Compute calls per run = units x calls per unit x rounds, tokens per call, tokens per run, referrals per run, and worst-case retry sends. Then price it per second: dump every request one run sends to JSON and run `python3 scripts/jev-budget-check.py --payload run.json --concurrency C --concurrent-runs N --attempts A`. Pick the request size with `python3 scripts/jev-size-probe.py --payload run.json` on the production transport. Price any eval the same way with `--eval-cases`. State all numbers. | The numbers are ones you would approve and the budget check says `ok`: peak tokens per second and requests per minute stay under 25% of the documented limits with retries and concurrent users counted. When the floor exceeds the typical state, shorten the questions first. When tokens per run exceed about 50,000, redesign as a cascade before tuning anything else. |
 | 7. Smoke run | 2 | Run the three-unit set, then the dev sample. | `calls_failed` is zero, every answer parses, and `python3 scripts/jev-cost-report.py --since 1h` matches the step 6 estimate. |
 | 8. Score | 1 | On the same dev set, report the rules alone, Jev on the residual, and the combined system, per slice, with Brier and a calibration curve. Count false positives beside recall. Run judge variance once over frozen rows. | The combined score and its cost per run are in the run log. |
 | 9. Improve | 1+2 | First separate code errors and service failures (HTTP errors, timeouts) from wrong answers, by reading the exact state, questions, candidates, and answers of each miss. Then classify the wrong answers (`state_lacked_evidence`, `criteria_ambiguous`, `wrong_primitive`, `label_noise`). Change one state, instruction, criterion, or policy lever at a time. State changes must add needed decision evidence, not decorative context. Re-score. Keep the change when the combined score climbs and every slice holds. | Each variant is logged with score and cost. |
@@ -130,6 +146,10 @@ Evidence of value is a labeled run. Unit tests with fake Jev answers show that t
 | Sends per state | one per run | one request per unit; stages as code thresholds; a second request only for new evidence |
 | Fixed floor per call | below the typical state size | one- or two-line questions; `what`, `not_for`, and `examples` only where labeled misses call for them |
 | Firing rate | matches how often the answer changes an action | on-demand commands first; hooks after step 11's conditions |
+| Peak tokens per second | under 25% of the documented 250,000 (about 60,000), with retries and concurrent users counted | fewer tokens per run (a cascade instead of full detail for every unit); an instance-wide in-flight cap sized from the budget so simultaneous runs cannot burst together; jittered backoff for 429/529 |
+| Tokens per answer, retries included | request size near the minimum of `size / success_rate(size)` on the production transport | measure the transient failure rate at several request sizes (`references/improve-and-calibrate.md`), then pack requests to that size |
+
+**Per-request fit is not enough.** Every request can sit far under 64,000 tokens while one run still spends the whole per-second limit: 20 requests of 15,000 tokens sent together is 300,000 tokens in about a second. Retries then multiply it, because every failed request resends its full state. A design that works for one test query fails for real users, and an eval of 80 such runs spends millions of tokens in minutes. Price tokens per run and per second in step 6, not only tokens per request.
 
 **Measure repeatability before iterating.** Run repeated frozen requests and measure answer variance and decision flips on the workload. Keep thresholds away from where answers cluster, and establish this noise floor before comparing variants. Treat cache behavior and circuit-breaker behavior as implementation details to verify in the current runner rather than performance guarantees.
 
@@ -177,7 +197,7 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 - Send only what the questions need. Irrelevant detail lowers accuracy and hides which input caused a miss.
 - Bound every field with a named constant; keep the tail; note omitted characters; label sections (`[Request]`, `[Diff]`, `[Prior Assessment]`).
 - Convert numbers to words or buckets. Compute dates, durations, counts, and sums in code. Jev does not count: one Noul per item, sum in code.
-- A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. Check the [models page](https://docs.typesafe.ai/models.md) for current limits. The state is billed again in every request, so fill each request with as many questions as fit before you start a second one. Fit state in stages. Every stage that calls Jev needs fitting, not just the first.
+- A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. The account also has a per-second limit (250,000 input tokens per second, 1,200 requests per minute on 2026-09-22) shared by every request, retry, user, and eval. Check the [models page](https://docs.typesafe.ai/models.md) for current limits. The state is billed again in every request, so fill each request with as many questions as fit before you start a second one. Fit state in stages. Every stage that calls Jev needs fitting, not just the first.
 - Keep observed facts and inferred values in separate, labeled fields. Check that the state is still current before you act on an answer about it.
 - Jev does not treat state as hostile. Text in state can steer answers. Apply `skills/shared-patterns/untrusted-content-handling.md`, name in criteria what counts, and run adversarial and self-describing test cases before deployment.
 
@@ -192,9 +212,10 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 | Taxonomy walk | one Choice per level; each option's criteria is its trimmed subtree; follow several branches when close | `references/composition-patterns.md` |
 | Multi-Noul decomposition | split a compound goal into one Noul per clause; combine in code | `references/composition-patterns.md` |
 | Cascade plus verification | one wide request per unit; code thresholds pick survivors. Send a second request when the first answer is needed to fetch evidence, build new state, or decide the next options; it carries only what the first lacked | `references/composition-patterns.md` |
-| Bounded residual review | Jev handles most units, a fixed-answer reviewer checks benchmarked referrals | runner sends the same source-bound bundle with immutable provenance; code accepts only the declared answer schema | `references/composition-patterns.md` |
+| Bounded residual review | Jev handles most units, a fixed-answer reviewer checks benchmarked referrals; runner sends the same source-bound bundle with immutable provenance; code accepts only the declared answer schema | `references/composition-patterns.md` |
 | Deterministic pre-filter | programs decide the obvious ends; Jev judges the middle | `scripts/jev-compact.py` |
 | History injection | recent actions as "already taken, do not repeat" | `scripts/jev-browser-agent.py` |
+| Checkpoint search | caller sets subgoals a few steps apart; Jev beam-searches between them with progress-comparison Choices; LLM only on a near-tie, missing answer, or stalled subgoal; a small ledger replaces raw history | `scripts/jev_search.py` |
 
 One screen each, with the code shape: `references/composition-patterns.md`.
 
@@ -225,6 +246,7 @@ This is step 9 of the build procedure. Find the failing question on labeled data
 | Rewording trades one error for another | one question, several properties | split into atomic questions |
 | Answers right, decision wrong | policy | change weights or thresholds in code, not questions |
 | Slow or costly | sequential calls | merge into one request |
+| One query works; real use or an eval fails with 429/529/503 | one run spends too much of the per-second limit; retries multiply it | price with `jev-budget-check.py`; cascade; cap concurrency; jittered backoff |
 
 Operational rules:
 
@@ -256,6 +278,9 @@ A dissolution is the build procedure with the skill as the request. The method:
 - [ ] This is the only Jev system under construction; the previous one has labeled cases, a score, a cost per run, and an action.
 - [ ] The fixed floor, sends per state, and calls per run are measured; each state is sent once per run.
 - [ ] The expected call count was computed before launch and matches the cost report after.
+- [ ] `scripts/jev-budget-check.py` says `ok` for one run at the planned concurrency, attempts, and concurrent users, and any eval was priced with `--eval-cases` before it ran.
+- [ ] A run over about 50 units or 50,000 tokens is a cascade: a cheap wide stage over every unit, full detail only for survivors.
+- [ ] Independent requests in a stage are sent together, not in waves; an instance-wide in-flight cap derived from the per-second budget bounds simultaneous runs. Rate answers (429/529, repeated 503s) back off exponentially with jitter (base at least 0.5 s) and honor `Retry-After`; a lone fast Gateway 503 retries after about 100 ms. Every run has a retry budget.
 - [ ] A deterministic policy over the signals is written and scored first; Jev receives the residual it leaves undecided.
 - [ ] Each question asks one property a person could answer in a second.
 - [ ] The primitive matches how code uses the answer.
@@ -292,13 +317,14 @@ A dissolution is the build procedure with the skill as the request. The method:
 - Cause: wrong schema. Choice needs `criteria` as a map; Noul uses `criteria.true`/`criteria.false`; Score uses a `criteria` list. Keys such as `options`, `min`, `max` are not part of the API.
 - Solution: match `references/primitives.md`; validate against the live API, not a mocked test.
 
-**Error: `max_tokens_exceeded`**
-- Cause: state plus questions exceed the budget at some stage.
-- Solution: fit state in stages, cap items per call, split large inputs, and count failures per stage. See `references/state-and-budget.md`.
+**Error: `max_tokens_exceeded`, or a request that fails because it carries too much context**
+- Cause: state plus questions exceed a limit at some stage. Through the Gateway this is the most common failure, and it recurs well below the documented 64,000 tokens: large requests fail while small ones return fine.
+- Solution: check with a ~100-token request; if that returns, the cause is size. `jev_transport.evaluate` splits oversized requests into as many small ones as it takes, each with the same state; in other code, do the same with `jev_limits.split_and_run`. Shrink the state when it alone passes the target. Fit state in stages, cap items per call, and count failures per stage. See `references/state-and-budget.md` and fact 2 in the production rules.
 
-**Error: HTTP 429 or 529**
-- Cause: rate limit (tokens per second or requests per minute) or an overloaded service.
-- Solution: retry with exponential backoff and honor `retry-after`, inside named attempt and deadline caps. Persist every failed and retried attempt with its reason; timeouts and retries count in workload cost and latency. The official SDKs do this by default; `call_jev` callers keep the existing retry path. Fewer, fuller requests lower the request rate.
+**Error: HTTP 429 or 529 (direct), or 503 through Vercel AI Gateway**
+- Cause: rate limit (tokens per second or requests per minute) or an overloaded service. Through the Gateway these arrive as 503 `GatewayInternalServerError`. The most common cause in our programs is the program itself: one run, or an eval of many runs, sending more tokens per second than the account allows, or requests large enough that transient failures are frequent (through the Gateway, the 503 rate grew with tokens per request).
+- Solution: first price the run with `scripts/jev-budget-check.py`. If it is over 25% of a limit, fix the design (cascade, fewer tokens per run, a concurrency cap), not the retry loop. Then retry with exponential backoff and equal jitter (`jev_limits.backoff_delay`: base 0.5 s, doubling, capped, half random) so parallel requests that failed together do not retry together, and treat `Retry-After` as a floor. Cap attempts per request and retries per run; when the budget is spent, stop sending and return what finished. Persist every failed and retried attempt with its reason; retries count in workload cost and latency. Short fixed delays (100 ms, 200 ms) across many parallel requests make a retry storm that keeps the limit tripped.
+- Diagnose before blaming the payload or the service: see "Service failure or wrong design" in `references/improve-and-calibrate.md`.
 
 **Error: HTTP 401 or 402**
 - Cause: bad key or exhausted credits. A retry never succeeds.

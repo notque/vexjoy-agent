@@ -52,7 +52,11 @@ SELF_ROUTE_BASELINE_NOTE = (
     "see scripts/routing-ab-results/self-route-v1/VERDICT.md)"
 )
 
-DEFAULT_WORKERS = 10
+# Each case is a full routing run (two Jev stages). Ten parallel cases burst
+# well past a safe share of the per-second token limit and trigger 429/503
+# retries that skew latency; four keeps an eval under ~25% of it. Price a
+# bigger run first: python3 scripts/jev-budget-check.py --eval-cases N.
+DEFAULT_WORKERS = 4
 DEFAULT_TIMEOUT = 6.5
 
 

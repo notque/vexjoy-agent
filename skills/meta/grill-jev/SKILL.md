@@ -64,7 +64,7 @@ Generate a context-specific Jev interrogation battery against a plan, spec, desi
    - Choice with `{what, not_for, examples}` per option
    - Score with `{summary, signals}` per level
    - Noul with array `compare` instructions when two state paths need comparison
-3. **Send to Jev** — evaluate the questions against the artifact as state
+3. **Send to Jev** — evaluate the questions against the artifact as state. Use Vercel AI Gateway. Too much context is the most common failure: the artifact is resent with every batch, so split the battery by estimated tokens (`jev_limits.request_tokens`), not by question count, keeping each request under the size target in `skills/shared-patterns/jev-production-lessons.md`. When the artifact alone passes the target, send the sections each question needs instead of the whole artifact.
 4. **Report findings** — high-signal answers with suggested actions
 
 ## Asking good questions
@@ -90,7 +90,7 @@ Pass context via `--context "audience: SRE, system: stateful payment service, kn
 
 3. **Audience weight** — use audience context to focus questions. An SRE needs ops questions. A junior dev needs step-clarity questions. A product owner needs outcome questions.
 
-4. **Coverage balance** — aim for breadth across relevant categories (completeness, feasibility, risk, scope, verification, consistency, reversibility, security). Do not cluster all questions on one category. Skip a category only when the artifact has nothing that triggers it.
+4. **Coverage balance** — aim for breadth across relevant categories (completeness, feasibility, risk, scope, verification, consistency, reversibility, security, cost and throughput). Do not cluster all questions on one category. Skip a category only when the artifact has nothing that triggers it.
 
 5. **Scale by complexity** — simple artifact (15-20 questions), medium (25-35), complex (40-50). Hard cap: 50.
 
@@ -101,7 +101,7 @@ Pass context via `--context "audience: SRE, system: stateful payment service, kn
 
 ## Question categories
 
-Generate questions covering these eight areas, weighted by what the artifact contains:
+Generate questions covering these nine areas, weighted by what the artifact contains:
 
 | Category | What it finds |
 |---|---|
@@ -113,6 +113,17 @@ Generate questions covering these eight areas, weighted by what the artifact con
 | Consistency | internal contradictions, duplicate effort |
 | Reversibility | can we undo this, migration risk |
 | Security & safety | auth, data exposure, destructive operations |
+| Cost & throughput | calls, tokens, and requests per run and per second against the provider's documented rate limits; fan-out size; concurrency; retry policy; eval cost |
+
+## Plans that call Jev or another metered API
+
+A plan can be complete, feasible, and safe and still fail in production because one run spends the provider's per-second limit. Grill it on arithmetic, not just on prose:
+
+0. **Check it against the rules.** Load `skills/shared-patterns/jev-production-lessons.md` and turn every unticked pre-ship checklist item into a `cost_` Noul with `report_when: "false"`. Name the exact number in the question: "Does the plan keep every request at or under 4k tokens or a measured reliable size?", "Does it send each stage's requests at once, with an instance cap near floor(0.25 × 250,000 / tokens_per_request)?", "Does it set attempts, per-attempt timeout, run deadline, and a retry budget near 4 × requests × failure rate?"
+1. **Price it first.** When the artifact calls Jev, build (or ask for) a JSON of every request one run sends and run `python3 scripts/jev-budget-check.py --payload run.json --concurrency C --concurrent-runs N --attempts A`, plus `--eval-cases N` for any eval the plan runs. A `fail` is a high-signal finding on its own; a `warn` goes in the report. Put the check's summary in state under `budget` so battery questions can inspect it.
+2. **Ask about throughput explicitly.** Include Cost & throughput questions (see `references/question-battery.md`): does the plan state tokens per run and per second against the documented limits (250,000 input tokens per second and 1,200 requests per minute for Jev on 2026-09-22)? Does it fan full detail out over every unit, or cascade? Is in-flight concurrency capped? Do retries use jittered exponential backoff with a per-run budget? Is the eval priced and paced? Which errors mean "back off" on the production transport (Vercel AI Gateway reports upstream overload as 503)?
+3. **Treat "each request fits" as unproven.** A plan that shows every request under the per-request limit has not shown the run fits. Look for the per-second number.
+4. **Diagnoses need measurements.** When the artifact explains a failure (an outage, a size cap, a bad payload), ask whether it measured the run's own rate and retry count and tested a small known-good request on the same transport before concluding.
 
 ## Question generation prompt
 

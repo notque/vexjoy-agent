@@ -1,0 +1,249 @@
+{
+ "version": "1.0",
+ "description": "Labeled intent-alignment pairs for jev_intent_align question design. expect: aligned | review | clarify.",
+ "cases": [
+  {
+   "id": "al-01",
+   "kind": "faithful",
+   "request": "Add a /healthz endpoint to our Go API",
+   "intent": "Add a /healthz endpoint to the Go API service.",
+   "route": {
+    "agent": "golang-general-engineer",
+    "skill": "programming",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "al-02",
+   "kind": "faithful",
+   "request": "Fix the flaky Python test in tests/test_cache.py",
+   "intent": "Make tests/test_cache.py pass reliably by fixing the flaky test.",
+   "route": {
+    "agent": "python-general-engineer",
+    "skill": "testing",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "al-03",
+   "kind": "faithful",
+   "request": "Write a Helm chart for the notifier service",
+   "intent": "Create a Helm chart for the notifier service.",
+   "route": {
+    "agent": "kubernetes-helm-engineer",
+    "skill": "kubernetes",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "al-04",
+   "kind": "faithful",
+   "request": "Research how CLI agents route requests to tools and summarize the tradeoffs with sources",
+   "intent": "Summarize, with sources, the tradeoffs in how CLI agents route requests to tools.",
+   "route": {
+    "agent": "research-coordinator-engineer",
+    "skill": "research",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "al-05",
+   "kind": "faithful",
+   "request": "Redesign the pricing page with stronger typography",
+   "intent": "Redesign the pricing page with stronger typography.",
+   "route": {
+    "agent": "ui-frontend-engineer",
+    "skill": "frontend",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "al-06",
+   "kind": "faithful",
+   "request": "Fix the data race in our Go worker pool and add a regression test",
+   "intent": "Fix the data race in the Go worker pool and add a regression test that reproduces it.",
+   "route": {
+    "agent": "golang-general-engineer",
+    "skill": "programming",
+    "pipeline": null,
+    "attach": [
+     "testing"
+    ]
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "co-01",
+   "kind": "constraint-kept",
+   "request": "Refactor scripts/routing-manifest.py into smaller functions, keep behavior identical, with tests",
+   "intent": "Split scripts/routing-manifest.py into smaller functions without changing behavior, and add tests.",
+   "route": {
+    "agent": "python-general-engineer",
+    "skill": "workflow",
+    "pipeline": null,
+    "attach": [
+     "testing"
+    ]
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "co-02",
+   "kind": "constraint-kept",
+   "request": "Update the README but don't touch the docs folder",
+   "intent": "Update README.md without changing anything under docs/.",
+   "route": {
+    "agent": "technical-documentation-engineer",
+    "skill": "writing",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "co-03",
+   "kind": "constraint-kept",
+   "request": "Bump the memory limit to 20Gi in the staging values file only, do not deploy",
+   "intent": "Raise the memory limit to 20Gi in the staging values file only; do not deploy.",
+   "route": {
+    "agent": "kubernetes-helm-engineer",
+    "skill": "kubernetes",
+    "pipeline": null
+   },
+   "expect": "aligned",
+   "issue": null
+  },
+  {
+   "id": "dc-01",
+   "kind": "drops-constraint",
+   "request": "Refactor scripts/routing-manifest.py into smaller functions, keep behavior identical, with tests",
+   "intent": "Split scripts/routing-manifest.py into smaller functions and add tests.",
+   "route": {
+    "agent": "python-general-engineer",
+    "skill": "workflow",
+    "pipeline": null,
+    "attach": [
+     "testing"
+    ]
+   },
+   "expect": "review",
+   "issue": "constraints"
+  },
+  {
+   "id": "dc-02",
+   "kind": "drops-constraint",
+   "request": "Update the README but don't touch the docs folder",
+   "intent": "Update README.md.",
+   "route": {
+    "agent": "technical-documentation-engineer",
+    "skill": "writing",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "constraints"
+  },
+  {
+   "id": "dc-03",
+   "kind": "drops-constraint",
+   "request": "Bump the memory limit to 20Gi in the staging values file only, do not deploy",
+   "intent": "Raise the memory limit to 20Gi in the staging values file.",
+   "route": {
+    "agent": "kubernetes-helm-engineer",
+    "skill": "kubernetes",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "constraints"
+  },
+  {
+   "id": "aw-01",
+   "kind": "adds-work",
+   "request": "Fix the typo in the README title",
+   "intent": "Fix the README title typo and rewrite the introduction for clarity.",
+   "route": {
+    "agent": "technical-documentation-engineer",
+    "skill": "writing",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "adds"
+  },
+  {
+   "id": "aw-02",
+   "kind": "adds-work",
+   "request": "Add a --dry-run flag to scripts/cleanup.py",
+   "intent": "Add a --dry-run flag to scripts/cleanup.py and convert the script to click with a config file.",
+   "route": {
+    "agent": "python-general-engineer",
+    "skill": "workflow",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "adds"
+  },
+  {
+   "id": "aw-03",
+   "kind": "adds-work",
+   "request": "Write API reference docs for the /v2/orders endpoints",
+   "intent": "Write API reference docs for /v2/orders and migrate the endpoints to v3.",
+   "route": {
+    "agent": "technical-documentation-engineer",
+    "skill": "writing",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "adds"
+  },
+  {
+   "id": "nw-01",
+   "kind": "too-narrow",
+   "request": "Add rate limiting to our Go API and update the API docs",
+   "intent": "Add rate limiting to the Go API.",
+   "route": {
+    "agent": "golang-general-engineer",
+    "skill": "programming",
+    "pipeline": null
+   },
+   "expect": "review",
+   "issue": "narrow"
+  },
+  {
+   "id": "cl-01",
+   "kind": "clarify",
+   "request": "Migrate the database to either Postgres or MySQL, I'll tell you which one later",
+   "intent": "Migrate the database to the new engine.",
+   "route": {
+    "agent": "database-engineer",
+    "skill": "workflow",
+    "pipeline": null
+   },
+   "expect": "clarify",
+   "issue": "clarify"
+  },
+  {
+   "id": "cl-02",
+   "kind": "clarify",
+   "request": "Delete the old user records, but ask me which cutoff date to use first",
+   "intent": "Delete old user records.",
+   "route": {
+    "agent": "database-engineer",
+    "skill": "workflow",
+    "pipeline": null
+   },
+   "expect": "clarify",
+   "issue": "clarify"
+  }
+ ]
+}

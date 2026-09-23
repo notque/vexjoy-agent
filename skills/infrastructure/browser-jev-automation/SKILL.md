@@ -171,6 +171,29 @@ Plus `actions` (`e2:fill`, `e3:sel:ca`, `scroll_down`, `wait`), `page_key`, `gua
 
 ---
 
+## Long tasks: checkpoint search
+
+The loop above picks every step with Jev. For tasks longer than a few steps, use checkpoint search: an LLM or the caller sets subgoals, and Jev beam-searches between them (`../../meta/building-with-jev/references/composition-patterns.md`, Checkpoint search; `scripts/jev_search.py`). Branching needs a way back to a kept state (re-navigate to the checkpoint URL and replay); count that cost. The agent loop does not run checkpoint search yet. Adopt it only after this eval:
+
+| Arm | Planner | Step picker |
+|---|---|---|
+| a | LLM plans every step | LLM |
+| b | none | Jev picks every step (current loop) |
+| c | LLM sets checkpoints | Jev beam search between them |
+
+- Run the same task set through all three arms, bucketed by task length (for example 1–5, 6–15, 16+ steps).
+- Report per bucket: success rate (verified DONE), total tokens (Jev plus LLM), and wall time.
+- Price and pace the eval per rule 7 of the production rules; use a held-out task set for the final report.
+
+## Request sizing and retries
+
+Apply [Jev production rules](../../shared-patterns/jev-production-lessons.md) when you change the decide, text, or verify calls:
+
+- Keep each request at or under the reliable size from `python3 scripts/jev-size-probe.py --payload <dumped requests>` (2.5–4k tokens via Gateway until measured). Large pages grow the element table: bound it by the priority sort and field limits rather than sending the whole page.
+- Use Vercel AI Gateway. Too much context is the most common failure, and page snapshots are the usual cause: estimate each request before sending and trim the element table or split questions rather than send an oversized request. A ~100-token probe that returns proves the cause is size.
+- Retry a lone fast Gateway 503 after 50–150 ms. Back off exponentially on 429/529. Never retry 401/402/422.
+- Every retry counts against `--max-requests`.
+
 ## Error handling
 
 Every Jev failure resolves to BLOCKED or a bounded WAIT retry. Scripts exit 0 with JSON. Preflight fails before Chromium launches on: remote URL without `--allow-remote`, Jev unavailable, unset secret variable, malformed `--secret-env`. A failed text tier blocks the run and names the cause in `reason`. Driver failures return `status: error` with the Node stderr tail.

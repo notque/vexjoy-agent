@@ -25,6 +25,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import jev_limits
 import jev_transport
 
 # ---------------------------------------------------------------------------
@@ -53,8 +54,14 @@ Question quality rules:
   owner), weight question focus toward what that audience needs to execute or approve the artifact.
   An SRE needs ops-specific questions; a product owner needs outcome and risk questions.
 - COVERAGE: aim for breadth across the relevant risk categories (completeness, feasibility, risk,
-  scope, verification, consistency, reversibility, security). Do not cluster 20 questions on one
-  category. Skip a category only when the artifact has no content that could trigger it.
+  scope, verification, consistency, reversibility, security, cost & throughput). Do not cluster
+  20 questions on one category. Skip a category only when the artifact has no content that could
+  trigger it. Prefix ids by category (c_, f_, r_, s_, v_, k_, rev_, sec_, cost_).
+- COST & THROUGHPUT: when the artifact calls Jev, an LLM, or another metered API, ask whether it
+  prices tokens and requests per run AND per second against the provider's documented rate limits,
+  caps concurrency, uses a cheap wide stage before full detail over many units, retries with
+  jittered exponential backoff and a per-run budget, and prices any eval. Per-request fit alone
+  does not show the run fits.
 - FINDING POLARITY: each NOUL question must include "report_when" with "true" or "false";
   each CHOICE question must include "report_choices" with only the concerning options. A positive
   or neutral answer must never become a finding merely because it is confident.
@@ -288,6 +295,7 @@ _PREFIX_TO_CATEGORY = {
     "k": "consistency",
     "rev": "reversibility",
     "sec": "security",
+    "cost": "cost & throughput",
 }
 
 
@@ -301,6 +309,22 @@ def _question_category(qid: str) -> str:
 # ---------------------------------------------------------------------------
 
 BATCH_SIZE = 25
+# Too much context is the most common Jev failure through Vercel AI Gateway.
+# The artifact (state) is resent with every batch, so batches are packed by
+# estimated tokens (jev_limits.pack_questions), capped at BATCH_SIZE questions,
+# and a state too large for even one question is refused before any call.
+TARGET_REQUEST_TOKENS = jev_limits.TARGET_REQUEST_TOKENS
+RequestTooLarge = jev_limits.RequestTooLarge
+
+
+def _estimate_tokens(state: Any, questions: dict[str, Any]) -> int:
+    return jev_limits.request_tokens(state, questions)["total"]
+
+
+def _pack_batches(state: Any, questions: dict[str, Any], target: int = TARGET_REQUEST_TOKENS) -> list[list[str]]:
+    """Group question ids so each request (state + batch) stays at or under ``target``."""
+    groups = jev_limits.pack_questions(state, questions, target=target, max_questions=BATCH_SIZE)
+    return [list(group) for group in groups]
 
 
 def _is_high_signal(question: dict[str, Any], answer: dict[str, Any], threshold: float) -> bool:
@@ -376,8 +400,7 @@ def _run_battery(
     timeout: float,
 ) -> dict[str, Any]:
     """Run all questions in batches, returning merged answers dict."""
-    question_ids = list(questions.keys())
-    batches = [question_ids[i : i + BATCH_SIZE] for i in range(0, len(question_ids), BATCH_SIZE)]
+    batches = _pack_batches(state, questions)
     all_answers: dict[str, Any] = {}
     for batch in batches:
         batch_qs = {qid: questions[qid] for qid in batch}
@@ -524,6 +547,9 @@ def main() -> None:
 
     try:
         answers = _run_battery(state, questions, timeout=args.timeout)
+    except RequestTooLarge as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)
     except jev_transport.JevTransportError as exc:
         print(f"error: Jev transport failed: {exc}", file=sys.stderr)
         sys.exit(2)

@@ -19,6 +19,8 @@ Questions in one request never see each other's answers. They run independently 
 | History injection | Sequential actions, loop risk | recent actions as do-not-repeat in state | interactive/browser skills |
 | Label over index | DOM or list selection | pick by meaning, not position | UI-driven skills |
 | Classify before acting | Unknown initial state | feasibility Noul on first observation | skills that gate on preconditions |
+| Bounded search over generation | Answer space can be enumerated | code lists candidates, Jev ranks them | skills that generate a pick from a known set |
+| Checkpoint search | More than a few steps; subgoals observable in state | caller sets subgoals, Jev beam-searches between them, LLM on tie, gap, or stall | long-horizon agent and browser skills |
 
 ## Speculative fan-out
 
@@ -82,6 +84,10 @@ Split a compound goal into one Noul per clause. Programs split, Jev judges each,
 
 One wide request per unit proposes; code thresholds pick the survivors; a second request verifies them and carries only evidence the first lacked. Only confirmed findings reach the report. Add deterministic post-checks beside Jev: does the file exist, does the test pass, does the build succeed. A model's claim of completion is not evidence of completion.
 
+### Wide-then-narrow over a large catalog
+
+When every unit of a large set must be considered (a product catalog, a tool list, a file tree), a cascade is also the throughput design. Stage 1 sends one short fit Noul per unit over compact state: a name and a one-line summary, shared rules in state once. Code keeps every unit above a recall-safe floor, capped at a shortlist (typically 20 to 40). Stage 2 sends the full question set (primary fit, exclusions, discovery heads) with full detail for the shortlist only. Every unit is still judged, so recall holds; only the survivors pay full price. Tune the stage 1 floor for recall on labeled cases: a unit dropped in stage 1 cannot be recovered in stage 2. Price both stages together with `scripts/jev-budget-check.py`; a full-detail fan-out over every unit usually fails the per-second check (`state-and-budget.md`, Rate limits).
+
 Severity must spread. If findings collapse into a few indistinguishable levels, a ranking is unusable. Define Score levels as distinct situations and, when the evidence requires it, use a verification-stage severity judgment to produce a ranking someone can act on.
 
 ## Bounded residual review
@@ -99,6 +105,31 @@ Programs decide the obvious ends; Jev judges the middle. In compaction, determin
 ## History injection and stall detection
 
 Put a bounded action history in state as a plain list (`actions_already_taken`). Put the rule ("do not repeat an action listed in `actions_already_taken`") in the instructions: state holds facts, instructions hold the judgment. This keeps Jev from choosing the same action again. Fingerprint each observed state (hash of role:label:value); an unchanged fingerprint after an action means no effect, and repeated fingerprints are a cycle. Both end the loop in code with policy-defined limits. When an action had no effect and confidence was low, retry with the runner-up from `probabilities` rather than the same pick.
+
+## Checkpoint search for long horizons
+
+Many agent failures are branching failures, not reasoning failures: search cheap, branch wide, reason only when necessary. A per-step Jev pick judges the current snapshot, not the path. Per-step error compounds: 90% per step succeeds about 12% of the time over 20 steps. The request cap (about 4.5k tokens) also forces history compression that can drop a fact needed late. Checkpoint search shortens every judged horizon to a few steps.
+
+**Use when** a task runs more than a few steps and a caller (an LLM or code) can name subgoals whose completion is observable in state. **Do not use when** the task finishes in a few steps (use the plain loop from History injection and stall detection), or when code cannot list candidate next states or return to a kept one (re-navigate, restore, or preview without acting).
+
+1. The caller sets subgoals a few steps apart.
+2. Between two subgoals, `beam_search` expands each kept state and asks one progress-comparison Choice ("which candidate state is closest to `subgoal`?", see `question-design.md`), not "is this action correct?". Code keeps the top `width` branches (default 3) and stops on `is_done` or `max_steps` (default 8). This is the Taxonomy walk beam applied to states instead of tree levels.
+3. Escalate to LLM reasoning only when the top two scores fall within `margin`, an answer is missing or failed (treat it as unknown, not as a pick), or the subgoal is not reached within `max_steps`. The LLM may pick, re-plan the subgoal, or stop.
+4. Send a `TaskLedger` in state instead of raw history: goal, current checkpoint, facts, and dead ends. Facts survive compression; dead ends feed the do-not-repeat rule from History injection.
+
+```python
+ledger = TaskLedger(goal=goal)
+result = checkpoint_search(start, subgoals, expand,       # expand(state) -> candidate states
+                           is_done_for=reached,           # subgoal -> is_done(state)
+                           width=3, max_steps=8,
+                           escalate=ask_llm, ledger=ledger)
+```
+
+Worked example: `scripts/jev_search.py`. Measure against per-step picks bucketed by task length before adopting (`browser-jev-automation`, Long tasks).
+
+## Bounded search over generation
+
+When the answer space is bounded (a catalog, a page's controls, a tree, the next states of a task), list it in code and let Jev rank it; do not ask a model to generate the answer. When code cannot list the space, have a model generate candidates, then let Jev rank them. Taxonomy walk, Wide-then-narrow, Label over index, and Checkpoint search are instances.
 
 ## Label over index
 

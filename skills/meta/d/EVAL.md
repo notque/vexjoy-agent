@@ -12,9 +12,9 @@ it does not replace the full corpus run.
 
 | # | Request | Expected | Mechanism under test |
 |---|---|---|---|
-| 1 | "push my changes" | pr-workflow, `match_type: force_route`, `jev_called: false` | pre-route guard fires before Jev |
+| 1 | "push my changes" | pr-workflow, `source: "pre-route-force"`; Jev supplies only the agent and `attach` | safety force route keeps its skill |
 | 2 | "Push back on this architecture before we commit to it" | NOT pr-workflow | idiom guard (pushback/commit) |
-| 3 | "Commit these changes and push to origin" | pr-workflow, force-route | genuine git intent |
+| 3 | "Commit these changes and push to origin" | pr-workflow, `source: "pre-route-force"` | genuine git intent |
 | 4 | "Fish for compliments from the design team before shipping" | NOT shell-config | idiom guard (fish=search) |
 | 5 | "Configure my fish shell prompt to show git branch" | shell-config | genuine Fish shell intent |
 | 6 | "Make it public that we're hosting a charity stream next week" | NOT public-web-deploy | idiom guard (make public != deploy) |
@@ -25,14 +25,34 @@ it does not replace the full corpus run.
 | 11 | (simulate) `--fits-threshold 0.99` on a multi-agent request | primary pick remains valid; optional fan-out is filtered | fan-out-only fits threshold |
 | 12 | "thanks" / "hi" / "say hello" / "what is 2+2" | `source: "jev-trivial-bypass"`, `agent`/`skill`/`pipeline` all `null`, `matched: true`, `fallback: false` | stage-1 gate_score below `--gate-threshold`; stage 2 never called |
 
-**Known result**: case 6 currently force-routes incorrectly
-to `public-web-deploy` — traced to a pre-existing bug in `pre-route.py`
-itself (the word "hosting" satisfies the "make it public" companion-word
-gate). `jev-route.py` behaves exactly as designed — it never overrides a
-force-route hit, by construction — the bug is upstream in `pre-route.py` and
-out of `/d`'s scope to fix; it affects `/do` identically, since `/do` calls
-the same `pre-route.py`. Case 6 therefore remains a known failing regression
-case; it must not be listed among the cases that resolve correctly.
+**Known result (2026-09-22)**: case 6 resolves to `content`, not a deploy
+skill. `pre-route.py` still matches it (the word "hosting" satisfies the
+"make it public" companion-word gate), but a non-safety force match is now a
+stage-2 hint and Jev makes the pick. The `pre-route.py` bug remains and still
+reaches `/do` as a guardrail hint.
+
+## Attachment eval (agent and skills per request)
+
+`scripts/router_attachment/` holds 57 labeled requests (43 dev, 14 held-out
+phrasings) with the acceptable agents, required skill groups, and forbidden
+picks for each. `run_eval.py` measures `d-code` (script output), `d-model`
+(Opus 4.6 applying this SKILL.md to that output), and `do-model` (Opus 4.6
+applying `/do` to the manifest). `scripts/tests/test_router_attachment_eval.py`
+replays recorded Jev answers through the attachment policy offline.
+
+Full attach = right agent, every required skill group, no forbidden pick.
+
+| Run (2026-09-22) | Dev full attach | Dev skill recall / precision | Held-out full attach |
+|---|---|---|---|
+| `/d` v1.1 (d-model) | 0.558 | 0.667 / 0.731 | 0.429 |
+| `/do` (do-model) | 0.837 | 0.933 / 1.000 | 1.000 |
+| `/d` v1.2 (d-model = d-code) | 0.930 | 0.933 / 0.948 | 0.929 |
+
+Single runs; Jev answers are cached per payload, so repeat runs vary little.
+Remaining `/d` misses: a security force match on "review my changes", a
+refactor routed to `code-quality` instead of `workflow`, a trivial bypass on
+"Go ahead and tighten the wording of <file>", and a private research skill
+beating `research` on the primary pick.
 
 ## Intent-alignment checks
 - A proposed intent that drops material scope, adds unrequested work, or uses a

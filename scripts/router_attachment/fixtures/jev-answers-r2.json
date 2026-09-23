@@ -1,0 +1,1471 @@
+{
+ "description": "Jev and pre-route outputs per case from run r2 (2026-09-22), before the attachment step. Replayed offline by scripts/tests/test_router_attachment_eval.py.",
+ "ts": "2026-09-23T06:03:29Z",
+ "cases": {
+  "go-write-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "programming",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.96,
+    "frontend": 0.05,
+    "kubernetes": 0.09,
+    "testing": 0.14,
+    "building-with-jev": 0.04,
+    "research": 0.11
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "go-fix-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "programming",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.97,
+    "frontend": 0.04,
+    "kubernetes": 0.05,
+    "testing": 0.97,
+    "building-with-jev": 0.07,
+    "research": 0.14
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "go-test-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "testing",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.98,
+    "frontend": 0.04,
+    "kubernetes": 0.04,
+    "testing": 0.98,
+    "building-with-jev": 0.05,
+    "research": 0.09
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "go-review-01": {
+   "source": "pre-route-force",
+   "agent": "reviewer-system",
+   "skill": "security",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.97,
+    "frontend": 0.04,
+    "kubernetes": 0.07,
+    "testing": 0.31,
+    "building-with-jev": 0.08,
+    "research": 0.13
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "go-lint-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "code-quality",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": true,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.96,
+    "frontend": 0.06,
+    "kubernetes": 0.09,
+    "testing": 0.12,
+    "building-with-jev": 0.06,
+    "research": 0.1
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "workflow",
+    "pipeline": null,
+    "reasoning": "matched triggers ['clean up'] for workflow"
+   },
+   "fallback": false
+  },
+  "py-write-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "cli-design",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.04,
+    "frontend": 0.04,
+    "kubernetes": 0.09,
+    "testing": 0.1,
+    "building-with-jev": 0.05,
+    "research": 0.1
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "quick",
+    "pipeline": null,
+    "reasoning": "matched triggers ['add a flag'] for quick"
+   },
+   "fallback": false
+  },
+  "py-fix-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.05,
+    "frontend": 0.06,
+    "kubernetes": 0.06,
+    "testing": 0.22,
+    "building-with-jev": 0.09,
+    "research": 0.23
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "py-test-01": {
+   "source": "jev",
+   "agent": "testing-automation-engineer",
+   "skill": "testing",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.03,
+    "frontend": 0.04,
+    "kubernetes": 0.03,
+    "testing": 0.98,
+    "building-with-jev": 0.06,
+    "research": 0.09
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "py-review-01": {
+   "source": "jev",
+   "agent": "reviewer-code",
+   "skill": "review",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.04,
+    "frontend": 0.06,
+    "kubernetes": 0.07,
+    "testing": 0.12,
+    "building-with-jev": 0.42,
+    "research": 0.13
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "review",
+    "pipeline": null,
+    "reasoning": "matched triggers ['review code'] for review"
+   },
+   "fallback": false
+  },
+  "sqlite-01": {
+   "source": "jev",
+   "agent": "sqlite-peewee-engineer",
+   "skill": "programming",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.05,
+    "frontend": 0.03,
+    "kubernetes": 0.02,
+    "testing": 0.09,
+    "building-with-jev": 0.04,
+    "research": 0.11
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "react-feature-01": {
+   "source": "jev",
+   "agent": "typescript-frontend-engineer",
+   "skill": "frontend",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.62,
+    "frontend": 0.91,
+    "kubernetes": 0.02,
+    "testing": 0.09,
+    "building-with-jev": 0.06,
+    "research": 0.16
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ts-types-01": {
+   "source": "jev",
+   "agent": "typescript-debugging-engineer",
+   "skill": "programming",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.97,
+    "frontend": 0.06,
+    "kubernetes": 0.04,
+    "testing": 0.1,
+    "building-with-jev": 0.05,
+    "research": 0.16
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ui-design-01": {
+   "source": "jev",
+   "agent": "ui-frontend-engineer",
+   "skill": "frontend",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.16,
+    "frontend": 0.96,
+    "kubernetes": 0.05,
+    "testing": 0.06,
+    "building-with-jev": 0.12,
+    "research": 0.35
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ts-async-01": {
+   "source": "jev",
+   "agent": "typescript-debugging-engineer",
+   "skill": "debugging",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.61,
+    "frontend": 0.25,
+    "kubernetes": 0.03,
+    "testing": 0.19,
+    "building-with-jev": 0.11,
+    "research": 0.26
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "a11y-01": {
+   "source": "jev",
+   "agent": "ui-frontend-engineer",
+   "skill": "review",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": true,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.34,
+    "frontend": 0.92,
+    "kubernetes": 0.03,
+    "testing": 0.17,
+    "building-with-jev": 0.11,
+    "research": 0.22
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "e2e-01": {
+   "source": "jev",
+   "agent": "testing-automation-engineer",
+   "skill": "testing",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.6,
+    "frontend": 0.23,
+    "kubernetes": 0.03,
+    "testing": 0.98,
+    "building-with-jev": 0.06,
+    "research": 0.12
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "jev-write-01": {
+   "source": "jev",
+   "agent": null,
+   "skill": "building-with-jev",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.09,
+    "frontend": 0.14,
+    "kubernetes": 0.08,
+    "testing": 0.1,
+    "building-with-jev": 0.66,
+    "research": 0.28
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "building-with-jev",
+    "pipeline": null,
+    "reasoning": "matched triggers ['jev'] for building-with-jev"
+   },
+   "fallback": false
+  },
+  "jev-tune-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "building-with-jev",
+   "pipeline": "agent-upgrade",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.16,
+    "frontend": 0.32,
+    "kubernetes": 0.11,
+    "testing": 0.14,
+    "building-with-jev": 0.77,
+    "research": 0.43
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "building-with-jev",
+    "pipeline": null,
+    "reasoning": "matched triggers ['jev'] for building-with-jev"
+   },
+   "fallback": false
+  },
+  "jev-grill-01": {
+   "source": "jev",
+   "agent": "reviewer-perspectives",
+   "skill": "grill-jev",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.16,
+    "frontend": 0.15,
+    "kubernetes": 0.3,
+    "testing": 0.1,
+    "building-with-jev": 0.25,
+    "research": 0.3
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "grill-jev",
+    "pipeline": null,
+    "reasoning": "matched triggers ['grill', 'grill this'] for grill-jev"
+   },
+   "fallback": false
+  },
+  "jev-ui-01": {
+   "source": "jev",
+   "agent": "ui-frontend-engineer",
+   "skill": "jev-design",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.46,
+    "frontend": 0.91,
+    "kubernetes": 0.07,
+    "testing": 0.07,
+    "building-with-jev": 0.4,
+    "research": 0.57
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "building-with-jev",
+    "pipeline": null,
+    "reasoning": "matched triggers ['jev'] for building-with-jev"
+   },
+   "fallback": false
+  },
+  "hook-new-01": {
+   "source": "jev",
+   "agent": "hook-development-engineer",
+   "skill": "code-quality",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.28,
+    "frontend": 0.12,
+    "kubernetes": 0.19,
+    "testing": 0.12,
+    "building-with-jev": 0.14,
+    "research": 0.18
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": null,
+    "pipeline": "writing",
+    "reasoning": "matched triggers ['write post'] for writing"
+   },
+   "fallback": false
+  },
+  "hook-timeout-01": {
+   "source": "jev",
+   "agent": "hook-development-engineer",
+   "skill": "debugging",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": true,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.37,
+    "frontend": 0.11,
+    "kubernetes": 0.42,
+    "testing": 0.21,
+    "building-with-jev": 0.19,
+    "research": 0.29
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "toolkit-routing-01": {
+   "source": "jev",
+   "agent": "toolkit-governance-engineer",
+   "skill": "toolkit",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.56,
+    "frontend": 0.08,
+    "kubernetes": 0.16,
+    "testing": 0.07,
+    "building-with-jev": 0.09,
+    "research": 0.17
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "toolkit",
+    "pipeline": null,
+    "reasoning": "matched triggers ['new agent'] for toolkit"
+   },
+   "fallback": false
+  },
+  "skill-create-01": {
+   "source": "jev",
+   "agent": null,
+   "skill": "toolkit",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.13,
+    "frontend": 0.06,
+    "kubernetes": 0.1,
+    "testing": 0.12,
+    "building-with-jev": 0.08,
+    "research": 0.4
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "toolkit",
+    "pipeline": "writing",
+    "reasoning": "matched triggers ['create skill', 'new skill'] for toolkit"
+   },
+   "fallback": false
+  },
+  "docs-api-01": {
+   "source": "jev",
+   "agent": "technical-documentation-engineer",
+   "skill": "writing",
+   "pipeline": "doc-pipeline",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.15,
+    "frontend": 0.12,
+    "kubernetes": 0.04,
+    "testing": 0.06,
+    "building-with-jev": 0.06,
+    "research": 0.22
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "docs-drift-01": {
+   "source": "jev",
+   "agent": "technical-documentation-engineer",
+   "skill": "docs-sync-checker",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.16,
+    "frontend": 0.12,
+    "kubernetes": 0.18,
+    "testing": 0.21,
+    "building-with-jev": 0.17,
+    "research": 0.17
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "article-01": {
+   "source": "pre-route-force",
+   "agent": null,
+   "skill": "writing",
+   "pipeline": "writing",
+   "stack": [],
+   "signals": null,
+   "domain_scores": null,
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "research-01": {
+   "source": "jev",
+   "agent": "research-coordinator-engineer",
+   "skill": "private-research-skill",
+   "pipeline": "doc-pipeline",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": true,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.17,
+    "frontend": 0.08,
+    "kubernetes": 0.09,
+    "testing": 0.08,
+    "building-with-jev": 0.11,
+    "research": 0.82
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "research",
+    "pipeline": null,
+    "reasoning": "matched triggers ['research'] for research"
+   },
+   "fallback": false
+  },
+  "factcheck-01": {
+   "source": "jev",
+   "agent": "research-coordinator-engineer",
+   "skill": "research",
+   "pipeline": "article-evaluation-pipeline",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": true,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.14,
+    "frontend": 0.17,
+    "kubernetes": 0.21,
+    "testing": 0.11,
+    "building-with-jev": 0.22,
+    "research": 0.68
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "research",
+    "pipeline": null,
+    "reasoning": "matched triggers ['fact-check'] for research"
+   },
+   "fallback": false
+  },
+  "k8s-crash-01": {
+   "source": "jev",
+   "agent": "kubernetes-helm-engineer",
+   "skill": "kubernetes",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": true,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.17,
+    "frontend": 0.04,
+    "kubernetes": 0.9,
+    "testing": 0.09,
+    "building-with-jev": 0.08,
+    "research": 0.21
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "helm-01": {
+   "source": "jev",
+   "agent": "kubernetes-helm-engineer",
+   "skill": "kubernetes",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.12,
+    "frontend": 0.04,
+    "kubernetes": 0.92,
+    "testing": 0.08,
+    "building-with-jev": 0.05,
+    "research": 0.16
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "rbac-01": {
+   "source": "jev",
+   "agent": "kubernetes-helm-engineer",
+   "skill": "kubernetes",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.13,
+    "frontend": 0.05,
+    "kubernetes": 0.87,
+    "testing": 0.1,
+    "building-with-jev": 0.07,
+    "research": 0.29
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "sql-slow-01": {
+   "source": "jev",
+   "agent": "database-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.07,
+    "frontend": 0.05,
+    "kubernetes": 0.03,
+    "testing": 0.08,
+    "building-with-jev": 0.07,
+    "research": 0.21
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "sql-migrate-01": {
+   "source": "jev",
+   "agent": "database-engineer",
+   "skill": "workflow",
+   "pipeline": "systematic-refactoring",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.13,
+    "frontend": 0.03,
+    "kubernetes": 0.04,
+    "testing": 0.14,
+    "building-with-jev": 0.05,
+    "research": 0.24
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": null,
+    "pipeline": "writing",
+    "reasoning": "matched triggers ['write post'] for writing"
+   },
+   "fallback": false
+  },
+  "mixed-go-docs-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "programming",
+   "pipeline": "workflow-orchestrator",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.94,
+    "frontend": 0.13,
+    "kubernetes": 0.08,
+    "testing": 0.16,
+    "building-with-jev": 0.05,
+    "research": 0.18
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "mixed-go-k8s-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "kubernetes",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.94,
+    "frontend": 0.04,
+    "kubernetes": 0.87,
+    "testing": 0.13,
+    "building-with-jev": 0.04,
+    "research": 0.21
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "mixed-py-refactor-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "code-quality",
+   "pipeline": "systematic-refactoring",
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.03,
+    "frontend": 0.05,
+    "kubernetes": 0.04,
+    "testing": 0.97,
+    "building-with-jev": 0.05,
+    "research": 0.09
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "mixed-go-security-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "security",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.92,
+    "frontend": 0.07,
+    "kubernetes": 0.12,
+    "testing": 0.23,
+    "building-with-jev": 0.09,
+    "research": 0.24
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "git-01": {
+   "source": "pre-route-force",
+   "agent": "general-purpose",
+   "skill": "pr-workflow",
+   "pipeline": "pr-pipeline",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.25,
+    "frontend": 0.35,
+    "kubernetes": 0.36,
+    "testing": 0.15,
+    "building-with-jev": 0.17,
+    "research": 0.36
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "nm-go-verb-01": {
+   "source": "jev-trivial-bypass",
+   "agent": null,
+   "skill": null,
+   "pipeline": null,
+   "stack": [],
+   "signals": null,
+   "domain_scores": null,
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "nm-pushback-01": {
+   "source": "jev",
+   "agent": "reviewer-perspectives",
+   "skill": "assessment",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.12,
+    "frontend": 0.1,
+    "kubernetes": 0.31,
+    "testing": 0.15,
+    "building-with-jev": 0.17,
+    "research": 0.51
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "nm-py-flaky-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.03,
+    "frontend": 0.04,
+    "kubernetes": 0.04,
+    "testing": 0.97,
+    "building-with-jev": 0.06,
+    "research": 0.14
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "nm-review-style-01": {
+   "source": "jev",
+   "agent": "reviewer-code",
+   "skill": "review",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.88,
+    "frontend": 0.12,
+    "kubernetes": 0.15,
+    "testing": 0.08,
+    "building-with-jev": 0.19,
+    "research": 0.22
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-go-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "debugging",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.94,
+    "frontend": 0.04,
+    "kubernetes": 0.09,
+    "testing": 0.24,
+    "building-with-jev": 0.07,
+    "research": 0.2
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-go-02": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "programming",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.96,
+    "frontend": 0.05,
+    "kubernetes": 0.04,
+    "testing": 0.07,
+    "building-with-jev": 0.07,
+    "research": 0.16
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "programming",
+    "pipeline": null,
+    "reasoning": "matched triggers ['.go'] for programming"
+   },
+   "fallback": false
+  },
+  "ood-go-03": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "testing",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.95,
+    "frontend": 0.05,
+    "kubernetes": 0.05,
+    "testing": 0.96,
+    "building-with-jev": 0.09,
+    "research": 0.15
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "programming",
+    "pipeline": null,
+    "reasoning": "matched triggers ['.go'] for programming"
+   },
+   "fallback": false
+  },
+  "ood-go-04": {
+   "source": "pre-route-force",
+   "agent": "reviewer-code",
+   "skill": "pr-workflow",
+   "pipeline": null,
+   "stack": [
+    "programming"
+   ],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.92,
+    "frontend": 0.14,
+    "kubernetes": 0.18,
+    "testing": 0.15,
+    "building-with-jev": 0.13,
+    "research": 0.18
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-py-01": {
+   "source": "jev",
+   "agent": "python-general-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.04,
+    "frontend": 0.1,
+    "kubernetes": 0.08,
+    "testing": 0.08,
+    "building-with-jev": 0.09,
+    "research": 0.34
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-ui-01": {
+   "source": "jev",
+   "agent": "ui-frontend-engineer",
+   "skill": "frontend",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.12,
+    "frontend": 0.93,
+    "kubernetes": 0.06,
+    "testing": 0.06,
+    "building-with-jev": 0.17,
+    "research": 0.39
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-ts-01": {
+   "source": "jev",
+   "agent": "performance-optimization-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.93,
+    "frontend": 0.82,
+    "kubernetes": 0.02,
+    "testing": 0.09,
+    "building-with-jev": 0.06,
+    "research": 0.19
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-jev-01": {
+   "source": "jev",
+   "agent": null,
+   "skill": "building-with-jev",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.49,
+    "frontend": 0.11,
+    "kubernetes": 0.2,
+    "testing": 0.2,
+    "building-with-jev": 0.6,
+    "research": 0.35
+   },
+   "agents": [],
+   "pre_route_hint": {
+    "skill": "building-with-jev",
+    "pipeline": null,
+    "reasoning": "matched triggers ['typesafe'] for building-with-jev"
+   },
+   "fallback": false
+  },
+  "ood-hook-01": {
+   "source": "jev",
+   "agent": "hook-development-engineer",
+   "skill": "debugging",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.18,
+    "frontend": 0.21,
+    "kubernetes": 0.2,
+    "testing": 0.1,
+    "building-with-jev": 0.18,
+    "research": 0.36
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-k8s-01": {
+   "source": "jev",
+   "agent": "kubernetes-helm-engineer",
+   "skill": "kubernetes",
+   "pipeline": "systematic-debugging",
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.17,
+    "frontend": 0.16,
+    "kubernetes": 0.61,
+    "testing": 0.18,
+    "building-with-jev": 0.15,
+    "research": 0.36
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-sql-01": {
+   "source": "jev",
+   "agent": "database-engineer",
+   "skill": "assessment",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.09,
+    "frontend": 0.04,
+    "kubernetes": 0.07,
+    "testing": 0.09,
+    "building-with-jev": 0.1,
+    "research": 0.14
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-research-01": {
+   "source": "jev",
+   "agent": "research-coordinator-engineer",
+   "skill": "private-research-skill",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": true,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.17,
+    "frontend": 0.09,
+    "kubernetes": 0.08,
+    "testing": 0.06,
+    "building-with-jev": 0.1,
+    "research": 0.88
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-es-01": {
+   "source": "jev",
+   "agent": "golang-general-engineer",
+   "skill": "testing",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": true,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.94,
+    "frontend": 0.05,
+    "kubernetes": 0.05,
+    "testing": 0.97,
+    "building-with-jev": 0.07,
+    "research": 0.18
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  },
+  "ood-nm-01": {
+   "source": "jev",
+   "agent": "technical-documentation-engineer",
+   "skill": "docs-sync-checker",
+   "pipeline": null,
+   "stack": [],
+   "signals": {
+    "tests_requested": false,
+    "research_needed": false,
+    "comprehensive_review": false,
+    "local_only": false,
+    "objective_loop_worthy": false
+   },
+   "domain_scores": {
+    "programming": 0.13,
+    "frontend": 0.18,
+    "kubernetes": 0.19,
+    "testing": 0.08,
+    "building-with-jev": 0.11,
+    "research": 0.28
+   },
+   "agents": [],
+   "pre_route_hint": null,
+   "fallback": false
+  }
+ }
+}

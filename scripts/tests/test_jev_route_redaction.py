@@ -25,7 +25,7 @@ def test_call_jev_uses_vercel_gateway_and_never_passes_a_direct_api_key():
         sent.update({"state": state, "questions": questions, "timeout": timeout})
         return {"answers": {}}
 
-    with mock.patch.object(jev_route.jev_transport, "evaluate", side_effect=evaluate):
+    with mock.patch.object(jev_route.jev_transport, "evaluate_packed", side_effect=evaluate):
         result, _ = jev_route._call_jev(payload, 5)
     assert result == {"answers": {}}
     assert sent["state"] == payload["state"]

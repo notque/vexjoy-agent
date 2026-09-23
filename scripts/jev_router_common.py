@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import sqlite3
 import sys
 import threading
@@ -34,6 +35,7 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+import jev_limits
 import jev_redact
 
 _HOOKS_LIB = _SCRIPTS_DIR.parent / "hooks" / "lib"
@@ -387,9 +389,12 @@ def typesafe_available() -> tuple[bool, str]:
         return False, f"presence check error: {type(exc).__name__}: {exc}"
 
 
-_RETRY_CODES = frozenset({429, 529})
-_RETRY_BASE_S = 0.5
-_RETRY_MAX_SLEEP_S = 8.0
+# Retry numbers come from jev_limits, the single home of the documented limits
+# and backoff policy (api.md: exponential backoff for 429 and 529).
+_RETRY_CODES = jev_limits.RETRY_STATUSES_DIRECT
+_RETRY_BASE_S = jev_limits.RETRY_BASE_S
+_RETRY_MAX_SLEEP_S = jev_limits.RETRY_MAX_S
+_jitter = random.random  # tests pin this for exact delays
 
 
 def _retry_max() -> int:
@@ -403,20 +408,22 @@ def _retry_max() -> int:
 def _retry_delay(exc: urllib.error.HTTPError, attempt: int) -> float | None:
     """Seconds to wait before retrying, or None when this error is not retried.
 
-    Only HTTP 429 and 529 are retried. The wait doubles each attempt, honors a
-    numeric ``Retry-After`` header, and never exceeds ``_RETRY_MAX_SLEEP_S`` so
-    a hook's own timeout still bounds the call.
+    Only HTTP 429 and 529 are retried. The wait doubles each attempt with
+    jitter, so parallel callers that failed together do not retry together
+    (synchronized retries turn a rate limit into a retry storm). It honors a
+    numeric ``Retry-After`` header as a floor and never exceeds
+    ``_RETRY_MAX_SLEEP_S`` so a hook's own timeout still bounds the call.
     """
     if exc.code not in _RETRY_CODES or attempt >= _retry_max():
         return None
-    delay = _RETRY_BASE_S * (2**attempt)
+    retry_after = None
     header = exc.headers.get("Retry-After") if exc.headers is not None else None
     if header:
         try:
-            delay = max(delay, float(header))
+            retry_after = float(header)
         except (ValueError, TypeError):
             pass
-    return min(delay, _RETRY_MAX_SLEEP_S)
+    return jev_limits.backoff_delay(attempt, retry_after, rng=_jitter, base=_RETRY_BASE_S, cap=_RETRY_MAX_SLEEP_S)
 
 
 def _error_kind(exc: urllib.error.HTTPError) -> str:
@@ -872,7 +879,7 @@ def bound_text(text: str, limit: int, label: str = "") -> str:
         return text
     omitted = len(text) - limit
     if label:
-        notice = f"[{omitted} chars omitted from {label}]\n"
+        notice = f"[{omitted} chars omitted in {label}]\n"
     else:
         notice = f"[{omitted} chars omitted]\n"
     # Reserve room for the notice itself.

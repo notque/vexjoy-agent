@@ -17,6 +17,7 @@ Endpoint: `POST https://api.typesafe.ai/v1/systemone`, bearer auth. Python SDK: 
 - Question ID: your key. It is not sent to the model; write the full question in `instructions`.
 - `model`: the shared client calls `jev-latest`. Pin the version when a calibration set or threshold depends on measured behavior. When the model changes, rerun the labeled set and reread the jaggedness page.
 - Budget: A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. Check the [models page](https://docs.typesafe.ai/models.md) for current limits.
+- Rate limits: 250,000 input tokens per second and 1,200 requests per minute per account (2026-09-22), shared by every request, retry, user, and eval. Errors: 401 auth, 422 validation, 429 rate limit, 529 overloaded; through Vercel AI Gateway, upstream rate limiting and overload arrive as 503. Retry 429/529 (and Gateway 503) with jittered exponential backoff; never retry 401/402/422. `scripts/jev_limits.py` holds these numbers and `backoff_delay`.
 - Response carries `usage.input_tokens` and `usage.output_tokens`; `extract_usage` passes them through.
 
 ## Structured fields

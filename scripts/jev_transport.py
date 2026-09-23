@@ -12,6 +12,7 @@ import os
 import time
 from typing import Any
 
+import jev_limits
 import jev_router_common
 import jev_vercel
 
@@ -44,6 +45,9 @@ class JevTransportError(RuntimeError):
         super().__init__(message)
         self.source = source
         self.telemetry = telemetry
+
+
+REQUEST_TOO_LARGE = "request_too_large"
 
 
 def select() -> tuple[str | None, str]:
@@ -79,16 +83,32 @@ def available() -> tuple[bool, str]:
 
 
 def evaluate(state: Any, questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:
-    """Evaluate one state through the selected Jev transport."""
+    """Evaluate one state through the selected Jev transport.
+
+    Too much context is the most common failure: a request over
+    ``jev_limits.MAX_REQUEST_TOKENS`` is split into as many small requests as it
+    takes, each with the full state, sent at once, with answers merged. Only a
+    state too large for even one question is refused (source ``request_too_large``).
+    """
+    return _evaluate(state, questions, timeout=timeout, limit=jev_limits.MAX_REQUEST_TOKENS)
+
+
+def _evaluate(state: Any, questions: dict[str, Any], *, timeout: float, limit: int) -> dict[str, Any]:
     transport, reason = select()
     if transport is None:
         raise JevTransportError(reason, source="unavailable")
-    if transport == VERCEL:
-        try:
-            return jev_vercel.evaluate(state, questions, timeout=timeout)
-        except jev_vercel.JevGatewayError as exc:
-            raise JevTransportError(str(exc), source=VERCEL, telemetry=exc.telemetry) from exc
+    try:
+        if transport == VERCEL:
+            try:
+                return jev_vercel.evaluate(state, questions, timeout=timeout, max_request_tokens=limit)
+            except jev_vercel.JevGatewayError as exc:
+                raise JevTransportError(str(exc), source=VERCEL, telemetry=exc.telemetry) from exc
+        return jev_limits.split_and_run(state, questions, lambda s, q: _direct_one(s, q, timeout=timeout), limit=limit)
+    except jev_limits.RequestTooLarge as exc:
+        raise JevTransportError(str(exc), source=REQUEST_TOO_LARGE) from exc
 
+
+def _direct_one(state: Any, questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:
     started = time.monotonic()
     payload = {"state": state, "model": jev_router_common.JEV_MODEL, "questions": questions}
     try:
@@ -113,3 +133,8 @@ def evaluate(state: Any, questions: dict[str, Any], *, timeout: float) -> dict[s
     meta["transport"] = DIRECT
     data.setdefault("model", jev_router_common.JEV_MODEL)
     return data
+
+
+def evaluate_packed(state: Any, questions: dict[str, Any], *, timeout: float) -> dict[str, Any]:
+    """Like ``evaluate`` but split at the smaller target size (3,500 tokens) up front."""
+    return _evaluate(state, questions, timeout=timeout, limit=jev_limits.TARGET_REQUEST_TOKENS)

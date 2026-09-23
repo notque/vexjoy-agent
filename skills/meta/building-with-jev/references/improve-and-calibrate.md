@@ -24,6 +24,20 @@ Find the failing question before changing anything. Collect labeled examples, ru
 | Severity all one band | levels not situations | rewrite levels; add a second-opinion Score in verification |
 | `max_tokens_exceeded` mid-pipeline | a later stage skipped fitting | cap items per call at every stage; count `calls_failed` per stage |
 | `calls_failed` nonzero, output looks fine | defaults masquerading as answers | surface failed calls; never default silently on a safety path |
+| One query works; real use or an eval fails with 429, 529, or Gateway 503 | the run spends too much of the per-second limit; synchronized retries amplify it | price with `scripts/jev-budget-check.py`; cascade; cap in-flight requests; jittered backoff (see below) |
+
+## Service failure or wrong design
+
+HTTP errors and timeouts are not wrong answers; separate them before improving questions. Diagnose in this order, and do not change the payload format, request size, or model on a guess:
+
+1. **Price the run.** `python3 scripts/jev-budget-check.py` on one run's requests at the real concurrency. A `fail` or `warn` on tokens per second or requests per minute explains 429/529/503 on its own. Fix the design (cascade, fewer tokens per run, a concurrency cap) first.
+2. **Count retries.** Log retries and failed requests per run. Many retries per run with short fixed delays is a retry storm: the program keeps the limit tripped.
+3. **Check what else is spending the account.** An eval, a benchmark, or another app on the same key shares the per-second limit. Stop it and retest.
+4. **Send one small known-good request on the same transport** (Gateway through the Gateway, direct through the direct API). If an identical payload alternates between success and failure, the payload is valid; the cause is rate or capacity, not format.
+5. **Measure failure against request shape.** Replay a few real requests of different sizes and question counts, round-robin and one at a time (`maxRetries: 0`), alongside a tiny control, for 8 to 12 rounds. Interleaving puts every variant in the same time windows, so drift in service health cannot pass for a size effect. On 2026-09-22 this showed that Gateway 503s tracked tokens per request (about 0% at 1.6k, 12% at 3k, 60 to 75% at 13k) while concurrency and question count did not matter. Because a retry resends the whole request, the cheapest request size minimizes `tokens / success_rate`; for us that was about 2.5 to 4k tokens. Record the curve and date in the project's AGENTS.md; it is service behavior, not a documented limit, and it can change.
+6. **Only then suspect the service.** Check the provider status page, and ask the owner whether other apps on the same account are failing at the same time.
+
+Do not infer the state of one transport from another: a direct-key 401 or 402 says nothing about a Gateway-routed app, and a working direct probe says nothing about the Gateway. Report what was measured and what is inferred.
 
 ## Revision rules
 
@@ -55,6 +69,14 @@ Treat an unavailable service, malformed response, missing answer, or failed vali
 For any action-changing selector, run the policy in shadow mode until human-confirmed, disjoint-heldout results show that the action helps. Confidence cannot authorize an action or override source evidence, permissions, or deterministic policy. Evidence quality is evaluated against a supplied source-evidence ledger; plausibility and stated intent do not substitute for that evidence.
 
 `scripts/jev-compact-evidence.py` shows the measurement side: read the engine's own records, not the tool's claims.
+
+## Baselines, data, and out-of-distribution holdouts
+
+External reports below are directional, from a partial post; rerun them on your own data.
+
+- **Baseline the untrained model first.** Before training or fine-tuning anything for a Jev-shaped decision, score plain Jev (questions only) on the same holdout. An external team's untrained decoder matched every trained small encoder out of distribution (0.567 vs 0.563, 0.541, 0.407). Train only when the trained model beats that baseline by more than run-to-run spread.
+- **Grow data before changing architecture.** In the same report, 1,200 to 123,475 labeled examples moved the out-of-distribution score from 0.407 to 0.550. When a tuned component underperforms, add labeled cases first: production misses, and candidates mined from `hooks/routing-decision-recorder.py` logs. Mined labels stay diagnostic until a human confirms them.
+- **Hold out out-of-distribution cases.** Hold out whole phrasings and request types, not random rows. Report in-distribution and out-of-distribution scores separately. Treat a small gap as noise until repeat runs on fresh splits show it holds; report the spread.
 
 ## Reading `score`
 
