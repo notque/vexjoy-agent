@@ -131,6 +131,46 @@ def test_contrast_canary_silent_oklch_high_contrast() -> None:
     assert "contrast-canary" not in ids(css)
 
 
+# --- contrast-canary severity split at 1.2:1 ---
+
+
+def _canary(css: str) -> list:
+    return [f for f in scan_css(css) if f.rule_id == "contrast-canary"]
+
+
+def test_contrast_ratio_known_values() -> None:
+    assert abs(slop.contrast_ratio("#000000", "#ffffff") - 21.0) < 0.01
+    assert abs(slop.contrast_ratio("#777777", "#777777") - 1.0) < 1e-9
+    assert slop.contrast_ratio("red", "#ffffff") is None
+
+
+def test_contrast_canary_below_1_2_is_error_hex() -> None:
+    # 1.04:1: effectively invisible text blocks the build.
+    found = _canary(".x { color: #1a1a1a; background-color: #1e1e1e; }")
+    assert [f.severity for f in found] == ["error"]
+    assert "1.04:1" in found[0].message
+
+
+def test_contrast_canary_below_1_2_is_error_oklch() -> None:
+    found = _canary(".y { color: oklch(0.20 0.02 250); background-color: oklch(0.22 0.03 250); }")
+    assert [f.severity for f in found] == ["error"]
+
+
+def test_contrast_canary_low_ratio_error_even_when_chroma_differs() -> None:
+    # Gray on equal-luminance red: chroma differs by 0.12, so the old delta test missed it, but 1.00:1 is invisible.
+    found = _canary(".z { color: #767676; background-color: #b85a50; }")
+    ratio = slop.contrast_ratio("#767676", "#b85a50")
+    assert ratio is not None and ratio < 1.2
+    assert [f.severity for f in found] == ["error"]
+
+
+def test_contrast_canary_between_1_2_and_threshold_is_warning() -> None:
+    # 1.21:1 and within delta-L 0.05: readable only with effort, so warn, do not block.
+    css = ".w { color: oklch(0.30 0.02 250); background-color: oklch(0.35 0.02 250); }"
+    assert 1.2 <= slop.contrast_ratio("oklch(0.30 0.02 250)", "oklch(0.35 0.02 250)") < 1.3
+    assert [f.severity for f in _canary(css)] == ["warning"]
+
+
 # --- Finding shape contract ---
 
 

@@ -1,6 +1,6 @@
 /* === Report Shape === */
 .tldr { background: var(--bg-muted); border-radius: var(--radius-sm); padding: var(--sp-4) var(--sp-5); margin-bottom: var(--sp-6); }
-.tldr strong { color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--type-caption); }
+.tldr strong { color: var(--accent-text, var(--accent)); text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--type-caption); }
 .metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-4); margin-bottom: var(--sp-5); }
 @media (max-width: 768px) { .metric-row { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .metric-row { grid-template-columns: 1fr; } }

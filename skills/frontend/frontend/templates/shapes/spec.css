@@ -11,7 +11,7 @@
 .approach-header h3 { font-size: var(--type-h3, 1.125rem); font-weight: 600; flex: 1; }
 .approach-tag {
   font-size: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-text, var(--accent)); background: color-mix(in srgb, var(--accent) 10%, transparent);
   padding: 2px 8px; border-radius: var(--radius-xs);
 }
 .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-bottom: var(--sp-5); }

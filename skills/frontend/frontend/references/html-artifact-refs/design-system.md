@@ -39,11 +39,13 @@ Theme selection and artifact-specific rules for html-builder. General judgment (
 | Theme | Text on Bg | Secondary on Bg | Muted on Bg | Accent note |
 |---|---|---|---|---|
 | Dark Focus | 12.9:1 | 6.7:1 | 5.2:1 | Accent on bg 7.7:1 |
-| Interactive Warm | 13.2:1 | 6.6:1 | 4.9:1 | White on accent 4.7:1 |
+| Interactive Warm | 13.2:1 | 6.6:1 | 4.9:1 | White on accent 4.7:1; `--accent-text` (#2F5FC4) 5.7:1 on bg |
 | Minimal Document | 12.4:1 | 7.5:1 | 3.5:1 (large text only) | Gray accent |
-| Birchline | 17.5:1 | 10.3:1 | 5.2:1 | Clay accent 3.0:1 on ivory: use for fills and large text, not small text |
+| Birchline | 17.5:1 | 10.3:1 | 5.2:1 | Clay accent 3.0:1 on ivory: fills and large text only. `--accent-text` (#963F22) 6.6:1 on ivory, 5.0:1 on oat |
 
 Recheck any pair you add or change: 4.5:1 body text, 3:1 large text and UI boundaries.
+
+Color small text (tags, captions, active tabs, links) with `--accent-text`, not `--accent`. Every theme defines it; it equals `--accent` where the accent already passes 4.5:1. The `theme-toggle` dark block resets it too.
 
 ---
 
@@ -56,9 +58,22 @@ All themes share the same semantic alias layer. Components reference aliases, no
 | Raw colors | `--color-primary`, `--color-danger` | Theme-specific palette |
 | Typography | `--type-body`, `--type-caption` | Font stacks with weight/size/line-height |
 | Spacing | `--sp-1` through `--sp-8` | 4px base scale |
-| Semantic | `--bg-page`, `--text-primary`, `--accent` | Component-facing aliases |
+| Semantic | `--bg-page`, `--text-primary`, `--accent`, `--accent-text` | Component-facing aliases |
 
 **Rule:** Components use semantic aliases (`--bg-surface`, `--text-muted`, `--accent`). Never reference raw color values directly.
+
+---
+
+## Button Variants
+
+One primary button per region. `interactive-warm.css` styles a bare `<button>` as neutral secondary at zero specificity, so component classes own their look. Opt in to the others:
+
+| Variant | Class | Use for |
+|---|---|---|
+| Primary | `.btn-primary` | The one main action in the region |
+| Secondary | `.btn-secondary` | Other actions that need a visible boundary |
+| Outline | `.btn-outline` | A second emphasized action next to the primary |
+| Ghost | `.btn-ghost` | Low-weight actions: cancel, dismiss, toolbar items |
 
 ---
 

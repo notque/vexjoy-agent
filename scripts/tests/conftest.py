@@ -4,6 +4,8 @@ Pytest configuration and shared fixtures.
 Provides:
 - Jev state isolation (autouse): every test gets its own JEV_STATE_DIR so
   no test reads or writes the real ~/.claude/state breaker/cache files.
+- Live-key isolation (autouse): gateway keys and transport switches are cleared
+  so no test calls a live service because the shell had a key set.
 - Path fixtures for the fixtures directory
 - Content fixtures for sample good/bad files
 - Expected output fixtures for golden file testing
@@ -54,6 +56,26 @@ def _isolate_jev_state(tmp_path, monkeypatch):
             _jrc._cache_conn_path = None
     except Exception:
         pass  # Module may not be importable in every test context
+
+
+# Live-service credentials and transport switches. A developer shell often has
+# these set; any of them turns an offline test into a live call. Tests that need
+# a key set it with monkeypatch.setenv, which runs after this fixture.
+_LIVE_KEY_ENV = (
+    "AI_GATEWAY_API_KEY",
+    "TYPESAFE_API_KEY",
+    "JEV_TRANSPORT",
+    "JEV_KEY_ONLY",
+    "TEXT_MODEL_API_KEY",
+    "ANTHROPIC_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_live_keys(monkeypatch):
+    """Clear live gateway keys so every test runs the same with or without them."""
+    for var in _LIVE_KEY_ENV:
+        monkeypatch.delenv(var, raising=False)
 
 
 # ---------------------------------------------------------------------------

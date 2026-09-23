@@ -20,5 +20,8 @@
   --text-secondary: var(--color-gray-700); --text-muted: var(--color-gray-500);
   --border-default: var(--color-gray-300); --border-subtle: var(--color-gray-150);
   --accent: var(--color-primary);
+  /* Clay #D97757 is 2.96:1 on ivory: keep it for fills, borders, and large text.
+     --accent-text #963F22 is 6.58:1 on ivory, 5.00:1 on oat, 4.62:1 on the 10% clay tag tint over oat. */
+  --color-primary-text: #963F22; --accent-text: var(--color-primary-text);
 }
 body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }

@@ -146,10 +146,8 @@ def _check_valid_structure(content: str, result: ValidationResult) -> None:
 def _check_emitted_css_slop(content: str, result: ValidationResult) -> None:
     """Scan emitted CSS/markup for slop patterns via the vendored slop rules.
 
-    Findings are reported as warnings — they do not fail the build (matches the
-    non-blocking choice in distinctive-frontend-design). Promote-to-error path:
-    raise a finding's rule_id to a build error here once a rule graduates from
-    "warning" to "error" in css_slop_rules.py.
+    Warning-severity findings are advisory. Error-severity findings (today only
+    contrast-canary below 1.2:1, text that is effectively invisible) fail the build.
 
     Shape-agnostic: the rules check CSS/markup, not page structure, so they apply
     to every artifact shape (including hero-less shapes like report or data-viz).
@@ -164,7 +162,8 @@ def _check_emitted_css_slop(content: str, result: ValidationResult) -> None:
     findings = slop.scan_css(content)
     result.checks["css_slop_clean"] = not findings
     for f in findings:
-        result.warnings.append(f"CSS slop [{f.rule_id}] line {f.line}: {f.message}")
+        target = result.errors if f.severity == "error" else result.warnings
+        target.append(f"CSS slop [{f.rule_id}] line {f.line}: {f.message}")
 
 
 EXPORT_SHAPES = frozenset({"editor", "prototype"})

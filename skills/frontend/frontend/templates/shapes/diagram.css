@@ -9,7 +9,7 @@
 .figure-svg-wrap { padding: var(--sp-4); display: flex; align-items: center; justify-content: center; }
 .figure-svg-wrap svg { width: 100%; height: auto; }
 .figure-panel figcaption { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-subtle); }
-.figure-number { font: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-right: var(--sp-2); }
+.figure-number { font: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-text, var(--accent)); margin-right: var(--sp-2); }
 .figure-title { font: var(--type-small); font-weight: 600; color: var(--text-primary); }
 .figure-desc { font: var(--type-small); color: var(--text-secondary); margin-top: var(--sp-1); }
 .copy-svg-btn { position: absolute; top: var(--sp-2); right: var(--sp-2); padding: var(--sp-1) var(--sp-3); font: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; background: var(--bg-muted); color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); cursor: pointer; opacity: 0; transition: opacity 0.15s ease; }

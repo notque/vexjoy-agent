@@ -76,3 +76,24 @@ def test_cli_advisory_exit_zero(tmp_path):
 
 def test_cli_strict_exits_one_below_80(tmp_path):
     assert _run(tmp_path, "--strict") == 1
+
+
+def _emitted(tmp_path: Path, css: str) -> Path:
+    # The tmp copy of validate_design.py imports css_slop_rules from its own folder.
+    scripts = tmp_path / "scripts"
+    scripts.mkdir(exist_ok=True)
+    rules = SCRIPT.parent / "css_slop_rules.py"
+    (scripts / rules.name).write_text(rules.read_text(encoding="utf-8"), encoding="utf-8")
+    out = tmp_path / "out.css"
+    out.write_text(css, encoding="utf-8")
+    return out
+
+
+def test_cli_invisible_text_exits_one_without_strict(tmp_path):
+    css = _emitted(tmp_path, ".x { color: #1a1a1a; background-color: #1e1e1e; }")
+    assert _run(tmp_path, "--emitted-css", str(css)) == 1
+
+
+def test_cli_low_contrast_warning_stays_advisory(tmp_path):
+    css = _emitted(tmp_path, ".w { color: oklch(0.30 0.02 250); background-color: oklch(0.35 0.02 250); }")
+    assert _run(tmp_path, "--emitted-css", str(css)) == 0

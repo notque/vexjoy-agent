@@ -178,9 +178,14 @@ def test_select_checkbox_scroll_and_submit(drv):
 
 def test_agent_loop_scrubs_secret_from_snapshots(site, monkeypatch):
     # Hermetic: without these keys run() skips the Jev page classifier and no
-    # default helper can reach Jev, a text model, or the `claude` CLI.
-    for var in ("TYPESAFE_API_KEY", "TEXT_MODEL_API_KEY", "ANTHROPIC_API_KEY"):
+    # default helper can reach Jev, the gateway, a text model, or the `claude` CLI.
+    # conftest clears them too; this stays so the test is safe on its own.
+    for var in ("AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY", "JEV_TRANSPORT", "TEXT_MODEL_API_KEY", "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(var, raising=False)
+    # Belt and braces: even if a key leaks in, the page classifier stays offline.
+    import jev_router_common
+
+    monkeypatch.setattr(jev_router_common, "typesafe_available", lambda: (False, "offline test"))
     spec = importlib.util.spec_from_file_location("agent", SCRIPTS / "jev-browser-agent.py")
     agent = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(agent)

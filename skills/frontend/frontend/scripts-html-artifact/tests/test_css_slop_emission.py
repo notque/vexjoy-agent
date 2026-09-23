@@ -93,6 +93,30 @@ class TestSlopScanWiring:
         finally:
             path.unlink()
 
+    def test_invisible_text_blocks_build(self) -> None:
+        # Contrast below 1.2:1 is an error, so the artifact is invalid.
+        path = _write_tmp(
+            CLEAN_HTML.replace("h1 { color: #222222; }", "h1 { color: #1a1a1a; background-color: #1e1e1e; }")
+        )
+        try:
+            result = validate_artifact(path)
+            assert not result.valid
+            assert any("contrast-canary" in e for e in result.errors)
+            assert not any("contrast-canary" in w for w in result.warnings)
+        finally:
+            path.unlink()
+
+    def test_low_but_visible_contrast_only_warns(self) -> None:
+        # 1.21:1 sits between the 1.2 error floor and the canary threshold: warning only.
+        css = "h1 { color: oklch(0.30 0.02 250); background-color: oklch(0.35 0.02 250); }"
+        path = _write_tmp(CLEAN_HTML.replace("h1 { color: #222222; }", css))
+        try:
+            result = validate_artifact(path)
+            assert result.valid
+            assert any("contrast-canary" in w for w in result.warnings)
+        finally:
+            path.unlink()
+
     def test_scan_shape_agnostic(self) -> None:
         # Same slop CSS flagged regardless of declared shape (report has no hero).
         path = _write_tmp(SLOP_HTML)

@@ -3,6 +3,7 @@
   --color-primary: #64B5F6; --bg-page: #1A1A2E; --bg-surface: #232340; --bg-muted: #2C2C4A;
   --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8; --text-muted: #8C8CA8;
   --border-default: #3A3A5C; --border-subtle: #2E2E4E; --accent: #64B5F6;
+  --accent-text: #64B5F6;
   --shadow-sm: inset 0 1px 2px rgba(0,0,0,0.3); --shadow-md: inset 0 2px 6px rgba(0,0,0,0.4);
 }
 .theme-toggle {

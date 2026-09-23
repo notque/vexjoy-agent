@@ -354,3 +354,68 @@ class TestCLIInterface:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         assert proc.returncode == 0
         assert ".slide-deck" in proc.stdout
+
+
+TEMPLATES = Path(__file__).parent.parent.parent / "templates"
+slop = import_module("css_slop_rules")
+
+
+def _tokens(css: str) -> dict[str, str]:
+    """Map custom properties in a CSS file to their values, resolving var() chains."""
+    import re
+
+    raw = dict(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", css))
+
+    def resolve(value: str, depth: int = 0) -> str:
+        m = re.fullmatch(r"var\((--[\w-]+)(?:,[^)]*)?\)", value.strip())
+        if m and depth < 10 and m.group(1) in raw:
+            return resolve(raw[m.group(1)], depth + 1)
+        return value.strip()
+
+    return {k: resolve(v) for k, v in raw.items()}
+
+
+class TestThemeAccentContrast:
+    """--accent-text colors small text, so it must clear 4.5:1 on every theme surface."""
+
+    @pytest.mark.parametrize("theme", ["birchline", "dark-focus", "interactive-warm", "minimal-document"])
+    def test_accent_text_passes_aa(self, theme: str) -> None:
+        tokens = _tokens((TEMPLATES / "themes" / f"{theme}.css").read_text(encoding="utf-8"))
+        fg = tokens["--accent-text"]
+        for bg in ("--bg-page", "--bg-surface", "--bg-muted", "--bg-card"):
+            ratio = slop.contrast_ratio(fg, tokens[bg])
+            assert ratio is not None and ratio >= 4.5, f"{theme} {fg} on {bg} {tokens[bg]}: {ratio}"
+
+    def test_toggle_dark_accent_text_passes_aa(self) -> None:
+        # The dark block must reset --accent-text; birchline's dark clay fails on dark surfaces.
+        tokens = _tokens((TEMPLATES / "components" / "theme-toggle.css").read_text(encoding="utf-8"))
+        for bg in ("--bg-page", "--bg-surface", "--bg-muted", "--bg-card"):
+            assert slop.contrast_ratio(tokens["--accent-text"], tokens[bg]) >= 4.5
+
+    def test_birchline_brand_accent_kept_for_fills(self) -> None:
+        tokens = _tokens((TEMPLATES / "themes" / "birchline.css").read_text(encoding="utf-8"))
+        assert tokens["--accent"] == "#D97757"
+        assert slop.contrast_ratio(tokens["--accent"], tokens["--bg-page"]) < 3.0
+
+    def test_small_accent_text_uses_text_token(self) -> None:
+        spec = (TEMPLATES / "shapes" / "spec.css").read_text(encoding="utf-8")
+        assert "color: var(--accent-text, var(--accent))" in spec
+
+
+class TestInteractiveWarmButtons:
+    """One primary per region: bare buttons are neutral; primary is opt-in."""
+
+    CSS = (TEMPLATES / "themes" / "interactive-warm.css").read_text(encoding="utf-8")
+
+    def test_bare_button_not_primary(self) -> None:
+        import re
+
+        base = re.search(r":where\(button, \[role=\"button\"\]\) \{([^}]*)\}", self.CSS)
+        assert base is not None
+        assert "--color-primary" not in base.group(1)
+        assert not re.search(r"^button, \[role=\"button\"\] \{", self.CSS, re.MULTILINE)
+
+    @pytest.mark.parametrize("variant", [".btn-primary", ".btn-secondary", ".btn-outline", ".btn-ghost"])
+    def test_variants_defined(self, variant: str) -> None:
+        assert f"{variant} {{" in self.CSS
+        assert f"{variant}:hover" in self.CSS

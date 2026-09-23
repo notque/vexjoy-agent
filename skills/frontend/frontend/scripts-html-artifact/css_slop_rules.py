@@ -7,8 +7,8 @@ Public surface:
     Finding(rule_id, severity, message, line)
 
 Deterministic regex/parse only — no LLM. Designed to be vendored as-is into
-other skills (e.g. html-artifact). Findings start at "warning" severity; the
-promote-to-error path is documented per rule below and gated by the caller.
+other skills (e.g. html-artifact). Findings are "warning" severity except
+contrast-canary below 1.2:1, which is "error"; callers fail the build on errors.
 
 Rules:
     transition-all          `transition: all` (shorthand spanning all properties)
@@ -17,7 +17,8 @@ Rules:
     focus-ring-fade         focus outline/ring animated via transition (fades in)
     emoji-feature-icon      emoji codepoint as a feature/list icon (CSS content or markup)
     two-line-cta            clickable/button text that wraps to two lines (heuristic)
-    contrast-canary         adjacent fg/bg within delta-L <= 0.05 AND delta-chroma <= 0.05
+    contrast-canary         same-rule fg/bg: WCAG ratio < 1.2:1 is an ERROR (text is effectively
+                            invisible); otherwise delta-L <= 0.05 AND delta-chroma <= 0.05 is a warning
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ class Finding:
     """One slop-rule hit.
 
     rule_id:  stable identifier (see module docstring table).
-    severity: "warning" for every rule today; callers promote to "error".
+    severity: "warning", or "error" for contrast-canary below _CONTRAST_BLOCK_RATIO.
     message:  human-readable explanation and fix direction.
     line:     1-based best-effort source line.
     """
@@ -46,6 +47,8 @@ class Finding:
 # Contrast-canary thresholds (oklch space): treat as too-low-contrast when BOTH hold.
 _CONTRAST_DELTA_L = 0.05  # lightness L is 0..1; <=5% apart
 _CONTRAST_DELTA_C = 0.05  # chroma
+# WCAG contrast ratio below which the pair is effectively invisible: blocking error.
+_CONTRAST_BLOCK_RATIO = 1.2
 
 _EMOJI_RE = re.compile(
     "["
@@ -106,6 +109,7 @@ def _srgb_to_oklch_lc(rgb: tuple[float, float, float]) -> tuple[float, float]:
 
 
 _OKLCH_RE = re.compile(r"oklch\(\s*([0-9.]+%?)\s+([0-9.]+)\s+", re.IGNORECASE)
+_OKLCH_FULL_RE = re.compile(r"oklch\(\s*([0-9.]+%?)\s+([0-9.]+)\s+([0-9.]+)", re.IGNORECASE)
 
 
 def _parse_oklch(token: str) -> tuple[float, float] | None:
@@ -120,6 +124,51 @@ def _parse_oklch(token: str) -> tuple[float, float] | None:
     except ValueError:
         return None
     return (big_l, chroma)
+
+
+def _oklch_to_luminance(token: str) -> float | None:
+    """Parse oklch(L C H ...) → WCAG relative luminance (sRGB gamut clamped)."""
+    m = _OKLCH_FULL_RE.search(token)
+    if not m:
+        return None
+    raw_l = m.group(1)
+    try:
+        big_l = float(raw_l[:-1]) / 100.0 if raw_l.endswith("%") else float(raw_l)
+        chroma = float(m.group(2))
+        hue = math.radians(float(m.group(3)))
+    except ValueError:
+        return None
+    a, b = chroma * math.cos(hue), chroma * math.sin(hue)
+    l_ = (big_l + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m_ = (big_l - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s_ = (big_l - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    r = 4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_
+    g = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_
+    bl = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_
+    r, g, bl = (min(1.0, max(0.0, c)) for c in (r, g, bl))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+
+
+def _color_to_luminance(value: str) -> float | None:
+    """Resolve a single CSS color value to WCAG relative luminance (0..1)."""
+    value = value.strip()
+    if value.lower().startswith("oklch("):
+        return _oklch_to_luminance(value)
+    hexmatch = re.search(r"#[0-9a-fA-F]{3,8}\b", value)
+    if hexmatch:
+        rgb = _parse_hex(hexmatch.group(0))
+        if rgb is not None:
+            r, g, b = (_srgb_to_linear(c) for c in rgb)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return None
+
+
+def contrast_ratio(fg: str, bg: str) -> float | None:
+    """WCAG contrast ratio of two CSS color values (hex or oklch), or None if unparsed."""
+    lf, lb = _color_to_luminance(fg), _color_to_luminance(bg)
+    if lf is None or lb is None:
+        return None
+    return (max(lf, lb) + 0.05) / (min(lf, lb) + 0.05)
 
 
 def _color_to_lc(value: str) -> tuple[float, float] | None:
@@ -303,17 +352,28 @@ def _scan_two_line_cta(css: str) -> list[Finding]:
 def _scan_contrast_canary(css: str) -> list[Finding]:
     findings: list[Finding] = []
     for _selector, body, offset in _iter_blocks(css):
-        fg = bg = None
+        fg_val = bg_val = None
         for prop, val in _decls(body):
             if prop == "color":
-                fg = _color_to_lc(val)
-            elif prop in ("background-color", "background"):
-                cand = _color_to_lc(val)
-                if cand is not None:
-                    bg = cand
-        if fg is None or bg is None:
+                fg_val = val if _color_to_lc(val) is not None else None
+            elif prop in ("background-color", "background") and _color_to_lc(val) is not None:
+                bg_val = val
+        if fg_val is None or bg_val is None:
             continue
-        if abs(fg[0] - bg[0]) <= _CONTRAST_DELTA_L and abs(fg[1] - bg[1]) <= _CONTRAST_DELTA_C:
+        fg, bg = _color_to_lc(fg_val), _color_to_lc(bg_val)
+        ratio = contrast_ratio(fg_val, bg_val)
+        if ratio is not None and ratio < _CONTRAST_BLOCK_RATIO:
+            findings.append(
+                Finding(
+                    "contrast-canary",
+                    "error",
+                    f"foreground and background contrast is {ratio:.2f}:1 (below "
+                    f"{_CONTRAST_BLOCK_RATIO}:1); the text is effectively invisible. "
+                    "Pick colors with at least 4.5:1 for body text.",
+                    _line_of(css, offset),
+                )
+            )
+        elif abs(fg[0] - bg[0]) <= _CONTRAST_DELTA_L and abs(fg[1] - bg[1]) <= _CONTRAST_DELTA_C:
             findings.append(
                 Finding(
                     "contrast-canary",

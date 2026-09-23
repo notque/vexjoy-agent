@@ -22,16 +22,34 @@
   --text-secondary: var(--color-text-secondary); --text-muted: var(--color-text-muted);
   --border-default: var(--color-border); --border-subtle: var(--color-border-subtle);
   --accent: var(--color-primary);
+  /* #3D6FD9 is 4.49:1 on the page bg; small accent text uses the hover blue (5.65:1). */
+  --accent-text: var(--color-primary-hover);
 }
 body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
-button, [role="button"] {
-  background: var(--color-primary); color: #FFFFFF; border: none;
+/* Buttons: one primary per region. Bare buttons get the neutral secondary look at zero
+   specificity (:where), so component classes (.tab, .copy-btn, .tag-btn) fully own their style.
+   Opt in to the filled look with .btn-primary; use .btn-outline or .btn-ghost for the rest. */
+:where(button, [role="button"]) {
+  background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-default);
   border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-4);
   font: var(--type-small); font-weight: 500; cursor: pointer;
-  box-shadow: var(--shadow-interactive); transition: box-shadow 0.15s ease, background 0.15s ease;
+  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-button:hover, [role="button"]:hover { background: var(--color-primary-hover); box-shadow: var(--shadow-interactive-hover); }
-button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+:where(button, [role="button"]):hover { background: var(--bg-muted); }
+:where(button, [role="button"]):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+:where(button, [role="button"]):disabled, :where(button, [role="button"])[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.btn-primary {
+  background: var(--color-primary); color: #FFFFFF; border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-interactive);
+}
+.btn-primary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); box-shadow: var(--shadow-interactive-hover); }
+.btn-primary:active { box-shadow: none; }
+.btn-secondary { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-default); }
+.btn-secondary:hover { background: var(--bg-muted); }
+.btn-outline { background: transparent; color: var(--accent-text); border: 1px solid var(--accent); }
+.btn-outline:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid transparent; }
+.btn-ghost:hover { background: var(--bg-muted); color: var(--text-primary); }
 input, textarea, select {
   border: 1px solid var(--border-default); border-radius: var(--radius-sm);
   padding: var(--sp-2) var(--sp-3); font: var(--type-body); background: var(--bg-surface);

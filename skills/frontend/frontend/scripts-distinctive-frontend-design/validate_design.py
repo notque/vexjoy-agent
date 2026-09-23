@@ -477,8 +477,8 @@ def read_macro_from_stamp(css_text: str) -> str:
 def scan_emitted_css(css_path: Path) -> List[Dict[str, Any]]:
     """Route emitted CSS/HTML through the slop rules. Returns finding dicts.
 
-    Warnings do not fail the build yet. Promote-to-error path: a caller raises the
-    exit code once a rule_id graduates from "warning" to "error" in css_slop_rules.
+    Warnings are advisory. Error-severity findings (contrast-canary below 1.2:1)
+    make the CLI exit 1 even without --strict.
     """
     import sys as _sys
     from importlib import import_module
@@ -515,7 +515,7 @@ def main():
     parser.add_argument(
         "--emitted-css",
         type=Path,
-        help="Path to generated CSS/HTML to scan for rendered-CSS slop (warnings, non-blocking)",
+        help="Path to generated CSS/HTML to scan for rendered-CSS slop (warnings advisory; errors exit 1)",
     )
 
     args = parser.parse_args()
@@ -541,7 +541,8 @@ def main():
         # Print report
         print_validation_report(results)
 
-        # Scan emitted CSS for rendered-CSS slop (advisory warnings, do not fail build).
+        # Scan emitted CSS for rendered-CSS slop: warnings are advisory, errors fail the run.
+        slop_errors = 0
         if args.emitted_css:
             if not args.emitted_css.exists():
                 raise DesignValidationError(f"Emitted CSS file not found: {args.emitted_css}")
@@ -551,8 +552,10 @@ def main():
             print(f"RENDERED-CSS SLOP SCAN: {args.emitted_css}")
             if slop_findings:
                 for f in slop_findings:
-                    print(f"  ⚠️  [{f['rule_id']}] line {f['line']}: {f['message']}")
-                print("  (warnings are advisory; promote a rule to error to fail the build)")
+                    label = "ERROR" if f["severity"] == "error" else "warning"
+                    print(f"  {label} [{f['rule_id']}] line {f['line']}: {f['message']}")
+                slop_errors = sum(1 for f in slop_findings if f["severity"] == "error")
+                print("  (warnings are advisory; errors fail the run)")
             else:
                 print("  ✅ No slop patterns detected.")
             print("-" * 70 + "\n")
@@ -571,7 +574,8 @@ def main():
             update_project_history(args.project, fonts, palette_name, macrostructure)
 
         # Advisory by default; --strict turns a low score into exit 1.
-        sys.exit(1 if args.strict and results["overall_score"] < 80 else 0)
+        # Blocking slop errors (invisible text) exit 1 regardless of --strict.
+        sys.exit(1 if slop_errors or (args.strict and results["overall_score"] < 80) else 0)
 
     except DesignValidationError as e:
         print(
