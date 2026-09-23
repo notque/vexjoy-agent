@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-Comprehensive design validation script.
-Checks for anti-patterns, clichés, and scores overall distinctiveness.
+Advisory design validation script.
+
+Scores a brand-page design spec and warns about reflexive picks (popular default
+fonts, common default palettes). Warnings are signals, not failures: the right
+choice depends on the surface (see skills/shared-patterns/ui-design-judgment.md).
+A neutral sans is correct for a product tool; the same face picked by reflex on a
+brand page reads as a template. Exit code is 0 unless --strict is passed and the
+score is below 80.
 """
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -29,58 +36,48 @@ def load_json_file(file_path: Path) -> Dict[str, Any]:
         raise DesignValidationError(f"Invalid JSON in {file_path}: {e}")
 
 
-def load_anti_patterns() -> Dict[str, Any]:
-    """Load anti-patterns database."""
-    skill_dir = Path(__file__).parent.parent
-    anti_patterns_path = skill_dir / "references" / "preferred-patterns.json"
+# Popular faces that are fine for product tools but read as a template when picked
+# by reflex on a brand page. Matched as whole words, case-insensitive.
+REFLEXIVE_FONTS = [
+    "Inter",
+    "Roboto",
+    "Arial",
+    "Helvetica",
+    "Space Grotesk",
+    "system-ui",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "Segoe UI",
+]
 
-    if not anti_patterns_path.exists():
-        # Return default anti-patterns if file doesn't exist
-        return {
-            "banned_fonts": [
-                "Inter",
-                "Roboto",
-                "Arial",
-                "Helvetica",
-                "System",
-                "-apple-system",
-                "BlinkMacSystemFont",
-                "Segoe UI",
-                "Space Grotesk",
-                "sans-serif",
-            ],
-            "cliche_colors": [
-                {"name": "Purple gradient on white", "colors": ["#8B5CF6", "#A855F7", "#667eea", "#764ba2"]},
-                {"name": "Generic blue", "colors": ["#3B82F6", "#2563EB"]},
-                {"name": "Pure black/white", "colors": ["#000000", "#FFFFFF"]},
-            ],
-        }
-
-    return load_json_file(anti_patterns_path)
+# Palettes that match a generic default rather than a brand. Legitimate when the
+# brand color really is one of these; the warning asks for that reason.
+COMMON_DEFAULT_PALETTES = [
+    {"name": "Purple gradient on white", "colors": ["#8B5CF6", "#A855F7", "#667EEA", "#764BA2"]},
+    {"name": "Stock Tailwind blue", "colors": ["#3B82F6", "#2563EB"]},
+]
 
 
 def validate_fonts(fonts: List[str], project_name: str) -> Tuple[int, bool, str, List[str]]:
     """
-    Validate font selections against banned list and project history.
+    Check font selections for reflexive picks and repetition across projects.
+
+    Reflexive picks produce a warning, never a failure.
 
     Returns: (score, passed, details, warnings)
     """
-    anti_patterns = load_anti_patterns()
-    banned_fonts = [f.lower() for f in anti_patterns.get("banned_fonts", [])]
-
     warnings = []
 
-    # Check for banned fonts
     for font in fonts:
-        font_lower = font.lower().strip()
-        for banned in banned_fonts:
-            if banned in font_lower:
-                return (
-                    0,
-                    False,
-                    f"❌ BANNED FONT DETECTED: '{font}' contains '{banned}'. This font is overused and creates generic aesthetics.",
-                    [],
+        for common in REFLEXIVE_FONTS:
+            if re.search(rf"(?<![\w-]){re.escape(common)}(?![\w-])", font, re.IGNORECASE):
+                warnings.append(
+                    f"⚠️  reflexive font pick: '{font}'. Right for product tools; on a brand page, "
+                    f"choose a face for the brand or state why this one fits."
                 )
+                break
+    if warnings:
+        return (80, True, "Font selection is valid; review the reflexive-pick warnings for the surface.", warnings)
 
     # Check project history for repetition
     skill_dir = Path(__file__).parent.parent
@@ -114,13 +111,13 @@ def validate_fonts(fonts: List[str], project_name: str) -> Tuple[int, bool, str,
 
 def validate_palette(palette_path: Path) -> Tuple[int, bool, str, List[str]]:
     """
-    Validate color palette for clichés and proper dominance.
+    Check a color palette for common default schemes and a clear structure.
+
+    Common defaults produce a warning, never a failure.
 
     Returns: (score, passed, details, warnings)
     """
     palette = load_json_file(palette_path)
-    anti_patterns = load_anti_patterns()
-    cliche_colors = anti_patterns.get("cliche_colors", [])
 
     warnings = []
 
@@ -132,20 +129,15 @@ def validate_palette(palette_path: Path) -> Tuple[int, bool, str, List[str]]:
             if isinstance(cat_colors, dict):
                 all_colors.extend([v for v in cat_colors.values() if isinstance(v, str) and v.startswith("#")])
 
-    # Check for cliché color combinations
-    for cliche in cliche_colors:
-        cliche_set = set(c.upper() for c in cliche["colors"])
-        palette_set = set(c.upper() for c in all_colors)
-
-        # If 50% or more of cliché colors are present
-        overlap = len(cliche_set & palette_set)
-        if overlap >= len(cliche_set) * 0.5:
-            return (
-                0,
-                False,
-                f"❌ CLICHÉ DETECTED: '{cliche['name']}' color scheme. "
-                f"Found {overlap}/{len(cliche_set)} cliché colors in palette.",
-                [],
+    # Check for common default schemes (50% or more of a scheme's colors present)
+    palette_set = set(c.upper() for c in all_colors)
+    for default in COMMON_DEFAULT_PALETTES:
+        default_set = set(c.upper() for c in default["colors"])
+        overlap = len(default_set & palette_set)
+        if overlap >= len(default_set) * 0.5:
+            warnings.append(
+                f"⚠️  common default palette: '{default['name']}' ({overlap}/{len(default_set)} colors). "
+                f"Source the accent from the brand, or state why this is the brand color."
             )
 
     # Check for color dominance structure
@@ -154,19 +146,21 @@ def validate_palette(palette_path: Path) -> Tuple[int, bool, str, List[str]]:
     has_accent = "accent" in palette and palette["accent"]
 
     if not (has_dominant and has_secondary and has_accent):
-        warnings.append("⚠️  Palette should have clear dominant/secondary/accent structure (60/30/10 rule).")
+        warnings.append(
+            "⚠️  Palette has no dominant/secondary/accent groups. A rough 60/30/10 split "
+            "(neutral, secondary, accent) is a useful starting point."
+        )
         return (60, True, "Palette is valid but lacks clear hierarchical structure.", warnings)
 
-    # Check for pure black/white as dominant
+    # Pure black surfaces under light text are harsh in dark mode; pure white is fine.
     dominant_colors = palette.get("dominant", {})
     if isinstance(dominant_colors, dict):
         for color in dominant_colors.values():
-            if isinstance(color, str):
-                if color.upper() in ["#000000", "#FFFFFF"]:
-                    warnings.append(
-                        f"⚠️  Dominant color {color} is pure black/white. "
-                        f"Consider using off-black/off-white for more sophisticated aesthetic."
-                    )
+            if isinstance(color, str) and color.upper() == "#000000":
+                warnings.append(
+                    f"⚠️  Dominant color {color} is pure black. Under light text, a near-black "
+                    f"surface (for example #0f1115) is easier to read."
+                )
 
     # Check for inspiration/context
     has_inspiration = "inspiration" in palette and palette["inspiration"]
@@ -176,13 +170,16 @@ def validate_palette(palette_path: Path) -> Tuple[int, bool, str, List[str]]:
     if has_inspiration and has_rationale:
         score = 90
         details = (
-            f"✅ Strong palette with clear dominance and contextual inspiration. "
-            f"'{palette.get('palette_name', 'Unnamed')}' theme avoids clichés."
+            f"✅ Strong palette with clear dominance and a stated source. "
+            f"'{palette.get('palette_name', 'Unnamed')}' theme."
         )
     else:
         details = (
             "✅ Valid palette structure, but consider adding inspiration source and rationale for each color group."
         )
+
+    if any("common default palette" in w for w in warnings):
+        score = 70
 
     # Check accent colors for text accessibility
     accent_colors = palette.get("accent", {})
@@ -261,9 +258,7 @@ def calculate_variety_score(
     return (score, details)
 
 
-def calculate_distinctiveness_score(
-    palette: Dict, has_animation: bool, has_background: bool
-) -> Tuple[int, str, List[str]]:
+def calculate_distinctiveness_score(palette: Dict, has_animation: bool) -> Tuple[int, str, List[str]]:
     """
     Calculate overall distinctiveness score.
 
@@ -287,12 +282,6 @@ def calculate_distinctiveness_score(
     else:
         suggestions.append("Define animation strategy for at least one high-impact moment")
 
-    # Check for atmospheric background
-    if has_background:
-        score += 5
-    else:
-        suggestions.append("Create atmospheric background (layered gradients, patterns, textures)")
-
     # Check for unique palette name
     if palette.get("palette_name"):
         score += 5
@@ -315,7 +304,6 @@ def run_validation(
     palette_path: Path,
     project_name: str,
     has_animation: bool = False,
-    has_background: bool = False,
     macrostructure: str = "",
 ) -> Dict[str, Any]:
     """Run comprehensive validation and return results."""
@@ -347,9 +335,7 @@ def run_validation(
     results["checks"]["variety"] = {"score": variety_score, "passed": variety_score >= 70, "details": variety_details}
 
     # Distinctiveness check
-    distinct_score, distinct_details, distinct_suggestions = calculate_distinctiveness_score(
-        palette, has_animation, has_background
-    )
+    distinct_score, distinct_details, distinct_suggestions = calculate_distinctiveness_score(palette, has_animation)
     results["checks"]["distinctiveness"] = {
         "score": distinct_score,
         "passed": distinct_score >= 70,
@@ -357,13 +343,19 @@ def run_validation(
         "suggestions": distinct_suggestions,
     }
 
-    # Anti-patterns check (always 100 if we got here, since banned items would fail earlier)
-    if font_passed and palette_passed:
-        results["checks"]["anti_patterns"] = {
-            "score": 100,
-            "passed": True,
-            "details": "✅ No anti-patterns detected. Design avoids all identified clichés.",
-        }
+    # Reflexive-pick summary: advisory, lowers the score but never fails.
+    reflexive = [
+        w for w in font_warnings + palette_warnings if "reflexive font pick" in w or "common default palette" in w
+    ]
+    results["checks"]["anti_patterns"] = {
+        "score": max(60, 100 - 20 * len(reflexive)),
+        "passed": True,
+        "details": (
+            f"⚠️  {len(reflexive)} reflexive pick(s); keep them only with a stated reason."
+            if reflexive
+            else "✅ No reflexive picks detected."
+        ),
+    }
 
     # Calculate overall score
     scores = [check["score"] for check in results["checks"].values() if "score" in check]
@@ -461,11 +453,10 @@ def print_validation_report(results: Dict[str, Any]):
     print("\n" + "=" * 70)
 
     if results["overall_score"] >= 80:
-        print("✅ VALIDATION PASSED - Design is ready for implementation")
-    elif results["overall_score"] >= 70:
-        print("⚠️  VALIDATION WARNING - Consider addressing recommendations before implementation")
+        print("✅ No major signals. Render the page and run the look-then-fix loop.")
     else:
-        print("❌ VALIDATION FAILED - Address critical issues before proceeding")
+        print("⚠️  Review the recommendations: fix what applies, state reasons for the rest.")
+    print("Advisory only: exit code is 0 unless --strict is passed.")
 
     print("=" * 70 + "\n")
 
@@ -514,7 +505,7 @@ def main():
     parser.add_argument("--output", type=Path, help="Output path for validation report JSON (optional)")
     parser.add_argument("--animation", action="store_true", help="Flag indicating animation strategy is defined")
     parser.add_argument(
-        "--background", action="store_true", help="Flag indicating atmospheric background is implemented"
+        "--strict", action="store_true", help="Exit 1 when the overall score is below 80 (default: advisory, exit 0)"
     )
     parser.add_argument(
         "--macrostructure",
@@ -544,7 +535,6 @@ def main():
             palette_path=args.palette,
             project_name=args.project,
             has_animation=args.animation,
-            has_background=args.background,
             macrostructure=macrostructure,
         )
 
@@ -580,8 +570,8 @@ def main():
             palette_name = palette.get("palette_name", "")
             update_project_history(args.project, fonts, palette_name, macrostructure)
 
-        # Exit with appropriate code
-        sys.exit(0 if results["overall_score"] >= 80 else 1)
+        # Advisory by default; --strict turns a low score into exit 1.
+        sys.exit(1 if args.strict and results["overall_score"] < 80 else 0)
 
     except DesignValidationError as e:
         print(

@@ -495,6 +495,6 @@ material.onBeforeCompile = (shader) => {
 
 ## See Also
 
-- `references/visual-polish.md` — HDR environments, PBR material recipes, lighting setups
-- `references/webgpu.md` — TSL node materials for WebGPU renderer (different system)
-- `references/performance-patterns.md` — InstancedMesh, BufferGeometry optimization
+- `references/threejs-builder-refs/visual-polish.md` — HDR environments, PBR material recipes, lighting setups
+- `references/threejs-builder-refs/webgpu.md` — TSL node materials for WebGPU renderer (different system)
+- `references/threejs-builder-refs/performance-patterns.md` — InstancedMesh, BufferGeometry optimization

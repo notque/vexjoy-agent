@@ -18,7 +18,7 @@ The layout (CSS, structure, chrome) is fixed. Only slot text changes.
 ## Fill a template (deterministic)
 
 ```
-python3 skills/meta/html-artifact/scripts/fill-template.py \
+python3 skills/frontend/frontend/scripts-html-artifact/fill-template.py \
   --template business-review \
   --slots slots.json \
   --out artifact.html

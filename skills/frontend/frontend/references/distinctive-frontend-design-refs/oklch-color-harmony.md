@@ -104,9 +104,9 @@ Lightness determines where a color works in the layout:
 }
 ```
 
-## Dark Mode Inversion
+## Dark Mode Values
 
-The dark mode technique: swap lightness values while keeping hue and chroma. Text goes light, backgrounds go dark, interactive elements shift toward the middle.
+Build dark mode from its own values, not a straight inversion: text goes light, surfaces go dark but not pure black, elevated surfaces get slightly lighter, and accents lose some chroma so they do not glow.
 
 ```css
 /* Light mode */
@@ -116,15 +116,15 @@ The dark mode technique: swap lightness values while keeping hue and chroma. Tex
   --primary: oklch(50% 0.15 250);
 }
 
-/* Dark mode: invert L, keep H and C */
+/* Dark mode: own values, same hue */
 [data-theme="dark"] {
-  --text:    oklch(92% 0.02 250);   /* was 20%, now 92% */
-  --surface: oklch(15% 0.02 250);   /* was 97%, now 15% */
-  --primary: oklch(65% 0.15 250);   /* bumped from 50% for contrast on dark */
+  --text:    oklch(92% 0.01 250);   /* light, low chroma */
+  --surface: oklch(18% 0.015 250);  /* dark, not pure black */
+  --primary: oklch(68% 0.12 250);   /* lighter and less saturated than light mode */
 }
 ```
 
-The primary color shifts from 50% to 65% lightness in dark mode because interactive elements need more lightness to maintain contrast against dark surfaces. The exact bump depends on the surface darkness — test with a contrast checker.
+The primary color shifts from 50% to 68% lightness and drops chroma in dark mode because interactive elements need more lightness to maintain contrast against dark surfaces. The exact bump depends on the surface darkness — test with a contrast checker.
 
 ## Chroma Guidelines
 

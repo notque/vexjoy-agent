@@ -51,9 +51,13 @@ routing:
 # Frontend Skill
 
 Four modes: **Design** (UX copy, design systems, critique, accessibility, handoff,
-research), **Distinctive** (context-driven aesthetic exploration with anti-cliche
-validation), **HTML-Artifact** (self-contained HTML generation with 8 shapes), and
+research), **Distinctive** (surface check, then brand-led visual direction for
+landing and campaign pages), **HTML-Artifact** (self-contained HTML generation with 8 shapes), and
 **Three.js** (3D web apps in imperative, R3F, or WebGPU paradigms).
+
+## Load first for any UI work
+
+Before DESIGN, DISTINCTIVE, HTML-ARTIFACT, or a THREEJS UI overlay (HUD, menu, panel), read `skills/shared-patterns/ui-design-judgment.md`. Take starting values from `ui-design-recipes.md` and before/after fixes from `ui-design-examples.md` in the same folder. The mode references below add depth. Where they conflict with the core doc, the core doc wins. Every default can be overridden; state the reason.
 
 ## Mode Selection
 
@@ -62,7 +66,7 @@ Classify the request into one mode before loading references.
 | Mode | Signals | What to Load |
 |------|---------|-------------|
 | **DESIGN** | UX copy, design system, design critique, accessibility, WCAG, design handoff, user research | Design-refs per sub-mode table below |
-| **DISTINCTIVE** | Frontend design, typography, visual identity, anti-cliche, text animation, card effects | `references/distinctive-frontend-design-refs/` per phase |
+| **DISTINCTIVE** | Frontend design, typography, visual identity, anti-cliche, text animation, card effects | `references/distinctive-frontend-design-refs/` per step |
 | **HTML-ARTIFACT** | HTML artifact, make HTML, as HTML, rich visualization, interactive document, pptx, deck | `references/html-artifact-refs/` per shape |
 | **THREEJS** | Three.js, 3D scene, WebGL, WebGPU, react three fiber, R3F, GLTF | `references/threejs-builder-refs/` per paradigm |
 
@@ -102,7 +106,7 @@ Validate: consistent naming, all values reference tokens, all states defined (de
 
 ### CRITIQUE
 
-Four-step method: Describe (elements, layout -- no judgment), Analyze (hierarchy, contrast, alignment), Interpret (emotional tone, brand alignment), Evaluate (recommendations). Apply Nielsen's 10 heuristics to the specific design. Match feedback depth to stage: exploration (concept direction), refinement (hierarchy, patterns), final (contrast, spacing, a11y).
+Render or open the design first, then run the core doc's section 10 checks (three widths, squint, grayscale, edge content) and rank findings in its fix order: content and job, hierarchy, spacing, type, color, polish. Write each finding as element, problem, effect, fix. Apply Nielsen heuristics only where they explain a real finding. Match depth to stage: exploration (concept direction), refinement (hierarchy, patterns), final (contrast, spacing, a11y).
 
 ### ACCESSIBILITY
 
@@ -124,43 +128,49 @@ Markdown with tables. Severity: Critical (blocks users), Major (degrades), Minor
 
 ## DISTINCTIVE Mode
 
-Systematic aesthetic exploration producing validated design specifications. Every
-choice flows from project context, not defaults. Seven phases with gates.
+Brand-led visual direction for pages people visit once: landing, launch, portfolio, event. Output: tokens, base styles, and a rendered page.
 
-### Phase 1: Context Discovery
+### Step 1: Surface check
 
-1. Gather: purpose, surface type (landing vs app/dashboard), audience, emotion, cultural context, constraints, tech stack, real content, previous projects.
-2. Pick one macrostructure from `references/distinctive-frontend-design-refs/macrostructure-catalog.md` by heading anchor. Load only the chosen entry.
-3. Define 3-5 aesthetic directions using `references/distinctive-frontend-design-refs/color-inspirations.json` and `references/distinctive-frontend-design-refs/font-catalog.json`. See `references/distinctive-frontend-design-refs/phase-details.md` for examples.
-4. Write narrative brief: visual thesis, content plan, interaction thesis.
+Name the surface before any styling (core doc section 1):
 
-**Gate**: Macrostructure chosen, aesthetic direction justified, narrative brief written.
+| Surface | Examples | Do this |
+|---|---|---|
+| Tool | dashboard, admin, editor, settings, internal app | Get real content (Step 2 item 1), then use the tool recipe in `ui-design-recipes.md`: one neutral sans (system UI font, Inter, Geist), tinted grays plus one accent, 4/8 spacing scale, borders over shadows, motion only for state changes. Build tokens (Step 6 item 1), then Step 7. |
+| Brand page | landing, launch, portfolio, event, campaign | Continue with Step 2. |
+| Mixed (marketing site with an app inside) | pricing page plus signed-in app | Brand rules for public pages, tool rules for the app. |
 
-### Phase 2: Typography
+Litmus: on a tool, a user who reads only headings, labels, and numbers understands the screen. On a brand page, a user who sees the first viewport for 3 seconds can name the product and its promise.
 
-Load `references/distinctive-frontend-design-refs/font-catalog.json`. Banned fonts: Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk. Select pairing per `references/distinctive-frontend-design-refs/phase-details.md`. Two typefaces max. Validate against banned list.
+### Step 2: Brief
 
-### Phase 3: Color Palette
+1. Get real content: product name, headline, main action, real section copy. Mark missing items as placeholders (`references/distinctive-frontend-design-refs/honest-placeholders.md`).
+2. Pick one page structure from `references/distinctive-frontend-design-refs/macrostructure-catalog.md` by heading anchor. Load only that entry.
+3. Write three sentences: visual thesis (mood), content plan (sections in order, one job each), interaction thesis (the few motions that matter).
+4. Write two candidate directions from the brand and audience, pick one, and say why. Use `color-inspirations.json` and `font-catalog.json` in `references/distinctive-frontend-design-refs/` when the brand gives no lead. Do not default to serif display, cream background, and grain; that is the overcorrection tell. Direction examples and per-step values: `references/distinctive-frontend-design-refs/phase-details.md`.
 
-Research inspiration via `references/distinctive-frontend-design-refs/color-inspirations.json`. Build with strict 60/30/10 dominance (dominant, secondary, accent). One accent color only. Check against cliche list in `references/distinctive-frontend-design-refs/preferred-patterns.json`.
+### Step 3: Type
 
-### Phase 4: Animation Strategy
+Default: one display face plus one text face, both from `font-catalog.json` and matched to the direction. A neutral sans is a valid text face. Use the core doc's scale and line heights (section 4); body 16 px, headings 1.1-1.25 line height. Avoid reflexive picks: a face chosen because it is popular (Inter, Space Grotesk) or because it looks "not generic" (editorial serif) needs a brand reason on a brand page.
 
-2-to-3 rule: ship 2-3 intentional motions per page. Fill three slots (entrance, scroll, interaction). Load `references/distinctive-frontend-design-refs/animation-patterns.md` for patterns. Define easing and timing per `references/distinctive-frontend-design-refs/phase-details.md`.
+### Step 4: Color
 
-### Phase 5: Hero & Background
+Start neutral: background, surface, border, and text grays tinted toward the brand hue. Add one brand accent for the main action, links, and selection; status colors are separate. A rough 60/30/10 split (neutral, secondary, accent) is a starting point, not a target. Build scales with `references/distinctive-frontend-design-refs/oklch-color-harmony.md`. Check contrast on real pairs: 4.5:1 body text, 3:1 large text and UI boundaries. Build dark mode from its own values (core doc section 5).
 
-First viewport reads as one composition. See `references/distinctive-frontend-design-refs/app-vs-landing-rules.md` for surface-specific rules. Choose technique from `references/distinctive-frontend-design-refs/background-techniques.md`. Minimum 2 layers. Check contrast against WCAG AA.
+### Step 5: Motion and background
 
-### Phase 6: Validation
+- Motion: 2-3 intentional motions per page is a good budget (entrance, scroll, interaction). Use 150-250 ms ease-out for UI, up to 600 ms for a one-time hero entrance. Respect `prefers-reduced-motion`. Patterns: `references/distinctive-frontend-design-refs/animation-patterns.md`.
+- Background: a solid surface is a valid default. Add at most one effect (gradient, pattern, texture) from `references/distinctive-frontend-design-refs/background-techniques.md` when it supports the brand and keeps text contrast.
+- Hero: one composition, the product name at hero scale, one primary action. Full-bleed by default.
 
-Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-distinctive-frontend-design/validate_design.py --fonts "Display,Body" --palette palette.json --project NAME --macrostructure macro:ID --animation --background --emitted-css generated.html`
+### Step 6: Build and check
 
-Score must reach 80 (Grade B+). If below, iterate on failed checks.
+1. Emit the design stamp comment, CSS custom properties, and base styles (`references/distinctive-frontend-design-refs/implementation-examples.md`).
+2. Run the advisory check: `python3 ${CLAUDE_SKILL_DIR}/scripts-distinctive-frontend-design/validate_design.py --fonts "Display,Body" --palette palette.json --project NAME --macrostructure macro:ID --emitted-css generated.html`. Fix warnings that apply; for the rest, state why the default does not fit. Add `--strict` to exit 1 below a score of 80.
 
-### Phase 7: Specification Output
+### Step 7: Look, then fix
 
-Emit design stamp comment. Generate CSS custom properties (tokens). Create base styles. Document specification. Provide framework-specific starter code if requested (see `references/distinctive-frontend-design-refs/implementation-examples.md`).
+Run the core doc's section 10 loop on the rendered page. This is the final step for every surface, including tools.
 
 ---
 
@@ -196,17 +206,16 @@ Low confidence falls back to report. Hybrid shapes: primary controls layout, sec
 
 Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-html-artifact/assemble-template.py --shape {shape} --title "{title}" --components {components}`
 
-Always load `references/html-artifact-refs/design-system.md` and `references/html-artifact-refs/interaction-patterns.md`. Load shape-specific reference from `references/html-artifact-refs/shape-{name}.md`.
+Load `references/html-artifact-refs/design-system.md`. For diagram shapes, also load `references/html-artifact-refs/shape-diagram-illustration.md` and `references/html-artifact-refs/diagram-layering.md`. Per-shape must-include rules live in `agents/html-builder.md`.
 
 ### Phase 3: Generate
 
 Dispatch html-builder agent (see `agents/html-builder.md`) with pre-assembled template. Vanilla JS only. Semantic HTML. SVG inline.
 
-### Phase 4: Validate
+### Phase 4: Validate, then look
 
-Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-html-artifact/validate-artifact.py {html_file}`
-
-Checks: valid HTML structure, no external deps, has `<title>`, charset, viewport, under 500KB, no broken internal refs, CSS slop scan. Fix failures and re-run (max 3 attempts).
+1. Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-html-artifact/validate-artifact.py {html_file}`. Errors (structure, `<title>`, external deps, empty body) must be fixed; re-run up to 3 times. CSS slop findings are warnings: fix them or state why they fit this artifact.
+2. Run the core doc's section 10 loop on the rendered file. This is the final check before delivery.
 
 ### Phase 5: Deliver
 
@@ -247,7 +256,7 @@ R3F uses `useFrame` (never `requestAnimationFrame`). Imperative uses `setAnimati
 
 ### Phase 4: Polish
 
-Remove debug helpers. Handle window resize. Verify visible lighting. Match visual style. Run 4 verification steps: responsive, visual quality, output test, cleanup. See `references/threejs-builder-refs/build-recipes.md`.
+Remove debug helpers. Handle window resize. Verify visible lighting. Run the verification steps in `references/threejs-builder-refs/build-recipes.md`, then finish with the core doc's section 10 loop on the rendered scene and any UI overlay.
 
 ---
 
@@ -264,7 +273,7 @@ Load on demand when the task needs detailed patterns, examples, or specification
 | `references/design-refs/design-critique.md` | Structured critique method, heuristics |
 | `references/design-refs/accessibility-review.md` | WCAG criteria, component a11y patterns |
 | `references/design-refs/design-handoff.md` | Spec categories, artifact templates |
-| `references/design-refs/llm-design-failure-modes.md` | 8 LLM failure modes with defenses |
+| `references/design-refs/llm-design-failure-modes.md` | LLM design failure modes with defenses |
 
 ### Distinctive Frontend Design Refs
 
@@ -276,8 +285,8 @@ Load on demand when the task needs detailed patterns, examples, or specification
 | `references/distinctive-frontend-design-refs/background-techniques.md` | Atmospheric background methods |
 | `references/distinctive-frontend-design-refs/implementation-examples.md` | CSS tokens, framework templates |
 | `references/distinctive-frontend-design-refs/macrostructure-catalog.md` | Named macro:* page structures |
-| `references/distinctive-frontend-design-refs/phase-details.md` | Selection processes, validation, timing |
-| `references/distinctive-frontend-design-refs/css-audit-patterns.md` | Detection commands for CSS slop |
+| `references/distinctive-frontend-design-refs/phase-details.md` | Direction examples, motion timing, hero, backgrounds, design stamp |
+| `references/distinctive-frontend-design-refs/css-audit-patterns.md` | Grep commands to audit existing CSS |
 | `references/distinctive-frontend-design-refs/performance-budgets.md` | Render costs, layout thrashing |
 | `references/distinctive-frontend-design-refs/game-ui-polish.md` | Game-native UI polish rules |
 | `references/distinctive-frontend-design-refs/card-shader-patterns.md` | Fragment shader GLSL |

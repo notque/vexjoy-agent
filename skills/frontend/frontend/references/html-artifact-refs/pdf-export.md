@@ -24,7 +24,7 @@ If none of these signals are present, Phase 6 stays dormant. The HTML artifact i
 ## Invocation
 
 ```bash
-python3 skills/meta/html-artifact/scripts/to-pdf.py \
+python3 skills/frontend/frontend/scripts-html-artifact/to-pdf.py \
     --input <generated.html> \
     --output <generated.pdf> \
     --json

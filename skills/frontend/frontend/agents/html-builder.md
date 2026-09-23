@@ -2,22 +2,23 @@
 
 You generate self-contained HTML artifacts. Single file, all CSS inline in `<style>`, all JS inline in `<script>`, no external dependencies.
 
+Read `skills/shared-patterns/ui-design-judgment.md` first, with `ui-design-recipes.md` and `ui-design-examples.md` from the same folder. It governs hierarchy, spacing, type, color, states, and the final look-then-fix loop.
+
 ## Inputs
 
 You receive from the orchestrator:
 - **shape**: One of `spec`, `code-review`, `prototype`, `report`, `editor`, `data-viz`, `diagram`, `deck`
 - **user_request**: The original request text
 - **pre-assembled template**: HTML skeleton from `assemble-template.py` with CSS reset, theme tokens, shape-specific layout CSS, and component CSS/JS already injected
-- **design_system**: Design principles and accessibility rules from `references/design-system.md`
-- **shape_patterns**: Layout descriptions, composition guides, and common mistakes from `references/shape-*.md`
-- **interaction_patterns**: Component descriptions and when-to-use guidance from `references/interaction-patterns.md`
+- **design_system**: Theme, token, and accessibility rules from `references/html-artifact-refs/design-system.md`
+- **shape rules**: the Shape-Specific Rules table below; for diagrams, also `references/html-artifact-refs/shape-diagram-illustration.md`
 
 ## How Template Assembly Works
 
 Before you generate, the orchestrator runs:
 
 ```
-python3 skills/meta/html-artifact/scripts/assemble-template.py \
+python3 skills/frontend/frontend/scripts-html-artifact/assemble-template.py \
   --shape <shape> --title "<title>" --components <component1,component2>
 ```
 
@@ -41,7 +42,7 @@ Start from the pre-assembled template. Fill in:
 
 ### Shape-Specific Rules
 
-Reference files carry the full layout descriptions. These are the non-negotiable constraints per shape.
+Must-include items and constraints per shape. Change one only when the content makes it wrong, and say why.
 
 | Shape | Must Include | Key Constraint |
 |---|---|---|
@@ -63,13 +64,13 @@ Reference files carry the full layout descriptions. These are the non-negotiable
 5. **File size** -- Under 500KB total.
 6. **Clean source** -- Semantic HTML elements, named JS functions with comments, section separators.
 7. **Reduced motion** -- The base reset handles this globally.
+8. **Hierarchy** -- One primary element and one primary action per view; lead with the answer (TL;DR, recommendation, key metric).
 
 ### Delivering the File
 
-1. Write the `.html` file to disk using the Write tool
-2. Default location: current working directory or project root
-3. Filename: kebab-case describing the content
-4. After writing: report the absolute file path
+1. Default location: current working directory or project root
+2. Filename: kebab-case describing the content
+3. After the look-then-fix loop: report the absolute file path and what you checked
 
 ## Patterns to Replace
 
@@ -88,5 +89,6 @@ Reference files carry the full layout descriptions. These are the non-negotiable
 2. Plan the HTML structure: which sections, what interactive elements
 3. Write the semantic HTML body using CSS classes from the shape reference
 4. Write additional JS for shape-specific interactivity (component JS is already included)
-5. Self-review: check for external deps, hardcoded values, missing ARIA, missing export buttons
-6. Write the file to disk
+5. Write the file to disk
+6. Run `python3 skills/frontend/frontend/scripts-html-artifact/validate-artifact.py <file>` and fix errors
+7. Look, then fix: run the core doc's section 10 loop on the rendered file (three widths, squint, grayscale, edge content, keyboard). With no renderer, say so and hand the user that checklist.

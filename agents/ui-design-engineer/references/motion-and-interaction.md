@@ -6,9 +6,9 @@ House rules for how much motion to ship and which states must exist. Framer Moti
 
 ---
 
-## The 2-to-3 Motion Rule (Three Slots Per Page)
+## Motion Budget (Three Slots Per Brand Page)
 
-Ship exactly two or three intentional motions per page. Each motion fills one slot:
+On brand pages, two or three intentional motions is a good default budget. Tools use motion only for state changes. Every motion should explain a change (`skills/shared-patterns/ui-design-judgment.md` section 7). Each brand-page motion fills one slot:
 
 - **Slot 1: ENTRANCE** — one hero entrance on load
 - **Slot 2: SCROLL** — one scroll-linked effect (`useScroll` + `useTransform`)
@@ -20,7 +20,7 @@ Ship exactly two or three intentional motions per page. Each motion fills one sl
 
 **Preferred action**: Audit existing motion and remove any that isn't filling one of the three slots. Use `variants` with `staggerChildren` to coordinate list animations as a *single* entrance slot rather than N separate motions.
 
-The three most common animation failures: ignoring `prefers-reduced-motion` (triggers vestibular disorders), shipping more than 3 animations per page (destroys hierarchy), and missing `AnimatePresence` for exit animations (element vanishes without transition).
+The three most common animation failures: ignoring `prefers-reduced-motion` (triggers vestibular disorders), animating many unrelated elements (dilutes hierarchy), and missing `AnimatePresence` for exit animations (element vanishes without transition).
 
 ```bash
 # Files exceeding the motion budget

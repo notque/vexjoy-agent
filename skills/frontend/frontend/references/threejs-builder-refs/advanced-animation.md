@@ -426,6 +426,6 @@ useEffect(() => {
 
 ## See Also
 
-- `references/gltf-loading.md` — GLTF model loading, SkeletonUtils.clone, asset manifests
-- `references/performance-patterns.md` — InstancedMesh for particle systems at scale
-- `references/shader-patterns.md` — GPU-driven animation via vertex shaders
+- `references/threejs-builder-refs/gltf-loading.md` — GLTF model loading, SkeletonUtils.clone, asset manifests
+- `references/threejs-builder-refs/performance-patterns.md` — InstancedMesh for particle systems at scale
+- `references/threejs-builder-refs/shader-patterns.md` — GPU-driven animation via vertex shaders

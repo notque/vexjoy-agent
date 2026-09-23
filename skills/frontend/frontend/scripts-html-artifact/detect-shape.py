@@ -8,8 +8,8 @@ diagram, deck.
 Classification is purely signal-word based — same input always produces same output.
 
 Usage:
-    python3 skills/meta/html-artifact/scripts/detect-shape.py --request "explore 3 auth approaches"
-    python3 skills/meta/html-artifact/scripts/detect-shape.py --request "visualize metrics" --json-compact
+    python3 skills/frontend/frontend/scripts-html-artifact/detect-shape.py --request "explore 3 auth approaches"
+    python3 skills/frontend/frontend/scripts-html-artifact/detect-shape.py --request "visualize metrics" --json-compact
 """
 
 from __future__ import annotations

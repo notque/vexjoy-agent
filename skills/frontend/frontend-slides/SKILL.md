@@ -59,13 +59,13 @@ Templates: `templates/base.css` (mandatory base), `templates/presets/*.css` (pre
 | steel-wire | industrial | data science, DevOps |
 | lavender-mist | calm | wellness, meditation |
 
-### Slide Layouts (inline -- was references/slide-layout-patterns.md)
+### Slide Layouts
 
 Assemble layout CSS: `python3 skills/frontend/frontend-slides/scripts/assemble-layouts.py --layouts title,content,code`. `--all` for everything, `--include-html` for HTML templates.
 
 Each layout in `templates/layouts/` has paired `.html` + `.css`: title, content, grid, code, quote, image, section-break.
 
-### Controller Diagnostics (inline -- was references/js-controller-patterns.md)
+### Controller Diagnostics
 
 Assemble controller: `python3 skills/frontend/frontend-slides/scripts/assemble-controllers.py --core`. Add `--features speaker-notes,countdown-timer`.
 
@@ -129,7 +129,7 @@ Build the presentation as a single `.html` file with all CSS and JS inline (no e
 
 2. **Viewport fit on every slide**: Every `.slide` element must have `height: 100vh; height: 100dvh; overflow: hidden`. When content overflows, split the slide into multiple slides -- never shrink text, add scrollbars, or set `min-height` that could allow growth past 100dvh. A slide with scrollable content is a web page, not a slide.
 
-3. **Density limits**: Apply the Density Limits table (above) without exception. Maximum 6 bullets per content slide. If content needs a 7th bullet, split into two slides -- dense text is unreadable in presentation context.
+3. **Density limits**: One idea per slide, one headline that wins. Maximum 6 bullets per content slide and about 12 words per bullet. If content needs a 7th bullet, split into two slides -- dense text is unreadable in presentation context.
 
 4. **Responsive sizing**: All body text must use `clamp()` for font sizing. No fixed-height content boxes (`height: 300px` on inner elements). For images or code blocks that need height constraints, use `max-height: min(Xvh, Ypx)` with `overflow: hidden`.
 
@@ -181,7 +181,9 @@ For every slide, verify all of the following. If any item fails, fix it before p
 - [ ] No `min-height` on `.slide` that could allow growth past 100dvh
 - [ ] No `-clamp(...)` patterns anywhere in CSS
 
-**GATE 5**: Exit code 0 from the validation script, or -- only if Playwright is unavailable (exit code 2) -- explicit user confirmation that the manual checklist passed for every slide. User confirmation must enumerate the slide count checked.
+**Look, then fix (final check)**: Run the core doc's section 10 loop on the title slide, the densest content slide, and one code or chart slide, at 1280x720 and 375x667. Each slide should pass the squint and grayscale tests with one clear headline. Fix, re-render, and stop after about three rounds.
+
+**GATE 5**: Exit code 0 from the validation script, or -- only if Playwright is unavailable (exit code 2) -- explicit user confirmation that the manual checklist passed for every slide. User confirmation must enumerate the slide count checked. The look-then-fix loop has run, or the user has the checklist when no renderer exists.
 
 ---
 
@@ -223,5 +225,6 @@ For every slide, verify all of the following. If any item fails, fix it before p
 
 | Signal | Reference |
 |--------|-----------|
+| Phase 3 onward: any style, layout, or visual choice (load first) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder |
 | Phase 4 BUILD: JS controller implementation | `references/slide-controller.md` |
 | Phase 1 DETECT: PPTX extraction and conversion | `references/pptx-conversion.md` |

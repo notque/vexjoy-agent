@@ -2,9 +2,9 @@
 
 ## Philosophy
 
-Backgrounds create mood and depth. Avoid flat solid colors.
+A solid surface is the default, and the right choice for tools and most content. Use one technique below when it carries the brand, and check text contrast on the busiest area. Grain, glow, and layered gradients by reflex are a generated-UI tell (see `skills/shared-patterns/ui-design-judgment.md` sections 7 and 9).
 
-Every background should contribute to the overall aesthetic story:
+What each technique contributes:
 - **Layered gradients** create atmospheric depth
 - **Geometric patterns** add technical precision
 - **Textures** provide organic warmth

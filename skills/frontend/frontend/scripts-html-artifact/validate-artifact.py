@@ -10,9 +10,9 @@ Exit codes:
     2: file not found or not readable
 
 Usage:
-    python3 skills/meta/html-artifact/scripts/validate-artifact.py path/to/artifact.html
-    python3 skills/meta/html-artifact/scripts/validate-artifact.py artifact.html --json-compact
-    python3 skills/meta/html-artifact/scripts/validate-artifact.py artifact.html --shape editor
+    python3 skills/frontend/frontend/scripts-html-artifact/validate-artifact.py path/to/artifact.html
+    python3 skills/frontend/frontend/scripts-html-artifact/validate-artifact.py artifact.html --json-compact
+    python3 skills/frontend/frontend/scripts-html-artifact/validate-artifact.py artifact.html --shape editor
 """
 
 from __future__ import annotations

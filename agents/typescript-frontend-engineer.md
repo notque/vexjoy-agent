@@ -123,10 +123,11 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 
 | Signal | Load These Files | Why |
 |---|---|---|
+| Building or restyling visible UI: layout, spacing, type, color, states (load first) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
 | type error, any, type assertion, tsc, tsconfig, forwardRef, React 19 migration, hard gates, blockers, death-loop | `engineering-rules.md` | House gates, exceptions, stop conditions, and the non-obvious failure-mode table (RSC, cache, effects, localStorage) |
 | ViewTransition, page animation, shared element, navigation animation, view transition | `react-view-transitions.md` | Thinly-documented canary API: activation rules, CSS workarounds, troubleshooting |
 | security, auth, XSS, CSRF, SSRF, Server Action auth, middleware bypass, image optimizer, or any vulnerability-related code | `nextjs-security.md` | Version-pinned Next.js CVEs and detection commands |
-| text/headline/label/microcopy animation | `skills/frontend/distinctive-frontend-frontend/references/roll-text.md` | Zero-npm roll/slot text pattern: standalone demo, extraction guide, knobs |
+| text/headline/label/microcopy animation | `skills/frontend/frontend/references/distinctive-frontend-design-refs/roll-text.md` | Zero-npm roll/slot text pattern: standalone demo, extraction guide, knobs |
 
 ## References
 

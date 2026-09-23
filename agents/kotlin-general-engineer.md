@@ -212,6 +212,7 @@ See [references/programming-security-testing.md](references/programming-security
 
 | Signal | Load These Files | Why |
 |---|---|---|
+| Jetpack Compose screen layout, hierarchy, spacing, type, color, states (load first; Material conventions win over web defaults) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
 | [`references/programming-patterns.md`](references/programming-patterns.md) | `programming-patterns.md)` | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
 | [`references/programming-security-testing.md`](references/programming-security-testing.md) | `programming-security-testing.md)` | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
 | Security, auth, injection, deserialization, WebView, content provider, or any vulnerability-related code | [`references/programming-security.md`](references/programming-security.md) | Secure implementation patterns for Kotlin JVM and Android |

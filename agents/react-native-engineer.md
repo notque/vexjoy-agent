@@ -73,6 +73,7 @@ Do not load references for domains not relevant to the task — context is a sca
 
 | Task involves | Load reference |
 |---------------|---------------|
+| Screen layout, visual hierarchy, spacing, type, color, empty/error states (load first; iOS and Android conventions win over web defaults) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder |
 | Lists, FlatList, FlashList, LegendList, scroll performance, virtualization, renderItem | `list-performance.md` |
 | Animations, Reanimated, shared values, gestures, press states, interpolation | `animation-patterns.md` |
 | Navigation, stacks, tabs, expo-router, react-navigation, screen transitions | `navigation-patterns.md` |

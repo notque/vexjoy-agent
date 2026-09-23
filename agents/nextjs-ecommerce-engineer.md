@@ -51,6 +51,7 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 
 | Signal | Load These Files | Why |
 |---|---|---|
+| Storefront, product page, cart, checkout, or admin UI layout and styling (load first) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
 | Expertise, default/optional behaviors, capabilities, output format | `expertise.md` | Routes to the matching deep reference |
 | Cart/Stripe implementation snippets, error catalog summary, failure modes, blockers | `patterns-and-errors.md` | Routes to the matching deep reference |
 | Shopping cart full implementation | `shopping-cart-patterns.md` | Routes to the matching deep reference |

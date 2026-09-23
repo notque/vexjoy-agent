@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Vendored verbatim from skills/frontend/distinctive-frontend-design/scripts/css_slop_rules.py — keep in sync.
+# Vendored verbatim from skills/frontend/frontend/scripts-distinctive-frontend-design/css_slop_rules.py — keep in sync.
 """Canonical rendered-CSS slop rules. Self-contained, dependency-free.
 
 Public surface:

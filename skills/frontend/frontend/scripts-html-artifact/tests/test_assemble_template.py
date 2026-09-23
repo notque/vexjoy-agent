@@ -38,7 +38,7 @@ class TestAssembleTemplateDirect:
     def test_interactive_warm_theme(self) -> None:
         html = assemble_template("prototype", "Test")
         assert "Interactive Warm Theme" in html
-        assert "--color-primary: #5B8DEF" in html
+        assert "--color-primary: #3D6FD9" in html
 
     def test_minimal_document_theme(self) -> None:
         html = assemble_template("spec", "Test", theme="minimal-document")
@@ -69,7 +69,7 @@ class TestAssembleTemplateDirect:
             elif theme == "dark-focus":
                 assert "--color-primary: #64B5F6" in html, f"{shape} should use dark-focus"
             elif theme == "interactive-warm":
-                assert "--color-primary: #5B8DEF" in html, f"{shape} should use interactive-warm"
+                assert "--color-primary: #3D6FD9" in html, f"{shape} should use interactive-warm"
 
     def test_invalid_shape_raises(self) -> None:
         with pytest.raises(ValueError, match="Invalid shape"):
@@ -227,13 +227,10 @@ class TestAssembleTemplateDirect:
 
     # --- data-shape attribute tests ---
 
-    @pytest.mark.parametrize(
-        "shape",
-        ["spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"],
-    )
-    def test_body_has_data_shape_attribute(self, shape: str) -> None:
-        html = assemble_template(shape, "Test")
-        assert f'<body data-shape="{shape}">' in html
+    def test_body_has_data_shape_attribute(self) -> None:
+        for shape in ("spec", "code-review", "prototype", "report", "editor", "data-viz", "diagram", "deck"):
+            html = assemble_template(shape, "Test")
+            assert f'<body data-shape="{shape}">' in html, shape
 
     def test_data_shape_appears_exactly_once(self) -> None:
         html = assemble_template("report", "Test")
@@ -244,9 +241,9 @@ class TestAssembleTemplateDirect:
 
     # --- Per-shape print CSS injection tests ---
 
-    @pytest.mark.parametrize(
-        ("shape", "marker"),
-        [
+    def test_shape_print_css_injected(self) -> None:
+        """Every shape ships its own print stylesheet (a missing file would silently fall back)."""
+        for shape, marker in (
             ("deck", "Deck Print Stylesheet"),
             ("spec", "Spec Print Stylesheet"),
             ("report", "Report Print Stylesheet"),
@@ -255,12 +252,10 @@ class TestAssembleTemplateDirect:
             ("prototype", "Prototype Print Stylesheet"),
             ("data-viz", "Data-Viz Print Stylesheet"),
             ("diagram", "Diagram Print Stylesheet"),
-        ],
-    )
-    def test_shape_print_css_injected(self, shape: str, marker: str) -> None:
-        html = assemble_template(shape, "Test")
-        assert marker in html
-        assert "@media print" in html
+        ):
+            html = assemble_template(shape, "Test")
+            assert marker in html, shape
+            assert "@media print" in html
 
     def test_print_css_fallback_to_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When no shape-specific print CSS exists, fall back to default-print.css.

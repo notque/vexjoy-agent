@@ -2,6 +2,15 @@
   "version": "1.0.0",
   "last_updated": "2025-12-04",
   "categories": {
+    "product_ui_neutral": {
+      "description": "Neutral UI sans for product tools (dashboards, admin, editors, settings). The right default when the brand is not the point. See skills/shared-patterns/ui-design-judgment.md section 4.",
+      "fonts": [
+        {"name": "system-ui", "type": "body", "weights": [400, 500, 600], "source": "Platform (no download)", "rationale": "Stack: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif. Native feel, zero load cost."},
+        {"name": "Inter", "type": "body", "weights": [400, 500, 600, 700], "source": "Google Fonts", "rationale": "Neutral screen sans with tabular numerals ('tnum'). Safe single family for tools."},
+        {"name": "Geist", "type": "body", "weights": [400, 500, 600], "source": "Vercel (OFL)", "rationale": "Neutral sans with matching Geist Mono for code and numbers."},
+        {"name": "IBM Plex Sans", "type": "body", "weights": [400, 500, 600], "source": "Google Fonts", "rationale": "Neutral sans with a bit more character; pairs with IBM Plex Mono."}
+      ]
+    },
     "neo_brutalist": {
       "description": "Bold, geometric, unapologetic. Technical precision with attitude.",
       "fonts": [
@@ -229,6 +238,12 @@
   },
   "pairing_suggestions": [
     {
+      "aesthetic": "Product tool or dashboard",
+      "display": "system-ui",
+      "body": "system-ui",
+      "rationale": "One neutral family; hierarchy from size and weight. Add a mono only for code or aligned numbers."
+    },
+    {
       "aesthetic": "Neo-Brutalist Technical",
       "display": "Unbounded",
       "body": "Work Sans",
@@ -241,7 +256,7 @@
       "rationale": "High-contrast display with book-quality body"
     },
     {
-      "aesthetic": "Developer Tool",
+      "aesthetic": "Developer tool landing page",
       "display": "Barlow Condensed",
       "body": "JetBrains Mono",
       "rationale": "Efficient condensed with code-optimized mono"

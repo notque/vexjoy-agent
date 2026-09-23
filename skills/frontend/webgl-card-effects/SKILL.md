@@ -227,6 +227,8 @@ On devices where `supportsWebGL2()` returns false, the hook returns a null ref a
 
 **Step 3: Visual calibration**
 
+Effects are seasoning (`skills/shared-patterns/ui-design-judgment.md` section 7): card name, cost, and rules text keep 4.5:1 contrast under the effect at peak intensity. Screenshot each tier at lg and xl with whatever renderer the harness has and look before tuning.
+
 - **Legendary**: Rainbow visible but not garish. Effective opacity 0.65–0.75 over the card. Animation speed: `u_time` advances at 0.5× real-time (not 1:1 — too fast feels cheap).
 - **Rare**: Blue hue shift + shimmer. Feels premium, not like a cursor glow effect.
 - **Uncommon**: Barely perceptible silver shimmer. If you notice it immediately on a static card, the opacity is too high.

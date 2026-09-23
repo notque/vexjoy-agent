@@ -2,7 +2,7 @@
 
 <!-- Loaded by ui-frontend-engineer when task involves Tailwind, frontend tokens, theme config, spacing scales, or starting a new surface -->
 
-House conventions for tokens, Tailwind, and how to open a frontend task. Tailwind utility syntax and CSS custom property syntax are assumed known.
+House conventions for tokens, Tailwind, and how to open a design task. Tailwind utility syntax and CSS custom property syntax are assumed known.
 
 ---
 
@@ -14,17 +14,17 @@ Before writing any markup:
 - Write the narrative brief: visual thesis, content plan, interaction thesis
 - Confirm real content is available (hero headline, product name, single promise)
 
-A surface frontended against lorem ipsum gets lorem ipsum hierarchy. If the real content does not exist yet, that is a blocker worth naming, not a gap to fill with placeholder text.
+A surface designed against lorem ipsum gets lorem ipsum hierarchy. If the real content does not exist yet, that is a blocker worth naming, not a gap to fill with placeholder text.
 
 ## Tokens
 
 - When a color, spacing value, or font appears more than once, add it to `tailwind.config.js` as a named token. Use arbitrary values (`[#1a237e]`) only for one-off layout values that appear exactly once.
-- **Do not seed a token set with a default typeface.** Fonts are a project decision, made against the project's aesthetic direction and audience — see the font section of `ai-slop-detection.md`. A `--font-sans` that nobody chose is the tell that nobody chose it.
-- Colors in a token set must trace to a source: brand guide, cultural reference, material inspiration, or a deliberate harmony relationship. A scale of plausible-looking hexes is the same failure as a default font.
+- **Choose the font token for the surface.** Tools: a neutral sans (`system-ui` stack, Inter, Geist) is the right default. Brand pages: a face chosen for the brand. See the font section of `ai-slop-detection.md`.
+- Colors in a token set trace to a source: brand guide, an existing design system, or a deliberate harmony relationship. Start with tinted neutrals plus one accent (`skills/shared-patterns/ui-design-judgment.md` section 5).
 - Spacing snaps to a 4px grid (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). `1px` and `2px` are structural (borders, dividers, outlines), not spacing.
 
 ```bash
-python3 scripts/frontend-scale-check.py path/to/styles.css   # flags px values off the 4px grid
+python3 scripts/design-scale-check.py path/to/styles.css   # flags px values off the 4px grid
 ```
 
 ## Tailwind: The Dynamic Class Trap

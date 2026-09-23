@@ -239,6 +239,7 @@ Load when the task needs detailed patterns, catalogs, or specifications.
 | Full diagnostic report format | `references/full-diagnostic.md` |
 | Individual capability specs | `references/capabilities/*.md` (61 files) |
 | VFX containment rules | `references/vfx-containment.md` |
+| Menus, HUD, shop, settings, or other screen UI (load first) | `skills/shared-patterns/ui-design-judgment.md` (game genre conventions win over web defaults), then `skills/frontend/frontend/references/distinctive-frontend-design-refs/game-ui-polish.md` |
 
 ### Pipeline
 

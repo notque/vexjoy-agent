@@ -1,6 +1,6 @@
 # LLM Design Failure Modes
 
-Specific ways LLMs fail at design tasks. Each failure mode includes detection signals and concrete defenses. Load this reference for every design mode.
+Specific ways LLMs fail at design tasks. Each failure mode includes detection signals and concrete defenses. Load this reference for every design mode, after `skills/shared-patterns/ui-design-judgment.md`. Visual tells of generated UI (gradients, card mosaics, emoji icons, overcorrection) live in that doc's section 9 and are not repeated here.
 
 > **Shared base**: Universal LLM failure modes (hallucination, overconfidence, generic output, arithmetic errors, stale knowledge) are documented in `skills/shared-patterns/llm-domain-failure-modes-base.md`. This file covers design-specific failures only.
 
@@ -8,38 +8,13 @@ Specific ways LLMs fail at design tasks. Each failure mode includes detection si
 
 ## 1. Generic Copy Without Product Context
 
-**What happens**: LLM generates professionally-written copy that could belong to any product. "Get started today!" "Something went wrong." "Welcome aboard!"
-
-**Detection signals**:
-- Copy works equally well for a banking app and a gaming platform
-- No product-specific terminology
-- Tone does not match the product's existing voice
-- Generic verbs: "Submit", "Continue", "OK"
-
-**Defense**:
-- Ask for the product's existing terminology and voice before writing
-- Match button labels to the specific outcome: "Create invoice" not "Submit"
-- Reference the user's actual task: "No invoices yet" not "Nothing here yet"
-- Check: would a competitor's product use this exact same copy? If yes, it's too generic. Make it specific.
+Core rules: `ui-design-judgment.md` section 8. Detection: the copy would work unchanged for a banking app and a game, or a competitor could ship the same words. Defense: ask for existing terminology and voice first; name the user's actual object ("No invoices yet", "Create invoice").
 
 ---
 
 ## 2. Inaccessible Color Suggestions
 
-**What happens**: LLM recommends color combinations that look appealing but fail WCAG contrast requirements. Common with white text on medium-brightness backgrounds.
-
-**Detection signals**:
-- White text on any color lighter than the 600 shade (e.g., blue-500, green-500)
-- Gray text lighter than #767676 on white
-- Colored text on colored backgrounds without ratio check
-- Status colors (green for success, red for error) used as text color on white
-
-**Defense**:
-- Calculate contrast ratio for every text/background pairing recommended
-- Minimum 4.5:1 for normal text, 3:1 for large text (18pt+), 3:1 for UI components
-- Common safe pairings: gray-800 on white (14.72:1), gray-600 on white (7.45:1)
-- When suggesting a color palette, include the contrast ratio for each pairing
-- Always pair color-based status indicators with icons and text labels
+Core rules: `ui-design-judgment.md` section 5 (4.5:1 body, 3:1 large text and UI). Common misses: white text on mid-tone brand colors (500 shades and lighter), gray text lighter than #767676 on white, status colors used as text on white, placeholder text. Defense: state the ratio for every pair you recommend; safe anchors are gray-800 on white (14.72:1) and gray-600 on white (7.45:1).
 
 ---
 
@@ -98,20 +73,7 @@ Use this checklist for every spec:
 
 ## 5. Surface-Level Critique
 
-**What happens**: LLM provides vague feedback that sounds positive but gives no actionable guidance. "The layout is clean." "Good use of whitespace." "The hierarchy is clear."
-
-**Detection signals**:
-- Feedback uses subjective adjectives without specifics: "clean", "modern", "intuitive"
-- No specific elements named
-- No before/after comparison
-- No design principle cited as basis for feedback
-- Critique could apply to any design
-
-**Defense**:
-- Every finding names: the specific element, the specific issue, the specific impact, and a specific recommendation
-- Use the format: "[Element] has [issue] which causes [impact]. Improve by [recommendation]."
-- "Clean" is not feedback. "The 32px section spacing creates consistent vertical rhythm between content blocks" is feedback.
-- Always include what works well and explain WHY it works (which principle it applies correctly)
+Detection: adjectives with no element ("clean", "modern", "intuitive"); feedback that fits any design. Defense: the finding format in `ui-design-judgment.md` section 10: element, problem, effect, fix. "The 32px section spacing creates consistent rhythm" is feedback; "clean layout" is not. Say what works and which principle it applies.
 
 ---
 

@@ -388,6 +388,6 @@ grep -rn "InstancedMesh\|instanceMatrix" --include="*.js" --include="*.ts"
 
 ## See Also
 
-- `references/visual-polish.md` — Material recipes and HDR environments
-- `references/shader-patterns.md` — Custom GLSL shader patterns
-- `references/advanced-topics.md` — GLTF loading, TypeScript patterns
+- `references/threejs-builder-refs/visual-polish.md` — Material recipes and HDR environments
+- `references/threejs-builder-refs/shader-patterns.md` — Custom GLSL shader patterns
+- `references/threejs-builder-refs/advanced-topics.md` — GLTF loading, TypeScript patterns

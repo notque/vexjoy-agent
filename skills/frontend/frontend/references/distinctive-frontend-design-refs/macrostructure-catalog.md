@@ -196,7 +196,7 @@ probably trying to be two pages; split it or pick the one action that matters mo
 ## macro:dashboard
 
 **When to use:** an operator surface — live data, controls, status. Function over
-persuasion. Follows app rules, not landing-page rules (see `app-vs-landing-rules.md`).
+persuasion. Follows tool rules, not landing-page rules (see `skills/shared-patterns/ui-design-judgment.md` section 1).
 
 **Layout skeleton:**
 1. Top bar — product, primary context switcher, account.

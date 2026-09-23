@@ -178,6 +178,7 @@ See [references/programming-security-testing.md](programming-general-engineer/re
 
 | Signal | Load These Files | Why |
 |---|---|---|
+| SwiftUI or UIKit screen layout, hierarchy, spacing, type, color, states (load first; Apple Human Interface Guidelines win over web defaults) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
 | immutability, actors, Sendable, protocol-oriented frontend, state modeling | [programming-patterns.md](programming-general-engineer/references/programming-patterns.md) | Core Swift idiom and concurrency patterns |
 | writing or reviewing Swift tests; failure mode detection | [programming-security-testing.md](programming-general-engineer/references/programming-security-testing.md) | Testing methodology and failure mode detection table |
 | security, auth, Keychain, ATS, WebView, biometrics, deep links, or any vulnerability-related code | [programming-security.md](programming-general-engineer/references/programming-security.md) | Secure implementation patterns for Swift iOS, macOS, and server-side. |

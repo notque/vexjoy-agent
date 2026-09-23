@@ -1,0 +1,1637 @@
+{
+ "version": "shadcn-style-catalog-v2",
+ "source": {
+  "components": "https://ui.shadcn.com/r/index.json",
+  "composites": [
+   "https://ui.shadcn.com/docs/components/radix/data-table.md",
+   "https://ui.shadcn.com/docs/components/radix/date-picker.md"
+  ],
+  "base_colors": "https://ui.shadcn.com/r/colors/{neutral,stone,zinc,slate,gray}.json (cssVarsV4)",
+  "fetched": "2026-09-22",
+  "registry_items": 63,
+  "notes": "Every registry:ui item is listed. `bases` lists primitive sets when an item is not in all of radix, base, and aria. `form` has no files in the index; the Forms guide builds on `field`. Blocks and the typography page (utility classes, nothing to install) are not listed."
+ },
+ "capabilities": {
+  "actions": "Triggers one or more commands.",
+  "anchored-panel": "Opens a panel positioned against its trigger.",
+  "app-shell": "Frames the whole app layout and its navigation.",
+  "binary-toggle": "Holds an on/off state.",
+  "confirmation": "Asks the user to confirm a consequential action.",
+  "content-group": "Groups related content into one bounded unit.",
+  "contextual-hint": "Explains a control or item on hover or focus.",
+  "conversation": "Renders chat turns or system notes in a conversation.",
+  "data-entry": "Captures user input for a form or setting.",
+  "date-input": "Selects a date or date range.",
+  "dense-content": "Keeps a lot of content compact on screen.",
+  "details": "Shows full details of one item.",
+  "divider": "Separates adjacent groups.",
+  "empty-state": "Explains an empty view and the next step.",
+  "field-errors": "Shows per-field error messages.",
+  "file-attachment": "Shows files or images attached or being uploaded.",
+  "filter": "Narrows a record set by criteria.",
+  "focused-task": "Isolates one short task from the page.",
+  "identity": "Represents a person or account visually.",
+  "inline-alert": "Shows a persistent in-page message.",
+  "keyboard": "Supports or displays keyboard-first use.",
+  "large-option-set": "Chooses among many options.",
+  "layout-split": "Splits the view into user-resizable panes.",
+  "list-items": "Lays out rows in a vertical list.",
+  "loading": "Shows that content is loading.",
+  "media": "Displays images, video, or embeds.",
+  "menu": "Lists commands or links behind a trigger or bar.",
+  "mobile-panel": "Works as a panel on small screens.",
+  "modal": "Blocks the page until dismissed.",
+  "multi-choice": "Selects any number of options.",
+  "multi-step": "Walks through a sequence of steps.",
+  "navigation": "Moves between pages or sections.",
+  "notification": "Shows transient, non-blocking feedback.",
+  "numeric-range": "Sets a number or range by dragging.",
+  "overlay": "Appears above the page content.",
+  "pagination": "Pages through a long record set.",
+  "peer-views": "Offers alternative views of one context.",
+  "progress": "Shows progress toward a known end.",
+  "progressive-disclosure": "Reveals detail on demand.",
+  "quick-action": "Runs commands without leaving the page.",
+  "row-actions": "Acts on one record in a list or table.",
+  "scroll-region": "Scrolls a bounded region.",
+  "search": "Finds items by typed text.",
+  "secondary-task": "Hosts a task beside the main page.",
+  "section-switching": "Switches between sections in place.",
+  "sequential-browse": "Browses items one after another.",
+  "single-choice": "Selects exactly one option.",
+  "sort": "Orders records by a column or key.",
+  "status": "Labels the state of an item or process.",
+  "submit": "Submits a set of inputs as one action.",
+  "summary": "Summarizes key facts at a glance.",
+  "tabular-data": "Shows records in rows and columns.",
+  "text-direction": "Supports right-to-left layouts.",
+  "text-entry": "Captures typed text.",
+  "toolbar": "Groups related controls in one row.",
+  "validation": "Checks input and blocks invalid submission.",
+  "verification-code": "Captures a one-time code.",
+  "visualization": "Plots data as a chart.",
+  "wayfinding": "Shows where the user is in a hierarchy."
+ },
+ "density": {
+  "compact": {
+   "body": "text-sm",
+   "control": "h-8",
+   "row": "h-9",
+   "gap": "gap-3",
+   "section": "py-6",
+   "page_x": "px-4"
+  },
+  "default": {
+   "body": "text-sm md:text-base",
+   "control": "h-9",
+   "row": "h-10",
+   "gap": "gap-4",
+   "section": "py-10",
+   "page_x": "px-4 md:px-6"
+  },
+  "comfortable": {
+   "body": "text-base",
+   "control": "h-11",
+   "row": "h-12",
+   "gap": "gap-6",
+   "section": "py-16",
+   "page_x": "px-4 md:px-8"
+  }
+ },
+ "shadow": {
+  "none": "shadow-none",
+  "subtle": "shadow-xs",
+  "soft": "shadow-sm",
+  "elevated": "shadow-md"
+ },
+ "components": [
+  {
+   "id": "accordion",
+   "package": "accordion",
+   "capabilities": [
+    "progressive-disclosure",
+    "dense-content",
+    "content-group"
+   ],
+   "use_when": "Users open a few of many independent sections, such as FAQs or settings groups.",
+   "avoid_when": "Content users must compare side by side, or a single toggle region (use collapsible)."
+  },
+  {
+   "id": "alert",
+   "package": "alert",
+   "capabilities": [
+    "inline-alert",
+    "status"
+   ],
+   "use_when": "A persistent in-page message explains state, risk, or a required next step.",
+   "avoid_when": "Transient confirmations (use sonner) or blocking decisions (use alert-dialog)."
+  },
+  {
+   "id": "alert-dialog",
+   "package": "alert-dialog",
+   "capabilities": [
+    "modal",
+    "confirmation",
+    "overlay"
+   ],
+   "use_when": "A destructive or irreversible action needs explicit confirmation before it runs.",
+   "avoid_when": "Routine tasks, forms, or anything a user can undo.",
+   "pairs_with": [
+    "button"
+   ]
+  },
+  {
+   "id": "aspect-ratio",
+   "package": "aspect-ratio",
+   "capabilities": [
+    "media"
+   ],
+   "use_when": "Images, video, or embeds must hold a fixed ratio to avoid layout shift.",
+   "avoid_when": "Text content or elements whose height follows their content."
+  },
+  {
+   "id": "attachment",
+   "package": "attachment",
+   "capabilities": [
+    "file-attachment",
+    "media",
+    "actions"
+   ],
+   "use_when": "Users see uploaded files or images with name, size, upload state, and remove actions.",
+   "avoid_when": "Plain links to documents with no upload state.",
+   "pairs_with": [
+    "spinner",
+    "progress"
+   ],
+   "bases": [
+    "aria"
+   ]
+  },
+  {
+   "id": "avatar",
+   "package": "avatar",
+   "capabilities": [
+    "identity"
+   ],
+   "use_when": "A person, team, or account needs a compact visual identity with an initials fallback.",
+   "avoid_when": "Decorative images or product imagery."
+  },
+  {
+   "id": "badge",
+   "package": "badge",
+   "capabilities": [
+    "status"
+   ],
+   "use_when": "A short label marks status, category, or a count next to other content.",
+   "avoid_when": "Clickable actions (use button) or long text."
+  },
+  {
+   "id": "breadcrumb",
+   "package": "breadcrumb",
+   "capabilities": [
+    "wayfinding",
+    "navigation"
+   ],
+   "use_when": "Users move up a deep hierarchy and need to see where they are.",
+   "avoid_when": "Flat apps with one or two levels."
+  },
+  {
+   "id": "bubble",
+   "package": "bubble",
+   "capabilities": [
+    "conversation"
+   ],
+   "use_when": "Chat turns render as message bubbles with alignment, grouping, and reactions.",
+   "avoid_when": "Threaded comments or documents.",
+   "pairs_with": [
+    "message",
+    "marker"
+   ],
+   "bases": [
+    "aria"
+   ]
+  },
+  {
+   "id": "button",
+   "package": "button",
+   "capabilities": [
+    "actions"
+   ],
+   "use_when": "Users trigger one action; variants set its emphasis.",
+   "avoid_when": "Navigation between pages that should be a link."
+  },
+  {
+   "id": "button-group",
+   "package": "button-group",
+   "capabilities": [
+    "actions",
+    "toolbar"
+   ],
+   "use_when": "Several related actions sit together as one connected control.",
+   "avoid_when": "Mutually exclusive options that hold state (use toggle-group).",
+   "pairs_with": [
+    "button"
+   ]
+  },
+  {
+   "id": "calendar",
+   "package": "calendar",
+   "capabilities": [
+    "date-input"
+   ],
+   "use_when": "Users pick a date or range from an always-visible month grid.",
+   "avoid_when": "Compact fields where a popover picker fits (use date-picker)."
+  },
+  {
+   "id": "card",
+   "package": "card",
+   "capabilities": [
+    "content-group",
+    "summary",
+    "actions"
+   ],
+   "use_when": "A bounded, self-contained item needs a title, metadata, and its own actions.",
+   "avoid_when": "Purely visual grouping on dashboards, or wrapping a whole hero."
+  },
+  {
+   "id": "carousel",
+   "package": "carousel",
+   "capabilities": [
+    "sequential-browse",
+    "media"
+   ],
+   "use_when": "Users browse a sequence of media without comparing items at once.",
+   "avoid_when": "Content users must compare or scan; key information hidden on later slides."
+  },
+  {
+   "id": "chart",
+   "package": "chart",
+   "capabilities": [
+    "visualization",
+    "summary"
+   ],
+   "use_when": "Trends, distributions, or comparisons are clearer as a chart than as numbers.",
+   "avoid_when": "One or two values (use a stat in a card) or data users must read exactly (use table).",
+   "pairs_with": [
+    "card"
+   ]
+  },
+  {
+   "id": "checkbox",
+   "package": "checkbox",
+   "capabilities": [
+    "multi-choice",
+    "binary-toggle",
+    "data-entry"
+   ],
+   "use_when": "Users select any number of options, or accept one condition in a form.",
+   "avoid_when": "Settings that apply immediately (use switch).",
+   "pairs_with": [
+    "field",
+    "label"
+   ]
+  },
+  {
+   "id": "collapsible",
+   "package": "collapsible",
+   "capabilities": [
+    "progressive-disclosure"
+   ],
+   "use_when": "One region shows or hides extra detail in place.",
+   "avoid_when": "Many peer sections (use accordion or tabs)."
+  },
+  {
+   "id": "combobox",
+   "package": "combobox",
+   "capabilities": [
+    "search",
+    "single-choice",
+    "large-option-set",
+    "data-entry"
+   ],
+   "use_when": "Users pick one value from a long list by typing to filter.",
+   "avoid_when": "Fewer than about seven options (use select or radio-group).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "command",
+   "package": "command",
+   "capabilities": [
+    "search",
+    "keyboard",
+    "quick-action",
+    "large-option-set"
+   ],
+   "use_when": "Users search and run actions or jump anywhere from a keyboard palette.",
+   "avoid_when": "The only way to reach a feature; novice-only audiences.",
+   "pairs_with": [
+    "dialog",
+    "kbd"
+   ]
+  },
+  {
+   "id": "context-menu",
+   "package": "context-menu",
+   "capabilities": [
+    "menu",
+    "actions"
+   ],
+   "use_when": "Power users right-click an item for its secondary actions.",
+   "avoid_when": "The only path to an action; touch-first screens.",
+   "pairs_with": [
+    "dropdown-menu"
+   ]
+  },
+  {
+   "id": "dialog",
+   "package": "dialog",
+   "capabilities": [
+    "modal",
+    "overlay",
+    "focused-task",
+    "confirmation"
+   ],
+   "use_when": "A short focused task interrupts the page and returns the user when done.",
+   "avoid_when": "Long or multi-step work, or content users need beside the page (use sheet).",
+   "pairs_with": [
+    "button",
+    "field"
+   ]
+  },
+  {
+   "id": "direction",
+   "package": "direction",
+   "capabilities": [
+    "text-direction"
+   ],
+   "use_when": "The app supports right-to-left languages and components must mirror.",
+   "avoid_when": "Single-direction apps with no RTL locale."
+  },
+  {
+   "id": "drawer",
+   "package": "drawer",
+   "capabilities": [
+    "overlay",
+    "mobile-panel",
+    "secondary-task"
+   ],
+   "use_when": "On touch screens a bottom panel holds a secondary task or options.",
+   "avoid_when": "Desktop side panels with persistent details (use sheet)."
+  },
+  {
+   "id": "dropdown-menu",
+   "package": "dropdown-menu",
+   "capabilities": [
+    "menu",
+    "actions",
+    "row-actions"
+   ],
+   "use_when": "A trigger opens a short list of actions, such as per-row actions.",
+   "avoid_when": "Choosing a form value (use select) or site navigation (use navigation-menu).",
+   "pairs_with": [
+    "button"
+   ]
+  },
+  {
+   "id": "empty",
+   "package": "empty",
+   "capabilities": [
+    "empty-state"
+   ],
+   "use_when": "A list, table, or page has no content yet and must explain the next step.",
+   "avoid_when": "Loading states (use skeleton) or errors (use alert).",
+   "pairs_with": [
+    "button"
+   ]
+  },
+  {
+   "id": "field",
+   "package": "field",
+   "capabilities": [
+    "data-entry",
+    "validation",
+    "field-errors"
+   ],
+   "use_when": "Form controls need a label, description, and error message with correct ARIA wiring.",
+   "avoid_when": "Display-only values.",
+   "pairs_with": [
+    "input",
+    "label"
+   ]
+  },
+  {
+   "id": "form",
+   "package": "form",
+   "capabilities": [
+    "data-entry",
+    "validation",
+    "field-errors",
+    "submit"
+   ],
+   "use_when": "An existing codebase already uses the legacy react-hook-form wrapper.",
+   "avoid_when": "New forms; build them with field plus your form library.",
+   "pairs_with": [
+    "field"
+   ],
+   "status": "legacy"
+  },
+  {
+   "id": "hover-card",
+   "package": "hover-card",
+   "capabilities": [
+    "contextual-hint",
+    "details",
+    "anchored-panel"
+   ],
+   "use_when": "Pointer users preview rich details, such as a profile, on hover.",
+   "avoid_when": "Essential information or touch-first screens (hover never fires)."
+  },
+  {
+   "id": "input",
+   "package": "input",
+   "capabilities": [
+    "text-entry",
+    "data-entry"
+   ],
+   "use_when": "Users type a single line of text, email, number, or password.",
+   "avoid_when": "Multi-line text (use textarea) or a fixed set of options.",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "input-group",
+   "package": "input-group",
+   "capabilities": [
+    "text-entry",
+    "data-entry",
+    "search"
+   ],
+   "use_when": "An input needs icons, prefixes, suffixes, or inline buttons attached.",
+   "avoid_when": "Plain fields with nothing attached (use input).",
+   "pairs_with": [
+    "field",
+    "button"
+   ]
+  },
+  {
+   "id": "input-otp",
+   "package": "input-otp",
+   "capabilities": [
+    "verification-code",
+    "data-entry"
+   ],
+   "use_when": "Users enter a one-time code split into boxes.",
+   "avoid_when": "Passwords or free text.",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "item",
+   "package": "item",
+   "capabilities": [
+    "list-items",
+    "content-group",
+    "actions"
+   ],
+   "use_when": "Rows in a list show media, title, description, and actions in a consistent layout.",
+   "avoid_when": "Tabular data with columns users compare (use table)."
+  },
+  {
+   "id": "kbd",
+   "package": "kbd",
+   "capabilities": [
+    "keyboard"
+   ],
+   "use_when": "The UI shows a keyboard shortcut or key name.",
+   "avoid_when": "Interactive controls; this only displays keys."
+  },
+  {
+   "id": "label",
+   "package": "label",
+   "capabilities": [
+    "data-entry"
+   ],
+   "use_when": "A standalone control needs an accessible visible label.",
+   "avoid_when": "Controls already wrapped in field, which includes a label."
+  },
+  {
+   "id": "marker",
+   "package": "marker",
+   "capabilities": [
+    "status",
+    "conversation",
+    "divider"
+   ],
+   "use_when": "A conversation shows a system note, inline status, or labeled separator.",
+   "avoid_when": "Page-level alerts (use alert).",
+   "pairs_with": [
+    "message",
+    "spinner"
+   ],
+   "bases": [
+    "aria"
+   ]
+  },
+  {
+   "id": "menubar",
+   "package": "menubar",
+   "capabilities": [
+    "menu",
+    "toolbar",
+    "keyboard"
+   ],
+   "use_when": "A desktop-style app needs a persistent File/Edit/View menu row.",
+   "avoid_when": "Websites or mobile layouts.",
+   "bases": [
+    "base",
+    "radix"
+   ]
+  },
+  {
+   "id": "message",
+   "package": "message",
+   "capabilities": [
+    "conversation",
+    "identity"
+   ],
+   "use_when": "A chat turn needs avatar, header, footer, and sender alignment.",
+   "avoid_when": "Comments on documents or email-style threads.",
+   "pairs_with": [
+    "bubble",
+    "avatar"
+   ],
+   "bases": [
+    "aria"
+   ]
+  },
+  {
+   "id": "message-scroller",
+   "package": "message-scroller",
+   "capabilities": [
+    "conversation",
+    "scroll-region"
+   ],
+   "use_when": "A chat transcript streams replies, loads history, and keeps the latest turn anchored.",
+   "avoid_when": "Static lists or short logs (use scroll-area).",
+   "pairs_with": [
+    "message",
+    "bubble"
+   ],
+   "bases": [
+    "aria"
+   ]
+  },
+  {
+   "id": "native-select",
+   "package": "native-select",
+   "capabilities": [
+    "single-choice",
+    "data-entry"
+   ],
+   "use_when": "A single choice must use the platform picker, especially on mobile.",
+   "avoid_when": "Options that need icons, search, or rich content (use select or combobox).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "navigation-menu",
+   "package": "navigation-menu",
+   "capabilities": [
+    "navigation",
+    "menu"
+   ],
+   "use_when": "A site header links to top-level sections, with optional rich flyouts.",
+   "avoid_when": "App navigation with many sections (use sidebar).",
+   "bases": [
+    "base",
+    "radix"
+   ]
+  },
+  {
+   "id": "pagination",
+   "package": "pagination",
+   "capabilities": [
+    "pagination",
+    "navigation"
+   ],
+   "use_when": "Users step through pages of results with a known total.",
+   "avoid_when": "Feeds better suited to load-more or infinite scroll."
+  },
+  {
+   "id": "popover",
+   "package": "popover",
+   "capabilities": [
+    "overlay",
+    "anchored-panel"
+   ],
+   "use_when": "A small interactive panel opens next to its trigger.",
+   "avoid_when": "Plain hints (use tooltip) or tasks that need full focus (use dialog)."
+  },
+  {
+   "id": "progress",
+   "package": "progress",
+   "capabilities": [
+    "progress",
+    "status"
+   ],
+   "use_when": "A task shows how far it has advanced toward a known end.",
+   "avoid_when": "Unknown durations (use spinner)."
+  },
+  {
+   "id": "questionnaire",
+   "package": "questionnaire",
+   "capabilities": [
+    "multi-step",
+    "data-entry",
+    "single-choice",
+    "multi-choice",
+    "submit",
+    "progress"
+   ],
+   "use_when": "Users answer a guided sequence of questions with skip, back, and progress.",
+   "avoid_when": "Short forms that fit one screen (use field)."
+  },
+  {
+   "id": "radio-group",
+   "package": "radio-group",
+   "capabilities": [
+    "single-choice",
+    "data-entry"
+   ],
+   "use_when": "Users pick one of a few options that should all stay visible.",
+   "avoid_when": "More than about seven options (use select).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "resizable",
+   "package": "resizable",
+   "capabilities": [
+    "layout-split"
+   ],
+   "use_when": "Users resize adjacent panels such as a list and a detail pane.",
+   "avoid_when": "Mobile layouts or fixed page structure."
+  },
+  {
+   "id": "scroll-area",
+   "package": "scroll-area",
+   "capabilities": [
+    "scroll-region"
+   ],
+   "use_when": "A bounded region scrolls with consistent styled scrollbars.",
+   "avoid_when": "The main page scroll."
+  },
+  {
+   "id": "select",
+   "package": "select",
+   "capabilities": [
+    "single-choice",
+    "data-entry"
+   ],
+   "use_when": "Users pick one value from a short-to-medium list in a compact control.",
+   "avoid_when": "Long lists that need typing (use combobox).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "separator",
+   "package": "separator",
+   "capabilities": [
+    "divider"
+   ],
+   "use_when": "Adjacent groups need a visual or semantic divider.",
+   "avoid_when": "Spacing alone already separates the groups."
+  },
+  {
+   "id": "sheet",
+   "package": "sheet",
+   "capabilities": [
+    "overlay",
+    "details",
+    "secondary-task",
+    "mobile-panel"
+   ],
+   "use_when": "Supporting details or a secondary task open beside the page, keeping context.",
+   "avoid_when": "Short confirmations (use alert-dialog)."
+  },
+  {
+   "id": "sidebar",
+   "package": "sidebar",
+   "capabilities": [
+    "navigation",
+    "app-shell"
+   ],
+   "use_when": "An app needs persistent, collapsible navigation across many sections.",
+   "avoid_when": "Marketing sites or apps with three or fewer destinations."
+  },
+  {
+   "id": "skeleton",
+   "package": "skeleton",
+   "capabilities": [
+    "loading"
+   ],
+   "use_when": "Content is loading and its layout is known, so placeholders prevent shift.",
+   "avoid_when": "Unknown layouts or quick actions (use spinner)."
+  },
+  {
+   "id": "slider",
+   "package": "slider",
+   "capabilities": [
+    "numeric-range",
+    "data-entry"
+   ],
+   "use_when": "Users set an approximate value or range where the exact number matters little.",
+   "avoid_when": "Exact numeric entry (use input).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "sonner",
+   "package": "sonner",
+   "capabilities": [
+    "notification"
+   ],
+   "use_when": "Brief, non-blocking feedback confirms an action or reports a background event.",
+   "avoid_when": "Errors users must act on (use alert) or essential content."
+  },
+  {
+   "id": "spinner",
+   "package": "spinner",
+   "capabilities": [
+    "loading"
+   ],
+   "use_when": "A short wait with unknown duration, often inside a button.",
+   "avoid_when": "Known progress (use progress) or page loads with known layout (use skeleton)."
+  },
+  {
+   "id": "switch",
+   "package": "switch",
+   "capabilities": [
+    "binary-toggle",
+    "data-entry"
+   ],
+   "use_when": "A setting turns on or off and applies immediately.",
+   "avoid_when": "Choices submitted with a form (use checkbox).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "table",
+   "package": "table",
+   "capabilities": [
+    "tabular-data"
+   ],
+   "use_when": "Static rows and columns users read and compare.",
+   "avoid_when": "Sorting, filtering, or paging (use data-table)."
+  },
+  {
+   "id": "tabs",
+   "package": "tabs",
+   "capabilities": [
+    "section-switching",
+    "peer-views"
+   ],
+   "use_when": "A few peer views share one page context.",
+   "avoid_when": "Sequential steps or more than about six views."
+  },
+  {
+   "id": "textarea",
+   "package": "textarea",
+   "capabilities": [
+    "text-entry",
+    "data-entry"
+   ],
+   "use_when": "Users write multi-line text.",
+   "avoid_when": "Single values (use input).",
+   "pairs_with": [
+    "field"
+   ]
+  },
+  {
+   "id": "toast",
+   "package": "toast",
+   "capabilities": [
+    "notification"
+   ],
+   "use_when": "Brief, non-blocking feedback in the Base UI primitive set.",
+   "avoid_when": "Radix or Aria projects (use sonner).",
+   "bases": [
+    "base"
+   ]
+  },
+  {
+   "id": "toggle",
+   "package": "toggle",
+   "capabilities": [
+    "binary-toggle",
+    "toolbar"
+   ],
+   "use_when": "A pressed state turns one formatting or view option on or off.",
+   "avoid_when": "Settings (use switch)."
+  },
+  {
+   "id": "toggle-group",
+   "package": "toggle-group",
+   "capabilities": [
+    "single-choice",
+    "multi-choice",
+    "toolbar"
+   ],
+   "use_when": "A row of options shows which are active, such as view mode or text style.",
+   "avoid_when": "Form values submitted later (use radio-group).",
+   "pairs_with": [
+    "toggle"
+   ]
+  },
+  {
+   "id": "tooltip",
+   "package": "tooltip",
+   "capabilities": [
+    "contextual-hint",
+    "anchored-panel"
+   ],
+   "use_when": "Icon-only controls need a short text label on hover and focus.",
+   "avoid_when": "Essential or interactive content (use popover)."
+  },
+  {
+   "id": "data-table",
+   "package": "table",
+   "capabilities": [
+    "tabular-data",
+    "sort",
+    "filter",
+    "pagination",
+    "row-actions"
+   ],
+   "use_when": "Users compare, sort, filter, and act on structured records.",
+   "avoid_when": "Fewer than about ten static rows (use table).",
+   "pairs_with": [
+    "dropdown-menu",
+    "checkbox",
+    "input"
+   ],
+   "kind": "composite",
+   "also_add": [
+    "button",
+    "checkbox",
+    "dropdown-menu",
+    "input"
+   ],
+   "npm": [
+    "@tanstack/react-table"
+   ]
+  },
+  {
+   "id": "date-picker",
+   "package": "calendar",
+   "capabilities": [
+    "date-input",
+    "overlay",
+    "data-entry"
+   ],
+   "use_when": "Users pick a date or range in a compact field that opens a calendar.",
+   "avoid_when": "Dates users know exactly and type faster (use input).",
+   "pairs_with": [
+    "field"
+   ],
+   "kind": "composite",
+   "also_add": [
+    "popover",
+    "button"
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "id": "quiet-product",
+   "summary": "Monochrome, compact product UI; content and data carry the page, chrome stays quiet.",
+   "avoid_when": "Brand-led marketing pages or playful consumer apps.",
+   "traits": [
+    "calm",
+    "neutral",
+    "dense",
+    "professional"
+   ],
+   "base_color": "neutral",
+   "radius": "0.5rem",
+   "fonts": {
+    "heading": "Geist",
+    "body": "Geist",
+    "mono": "Geist Mono"
+   },
+   "density": "compact",
+   "shadow": "subtle",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0 0)",
+     "muted-foreground": "oklch(0.540 0 0)",
+     "ring": "oklch(0.620 0 0)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0 0)"
+    }
+   }
+  },
+  {
+   "id": "editorial-warm",
+   "summary": "Reading-first pages with a serif display face, warm paper neutrals, and generous measure.",
+   "avoid_when": "Dense tools where users scan tables or act fast.",
+   "traits": [
+    "editorial",
+    "warm",
+    "expressive",
+    "spacious"
+   ],
+   "base_color": "stone",
+   "radius": "0.375rem",
+   "fonts": {
+    "heading": "Newsreader",
+    "body": "Source Sans 3"
+   },
+   "density": "comfortable",
+   "shadow": "none",
+   "dark_mode": "light-first",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.003 48.717)",
+     "muted-foreground": "oklch(0.540 0.013 58.071)",
+     "primary": "oklch(0.565 0.130 40.000)",
+     "primary-foreground": "oklch(0.985 0.001 106.423)",
+     "ring": "oklch(0.565 0.130 40.000)",
+     "sidebar-primary": "oklch(0.565 0.130 40.000)",
+     "sidebar-ring": "oklch(0.565 0.130 40.000)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0.003 48.717)",
+     "primary": "oklch(0.720 0.130 40.000)",
+     "primary-foreground": "oklch(0.216 0.006 56.043)",
+     "ring": "oklch(0.720 0.130 40.000)",
+     "sidebar-primary": "oklch(0.720 0.130 40.000)",
+     "sidebar-ring": "oklch(0.720 0.130 40.000)"
+    }
+   }
+  },
+  {
+   "id": "technical-console",
+   "summary": "Dark-first operator console: tight rows, sharp corners, cyan focus, mono for values.",
+   "avoid_when": "First-time or non-technical users; long-form reading.",
+   "traits": [
+    "technical",
+    "dense",
+    "precise",
+    "dark-ready"
+   ],
+   "base_color": "zinc",
+   "radius": "0.25rem",
+   "fonts": {
+    "heading": "IBM Plex Sans",
+    "body": "IBM Plex Sans",
+    "mono": "IBM Plex Mono"
+   },
+   "density": "compact",
+   "shadow": "none",
+   "dark_mode": "dark-first",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.004 286.320)",
+     "muted-foreground": "oklch(0.540 0.016 285.938)",
+     "primary": "oklch(0.530 0.120 215.000)",
+     "primary-foreground": "oklch(0.985 0 0)",
+     "ring": "oklch(0.530 0.120 215.000)",
+     "sidebar-primary": "oklch(0.530 0.120 215.000)",
+     "sidebar-ring": "oklch(0.530 0.120 215.000)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0.004 286.320)",
+     "primary": "oklch(0.720 0.120 215.000)",
+     "primary-foreground": "oklch(0.21 0.006 285.885)",
+     "ring": "oklch(0.720 0.120 215.000)",
+     "sidebar-primary": "oklch(0.720 0.120 215.000)",
+     "sidebar-ring": "oklch(0.720 0.120 215.000)"
+    }
+   }
+  },
+  {
+   "id": "friendly-service",
+   "summary": "Soft, rounded self-service flows with calm teal actions and roomy touch targets.",
+   "avoid_when": "Expert tools that need many rows on screen.",
+   "traits": [
+    "friendly",
+    "approachable",
+    "spacious",
+    "soft"
+   ],
+   "base_color": "slate",
+   "radius": "0.75rem",
+   "fonts": {
+    "heading": "Nunito",
+    "body": "Nunito"
+   },
+   "density": "comfortable",
+   "shadow": "soft",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.660 0.013 255.508)",
+     "muted-foreground": "oklch(0.540 0.046 257.417)",
+     "primary": "oklch(0.530 0.110 185.000)",
+     "primary-foreground": "oklch(0.984 0.003 247.858)",
+     "ring": "oklch(0.530 0.110 185.000)",
+     "sidebar-primary": "oklch(0.530 0.110 185.000)",
+     "sidebar-ring": "oklch(0.530 0.110 185.000)"
+    },
+    "dark": {
+     "input": "oklch(0.480 0.013 255.508)",
+     "primary": "oklch(0.720 0.110 185.000)",
+     "primary-foreground": "oklch(0.208 0.042 265.755)",
+     "ring": "oklch(0.720 0.110 185.000)",
+     "sidebar-primary": "oklch(0.720 0.110 185.000)",
+     "sidebar-ring": "oklch(0.720 0.110 185.000)"
+    }
+   }
+  },
+  {
+   "id": "trusted-finance",
+   "summary": "Precise, trustworthy money and account screens: deep blue actions, tabular figures, restrained depth.",
+   "avoid_when": "Playful brands or editorial storytelling.",
+   "traits": [
+    "trustworthy",
+    "precise",
+    "professional",
+    "data-heavy"
+   ],
+   "base_color": "slate",
+   "radius": "0.5rem",
+   "fonts": {
+    "heading": "Inter",
+    "body": "Inter"
+   },
+   "density": "default",
+   "shadow": "subtle",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.660 0.013 255.508)",
+     "muted-foreground": "oklch(0.540 0.046 257.417)",
+     "primary": "oklch(0.550 0.150 258.000)",
+     "primary-foreground": "oklch(0.984 0.003 247.858)",
+     "ring": "oklch(0.550 0.150 258.000)",
+     "sidebar-primary": "oklch(0.550 0.150 258.000)",
+     "sidebar-ring": "oklch(0.550 0.150 258.000)"
+    },
+    "dark": {
+     "input": "oklch(0.480 0.013 255.508)",
+     "primary": "oklch(0.720 0.150 258.000)",
+     "primary-foreground": "oklch(0.208 0.042 265.755)",
+     "ring": "oklch(0.720 0.150 258.000)",
+     "sidebar-primary": "oklch(0.720 0.150 258.000)",
+     "sidebar-ring": "oklch(0.720 0.150 258.000)"
+    }
+   }
+  },
+  {
+   "id": "bold-launch",
+   "summary": "High-energy launch and marketing pages: grotesk display type, vivid violet, lifted surfaces.",
+   "avoid_when": "Daily-use tools; screens where calm focus matters.",
+   "traits": [
+    "bold",
+    "energetic",
+    "expressive",
+    "marketing"
+   ],
+   "base_color": "neutral",
+   "radius": "0.75rem",
+   "fonts": {
+    "heading": "Space Grotesk",
+    "body": "Inter"
+   },
+   "density": "comfortable",
+   "shadow": "elevated",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0 0)",
+     "muted-foreground": "oklch(0.540 0 0)",
+     "primary": "oklch(0.570 0.200 292.000)",
+     "primary-foreground": "oklch(0.985 0 0)",
+     "ring": "oklch(0.570 0.200 292.000)",
+     "sidebar-primary": "oklch(0.570 0.200 292.000)",
+     "sidebar-ring": "oklch(0.570 0.200 292.000)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0 0)",
+     "primary": "oklch(0.720 0.200 292.000)",
+     "primary-foreground": "oklch(0.205 0 0)",
+     "ring": "oklch(0.720 0.200 292.000)",
+     "sidebar-primary": "oklch(0.720 0.200 292.000)",
+     "sidebar-ring": "oklch(0.720 0.200 292.000)"
+    }
+   }
+  },
+  {
+   "id": "public-clarity",
+   "summary": "Plain, legible public-service forms: hyperlegible type, strong borders, obvious focus.",
+   "avoid_when": "Brand-expressive or luxury surfaces.",
+   "traits": [
+    "accessible",
+    "clear",
+    "calm",
+    "public-service"
+   ],
+   "base_color": "gray",
+   "radius": "0.5rem",
+   "fonts": {
+    "heading": "Atkinson Hyperlegible",
+    "body": "Atkinson Hyperlegible"
+   },
+   "density": "comfortable",
+   "shadow": "none",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.006 264.531)",
+     "muted-foreground": "oklch(0.540 0.027 264.364)",
+     "primary": "oklch(0.555 0.160 262.000)",
+     "primary-foreground": "oklch(0.985 0.002 247.839)",
+     "ring": "oklch(0.555 0.160 262.000)",
+     "sidebar-primary": "oklch(0.555 0.160 262.000)",
+     "sidebar-ring": "oklch(0.555 0.160 262.000)"
+    },
+    "dark": {
+     "input": "oklch(0.480 0.006 264.531)",
+     "primary": "oklch(0.720 0.160 262.000)",
+     "primary-foreground": "oklch(0.21 0.034 264.665)",
+     "ring": "oklch(0.720 0.160 262.000)",
+     "sidebar-primary": "oklch(0.720 0.160 262.000)",
+     "sidebar-ring": "oklch(0.720 0.160 262.000)"
+    }
+   }
+  },
+  {
+   "id": "docs-reader",
+   "summary": "Developer docs and references: neutral zinc, emerald links and actions, mono for code.",
+   "avoid_when": "Consumer marketing or data-dense dashboards.",
+   "traits": [
+    "technical",
+    "readable",
+    "documentation",
+    "neutral"
+   ],
+   "base_color": "zinc",
+   "radius": "0.5rem",
+   "fonts": {
+    "heading": "Geist",
+    "body": "Geist",
+    "mono": "Geist Mono"
+   },
+   "density": "default",
+   "shadow": "none",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.004 286.320)",
+     "muted-foreground": "oklch(0.540 0.016 285.938)",
+     "primary": "oklch(0.535 0.120 160.000)",
+     "primary-foreground": "oklch(0.985 0 0)",
+     "ring": "oklch(0.535 0.120 160.000)",
+     "sidebar-primary": "oklch(0.535 0.120 160.000)",
+     "sidebar-ring": "oklch(0.535 0.120 160.000)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0.004 286.320)",
+     "primary": "oklch(0.720 0.120 160.000)",
+     "primary-foreground": "oklch(0.21 0.006 285.885)",
+     "ring": "oklch(0.720 0.120 160.000)",
+     "sidebar-primary": "oklch(0.720 0.120 160.000)",
+     "sidebar-ring": "oklch(0.720 0.120 160.000)"
+    }
+   }
+  },
+  {
+   "id": "playful-consumer",
+   "summary": "Colorful consumer app: big rounded corners, coral actions, bouncy but brief feedback.",
+   "avoid_when": "Finance, health, or enterprise admin screens.",
+   "traits": [
+    "playful",
+    "colorful",
+    "friendly",
+    "energetic"
+   ],
+   "base_color": "stone",
+   "radius": "1rem",
+   "fonts": {
+    "heading": "Plus Jakarta Sans",
+    "body": "Plus Jakarta Sans"
+   },
+   "density": "comfortable",
+   "shadow": "soft",
+   "dark_mode": "ready",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.003 48.717)",
+     "muted-foreground": "oklch(0.540 0.013 58.071)",
+     "primary": "oklch(0.570 0.170 28.000)",
+     "primary-foreground": "oklch(0.985 0.001 106.423)",
+     "ring": "oklch(0.570 0.170 28.000)",
+     "sidebar-primary": "oklch(0.570 0.170 28.000)",
+     "sidebar-ring": "oklch(0.570 0.170 28.000)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0.003 48.717)",
+     "primary": "oklch(0.720 0.170 28.000)",
+     "primary-foreground": "oklch(0.216 0.006 56.043)",
+     "ring": "oklch(0.720 0.170 28.000)",
+     "sidebar-primary": "oklch(0.720 0.170 28.000)",
+     "sidebar-ring": "oklch(0.720 0.170 28.000)"
+    }
+   }
+  },
+  {
+   "id": "quiet-luxury",
+   "summary": "Minimal premium surfaces: square corners, near-black on warm white, serif display, lots of air.",
+   "avoid_when": "Dense data or task-heavy workflows.",
+   "traits": [
+    "elegant",
+    "minimal",
+    "premium",
+    "spacious"
+   ],
+   "base_color": "stone",
+   "radius": "0rem",
+   "fonts": {
+    "heading": "Cormorant Garamond",
+    "body": "Inter"
+   },
+   "density": "default",
+   "shadow": "none",
+   "dark_mode": "light-first",
+   "css_overrides": {
+    "light": {
+     "input": "oklch(0.665 0.003 48.717)",
+     "muted-foreground": "oklch(0.540 0.013 58.071)",
+     "ring": "oklch(0.620 0.013 58.071)"
+    },
+    "dark": {
+     "input": "oklch(0.485 0.003 48.717)"
+    }
+   }
+  }
+ ],
+ "base_colors": {
+  "gray": {
+   "light": {
+    "background": "oklch(1 0 0)",
+    "foreground": "oklch(0.13 0.028 261.692)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.13 0.028 261.692)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.13 0.028 261.692)",
+    "primary": "oklch(0.21 0.034 264.665)",
+    "primary-foreground": "oklch(0.985 0.002 247.839)",
+    "secondary": "oklch(0.967 0.003 264.542)",
+    "secondary-foreground": "oklch(0.21 0.034 264.665)",
+    "muted": "oklch(0.967 0.003 264.542)",
+    "muted-foreground": "oklch(0.551 0.027 264.364)",
+    "accent": "oklch(0.967 0.003 264.542)",
+    "accent-foreground": "oklch(0.21 0.034 264.665)",
+    "destructive": "oklch(0.577 0.245 27.325)",
+    "border": "oklch(0.928 0.006 264.531)",
+    "input": "oklch(0.928 0.006 264.531)",
+    "ring": "oklch(0.707 0.022 261.325)",
+    "chart-1": "oklch(0.646 0.222 41.116)",
+    "chart-2": "oklch(0.6 0.118 184.704)",
+    "chart-3": "oklch(0.398 0.07 227.392)",
+    "chart-4": "oklch(0.828 0.189 84.429)",
+    "chart-5": "oklch(0.769 0.188 70.08)",
+    "radius": "0.625rem",
+    "sidebar": "oklch(0.985 0.002 247.839)",
+    "sidebar-foreground": "oklch(0.13 0.028 261.692)",
+    "sidebar-primary": "oklch(0.21 0.034 264.665)",
+    "sidebar-primary-foreground": "oklch(0.985 0.002 247.839)",
+    "sidebar-accent": "oklch(0.967 0.003 264.542)",
+    "sidebar-accent-foreground": "oklch(0.21 0.034 264.665)",
+    "sidebar-border": "oklch(0.928 0.006 264.531)",
+    "sidebar-ring": "oklch(0.707 0.022 261.325)"
+   },
+   "dark": {
+    "background": "oklch(0.13 0.028 261.692)",
+    "foreground": "oklch(0.985 0.002 247.839)",
+    "card": "oklch(0.21 0.034 264.665)",
+    "card-foreground": "oklch(0.985 0.002 247.839)",
+    "popover": "oklch(0.21 0.034 264.665)",
+    "popover-foreground": "oklch(0.985 0.002 247.839)",
+    "primary": "oklch(0.928 0.006 264.531)",
+    "primary-foreground": "oklch(0.21 0.034 264.665)",
+    "secondary": "oklch(0.278 0.033 256.848)",
+    "secondary-foreground": "oklch(0.985 0.002 247.839)",
+    "muted": "oklch(0.278 0.033 256.848)",
+    "muted-foreground": "oklch(0.707 0.022 261.325)",
+    "accent": "oklch(0.278 0.033 256.848)",
+    "accent-foreground": "oklch(0.985 0.002 247.839)",
+    "destructive": "oklch(0.704 0.191 22.216)",
+    "border": "oklch(1 0 0 / 10%)",
+    "input": "oklch(1 0 0 / 15%)",
+    "ring": "oklch(0.551 0.027 264.364)",
+    "chart-1": "oklch(0.488 0.243 264.376)",
+    "chart-2": "oklch(0.696 0.17 162.48)",
+    "chart-3": "oklch(0.769 0.188 70.08)",
+    "chart-4": "oklch(0.627 0.265 303.9)",
+    "chart-5": "oklch(0.645 0.246 16.439)",
+    "sidebar": "oklch(0.21 0.034 264.665)",
+    "sidebar-foreground": "oklch(0.985 0.002 247.839)",
+    "sidebar-primary": "oklch(0.488 0.243 264.376)",
+    "sidebar-primary-foreground": "oklch(0.985 0.002 247.839)",
+    "sidebar-accent": "oklch(0.278 0.033 256.848)",
+    "sidebar-accent-foreground": "oklch(0.985 0.002 247.839)",
+    "sidebar-border": "oklch(1 0 0 / 10%)",
+    "sidebar-ring": "oklch(0.551 0.027 264.364)"
+   }
+  },
+  "neutral": {
+   "light": {
+    "background": "oklch(1 0 0)",
+    "foreground": "oklch(0.145 0 0)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.145 0 0)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.145 0 0)",
+    "primary": "oklch(0.205 0 0)",
+    "primary-foreground": "oklch(0.985 0 0)",
+    "secondary": "oklch(0.97 0 0)",
+    "secondary-foreground": "oklch(0.205 0 0)",
+    "muted": "oklch(0.97 0 0)",
+    "muted-foreground": "oklch(0.556 0 0)",
+    "accent": "oklch(0.97 0 0)",
+    "accent-foreground": "oklch(0.205 0 0)",
+    "destructive": "oklch(0.577 0.245 27.325)",
+    "border": "oklch(0.922 0 0)",
+    "input": "oklch(0.922 0 0)",
+    "ring": "oklch(0.708 0 0)",
+    "chart-1": "oklch(0.87 0 0)",
+    "chart-2": "oklch(0.556 0 0)",
+    "chart-3": "oklch(0.439 0 0)",
+    "chart-4": "oklch(0.371 0 0)",
+    "chart-5": "oklch(0.269 0 0)",
+    "radius": "0.625rem",
+    "sidebar": "oklch(0.985 0 0)",
+    "sidebar-foreground": "oklch(0.145 0 0)",
+    "sidebar-primary": "oklch(0.205 0 0)",
+    "sidebar-primary-foreground": "oklch(0.985 0 0)",
+    "sidebar-accent": "oklch(0.97 0 0)",
+    "sidebar-accent-foreground": "oklch(0.205 0 0)",
+    "sidebar-border": "oklch(0.922 0 0)",
+    "sidebar-ring": "oklch(0.708 0 0)"
+   },
+   "dark": {
+    "background": "oklch(0.145 0 0)",
+    "foreground": "oklch(0.985 0 0)",
+    "card": "oklch(0.205 0 0)",
+    "card-foreground": "oklch(0.985 0 0)",
+    "popover": "oklch(0.205 0 0)",
+    "popover-foreground": "oklch(0.985 0 0)",
+    "primary": "oklch(0.922 0 0)",
+    "primary-foreground": "oklch(0.205 0 0)",
+    "secondary": "oklch(0.269 0 0)",
+    "secondary-foreground": "oklch(0.985 0 0)",
+    "muted": "oklch(0.269 0 0)",
+    "muted-foreground": "oklch(0.708 0 0)",
+    "accent": "oklch(0.269 0 0)",
+    "accent-foreground": "oklch(0.985 0 0)",
+    "destructive": "oklch(0.704 0.191 22.216)",
+    "border": "oklch(1 0 0 / 10%)",
+    "input": "oklch(1 0 0 / 15%)",
+    "ring": "oklch(0.556 0 0)",
+    "chart-1": "oklch(0.87 0 0)",
+    "chart-2": "oklch(0.556 0 0)",
+    "chart-3": "oklch(0.439 0 0)",
+    "chart-4": "oklch(0.371 0 0)",
+    "chart-5": "oklch(0.269 0 0)",
+    "sidebar": "oklch(0.205 0 0)",
+    "sidebar-foreground": "oklch(0.985 0 0)",
+    "sidebar-primary": "oklch(0.488 0.243 264.376)",
+    "sidebar-primary-foreground": "oklch(0.985 0 0)",
+    "sidebar-accent": "oklch(0.269 0 0)",
+    "sidebar-accent-foreground": "oklch(0.985 0 0)",
+    "sidebar-border": "oklch(1 0 0 / 10%)",
+    "sidebar-ring": "oklch(0.556 0 0)"
+   }
+  },
+  "slate": {
+   "light": {
+    "background": "oklch(1 0 0)",
+    "foreground": "oklch(0.129 0.042 264.695)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.129 0.042 264.695)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.129 0.042 264.695)",
+    "primary": "oklch(0.208 0.042 265.755)",
+    "primary-foreground": "oklch(0.984 0.003 247.858)",
+    "secondary": "oklch(0.968 0.007 247.896)",
+    "secondary-foreground": "oklch(0.208 0.042 265.755)",
+    "muted": "oklch(0.968 0.007 247.896)",
+    "muted-foreground": "oklch(0.554 0.046 257.417)",
+    "accent": "oklch(0.968 0.007 247.896)",
+    "accent-foreground": "oklch(0.208 0.042 265.755)",
+    "destructive": "oklch(0.577 0.245 27.325)",
+    "border": "oklch(0.929 0.013 255.508)",
+    "input": "oklch(0.929 0.013 255.508)",
+    "ring": "oklch(0.704 0.04 256.788)",
+    "chart-1": "oklch(0.646 0.222 41.116)",
+    "chart-2": "oklch(0.6 0.118 184.704)",
+    "chart-3": "oklch(0.398 0.07 227.392)",
+    "chart-4": "oklch(0.828 0.189 84.429)",
+    "chart-5": "oklch(0.769 0.188 70.08)",
+    "radius": "0.625rem",
+    "sidebar": "oklch(0.984 0.003 247.858)",
+    "sidebar-foreground": "oklch(0.129 0.042 264.695)",
+    "sidebar-primary": "oklch(0.208 0.042 265.755)",
+    "sidebar-primary-foreground": "oklch(0.984 0.003 247.858)",
+    "sidebar-accent": "oklch(0.968 0.007 247.896)",
+    "sidebar-accent-foreground": "oklch(0.208 0.042 265.755)",
+    "sidebar-border": "oklch(0.929 0.013 255.508)",
+    "sidebar-ring": "oklch(0.704 0.04 256.788)"
+   },
+   "dark": {
+    "background": "oklch(0.129 0.042 264.695)",
+    "foreground": "oklch(0.984 0.003 247.858)",
+    "card": "oklch(0.208 0.042 265.755)",
+    "card-foreground": "oklch(0.984 0.003 247.858)",
+    "popover": "oklch(0.208 0.042 265.755)",
+    "popover-foreground": "oklch(0.984 0.003 247.858)",
+    "primary": "oklch(0.929 0.013 255.508)",
+    "primary-foreground": "oklch(0.208 0.042 265.755)",
+    "secondary": "oklch(0.279 0.041 260.031)",
+    "secondary-foreground": "oklch(0.984 0.003 247.858)",
+    "muted": "oklch(0.279 0.041 260.031)",
+    "muted-foreground": "oklch(0.704 0.04 256.788)",
+    "accent": "oklch(0.279 0.041 260.031)",
+    "accent-foreground": "oklch(0.984 0.003 247.858)",
+    "destructive": "oklch(0.704 0.191 22.216)",
+    "border": "oklch(1 0 0 / 10%)",
+    "input": "oklch(1 0 0 / 15%)",
+    "ring": "oklch(0.551 0.027 264.364)",
+    "chart-1": "oklch(0.488 0.243 264.376)",
+    "chart-2": "oklch(0.696 0.17 162.48)",
+    "chart-3": "oklch(0.769 0.188 70.08)",
+    "chart-4": "oklch(0.627 0.265 303.9)",
+    "chart-5": "oklch(0.645 0.246 16.439)",
+    "sidebar": "oklch(0.208 0.042 265.755)",
+    "sidebar-foreground": "oklch(0.984 0.003 247.858)",
+    "sidebar-primary": "oklch(0.488 0.243 264.376)",
+    "sidebar-primary-foreground": "oklch(0.984 0.003 247.858)",
+    "sidebar-accent": "oklch(0.279 0.041 260.031)",
+    "sidebar-accent-foreground": "oklch(0.984 0.003 247.858)",
+    "sidebar-border": "oklch(1 0 0 / 10%)",
+    "sidebar-ring": "oklch(0.551 0.027 264.364)"
+   }
+  },
+  "stone": {
+   "light": {
+    "background": "oklch(1 0 0)",
+    "foreground": "oklch(0.147 0.004 49.25)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.147 0.004 49.25)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.147 0.004 49.25)",
+    "primary": "oklch(0.216 0.006 56.043)",
+    "primary-foreground": "oklch(0.985 0.001 106.423)",
+    "secondary": "oklch(0.97 0.001 106.424)",
+    "secondary-foreground": "oklch(0.216 0.006 56.043)",
+    "muted": "oklch(0.97 0.001 106.424)",
+    "muted-foreground": "oklch(0.553 0.013 58.071)",
+    "accent": "oklch(0.97 0.001 106.424)",
+    "accent-foreground": "oklch(0.216 0.006 56.043)",
+    "destructive": "oklch(0.577 0.245 27.325)",
+    "border": "oklch(0.923 0.003 48.717)",
+    "input": "oklch(0.923 0.003 48.717)",
+    "ring": "oklch(0.709 0.01 56.259)",
+    "chart-1": "oklch(0.869 0.005 56.366)",
+    "chart-2": "oklch(0.553 0.013 58.071)",
+    "chart-3": "oklch(0.444 0.011 73.639)",
+    "chart-4": "oklch(0.374 0.01 67.558)",
+    "chart-5": "oklch(0.268 0.007 34.298)",
+    "radius": "0.625rem",
+    "sidebar": "oklch(0.985 0.001 106.423)",
+    "sidebar-foreground": "oklch(0.147 0.004 49.25)",
+    "sidebar-primary": "oklch(0.216 0.006 56.043)",
+    "sidebar-primary-foreground": "oklch(0.985 0.001 106.423)",
+    "sidebar-accent": "oklch(0.97 0.001 106.424)",
+    "sidebar-accent-foreground": "oklch(0.216 0.006 56.043)",
+    "sidebar-border": "oklch(0.923 0.003 48.717)",
+    "sidebar-ring": "oklch(0.709 0.01 56.259)"
+   },
+   "dark": {
+    "background": "oklch(0.147 0.004 49.25)",
+    "foreground": "oklch(0.985 0.001 106.423)",
+    "card": "oklch(0.216 0.006 56.043)",
+    "card-foreground": "oklch(0.985 0.001 106.423)",
+    "popover": "oklch(0.216 0.006 56.043)",
+    "popover-foreground": "oklch(0.985 0.001 106.423)",
+    "primary": "oklch(0.923 0.003 48.717)",
+    "primary-foreground": "oklch(0.216 0.006 56.043)",
+    "secondary": "oklch(0.268 0.007 34.298)",
+    "secondary-foreground": "oklch(0.985 0.001 106.423)",
+    "muted": "oklch(0.268 0.007 34.298)",
+    "muted-foreground": "oklch(0.709 0.01 56.259)",
+    "accent": "oklch(0.268 0.007 34.298)",
+    "accent-foreground": "oklch(0.985 0.001 106.423)",
+    "destructive": "oklch(0.704 0.191 22.216)",
+    "border": "oklch(1 0 0 / 10%)",
+    "input": "oklch(1 0 0 / 15%)",
+    "ring": "oklch(0.553 0.013 58.071)",
+    "chart-1": "oklch(0.869 0.005 56.366)",
+    "chart-2": "oklch(0.553 0.013 58.071)",
+    "chart-3": "oklch(0.444 0.011 73.639)",
+    "chart-4": "oklch(0.374 0.01 67.558)",
+    "chart-5": "oklch(0.268 0.007 34.298)",
+    "sidebar": "oklch(0.216 0.006 56.043)",
+    "sidebar-foreground": "oklch(0.985 0.001 106.423)",
+    "sidebar-primary": "oklch(0.488 0.243 264.376)",
+    "sidebar-primary-foreground": "oklch(0.985 0.001 106.423)",
+    "sidebar-accent": "oklch(0.268 0.007 34.298)",
+    "sidebar-accent-foreground": "oklch(0.985 0.001 106.423)",
+    "sidebar-border": "oklch(1 0 0 / 10%)",
+    "sidebar-ring": "oklch(0.553 0.013 58.071)"
+   }
+  },
+  "zinc": {
+   "light": {
+    "background": "oklch(1 0 0)",
+    "foreground": "oklch(0.141 0.005 285.823)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.141 0.005 285.823)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.141 0.005 285.823)",
+    "primary": "oklch(0.21 0.006 285.885)",
+    "primary-foreground": "oklch(0.985 0 0)",
+    "secondary": "oklch(0.967 0.001 286.375)",
+    "secondary-foreground": "oklch(0.21 0.006 285.885)",
+    "muted": "oklch(0.967 0.001 286.375)",
+    "muted-foreground": "oklch(0.552 0.016 285.938)",
+    "accent": "oklch(0.967 0.001 286.375)",
+    "accent-foreground": "oklch(0.21 0.006 285.885)",
+    "destructive": "oklch(0.577 0.245 27.325)",
+    "border": "oklch(0.92 0.004 286.32)",
+    "input": "oklch(0.92 0.004 286.32)",
+    "ring": "oklch(0.705 0.015 286.067)",
+    "chart-1": "oklch(0.871 0.006 286.286)",
+    "chart-2": "oklch(0.552 0.016 285.938)",
+    "chart-3": "oklch(0.442 0.017 285.786)",
+    "chart-4": "oklch(0.37 0.013 285.805)",
+    "chart-5": "oklch(0.274 0.006 286.033)",
+    "radius": "0.625rem",
+    "sidebar": "oklch(0.985 0 0)",
+    "sidebar-foreground": "oklch(0.141 0.005 285.823)",
+    "sidebar-primary": "oklch(0.21 0.006 285.885)",
+    "sidebar-primary-foreground": "oklch(0.985 0 0)",
+    "sidebar-accent": "oklch(0.967 0.001 286.375)",
+    "sidebar-accent-foreground": "oklch(0.21 0.006 285.885)",
+    "sidebar-border": "oklch(0.92 0.004 286.32)",
+    "sidebar-ring": "oklch(0.705 0.015 286.067)"
+   },
+   "dark": {
+    "background": "oklch(0.141 0.005 285.823)",
+    "foreground": "oklch(0.985 0 0)",
+    "card": "oklch(0.21 0.006 285.885)",
+    "card-foreground": "oklch(0.985 0 0)",
+    "popover": "oklch(0.21 0.006 285.885)",
+    "popover-foreground": "oklch(0.985 0 0)",
+    "primary": "oklch(0.92 0.004 286.32)",
+    "primary-foreground": "oklch(0.21 0.006 285.885)",
+    "secondary": "oklch(0.274 0.006 286.033)",
+    "secondary-foreground": "oklch(0.985 0 0)",
+    "muted": "oklch(0.274 0.006 286.033)",
+    "muted-foreground": "oklch(0.705 0.015 286.067)",
+    "accent": "oklch(0.274 0.006 286.033)",
+    "accent-foreground": "oklch(0.985 0 0)",
+    "destructive": "oklch(0.704 0.191 22.216)",
+    "border": "oklch(1 0 0 / 10%)",
+    "input": "oklch(1 0 0 / 15%)",
+    "ring": "oklch(0.552 0.016 285.938)",
+    "chart-1": "oklch(0.871 0.006 286.286)",
+    "chart-2": "oklch(0.552 0.016 285.938)",
+    "chart-3": "oklch(0.442 0.017 285.786)",
+    "chart-4": "oklch(0.37 0.013 285.805)",
+    "chart-5": "oklch(0.274 0.006 286.033)",
+    "sidebar": "oklch(0.21 0.006 285.885)",
+    "sidebar-foreground": "oklch(0.985 0 0)",
+    "sidebar-primary": "oklch(0.488 0.243 264.376)",
+    "sidebar-primary-foreground": "oklch(0.985 0 0)",
+    "sidebar-accent": "oklch(0.274 0.006 286.033)",
+    "sidebar-accent-foreground": "oklch(0.985 0 0)",
+    "sidebar-border": "oklch(1 0 0 / 10%)",
+    "sidebar-ring": "oklch(0.552 0.016 285.938)"
+   }
+  }
+ }
+}

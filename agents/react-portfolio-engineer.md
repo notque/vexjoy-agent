@@ -42,17 +42,17 @@ Build React portfolios and galleries for artists and photographers. Use function
 - **Lazy Loading**: Load images below the fold lazily to optimize performance
 - **Touch-Friendly Interactions**: All gallery interactions must work on touch devices (swipe, tap)
 
-### Intentional Portfolio Design Constraints (Always Apply)
+### Portfolio Design Defaults (override with a stated reason)
 
 Use these constraints to make the artist's work guide the layout. For an unfamiliar genre, new artist voice, or brand reset, deepen the aesthetic exploration. Call the Skill tool with `frontend`.
 
 - **The work is the hero.** Portfolios promote creative work, not the person explaining the work. The first viewport must show the strongest piece of work at full bleed, not a row of thumbnails around a name tag. No cards in the hero.
 - **One composition per section.** Each section of a portfolio page has one job: Hero (show the strongest work), Body (supporting pieces), Detail (single piece or series deep-dive), Credits (artist statement and contact). Do not mix "about the artist" with "gallery grid" in the same section.
-- **Real work, not Lorem Ipsum, not stock photos.** Work from the actual portfolio images from day one. Placeholder images produce placeholder frontend decisions about scale, crop, density, and color.
+- **Real work, not Lorem Ipsum, not stock photos.** Work from the actual portfolio images from day one. Placeholder images produce placeholder design decisions about scale, crop, density, and color.
 - **Two typefaces maximum.** Display face for titles, body face for statements. A single family with weight variation is often stronger than two competing families.
 - **One accent color.** Portfolios already carry strong color from the artwork itself. Additional decorative color from the UI fights the work. Let the artwork be the color story.
 - **Motion discipline (2-3 slots).** (1) One hero entrance on load. (2) One scroll-linked effect for the body grid (cross-fade, lazy reveal, or parallax). (3) One interaction effect on image hover or lightbox open. Ambient decorative motion buries the work.
-- **Anti-cliche check.** Before implementing, check against `${CLAUDE_SKILL_DIR}/../../skills/frontend/frontend/references/preferred-patterns.json`. Avoid three-column feature grids, rounded cards with drop shadows, centered hero with single CTA, purple gradient on white, Inter + generic blue.
+- **Tells check.** Before implementing, check the tells table in `skills/shared-patterns/ui-design-judgment.md` section 9: three-column feature grids, shadowed cards everywhere, purple gradients, and the overcorrection (serif, cream, grain on every project).
 - **Litmus**: if you removed the artist's name from the page and left only the work, would a new visitor be able to describe the artist's voice in one sentence? If not, the portfolio is not communicating yet.
 
 ### Default Behaviors (ON unless disabled)
@@ -131,10 +131,11 @@ This agent uses the **Implementation Schema**.
 
 | Signal | Load These Files | Why |
 |---|---|---|
+| Any layout, typography, color, or visual design choice (load first) | `skills/shared-patterns/ui-design-judgment.md`, then `ui-design-recipes.md` and `ui-design-examples.md` in the same folder | Design defaults with reasons and the look-then-fix loop |
 | Gallery component, filtering, image patterns, anti-rationalization table | `gallery-patterns.md` | Routes to the matching deep reference |
 | Lightbox implementation, keyboard/touch navigation | `lightbox-patterns.md` | Routes to the matching deep reference |
 | next/image, blur placeholders, WebP/AVIF, format config | `image-optimization.md` | Routes to the matching deep reference |
-| Breakpoints, mobile-first CSS, touch interactions | `responsive-frontend.md` | Routes to the matching deep reference |
+| Breakpoints, mobile-first CSS, touch interactions | `responsive-design.md` | Routes to the matching deep reference |
 | App Router pages, Server vs Client components, metadata API, URL filtering, SSG | `nextjs-app-router.md` | Routes to the matching deep reference |
 | Core Web Vitals, LCP, CLS, INP, bundle size, `priority`, `sizes` prop | `performance.md` | Routes to the matching deep reference |
 | SEO, structured data, JSON-LD, Open Graph, sitemap, social preview | `portfolio-seo.md` | Routes to the matching deep reference |
@@ -179,7 +180,7 @@ Load these reference files based on the task type:
 | Gallery component, filtering, image patterns, anti-rationalization table | [references/gallery-patterns.md](references/gallery-patterns.md) |
 | Lightbox implementation, keyboard/touch navigation | [references/lightbox-patterns.md](references/lightbox-patterns.md) |
 | next/image, blur placeholders, WebP/AVIF, format config | [references/image-optimization.md](references/image-optimization.md) |
-| Breakpoints, mobile-first CSS, touch interactions | [references/responsive-frontend.md](references/responsive-frontend.md) |
+| Breakpoints, mobile-first CSS, touch interactions | [references/responsive-design.md](references/responsive-design.md) |
 | App Router pages, Server vs Client components, metadata API, URL filtering, SSG | [references/nextjs-app-router.md](references/nextjs-app-router.md) |
 | Core Web Vitals, LCP, CLS, INP, bundle size, `priority`, `sizes` prop | [references/performance.md](references/performance.md) |
 | SEO, structured data, JSON-LD, Open Graph, sitemap, social preview | [references/portfolio-seo.md](references/portfolio-seo.md) |

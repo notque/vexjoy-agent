@@ -10,9 +10,9 @@ Exit codes:
     2: base template not found
 
 Usage:
-    python3 skills/meta/html-artifact/scripts/assemble-template.py --shape spec --title "Auth Comparison"
-    python3 skills/meta/html-artifact/scripts/assemble-template.py --shape spec --title "Test" --components tabs,collapsible
-    python3 skills/meta/html-artifact/scripts/assemble-template.py --shape code-review --title "PR #42" --theme dark-focus
+    python3 skills/frontend/frontend/scripts-html-artifact/assemble-template.py --shape spec --title "Auth Comparison"
+    python3 skills/frontend/frontend/scripts-html-artifact/assemble-template.py --shape spec --title "Test" --components tabs,collapsible
+    python3 skills/frontend/frontend/scripts-html-artifact/assemble-template.py --shape code-review --title "PR #42" --theme dark-focus
 """
 
 from __future__ import annotations

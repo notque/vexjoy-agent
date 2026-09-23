@@ -44,7 +44,7 @@ deck.html ──(extract_slides.py)──▶ slides.json ──(_pptx_engine.py)
 Single command:
 
 ```bash
-python3 skills/meta/html-artifact/scripts/pptx-bridge/run-unified.py \
+python3 skills/frontend/frontend/scripts-html-artifact/pptx-bridge/run-unified.py \
     --input deck.html \
     --format pptx \
     --out deck.pptx \
@@ -127,7 +127,7 @@ callers that pass a `design.palette` argument; all current builders read
 ### `run-unified.py` — full pipeline
 
 ```bash
-python3 skills/meta/html-artifact/scripts/pptx-bridge/run-unified.py \
+python3 skills/frontend/frontend/scripts-html-artifact/pptx-bridge/run-unified.py \
     --input <html_path> \
     --format pptx \
     --out <pptx_path_or_dir> \
@@ -136,7 +136,7 @@ python3 skills/meta/html-artifact/scripts/pptx-bridge/run-unified.py \
 
 - `--input` — HTML deck file (must contain `<section class="slide">` blocks).
 - `--format` — `pptx` (default). `pdf` is rejected here; use
-  `scripts/to-pdf.py` for HTML→PDF.
+  `scripts-html-artifact/to-pdf.py` for HTML→PDF.
 - `--out` — `.pptx` file path (single-file mode) OR directory (writes the
   .pptx plus `slides.json`, `report.md`, and optional `render/` siblings).
 - `--no-render` — skip the optional LibreOffice QA step. Required on hosts
@@ -224,7 +224,7 @@ sets 16:9 dimensions, normalizes each slide's `type`, dispatches via
 
 - For a viewable deck on screen → keep the HTML; it has the best visuals
   and zero export step.
-- For a PDF → use `scripts/to-pdf.py` (Phase 6); it's faster than going
+- For a PDF → use `scripts-html-artifact/to-pdf.py` (Phase 6); it's faster than going
   through PPTX.
 - For a deck whose source is markdown / a slide-map JSON written by hand →
   call `_pptx_engine.py` directly with `--slide-map`. The HTML pipeline is
