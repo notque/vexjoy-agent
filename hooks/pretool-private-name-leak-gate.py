@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.2.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
@@ -16,18 +16,30 @@ local ~/private-skills tree. Shipping the set with the repo would itself be
 the leak, so CI and public installs (no ~/private-skills) get a graceful
 no-op. This gate cannot and should not run in CI.
 
-Name set (LEAF components only — interior reference/asset dir names and
-bare file stems inside packages are noise, not component names):
-- Directories directly containing SKILL.md; for nested
-  <name>/skill/SKILL.md packages, the package dir <name>
-- Stems of *.md files directly inside an agents/ dir
-- MINUS structural basenames (SKILL, README, references, ...)
-- MINUS names shorter than 4 chars
-- MINUS tracked public skill names from skills/INDEX.json (project copy
-  first, then ~/.claude/skills/INDEX.json) — public homonyms never block
-- MINUS names already present in the public tracked tree (one git grep
-  per invocation, cached for the run) — a name that is already public on
-  main (e.g. the toolkit's own name) cannot leak by appearing again
+Term set, three sources:
+
+1. LEAF component names (interior reference/asset dir names and bare file
+   stems inside packages are noise, not component names):
+   - Directories directly containing SKILL.md; for nested
+     <name>/skill/SKILL.md packages, the package dir <name>
+   - Stems of *.md files directly inside an agents/ dir
+   - MINUS structural basenames (SKILL, README, references, ...)
+   - MINUS names shorter than 4 chars
+   - MINUS tracked public skill names from skills/INDEX.json (project copy
+     first, then ~/.claude/skills/INDEX.json) — public homonyms never block
+   - MINUS the toolkit's own name (pyproject `name` and its first hyphen
+     segment). This is the only "already public" exemption: exempting every
+     name already in the tracked tree made a leak self-perpetuating.
+2. BRAND terms: a first hyphen segment shared by at least 2 private leaf
+   names, at least 4 chars, not a common word (_COMMON_WORDS), not the
+   toolkit's own name, and not a segment of any public skill or agent name.
+3. OWNER terms: optional ~/private-skills/.private-terms, one term per
+   line, `#` comments. Local only; never ships.
+
+Brand and owner terms are never exempted for being already public. They
+match case-insensitively at word or CamelCase boundaries, so a bare term,
+`Term voice`, `MyTerm`, and `TermVoice` all block. Leaf names keep
+kebab-aware boundaries.
 
 Scanned text per command:
 - always: the command text itself (covers -m/--title/--body args)
@@ -35,7 +47,7 @@ Scanned text per command:
 - git push: outgoing commit messages (@{upstream}..HEAD, else last 20)
 - gh pr create/edit/comment/merge: --body-file/-F file contents
 
-Block messages REDACT the matched name (first char + … + last char) so the
+Block messages REDACT the matched term (first char + … + last char) so the
 gate never echoes a private name into transcripts.
 
 Allow-through conditions:
@@ -111,6 +123,56 @@ _STOPLIST = frozenset(
     }
 )
 _MIN_NAME_LEN = 4
+# Owner-kept extra terms, one per line; lives only in the private tree.
+_OWNER_TERMS_FILE = ".private-terms"
+# Brand derivation: a shared first segment is a brand only if it is not an
+# ordinary word — `voice-a` + `voice-b` share "voice", not a brand.
+_BRAND_MIN_SHARED = 2
+_COMMON_WORDS = frozenset(
+    {
+        "anti",
+        "auto",
+        "base",
+        "blog",
+        "check",
+        "code",
+        "content",
+        "core",
+        "data",
+        "deep",
+        "deploy",
+        "docs",
+        "draft",
+        "edit",
+        "editor",
+        "file",
+        "five",
+        "full",
+        "game",
+        "image",
+        "images",
+        "main",
+        "news",
+        "open",
+        "pipeline",
+        "post",
+        "quick",
+        "research",
+        "review",
+        "social",
+        "story",
+        "test",
+        "text",
+        "tool",
+        "tools",
+        "user",
+        "video",
+        "voice",
+        "write",
+        "writer",
+        "writing",
+    }
+)
 
 # File-content arguments: commit message files and PR body files.
 _COMMIT_FILE_FLAGS = {"-F", "--file"}
@@ -219,33 +281,50 @@ def _public_skill_names(toolkit_root: Path) -> set[str]:
     return names
 
 
-def _tracked_tree_names(toolkit_root: Path, names: set[str]) -> set[str]:
-    """Names already present in the PUBLIC tracked tree (case-insensitive).
+def _toolkit_identity(toolkit_root: Path) -> set[str]:
+    """The toolkit's own public name: pyproject `name` plus its first segment.
 
-    One `git grep` per invocation, against the committed public ref
-    (origin/main, else main, else HEAD) — NOT the working tree, which would
-    see a just-staged leak and defeat the gate. A name the public tree
-    already contains (the toolkit's own name, common tool words) cannot leak
-    by appearing again — blocking it only produces false positives.
+    Some private leaf components share the toolkit's name. That one name is
+    public by definition and must never block. Nothing else gets an
+    "already public" exemption. Falls back to the root dir name.
     """
-    if not names:
-        return set()
-    ref = None
-    for candidate in ("origin/main", "main", "HEAD"):
-        if _run_git(["rev-parse", "--verify", "-q", candidate], str(toolkit_root)):
-            ref = candidate
-            break
-    if ref is None:
-        return set()
-    args = ["grep", "-I", "-i", "-o", "-h", "--fixed-strings"]
-    for name in sorted(names):
-        args += ["-e", name]
-    out = _run_git([*args, ref], str(toolkit_root))
-    return {line.strip().lower() for line in out.splitlines()} & names
+    name = ""
+    try:
+        m = re.search(
+            r'^name\s*=\s*"([^"]+)"',
+            (toolkit_root / "pyproject.toml").read_text(encoding="utf-8"),
+            re.MULTILINE,
+        )
+        if m:
+            name = m.group(1)
+    except OSError:
+        pass
+    name = (name or toolkit_root.name).lower()
+    return {name, name.split("-")[0]}
 
 
-def _private_names(toolkit_root: Path) -> set[str]:
-    """Runtime private-name set: LEAF component names only, filtered.
+def _public_segments(toolkit_root: Path, private_leaves: set[str]) -> set[str]:
+    """Hyphen segments of every public skill and agent name.
+
+    Public names are skills/INDEX.json keys plus agents/*.md stems in the
+    toolkit root. Names that are also private leaves are skipped, so a
+    private agent installed into the repo cannot launder its brand segment.
+    """
+    public = set(_public_skill_names(toolkit_root))
+    try:
+        public.update(p.stem.lower() for p in (toolkit_root / "agents").glob("*.md"))
+    except OSError:
+        pass
+    public -= private_leaves
+    segments: set[str] = set()
+    for name in public:
+        segments.add(name)
+        segments.update(name.split("-"))
+    return segments
+
+
+def _raw_leaf_names() -> set[str]:
+    """Lowercased LEAF component names under _PRIVATE_DIR, stoplist removed.
 
     Leaf components: dirs directly containing SKILL.md (a dir literally named
     `skill` is the nested <name>/skill/SKILL.md package layout — use <name>),
@@ -270,20 +349,88 @@ def _private_names(toolkit_root: Path) -> set[str]:
         return set()
     names = {n.lower() for n in raw}
     names -= _STOPLIST
-    names = {n for n in names if len(n) >= _MIN_NAME_LEN and not n.startswith(".")}
+    return {n for n in names if len(n) >= _MIN_NAME_LEN and not n.startswith(".")}
+
+
+def _private_names(toolkit_root: Path) -> set[str]:
+    """Runtime private LEAF-name set, minus public homonyms and the toolkit name.
+
+    Also the source of truth for scripts/generate-routing-map.py.
+    """
+    names = _raw_leaf_names()
     names -= _public_skill_names(toolkit_root)
-    names -= _tracked_tree_names(toolkit_root, names)
+    names -= _toolkit_identity(toolkit_root)
     return names
 
 
-def _name_pattern(names: set[str]) -> re.Pattern[str]:
-    """One alternation, longest-first, kebab-aware boundaries.
+def _brand_terms(toolkit_root: Path, leaves: set[str]) -> set[str]:
+    """First hyphen segments shared by >= 2 private leaf names.
 
-    `(?<![A-Za-z0-9_-])` / `(?![A-Za-z0-9_-])` keep a name from matching
-    inside a longer kebab-case identifier.
+    A segment qualifies only when it is at least _MIN_NAME_LEN chars, not a
+    common word, not the toolkit's own name, and not a segment of any
+    public skill or agent name.
     """
-    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
-    return re.compile(rf"(?<![A-Za-z0-9_-])(?:{alternation})(?![A-Za-z0-9_-])", re.IGNORECASE)
+    counts: dict[str, int] = {}
+    for name in leaves:
+        if "-" in name:
+            seg = name.split("-", 1)[0]
+            counts[seg] = counts.get(seg, 0) + 1
+    candidates = {
+        seg
+        for seg, n in counts.items()
+        if n >= _BRAND_MIN_SHARED and len(seg) >= _MIN_NAME_LEN and seg not in _COMMON_WORDS and seg not in _STOPLIST
+    }
+    if not candidates:
+        return set()
+    candidates -= _toolkit_identity(toolkit_root)
+    candidates -= _public_segments(toolkit_root, leaves)
+    return candidates
+
+
+def _owner_terms() -> set[str]:
+    """Terms from ~/private-skills/.private-terms (one per line, # comments)."""
+    try:
+        text = (_PRIVATE_DIR / _OWNER_TERMS_FILE).read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    terms: set[str] = set()
+    for line in text.splitlines():
+        term = line.split("#", 1)[0].strip().lower()
+        if len(term) >= 2:
+            terms.add(term)
+    return terms
+
+
+def private_terms(toolkit_root: Path) -> tuple[set[str], set[str]]:
+    """(leaf_names, strong_terms) for this machine. Shared with the audit script.
+
+    strong_terms = brand terms + owner terms. They are never exempted for
+    already appearing in the public tree.
+    """
+    leaves = _private_names(toolkit_root)
+    strong = _brand_terms(toolkit_root, _raw_leaf_names()) | _owner_terms()
+    return leaves, strong
+
+
+def term_pattern(leaves: set[str], strong: set[str]) -> re.Pattern[str] | None:
+    """One compiled pattern for both term kinds, or None when both are empty.
+
+    Leaf names: kebab-aware boundaries, so a name inside a longer kebab
+    identifier does not match. Strong terms: case-insensitive, matched at a
+    word boundary or a CamelCase hump on the left, and not followed by a
+    lowercase letter (an optional plural `s` is allowed). That catches
+    `term`, `Term voice`, `MyTerm`, `TermVoice`, `term-writer`, `term.com`.
+    """
+    parts: list[str] = []
+    if leaves:
+        alt = "|".join(re.escape(n) for n in sorted(leaves, key=len, reverse=True))
+        parts.append(rf"(?<![A-Za-z0-9_-])(?i:{alt})(?![A-Za-z0-9_-])")
+    if strong:
+        alt = "|".join(re.escape(t) for t in sorted(strong, key=len, reverse=True))
+        parts.append(rf"(?:(?<![A-Za-z0-9])|(?<=[a-z0-9])(?=[A-Z]))(?i:{alt})s?(?![a-z])")
+    if not parts:
+        return None
+    return re.compile("|".join(parts))
 
 
 def _redact(name: str) -> str:
@@ -399,10 +546,10 @@ def main() -> None:
             print("[private-name-leak-gate] Not a toolkit repo — allowing", file=sys.stderr)
         sys.exit(0)
 
-    names = _private_names(toolkit_root)
-    if not names:
+    leaves, strong = private_terms(toolkit_root)
+    pattern = term_pattern(leaves, strong)
+    if pattern is None:
         sys.exit(0)
-    pattern = _name_pattern(names)
 
     for location, text in _collect_scan_targets(command, cwd):
         if not text:
@@ -411,7 +558,7 @@ def main() -> None:
         if match:
             redacted = _redact(match.group(0))
             print(
-                f"[private-name-leak-gate] BLOCKED: private component name ({redacted}) found in {location}.",
+                f"[private-name-leak-gate] BLOCKED: private term ({redacted}) found in {location}.",
                 file=sys.stderr,
             )
             record_governance(
@@ -425,8 +572,8 @@ def main() -> None:
             )
             deny_tool_use(
                 "PreToolUse",
-                f"Private component name ({redacted}) found in {location}. "
-                "Private skill names must not reach commits, pushes, or PR text. "
+                f"Private term ({redacted}) found in {location}. "
+                "Private skill names and brand terms must not reach commits, pushes, or PR text. "
                 "Remove the reference and retry. "
                 f"Bypass with {_BYPASS_ENV}=1 (env var or inline command prefix) "
                 "only with explicit owner approval.",

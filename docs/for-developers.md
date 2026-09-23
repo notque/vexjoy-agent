@@ -67,6 +67,8 @@ git add -A && git commit -m "initial private skills"
 
 At session start, the sync hook deploys each category child containing `SKILL.md` to `~/.claude/skills/`; deleting that source directory removes the deployed copy on the next sync. Private and public skills follow the same conventions.
 
+`hooks/pretool-private-name-leak-gate.py` blocks commits, pushes, and PR text that name a private component. It also blocks brand terms (a first name segment shared by two or more private components) and any term listed in `~/private-skills/.private-terms` (one per line, `#` comments), even when the term already appears on `main`. To check the whole tracked tree for the same terms, run `python3 scripts/private-term-audit.py`. It prints matching paths with the term redacted and exits 1 on any hit. Both no-op on machines without `~/private-skills`, such as CI.
+
 ## Creating Components
 
 Tell `/do` the component type, domain, and purpose. The creator handles structure, registration, and routing integration.
