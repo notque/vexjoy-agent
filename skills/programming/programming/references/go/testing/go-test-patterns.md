@@ -260,7 +260,7 @@ func TestNotificationService(t *testing.T) {
     }
 
     service := NewNotificationService(mockSender)
-    err := service.NotifyUser(context.Background(), "user@example.com", "Test")
+    err := service.NotifyUser(t.Context(), "user@example.com", "Test")
     assertNoError(t, err)
 
     calls := mockSender.GetCalls()

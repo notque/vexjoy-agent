@@ -96,9 +96,8 @@ func GetUser(id string) (*User, error) {
     return user, nil
 }
 
-// Caller can still use errors.Is/As on the inner error:
-var svcErr *ServiceError
-if errors.As(err, &svcErr) {
+// Caller can still use errors.Is/AsType on the inner error (AsType: Go 1.26+):
+if svcErr, ok := errors.AsType[*ServiceError](err); ok {
     fmt.Println(svcErr.Op, svcErr.Kind)
 }
 ```
@@ -172,9 +171,8 @@ if errors.Is(err, ErrNotFound) { ... }
 type MyError struct { Field string }
 func (e *MyError) Error() string { return e.Field }
 
-// Extract custom type
-var myErr *MyError
-if errors.As(err, &myErr) { ... }
+// Extract custom type (Go 1.26+; use errors.As below 1.26)
+if myErr, ok := errors.AsType[*MyError](err); ok { ... }
 
 // Explicit ignore
 _ = mayFail()

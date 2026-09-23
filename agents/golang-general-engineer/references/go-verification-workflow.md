@@ -40,18 +40,32 @@ When testing a fix to a CLI binary, confirm the binary you're running matches th
 
 Bugs that manifest at output-render time (table layout, template output, log formatting) slip past compile + `go test`. Build a small standalone reproducer under `/tmp` with realistic fake data, run it, and compare before/after output byte-for-byte. Use the module cache rather than vendoring; backend creds stay unneeded.
 
+## Pre-Handoff Command Sequence
+
+Run in this order on every Go change; each must be clean before you report done. Paste the real output.
+
+```bash
+gofmt -l .                                               # prints nothing when formatted; fix with gofmt -w
+go vet ./...
+go fix -diff ./...                                       # Go 1.26+ modernizers; apply with go fix ./...
+go run honnef.co/go/tools/cmd/staticcheck@latest ./...   # no global install
+go test -race -count=1 ./...                             # -count=1 defeats the test cache
+```
+
+A `golangci-lint` binary built with an older Go refuses newer modules: `the Go language version (go1.26) used to build golangci-lint is lower than the targeted Go version (1.27)`. Use `go run` of staticcheck instead, or rebuild golangci-lint with the current toolchain, and say which you ran.
+
 ## Dead Code Analysis with deadcode
 
 `golang.org/x/tools/cmd/deadcode` (SSA whole-program analysis) resolves interface dispatch, method values, and reflection — edges syntax tools miss. Run it during VERIFY for cleanup, review, or refactoring-prep tasks; skip it when the question is only "does this build and pass tests?"
 
 ```bash
-go deploy golang.org/x/tools/cmd/deadcode@latest
-deadcode ./...            # one line per unreachable function
-deadcode -json ./...      # machine-parseable
-deadcode -test ./...      # include test binary entry points
+# no install needed; runs the pinned tool from the module cache
+go run golang.org/x/tools/cmd/deadcode@latest ./...          # one line per unreachable function
+go run golang.org/x/tools/cmd/deadcode@latest -json ./...    # machine-parseable
+go run golang.org/x/tools/cmd/deadcode@latest -test ./...    # include test binary entry points
 
 # VERIFY sequence for cleanup tasks
-go vet ./... && deadcode ./... && go test ./...
+go vet ./... && go run golang.org/x/tools/cmd/deadcode@latest ./... && go test ./...
 ```
 
 Known false positives, with fixes:

@@ -116,6 +116,8 @@ synctest.Test(t, func(t *testing.T) {
 synctest.Wait()
 ```
 
+Go 1.27 additions: `synctest.Sleep(d)` sleeps on the fake clock and then waits for the bubble to settle (replaces `time.Sleep(d); synctest.Wait()`), and `httptest.NewTestServer(t, h)` serves over an in-memory network so HTTP tests can run inside a bubble. Real sockets and files do not count as durably blocked, so keep them out of the bubble.
+
 ### Example: Testing Timeouts
 
 ```go
@@ -127,7 +129,7 @@ func TestTimeout(t *testing.T) {
             done <- true
         }()
 
-        ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
         defer cancel()
 
         select {
@@ -180,12 +182,8 @@ func TestConcurrent(t *testing.T) {
     var count atomic.Int64
     var wg sync.WaitGroup
 
-    for i := 0; i < 100; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            count.Add(1)
-        }()
+    for range 100 {
+        wg.Go(func() { count.Add(1) }) // Go 1.25+
     }
 
     wg.Wait()

@@ -133,9 +133,7 @@ func fanIn(ctx context.Context, channels ...<-chan Result) <-chan Result {
     var wg sync.WaitGroup
 
     for _, ch := range channels {
-        wg.Add(1)
-        go func() {  // Go 1.22+: ch captured correctly
-            defer wg.Done()
+        wg.Go(func() { // Go 1.25+; ch is per-iteration since 1.22
             for result := range ch {
                 select {
                 case out <- result:
@@ -143,7 +141,7 @@ func fanIn(ctx context.Context, channels ...<-chan Result) <-chan Result {
                     return
                 }
             }
-        }()
+        })
     }
 
     go func() {
@@ -222,20 +220,27 @@ func (w *Worker) Stop() {
 
 ```go
 func runServer(ctx context.Context) error {
-    srv := &http.Server{Addr: ":8080"}
+    srv := &http.Server{Addr: "127.0.0.1:8080", ReadHeaderTimeout: 5 * time.Second} // loopback by default
 
-    go func() {
-        if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-            log.Printf("server error: %v", err)
-        }
-    }()
+    errc := make(chan error, 1)
+    go func() { errc <- srv.ListenAndServe() }()
 
-    <-ctx.Done()
+    select {
+    case err := <-errc:
+        return fmt.Errorf("serve: %w", err) // startup failure, e.g. port in use
+    case <-ctx.Done():
+    }
 
-    shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    // WithoutCancel keeps ctx values but not its (already fired) cancellation.
+    shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
     defer cancel()
-
-    return srv.Shutdown(shutdownCtx)
+    if err := srv.Shutdown(shutdownCtx); err != nil {
+        return errors.Join(fmt.Errorf("shutdown: %w", err), srv.Close()) // force-close stragglers
+    }
+    if err := <-errc; !errors.Is(err, http.ErrServerClosed) {
+        return err
+    }
+    return nil
 }
 ```
 

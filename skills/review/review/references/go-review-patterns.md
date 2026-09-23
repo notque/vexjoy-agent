@@ -16,6 +16,16 @@ When reviewing Go code, watch for these patterns that linters miss:
 - **Red flag**: `s.events = nil` in commit callback
 - **Red flag**: `go func(x int) { ... }(loopVar)` - closure argument unnecessary since Go 1.22
 
+## Modern Idioms (check go.mod first)
+- [ ] 1.25+: `wg.Go(f)`, not `wg.Add(1)` + `go` + `defer wg.Done()`; timing tests use `synctest.Test`, not `time.Sleep`
+- [ ] 1.24+: tests use `t.Context()`, not `context.Background()`; `slog.DiscardHandler`, not a handler on `io.Discard`
+- [ ] 1.26+: `errors.AsType[*T](err)`, not `errors.As`; `go fix -diff ./...` prints nothing
+- [ ] 1.27+: standard `uuid` package, not hand-rolled UUIDs; `strings.CutLast`, not `LastIndex` slicing
+- [ ] Sentinels compared with `errors.Is`, never `==` or error-string matching
+- [ ] Every exported name has a doc comment starting with the name
+- **Red flag**: a hand-written 405 without an `Allow` header; a Go 1.22+ `ServeMux` already sends 405 with `Allow`
+- Full rules with before/after code: `agents/golang-general-engineer/references/go-modern-code.md`
+
 ## Resource Management
 - [ ] Is `defer f.Close()` placed AFTER error check?
 - [ ] Are database connection pools shared, not duplicated?

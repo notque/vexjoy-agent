@@ -119,9 +119,8 @@ func ValidateUser(u *User) error {
     return nil
 }
 
-// Caller uses errors.As:
-var valErr *ValidationError
-if errors.As(err, &valErr) {
+// Caller uses errors.AsType (Go 1.26+):
+if valErr, ok := errors.AsType[*ValidationError](err); ok {
     fmt.Printf("Field %s failed: %s\n", valErr.Field, valErr.Message)
 }
 ```
@@ -137,16 +136,14 @@ if errors.Is(err, context.Canceled) { /* cancelled */ }
 if errors.Is(err, os.ErrNotExist) { /* file missing */ }
 ```
 
-**errors.As** extracts a specific error type from the chain:
+**errors.AsType** (Go 1.26+) extracts a specific error type from the chain. Use `errors.As` with a target pointer only when go.mod is below 1.26:
 ```go
-var pathErr *os.PathError
-if errors.As(err, &pathErr) {
+if pathErr, ok := errors.AsType[*os.PathError](err); ok {
     fmt.Printf("Path: %s, Op: %s\n", pathErr.Path, pathErr.Op)
 }
 
-var netErr net.Error
-if errors.As(err, &netErr) {
-    if netErr.Timeout() { /* handle timeout */ }
+if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
+    /* handle timeout */
 }
 ```
 
