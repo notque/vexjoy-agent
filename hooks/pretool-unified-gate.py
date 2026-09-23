@@ -1504,6 +1504,42 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
 # ═══════════════════════════════════════════════════════════════
 
 
+# A shell redirection token (`>`, `>>`, `2>`, `2>&1`, `&>`, `<`, `>file`).
+_REDIRECT_TOKEN_RE = re.compile(r"^\d*(?:>|<|&>)")
+
+
+def _git_force_add_paths(command: str) -> list[str]:
+    """Return the path arguments of every `git add` that forces (`-f`/`--force`).
+
+    Reads only each `git add` command's own arguments: parsing stops at shell
+    separators (`&&`, `||`, `;`, `|`, `&`, newline) and at the first
+    redirection, so `git add -A && run > $S/ci.log 2>&1` yields no paths.
+    """
+    paths: list[str] = []
+    for line in command.split("\n"):
+        for segment in _SEGMENT_SPLIT_RE.split(line):
+            parsed = _git_command_parts(segment)
+            if not parsed or parsed[0] != "add":
+                continue
+            force = False
+            seg_paths: list[str] = []
+            past_separator = False
+            for tok in parsed[1]:
+                if _REDIRECT_TOKEN_RE.match(tok):
+                    break
+                if tok == "--" and not past_separator:
+                    past_separator = True
+                    continue
+                if tok.startswith("-") and not past_separator:
+                    if tok == "--force" or (not tok.startswith("--") and "f" in tok[1:]):
+                        force = True
+                    continue
+                seg_paths.append(tok)
+            if force:
+                paths.extend(seg_paths)
+    return paths
+
+
 def check_gitignore_bypass(command: str) -> None:
     """Block git add -f on gitignored paths and .gitignore edits."""
     # Block 1: .gitignore modification attempts
@@ -1520,29 +1556,10 @@ def check_gitignore_bypass(command: str) -> None:
         )
 
     # Fast path: no git add in command
-    if "git add" not in command:
+    if "git" not in command or "add" not in command:
         return
 
-    # Block 2: git add with force flags
-    if not re.search(r"git\s+add\s+.*(-f|--force)", command):
-        return
-
-    # Extract paths being force-added
-    parts = command.split()
-    try:
-        add_idx = parts.index("add")
-    except ValueError:
-        return
-
-    paths = []
-    past_separator = False
-    for part in parts[add_idx + 1 :]:
-        if part == "--":
-            past_separator = True
-            continue
-        if part.startswith("-") and not past_separator:
-            continue
-        paths.append(part)
+    paths = _git_force_add_paths(command)
 
     if not paths:
         return
@@ -1631,6 +1648,16 @@ def check_git_submission(command: str) -> None:
             )
 
 
+# Safe-path advice appended to a block message, keyed by the check description.
+_DANGEROUS_SAFE_PATH_HINTS = {
+    "git branch -D (force-deletes a branch)": (
+        "Safe path: use `git branch -d <name>` for a merged branch. For a squash-merged "
+        "branch (which -d refuses), confirm it with `gh pr list --state merged --head <name>`, "
+        "then ask the owner before force-deleting."
+    ),
+}
+
+
 def check_dangerous_command(command: str) -> None:
     """Block destructive commands unless bypassed or whitelisted."""
     if os.environ.get(_DANGEROUS_BYPASS_ENV) == "1":
@@ -1648,11 +1675,15 @@ def check_dangerous_command(command: str) -> None:
     ):
         description = check(command)
         if description and not _is_whitelisted(command, whitelist):
+            hint = _DANGEROUS_SAFE_PATH_HINTS.get(description, "")
             _block(
                 f"[dangerous-command] BLOCKED: {description} ({category})\n"
                 f"[dangerous-command] Command: {command}\n"
-                f"[dangerous-command] To allow: add pattern to .guard-whitelist",
-                reason=f"Dangerous command blocked: {description} (category: {category}). To allow, add a pattern to .guard-whitelist.",
+                + (f"[dangerous-command] {hint}\n" if hint else "")
+                + "[dangerous-command] To allow: add pattern to .guard-whitelist",
+                reason=f"Dangerous command blocked: {description} (category: {category}). "
+                + (f"{hint} " if hint else "")
+                + "To allow, add a pattern to .guard-whitelist.",
             )
 
     # Intentionally scans full command including heredoc bodies.
@@ -2559,12 +2590,105 @@ _SAFE_PIPE_SINKS = frozenset(
 _REMOTE_FETCH_PIPE_RE = re.compile(r"\b(?:curl|wget)\b[^|;&\n]*\|")
 
 
-def _remote_fetch_pipes_to_executor(line: str) -> bool:
+# Data-only python sinks. `curl … | python3 -c '<code>'` passes only when the
+# code provably just parses stdin as JSON: imports limited to json/sys, no
+# exec/eval/compile/__import__/open/getattr, no dunder or private attributes,
+# no sys attribute beyond stdio/argv/exit, and at least one json.load(s) call.
+# `python3 -m json.tool` passes. `python3`, `python3 -`, and any code that
+# fails these checks stay blocked.
+_PY_SINK_FLAGS = frozenset({"-I", "-S", "-E", "-B", "-u", "-s", "-q"})
+_PY_DATA_IMPORTS = frozenset({"json", "sys"})
+_PY_BANNED_NAMES = frozenset(
+    {
+        "exec",
+        "eval",
+        "compile",
+        "__import__",
+        "open",
+        "getattr",
+        "setattr",
+        "delattr",
+        "globals",
+        "locals",
+        "vars",
+        "breakpoint",
+        "input",
+        "type",
+        "object",
+        "__builtins__",
+    }
+)
+_PY_SYS_ATTRS = frozenset({"stdin", "stdout", "stderr", "argv", "exit"})
+_PY_JSON_ATTRS = frozenset({"load", "loads", "dump", "dumps", "JSONDecodeError"})
+_PY_CODE_MAX = 4000
+
+
+def _py_code_only_parses_stdin(code: str) -> bool:
+    """True when `-c` code only parses stdin as JSON and cannot run it."""
+    if len(code) > _PY_CODE_MAX:
+        return False
+    import ast
+
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    attr_bases = set()
+    parses = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            return False
+        if isinstance(node, ast.Import):
+            if any(a.name not in _PY_DATA_IMPORTS or a.asname for a in node.names):
+                return False
+        elif isinstance(node, ast.Name) and node.id in _PY_BANNED_NAMES:
+            return False
+        elif isinstance(node, ast.Attribute):
+            if node.attr.startswith("_"):
+                return False
+            if isinstance(node.value, ast.Name) and node.value.id in _PY_DATA_IMPORTS:
+                attr_bases.add(id(node.value))
+                allowed = _PY_SYS_ATTRS if node.value.id == "sys" else _PY_JSON_ATTRS
+                if node.attr not in allowed:
+                    return False
+                if node.value.id == "json" and node.attr in ("load", "loads"):
+                    parses = True
+    # A bare `sys`/`json` name (aliasing: `s = sys; s.modules`) is not allowed.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and node.id in _PY_DATA_IMPORTS and id(node) not in attr_bases:
+            return False
+    return parses
+
+
+def _is_data_only_python_sink(sink_text: str) -> bool:
+    """True if a pipe sink is `python3 -m json.tool` or `python3 -c '<json-only code>'`."""
+    try:
+        toks = shlex.split(sink_text, posix=True)
+    except ValueError:
+        return False
+    if not toks or not _is_python_interpreter(toks[0]):
+        return False
+    i = 1
+    while i < len(toks) and toks[i] in _PY_SINK_FLAGS:
+        i += 1
+    if i + 1 >= len(toks):
+        return False  # bare `python3` or `python3 -` reads a script from stdin
+    if toks[i] == "-m":
+        return toks[i + 1] == "json.tool"
+    if toks[i] == "-c":
+        return _py_code_only_parses_stdin(toks[i + 1])
+    return False
+
+
+def _remote_fetch_pipes_to_executor(line: str, orig: str | None = None) -> bool:
     """True if a `curl`/`wget` on `line` pipes into a non-safe sink.
 
     Allow-list, not deny-list: an unrecognized sink is treated as executing.
     Only the FIRST stage after each fetch is checked — a safe sink's own output
     piped onward (`curl … | jq . | less`) is local data by then.
+
+    `line` has quoted spans blanked; `orig` is the same text unblanked (same
+    offsets). A python sink is read from `orig` so its `-c` code can be checked.
     """
     for m in _REMOTE_FETCH_PIPE_RE.finditer(line):
         rest = line[m.end() :]
@@ -2573,6 +2697,8 @@ def _remote_fetch_pipes_to_executor(line: str) -> bool:
             return True  # pipe into nothing parseable — fail safe
         sink = _command_token(sink_text)
         if sink and sink not in _SAFE_PIPE_SINKS:
+            if orig is not None and _is_data_only_python_sink(orig[m.end() : m.end() + len(sink_text)]):
+                continue
             return True
     return False
 
@@ -3412,10 +3538,13 @@ def check_sysadmin_security(command: str) -> None:
         # `-c` payload), and recomputing spans per line would read its second
         # line as unquoted code (round-13 FP).
         blanked = "".join(" " if any(s <= i < e for s, e in quoted) else c for i, c in enumerate(scan_line))
+        offset = 0
         for raw_line in blanked.split("\n"):
+            orig_line = scan_line[offset : offset + len(raw_line)]
+            offset += len(raw_line) + 1
             if not raw_line.strip() or _DISPLAY_CMD_RE.match(raw_line.strip().lstrip("'\"")):
                 continue
-            if _remote_fetch_pipes_to_executor(raw_line):
+            if _remote_fetch_pipes_to_executor(raw_line, orig_line):
                 _block_sysadmin(
                     "pipe-to-shell",
                     "Piping a remote download into an interpreter runs unreviewed, "

@@ -295,14 +295,27 @@ def _build_rules() -> list[dict]:
     # HIGH — SQL injection (ours, kept)
     # ==================================================================
 
-    add("sql-injection", "HIGH", r"""f["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*\{""", flags=re.IGNORECASE)
+    add(
+        "sql-injection",
+        "HIGH",
+        r"""f["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*\{""",
+        flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
+    )
     add(
         "sql-injection",
         "HIGH",
         r"""["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*["']\s*\.format\s*\(""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
-    add("sql-injection", "HIGH", r"""["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*%s.*["']\s*%""", flags=re.IGNORECASE)
+    add(
+        "sql-injection",
+        "HIGH",
+        r"""["'].*\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*%s.*["']\s*%""",
+        flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
+    )
 
     # The following SQL-injection forms are consolidated from the retired inline
     # PostToolUse scanner (hooks/posttool-security-scan._build_patterns). They
@@ -312,13 +325,20 @@ def _build_rules() -> list[dict]:
     # concat / sprintf-family / `+=` forms.
     _SQL_KW = "SELECT|INSERT|UPDATE|DELETE|DROP|WHERE|FROM|JOIN|SET|VALUES"
     # String concatenation: "...SQL..." + variable
-    add("sql-injection", "HIGH", rf"""["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*)["']\s*\+""", flags=re.IGNORECASE)
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*)["']\s*\+""",
+        flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
+    )
     # variable + "...SQL..."
     add(
         "sql-injection",
         "HIGH",
         rf"""\+\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*)["']\s*(?:\+|$|;|\)|,)""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
     # Go fmt.Sprintf with SQL percent placeholders
     add(
@@ -326,6 +346,7 @@ def _build_rules() -> list[dict]:
         "HIGH",
         rf"""fmt\.Sprintf\s*\(\s*['"`](?:[^'"`]*\b(?:{_SQL_KW})\b[^'"`]*%[sdvfq][^'"`]*)[`'"]\s*,""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
     # Java String.format with SQL percent placeholders
     add(
@@ -333,6 +354,7 @@ def _build_rules() -> list[dict]:
         "HIGH",
         rf"""String\.format\s*\(\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*%[sdnf][^"']*)['"]\s*,""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
     # PHP sprintf with SQL percent placeholders (lookbehind skips fmt.Sprintf above)
     add(
@@ -340,6 +362,7 @@ def _build_rules() -> list[dict]:
         "HIGH",
         rf"""(?<!\w)sprintf\s*\(\s*["'](?:[^"']*\b(?:{_SQL_KW})\b[^"']*%[sduf][^"']*)['"]\s*,""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
     # f-string with the extended keywords (WHERE/FROM/JOIN/SET/VALUES) the
     # SELECT/INSERT/... f-string rule above doesn't cover.
@@ -348,9 +371,16 @@ def _build_rules() -> list[dict]:
         "HIGH",
         r"""f["'](?:[^"']*\b(?:WHERE|FROM|JOIN|SET|VALUES)\b[^"']*)\{""",
         flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
     )
     # Multi-line SQL building via += concatenation
-    add("sql-injection", "HIGH", rf"""\b\w+\s*\+=\s*(?:f?["'][^"']*\b(?:{_SQL_KW})\b)""", flags=re.IGNORECASE)
+    add(
+        "sql-injection",
+        "HIGH",
+        rf"""\b\w+\s*\+=\s*(?:f?["'][^"']*\b(?:{_SQL_KW})\b)""",
+        flags=re.IGNORECASE,
+        filter_fn=_filter_sql_shape,
+    )
 
     # ==================================================================
     # MEDIUM — path traversal (consolidated from the retired inline scanner)
@@ -530,6 +560,49 @@ def _filter_sanitized_path(match: re.Match, line: str, filepath: str) -> bool:
     if any(s in line for s in (".resolve(", "os.path.realpath", "os.path.abspath")):
         return False
     return True
+
+
+# Real SQL shape: keyword pairs a query needs, not one lone keyword. English
+# prose in an f-string ("omitted from {label}", "reply from {model}") has a
+# lone FROM and must stay quiet; a query fragment has a pair or an operator.
+_IDENT = r"""[\w.`"\[\]{}]+"""
+_SQL_SHAPE_RE = re.compile(
+    r"\bSELECT\s[^;]*?\bFROM\s+"
+    + _IDENT
+    + r"|\bINSERT\s+(?:OR\s+\w+\s+)?INTO\b"
+    + r"|\bUPDATE\s+"
+    + _IDENT
+    + r"\s+SET\b"
+    + r"|\bDELETE\s+FROM\b"
+    + r"|\b(?:DROP|TRUNCATE|ALTER|CREATE)\s+(?:TABLE|DATABASE|INDEX|VIEW|SCHEMA)\b"
+    + r"|\bWHERE\s+"
+    + _IDENT
+    + r"\s*(?:=|<|>|!=|\bLIKE\b|\bIN\b|\bIS\b|\bBETWEEN\b)"
+    + r"|\bJOIN\s+"
+    + _IDENT
+    + r"(?:\s+(?:AS\s+)?\w+)?\s+(?:ON|USING)\b"
+    + r"|\bVALUES\s*\("
+    + r"|\bSET\s+"
+    + _IDENT
+    + r"\s*="
+    + r"|\bFROM\s+"
+    + _IDENT
+    + r"\s+(?:WHERE|JOIN|INNER|LEFT|RIGHT|ORDER\s+BY|GROUP\s+BY|LIMIT)\b"
+    + r"|\bORDER\s+BY\s+"
+    + _IDENT
+    + r"|\bGROUP\s+BY\s+"
+    + _IDENT,
+    re.IGNORECASE,
+)
+# A DB call on the same line is SQL context on its own.
+_SQL_CALL_RE = re.compile(r"\b(?:execute|executemany|executescript|raw|query)\s*\(|\bcursor\b", re.IGNORECASE)
+
+
+def _filter_sql_shape(match: re.Match, line: str, filepath: str) -> bool:
+    """Return True to keep a sql-injection finding: the line holds real SQL
+    shape (keyword pair or operator) or a DB call. A lone FROM/SET/SELECT
+    word in prose is suppressed."""
+    return bool(_SQL_SHAPE_RE.search(line) or _SQL_CALL_RE.search(line))
 
 
 # ─── Custom-rule loading (extensibility) ──────────────────────

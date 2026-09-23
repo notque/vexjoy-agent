@@ -9,6 +9,8 @@ failing or still pending.
 
 import json
 import os
+import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +18,64 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import deny_tool_use, record_governance
 from stdin_timeout import read_stdin
+
+_MERGE_RE = re.compile(r"\bgh\s+pr\s+merge\b")
+# Tokens that end the merge simple command.
+_SEGMENT_END = {"&&", "||", ";", "|", "&", "\n", "(", ")"}
+# Merge flags that take a value; the value is never the PR number.
+_VALUE_FLAGS = {
+    "-t",
+    "--subject",
+    "-b",
+    "--body",
+    "-F",
+    "--body-file",
+    "-A",
+    "--author-email",
+    "--match-head-commit",
+    "-R",
+    "--repo",
+}
+_PULL_URL_RE = re.compile(r"/pull/(\d+)")
+
+
+def extract_pr_number(command: str) -> str | None:
+    """Return the PR number from the first merge command's argument list.
+
+    Parses only the tokens after the merge subcommand up to the first shell
+    separator or redirection. Returns None when no numeric or URL selector
+    is given (the caller then falls back to the current branch).
+    """
+    m = _MERGE_RE.search(command)
+    if not m:
+        return None
+    rest = command[m.end() :]
+    # Drop fd prefixes on redirects (`2>&1`) so the fd is not read as an argument.
+    rest = re.sub(r"(?<!\S)\d+(?=[<>])", " ", rest)
+    lex = shlex.shlex(rest, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    lex.commenters = ""  # `#55` is a PR selector, not a comment
+    try:
+        tokens = list(lex)
+    except ValueError:
+        tokens = rest.split()
+    skip_next = False
+    for tok in tokens:
+        if tok in _SEGMENT_END or tok[:1] in "<>" or tok.startswith(("&", "|", ";")):
+            break
+        if skip_next:
+            skip_next = False
+            continue
+        if tok.startswith("-"):
+            if tok in _VALUE_FLAGS:
+                skip_next = True
+            continue
+        # First positional argument is the PR selector.
+        if tok.lstrip("#").isdigit():
+            return tok.lstrip("#")
+        url = _PULL_URL_RE.search(tok)
+        return url.group(1) if url else None
+    return None
 
 
 def main() -> None:
@@ -50,13 +110,9 @@ def main() -> None:
             deny_tool_use("PreToolUse", "Use of --force bypasses merge safeguards. Remove --force and merge normally.")
             sys.exit(0)
 
-    # Extract PR number from command
-    # Patterns: gh pr merge 55, gh pr merge #55, gh pr merge --squash 55
-    pr_number = None
-    for i, part in enumerate(parts):
-        if part.lstrip("#").isdigit() and i > 0 and parts[i - 1] != "--count":
-            pr_number = part.lstrip("#")
-            break
+    # PR number comes from the merge-command arguments only, never from
+    # other commands in the chain (`sleep 5 && <merge> 1012`).
+    pr_number = extract_pr_number(command)
 
     if not pr_number:
         # No PR number found — might be merging current branch PR
