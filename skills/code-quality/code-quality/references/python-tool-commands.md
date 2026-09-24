@@ -67,7 +67,7 @@ bandit -r src/ -ll --format=json
 |----------|-----------|-------------|
 | **Critical** | F (pyflakes), E9xx | Undefined names, unused imports, syntax errors |
 | **High** | E501, E711, E712, F841, N8xx | Line length, None comparisons, unused vars, naming |
-| **Medium** | W503, W504, E203, C4xx | Line breaks, whitespace, comprehension improvements |
+| **Medium** | E203, C4xx | Whitespace before punctuation, comprehension improvements (ruff has no W503/W504; `ruff format` owns line breaks) |
 | **Low** | SIM1xx, UP0xx | Simplification suggestions, syntax upgrades |
 
 ### Mypy Issue Severity

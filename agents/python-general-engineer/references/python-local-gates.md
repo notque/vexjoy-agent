@@ -30,13 +30,13 @@ query = User.select().where(User.active == True)
 
 ## Environment on This Host
 
-- **venv for every deploy.** System pip may resolve to a different Python version (e.g., Python 3.14 but pip from 3.9), causing deploy failures or packages landing in the wrong site-packages. Create the venv first, deploy inside it:
+- **venv for every deploy.** System `pip` may belong to a different Python than `python3`, so packages land in the wrong site-packages. Create the venv first and install inside it with `python -m pip`:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && . .venv/bin/activate && python -m pip install -e '.[dev]'
 ```
 
-- **Installing uv**: use a package-manager path — `pipx deploy uv` or `python3 -m pip deploy --user uv`. Piped remote deployers conflict with this host's deployer policy.
+- **Installing uv**: use a package manager: `pipx install uv` or `python3 -m pip install --user uv`. This host's policy blocks installer scripts downloaded and run in one step.
 
 ## CLI Pipeline Conventions (reddit_mod)
 
@@ -50,9 +50,9 @@ Pinned CVEs/commits worth loading when the task touches parsing, serialization, 
 
 | Gotcha | Pin | Fix |
 |--------|-----|-----|
-| tar extraction writes outside target dir | CVE-2007-4559; `filter="data"` added in Python 3.12 | `tar.extractall(dir, filter="data")`; pre-3.12: `is_relative_to` containment check per member |
+| tar extraction writes outside target dir | CVE-2007-4559; `filter=` added in 3.12, default became `"data"` in 3.14 | Always pass `tar.extractall(dir, filter="data")` so 3.12 and 3.13 behave like 3.14 |
 | `yaml.load` reaches `os.system` via `!!python/object` | CVE-2020-1747 (PyYAML FullLoader before 5.3.1) | `yaml.safe_load` |
 | ML model files (`.pkl`, `.joblib`) execute code on load | CVE-2025-1716; GHSA-g8c6-8fjj-2r4m (python-socketio pickle across servers) | JSON or validated formats across trust boundaries |
 | Pydantic response DTO with `extra="allow"` passes arbitrary fields to the response | Sentry commit `0c0aae90ac1` | `extra="ignore"` on response DTOs + `response_model=` on every endpoint returning DB data |
-| SSRF despite string-based URL checks | CVE-2024-34351 (Next.js Server Actions); CVE-2026-40175 (axios header injection bypassing IMDSv2) | Resolve DNS, reject private/metadata ranges at the IP layer, `allow_redirects=False` |
+| SSRF despite string-based URL checks | CVE-2024-34351 (Next.js Server Actions, same bug class) | Resolve DNS, reject private, loopback, link-local, and metadata ranges at the IP layer (`ipaddress.ip_address(...).is_global`), and disable redirects: `requests` `allow_redirects=False`; httpx already defaults to `follow_redirects=False` |
 | Jinja2 sandbox escapes via `render_template_string(user_input)` | CVE-2019-10906, CVE-2016-10745 | Render from template files; user data enters as context variables only |
