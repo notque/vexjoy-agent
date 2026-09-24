@@ -39,7 +39,7 @@ Attached skills are the primary `skill` plus `stack`, excluding shared patterns 
 |---|---|---|
 | `d-code` | `scripts/jev-route.py` per case (Jev through Vercel AI Gateway) | about 9k Jev tokens per case |
 | `d-model` | `claude -p --model claude-opus-4-6 --tools ""` applies `skills/meta/d/SKILL.md` to recorded `d-code` output | about $0.065 per case |
-| `do-model` | Same model applies `skills/meta/do/SKILL.md` to the routing manifest and the `pre-route.py` result | about $0.093 per case |
+| `do-model` | Same model applies `skills/meta/do/SKILL.md` to the per-request routing manifest (`routing-manifest.py --request-file`) and the `pre-route.py` result | about $0.093 per case |
 
 Model runs ask only for the build-dispatch routing JSON; nothing executes. The first call warms the prompt cache before the rest fan out.
 
@@ -75,5 +75,16 @@ Changes: trigger last words take plain inflections only ("write post" no longer 
 | `/do` after, do-model (2 held-out runs) | 0.907 / 0.889 / 1.000 / 0.791 | full 0.500, 0.714 |
 
 Private skills sat in the `/d` stage-1 skill shortlist on 40 of 57 requests before and 0 after. Gateway failures were retried per case; one baseline held-out case (`ood-k8s-01`) failed twice and scores as a miss. `/do` differences fall on requests whose pre-route input and manifest text are unchanged apart from the agent rename, and a rerun of the unchanged baseline moved held-out full attach from 0.929 to 0.786, so they are run-to-run model variance. The one `/do` held-out input that changed (`ood-go-04`, "before I ship it") routed correctly in every run.
+
+## Results (2026-09-23): per-request `/do` manifest
+
+Change: `/do` reads the manifest with `get-routing-manifest.sh --request-file`, so private overlay skills render only when the request names their domain (the `gate_private_entries` gate `/d` uses). Every eval request got the same gated manifest, with all 17 private skill lines removed. Two runs each, model `claude-opus-4-6`, 2 workers; mean (min-max):
+
+| Run | Dev agent / recall / precision / full | Held-out agent / recall / precision / full |
+|---|---|---|
+| `/do` before | 0.860 (0.860-0.860) / 0.911 (0.911-0.911) / 0.990 (0.981-1.000) / 0.767 (0.767-0.767) | 0.822 (0.786-0.857) / 0.938 (0.875-1.000) / 0.921 (0.895-0.947) / 0.750 (0.714-0.786) |
+| `/do` after | 0.895 (0.884-0.907) / 0.900 (0.889-0.911) / 0.991 (0.982-1.000) / 0.779 (0.767-0.791) | 0.893 (0.857-0.929) / 0.969 (0.938-1.000) / 1.000 (1.000-1.000) / 0.893 (0.857-0.929) |
+
+No run attached a private skill, before or after, so the gain sits within run-to-run variance (earlier baseline runs scored held-out full 0.929 and 0.786). The change removes 17 lines (about 3.5 KB) from every `/do` manifest.
 
 `d-model` v1.1 precision falls below `d-code` because the model added skill names that no longer exist (`test-driven-development`, `parallel-code-review`), which `build-dispatch.py` rejects. Changes and the decision card: `skills/meta/d/references/jev-classifier-design.md`, "Attachment step".

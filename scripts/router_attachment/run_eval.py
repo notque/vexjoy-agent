@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -276,23 +277,40 @@ PRE_ROUTE_RESULT:
 """
 
 
-def build_system_file(router: str, scratch: Path) -> Path:
+def build_system_file(router: str, scratch: Path, case: dict | None = None) -> Path:
+    """System prompt file. For do-model, pass *case*: /do reads the manifest per request.
+
+    The manifest is built with the request, as `get-routing-manifest.sh
+    --request-file` does, so private entries appear only when the request names
+    their domain.
+    """
     if router == "d-model":
         text = (REPO / "skills" / "meta" / "d" / "SKILL.md").read_text(encoding="utf-8")
+        path = scratch / f"{router}-system.md"
     else:
-        manifest = subprocess.run(
-            [sys.executable, str(REPO / "scripts" / "routing-manifest.py")],
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=str(REPO),
-        ).stdout
+        request = (case or {}).get("request", "")
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
+            fh.write(request)
+            request_path = fh.name
+        try:
+            manifest = subprocess.run(
+                [sys.executable, str(REPO / "scripts" / "routing-manifest.py"), "--request-file", request_path],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=str(REPO),
+            ).stdout
+        finally:
+            Path(request_path).unlink(missing_ok=True)
         text = (
             (REPO / "skills" / "meta" / "do" / "SKILL.md").read_text(encoding="utf-8")
             + "\n\n# Routing manifest (output of get-routing-manifest.sh)\n\n"
             + manifest
         )
-    path = scratch / f"{router}-system.md"
+        # Name by content: requests whose gated manifest is identical share one
+        # file, so they share the prompt-cache prefix.
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+        path = scratch / f"{router}-system-{digest}.md"
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -334,7 +352,7 @@ def main() -> int:
         for row in json.loads(args.jev_results.read_text(encoding="utf-8"))["rows"]:
             jev_cache[row["id"]] = row["raw"]
 
-    system_file = build_system_file(args.router, scratch) if args.router != "d-code" else None
+    system_file = build_system_file(args.router, scratch) if args.router == "d-model" else None
 
     def one(case: dict) -> dict:
         started = time.monotonic()
@@ -353,7 +371,8 @@ def main() -> int:
         else:
             raw = run_pre_route(case["request"])
             prompt = DO_PROMPT % (case["request"], json.dumps(raw))
-        decision, cost, text, usage = call_model(system_file, prompt, args.model, scratch)
+        case_system = system_file or build_system_file(args.router, scratch, case)
+        decision, cost, text, usage = call_model(case_system, prompt, args.model, scratch)
         return {
             "usage": usage,
             "id": case["id"],

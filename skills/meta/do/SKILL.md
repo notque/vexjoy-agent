@@ -70,14 +70,16 @@ Parallel FIRST: 2+ failures / 3+ subtasks → multiple Agent tools. Research→r
 
 The routing manifest (`scripts/routing-manifest.py`) is the runtime form; `docs/routing-map.md` is the human-readable committed form of the same data. Both are generated from frontmatter, so frontmatter is the single source of truth. CI checks staleness via `scripts/generate-routing-map.py --check`.
 
-Resolve SDIR to locate installed scripts, then read the manifest (hash-gated cache or regenerate). This probe does not identify the active session model or provider:
+Resolve SDIR to locate installed scripts, then read the manifest for this request (hash-gated cache or regenerate). This probe does not identify the active session model or provider:
 
 ```bash
 SDIR="${HOME}/.claude/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.hermes/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.factory/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.codex/scripts"; [ -d "$SDIR" ] || SDIR="${HOME}/.reasonix/scripts"
-bash "$SDIR/get-routing-manifest.sh"
+REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
+bash "$SDIR/get-routing-manifest.sh" --request-file "$REQUEST_FILE"
+rm -f "$REQUEST_FILE"
 ```
 
-Use `bash` explicitly so routing does not depend on the script's executable bit.
+Use `bash` explicitly so routing does not depend on the script's executable bit. Pass the request: private overlay skills appear in the manifest only when the request names their domain, the same gate `pre-route.py` and `/d` apply.
 
 Hold the decision internally as JSON. It stays unprinted; the `[do-route]` marker is its sole external trace:
 

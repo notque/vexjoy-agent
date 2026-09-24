@@ -104,4 +104,4 @@ def test_missing_cache_regenerates(tmp_path: Path) -> None:
 def test_do_invokes_manifest_through_bash() -> None:
     """The router must not depend on the manifest script executable bit."""
     lines = DO_SKILL.read_text(encoding="utf-8").splitlines()
-    assert 'bash "$SDIR/get-routing-manifest.sh"' in lines
+    assert 'bash "$SDIR/get-routing-manifest.sh" --request-file "$REQUEST_FILE"' in lines

@@ -8,6 +8,12 @@ Usage:
     python3 scripts/routing-manifest.py
     python3 scripts/routing-manifest.py --json
     python3 scripts/routing-manifest.py --tiered
+    python3 scripts/routing-manifest.py --request-file /tmp/request.txt
+
+--request or --request-file gates private (overlay) entries on the request:
+one stays only when the request names its domain
+(routing_index_merge.gate_private_entries, the gate /d and pre-route.py
+apply). With neither flag every entry renders, as the session cache holds it.
 
 --tiered is REJECTED for production routing: two blind A/B runs failed
 gates (c) safety misses and (d) stub-tier (verdicts in
@@ -61,6 +67,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 from routing_index_merge import canonical_agent_name as _canonical_agent_name
 from routing_index_merge import detect_target as _detect_target
+from routing_index_merge import gate_private_entries as _gate_private_entries
 from routing_index_merge import load_index_items as _load_index_items
 from routing_index_merge import load_items_for as _load_items_for
 from routing_index_merge import private_names_for as _private_names_for
@@ -400,8 +407,8 @@ def format_compact_mode(entries: list[dict], request_text: str = "") -> str:
     exists, never to the request wording: a literal-substring gate hid every
     pipeline from "research X and write me an article", and it also removed the
     PIPELINES: header the /do section validator tokenizes the SKILLS: block
-    against. `request_text` is accepted and unused, kept so callers passing
-    --request stay valid.
+    against. `request_text` is accepted and unused here; main() applies the
+    private-entry gate to `entries` before any formatter runs.
 
     Triggers stay off these lines, matching the agent and skill lines above —
     compact mode exists to shrink the manifest.
@@ -451,8 +458,14 @@ def main() -> int:
     parser.add_argument(
         "--request",
         type=str,
-        default="",
-        help="Request text (accepted for compatibility; the manifest no longer varies by request)",
+        default=None,
+        help="Request text: private entries render only when it names their domain",
+    )
+    parser.add_argument(
+        "--request-file",
+        type=Path,
+        default=None,
+        help="Read the request text from this file (same gate as --request)",
     )
     parser.add_argument(
         "--tiered",
@@ -463,11 +476,19 @@ def main() -> int:
 
     try:
         entries = load_entries()
+        request = args.request
+        if args.request_file is not None:
+            try:
+                request = args.request_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                request = ""  # unreadable request: no domain named, so no private entry
+        if request is not None:
+            entries = _gate_private_entries(entries, request)
 
         if args.json:
             print(json.dumps(entries, indent=2))
         elif args.compact:
-            print(format_compact_mode(entries, request_text=args.request))
+            print(format_compact_mode(entries, request_text=request or ""))
         elif args.tiered:
             print(format_tiered(entries, load_working_set()))
         else:
