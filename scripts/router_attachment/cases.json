@@ -240,7 +240,7 @@
    "request": "Add a React settings page with a dark mode toggle",
    "agents": [
     "typescript-frontend-engineer",
-    "ui-frontend-engineer"
+    "ui-design-engineer"
    ],
    "required": [
     [
@@ -285,7 +285,7 @@
    "domain": "frontend",
    "request": "Redesign the pricing page so it stops looking like generic AI output: stronger typography, spacing, and hierarchy",
    "agents": [
-    "ui-frontend-engineer",
+    "ui-design-engineer",
     "typescript-frontend-engineer"
    ],
    "required": [
@@ -331,7 +331,7 @@
    "domain": "frontend",
    "request": "Audit our signup form for WCAG accessibility problems and fix them",
    "agents": [
-    "ui-frontend-engineer",
+    "ui-design-engineer",
     "typescript-frontend-engineer"
    ],
    "required": [
@@ -441,7 +441,7 @@
    "request": "Use Jev to pick shadcn components and a style recipe for a new admin dashboard",
    "agents": [
     "typescript-frontend-engineer",
-    "ui-frontend-engineer"
+    "ui-design-engineer"
    ],
    "required": [
     [
@@ -1072,7 +1072,7 @@
    "domain": "frontend",
    "request": "the button on the landing page looks cheap and the colors clash, make it look like a real product",
    "agents": [
-    "ui-frontend-engineer",
+    "ui-design-engineer",
     "typescript-frontend-engineer"
    ],
    "required": [

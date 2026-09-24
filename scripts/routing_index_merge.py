@@ -16,6 +16,9 @@ uses, first match wins:
    on this step readers still overlay a legacy gitignored ``INDEX.local.json``
    when one exists, so routing keeps working until the engine installs an index.
 
+Also here: ``AGENT_ALIASES`` (renamed agents' old names) and the private-entry
+gate ``gate_private_entries`` that pre-route.py and jev-route.py apply.
+
 Importable by name (underscores). The routing scripts add their own directory
 to sys.path before importing, since they run as files, not as a package.
 """
@@ -24,11 +27,25 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 INDEX_DIR_ENV = "VEXJOY_INDEX_DIR"
 LEGACY_LOCAL = "INDEX.local.json"
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Renamed agents: old declared name -> current name. Routing history
+# (learning.db route keys, route-events.jsonl) and model output still carry
+# the old name; readers map it through canonical_agent_name() so usage keeps
+# attributing to the renamed agent.
+AGENT_ALIASES: dict[str, str] = {
+    "ui-frontend-engineer": "ui-design-engineer",
+}
+
+
+def canonical_agent_name(name: str) -> str:
+    """Current name for *name*: the alias target, else *name* unchanged."""
+    return AGENT_ALIASES.get(name, name)
 
 
 def load_index_items(tracked: Path, local_name: str | None, key: str) -> dict:
@@ -164,3 +181,128 @@ def load_items_for(
     if kind in RESOLVED_KINDS:
         return load_resolved_items(kind, target, fallback=(tracked, local_name), repo_root=repo_root)
     return load_index_items(tracked, local_name, kind)
+
+
+def private_names_for(
+    kind: str,
+    tracked: Path,
+    local_name: str | None,
+    target: str = "claude",
+    repo_root: Path | None = None,
+) -> set[str]:
+    """Names of overlay-owned (private) items the reader sees for *kind*.
+
+    Installed indexes mark them with an ``owner`` of ``overlay:<id>``. On the
+    repo fallback, legacy ``INDEX.local.json`` entries missing from the public
+    index are private too.
+    """
+    items = load_items_for(kind, tracked, local_name, target, repo_root)
+    names = {n for n, d in items.items() if is_overlay_item(d)}
+    if kind in RESOLVED_KINDS and _resolve(kind, target, repo_root, None)[1]:
+        return names
+    public = load_index_items(tracked, None, kind)
+    return names | (set(items) - set(public))
+
+
+# ---------------------------------------------------------------- private gate
+#
+# Private skills and agents come from overlays (installed index entries with an
+# ``owner`` of ``overlay:<id>``, or legacy ``INDEX.local.json`` entries missing
+# from the public index; see private_names_for). Routers offer them as
+# candidates only when the request names their domain. Without this gate a
+# private domain skill whose triggers include a task word ("research")
+# outranks the general skill on generic requests.
+#
+# Domain terms of a private entry: words of its name and triggers that the
+# public catalog never uses (public skill names, triggers, and descriptions,
+# public agent descriptions) and that are not GENERIC_WORDS. A request names
+# the domain when it contains one of those words or the entry's full name.
+# Deterministic and request-local: no model call, no file reads.
+
+OVERLAY_OWNER_PREFIX = "overlay:"
+
+# Plain English words private triggers use that the public catalog happens not
+# to. They describe tasks or objects, not a private domain.
+GENERIC_WORDS = frozenset(
+    {
+        "articles",
+        "ball",
+        "board",
+        "canvas",
+        "com",
+        "community",
+        "comparison",
+        "counter",
+        "editor",
+        "event",
+        "external",
+        "five",
+        "human",
+        "official",
+        "photo",
+        "placement",
+        "poster",
+        "production",
+        "rankings",
+        "ratings",
+        "share",
+        "sound",
+        "staging",
+        "star",
+        "transform",
+    }
+)
+MIN_TERM_LEN = 3
+
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _words(text: str) -> set[str]:
+    return set(_WORD_RE.findall(text.lower()))
+
+
+def is_overlay_item(data: object) -> bool:
+    """True for an index item an overlay (private package) owns."""
+    return isinstance(data, dict) and str(data.get("owner") or "").startswith(OVERLAY_OWNER_PREFIX)
+
+
+def public_vocabulary(entries: list[dict]) -> set[str]:
+    """Words the public catalog uses: skill names, triggers, descriptions; agent descriptions."""
+    vocab: set[str] = set()
+    for entry in entries:
+        if entry.get("private"):
+            continue
+        vocab |= _words(entry.get("description") or "")
+        if entry.get("type") == "agent":
+            continue
+        vocab |= _words(entry.get("name") or "")
+        for trigger in entry.get("triggers") or []:
+            if isinstance(trigger, str):
+                vocab |= _words(trigger)
+    return vocab
+
+
+def domain_terms(entry: dict, vocab: set[str]) -> set[str]:
+    """Words that name a private entry's domain (see the private gate note above)."""
+    words = _words(entry.get("name") or "")
+    for trigger in entry.get("triggers") or []:
+        if isinstance(trigger, str):
+            words |= _words(trigger)
+    return {w for w in words if len(w) >= MIN_TERM_LEN and w not in vocab and w not in GENERIC_WORDS}
+
+
+def names_domain(request: str, entry: dict, vocab: set[str]) -> bool:
+    """True when the request names the private entry or one of its domain terms."""
+    lowered = request.lower()
+    name = (entry.get("name") or "").lower()
+    if name and re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", lowered):
+        return True
+    return bool(_words(lowered) & domain_terms(entry, vocab))
+
+
+def gate_private_entries(entries: list[dict], request: str) -> list[dict]:
+    """Drop private entries whose domain the request does not name. Public entries pass unchanged."""
+    if not any(e.get("private") for e in entries):
+        return entries
+    vocab = public_vocabulary(entries)
+    return [e for e in entries if not e.get("private") or names_domain(request, e, vocab)]

@@ -574,6 +574,8 @@ def resolve_agent(decision: dict) -> tuple[str, str]:
        ``fallback_reason=invalid-agent:<name>``. Deliberately NOT an exception:
        raising mid-session would stall real work, and a phantom agent name is
        the router's bug to see in the data, not the user's task to lose.
+       A renamed agent's old name (routing_index_merge.AGENT_ALIASES) maps to
+       its current name first.
     2. FALLBACK JUSTIFICATION — general-purpose (however reached) REQUIRES a
        non-empty reason, so every fallback is justified and countable instead
        of being an invisible default.
@@ -584,6 +586,8 @@ def resolve_agent(decision: dict) -> tuple[str, str]:
 
     reason = slugify_fallback_reason(decision.get("fallback_reason"))
     known = load_known_agents()
+    if known and agent not in known and _rim is not None:
+        agent = _rim.canonical_agent_name(agent)  # a renamed agent's old name
     if known and agent not in known:
         reason = f"invalid-agent:{agent}"
         agent = FALLBACK_AGENT

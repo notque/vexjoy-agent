@@ -59,9 +59,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+from routing_index_merge import canonical_agent_name as _canonical_agent_name
 from routing_index_merge import detect_target as _detect_target
 from routing_index_merge import load_index_items as _load_index_items
 from routing_index_merge import load_items_for as _load_items_for
+from routing_index_merge import private_names_for as _private_names_for
 
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
 # ~/.<runtime>/vexjoy/index/<kind>.json, then the repo index + legacy local.
@@ -100,6 +102,7 @@ def load_entries() -> list[dict]:
 
     for index_type, (tracked, local_name) in INDEX_PATHS.items():
         items = _load_items_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
+        private = _private_names_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
 
         for name, data in items.items():
             if not isinstance(data, dict):
@@ -125,6 +128,10 @@ def load_entries() -> list[dict]:
                     not_for = stripped[4:].lstrip()
             if not_for:
                 entry["not_for"] = not_for
+            if name in private:
+                # Overlay-owned entry: routers gate it on a domain match
+                # (routing_index_merge.gate_private_entries).
+                entry["private"] = True
             entries.append(entry)
 
     return entries
@@ -136,11 +143,14 @@ def _learning_dir() -> Path:
 
 
 def _names_from_key(key: str, names: set[str]) -> None:
-    """Add the agent and skill names from an `agent:skill` route key."""
-    for part in key.split(":", 1):
+    """Add the agent and skill names from an `agent:skill` route key.
+
+    A renamed agent's old name maps to its current name (AGENT_ALIASES).
+    """
+    for i, part in enumerate(key.split(":", 1)):
         part = part.strip()
         if part and part != "-":
-            names.add(part)
+            names.add(_canonical_agent_name(part) if i == 0 else part)
 
 
 def load_working_set(now: float | None = None) -> set[str]:
@@ -188,7 +198,7 @@ def load_working_set(now: float | None = None) -> set[str]:
                 for field in ("agent", "skill"):
                     value = event.get(field)
                     if isinstance(value, str) and value and value != "-":
-                        names.add(value)
+                        names.add(_canonical_agent_name(value) if field == "agent" else value)
     except OSError:
         pass
 

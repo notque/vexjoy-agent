@@ -12,7 +12,7 @@ routing:
     - lightbox
   not_for: "commerce features such as carts, Stripe, or checkout (use nextjs-ecommerce-engineer); general React or Next.js application architecture (use typescript-frontend-engineer); React Native mobile apps (use react-native-engineer); generating the artwork itself (use image-gen skill). This agent builds portfolio and gallery sites for creatives."
   pairs_with:
-    - ui-frontend-engineer
+    - ui-design-engineer
     - typescript-frontend-engineer
   complexity: Medium
   category: language
@@ -65,7 +65,7 @@ Use these constraints to make the artist's work guide the layout. For an unfamil
 
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
-| `ui-frontend-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `ui-design-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.
@@ -87,7 +87,7 @@ Lightboxes need arrow keys, Escape, swipe gestures, adjacent-image preloading, b
 Add JSON-LD for artworks, Open Graph tags, semantic HTML, and meta descriptions.
 
 ### What This Agent CANNOT Do
-- **Design visual identity**: Cannot create brand frontend or color schemes (use ui-frontend-engineer agent)
+- **Design visual identity**: Cannot create brand frontend or color schemes (use ui-design-engineer agent)
 - **Write artist bios**: Cannot create content copy or artist statements (use technical-journalist-writer agent)
 - **Manage CMS**: Cannot set up content management systems (requires CMS specialist)
 - **Handle video editing**: Cannot edit or optimize video content (requires video specialist)

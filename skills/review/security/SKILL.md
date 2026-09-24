@@ -18,7 +18,6 @@ routing:
   triggers:
     - "security review"
     - "review my changes for security"
-    - "review my changes"
     - "review for security"
     - "security scan"
     - "review for vulnerabilities"

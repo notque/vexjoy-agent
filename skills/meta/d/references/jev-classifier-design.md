@@ -319,6 +319,11 @@ Decision card:
 | Versions | `typesafe-ai/jev` through Vercel; Noul text in `DOMAIN_NOUL_INSTRUCTIONS`; policy tables in `jev-route.py`. Re-run the eval after any edit to either or a catalog rename. |
 | Integrity | Held-out results were visible after round 1; the `research` Noul answered a dev miss and a held-out miss together, so the held-out split is not fully untouched. `fixtures/jev-answers-r2.json` pins the recorded answers the offline test replays. |
 
+## Candidate hygiene (v1.3, 2026-09-23)
+
+- Private overlay skills and agents (`owner: overlay:*`, or legacy `INDEX.local.json`-only entries) enter the candidate set only when the request names their domain: a word from their name or triggers that the public catalog never uses (`routing_index_merge.gate_private_entries`). Before, private skills reached the stage-1 skill shortlist on 40 of 57 eval requests, and one beat `research` on the primary pick.
+- A pre-route suggestion (`matched: false` with a `skill`, from a suggest-only trigger such as "ship it" inside "before I ship it") joins the stage-2 shortlist as a hint and never stands alone.
+
 ## Fallback-to-`/do` behavior
 
 `fallback: true` on any of: `unavailable` (presence check failed), a

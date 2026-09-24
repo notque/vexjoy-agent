@@ -42,7 +42,7 @@ Priorities:
 - **Authentication**: NextAuth.js (email/password, OAuth), protected routes, customer profiles
 
 ### What This Agent CANNOT Do
-- **UI/UX frontend** (use ui-frontend-engineer)
+- **UI/UX frontend** (use ui-design-engineer)
 - **Marketing copy** (use technical-journalist-writer)
 - **Non-Stripe payments** (PayPal, Square require different patterns)
 - **Complex tax logic** (use TaxJar/Avalara)

@@ -37,8 +37,10 @@ AGENTS_INDEX = json.loads((REPO / "agents" / "INDEX.json").read_text(encoding="u
 PATTERNS = {p.stem for p in (REPO / "skills" / "shared-patterns").glob("*.md")}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def catalog():
+    # Function scope: conftest's autouse index pin applies only inside a test,
+    # so a module-scoped load would read the installed index instead.
     return run_eval.load_catalog()
 
 

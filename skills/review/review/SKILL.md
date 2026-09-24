@@ -38,6 +38,7 @@ routing:
     - "repo health"
     - "review this PR"
     - "review my PR"
+    - "review my changes"
     - "PR review"
     - "diff review"
   category: code-review

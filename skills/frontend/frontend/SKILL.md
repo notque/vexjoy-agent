@@ -44,7 +44,7 @@ routing:
   category: frontend
   pairs_with:
     - typescript-frontend-engineer
-    - ui-frontend-engineer
+    - ui-design-engineer
     - game-dev
 ---
 

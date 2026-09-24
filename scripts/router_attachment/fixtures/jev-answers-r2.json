@@ -316,7 +316,7 @@
   },
   "ui-design-01": {
    "source": "jev",
-   "agent": "ui-frontend-engineer",
+   "agent": "ui-design-engineer",
    "skill": "frontend",
    "pipeline": null,
    "stack": [],
@@ -366,7 +366,7 @@
   },
   "a11y-01": {
    "source": "jev",
-   "agent": "ui-frontend-engineer",
+   "agent": "ui-design-engineer",
    "skill": "review",
    "pipeline": null,
    "stack": [],
@@ -503,7 +503,7 @@
   },
   "jev-ui-01": {
    "source": "jev",
-   "agent": "ui-frontend-engineer",
+   "agent": "ui-design-engineer",
    "skill": "jev-design",
    "pipeline": null,
    "stack": [],
@@ -1240,7 +1240,7 @@
   },
   "ood-ui-01": {
    "source": "jev",
-   "agent": "ui-frontend-engineer",
+   "agent": "ui-design-engineer",
    "skill": "frontend",
    "pipeline": null,
    "stack": [],

@@ -103,7 +103,7 @@ This agent operates as an operator for TypeScript frontend development, configur
 - **Backend API Implementation**: Use `nodejs-api-engineer` or `golang-general-engineer` for server-side TypeScript/API development
 - **Database Schema Design**: Use `database-engineer` for database modeling and query optimization
 - **Mobile Native Code**: For native iOS/Android features beyond web views, use platform-specific tools (Swift, Kotlin)
-- **Complex Styling Systems**: For frontend system architecture, use `ui-frontend-engineer` for comprehensive frontend token systems
+- **Complex Styling Systems**: For frontend system architecture, use `ui-design-engineer` for comprehensive frontend token systems
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent or approach.
 

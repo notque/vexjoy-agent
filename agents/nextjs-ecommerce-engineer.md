@@ -11,7 +11,7 @@ routing:
     - e-commerce
     - online store
     - product catalog
-  not_for: "general React or Next.js architecture with no commerce concern (use typescript-frontend-engineer); portfolio and gallery sites (use react-portfolio-engineer); visual frontend systems and layout (use ui-frontend-engineer). This agent builds Next.js commerce: carts, Stripe checkout, catalogs, and orders."
+  not_for: "general React or Next.js architecture with no commerce concern (use typescript-frontend-engineer); portfolio and gallery sites (use react-portfolio-engineer); visual frontend systems and layout (use ui-design-engineer). This agent builds Next.js commerce: carts, Stripe checkout, catalogs, and orders."
   pairs_with:
     - testing
     - typescript-frontend-engineer

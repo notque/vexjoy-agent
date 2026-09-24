@@ -1,5 +1,5 @@
 ---
-name: ui-frontend-engineer
+name: ui-design-engineer
 description: "UI/UX frontend: frontend systems, responsive layouts, accessibility, animations."
 color: orange
 routing:

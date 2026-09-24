@@ -1,6 +1,6 @@
 ---
 name: d
-version: "1.2.0"
+version: "1.3.0"
 description: "Jev request router: validates the requested outcome, then dispatches to the matched agent, skill, and pipeline."
 user-invocable: true
 argument-hint: "[request]"
@@ -252,7 +252,7 @@ from `skills/INDEX.json`.
 | Source | Attaches |
 |---|---|
 | `JEV_RESULT.stack` (pre-route, e.g. a `.go` file with PR or security work) | its entries, first |
-| Agent domain floor | `programming` for Go, Kotlin, PHP, and Swift agents; `kubernetes` for `kubernetes-helm-engineer`; `frontend` for `ui-frontend-engineer` |
+| Agent domain floor | `programming` for Go, Kotlin, PHP, and Swift agents; `kubernetes` for `kubernetes-helm-engineer`; `frontend` for `ui-design-engineer` |
 | `domain_scores` at 0.6 or higher | `programming`, `frontend`, `kubernetes`, `testing`, `building-with-jev`, `research` |
 | `tests_requested` / `comprehensive_review` / `objective_loop_worthy` | `testing` / `review` / `workflow` |
 | `local_only` | `local-only` shared pattern |

@@ -62,4 +62,18 @@ Use two `d-code` workers: three concurrent routes hit a burst of Gateway failure
 | `/do`, do-model | 0.907 / 0.933 / 1.000 / 0.837 | 1.000 / 1.000 / 1.000 / 1.000 |
 | `/d` v1.2, d-code and d-model | 0.977 / 0.933 / 0.948 / 0.930 | 1.000 / 0.938 / 0.905 / 0.929 |
 
+## Results (2026-09-23): keyword fixes and private-skill gate
+
+Changes: trigger last words take plain inflections only ("write post" no longer matches PostToolUse or Postgres); plain "review my changes" routes to `review`; "ship it" only suggests `pr-workflow` inside a later clause ("before I ship it"); private overlay skills are candidates only when the request names their domain; `ui-frontend-engineer` renamed `ui-design-engineer`.
+
+| Router | Dev agent / recall / precision / full | Held-out agent / recall / precision / full |
+|---|---|---|
+| `/d` before, d-code | 0.977 / 0.933 / 0.945 / 0.930 | 0.929 / 0.875 / 0.900 / 0.857 |
+| `/d` before, d-model | 0.977 / 0.933 / 0.945 / 0.930 | 1.000 / 0.938 / 0.905 / 0.929 |
+| `/d` after, d-code and d-model | 0.977 / 0.956 / 0.964 / 0.953 | 1.000 / 1.000 / 1.000 / 1.000 |
+| `/do` before, do-model (2 held-out runs) | 0.930 / 0.889 / 1.000 / 0.814 | full 0.929, 0.786 |
+| `/do` after, do-model (2 held-out runs) | 0.907 / 0.889 / 1.000 / 0.791 | full 0.500, 0.714 |
+
+Private skills sat in the `/d` stage-1 skill shortlist on 40 of 57 requests before and 0 after. Gateway failures were retried per case; one baseline held-out case (`ood-k8s-01`) failed twice and scores as a miss. `/do` differences fall on requests whose pre-route input and manifest text are unchanged apart from the agent rename, and a rerun of the unchanged baseline moved held-out full attach from 0.929 to 0.786, so they are run-to-run model variance. The one `/do` held-out input that changed (`ood-go-04`, "before I ship it") routed correctly in every run.
+
 `d-model` v1.1 precision falls below `d-code` because the model added skill names that no longer exist (`test-driven-development`, `parallel-code-review`), which `build-dispatch.py` rejects. Changes and the decision card: `skills/meta/d/references/jev-classifier-design.md`, "Attachment step".

@@ -1,6 +1,6 @@
 # AI Slop Detection
 
-<!-- Loaded by ui-frontend-engineer when task involves AI slop, generic UI, AI-generated look, template look, or default styling -->
+<!-- Loaded by ui-design-engineer when task involves AI slop, generic UI, AI-generated look, template look, or default styling -->
 
 Detection commands and keep-if exceptions for generated-UI tells. The tells and their fixes are defined in `skills/shared-patterns/ui-design-judgment.md` section 9; this file adds how to find them in existing code. Each pattern starts with the correct approach.
 

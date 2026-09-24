@@ -53,8 +53,10 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 from routing_index_merge import detect_target as _detect_target
+from routing_index_merge import gate_private_entries as _gate_private_entries
 from routing_index_merge import load_index_items as _load_index_items
 from routing_index_merge import load_items_for as _load_items_for
+from routing_index_merge import private_names_for as _private_names_for
 from routing_index_merge import resolve_index_with_base as _resolve_index_with_base
 
 # Installed-index resolution (installer spec 7.2): $VEXJOY_INDEX_DIR, then
@@ -244,7 +246,8 @@ SUPPLEMENTAL_TRIGGERS: dict[str, tuple[str, ...]] = {
         "went green",  # "check if the tests on my submitted change went green"
     ),
     "security": (
-        "code safe",  # "look over my code for safety problems" (safe* covers safety)
+        "code safe",
+        "code safety",  # "look over my code for safety problems"
         "is unsafe",  # "check whether anything here is unsafe"
         "break into",  # "someone could break into this" — companion-gated below
         "passwords keys",  # "did I leave any passwords or keys in the code"
@@ -563,6 +566,7 @@ def load_entries() -> list[dict]:
         # Fail-safe.
         _ensure_index(index_type, tracked)
         items = _load_items_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
+        private = _private_names_for(index_type, tracked, local_name, _INDEX_TARGET, REPO_ROOT)
 
         for name, data in items.items():
             if not isinstance(data, dict):
@@ -571,17 +575,43 @@ def load_entries() -> list[dict]:
             # Safety-net paraphrase triggers the INDEX lacks (see
             # SUPPLEMENTAL_TRIGGERS). The entry keeps its force_route flag.
             triggers.extend(t for t in SUPPLEMENTAL_TRIGGERS.get(name, ()) if t not in triggers)
-            entries.append(
-                {
-                    "name": name,
-                    "type": "skill" if index_type == "skills" else "agent",
-                    "triggers": triggers,
-                    "agent": data.get("agent"),
-                    "force_route": bool(data.get("force_route", False)),
-                }
-            )
+            entry = {
+                "name": name,
+                "type": "skill" if index_type == "skills" else "agent",
+                "triggers": triggers,
+                "agent": data.get("agent"),
+                "force_route": bool(data.get("force_route", False)),
+                "description": data.get("description") or "",
+            }
+            if name in private:
+                entry["private"] = True
+            entries.append(entry)
 
     return entries
+
+
+# Suffixes the last word of a multi-word trigger may take. Inflections only:
+# an open `\w*` made "write post" match "PostToolUse" and "Postgres".
+TRIGGER_INFLECTION = r"(?:s|es|d|ed|er|ers|ing)?"
+
+# Force-route triggers that only suggest when a clause shows they are not the
+# request's action. "ship it" alone is a PR request and force-routes (ADR
+# corpus, test_pre_route_pr_workflow.py), but in "look over what I changed
+# before I ship it" shipping is a later step and the action is a review
+# (router attachment eval, case ood-go-04). A match whose surviving triggers
+# are all listed, in a request the context pattern matches, reports as a
+# suggestion (matched false, confidence low, skill set). Any other trigger of
+# the same skill keeps the force route.
+SUGGEST_ONLY_TRIGGERS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
+    "pr-workflow": (
+        frozenset({"ship it", "ship this", "ship this work"}),
+        re.compile(
+            r"\b(?:before|after|once|when|until|so)\s+(?:i|we|you)\s+(?:can\s+|could\s+)?ship\b"
+            r"|\bbefore\s+shipping\b",
+            re.IGNORECASE,
+        ),
+    ),
+}
 
 
 def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
@@ -591,6 +621,11 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
     Multi-word triggers: each word must appear in order with up to 2
     intervening words allowed (handles "create a PR" matching trigger
     "create PR", or "run the go tests" matching "go test").
+
+    The last word also takes a plain inflection (TRIGGER_INFLECTION: "test"
+    matches "tests", "review" matches "reviewers"), never an arbitrary suffix:
+    "write post" must not match "write a PostToolUse hook" or "write a
+    Postgres migration".
     """
     words = trigger_lower.split()
     if len(words) == 1:
@@ -598,13 +633,11 @@ def _build_pattern(trigger_lower: str) -> re.Pattern[str]:
         return re.compile(rf"\b{escaped}\b", re.IGNORECASE)
 
     # Multi-word: allow up to 2 words between each trigger word.
-    # Also allow the last trigger word to be a prefix (e.g. "test" matches "tests").
     parts = []
     for i, word in enumerate(words):
         escaped = re.escape(word)
         if i == len(words) - 1:
-            # Last word: allow plural/suffix (word boundary after stem)
-            parts.append(rf"\b{escaped}\w*\b")
+            parts.append(rf"\b{escaped}{TRIGGER_INFLECTION}\b")
         else:
             parts.append(rf"\b{escaped}\b")
 
@@ -772,14 +805,28 @@ def score_matches(table: list[MatchEntry], request: str) -> dict[str, ScoredMatc
     return candidates
 
 
-def determine_confidence(match: ScoredMatch) -> str:
+def _is_suggestion(match: ScoredMatch, request: str) -> bool:
+    """True when every surviving trigger is suggest-only in this request's context."""
+    spec = SUGGEST_ONLY_TRIGGERS.get(match.name)
+    if spec is None or not request or not match.matched_triggers:
+        return False
+    triggers, context = spec
+    return bool(context.search(request)) and all(t in triggers for t in match.matched_triggers)
+
+
+def determine_confidence(match: ScoredMatch, request: str = "") -> str:
     """Force match with 1+ surviving trigger -> "high"; anything else -> "low".
+
+    A suggest-only match (SUGGEST_ONLY_TRIGGERS in its context) is "low":
+    route() reports it as a suggestion, not a force route.
 
     A force_route match that reaches scoring already passed every semantic
     guard (score_matches discards guarded matches), so one surviving trigger
     is a deterministic signal. The /do fast path and Step 1(a) safety
     override act only on "high".
     """
+    if _is_suggestion(match, request):
+        return "low"
     if match.force_route and len(match.matched_triggers) >= 1:
         return "high"
     return "low"
@@ -798,6 +845,8 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     """
     if entries is None:
         entries = load_entries()
+    # Private (overlay) entries match only when the request names their domain.
+    entries = _gate_private_entries(entries, request)
 
     table = build_match_table(entries)
     candidates = score_matches(table, request)
@@ -853,21 +902,23 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     # A Go source-file extension is stronger domain evidence than a generic
     # process phrase such as "fix typo". Ensure every .go edit loads the Go
     # skill's mandatory style baseline while leaving non-Go typo work on quick.
-    protected = [candidate for candidate in candidates.values() if candidate.name in PROTECTED_GO_COMPOSITE_SKILLS]
+    protected = [
+        candidate
+        for candidate in candidates.values()
+        if candidate.name in PROTECTED_GO_COMPOSITE_SKILLS and determine_confidence(candidate, request) == "high"
+    ]
     if go_operand and not protected and "skill:programming" in candidates:
         candidates["skill:programming"].score += 100
 
     # Skill/agent and pipeline are orthogonal slots (COMBINATION DOCTRINE):
     # pick the best non-pipeline match for skill/agent and the best pipeline
-    # match for pipeline independently.
-    non_pipeline = sorted(
-        (c for c in candidates.values() if c.entry_type != "pipeline"),
-        key=lambda m: (-m.score, m.name),
-    )
-    pipeline_candidates = sorted(
-        (c for c in candidates.values() if c.entry_type == "pipeline"),
-        key=lambda m: (-m.score, m.name),
-    )
+    # match for pipeline independently. A suggest-only match ranks below
+    # every force match, so it never hides one.
+    def _rank(m: ScoredMatch) -> tuple[bool, float, str]:
+        return (determine_confidence(m, request) != "high", -m.score, m.name)
+
+    non_pipeline = sorted((c for c in candidates.values() if c.entry_type != "pipeline"), key=_rank)
+    pipeline_candidates = sorted((c for c in candidates.values() if c.entry_type == "pipeline"), key=_rank)
 
     # The "top" drives matched/confidence; prefer skill/agent over pipeline
     # when both exist, since skill matches are the established contract.
@@ -876,7 +927,7 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
         # Defensive: candidates was non-empty above, so unreachable.
         top = next(iter(sorted(candidates.values(), key=lambda m: (-m.score, m.name))))
 
-    confidence = determine_confidence(top)
+    confidence = determine_confidence(top, request)
 
     if confidence == "low":
         best_pipe = pipeline_candidates[0] if pipeline_candidates else None
@@ -884,10 +935,10 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
             "matched": False,
             "agent": top.agent,
             "skill": top.name if top.entry_type == "skill" else None,
-            "pipeline": best_pipe.name if best_pipe and determine_confidence(best_pipe) != "low" else None,
+            "pipeline": best_pipe.name if best_pipe and determine_confidence(best_pipe, request) != "low" else None,
             "confidence": "low",
             "match_type": "fallthrough",
-            "reasoning": f"weak match on {top.matched_triggers!r} for {top.name} (score={top.score:.2f})",
+            "reasoning": f"suggest-only match on {top.matched_triggers!r} for {top.name} (score={top.score:.2f})",
             "stack": [],
         }
 
@@ -903,7 +954,7 @@ def route(request: str, entries: list[dict] | None = None) -> dict:
     pipeline: str | None = None
     if pipeline_candidates:
         best_pipe = pipeline_candidates[0]
-        if determine_confidence(best_pipe) != "low":
+        if determine_confidence(best_pipe, request) != "low":
             pipeline = best_pipe.name
 
     match_type = "force_route"  # only force entries reach the match table

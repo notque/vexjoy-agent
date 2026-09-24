@@ -47,12 +47,12 @@ Full attach = right agent, every required skill group, no forbidden pick.
 | `/d` v1.1 (d-model) | 0.558 | 0.667 / 0.731 | 0.429 |
 | `/do` (do-model) | 0.837 | 0.933 / 1.000 | 1.000 |
 | `/d` v1.2 (d-model = d-code) | 0.930 | 0.933 / 0.948 | 0.929 |
+| `/d` v1.3 keyword fixes and private gate (2026-09-23) | 0.953 | 0.956 / 0.964 | 1.000 |
 
 Single runs; Jev answers are cached per payload, so repeat runs vary little.
-Remaining `/d` misses: a security force match on "review my changes", a
-refactor routed to `code-quality` instead of `workflow`, a trivial bypass on
-"Go ahead and tighten the wording of <file>", and a private research skill
-beating `research` on the primary pick.
+Remaining `/d` misses: a refactor routed to `code-quality` instead of
+`workflow`, and a trivial bypass on "Go ahead and tighten the wording of
+<file>". Before and after tables: `scripts/router_attachment/README.md`.
 
 ## Intent-alignment checks
 - A proposed intent that drops material scope, adds unrequested work, or uses a

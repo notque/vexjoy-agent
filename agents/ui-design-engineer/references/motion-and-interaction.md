@@ -1,6 +1,6 @@
 # Motion and Interaction States
 
-<!-- Loaded by ui-frontend-engineer when task involves animation, motion, Framer Motion, interaction states, hover, focus, disabled, loading, active, or pressed -->
+<!-- Loaded by ui-design-engineer when task involves animation, motion, Framer Motion, interaction states, hover, focus, disabled, loading, active, or pressed -->
 
 House rules for how much motion to ship and which states must exist. Framer Motion and CSS transition syntax are assumed known; what follows is the budget and the taste.
 

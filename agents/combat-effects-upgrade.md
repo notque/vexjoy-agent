@@ -15,10 +15,10 @@ routing:
     - visual effects upgrade
     - effects.ts
     - combat polish
-  not_for: "WebGL or GPU-particle combat rendering (use pixijs-combat-renderer); skeletal or character animation rigs (use rive-skeletal-animator); general frontend-system, layout, or accessibility work (use ui-frontend-engineer). This agent does zero-dependency CSS and Framer Motion combat effects."
+  not_for: "WebGL or GPU-particle combat rendering (use pixijs-combat-renderer); skeletal or character animation rigs (use rive-skeletal-animator); general frontend-system, layout, or accessibility work (use ui-design-engineer). This agent does zero-dependency CSS and Framer Motion combat effects."
   pairs_with:
     - typescript-frontend-engineer
-    - ui-frontend-engineer
+    - ui-design-engineer
     - pixijs-combat-renderer
   complexity: Medium
   category: frontend
@@ -154,7 +154,7 @@ Target metrics:
 | Agent | When to dispatch | Action |
 |-------|------------------|--------|
 | `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization | Return this handoff to the coordinator for Agent-tool dispatch. |
-| `ui-frontend-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
+| `ui-design-engineer` | UI/UX frontend: frontend systems, responsive layouts, accessibility, animations | Return this handoff to the coordinator for Agent-tool dispatch. |
 | `pixijs-combat-renderer` | PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing | Return this handoff to the coordinator for Agent-tool dispatch. |
 
 **Rule**: These are agents. The Skill tool cannot invoke them.

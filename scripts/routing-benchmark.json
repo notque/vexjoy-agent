@@ -1014,7 +1014,7 @@
     },
     {
       "request": "Retention is falling; inspect this game and improve the player experience",
-      "expected_agent": "ui-frontend-engineer",
+      "expected_agent": "ui-design-engineer",
       "expected_skill": "game-dev",
       "category": "game-design",
       "routing_tier": "candidate_deferred",

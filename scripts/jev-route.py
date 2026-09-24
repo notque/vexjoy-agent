@@ -108,6 +108,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_intent_align
 import jev_transport
+from routing_index_merge import gate_private_entries
 
 JEV_MODEL = "typesafe-ai/jev"
 
@@ -309,7 +310,7 @@ DOMAIN_SKILL_BY_AGENT = {
     "php-general-engineer": "programming",
     "swift-general-engineer": "programming",
     "kubernetes-helm-engineer": "kubernetes",
-    "ui-frontend-engineer": "frontend",
+    "ui-design-engineer": "frontend",
 }
 
 # Stack signal -> callable skill (or shared pattern) it attaches.
@@ -328,7 +329,7 @@ AGENT_BY_SKILL = {
     "building-with-jev": "python-general-engineer",
     "jev-design": "typescript-frontend-engineer",
     "kubernetes": "kubernetes-helm-engineer",
-    "frontend": "ui-frontend-engineer",
+    "frontend": "ui-design-engineer",
     "research": "research-coordinator-engineer",
     "testing": "testing-automation-engineer",
     "toolkit": "toolkit-governance-engineer",
@@ -1116,6 +1117,9 @@ def _classify(
         # skill_criteria/skill_full/skill_names at either stage, so Jev is
         # structurally unable to rank or select it, not merely discouraged.
         entries = [e for e in entries if not (e.get("type") == "skill" and e.get("name") in ROUTER_ENTRY_POINT_SKILLS)]
+        # Private (overlay) entries are candidates only when the request names
+        # their domain, so a private domain skill cannot outrank a general one.
+        entries = gate_private_entries(entries, request_text)
         agent_criteria, skill_criteria, pipeline_criteria, agent_names, skill_names, pipeline_names = (
             _build_criteria_maps(entries)
         )
@@ -1219,6 +1223,13 @@ def _is_force(pre_route: dict) -> bool:
     )
 
 
+def _is_suggestion(pre_route: dict) -> bool:
+    """A pre-route suggest-only match: a skill named without a force route."""
+    return bool(
+        not pre_route.get("matched") and pre_route.get("skill") and pre_route.get("match_type") == "fallthrough"
+    )
+
+
 def _is_safety_force(forced: dict) -> bool:
     return forced.get("skill") in SAFETY_FORCE_NAMES or forced.get("pipeline") in SAFETY_FORCE_NAMES
 
@@ -1302,6 +1313,8 @@ def route(
     - Other force route: Jev classifies with the forced skill on its stage-2
       shortlist (a hint, matching /do Phase 2 Step 1(b)). If Jev fails or
       calls the request trivial, the force route stands, as before.
+    - Pre-route suggestion (a suggest-only trigger such as "ship it"): the
+      skill joins the stage-2 shortlist as a hint and never stands alone.
     - Every matched route then gets `attach` (extra skills that ride with the
       primary) and, when no domain agent was picked, a skill-owned agent.
     """
@@ -1309,6 +1322,8 @@ def route(
     forced = _force_route_result(pre_route) if _is_force(pre_route) else None
     safety = forced is not None and _is_safety_force(forced)
     hint = forced.get("skill") if forced is not None and not safety else None
+    if forced is None and _is_suggestion(pre_route):
+        hint = _norm(pre_route.get("skill"))
 
     classified, skill_names = _classify(
         request_text, gate_threshold, fits_threshold, timeout, project, shortlist_n, hint_skill=hint

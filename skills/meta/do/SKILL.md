@@ -173,7 +173,7 @@ Use the `agent` and `skill` fields directly. Low confidence → verify against t
 | This toolkit: skills, agents, routing tables, ADRs, INDEX files | toolkit-governance-engineer |
 | Harness or toolkit upgrade sweep | system-upgrade-engineer |
 | Tests, coverage, E2E | testing-automation-engineer |
-| Web performance; frontend system and accessibility | performance-optimization-engineer, ui-frontend-engineer |
+| Web performance; frontend system and accessibility | performance-optimization-engineer, ui-design-engineer |
 | React Native, Expo | react-native-engineer |
 | API docs and runbooks; explainers and articles | technical-documentation-engineer, technical-journalist-writer |
 | Review: quality / system + security / ADR + business logic / perspectives | reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives |

@@ -42,6 +42,9 @@ sys.path.insert(0, str(_REPO_ROOT / "hooks" / "lib"))
 
 from learning_db_v2 import query_learnings
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from routing_index_merge import canonical_agent_name
+
 DAY = 86400
 
 
@@ -90,7 +93,7 @@ def _route_counts() -> tuple[dict[str, int], dict[str, int]]:
             continue
         agent, _, skill = key.partition(":")
         n = int(r.get("observation_count", 1) or 1)
-        agent = agent.strip()
+        agent = canonical_agent_name(agent.strip())
         skill = skill.strip()
         if agent:
             agent_counts[agent] = agent_counts.get(agent, 0) + n

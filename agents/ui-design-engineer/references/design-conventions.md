@@ -1,6 +1,6 @@
 # Design Conventions
 
-<!-- Loaded by ui-frontend-engineer when task involves Tailwind, frontend tokens, theme config, spacing scales, or starting a new surface -->
+<!-- Loaded by ui-design-engineer when task involves Tailwind, frontend tokens, theme config, spacing scales, or starting a new surface -->
 
 House conventions for tokens, Tailwind, and how to open a design task. Tailwind utility syntax and CSS custom property syntax are assumed known.
 

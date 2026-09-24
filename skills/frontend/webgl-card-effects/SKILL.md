@@ -26,7 +26,7 @@ routing:
     - card visual effects
   pairs_with:
     - typescript-frontend-engineer
-    - ui-frontend-engineer
+    - ui-design-engineer
   complexity: Medium
   category: frontend
 ---
