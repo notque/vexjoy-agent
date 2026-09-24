@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SubagentStop Hook: Completion Guard
 
@@ -254,12 +254,20 @@ def check_branch_safety(cwd: str) -> str | None:
             )
             return None
 
+        # Recovery targets origin/<branch>, never HEAD~N. git log is newest-first
+        # and approved commits can sit above unapproved ones, so a count of the
+        # filtered list does not name the range to move (issue #1021).
         commit_list = "\n".join(f"  {c}" for c in unapproved)
+        upstream = f"origin/{current_branch}"
         return (
             f"BLOCKED: Subagent committed directly to {current_branch}.\n"
-            f"Commits found:\n{commit_list}\n\n"
-            f"Required action: git reset --soft HEAD~{len(unapproved)}, "
-            f"create a feature branch, re-commit there.\n"
+            f"Unapproved commits:\n{commit_list}\n\n"
+            f"Required action: move all {len(lines)} commit(s) ahead of {upstream} "
+            f"to a feature branch (no commits are lost):\n"
+            f"  git branch <feature-branch> HEAD\n"
+            f"  git reset --keep {upstream}\n"
+            f"Then push <feature-branch> and open a PR. Approved commits in that range "
+            f"move too; cherry-pick them back only if they must land directly.\n"
             f"(To explicitly approve a direct commit, add '{_APPROVED_DIRECT_MARKER}' "
             f"to the commit message.)"
         )

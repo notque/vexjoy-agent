@@ -445,6 +445,39 @@ class TestCheckBranchSafety:
         assert "bbb bad commit" in result
         assert "aaa hotfix" not in result
 
+    def test_mixed_commits_recovery_targets_upstream_not_filtered_count(self):
+        """Issue #1021: approved commit newer than unapproved one.
+
+        git log is newest-first. A HEAD~N count built from the filtered list
+        would drop the approved commit and leave the unapproved one on main.
+        Recovery must name the upstream ref and the full range.
+        """
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                _subprocess_result(stdout="main\n"),
+                _subprocess_result(stdout="aaa hotfix [APPROVED-DIRECT]\nbbb bad commit\n"),
+            ]
+            result = check_branch_safety("/repo")
+
+        assert result is not None
+        assert "HEAD~" not in result
+        assert "git branch <feature-branch> HEAD" in result
+        assert "git reset --keep origin/main" in result
+        assert "all 2 commit(s)" in result
+
+    def test_recovery_uses_current_branch_upstream(self):
+        """master repos get origin/master as the reset target."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                _subprocess_result(stdout="master\n"),
+                _subprocess_result(stdout="ccc one\nddd two\n"),
+            ]
+            result = check_branch_safety("/repo")
+
+        assert result is not None
+        assert "git reset --keep origin/master" in result
+        assert "HEAD~" not in result
+
     def test_detached_head_returns_none(self):
         """Detached HEAD (symbolic-ref fails) — skip silently."""
         with patch("subprocess.run") as mock_run:
