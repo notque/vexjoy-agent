@@ -87,9 +87,12 @@ def test_session_detectors_keep_tags_and_add_exact_call() -> None:
     ]
 
 
-def test_pipeline_context_keeps_pipeline_names_out_of_skill_inventory() -> None:
+def test_pipeline_context_keeps_pipeline_names_out_of_skill_inventory(public_index_dir: Path, tmp_path: Path) -> None:
     detector = _load("skill_calls_pipeline_context", "pipeline-context-detector.py")
-    names = {entry["name"] for entry in detector.scan_skills(HOOKS.parent)}
+    # The generated public index, not the gitignored working-tree copy.
+    (tmp_path / "skills").mkdir()
+    (tmp_path / "skills" / "INDEX.json").write_bytes((public_index_dir / "skills.json").read_bytes())
+    names = {entry["name"] for entry in detector.scan_skills(tmp_path)}
 
     assert "workflow" in names
     assert "skill-creation-pipeline" not in names
@@ -111,8 +114,8 @@ def test_voice_prompt_name_must_resolve_before_becoming_directive() -> None:
     assert "Call the Skill tool with `writing`." in gate
 
 
-def test_static_hook_directives_name_only_indexed_skills() -> None:
-    index = json.loads((HOOKS.parent / "skills" / "INDEX.json").read_text(encoding="utf-8"))["skills"]
+def test_static_hook_directives_name_only_indexed_skills(public_index_dir: Path) -> None:
+    index = json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"]
     directive = re.compile(r"Call the Skill tool with `([a-z0-9][a-z0-9-]*)`\.")
     emitted = {
         match.group(1) for path in HOOKS.glob("*.py") for match in directive.finditer(path.read_text(encoding="utf-8"))

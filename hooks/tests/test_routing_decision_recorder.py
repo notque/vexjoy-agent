@@ -2554,7 +2554,8 @@ def _build_preamble_full() -> str:
                 "gaps": "none",
                 "operator_context": "personal profile",
             },
-        }
+        },
+        repo_root=HOOKS_DIR.parent,
     )
 
 
@@ -2586,6 +2587,7 @@ def _run_recorder_prompt(monkeypatch, prompt: str, name: str) -> None:
         a.main()
 
 
+@pytest.mark.usefixtures("use_public_index")
 class TestSpecScore:
     def test_full_preamble_scores_seven(self, db_env, monkeypatch):
         # (a) every task_spec field filled: all seven labels present.

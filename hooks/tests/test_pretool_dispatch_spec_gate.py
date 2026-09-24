@@ -181,6 +181,7 @@ def _decision(complexity: str) -> dict:
     }
 
 
+@pytest.mark.usefixtures("use_public_index")
 def test_full_preamble_from_build_dispatch_stays_silent() -> None:
     build = _load_build_dispatch()
     preamble = build.build_preamble(_decision("medium"), SETTINGS, gather=True, repo_root=ROOT)
@@ -191,6 +192,7 @@ def test_full_preamble_from_build_dispatch_stays_silent() -> None:
     assert result.stdout == ""
 
 
+@pytest.mark.usefixtures("use_public_index")
 def test_no_gather_preamble_at_medium_warns_about_repo_state_only() -> None:
     build = _load_build_dispatch()
     preamble = build.build_preamble(_decision("medium"), SETTINGS, gather=False, repo_root=ROOT)
@@ -199,6 +201,7 @@ def test_no_gather_preamble_at_medium_warns_about_repo_state_only() -> None:
     assert "## Repo state" in context
 
 
+@pytest.mark.usefixtures("use_public_index")
 def test_no_gather_preamble_at_simple_stays_silent() -> None:
     build = _load_build_dispatch()
     preamble = build.build_preamble(_decision("simple"), SETTINGS, gather=False, repo_root=ROOT)
@@ -225,6 +228,7 @@ def test_registered_in_pretooluse_agent_group() -> None:
     assert any("pretool-dispatch-spec-gate.py" in c for c in commands)
 
 
+@pytest.mark.usefixtures("use_public_index")
 @pytest.mark.parametrize("mode", ["summary", "files", "none"])
 @pytest.mark.parametrize("complexity", ["medium", "complex"])
 def test_inherited_model_context_modes_pass_strict_gate(mode, complexity):
