@@ -202,7 +202,6 @@ PreToolUse hooks split into **gates** (can block tool execution) and **advisory*
 | `pretool-prompt-injection-scanner.py` | Write\|Edit | Warn about prompt injection |
 | `pretool-file-backup.py` | Edit | Backup files before modification |
 | `reference-loading-enforcer.py` | Agent | Inject reference loading requirements |
-| `pretool-subagent-warmstart.py` | Agent | Inject parent session context |
 | `creation-protocol-enforcer.py` | Agent | Soft-warn on creation without ADR |
 
 ---

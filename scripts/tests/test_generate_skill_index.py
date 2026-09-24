@@ -375,3 +375,23 @@ class TestPrunePhantomEntries:
 
         assert pruned == ["voice-sample"]
         assert index["skills"] == {}
+
+
+class TestRealRepoRun:
+    """End-to-end over the real skill tree: the only run that reaches frontmatter shapes fixtures don't model."""
+
+    @pytest.mark.slow
+    def test_include_private_run_writes_only_the_requested_output(self, tmp_path: Path) -> None:
+        """The include-private generator exits 0 and writes where told, never over the shared public index."""
+        output = tmp_path / "INDEX.json"
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--include-private", "--output", str(output)],
+            capture_output=True,
+            text=True,
+            cwd=str(SCRIPT.parent.parent),
+            timeout=30,
+        )
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        data = json.loads(output.read_text(encoding="utf-8"))
+        # Floor tracks the post-consolidation catalog; raise it with new skills.
+        assert 35 <= len(data["skills"]) <= 80

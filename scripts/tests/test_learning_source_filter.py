@@ -1,10 +1,8 @@
-"""Tests for the source filter in query_learnings and the purge-test-learnings script.
+"""Tests for the source filter in query_learnings.
 
 Covers:
 - query_learnings excludes test-source rows by default
 - query_learnings includes test-source rows with exclude_test_sources=False
-- purge-test-learnings dry-run reports rows without deleting
-- purge-test-learnings --commit deletes test-source rows only
 """
 
 from __future__ import annotations
@@ -178,89 +176,3 @@ class TestQueryLearningsSourceFilter:
 _scripts_dir = str(_repo_root / "scripts")
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
-
-
-def _import_purge_script():
-    """Import purge-test-learnings as a module (hyphen in filename)."""
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "purge_test_learnings",
-        _repo_root / "scripts" / "purge-test-learnings.py",
-    )
-    assert spec is not None
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-    return mod
-
-
-class TestPurgeTestLearnings:
-    """purge-test-learnings.py dry-run and --commit behaviour."""
-
-    def test_dry_run_does_not_delete(self, isolated_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        _seed_mixed(isolated_db)
-        db_path = isolated_db / "learning.db"
-        mod = _import_purge_script()
-
-        # Patch argparse so we can call main() without sys.argv conflicts
-        monkeypatch.setattr(
-            "sys.argv",
-            ["purge-test-learnings.py", "--db", str(db_path)],
-        )
-        mod.main()
-
-        # Rows must still be present after dry run
-        conn = sqlite3.connect(db_path)
-        count = conn.execute("SELECT COUNT(*) FROM learnings WHERE source LIKE 'test%'").fetchone()[0]
-        conn.close()
-        assert count == 2, f"Dry run deleted rows — expected 2 test rows, found {count}"
-
-    def test_commit_deletes_test_rows(self, isolated_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        _seed_mixed(isolated_db)
-        db_path = isolated_db / "learning.db"
-        mod = _import_purge_script()
-
-        monkeypatch.setattr(
-            "sys.argv",
-            ["purge-test-learnings.py", "--db", str(db_path), "--commit"],
-        )
-        mod.main()
-
-        conn = sqlite3.connect(db_path)
-        test_count = conn.execute("SELECT COUNT(*) FROM learnings WHERE source LIKE 'test%'").fetchone()[0]
-        real_count = conn.execute("SELECT COUNT(*) FROM learnings WHERE source NOT LIKE 'test%'").fetchone()[0]
-        conn.close()
-        assert test_count == 0, f"Expected 0 test rows after --commit, found {test_count}"
-        assert real_count == 2, f"Expected 2 real rows preserved, found {real_count}"
-
-    def test_dry_run_output_lists_rows(
-        self, isolated_db: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        _seed_mixed(isolated_db)
-        db_path = isolated_db / "learning.db"
-        mod = _import_purge_script()
-
-        monkeypatch.setattr(
-            "sys.argv",
-            ["purge-test-learnings.py", "--db", str(db_path)],
-        )
-        mod.main()
-        output = capsys.readouterr().out
-
-        assert "2" in output  # row count
-        assert "DRY RUN" in output
-        assert "--commit" in output
-
-    def test_empty_db_no_crash(self, isolated_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        from learning_db_v2 import init_db
-
-        init_db()  # empty DB
-        db_path = isolated_db / "learning.db"
-        mod = _import_purge_script()
-
-        monkeypatch.setattr(
-            "sys.argv",
-            ["purge-test-learnings.py", "--db", str(db_path)],
-        )
-        mod.main()  # should not raise

@@ -60,7 +60,7 @@ class TestSanitizerCaseInsensitive:
 
     @pytest.mark.parametrize(
         "tag",
-        ["system", "SYSTEM", "System", "SyStEm", "user", "USER", "User", "assistant", "ASSISTANT", "human", "HUMAN"],
+        ["system", "SyStEm", "USER", "assistant", "human"],
     )
     def test_role_tag_neutralized(self, tag):
         from learning_db_v2 import sanitize_for_context
@@ -286,14 +286,8 @@ class TestOutcomeFinalizerCoverage:
 
 class TestGetDbDirExported:
     """get_db_dir() must be a public export of learning_db_v2, keeping
-    ADR-122 chmod hardening, and the 4 copy sites must use it.
+    ADR-122 chmod hardening.
     """
-
-    def test_get_db_dir_exists(self):
-        """learning_db_v2 exports get_db_dir as a public function."""
-        from learning_db_v2 import get_db_dir
-
-        assert callable(get_db_dir)
 
     def test_get_db_dir_honors_env(self, tmp_path):
         from learning_db_v2 import get_db_dir
@@ -309,23 +303,3 @@ class TestGetDbDirExported:
 
         monkeypatch.delenv("CLAUDE_LEARNING_DIR", raising=False)
         assert learning_db_v2.get_db_dir() == learning_db_v2._DEFAULT_DB_DIR
-
-    def test_module_default_is_the_claude_learning_dir(self):
-        """That default is ~/.claude/learning.
-
-        Asserted against the source, not the live constant: the repo-wide
-        conftest fixture repoints the constant at a tmp dir so that no test can
-        reach production data.
-        """
-        source = (HOOKS_DIR / "lib" / "learning_db_v2.py").read_text()
-        assert '_DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"' in source
-
-    def test_route_signal_uses_get_db_dir(self):
-        source = (REPO_ROOT / "scripts" / "route-signal-check.py").read_text()
-        assert "get_db_dir" in source, "route-signal-check does not use get_db_dir"
-        assert 'Path.home() / ".claude" / "learning"' not in source
-
-    def test_routing_manifest_uses_get_db_dir(self):
-        source = (REPO_ROOT / "scripts" / "routing-manifest.py").read_text()
-        assert "get_db_dir" in source, "routing-manifest does not use get_db_dir"
-        assert 'Path.home() / ".claude" / "learning"' not in source

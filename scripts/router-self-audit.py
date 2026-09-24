@@ -11,9 +11,10 @@ One composite report over four checks, exit 0/1:
                     entry counts (via the live pre-route.py loader).
   2. merged-index — validate-merged-index.py --strict findings: phantom files,
                     dead agent refs, missing fields, "NOT: " doubling.
-  3. replay-suite — pass rate of the route-replay regression corpus
-                    (routing-benchmark.json tiers + pre-route corpus pins),
-                    run through pytest.
+  3. replay-suite — the route-replay regression corpus: routing-benchmark.py
+                    (runs the pre_route_only / pre_route_negative rows of
+                    routing-benchmark.json through pre-route.py) plus the
+                    pre-route boundary tests, run through pytest.
   4. drift        — check-routing-drift.py: every INDEX skill appears in the
                     routing manifest.
 
@@ -37,10 +38,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = REPO_ROOT / "scripts"
 
-# Replay regression corpus runners: the benchmark-fixture replay
-# (test_routing_accuracy.py) plus the pre-route corpus pins.
+# Replay regression corpus runners: routing-benchmark.py replays the pinned
+# corpus (routing-benchmark.json); these pytest files hold the boundary cases.
+REPLAY_BENCHMARK = SCRIPTS / "routing-benchmark.py"
 REPLAY_TEST_FILES = (
-    "scripts/tests/test_routing_accuracy.py",
     "scripts/tests/test_pre_route_planning.py",
     "scripts/tests/test_pre_route_pr_workflow.py",
     "scripts/tests/test_pre_route_public_web_deploy.py",
@@ -125,8 +126,24 @@ def check_merged_index() -> CheckResult:
 
 
 def check_replay_suite() -> CheckResult:
-    """Run the replay regression corpus through pytest; fail on any failure."""
-    cmd = [sys.executable, "-m", "pytest", "-q", "--tb=line", "-p", "no:cacheprovider", *REPLAY_TEST_FILES]
+    """Replay the pinned corpus (routing-benchmark.py) and the boundary tests; fail on any failure."""
+    bench = _run([sys.executable, str(REPLAY_BENCHMARK)])
+    bench_lines = [ln for ln in bench.stdout.splitlines() if ln.startswith("Pre-route corpus:")]
+    bench_summary = bench_lines[-1] if bench_lines else f"routing-benchmark exit {bench.returncode}"
+    # -o addopts= drops the repo default (-n auto + marker filter): a few files
+    # run serially, and the audit works where pytest-xdist is not installed.
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "--tb=line",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        *REPLAY_TEST_FILES,
+    ]
     try:
         proc = _run(cmd)
     except FileNotFoundError:
@@ -136,9 +153,16 @@ def check_replay_suite() -> CheckResult:
     if total == 0:
         return CheckResult("replay-suite", False, "no replay cases collected", proc.stdout.strip()[-2000:])
     rate = 100.0 * passed / total
-    ok = failed == 0 and proc.returncode == 0
-    detail = "" if ok else proc.stdout.strip()[-2000:]
-    return CheckResult("replay-suite", ok, f"{passed}/{total} passed ({rate:.1f}%)", detail)
+    ok = failed == 0 and proc.returncode == 0 and bench.returncode == 0
+    detail = "\n".join(
+        part
+        for part in (
+            "" if bench.returncode == 0 else bench.stdout.strip()[-2000:],
+            "" if failed == 0 and proc.returncode == 0 else proc.stdout.strip()[-2000:],
+        )
+        if part
+    )
+    return CheckResult("replay-suite", ok, f"{bench_summary}; {passed}/{total} tests passed ({rate:.1f}%)", detail)
 
 
 def check_drift() -> CheckResult:

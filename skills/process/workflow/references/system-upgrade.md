@@ -154,7 +154,7 @@ Proposed Changes (Ranked):
 
 CRITICAL (must fix):
   1. hooks/routing-decision-recorder.py — Add Notification event handler [upgrade, ~30min]
-  2. hooks/pretool-subagent-warmstart.py — Update for new tool event format [upgrade, ~20min]
+  2. hooks/subagent-start-warmstart.py — Update for new tool event format [upgrade, ~20min]
 
 IMPORTANT (should fix):
   3. agents/hook-development-engineer.md — Document Notification event type [inject-pattern, ~15min]

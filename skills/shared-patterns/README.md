@@ -23,6 +23,7 @@ See [Anti-Rationalization](../skills/shared-patterns/anti-rationalization-core.m
 | Pattern | Purpose | Used By |
 |---------|---------|---------|
 | `anti-rationalization-core.md` | Prevent shortcut rationalizations | All implementation skills |
+| `jev-production-lessons.md` | Concrete rules for sending Jev requests: request size, run budget, screen-then-detail, parallel stages, retries by status, caching, logging, failure measurement | building-with-jev, grill-jev, browser-jev-automation, jev-design, d |
 | `anti-rationalization-review.md` | Review-specific rationalizations | Review skills/agents |
 | `anti-rationalization-testing.md` | Testing-specific rationalizations | TDD, testing skills |
 | `anti-rationalization-security.md` | Security-specific rationalizations | Security review agents |

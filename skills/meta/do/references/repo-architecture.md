@@ -87,12 +87,12 @@ Run `scripts/validate-references.py --all` to check:
 - Every declared reference file exists on disk
 - Every file on disk is declared in the agent body
 - Structural compliance (headings, content, code examples)
-- Size limits
+
+Run `scripts/validate-references.py --check-size` to check reference size limits (500 lines) against the dated debt register and flag empty `references/` dirs.
 
 Run `python3 -m pytest scripts/tests/test_reference_loading.py` to verify:
 - Reference loading tables are complete
 - Keyword→reference mapping selects the right files
-- Joy-check compliance on headings
 
 ### When Creating a New Agent
 

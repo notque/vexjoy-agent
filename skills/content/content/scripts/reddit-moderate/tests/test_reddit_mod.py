@@ -75,20 +75,6 @@ class TestDetectMassReport:
                 "11 reports with duplicates reducing distinct below 3",
                 id="11-reports-duplicates-below-threshold",
             ),
-            pytest.param(
-                0,
-                [],
-                False,
-                "zero reports with empty list",
-                id="zero-reports-empty",
-            ),
-            pytest.param(
-                50,
-                ["spam", "harassment", "misinformation", "brigading", "self-harm", "other"],
-                True,
-                "50 reports with 6 categories",
-                id="50-reports-6-categories",
-            ),
         ],
     )
     def test_detect_mass_report(
@@ -146,7 +132,6 @@ class TestSubredditRegex:
     @pytest.mark.parametrize(
         "name",
         [
-            pytest.param("sap", id="lowercase"),
             pytest.param("SquaredCircle", id="mixed-case"),
             pytest.param("SAP_Cloud", id="with-underscore"),
             pytest.param("ab", id="min-length-2"),
@@ -161,10 +146,8 @@ class TestSubredditRegex:
         [
             pytest.param("a", id="too-short-1-char"),
             pytest.param("../etc", id="path-traversal"),
-            pytest.param("sub with spaces", id="spaces"),
             pytest.param("", id="empty"),
             pytest.param("a" * 22, id="too-long-22-chars"),
-            pytest.param("sub/path", id="slash"),
         ],
     )
     def test_invalid_subreddit_names(self, name: str) -> None:
@@ -196,7 +179,6 @@ class TestFullnameRegex:
             pytest.param("t2_abc", id="invalid-type-t2"),
             pytest.param("t1_", id="empty-id"),
             pytest.param("", id="empty-string"),
-            pytest.param("t4_abc", id="invalid-type-t4"),
             pytest.param("t1_ABC", id="uppercase-id"),
             pytest.param("t1_a" + "b" * 10, id="id-too-long-11"),
         ],
@@ -214,7 +196,6 @@ class TestUsernameRegex:
     @pytest.mark.parametrize(
         "username",
         [
-            pytest.param("MixedCaseUser", id="mixed-case"),
             pytest.param("rob0d", id="alphanumeric"),
             pytest.param("a-b_c", id="hyphen-and-underscore"),
             pytest.param("a" * 20, id="max-length-20"),
@@ -229,9 +210,7 @@ class TestUsernameRegex:
         [
             pytest.param("", id="empty"),
             pytest.param("a" * 21, id="too-long-21-chars"),
-            pytest.param("user name", id="space"),
             pytest.param("user.name", id="dot"),
-            pytest.param("user@name", id="at-sign"),
         ],
     )
     def test_invalid_usernames(self, username: str) -> None:

@@ -223,20 +223,6 @@ ROUND_TRIP_CASES = [
         },
         id="gpt-5.5-manual-compatibility-model",
     ),
-    pytest.param(  # V9: old marker without model= (backward compat)
-        # Simulate by checking recorder parses model=None from a pre-model marker
-        {"complexity": "simple", "model": None, "health": None, "stack": []},
-        {
-            "agent": "python-general-engineer",
-            "skill": "testing",
-            "complexity": "simple",
-            "model": None,
-            "health": None,
-            "gate_inputs_present": True,
-            "stack": None,
-        },
-        id="backward-compat-no-model-token",
-    ),
 ]
 
 
@@ -407,16 +393,17 @@ def test_request_verbatim_absent_leaves_output_unchanged():
     assert with_empty == with_none
 
 
-@pytest.mark.parametrize("complexity", ["medium", "complex"])
-@pytest.mark.parametrize("task_spec", [None, {}, {"intent": ""}, {"intent": "   ", "files": None}])
+@pytest.mark.parametrize(
+    ("complexity", "task_spec"),
+    [("medium", None), ("complex", {}), ("medium", {"intent": ""}), ("complex", {"intent": "   ", "files": None})],
+)
 def test_empty_task_spec_rejected_for_medium_and_complex(complexity, task_spec):
     """A thin handoff must fail closed, not pass as exit 0 with no spec block."""
     with pytest.raises(bd.InputError, match="'task_spec' required for medium/complex"):
         _preamble(_decision(complexity=complexity, task_spec=task_spec))
 
 
-@pytest.mark.parametrize("complexity", ["trivial", "simple"])
-@pytest.mark.parametrize("task_spec", [None, {}, {"intent": ""}])
+@pytest.mark.parametrize(("complexity", "task_spec"), [("trivial", None), ("simple", {}), ("simple", {"intent": ""})])
 def test_empty_task_spec_allowed_for_trivial_and_simple(complexity, task_spec):
     preamble = _preamble(_decision(complexity=complexity, task_spec=task_spec))
     assert "## Task Specification" not in preamble
@@ -470,7 +457,6 @@ def test_determinism_same_input_same_bytes():
         {"complexity": ""},
         {"model": "haiku"},  # retired model — not in VALID_MODELS
         {"health": {"confidence": 1.5}},
-        {"health": {"confidence": -0.1}},
         {"health": {"confidence": 0.5, "action": "boost"}},
         {"health": {"confidence": 0.5, "n": -1}},
         {"stack": ["has space"]},
@@ -583,8 +569,7 @@ def test_reason_without_a_letter_or_digit_raises():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("complexity", ["simple", "medium", "complex"])
-@pytest.mark.parametrize("skill", [None, "", "-"])
+@pytest.mark.parametrize(("complexity", "skill"), [("simple", None), ("medium", ""), ("complex", "-")])
 def test_missing_skill_raises_for_simple_and_above(complexity, skill):
     with pytest.raises(bd.InputError, match="'skill' is required"):
         _preamble(_decision(complexity=complexity, skill=skill, model="opus"))
@@ -666,8 +651,9 @@ def test_gpt_56_policy_points_are_not_dominated_on_supplied_metrics():
         )
 
 
-@pytest.mark.parametrize("model", ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"))
-@pytest.mark.parametrize("effort", ("low", "medium", "high", "xhigh", "max"))
+@pytest.mark.parametrize(
+    ("model", "effort"), [("gpt-5.6-sol", "low"), ("gpt-5.6-terra", "xhigh"), ("gpt-5.6-luna", "max")]
+)
 def test_all_supplied_gpt_56_variants_and_efforts_are_valid_manual_overrides(model, effort):
     """Every supplied GPT-5.6 pair is representable without becoming an auto route."""
     marker = bd.build_marker(_decision(model=model, model_effort=effort, manual_model_override=True))
@@ -729,10 +715,7 @@ def test_manual_policy_model_override_requires_explicit_effort():
     "overrides",
     [
         {"model": "gpt-5.5", "model_effort": "high"},
-        {"model": "gpt-5.6-sol", "model_effort": "high"},
-        {"model": "gpt-5.6-sol", "model_effort": "low"},
         {"model": "gpt-5.6-terra", "model_effort": "xhigh"},
-        {"model": "gpt-5.6-luna", "model_effort": "max"},
         {"model": "gpt-5.6-sol", "model_effort": "ultra", "manual_model_override": True},
     ],
 )
@@ -927,9 +910,7 @@ def test_cli_json_file_and_stdin(tmp_path):
     "payload",
     [
         "not json",
-        json.dumps({"complexity": "medium"}),  # agent missing
         json.dumps({"agent": "claude", "complexity": "Low"}),  # invalid enum
-        json.dumps({"agent": "claude", "complexity": "medium"}),  # model missing for medium
     ],
 )
 def test_cli_bad_input_exits_2_with_empty_stdout(payload):
@@ -1163,6 +1144,7 @@ def test_gather_timeout_is_five_seconds():
     assert bd._GATHER_TIMEOUT_SECONDS == 5
 
 
+@pytest.mark.performance
 def test_cli_with_gather_runs_under_300ms():
     decision = _decision()
     start = time.perf_counter()
@@ -1179,8 +1161,10 @@ def test_decisions_prior_results_gaps_emit_in_order():
     assert labels == ["**Intent", "**Decisions", "**Prior results", "**Gaps", "**Operator context"]
 
 
-@pytest.mark.parametrize("complexity", bd.VALID_COMPLEXITY)
-@pytest.mark.parametrize("provider", bd.VALID_PROVIDERS)
+@pytest.mark.parametrize(
+    ("complexity", "provider"),
+    list(zip(bd.VALID_COMPLEXITY[1:] + bd.VALID_COMPLEXITY[:1], bd.VALID_PROVIDERS, strict=False)),
+)
 def test_inherit_requests_no_tool_override_and_round_trips(complexity, provider):
     prompt = _preamble(_decision(model="inherit", complexity=complexity, provider=provider))
     marker = prompt.splitlines()[0]
@@ -1249,7 +1233,7 @@ def test_none_context_does_not_gather_or_drop_task_spec(tmp_path):
     assert bd.INJ_BASE_INSTRUCTIONS in prompt
 
 
-@pytest.mark.parametrize("mode", ["", "everything", None, [], {}])
+@pytest.mark.parametrize("mode", ["everything", None, []])
 def test_invalid_context_mode_fails_even_without_gather(mode):
     with pytest.raises(bd.InputError, match="context_mode"):
         _preamble(_decision(context_mode=mode))

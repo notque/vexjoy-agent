@@ -1,5 +1,9 @@
 """vexinstall safety: write-through, guard, mass-removal cap, trash, user edits, corrupt ledger,
-concurrency, rollback. Every test runs for all five targets."""
+concurrency, rollback.
+
+Layout, idempotency, and write-through run for all five targets; the rest run on the
+targets whose adapter row takes a distinct branch (target logic lives in the adapter table).
+"""
 
 from __future__ import annotations
 
@@ -86,7 +90,7 @@ def test_guard_unit_raises_for_parent_resolving_into_repo(world: Env) -> None:
     guard.check(world.home / "ok.json")
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_guard_trip_aborts_with_exit_4(world: Env, target: str) -> None:
     before = repo_hash(world.repo)
     if target == "claude":
@@ -106,7 +110,7 @@ def test_guard_trip_aborts_with_exit_4(world: Env, target: str) -> None:
         assert _last_report(world)["guard"].endswith("skills.json")
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_mass_removal_cap_trash_and_restore(bulk_world: Env, target: str) -> None:
     env = bulk_world
     _ok(env.run("apply", "--target", target))
@@ -132,7 +136,7 @@ def test_mass_removal_cap_trash_and_restore(bulk_world: Env, target: str) -> Non
         assert (os.readlink(d) if d.is_symlink() else tree_hash(d)) == snapshot[str(d)]
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_user_edited_copy_is_skipped(world: Env, target: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", "copy"))
     dest = world.skills(target) / "beta" / "SKILL.md"
@@ -151,8 +155,7 @@ def test_user_edited_copy_is_skipped(world: Env, target: str) -> None:
     assert dest.is_file(), "user-edited copy must never be removed"
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink")])
 def test_corrupt_ledger_rebuilt_by_adoption(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     dests = world.ledger_dests(target)
@@ -168,7 +171,7 @@ def test_corrupt_ledger_rebuilt_by_adoption(world: Env, target: str, mode: str) 
     assert res.out[0].startswith(f"[apply] {target}: +0 ~0 -0")
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_sync_exits_zero_when_lock_held(world: Env, target: str) -> None:
     lock = _state(world) / "lock"
     fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o600)
@@ -184,7 +187,7 @@ def test_sync_exits_zero_when_lock_held(world: Env, target: str) -> None:
         os.close(fd)
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_two_concurrent_syncs_leave_valid_state(world: Env, target: str) -> None:
     env = {
         **os.environ,
@@ -268,7 +271,7 @@ def _extract(tar_path: Path, dest: Path) -> None:
             tf.extractall(dest)
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "hermes"])
 def test_rollback_restores_pre_switch_tree(world: Env, target: str) -> None:
     _legacy_tree(world, target)
     root = world.root(target)

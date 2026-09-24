@@ -358,11 +358,10 @@ def test_real_comprehensive_review_workflow_passes_static():
     assert rc == 0, data
 
 
-@pytest.mark.parametrize("path", (*CONTRACTED_WORKFLOWS, SCRIPT), ids=lambda path: path.name)
-def test_active_workflow_contract_surfaces_drop_legacy_skill_syntax(path: Path):
+def test_active_workflow_contract_surfaces_drop_legacy_skill_syntax():
     """Active workflow guidance must not compete with the exact call contract."""
-    source = path.read_text(encoding="utf-8")
-    assert "Skill(" not in source, f"legacy Skill() contract remains in {path}"
+    offenders = [p.name for p in (*CONTRACTED_WORKFLOWS, SCRIPT) if "Skill(" in p.read_text(encoding="utf-8")]
+    assert not offenders, f"legacy Skill() contract remains in {offenders}"
 
 
 def test_contracted_workflows_use_only_active_skill_names():

@@ -52,6 +52,32 @@ def isolate_hook_error_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     return path
 
 
+# Inherited from a live agent session or a developer shell. CI never sets them,
+# so tests must not see them either:
+# - session ids: hooks key /tmp state on CLAUDE_SESSION_ID (pretool-file-backup
+#   writes /tmp/.claude-backups/<sid>/), so an inherited id makes tests write
+#   into the live session's backup dir and collide across parallel runs;
+# - API keys: with a real key, default Jev/text-model helpers make live network
+#   calls from tests that are meant to be offline.
+# A test that needs one sets it itself with monkeypatch.setenv.
+_LIVE_ENV_VARS = (
+    "CLAUDE_SESSION_ID",
+    "JEV_SESSION_ID",
+    "JEV_AGENT_ID",
+    "TYPESAFE_API_KEY",
+    "AI_GATEWAY_API_KEY",
+    "TEXT_MODEL_API_KEY",
+    "ANTHROPIC_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def isolate_live_session_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Strip live-session ids and API keys so every test runs with CI's environment."""
+    for name in _LIVE_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+
+
 def _assert_db_is_isolated(phase: str) -> None:
     """Fail if the learning DB resolves inside the real ~/.claude tree."""
     resolved = learning_db_v2.get_db_path().resolve()

@@ -7,8 +7,8 @@ Run with: python3 -m pytest hooks/tests/test_posttool_security_scan.py -v
 This hook was refactored to delegate ALL detection to the canonical engine
 (scripts/security-review-scan.py). These tests prove the consolidation:
 
-- Real insecure code (shell=True, yaml.load, hardcoded secret, SQLi) is still  # security-review: ignore - intentional fixture descriptions
-  flagged — no true positive lost when the inline _build_patterns fork retired.
+- Real insecure code is still flagged through the hook (one delegation case
+  here). Per-rule detection lives in scripts/tests/test_security_review_scan.py.
 - The engine's test-skip guard now applies: a test-fixture file (test_*.py)
   with eval()/exec() is SKIPPED (the inline scanner false-positived on these).
 - Doc-aware filtering applies: prose in .md is not flagged.
@@ -77,38 +77,6 @@ class TestTruePositivesPreserved:
         assert "[SECURITY-HINT]" in out
         assert "shell-injection" in out
 
-    def test_yaml_load_flagged(self, tmp_path):
-        f = tmp_path / "loader.py"
-        f.write_text(
-            "import yaml\ndata = yaml.load(stream)\n"  # security-review: ignore - intentional unsafe-yaml fixture
-        )
-        code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
-        assert code == 0
-        assert "unsafe-yaml" in out
-
-    def test_hardcoded_secret_flagged(self, tmp_path):
-        f = tmp_path / "conf.py"
-        f.write_text('password = "hunter2hunter2"\n')  # security-review: ignore - intentional hardcoded-secret fixture
-        code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
-        assert code == 0
-        assert "hardcoded-secret" in out
-
-    def test_sql_injection_flagged(self, tmp_path):
-        f = tmp_path / "db.py"
-        f.write_text(
-            'q = f"SELECT * FROM t WHERE id={uid}"\n'  # security-review: ignore - intentional SQL-injection fixture
-        )
-        code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
-        assert code == 0
-        assert "sql-injection" in out
-
-    def test_os_system_flagged(self, tmp_path):
-        f = tmp_path / "run.py"
-        f.write_text('os.system("rm -rf /tmp/x")\n')  # security-review: ignore - intentional shell-injection fixture
-        code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
-        assert code == 0
-        assert "shell-injection" in out
-
 
 # ---------------------------------------------------------------------------
 # NEW behavior inherited from the canonical engine: test-skip + doc-aware
@@ -125,15 +93,6 @@ class TestTestFixtureSkip:
         code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
         assert code == 0
         assert "[SECURITY-HINT]" not in out
-
-    def test_test_fixture_public_ip_skipped(self, tmp_path):
-        """hardcoded-ip has skip_test=True; a public IP literal in a test file
-        is not flagged."""
-        f = tmp_path / "conn_test.py"
-        f.write_text("HOST = 8.8.8.8\n")
-        code, out, _ = _run(_event(str(f), cwd=str(tmp_path)))
-        assert code == 0
-        assert "hardcoded-ip" not in out
 
     def test_nontest_eval_still_flagged(self, tmp_path):
         """Control: the SAME eval() in a non-test file IS flagged — proving the

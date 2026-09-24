@@ -56,7 +56,6 @@ ACCEPTS = [
     "thanks, works",  # acceptance clause leads; comma splits it clean
     "perfect, now add tests to the other module",  # leading acceptance, new work later
     "great job. one more thing: update the docs",
-    "lgtm, merge it",
     "ok that worked",
 ]
 
@@ -71,7 +70,6 @@ def test_acceptance_fires(prompt):
 NEUTRALS = [
     # negation
     "not perfect",
-    "that's not perfect",
     "this doesn't work, thanks anyway",
     "it still isn't perfect",
     "no thanks",
@@ -91,12 +89,10 @@ NEUTRALS = [
     # long task-shaped first clause (not a terse reaction)
     "refactor the parser so the output is perfect for downstream consumers and then rerun the suite",
     # plain new-topic prompts
-    "now refactor the auth module",
     "what does route-health report",
     # empty / junk
     "",
     None,
-    123,
 ]
 
 

@@ -23,8 +23,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HOOK_PATH = REPO_ROOT / "hooks" / "adr-enforcement.py"
 HOOKS_DIR = REPO_ROOT / "hooks"
@@ -82,9 +80,8 @@ def test_component_file_without_adr_session_runs_clean(tmp_path: Path) -> None:
     assert "COMPLIANCE CHECK" not in result.stdout
 
 
-@pytest.mark.parametrize("hook_file", sorted(HOOKS_DIR.glob("*.py")), ids=lambda p: p.name)
-def test_no_module_level_dunder_constants(hook_file: Path) -> None:
-    """Ban the ``__CONSTANT = ...`` spelling that caused the crash.
+def test_no_module_level_dunder_constants() -> None:
+    """Ban the ``__CONSTANT = ...`` spelling that caused the crash, across every hook.
 
     ``__EVENT_NAME`` next to code written against ``_EVENT_NAME`` produced
     1,795 silent-then-logged NameError crashes. Single leading underscore is
@@ -92,7 +89,9 @@ def test_no_module_level_dunder_constants(hook_file: Path) -> None:
     mangling besides).
     """
     pattern = re.compile(r"^__[A-Z][A-Z0-9_]* *=", re.MULTILINE)
-    matches = pattern.findall(hook_file.read_text(encoding="utf-8"))
-    assert not matches, (
-        f"{hook_file.name} defines module-level dunder constant(s): {matches} — use a single leading underscore"
-    )
+    offenders = {
+        hook.name: found
+        for hook in sorted(HOOKS_DIR.glob("*.py"))
+        if (found := pattern.findall(hook.read_text(encoding="utf-8")))
+    }
+    assert not offenders, f"module-level dunder constant(s), use a single leading underscore: {offenders}"

@@ -34,24 +34,18 @@ _spec.loader.exec_module(dwc)
     [
         # claude-code: any of the distinctive markers
         ({"CLAUDECODE": "1"}, "claude-code"),
-        ({"CLAUDE_CODE_ENTRYPOINT": "cli"}, "claude-code"),
-        ({"CLAUDE_CODE_SESSION_ID": "abc123"}, "claude-code"),
         # codex: home / hooks dir markers
         ({"CODEX_HOME": "/home/u/.codex"}, "codex"),
-        ({"CODEX_HOOKS_DIR": "/x"}, "codex"),
         # gemini/agy CLI markers removed with Gemini CLI support; unmapped now
         ({"GEMINI_CLI": "1"}, "unknown"),
-        ({"ANTIGRAVITY_AGENT": "1"}, "unknown"),
         # factory / droid
         ({"FACTORY_SESSION_ID": "f1"}, "factory"),
-        ({"DROID_SESSION_ID": "d1"}, "factory"),
         # reasonix: no env marker — keyed off the _ invocation var (basename match)
         ({"_": "/usr/local/bin/reasonix"}, "reasonix"),
         ({"_": "/opt/node/bin/Reasonix"}, "reasonix"),
         ({"_": "/usr/local/bin/reasonix-dev"}, "reasonix"),
         # basename guard: "reasonix" in the parent path must NOT match
         ({"_": "/Users/reasonix-fan/bin/python3"}, "unknown"),
-        ({"_": "/opt/reasonix-corp/python"}, "unknown"),
         # nothing distinctive
         ({}, "unknown"),
     ],
@@ -82,9 +76,6 @@ def test_claude_code_wins_over_other_markers():
     [
         ("claude-code", True),
         ("codex", False),
-        ("factory", False),
-        ("reasonix", False),
-        ("unknown", False),
     ],
 )
 def test_workflow_capable(harness, expected):

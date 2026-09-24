@@ -397,6 +397,243 @@ def run_check_placeholders(json_output: bool) -> int:
     return 1 if hits else 0
 
 
+# ---------------------------------------------------------------------------
+# Reference size and discoverability (--check-size)
+# ---------------------------------------------------------------------------
+
+SKILLS_DIR = REPO_ROOT / "skills"
+REFERENCE_LINE_LIMIT = 500
+
+# Agent reference files over the limit, keyed agent/references/file.md.
+_KNOWN_OVERSIZED_AGENT_REFS: set[str] = {
+    "typescript-debugging-engineer/references/debugging-workflows.md",
+}
+
+# Skill reference files over the limit, keyed relative to skills/, with the
+# baseline date. This is the dated debt register for gradual decomposition.
+# The check rejects both unregistered oversized files and stale entries, so a
+# new violation cannot hide here: decompose it instead.
+_KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
+    "frontend/frontend/references/distinctive-frontend-design-refs/animation-patterns.md": "2026-09-18",
+    "frontend/frontend/references/distinctive-frontend-design-refs/shader-integration-react.md": "2026-09-18",
+    "frontend/frontend/references/threejs-builder-refs/react-three-fiber.md": "2026-09-18",
+    "frontend/frontend/references/threejs-builder-refs/visual-polish.md": "2026-09-18",
+    "frontend/frontend/references/threejs-builder-refs/webgpu.md": "2026-09-18",
+    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-09-18",
+    "meta/toolkit/references/skill-composer/examples.md": "2026-09-18",
+    "meta/toolkit/references/skill-creator/agent-template.md": "2026-09-18",
+    "meta/toolkit/references/skill-creator.md": "2026-09-18",
+    "process/pr-workflow/references/commit-staging-rules.md": "2026-07-09",
+    "process/pr-workflow/references/miner.md": "2026-07-09",
+    "process/pr-workflow/references/pipeline.md": "2026-07-09",
+    "process/process/references/cbw-implementation-patterns.md": "2026-09-18",
+    "process/testing/references/patterns-preferred-pattern-catalog.md": "2026-09-18",
+    "process/testing/references/tdd-examples.md": "2026-09-18",
+    "process/testing/references/verify-verification-examples.md": "2026-09-18",
+    "process/workflow/references/comprehensive-review.md": "2026-07-09",
+    "process/workflow/references/domain-research.md": "2026-07-09",
+    "process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md": "2026-07-09",
+    "process/workflow/references/toolkit-improvement.md": "2026-07-09",
+    "process/workflow/references/workflow-orchestrator/references/task-patterns.md": "2026-07-09",
+    "programming/programming/references/go/sapcc-conventions/api-design-detailed.md": "2026-09-18",
+    "programming/programming/references/go/sapcc-conventions/architecture-patterns.md": "2026-09-18",
+    "programming/programming/references/go/sapcc-conventions/build-ci-detailed.md": "2026-09-18",
+    "programming/programming/references/go/sapcc-conventions/error-handling-detailed.md": "2026-09-18",
+    "programming/programming/references/go/sapcc-conventions/sapcc-code-patterns.md": "2026-09-18",
+    "programming/programming/references/go/sapcc-conventions.md": "2026-09-18",
+}
+
+
+def _line_count(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
+def collect_agent_reference_files(agents_dir: Path) -> list[Path]:
+    """Every .md directly under agents/<name>/references/."""
+    files: list[Path] = []
+    if not agents_dir.is_dir():
+        return files
+    for agent_dir in sorted(agents_dir.iterdir()):
+        refs = agent_dir / "references"
+        if refs.is_dir():
+            files.extend(sorted(refs.glob("*.md")))
+    return files
+
+
+def collect_skill_reference_files(skills_dir: Path) -> list[Path]:
+    """Every .md at any depth under a skill's references/ dir (skills nest by category)."""
+    files: list[Path] = []
+    if not skills_dir.is_dir():
+        return files
+    for skill_file in sorted(skills_dir.rglob("SKILL.md")):
+        refs = skill_file.parent / "references"
+        if refs.is_dir():
+            files.extend(sorted(refs.rglob("*.md")))
+    return files
+
+
+def collect_skills_with_references(skills_dir: Path) -> list[Path]:
+    """Skill dirs that declare a references/ dir."""
+    if not skills_dir.is_dir():
+        return []
+    return sorted(s.parent for s in skills_dir.rglob("SKILL.md") if (s.parent / "references").is_dir())
+
+
+def check_reference_sizes(
+    agents_dir: Path = AGENTS_DIR,
+    skills_dir: Path = SKILLS_DIR,
+    agent_register: set[str] | None = None,
+    skill_register: dict[str, str] | None = None,
+) -> list[str]:
+    """Return failures for the reference size, debt-register, and discoverability rules.
+
+    - A reference file over REFERENCE_LINE_LIMIT lines must be in its register.
+    - Each register must name exactly the current violations (no stale entries).
+    - Skill register dates must be ISO-8601.
+    - A skill references/ dir must hold at least one .md file.
+    - An agent reference file must resolve inside its own agent dir.
+    """
+    from datetime import date
+
+    agent_register = _KNOWN_OVERSIZED_AGENT_REFS if agent_register is None else agent_register
+    skill_register = _KNOWN_OVERSIZED_SKILL_REFS if skill_register is None else skill_register
+    failures: list[str] = []
+
+    agent_files = collect_agent_reference_files(agents_dir)
+    agent_over = {
+        str(f.relative_to(agents_dir)): _line_count(f) for f in agent_files if _line_count(f) > REFERENCE_LINE_LIMIT
+    }
+    for ref_id, lines in sorted(agent_over.items()):
+        if ref_id not in agent_register:
+            failures.append(f"agents/{ref_id}: {lines} lines exceeds {REFERENCE_LINE_LIMIT}; split it")
+    for ref_id in sorted(agent_register - set(agent_over)):
+        failures.append(f"agents/{ref_id}: stale size-debt entry (now within limit or gone); remove it")
+    for f in agent_files:
+        agent_dir = f.parent.parent
+        if not f.resolve().is_relative_to(agent_dir.resolve()):
+            failures.append(f"{f}: resolves outside its agent dir to {f.resolve()}")
+
+    skill_over = {
+        str(f.relative_to(skills_dir)): _line_count(f)
+        for f in collect_skill_reference_files(skills_dir)
+        if _line_count(f) > REFERENCE_LINE_LIMIT
+    }
+    for ref_id, lines in sorted(skill_over.items()):
+        if ref_id not in skill_register:
+            failures.append(f"skills/{ref_id}: {lines} lines exceeds {REFERENCE_LINE_LIMIT}; split it")
+    for ref_id in sorted(set(skill_register) - set(skill_over)):
+        failures.append(f"skills/{ref_id}: stale size-debt entry (now within limit or gone); remove it")
+    for ref_id, baseline in sorted(skill_register.items()):
+        try:
+            date.fromisoformat(baseline)
+        except ValueError:
+            failures.append(f"skills/{ref_id}: invalid baseline date {baseline!r}")
+
+    for skill_dir in collect_skills_with_references(skills_dir):
+        if not any((skill_dir / "references").rglob("*.md")):
+            failures.append(f"skills/{skill_dir.relative_to(skills_dir)}/references/ has no .md files")
+    return failures
+
+
+def run_check_size(json_output: bool) -> int:
+    """Run --check-size and return the exit code."""
+    failures = check_reference_sizes()
+    if json_output:
+        print(json.dumps({"failures": failures, "exit_code": 1 if failures else 0}, indent=2))
+    else:
+        for line in failures:
+            print(f"  SIZE: {line}")
+        print(f"\n{len(failures)} reference size issue(s)" if failures else "SIZE: all reference files OK")
+    return 1 if failures else 0
+
+
+# ---------------------------------------------------------------------------
+# Skill-tool call contract (--check-skill-calls)
+# ---------------------------------------------------------------------------
+
+_SKILL_CALL_RUNTIME_ROOTS = ("agents", "commands", "docs", "hooks", "skills")
+_SKILL_CALL_SUFFIXES = {".js", ".md", ".mjs", ".py"}
+CONCRETE_SKILL_CALL = re.compile(r"(?i)call the Skill tool with `([a-z0-9][a-z0-9-]*)`")
+_COMMAND_LEGACY_HANDOFF = re.compile(
+    r"(?i)(?:read|load) and follow (?:the )?(?:full )?skill(?: file)? at|invoke the [a-z0-9-]+ skill"
+)
+
+
+def _skill_call_runtime_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for name in _SKILL_CALL_RUNTIME_ROOTS:
+        base = root / name
+        if base.is_dir():
+            files.extend(
+                p
+                for p in base.rglob("*")
+                if p.is_file() and p.suffix in _SKILL_CALL_SUFFIXES and "tests" not in p.parts
+            )
+    return sorted(files)
+
+
+def check_skill_calls(root: Path = REPO_ROOT) -> list[str]:
+    """Return failures for the Skill-tool call contract.
+
+    - A command that says "Call the Skill tool with `x`" must grant the Skill tool.
+    - Commands hand off with that exact call, not "read and follow the skill at" wording.
+    - A pipeline that is not also a skill is reached through the workflow skill,
+      never by a direct "invoke/route to/hand off to <pipeline>" instruction.
+    """
+    repo = str(REPO_ROOT.resolve())
+    if repo not in sys.path:
+        sys.path.insert(0, repo)
+    from scripts.lib.frontmatter import parse_frontmatter
+
+    failures: list[str] = []
+    for path in sorted((root / "commands").glob("*.md")):
+        source = path.read_text(encoding="utf-8")
+        rel = path.relative_to(root)
+        if CONCRETE_SKILL_CALL.search(source):
+            frontmatter, _ = parse_frontmatter(source)
+            tools = frontmatter.get("allowed-tools", []) if frontmatter else []
+            if "Skill" not in tools:
+                failures.append(f"{rel}: calls the Skill tool but allowed-tools lacks Skill")
+        if _COMMAND_LEGACY_HANDOFF.search(source):
+            failures.append(f"{rel}: legacy skill handoff wording; use 'Call the Skill tool with `name`.'")
+
+    skills_index = root / "skills" / "INDEX.json"
+    pipeline_index = root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
+    if not skills_index.is_file() or not pipeline_index.is_file():
+        failures.append("skills/INDEX.json or pipeline-index.json missing; run scripts/generate-skill-index.py")
+        return failures
+    skills = set(json.loads(skills_index.read_text(encoding="utf-8"))["skills"])
+    pipelines = set(json.loads(pipeline_index.read_text(encoding="utf-8"))["pipelines"])
+    patterns = [
+        (
+            name,
+            re.compile(
+                rf"(?i)\b(?:hand off to|invoke(?::| the)?|route to|follow(?: the)?)\s+"
+                rf"(?:/)?`?{re.escape(name)}`?(?![a-z0-9-])"
+            ),
+        )
+        for name in sorted(pipelines - skills)
+    ]
+    for path in _skill_call_runtime_files(root):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for name, rx in patterns:
+                if rx.search(line):
+                    failures.append(f"{path.relative_to(root)}:{lineno}: direct handoff to pipeline {name!r}")
+    return failures
+
+
+def run_check_skill_calls(json_output: bool) -> int:
+    """Run --check-skill-calls and return the exit code."""
+    failures = check_skill_calls()
+    if json_output:
+        print(json.dumps({"failures": failures, "exit_code": 1 if failures else 0}, indent=2))
+    else:
+        for line in failures:
+            print(f"  SKILL-CALL: {line}")
+        print(f"\n{len(failures)} skill-call issue(s)" if failures else "SKILL-CALLS: contract OK")
+    return 1 if failures else 0
+
+
 def find_all_reference_files() -> list[Path]:
     """Find every .md file inside any references/ subdirectory under agents/."""
     return list(AGENTS_DIR.rglob("references/*.md"))
@@ -526,6 +763,16 @@ def main() -> None:
         help="Check loading tables for placeholder signals only",
     )
     parser.add_argument(
+        "--check-size",
+        action="store_true",
+        help="Check reference file sizes against the debt registers and empty references/ dirs",
+    )
+    parser.add_argument(
+        "--check-skill-calls",
+        action="store_true",
+        help="Check Skill-tool call wording in commands and pipeline handoffs",
+    )
+    parser.add_argument(
         "--allowlist",
         metavar="PATH",
         help="Backlog JSON to skip known violations (default: artifacts/joy-check-sweep-backlog.json)",
@@ -545,8 +792,16 @@ def main() -> None:
     if args.check_placeholders:
         sys.exit(run_check_placeholders(json_output=args.json_output))
 
+    if args.check_size:
+        sys.exit(run_check_size(json_output=args.json_output))
+
+    if args.check_skill_calls:
+        sys.exit(run_check_skill_calls(json_output=args.json_output))
+
     if not args.agent and not args.all:
-        parser.error("Specify --agent <name>, --all, --check-do-framing, or --check-placeholders")
+        parser.error(
+            "Specify --agent <name>, --all, --check-do-framing, --check-placeholders, --check-size, or --check-skill-calls"
+        )
 
     check_structure = not args.check_declared
 

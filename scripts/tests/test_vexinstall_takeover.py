@@ -32,8 +32,7 @@ def _last_report(env: Env) -> dict:
     return json.loads(reports[-1].read_text())
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink")])
 def test_takeover_replaces_stale_copy_at_desired_dest(world: Env, target: str, mode: str) -> None:
     dest = world.skills(target) / "alpha"
     _stale_copy(dest)
@@ -50,7 +49,7 @@ def test_takeover_replaces_stale_copy_at_desired_dest(world: Env, target: str, m
     assert "stale legacy copy" in (Path(trashed[0]["trashed"]) / "SKILL.md").read_text()
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_takeover_replaces_foreign_link_and_leaves_undesired_unowned(world: Env, target: str) -> None:
     foreign = world.work / "foreign-alpha"
     _stale_copy(foreign)
@@ -70,7 +69,7 @@ def test_takeover_replaces_foreign_link_and_leaves_undesired_unowned(world: Env,
     assert str(stray) not in world.ledger_dests(target)
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_takeover_replaces_foreign_container_link(world: Env, target: str) -> None:
     foreign = world.work / "foreign-skills"
     foreign.mkdir()
@@ -87,7 +86,7 @@ def test_takeover_replaces_foreign_container_link(world: Env, target: str) -> No
     assert (foreign / "keep.txt").read_text() == "user data\n"
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_sync_never_takes_over(world: Env, target: str) -> None:
     dest = world.skills(target) / "alpha"
     _stale_copy(dest)
@@ -97,7 +96,7 @@ def test_sync_never_takes_over(world: Env, target: str) -> None:
     assert _trash_items(world) == []
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_takeover_is_restorable(world: Env, target: str) -> None:
     dest = world.skills(target) / "alpha"
     _stale_copy(dest)

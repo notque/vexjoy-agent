@@ -34,11 +34,11 @@ SCRIPT_PATH = str(_repo_root / "scripts" / "learning-db.py")
 def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Point learning.db (and route-events.jsonl) at a temp directory."""
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
-    import importlib
 
     import learning_db_v2
 
-    importlib.reload(learning_db_v2)
+    # No reload: it rebinds module globals for later tests in the same worker.
+    monkeypatch.setattr(learning_db_v2, "_initialized", False)
     learning_db_v2.init_db()
     yield tmp_path
 

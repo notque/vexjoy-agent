@@ -1,5 +1,9 @@
 """vexinstall spec 16 matrix: idempotency, layout, shape, collisions, dangling, move, worktree,
-missing overlay, uninstall. Every test runs for all five targets."""
+missing overlay, uninstall.
+
+Layout, idempotency, and write-through run for all five targets; the rest run on the
+targets whose adapter row takes a distinct branch (target logic lives in the adapter table).
+"""
 
 from __future__ import annotations
 
@@ -42,8 +46,7 @@ def _entries(path: Path) -> set[str]:
     return {p for p in os.listdir(path) if not p.startswith(".")} if path.is_dir() else set()
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [*((t, "symlink") for t in TARGETS), ("claude", "copy")])
 def test_apply_is_idempotent(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     s = _summary(world, target)
@@ -110,7 +113,7 @@ def test_layout_matches_adapter_table(world: Env, target: str, mode: str) -> Non
     }
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "reasonix"])
 def test_copy_and_symlink_modes_have_same_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
     a = make_world(tmp_path / "a", monkeypatch)
     b = make_world(tmp_path / "b", monkeypatch)
@@ -142,7 +145,7 @@ def _add_clash(env: Env) -> Path:
     return clash
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_collision_is_error_in_plan_and_apply(world: Env, target: str) -> None:
     clash = _add_clash(world)
     plan = world.run("plan", "--target", target)
@@ -155,7 +158,7 @@ def test_collision_is_error_in_plan_and_apply(world: Env, target: str) -> None:
     assert tree_hash(world.home, exclude=LOCK) == before, "apply wrote despite a collision"
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_collision_in_sync_keeps_dest_as_is(world: Env, target: str) -> None:
     _ok(world.run("apply", "--target", target))
     dest = world.skills(target) / "alpha"
@@ -172,7 +175,7 @@ def test_collision_in_sync_keeps_dest_as_is(world: Env, target: str) -> None:
     assert (world.skills(target) / "eta").exists(), "sync must still apply other entries"
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_overrides_key_rejected(world: Env, target: str) -> None:
     cfg = json.loads((world.home / ".claude" / "vexjoy" / "overlays.json").read_text())
     cfg["overrides"] = {"alpha": "private"}
@@ -185,8 +188,7 @@ def test_overrides_key_rejected(world: Env, target: str) -> None:
     assert not world.root(target).exists() or target == "claude"
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink")])
 def test_dangling_owned_pruned_unowned_kept(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     git(world.repo, "rm", "-r", "-q", "skills/content/zeta")
@@ -202,8 +204,7 @@ def test_dangling_owned_pruned_unowned_kept(world: Env, target: str, mode: str) 
     assert moved, "removal must land in trash"
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("reasonix", "symlink")])
 def test_repo_move_repoints_links(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     old = world.repo
@@ -221,8 +222,7 @@ def test_repo_move_repoints_links(world: Env, target: str, mode: str) -> None:
     assert all(not e["source"].startswith(str(old) + os.sep) for e in led["entries"])
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [("claude", "symlink"), ("codex", "copy")])
 def test_worktree_sync_makes_no_changes(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     wt = world.work / "wt"
@@ -238,7 +238,7 @@ def test_worktree_sync_makes_no_changes(world: Env, target: str, mode: str) -> N
         git(world.repo, "branch", "-q", "-D", "wt-branch")
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_ephemeral_source_refused_in_symlink_mode(world: Env, target: str, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VEXINSTALL_EPHEMERAL_PREFIXES", str(world.work))
     assert world.run("apply", "--target", target, "--mode", "symlink").code == 6
@@ -248,8 +248,8 @@ def test_ephemeral_source_refused_in_symlink_mode(world: Env, target: str, monke
     _ok(world.run("apply", "--target", target, "--mode", "symlink", "--adopt-source"))
 
 
-@pytest.mark.parametrize("target", TARGETS)
 @pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize("target", ["claude"])
 def test_missing_overlay_root_keeps_entries_stale(world: Env, target: str, mode: str) -> None:
     _ok(world.run("apply", "--target", target, "--mode", mode))
     os.rename(world.priv, world.work / "private-skills.unmounted")
@@ -264,8 +264,9 @@ def test_missing_overlay_root_keeps_entries_stale(world: Env, target: str, mode:
     assert any("stale-source" in line for line in doctor.out)
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(
+    ("target", "mode"), [("claude", "symlink"), ("claude", "copy"), ("codex", "symlink"), ("reasonix", "symlink")]
+)
 def test_uninstall_removes_owned_leaves_unowned(world: Env, target: str, mode: str) -> None:
     root = world.root(target)
     user = world.skills(target) / "user-skill"
@@ -282,7 +283,7 @@ def test_uninstall_removes_owned_leaves_unowned(world: Env, target: str, mode: s
     assert root.is_dir()
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_report_and_summary_line(world: Env, target: str) -> None:
     res = world.run("sync", "--target", target)
     _ok(res)
@@ -295,7 +296,7 @@ def test_report_and_summary_line(world: Env, target: str) -> None:
     assert set(data["diff"][target]) >= {"added", "replaced", "removed", "skipped", "collisions"}
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_index_only_writes_runtime_dir_only(world: Env, target: str) -> None:
     _ok(world.run("apply", "--target", target))
     idx = world.root(target) / "vexjoy" / "index" / "skills.json"

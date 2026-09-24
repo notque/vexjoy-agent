@@ -14,6 +14,9 @@ Checks:
   4. No skill or agent has fewer than 5 triggers (warn) or 0 triggers (error).
   5. No triggers are duplicated within a single entry.
   6. No triggers are duplicated across entries (cross-entry overlap warning).
+  7. Pinned core triggers stay literal triggers of their component (skill in
+     skills/INDEX.json, else pipeline in pipeline-index.json), so a trigger
+     rewrite cannot silently unroute a core /do path.
 
 Note: routing-tables.md coverage check was removed in PR #653 — routing-tables.md was
 absorbed into INDEX.json (PR #626) and check-routing-drift.py now covers this in CI.
@@ -293,6 +296,34 @@ def check_cross_entry_trigger_overlap(skills_index: dict, agents_index: dict) ->
 # ---------------------------------------------------------------------------
 
 
+# (trigger phrase, component). Component resolves as a skill first, then a pipeline.
+PINNED_TRIGGERS: list[tuple[str, str]] = [
+    ("create pull request", "pr-workflow"),
+    ("push my changes", "pr-workflow"),
+    ("stage and commit", "pr-workflow"),
+    ("I am stuck", "workflow-help"),
+    ("why is this broken", "systematic-debugging"),
+    ("simplify this", "systematic-refactoring"),
+    ("full code review", "comprehensive-review"),
+    ("debug", "systematic-debugging"),
+]
+
+
+def check_pinned_triggers(
+    skills_index: dict, pipeline_index: dict, pinned: list[tuple[str, str]] = PINNED_TRIGGERS
+) -> tuple[list[str], list[str]]:
+    """Each pinned trigger must be a literal trigger on its component."""
+    errors: list[str] = []
+    for trigger, name in pinned:
+        entry = skills_index.get("skills", {}).get(name) or pipeline_index.get("pipelines", {}).get(name)
+        if entry is None:
+            errors.append(f"pinned component '{name}' is in neither skills/INDEX.json nor pipeline-index.json")
+            continue
+        if trigger.lower() not in [t.lower() for t in entry.get("triggers", [])]:
+            errors.append(f"'{trigger}' is no longer a trigger of '{name}' (pinned core route)")
+    return errors, []
+
+
 def main() -> int:
     """Run all integrity checks and report results. Returns exit code."""
     script_dir = Path(__file__).parent
@@ -339,6 +370,13 @@ def main() -> int:
         (
             "Check 6: cross-entry trigger overlap",
             check_cross_entry_trigger_overlap(skills_index, agents_index),
+        ),
+        (
+            "Check 7: pinned core triggers",
+            check_pinned_triggers(
+                skills_index,
+                load_json(repo_root / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"),
+            ),
         ),
     ]
 

@@ -187,7 +187,6 @@ class TestDebugLogging:
         agent_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
 
         with mock.patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("CLAUDE_HOOKS_DEBUG", None)
             info = extract_agent_info(agent_file)
 
         assert info is None

@@ -17,13 +17,15 @@
 retro-knowledge-injector.py               # retired stub: dream payload now injected by session-context.py (ADR-147)
 creation-request-enforcer-userprompt.py   # retired stub: /do Phase 1 handles creation-request enforcement
 skill-evaluator.py                        # disabled stub: main() is a no-op; routing-injection superseded by /do SKILL.md routing tables (overlaps /do)
-pretool-subagent-warmstart.py             # retired: replaced by SubagentStart:subagent-start-warmstart.py; its additionalContext landed in the parent, not the subagent
 
 # --- Deferred blockers (false-block risk; opt-in only) ---
-mcp-health-check.py                        # deferred: PreToolUse exits 2 (BLOCK) on unhealthy MCP within backoff; would block tool use on a session with a transiently-failing MCP server — needs explicit opt-in, not default-on
-pretool-config-protection.py               # deferred (ADR-115): denies ANY Write/Edit whose stdin payload exceeds 1 MB (truncation-safety path, before file_path check), so registering on Write|Edit false-blocks large writes to non-config files; register only after the hook fails-open on oversize
 
 # --- Voice hooks superseded by the voice-writer skill pipeline ---
 voice-output-gate.py                       # superseded: voice-writer skill internalizes output gating (HOOK-GATE/CLOSE-GATE phases); private-skills install registers it separately when voice stack is active
 posttool-voice-quality-check.py            # superseded: voice-writer ANTI-AI phase covers AI-pattern checks; advisory-only, not needed default-on
 pretool-voice-publish-gate.py              # superseded: voice-writer pipeline phases enforce publish-readiness; dispatches voice-pipeline-tracker.py; private voice-stack installer registers it when active
+
+# --- Dormant hooks with tests removed in test-suite reduction ---
+mcp-health-check.py                        # unregistered: MCP health check runs on demand, not as a hook event; test removed in test-suite reduction
+pretool-config-protection.py               # unregistered: config-protection logic folded into pretool-unified-gate.py; standalone file kept for reference
+pretool-subagent-warmstart.py              # unregistered: warmstart logic moved to subagent-start event handler; standalone file kept for reference

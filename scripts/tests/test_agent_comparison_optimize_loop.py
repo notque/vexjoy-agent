@@ -1,7 +1,6 @@
 import contextlib
 import importlib.util
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -805,31 +804,27 @@ def test_behavioral_eval_sequential_path_uses_isolated_worktrees(tmp_path, monke
 
     project_root = tmp_path / "repo"
     (project_root / ".claude").mkdir(parents=True)
-    cwd_before = Path.cwd()
-    os.chdir(project_root)
-    try:
-        calls = []
+    monkeypatch.chdir(project_root)
+    calls = []
 
-        def fake_single_task_in_worktree(task, project_root, env, timeout, verbose, runs_per_task, trigger_threshold):
-            calls.append((task["query"], project_root))
-            return {
-                "query": task["query"],
-                "triggered": task["should_trigger"],
-                "should_trigger": task["should_trigger"],
-                "pass": True,
-                "new_artifacts": [],
-            }
+    def fake_single_task_in_worktree(task, project_root, env, timeout, verbose, runs_per_task, trigger_threshold):
+        calls.append((task["query"], project_root))
+        return {
+            "query": task["query"],
+            "triggered": task["should_trigger"],
+            "should_trigger": task["should_trigger"],
+            "pass": True,
+            "new_artifacts": [],
+        }
 
-        monkeypatch.setattr(optimize_loop, "_run_single_behavioral_task_in_worktree", fake_single_task_in_worktree)
+    monkeypatch.setattr(optimize_loop, "_run_single_behavioral_task_in_worktree", fake_single_task_in_worktree)
 
-        results = optimize_loop._run_behavioral_eval(
-            tmp_path / "skills" / "example" / "SKILL.md",
-            "desc",
-            [{"query": "make a skill", "should_trigger": True}],
-            parallel_workers=0,
-        )
-    finally:
-        os.chdir(cwd_before)
+    results = optimize_loop._run_behavioral_eval(
+        tmp_path / "skills" / "example" / "SKILL.md",
+        "desc",
+        [{"query": "make a skill", "should_trigger": True}],
+        parallel_workers=0,
+    )
 
     assert len(calls) == 1
     assert results[0]["pass"] is True

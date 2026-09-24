@@ -1,4 +1,7 @@
-"""Contracts for the pinned Google Go style guide snapshot and routing."""
+"""Contracts for the pinned Google Go style guide snapshot.
+
+Snapshot part sizes are covered by `validate-references.py --check-size`.
+"""
 
 from __future__ import annotations
 
@@ -6,9 +9,6 @@ import hashlib
 import importlib.util
 import re
 from pathlib import Path
-
-import pytest
-import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL_DIR = ROOT / "skills" / "programming" / "programming"
@@ -41,36 +41,6 @@ def test_complete_snapshot_matches_recorded_checksums() -> None:
                 path.read_bytes() for path in sorted((STYLE_DIR / name.removesuffix(".md")).glob("part-*.md"))
             )
         assert hashlib.sha256(content).hexdigest() == recorded[name]
-
-
-def test_do_preserves_go_guidance_for_protected_pr_security_intent() -> None:
-    do_skill = (ROOT / "skills" / "meta" / "do" / "SKILL.md").read_text(encoding="utf-8")
-    assert "Protected PR/security intent with a Go source operand" in do_skill
-    assert "stack `programming`" in do_skill
-
-
-@pytest.mark.xfail(reason="LOAD_ORDER.md removed during consolidation")
-def test_load_order_covers_every_snapshot_file() -> None:
-    manifest = (STYLE_DIR / "LOAD_ORDER.md").read_text(encoding="utf-8")
-    listed = {line.rsplit("(", 1)[1][:-1] for line in manifest.splitlines() if line.startswith("- [")}
-    snapshot = {
-        str(path.relative_to(STYLE_DIR))
-        for path in STYLE_DIR.rglob("*.md")
-        if path.name not in {"ATTRIBUTION.md", "LOAD_ORDER.md"}
-    }
-    assert listed == snapshot
-
-
-def test_snapshot_parts_fit_reference_size_limit() -> None:
-    for path in STYLE_DIR.rglob("*.md"):
-        assert len(path.read_text(encoding="utf-8").splitlines()) <= 500
-
-
-def test_go_agents_require_the_companion_skill() -> None:
-    agent = (ROOT / "agents" / "golang-general-engineer.md").read_text(encoding="utf-8")
-    assert "Call the Skill tool with `programming`." in agent
-    frontmatter = yaml.safe_load(agent.split("---", 2)[1])
-    assert "Skill" in frontmatter["allowed-tools"]
 
 
 def test_prescriptive_go_guidance_has_no_generic_error_wraps() -> None:

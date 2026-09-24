@@ -13,7 +13,6 @@ Verifies:
 - Edge cases: empty query, invalid syntax, no matches
 """
 
-import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -27,13 +26,11 @@ import learning_db_v2 as db
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path):
+def isolated_db(tmp_path, monkeypatch):
     """Use a fresh temp database for each test."""
-    os.environ["CLAUDE_LEARNING_DIR"] = str(tmp_path)
-    db._initialized = False
-    yield tmp_path
-    os.environ.pop("CLAUDE_LEARNING_DIR", None)
-    db._initialized = False
+    monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
+    monkeypatch.setattr(db, "_initialized", False)
+    return tmp_path
 
 
 def _record(topic: str, key: str, value: str, tags: list[str] | None = None, confidence: float = 0.7) -> dict:

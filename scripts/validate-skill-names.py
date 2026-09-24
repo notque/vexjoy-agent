@@ -4,6 +4,11 @@
 Skills install flat: ``skills/<cat>/<name>`` becomes ``<name>``. Two public
 skills with the same ``<name>`` would collide in every runtime.
 
+Also fails when a top-level ``skills/`` dir holds neither a SKILL.md nor
+nested skills and is not registered in vexinstall ``SUPPORT_DIRS`` or
+``DATA_DIRS``: the installer ships only registered support dirs, so such a
+dir silently stops reaching runtimes.
+
 Usage:
     python3 scripts/validate-skill-names.py [--repo PATH]
 
@@ -16,7 +21,10 @@ import argparse
 import sys
 from pathlib import Path
 
-SUPPORT_OR_DATA = {"shared-patterns", "kb", "voice-shared", "reddit-data", "synced"}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from vexinstall.common import DATA_DIRS, SUPPORT_DIRS
+
+SUPPORT_OR_DATA = SUPPORT_DIRS | DATA_DIRS
 
 
 def find_duplicates(repo: Path) -> dict[str, list[str]]:
@@ -37,6 +45,22 @@ def find_duplicates(repo: Path) -> dict[str, list[str]]:
     return {name: paths for name, paths in seen.items() if len(paths) > 1}
 
 
+def find_unregistered_dirs(repo: Path, registered: frozenset[str] = SUPPORT_OR_DATA) -> list[str]:
+    """Top-level skills/ dirs with no skill inside that the installer does not know."""
+    skills = repo / "skills"
+    if not skills.is_dir():
+        return []
+    unknown = []
+    for top in sorted(skills.iterdir()):
+        if not top.is_dir() or top.name.startswith(".") or top.name == "__pycache__":
+            continue
+        if (top / "SKILL.md").is_file() or any((c / "SKILL.md").is_file() for c in top.iterdir() if c.is_dir()):
+            continue
+        if top.name not in registered:
+            unknown.append(top.name)
+    return unknown
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -45,7 +69,10 @@ def main(argv: list[str] | None = None) -> int:
     dups = find_duplicates(args.repo.resolve())
     for name, paths in sorted(dups.items()):
         print(f"duplicate skill name '{name}': {', '.join(paths)}")
-    if dups:
+    unknown = find_unregistered_dirs(args.repo.resolve())
+    for name in unknown:
+        print(f"skills/{name}/ holds no skill; register it in vexinstall SUPPORT_DIRS or DATA_DIRS")
+    if dups or unknown:
         return 1
     print("validate-skill-names: all public skill names are unique")
     return 0

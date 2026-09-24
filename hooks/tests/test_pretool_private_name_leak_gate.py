@@ -536,6 +536,7 @@ class TestAuditScript:
 
 
 class TestPerformance:
+    @pytest.mark.performance
     def test_full_scan_under_budget(self, private_dir, toolkit_repo):
         (toolkit_repo / "f.txt").write_text("clean content\n" * 200)
         _git(toolkit_repo, "add", "f.txt")

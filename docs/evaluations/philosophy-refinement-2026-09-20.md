@@ -58,6 +58,6 @@ Jev assigned 70.3% probability that another reduction of similar size would risk
 - `python3 scripts/validate-doc-commands.py` — pass, 39 commands.
 - `python3 scripts/check-whitespace.py docs/PHILOSOPHY.md` — pass.
 - `git diff --check -- docs/PHILOSOPHY.md` — pass.
-- `python3 scripts/validate-doc-counts.py` — passed after the related README inventory correction (165 scripts).
+- `python3 scripts/validate-doc-counts.py` — passed after the related README inventory correction (149 scripts).
 
 No fresh blind semantic holdout was run. The revision has deterministic validation and exposed-regression review, not new evidence that every downstream interpretation improves.

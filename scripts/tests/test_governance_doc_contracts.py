@@ -1,40 +1,28 @@
-"""Focused contracts for governance documentation that drives execution."""
+"""Support-dir registration (`validate-skill-names.py`, a CI step).
+
+Pipeline doc targets are checked for every pipeline by
+`validate-pipeline-index.py`. This file proves the skills/ support-dir check
+catches an unregistered dir that holds no skill.
+"""
 
 from __future__ import annotations
 
-import json
-import re
+import importlib
+import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+skill_names = importlib.import_module("validate-skill-names")
 
 
-def test_every_non_skill_dir_in_skills_root_is_a_support_or_data_dir() -> None:
-    """The installer (scripts/vexinstall) installs only SUPPORT_DIRS next to skills.
+def test_unregistered_support_dir_fails(tmp_path: Path, capsys) -> None:
+    skills = tmp_path / "skills"
+    (skills / "cat" / "demo").mkdir(parents=True)
+    (skills / "cat" / "demo" / "SKILL.md").write_text("# Demo\n", encoding="utf-8")
+    (skills / "shared-patterns").mkdir()
+    (skills / "loose-notes").mkdir()
 
-    A new top-level skills/ dir that holds neither a SKILL.md nor nested skills
-    must be registered in SUPPORT_DIRS or DATA_DIRS, or it silently stops
-    reaching runtimes.
-    """
-    import sys
-
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from vexinstall.common import DATA_DIRS, SUPPORT_DIRS
-
-    unknown = []
-    for top in sorted((REPO_ROOT / "skills").iterdir()):
-        if not top.is_dir() or top.name.startswith(".") or top.name == "__pycache__":
-            continue
-        if (top / "SKILL.md").is_file() or any((c / "SKILL.md").is_file() for c in top.iterdir() if c.is_dir()):
-            continue
-        if top.name not in SUPPORT_DIRS | DATA_DIRS:
-            unknown.append(top.name)
-    assert unknown == [], f"register in vexinstall SUPPORT_DIRS or DATA_DIRS: {unknown}"
-
-
-def test_content_pipeline_targets_resolve() -> None:
-    """Public content routes cannot depend on files outside this repository."""
-    index = json.loads((REPO_ROOT / "skills/process/workflow/references/pipeline-index.json").read_text())
-    for name, pipeline in index["pipelines"].items():
-        if pipeline.get("category") == "content":
-            assert (REPO_ROOT / pipeline["file"]).is_file(), f"pipeline {name}: {pipeline['file']}"
+    assert skill_names.find_unregistered_dirs(tmp_path) == ["loose-notes"]
+    assert skill_names.main(["--repo", str(tmp_path)]) == 1
+    assert "skills/loose-notes/ holds no skill" in capsys.readouterr().out

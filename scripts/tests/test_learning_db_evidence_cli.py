@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for evidence query subcommands in scripts/learning-db.py."""
 
-import importlib
 import json
 import os
 import subprocess
@@ -21,7 +20,8 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
     import learning_db_v2
 
-    importlib.reload(learning_db_v2)
+    # No reload: it rebinds module globals for later tests in the same worker.
+    monkeypatch.setattr(learning_db_v2, "_initialized", False)
     learning_db_v2.init_db()
     learning_db_v2.record_evidence_route_decision(
         session_id="s1",

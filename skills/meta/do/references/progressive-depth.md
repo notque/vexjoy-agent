@@ -14,7 +14,7 @@ Router handles directly. No agent dispatched.
 
 **When**: The user named an exact file path to read, or asked a question answerable from conversation context.
 
-**Examples**: "Read `scripts/index-router.py`", "What branch am I on?", "Show me the last commit."
+**Examples**: "Read `scripts/pre-route.py`", "What branch am I on?", "Show me the last commit."
 
 ### Level 1: Quick Trivial
 
@@ -22,7 +22,7 @@ Use `quick --trivial` for tasks that appear to be 1-3 file edits.
 
 **When**: The change looks self-contained — a bug fix, a config tweak, adding a small block of code. The agent attempts the fix and watches for escalation signals.
 
-**Examples**: "Fix the typo in docs/router-ab-runbook.md", "Add a --verbose flag to index-router.py", "Update the version number in SKILL.md."
+**Examples**: "Fix the typo in docs/router-ab-runbook.md", "Add a --verbose flag to pre-route.py", "Update the version number in SKILL.md."
 
 **Escalation signals** (any one triggers escalation):
 - More than 3 files need changes

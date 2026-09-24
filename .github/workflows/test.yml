@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Nightly full tier (test-full): slow, integration, and performance tests.
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -27,6 +31,13 @@ jobs:
       - run: python scripts/validate-references.py --check-do-framing
       # Scoped flag: --all carries known pre-existing failures, so it cannot gate CI.
       - run: python scripts/validate-references.py --check-placeholders
+      # Doc-structure checks moved out of pytest (per-file parametrized tests
+      # became one looped validator run each).
+      - run: python scripts/validate-references.py --check-size
+      - run: python scripts/validate-references.py --check-skill-calls
+      - run: python scripts/validate_positive_instruction_docs.py --fleet
+      - run: python scripts/validate-doc-links.py --check-negative-results
+      - run: python scripts/validate-doc-commands.py --check-sdir
       - run: python scripts/validate-skill-frontmatter.py
       - run: python scripts/validate-index-integrity.py
       # promoted_to is the toolkit's delete switch: one frontmatter line drops a
@@ -86,14 +97,35 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -r requirements.lock pytest pillow numpy
+      - run: pip install -r requirements.lock pytest pytest-xdist pillow numpy
       # INDEX.json is generated (untracked); tests that read the real index need it.
       - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
-      # -m "" clears the default marker filter in pyproject.toml, so CI still
-      # runs the install.sh end-to-end tests and the performance benchmarks.
-      # The vexinstall engine suite (scripts/tests/test_vexinstall_*.py) is
-      # unmarked, so it runs here and in the default local run.
-      - run: python -m pytest --tb=short -q -m ""
+      # Fast tier: the default marker filter in pyproject.toml skips
+      # slow+integration and performance tests; test-full runs them.
+      # --dist loadfile keeps each file on one worker (module fixtures, shared
+      # tmp state inside a file).
+      - run: python -m pytest --tb=short -q -n auto --dist loadfile
+
+  test-full:
+    # Full tier: every marker (-m "" clears the default filter), so the
+    # slow+integration end-to-end tests and the timing benchmarks run here.
+    # Push to main, nightly, and manual runs only; PRs get the fast tier.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.lock pytest pytest-xdist pillow numpy
+      - run: python scripts/generate-skill-index.py && python scripts/generate-agent-index.py
+      # -m on the command line replaces the pyproject default filter.
+      - run: python -m pytest --tb=short -q -m "not performance" -n auto --dist loadfile
+      # Timing budgets run serially: parallel workers skew wall-clock asserts.
+      - run: python -m pytest --tb=short -q -m performance -n 0
 
   routing-benchmark:
     runs-on: ubuntu-latest
@@ -126,9 +158,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install pytest
-      - name: Joy-check golden fixtures and fleet scan (agents + SKILL.md)
-        run: python -m pytest scripts/tests/test_joy_check_instruction_mode.py -v --tb=short
+      # Golden fixtures run in the test job; this is the fleet scan only.
+      - name: Joy-check fleet scan (agents + SKILL.md)
+        run: python scripts/validate_positive_instruction_docs.py --fleet
 
   hook-health:
     runs-on: ubuntu-latest

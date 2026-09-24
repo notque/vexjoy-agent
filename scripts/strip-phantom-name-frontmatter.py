@@ -38,7 +38,7 @@ skipped. A prior investigation showed that for the 29 files under
 ``skills/engineering/kotlin-coroutines/references/preferred-patterns.md``, the substring
 matches are false positives for dispatch purposes:
 
-1. The pipeline dispatcher in ``scripts/index-router.py`` keys on JSON keys
+1. The pipeline dispatcher in ``scripts/pre-route.py`` keys on JSON keys
    from ``skills/process/workflow/references/pipeline-index.json`` and on file paths,
    not on the YAML ``name:`` field inside the reference files themselves.
 2. The only script that reads the YAML ``name:`` field is
@@ -99,7 +99,7 @@ ROUTING_TABLE = REPO_ROOT / "skills" / "do" / "references" / "routing-tables.md"
 
 # Verified-safe allowlist. These files were flagged by the conservative
 # audit as potentially routed, but investigation showed the matches are
-# false positives: dispatch is JSON-keyed (see scripts/index-router.py)
+# false positives: dispatch is JSON-keyed (see scripts/pre-route.py)
 # and scripts/generate-pipeline-catalog.py has a skill_file.stem fallback
 # that reproduces the same string after name: is removed. The proof of
 # no behavioral change is a byte-identical pipeline-catalog.json before

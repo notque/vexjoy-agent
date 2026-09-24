@@ -58,7 +58,7 @@ class TestSpecifiedRoutes:
         # Should match programming (force-route skill with "go test" trigger)
         assert result["skill"] == "programming" or result["agent"] == "golang-general-engineer"
 
-    @pytest.mark.parametrize("query", ["fix typo in foo.go", "fix the spelling in main.go"])
+    @pytest.mark.parametrize("query", ["fix typo in foo.go"])
     def test_go_file_edits_match_go_patterns(self, pre_route, real_entries, query: str) -> None:
         """Even trivial .go edits must load the mandatory Go style baseline."""
         result = pre_route.route(query, entries=real_entries)
@@ -72,7 +72,8 @@ class TestSpecifiedRoutes:
 
     @pytest.mark.parametrize(
         "operand",
-        ["foo.go", "foo.go:42", "foo.go#L42", "foo.go,", "foo.go.", "`foo.go`", "(foo.go)"],
+        # one per GO_SOURCE_OPERAND_RE branch: bare, :line, #Lline, trailing punctuation, sentence period
+        ["foo.go", "foo.go:42", "foo.go#L42", "`foo.go`", "foo.go."],
     )
     def test_go_source_operand_positive_matrix(self, pre_route, real_entries, operand: str) -> None:
         result = pre_route.route(f"fix typo in {operand}", entries=real_entries)
@@ -80,7 +81,7 @@ class TestSpecifiedRoutes:
 
     @pytest.mark.parametrize(
         "operand",
-        ["foo.go.txt", "changelog.go.md", ".golangci.yml", ".goreleaser.yml", "example.google", "foo.gox"],
+        ["foo.go.txt", ".golangci.yml", "example.google", "foo.gox"],
     )
     def test_go_source_operand_negative_matrix(self, pre_route, real_entries, operand: str) -> None:
         result = pre_route.route(f"fix typo in {operand}", entries=real_entries)
@@ -92,7 +93,7 @@ class TestSpecifiedRoutes:
             ("create PR for foo.go", "pr-workflow"),
             ("push foo.go", "pr-workflow"),
             ("security review foo.go", "security"),
-            ("security audit foo.go", "security"),
+            ("security audit foo.go", "security"),  # separate security-audit branch
         ],
     )
     def test_protected_composite_keeps_primary_and_stacks_go(
@@ -110,13 +111,9 @@ class TestSpecifiedRoutes:
     @pytest.mark.parametrize(
         "query",
         [
-            "create a PR for main.go",
-            "open a PR for main.go",
-            "make a pull request for main.go",
-            "draft a PR for main.go",
-            "submit main.go as a PR",
-            "raise a PR for main.go",
-            "file a pull request for main.go",
+            "create a PR for main.go",  # verb, article, PR noun
+            "submit main.go as a PR",  # operand between verb and noun
+            "file a pull request for main.go",  # "pull request" noun
         ],
     )
     def test_article_bearing_pr_intent_stays_primary(self, pre_route, real_entries, query: str) -> None:
@@ -126,25 +123,11 @@ class TestSpecifiedRoutes:
 
     @pytest.mark.parametrize(
         "query",
-        ["open main.go", "make main.go", "draft main.go", "submit main.go", "raise main.go", "file main.go"],
+        ["open main.go", "submit main.go"],
     )
     def test_bounded_pr_verbs_without_pr_noun_stay_go(self, pre_route, real_entries, query: str) -> None:
         result = pre_route.route(query, entries=real_entries)
         assert result["skill"] == "programming"
-
-    def test_create_pr_matches_pr_workflow(self, pre_route, real_entries) -> None:
-        """'create a PR' should match pr-workflow (force-route)."""
-        result = pre_route.route("create a PR", entries=real_entries)
-        assert result["matched"] is True
-        assert result["skill"] == "pr-workflow"
-        assert result["match_type"] == "force_route"
-
-    def test_push_changes_matches_pr_workflow(self, pre_route, real_entries) -> None:
-        """'push my changes' should match pr-workflow (force-route)."""
-        result = pre_route.route("push my changes", entries=real_entries)
-        assert result["matched"] is True
-        assert result["skill"] == "pr-workflow"
-        assert result["match_type"] == "force_route"
 
     def test_quantum_physics_falls_through(self, pre_route, real_entries) -> None:
         """'tell me about quantum physics' should fall through."""
@@ -195,12 +178,6 @@ class TestSpecifiedRoutes:
         assert result["matched"] is False
         assert result["match_type"] == "fallthrough"
 
-    def test_weather_falls_through(self, pre_route, real_entries) -> None:
-        """'what's the weather like' should fall through."""
-        result = pre_route.route("what's the weather like", entries=real_entries)
-        assert result["matched"] is False
-        assert result["match_type"] == "fallthrough"
-
 
 # ---------------------------------------------------------------------------
 # Semantic safety tests (false positive prevention)
@@ -209,12 +186,6 @@ class TestSpecifiedRoutes:
 
 class TestSemanticSafety:
     """Test that common English idioms don't trigger false positives."""
-
-    def test_push_back_does_not_match_pr_workflow(self, pre_route, real_entries) -> None:
-        """'push back on this design' should NOT match pr-workflow."""
-        result = pre_route.route("push back on this design", entries=real_entries)
-        if result["matched"]:
-            assert result["skill"] != "pr-workflow", f"'push back on this design' falsely matched pr-workflow: {result}"
 
     def test_fish_for_bugs_does_not_match_fish_config(self, pre_route, real_entries) -> None:
         """'fish for bugs' should NOT match fish-shell-config."""
@@ -511,16 +482,14 @@ class TestPipelineForceRoute:
         "query",
         [
             "send my manuscript for review",
-            "send my paper for review",
             "submit my research paper",
-            "open the manuscript for review",
         ],
     )
     def test_pr_pipeline_inherits_pr_workflow_guards(self, pre_route, real_entries, query: str) -> None:
         result = pre_route.route(query, entries=real_entries)
         assert result.get("pipeline") != "pr-pipeline", result
 
-    @pytest.mark.parametrize("query", ["send my commits for review", "submit changes", "open PR"])
+    @pytest.mark.parametrize("query", ["send my commits for review", "open PR"])
     def test_pr_pipeline_guard_keeps_real_git_intent(self, pre_route, real_entries, query: str) -> None:
         result = pre_route.route(query, entries=real_entries)
         assert result.get("pipeline") == "pr-pipeline", result

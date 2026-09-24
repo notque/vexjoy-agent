@@ -80,13 +80,23 @@ Before submitting:
 
 ## Testing
 
-pytest. Two directories: `hooks/tests/`, `scripts/tests/`.
+pytest, with pytest-xdist for parallel runs. Tests live in `hooks/tests/`, `scripts/tests/`, `tests/`, and `skills/**/tests/`.
 
 ```bash
-pytest -v                          # everything
-pytest hooks/tests/ -v             # hooks only
-pytest scripts/tests/ -v           # scripts only
+pip install pytest pytest-xdist               # or: pip install -e ".[dev]"
+pytest                                        # fast tier, parallel (what PR CI runs)
+pytest -m "not performance"                   # full tier minus timing budgets
+pytest -m performance -n 0                    # timing budgets; run serially
+pytest hooks/tests/test_foo.py -n 0 -v        # one file, serial (skips worker startup)
 ```
+
+`pyproject.toml` sets `-n auto --dist loadfile` by default, so pytest-xdist must be installed. `--dist loadfile` keeps each file on one worker.
+
+The default marker filter in `pyproject.toml` skips `slow and integration` (install end-to-end, live Chromium) and `performance` (wall-clock budgets). CI runs the fast tier on every PR and the full tier on push to main and nightly. Mark a new test `performance` if it asserts a timing budget, and `slow` plus `integration` if it drives a real external tool.
+
+Tests must be safe to run in parallel: write under `tmp_path`, change env and cwd with `monkeypatch`, and give any hook-created `/tmp` state a unique session id. The root `conftest.py` strips live session ids and API keys so tests stay offline and never touch a running session's state.
+
+Doc-structure checks (reference sizes, Skill-call wording, joy-check fleet scan, negative-results registry, `$SDIR` portability) are validators in `scripts/`, run by the CI lint job, not per-file pytest cases.
 
 Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the eval harness in `skills/meta/toolkit/`.
 

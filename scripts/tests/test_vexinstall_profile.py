@@ -1,8 +1,9 @@
 """vexinstall honors the install.sh profile (.local/profile.yaml / $VEXJOY_INSTALL_PROFILE).
 
 Disabled skills, agents, and hooks are not desired: never installed, removed
-when previously owned, absent from the installed index. Every test runs for
-all five targets. Hermetic: temp HOME, fixture repo, temp profile file.
+when previously owned, absent from the installed index. Fresh apply runs for
+all five targets; the rest run on targets with a distinct adapter branch.
+Hermetic: temp HOME, fixture repo, temp profile file.
 """
 
 from __future__ import annotations
@@ -84,8 +85,7 @@ def _assert_filtered(env: Env, target: str) -> None:
         assert _entries(hooks / "lib") == {"util.py", "more.py"}
 
 
-@pytest.mark.parametrize("target", TARGETS)
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize(("target", "mode"), [*((t, "symlink") for t in TARGETS), ("claude", "copy")])
 def test_fresh_apply_skips_disabled_items(world: Env, profile_file: Path, target: str, mode: str) -> None:
     _write_profile(profile_file)
     _ok(world.run("apply", "--target", target, "--mode", mode))
@@ -95,7 +95,7 @@ def test_fresh_apply_skips_disabled_items(world: Env, profile_file: Path, target
     assert again.out[0].startswith(f"[apply] {target}: +0 ~0 -0,"), again.out[0]
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "reasonix"])
 def test_profile_added_then_cleared_round_trips(world: Env, profile_file: Path, target: str) -> None:
     _ok(world.run("apply", "--target", target))
     before = _entries(world.skills(target))
@@ -119,7 +119,7 @@ def test_profile_added_then_cleared_round_trips(world: Env, profile_file: Path, 
     assert again.out[0].startswith(f"[apply] {target}: +0 ~0 -0,"), again.out[0]
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_profile_removals_are_exempt_from_mass_remove_cap(
     bulk_world: Env, monkeypatch: pytest.MonkeyPatch, target: str
 ) -> None:
@@ -132,7 +132,7 @@ def test_profile_removals_are_exempt_from_mass_remove_cap(
     assert not _entries(bulk_world.skills(target)) & set(BULK_SKILLS)
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude"])
 def test_absent_profile_changes_nothing(world: Env, profile_file: Path, target: str) -> None:
     assert not profile_file.exists()
     _ok(world.run("apply", "--target", target))

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the agent evidence read model in learning_db_v2."""
 
-import importlib
 import sys
 from pathlib import Path
 
@@ -16,7 +15,8 @@ def isolated_learning_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
     import learning_db_v2
 
-    importlib.reload(learning_db_v2)
+    # No reload: it rebinds module globals for later tests in the same worker.
+    monkeypatch.setattr(learning_db_v2, "_initialized", False)
     learning_db_v2.init_db()
     yield learning_db_v2
 

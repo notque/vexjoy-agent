@@ -1,31 +1,16 @@
-"""Pytest suite validating progressive disclosure reference loading for agents and skills.
+"""Reference loading tables for agents: table/disk agreement, keyword matching, isolation.
 
-Four agent test categories:
-1. Reference Loading Table Completeness — every reference file has a table entry and vice-versa
-2. Keyword-to-Reference Mapping Validation — query keywords resolve to correct reference files
-3. Reference File Size Compliance — all reference files under 500 lines, register matches reality
-4. Cross-Agent Reference Isolation — no agent references files from another agent's directory
-
-Two skill test categories (Categories 5-6):
-5. Skill Reference File Size Compliance — all skills/*/references/**/*.md under 500 lines
-6. Skill Reference File Existence — every skills/ directory can be discovered and scanned
-
-Allowlist behavior (SKILL_REFS_STRICT env flag):
-  Default (xfail mode): files in _KNOWN_OVERSIZED_SKILL_REFS xfail so CI stays green while
-  the list serves as an authoritative TODO for gradual decomposition.
-  Set SKILL_REFS_STRICT=1 to force all known violations to hard-fail — useful for audit runs.
-  Any file NOT in the allowlist that exceeds 500 lines always hard-fails regardless of mode.
-
-  _KNOWN_OVERSIZED_SKILL_REFS is the authoritative TODO list. Removing a file from the list
-  without first decomposing it below 500 lines will cause that test to hard-fail.
+File size limits, the oversized-file debt registers, and empty references/
+dirs are checked by `scripts/validate-references.py --check-size` (a CI step);
+the tests at the bottom prove that check catches a bad fixture.
 """
 
 from __future__ import annotations
 
-import os
+import importlib
 import re
+import sys
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 from typing import ClassVar
 
@@ -37,14 +22,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
-SKILLS_DIR = REPO_ROOT / "skills"
 
-# When SKILL_REFS_STRICT=1, pre-existing oversized skill files hard-fail instead of xfail.
-# Default is xfail (warn mode) so CI stays green while the allowlist tracks decomposition work.
-# Set SKILL_REFS_STRICT=1 for audit runs that should surface all violations as hard failures.
-_SKILL_REFS_STRICT: bool = os.environ.get("SKILL_REFS_STRICT", "0") == "1"
-
-REFERENCE_LINE_LIMIT = 500
 
 # ---------------------------------------------------------------------------
 # Test data
@@ -281,19 +259,6 @@ def _match_refs_for_query(query: str, entries: list[ReferenceTableEntry]) -> lis
     return matched
 
 
-def _collect_all_agents_with_refs() -> list[str]:
-    """Return agent names that have a references/ subdirectory.
-
-    Returns:
-        Sorted list of agent name strings.
-    """
-    agents = []
-    for agent_dir in sorted(AGENTS_DIR.iterdir()):
-        if agent_dir.is_dir() and (agent_dir / "references").exists():
-            agents.append(agent_dir.name)
-    return agents
-
-
 # ---------------------------------------------------------------------------
 # Category 1: Reference Loading Table Completeness
 # ---------------------------------------------------------------------------
@@ -309,55 +274,24 @@ class TestReferenceLoadingTableCompleteness:
     ]
 
     @pytest.mark.parametrize("agent_name", AGENTS_WITH_TABLES)
-    def test_table_entries_point_to_existing_files(self, agent_name: str) -> None:
-        """Each row in the reference loading table must point to a file that exists on disk.
+    def test_table_and_disk_agree(self, agent_name: str) -> None:
+        """The table has rows, every row names a file on disk, and every file on disk has a row.
+
+        A file on disk with no row is dead: the agent never loads it.
 
         Args:
             agent_name: Agent under test.
         """
         info = _load_agent_info(agent_name)
         assert info.has_table, f"{agent_name}: no reference loading table found in agent markdown"
+        assert info.table_entries, f"{agent_name}: reference loading table is empty"
 
-        missing: list[str] = []
-        for entry in info.table_entries:
-            ref_path = info.refs_dir / entry.ref_file
-            if not ref_path.exists():
-                missing.append(entry.ref_file)
+        missing = [e.ref_file for e in info.table_entries if not (info.refs_dir / e.ref_file).exists()]
+        assert not missing, f"{agent_name}: table rows point to missing files: {missing}"
 
-        assert not missing, f"{agent_name}: table entries point to files that do not exist on disk:\n" + "\n".join(
-            f"  - {f}" for f in missing
-        )
-
-    @pytest.mark.parametrize("agent_name", AGENTS_WITH_TABLES)
-    def test_all_disk_files_have_table_entries(self, agent_name: str) -> None:
-        """Every .md file in the references/ directory must appear in the loading table.
-
-        Agents are expected to maintain complete tables. A file on disk with no
-        table entry is dead — the agent will never load it.
-
-        Args:
-            agent_name: Agent under test.
-        """
-        info = _load_agent_info(agent_name)
-        assert info.has_table, f"{agent_name}: no reference loading table found in agent markdown"
-
-        table_files = {entry.ref_file for entry in info.table_entries}
+        table_files = {e.ref_file for e in info.table_entries}
         orphaned = [f for f in info.files_on_disk if f not in table_files]
-
-        assert not orphaned, (
-            f"{agent_name}: reference files on disk have no corresponding table entry "
-            f"(agent will never load them):\n" + "\n".join(f"  - {f}" for f in orphaned)
-        )
-
-    @pytest.mark.parametrize("agent_name", AGENTS_WITH_TABLES)
-    def test_table_has_at_least_one_entry(self, agent_name: str) -> None:
-        """The reference loading table must contain at least one parseable row.
-
-        Args:
-            agent_name: Agent under test.
-        """
-        info = _load_agent_info(agent_name)
-        assert len(info.table_entries) > 0, f"{agent_name}: reference loading table is empty"
+        assert not orphaned, f"{agent_name}: files on disk have no table row (never loaded): {orphaned}"
 
 
 # ---------------------------------------------------------------------------
@@ -432,94 +366,7 @@ class TestKeywordToReferenceMappingValidation:
 
 
 # ---------------------------------------------------------------------------
-# Category 3: Reference File Size Compliance
-# ---------------------------------------------------------------------------
-
-
-def _all_reference_files() -> list[Path]:
-    """Collect every .md file under any agent's references/ directory.
-
-    Returns:
-        Sorted list of Path objects.
-    """
-    files: list[Path] = []
-    for agent_dir in sorted(AGENTS_DIR.iterdir()):
-        refs_dir = agent_dir / "references"
-        if refs_dir.exists():
-            files.extend(sorted(refs_dir.glob("*.md")))
-    return files
-
-
-def _ref_file_id(p: Path) -> str:
-    """Return a short test ID for a reference file path.
-
-    Args:
-        p: Path to the reference file.
-
-    Returns:
-        String in the form ``agent-name/references/file.md``.
-    """
-    parts = p.parts
-    # Find agents/ in the path and return the two-level suffix
-    try:
-        agents_idx = list(parts).index("agents")
-        return "/".join(parts[agents_idx + 1 :])
-    except ValueError:
-        return p.name
-
-
-ALL_REFERENCE_FILES = _all_reference_files()
-
-
-_KNOWN_OVERSIZED: set[str] = {
-    "typescript-debugging-engineer/references/debugging-workflows.md",
-}
-
-
-class TestReferenceFileSizeCompliance:
-    """Reference files must be under 500 lines."""
-
-    @pytest.mark.parametrize("ref_path", ALL_REFERENCE_FILES, ids=[_ref_file_id(p) for p in ALL_REFERENCE_FILES])
-    def test_file_under_hard_limit(self, ref_path: Path) -> None:
-        """Reference file must be under 500 lines.
-
-        Pre-existing oversized files are tracked in _KNOWN_OVERSIZED and marked
-        as xfail. New files that exceed the limit will hard-fail.
-
-        Args:
-            ref_path: Path to the reference .md file.
-        """
-        ref_id = _ref_file_id(ref_path)
-        line_count = len(ref_path.read_text(encoding="utf-8").splitlines())
-        if ref_id in _KNOWN_OVERSIZED:
-            pytest.xfail(f"{ref_id}: {line_count} lines (known oversized, tracked as tech debt)")
-        assert line_count <= REFERENCE_LINE_LIMIT, (
-            f"{ref_id}: {line_count} lines exceeds limit of {REFERENCE_LINE_LIMIT}. "
-            f"Split the file or remove stale content."
-        )
-
-    def test_agent_size_debt_register_matches_current_violations(self) -> None:
-        """_KNOWN_OVERSIZED must name exactly the agent references now over the limit.
-
-        The xfail above is imperative, so a registered file passes its own test
-        whatever its length. Without this check a decomposed file stays
-        registered forever and a newly oversized one can be waved through by
-        adding a line here.
-        """
-        actual_violations = {
-            _ref_file_id(path)
-            for path in ALL_REFERENCE_FILES
-            if len(path.read_text(encoding="utf-8").splitlines()) > REFERENCE_LINE_LIMIT
-        }
-        assert actual_violations == _KNOWN_OVERSIZED, (
-            "Reference-size debt register drifted. Decompose new violations; drop resolved ones.\n"
-            f"Unregistered: {sorted(actual_violations - _KNOWN_OVERSIZED)}\n"
-            f"Stale: {sorted(_KNOWN_OVERSIZED - actual_violations)}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# Category 4: Cross-Agent Reference Isolation
+# Cross-agent reference isolation
 # ---------------------------------------------------------------------------
 
 
@@ -582,257 +429,49 @@ class TestCrossAgentReferenceIsolation:
             f"  - {r}" for r in cross_agent_refs
         )
 
-    def test_all_agent_dirs_are_isolated_from_each_other(self) -> None:
-        """No .md file in one agent's references/ directory should be symlinked
-        or physically co-located in another agent's references/ directory.
-
-        Args: none
-        """
-        agent_dirs = [d for d in AGENTS_DIR.iterdir() if d.is_dir()]
-        violations: list[str] = []
-
-        for agent_dir in sorted(agent_dirs):
-            refs_dir = agent_dir / "references"
-            if not refs_dir.exists():
-                continue
-            for ref_file in refs_dir.glob("*.md"):
-                # Check that this file's resolved path is actually inside this agent's dir
-                try:
-                    resolved = ref_file.resolve()
-                    if not str(resolved).startswith(str(agent_dir.resolve())):
-                        violations.append(f"{ref_file} resolves outside its agent dir to {resolved}")
-                except OSError:
-                    pass
-
-        assert not violations, "Cross-agent reference isolation violated:\n" + "\n".join(f"  - {v}" for v in violations)
-
 
 # ---------------------------------------------------------------------------
-# Skill reference helpers
+# Reference size + discoverability: `validate-references.py --check-size` (CI)
 # ---------------------------------------------------------------------------
 
-
-def _collect_all_skill_reference_files(skills_dir: Path = SKILLS_DIR) -> list[Path]:
-    """Collect every .md file under any skill's references/ directory, recursively.
-
-    Skills may have nested sub-directories inside references/ (e.g.
-    go-patterns/references/sapcc-conventions/). All .md files at any depth
-    are included so that deeply nested oversized files are caught.
-
-    Returns:
-        Sorted list of Path objects for every .md file under skills/*/references/.
-    """
-    files: list[Path] = []
-    if not skills_dir.exists():
-        return files
-    for skill_file in sorted(skills_dir.rglob("SKILL.md")):
-        refs_dir = skill_file.parent / "references"
-        if refs_dir.exists():
-            files.extend(sorted(refs_dir.rglob("*.md")))
-    return files
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+validate_references = importlib.import_module("validate-references")
 
 
-def _skill_ref_file_id(p: Path) -> str:
-    """Return a short test ID for a skill reference file path.
-
-    Args:
-        p: Path to the skill reference file.
-
-    Returns:
-        String relative to the skills/ directory, e.g.
-        ``docs-sync-checker/references/examples.md`` or
-        ``go-patterns/references/sapcc-conventions/sapcc-code-patterns.md``.
-    """
-    try:
-        return str(p.relative_to(SKILLS_DIR))
-    except ValueError:
-        return p.name
+def _skill_tree(tmp_path: Path, ref_lines: int) -> tuple[Path, Path]:
+    agents = tmp_path / "agents"
+    (agents / "demo" / "references").mkdir(parents=True)
+    (agents / "demo" / "references" / "a.md").write_text("x\n", encoding="utf-8")
+    skills = tmp_path / "skills"
+    ref = skills / "cat" / "demo" / "references" / "nested" / "big.md"
+    ref.parent.mkdir(parents=True)
+    ref.write_text("line\n" * ref_lines, encoding="utf-8")
+    (skills / "cat" / "demo" / "SKILL.md").write_text("# Demo\n", encoding="utf-8")
+    return agents, skills
 
 
-def _collect_skills_with_references(skills_dir: Path = SKILLS_DIR) -> list[Path]:
-    """Return skill directories that have a references/ subdirectory.
+def test_check_size_passes_clean_tree(tmp_path: Path) -> None:
+    agents, skills = _skill_tree(tmp_path, 10)
+    assert validate_references.check_reference_sizes(agents, skills, set(), {}) == []
 
-    Returns:
-        Sorted list of skill directories.
-    """
-    if not skills_dir.exists():
-        return []
-    return sorted(
-        skill_file.parent for skill_file in skills_dir.rglob("SKILL.md") if (skill_file.parent / "references").exists()
+
+def test_check_size_catches_unregistered_nested_oversize_and_stale_entry(tmp_path: Path) -> None:
+    agents, skills = _skill_tree(tmp_path, validate_references.REFERENCE_LINE_LIMIT + 1)
+    failures = validate_references.check_reference_sizes(
+        agents, skills, {"demo/references/gone.md"}, {"cat/other/references/x.md": "not-a-date"}
     )
+    text = "\n".join(failures)
+    assert "skills/cat/demo/references/nested/big.md: 501 lines" in text
+    assert "agents/demo/references/gone.md: stale" in text
+    assert "skills/cat/other/references/x.md: stale" in text
+    assert "invalid baseline date" in text
 
 
-ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
-
-# Pre-existing oversized skill reference files, baselined on 2026-07-09.
-#
-# This is the authoritative dated debt register for gradual decomposition. Each entry xfails by
-# default so CI stays green while decomposition work proceeds. The invariant below rejects both
-# unregistered oversized files and stale exemptions, so a new violation cannot be hidden here.
-#
-# Set SKILL_REFS_STRICT=1 to force all entries to hard-fail for a decomposition audit.
-_KNOWN_OVERSIZED_SKILL_REFS: dict[str, str] = {
-    "frontend/frontend/references/distinctive-frontend-design-refs/animation-patterns.md": "2026-09-18",
-    "frontend/frontend/references/distinctive-frontend-design-refs/shader-integration-react.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/react-three-fiber.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/visual-polish.md": "2026-09-18",
-    "frontend/frontend/references/threejs-builder-refs/webgpu.md": "2026-09-18",
-    "frontend/webgl-card-effects/references/shader-integration-react.md": "2026-09-18",
-    "meta/toolkit/references/skill-composer/examples.md": "2026-09-18",
-    "meta/toolkit/references/skill-creator/agent-template.md": "2026-09-18",
-    "meta/toolkit/references/skill-creator.md": "2026-09-18",
-    "process/pr-workflow/references/commit-staging-rules.md": "2026-07-09",
-    "process/pr-workflow/references/miner.md": "2026-07-09",
-    "process/pr-workflow/references/pipeline.md": "2026-07-09",
-    "process/process/references/cbw-implementation-patterns.md": "2026-09-18",
-    "process/testing/references/patterns-preferred-pattern-catalog.md": "2026-09-18",
-    "process/testing/references/tdd-examples.md": "2026-09-18",
-    "process/testing/references/verify-verification-examples.md": "2026-09-18",
-    "process/workflow/references/comprehensive-review.md": "2026-07-09",
-    "process/workflow/references/domain-research.md": "2026-07-09",
-    "process/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md": "2026-07-09",
-    "process/workflow/references/toolkit-improvement.md": "2026-07-09",
-    "process/workflow/references/workflow-orchestrator/references/task-patterns.md": "2026-07-09",
-    "programming/programming/references/go/sapcc-conventions/api-design-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/architecture-patterns.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/build-ci-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/error-handling-detailed.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions/sapcc-code-patterns.md": "2026-09-18",
-    "programming/programming/references/go/sapcc-conventions.md": "2026-09-18",
-}
-
-_SKILLS_WITH_REFERENCES: list[str] = _collect_skills_with_references()
-
-# ---------------------------------------------------------------------------
-# Category 5: Skill Reference File Size Compliance
-# ---------------------------------------------------------------------------
-
-
-class TestSkillReferenceFileSizeCompliance:
-    """Skill reference files must be under 500 lines; warn at 400.
-
-    This is the same standard applied to agent reference files (Category 3).
-    Skills were previously unguarded — ADR-190 extends coverage to close that gap.
-
-    By default (xfail mode) files in _KNOWN_OVERSIZED_SKILL_REFS xfail so CI stays green
-    while the allowlist tracks gradual decomposition. Any file NOT in the allowlist that
-    exceeds 500 lines hard-fails immediately. Set SKILL_REFS_STRICT=1 to force all known
-    violations to hard-fail for audit runs.
-    """
-
-    @pytest.mark.parametrize(
-        "ref_path",
-        ALL_SKILL_REFERENCE_FILES,
-        ids=[_skill_ref_file_id(p) for p in ALL_SKILL_REFERENCE_FILES],
+def test_check_size_registered_debt_passes_and_empty_refs_dir_fails(tmp_path: Path) -> None:
+    agents, skills = _skill_tree(tmp_path, validate_references.REFERENCE_LINE_LIMIT + 1)
+    (skills / "cat" / "empty" / "references").mkdir(parents=True)
+    (skills / "cat" / "empty" / "SKILL.md").write_text("# Empty\n", encoding="utf-8")
+    failures = validate_references.check_reference_sizes(
+        agents, skills, set(), {"cat/demo/references/nested/big.md": "2026-09-18"}
     )
-    def test_skill_file_under_hard_limit(self, ref_path: Path) -> None:
-        """Skill reference file must be under 500 lines.
-
-        Pre-existing violations are tracked in _KNOWN_OVERSIZED_SKILL_REFS.
-        By default they xfail so CI stays green during gradual decomposition.
-        Set SKILL_REFS_STRICT=1 to force all known violations to hard-fail.
-        New files not in the allowlist that exceed the limit always hard-fail.
-
-        Args:
-            ref_path: Path to the skill reference .md file.
-        """
-        ref_id = _skill_ref_file_id(ref_path)
-        line_count = len(ref_path.read_text(encoding="utf-8").splitlines())
-
-        if ref_id in _KNOWN_OVERSIZED_SKILL_REFS:
-            if not _SKILL_REFS_STRICT:
-                pytest.xfail(
-                    f"skills/{ref_id}: {line_count} lines (known oversized, tracked as tech debt — "
-                    f"set SKILL_REFS_STRICT=1 or remove from _KNOWN_OVERSIZED_SKILL_REFS after decomposing)"
-                )
-            # Strict mode: fall through to the assertion so CI sees a hard failure.
-            assert line_count <= REFERENCE_LINE_LIMIT, (
-                f"skills/{ref_id}: {line_count} lines exceeds limit of {REFERENCE_LINE_LIMIT}. "
-                f"This is a pre-existing violation (ADR-190 Finding 4). "
-                f"Decompose the file into sub-references under 500 lines, then remove it from "
-                f"_KNOWN_OVERSIZED_SKILL_REFS in this test file."
-            )
-        else:
-            assert line_count <= REFERENCE_LINE_LIMIT, (
-                f"skills/{ref_id}: {line_count} lines exceeds limit of {REFERENCE_LINE_LIMIT}. "
-                f"Split the file or remove stale content. "
-                f"Do not add this file to _KNOWN_OVERSIZED_SKILL_REFS — fix it instead."
-            )
-
-    def test_legacy_size_debt_matches_current_violations(self) -> None:
-        """Every exception is dated, still oversized, and no new violation is hidden."""
-        actual_violations = {
-            _skill_ref_file_id(path)
-            for path in ALL_SKILL_REFERENCE_FILES
-            if len(path.read_text(encoding="utf-8").splitlines()) > REFERENCE_LINE_LIMIT
-        }
-        registered = set(_KNOWN_OVERSIZED_SKILL_REFS)
-
-        invalid_dates = [
-            f"{ref_id} ({baseline_date})"
-            for ref_id, baseline_date in _KNOWN_OVERSIZED_SKILL_REFS.items()
-            if _parse_baseline_date(baseline_date) is None
-        ]
-        assert not invalid_dates, "Invalid legacy-debt dates:\n" + "\n".join(invalid_dates)
-        assert actual_violations == registered, (
-            "Reference-size debt register drifted. New violations must be decomposed; resolved "
-            "violations must be removed from the register.\n"
-            f"Unregistered: {sorted(actual_violations - registered)}\n"
-            f"Stale: {sorted(registered - actual_violations)}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# Category 6: Skill Reference Directory Discoverability
-# ---------------------------------------------------------------------------
-
-
-class TestSkillReferenceDirectoryDiscoverability:
-    """Every skill with a references/ directory must be discoverable and non-empty.
-
-    This is a structural sanity check — it catches skills whose references/
-    directory exists but contains no .md files (empty directory, only non-md
-    files, or broken symlinks). An empty references/ dir provides no value
-    and may indicate an incomplete scaffold.
-    """
-
-    @pytest.mark.parametrize(
-        "skill_dir",
-        _SKILLS_WITH_REFERENCES,
-        ids=[str(path.relative_to(SKILLS_DIR)) for path in _SKILLS_WITH_REFERENCES],
-    )
-    def test_skill_references_dir_contains_md_files(self, skill_dir: Path) -> None:
-        """A skill's references/ directory must contain at least one .md file.
-
-        An empty references/ directory is dead weight — either populate it or
-        remove it so the skill body does not declare references that cannot load.
-
-        Args:
-            skill_dir: Skill directory under skills/.
-        """
-        refs_dir = skill_dir / "references"
-        md_files = list(refs_dir.rglob("*.md"))
-        assert md_files, (
-            f"{skill_dir.relative_to(REPO_ROOT)}/references/ exists but contains no .md files. "
-            f"Either add reference content or remove the empty directory."
-        )
-
-
-def _parse_baseline_date(value: str) -> date | None:
-    """Return a valid ISO-8601 baseline date, or None for malformed entries."""
-    try:
-        return date.fromisoformat(value)
-    except ValueError:
-        return None
-
-
-def test_skill_reference_discovery_includes_nested_skill_directories(tmp_path: Path) -> None:
-    """A category-nested skill and its nested references are both discoverable."""
-    skills_dir = tmp_path / "skills"
-    nested_reference = skills_dir / "testing" / "demo" / "references" / "examples" / "case.md"
-    nested_reference.parent.mkdir(parents=True)
-    nested_reference.write_text("# Case\n", encoding="utf-8")
-    (nested_reference.parents[2] / "SKILL.md").write_text("# Demo\n", encoding="utf-8")
-
-    assert _collect_all_skill_reference_files(skills_dir) == [nested_reference]
-    assert _collect_skills_with_references(skills_dir) == [nested_reference.parents[2]]
+    assert failures == ["skills/cat/empty/references/ has no .md files"]

@@ -10,8 +10,8 @@ The learning loop that consumed it is retired; the predicate stays because the
 stub rows it recognizes are still stored.
 
 Covers:
-- hint_has_solution on a real solution, on a stub built from every
-  DEFAULT_FIX_ACTIONS entry, on multi-line and Unicode-arrow values, and on
+- hint_has_solution on a real solution, on stubs built from representative
+  DEFAULT_FIX_ACTIONS entries, on multi-line and Unicode-arrow values, and on
   empty or malformed input.
 - The matcher is derived from DEFAULT_FIX_SOLUTION_TEMPLATE, so renaming the
   template cannot leave a stale regex behind.
@@ -69,8 +69,10 @@ class TestHintHasSolution:
         value = f"config.yaml: No such file or directory {ARROW} copy config.yaml.example first"
         assert db.hint_has_solution(value) is True
 
-    @pytest.mark.parametrize("error_type", sorted(db.DEFAULT_FIX_ACTIONS) + ["unknown"])
-    def test_stub_for_every_fix_action_is_dropped(self, error_type):
+    # The {error_type} slot is one wildcard: a bare word, an underscored word, and the
+    # fallback type cover it.
+    @pytest.mark.parametrize("error_type", ["timeout", "multiple_matches", "unknown"])
+    def test_stub_for_fix_action_is_dropped(self, error_type):
         value = f"boom {ARROW} {_stub(error_type)}"
         assert db.hint_has_solution(value) is False
 
@@ -97,7 +99,7 @@ class TestHintHasSolution:
         assert db.hint_has_solution(f"exit 1 {ARROW} timeout {ARROW} Fix timeout error in Bash") is False
         assert db.hint_has_solution(f"exit 1 {ARROW} timeout {ARROW} retry with --timeout 300") is True
 
-    @pytest.mark.parametrize("value", ["", "   ", f"boom {ARROW} ", f"boom {ARROW}   \n\n", None, 42])
+    @pytest.mark.parametrize("value", ["", f"boom {ARROW} ", f"boom {ARROW}   \n\n", None])
     def test_empty_or_malformed_values_carry_no_solution(self, value):
         assert db.hint_has_solution(value) is False
 

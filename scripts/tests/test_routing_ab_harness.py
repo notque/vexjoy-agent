@@ -249,9 +249,8 @@ class TestLegacyByteIdentical:
         mod = load_harness(tmp_path_factory.mktemp("legacy"))
         return run_legacy_pipeline(mod)
 
-    @pytest.mark.parametrize(
-        "name",
-        [
+    def test_artifact_bytes(self, results: Path):
+        names = (
             "queries.json",
             "manifest-used.txt",
             "raw.json",
@@ -259,10 +258,9 @@ class TestLegacyByteIdentical:
             "uid-map.json",
             "scoreboard.json",
             "pre-route-map.json",
-        ],
-    )
-    def test_artifact_bytes(self, results: Path, name: str):
-        assert (results / name).read_bytes() == (GOLDEN / name).read_bytes(), f"{name} diverged from golden"
+        )
+        diverged = [n for n in names if (results / n).read_bytes() != (GOLDEN / n).read_bytes()]
+        assert not diverged, f"diverged from golden: {diverged}"
 
     def test_prompt_bytes(self, results: Path):
         golden_prompts = sorted((GOLDEN / "prompts").glob("*.txt"))

@@ -1,7 +1,7 @@
-"""Tests for scripts/routing_index_merge.py and its three importers.
+"""Tests for scripts/routing_index_merge.py and its routing importers.
 
 Invariants:
-1. routing-manifest.py, pre-route.py, and index-router.py share one merge —
+1. routing-manifest.py and pre-route.py share one merge —
    identical output for the same tracked + local inputs.
 2. A stale local file never hides newly added tracked entries (PR #778).
 3. A stale local never overrides tracked content (force_route, triggers);
@@ -18,7 +18,7 @@ import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 
-ROUTING_MODULES = ["routing-manifest", "pre-route", "index-router"]
+ROUTING_MODULES = ["routing-manifest", "pre-route"]
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def merge(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture
 def routing_modules(monkeypatch: pytest.MonkeyPatch) -> list:
-    """Import the three routing scripts (hyphenated names need importlib)."""
+    """Import the routing scripts (hyphenated names need importlib)."""
     monkeypatch.syspath_prepend(str(SCRIPTS_DIR))
     return [importlib.import_module(name) for name in ROUTING_MODULES]
 
@@ -45,11 +45,11 @@ def _write_indexes(tmp_path: Path, tracked: dict, local: dict | None) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Invariant 1: one merge across all three entry points
+# Invariant 1: one merge across every routing entry point
 # ---------------------------------------------------------------------------
 
 
-def test_all_three_scripts_use_shared_merge(merge, routing_modules):
+def test_all_routing_scripts_use_shared_merge(merge, routing_modules):
     """Each script's _load_index_items IS the shared function — divergence impossible."""
     for mod in routing_modules:
         assert mod._load_index_items is merge.load_index_items, mod.__name__
@@ -63,7 +63,7 @@ def test_identical_output_across_entry_points(tmp_path, routing_modules):
         {"skills": {"a": {"triggers": ["stale"]}, "priv": {"triggers": ["p"]}}},
     )
     results = [mod._load_index_items(tracked_path, "INDEX.local.json", "skills") for mod in routing_modules]
-    assert results[0] == results[1] == results[2]
+    assert results[0] == results[1]
     assert set(results[0]) == {"a", "b", "priv"}
 
 

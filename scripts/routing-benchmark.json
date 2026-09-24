@@ -519,7 +519,7 @@
       "expected_skill": "pr-workflow",
       "category": "pre-route-confidence",
       "routing_tier": "pre_route_only",
-      "notes": "PR creation — pre-route.py force-routes via 'create PR' trigger (multi-word). index-router.py candidate scoring normalization makes this hard there.",
+      "notes": "PR creation — pre-route.py force-routes via 'create PR' trigger (multi-word).",
       "candidate_depth": 5
     },
     {
@@ -528,7 +528,7 @@
       "expected_skill": "pr-workflow",
       "category": "pre-route-confidence",
       "routing_tier": "pre_route_only",
-      "notes": "PR push intent — pre-route.py multi-word trigger 'push changes' or 'push to' should fire. index-router.py candidate normalization disadvantages high-trigger skills.",
+      "notes": "PR push intent — pre-route.py multi-word trigger 'push changes' or 'push to' should fire.",
       "candidate_depth": 5
     },
     {
@@ -1048,6 +1048,1024 @@
       "category": "infrastructure",
       "routing_tier": "candidate",
       "notes": "Jev-driven browser automation against a local site: Jev picks actions, programs execute."
+    },
+    {
+      "request": "put my website online",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my site to my domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up nginx for my public site",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host this static site publicly",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "put this online",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https on my public nginx site",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website for the domain model handbook",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy website for the domain expertise portal",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy website from this repo to my domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "use my domain to deploy this site from the repo",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website on my vps with nginx",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website for my domain online",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with this website on a droplet",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website publicly with caddy",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy website to the internet with nginx",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "point my domain at this site and go live",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my site",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my site to vercel",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my site to netlify",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my site to fly.io",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live on fly.io",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https for my public website",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with our launch website on cloudflare",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "use my domain to host the site publicly",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my blog website to my domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my docs website to my domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my app website to my domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https for my website",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with my website",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "use my domain for my website",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my website public",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my site public",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make this website public",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my website public on github pages",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my website public on gitlab pages with a custom domain",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my website public on cloudflare pages",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https for my portfolio",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my portfolio public",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make my homepage public",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with my portfolio",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my landing page",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy my landing page to vercel",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host my landing page online",
+      "expected_agent": null,
+      "expected_skill": "deploy",
+      "category": "pre-route-deploy",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "use my domain knowledge to design the schema",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live on twitch",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https certificate validation in the test suite",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy the website unit tests",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make it public on npm",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make the repo public",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make this method public",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make the class public",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make website repo public on github",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make website code public",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make this package public on npm",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make this gist public",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "add search to this static site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "fix the CSS on my static site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "write docs for this static site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "review this static site architecture",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "how do static sites compare to dynamic sites",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "optimize images on my static site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "migrate this blog to a static site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with this presentation",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live on youtube",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make the copy better on my public website",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "review accessibility of my public website",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "go live with the launch deck on production",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https docs for the server team",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "make it public and publish the report",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "static site generation in production CI",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website locally for testing",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "host a website on localhost for QA",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "website online store checkout bug",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "compare static site generators for public docs",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "cloudflare static site caching bug",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "set up https examples for the public api docs",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "review this public website for domain model terminology",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "public website sitemap generation",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy sitecore upgrade",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "deploy sitemap.xml to the repo",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "cloudflare static site image optimization",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "cloudflare static site analytics setup",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "static site performance tuning on my domain",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "static site content audit on my domain",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "translate my public site to spanish",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "localize my public site for germany",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "rebrand my public site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "add a cookie banner to my public site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "retheme the deploy site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "update the deploy site branding",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "public site localization plan",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "translate my public site on my domain to spanish",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "localize my public site on my domain for germany",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "edit my landing page",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "write copy for my landing page",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "redesign the landing page",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "rebrand my portfolio site",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "deploy",
+      "notes": "Idiom overlap; must not force-route to deploy (adr/deploy.md); moved from scripts/tests/test_pre_route_public_web_deploy.py"
+    },
+    {
+      "request": "git push",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "push to origin",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "push my branch",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "ship it",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "ship this work",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "merge these fixes",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "make a pull request",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "draft a PR for the auth fix",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "publish my changes",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "let's get this reviewed",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "send this to GitHub",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "wrap this up and merge",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "open a PR for these changes",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "create PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "push my changes",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "open PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "open the PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "submit PR",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "create pull request",
+      "expected_agent": null,
+      "expected_skill": "pr-workflow",
+      "category": "pre-route-pr-workflow",
+      "routing_tier": "pre_route_only",
+      "notes": "Force-route corpus (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "ship of Theseus",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "publish a paper to arxiv",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "review the menu",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
+    },
+    {
+      "request": "merge personalities at the offsite",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "routing_tier": "pre_route_negative",
+      "forbid_force_route_to": "pr-workflow",
+      "notes": "Idiom overlap; must not force-route to pr-workflow (adr/pr-create-skill-guard.md); moved from scripts/tests/test_pre_route_pr_workflow.py"
     }
   ]
 }

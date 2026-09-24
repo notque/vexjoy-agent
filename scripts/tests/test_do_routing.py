@@ -1,57 +1,32 @@
-"""Validate that INDEX.json / pipeline-index.json trigger-to-component mappings hold.
+"""Pinned core triggers (`validate-index-integrity.py` Check 7).
 
-STATIC test — no LLM calls, no live router. routing-tables.md was absorbed
-into skills/INDEX.json and pipeline-index.json (see
-scripts/validate-index-integrity.py); this checks each sample trigger phrase
-is still a literal trigger for its expected skill or pipeline entry.
-
-Run with: python3 -m pytest scripts/tests/test_do_routing.py -v
+The repo check runs in CI; these tests prove it resolves skills then pipelines
+and catches a dropped trigger or a missing component.
 """
 
 from __future__ import annotations
 
-import json
+import importlib
+import sys
 from pathlib import Path
 
-import pytest
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+integrity = importlib.import_module("validate-index-integrity")
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
-
-# (trigger phrase, expected component name). Component is looked up in
-# skills/INDEX.json first, then pipeline-index.json.
-TEST_CASES = [
-    ("create pull request", "pr-workflow"),
-    ("push my changes", "pr-workflow"),
-    ("stage and commit", "pr-workflow"),
-    ("I am stuck", "workflow-help"),
-    ("why is this broken", "systematic-debugging"),
-    ("simplify this", "systematic-refactoring"),
-    ("full code review", "comprehensive-review"),
-    ("debug", "systematic-debugging"),
-]
+SKILLS = {"skills": {"pr-workflow": {"triggers": ["Create Pull Request"]}}}
+PIPELINES = {"pipelines": {"systematic-debugging": {"triggers": ["debug"]}}}
 
 
-def _load_index(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+def test_pinned_triggers_resolve_skill_then_pipeline() -> None:
+    pinned = [("create pull request", "pr-workflow"), ("debug", "systematic-debugging")]
+    assert integrity.check_pinned_triggers(SKILLS, PIPELINES, pinned) == ([], [])
 
 
-def _find_entry(name: str, skills: dict, pipelines: dict) -> dict | None:
-    """Look up `name` as a skill first, then a pipeline."""
-    if name in skills.get("skills", {}):
-        return skills["skills"][name]
-    return pipelines.get("pipelines", {}).get(name)
-
-
-@pytest.mark.parametrize("trigger,expected_name", TEST_CASES)
-def test_trigger_routes_to_expected_component(trigger: str, expected_name: str, public_index_dir: Path) -> None:
-    """Each sample trigger must be a literal trigger on its expected component."""
-    # skills/INDEX.json is generated and absent on a fresh checkout; read a tmp build.
-    skills = _load_index(public_index_dir / "skills.json")
-    pipelines = _load_index(PIPELINE_INDEX)
-
-    entry = _find_entry(expected_name, skills, pipelines)
-    assert entry is not None, f"'{expected_name}' not in skills/INDEX.json or pipeline-index.json"
-
-    triggers = [t.lower() for t in entry.get("triggers", [])]
-    assert trigger.lower() in triggers, f"'{trigger}' not a literal trigger for '{expected_name}' (has: {triggers})"
+def test_pinned_trigger_dropped_or_component_missing_fails() -> None:
+    pinned = [("push my changes", "pr-workflow"), ("I am stuck", "workflow-help")]
+    errors, _ = integrity.check_pinned_triggers(SKILLS, PIPELINES, pinned)
+    assert errors == [
+        "'push my changes' is no longer a trigger of 'pr-workflow' (pinned core route)",
+        "pinned component 'workflow-help' is in neither skills/INDEX.json nor pipeline-index.json",
+    ]

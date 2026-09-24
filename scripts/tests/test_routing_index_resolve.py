@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
-ROUTING_MODULES = ["routing-manifest", "pre-route", "index-router"]
+ROUTING_MODULES = ["routing-manifest", "pre-route"]
 
 
 @pytest.fixture
@@ -106,7 +106,7 @@ def test_pipelines_bypass_resolution(merge, layout, tmp_path) -> None:
 
 
 def test_readers_use_resolver(monkeypatch, tmp_path) -> None:
-    """All three routing readers load skills through load_items_for."""
+    """Every routing reader loads skills through load_items_for."""
     monkeypatch.syspath_prepend(str(SCRIPTS_DIR))
     env_dir = tmp_path / "idx"
     _w(env_dir / "skills.json", {"skills": {"only-installed": {"triggers": ["zzq unique trigger"]}}})

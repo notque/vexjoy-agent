@@ -121,14 +121,14 @@ def test_validate_skill_names_on_real_repo() -> None:
 # ---------------------------------------------------------------- doctor
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_doctor_clean_after_apply(world: Env, target: str) -> None:
     assert world.run("apply", "--target", target).code == 0
     res = world.run("doctor", "--target", target)
     assert res.code == 0, res.out
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "hermes"])
 def test_doctor_flags_dangling_category_agents_and_nonskill(world: Env, target: str) -> None:
     assert world.run("apply", "--target", target).code == 0
     skills = world.skills(target)
@@ -202,7 +202,7 @@ def test_doctor_is_read_only(world: Env) -> None:
 # ---------------------------------------------------------------- prune
 
 
-@pytest.mark.parametrize("target", TARGETS)
+@pytest.mark.parametrize("target", ["claude", "codex"])
 def test_prune_unowned_requires_confirm(world: Env, target: str) -> None:
     assert world.run("apply", "--target", target).code == 0
     ghost = world.skills(target) / "ghost"

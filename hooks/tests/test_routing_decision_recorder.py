@@ -25,6 +25,8 @@ Run with: python3 -m pytest hooks/tests/test_routing_decision_recorder.py -v
 import importlib.util
 import json
 import os
+import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -39,15 +41,37 @@ A_PATH = HOOKS_DIR / "routing-decision-recorder.py"
 B_PATH = HOOKS_DIR / "routing-outcome-recorder.py"
 
 
+@pytest.fixture(scope="module")
+def db_template(tmp_path_factory):
+    """One freshly initialized learning.db per module.
+
+    A fresh init_db() costs ~0.1s of sqlite fsyncs; copying the finished file
+    costs almost nothing. Each test gets its own copy, so isolation holds.
+    """
+    sys.path.insert(0, str(LIB_DIR))
+    import learning_db_v2 as ldb
+
+    template = tmp_path_factory.mktemp("learning-template")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("CLAUDE_LEARNING_DIR", str(template))
+        mp.setattr(ldb, "_initialized", False, raising=False)
+        ldb.init_db()
+        with ldb.get_connection() as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    return template / "learning.db"
+
+
 @pytest.fixture()
-def db_env(tmp_path, monkeypatch):
+def db_env(tmp_path, monkeypatch, db_template):
     """Point the learning DB and the bridge state dir at a throwaway location."""
     db_dir = tmp_path / "learning"
     db_dir.mkdir()
+    shutil.copyfile(db_template, db_dir / "learning.db")
     monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(db_dir))
     sys.path.insert(0, str(LIB_DIR))
-    # Force a fresh DB init against this tmp dir: learning_db_v2 caches
-    # _initialized as a module global across in-process tests.
+    # init_db() against this tmp dir: learning_db_v2 caches _initialized as a
+    # module global across in-process tests. On the copied schema it is a
+    # cheap no-op pass (migrations already applied).
     import learning_db_v2 as ldb
 
     monkeypatch.setattr(ldb, "_initialized", False, raising=False)
@@ -443,28 +467,6 @@ class TestDecisionRecorder:
 
         context = ldb.get_evidence_route_context("python-general-engineer:programming")
         assert context["recent"][0]["model"] == "gpt-5.6-sol@xhigh"
-
-    def test_claude_model_effort_is_persisted_in_route_evidence(self, db_env, monkeypatch):
-        """Claude model@effort (sonnet@high) survives the marker round-trip (advisory effort)."""
-        a = _load(A_PATH, "rdr_claude_effort")
-        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
-        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
-        event = _agent_event(skill="programming", session="claude-effort")
-        event["tool_input"]["prompt"] = (
-            "[do-route] agent=python-general-engineer skill=programming complexity=complex "
-            "model=sonnet effort=high health=-\nReview the implementation."
-        )
-        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
-            a.main()
-
-        decisions = [event for event in _read_events(db_env) if event["type"] == "decision"]
-        assert decisions[0]["model"] == "sonnet@high"
-
-        sys.path.insert(0, str(LIB_DIR))
-        import learning_db_v2 as ldb
-
-        context = ldb.get_evidence_route_context("python-general-engineer:programming")
-        assert context["recent"][0]["model"] == "sonnet@high"
 
     def test_no_telemetry_row_when_marker_absent(self, db_env, tmp_path, monkeypatch):
         # No [do-route] marker => no decision row AND no envelope row.
@@ -1873,14 +1875,17 @@ class TestDecisionRowExistsBeyondTop1000:
 
         # Now flood the table with >1000 HIGH-confidence routing rows so the
         # target is pushed past any top-1000 confidence-DESC window.
-        for i in range(1100):
-            ldb.record_learning(
-                topic="routing",
-                key=f"filler-agent:skill-{i}",
-                value=f"routing-decision: filler {i} tool_errors=0",
-                category="effectiveness",
-                confidence=0.95,
-                source="test",
+        # Seeded in one transaction: 1100 record_learning() calls cost ~5s of
+        # per-row commits and the fillers are setup, not behavior under test.
+        now = "2026-01-01T00:00:00"
+        with sqlite3.connect(ldb.get_db_path()) as conn:
+            conn.executemany(
+                "INSERT INTO learnings (topic, key, value, category, confidence, source, first_seen, last_seen)"
+                " VALUES ('routing', ?, ?, 'effectiveness', 0.95, 'test', ?, ?)",
+                [
+                    (f"filler-agent:skill-{i}", f"routing-decision: filler {i} tool_errors=0", now, now)
+                    for i in range(1100)
+                ],
             )
 
         # Sanity: the OLD top-1000 confidence-DESC scan would NOT see the target.

@@ -15,6 +15,7 @@ Exits 0 when every script-by-path reference resolves; exits 1 otherwise.
 Usage:
     python3 scripts/validate-doc-commands.py
     python3 scripts/validate-doc-commands.py --json
+    python3 scripts/validate-doc-commands.py --check-sdir   # /do SKILL.md $SDIR portability
 """
 
 from __future__ import annotations
@@ -66,10 +67,57 @@ def resolve_repo_path(invocation: str) -> Path:
     return REPO_ROOT / p
 
 
+# ---------------------------------------------------------------------------
+# $SDIR portability (--check-sdir)
+#
+# The /do SKILL.md must invoke its scripts as "$SDIR/name.py", never as
+# repo-relative `python3 scripts/name.py`: from a non-repo cwd the mandatory
+# builder then fails silently. Each $SDIR script must exist and start from a
+# non-repo cwd (`--help` exits 0, or 2 for an argparse usage error).
+# ---------------------------------------------------------------------------
+
+DO_SKILL_MD = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
+SDIR_REF = re.compile(r"\$SDIR/([a-zA-Z0-9_-]+\.py)")
+BARE_SCRIPT_INVOKE = re.compile(r"python3 scripts/[a-zA-Z0-9_-]+\.py")
+MIN_SDIR_SCRIPTS = 2  # pre-route.py and build-dispatch.py; guards a regex that silently matches nothing
+
+
+def check_sdir(skill_md: Path = DO_SKILL_MD, scripts_dir: Path = REPO_ROOT / "scripts") -> list[str]:
+    """Return failures for $SDIR script references in the /do SKILL.md."""
+    import subprocess
+    import tempfile
+
+    text = skill_md.read_text(encoding="utf-8")
+    names = sorted(set(SDIR_REF.findall(text)))
+    failures = [f"bare repo-relative invocation (use $SDIR): {b}" for b in BARE_SCRIPT_INVOKE.findall(text)]
+    if len(names) < MIN_SDIR_SCRIPTS:
+        failures.append(f"expected at least {MIN_SDIR_SCRIPTS} $SDIR scripts, found {names}")
+    with tempfile.TemporaryDirectory() as cwd:
+        for name in names:
+            script = scripts_dir / name
+            if not script.is_file():
+                failures.append(f"$SDIR/{name}: missing from {scripts_dir}")
+                continue
+            result = subprocess.run(
+                [sys.executable, str(script), "--help"], capture_output=True, text=True, cwd=cwd, timeout=10
+            )
+            if result.returncode not in (0, 2):
+                failures.append(f"$SDIR/{name}: exit {result.returncode} from a non-repo cwd: {result.stderr[:300]}")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--check-sdir", action="store_true", help="check $SDIR script portability in /do SKILL.md")
     args = parser.parse_args()
+
+    if args.check_sdir:
+        failures = check_sdir()
+        for line in failures:
+            print(f"  SDIR: {line}")
+        print(f"{len(failures)} $SDIR issue(s)" if failures else "SDIR: all /do scripts portable.")
+        return 1 if failures else 0
 
     missing: list[dict] = []
     checked = 0

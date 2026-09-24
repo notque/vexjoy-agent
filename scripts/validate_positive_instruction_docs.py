@@ -48,16 +48,17 @@ class Violation:
     text: str
 
 
-def collect_targets() -> list[Path]:
+def collect_targets(root: Path | None = None) -> list[Path]:
     """Collect all git-tracked .md files, excluding generated/temp directories."""
     import subprocess
 
+    root = root or REPO_ROOT
     # Use git ls-files to get only tracked .md files
     result = subprocess.run(
         ["git", "ls-files", "--cached", "*.md", "**/*.md"],
         capture_output=True,
         text=True,
-        cwd=str(REPO_ROOT),
+        cwd=str(root),
     )
     targets: list[Path] = []
     for line in result.stdout.strip().splitlines():
@@ -65,10 +66,20 @@ def collect_targets() -> list[Path]:
             continue
         if any(line.startswith(d + "/") for d in EXCLUDED_DIRS):
             continue
-        path = REPO_ROOT / line
+        path = root / line
         if path.is_file():
             targets.append(path)
     return sorted(targets)
+
+
+def collect_fleet(root: Path | None = None) -> list[Path]:
+    """Collect the instruction fleet: agents/*.md and skills/**/SKILL.md.
+
+    This is the CI gate. The fleet must stay at zero violations; the wider
+    --all scan still carries known debt in reference docs.
+    """
+    root = root or REPO_ROOT
+    return sorted(root.glob("agents/*.md")) + sorted(root.glob("skills/**/SKILL.md"))
 
 
 def should_skip(_path: Path) -> bool:
@@ -76,11 +87,12 @@ def should_skip(_path: Path) -> bool:
     return False
 
 
-def scan_file(path: Path) -> list[Violation]:
+def scan_file(path: Path, root: Path | None = None) -> list[Violation]:
     violations: list[Violation] = []
     lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
     in_fence = False
-    rel = str(path.relative_to(REPO_ROOT))
+    root = root or REPO_ROOT
+    rel = str(path.relative_to(root)) if path.is_relative_to(root) else str(path)
     for i, line in enumerate(lines, 1):
         if line.startswith("```"):
             in_fence = not in_fence
@@ -93,16 +105,24 @@ def scan_file(path: Path) -> list[Violation]:
     return violations
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate positive instructional framing")
     parser.add_argument("--json", dest="json_output", action="store_true", help="Emit JSON report")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--fleet",
+        action="store_true",
+        help="Scan only agents/*.md and skills/**/SKILL.md (the CI gate; the full scan carries known debt)",
+    )
+    parser.add_argument("--root", type=Path, default=None, help="Repository root (default: this checkout)")
+    args = parser.parse_args(argv)
 
+    root = args.root.resolve() if args.root else REPO_ROOT
+    targets = collect_fleet(root) if args.fleet else collect_targets(root)
     violations: list[Violation] = []
-    for path in collect_targets():
+    for path in targets:
         if should_skip(path):
             continue
-        violations.extend(scan_file(path))
+        violations.extend(scan_file(path, root))
 
     payload = {"violations": [asdict(item) for item in violations], "count": len(violations)}
     if args.json_output:

@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.13.0",
     "pytest>=8.0.0",
+    "pytest-xdist>=3.5",
 ]
 
 [tool.ruff]
@@ -160,11 +161,14 @@ markers = [
     "integration: marks tests that drive a real external tool end to end (install.sh, Chrome headless)",
     "performance: marks tests that assert a timing or throughput budget",
 ]
-# The default run skips the four install.sh end-to-end files (slow AND
-# integration, ~830s of the ~1070s scripts/tests wall time) and the timing
-# benchmarks, so the local loop stays usable. CI passes `-m ""` to clear this
-# filter and run the full set — see .github/workflows/test.yml.
-addopts = ["-m", "not (slow and integration) and not performance"]
+# The default run skips slow+integration tests (install end-to-end, live
+# Chromium) and the timing benchmarks, so the local loop stays usable. The
+# full CI tier clears this filter with -m on the command line — see
+# .github/workflows/test.yml.
+# -n auto --dist loadfile runs files in parallel (pytest-xdist, in the dev
+# extra); loadfile keeps each file on one worker. Pass -n 0 for a serial run
+# (single files, debugging, timing budgets: `pytest -m performance -n 0`).
+addopts = ["-m", "not (slow and integration) and not performance", "-n", "auto", "--dist", "loadfile"]
 
 [tool.mypy]
 python_version = "3.10"

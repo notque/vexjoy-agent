@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Fast static coverage test for hook registration health (ADR hook-health-gate).
 
-Mirrors scripts/validate-hook-health.py so dormancy/schema/mirror/allowlist
-regressions surface in the `test` job too, not only the dedicated `hook-health`
-CI job. No subprocess, no ~/.claude dependency — reads repo files directly.
+Detector-precision tests for scripts/validate-hook-health.py: the allowlist
+reason floor and the dispatch detector must not open a dormancy bypass. The
+repo-state checks run once here and in full (with liveness) in the
+`hook-health` CI job via `validate-hook-health.py --ci`. No subprocess, no
+~/.claude dependency — reads repo files directly.
 
 Run with: python3 -m pytest hooks/tests/test_hook_registration_coverage.py -v
 """
@@ -27,44 +29,20 @@ HOOKS_LIB = REPO_ROOT / "hooks" / "lib"
 sys.path.insert(0, str(HOOKS_LIB))
 
 
-def _settings() -> dict:
-    return vhh.load_settings()
-
-
-def test_no_dormant_hooks():
-    """Every disk hook is registered, dispatched, or allowlisted-with-reason."""
-    msgs = vhh.check_no_dormant(_settings())
-    assert not msgs, "Dormant hooks found:\n" + "\n".join(msgs)
-
-
-def test_every_registered_hook_has_repo_file():
-    """No registered command points at a missing repo file (deadlock guard)."""
-    msgs = vhh.check_registered_files_exist(_settings())
-    assert not msgs, "Registered hooks without backing files:\n" + "\n".join(msgs)
-
-
-def test_settings_hooks_schema():
-    """Event names known, matchers are strings, commands are canonical."""
-    msgs = vhh.check_schema(_settings())
-    assert not msgs, "Settings schema violations:\n" + "\n".join(msgs)
-
-
-def test_allowlist_has_no_stale_entries():
-    """Every allowlist entry names a file that still exists on disk."""
-    msgs = vhh.check_allowlist_not_stale()
-    assert not msgs, "Stale allowlist entries:\n" + "\n".join(msgs)
-
-
-def test_mirror_allowlists_have_no_phantom_entries():
-    """Every codex mirror entry exists AND is registered (no phantoms)."""
-    msgs = vhh.check_mirror(_settings())
-    assert not msgs, "Phantom mirror entries:\n" + "\n".join(msgs)
-
-
-def test_allowlist_entries_all_have_reasons():
-    """No allowlist entry may silence the gate without a '# reason'."""
-    msgs = vhh.check_allowlist_entries_have_reasons()
-    assert not msgs, "Allowlist entries missing reasons:\n" + "\n".join(msgs)
+def test_repo_passes_static_hook_health_checks():
+    """One pass over the repo-state checks (dormant, backing files, schema, stale
+    allowlist, mirror phantoms, allowlist reasons), so a regression fails the
+    `test` job too. The `hook-health` job runs the same checks plus liveness."""
+    settings = vhh.load_settings()
+    msgs = (
+        vhh.check_no_dormant(settings)
+        + vhh.check_registered_files_exist(settings)
+        + vhh.check_schema(settings)
+        + vhh.check_allowlist_not_stale()
+        + vhh.check_mirror(settings)
+        + vhh.check_allowlist_entries_have_reasons()
+    )
+    assert not msgs, "Hook health failures:\n" + "\n".join(msgs)
 
 
 def test_bare_allowlist_filename_does_not_silence_gate(tmp_path):
@@ -131,7 +109,7 @@ def test_dispatched_detection_is_precise():
     assert "voice-pipeline-tracker.py" in dispatched
     # These are only ever mentioned in comments/docstrings of other hooks; they
     # must NOT be classified as dispatched.
-    for prose_only in ("pretool-config-protection.py", "retro-knowledge-injector.py"):
+    for prose_only in ("retro-knowledge-injector.py",):
         assert prose_only not in dispatched, (
             f"{prose_only} is mentioned in prose, not dispatched — detection is too loose and would mask dormancy."
         )

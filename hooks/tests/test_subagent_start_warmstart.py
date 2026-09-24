@@ -12,6 +12,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
 HOOK_PATH = Path(__file__).parent.parent / "subagent-start-warmstart.py"
 LIB_PATH = Path(__file__).parent.parent / "lib"
 
@@ -118,20 +120,21 @@ class TestSessionScoping:
 
 
 class TestSharedBuilder:
+    def test_gather_context_block_in_process(self, tmp_path, monkeypatch):
+        """The on-disk gather builds the parent-context block from task_plan.md."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "task_plan.md").write_text("## Goal\nShip it\n\n## Decisions Made\n- use lib\n")
+        block = warmstart_lib.gather_context_block("sess-1", "Explore")
+        assert block.startswith("[warmstart] Parent session context for Explore:")
+        assert "[warmstart] Task: Ship it" in block
+        assert "[warmstart] Decisions: use lib" in block
+
+    @pytest.mark.performance
     def test_gather_context_block_in_process_is_fast(self, tmp_path, monkeypatch):
         """Hook body budget: the on-disk gather stays well under 50 ms."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "task_plan.md").write_text("## Goal\nShip it\n\n## Decisions Made\n- use lib\n")
         start = time.perf_counter()
-        block = warmstart_lib.gather_context_block("sess-1", "Explore")
+        warmstart_lib.gather_context_block("sess-1", "Explore")
         elapsed_ms = (time.perf_counter() - start) * 1000
         assert elapsed_ms < 50, f"gather took {elapsed_ms:.1f} ms"
-        assert block.startswith("[warmstart] Parent session context for Explore:")
-        assert "[warmstart] Task: Ship it" in block
-        assert "[warmstart] Decisions: use lib" in block
-
-    def test_both_hooks_share_one_builder(self):
-        """The superseded PreToolUse hook re-exports the lib builder, not a copy."""
-        src = (Path(__file__).parent.parent / "pretool-subagent-warmstart.py").read_text(encoding="utf-8")
-        assert "from warmstart_lib import" in src
-        assert "def build_context_block" not in src

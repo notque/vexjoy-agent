@@ -212,6 +212,7 @@ def test_no_gather_preamble_at_simple_stays_silent() -> None:
 # --- budget and registration --------------------------------------------------
 
 
+@pytest.mark.performance
 def test_silent_path_under_50ms_median() -> None:
     samples = []
     for _ in range(5):

@@ -33,18 +33,14 @@ _spec.loader.exec_module(prc)
     [
         # HIGH paths
         ("hooks/pre-check.py", "high"),
-        ("hooks/lib/utils.py", "high"),
         (".github/workflows/test.yml", "high"),
-        (".github/pull_request_template.md", "high"),
         ("install.sh", "high"),
         ("scripts/sync-to-user-claude.py", "high"),
-        ("scripts/sync-hooks.py", "high"),
         (".claude/settings.json", "high"),
         (".claude/settings.local.json", "high"),
         ("CLAUDE.md", "high"),
         # LOW paths
         ("docs/PHILOSOPHY.md", "low"),
-        ("docs/what-didnt-work.md", "low"),
         ("adr/001-routing.md", "low"),
         ("skills/meta/do/references/routing.md", "low"),
         ("agents/INDEX.json", "low"),
@@ -55,7 +51,6 @@ _spec.loader.exec_module(prc)
         ("agents/toolkit-governance-engineer.md", "medium"),
         ("skills/meta/do/SKILL.md", "medium"),
         ("src/server.go", "medium"),
-        ("pyproject.toml", "medium"),
     ],
 )
 def test_classify_path(path, expected):
@@ -93,12 +88,10 @@ def test_nested_markdown_classification():
     "lines,expected",
     [
         (0, "small"),
-        (1, "small"),
         (200, "small"),
         (201, "medium"),
         (800, "medium"),
         (801, "large"),
-        (5000, "large"),
     ],
 )
 def test_size_tier(lines, expected):

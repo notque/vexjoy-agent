@@ -1,8 +1,8 @@
 """Shared index resolution and tracked + local INDEX merge for the routing scripts.
 
-Single source for the merge formerly hand-duplicated in routing-manifest.py,
-pre-route.py, and index-router.py. Those scripts import this module; the
-merge can no longer diverge between them.
+Single source for the merge formerly hand-duplicated in routing-manifest.py
+and pre-route.py. Both scripts import this module; the merge can no longer
+diverge between them.
 
 ``resolve_index(kind, target)`` (installer spec 7.2) picks the index a reader
 uses, first match wins:

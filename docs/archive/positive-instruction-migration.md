@@ -42,11 +42,20 @@ Completion criteria:
 - Rewrites preserve safety intent while leading with preferred actions,
   reasons, and verification steps.
 
+> Historical record. The migration finished and its one-time scripts
+> (`bulk_fix_instruction_joy.py`, `bulk_fix_do_framing.py`,
+> `extract_negative_instruction_blocks.py`, `build_instruction_rewrite_batches.py`,
+> `apply_instruction_block_rewrites.py`, `validate_reference_loading_tables.py`,
+> `detect-unpaired-antipatterns.py`) were deleted with their tests. The commands
+> below show what ran; recover a script from git history if you need it again.
+> The ongoing gates are `validate-references.py --check-do-framing` and
+> `validate_positive_instruction_docs.py --fleet`.
+
 ### Phase 0: Deterministic normalization
 
 Run the safe mechanical rewrites first:
 
-```bash
+```text
 python3 scripts/bulk_fix_instruction_joy.py --apply-safe-fixes \
   --output artifacts/bulk-fix-instruction-joy-report.json
 
@@ -58,7 +67,7 @@ This clears the cheap wins before spending any LLM tokens.
 
 ### Phase 1: Extract only the remaining negative blocks
 
-```bash
+```text
 python3 scripts/extract_negative_instruction_blocks.py \
   --output artifacts/negative-instruction-blocks.json
 ```
@@ -73,7 +82,7 @@ Each record includes:
 
 ### Phase 2: Build rewrite batches
 
-```bash
+```text
 python3 scripts/build_instruction_rewrite_batches.py \
   --input artifacts/negative-instruction-blocks.json \
   --output-dir artifacts/instruction-rewrite-batches \
@@ -104,7 +113,7 @@ The output schema should be:
 
 ### Phase 4: Apply verified rewrites
 
-```bash
+```text
 python3 scripts/apply_instruction_block_rewrites.py \
   --input artifacts/rewrite-results.json
 ```
@@ -113,7 +122,7 @@ The apply step refuses to patch a block if the current text hash no longer match
 
 ### Phase 5: Validate
 
-```bash
+```text
 python3 scripts/validate-references.py --check-do-framing
 python3 scripts/validate_positive_instruction_docs.py
 python3 scripts/validate_reference_loading_tables.py
