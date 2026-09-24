@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from .common import GuardError, OverlayConfigError, is_inside, realpath, utc_ts
@@ -73,7 +74,7 @@ def migrate_overlays(home: Path, repo_root: Path, *, dry_run: bool = False) -> t
 
     status: ``written`` | ``unchanged`` | ``dry-run``. A differing existing file
     is backed up to ``backups/overlays.<ts>.json`` first. The config is validated
-    with the engine's loader before it is written.
+    with the engine's loader before it replaces the active file.
     """
     cfg, warnings = build_overlays(home, repo_root)
     path = state_dir(home) / "overlays.json"
@@ -90,17 +91,16 @@ def migrate_overlays(home: Path, repo_root: Path, *, dry_run: bool = False) -> t
     except OSError:
         pass
     mkdirs(path.parent, guard)
+    guard.check(path.parent / ".overlays-validation")
+    with tempfile.TemporaryDirectory(prefix=".overlays-validation-", dir=path.parent) as temp_dir:
+        validation_path = Path(temp_dir) / "overlays.json"
+        atomic_write_bytes(validation_path, blob, guard, mode=0o600)
+        load_overlays(validation_path, repo_root, home)
     if path.exists():
         backups = state_dir(home) / "backups"
         mkdirs(backups, guard)
         atomic_write_bytes(backups / f"overlays.{utc_ts()}.json", path.read_bytes(), guard, mode=0o600)
     atomic_write_bytes(path, blob, guard, mode=0o600)
-    # Validate after write with the engine loader; roll back on failure.
-    try:
-        load_overlays(path, repo_root, home)
-    except OverlayConfigError:
-        path.unlink()
-        raise
     return path, cfg, warnings, "written"
 
 

@@ -234,6 +234,42 @@ def test_migrate_overlays_writes_config_from_legacy_roots(world: Env) -> None:
     assert world.run("migrate-overlays").out[0].startswith("[migrate-overlays] unchanged")
 
 
+@pytest.mark.parametrize("has_existing_config", [False, True])
+def test_migrate_overlays_validates_before_replacing_config(
+    world: Env, monkeypatch: pytest.MonkeyPatch, has_existing_config: bool
+) -> None:
+    path = world.home / ".claude" / "vexjoy" / "overlays.json"
+    prior = b'{"overlays": []}\n'
+    if has_existing_config:
+        path.write_bytes(prior)
+    else:
+        path.unlink(missing_ok=True)
+
+    outer = world.home / "private-skills"
+    inner = outer / "workbench"
+    inner.mkdir(parents=True)
+    invalid = {
+        "overlays": [
+            {"id": "private", "root": str(outer), "layout": "category"},
+            {"id": "workbench", "root": str(inner), "layout": "flat"},
+        ]
+    }
+    monkeypatch.setattr("vexinstall.migrate.build_overlays", lambda *_: (invalid, []))
+    backups = world.home / ".claude" / "vexjoy" / "backups"
+    backups_before = set(backups.glob("overlays.*.json")) if backups.exists() else set()
+
+    result = world.run("migrate-overlays")
+
+    assert result.code != 0 and any("inside" in message for message in result.err)
+    if has_existing_config:
+        assert path.read_bytes() == prior
+    else:
+        assert not path.exists()
+    backups_after = set(backups.glob("overlays.*.json")) if backups.exists() else set()
+    assert backups_after == backups_before
+    assert not list(path.parent.glob(".overlays-validation-*"))
+
+
 def test_tree_hash_is_order_independent(tmp_path: Path) -> None:
     """A walk yields a dir's files before its subdirs ("b.md" then "a/x.md"); the hash must not care."""
     from scripts.vexinstall.common import iter_tree_files, tree_sha256
