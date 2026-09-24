@@ -39,13 +39,29 @@ Theme selection and artifact-specific rules for html-builder. General judgment (
 | Theme | Text on Bg | Secondary on Bg | Muted on Bg | Accent note |
 |---|---|---|---|---|
 | Dark Focus | 12.9:1 | 6.7:1 | 5.2:1 | Accent on bg 7.7:1 |
-| Interactive Warm | 13.2:1 | 6.6:1 | 4.9:1 | White on accent 4.7:1; `--accent-text` (#2F5FC4) 5.7:1 on bg |
+| Interactive Warm | 13.2:1 | 6.6:1 | 4.9:1 | `--accent-text` (#2F5FC4) 5.7:1 on bg |
 | Minimal Document | 12.4:1 | 7.5:1 | 3.5:1 (large text only) | Gray accent |
-| Birchline | 17.5:1 | 10.3:1 | 5.2:1 | Clay accent 3.0:1 on ivory: fills and large text only. `--accent-text` (#963F22) 6.6:1 on ivory, 5.0:1 on oat |
+| Birchline | 17.5:1 | 10.3:1 | 5.2:1 | Clay accent 3.0:1 on ivory: decorative fills, borders, and large text only. `--accent-text` (#963F22) 6.6:1 on ivory, 5.0:1 on oat |
+
+### Filled controls: `--accent-fill`
+
+Primary buttons, active filter chips, checked toggles, and other selected states fill with `--accent-fill` and set their label in `--on-accent-fill` (white). Hover uses `--accent-fill-hover`. Keep `--accent` for decorative fills, borders, focus rings, progress bars, and large display text.
+
+| Theme | `--accent` (white on it) | `--accent-fill` (white on it) | `--accent-fill-hover` (white on it) |
+|---|---|---|---|
+| Birchline | #D97757 (3.12:1) | #B45636 (4.86:1) | #963F22 (6.93:1) |
+| Dark Focus | #64B5F6 (2.21:1) | #2077B4 (4.82:1) | #1B74B0 (5.03:1) |
+| Interactive Warm | #3D6FD9 (4.69:1) | #3D6FD9 (4.69:1) | #2F5FC4 (5.91:1) |
+| Minimal Document | #555555 (7.46:1) | #555555 (7.46:1) | #333333 (12.63:1) |
+| `theme-toggle` dark block | #64B5F6 (2.21:1) | #2077B4 (4.82:1) | #1B74B0 (5.03:1) |
+
+How the fills were picked: where white on the accent fails 4.5:1, darken the accent in OKLCH at the same hue and chroma, and take the first step at 4.8:1 or higher (a margin over 4.5:1). Hover takes a darker step on the same hue at 5:1 or higher; in dark mode it must also stay 3:1 against the page and surface. Where white on the accent already passes, the accent is the fill. `test_assemble_template.py` checks every theme, alone and under the dark block, and scans every template rule that puts white text on a fill.
+
+For status fills (warning, success), do not put white text on the solid color: use a 12 to 15% tint of the color with `--text-primary` and a border in the color, as `.copy-btn.copied` and `.pending-badge` do.
 
 Recheck any pair you add or change: 4.5:1 body text, 3:1 large text and UI boundaries.
 
-Color small text (tags, captions, active tabs, links) with `--accent-text`, not `--accent`. Every theme defines it; it equals `--accent` where the accent already passes 4.5:1. The `theme-toggle` dark block resets it too.
+Color small text (tags, captions, active tabs, links) with `--accent-text`, not `--accent`. Every theme defines it; it equals `--accent` where the accent already passes 4.5:1. The `theme-toggle` dark block resets it and the `--accent-fill` tokens too.
 
 ---
 
@@ -58,7 +74,7 @@ All themes share the same semantic alias layer. Components reference aliases, no
 | Raw colors | `--color-primary`, `--color-danger` | Theme-specific palette |
 | Typography | `--type-body`, `--type-caption` | Font stacks with weight/size/line-height |
 | Spacing | `--sp-1` through `--sp-8` | 4px base scale |
-| Semantic | `--bg-page`, `--text-primary`, `--accent`, `--accent-text` | Component-facing aliases |
+| Semantic | `--bg-page`, `--text-primary`, `--accent`, `--accent-text`, `--accent-fill`, `--accent-fill-hover`, `--on-accent-fill` | Component-facing aliases |
 
 **Rule:** Components use semantic aliases (`--bg-surface`, `--text-muted`, `--accent`). Never reference raw color values directly.
 

@@ -21,7 +21,10 @@
   --bg-card: var(--color-surface); --text-primary: var(--color-text);
   --text-secondary: var(--color-text-secondary); --text-muted: var(--color-text-muted);
   --border-default: var(--color-border); --border-subtle: var(--color-border-subtle);
-  --accent: var(--color-primary); --accent-text: var(--accent); --content-width: 680px; --content-margin: auto;
+  --accent: var(--color-primary); --accent-text: var(--accent);
+  /* White on #555555 is 7.46:1; hover darkens to the text gray, 12.63:1. */
+  --accent-fill: var(--accent); --accent-fill-hover: var(--color-text); --on-accent-fill: #FFFFFF;
+  --content-width: 680px; --content-margin: auto;
 }
 body {
   font: var(--type-body); color: var(--text-primary); background: var(--bg-page);

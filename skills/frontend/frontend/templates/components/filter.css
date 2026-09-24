@@ -10,5 +10,9 @@
   padding: var(--sp-1) var(--sp-3); font: var(--type-caption); cursor: pointer; transition: all 0.15s ease;
 }
 .tag-btn:hover { border-color: var(--accent); }
-.tag-btn.active { background: var(--accent); color: var(--bg-surface); border-color: var(--accent); }
+.tag-btn.active {
+  background: var(--accent-fill, var(--accent)); color: var(--on-accent-fill, #FFFFFF);
+  border-color: var(--accent-fill, var(--accent));
+}
+.tag-btn.active:hover { background: var(--accent-fill-hover, var(--accent)); border-color: var(--accent-fill-hover, var(--accent)); }
 .tag-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

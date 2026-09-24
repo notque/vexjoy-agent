@@ -402,6 +402,109 @@ class TestThemeAccentContrast:
         assert "color: var(--accent-text, var(--accent))" in spec
 
 
+THEMES = ["birchline", "dark-focus", "interactive-warm", "minimal-document"]
+
+
+def _dark_tokens() -> dict[str, str]:
+    import re
+
+    css = (TEMPLATES / "components" / "theme-toggle.css").read_text(encoding="utf-8")
+    block = re.search(r'\[data-theme="dark"\] \{([^}]*)\}', css)
+    assert block is not None
+    return dict(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", block.group(1)))
+
+
+def _theme_variants() -> dict[str, dict[str, str]]:
+    """Every theme alone and with the theme-toggle dark block layered on top, tokens resolved."""
+    import re
+
+    variants = {}
+    for theme in THEMES:
+        css = re.sub(r"/\*.*?\*/", "", (TEMPLATES / "themes" / f"{theme}.css").read_text(encoding="utf-8"), flags=re.S)
+        raw = dict(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", css))
+        for name, layer in ((theme, raw), (theme + "+dark", {**raw, **_dark_tokens()})):
+            variants[name] = _tokens("".join(f"{k}: {v};" for k, v in layer.items()))
+    return variants
+
+
+def _resolve_color(value: str, tokens: dict[str, str]) -> str | None:
+    """Resolve a CSS color value (var() with optional fallback, hex, or white) to #RRGGBB."""
+    import re
+
+    value = value.strip()
+    m = re.fullmatch(r"var\((--[\w-]+)(?:\s*,\s*(.+))?\)", value)
+    if m:
+        if m.group(1) in tokens:
+            return _resolve_color(tokens[m.group(1)], tokens)
+        return _resolve_color(m.group(2), tokens) if m.group(2) else None
+    value = "#FFFFFF" if value.lower() == "white" else value
+    return value.upper() if re.fullmatch(r"#[0-9A-Fa-f]{6}", value) else None
+
+
+def _oklch_hue(hex_color: str) -> float:
+    import math
+
+    def lin(c: int) -> float:
+        c /= 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (lin(int(hex_color[i : i + 2], 16)) for i in (1, 3, 5))
+    lms = [
+        (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3),
+        (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3),
+        (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3),
+    ]
+    a = 1.9779984951 * lms[0] - 2.4285922050 * lms[1] + 0.4505937099 * lms[2]
+    bb = 0.0259040371 * lms[0] + 0.7827717662 * lms[1] - 0.8086757660 * lms[2]
+    return math.degrees(math.atan2(bb, a)) % 360
+
+
+class TestAccentFillContrast:
+    """Buttons, active chips, and selected states put white labels on --accent-fill: 4.5:1 in every theme."""
+
+    VARIANTS = _theme_variants()
+
+    @pytest.mark.parametrize("variant", sorted(VARIANTS))
+    @pytest.mark.parametrize("fill", ["--accent-fill", "--accent-fill-hover"])
+    def test_white_on_fill_passes_aa(self, variant: str, fill: str) -> None:
+        tokens = self.VARIANTS[variant]
+        assert tokens["--on-accent-fill"].upper() == "#FFFFFF"
+        ratio = slop.contrast_ratio(tokens["--on-accent-fill"], tokens[fill])
+        assert ratio is not None and ratio >= 4.5, f"{variant} white on {fill} {tokens[fill]}: {ratio}"
+
+    def test_birchline_fill_stays_clay(self) -> None:
+        tokens = self.VARIANTS["birchline"]
+        assert tokens["--accent"] == "#D97757"
+        assert tokens["--accent-fill"] != tokens["--accent"]
+        for fill in ("--accent-fill", "--accent-fill-hover"):
+            assert abs(_oklch_hue(tokens[fill]) - _oklch_hue(tokens["--accent"])) < 3.0
+
+    def test_every_white_on_fill_rule_passes(self) -> None:
+        """Scan every template rule that sets both a background and white text, in every theme and dark mode."""
+        import re
+
+        checked: set[str] = set()
+        failures = []
+        for sub in ("components", "shapes", "themes"):
+            for path in sorted((TEMPLATES / sub).glob("*.css")):
+                css = re.sub(r"/\*.*?\*/", "", path.read_text(encoding="utf-8"), flags=re.S)
+                for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+                    bg = re.search(r"(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)", body)
+                    fg = re.search(r"(?:^|;)\s*color\s*:\s*([^;]+)", body)
+                    if not (bg and fg):
+                        continue
+                    for variant, tokens in self.VARIANTS.items():
+                        fill, text = _resolve_color(bg.group(1), tokens), _resolve_color(fg.group(1), tokens)
+                        if fill is None or text != "#FFFFFF":
+                            continue
+                        checked.add(selector.strip())
+                        ratio = slop.contrast_ratio(text, fill)
+                        if ratio is None or ratio < 4.5:
+                            failures.append(f"{path.name} {selector.strip()} [{variant}] white on {fill}: {ratio:.2f}")
+        assert {".tag-btn.active", ".btn-primary", ".export-btn"} <= checked
+        assert not failures, "\n".join(failures)
+
+
 class TestInteractiveWarmButtons:
     """One primary per region: bare buttons are neutral; primary is opt-in."""
 

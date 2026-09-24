@@ -24,6 +24,9 @@
   --accent: var(--color-primary);
   /* #3D6FD9 is 4.49:1 on the page bg; small accent text uses the hover blue (5.65:1). */
   --accent-text: var(--color-primary-hover);
+  /* White on #3D6FD9 is 4.69:1 and on the hover blue 5.91:1, so the brand blue is the fill. */
+  --accent-fill: var(--color-primary); --accent-fill-hover: var(--color-primary-hover);
+  --on-accent-fill: #FFFFFF;
 }
 body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
 /* Buttons: one primary per region. Bare buttons get the neutral secondary look at zero
@@ -39,10 +42,10 @@ body { font: var(--type-body); color: var(--text-primary); background: var(--bg-
 :where(button, [role="button"]):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 :where(button, [role="button"]):disabled, :where(button, [role="button"])[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .btn-primary {
-  background: var(--color-primary); color: #FFFFFF; border: 1px solid var(--color-primary);
+  background: var(--accent-fill); color: var(--on-accent-fill); border: 1px solid var(--accent-fill);
   box-shadow: var(--shadow-interactive);
 }
-.btn-primary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); box-shadow: var(--shadow-interactive-hover); }
+.btn-primary:hover { background: var(--accent-fill-hover); border-color: var(--accent-fill-hover); box-shadow: var(--shadow-interactive-hover); }
 .btn-primary:active { box-shadow: none; }
 .btn-secondary { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-default); }
 .btn-secondary:hover { background: var(--bg-muted); }

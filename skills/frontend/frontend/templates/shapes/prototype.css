@@ -12,13 +12,13 @@
 .control-group-label { font: var(--type-caption); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: var(--sp-3) 0 var(--sp-2); margin-top: var(--sp-3); border-top: 1px solid var(--border-subtle); }
 .export-btn {
   width: 100%; margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
-  background: var(--accent); color: #FFFFFF; border: none; border-radius: var(--radius-sm);
+  background: var(--accent-fill, var(--accent)); color: var(--on-accent-fill, #FFFFFF); border: 1px solid transparent; border-radius: var(--radius-sm);
   font: var(--type-small); font-weight: 500; cursor: pointer;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
-.export-btn:hover { filter: brightness(0.9); }
+.export-btn:hover { background: var(--accent-fill-hover, var(--accent)); }
 .export-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.export-btn.copied { background: var(--color-success); }
+.export-btn.copied { background: color-mix(in srgb, var(--color-success) 12%, var(--bg-surface)); color: var(--text-primary); border-color: var(--color-success); }
 .variant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-4); }
 .variant-cell { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; }
 .variant-preview { padding: var(--sp-5); display: flex; align-items: center; justify-content: center; background: var(--bg-muted); min-height: 80px; }

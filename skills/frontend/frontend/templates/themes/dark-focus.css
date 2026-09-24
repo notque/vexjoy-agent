@@ -22,6 +22,11 @@
   --text-secondary: var(--color-text-secondary); --text-muted: var(--color-text-muted);
   --border-default: var(--color-border); --border-subtle: var(--color-border-subtle);
   --accent: var(--color-primary); --accent-text: var(--accent);
+  /* White on #64B5F6 is 2.21:1. Filled controls use the same blue darkened in OKLCH: white 4.82:1,
+     hover 5.03:1, both at least 3:1 against the page and surface. */
+  --color-primary-fill: #2077B4; --color-primary-fill-hover: #1B74B0;
+  --accent-fill: var(--color-primary-fill); --accent-fill-hover: var(--color-primary-fill-hover);
+  --on-accent-fill: #FFFFFF;
 }
 body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
 pre, code { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }

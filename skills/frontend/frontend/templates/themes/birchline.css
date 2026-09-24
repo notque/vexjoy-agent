@@ -23,5 +23,10 @@
   /* Clay #D97757 is 2.96:1 on ivory: keep it for fills, borders, and large text.
      --accent-text #963F22 is 6.58:1 on ivory, 5.00:1 on oat, 4.62:1 on the 10% clay tag tint over oat. */
   --color-primary-text: #963F22; --accent-text: var(--color-primary-text);
+  /* White on clay is 3.12:1, so buttons, active chips, and selected states use the fill below:
+     clay darkened in OKLCH at the same hue and chroma, white 4.86:1. Hover reuses #963F22, white 6.93:1. */
+  --color-primary-fill: #B45636;
+  --accent-fill: var(--color-primary-fill); --accent-fill-hover: var(--color-primary-text);
+  --on-accent-fill: var(--color-white);
 }
 body { font: var(--type-body); color: var(--text-primary); background: var(--bg-page); }
