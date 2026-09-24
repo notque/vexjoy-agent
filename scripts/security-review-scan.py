@@ -513,6 +513,7 @@ def _build_rules() -> list[dict]:
         r"\$\{\{\s*github\.event\.(?:issue|pull_request|comment|review|review_comment|"
         r"pages|commits|head_commit|client_payload)\b[^}]*\}\}",
         path_filter=gha_workflow,
+        filter_fn=_filter_gha_safe_context,
     )
 
     # Security TODOs (ours, kept).
@@ -596,6 +597,21 @@ _SQL_SHAPE_RE = re.compile(
 )
 # A DB call on the same line is SQL context on its own.
 _SQL_CALL_RE = re.compile(r"\b(?:execute|executemany|executescript|raw|query)\s*\(|\bcursor\b", re.IGNORECASE)
+
+
+# An expression that is the whole value of an ALL_CAPS env-var key (GitHub's
+# documented mitigation: pass untrusted input through env, then quote "$VAR"
+# in the script) or that reads a numeric field (.number, .id) cannot inject
+# shell. Free-text fields inlined into run:/script: still fire.
+_GHA_ENV_VALUE_RE = re.compile(r"""^\s*[A-Z][A-Z0-9_]*\s*:\s*["']?\$\{\{[^}]*\}\}["']?\s*(?:#.*)?$""")
+_GHA_NUMERIC_FIELD_RE = re.compile(r"\.(?:number|id|run_id|run_number)\s*\}\}$")
+
+
+def _filter_gha_safe_context(match: re.Match, line: str, filepath: str) -> bool:
+    """Return True to keep a github-actions-injection finding."""
+    if _GHA_NUMERIC_FIELD_RE.search(match.group(0)):
+        return False
+    return not _GHA_ENV_VALUE_RE.match(line)
 
 
 def _filter_sql_shape(match: re.Match, line: str, filepath: str) -> bool:
