@@ -522,3 +522,258 @@ class TestInteractiveWarmButtons:
     def test_variants_defined(self, variant: str) -> None:
         assert f"{variant} {{" in self.CSS
         assert f"{variant}:hover" in self.CSS
+
+
+SURFACES = ("--bg-page", "--bg-surface", "--bg-card", "--bg-muted")
+STATUS = ("--color-success", "--color-warning", "--color-danger")
+
+
+def _sub_vars(value: str, tokens: dict[str, str]) -> str:
+    """Replace every var() in a value with its token, or its fallback when the token is unset."""
+    import re
+
+    for _ in range(12):
+        m = re.search(r"var\((--[\w-]+)\s*(?:,\s*((?:[^()]|\([^()]*\))*))?\)", value)
+        if not m:
+            break
+        value = value[: m.start()] + tokens.get(m.group(1), m.group(2) or "") + value[m.end() :]
+    return value.strip()
+
+
+def _rgba(value: str, tokens: dict[str, str]) -> tuple[float, float, float, float] | None:
+    """Parse a CSS color (var(), hex, white/black/transparent, rgb[a](), color-mix in srgb) to RGBA."""
+    import re
+
+    value = _sub_vars(value, tokens).lower()
+    named = {"white": "#ffffff", "black": "#000000"}
+    value = named.get(value, value)
+    if value in ("transparent", "none"):
+        return (0.0, 0.0, 0.0, 0.0)
+    if m := re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value):
+        h = m.group(1) if len(m.group(1)) == 6 else "".join(c * 2 for c in m.group(1))
+        return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 1.0)
+    if m := re.fullmatch(r"rgba?\(([^)]*)\)", value):
+        parts = [float(p) for p in re.split(r"[,\s/]+", m.group(1).strip()) if p]
+        return (parts[0], parts[1], parts[2], parts[3] if len(parts) > 3 else 1.0)
+    if m := re.fullmatch(r"color-mix\(in srgb,\s*(.+?)\s+(\d+(?:\.\d+)?)%\s*,\s*(.+)\)", value):
+        a, b, p = _rgba(m.group(1), tokens), _rgba(m.group(3), tokens), float(m.group(2)) / 100
+        if a is None or b is None:
+            return None
+        alpha = a[3] * p + b[3] * (1 - p)
+        if alpha == 0:
+            return (0.0, 0.0, 0.0, 0.0)
+        mixed = tuple((a[i] * a[3] * p + b[i] * b[3] * (1 - p)) / alpha for i in range(3))
+        return (*mixed, alpha)
+    return None
+
+
+def _over(top: tuple[float, ...], base: tuple[float, ...]) -> tuple[float, float, float, float]:
+    return (*(top[i] * top[3] + base[i] * (1 - top[3]) for i in range(3)), 1.0)
+
+
+def _hex(c: tuple[float, ...]) -> str:
+    return "#" + "".join(f"{round(x):02X}" for x in c[:3])
+
+
+def _decl(body: str, prop: str) -> str | None:
+    """Last value of a property in a declaration block (last one wins, as in the cascade)."""
+    import re
+
+    found = re.findall(rf"(?:^|;)\s*{prop}\s*:\s*([^;]+)", body)
+    return found[-1].strip() if found else None
+
+
+def _floor(selector: str, body: str, tokens: dict[str, str]) -> float:
+    """4.5:1 for normal text; 3:1 when the CSS makes it large text or a glyph-only icon."""
+    import re
+
+    size, weight = None, 400
+    for prop in ("font", "font-size"):
+        if value := _decl(body, prop):
+            value = _sub_vars(value, tokens)
+            if m := re.search(r"(?:(\d{3})\s+)?(\d+(?:\.\d+)?)px", value):
+                size = float(m.group(2))
+                weight = int(m.group(1)) if m.group(1) else weight
+            elif m := re.search(r"(\d+(?:\.\d+)?)rem", value):
+                size = float(m.group(1)) * 16
+    if (fw := _decl(body, "font-weight")) and fw.isdigit():
+        weight = int(fw)
+    large = size is not None and (size >= 24 or (size >= 18.66 and weight >= 700))
+    content = _decl(body, "content")
+    glyphs = re.sub(r"\\[0-9a-fA-F]{1,6}\s?", "#", content.strip("'\"")) if content else ""
+    icon = "::" in selector and content is not None and not re.search(r"[A-Za-z0-9]|attr\(", glyphs)
+    return 3.0 if large or icon else 4.5
+
+
+def _css_of(path: Path) -> str:
+    import re
+
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".html":
+        text = "\n".join(re.findall(r"<style[^>]*>(.*?)</style>", text, re.S))
+    return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+
+
+_STATE = r":(?:hover|active|focus|focus-visible|focus-within|checked)\b"
+
+
+def _rules(css: str) -> dict[str, str]:
+    """Map each single selector to its merged declarations; comma lists are split."""
+    import re
+
+    rules: dict[str, str] = {}
+    for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+        for selector in re.split(r",(?![^()]*\))", selectors):
+            selector = " ".join(selector.split())
+            if selector and not selector.startswith("@"):
+                rules[selector] = rules.get(selector, "") + ";" + body
+    return rules
+
+
+def _cascaded(selector: str, rules: dict[str, str]) -> str:
+    """A rule's body layered over its base rules, so a :hover or .x .child rule keeps the base color."""
+    import re
+
+    last = re.split(r"\s*[ >+~]\s*", selector)[-1]
+    bases = [re.sub(_STATE, "", last), re.sub(_STATE, "", selector)]
+    chain = [b for i, b in enumerate(bases) if b != selector and b in rules and b not in bases[:i]]
+    return ";".join(rules[b] for b in chain) + ";" + rules[selector]
+
+
+def _non_text(selector: str, body: str) -> bool:
+    """True when the CSS makes the element a graphic: an empty pseudo-element, a range-input part,
+    or a box sized by height or inset with no typography."""
+    import re
+
+    if (_decl(body, "content") or "").strip() in ("''", '""'):
+        return True
+    if re.search(r"::-(?:webkit|moz)-|input\[type=\"range\"\]$", selector):
+        return True
+    shaped = _decl(body, "height") or _decl(body, "inset")
+    return bool(shaped) and not (_decl(body, "font") or _decl(body, "font-size") or _decl(body, "content"))
+
+
+def _text_pairs(css: str, variants: dict[str, dict[str, str]], surfaces: tuple[str, ...] = SURFACES):
+    """Yield (selector, variant, fg, bg, ratio, floor) for every text color and background a rule can pair.
+
+    A rule with both color and background pairs them (a translucent background is composited over each
+    surface). A rule with only a color is checked on every theme surface it may sit on. A rule with only
+    a background is checked with the inherited --text-primary. State rules inherit from their base rule.
+    Disabled states are exempt (WCAG 1.4.3), and so are graphics with no text (see _non_text).
+    """
+    rules = _rules(css)
+    for selector in rules:
+        if "disabled" in selector or ":root" in selector:
+            continue
+        body = _cascaded(selector, rules)
+        own = rules[selector]
+        if not (_decl(own, "color") or _decl(own, "background(?:-color)?")) or _non_text(selector, body):
+            continue
+        fg_value, bg_value = _decl(body, "color"), _decl(body, "background(?:-color)?")
+        for variant, tokens in variants.items():
+            fg = _rgba(fg_value or "var(--text-primary)", tokens)
+            bases = [b for s in surfaces if s in tokens and (b := _rgba(tokens[s], tokens))]
+            bg = _rgba(bg_value, tokens) if bg_value else None
+            if fg is None or fg[3] == 0 or (bg_value and bg is None) or (bg and bg[3] == 0 and not fg_value):
+                continue
+            backs = [bg] if bg and bg[3] == 1 else [_over(bg, b) for b in bases] if bg and bg[3] > 0 else bases
+            floor = _floor(selector, body, tokens)
+            for back in backs:
+                text = _over(fg, back) if fg[3] < 1 else fg
+                yield selector, variant, _hex(text), _hex(back), slop.contrast_ratio(_hex(text), _hex(back)), floor
+
+
+def _scan_files() -> list[Path]:
+    files = [TEMPLATES / "base-reset.css"]
+    for sub in ("components", "shapes", "themes", "print"):
+        files += sorted((TEMPLATES / sub).glob("*.css"))
+    return files
+
+
+def _failures(
+    files: list[Path], variants: dict[str, dict[str, str]], surfaces=SURFACES
+) -> dict[tuple[str, str], float]:
+    """Worst ratio per (file selector, variant) that falls below its floor."""
+    worst: dict[tuple[str, str], float] = {}
+    for path in files:
+        for selector, variant, _fg, _bg, ratio, floor in _text_pairs(_css_of(path), variants, surfaces):
+            if ratio < floor:
+                key = (f"{path.name} {selector}", variant)
+                worst[key] = min(ratio, worst.get(key, ratio))
+    return worst
+
+
+class TestTextContrast:
+    """Every text color on every background it can sit on, in every theme, with and without the dark toggle."""
+
+    VARIANTS = _theme_variants()
+
+    @pytest.mark.parametrize("variant", sorted(VARIANTS))
+    def test_text_tokens_clear_aa_on_every_surface(self, variant: str) -> None:
+        tokens = self.VARIANTS[variant]
+        for fg in ("--text-primary", "--text-secondary", "--text-muted", "--accent-text", *STATUS):
+            for bg in SURFACES:
+                ratio = slop.contrast_ratio(tokens[fg], tokens[bg])
+                assert ratio >= 4.5, f"{variant} {fg} {tokens[fg]} on {bg} {tokens[bg]}: {ratio:.2f}"
+
+    @pytest.mark.parametrize("variant", sorted(VARIANTS))
+    def test_status_text_clears_aa_on_its_own_tint(self, variant: str) -> None:
+        # Badges put status text on a 12-15% tint of the same color over a surface.
+        tokens = self.VARIANTS[variant]
+        for status in STATUS:
+            for pct in (12, 15):
+                for surface in SURFACES:
+                    back = _hex(
+                        _over(
+                            _rgba(f"color-mix(in srgb, var({status}) {pct}%, transparent)", tokens),
+                            _rgba(tokens[surface], tokens),
+                        )
+                    )
+                    ratio = slop.contrast_ratio(tokens[status], back)
+                    assert ratio >= 4.5, f"{variant} {status} on {pct}% tint over {surface}: {ratio:.2f}"
+
+    def test_toggle_dark_sets_status_colors(self) -> None:
+        # Light-theme status colors are too dark for the toggle's navy surfaces.
+        assert set(STATUS) <= set(_dark_tokens())
+
+    def test_every_rule_pair_passes(self) -> None:
+        failures = _failures(_scan_files(), self.VARIANTS)
+        assert not failures, "\n".join(f"{k[0]} [{k[1]}]: {v:.2f}" for k, v in sorted(failures.items()))
+
+    def test_scan_covers_known_pairs(self) -> None:
+        seen = {sel for path in _scan_files() for sel, *_ in _text_pairs(_css_of(path), self.VARIANTS)}
+        assert {".key-nav-counter", ".copy-svg-btn", ".severity-badge.safe", ".tab", ".risk-level.med"} <= seen
+
+    def test_scan_catches_old_muted_tokens(self) -> None:
+        # Before this fix --text-muted was #8C8CA8 in dark mode and #888888 in minimal-document.
+        old = {
+            "dark-focus": {**self.VARIANTS["dark-focus"], "--text-muted": "#8C8CA8"},
+            "minimal-document": {**self.VARIANTS["minimal-document"], "--text-muted": "#888888"},
+        }
+        files = [TEMPLATES / "components" / "keyboard-nav.css", TEMPLATES / "shapes" / "diagram.css"]
+        failures = _failures(files, old)
+        for name in ("keyboard-nav.css .key-nav-counter", "diagram.css .copy-svg-btn"):
+            assert round(failures[(name, "dark-focus")], 2) == 4.11
+            assert round(failures[(name, "minimal-document")], 2) == 3.33
+
+    def test_floor_relaxes_only_for_large_text_and_icons(self) -> None:
+        tokens = self.VARIANTS["birchline"]
+        assert _floor(".x", "font: var(--type-caption)", tokens) == 4.5
+        assert _floor(".x", "font-size: var(--type-h2); font-weight: 700", tokens) == 3.0
+        assert _floor(".x", "font-size: 20px; font-weight: 700", tokens) == 3.0
+        assert _floor(".x", "font-size: 20px", tokens) == 4.5
+        assert _floor("summary::after", "content: '\\25B8'; font-size: 18px", tokens) == 3.0
+        assert _floor("a::after", 'content: " (" attr(href) ")"', tokens) == 4.5
+
+    @pytest.mark.parametrize("path", sorted((TEMPLATES / "saved").glob("*.html")), ids=lambda p: p.stem)
+    def test_saved_templates_pass(self, path: Path) -> None:
+        import re
+
+        css = _css_of(path)
+        raw: dict[str, str] = {}
+        for block in re.findall(r":root\s*\{([^}]*)\}", css):
+            raw.update(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", block))
+        tokens = _tokens("".join(f"{k}: {v};" for k, v in raw.items()))
+        surfaces = tuple(s for s in ("--bg", "--surface", *SURFACES) if s in tokens)
+        failures = _failures([path], {path.stem: tokens}, surfaces)
+        assert not failures, "\n".join(f"{k[0]}: {v:.2f}" for k, v in sorted(failures.items()))

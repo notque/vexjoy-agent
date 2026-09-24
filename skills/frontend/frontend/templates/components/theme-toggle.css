@@ -1,9 +1,11 @@
 /* === Theme Toggle Component === */
 [data-theme="dark"] {
   --color-primary: #64B5F6; --bg-page: #1A1A2E; --bg-surface: #232340; --bg-muted: #2C2C4A;
-  --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8; --text-muted: #8C8CA8;
+  --bg-card: #232340; --text-primary: #E0E0E0; --text-secondary: #A0A0B8; --text-muted: #9595B1;
   --border-default: #3A3A5C; --border-subtle: #2E2E4E; --accent: #64B5F6;
   --accent-text: #64B5F6;
+  /* Status text must be light on navy; the light themes' status colors are 2-4:1 here. */
+  --color-success: #81C784; --color-warning: #FFB74D; --color-danger: #FF8F87;
   --accent-fill: #2077B4; --accent-fill-hover: #1B74B0; --on-accent-fill: #FFFFFF;
   --shadow-sm: inset 0 1px 2px rgba(0,0,0,0.3); --shadow-md: inset 0 2px 6px rgba(0,0,0,0.4);
 }

@@ -2,9 +2,11 @@
 :root {
   --color-primary: #64B5F6; --color-bg: #1A1A2E; --color-surface: #232340;
   --color-surface-raised: #2C2C4A; --color-text: #E0E0E0;
-  --color-text-secondary: #A0A0B8; --color-text-muted: #8C8CA8;
+  --color-text-secondary: #A0A0B8; --color-text-muted: #9595B1;
   --color-border: #3A3A5C; --color-border-subtle: #2E2E4E;
-  --color-success: #81C784; --color-warning: #FFB74D; --color-danger: #EF5350; --color-info: #64B5F6;
+  --color-success: #81C784; --color-warning: #FFB74D; --color-danger: #FF8F87; --color-info: #64B5F6;
+  /* Muted text clears 4.5:1 on the raised surface (#8C8CA8 was 4.11:1); danger #EF5350 was 3.27:1
+     on its badge tint, the lighter coral is 4.63:1. */
   --color-code-bg: #16162A;
   --color-diff-add: rgba(129, 199, 132, 0.12); --color-diff-remove: rgba(239, 83, 80, 0.12);
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;

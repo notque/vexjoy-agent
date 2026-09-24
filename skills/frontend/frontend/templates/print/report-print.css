@@ -92,6 +92,6 @@
   a[href^="http"]::after {
     content: " (" attr(href) ")";
     font-size: 0.85em;
-    color: #666;
+    color: var(--text-muted, #666);
   }
 }

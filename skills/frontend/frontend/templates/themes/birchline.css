@@ -3,8 +3,10 @@
   --color-primary: #D97757; --color-slate: #141413; --color-ivory: #FAF9F5;
   --color-oat: #E3DACC; --color-white: #FFFFFF;
   --color-gray-100: #F0EEE6; --color-gray-150: #F0EEE6; --color-gray-300: #D1CFC5;
-  --color-gray-500: #6B6A64; --color-gray-700: #3D3D3A;
-  --color-success: #788C5D; --color-warning: #C78E3F; --color-danger: #B04A4A; --color-info: #5C7CA3;
+  --color-gray-500: #605F59; --color-gray-700: #3D3D3A;
+  /* Status colors are text too (badges, deltas, table cells): each clears 4.5:1 on every surface,
+     oat included, and on its own 12-15% tint. --color-gray-500 (muted text) is 4.62:1 on oat. */
+  --color-success: #45572A; --color-warning: #794500; --color-danger: #912D30; --color-info: #5C7CA3;
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
   --type-display: 500 48px/1.1 var(--font-sans); --type-h1: 500 32px/1.2 var(--font-sans);

@@ -4,7 +4,9 @@
   --color-bg: #FAFAF8; --color-surface: #FFFFFF; --color-surface-raised: #F5F5F2;
   --color-text: #2D2D2D; --color-text-secondary: #5A5A5A; --color-text-muted: #6E6E6E;
   --color-border: #D4D4D0; --color-border-subtle: #E8E8E4; --color-border-focus: var(--color-primary);
-  --color-success: #4CAF50; --color-warning: #F9A825; --color-danger: #E53935; --color-info: #3D6FD9;
+  --color-success: #1B5E20; --color-warning: #8D5300; --color-danger: #B71C1C; --color-info: #3D6FD9;
+  /* Status colors double as badge and delta text, so they are the 800-900 shades: 4.6:1 or more on
+     every surface and on their own 12-15% tint (the 500 shades were 1.6-3.2:1). */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
   --type-display: 600 48px/1.1 var(--font-sans); --type-h1: 600 32px/1.2 var(--font-sans);

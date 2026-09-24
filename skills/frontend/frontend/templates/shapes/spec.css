@@ -7,7 +7,7 @@
 .approach-card:hover { border-color: var(--text-muted); }
 .approach-card:has(.approach-tag) { border-color: var(--accent); border-width: 2px; }
 .approach-header { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-4); flex-wrap: wrap; }
-.approach-number { font-family: var(--font-mono); font-size: var(--type-h2); font-weight: 700; color: var(--border-default); line-height: 1; }
+.approach-number { font-family: var(--font-mono); font-size: var(--type-h2); font-weight: 700; color: var(--text-muted); line-height: 1; }
 .approach-header h3 { font-size: var(--type-h3, 1.125rem); font-weight: 600; flex: 1; }
 .approach-tag {
   font-size: var(--type-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;

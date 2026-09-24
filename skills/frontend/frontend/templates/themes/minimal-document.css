@@ -2,10 +2,12 @@
 :root {
   --color-primary: #555555; --color-bg: #FFFFF8; --color-surface: #FFFFFF;
   --color-surface-raised: #F8F8F2; --color-text: #333333;
-  --color-text-secondary: #555555; --color-text-muted: #888888;
+  --color-text-secondary: #555555; --color-text-muted: #707070;
   --color-border: #D0D0C8; --color-border-subtle: #E8E8E0;
   --color-accent-subtle: rgba(85,85,85,0.08);
-  --color-success: #5A7A42; --color-warning: #B8860B; --color-danger: #A83232; --color-info: #4A6A8A;
+  --color-success: #4C6B34; --color-warning: #885800; --color-danger: #A83232; --color-info: #4A6A8A;
+  /* #888888 muted text was 3.33:1 on the raised surface; #707070 is 4.65:1. Success and warning are
+     darkened to clear 4.5:1 on their own 12-15% badge tint. */
   --font-serif: Georgia, 'Times New Roman', serif;
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;

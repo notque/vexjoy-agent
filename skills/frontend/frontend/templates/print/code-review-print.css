@@ -86,6 +86,6 @@
   /* Show all line numbers (line-number cells often hide in narrow viewports). */
   .line-number {
     display: table-cell !important;
-    color: #666;
+    color: var(--text-muted, #666);
   }
 }
