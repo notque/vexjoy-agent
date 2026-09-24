@@ -11,7 +11,6 @@ test) and redirects its state to a fresh tmp dir per test. Other hook test files
 that don't bind a `mod` with those attributes are unaffected.
 """
 
-import subprocess
 import sys
 from pathlib import Path
 
@@ -87,42 +86,3 @@ def _isolate_telemetry_state(tmp_path, monkeypatch):
     in-process wrote those files under the real HOME and read them back.
     """
     monkeypatch.setattr(telemetry_capture, "_STATE_DIR", tmp_path / "telemetry-state")
-
-
-@pytest.fixture(scope="session")
-def public_index_dir(tmp_path_factory) -> Path:
-    """Public skill and agent indexes built from this checkout: ``skills.json``, ``agents.json``.
-
-    ``skills/INDEX.json`` and ``agents/INDEX.json`` are generated and gitignored.
-    A fresh checkout has none (CI generates them first), and a dev checkout may
-    hold a stale copy plus a private-inclusive ``INDEX.local.json``. Tests that
-    need the real catalogue read this build instead of the working tree.
-    """
-    out = tmp_path_factory.mktemp("public-index")
-    for kind in ("skill", "agent"):
-        subprocess.run(
-            [
-                sys.executable,
-                str(_REPO_ROOT / "scripts" / f"generate-{kind}-index.py"),
-                "--repo-root",
-                str(_REPO_ROOT),
-                "--output",
-                str(out / f"{kind}s.json"),
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-    return out
-
-
-@pytest.fixture
-def use_public_index(public_index_dir, monkeypatch) -> Path:
-    """Point routing readers (build-dispatch, hooks) at ``public_index_dir``.
-
-    ``VEXJOY_INDEX_DIR`` takes precedence over the installed and repo indexes
-    and skips the ``INDEX.local.json`` overlay; subprocesses inherit it.
-    """
-    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(public_index_dir))
-    return public_index_dir

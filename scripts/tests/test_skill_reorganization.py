@@ -25,7 +25,6 @@ from scripts.lib.frontmatter import parse_frontmatter
 
 ROOT = Path(__file__).resolve().parents[2]  # vexjoy-agent/
 SKILLS_DIR = ROOT / "skills"
-INDEX_PATH = SKILLS_DIR / "INDEX.json"
 
 # ---------------------------------------------------------------------------
 # Import SKILL_MAPPING from migration script (hyphenated filename)
@@ -66,10 +65,16 @@ CATEGORIES = {
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="session")
+def index_path(public_index_dir: Path) -> Path:
+    """Public skills index built into tmp; skills/INDEX.json is generated and gitignored."""
+    return public_index_dir / "skills.json"
+
+
 @pytest.fixture(scope="module")
-def index_data() -> dict:
+def index_data(index_path: Path) -> dict:
     """Load INDEX.json once per module."""
-    return json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    return json.loads(index_path.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
@@ -122,13 +127,13 @@ class TestIndexIntegrity:
             orphaned.append(rel)
         assert not orphaned, f"SKILL.md files not in INDEX.json:\n" + "\n".join(orphaned)
 
-    def test_no_duplicate_skill_names(self, index_data: dict) -> None:
+    def test_no_duplicate_skill_names(self, index_data: dict, index_path: Path) -> None:
         """INDEX.json must not contain duplicate skill names.
 
         JSON parsing silently keeps last-wins for duplicate keys, so we
         re-parse looking for duplicates via raw text scanning.
         """
-        raw = INDEX_PATH.read_text(encoding="utf-8")
+        raw = index_path.read_text(encoding="utf-8")
         # Find all top-level keys in the "skills" block — pattern: 4-space indent + quoted key
         key_pattern = re.compile(r'^    "([^"]+)":\s*\{', re.MULTILINE)
         keys = key_pattern.findall(raw)
@@ -460,14 +465,14 @@ class TestGenerators:
         assert output.is_file()
 
     @pytest.mark.slow
-    def test_generated_index_has_expected_skill_count(self) -> None:
+    def test_generated_index_has_expected_skill_count(self, index_path: Path) -> None:
         """Generated INDEX.json should have ~41 active skills.
 
         Floor tracks the post-consolidation catalog (125 → 41 via
         promoted_to + skill merges). Not slack: raise the floor with new
         skills, lower it only for an owner-approved consolidation.
         """
-        data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+        data = json.loads(index_path.read_text(encoding="utf-8"))
         count = len(data["skills"])
         # Allow small variance (new skills may be added)
         assert count >= 35, f"Too few skills in INDEX.json: {count} (expected >=35)"

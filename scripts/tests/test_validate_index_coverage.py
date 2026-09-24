@@ -102,14 +102,12 @@ def test_no_skills_dir_is_not_an_error(tmp_path: Path) -> None:
     assert warnings == []
 
 
-def test_real_repo_has_full_coverage() -> None:
+def test_real_repo_has_full_coverage(public_index_dir: Path) -> None:
     """The live tree must stay fully indexed; this is the anti-rot assertion."""
     repo_root = SCRIPT.parent.parent
-    index_path = repo_root / "skills" / "INDEX.json"
-    if not index_path.is_file():
-        # INDEX.json is generated and gitignored; skip when it has not been built.
-        return
-    index = _mod.merge_skill_indexes(index_path)
+    # skills/INDEX.json is generated and gitignored; check a fresh public build
+    # instead of silently passing when the checkout has none.
+    index = _mod.merge_skill_indexes(public_index_dir / "skills.json")
 
     errors, _ = check_skill_coverage(index, repo_root)
 

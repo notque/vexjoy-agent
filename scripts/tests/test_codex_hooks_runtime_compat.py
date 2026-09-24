@@ -11,6 +11,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -622,7 +623,9 @@ def test_runtime_inventory_contains_all_supported_registrations() -> None:
 
 @pytest.mark.parametrize("registration", REGISTRATIONS, ids=_case_id)
 def test_real_registration_runs_through_generated_adapter_command(registration: dict, tmp_path: Path) -> None:
-    session_id = f"runtime-{registration['event']}-{Path(registration['filename']).stem}"
+    # Some hooks keep per-session state at fixed /tmp paths. A per-run suffix
+    # stops two suite runs on one host from reading each other's counters.
+    session_id = f"runtime-{registration['event']}-{Path(registration['filename']).stem}-{uuid.uuid4().hex[:8]}"
     cwd, env, transcript = _sandbox(tmp_path, session_id)
     payload = _event(registration, cwd, transcript, session_id)
     evidence: dict[str, object] = {}

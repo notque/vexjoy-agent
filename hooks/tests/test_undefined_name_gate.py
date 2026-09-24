@@ -134,6 +134,7 @@ def test_repo_has_no_undefined_names() -> None:
             "F821",
             "--output-format",
             "concise",
+            "--no-cache",  # keep .ruff_cache out of the checkout
         ],
         cwd=str(REPO_ROOT),
         capture_output=True,
@@ -160,7 +161,7 @@ def test_the_original_crash_would_now_be_caught(tmp_path: Path) -> None:
     )
 
     result = subprocess.run(
-        ["ruff", "check", str(crashing), "--config", str(PYPROJECT), "--output-format", "concise"],
+        ["ruff", "check", str(crashing), "--config", str(PYPROJECT), "--output-format", "concise", "--no-cache"],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

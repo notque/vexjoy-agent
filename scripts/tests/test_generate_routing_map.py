@@ -136,10 +136,10 @@ class TestCheckFindings:
 
 
 class TestRealRepo:
-    """Smoke tests against the live repo INDEX files."""
+    """Smoke tests against the repo's real public INDEX content, read from tmp."""
 
-    def test_load_all_entries_returns_three_surfaces(self) -> None:
-        surfaces = grm.load_all_entries()
+    def test_load_all_entries_returns_three_surfaces(self, public_index_repo) -> None:
+        surfaces = grm.load_all_entries(public_index_repo)
         assert "agents" in surfaces
         assert "skills" in surfaces
         assert "pipelines" in surfaces
@@ -147,17 +147,19 @@ class TestRealRepo:
         assert len(surfaces["skills"]) > 0
         assert len(surfaces["pipelines"]) > 0
 
-    def test_generate_map_produces_all_sections(self) -> None:
+    def test_generate_map_produces_all_sections(self, public_index_repo, monkeypatch) -> None:
+        load = grm.load_all_entries
+        monkeypatch.setattr(grm, "load_all_entries", lambda repo_root=public_index_repo: load(repo_root))
         md = grm.generate_map()
         assert "## AGENTS" in md
         assert "## SKILLS" in md
         assert "## PIPELINES" in md
 
-    def test_check_cli_rejects_stale_map(self, tmp_path) -> None:
+    def test_check_cli_rejects_stale_map(self, tmp_path, public_index_repo) -> None:
         stale = tmp_path / "routing-map.md"
         stale.write_text("stale\n", encoding="utf-8")
         result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--check", "--map-path", str(stale)],
+            [sys.executable, str(SCRIPT), "--check", "--repo-root", str(public_index_repo), "--map-path", str(stale)],
             capture_output=True,
             text=True,
         )

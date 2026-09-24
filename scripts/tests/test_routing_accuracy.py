@@ -16,6 +16,10 @@ from pathlib import Path
 
 import pytest
 
+# Routers read the generated, gitignored skills/agents INDEX.json and
+# pre-route regenerates them in the checkout when missing. Read a tmp build.
+pytestmark = pytest.mark.usefixtures("use_public_index")
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 BENCHMARK = REPO_ROOT / "scripts" / "routing-benchmark.json"
 ROUTER = REPO_ROOT / "scripts" / "index-router.py"
@@ -395,10 +399,22 @@ class TestCoverageReport:
             "Skills are both benchmarked and excluded: ['research']",
         ]
 
-    def test_coverage_flag_reports_accounted_inventory(self) -> None:
+    def test_coverage_flag_reports_accounted_inventory(self, public_index_dir: Path) -> None:
         """The checked-in corpus and exclusions account for every indexed skill."""
+        # routing-benchmark.py reads skills/agents INDEX.json at fixed repo paths;
+        # those are generated and gitignored. Run its CLI with them pointed at a
+        # tmp public build.
+        runner = (
+            "import importlib.util, sys; from pathlib import Path\n"
+            "spec = importlib.util.spec_from_file_location('routing_benchmark', sys.argv[1])\n"
+            "mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\n"
+            "mod.SKILLS_INDEX = Path(sys.argv[2]) / 'skills.json'\n"
+            "mod.AGENTS_INDEX = Path(sys.argv[2]) / 'agents.json'\n"
+            "sys.argv = [sys.argv[1], *sys.argv[3:]]\n"
+            "mod.main()\n"
+        )
         result = subprocess.run(
-            [sys.executable, str(BENCHMARK_SCRIPT), "--coverage"],
+            [sys.executable, "-c", runner, str(BENCHMARK_SCRIPT), str(public_index_dir), "--coverage"],
             capture_output=True,
             text=True,
             timeout=30,

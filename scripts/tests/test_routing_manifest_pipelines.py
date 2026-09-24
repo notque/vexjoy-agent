@@ -20,6 +20,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "routing-manifest.py"
 PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
@@ -251,6 +253,7 @@ class TestLineGrammar:
         line = _line(rm.format_compact(entries), "alpha")
         assert line in rm.format_tiered(entries, set())
 
+    @pytest.mark.usefixtures("use_public_index")
     def test_section_order_is_stable_in_every_mode(self) -> None:
         """The /do validator tokenizes between these headers; order is load-bearing."""
         entries = rm.load_entries()

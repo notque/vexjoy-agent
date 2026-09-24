@@ -64,8 +64,9 @@ def test_skill_sections_require_skill_tool_permission():
     assert acs.ensure_skill_tool(updated, ["testing"]) == updated
 
 
-def test_generated_agent_skill_calls_are_indexed_and_permitted():
-    indexed = set(json.loads(acs.SKILL_INDEX.read_text(encoding="utf-8"))["skills"])
+def test_generated_agent_skill_calls_are_indexed_and_permitted(public_index_dir):
+    # Public build in tmp: skills/INDEX.json is generated and absent on a fresh checkout.
+    indexed = set(json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"])
     for path in sorted(acs.AGENTS_DIR.glob("*.md")):
         source = path.read_text(encoding="utf-8")
         calls = DIRECTIVE.findall(source)

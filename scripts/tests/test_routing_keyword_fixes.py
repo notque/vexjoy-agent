@@ -41,8 +41,12 @@ build_dispatch = _load("build_dispatch_keyword_fixes", SCRIPTS / "build-dispatch
 
 
 @pytest.fixture
-def entries() -> list[dict]:
-    """Repo index entries (conftest pins readers away from the installed index)."""
+def entries(use_public_index) -> list[dict]:
+    """Public index entries from a tmp build.
+
+    The checkout's INDEX.json is generated and gitignored, and ``load_entries``
+    regenerates it in place when missing.
+    """
     return pre_route.load_entries()
 
 

@@ -14,6 +14,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "routing-manifest.py"
 
@@ -111,6 +113,7 @@ class TestTriggerSelection:
 class TestSizeBudget:
     """The manifest is injected on every routing decision, so bytes are the budget."""
 
+    @pytest.mark.usefixtures("use_public_index")
     def test_live_manifest_stays_within_budget(self) -> None:
         entries = rm.load_entries()
         with_triggers = len(rm.format_compact(entries).encode("utf-8"))
@@ -126,6 +129,7 @@ class TestSizeBudget:
         growth = (with_triggers - baseline) / baseline
         assert growth < 0.30, f"triggers grew the manifest {growth:.1%}; budget is +28% at cap {original}"
 
+    @pytest.mark.usefixtures("use_public_index")
     def test_compact_mode_stays_trigger_free(self) -> None:
         """--compact exists to shrink the manifest, so it skips the field."""
         assert rm.TRIGGER_PREFIX not in rm.format_compact_mode(rm.load_entries())

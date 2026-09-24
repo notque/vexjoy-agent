@@ -15,6 +15,8 @@ on setup and again on teardown, so a leak fails the test that caused it instead
 of silently corrupting production data.
 """
 
+import os
+import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -71,6 +73,91 @@ def isolate_learning_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iter
     _assert_db_is_isolated("setup")
     yield db_dir
     _assert_db_is_isolated("teardown")
+
+
+# Terminal and session state the host shell sets. Hooks read these to report
+# to a live terminal multiplexer (herdr) or to detect an away-from-keyboard
+# session; a test that inherits them talks to the real host or takes a
+# different branch than CI. Tests that need one set it with monkeypatch.
+_HOST_ENV_PREFIXES = ("HERDR_",)
+_HOST_ENV = ("SSH_CONNECTION", "SSH_TTY", "SSH_CLIENT", "TMUX", "STY")
+
+
+@pytest.fixture(autouse=True)
+def isolate_host_session_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clear host terminal/session variables so tests run the same on any shell."""
+    for name in list(os.environ):
+        if name in _HOST_ENV or name.startswith(_HOST_ENV_PREFIXES):
+            monkeypatch.delenv(name, raising=False)
+
+
+# ---------------------------------------------------------------------------
+# Public skill and agent index, built into tmp (shared by hooks/tests and
+# scripts/tests). The checkout's INDEX.json files are generated and gitignored:
+# a fresh clone has none, and a dev clone may hold a stale or private-inclusive
+# copy. Tests that need the real catalogue read this build instead.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def public_index_dir(tmp_path_factory) -> Path:
+    """Public skill and agent indexes built from this checkout: ``skills.json``, ``agents.json``.
+
+    ``skills/INDEX.json`` and ``agents/INDEX.json`` are generated and gitignored.
+    A fresh checkout has none (CI generates them first), and a dev checkout may
+    hold a stale copy plus a private-inclusive ``INDEX.local.json``. Tests that
+    need the real catalogue read this build instead of the working tree.
+    """
+    out = tmp_path_factory.mktemp("public-index")
+    for kind in ("skill", "agent"):
+        subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "scripts" / f"generate-{kind}-index.py"),
+                "--repo-root",
+                str(_REPO_ROOT),
+                "--output",
+                str(out / f"{kind}s.json"),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    return out
+
+
+@pytest.fixture
+def use_public_index(public_index_dir, monkeypatch) -> Path:
+    """Point routing readers (build-dispatch, hooks) at ``public_index_dir``.
+
+    ``VEXJOY_INDEX_DIR`` takes precedence over the installed and repo indexes
+    and skips the ``INDEX.local.json`` overlay; subprocesses inherit it.
+    """
+    monkeypatch.setenv("VEXJOY_INDEX_DIR", str(public_index_dir))
+    return public_index_dir
+
+
+@pytest.fixture(scope="session")
+def public_index_repo(public_index_dir, tmp_path_factory) -> Path:
+    """Repo-shaped tmp root for tools that take ``--repo-root`` and read INDEX files.
+
+    Holds ``skills/INDEX.json`` and ``agents/INDEX.json`` from ``public_index_dir``,
+    a copy of the tracked pipeline index, and read-only symlinks to
+    ``skills/shared-patterns`` and ``hooks``. Pointing such tools at the checkout
+    fails on a fresh clone, and some generate the missing index in place.
+    """
+    root = tmp_path_factory.mktemp("public-index-repo")
+    (root / "skills").mkdir()
+    (root / "agents").mkdir()
+    (root / "skills" / "INDEX.json").write_bytes((public_index_dir / "skills.json").read_bytes())
+    (root / "agents" / "INDEX.json").write_bytes((public_index_dir / "agents.json").read_bytes())
+    pipelines = Path("skills") / "process" / "workflow" / "references" / "pipeline-index.json"
+    (root / pipelines).parent.mkdir(parents=True)
+    (root / pipelines).write_bytes((_REPO_ROOT / pipelines).read_bytes())
+    (root / "skills" / "shared-patterns").symlink_to(_REPO_ROOT / "skills" / "shared-patterns")
+    (root / "hooks").symlink_to(_REPO_ROOT / "hooks")
+    return root
 
 
 # ---------------------------------------------------------------------------

@@ -15,6 +15,10 @@ import yaml
 
 jsonschema = pytest.importorskip("jsonschema", exc_type=ImportError)
 
+# pre-route reads the generated, gitignored skills/agents INDEX.json and
+# regenerates them in the checkout when missing. Read a tmp build.
+pytestmark = pytest.mark.usefixtures("use_public_index")
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILL = REPO_ROOT / "skills" / "research" / "architecture-deepening" / "SKILL.md"
 LIFECYCLE = SKILL.parent / "references" / "maintenance-lifecycle.md"
@@ -24,7 +28,6 @@ HANDOFF_SCHEMA = REPO_ROOT / "skills" / "shared-patterns" / "schemas" / "archite
 MEMORY_SCHEMA = SKILL.parent / "references" / "decision-memory-record.schema.json"
 DECISION_MEMORY = SKILL.parent / "scripts" / "decision_memory.py"
 HANDOFF = REPO_ROOT / "scripts" / "handoff.py"
-SKILL_INDEX = REPO_ROOT / "skills" / "INDEX.json"
 PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 
 
@@ -225,8 +228,9 @@ def test_handoff_schema_is_valid_and_accepts_each_successor() -> None:
         validator.validate(case)
 
 
-def test_handoff_successors_are_registered_skill_and_pipeline_names() -> None:
-    skills = json.loads(SKILL_INDEX.read_text(encoding="utf-8"))["skills"]
+def test_handoff_successors_are_registered_skill_and_pipeline_names(public_index_dir: Path) -> None:
+    # skills/INDEX.json is generated and gitignored; read a tmp public build.
+    skills = json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"]
     skill_names = set(skills)
     pipelines = json.loads(PIPELINE_INDEX.read_text(encoding="utf-8"))["pipelines"]
     assert {"workflow", "process"} <= skill_names

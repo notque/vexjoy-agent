@@ -32,16 +32,25 @@ def _load(name: str, path: Path):
 jev_route = _load("jev_route_attach", SCRIPTS / "jev-route.py")
 run_eval = _load("router_attachment_run_eval", EVAL_DIR / "run_eval.py")
 
-SKILLS_INDEX = json.loads((REPO / "skills" / "INDEX.json").read_text(encoding="utf-8"))["skills"]
-AGENTS_INDEX = json.loads((REPO / "agents" / "INDEX.json").read_text(encoding="utf-8"))["agents"]
 PATTERNS = {p.stem for p in (REPO / "skills" / "shared-patterns").glob("*.md")}
 
 
 @pytest.fixture
-def catalog():
+def catalog(use_public_index):
     # Function scope: conftest's autouse index pin applies only inside a test,
     # so a module-scoped load would read the installed index instead.
     return run_eval.load_catalog()
+
+
+@pytest.fixture
+def skills_index(public_index_dir) -> dict:
+    """Public skills from a tmp build; the checkout's INDEX.json may be absent or stale."""
+    return json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"]
+
+
+@pytest.fixture
+def agents_index(public_index_dir) -> dict:
+    return json.loads((public_index_dir / "agents.json").read_text(encoding="utf-8"))["agents"]
 
 
 def _replay(record: dict, skill_names: set[str]) -> dict:
@@ -109,7 +118,7 @@ def test_recorded_answers_meet_attachment_floor(catalog):
     assert report["all"]["forbidden_hits"] == 0
 
 
-def test_attachments_policy_order_cap_and_validation():
+def test_attachments_policy_order_cap_and_validation(skills_index):
     result = {
         "agent": "golang-general-engineer",
         "skill": "debugging",
@@ -117,42 +126,42 @@ def test_attachments_policy_order_cap_and_validation():
         "domain_scores": {"testing": 0.9, "kubernetes": 0.7, "frontend": 0.2, "research": 0.8},
         "signals": {"tests_requested": True, "local_only": True, "comprehensive_review": True},
     }
-    attach = jev_route._attachments(result, set(SKILLS_INDEX))
+    attach = jev_route._attachments(result, set(skills_index))
     assert attach[0] == "programming"  # pre-route stack first, floor deduped
     assert "local-only" in attach  # shared pattern rides without using the cap
     assert len([a for a in attach if a != "local-only"]) == jev_route.MAX_ATTACHMENTS
     assert "frontend" not in attach
-    assert jev_route._attachments({"skill": "testing", "domain_scores": {"testing": 0.99}}, set(SKILLS_INDEX)) == []
-    assert jev_route._attachments({"skill": "x", "stack": ["not-a-skill"]}, set(SKILLS_INDEX)) == []
+    assert jev_route._attachments({"skill": "testing", "domain_scores": {"testing": 0.99}}, set(skills_index)) == []
+    assert jev_route._attachments({"skill": "x", "stack": ["not-a-skill"]}, set(skills_index)) == []
 
 
-def test_python_agent_never_gets_the_programming_floor():
+def test_python_agent_never_gets_the_programming_floor(skills_index):
     assert "python-general-engineer" not in jev_route.DOMAIN_SKILL_BY_AGENT
     result = {"agent": "python-general-engineer", "skill": "testing", "domain_scores": {"programming": 0.1}}
-    assert "programming" not in jev_route._attachments(result, set(SKILLS_INDEX))
+    assert "programming" not in jev_route._attachments(result, set(skills_index))
 
 
-def test_policy_tables_name_real_components():
+def test_policy_tables_name_real_components(skills_index, agents_index):
     for agent, skill in jev_route.DOMAIN_SKILL_BY_AGENT.items():
-        assert agent in AGENTS_INDEX and skill in SKILLS_INDEX
+        assert agent in agents_index and skill in skills_index
     for skill, agent in jev_route.AGENT_BY_SKILL.items():
-        assert skill in SKILLS_INDEX and agent in AGENTS_INDEX
+        assert skill in skills_index and agent in agents_index
     for skill in jev_route.DOMAIN_NOUL_INSTRUCTIONS:
-        assert skill in SKILLS_INDEX
+        assert skill in skills_index
     for name in jev_route.SIGNAL_SKILLS.values():
-        assert name in SKILLS_INDEX or name in PATTERNS
+        assert name in skills_index or name in PATTERNS
 
 
-def test_d_skill_attach_table_names_only_real_skills():
+def test_d_skill_attach_table_names_only_real_skills(skills_index, agents_index):
     """The v1.1 Phase 4 table named four skills that no longer existed."""
     text = (REPO / "skills" / "meta" / "d" / "SKILL.md").read_text(encoding="utf-8")
     phase4 = text[text.index("### Phase 4") : text.index("### Phase 5")]
     for name in re.findall(r"`([a-z][a-z0-9-]+)`", phase4):
-        if name in AGENTS_INDEX or name.endswith(".py") or name in {"stack", "attach", "skill"}:
+        if name in agents_index or name.endswith(".py") or name in {"stack", "attach", "skill"}:
             continue
         if name in {"domain_scores", "local_only"} or "_" in name:
             continue
-        assert name in SKILLS_INDEX or name in PATTERNS, name
+        assert name in skills_index or name in PATTERNS, name
 
 
 def _classified(**overrides) -> dict:
@@ -187,11 +196,11 @@ def _force(skill: str, pipeline: str | None = None, stack: list | None = None) -
     }
 
 
-def test_safety_force_route_keeps_skill_and_takes_jev_agent():
+def test_safety_force_route_keeps_skill_and_takes_jev_agent(skills_index):
     with (
         mock.patch.object(jev_route, "_run_pre_route", return_value=_force("pr-workflow", stack=["programming"])),
         mock.patch.object(
-            jev_route, "_classify", return_value=(_classified(skill="code-quality"), set(SKILLS_INDEX))
+            jev_route, "_classify", return_value=(_classified(skill="code-quality"), set(skills_index))
         ) as classify,
     ):
         result = jev_route.route("commit main.go and open a PR", 0.3, 0.3, 5)
@@ -214,13 +223,13 @@ def test_safety_force_route_survives_jev_failure():
     assert result["agent"] == "reviewer-system"  # skill-owned default agent
 
 
-def test_other_force_route_is_a_hint_not_a_verdict():
+def test_other_force_route_is_a_hint_not_a_verdict(skills_index):
     with (
         mock.patch.object(jev_route, "_run_pre_route", return_value=_force(None, pipeline="writing")),
         mock.patch.object(
             jev_route,
             "_classify",
-            return_value=(_classified(agent="hook-development-engineer", skill="workflow"), set(SKILLS_INDEX)),
+            return_value=(_classified(agent="hook-development-engineer", skill="workflow"), set(skills_index)),
         ),
     ):
         result = jev_route.route("Write a PostToolUse hook", 0.3, 0.3, 5)
@@ -229,11 +238,11 @@ def test_other_force_route_is_a_hint_not_a_verdict():
     assert result["pre_route_hint"]["pipeline"] == "writing"
 
 
-def test_other_force_route_stands_when_jev_calls_it_trivial():
+def test_other_force_route_stands_when_jev_calls_it_trivial(skills_index):
     trivial = {"fallback": False, "source": "jev-trivial-bypass", "jev_called": True}
     with (
         mock.patch.object(jev_route, "_run_pre_route", return_value=_force("building-with-jev")),
-        mock.patch.object(jev_route, "_classify", return_value=(trivial, set(SKILLS_INDEX))),
+        mock.patch.object(jev_route, "_classify", return_value=(trivial, set(skills_index))),
     ):
         result = jev_route.route("jev", 0.3, 0.3, 5)
     assert result["skill"] == "building-with-jev"

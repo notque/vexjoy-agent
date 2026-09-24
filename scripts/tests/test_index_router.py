@@ -930,8 +930,9 @@ class TestFormatting:
 SCRIPT_PATH = str(Path(__file__).resolve().parent.parent / "index-router.py")
 
 
+@pytest.mark.usefixtures("use_public_index")
 class TestCLI:
-    """CLI integration tests using subprocess against real INDEX files."""
+    """CLI integration tests using subprocess against the real public INDEX, built into tmp."""
 
     def test_json_flag(self) -> None:
         result = subprocess.run(

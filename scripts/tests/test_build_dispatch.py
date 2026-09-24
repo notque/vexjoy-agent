@@ -44,6 +44,10 @@ def _load(path: Path, name: str):
     return mod
 
 
+# build-dispatch validates agents and skill calls against the index. The
+# checkout's INDEX.json is generated and gitignored, so read a tmp build.
+pytestmark = pytest.mark.usefixtures("use_public_index")
+
 bd = _load(SCRIPT_PATH, "build_dispatch")
 recorder = _load(RECORDER_PATH, "routing_decision_recorder")
 

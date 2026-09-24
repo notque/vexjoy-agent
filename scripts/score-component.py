@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -288,6 +289,17 @@ def check_error_handling_section(content: str) -> CheckResult:
     return CheckResult("Error handling section", 10, 0, "No '## Error*' or '## Failure Mode*' heading found")
 
 
+def _index_path(kind: str) -> Path:
+    """Index for *kind*: ``$VEXJOY_INDEX_DIR/<kind>.json`` when set and present,
+    the same override the routing readers honor, else ``<repo>/<kind>/INDEX.json``."""
+    env = os.environ.get("VEXJOY_INDEX_DIR")
+    if env:
+        candidate = Path(env).expanduser() / f"{kind}.json"
+        if candidate.is_file():
+            return candidate
+    return REPO_ROOT / kind / "INDEX.json"
+
+
 def check_routing_registration(component_type: str, file_path: Path, fm: dict | None) -> CheckResult:
     """Check: Component is registered in routing (10 pts)."""
     if fm is None:
@@ -298,7 +310,7 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
         return CheckResult("Registered in routing", 10, 0, "No name in frontmatter")
 
     if component_type == "agent":
-        index_path = REPO_ROOT / "agents" / "INDEX.json"
+        index_path = _index_path("agents")
         if not index_path.exists():
             return CheckResult("Registered in routing", 10, 0, "agents/INDEX.json not found")
 
@@ -329,7 +341,7 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
                 pass
 
         # Also check skills/INDEX.json
-        skills_index = REPO_ROOT / "skills" / "INDEX.json"
+        skills_index = _index_path("skills")
         if skills_index.exists():
             try:
                 si_data = json.loads(skills_index.read_text(encoding="utf-8"))

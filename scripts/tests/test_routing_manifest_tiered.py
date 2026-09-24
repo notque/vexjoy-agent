@@ -236,7 +236,7 @@ def test_pipelines_always_full() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(not (REPO_ROOT / "skills" / "INDEX.json").exists(), reason="INDEX.json not generated")
+@pytest.mark.usefixtures("use_public_index")
 def test_cli_tiered_smaller_than_full(learning_dir: Path) -> None:
     env = {**os.environ, "CLAUDE_LEARNING_DIR": str(learning_dir)}
 

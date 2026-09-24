@@ -86,8 +86,8 @@ def _legacy_name(match: re.Match[str]) -> str:
 @pytest.mark.xfail(
     reason="Stale skill:name references in SKILL.md files after consolidation — needs content update pass"
 )
-def test_concrete_skill_calls_are_canonical_and_indexed() -> None:
-    indexed = set(json.loads((REPO_ROOT / "skills/INDEX.json").read_text(encoding="utf-8"))["skills"])
+def test_concrete_skill_calls_are_canonical_and_indexed(public_index_dir: Path) -> None:
+    indexed = set(json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"])
     failures: list[str] = []
 
     for path in _runtime_files():
@@ -129,8 +129,8 @@ def test_command_skill_handoffs_use_exact_calls() -> None:
 
 
 @pytest.mark.xfail(reason="Stale skill references in SKILL.md files after consolidation — needs content update pass")
-def test_actionable_named_skill_handoffs_do_not_use_legacy_wording() -> None:
-    indexed = set(json.loads((REPO_ROOT / "skills/INDEX.json").read_text(encoding="utf-8"))["skills"])
+def test_actionable_named_skill_handoffs_do_not_use_legacy_wording(public_index_dir: Path) -> None:
+    indexed = set(json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"])
     failures: list[str] = []
     for path in _runtime_files():
         source = path.read_text(encoding="utf-8")
@@ -194,8 +194,8 @@ def test_legacy_non_action_allowlist_is_narrow_and_current() -> None:
     assert observed == set(LEGACY_NON_ACTION_ALLOWLIST)
 
 
-def test_actionable_pipeline_handoffs_route_through_workflow() -> None:
-    skill_index = set(json.loads((REPO_ROOT / "skills/INDEX.json").read_text(encoding="utf-8"))["skills"])
+def test_actionable_pipeline_handoffs_route_through_workflow(public_index_dir: Path) -> None:
+    skill_index = set(json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"])
     pipeline_index = set(
         json.loads((REPO_ROOT / "skills/process/workflow/references/pipeline-index.json").read_text(encoding="utf-8"))[
             "pipelines"

@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
 PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 
 # (trigger phrase, expected component name). Component is looked up in
@@ -34,9 +33,6 @@ TEST_CASES = [
 
 
 def _load_index(path: Path) -> dict:
-    """Load an INDEX JSON file, skipping the test if it hasn't been generated."""
-    if not path.exists():
-        pytest.skip(f"{path.relative_to(REPO_ROOT)} not generated — run scripts/generate-skill-index.py first")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -48,9 +44,10 @@ def _find_entry(name: str, skills: dict, pipelines: dict) -> dict | None:
 
 
 @pytest.mark.parametrize("trigger,expected_name", TEST_CASES)
-def test_trigger_routes_to_expected_component(trigger: str, expected_name: str) -> None:
+def test_trigger_routes_to_expected_component(trigger: str, expected_name: str, public_index_dir: Path) -> None:
     """Each sample trigger must be a literal trigger on its expected component."""
-    skills = _load_index(SKILLS_INDEX)
+    # skills/INDEX.json is generated and absent on a fresh checkout; read a tmp build.
+    skills = _load_index(public_index_dir / "skills.json")
     pipelines = _load_index(PIPELINE_INDEX)
 
     entry = _find_entry(expected_name, skills, pipelines)

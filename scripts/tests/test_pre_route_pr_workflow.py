@@ -16,6 +16,10 @@ from pathlib import Path
 
 import pytest
 
+# Routers read the generated, gitignored skills/agents INDEX.json and
+# pre-route regenerates them in the checkout when missing. Read a tmp build.
+pytestmark = pytest.mark.usefixtures("use_public_index")
+
 SCRIPT = Path(__file__).resolve().parents[1] / "pre-route.py"
 
 

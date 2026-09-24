@@ -12,6 +12,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "score-component.py"
 
+# The routing-registration check reads agents/skills INDEX.json, which are
+# generated and gitignored. Point it at a tmp public build.
+pytestmark = pytest.mark.usefixtures("use_public_index")
+
 
 def run_script(*args: str, expect_rc: int = 0) -> subprocess.CompletedProcess[str]:
     """Run score-component.py with given arguments."""

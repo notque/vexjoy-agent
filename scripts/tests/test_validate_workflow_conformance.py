@@ -51,11 +51,47 @@ _spec.loader.exec_module(vwc)
 
 NODE = shutil.which("node")
 
+# The validator and workflow-helpers.js read agents/INDEX.json and
+# skills/INDEX.json beside themselves (helpers by static JSON import). Those are
+# generated and gitignored, so a fresh checkout has none. Runs go through a tmp
+# copy of the validator, harness, and workflows laid out beside a public index
+# build; source-text checks still read the real files. Set per test below.
+RUN_SCRIPT: Path = SCRIPT
+RUN_WORKFLOW_DIR: Path = REAL_WORKFLOW_DIR
+
+
+@pytest.fixture(scope="session")
+def conformance_tree(public_index_dir, tmp_path_factory) -> Path:
+    """Repo-shaped tmp tree: validator, harness, workflows, and public indexes."""
+    root = tmp_path_factory.mktemp("conformance-tree")
+    (root / "scripts").mkdir()
+    shutil.copy2(SCRIPT, root / "scripts" / SCRIPT.name)
+    shutil.copy2(REPO_ROOT / "scripts" / "conformance-harness.mjs", root / "scripts")
+    shutil.copytree(REAL_WORKFLOW_DIR, root / "skills" / "process" / "workflow" / "references")
+    (root / "agents").mkdir()
+    shutil.copy2(public_index_dir / "agents.json", root / "agents" / "INDEX.json")
+    shutil.copy2(public_index_dir / "skills.json", root / "skills" / "INDEX.json")
+    return root
+
+
+@pytest.fixture(autouse=True)
+def _run_against_public_index(conformance_tree, monkeypatch):
+    """Point CLI and node runs at the tmp tree, and the in-process checker at its indexes."""
+    this = sys.modules[__name__]
+    monkeypatch.setattr(this, "RUN_SCRIPT", conformance_tree / "scripts" / SCRIPT.name)
+    monkeypatch.setattr(this, "RUN_WORKFLOW_DIR", conformance_tree / "skills" / "process" / "workflow" / "references")
+    monkeypatch.setattr(
+        vwc, "KNOWN_AGENTS", vwc._load_index_names(conformance_tree / "agents" / "INDEX.json", "agents")
+    )
+    monkeypatch.setattr(
+        vwc, "KNOWN_SKILLS", vwc._load_index_names(conformance_tree / "skills" / "INDEX.json", "skills")
+    )
+
 
 def _run_json(*paths_or_flags):
     """Run the validator CLI with --json over given dir/flags; return (rc, data)."""
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), "--json", *paths_or_flags],
+        [sys.executable, str(RUN_SCRIPT), "--json", *paths_or_flags],
         capture_output=True,
         text=True,
     )
@@ -73,7 +109,7 @@ def _result_for(data, name_substr):
 
 def _run_helper(skills):
     """Call skillDirectives() in a fresh Node process."""
-    helper = REAL_WORKFLOW_DIR / "workflow-helpers.js"
+    helper = RUN_WORKFLOW_DIR / "workflow-helpers.js"
     script = (
         "import { skillDirectives } from "
         + json.dumps(helper.as_uri())
@@ -88,7 +124,7 @@ def _run_helper(skills):
 
 def _run_fan_out(roster, synth_agent="research-coordinator-engineer"):
     """Execute fan-out with recording mocks and return its fail-closed trace."""
-    workflow = REAL_WORKFLOW_DIR / "fan-out-workflow.js"
+    workflow = RUN_WORKFLOW_DIR / "fan-out-workflow.js"
     script = """
       const calls = [];
       globalThis.phase = () => {};
@@ -316,7 +352,7 @@ def test_dir_with_any_failure_exits_nonzero():
 
 
 def test_real_comprehensive_review_workflow_passes_static():
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
     res = _result_for(data, "comprehensive-review-workflow.js")
     assert res["status"] == "pass", res
     assert rc == 0, data
@@ -351,7 +387,7 @@ def test_matching_fixture_passes_dynamic():
 
 @pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
 def test_real_workflow_dynamic_trace_matches_contract():
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR))
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR))
     res = _result_for(data, "comprehensive-review-workflow.js")
     assert res["status"] == "pass", res
     assert res.get("dynamic_ran") is True
@@ -468,7 +504,7 @@ def test_dynamic_roster_fixture_passes_dynamic():
 
 
 def test_real_fan_out_workflow_passes_static():
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
     res = _result_for(data, "fan-out-workflow.js")
     assert res["status"] == "pass", res
 
@@ -523,7 +559,7 @@ def test_delegated_skill_directives_call_satisfies_invariant():
 
 def test_real_comprehensive_review_passes_static_with_skills_list():
     """The hardened comprehensive-review workflow (skills[] per entry) PASSES."""
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR), "--static-only")
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
     res = _result_for(data, "comprehensive-review-workflow.js")
     assert res["status"] == "pass", res
 
@@ -531,7 +567,7 @@ def test_real_comprehensive_review_passes_static_with_skills_list():
 @pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
 def test_real_comprehensive_review_dynamic_records_every_skill():
     """The recorded trace shows EVERY declared skill per agent."""
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR))
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR))
     res = _result_for(data, "comprehensive-review-workflow.js")
     assert res["status"] == "pass", res
     assert not res["dynamic_errors"], res["dynamic_errors"]
@@ -540,7 +576,7 @@ def test_real_comprehensive_review_dynamic_records_every_skill():
 @pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
 def test_real_fan_out_dynamic_records_every_skill():
     """The fan-out recorded trace shows every skill in each worker's list."""
-    rc, data = _run_json("--dir", str(REAL_WORKFLOW_DIR))
+    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR))
     res = _result_for(data, "fan-out-workflow.js")
     assert res["status"] == "pass", res
     assert not res["dynamic_errors"], res["dynamic_errors"]

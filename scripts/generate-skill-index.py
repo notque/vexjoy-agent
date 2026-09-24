@@ -785,7 +785,9 @@ def main() -> int:
 
     # Post-generation drift gate: warn when routing manifest falls out of sync.
     # Only runs for the default output (skills/INDEX.json); skips local override indexes.
-    if args.output is None:
+    # check-routing-drift.py checks this script's own checkout and regenerates its
+    # index when missing, so skip it when --repo-root targets another tree.
+    if args.output is None and repo_root == script_dir.parent.resolve():
         drift_script = Path(__file__).parent / "check-routing-drift.py"
         if drift_script.exists():
             drift_result = subprocess.run(
