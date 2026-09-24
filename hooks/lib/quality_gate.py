@@ -445,7 +445,7 @@ def run_quality_gate(
         external_tool_ran = False
         for tool_name, tool_config in tools.items():
             # Filter tools if specified
-            if tools_filter and tool_name not in tools_filter:
+            if tools_filter is not None and tool_name not in tools_filter:
                 continue
 
             result = run_tool(tool_name, tool_config, lang_files, lang, fix=fix)
@@ -458,7 +458,7 @@ def run_quality_gate(
                 report.passed = False
 
         # If no external tools ran, use built-in checks
-        if not external_tool_ran and not fix:
+        if not external_tool_ran and not fix and tools_filter is None:
             builtin_result = _run_builtin_checks(lang, lang_files)
             if builtin_result:
                 report.tool_results.append(builtin_result)
