@@ -855,8 +855,11 @@ def main() -> None:
                     spec_missing=spec_missing,
                     prompt_chars=prompt_chars,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                # Log evidence_route_decision failures so silent data loss is
+                # visible in the debug log (the bare `pass` hid 413 of 416
+                # failures before the deployed hook caught up with the repo).
+                hook_error("routing-decision-recorder:evidence", exc)
 
             # Bridge to the outcome resolvers. The dispatch was already claimed
             # (marked seen) atomically above, so no separate mark. Decision row

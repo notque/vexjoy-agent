@@ -2697,3 +2697,81 @@ class TestSpecScoreMigration:
         finally:
             c.close()
         assert rows == 1
+
+
+# ---------------------------------------------------------------------------
+# Evidence route decision — recording and error-logging
+# ---------------------------------------------------------------------------
+
+
+class TestEvidenceRouteDecisionRecording:
+    """Verify that evidence_route_decisions rows are written for every
+    /do-routed dispatch and that failures are now logged instead of
+    silently swallowed."""
+
+    def test_decision_row_written_on_marker_dispatch(self, db_env, monkeypatch):
+        """A standard [do-route] Agent dispatch writes an evidence_route_decisions row."""
+        a = _load(A_PATH, "rdr_evidence_row")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+        event = _agent_event(skill="testing", body="Write tests.", session="ev-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+        import sqlite3
+
+        import learning_db_v2 as ldb
+
+        conn = sqlite3.connect(ldb.get_db_path())
+        conn.row_factory = sqlite3.Row
+        try:
+            rows = conn.execute("SELECT * FROM evidence_route_decisions WHERE session_id = 'ev-s1'").fetchall()
+        finally:
+            conn.close()
+        assert len(rows) == 1, f"expected 1 evidence_route_decisions row, got {len(rows)}"
+        assert rows[0]["agent"] == "python-general-engineer"
+        assert rows[0]["skill"] == "testing"
+        assert rows[0]["route_key"] == "python-general-engineer:testing"
+
+    def test_evidence_failure_is_logged_not_swallowed(self, db_env, monkeypatch):
+        """When record_evidence_route_decision raises, the error is logged
+        via hook_error instead of silently swallowed by a bare pass."""
+        a = _load(A_PATH, "rdr_evidence_err_logged")
+        monkeypatch.setattr(a, "append_pending_outcome", lambda *_a, **_k: None)
+        monkeypatch.setattr(a, "claim_dispatch", lambda *_a, **_k: True)
+
+        # Patch record_evidence_route_decision to raise
+        import learning_db_v2 as ldb
+
+        original = ldb.record_evidence_route_decision
+        calls = []
+
+        def failing_record(**kwargs):
+            calls.append(kwargs)
+            raise RuntimeError("simulated DB failure")
+
+        monkeypatch.setattr(ldb, "record_evidence_route_decision", failing_record)
+
+        # Capture hook_error calls
+        errors_logged = []
+        original_hook_error = a.hook_error
+
+        def capturing_hook_error(name, exc):
+            errors_logged.append((name, str(exc)))
+            # call original so it writes to debug log
+            original_hook_error(name, exc)
+
+        monkeypatch.setattr(a, "hook_error", capturing_hook_error)
+
+        event = _agent_event(skill="testing", body="Write tests.", session="ev-err-s1")
+        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
+            a.main()
+
+        # The decision was attempted
+        assert len(calls) == 1
+        # The error was logged (not silently swallowed)
+        assert any("routing-decision-recorder:evidence" in name for name, _ in errors_logged)
+        # The learnings row was still written (failure of evidence row doesn't
+        # block the learnings row)
+        routing_rows = _query_routing(db_env)
+        assert any(r["key"] == "python-general-engineer:testing" for r in routing_rows)

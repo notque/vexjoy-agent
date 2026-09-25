@@ -43,7 +43,10 @@ def main():
 
         session_id = get_session_id()
         project_path = str(get_project_dir())
-        tool_input = event.get("tool_input", {})
+        # PostToolUse events carry input under "tool_input" or "input"
+        # depending on harness version; try both so the skill name is never
+        # lost (the "unknown" gap that hid 17% of skill invocations).
+        tool_input = event.get("tool_input") or event.get("input") or {}
 
         if tool_name == "Skill":
             skill_name = tool_input.get("skill", "unknown")
