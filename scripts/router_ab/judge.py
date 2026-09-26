@@ -305,7 +305,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--seed", type=int, default=4904)
     parser.add_argument("--timeout", type=int, default=300)
-    parser.add_argument("--rubrics", default=str(Path(__file__).resolve().parents[2] / "evals" / "router-value"))
+    parser.add_argument("--rubrics", required=True)
     parser.add_argument("--calibration", action="store_true")
     args = parser.parse_args()
     if args.passes < 2 or args.concurrency < 1 or not 1 <= args.batch_size <= 5:

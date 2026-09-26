@@ -48,7 +48,7 @@ Description: *"Kubernetes deployments and Helm charts: manifest authoring, value
 
 ### Recording the cases
 
-Save the cases in the SCAFFOLD-phase notes so they survive into the activation eval seed. Format:
+Keep the cases in your SCAFFOLD-phase notes. Do not commit them. Format:
 
 ```markdown
 ## Activation eval seeds — {agent-name}
@@ -69,8 +69,6 @@ Save the cases in the SCAFFOLD-phase notes so they survive into the activation e
 3. <phrase> — <should it trigger? why?>
 ```
 
-These seeds live in `agents/{name}/references/activation-cases.md` (or appended to an existing notes file). The Post-Write Checklist in `agent-frontmatter-template.md` requires this file before commit.
-
 ### Manual pass vs. automated pass
 
 For most agents, a mental routing pass over the cases is enough at scaffold time:
@@ -80,7 +78,7 @@ For most agents, a mental routing pass over the cases is enough at scaffold time
 3. Compare against the expected routing.
 4. Adjust the description until predictions match expectations.
 
-For load-bearing agents (called many times per day, or guarding destructive actions), back the cases with a script that runs the actual router against each phrase and asserts the selected agent. This converts the seeds into a regression test.
+For load-bearing agents (called many times per day, or guarding destructive actions), back the cases with a script that runs the actual router against each phrase and asserts the selected agent.
 
 ### Fixing a failing activation case
 
@@ -117,7 +115,7 @@ Output eval cases come from three sources:
 2. **Edge cases** — boundary conditions, missing inputs, conflicting constraints
 3. **Regression cases** — every production miss becomes a permanent case
 
-The first two are seeded at scaffold time. The third is built up over the agent's life. A regression case lives forever; deleting one is how silent failures return.
+The first two come from scaffold time. The third comes from production misses; turn a recurring miss into a test.
 
 ### Train / validation separation
 
@@ -134,18 +132,6 @@ For output evals, the same split applies when iterating on the agent body, refer
 
 ---
 
-## Where the Evals Live
-
-| Artifact | Path | Purpose |
-|----------|------|---------|
-| Activation seeds | `agents/{name}/references/activation-cases.md` | should-trigger / should-not-trigger / near-miss phrases |
-| Output cases | `agents/{name}/references/output-cases.md` (when warranted) | Happy-path + edge + regression tasks with assertions |
-| Regression log | `retro/{name}-misses.md` (when warranted) | Production misses, with the case that should have caught them |
-
-Lightweight agents may keep both seed files merged; heavyweight agents (orchestrators, destructive-action gatekeepers) split them. The author decides at scaffold time and writes the path into the agent's reference loading table.
-
----
-
 ## Quick Authoring Checklist
 
 When scaffolding a new agent:
@@ -154,9 +140,7 @@ When scaffolding a new agent:
 2. List 3 should-trigger phrases. The description's adjacent terms cover at least 2.
 3. List 2 should-not-trigger phrases with redirect targets. The boundary clause excludes them.
 4. List 2 near-miss phrases with verdicts and reasoning.
-5. Save the lists to `agents/{name}/references/activation-cases.md`.
-6. Mental-pass the cases against the description. Fix the description if any case fails.
-7. Add a row to the agent's Reference Loading Table pointing at the activation cases file.
-8. (Output eval) When the agent is load-bearing, write 3 happy-path tasks with observable success criteria.
+5. Mental-pass the cases against the description. Fix the description if any case fails.
+6. (Output eval) When the agent is load-bearing, try 3 happy-path tasks with observable success criteria.
 
-This is the activation half of the Post-Write Checklist items 7 and 8 in `agent-frontmatter-template.md`. Step 7's mental pass is the floor; steps 5 and 6 produce the artifact that makes the test repeatable.
+This is the activation half of Post-Write Checklist item 7 in `agent-frontmatter-template.md`.

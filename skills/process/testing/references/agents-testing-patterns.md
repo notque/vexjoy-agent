@@ -179,39 +179,3 @@ Verify a new agent produces correct outputs for its intended purpose.
 
 READY FOR DEPLOYMENT / NEEDS FIXES / REQUIRES REVIEW
 ```
-
-## Eval Harness Integration
-
-For agents with YAML-based eval tasks, use the eval harness for automated multi-trial testing:
-
-```bash
-# List agents with eval tasks
-python evals/harness.py skill-test --list-agents
-
-# Run eval tasks for an agent (default: 3 trials per task)
-python evals/harness.py skill-test python-general-engineer
-
-# Run with more trials for higher confidence
-python evals/harness.py skill-test python-general-engineer --trials 5
-
-# Output in different formats
-python evals/harness.py skill-test python-general-engineer --format json
-python evals/harness.py skill-test python-general-engineer --format markdown
-
-# Save results to file
-python evals/harness.py skill-test python-general-engineer -o results/agent-test.md
-```
-
-**When to use eval harness vs manual testing:**
-
-| Scenario | Approach |
-|----------|----------|
-| Agent has YAML eval tasks | Use `skill-test` command |
-| Agent is new, no eval tasks yet | Manual testing with Task tool |
-| Quick iteration during development | Manual testing |
-| Pre-deployment validation | Use `skill-test` with `--trials 5` |
-| Creating regression tests | Create YAML task, then use harness |
-
-**Creating eval tasks for agents:**
-
-Add task YAML files to `evals/tasks/{category}/` with `execution.agent` set to your agent name. See `evals/task_schema.yaml` for the full schema.

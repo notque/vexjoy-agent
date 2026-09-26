@@ -203,7 +203,7 @@ For each winner, dispatch an implementation agent in an isolated context. See `r
 
 Each implementation must create a feature branch `feat/evolve-{proposal-slug}` and commit with a descriptive message.
 
-**Step 3: Validate** -- run `python3 -m scripts.skill_eval.quick_validate skills/{skill-name}`, `python3 -m py_compile {script}`, and `bash -n {script}` on each implementation.
+**Step 3: Validate** -- run `python3 scripts/validate-skill-frontmatter.py skills/{skill-name}/SKILL.md`, `python3 -m py_compile {script}`, and `bash -n {script}` on each implementation.
 
 **Gate**: All implementations committed on feature branches. Basic validation passed. Proceed to testing.
 
@@ -219,7 +219,7 @@ For each implementation, create 3-5 realistic test prompts that exercise the cha
 
 **Step 2: Run comparisons**
 
-See `references/evolve-scripts.md` § Validate Run for the skill-eval command and manual fallback pattern.
+See `references/evolve-scripts.md` § Validate Run for the comparison pattern.
 
 **Step 3: Evaluate results**
 
@@ -285,7 +285,6 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `references/evolve-preferred-patterns.md` -- Failure modes, error handling, cost, critique fallback, scheduling
 - `references/evolution-history.md` -- Shipped proposal ledger, shelved conditions, rejected proposals, cycle summaries
 - `skills/meta/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation
-- `skills/meta/skill-eval/SKILL.md` -- Skill testing and benchmarking
 - `skills/research/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)
 - `skills/meta/skill-creator/SKILL.md` -- Skill creation methodology
 - `skills/meta/agent-comparison/SKILL.md` -- A/B testing methodology

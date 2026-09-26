@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.2
+# hook-version: 1.2.3
 """
 PreToolUse:Write Hook: ADR Creation Gate
 
@@ -55,7 +55,7 @@ _SKILL_RE = re.compile(r"/skills/(?:[^/]+/)?([^/]+)/SKILL\.md$")
 _PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 # Match hooks/foo-bar.py → "foo-bar". Top-level hook files only: lib/ and
 # tests/ paths carry an extra segment so [^/]+ never matches them. Hooks are
-# the component class PHILOSOPHY.md calls hardest to govern — same
+# a component class that is hard to govern once it runs — same
 # ADR-before-creation rule as agents/skills/pipelines. UNLIKE the sibling
 # patterns, this rule is scoped to toolkit-shaped repos (_is_toolkit_repo):
 # the gate runs user-level in every repo, and a random project's hooks/ dir

@@ -25,7 +25,6 @@ vexjoy-agent/
   commands/                # Slash-menu command definitions
   adr/                     # Architecture Decision Records (gitignored)
   docs/                    # Documentation (you are here)
-  evals/                   # Evaluation test suites
   plugins/                 # UI panel plugins (custom-panel, example-panel)
   ~/private-skills/        # User private skills repo (separate private repo, discovered by sync hook)
   research/                # Research pipeline artifacts

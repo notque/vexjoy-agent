@@ -100,7 +100,7 @@ does not match the script, the script wins.
 | FIXTURE | Frozen request corpus (n ≥ 30) with a recorded checksum, pinned model id, pinned temperature/seed where the API offers one, same tool set. Prove it: token counts vary run to run, so treat this as a sampled metric and take the baseline spread seriously. |
 | FLOOR | Task success rate on the corpus does not drop. Cheaper wrong answers are not an improvement — the floor is a scored eval, not a smoke test. |
 | Typical hot spots | Unbounded tool output pasted into context; a manifest duplicated in the system prompt and the harness listing; reference files loaded when the branch does not need them; full conversation history resent; retries on malformed output. |
-| Paired agent/skill | `skill-eval` (corpus scoring), `toolkit-governance-engineer` (manifest and reference trimming). |
+| Paired agent/skill | `toolkit` agent-comparison (corpus scoring), `toolkit-governance-engineer` (manifest and reference trimming). |
 
 ---
 
@@ -152,7 +152,7 @@ legitimate METRIC — `objective-loop` already carries this contract for its
 Fitting rubric METRICs: player-comprehension score on a fixed FTUE recording,
 documentation-clarity score on a fixed page set, review-quality score against a
 frozen defect list, answer-quality score across a frozen eval corpus
-(`skill-eval`, `agent-evaluation` — there the corpus is the FIXTURE).
+(`agent-evaluation` — there the corpus is the FIXTURE).
 
 ## Not hill-climbable
 

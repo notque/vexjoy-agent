@@ -79,7 +79,7 @@ For each failure seen in more than one output, or any serious one:
 
 Report a table per round: arm, runs, each metric, held-out separately, and cost. List the top failure patterns and the rule that now covers each. State caveats plainly: sample size, heuristic rubric, held-out tasks you saw while fixing (they are no longer clean), runs lost to rate limits.
 
-Ship through the normal PR flow with the results in the PR body. Keep the harness, tasks, raw outputs, and scores in the session scratchpad or an `evals/` folder, not in the skill.
+Ship through the normal PR flow with the results in the PR body. Keep the harness, tasks, raw outputs, and scores in the session scratchpad. Do not commit them.
 
 ## Failure patterns seen so far
 

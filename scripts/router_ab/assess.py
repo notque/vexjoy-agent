@@ -346,9 +346,7 @@ def main():
         if name == "prepare":
             command.add_argument("--packets", type=Path, required=True)
             command.add_argument("--suite", choices=("dev", "holdout", "all"), default="all")
-            command.add_argument(
-                "--rubrics", type=Path, default=Path(__file__).resolve().parents[2] / "evals" / "router-value"
-            )
+            command.add_argument("--rubrics", type=Path, required=True)
         else:
             command.add_argument("--judge-dir", type=Path, required=True)
     args = parser.parse_args()

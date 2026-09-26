@@ -26,8 +26,8 @@ import sys
 def select_targets(audit_data: dict, max_targets: int) -> list[dict]:
     """Select top-N enrichment targets from audit data.
 
-    Priority: agents before skills (agents are the primary knowledge carriers
-    per PHILOSOPHY.md), then alphabetical within each group.
+    Priority: agents before skills (agents are the primary knowledge
+    carriers), then alphabetical within each group.
     """
     # The audit JSON uses "gaps" for filtered results, "all" for everything
     components = audit_data.get("gaps", audit_data.get("components", []))

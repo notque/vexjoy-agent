@@ -434,7 +434,7 @@ def run_benchmark(
     if show_coverage:
         coverage_errors = print_coverage_report(all_cases, skills, load_coverage_exclusions())
 
-    # Coverage errors are advisory per PHILOSOPHY.md Warn-Only Gates — they
+    # Coverage errors are advisory (PHILOSOPHY.md: checks start advisory) — they
     # print but do not fail the run. Only invalid routing targets block.
     return fail_count == 0 and not pre_route_failures
 

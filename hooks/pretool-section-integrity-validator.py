@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PreToolUse:Agent Hook: Section-Integrity Validator
 
@@ -12,8 +12,8 @@ skills/INDEX.json before Agent dispatch. Catches two common mistakes:
 
 This is ADVISORY only -- exit 0 always, never blocks.
 
-Enforces PHILOSOPHY.md: "Instructions can be rationalized past. Exit codes
-cannot." Replaces the prose-only "SECTION-INTEGRITY RULE" in
+Enforces with an exit code what a prompt can only ask for (PHILOSOPHY.md:
+exact, repeatable checks belong in programs). Replaces the prose-only "SECTION-INTEGRITY RULE" in
 skills/meta/do/SKILL.md with a real hook.
 
 ARCH-002.

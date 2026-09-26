@@ -130,7 +130,7 @@ def _lone_path_basename(value: str) -> str | None:
 def _hookish_basename(path: str) -> str | None:
     """Return the .py basename of `path` ONLY if the path's DIRECTORY is the
     hooks dir — using an ALLOWLIST (not a denylist), so an unrelated repo dir
-    (evals/, scripts/, /tmp/, ...) can never alias onto a same-named hook.
+    (tools/, scripts/, /tmp/, ...) can never alias onto a same-named hook.
 
     Accepted directories:
       - empty (a bare basename like "x.py" — real hooks dispatch builds these

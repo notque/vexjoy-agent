@@ -100,7 +100,6 @@ Based on the user interview, create the skill directory and write the SKILL.md.
 skill-name/
 ├── SKILL.md              # Required -- the workflow
 ├── SPEC.md               # Optional -- contract for complex/high-impact skills
-├── EVAL.md               # Optional -- repeatable eval cases for complex/high-impact skills
 ├── scripts/              # Deterministic CLI tools the skill invokes
 ├── agents/               # Subagent prompts used only by this skill
 ├── references/           # Deep context loaded on demand
@@ -109,13 +108,10 @@ skill-name/
 
 **Maintenance artifacts** -- For Complex skills, security-sensitive skills,
 router-facing skills, PR/release workflows, and skills likely to be iterated over
-time, create `SPEC.md` and `EVAL.md` alongside SKILL.md:
+time, create `SPEC.md` alongside SKILL.md:
 
 - `SPEC.md`: purpose, scope, non-goals, invariants, dependencies, and success
   criteria. It is the contract maintainers use when changing the skill.
-- `EVAL.md`: representative prompts/cases, expected routing or behavior,
-  known failure modes, and pass/fail checks. It is the regression suite for
-  skill behavior.
 
 Do not create `SOURCES.md` as a standard artifact. Provenance belongs in docs,
 ADRs, citations, or research files when it matters. If the LLM does not need the
@@ -123,7 +119,7 @@ file to execute, evaluate, or maintain the component, keep it out of the
 component directory.
 
 Maintenance artifacts are not runtime context. SKILL.md should not instruct the
-model to load `SPEC.md` or `EVAL.md` during ordinary execution. Load them only
+model to load `SPEC.md` during ordinary execution. Load them only
 when creating, evaluating, redesigning, or modifying the skill.
 
 **Frontmatter** -- name, description, routing metadata. Description caps: 60 chars max for non-invocable skills, 120 chars for user-invocable. No "Use when:", "Use for:", or "Example:" in the description. The `/do` router has its own routing tables.
@@ -309,12 +305,11 @@ agents/
 ├── {agent-name}.md
 └── {agent-name}/
     ├── SPEC.md            # Optional -- contract for complex/high-impact agents
-    ├── EVAL.md            # Optional -- repeatable eval cases
     └── references/
         └── ...
 ```
 
-Use `SPEC.md` and `EVAL.md` for agents that are complex, high-impact,
+Use `SPEC.md` for agents that are complex, high-impact,
 security-sensitive, router-facing, or likely to be tuned repeatedly. Do not
 create `SOURCES.md` as a default agent artifact.
 

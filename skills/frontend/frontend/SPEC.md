@@ -85,7 +85,6 @@ Phase 5: DELIVER         → file path + browser open offer
 skills/meta/html-artifact/
 ├── SKILL.md                              # Orchestrator (5-phase pipeline)
 ├── SPEC.md                               # This file
-├── EVAL.md                               # Evaluation cases
 ├── agents/
 │   └── html-builder.md                   # Subagent: generates the HTML
 ├── references/

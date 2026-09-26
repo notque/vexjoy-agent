@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Audit SKILL.md files for non-runtime content.
 
-Enforces docs/PHILOSOPHY.md "Skills Contain Execution Context Only".
+Enforces docs/PHILOSOPHY.md: keep only knowledge that changes what an agent does.
 
 A skill's body is what the LLM consumes at runtime. Install instructions,
 license blocks, contributor lists, ethical-boundary declarations, and
 "About" sections do not change what the model does next; they pollute the
-runtime context. They belong in README.md, docs/, or CITATIONS.md.
+runtime context. They belong in README.md or docs/.
 
 Detection strategy:
   - Primary signal: H1/H2/H3 section headings whose text matches the

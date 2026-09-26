@@ -184,7 +184,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `adr-consultation` | no | Multi-agent consultation for architecture decisions |
 | `retro` | yes | Session retrospective: prints the negative-results registry, reviews what a session changed. |
 | `auto-dream` | yes | Background memory consolidation -- overnight cleanup of stale, duplicate, and conflicting memory entries |
-| `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
 | `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
 | `building-with-jev` | no | Write, compose, integrate, and improve programs that call Jev (TypeSafe System One): primitives, question design, state fitting, composition patterns, hook integration, calibration |
 | `skill-composer` | no | _(demoted to workflow)_ DAG-based multi-skill orchestration with dependency resolution |

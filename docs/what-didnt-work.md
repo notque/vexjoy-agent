@@ -123,13 +123,6 @@ Experiments recorded after the seed set. Same four bold fields; `###` headings k
 - **Evidence**: verified detail `skills-design` / "Pairwise knowledge + process skill splitting"; `skills/process/process/SKILL.md` (consolidated from planning) (`pairs_with`); `skills/meta/do/SKILL.md` line 280.
 - **Decision**: rejected.
 
-## 2026-06-05 Eval-doc caveats left as unindexed prose
-
-- **Expectation**: nothing. This is the gap that motivates the registry.
-- **What happened**: real eval caveats (for example the N=1 pilot note) sit as prose in eval READMEs, unsearchable. This registry indexes future ones. Back-filling old eval caveats is out of scope for this PR.
-- **Evidence**: `evals/dense-complete-writing/README.md:25-26`.
-- **Decision**: revisit-if a second eval produces a coverage-collapse result (then back-fill the old caveats).
-
 ---
 
 ## Program notes (blog-learnings implementation)

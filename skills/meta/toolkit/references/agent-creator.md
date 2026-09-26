@@ -58,8 +58,7 @@ agents/
 └── {agent-name}/
     ├── references/
     │   └── *.md             # deep context, loaded on demand
-    ├── SPEC.md              # optional: contract for complex/high-impact agents
-    └── EVAL.md              # optional: repeatable eval cases
+    └── SPEC.md              # optional: contract for complex/high-impact agents
 ```
 
 **Writing the operator context** (body after frontmatter):
@@ -144,7 +143,7 @@ Gate 5: All scripts exit 0. No phantom `pairs_with` entries. No positive-framing
 **Manual review** (the scripts cannot check these):
 
 - **Description craft**: read the description aloud. Does it state intent, name 2–3 adjacent terms, mark one false-positive boundary? See `references/agent-frontmatter-template.md` Description Craft.
-- **Activation cases recorded**: confirm `agents/{name}/references/activation-cases.md` (or equivalent notes section) lists 3 should-trigger / 2 should-not-trigger / 2 near-miss phrases. Mental-pass each phrase against the description. See `references/agent-eval-design.md`.
+- **Activation cases checked**: mental-pass 3 should-trigger / 2 should-not-trigger / 2 near-miss phrases against the description. See `references/agent-eval-design.md`.
 
 ---
 

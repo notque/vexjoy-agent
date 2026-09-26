@@ -407,7 +407,7 @@ Load when the signal applies.
 | Language-specific fix strategies | `references/patterns-fix-strategies.md` | Fix patterns and tooling per language |
 | Test blind spots | `references/patterns-blind-spot-taxonomy.md` | 6-category gap taxonomy |
 | Load test scenarios | `references/patterns-load-test-scenarios.md` | Smoke, stress, spike, soak configs |
-| Agent dispatch patterns | `references/agents-testing-patterns.md` | Dispatch, negative, A/B, eval harness |
+| Agent dispatch patterns | `references/agents-testing-patterns.md` | Dispatch, negative, A/B |
 | Agent testing examples | `references/agents-examples-and-errors.md` | Worked examples and error cases |
 | E2E async patterns | `references/e2e-async.md` | Promise.all, race conditions, teardown |
 | E2E auth testing | `references/e2e-auth.md` | Login, storageState, OAuth, SSO, JWT |

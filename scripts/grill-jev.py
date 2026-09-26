@@ -12,7 +12,7 @@ Usage:
 Exit codes:
     0 — no high-signal findings or all below threshold
     1 — one or more high-signal findings at or above threshold
-    2 — transport error or invalid input
+    2 — Jev outage, invalid input, or a question left unanswered after splitting
 """
 
 from __future__ import annotations
@@ -113,7 +113,32 @@ def _load_questions(path: str) -> dict[str, Any]:
     questions = payload.get("questions", payload)
     if not isinstance(questions, dict) or not questions:
         raise ValueError("question battery must be a non-empty JSON object")
+    problems = _battery_problems(questions)
+    if problems:
+        raise ValueError("invalid question battery: " + "; ".join(problems))
     return questions
+
+
+def _battery_problems(questions: dict[str, Any]) -> list[str]:
+    """Shape errors Jev would reject, one per bad question id."""
+    problems: list[str] = []
+    for qid, q in questions.items():
+        if not isinstance(q, dict):
+            problems.append(f"{qid}: must be an object")
+            continue
+        qtype, criteria = q.get("type"), q.get("criteria")
+        if qtype not in {"noul", "choice", "score"}:
+            problems.append(f"{qid}: type must be noul, choice, or score")
+        elif not q.get("instructions"):
+            problems.append(f"{qid}: needs instructions")
+        elif qtype == "noul" and q.get("report_when") not in {"true", "false"}:
+            problems.append(f'{qid}: noul needs report_when "true" or "false"')
+        elif qtype == "score" and criteria is not None:
+            if not isinstance(criteria, list) or not all(isinstance(c, dict) and c.get("summary") for c in criteria):
+                problems.append(f"{qid}: score criteria must be a list of {{summary, signals}} levels, lowest first")
+        elif qtype == "choice" and not (isinstance(criteria, dict) and criteria):
+            problems.append(f"{qid}: choice criteria must map each option to {{what, not_for, examples}}")
+    return problems
 
 
 # ---------------------------------------------------------------------------
@@ -399,14 +424,46 @@ def _run_battery(
     questions: dict[str, Any],
     timeout: float,
 ) -> dict[str, Any]:
-    """Run all questions in batches, returning merged answers dict."""
+    """Run all questions in batches, returning merged answers dict.
+
+    A failed batch is halved and retried down to single questions, so one bad
+    or oversized question costs only its own answer. A question that still
+    fails is recorded as ``{"error": ...}`` (unknown, never a pass). If the
+    first single-question failure also fails a tiny probe, Jev is down: raise.
+    """
     batches = _pack_batches(state, questions)
     all_answers: dict[str, Any] = {}
+    service_ok: list[bool] = []  # set once by the probe
+
+    def send(batch_qs: dict[str, Any]) -> None:
+        try:
+            all_answers.update(jev_transport.evaluate(state, batch_qs, timeout=timeout).get("answers", {}))
+            return
+        except jev_transport.JevTransportError as exc:
+            if exc.source == jev_transport.REQUEST_TOO_LARGE:
+                raise
+            if len(batch_qs) > 1:
+                ids = list(batch_qs)
+                mid = len(ids) // 2
+                send({k: batch_qs[k] for k in ids[:mid]})
+                send({k: batch_qs[k] for k in ids[mid:]})
+                return
+            if not service_ok:
+                jev_transport.evaluate(_PROBE_STATE, _PROBE_QUESTION, timeout=timeout)  # raises on outage
+                service_ok.append(True)
+            qid = next(iter(batch_qs))
+            all_answers[qid] = {"type": batch_qs[qid].get("type"), "error": str(exc)}
+
     for batch in batches:
-        batch_qs = {qid: questions[qid] for qid in batch}
-        result = jev_transport.evaluate(state, batch_qs, timeout=timeout)
-        all_answers.update(result.get("answers", {}))
+        send({qid: questions[qid] for qid in batch})
     return all_answers
+
+
+# Known-good minimal request: tells a bad question apart from a Jev outage.
+_PROBE_STATE = {"artifact": "The sky is blue."}
+_PROBE_QUESTION = {
+    "probe": {"type": "noul", "report_when": "true", "instructions": {"question": "Does the artifact name a color?"}}
+}
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +478,7 @@ def _print_report(
     threshold: float,
     generated: bool,
 ) -> int:
-    """Print findings report. Returns exit code (0=clean, 1=findings)."""
+    """Print findings report. Returns exit code (0=clean, 1=findings, 2=unanswered questions)."""
     source_label = "generated" if generated else "static fallback"
     print(f"\nGRILL-JEV FINDINGS — mode: {mode} — {len(questions)} questions ({source_label})")
     print("=" * 60)
@@ -431,9 +488,8 @@ def _print_report(
 
     for qid, qdef in questions.items():
         answer = answers.get(qid, {})
-        if not answer:
+        if not answer or "error" in answer:
             continue
-        qtype = qdef.get("type", "noul")
         category = _question_category(qid)
         if _is_high_signal(qdef, answer, threshold):
             high_signal.append((qid, answer, category))
@@ -471,7 +527,15 @@ def _print_report(
                     print(f"\nOVERALL READINESS: {score_val:.1f}/3 — {label}; {note}")
                 break
 
+    unanswered = {qid: answers[qid]["error"] for qid in questions if "error" in answers.get(qid, {})}
+    if unanswered:
+        print(f"\nUNANSWERED ({len(unanswered)}; unknown, not a pass):")
+        for qid, err in unanswered.items():
+            print(f"  [{qid}] {err}")
+
     print()
+    if unanswered:
+        return 2
     return 1 if high_signal else 0
 
 
@@ -556,7 +620,7 @@ def main() -> None:
 
     if args.output_json:
         print(json.dumps({"questions": questions, "answers": answers}, indent=2))
-        sys.exit(0)
+        sys.exit(2 if any("error" in a for a in answers.values()) else 0)
 
     exit_code = _print_report(answers, questions, args.mode, args.threshold, generated)
     sys.exit(exit_code)

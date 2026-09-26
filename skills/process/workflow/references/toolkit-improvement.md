@@ -71,7 +71,6 @@ routing:
     - dispatch evaluation agents
   pairs_with:
     - comprehensive-review
-    - skill-eval
     - agent-evaluation
   complexity: Complex
   category: meta
@@ -411,10 +410,10 @@ cat "$IMPROVE_DIR"/impl-adr-*.md > "$IMPROVE_DIR/implementation-summary.md"
 
 ---
 
-## Phase 8: VALIDATE — Skill Evaluator Gate
+## Phase 8: VALIDATE — Regression Gate
 
-**Goal**: Verify no skill or agent routing was degraded by implementation. Every modified
-skill must meet or exceed its baseline score — regressions are blockers, not warnings.
+**Goal**: Verify no skill or agent was degraded by implementation. Every modified
+component must pass validation and tests — regressions are blockers, not warnings.
 
 Identify modified skills and agents:
 
@@ -422,25 +421,21 @@ Identify modified skills and agents:
 git diff --name-only "$BRANCH" | grep -E "(skills|agents|pipelines)/.*\.md$"
 ```
 
-Run structural validation for each:
+Run validation and tests:
 
 ```bash
-python3 -m scripts.skill_eval.quick_validate <skill-path>
+python3 scripts/validate-skill-frontmatter.py
+python3 scripts/validate-references.py --all
+python3 -m pytest -q scripts/tests hooks/tests
 ```
 
-For skills where triggers or descriptions changed, run trigger eval:
-
-```bash
-python3 -m scripts.skill_eval.run_eval \
-  --eval-set <skill-path>/evals/evals.json \
-  --skill-path <skill-path> \
-  --runs-per-query 3
-```
+For skills where triggers or descriptions changed, review the routing change: try
+the phrases it should and should not catch.
 
 Record results to disk:
 
 ```bash
-echo "[skill-name] baseline: N post-impl: M [PASS|FAIL]" >> "$IMPROVE_DIR/validation-results.md"
+echo "[skill-name] [PASS|FAIL]: <failing check>" >> "$IMPROVE_DIR/validation-results.md"
 ```
 
 **Gate**: All validated skills pass. Any failure routes to Phase 9. Full pass routes to
@@ -460,10 +455,10 @@ For each regressed skill, dispatch three agents in a single message:
 
 ```
 Agent A (Contrarian): Read the skill and its git diff. Challenge whether the Phase 7
-change was necessary. Propose a simpler alternative that preserves the baseline score.
+change was necessary. Propose a simpler alternative that passes validation.
 
 Agent B (Domain Specialist): Read the validation failure from validation-results.md.
-Diagnose exactly why the score dropped. Propose targeted fixes for the specific failure.
+Diagnose exactly why the check failed. Propose targeted fixes for the specific failure.
 
 Agent C (User Advocate): Read the skill as a user trying to invoke it. Does the change
 make it harder to discover? Propose routing or description improvements that recover

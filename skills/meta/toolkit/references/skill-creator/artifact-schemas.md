@@ -4,6 +4,9 @@ JSON contracts for all eval pipeline artifacts. Field names, types, and nesting 
 contracts between producers and consumers. Downstream scripts parse by field name —
 do not rename fields without updating all consumers.
 
+All paths below are under `skill-workspace/`, a scratch directory outside the repo.
+Do not commit these artifacts.
+
 ## Producer/Consumer Map
 
 | Schema | Producer | Consumer(s) |

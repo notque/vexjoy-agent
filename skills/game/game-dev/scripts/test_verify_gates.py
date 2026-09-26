@@ -3,7 +3,7 @@
 
 These are the deterministic build-time gates the prior pipeline was missing:
 the same broken output shipped every time because nothing flagged it.
-Per docs/PHILOSOPHY.md "Everything That Can Be Deterministic, Should Be"
+Per docs/PHILOSOPHY.md: exact, repeatable checks belong in programs
 -- pixel comparison + grid math are solved problems, not LLM judgment.
 
 Run: python3 scripts/test_verify_gates.py

@@ -289,6 +289,6 @@ not modify it. Make the table complete before approving the ADR for implementati
 
 **Keep the Execution Plan optional.** For most ADRs, the Implementation Notes and
 Affected Files table are sufficient. An elaborate 7-phase Execution Plan with parallel
-worktrees and skill-eval gates is only warranted for ADRs that create multiple
+worktrees and validation gates is only warranted for ADRs that create multiple
 interdependent new components. If the change is a one-line fix, the Implementation
 Notes section is enough.

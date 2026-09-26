@@ -50,7 +50,7 @@ Alternates rejected (live-verified 2026-06-10):
   the evidence is stale. What remains is mechanical path fixing; both arms ace
   it; no signal.
 - **(b) Hook shelf-ware triage.** 11 unregistered hooks confirmed;
-  `agent-grade-on-change.py` present, `evals/harness.py` confirmed missing.
+  `agent-grade-on-change.py` present, eval harness confirmed missing.
   But output is triage decisions, not code: weak objective grading, no test
   surface, and registering hooks changes live session behavior — blast radius
   too big for a both-arms-build-it experiment.

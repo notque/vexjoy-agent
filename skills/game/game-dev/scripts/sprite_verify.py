@@ -7,7 +7,7 @@ Owns the six deterministic build-time gates (`verify_no_magenta`,
 `verify_pixel_preservation`) plus the combined `verify_asset_outputs`
 runner and the `verify-asset` CLI subcommand.
 
-Per docs/PHILOSOPHY.md "Everything That Can Be Deterministic, Should Be"
+Per docs/PHILOSOPHY.md: exact, repeatable checks belong in programs
 and the Verifier pattern: separate planner / executor / verifier roles.
 The verifier's job is to try to break the result -- "looks correct" is
 not a verdict. These functions are the falsifiable checks the prior
@@ -1050,8 +1050,7 @@ def verify_asset_outputs(
         # 1xN row; alignment math doesn't apply the same way). Tolerance is
         # 5% of cells: legitimate big-character art can occasionally span an
         # edge, but more than that signals a slicing failure or a generator
-        # that lost track of cell boundaries. Per docs/PHILOSOPHY.md
-        # "Verifier pattern" -- a verifier that confirms success at 50%
+        # that lost track of cell boundaries. A verifier that confirms success at 50%
         # bad-cell tolerance is a rubber stamp; the threshold must be tight
         # enough that "passed" carries evidence. For an 8x8 sheet that is 3
         # violations; for a 4x4 sheet that is 1 (matching verify_grid_alignment's

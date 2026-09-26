@@ -655,7 +655,7 @@ def _validate_task_set(tasks: list[dict]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Trigger-rate evaluator (uses existing run_eval infrastructure)
+# Trigger-rate evaluator (runs trigger_eval.py)
 # ---------------------------------------------------------------------------
 
 
@@ -670,7 +670,7 @@ def _run_trigger_rate(
     runs_per_query: int = 3,
     verbose: bool = False,
 ) -> dict:
-    """Run trigger-rate assessment using the skill_eval infrastructure.
+    """Run trigger-rate assessment with trigger_eval.py.
 
     Tasks must have 'query' and 'should_trigger' fields.
     Returns run_eval-style results dict.
@@ -689,8 +689,7 @@ def _run_trigger_rate(
 
         cmd = [
             sys.executable,
-            "-m",
-            "scripts.skill_eval.run_eval",
+            str(Path(__file__).resolve().parent / "trigger_eval.py"),
             "--eval-set",
             task_file,
             "--skill-path",
@@ -1640,7 +1639,8 @@ def run_optimization_loop(
         raise ValueError("holdout_check_cadence must be >= 0")
 
     if output_dir is None:
-        output_dir = Path("evals/iterations")
+        output_dir = Path(tempfile.mkdtemp(prefix="optimize-loop-"))
+        print(f"Iteration snapshots: {output_dir}", file=sys.stderr)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     all_tasks = load_benchmark_tasks(benchmark_tasks_path)
@@ -2203,7 +2203,9 @@ def main():
         "--dry-run", action="store_true", help="Use synthetic scores (test loop mechanics without calling Claude Code)"
     )
     parser.add_argument("--report", default=None, help="Path for live HTML report")
-    parser.add_argument("--output-dir", default=None, help="Directory for iteration snapshots")
+    parser.add_argument(
+        "--output-dir", default=None, help="Directory for iteration snapshots (default: new temp dir, printed at start)"
+    )
     parser.add_argument(
         "--behavioral-runs-per-task",
         type=int,

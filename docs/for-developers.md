@@ -42,7 +42,7 @@ templates/           Scaffolding templates for new components
 adr/                 Architecture Decision Records (gitignored, local working documents)
 ```
 
-Three details matter. Generate, rather than hand-edit, `agents/INDEX.json` and `skills/INDEX.json` with `scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`. Hooks import shared code from `hooks/lib/`, never from each other. Skill evaluation uses `skills/meta/toolkit/` for methodology and `scripts/skill_eval/` for runners.
+Two details matter. Generate, rather than hand-edit, `agents/INDEX.json` and `skills/INDEX.json` with `scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`. Hooks import shared code from `hooks/lib/`, never from each other.
 
 ### Private Skills
 
@@ -143,7 +143,7 @@ Test according to component type:
 |-----------|----------|
 | Hooks | Feed JSON input, assert JSON output. Test happy path and silent path. Mock external deps. |
 | Scripts | Test CLI interface. Deterministic: input X always produces output Y. |
-| Agents/Skills | Use `skills/meta/toolkit/` methodology and `scripts/skill_eval/` runner for quality assessment. |
+| Agents/Skills | Use `skills/meta/toolkit/` methodology, validators, and review for quality assessment. |
 
 Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline their fixtures.
 

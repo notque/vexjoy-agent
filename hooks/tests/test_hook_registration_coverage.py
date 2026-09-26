@@ -266,17 +266,17 @@ def test_scripts_dir_dispatch_does_not_alias_hook():
         "subprocess.run([sys.executable, str(script)])\n"
     )
     rel_scripts = 'import subprocess\nsubprocess.run(["python3", "scripts/x.py"])\n'
-    # evals/, or any non-hooks dir, must also not alias (allowlist model).
-    evals_call = (
+    # tools/, or any non-hooks dir, must also not alias (allowlist model).
+    tools_call = (
         "import subprocess, sys\n"
         "from pathlib import Path\n"
-        'script = Path(__file__).parent.parent / "evals" / "harness.py"\n'
+        'script = Path(__file__).parent.parent / "tools" / "harness.py"\n'
         "subprocess.run([sys.executable, str(script)])\n"
     )
     opaque_dir = 'import subprocess, sys\nd = some_unknown_dir()\nsubprocess.run([sys.executable, str(d / "x.py")])\n'
     assert _ast_dispatched(scripts_call, {"x.py"}) == set()
     assert _ast_dispatched(rel_scripts, {"x.py"}) == set()
-    assert _ast_dispatched(evals_call, {"harness.py"}) == set()
+    assert _ast_dispatched(tools_call, {"harness.py"}) == set()
     assert _ast_dispatched(opaque_dir, {"x.py"}) == set()
 
 

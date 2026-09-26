@@ -105,8 +105,8 @@ _Granular, ordered steps. Each step should be independently verifiable._
   - Run: `python3 scripts/generate-skill-index.py` and/or `python3 scripts/generate-agent-index.py`
   - Verify: `python3 scripts/routing-benchmark.py --verbose` passes
 - [ ] **Step 4**: Run quality gate
-  - Skill: `/skill-eval` on affected components
-  - Verify: Score >= baseline (captured in Step 0)
+  - Run: `python3 scripts/validate-skill-frontmatter.py`, `python3 scripts/validate-references.py --all`, and the test suite
+  - Verify: all pass
 - [ ] **Step 5**: Commit + PR via `/pr-sync`
   - Verify: All CI checks pass
 
@@ -120,7 +120,7 @@ the creation workflow:_
 | 1. Design | Read PHILOSOPHY.md, draft component | ADR approved |
 | 2. Implement | Write files using domain agent | Files exist |
 | 3. Integrate | Add triggers, regen INDEX, update routing tables | No trigger collisions |
-| 4. Validate | Run /skill-eval (baseline vs post) | Score >= baseline |
+| 4. Validate | Run validators and tests | All pass |
 | 5. Review | Run /pr-review (3 rounds max) | No blockers |
 | 6. Ship | /pr-sync → CI → merge | All checks pass |
 | 7. Record | Route the run's patterns to the files that own them | Edits landed |
@@ -182,41 +182,27 @@ _If this ADR does NOT create or modify a routable component, write "N/A — no r
 
 ## Validation Requirements
 
-**Skill Evaluator Gate**: Any skill or agent changes resulting from this ADR MUST be
-validated using the skill evaluator (`/skill-eval`) before merging:
-
-1. **Baseline capture**: Run `/skill-eval` on the affected skill(s) BEFORE implementation
-   to establish a baseline score
-2. **Post-implementation evaluation**: Run `/skill-eval` on the modified skill(s) AFTER
-   implementation
-3. **Pass criteria**: The post-implementation score MUST meet or exceed the baseline
-   score. Regressions are blockers.
-4. **Review evidence**: Include skill-eval output (before/after scores) in the PR
-   description as proof of non-regression
-
-This gate ensures that improvements to the toolkit's infrastructure do not inadvertently
-degrade the quality of skill descriptions, trigger accuracy, or routing behavior. The
-skill evaluator tests trigger matching, description clarity, and structural compliance —
-the exact properties most likely to be affected by the changes in this ADR.
+**Regression Gate**: Any skill or agent changes resulting from this ADR MUST pass
+`python3 scripts/validate-skill-frontmatter.py`, `python3 scripts/validate-references.py --all`,
+and the test suite before merging. Regressions are blockers.
 
 ### Failure Remediation Protocol
 
-If the skill evaluator score **regresses** (post-implementation < baseline):
+If a validator or test **fails** after implementation:
 
 1. **STOP** — Do not merge. The regression is a blocker.
 2. **Dispatch 3 parallel perspective agents** to analyze the failure:
    - **Agent A (Contrarian)**: Challenge whether the change was necessary at all.
-     Propose a simpler alternative that preserves the baseline score.
-   - **Agent B (Domain Specialist)**: Analyze WHY the score dropped — which specific
-     triggers, descriptions, or structural elements degraded? Propose targeted fixes.
+     Propose a simpler alternative that passes.
+   - **Agent B (Domain Specialist)**: Analyze WHY the check failed — which specific
+     triggers, descriptions, or structural elements broke? Propose targeted fixes.
    - **Agent C (User Advocate)**: Evaluate from the end-user perspective — does the
      change make the skill harder to discover or invoke? Propose routing improvements.
 3. **Synthesize**: Collect all three perspectives. Identify the fix that addresses the
    root cause without over-engineering.
 4. **Re-implement**: Apply the synthesized fix.
-5. **Re-evaluate**: Run `/skill-eval` again. The new score must meet or exceed the
-   original baseline.
-6. **Max iterations**: 3 remediation cycles. If the score still regresses after 3
+5. **Re-validate**: Run the validators and tests again. All must pass.
+6. **Max iterations**: 3 remediation cycles. If checks still fail after 3
    attempts, escalate to the user with all three perspective reports and ask for a
    decision.
 
@@ -250,9 +236,7 @@ listed in the Components table. If a file is not listed, it will not be modified
 the table complete.
 
 **Validation Requirements are mandatory**: Copy the Validation Requirements and Failure
-Remediation Protocol sections verbatim for every ADR. Only adjust the skill names if
-the ADR affects non-skill components (e.g., if it only modifies Python scripts with no
-skill impact, note that skill-eval is not applicable for this ADR and explain why).
+Remediation Protocol sections verbatim for every ADR.
 
 **Router integration is mandatory for new components**: If the ADR creates or modifies
 any skill, pipeline, or agent, the Implementation Task List MUST include ALL of these

@@ -1,8 +1,0 @@
-[
-  {
-    "id": "VRR-16",
-    "suite": "dev",
-    "prompt_file": "example/case.json",
-    "execution_fixture": "label_only"
-  }
-]

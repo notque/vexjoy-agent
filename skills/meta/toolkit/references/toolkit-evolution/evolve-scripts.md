@@ -99,17 +99,7 @@ When no STRONG proposals are found, append to `references/evolution-history.md` 
 
 ## Validate Run
 
-If skill-eval's evaluation modes are available:
-
-```bash
-python3 -m scripts.skill_eval.run_eval \
-  --eval-set test-cases.json \
-  --skill-path skills/{skill-name} \
-  --runs-per-query 3 \
-  --verbose
-```
-
-If automated comparison is not available: run each test prompt manually with and without the change, then use a grader agent to score both outputs on relevant dimensions (correctness, completeness, actionability).
+Run each test prompt manually with and without the change, then use a grader agent to score both outputs on relevant dimensions (correctness, completeness, actionability).
 
 ## Step 4: Write Evolution Report
 

@@ -98,7 +98,7 @@ Tests must be safe to run in parallel: write under `tmp_path`, change env and cw
 
 Doc-structure checks (reference sizes, Skill-call wording, joy-check fleet scan, negative-results registry, `$SDIR` portability) are validators in `scripts/`, run by the CI lint job, not per-file pytest cases.
 
-Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the eval harness in `skills/meta/toolkit/`.
+Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the validators and review methodology in `skills/meta/toolkit/`.
 
 ## Conventions
 

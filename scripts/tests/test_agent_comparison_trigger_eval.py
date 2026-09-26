@@ -1,53 +1,31 @@
+"""Tests for skills/meta/toolkit/scripts/agent-comparison/trigger_eval.py."""
+
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 
+TRIGGER_EVAL = (
+    Path(__file__).resolve().parents[2]
+    / "skills"
+    / "meta"
+    / "toolkit"
+    / "scripts"
+    / "agent-comparison"
+    / "trigger_eval.py"
+)
 
-def test_improve_description_uses_claude_code_and_shortens(monkeypatch, tmp_path):
-    from scripts.skill_eval import improve_description as mod
 
-    calls: list[list[str]] = []
-
-    def fake_run(cmd, capture_output, text, cwd, env, timeout):
-        calls.append(cmd)
-        if len(calls) == 1:
-            text_out = "<new_description>" + ("a" * 1030) + "</new_description>"
-        else:
-            text_out = "<new_description>short and valid</new_description>"
-        payload = [
-            {"type": "assistant", "message": {"content": [{"type": "text", "text": text_out}]}},
-            {"type": "result", "result": "raw result"},
-        ]
-        return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(payload), stderr="")
-
-    monkeypatch.setattr(mod.subprocess, "run", fake_run)
-
-    description = mod.improve_description(
-        skill_name="skill-eval",
-        skill_content="# Skill",
-        current_description="old",
-        eval_results={
-            "results": [
-                {"query": "improve this skill", "should_trigger": True, "pass": False, "triggers": 0, "runs": 1}
-            ],
-            "summary": {"passed": 0, "failed": 1, "total": 1},
-        },
-        history=[],
-        model=None,
-        log_dir=tmp_path,
-        iteration=1,
-    )
-
-    assert description == "short and valid"
-    assert calls
-    assert calls[0][:2] == ["claude", "-p"]
-    transcript = json.loads((tmp_path / "improve_iter_1.json").read_text())
-    assert transcript["raw_result_text"] == "raw result"
-    assert transcript["rewrite_raw_result_text"] == "raw result"
+def _load_trigger_eval():
+    spec = importlib.util.spec_from_file_location("agent_comparison_trigger_eval", TRIGGER_EVAL)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 class _FakeUUID:
@@ -73,7 +51,7 @@ class _FakePopen:
 
 
 def test_run_single_query_ignores_unrelated_stream_tool_use_before_matching_read(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     clean_name = "demo-skill-skill-deadbeef"
     stream_lines = [
@@ -117,7 +95,7 @@ def test_run_single_query_ignores_unrelated_stream_tool_use_before_matching_read
 
 
 def test_run_single_query_scans_all_assistant_tool_uses_before_returning(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     clean_name = "demo-skill-skill-deadbeef"
     assistant_lines = [
@@ -155,7 +133,7 @@ def test_run_single_query_scans_all_assistant_tool_uses_before_returning(monkeyp
 
 
 def test_run_single_query_accepts_real_skill_name_not_just_temporary_alias(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     assistant_lines = [
         {
@@ -191,7 +169,7 @@ def test_run_single_query_accepts_real_skill_name_not_just_temporary_alias(monke
 
 
 def test_resolve_registered_skill_relpath_accepts_repo_skill(tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     project_root = tmp_path
     skill_dir = project_root / "skills" / "demo-skill"
@@ -204,7 +182,7 @@ def test_resolve_registered_skill_relpath_accepts_repo_skill(tmp_path):
 
 
 def test_replace_description_in_skill_md_rewrites_frontmatter_block_scalar():
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     original = """---
 name: demo-skill
@@ -223,7 +201,7 @@ version: 1.0.0
 
 
 def test_load_eval_set_accepts_common_wrapped_formats(tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     tasks_path = tmp_path / "tasks.json"
     tasks_path.write_text(json.dumps({"tasks": [{"query": "q1", "should_trigger": True}]}))
@@ -248,7 +226,7 @@ def test_load_eval_set_accepts_common_wrapped_formats(tmp_path):
 
 
 def test_run_eval_auto_uses_registered_worktree_for_repo_skill(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     skill_dir = tmp_path / "skills" / "demo-skill"
     skill_dir.mkdir(parents=True)
@@ -311,7 +289,7 @@ def test_run_eval_auto_uses_registered_worktree_for_repo_skill(monkeypatch, tmp_
 
 
 def test_run_eval_registered_mode_patches_candidate_from_description_override(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     skill_dir = tmp_path / "skills" / "demo-skill"
     skill_dir.mkdir(parents=True)
@@ -372,7 +350,7 @@ version: 1.0.0
 
 
 def test_run_eval_registered_mode_patches_current_working_copy_when_no_override(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     skill_dir = tmp_path / "skills" / "demo-skill"
     skill_dir.mkdir(parents=True)
@@ -432,7 +410,7 @@ version: 1.0.0
 
 
 def test_run_eval_auto_falls_back_to_alias_for_non_registered_skill(monkeypatch, tmp_path):
-    from scripts.skill_eval import run_eval as mod
+    mod = _load_trigger_eval()
 
     skill_dir = tmp_path / "scratch" / "demo-skill"
     skill_dir.mkdir(parents=True)

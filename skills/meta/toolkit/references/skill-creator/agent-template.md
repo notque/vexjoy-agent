@@ -9,7 +9,6 @@ agents/
 ├── {agent-name}.md           # Main agent file (under 10k words)
 └── {agent-name}/
     ├── SPEC.md               # Optional: contract for complex/high-impact agents
-    ├── EVAL.md               # Optional: repeatable routing/behavior eval cases
     └── references/
         ├── {domain}-errors.md       # Error patterns with cause/solution
         ├── {domain}-patterns-to-apply.md # Preferred actions with signal/why/verification
@@ -41,18 +40,15 @@ support files beside `references/`:
 ```
 agents/{agent-name}/
 ├── SPEC.md
-├── EVAL.md
 └── references/
 ```
 
 - `SPEC.md`: the agent contract -- purpose, scope, non-goals, invariants,
   companion skills, dependencies, and success criteria.
-- `EVAL.md`: repeatable evaluation cases -- should-route and should-not-route
-  prompts, representative tasks, expected behavior, and failure checks.
 
 These files are maintenance context, not runtime context. The router and normal
-agent execution should not load them. Load them when creating, evaluating,
-redesigning, or modifying the agent.
+agent execution should not load them. Load them when creating, redesigning,
+or modifying the agent.
 
 Do not create `SOURCES.md` as a standard agent artifact. Provenance belongs in
 docs, ADRs, citations, or research outputs when it matters.

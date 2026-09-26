@@ -135,7 +135,7 @@ After writing, run a mental should-trigger / should-not-trigger pass:
 | 3 phrases a user would naturally say | Yes | Adjacent terms cover at least 2 of the 3 |
 | 2 near-misses (similar wording, off-domain) | No | Boundary clause excludes them |
 
-Record these phrases in the SCAFFOLD phase notes — they become the activation-eval cases. See `references/agent-eval-design.md` for the full activation-vs-output-eval pattern.
+Keep these phrases in your SCAFFOLD notes; do not commit them. See `references/agent-eval-design.md` for the full activation-vs-output-eval pattern.
 
 ---
 
@@ -208,7 +208,6 @@ After writing an agent `.md` file, run these in order:
 4. pairs_with existence: verify each listed agent/skill exists on disk
 5. INDEX registration: `python3 scripts/generate-agent-index.py`
 6. Trigger conflicts: run duplicate trigger detection from `agents/toolkit-governance-engineer/references/routing-table-patterns.md`
-7. Description triggers on adjacent terms: confirm 3 should-trigger phrases route to this agent and 2 near-miss phrases route elsewhere (mental pass at minimum; record both lists in the SCAFFOLD notes)
-8. Activation + output eval cases recorded: the should-trigger / should-not-trigger / near-miss phrases from step 7 are saved as eval seeds per `references/agent-eval-design.md`
+7. Description triggers on adjacent terms: confirm 3 should-trigger phrases route to this agent and 2 near-miss phrases route elsewhere (mental pass at minimum)
 
-All eight steps must pass before the agent is committed.
+All seven steps must pass before the agent is committed.

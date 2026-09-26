@@ -93,7 +93,7 @@ export const meta = {
 // Skill-tool call per element). The foundation/deep-dive/adversarial evaluators run the
 // evaluation methodology + earn the verification gate; the coordinator
 // synthesizes, critiques, governs ADRs, and validates with the agent-evaluation
-// + skill-eval stack. The literal skill names live in these `skills: [...]`
+// stack plus validators and tests. The literal skill names live in these `skills: [...]`
 // arrays so the conformance gate resolves them; the body emits the directives by
 // delegating each entry's list to skillDirectives().
 const AGENT_SKILLS = {
@@ -284,7 +284,7 @@ const IMPLEMENT_SCHEMA = {
   },
 };
 
-// VALIDATE output: the skill-evaluator regression gate (validation-results.md).
+// VALIDATE output: the regression gate (validation-results.md).
 const VALIDATE_SCHEMA = {
   type: "object",
   required: ["verdict"],
@@ -569,15 +569,15 @@ export default async function run({ scope, tier, depth, evaluateOnly } = {}) {
     implementations = rawImpl.filter((x) => x != null);
   }
 
-  // Phase VALIDATE: one coordinator runs the skill-evaluator regression gate —
-  // every modified skill must meet or exceed baseline (the prose Phase 8).
+  // Phase VALIDATE: one coordinator runs the regression gate —
+  // every modified skill must pass validators and tests (the prose Phase 8).
   enterPhase("validate");
   let validation = null;
   if (implementations.length > 0 && budget.remaining() >= minTailBudget) {
     validation = await agent({
       prompt: coordinatorPrompt(
-        `Run the skill-evaluator regression gate over the implemented changes: ` +
-          `every modified skill/agent must meet or exceed its baseline score. ` +
+        `Run the regression gate over the implemented changes: ` +
+          `every modified skill/agent must pass validators and tests. ` +
           `Return verdict pass|regressed and the list of any regressed skills. ` +
           `Implementations (typed):\n`,
         implementations,

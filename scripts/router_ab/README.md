@@ -2,15 +2,15 @@
 
 This harness measures whether a proposed policy change preserves useful routing decisions. `/do` remains the central router. This PR adds evaluation infrastructure only; a startup-catalog reduction would be a separate PR after appropriate evidence and GitHub Actions pass.
 
-Run commands from the repository root. `evals/router-value/protocol.example.json` is a wiring example with **identical policies in both arms**, one development case and five repeats. It cannot show a reduction benefit. Real experiments supply their own frozen policy/context files, case list, decision thresholds and output directories. Do not read holdout results while choosing a candidate.
+Run commands from the repository root. Experiments supply their own frozen policy/context files, case list, decision thresholds and output directories. Do not read holdout results while choosing a candidate.
 
 ## Routing and blind judging
 
 ```bash
-python3 scripts/router_ab/runner.py validate --protocol evals/router-value/protocol.example.json --output /tmp/router-value-example/routes
-python3 scripts/router_ab/runner.py run --protocol evals/router-value/protocol.example.json --output /tmp/router-value-example/routes --cases dev
-python3 scripts/router_ab/assess.py prepare --routing-results /tmp/router-value-example/routes --packets /tmp/router-value-example/blind.jsonl --map /tmp/router-value-example/private-map.json --suite dev --rubrics evals/router-value
-python3 scripts/router_ab/judge.py --packets /tmp/router-value-example/blind.jsonl --out /tmp/router-value-example/judges --rubrics evals/router-value --passes 2
+python3 scripts/router_ab/runner.py validate --protocol <protocol.json> --output /tmp/router-value-example/routes
+python3 scripts/router_ab/runner.py run --protocol <protocol.json> --output /tmp/router-value-example/routes --cases dev
+python3 scripts/router_ab/assess.py prepare --routing-results /tmp/router-value-example/routes --packets /tmp/router-value-example/blind.jsonl --map /tmp/router-value-example/private-map.json --suite dev --rubrics <rubrics-dir>
+python3 scripts/router_ab/judge.py --packets /tmp/router-value-example/blind.jsonl --out /tmp/router-value-example/judges --rubrics <rubrics-dir> --passes 2
 ```
 
 Use `assess.py prepare` to associate independent rubrics and check coverage; raw runner exports alone are not judge-ready. The private map, arm prompts, usage and policy files must stay outside judge inputs. Always pass the rubric directory explicitly. Failed, missing, malformed and timed-out assignments remain in the denominator; do not filter down to successful model replies.
@@ -18,11 +18,10 @@ Use `assess.py prepare` to associate independent rubrics and check coverage; raw
 Calibrate judges before scoring measured decisions:
 
 ```bash
-python3 scripts/router_ab/judge.py --packets evals/router-value/judge-calibration.jsonl --out /tmp/router-value-example/calibration --rubrics evals/router-value --passes 2 --calibration
-python3 evals/router-value/check_judge_calibration.py --judgments /tmp/router-value-example/calibration/judgments.jsonl
+python3 scripts/router_ab/judge.py --packets <calibration-packets.jsonl> --out /tmp/router-value-example/calibration --rubrics <rubrics-dir> --passes 2 --calibration
 ```
 
-The comparison requires correct good/bad separation, intended failed criteria, critical flags and exact-duplicate consistency. Two documented compound-criterion penalties are allowed; see [calibration adjudication](../../evals/router-value/CALIBRATION_ADJUDICATION.md). Frozen vectors remain available for audit.
+The comparison requires correct good/bad separation, intended failed criteria, critical flags and exact-duplicate consistency.
 
 ## Routing assessment and unavailable execution evidence
 
@@ -32,7 +31,7 @@ python3 scripts/router_ab/assess.py assess --routing-results /tmp/router-value-e
 
 Execution-backed promotion is unavailable until a real isolated executor and an authoritative out-of-process checker are implemented. A discarded prototype imported generated Python into the host checker, allowing submitted code to access evaluator state or forge success. It is not shipped. Do not bypass sandbox restrictions or use the trusted-fixture scripts to evaluate generated code.
 
-The six fixture pairs calibrate only known buggy originals against authored reference solutions. Those checks establish fixture behavior; they are not generated execution evaluations and cannot satisfy an execution gate. Code reductions remain **PENDING_EXECUTION** for promotion. The assessor may report **REVIEW_READY** for routing evidence only, with unresolved prerequisites and no production authorization. Appropriate execution evidence, independent calibration, review, and all required GitHub Actions checks remain separate requirements. The one-case example is only a plumbing check.
+Code reductions remain **PENDING_EXECUTION** for promotion. The assessor may report **REVIEW_READY** for routing evidence only, with unresolved prerequisites and no production authorization. Appropriate execution evidence, independent calibration, review, and all required GitHub Actions checks remain separate requirements.
 
 ## Isolation and reproducibility
 

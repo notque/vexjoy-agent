@@ -5,9 +5,6 @@ description = "Agent-driven workflow system for Claude Code, Codex, Gemini CLI, 
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-evals = [
-    "anthropic>=0.40",
-]
 reddit = [
     "praw>=7.7",
     "python-dotenv>=1.0",

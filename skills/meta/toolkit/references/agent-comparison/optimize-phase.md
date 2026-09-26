@@ -79,7 +79,7 @@ python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
     --revert-streak-limit 8 \
     --holdout-check-cadence 5 \
     --report optimization-report.html \
-    --output-dir evals/iterations \
+    --output-dir /tmp/optimize-run/iterations \
     --verbose
 ```
 
@@ -131,7 +131,7 @@ Not all ACCEPT iterations are real improvements — some may be harness artifact
 
 Apply one reviewed improvement to the original target file.
 
-- If you want the best single accepted variant, use `evals/iterations/best_variant.md`.
+- If you want the best single accepted variant, use `<output-dir>/best_variant.md`.
 - Beam search still writes a single `best_variant.md`: the highest-scoring accepted candidate seen anywhere in the run.
 - Choose scope deliberately:
   - `description-only` for routing-trigger work
@@ -140,10 +140,10 @@ Apply one reviewed improvement to the original target file.
 
 ```bash
 # Review the best accepted variant before applying
-cat evals/iterations/best_variant.md | head -20
+cat /tmp/optimize-run/iterations/best_variant.md | head -20
 
 # Replace the target with the best accepted variant
-cp evals/iterations/best_variant.md skills/{target}/SKILL.md
+cp /tmp/optimize-run/iterations/best_variant.md skills/{target}/SKILL.md
 ```
 
 ---
@@ -159,7 +159,7 @@ python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
   --benchmark-tasks {full-task-file}.json \
   --max-iterations 0 \
   --report optimization-report.html \
-  --output-dir evals/final-check \
+  --output-dir /tmp/optimize-run/final-check \
   --verbose
 ```
 

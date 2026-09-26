@@ -3,7 +3,6 @@
 # To regenerate lockfile: pip freeze --all > requirements.lock
 #
 # Optional dependencies (not needed for core toolkit):
-#   pip install -e ".[evals]"    — for scripts/skill_eval/
 #   pip install -e ".[reddit]"   — for scripts/reddit_mod.py
 #   pip install -e ".[gemini]"   — for scripts/gemini-text-generate.py
 #

@@ -141,7 +141,7 @@ python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
   --goal "improve routing precision without losing recall" \
   --benchmark-tasks skills/meta/agent-comparison/references/optimization-tasks.example.json \
   --report optimization-report.html \
-  --output-dir evals/iterations \
+  --output-dir /tmp/optimize-run/iterations \
   --verbose
 ```
 
@@ -160,7 +160,7 @@ python3 skills/meta/agent-comparison/scripts/optimize_loop.py \
   --revert-streak-limit 20 \
   --holdout-check-cadence 5 \
   --report optimization-report.html \
-  --output-dir evals/iterations \
+  --output-dir /tmp/optimize-run/iterations \
   --verbose
 ```
 

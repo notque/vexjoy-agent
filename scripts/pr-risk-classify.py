@@ -15,7 +15,7 @@ Usage:
 
 Output: JSON {risk, size_tier, total_lines, file_count, recommend_split,
               reasons, high_risk_files, review_lane}.
-Exit 0 always (warn-only per PHILOSOPHY.md Warn-Only Gates).
+Exit 0 always (advisory; PHILOSOPHY.md: a new check starts advisory).
 """
 
 from __future__ import annotations

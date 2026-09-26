@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: Hook-Version Parity Check
 
@@ -19,7 +19,7 @@ Skip conditions (silent):
   drift is impossible)
 - ~/.claude/hooks does not exist (nothing deployed to compare)
 
-Design (Warn-Only Gates doctrine):
+Design (advisory check, per docs/PHILOSOPHY.md):
 - Never denies, never blocks — always exits 0
 - Fast (<50ms): reads only the first bytes of each file, no subprocess
 - ADR: adr/hook-version-parity-check.md

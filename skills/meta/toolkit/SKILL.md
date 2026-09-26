@@ -53,8 +53,8 @@ routing:
 
 # Toolkit
 
-Ten modes covering the full toolkit lifecycle: creating, evaluating, and
-improving skills and agents; maintaining routing tables; generating CLAUDE.md;
+Nine modes covering the full toolkit lifecycle: creating and improving skills
+and agents; evaluating agents; maintaining routing tables; generating CLAUDE.md;
 composing multi-skill DAGs; and running the evolution loop. Classify the request
 and follow the matching section.
 
@@ -64,10 +64,9 @@ and follow the matching section.
 |------|---------|---------|
 | **Skill Creator** | create skill, scaffold skill, new skill, build a skill | Create Skill |
 | **Agent Creator** | create agent, scaffold agent, new agent | Create Agent |
-| **Skill Eval** | eval skill, benchmark skill, improve skill, bake-off | Evaluate Skill |
 | **Weak-Model Uplift** | weaker model, uplift skill, make a skill work for Opus 4.6, improve guidance from generated output | Uplift for Weaker Models |
-| **Agent Comparison** | compare agents, A/B test agents, benchmark agents | Compare Agents |
-| **Agent Evaluation** | evaluate agent quality, audit agent, grade agent | Evaluate Agent |
+| **Agent Comparison** | compare agents, A/B test agents, benchmark agents, benchmark skill, bake-off | Compare Agents |
+| **Agent Evaluation** | evaluate agent quality, audit agent, grade agent, eval skill | Evaluate Agent |
 | **Skill Composer** | compose skills, DAG orchestration, skill pipeline | Compose Skills |
 | **Routing Tables** | update routing tables, sync routing, routing drift | Update Routing |
 | **Toolkit Evolution** | evolve toolkit, self-improve, discover gaps | Evolve Toolkit |
@@ -77,14 +76,13 @@ and follow the matching section.
 
 ## Create Skill
 
-Phases: **INTENT -> DRAFT -> TEST -> EVAL -> IMPROVE**
+Phases: **INTENT -> DRAFT -> TEST -> REGISTER**
 
 1. **Capture intent.** What should the skill do? When should it trigger? What output? Are outputs objectively verifiable (code, data) or subjective (writing, design)?
 2. **Duplicate check.** Run `grep -i "<domain>" skills/*/SKILL.md` to check existing coverage. If an umbrella skill covers the domain, add a reference file instead.
 3. **Write SKILL.md.** Follow `references/skill-creator/skill-template.md` for frontmatter structure. Apply Dense-Complete Writing standard. Frontmatter must include: name, description, routing (triggers, not_for, category, pairs_with), allowed-tools.
-4. **Create test prompts.** 3 should-trigger, 2 should-not-trigger, 2 near-miss prompts. Save as `EVAL.md`.
-5. **Run eval loop.** Execute test prompts with the skill loaded. Grade results. Iterate on the SKILL.md until eval passes.
-6. **Register.** Run `python3 scripts/generate-skill-index.py` to update routing.
+4. **Test.** Try 3 should-trigger, 2 should-not-trigger, and 2 near-miss prompts with the skill loaded. Revise the SKILL.md until routing and output are right.
+5. **Register.** Run `python3 scripts/generate-skill-index.py` to update routing.
 
 Load `references/skill-creator.md` for the full workflow. Deep references in `references/skill-creator/` cover progressive disclosure, artifact schemas, complexity tiers, error catalog, enrichment workflow, and more.
 
@@ -103,19 +101,6 @@ Phases: **DISCOVER -> DESIGN -> SCAFFOLD -> REGISTER -> VALIDATE**
 5. **Validate.** Run `python3 scripts/validate-references.py` to check reference file integrity. Test activation with the 3+2+2 prompt set.
 
 Load `references/agent-creator.md` for full phases. Deep references in `references/agent-creator/` cover design patterns, frontmatter template, eval design.
-
----
-
-## Evaluate Skill
-
-Three evaluation types: **trigger testing**, **A/B benchmark**, and **bake-off**.
-
-1. **Trigger test.** Run each EVAL.md prompt. Grade: did the skill activate? Did it produce correct output?
-2. **A/B benchmark.** Compare skill variants on the same prompts. Measure: accuracy, token usage, user satisfaction. Load `references/skill-eval/schemas.md` for grading schemas.
-3. **Bake-off.** Head-to-head comparison of two skill variants. Load `references/skill-eval/bake-off-methodology.md`.
-4. **Self-improve loop.** After eval, identify weaknesses, modify the SKILL.md, re-eval. Load `references/skill-eval/self-improve-loop.md`.
-
-Load `references/skill-eval.md` for the full methodology.
 
 ---
 
@@ -200,7 +185,7 @@ Load `references/routing-table-updater.md` for full phases. Deep references in `
 3. **PROPOSE.** Generate 3-5 improvement proposals with expected impact, effort, risk.
 4. **CRITIQUE.** Apply multi-perspective review to proposals.
 5. **BUILD.** Implement the approved proposals using the appropriate mode above (create skill, create agent, etc.).
-6. **VALIDATE.** Run evals on new/changed components.
+6. **VALIDATE.** Run tests and validators on new/changed components.
 7. **EVOLVE.** Update evolution history at `references/toolkit-evolution/evolution-history.md`.
 
 Load `references/toolkit-evolution.md` for the full pipeline.
@@ -229,7 +214,6 @@ Load when the task needs detailed schemas, templates, or methodology.
 | Skill Creator | `references/skill-creator.md`, `references/skill-creator/{skill-template,progressive-disclosure,complexity-tiers,error-catalog,enrichment-workflow}.md` |
 | Agent Creator | `references/agent-creator.md`, `references/agent-creator/{agent-design-patterns,agent-frontmatter-template,agent-eval-design}.md` |
 | Weak-Model Uplift | `references/weak-model-uplift.md` |
-| Skill Eval | `references/skill-eval.md`, `references/skill-eval/{schemas,self-improve-loop,bake-off-methodology}.md` |
 | Agent Comparison | `references/agent-comparison.md`, `references/agent-comparison/{methodology,grading-rubric,benchmark-tasks,report-template,optimize-phase}.md` |
 | Agent Evaluation | `references/agent-evaluation.md`, `references/agent-evaluation/{scoring-rubric,report-templates,batch-evaluation}.md` |
 | Skill Composer | `references/skill-composer.md`, `references/skill-composer/{compatibility-matrix,composition-patterns,skill-patterns,examples}.md` |
@@ -243,7 +227,6 @@ Load when the task needs detailed schemas, templates, or methodology.
 |------|---------|--------|
 | Skill Creator | `scripts/skill-creator/` | `agents/skill-creator/` |
 | Skill Composer | `scripts/skill-composer/` | -- |
-| Skill Eval | -- | `agents/skill-eval/` |
 | Weak-Model Uplift | `scripts/weak_model_run.py` (repo root) | -- |
 | Routing Tables | `scripts/routing-table-updater/` | -- |
 | Agent Comparison | `scripts/agent-comparison/` | -- |

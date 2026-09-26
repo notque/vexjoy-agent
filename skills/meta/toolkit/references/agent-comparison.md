@@ -1,6 +1,6 @@
 # Agent Comparison Skill
 
-Compare agent variants through controlled A/B benchmarks. Runs identical tasks on both agents, grades output quality with domain-specific checklists, and reports total session token cost to a working solution. This skill is exclusively for agent variant comparison — use `agent-evaluation` for single-agent assessment, and `skill-eval` for skill testing.
+Compare agent variants through controlled A/B benchmarks. Runs identical tasks on both agents, grades output quality with domain-specific checklists, and reports total session token cost to a working solution. This skill is exclusively for agent variant comparison — use `agent-evaluation` for single-agent assessment.
 
 ## Reference Loading Table
 

@@ -163,7 +163,7 @@ Sanity floors (majority class, the single strongest signal) prove the pipeline i
 
 The grader decides how far the procedure goes. With outcomes that already happened (a result, a merged PR, a finished run), the loop runs unattended. With hand labels, it runs until the labels are used up; then the next step is more labels.
 
-The same procedure replaces a skill: the skill's phases supply the signals and questions, its EVAL.md or hand labels are the grader, and the policy function replaces its gates (see "Dissolving a skill"). Systems compose: one system's decision is another's signal. Deterministic driver: `scripts/jev-harness.py` (`loop`, `variance`, `sweep`).
+The same procedure replaces a skill: the skill's phases supply the signals and questions, hand labels are the grader, and the policy function replaces its gates (see "Dissolving a skill"). Systems compose: one system's decision is another's signal. Deterministic driver: `scripts/jev-harness.py` (`loop`, `variance`, `sweep`).
 
 ## Primitives
 
@@ -269,7 +269,7 @@ A dissolution is the build procedure with the skill as the request. The method:
 4. **Keep deterministic phases in code.** Regex scans, file reads, grep, counts, averages, formatting stay as programs.
 5. **Isolate generation.** If any phase requires new text (rewrite, diagnosis, plan), that phase keeps an LLM. The LLM receives all prior Jev decisions as `prior_results` and does not re-judge.
 6. **Write the policy function.** A pure function `policy(assessment) -> action` with named thresholds is the dissolved skill's contract. It replaces the skill's gates.
-7. **Prove agreement.** Run the Jev program on the skill's EVAL.md cases or hand-labeled examples. Match or exceed the skill's accuracy before deleting the SKILL.md.
+7. **Prove agreement.** Run the Jev program on hand-labeled examples. Match or exceed the skill's accuracy before deleting the SKILL.md.
 
 **Worked example.** `references/dissolving-a-skill.md` walks one skill through the method: phase table, Jev question set, and policy function.
 

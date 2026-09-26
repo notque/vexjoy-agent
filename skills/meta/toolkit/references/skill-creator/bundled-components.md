@@ -18,7 +18,7 @@ The `agents/` directory contains prompts for specialized subagents used by this 
 
 ## Workspace Layout
 
-Organize eval results by iteration:
+Organize eval results by iteration. Keep `skill-workspace/` in the session scratchpad, outside the repo. Do not commit it:
 
 ```
 skill-workspace/
@@ -35,7 +35,7 @@ skill-workspace/
 
 ## Eval evals.json Format
 
-Save test cases to `evals/evals.json` in the workspace (not in the skill directory -- eval data is ephemeral):
+Save test cases to `evals/evals.json` in the workspace, not in the skill directory. Eval data is throwaway:
 
 ```json
 {
