@@ -3,7 +3,7 @@
 
 Umbrella skill for all executive decision-making: CEO-level strategy, CTO-level technology choices, CMO-level growth planning, competitive intelligence, and project evaluation. Each domain loads its own reference files on demand -- this skill detects the mode, loads the right references, and executes the appropriate framework.
 
-**Scope**: Business decisions with meaningful consequences. Use decision-helper for technical architecture micro-choices, domain agents for code, voice-writer for content, and systematic-debugging for debugging.
+**Scope**: Business decisions with meaningful consequences. Use decision-helper for technical architecture micro-choices, domain agents for code, writing for content, and systematic-debugging for debugging.
 
 ---
 

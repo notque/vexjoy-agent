@@ -19,7 +19,7 @@ routing:
     - voice analysis
     - voice refine
   pairs_with:
-    - voice-writer
+    - writing
     - voice-validator
   complexity: Medium
   category: content

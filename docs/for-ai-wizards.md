@@ -85,7 +85,7 @@ allowed-tools:
   - Skill
 routing:
   triggers: [research then write, article with research]
-  pairs_with: [voice-writer]
+  pairs_with: [writing]
   complexity: complex
   category: content-pipeline
 ---

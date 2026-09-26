@@ -1,6 +1,6 @@
 # Grounding Guide
 
-Full reference for Phase 2 (GROUND) of the voice-writer pipeline.
+Full reference for Phase 2 (GROUND) of the voice pipeline.
 
 ---
 

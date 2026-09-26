@@ -1,6 +1,6 @@
 # Extraction Validation -- Triple-Validation Gate
 
-Detailed reference for Step 3 (PATTERN) and Step 4 (RULE) of the create-voice
+Detailed reference for Step 3 (PATTERN) and Step 4 (RULE) of the Voice Creation
 pipeline. This rubric decides which extracted patterns are kept in the voice
 profile and which are discarded.
 
@@ -29,7 +29,7 @@ in the profile only when **all three** of the following hold:
 
 Patterns that satisfy all three checks earn a place in the voice profile.
 Patterns that satisfy two earn a footnote ("observed in domain X, weak in
-domain Y") so the voice-writer knows to use them with care. Patterns that
+domain Y") so the voice pipeline knows to use them with care. Patterns that
 satisfy only one are discarded; they're either noise from the corpus or
 generic-writer features the model already produces by default.
 

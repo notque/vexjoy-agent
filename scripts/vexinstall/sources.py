@@ -180,6 +180,16 @@ def load_public(root: Path) -> PublicSources:
     root = Path(realpath(root))
     pub = PublicSources(root=root)
     lister = gitutil.ls_files(root)
+    # In a git checkout only a committed SKILL.md makes a skill, so untracked
+    # work in progress never installs (or shadows a category as one skill).
+    tracked = set(gitutil.tracked_files(root)) if lister is not None else None
+
+    def is_skill(path: Path) -> bool:
+        md = path / "SKILL.md"
+        if tracked is None:
+            return md.is_file()
+        return md.relative_to(root).as_posix() in tracked
+
     skills_dir = root / "skills"
     candidates: list[SourceItem] = []
     for top in _visible_dirs(skills_dir):
@@ -188,12 +198,12 @@ def load_public(root: Path) -> PublicSources:
         if top.name in SUPPORT_DIRS:
             pub.support.append(SourceItem("support", top.name, top, PUBLIC))
             continue
-        if (top / "SKILL.md").is_file():
+        if is_skill(top):
             candidates.append(SourceItem("skill", top.name, top, PUBLIC))
             continue
         nested = False
         for child in _visible_dirs(top):
-            if (child / "SKILL.md").is_file():
+            if is_skill(child):
                 nested = True
                 candidates.append(SourceItem("skill", child.name, child, PUBLIC, top.name))
             elif (child / "profile.json").is_file():
@@ -214,9 +224,12 @@ def load_public(root: Path) -> PublicSources:
         if path.is_dir() or name.endswith(".md"):
             pub.agents.append(SourceItem("agent", name, path, PUBLIC))
 
+    # A user-invocable skill already is a slash command; a same-named command
+    # shim would list it twice, so the skill wins.
+    skill_names = {s.name for s in pub.skills}
     commands_dir = root / "commands"
     for name in _top_level_items(root, "commands", lister, frozenset()):
-        if name.endswith(".md") and (commands_dir / name).is_file():
+        if name.endswith(".md") and (commands_dir / name).is_file() and name[:-3] not in skill_names:
             pub.commands.append(SourceItem("command", name[:-3], commands_dir / name, PUBLIC))
 
     hooks_dir = root / "hooks"
@@ -295,6 +308,12 @@ def _scan_overlay(ov: Overlay) -> None:
         for child in _visible_dirs(top):
             if child.name == "agents":
                 add_agents(child, f"{top.name}/agents")
+                continue
+            # Project-style category (``<project>/skills/<n>``): one more level down.
+            if child.name == "skills" and skill_md_of(child) is None:
+                if not _excluded(f"{top.name}/skills", ov.exclude):
+                    for grand in _visible_dirs(child):
+                        add_entry(grand, f"{top.name}/skills/{grand.name}")
                 continue
             add_entry(child, f"{top.name}/{child.name}")
     if ov.layout == "category" and "skills" not in ov.kinds:

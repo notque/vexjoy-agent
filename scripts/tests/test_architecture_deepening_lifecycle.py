@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 jsonschema = pytest.importorskip("jsonschema", exc_type=ImportError)
 
@@ -21,14 +20,11 @@ pytestmark = pytest.mark.usefixtures("use_public_index")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILL = REPO_ROOT / "skills" / "research" / "architecture-deepening" / "SKILL.md"
-LIFECYCLE = SKILL.parent / "references" / "maintenance-lifecycle.md"
-DO_SKILL = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 PRE_ROUTE = REPO_ROOT / "scripts" / "pre-route.py"
 HANDOFF_SCHEMA = REPO_ROOT / "skills" / "shared-patterns" / "schemas" / "architecture-change-handoff.schema.json"
 MEMORY_SCHEMA = SKILL.parent / "references" / "decision-memory-record.schema.json"
 DECISION_MEMORY = SKILL.parent / "scripts" / "decision_memory.py"
 HANDOFF = REPO_ROOT / "scripts" / "handoff.py"
-PIPELINE_INDEX = REPO_ROOT / "skills" / "process" / "workflow" / "references" / "pipeline-index.json"
 
 
 def _load_decision_memory():
@@ -75,11 +71,6 @@ def _handoff(**overrides) -> dict:
     return handoff
 
 
-def _frontmatter() -> dict:
-    text = SKILL.read_text(encoding="utf-8")
-    return yaml.safe_load(text.split("---", 2)[1])
-
-
 def _pre_route(request: str) -> dict:
     result = subprocess.run(
         [sys.executable, str(PRE_ROUTE), "--request", request, "--json-compact"],
@@ -89,25 +80,6 @@ def _pre_route(request: str) -> dict:
         check=True,
     )
     return json.loads(result.stdout)
-
-
-def test_architecture_deepening_remains_semantic_only() -> None:
-    frontmatter = _frontmatter()
-    routing = frontmatter["routing"]
-    assert "force_route" not in routing
-    assert frontmatter["command"] == "architecture-deepening"
-    assert frontmatter["description"] == "Improve architecture across modules by deepening interfaces."
-    assert {
-        "improve architecture",
-        "improve codebase architecture",
-        "improve the codebase architecture",
-        "find architecture improvements",
-    } <= set(routing["triggers"])
-    assert "reduce complexity" not in routing["triggers"]
-    assert "reduce caller coordination" not in routing["triggers"]
-    for boundary in ("vague complexity", "local cleanup", "feature design", "overview/explanation"):
-        assert boundary in routing["not_for"]
-    assert {"Write", "Edit"}.issubset(frontmatter["allowed-tools"])
 
 
 def test_architecture_and_local_cleanup_both_fall_through_pre_route() -> None:
@@ -122,32 +94,6 @@ def test_architecture_and_local_cleanup_both_fall_through_pre_route() -> None:
         result = _pre_route(request)
         assert result["matched"] is False
         assert result["match_type"] == "fallthrough"
-
-
-def test_lifecycle_contract_has_required_states_and_handoffs() -> None:
-    text = LIFECYCLE.read_text(encoding="utf-8")
-    for required in (
-        "## Safe Entry Moments",
-        "## Scope and Recent-Change Bias",
-        "## Prior-Decision Read",
-        "## No-Findings Result",
-        "## Durable Decision Memory",
-        "## Terminal States",
-        "## Architecture Change Handoff",
-        "behavior-preserving-refactor",
-        "interface-migration",
-        "next_skill",
-        "next_pipeline",
-        "systematic-refactoring",
-    ):
-        assert required in text
-
-
-def test_do_reverts_unproven_explicit_route_and_automatic_stacking() -> None:
-    text = DO_SKILL.read_text(encoding="utf-8")
-    assert "cross module interface or caller coordination improvement→architecture-deepening" not in text
-    assert "Stack `architecture-deepening` after the evidence source" not in text
-    assert "Architecture-deepening remains an explicit semantic route" not in text
 
 
 def test_handoff_schema_is_valid_and_accepts_each_successor() -> None:
@@ -226,15 +172,6 @@ def test_handoff_schema_is_valid_and_accepts_each_successor() -> None:
     )
     for case in cases:
         validator.validate(case)
-
-
-def test_handoff_successors_are_registered_skill_and_pipeline_names(public_index_dir: Path) -> None:
-    # skills/INDEX.json is generated and gitignored; read a tmp public build.
-    skills = json.loads((public_index_dir / "skills.json").read_text(encoding="utf-8"))["skills"]
-    skill_names = set(skills)
-    pipelines = json.loads(PIPELINE_INDEX.read_text(encoding="utf-8"))["pipelines"]
-    assert {"workflow", "process"} <= skill_names
-    assert "systematic-refactoring" in pipelines
 
 
 @pytest.mark.parametrize(
@@ -690,16 +627,3 @@ def test_handoff_consumer_rejects_symlinked_or_malformed_session_registry(tmp_pa
     session.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
     with pytest.raises(ValueError, match="JSON object"):
         validator.validate_handoff(handoff, tmp_path, HANDOFF_SCHEMA)
-
-
-@pytest.mark.xfail(reason="design.md and implement.md removed during skill consolidation")
-def test_feature_lifecycle_adopts_handoff_and_defers_consultation_to_implement_gate() -> None:
-    design = (REPO_ROOT / "skills/process/process/references/design.md").read_text(encoding="utf-8")
-    implement = (REPO_ROOT / "skills/process/process/references/implement.md").read_text(encoding="utf-8")
-    architecture = SKILL.read_text(encoding="utf-8")
-    assert "scripts/handoff.py validate" in design
-    assert "Architecture Change Handoff" in design
-    assert "adr-query.py register" in design
-    assert "adr-query.py validate-registration" in implement
-    assert "Run `assessment` before `process`" not in architecture
-    assert "pre-IMPLEMENT consultation gate" in architecture

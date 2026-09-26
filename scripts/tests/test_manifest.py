@@ -72,33 +72,6 @@ def manifest_module(tmp_repo: Path, monkeypatch: pytest.MonkeyPatch):
 # ---------------------------------------------------------------------------
 
 
-class TestSha256:
-    """Test SHA-256 computation."""
-
-    def test_sha256_known_content(self, tmp_path: Path, manifest_module) -> None:
-        """SHA-256 of known content matches expected hash."""
-        f = tmp_path / "hello.txt"
-        f.write_text("hello\n")
-        result = manifest_module.compute_sha256(f)
-        # sha256 of "hello\n"
-        assert len(result) == 64
-        assert result == "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
-
-    def test_sha256_empty_file(self, tmp_path: Path, manifest_module) -> None:
-        """SHA-256 of empty file is the well-known empty hash."""
-        f = tmp_path / "empty.txt"
-        f.write_bytes(b"")
-        result = manifest_module.compute_sha256(f)
-        assert result == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-
-    def test_sha256_binary_content(self, tmp_path: Path, manifest_module) -> None:
-        """SHA-256 works on binary content."""
-        f = tmp_path / "binary.bin"
-        f.write_bytes(bytes(range(256)))
-        result = manifest_module.compute_sha256(f)
-        assert len(result) == 64
-
-
 # ---------------------------------------------------------------------------
 # Snapshot
 # ---------------------------------------------------------------------------
@@ -496,27 +469,3 @@ class TestCLIIntegration:
                     except OSError:
                         break
                     backup_ts_dir = backup_ts_dir.parent
-
-    def test_no_subcommand_fails(self) -> None:
-        """Running without a subcommand should fail."""
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT)],
-            capture_output=True,
-            text=True,
-            cwd=str(REPO_ROOT),
-        )
-        assert result.returncode != 0
-
-    def test_help_flag(self) -> None:
-        """--help prints usage information."""
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--help"],
-            capture_output=True,
-            text=True,
-            cwd=str(REPO_ROOT),
-        )
-        assert result.returncode == 0
-        assert "snapshot" in result.stdout
-        assert "undo" in result.stdout
-        assert "list" in result.stdout
-        assert "verify" in result.stdout

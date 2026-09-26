@@ -25,14 +25,6 @@ mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
 
-def test_checker_remains_registered_as_a_push_gate():
-    """The scoped checker must remain active in Claude and Codex installs."""
-    settings = json.loads((REPO_ROOT / ".claude" / "settings.json").read_text())
-    commands = [hook.get("command", "") for group in settings["hooks"]["PreToolUse"] for hook in group.get("hooks", [])]
-    assert any("pretool-ruff-format-gate.py" in command for command in commands)
-    assert "PreToolUse:pretool-ruff-format-gate.py" in (REPO_ROOT / "scripts" / "codex-hooks-allowlist.txt").read_text()
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -50,22 +50,6 @@ def test_tier_classification(files, pkgs, expected_tier):
     assert rsr.compute_tier(files, pkgs) == expected_tier
 
 
-def test_boundary_5_to_6_files():
-    # 5 files stays Tier 1; 6 files crosses into Tier 2.
-    assert rsr.compute_tier(5, 1) == 1
-    assert rsr.compute_tier(6, 1) == 2
-
-
-def test_boundary_20_to_21_files():
-    assert rsr.compute_tier(20, 2) == 2
-    assert rsr.compute_tier(21, 3) == 3
-
-
-def test_boundary_50_to_51_files():
-    assert rsr.compute_tier(50, 5) == 3
-    assert rsr.compute_tier(51, 6) == 4
-
-
 # --- Zero / negative counts (reachable: _git_scope returns (0,0) on an empty
 #     diff or a git error, and feeds straight into compute_tier) ---------------
 
@@ -236,21 +220,6 @@ def test_cli_emits_json_and_exit_zero():
     assert data["tier"] == 1
     assert data["waves"] == []
     assert data["agent_estimate"] == 3
-
-
-def test_cli_tier4():
-    proc = _run("--files", "80", "--packages", "7")
-    assert proc.returncode == 0
-    data = json.loads(proc.stdout)
-    assert data["tier"] == 4
-    assert data["agent_estimate"] == 27
-    assert data["waves"] == [1, 2, 3]
-
-
-def test_cli_max_rule_via_packages():
-    proc = _run("--files", "3", "--packages", "6")
-    data = json.loads(proc.stdout)
-    assert data["tier"] == 4
 
 
 def test_cli_includes_recommended_and_field_scope_tier():

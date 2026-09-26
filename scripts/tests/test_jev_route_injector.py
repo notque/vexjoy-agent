@@ -46,12 +46,6 @@ hook = _mod  # alias for readability
 class TestModuleConstants:
     """Route constants exist."""
 
-    def test_detect_pattern_exists(self) -> None:
-        assert hasattr(hook, "DETECT_PATTERN")
-
-    def test_route_timeout_exists(self) -> None:
-        assert hasattr(hook, "JEV_ROUTE_TIMEOUT_SECONDS")
-
     def test_outer_timeout_covers_bounded_gateway_retries(self) -> None:
         worst_gateway_seconds = 3 * hook.JEV_ROUTE_ATTEMPT_TIMEOUT_SECONDS + 2 * 5
         assert worst_gateway_seconds + 2 <= hook.JEV_ROUTE_TIMEOUT_SECONDS

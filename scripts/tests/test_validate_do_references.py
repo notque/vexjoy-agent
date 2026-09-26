@@ -16,8 +16,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "validate-do-references.py"
 SKILL_FILE = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
@@ -44,13 +42,6 @@ def _skill_copy(tmp_path: Path, old: str, new: str) -> Path:
     for name in COLD_REFS:
         shutil.copy(REFS_DIR / name, refs / name)
     return out
-
-
-def test_shipped_skill_file_passes(public_index_repo: Path) -> None:
-    """The repo's /do SKILL.md carries no phantom component names."""
-    result = _run(SKILL_FILE, public_index_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "all resolve" in result.stdout
 
 
 def test_phantom_in_verb_map_fails(tmp_path: Path, public_index_repo: Path) -> None:

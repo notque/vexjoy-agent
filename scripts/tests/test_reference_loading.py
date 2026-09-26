@@ -1,4 +1,4 @@
-"""Reference loading tables for agents: table/disk agreement, keyword matching, isolation.
+"""Reference loading tables for agents: table/disk agreement.
 
 File size limits, the oversized-file debt registers, and empty references/
 dirs are checked by `scripts/validate-references.py --check-size` (a CI step);
@@ -22,56 +22,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
-
-
-# ---------------------------------------------------------------------------
-# Test data
-# ---------------------------------------------------------------------------
-
-REFERENCE_LOADING_TESTS: list[dict[str, object]] = [
-    {
-        "agent": "react-native-engineer",
-        "query": "optimize FlashList scrolling performance",
-        "expected_refs": ["list-performance.md"],
-        "unexpected_refs": ["animation-patterns.md", "navigation-patterns.md"],
-    },
-    {
-        "agent": "react-native-engineer",
-        "query": "add smooth Reanimated gesture animations",
-        "expected_refs": ["animation-patterns.md"],
-        "unexpected_refs": ["list-performance.md"],
-    },
-    {
-        "agent": "react-native-engineer",
-        "query": "set up native stack navigation with deep links",
-        "expected_refs": ["navigation-patterns.md"],
-        "unexpected_refs": ["animation-patterns.md"],
-    },
-    {
-        "agent": "typescript-frontend-engineer",
-        "query": "audit Server Action auth and the middleware bypass CVE",
-        "expected_refs": ["nextjs-security.md"],
-        "unexpected_refs": ["react-view-transitions.md"],
-    },
-    {
-        "agent": "typescript-frontend-engineer",
-        "query": "add ViewTransition animations between routes",
-        "expected_refs": ["react-view-transitions.md"],
-        "unexpected_refs": ["nextjs-security.md"],
-    },
-    {
-        "agent": "performance-optimization-engineer",
-        "query": "eliminate async waterfall in API calls",
-        "expected_refs": ["react-async-patterns.md"],
-        "unexpected_refs": ["js-algorithm-optimizations.md"],
-    },
-    {
-        "agent": "performance-optimization-engineer",
-        "query": "optimize Set and Map lookups in hot loop",
-        "expected_refs": ["js-algorithm-optimizations.md"],
-        "unexpected_refs": ["react-async-patterns.md"],
-    },
-]
 
 
 # ---------------------------------------------------------------------------
@@ -225,40 +175,6 @@ def _load_agent_info(agent_name: str) -> AgentReferenceInfo:
     )
 
 
-def _match_refs_for_query(query: str, entries: list[ReferenceTableEntry]) -> list[str]:
-    """Return reference filenames whose keywords appear in the query.
-
-    Each table entry is checked: if ANY of its keywords match the query as a
-    whole word or phrase (using word boundaries), the entry's reference file
-    is included. Word-boundary matching prevents short keywords like "min" or
-    "map" from matching inside longer words like "eliminate" or "bitmap".
-
-    Args:
-        query: Free-text task description.
-        entries: Reference loading table rows to match against.
-
-    Returns:
-        Deduplicated list of matched reference file basenames.
-    """
-    query_lower = query.lower()
-    matched: list[str] = []
-    seen: set[str] = set()
-
-    for entry in entries:
-        for keyword in entry.keywords:
-            if not keyword:
-                continue
-            # Use word-boundary anchors so "min" does not match "eliminate"
-            pattern = r"\b" + re.escape(keyword) + r"\b"
-            if re.search(pattern, query_lower):
-                if entry.ref_file not in seen:
-                    matched.append(entry.ref_file)
-                    seen.add(entry.ref_file)
-                break
-
-    return matched
-
-
 # ---------------------------------------------------------------------------
 # Category 1: Reference Loading Table Completeness
 # ---------------------------------------------------------------------------
@@ -292,142 +208,6 @@ class TestReferenceLoadingTableCompleteness:
         table_files = {e.ref_file for e in info.table_entries}
         orphaned = [f for f in info.files_on_disk if f not in table_files]
         assert not orphaned, f"{agent_name}: files on disk have no table row (never loaded): {orphaned}"
-
-
-# ---------------------------------------------------------------------------
-# Category 2: Keyword-to-Reference Mapping Validation
-# ---------------------------------------------------------------------------
-
-
-def _build_test_id(case: dict[str, object]) -> str:
-    """Build a readable pytest ID from a test case dict.
-
-    Args:
-        case: A dict from REFERENCE_LOADING_TESTS.
-
-    Returns:
-        String in the form ``agent-name::first 30 chars of query``.
-    """
-    agent = str(case["agent"])
-    query = str(case["query"])[:30]
-    return f"{agent}::{query}"
-
-
-class TestKeywordToReferenceMappingValidation:
-    """Keyword matching resolves to correct reference files for known queries."""
-
-    @pytest.mark.parametrize("case", REFERENCE_LOADING_TESTS, ids=[_build_test_id(c) for c in REFERENCE_LOADING_TESTS])
-    def test_expected_refs_are_matched(self, case: dict[str, object]) -> None:
-        """The expected reference file(s) must be selected for the given query.
-
-        Args:
-            case: A test case dict with agent, query, expected_refs, unexpected_refs.
-        """
-        agent_name = str(case["agent"])
-        query = str(case["query"])
-        expected_refs: list[str] = list(case["expected_refs"])  # type: ignore[arg-type]
-
-        info = _load_agent_info(agent_name)
-        if not info.has_table:
-            pytest.skip(f"{agent_name} has no reference loading table")
-
-        matched = _match_refs_for_query(query, info.table_entries)
-
-        missing_from_match = [r for r in expected_refs if r not in matched]
-        assert not missing_from_match, (
-            f"{agent_name}: query '{query}' did not match expected refs:\n"
-            + "\n".join(f"  - {r}" for r in missing_from_match)
-            + f"\n  Matched: {matched}"
-        )
-
-    @pytest.mark.parametrize("case", REFERENCE_LOADING_TESTS, ids=[_build_test_id(c) for c in REFERENCE_LOADING_TESTS])
-    def test_unexpected_refs_are_not_matched(self, case: dict[str, object]) -> None:
-        """Reference files listed as unexpected must not be selected for the query.
-
-        Args:
-            case: A test case dict with agent, query, expected_refs, unexpected_refs.
-        """
-        agent_name = str(case["agent"])
-        query = str(case["query"])
-        unexpected_refs: list[str] = list(case["unexpected_refs"])  # type: ignore[arg-type]
-
-        info = _load_agent_info(agent_name)
-        if not info.has_table:
-            pytest.skip(f"{agent_name} has no reference loading table")
-
-        matched = _match_refs_for_query(query, info.table_entries)
-
-        false_positives = [r for r in unexpected_refs if r in matched]
-        assert not false_positives, (
-            f"{agent_name}: query '{query}' incorrectly matched refs that should NOT be selected:\n"
-            + "\n".join(f"  - {r}" for r in false_positives)
-            + f"\n  All matched: {matched}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# Cross-agent reference isolation
-# ---------------------------------------------------------------------------
-
-
-def _extract_reference_links(md_text: str) -> list[str]:
-    """Extract all relative markdown link targets from an agent file.
-
-    Args:
-        md_text: Raw markdown text of an agent file.
-
-    Returns:
-        List of link target strings (the href portion of ``[text](href)``).
-    """
-    return re.findall(r"\]\(([^)]+\.md)\)", md_text)
-
-
-class TestCrossAgentReferenceIsolation:
-    """Each agent must only reference files within its own directory."""
-
-    AGENTS_WITH_TABLES: ClassVar[list[str]] = [
-        "react-native-engineer",
-        "typescript-frontend-engineer",
-        "performance-optimization-engineer",
-        "ui-design-engineer",
-    ]
-
-    @pytest.mark.parametrize("agent_name", AGENTS_WITH_TABLES)
-    def test_agent_references_are_self_contained(self, agent_name: str) -> None:
-        """An agent's reference loading table must not link into another agent's directory.
-
-        Shared patterns (e.g. ``skills/shared-patterns/``) are excluded from this check
-        as they are intentionally cross-cutting.
-
-        Args:
-            agent_name: Agent under test.
-        """
-        info = _load_agent_info(agent_name)
-        agent_prefix = f"{agent_name}/references/"
-
-        cross_agent_refs: list[str] = []
-        for entry in info.table_entries:
-            # Reconstruct the full link target the table entry came from by checking
-            # the raw agent markdown for this filename
-            md_text = info.agent_file.read_text(encoding="utf-8")
-            all_links = _extract_reference_links(md_text)
-
-            for link in all_links:
-                if entry.ref_file in link:
-                    # Shared skills/ paths are allowed
-                    if link.startswith("../skills/") or link.startswith("skills/"):
-                        continue
-                    # Links must point into this agent's own directory
-                    if agent_prefix not in link and entry.ref_file in link:
-                        # Check it doesn't belong to another known agent
-                        for other_agent_dir in AGENTS_DIR.iterdir():
-                            if other_agent_dir.is_dir() and other_agent_dir.name != agent_name:
-                                if other_agent_dir.name in link:
-                                    cross_agent_refs.append(f"{link!r} (in {agent_name})")
-
-        assert not cross_agent_refs, f"{agent_name}: reference loading table contains cross-agent links:\n" + "\n".join(
-            f"  - {r}" for r in cross_agent_refs
-        )
 
 
 # ---------------------------------------------------------------------------

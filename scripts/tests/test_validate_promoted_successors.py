@@ -106,16 +106,3 @@ def test_indexed_successor_resolves(tmp_path: Path) -> None:
     )
     _make_skill(tmp_path, "meta", "husk", promoted_to="private-umbrella", user_invocable=False)
     assert check(tmp_path) == []
-
-
-def test_repo_state_names_the_do_phantom() -> None:
-    """The live repo: /do is retired into a successor that does not exist.
-
-    The fix lands in skills/meta/do/SKILL.md, not here — this pins that the
-    failure stays legible (file path plus phantom target) until it does.
-    """
-    repo_root = SCRIPT.resolve().parent.parent
-    failures = check(repo_root)
-    phantoms = [f for f in failures if "P1 PHANTOM-SUCCESSOR" in f]
-    for f in phantoms:
-        assert "skills/" in f and "SKILL.md" in f

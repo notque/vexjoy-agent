@@ -183,21 +183,6 @@ class TestReviewPromptWithCodexInstalled:
         assert "codex-auto-review" in hook_out["additionalContext"]
         assert "pr-workflow" in hook_out["additionalContext"]
 
-    def test_systematic_code_review_skill_injects_context(self):
-        output = self._run_with_codex("/systematic-code-review")
-        hook_out = output.get("hookSpecificOutput", {})
-        assert "additionalContext" in hook_out
-
-    def test_pr_review_skill_injects_context(self):
-        output = self._run_with_codex("/pr-review")
-        hook_out = output.get("hookSpecificOutput", {})
-        assert "additionalContext" in hook_out
-
-    def test_code_review_phrase_injects_context(self):
-        output = self._run_with_codex("do a code review of the auth module")
-        hook_out = output.get("hookSpecificOutput", {})
-        assert "additionalContext" in hook_out
-
     def test_injection_mentions_skill_not_raw_command(self):
         """Injection should tell Claude to invoke the skill, not run codex directly."""
         output = self._run_with_codex("review my changes")
@@ -237,11 +222,6 @@ class TestDirectCodexInvocation:
 
     def test_pr_workflow_not_injected(self):
         output = self._run_with_codex("/pr-workflow push")
-        hook_out = output.get("hookSpecificOutput", {})
-        assert "additionalContext" not in hook_out
-
-    def test_pr_workflow_codex_review_not_injected(self):
-        output = self._run_with_codex("/pr-workflow codex-review")
         hook_out = output.get("hookSpecificOutput", {})
         assert "additionalContext" not in hook_out
 

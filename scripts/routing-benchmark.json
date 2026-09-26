@@ -257,7 +257,7 @@
       "expected_skill": "research",
       "category": "content-creation",
       "routing_tier": "force_route",
-      "notes": "Multi-skill chain — script fires voice-writer pipeline force-route (via 'write article' / 'write about' trigger), but correct answer requires research-to-article chain. LLM resolves the chain."
+      "notes": "Multi-skill chain — script fires writing pipeline force-route (via 'write article' / 'write about' trigger), but correct answer requires research-to-article chain. LLM resolves the chain."
     },
     {
       "request": "remove AI patterns from this blog post",
@@ -265,7 +265,7 @@
       "expected_skill": null,
       "category": "content-creation",
       "routing_tier": "llm_only",
-      "notes": "Script fires voice-writer pipeline force-route (via 'blog post' trigger), but correct answer is the private de-AI editing skill. Subtle distinction requires LLM intent understanding."
+      "notes": "Script fires writing pipeline force-route (via 'blog post' trigger), but correct answer is the private de-AI editing skill. Subtle distinction requires LLM intent understanding."
     },
     {
       "request": "deploy the app to Kubernetes with Helm",
@@ -428,7 +428,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Data cleaning, not voice-writer generation — must NOT force-route to voice-writer (semantic guard exists)"
+      "notes": "Data cleaning, not writing generation — must NOT force-route to writing (semantic guard exists)"
     },
     {
       "request": "audit our explanation traces for accuracy",

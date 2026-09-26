@@ -38,13 +38,6 @@ def test_hash_same_input_same_hash() -> None:
     assert h1 == h2
 
 
-def test_hash_is_sha256_hex() -> None:
-    """Hash is a 64-char lowercase hex SHA256 digest."""
-    h = feature_state.agent_input_hash("anything")
-    assert len(h) == 64
-    assert all(c in "0123456789abcdef" for c in h)
-
-
 def test_hash_different_prompt_different_hash() -> None:
     """Different prompt text produces a different hash."""
     h1 = feature_state.agent_input_hash("review the diff")

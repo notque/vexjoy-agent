@@ -206,7 +206,7 @@ Validate: Accuracy over style.
 ## Integration Points
 
 This pattern is referenced by:
-- `skills/workflow/references/voice-writer.md` - Full orchestration
+- `skills/voice-shared/workflow-refs/voice-pipeline.md` - Full orchestration
 - `skills/voice-{name}/SKILL.md` - Individual voice skills
 - `skills/workflow/references/research-to-article.md` - Article pipeline
 - `CLAUDE.md` - Repository default behavior

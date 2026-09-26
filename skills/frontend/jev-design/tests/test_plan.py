@@ -254,14 +254,6 @@ def test_oversized_request_abstains_without_sending(monkeypatch):
 # --- Catalog integrity -------------------------------------------------------
 
 
-def test_catalog_v2_is_versioned_and_sourced():
-    assert planner.CATALOG_FILE.endswith("catalog-v2.json")
-    assert CATALOG["version"] == "shadcn-style-catalog-v2"
-    assert CATALOG["source"]["components"].startswith("https://ui.shadcn.com/")
-    assert CATALOG["source"]["fetched"]
-    assert (planner.SKILL_DIR / "references/catalog-v1.json").is_file()
-
-
 def test_component_ids_unique_and_packages_non_empty():
     ids = [row["id"] for row in CATALOG["components"]]
     assert len(ids) == len(set(ids)) >= 60

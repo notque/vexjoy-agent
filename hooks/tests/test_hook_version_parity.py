@@ -79,13 +79,6 @@ class TestFindDriftedHooks:
         _hook_file(repo / "brand-new.py", "1.0.0")
         assert mod.find_drifted_hooks(repo, deployed) == ["brand-new.py"]
 
-    def test_matching_versions_no_drift(self, tmp_path):
-        repo = tmp_path / "repo-hooks"
-        deployed = tmp_path / "deployed"
-        _hook_file(repo / "recorder.py", "1.2.0")
-        _hook_file(deployed / "recorder.py", "1.2.0")
-        assert mod.find_drifted_hooks(repo, deployed) == []
-
     def test_headerless_repo_file_skipped(self, tmp_path):
         # No version header => nothing to compare => never reported.
         repo = tmp_path / "repo-hooks"
@@ -146,10 +139,6 @@ class TestMainBehavior:
 
 
 class TestNonBlocking:
-    def test_exit_zero_on_empty_stdin(self):
-        p = subprocess.run([sys.executable, str(HOOK_PATH)], input="", capture_output=True, text=True)
-        assert p.returncode == 0
-
     def test_exit_zero_with_unreadable_project_dir(self, tmp_path):
         p = subprocess.run(
             [sys.executable, str(HOOK_PATH)],

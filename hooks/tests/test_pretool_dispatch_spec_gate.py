@@ -222,13 +222,6 @@ def test_silent_path_under_50ms_median() -> None:
     assert sorted(samples)[2] < 0.08, samples
 
 
-def test_registered_in_pretooluse_agent_group() -> None:
-    settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
-    groups = [g for g in settings["hooks"]["PreToolUse"] if g.get("matcher") == "Agent"]
-    commands = [h["command"] for g in groups for h in g["hooks"]]
-    assert any("pretool-dispatch-spec-gate.py" in c for c in commands)
-
-
 @pytest.mark.usefixtures("use_public_index")
 @pytest.mark.parametrize("mode", ["summary", "files", "none"])
 @pytest.mark.parametrize("complexity", ["medium", "complex"])

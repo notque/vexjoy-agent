@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PreToolUse:Write Hook: Voice Pipeline Publish Gate
 
 Blocks publishing VexJoy blog posts (draft: false) unless all 13 phases
-of the voice-writer pipeline have been completed.
+of the writing skill's voice pipeline have been completed.
 
 Detection logic:
 - Tool is Write (enforced by matcher in settings.json)

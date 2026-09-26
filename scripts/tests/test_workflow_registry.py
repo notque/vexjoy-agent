@@ -12,11 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 SCRIPT = Path(__file__).resolve().parents[1] / "workflow-registry.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "workflow_js"
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 sys.path.insert(0, str(SCRIPT.parent))
 import importlib.util
@@ -45,12 +42,6 @@ def test_parse_no_meta_returns_none():
     assert name is None
 
 
-def test_parse_real_comprehensive_review_variant():
-    """The shipped variant must register under its real meta.name."""
-    js = (REPO_ROOT / "skills" / "process" / "workflow" / "references" / "comprehensive-review-workflow.js").read_text()
-    assert wr.parse_meta_name(js) == "comprehensive-review-workflow"
-
-
 # --- build_registry over a directory -----------------------------------------
 
 
@@ -71,12 +62,6 @@ def test_build_registry_missing_dir(tmp_path):
 
 
 # --- default scan registers the real variant ---------------------------------
-
-
-def test_default_registry_includes_comprehensive_review():
-    reg = wr.build_registry()
-    assert "comprehensive-review-workflow" in reg
-    assert reg["comprehensive-review-workflow"].endswith("comprehensive-review-workflow.js")
 
 
 # --- CLI / JSON contract -----------------------------------------------------

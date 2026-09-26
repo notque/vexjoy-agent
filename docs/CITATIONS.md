@@ -43,7 +43,7 @@ Single-skill Claude Code repository that distills public figures into runnable v
 
 **Patterns adopted:**
 - Triple-validation extraction rubric (recurrence + generative power + exclusivity). A pattern is kept only if it appears across ≥2 distinct sources, predicts new behavior the source has not yet produced, and distinguishes the subject from peers in the same category. Codified at the philosophy layer in the "Triple-Validation Extraction Gate" section of `docs/PHILOSOPHY.md`.
-- Deterministic phase checkpoints. Their Phase-1.5 stats-table-as-gate pattern between research-gathering and synthesis became `scripts/research-stats-checkpoint.py`, wired into `voice-writer` Phase 2.5. Codified as the "Deterministic Phase Checkpoints" section of `docs/PHILOSOPHY.md`.
+- Deterministic phase checkpoints. Their Phase-1.5 stats-table-as-gate pattern between research-gathering and synthesis became `scripts/research-stats-checkpoint.py`, wired into the `writing` voice pipeline Phase 2.5. Codified as the "Deterministic Phase Checkpoints" section of `docs/PHILOSOPHY.md`.
 
 **Patterns noted but not adopted:**
 - Mandatory "honest limits" output block declaring what the produced skill cannot do. Conflicts with our positive-instruction framing — we rely on the verifier loop to surface failures rather than asking output to declare its own limits.

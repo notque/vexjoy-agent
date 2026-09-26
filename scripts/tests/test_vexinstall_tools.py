@@ -44,7 +44,7 @@ def test_public_scan_flattens_and_skips_promoted_support_data(world: Env) -> Non
     assert {s.name for s in pub.promoted} == {"old-thing"}
     assert {s.name for s in pub.support} == {"shared-patterns", "kb", "voice-shared"}
     assert set(pub.categories) == {"meta", "process", "content"}
-    assert {c.name for c in pub.commands} == {"cmd-one", "alpha"}
+    assert {c.name for c in pub.commands} == {"cmd-one"}  # commands/alpha.md shadows skill alpha
     assert {h.name for h in pub.hook_items} == {"h1.py", "h2.py", "h3.py"}
     assert pub.allowlists["codex"] == ["h1.py", "h2.py"]
     shutil.rmtree(world.repo / "skills" / "reddit-data")
@@ -216,6 +216,14 @@ def test_prune_unowned_requires_confirm(world: Env, target: str) -> None:
     assert find_named(world.home / ".claude" / "vexjoy" / "trash", "ghost")
 
 
+def test_prune_lists_command_that_shadows_a_skill(world: Env) -> None:
+    assert world.run("apply", "--target", "claude").code == 0
+    shim = world.home / ".claude" / "commands" / "alpha.md"
+    shim.write_text("---\ndescription: stale shim\n---\n")
+    listing = world.run("prune", "--unowned", "--target", "claude")
+    assert f"  {shim}  (command shadows a skill of the same name)" in listing.out
+
+
 # ---------------------------------------------------------------- leak + repair
 
 
@@ -260,3 +268,30 @@ def test_plan_json_is_serializable(world: Env) -> None:
     res = world.run("plan", "--target", "all", "--json")
     json.dumps(res.data)
     assert res.data["full_adoption"] is True
+
+
+def test_overlay_category_descends_into_project_skills_dir(world: Env) -> None:
+    root = world.home / "proj-private"
+    (root / "game-proj" / "skills" / "proj-mod").mkdir(parents=True)
+    (root / "game-proj" / "skills" / "proj-mod" / "SKILL.md").write_text(skill_md("proj-mod"))
+    (root / "game-proj" / "docs").mkdir()
+    write_overlays(world.home, {"overlays": [{"id": "p", "root": str(root)}]})
+    cfg = sources.load_overlays(world.home / ".claude" / "vexjoy" / "overlays.json", world.repo, world.home)
+    assert {s.name for s in cfg.overlays[0].skills} == {"proj-mod"}
+
+
+def test_migrate_finds_pgh_private_skills(world: Env) -> None:
+    from vexinstall.migrate import build_overlays
+
+    shutil.copytree(world.priv, world.home / "pgh" / "private-skills")
+    cfg, _ = build_overlays(world.home, world.repo)
+    by_id = {o["id"]: o for o in cfg["overlays"]}
+    assert by_id["pgh-private"]["root"] == "~/pgh/private-skills"
+    assert by_id["pgh-voices"]["prefix"] == "voice-"
+
+    shutil.copytree(world.priv, world.home / "private-skills")
+    cfg, _ = build_overlays(world.home, world.repo)
+    roots = {o["id"]: o["root"] for o in cfg["overlays"]}
+    assert roots["private"] == "~/private-skills"
+    assert roots["pgh-private"] == "~/pgh/private-skills"
+    assert roots["pgh-voices"] == "~/pgh/private-skills/voice"

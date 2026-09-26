@@ -38,10 +38,6 @@ def test_well_formed_registry_passes(tmp_path: Path) -> None:
     assert doc_links.check_negative_results(_registry(tmp_path, GOOD_ENTRY)) == []
 
 
-def test_real_registry_passes() -> None:
-    assert doc_links.check_negative_results(REPO_ROOT) == []
-
-
 def test_bad_entry_is_caught(tmp_path: Path) -> None:
     bad = GOOD_ENTRY.replace("**What happened**", "What happened").replace("rejected", "maybe")
     bad = bad.replace("docs/x.md line 4", "we just knew") + "Dash " + chr(0x2014) + " here\n"

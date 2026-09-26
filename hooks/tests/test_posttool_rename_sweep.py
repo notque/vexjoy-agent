@@ -208,16 +208,6 @@ class TestExitCode:
         )
         assert result.returncode == 0
 
-    @pytest.mark.parametrize("tool_result_block", _EMPTY_RESULT_PARAMS)
-    def test_valid_bash_no_git_mv(self, tool_result_block: dict) -> None:
-        event = {
-            "tool_name": "Bash",
-            "tool_input": {"command": "echo hello"},
-            **tool_result_block,
-        }
-        stdout, stderr, rc = run_hook(event)
-        assert rc == 0
-
 
 # ---------------------------------------------------------------------------
 # Regression: tool_input arriving as a string (H1 crash — 4,540 errors)

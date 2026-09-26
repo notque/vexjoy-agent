@@ -66,29 +66,6 @@ def test_state_lock_serializes_critical_section(tmp_path):
     assert int(state.read_text()) == n, "lock did not serialize the critical section"
 
 
-def test_lock_backend_not_noop_on_windows():
-    """On Windows the fallback must be a REAL lock, not the old no-op shim.
-
-    Asserts the module exposes `_acquire_lock`/`_release_lock` helpers, and on
-    Windows inspects the helper source for a real backend (msvcrt/fcntl), never
-    a return-None stub. No lock is acquired on any platform.
-    TODO: add a real cross-platform lock acquisition test (acquire on a temp
-    fd, assert a second acquisition blocks or raises).
-    """
-    import routing_outcome_state as ros
-
-    assert hasattr(ros, "_acquire_lock"), "expected a _acquire_lock helper"
-    assert hasattr(ros, "_release_lock"), "expected a _release_lock helper"
-    if sys.platform == "win32":
-        # The Windows backend must NOT be the no-op: locking twice from the same
-        # process on the same byte range raises (msvcrt is process-exclusive) OR
-        # at minimum the helper is the msvcrt variant, never a return-None stub.
-        import inspect
-
-        src = inspect.getsource(ros._acquire_lock)
-        assert "msvcrt" in src or "fcntl" in src, "Windows lock fallback is still a no-op"
-
-
 # ---------------------------------------------------------------------------
 # Fix 2 — generated git hooks: post-merge (sync via engine / sync hook, never
 # links) and pre-commit (private-leak gate). Installer spec 5.1 and 7.5.

@@ -73,7 +73,7 @@
       "artifact_glob": "adr/*.md"
     },
     {
-      "name": "create-voice-profile",
+      "name": "new-voice-profile",
       "split": "train",
       "complexity": "complex",
       "query": "create a new voice profile from my blog writing samples",

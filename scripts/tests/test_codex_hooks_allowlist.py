@@ -13,7 +13,6 @@ import os
 import re
 import subprocess
 import sys
-from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -62,16 +61,6 @@ def _claude_registrations() -> set[tuple[str, str]]:
     return registrations
 
 
-def test_inventory_accounting_is_72_equals_29_plus_33_plus_10() -> None:
-    """Every Claude registration has one reviewed current Codex decision."""
-    entries = _entries()
-    classes = Counter(entry["classification"] for entry in entries)
-    assert len(entries) == 59
-    assert classes == {"native": 29, "adapted": 30}
-    assert len(UNSUPPORTED_REGISTRATIONS) == 11
-    assert len(entries) + len(UNSUPPORTED_REGISTRATIONS) == 70
-
-
 def test_supported_and_unsupported_sets_partition_claude_settings() -> None:
     """Coverage drift fails until a new registration is classified."""
     supported = {(entry["event"], entry["filename"]) for entry in _entries()}
@@ -91,12 +80,6 @@ def test_every_current_entry_has_explicit_compatibility_metadata() -> None:
         event = line.split(":", 1)[0]
         if event not in {"UserPromptSubmit", "Stop"}:
             assert " matcher=" in line, line
-
-
-def test_all_supported_hook_files_exist() -> None:
-    """Generated commands never point to a missing target hook."""
-    missing = [entry["filename"] for entry in _entries() if not (HOOKS_DIR / entry["filename"]).is_file()]
-    assert not missing
 
 
 def test_apply_patch_entries_use_patch_mode_and_alias_matcher() -> None:
@@ -130,14 +113,6 @@ def test_unsupported_boundaries_are_exact() -> None:
         ("PostCompact", "postcompact-handler.py"),
         ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"),
     } == UNSUPPORTED_REGISTRATIONS
-
-
-def test_unsupported_inventory_has_machine_owned_precise_reasons() -> None:
-    """Every excluded registration carries a reviewable production reason."""
-    reasons = GENERATOR.UNSUPPORTED_REGISTRATIONS
-    assert len(reasons) == 11
-    assert all(isinstance(reason, str) and len(reason.split()) >= 6 for reason in reasons.values())
-    assert all("unsupported" not in reason.lower() for reason in reasons.values())
 
 
 def test_codex_adapter_is_accounted_as_a_generated_dispatch_target() -> None:

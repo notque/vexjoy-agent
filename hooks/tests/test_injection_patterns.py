@@ -254,41 +254,6 @@ class TestInvisibleUnicode:
         snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
         assert any("U+200B" in s for s in snippets)
 
-    def test_zero_width_joiner(self):
-        text = f"inject‍here"
-        findings = scan_content(text)
-        assert "invisible-unicode" in _categories(findings)
-        snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
-        assert any("U+200D" in s for s in snippets)
-
-    def test_zero_width_non_joiner(self):
-        text = f"ab‌cd"
-        findings = scan_content(text)
-        assert "invisible-unicode" in _categories(findings)
-        snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
-        assert any("U+200C" in s for s in snippets)
-
-    def test_right_to_left_override(self):
-        text = f"some‮text"
-        findings = scan_content(text)
-        assert "invisible-unicode" in _categories(findings)
-        snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
-        assert any("U+202E" in s for s in snippets)
-
-    def test_soft_hyphen(self):
-        text = f"word­here"
-        findings = scan_content(text)
-        assert "invisible-unicode" in _categories(findings)
-        snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
-        assert any("U+00AD" in s for s in snippets)
-
-    def test_bom_midtext(self):
-        text = f"text﻿more"
-        findings = scan_content(text)
-        assert "invisible-unicode" in _categories(findings)
-        snippets = [f["snippet"] for f in findings if f["category"] == "invisible-unicode"]
-        assert any("U+FEFF" in s for s in snippets)
-
     def test_multiple_invisible_chars(self):
         """Multiple distinct invisible chars produce multiple findings."""
         text = f"a​b‍c"

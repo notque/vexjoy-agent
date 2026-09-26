@@ -12,6 +12,8 @@
 #   ./install.sh --uninstall         # remove every engine-owned entry (to trash)
 #   ./install.sh --rollback          # restore the newest settings backup and trash session
 #   ./install.sh --migrate-overlays  # write ~/.claude/vexjoy/overlays.json, then exit
+#                                    # (apply runs it when overlays.json is missing and
+#                                    # ~/private-skills or ~/pgh/private-skills exists)
 #   ./install.sh --help
 #
 # Env: VEXJOY_NO_GIT_HOOKS=1 skips .git/hooks; VEXJOY_NO_DEPS=1 skips pip and npm.
@@ -264,6 +266,16 @@ if [ "$CONFIGURE" = true ] || [ "$CONFIGURE_ONLY" = true ]; then
     if [ "$CONFIGURE_ONLY" = true ]; then
         echo "Profile written. Run ./install.sh to apply it."
         exit 0
+    fi
+fi
+
+# First install with ~/private-skills or ~/pgh/private-skills present: write
+# overlays.json so private skills deploy from there, never from the repo.
+if [ ! -f "${STATE_DIR}/overlays.json" ] && { [ -d "${HOME}/private-skills" ] || [ -d "${HOME}/pgh/private-skills" ]; }; then
+    if [ "$DRY_RUN" = true ]; then
+        vexinstall migrate-overlays --dry-run
+    else
+        vexinstall migrate-overlays
     fi
 fi
 

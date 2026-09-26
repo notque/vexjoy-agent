@@ -233,13 +233,6 @@ class TestCLIBehavior:
         # argparse choices rejection exits 2
         assert proc.returncode == 2
 
-    def test_help_exits_0(self) -> None:
-        cmd = [sys.executable, SCRIPT, "--help"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        assert proc.returncode == 0
-        assert "--input" in proc.stdout
-        assert "--output" in proc.stdout
-
 
 class TestJsonOutputContract:
     """JSON output schema tests — verified through unit-level helpers."""

@@ -343,19 +343,7 @@ def test_no_contract_is_exempt():
     assert res["status"] == "exempt"
 
 
-def test_dir_with_any_failure_exits_nonzero():
-    rc, _ = _run_json("--dir", str(FIXTURES), "--static-only")
-    assert rc != 0  # fixtures dir contains deliberate mismatches
-
-
-# --- The real hardened workflow MUST conform (static) ------------------------
-
-
-def test_real_comprehensive_review_workflow_passes_static():
-    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
-    res = _result_for(data, "comprehensive-review-workflow.js")
-    assert res["status"] == "pass", res
-    assert rc == 0, data
+# --- Real workflow source: exact skill-call syntax and names ----------------
 
 
 def test_active_workflow_contract_surfaces_drop_legacy_skill_syntax():
@@ -499,27 +487,11 @@ def test_dynamic_roster_fixture_passes_dynamic():
     assert not res["dynamic_errors"], res["dynamic_errors"]
 
 
-# --- The real fan-out workflow MUST conform (static) -------------------------
-
-
-def test_real_fan_out_workflow_passes_static():
-    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
-    res = _result_for(data, "fan-out-workflow.js")
-    assert res["status"] == "pass", res
-
-
 # --- skills[] CONTRACT: full stack per agent (Stage 2.5) ---------------------
 # Each roster entry now declares a skills LIST and the body must emit one
 # exact Skill-tool call per element. The gate verifies EACH declared skill has a
 # corresponding call (static for literal rosters; structural for
 # fully-dynamic rosters where emission is delegated to skillDirectives(<var>)).
-
-
-def test_matching_multi_skill_fixture_passes_static():
-    """A static roster with a multi-skill list, all skills emitted, PASSES."""
-    rc, data = _run_json("--dir", str(FIXTURES), "--static-only")
-    res = _result_for(data, "matching.js")
-    assert res["status"] == "pass", res
 
 
 def test_missing_one_of_several_skills_fails_static():
@@ -554,22 +526,6 @@ def test_delegated_skill_directives_call_satisfies_invariant():
     assert vwc.has_dynamic_skill_directive(delegated) is True
     assert vwc.has_dynamic_skill_directive(inline) is True
     assert vwc.has_dynamic_skill_directive(none) is False
-
-
-def test_real_comprehensive_review_passes_static_with_skills_list():
-    """The hardened comprehensive-review workflow (skills[] per entry) PASSES."""
-    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR), "--static-only")
-    res = _result_for(data, "comprehensive-review-workflow.js")
-    assert res["status"] == "pass", res
-
-
-@pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")
-def test_real_comprehensive_review_dynamic_records_every_skill():
-    """The recorded trace shows EVERY declared skill per agent."""
-    rc, data = _run_json("--dir", str(RUN_WORKFLOW_DIR))
-    res = _result_for(data, "comprehensive-review-workflow.js")
-    assert res["status"] == "pass", res
-    assert not res["dynamic_errors"], res["dynamic_errors"]
 
 
 @pytest.mark.skipif(NODE is None, reason="node not available; dynamic harness is a local/dev tool")

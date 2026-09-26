@@ -96,11 +96,9 @@ These skills were built following this model. Use them as reference.
 | Skill | SKILL.md | `references/` | Total | What's in references |
 |-------|----------|----------------|-------|----------------------|
 | `comprehensive-review` | 564 lines | 765 lines (5 files) | 1329 | Wave-specific agent prompts per wave |
-| `create-voice` | 444 lines | 426 lines (4 files) | 870 | Phase-specific deep guides |
 | `pr-pipeline` | 417 lines | 365 lines (4 files) | 782 | Checklist, templates, loop details |
 | `sapcc-review` | 269 lines | 323 lines (2 files) | 592 | 10 agent dispatch prompts, report template |
 | `systematic-code-review` | 301 lines | 252 lines (3 files) | 553 | Severity rules, Go patterns, feedback guide |
-| `voice-writer` | 307 lines | 462 lines (6 files) | 769 | Rubrics, checklists, joy-check criteria, schemas |
 
 Notice that the most complex skills (`comprehensive-review`, `sapcc-review`) have
 the *smallest* SKILL.md-to-total ratios. All their operational depth lives in

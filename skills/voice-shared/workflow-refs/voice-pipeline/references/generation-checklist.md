@@ -1,6 +1,6 @@
 # Generation Checklist
 
-Full reference for Phase 3 (GENERATE) of the voice-writer pipeline.
+Full reference for Phase 3 (GENERATE) of the voice pipeline.
 
 ---
 

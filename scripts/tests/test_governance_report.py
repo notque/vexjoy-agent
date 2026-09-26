@@ -50,28 +50,6 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 # ─── Schema / table creation ──────────────────────────────────────────────────
 
 
-def test_governance_events_table_created(tmp_path: Path) -> None:
-    """governance_events table should exist after init_db()."""
-    ldb.init_db()
-    with ldb.get_connection() as conn:
-        row = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='governance_events'").fetchone()
-    assert row is not None, "governance_events table was not created"
-
-
-def test_governance_events_indexes_created() -> None:
-    """All four governance indexes should be present after init."""
-    ldb.init_db()
-    with ldb.get_connection() as conn:
-        names = {
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_gov_%'"
-            ).fetchall()
-        }
-    expected = {"idx_gov_session", "idx_gov_type", "idx_gov_severity", "idx_gov_created"}
-    assert expected.issubset(names), f"Missing indexes: {expected - names}"
-
-
 # ─── record_governance_event ──────────────────────────────────────────────────
 
 

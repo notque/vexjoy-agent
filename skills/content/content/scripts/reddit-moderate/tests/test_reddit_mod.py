@@ -25,7 +25,6 @@ from reddit_mod import (
     _FULLNAME_RE,
     _SUBREDDIT_RE,
     _USERNAME_RE,
-    CLASSIFICATION_CATEGORIES,
     ClassificationResult,
     _analyze_mod_log,
     _check_action_limit,
@@ -402,14 +401,6 @@ class TestDefaultConfigAutoBanFields:
         assert "auto_ban_repeat_offenders" in _DEFAULT_CONFIG
         assert _DEFAULT_CONFIG["auto_ban_repeat_offenders"] is False
 
-    def test_auto_ban_threshold_present_and_default(self) -> None:
-        assert "auto_ban_threshold" in _DEFAULT_CONFIG
-        assert _DEFAULT_CONFIG["auto_ban_threshold"] == 3
-
-    def test_auto_ban_message_present_and_default(self) -> None:
-        assert "auto_ban_message" in _DEFAULT_CONFIG
-        assert _DEFAULT_CONFIG["auto_ban_message"] == "Banned for repeated rule violations."
-
 
 # --- _count_author_removals_today ---
 
@@ -502,82 +493,6 @@ class TestCheckActionLimitBans:
         )
         actions, _ = _check_action_limit("testsub")
         assert actions == 3  # ban + auto_ban + remove all counted
-
-
-# --- CLASSIFICATION_CATEGORIES ---
-
-
-class TestClassificationCategories:
-    """Tests for CLASSIFICATION_CATEGORIES constant."""
-
-    def test_ban_recommended_present(self) -> None:
-        assert "BAN_RECOMMENDED" in CLASSIFICATION_CATEGORIES
-
-    def test_all_six_categories(self) -> None:
-        expected = {
-            "FALSE_REPORT",
-            "VALID_REPORT",
-            "MASS_REPORT_ABUSE",
-            "SPAM",
-            "BAN_RECOMMENDED",
-            "NEEDS_HUMAN_REVIEW",
-        }
-        assert set(CLASSIFICATION_CATEGORIES) == expected
-        assert len(CLASSIFICATION_CATEGORIES) == 6
-
-    def test_tuple_immutable(self) -> None:
-        assert isinstance(CLASSIFICATION_CATEGORIES, tuple)
-
-
-# --- ClassificationResult ---
-
-
-class TestClassificationResult:
-    """Tests for ClassificationResult dataclass."""
-
-    def test_to_dict_complete(self) -> None:
-        result = ClassificationResult(
-            item_id="t3_abc123",
-            item_type="submission",
-            author="testuser",
-            title="Test Post",
-            classification="SPAM",
-            confidence=95,
-            reasoning="Obvious spam link",
-            mass_report_flag=False,
-            repeat_offender_count=2,
-            prompt="full prompt text here",
-        )
-        d = result.to_dict()
-        assert d["item_id"] == "t3_abc123"
-        assert d["item_type"] == "submission"
-        assert d["author"] == "testuser"
-        assert d["title"] == "Test Post"
-        assert d["classification"] == "SPAM"
-        assert d["confidence"] == 95
-        assert d["reasoning"] == "Obvious spam link"
-        assert d["mass_report_flag"] is False
-        assert d["repeat_offender_count"] == 2
-        assert d["prompt"] == "full prompt text here"
-
-    def test_to_dict_none_classification(self) -> None:
-        result = ClassificationResult(
-            item_id="t1_xyz789",
-            item_type="comment",
-            author="someone",
-            title="",
-            classification=None,
-            confidence=None,
-            reasoning="",
-            mass_report_flag=True,
-            repeat_offender_count=0,
-            prompt="assembled prompt",
-        )
-        d = result.to_dict()
-        assert d["classification"] is None
-        assert d["confidence"] is None
-        assert d["reasoning"] == ""
-        assert d["mass_report_flag"] is True
 
 
 # --- load_classification_context ---

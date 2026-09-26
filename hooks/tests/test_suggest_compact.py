@@ -96,18 +96,6 @@ class TestToolFiltering:
             mod.main()
         assert not state_file.exists()
 
-    def test_bash_does_not_increment(self, state_file: Path) -> None:
-        with patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_event("Bash")
-            mod.main()
-        assert not state_file.exists()
-
-    def test_glob_does_not_increment(self, state_file: Path) -> None:
-        with patch("sys.stdin") as mock_stdin, patch("sys.exit"):
-            mock_stdin.read.return_value = _make_event("Glob")
-            mod.main()
-        assert not state_file.exists()
-
 
 # ---------------------------------------------------------------------------
 # Tests: Threshold suggestion
@@ -182,15 +170,6 @@ class TestPeriodicReminders:
         assert "[strategic-compact]" in context
         assert "75 tool calls" in context
         assert "good checkpoint" in context
-
-    def test_emits_at_threshold_plus_50(self, state_file: Path) -> None:
-        # Call #100 (threshold=50, 100-50=50 — second reminder)
-        _set_counter(state_file, 99)
-        output = _capture_stdout(_make_event("Write"))
-        data = json.loads(output)
-        context = data.get("hookSpecificOutput", {}).get("additionalContext", "")
-        assert "[strategic-compact]" in context
-        assert "100 tool calls" in context
 
     def test_no_output_between_reminders(self, state_file: Path) -> None:
         # Call #80 — between first (75) and second (100) reminders

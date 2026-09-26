@@ -1,4 +1,4 @@
-# Create Voice — Phase Status Banners
+# Voice Creation — Phase Status Banners
 
 Report progress at each phase gate using these banner templates. Be direct about what passed or failed, not congratulatory.
 

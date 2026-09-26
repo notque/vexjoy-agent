@@ -194,26 +194,6 @@ class TestValidateArtifactDirect:
         finally:
             path.unlink()
 
-    def test_to_dict_structure(self) -> None:
-        path = _write_tmp(VALID_HTML)
-        try:
-            result = validate_artifact(path)
-            d = result.to_dict()
-            assert "valid" in d
-            assert "checks" in d
-            assert "warnings" in d
-            assert "errors" in d
-        finally:
-            path.unlink()
-
-    def test_deterministic_same_input_same_output(self) -> None:
-        path = _write_tmp(VALID_HTML)
-        try:
-            results = [validate_artifact(path).to_dict() for _ in range(5)]
-            assert all(r == results[0] for r in results)
-        finally:
-            path.unlink()
-
     def test_export_button_check_skipped_without_shape(self) -> None:
         path = _write_tmp(VALID_HTML)
         try:

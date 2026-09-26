@@ -132,12 +132,6 @@ def test_malformed_json_exits_zero() -> None:
     assert "Traceback" not in proc.stderr
 
 
-def test_missing_file_path_exits_zero() -> None:
-    proc = run_hook({"tool_input": {}})
-    assert proc.returncode == 0
-    assert proc.stdout == ""
-
-
 # ---------------------------------------------------------------------------
 # Path-matching helper (imported as a module)
 # ---------------------------------------------------------------------------

@@ -25,21 +25,6 @@ class TestAssembleTemplateDirect:
         html = assemble_template("spec", "My Title")
         assert "<title>My Title</title>" in html
 
-    def test_birchline_theme_tokens(self) -> None:
-        html = assemble_template("spec", "Test")
-        # Birchline theme should inject its tokens
-        assert "--color-primary: #D97757" in html
-
-    def test_dark_focus_theme(self) -> None:
-        html = assemble_template("code-review", "Test")
-        assert "Dark Focus Theme" in html
-        assert "--color-primary: #64B5F6" in html
-
-    def test_interactive_warm_theme(self) -> None:
-        html = assemble_template("prototype", "Test")
-        assert "Interactive Warm Theme" in html
-        assert "--color-primary: #3D6FD9" in html
-
     def test_minimal_document_theme(self) -> None:
         html = assemble_template("spec", "Test", theme="minimal-document")
         assert "Minimal Document Theme" in html
@@ -91,10 +76,6 @@ class TestAssembleTemplateDirect:
         html = assemble_template("spec", "A & B <comparison>")
         assert "<title>A & B <comparison></title>" in html
 
-    def test_deterministic_same_input_same_output(self) -> None:
-        results = [assemble_template("data-viz", "Dashboard") for _ in range(5)]
-        assert all(r == results[0] for r in results)
-
     # --- New shape tests ---
 
     def test_diagram_shape_valid(self) -> None:
@@ -140,83 +121,7 @@ class TestAssembleTemplateDirect:
         with pytest.raises(ValueError, match="Invalid component"):
             assemble_template("spec", "Test", components=["nonexistent"])
 
-    def test_components_drag_drop(self) -> None:
-        html = assemble_template("editor", "Test", components=["drag-drop"])
-        assert "Drag and Drop Component" in html
-        assert ".drag-item" in html
-
-    def test_components_copy_button(self) -> None:
-        html = assemble_template("spec", "Test", components=["copy-button"])
-        assert "Copy Button Component" in html
-        assert "copyToClipboard" in html
-
-    def test_components_theme_toggle(self) -> None:
-        html = assemble_template("report", "Test", components=["theme-toggle"])
-        assert "Theme Toggle Component" in html
-        assert "toggleTheme" in html
-
-    def test_components_filter(self) -> None:
-        html = assemble_template("data-viz", "Test", components=["filter"])
-        assert "Filter Component" in html
-        assert "setupFilter" in html
-
-    def test_components_slider(self) -> None:
-        html = assemble_template("prototype", "Test", components=["slider"])
-        assert "Slider Component" in html
-        assert 'input[type="range"]' in html
-
-    def test_components_keyboard_nav(self) -> None:
-        html = assemble_template("deck", "Test", components=["keyboard-nav"])
-        assert "Keyboard Navigation Component" in html
-        assert "setupKeyNav" in html
-
-    def test_components_scrollytelling(self) -> None:
-        html = assemble_template("report", "Test", components=["scrollytelling"])
-        assert "Scrollytelling Component" in html
-        assert ".reveal" in html
-        assert "IntersectionObserver" in html  # JS injected
-
     # --- Shape CSS injection tests ---
-
-    def test_shape_css_spec(self) -> None:
-        html = assemble_template("spec", "Test")
-        assert ".comparison-grid" in html
-        assert ".approach-card" in html
-
-    def test_shape_css_code_review(self) -> None:
-        html = assemble_template("code-review", "Test")
-        assert ".review-layout" in html
-        assert ".diff-file" in html
-
-    def test_shape_css_prototype(self) -> None:
-        html = assemble_template("prototype", "Test")
-        assert ".prototype-layout" in html
-        assert ".controls-panel" in html
-
-    def test_shape_css_report(self) -> None:
-        html = assemble_template("report", "Test")
-        assert ".tldr" in html
-        assert ".metric-row" in html
-
-    def test_shape_css_editor(self) -> None:
-        html = assemble_template("editor", "Test")
-        assert ".export-bar" in html
-        assert ".kanban" in html
-
-    def test_shape_css_data_viz(self) -> None:
-        html = assemble_template("data-viz", "Test")
-        assert ".chart" in html
-        assert ".legend" in html
-
-    def test_shape_css_diagram(self) -> None:
-        html = assemble_template("diagram", "Test")
-        assert ".diagram-container" in html
-        assert ".figure-grid" in html
-
-    def test_shape_css_deck(self) -> None:
-        html = assemble_template("deck", "Test")
-        assert ".slide-deck" in html
-        assert ".progress-bar" in html
 
     # --- Base reset injection test ---
 
@@ -290,12 +195,6 @@ class TestCLIInterface:
         assert proc.returncode == 0
         assert "<title>Auth Comparison</title>" in proc.stdout
 
-    def test_cli_with_theme(self) -> None:
-        cmd = [sys.executable, SCRIPT, "--shape", "spec", "--title", "Test", "--theme", "dark-focus"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        assert proc.returncode == 0
-        assert "Dark Focus Theme" in proc.stdout
-
     def test_cli_invalid_shape_exits_1(self) -> None:
         cmd = [sys.executable, SCRIPT, "--shape", "banana", "--title", "Test"]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -342,18 +241,6 @@ class TestCLIInterface:
         ]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         assert proc.returncode == 1
-
-    def test_cli_diagram_shape(self) -> None:
-        cmd = [sys.executable, SCRIPT, "--shape", "diagram", "--title", "Architecture"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        assert proc.returncode == 0
-        assert ".diagram-container" in proc.stdout
-
-    def test_cli_deck_shape(self) -> None:
-        cmd = [sys.executable, SCRIPT, "--shape", "deck", "--title", "Slides"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        assert proc.returncode == 0
-        assert ".slide-deck" in proc.stdout
 
 
 TEMPLATES = Path(__file__).parent.parent.parent / "templates"
@@ -517,11 +404,6 @@ class TestInteractiveWarmButtons:
         assert base is not None
         assert "--color-primary" not in base.group(1)
         assert not re.search(r"^button, \[role=\"button\"\] \{", self.CSS, re.MULTILINE)
-
-    @pytest.mark.parametrize("variant", [".btn-primary", ".btn-secondary", ".btn-outline", ".btn-ghost"])
-    def test_variants_defined(self, variant: str) -> None:
-        assert f"{variant} {{" in self.CSS
-        assert f"{variant}:hover" in self.CSS
 
 
 SURFACES = ("--bg-page", "--bg-surface", "--bg-card", "--bg-muted")

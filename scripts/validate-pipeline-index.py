@@ -19,7 +19,7 @@ Three ways an entry goes wrong, one check each:
   P2 PHANTOM-PHASE   A name in ``phases`` appears in no heading of the
                      referenced doc. The index advertises a phase the doc does
                      not define, so the manifest promises work that cannot run.
-                     Live case: voice-writer declared 13 phases while its
+                     Live case: the voice pipeline declared 13 phases while its
                      ``file`` pointed at a seven-line pointer stub defining none.
 
   P3 NO-PHASES       ``phases`` is absent or empty. Phases are what makes a

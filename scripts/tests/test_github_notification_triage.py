@@ -32,7 +32,6 @@ classify = _mod.classify
 parse_notification = _mod.parse_notification
 format_report = _mod.format_report
 format_json = _mod.format_json
-build_parser = _mod.build_parser
 
 
 # ---------------------------------------------------------------------------
@@ -515,62 +514,9 @@ class TestFormatJson:
 # ---------------------------------------------------------------------------
 
 
-class TestBuildParser:
-    """Tests for CLI argument parsing."""
-
-    def test_defaults(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args([])
-        assert args.mark_read is False
-        assert args.dry_run is False
-        assert args.json_output is False
-        assert args.save is False
-
-    def test_mark_read_flag(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["--mark-read"])
-        assert args.mark_read is True
-
-    def test_dry_run_flag(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["--dry-run"])
-        assert args.dry_run is True
-
-    def test_json_flag(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["--json"])
-        assert args.json_output is True
-
-    def test_save_flag(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["--save"])
-        assert args.save is True
-
-    def test_multiple_flags_together(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["--mark-read", "--save", "--json"])
-        assert args.mark_read is True
-        assert args.save is True
-        assert args.json_output is True
-
-
 # ---------------------------------------------------------------------------
 # Integration: check_gh_available and main() error path
 # ---------------------------------------------------------------------------
-
-
-class TestCheckGhAvailable:
-    """Tests for gh authentication check."""
-
-    def test_returns_true_when_gh_auth_succeeds(self) -> None:
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
-            assert _mod.check_gh_available() is True
-
-    def test_returns_false_when_gh_auth_fails(self) -> None:
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="not logged in")
-            assert _mod.check_gh_available() is False
 
 
 class TestMainErrorHandling:

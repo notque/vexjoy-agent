@@ -1,4 +1,4 @@
-# Create Voice — Iteration Guide (Step 6 + 7 details)
+# Voice Creation — Iteration Guide (Step 6 + 7 details)
 
 ## Step 6 Details: Validation Procedure
 

@@ -90,7 +90,7 @@ def test_meaningful_reason_floor():
     for good in (
         "deferred opt-in pending",
         "retired stub superseded",
-        "superseded by voice-writer skill",
+        "superseded by writing skill",
     ):
         assert vhh._meaningful_reason(good), good
     for bad in ("", "___", "123", "aaa", "x", "aa bb", "aaa bbb", "aa bb cc"):

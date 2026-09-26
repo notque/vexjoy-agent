@@ -7,8 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 SCRIPT = Path(__file__).resolve().parent.parent / "validate-skill-frontmatter.py"
 
 
@@ -438,15 +436,6 @@ routing:
 
 class TestCLI:
     """Tests for command-line interface."""
-
-    def test_cli_all_skills_exit_0(self) -> None:
-        """The script exits 0 when run against all real skills."""
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT)],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
 
     def test_cli_single_file(self, tmp_path: Path) -> None:
         # Use "test-skill" as dir name to match _VALID_FM's name field

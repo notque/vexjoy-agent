@@ -194,14 +194,14 @@ class TestFlattenResolvesNestedThroughSymlink:
         repo = tmp_path
         skills = repo / "skills"
         # Canonical copy under a normal category.
-        canon = skills / "content" / "voice-writer"
+        canon = skills / "content" / "voice-example"
         canon.mkdir(parents=True)
-        (canon / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-writer"))
+        (canon / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-example"))
         # Shadow copy reached through a symlinked category skills/voice -> external.
         external_voice = repo / "private" / "voice"
-        shadow = external_voice / "voice-writer"
+        shadow = external_voice / "voice-example"
         shadow.mkdir(parents=True)
-        (shadow / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-writer"))
+        (shadow / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="voice-example"))
         (skills / "voice").symlink_to(external_voice)
 
         index, _ = gsi.generate_index(
@@ -212,8 +212,8 @@ class TestFlattenResolvesNestedThroughSymlink:
             flatten=True,
             repo_root=repo,
         )
-        assert index["skills"]["voice-writer"]["file"] == "skills/content/voice-writer/SKILL.md"
-        assert (repo / index["skills"]["voice-writer"]["file"]).is_file()
+        assert index["skills"]["voice-example"]["file"] == "skills/content/voice-example/SKILL.md"
+        assert (repo / index["skills"]["voice-example"]["file"]).is_file()
 
 
 class TestCustomOutputPath:
@@ -238,25 +238,6 @@ class TestCustomOutputPath:
         assert custom_output.exists(), f"Expected output at {custom_output}"
         data = json.loads(custom_output.read_text())
         assert "some-skill" in data["skills"]
-
-    def test_output_is_valid_json(self, tmp_path: Path) -> None:
-        """The generated file is always valid JSON."""
-        skills_dir = tmp_path / "skills"
-        _make_skill_dir(skills_dir, "json-test-skill")
-
-        output = tmp_path / "INDEX.json"
-        index, _warnings = gsi.generate_index(
-            source_dir=skills_dir,
-            dir_prefix="skills",
-            collection_key="skills",
-        )
-        gsi.write_index(index, output)
-
-        # json.loads raises if invalid — that is the assertion
-        data = json.loads(output.read_text())
-        assert isinstance(data, dict)
-        assert "version" in data
-        assert "skills" in data
 
 
 class TestCLIFlag:

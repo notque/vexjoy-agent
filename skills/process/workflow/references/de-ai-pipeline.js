@@ -68,7 +68,7 @@ export const meta = {
 // this agent running the anti-ai methodology + the verification gate. The roster
 // is built per-file at runtime (one entry per error file), and agentType is
 // dispatched FROM that roster variable — the fully-dynamic structural invariant.
-// Use public indexed components so the workflow remains portable. voice-writer
+// Use public indexed components so the workflow remains portable. writing
 // carries the anti-AI editing workflow through its loaded voice references.
 const FIX_AGENT = "technical-journalist-writer";
 const FIX_SKILLS = ["writing", "testing"];

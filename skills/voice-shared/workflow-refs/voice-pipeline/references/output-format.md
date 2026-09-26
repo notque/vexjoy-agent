@@ -1,6 +1,6 @@
 # Output Format Reference
 
-Full output format for Phase 7 (OUTPUT) of the voice-writer pipeline.
+Full output format for Phase 7 (OUTPUT) of the voice pipeline.
 
 ---
 

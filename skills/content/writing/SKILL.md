@@ -20,7 +20,6 @@ routing:
     - "blog post"
     - "write in voice"
     - "voice pipeline"
-    - "voice-writer"
     - "voice writer"
     - "validate voice"
     - "voice fidelity"

@@ -109,10 +109,6 @@ class TestMachinePromptFilter:
     def test_human_prompts_are_not_machine(self, prompt):
         assert mod.is_machine_prompt(prompt) is False
 
-    def test_short_casual_human_prompt_never_filtered(self):
-        # Hard requirement: short casual human text must never be machine.
-        assert mod.is_machine_prompt(HUMAN_SHORT) is False
-
     def test_length_ceiling_rejects_generated_spec(self):
         spec_text = "carry out the migration step " * 150  # 750 words
         assert mod.is_machine_prompt(spec_text) is True

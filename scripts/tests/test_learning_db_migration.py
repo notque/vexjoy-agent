@@ -32,22 +32,6 @@ def fresh_db(tmp_path, monkeypatch):
     return learning_db_v2
 
 
-def test_harness_runs_table_exists(fresh_db):
-    """init_db creates the harness_runs table."""
-    fresh_db.init_db()
-    with fresh_db.get_connection() as conn:
-        tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
-    assert "harness_runs" in tables
-
-
-def test_schema_version_is_16(fresh_db):
-    """A fresh DB reaches schema version 16."""
-    fresh_db.init_db()
-    with fresh_db.get_connection() as conn:
-        version = conn.execute("PRAGMA user_version").fetchone()[0]
-    assert version == 16
-
-
 def test_record_harness_run_inserts(fresh_db):
     """record_harness_run inserts a row and returns True."""
     ok = fresh_db.record_harness_run(

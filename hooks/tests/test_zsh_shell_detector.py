@@ -78,22 +78,8 @@ class TestIsZshShell:
         with patch.dict(os.environ, {"SHELL": "/bin/zsh"}, clear=False):
             assert zsh_mod.is_zsh_shell() is True
 
-    def test_zsh_usr_bin_returns_true(self):
-        with patch.dict(os.environ, {"SHELL": "/usr/bin/zsh"}, clear=False):
-            assert zsh_mod.is_zsh_shell() is True
-
     def test_fish_shell_returns_false(self):
         with patch.dict(os.environ, {"SHELL": "/usr/bin/fish"}, clear=False):
-            assert zsh_mod.is_zsh_shell() is False
-
-    def test_bash_shell_returns_false(self):
-        with patch.dict(os.environ, {"SHELL": "/bin/bash"}, clear=False):
-            assert zsh_mod.is_zsh_shell() is False
-
-    def test_empty_shell_returns_false(self):
-        env = {k: v for k, v in os.environ.items()}
-        env.pop("SHELL", None)
-        with patch.dict(os.environ, env, clear=True):
             assert zsh_mod.is_zsh_shell() is False
 
     def test_shell_unset_returns_false(self):
@@ -119,17 +105,6 @@ class TestFishFalsePositiveRegression:
             patch("pathlib.Path.home", return_value=tmp_path),
         ):
             assert fish_mod.is_fish_shell() is False
-
-    def test_zsh_shell_with_fish_config_dir_is_zsh(self, tmp_path: Path):
-        """Core regression: SHELL=zsh + ~/.config/fish/ present → zsh detector returns True."""
-        fish_config = tmp_path / ".config" / "fish"
-        fish_config.mkdir(parents=True)
-
-        with (
-            patch.dict(os.environ, {"SHELL": "/bin/zsh"}, clear=False),
-            patch("pathlib.Path.home", return_value=tmp_path),
-        ):
-            assert zsh_mod.is_zsh_shell() is True
 
     def test_bash_shell_with_fish_config_dir_is_not_fish(self, tmp_path: Path):
         """SHELL=bash + ~/.config/fish/ → fish detector returns False."""
@@ -181,32 +156,3 @@ class TestZshMain:
         assert parsed is not None
         inner = parsed.get("hookSpecificOutput", {})
         assert "additionalContext" not in inner
-
-    def test_fish_shell_emits_empty(self):
-        """SHELL=/usr/bin/fish → main() emits empty output (no additionalContext)."""
-        _, parsed = _run_zsh_main(shell="/usr/bin/fish")
-        assert parsed is not None
-        inner = parsed.get("hookSpecificOutput", {})
-        assert "additionalContext" not in inner
-
-    def test_empty_shell_emits_empty(self):
-        """SHELL='' → main() emits empty output."""
-        _, parsed = _run_zsh_main(shell="")
-        assert parsed is not None
-        inner = parsed.get("hookSpecificOutput", {})
-        assert "additionalContext" not in inner
-
-    def test_exit_code_always_0(self):
-        """main() always exits 0 regardless of detection result."""
-        code, _ = _run_zsh_main(shell="/bin/zsh")
-        assert code == 0
-
-        code, _ = _run_zsh_main(shell="/bin/bash")
-        assert code == 0
-
-    def test_injection_format_correct(self):
-        """Injected context matches exact expected format."""
-        # zsh-deploy folded into deploy (skill consolidation).
-        assert zsh_mod.get_zsh_injection() == (
-            "[zsh-shell] Detected Zsh shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
-        )

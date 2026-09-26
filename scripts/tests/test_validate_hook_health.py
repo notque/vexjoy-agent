@@ -109,12 +109,6 @@ def test_stop_liveness_probe_does_not_audit_the_current_repo():
     assert Path(stop_payload["cwd"]).is_dir()
 
 
-def test_posttool_liveness_probe_uses_hook_utils_result_schema():
-    result = health._EVENT_BASE["PostToolUse"]["tool_result"]
-
-    assert result == {"output": "ok", "is_error": False}
-
-
 def test_retired_hook_is_reported_as_a_note_not_a_failure(tmp_path, monkeypatch):
     """A deleted hook's historical errors must not fail a maintainer's run.
 

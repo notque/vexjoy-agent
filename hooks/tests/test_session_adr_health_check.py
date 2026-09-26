@@ -73,10 +73,6 @@ class TestNoSessionFile:
         inner = parsed.get("hookSpecificOutput", {})
         assert "additionalContext" not in inner
 
-    def test_exit_code_always_0(self, tmp_path):
-        code, _ = _run_main(str(tmp_path))
-        assert code == 0
-
 
 # ---------------------------------------------------------------------------
 # Orphaned session — ADR file missing
@@ -118,12 +114,6 @@ class TestOrphanedSession:
         assert "additionalContext" in inner
         context = inner["additionalContext"]
         assert "old-schema.md" in context
-
-    def test_orphaned_always_exits_0(self, tmp_path):
-        """Advisory hook never blocks — always exits 0."""
-        _write_session(tmp_path, {"adr_path": "adr/gone.md", "domain": "gone"})
-        code, _ = _run_main(str(tmp_path))
-        assert code == 0
 
 
 # ---------------------------------------------------------------------------

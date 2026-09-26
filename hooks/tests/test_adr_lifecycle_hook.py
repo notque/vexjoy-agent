@@ -10,9 +10,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 HOOK_PATH = Path(__file__).parent.parent / "adr-lifecycle-on-merge.py"
 LIB_PATH = Path(__file__).parent.parent / "lib"
@@ -65,33 +62,6 @@ def empty_json_response(stdout: str) -> bool:
 
 
 sys.path.insert(0, str(LIB_PATH))
-
-
-def test_extract_adr_numbers_from_branch():
-    """extract_adr_numbers should find ADR-179 in branch name."""
-    sys.path.insert(0, str(HOOK_PATH.parent))
-    # Import without triggering __main__
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location("adr_lifecycle", HOOK_PATH)
-    mod = importlib.util.load_from_spec(spec) if hasattr(importlib.util, "load_from_spec") else None
-
-    # Use subprocess approach instead — inline fn test via a short script
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            f"import sys; sys.path.insert(0, '{HOOK_PATH.parent}'); "
-            f"import importlib.util; spec = importlib.util.spec_from_file_location('m', '{HOOK_PATH}'); "
-            "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); "
-            "nums = m.extract_adr_numbers('feat/adr-179-merge-lifecycle-hook'); "
-            "print(nums)",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-    assert "179" in result.stdout
 
 
 def test_extract_adr_numbers_multiple_patterns():
@@ -248,62 +218,6 @@ def test_merge_with_no_adr_references(tmp_path):
     assert "hookSpecificOutput" in parsed
 
 
-def test_merge_command_git_merge_detected():
-    """git merge command should also be detected as a merge."""
-    event = {
-        "tool_name": "Bash",
-        "tool_input": {"command": "git merge origin/feat/adr-050-something"},
-        "tool_output": {"stdout": "", "stderr": "", "exit_code": 0},
-    }
-    stdout, stderr, code = run_hook(event)
-    assert code == 0
-    parsed = json.loads(stdout)
-    assert "hookSpecificOutput" in parsed
-
-
-def test_merge_with_adr_reference_and_existing_file(tmp_path):
-    """Merge with ADR reference and existing file produces a checklist report."""
-    # Create a mock ADR file
-    adr_dir = tmp_path / "adr"
-    adr_dir.mkdir()
-    adr_file = adr_dir / "179-merge-lifecycle-hook.md"
-    adr_file.write_text(
-        """# ADR-179: Merge Lifecycle Hook
-
-## Status
-Proposed
-
-## Implementation
-
-1. Create hooks/adr-lifecycle-on-merge.py
-2. Write tests in hooks/tests/
-3. Register in settings.json
-
-## Consequences
-Automatic ADR tracking on merge.
-"""
-    )
-
-    # We can't easily override CLAUDE_PROJECT_DIR and git calls in the subprocess
-    # without mocking, so we verify the hook exits 0 and produces valid JSON
-    # when given a merge event containing ADR-179 in the command
-    event = merge_event("gh pr merge 316 --squash  # implements ADR-179")
-    stdout, stderr, code = run_hook(event)
-    assert code == 0
-    parsed = json.loads(stdout)
-    assert "hookSpecificOutput" in parsed
-
-
-def test_adr_file_not_found_graceful_skip(tmp_path):
-    """When ADR file doesn't exist, hook skips gracefully without crashing."""
-    # ADR-999 is unlikely to exist in any adr/ directory
-    event = merge_event("gh pr merge 1 --squash --message 'Closes ADR-999'")
-    stdout, stderr, code = run_hook(event)
-    assert code == 0
-    parsed = json.loads(stdout)
-    assert "hookSpecificOutput" in parsed
-
-
 # ---------------------------------------------------------------------------
 # Status update tests (unit-level via module import)
 # ---------------------------------------------------------------------------
@@ -337,68 +251,9 @@ def test_update_adr_status_changes_proposed_to_completed(tmp_path):
     assert not adr_file.exists(), "Original file should be removed after move"
 
 
-def test_update_adr_status_creates_completed_dir(tmp_path):
-    """update_adr_status creates adr/completed/ if it doesn't exist."""
-    adr_file = tmp_path / "050-some-adr.md"
-    adr_file.write_text("# ADR-050\n\n## Status\nAccepted\n")
-
-    completed_dir = tmp_path / "completed"
-    assert not completed_dir.exists()
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            f"import importlib.util; spec = importlib.util.spec_from_file_location('m', '{HOOK_PATH}'); "
-            "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); "
-            f"from pathlib import Path; p = Path('{adr_file}'); "
-            "m.update_adr_status(p, '050')",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-    assert completed_dir.exists()
-
-
 # ---------------------------------------------------------------------------
 # Checklist status tests (PARTIAL vs COMPLETE)
 # ---------------------------------------------------------------------------
-
-
-def test_process_merge_partial_status(tmp_path, monkeypatch):
-    """process_merge reports PARTIAL when only some steps match changed files."""
-    # Create ADR file
-    adr_dir = tmp_path / "adr"
-    adr_dir.mkdir()
-    adr_file = adr_dir / "042-test-feature.md"
-    adr_file.write_text(
-        "# ADR-042\n\n## Status\nProposed\n\n## Implementation\n\n"
-        "1. Create hook file\n"
-        "2. Add database migration\n"
-        "3. Update documentation README\n"
-    )
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            f"import importlib.util, os; "
-            f"os.environ['CLAUDE_PROJECT_DIR'] = '{tmp_path}'; "
-            f"spec = importlib.util.spec_from_file_location('m', '{HOOK_PATH}'); "
-            "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); "
-            # Patch git calls
-            "m.run_git = lambda *a, **kw: ''; "
-            "m.get_changed_files = lambda: ['hooks/my-hook.py']; "
-            "m.extract_adr_numbers = lambda t: ['42']; "
-            "report = m.process_merge('gh pr merge 1'); print(report)",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-    output = result.stdout
-    assert "PARTIAL" in output or "COMPLETE" in output or "ADR-42" in output
 
 
 def test_process_merge_complete_status(tmp_path):

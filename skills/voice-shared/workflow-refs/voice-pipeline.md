@@ -2,7 +2,7 @@
 description: "Unified voice content generation with 13-phase pipeline: LOAD, GROUND, STATS-CHECKPOINT, GENERATE, HOOK-GATE, VALIDATE, REFINE, VARIETY-GATE, JOY-CHECK, ANTI-AI, CLOSE-GATE, OUTPUT, CLEANUP."
 user-invocable: true
 argument-hint: "<topic or title>"
-command: /voice-writer
+command: /writing
 allowed-tools:
   - Read
   - Write
@@ -36,7 +36,7 @@ routing:
     - write essay
     - ghost write
   pairs_with:
-    - create-voice
+    - writing
     - voice-calibrator
     - voice-validator
     - joy-check
@@ -374,7 +374,7 @@ rm -f /tmp/voice-content-draft-*.md
 ## Examples
 
 ### Example 1: Blog Post Generation
-User says: "/voice-writer --voice myvoice --subject 'Year-End Awards'"
+User says: "/writing --voice myvoice --subject 'Year-End Awards'"
 Actions:
 1. Load voice-myvoice SKILL.md, profile.json, config.json (LOAD)
 2. Assess topic: awards, community audience. Plan structure: opening pattern, 5 sections, callback closing. Establish emotional anchor: celebration, community recognition (GROUND)
@@ -388,7 +388,7 @@ Actions:
 Result: Voice-consistent blog post with validation report showing PASSED at 82/100, joy score 88/100
 
 ### Example 2: Validate Existing Content
-User says: "/voice-writer --validate --voice myvoice --content /path/to/draft.md"
+User says: "/writing --validate --voice myvoice --content /path/to/draft.md"
 Actions:
 1. Load voice-myvoice profile.json and config.json (LOAD)
 2. Skip GROUND and GENERATE phases (validate-only mode)
@@ -401,7 +401,7 @@ Actions:
 Result: Validation report showing pass/fail status, specific violations, and joy scores
 
 ### Example 3: Voice Content (Non-Blog)
-User says: "/voice-writer --voice myvoice --subject 'Why I switched to Nix' --mode technical"
+User says: "/writing --voice myvoice --subject 'Why I switched to Nix' --mode technical"
 Actions:
 1. Load voice infrastructure (LOAD)
 2. Establish emotional anchor: curiosity about tooling decisions. Select technical mode (GROUND)
@@ -420,7 +420,7 @@ Result: Voice-consistent technical piece with full validation
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| Voice Not Found | Misspelled name or missing directory | Check spelling; `ls $HOME/.claude/skills/voice-*/`; use `create-voice` |
+| Voice Not Found | Misspelled name or missing directory | Check spelling; `ls $HOME/.claude/skills/voice-*/`; use `writing` (Voice Creation mode) |
 | Profile or Config Missing | Files absent from voice directory | Run `voice-calibrator`; see `references/voice-infrastructure.md` for schema |
 | Validator Script Failed (Exit Code 2) | File not found, invalid JSON, or Python issue | Verify paths; check `python3 --version`; test with `--help` flag |
 | Validation Failed After 3 Iterations | Content cannot meet threshold | Output best attempt with failure report; user edits flagged lines; recalibrate if systemic |
@@ -445,4 +445,4 @@ Result: Voice-consistent technical piece with full validation
 - `voice-validator` -- Deterministic voice fidelity validation
 - `voice-calibrator` -- Voice profile creation and tuning
 - private de-AI editor skill -- AI pattern detection and removal
-- `create-voice` -- New voice profile creation
+- `writing` -- New voice profile creation (Voice Creation mode)

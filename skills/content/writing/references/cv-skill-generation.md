@@ -1,6 +1,6 @@
 # Skill Generation Guide
 
-Detailed reference for Step 5: GENERATE of the create-voice pipeline.
+Detailed reference for Step 5: GENERATE of the Voice Creation pipeline.
 
 ---
 

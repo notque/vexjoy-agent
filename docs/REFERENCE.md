@@ -209,7 +209,7 @@ Loaded automatically or by the exact action contract: `Call the Skill tool with 
 ### Voice System
 | Skill | Purpose |
 |-------|---------|
-| `voice-writer` | Unified voice content generation with validation |
+| `writing` | Voice creation, voice content generation with validation |
 
 ### Knowledge Extraction
 | Skill | Purpose |

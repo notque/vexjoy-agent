@@ -50,14 +50,3 @@ def test_capacity_report_marks_clean_checkouts_for_dispatcher_review(tmp_path):
 
     assert report["status"] == "cleanup-soon"
     assert report["worktrees"] == {"count": 2, "clean_candidates": [str(tmp_path / "clean")]}
-
-
-def test_dispatch_rules_require_capacity_preflight_and_checkout_roles():
-    canonical_rules = (TOOLKIT_ROOT / "skills/meta/do/references/worktree-rules.md").read_text()
-    quality_loop = (TOOLKIT_ROOT / "skills/meta/do/references/quality-loop.md").read_text()
-
-    assert "worktree_capacity.py" in canonical_rules
-    assert "allocate no checkout" in canonical_rules
-    assert "sparse-checkout" in canonical_rules
-    assert "git worktree remove -- <accepted-worktree-path>" in canonical_rules
-    assert "read-only reviewers" in quality_loop

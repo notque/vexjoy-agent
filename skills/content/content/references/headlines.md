@@ -97,7 +97,7 @@ Present output as:
 
 ## Integration
 
-- **voice-writer HOOK-GATE (Phase 5)**: conceptual feed only — voice-writer's pipeline is unchanged. When voice-writer's hook scores below 8, the HOOK-GATE agent may run Phases 1–3 here against the article body to surface the concrete detail the opening should lead with; survivors also serve as title candidates.
+- **writing HOOK-GATE (Phase 5)**: conceptual feed only — the writing voice pipeline is unchanged. When its hook scores below 8, the HOOK-GATE agent may run Phases 1–3 here against the article body to surface the concrete detail the opening should lead with; survivors also serve as title candidates.
 - **content-engine**: supplies titles and subject lines for pipeline output; content-engine owns per-platform format specs.
 - **Standalone**: usable directly on any brief, draft, or topic. The Phase 3 honesty rule still gates output.
 

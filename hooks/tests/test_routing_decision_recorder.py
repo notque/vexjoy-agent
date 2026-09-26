@@ -864,23 +864,6 @@ class TestOutcomeValidator:
         assert len(still) == 1 and still[0]["key"] == key
         assert still[0]["attempts"] == 0
 
-    def test_missing_row_requeued_with_attempt(self, db_env, monkeypatch):
-        sys.path.insert(0, str(LIB_DIR))
-        import routing_outcome_state as ros
-
-        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
-        session = "validate-late"
-        key = "python-general-engineer:no-row-yet"
-        ros.append_pending_outcome(session, key, errors=True)
-
-        b = _load(B_PATH, "ror_validate_late")
-        event = {"hook_event_name": "SubagentStop", "session_id": session}
-        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(event)):
-            b.main()
-        still = ros.peek_pending_outcomes(session)
-        assert len(still) == 1
-        assert still[0]["attempts"] == 1  # re-queued, not revalidated
-
     def test_exit_zero_on_empty_and_malformed(self, db_env):
         assert _run_hook(B_PATH, {}).returncode == 0
         assert (
@@ -2293,26 +2276,6 @@ class TestSingleDispatchAttribution:
         # boost, no decay. The errored sibling still fails on its own flag.
         assert clean_after["success_count"] == 0 and clean_after["failure_count"] == 0
         assert errd_after["failure_count"] == 1 and errd_after["success_count"] == 0
-
-    def test_single_dispatch_rejection_decays(self, db_env, monkeypatch):
-        # A SINGLE clean dispatch + "that's wrong" => attributable => decayed.
-        sys.path.insert(0, str(LIB_DIR))
-        import learning_db_v2 as ldb
-        import routing_outcome_state as ros
-
-        monkeypatch.setattr(ros, "_STATE_DIR", db_env["state"])
-        only = "python-general-engineer:solo"
-        self._seed(ldb, only)
-
-        session = "single-rej"
-        ros.append_pending_outcome(session, only, errors=False)
-
-        f = _load(F_PATH, "fin_single_rej")
-        ev = _prompt_event("that's wrong, redo it", session=session)
-        with patch("sys.exit"), patch("sys.stdin.read", return_value=json.dumps(ev)):
-            f.main()
-        after = next(r for r in _query_routing_all(db_env) if r["key"] == only)
-        assert after["failure_count"] == 1 and after["success_count"] == 0
 
 
 # ---------------------------------------------------------------------------

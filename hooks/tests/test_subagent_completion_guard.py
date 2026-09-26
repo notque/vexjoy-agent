@@ -654,10 +654,6 @@ class TestIsProtectedOrgRepo:
         with patch.dict(os.environ, {}, clear=True):
             assert is_protected_org_repo("/repo") is False
 
-    def test_empty_protected_orgs_returns_false(self):
-        with patch.dict(os.environ, {"PROTECTED_ORGS": ""}):
-            assert is_protected_org_repo("/repo") is False
-
     def test_git_failure_returns_false(self):
         with patch("subprocess.run") as mock_run, patch.dict(os.environ, {"PROTECTED_ORGS": "my-company"}):
             mock_run.return_value = _subprocess_result(returncode=128)

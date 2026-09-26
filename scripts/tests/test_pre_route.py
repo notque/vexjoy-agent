@@ -457,14 +457,14 @@ class TestPipelineForceRoute:
 
     Regression test for the asymmetry where pre-route.py read skills only,
     leaving 4 FORCE pipelines (de-ai-pipeline, pr-pipeline,
-    skill-creation-pipeline, voice-writer) with no deterministic idiom guard.
+    skill-creation-pipeline, and the legacy voice pipeline) with no deterministic idiom guard.
     """
 
     def test_voice_article_does_not_match_removed_pipeline(self, pre_route, real_entries) -> None:
-        """voice-writer pipeline was consolidated; 'write an article' falls through or matches writing."""
+        """The legacy voice pipeline was consolidated into writing; 'write an article' falls through or matches writing."""
         result = pre_route.route("write an article about kubernetes in my voice", entries=real_entries)
-        # voice-writer pipeline no longer exists after skill consolidation
-        assert result.get("pipeline") != "voice-writer"
+        # The legacy voice pipeline no longer exists after skill consolidation
+        assert "voice" not in (result.get("pipeline") or "")
 
     def test_de_ai_matches_pipeline(self, pre_route, real_entries) -> None:
         """'de-ai these docs' matches de-ai-pipeline."""

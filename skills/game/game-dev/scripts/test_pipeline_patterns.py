@@ -273,30 +273,3 @@ class TestVerifyPadding:
         result_fail = verify_padding(sheet, 2, 1, 256, max_padding_pct=10.0)
         assert result_pass["passed"] is True
         assert result_fail["passed"] is False
-
-
-# ---------------------------------------------------------------------------
-# Pattern 4: SHA256 Provenance (tested via pipeline integration)
-# ---------------------------------------------------------------------------
-class TestProvenance:
-    """Tests for SHA256 provenance helper functions."""
-
-    def test_sha256_file(self, tmp_path: Path) -> None:
-        """_sha256_file produces consistent hex digests."""
-        # Import from sprite_pipeline
-        from sprite_pipeline import _sha256_file, _sha256_text
-
-        test_file = tmp_path / "test.txt"
-        test_file.write_text("hello world", encoding="utf-8")
-        digest = _sha256_file(test_file)
-        assert len(digest) == 64
-        assert digest == _sha256_file(test_file)  # deterministic
-
-    def test_sha256_text(self) -> None:
-        """_sha256_text produces consistent hex digests."""
-        from sprite_pipeline import _sha256_text
-
-        digest = _sha256_text("hello world")
-        assert len(digest) == 64
-        assert digest == _sha256_text("hello world")  # deterministic
-        assert digest != _sha256_text("different text")

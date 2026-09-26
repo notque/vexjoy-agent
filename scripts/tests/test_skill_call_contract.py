@@ -1,8 +1,7 @@
 """Skill-tool call contract.
 
 The repo-wide scan runs as `scripts/validate-references.py --check-skill-calls`
-(a CI step). These tests prove that check catches each bad fixture, plus one
-runtime constant that must route to an indexed skill.
+(a CI step). These tests prove that check catches each bad fixture.
 """
 
 from __future__ import annotations
@@ -54,11 +53,3 @@ def test_check_skill_calls_flags_direct_pipeline_handoff(tmp_path: Path) -> None
     root = _repo(tmp_path, GOOD_COMMAND, "# Demo\n\nThen hand off to `deep-pipe` for phases.\n")
     failures = validate_references.check_skill_calls(root)
     assert failures == ["skills/cat/demo/SKILL.md:3: direct handoff to pipeline 'deep-pipe'"]
-
-
-def test_debug_error_remediation_uses_indexed_workflow_skill(monkeypatch) -> None:
-    monkeypatch.syspath_prepend(str(REPO_ROOT / "hooks/lib"))
-    default_fix_actions = importlib.import_module("learning_db_v2").DEFAULT_FIX_ACTIONS
-
-    for error_type in ("syntax_error", "type_error"):
-        assert default_fix_actions[error_type] == {"fix_type": "skill", "fix_action": "workflow"}

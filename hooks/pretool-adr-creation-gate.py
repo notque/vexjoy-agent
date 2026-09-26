@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.1
+# hook-version: 1.2.2
 """
 PreToolUse:Write Hook: ADR Creation Gate
 
@@ -28,7 +28,7 @@ Allow-through conditions:
 - Tool is not Write
 - Target file does not match a component path pattern
 - Target file already exists on disk (update, not creation)
-- Target path matches _ADR_PATH_ALLOWLIST (producer-allowlisted skills like create-voice)
+- Target path matches _ADR_PATH_ALLOWLIST (producer-allowlisted skills like writing)
 - ADR exists in centralized or project-root location
 - ADR_CREATION_GATE_BYPASS=1 env var
 """
@@ -88,10 +88,10 @@ def _is_toolkit_repo(root: Path) -> bool:
 # path shape produced by exactly one well-known upstream skill. If a new
 # component type wants in, write the producer skill first, then add the entry.
 _ADR_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
-    # voice-* skills are produced by `create-voice` (skills/content/create-voice/
-    # SKILL.md Step 5: GENERATE). The create-voice skill itself documents the
+    # voice-* skills are produced by the `writing` skill's Voice Creation mode
+    # (skills/content/writing/SKILL.md). That mode documents the
     # voice-creation methodology; a per-voice ADR would be redundant.
-    (re.compile(r"/skills/(?:[^/]+/)?voice-[^/]+/SKILL\.md$"), "create-voice"),
+    (re.compile(r"/skills/(?:[^/]+/)?voice-[^/]+/SKILL\.md$"), "writing"),
 ]
 
 

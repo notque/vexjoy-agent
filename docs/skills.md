@@ -137,9 +137,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `voice-writer` | yes | Unified voice content generation pipeline with mandatory validation and joy-check |
+| `writing` | yes | Voice creation, voice content generation with mandatory validation and joy-check, prose editing, professional communication, translation |
 | `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
-| `create-voice` | no | Create voice profiles from writing samples |
 | `publish` | no | Content-publishing umbrella: outline, pre-publish check, SEO, batch-edit, link/image/taxonomy audits, WordPress upload |
 | `content-calendar` | no | Content pipeline: editorial calendar, brainstorming, headlines, repurposing, news collection |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |

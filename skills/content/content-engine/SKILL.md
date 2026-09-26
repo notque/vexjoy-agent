@@ -25,7 +25,7 @@ routing:
   pairs_with:
     - content
   category: content
-  disambiguate: voice-writer
+  disambiguate: writing
 ---
 
 # Content Engine Skill

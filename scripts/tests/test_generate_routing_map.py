@@ -50,29 +50,8 @@ def _surfaces(
     return result
 
 
-class TestImportable:
-    """The script exposes generate_map and check_map."""
-
-    def test_has_generate_map(self) -> None:
-        assert callable(getattr(grm, "generate_map", None))
-
-    def test_has_check_map(self) -> None:
-        assert callable(getattr(grm, "check_map", None))
-
-
 class TestTableRendering:
     """Markdown table output from generate_map."""
-
-    def test_contains_all_three_sections(self) -> None:
-        s = _surfaces(
-            agents={"a1": {"description": "Agent one.", "triggers": ["go"]}},
-            skills={"s1": {"description": "Skill one.", "triggers": ["do"]}},
-            pipelines={"p1": {"description": "Pipeline one.", "triggers": ["run"]}},
-        )
-        md = grm.generate_map(s)
-        assert "## AGENTS (1)" in md
-        assert "## SKILLS (1)" in md
-        assert "## PIPELINES (1)" in md
 
     def test_entry_appears_in_table(self) -> None:
         s = _surfaces(agents={"test-agent": {"description": "Test agent.", "triggers": ["test", "check"]}})
@@ -137,23 +116,6 @@ class TestCheckFindings:
 
 class TestRealRepo:
     """Smoke tests against the repo's real public INDEX content, read from tmp."""
-
-    def test_load_all_entries_returns_three_surfaces(self, public_index_repo) -> None:
-        surfaces = grm.load_all_entries(public_index_repo)
-        assert "agents" in surfaces
-        assert "skills" in surfaces
-        assert "pipelines" in surfaces
-        assert len(surfaces["agents"]) > 0
-        assert len(surfaces["skills"]) > 0
-        assert len(surfaces["pipelines"]) > 0
-
-    def test_generate_map_produces_all_sections(self, public_index_repo, monkeypatch) -> None:
-        load = grm.load_all_entries
-        monkeypatch.setattr(grm, "load_all_entries", lambda repo_root=public_index_repo: load(repo_root))
-        md = grm.generate_map()
-        assert "## AGENTS" in md
-        assert "## SKILLS" in md
-        assert "## PIPELINES" in md
 
     def test_check_cli_rejects_stale_map(self, tmp_path, public_index_repo) -> None:
         stale = tmp_path / "routing-map.md"

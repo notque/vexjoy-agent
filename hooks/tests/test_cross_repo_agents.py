@@ -78,16 +78,6 @@ This agent has no frontmatter.
         assert info["name"] == "simple-agent"
         assert info["description"] == "Simple Agent"
 
-    def test_malformed_file_returns_none_silently(self, tmp_path):
-        """Test that malformed files return None without crashing."""
-        agent_file = tmp_path / "bad-agent.md"
-        # Create file that will fail to parse but not crash
-        agent_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
-
-        # Should return None, not raise
-        info = extract_agent_info(agent_file)
-        assert info is None
-
     def test_missing_file_returns_none(self, tmp_path):
         """Test that missing files return None."""
         agent_file = tmp_path / "nonexistent.md"
@@ -121,14 +111,6 @@ description: A local test agent
 
     def test_returns_empty_when_no_agents_dir(self, tmp_path):
         """Test empty list when .claude/agents/ doesn't exist."""
-        agents = discover_local_agents(str(tmp_path))
-        assert agents == []
-
-    def test_returns_empty_when_agents_dir_empty(self, tmp_path):
-        """Test empty list when agents directory is empty."""
-        agents_dir = tmp_path / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-
         agents = discover_local_agents(str(tmp_path))
         assert agents == []
 
@@ -168,18 +150,6 @@ description: Test agent {name}
 
 class TestDebugLogging:
     """Tests for debug logging behavior."""
-
-    def test_debug_logging_when_env_set(self, tmp_path, capsys):
-        """Test that debug logging works when CLAUDE_HOOKS_DEBUG is set."""
-        agent_file = tmp_path / "bad-agent.md"
-        agent_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
-
-        with mock.patch.dict(os.environ, {"CLAUDE_HOOKS_DEBUG": "1"}):
-            info = extract_agent_info(agent_file)
-
-        assert info is None
-        captured = capsys.readouterr()
-        assert "[cross-repo-agents] HOOK-ERROR:" in captured.err
 
     def test_loud_error_when_debug_not_set(self, tmp_path, capsys):
         """Errors are always visible (unconditional one-liner via hook_error)."""

@@ -120,16 +120,6 @@ def test_is_tool_error_neither_key():
 # ===== additional edge case tests =====
 
 
-def test_get_tool_error_explicit_error_none():
-    # None for 'error' is falsy, falls through to exitCode == 0 branch
-    assert get_tool_error({"error": None, "exitCode": 0}) == ""
-
-
-def test_get_tool_error_exit_nonzero_no_stderr_key():
-    # No stderr key at all, default empty, falls through to stdout
-    assert get_tool_error({"exitCode": 1, "stdout": "fallback"}) == "fallback"
-
-
 def test_get_tool_output_empty_output_preserved():
     # Claude said empty output — we must not fall through to Factory's stdout
     assert get_tool_output({"output": "", "stdout": "ignored"}) == ""

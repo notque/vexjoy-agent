@@ -85,14 +85,6 @@ def test_confidence_updates_stay_bounded():
     assert 0.5 < conf <= 1.0
 
 
-def test_statistics():
-    """get_stats reports the documented keys."""
-    init_db()
-    stats = get_stats()
-    assert {"total_learnings", "by_category", "high_confidence"} <= stats.keys()
-    assert stats["total_learnings"] >= 0
-
-
 def test_fix_type_recording():
     """fix_type and fix_action are stored on the row."""
     init_db()

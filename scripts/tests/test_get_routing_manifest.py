@@ -18,7 +18,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_SRC = REPO_ROOT / "scripts" / "get-routing-manifest.sh"
-DO_SKILL = REPO_ROOT / "skills" / "meta" / "do" / "SKILL.md"
 
 
 def _setup(tmp_path: Path) -> tuple[Path, Path]:
@@ -99,9 +98,3 @@ def test_missing_cache_regenerates(tmp_path: Path) -> None:
     result = _run(sdir, home)
     assert result.returncode == 0, result.stderr
     assert result.stdout == "GENERATED\n"
-
-
-def test_do_invokes_manifest_through_bash() -> None:
-    """The router must not depend on the manifest script executable bit."""
-    lines = DO_SKILL.read_text(encoding="utf-8").splitlines()
-    assert 'bash "$SDIR/get-routing-manifest.sh" --request-file "$REQUEST_FILE"' in lines

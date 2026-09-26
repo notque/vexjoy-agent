@@ -1,6 +1,6 @@
 # Voice Rules Template
 
-Detailed reference for Step 4: RULE of the create-voice pipeline.
+Detailed reference for Step 4: RULE of the Voice Creation pipeline.
 
 ---
 

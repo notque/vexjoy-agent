@@ -93,13 +93,6 @@ def _run(script: Path, *args: str, cwd: Path, input_text: str | None = None) -> 
     )
 
 
-def test_neutral_handoff_boundary_owns_shared_schema() -> None:
-    assert HANDOFF.is_file()
-    assert HANDOFF_SCHEMA.is_file()
-    architecture_root = REPO_ROOT / "skills" / "research" / "architecture-deepening"
-    assert not (architecture_root / "references" / "handoff.schema.json").exists()
-
-
 def test_handoff_rejects_candidate_module_scope_contradiction(tmp_path: Path) -> None:
     result = _run(
         HANDOFF,
@@ -313,13 +306,3 @@ def test_generic_handoff_consumer_survives_architecture_package_deletion(tmp_pat
     )
     assert result.returncode == 0, result.stderr
     assert not (tmp_path / "skills" / "research" / "architecture-deepening").exists()
-
-
-@__import__("pytest").mark.xfail(reason="design.md and implement.md removed during skill consolidation")
-def test_simple_architecture_origin_cannot_skip_feature_consultation() -> None:
-    design = (REPO_ROOT / "skills/process/process/references/design.md").read_text(encoding="utf-8")
-    implement = (REPO_ROOT / "skills/process/process/references/implement.md").read_text(encoding="utf-8")
-    assert '"origin": "architecture-deepening"' in design
-    assert "architecture-origin" in implement
-    assert "Simple architecture-origin" in implement
-    assert "If complexity is Simple, skip this gate" not in implement

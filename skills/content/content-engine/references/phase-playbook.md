@@ -162,12 +162,12 @@ Opening with hype ("Excited to share our game-changing approach to...") reads as
 | Publish to X | `x-api` skill |
 | Publish to multiple platforms | `crosspost` skill |
 | Schedule posts | `content-calendar` skill |
-| Apply a voice profile to drafts | `voice-writer` skill (post-process these drafts) |
+| Apply a voice profile to drafts | `writing` skill (post-process these drafts) |
 | Extract more ideas from the same source | Re-run from Phase 2 |
 
 **Optional behaviors** (off unless enabled by user):
 - **Multi-idea series**: Extract all ideas and schedule as a series (pairs with `content-calendar`)
-- **Voice profile application**: After drafting, apply a voice profile via `voice-writer`
+- **Voice profile application**: After drafting, apply a voice profile via `writing`
 - **Immediate publish**: After gate passes, hand off to `x-api` or `crosspost`
 
 **Artifacts produced:**

@@ -401,7 +401,10 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
         for container in adapter.containers(ctx.home):
             if os.path.islink(container) or not os.path.isdir(container):
                 continue
-            is_skills = adapter.skills is not None and container == adapter.root_path(ctx.home) / adapter.skills
+            root = adapter.root_path(ctx.home)
+            is_skills = adapter.skills is not None and container == root / adapter.skills
+            skills_root = root / adapter.skills if adapter.skills else None
+            is_commands = adapter.commands is not None and container == root / adapter.commands
             for child in sorted(os.listdir(container)):
                 path = container / child
                 if str(path) in owned or child.startswith("."):
@@ -410,6 +413,13 @@ def unowned_prunable(ctx: Context, targets: list[str]) -> list[tuple[str, str]]:
                     out.append((str(path), "dangling link"))
                 elif is_skills and is_category_entry(path):
                     out.append((str(path), "category entry in flat skills root"))
+                elif (
+                    is_commands
+                    and skills_root is not None
+                    and child.endswith(".md")
+                    and (skills_root / child[:-3] / "SKILL.md").exists()
+                ):
+                    out.append((str(path), "command shadows a skill of the same name"))
     return out
 
 

@@ -67,7 +67,7 @@ git add -A && git commit -m "initial private skills"
 
 At session start, the sync hook deploys each category child containing `SKILL.md` to `~/.claude/skills/`; deleting that source directory removes the deployed copy on the next sync. Private and public skills follow the same conventions.
 
-`hooks/pretool-private-name-leak-gate.py` blocks commits, pushes, and PR text that name a private component. It also blocks brand terms (a first name segment shared by two or more private components) and any term listed in `~/private-skills/.private-terms` (one per line, `#` comments), even when the term already appears on `main`. To check the whole tracked tree for the same terms, run `python3 scripts/private-term-audit.py`. It prints matching paths with the term redacted and exits 1 on any hit. Both no-op on machines without `~/private-skills`, such as CI.
+`hooks/pretool-private-name-leak-gate.py` blocks commits, pushes, and PR text that name a private component. It also blocks brand terms (a first name segment shared by two or more private components) and any term listed in `~/private-skills/.private-terms` (one per line, `#` comments), even when the term already appears on `main`. To check the whole tracked tree for the same terms, run `python3 scripts/private-term-audit.py`. It prints matching paths with the term redacted and exits 1 on any hit. Both read `~/private-skills`, or `~/pgh/private-skills` when that is where the repo lives, and no-op on machines with neither, such as CI.
 
 ## Creating Components
 
@@ -164,3 +164,21 @@ Fixtures: `scripts/tests/fixtures/` for script test data. Hook tests inline thei
 **Scripts are deterministic.** No LLM calls. No judgment. If it involves reasoning, it is an agent or skill.
 
 **50ms hook budget.** Hooks fire on every tool call or prompt. Keep them fast. Profile with `scripts/benchmark-hooks.py` if uncertain.
+
+**Multiple Claude Code accounts.** Run 10+ isolated accounts on one machine using `CLAUDE_CONFIG_DIR`. Each account gets its own config directory (`~/.claude-accounts/<name>/`) with separate credentials, session history, and settings. Shell aliases let you pick an account before Claude Code starts — no `/logout`/`/login` needed.
+
+```bash
+python3 scripts/manage-accounts.py add work --alias cwork
+python3 scripts/manage-accounts.py add personal --alias cpersonal
+python3 scripts/manage-accounts.py list
+python3 scripts/manage-accounts.py check
+```
+
+The `add` command registers the account, creates the config dir, links its `skills/`, `agents/`, and `commands/` to `~/.claude` (where `./install.sh` installs everything once), and writes shell aliases that launch `claude --dangerously-skip-permissions --system-prompt="."`. Run `manage-accounts.py link` to repair older accounts. After `add`, log in once per account:
+
+```bash
+CLAUDE_CONFIG_DIR=~/.claude-accounts/work claude
+# inside Claude Code: /login
+```
+
+Reload your shell and use aliases from any terminal: `cwork`, `cpersonal`. See `skills/meta/accounts/SKILL.md` for full reference.

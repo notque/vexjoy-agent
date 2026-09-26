@@ -7,7 +7,7 @@ Computes the same term set as hooks/pretool-private-name-leak-gate.py
 it scans every tracked file's path and contents and prints each hit with
 the term redacted.
 
-No-op (exit 0) when ~/private-skills is absent, as in CI and public
+No-op (exit 0) when neither ~/private-skills nor ~/pgh/private-skills exists, as in CI and public
 installs: the term set exists only on the owner's machine.
 
 Usage:

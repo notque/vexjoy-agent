@@ -1,6 +1,6 @@
 # Pattern Identification Guide
 
-Detailed reference for Step 3: PATTERN of the create-voice pipeline.
+Detailed reference for Step 3: PATTERN of the Voice Creation pipeline.
 
 ---
 

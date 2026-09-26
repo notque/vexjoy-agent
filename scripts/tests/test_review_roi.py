@@ -186,9 +186,6 @@ class TestInsufficientDataGuard:
         rows = _run_json()
         assert all(r["insufficient_data"] is False for r in rows)
 
-    def test_min_reviews_constant_is_20(self):
-        assert learning_db.ROI_MIN_REVIEWS == 20
-
 
 # --- Cost nullability (test 5) ---------------------------------------------
 

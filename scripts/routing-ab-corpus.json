@@ -280,7 +280,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "bucket": "false-positive-guard",
-      "notes": "GUARD. Data cleaning, not voice-writer generation. MUST NOT force-route voice-writer."
+      "notes": "GUARD. Data cleaning, not writing generation. MUST NOT force-route writing."
     },
     {
       "request": "debug the goroutine leak in the worker pool",
@@ -360,7 +360,7 @@
       "expected_skill": "research",
       "category": "content-creation",
       "bucket": "benchmark-llm_only",
-      "notes": "Multi-skill chain; research then voice-writer. research-pipeline or voice-writer defensible. LLM resolves chain."
+      "notes": "Multi-skill chain; research then writing. research-pipeline or writing defensible. LLM resolves chain."
     },
     {
       "request": "create a new Claude Code skill with quality gates",
@@ -684,7 +684,7 @@
       "expected_skill": "writing",
       "category": "content-creation",
       "bucket": "sibling-disambiguation",
-      "notes": "Sibling: create-voice vs voice-validator vs voice-writer. Profile FROM samples = create-voice.",
+      "notes": "Sibling: voice creation vs voice-validator vs voice content generation. Profile FROM samples = writing (Voice Creation mode).",
       "provenance": {
         "source": "catalog-derived",
         "workload": null,
@@ -697,7 +697,7 @@
       "expected_skill": "writing",
       "category": "content-creation",
       "bucket": "sibling-disambiguation",
-      "notes": "Sibling: voice-validator vs create-voice vs voice-writer. Fidelity check + rewrite loop = voice-validator.",
+      "notes": "Sibling: voice-validator vs voice creation vs voice content generation. Fidelity check + rewrite loop = voice-validator.",
       "provenance": {
         "source": "catalog-derived",
         "workload": null,
@@ -748,8 +748,8 @@
       "expected_skill": "writing",
       "category": "content-creation",
       "bucket": "pipeline-pick",
-      "notes": "PIPELINE true-match. Voice content with mandatory validation = voice-writer pipeline.",
-      "expected_pipeline": "voice-writer",
+      "notes": "PIPELINE true-match. Voice content with mandatory validation = writing pipeline.",
+      "expected_pipeline": "writing",
       "provenance": {
         "source": "catalog-derived",
         "workload": null,
@@ -802,7 +802,7 @@
       "expected_skill": "research",
       "category": "content-creation",
       "bucket": "pipeline-pick",
-      "notes": "PIPELINE true-match. Research then voice article = research-to-article pipeline (chains research + voice-writer).",
+      "notes": "PIPELINE true-match. Research then voice article = research-to-article pipeline (chains research + writing).",
       "expected_pipeline": "research-to-article",
       "acceptable": [
         {
@@ -823,7 +823,7 @@
       "expected_skill": "quick",
       "category": "trivial-operations",
       "bucket": "pipeline-pick",
-      "notes": "PIPELINE near-miss. Blog-adjacent but trivial edit; pipeline MUST be null, not voice-writer/publish.",
+      "notes": "PIPELINE near-miss. Blog-adjacent but trivial edit; pipeline MUST be null, not writing/publish.",
       "expected_pipeline": null,
       "provenance": {
         "source": "catalog-derived",
@@ -871,7 +871,7 @@
       "expected_skill": null,
       "category": "trivial-operations",
       "bucket": "pipeline-pick",
-      "notes": "PIPELINE near-miss. Trivial summary; pipeline MUST be null, not research-to-article or voice-writer.",
+      "notes": "PIPELINE near-miss. Trivial summary; pipeline MUST be null, not research-to-article or writing.",
       "expected_pipeline": null,
       "acceptable": [
         {

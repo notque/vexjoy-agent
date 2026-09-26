@@ -20,10 +20,10 @@ skill-evaluator.py                        # disabled stub: main() is a no-op; ro
 
 # --- Deferred blockers (false-block risk; opt-in only) ---
 
-# --- Voice hooks superseded by the voice-writer skill pipeline ---
-voice-output-gate.py                       # superseded: voice-writer skill internalizes output gating (HOOK-GATE/CLOSE-GATE phases); private-skills install registers it separately when voice stack is active
-posttool-voice-quality-check.py            # superseded: voice-writer ANTI-AI phase covers AI-pattern checks; advisory-only, not needed default-on
-pretool-voice-publish-gate.py              # superseded: voice-writer pipeline phases enforce publish-readiness; dispatches voice-pipeline-tracker.py; private voice-stack installer registers it when active
+# --- Voice hooks superseded by the writing skill pipeline ---
+voice-output-gate.py                       # superseded: writing skill internalizes output gating (HOOK-GATE/CLOSE-GATE phases); private-skills install registers it separately when voice stack is active
+posttool-voice-quality-check.py            # superseded: writing ANTI-AI phase covers AI-pattern checks; advisory-only, not needed default-on
+pretool-voice-publish-gate.py              # superseded: writing pipeline phases enforce publish-readiness; dispatches voice-pipeline-tracker.py; private voice-stack installer registers it when active
 
 # --- Dormant hooks with tests removed in test-suite reduction ---
 mcp-health-check.py                        # unregistered: MCP health check runs on demand, not as a hook event; test removed in test-suite reduction

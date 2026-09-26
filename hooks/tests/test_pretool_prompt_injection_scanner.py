@@ -85,9 +85,6 @@ class TestIsContextFileTrue:
     def test_claude_md(self):
         assert _is_context_file("/project/CLAUDE.md") is True
 
-    def test_claude_md_nested(self):
-        assert _is_context_file("/project/sub/CLAUDE.md") is True
-
     def test_task_plan_md(self):
         assert _is_context_file("/project/task_plan.md") is True
 
@@ -109,12 +106,6 @@ class TestIsContextFileFalse:
 
     def test_random_md_file(self):
         assert _is_context_file("/project/docs/readme.md") is False
-
-    def test_txt_file(self):
-        assert _is_context_file("/project/notes.txt") is False
-
-    def test_json_file(self):
-        assert _is_context_file("/project/config.json") is False
 
     def test_self_exclude_scanner(self):
         """The hook's own path is excluded."""

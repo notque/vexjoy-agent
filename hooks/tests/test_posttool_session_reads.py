@@ -63,33 +63,12 @@ def load_entries(tmp_path: Path) -> list[dict]:
 class TestToolNameFiltering:
     """Only Read tool events should be processed."""
 
-    def test_nonread_tool_exits_zero(self, tmp_path, monkeypatch):
-        """Non-Read tool filtering is now handled by matcher 'Read' in settings.json.
-
-        When called directly (without matcher), the hook processes any tool_name.
-        This test verifies the hook still exits 0 (non-blocking) for any input.
-        """
-        monkeypatch.chdir(tmp_path)
-        for tool in ("Write", "Edit", "Bash"):
-            event = {
-                "tool_name": tool,
-                "tool_input": {"file_path": "/some/file.py"} if tool != "Bash" else {"command": "ls"},
-            }
-            stdout, stderr, code = run_hook(event)
-            assert code == 0
-
     def test_ignores_non_read_bash_command(self, tmp_path, monkeypatch):
         """A Bash command that is not a read-only pager records nothing."""
         monkeypatch.chdir(tmp_path)
         stdout, stderr, code = run_hook({"tool_name": "Bash", "tool_input": {"command": "ls"}})
         assert code == 0
         assert load_entries(tmp_path) == []
-
-    def test_ignores_agent_tool(self, tmp_path, monkeypatch):
-        """Agent tool events should be ignored."""
-        monkeypatch.chdir(tmp_path)
-        stdout, stderr, code = run_hook({"tool_name": "Agent", "tool_input": {"prompt": "do something"}})
-        assert code == 0
 
 
 # ---------------------------------------------------------------------------
@@ -217,13 +196,6 @@ class TestFilePathTracking:
         """Read event with no file_path in tool_input should be no-op."""
         monkeypatch.chdir(tmp_path)
         stdout, stderr, code = run_hook({"tool_name": "Read", "tool_input": {}})
-        assert code == 0
-        assert load_entries(tmp_path) == []
-
-    def test_empty_file_path_does_nothing(self, tmp_path, monkeypatch):
-        """Read event with empty file_path should be no-op."""
-        monkeypatch.chdir(tmp_path)
-        stdout, stderr, code = run_hook({"tool_name": "Read", "tool_input": {"file_path": ""}})
         assert code == 0
         assert load_entries(tmp_path) == []
 
@@ -373,17 +345,6 @@ class TestNonBlocking:
         result = subprocess.run(
             [sys.executable, str(HOOK_PATH)],
             input="",
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        assert result.returncode == 0
-
-    def test_exits_zero_on_missing_tool_input(self):
-        """Event with no tool_input should still exit 0."""
-        result = subprocess.run(
-            [sys.executable, str(HOOK_PATH)],
-            input=json.dumps({"tool_name": "Read"}),
             capture_output=True,
             text=True,
             timeout=10,

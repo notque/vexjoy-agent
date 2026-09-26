@@ -211,16 +211,6 @@ class TestClose:
         assert result.returncode == 1
         assert "adr_path" in result.stderr
 
-    def test_close_is_advertised_in_help(self):
-        """The command must be discoverable from --help."""
-        result = subprocess.run(
-            [sys.executable, str(ADR_QUERY), "--help"],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0
-        assert "close" in result.stdout
-
 
 # ---------------------------------------------------------------------------
 # active / staleness

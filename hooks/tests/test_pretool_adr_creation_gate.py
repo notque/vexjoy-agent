@@ -97,18 +97,11 @@ class TestADRCreationGate:
             assert _run_main(payload) == 0
 
     def test_voice_skill_allowlisted_no_adr_required(self):
-        """voice-* skills are produced by create-voice — no per-voice ADR required."""
+        """voice-* skills are produced by the writing skill — no per-voice ADR required."""
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "skills" / "voice-example-profile" / "SKILL.md"
             payload = _make_write_event(str(target), cwd=tmp)
             # No adr/ directory exists; the allowlist must take precedence.
-            assert _run_main(payload) == 0
-
-    def test_voice_skill_allowlist_arbitrary_name(self):
-        """Allowlist matches any voice-<name> suffix, not just one example."""
-        with tempfile.TemporaryDirectory() as tmp:
-            target = Path(tmp) / "skills" / "voice-someone-new" / "SKILL.md"
-            payload = _make_write_event(str(target), cwd=tmp)
             assert _run_main(payload) == 0
 
     def test_non_voice_skill_still_requires_adr(self):

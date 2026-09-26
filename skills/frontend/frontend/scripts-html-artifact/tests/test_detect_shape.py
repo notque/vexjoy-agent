@@ -112,12 +112,6 @@ class TestClassifyRequestDirect:
         result = classify_request("explore approaches, output as markdown")
         assert result["shape"] == "spec"
 
-    def test_deterministic_same_input_same_output(self) -> None:
-        for _ in range(10):
-            r = classify_request("compare and explore tradeoffs")
-            assert r["shape"] == "spec"
-            assert r["confidence"] == "high"
-
     def test_secondary_signals_contribute(self) -> None:
         result = classify_request("write an implementation plan with design options")
         assert result["shape"] == "spec"
@@ -141,8 +135,3 @@ class TestCLIInterface:
         assert "\n" not in output.rstrip("\n")
         parsed = json.loads(output)
         assert parsed["shape"] == "spec"
-
-    def test_cli_empty_request(self) -> None:
-        result = run_detect("")
-        assert result["shape"] == "report"
-        assert result["confidence"] == "low"

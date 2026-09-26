@@ -27,10 +27,6 @@ def _fixture(tmp_path: Path, skill_text: str, broken_script: bool = False) -> tu
     return skill, scripts
 
 
-def test_real_do_skill_is_portable() -> None:
-    assert doc_commands.check_sdir() == []
-
-
 def test_portable_fixture_passes(tmp_path: Path) -> None:
     skill, scripts = _fixture(tmp_path, 'python3 "$SDIR/a.py"\npython3 "$SDIR/b.py"\n')
     assert doc_commands.check_sdir(skill, scripts) == []

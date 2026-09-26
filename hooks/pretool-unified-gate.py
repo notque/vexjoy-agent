@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.1
+# hook-version: 1.1.2
 """
 PreToolUse Hook: Unified Gate (ADR-068)
 
@@ -23,7 +23,7 @@ Each check preserves its original stderr prefix and bypass mechanism.
 Exit 0 always. Blocks emit JSON permissionDecision:deny to stdout. Entire main() wrapped in try/except to fail OPEN.
 
 Creation-gate allowlist: see _CREATION_PATH_ALLOWLIST. Path shapes produced
-by named non-skill-creator skills (e.g. create-voice → skills/voice-*/SKILL.md)
+by named non-skill-creator skills (e.g. writing → skills/voice-*/SKILL.md)
 pass through. Without this, those skills had to bypass via /tmp + cp.
 
 Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass uses subprocess.
@@ -756,12 +756,12 @@ _ADR_SESSION_WALK_LIMIT = 20
 # correct test for a new entry is: "Is there a single, named skill whose
 # documented output is this path shape?" If not, route through skill-creator.
 _CREATION_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
-    # voice-* skills are produced by the `create-voice` skill (Step 5: GENERATE
-    # in skills/content/create-voice/SKILL.md and skills/content/create-voice/references/
-    # skill-generation.md). create-voice is the canonical SOP for voice
+    # voice-* skills are produced by the `writing` skill's Voice Creation mode
+    # (skills/content/writing/SKILL.md and skills/content/writing/references/
+    # cv-skill-generation.md). That mode is the canonical SOP for voice
     # profiles; it scaffolds skills/voice-{name}/SKILL.md, config.json, and
     # profile.json directly via Write.
-    (re.compile(r"/skills/(?:content/)?voice-[^/]+/SKILL\.md$"), "create-voice"),
+    (re.compile(r"/skills/(?:content/)?voice-[^/]+/SKILL\.md$"), "writing"),
 ]
 
 # ═══════════════════════════════════════════════════════════════

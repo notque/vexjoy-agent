@@ -21,10 +21,10 @@ Produces a voice profile: sentence length distribution, opening patterns, distin
 ### 3. Create a Voice Profile
 
 ```
-/create-voice
+/writing
 ```
 
-7-phase pipeline: Collect → Extract → Pattern → Rule → Generate → Validate → Iterate.
+Voice Creation mode, 7-phase pipeline: Collect → Extract → Pattern → Rule → Generate → Validate → Iterate.
 
 ### 4. Generate Content
 
@@ -84,10 +84,10 @@ Pick writing that is: recent, natural (not ghostwritten), varied topics, 500+ wo
 ### Step 2: Initial Calibration
 
 ```
-/create-voice
+/writing
 ```
 
-Reads samples, extracts metrics, identifies distinctive patterns, generates test content, validates against profile.
+Voice Creation mode. Reads samples, extracts metrics, identifies distinctive patterns, generates test content, validates against profile.
 
 ### Step 3: Iterative Refinement
 
@@ -98,7 +98,7 @@ python3 scripts/voice-validator.py validate --content draft.md --profile your-vo
 
 ### Step 4: Integration
 
-Once calibrated, available to: `voice-writer`, the private de-AI editor skill, `workflow` (via `references/article-evaluation-pipeline.md`).
+Once calibrated, available to: `writing`, the private de-AI editor skill, `workflow` (via `references/article-evaluation-pipeline.md`).
 
 ---
 
@@ -112,9 +112,8 @@ scripts/
     banned-patterns.json # AI writing patterns to avoid
 
 skills/
-  create-voice/          # Interactive voice creation (7 phases)
+  content/writing/       # Voice creation, voice content generation, validation
   voice-validator/       # Validation methodology
-  voice-writer/          # Unified 8-phase content generation
   workflow/
     references/
       voice-calibrator.md   # Advanced calibration and refinement (workflow reference)

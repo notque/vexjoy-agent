@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# hook-version: 1.2.0
+# hook-version: 1.3.0
 """
 PreToolUse:Bash Hook: Private Name Leak Gate
 
 Blocks git commit, git push, and gh pr create/edit/comment/merge when the
 text they would publish contains the name of a private component installed
-from ~/private-skills. Private component names must never reach this repo,
+from ~/private-skills (or ~/pgh/private-skills). Private component names must never reach this repo,
 its commits, or its PR text.
 
 This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the
@@ -79,8 +79,10 @@ from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "PRIVATE_NAME_GATE_BYPASS"
 
+# Private skills repo locations, first existing wins (same list as vexinstall/migrate.py).
+_PRIVATE_CANDIDATES = (Path.home() / "private-skills", Path.home() / "pgh" / "private-skills")
 # Patched by tests. Runtime source of the private-name set.
-_PRIVATE_DIR = Path.home() / "private-skills"
+_PRIVATE_DIR = next((p for p in _PRIVATE_CANDIDATES if p.is_dir()), _PRIVATE_CANDIDATES[0])
 # Fallback public-skill index when the project has no skills/INDEX.json.
 _USER_INDEX = Path.home() / ".claude" / "skills" / "INDEX.json"
 
@@ -323,6 +325,18 @@ def _public_segments(toolkit_root: Path, private_leaves: set[str]) -> set[str]:
     return segments
 
 
+def _frontmatter_name(skill_md: Path) -> str | None:
+    """``name:`` from a SKILL.md frontmatter block, or None."""
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    m = re.search(r"^name:\s*[\"']?([A-Za-z0-9_-]+)", text.split("\n---", 1)[0], re.MULTILINE)
+    return m.group(1) if m else None
+
+
 def _raw_leaf_names() -> set[str]:
     """Lowercased LEAF component names under _PRIVATE_DIR, stoplist removed.
 
@@ -339,7 +353,9 @@ def _raw_leaf_names() -> set[str]:
             dirnames[:] = [d for d in dirnames if not d.startswith(".")]
             base = Path(dirpath)
             if "SKILL.md" in filenames:
-                name = base.name
+                # A nested <dir>/skill/SKILL.md deploys under its frontmatter
+                # name; a bare dir name can be an ordinary word.
+                name = _frontmatter_name(base / "SKILL.md") or base.name
                 if name.lower() == "skill" and base != _PRIVATE_DIR:
                     name = base.parent.name
                 raw.add(name)
@@ -474,13 +490,22 @@ def _run_git(args: list[str], cwd: str | None) -> str:
     return ""
 
 
+def _added_side(diff: str) -> str:
+    """Added lines and new paths of a unified diff.
+
+    Removed lines are dropped: a commit that deletes a leaked name must pass.
+    """
+    keep = ("+", "rename to ", "copy to ")
+    return "\n".join(line for line in diff.splitlines() if line.startswith(keep))
+
+
 def _collect_scan_targets(command: str, cwd: str | None) -> list[tuple[str, str]]:
     """(location, text) pairs to scan for the matched command."""
     targets: list[tuple[str, str]] = [("command text", command)]
 
     file_paths: list[tuple[str, str]] = []
     if _GIT_COMMIT_RE.search(command):
-        targets.append(("staged diff", _run_git(["diff", "--cached"], cwd)))
+        targets.append(("staged diff", _added_side(_run_git(["diff", "--cached"], cwd))))
         file_paths += [("commit message file", p) for p in _file_args(command, _COMMIT_FILE_FLAGS)]
     if _GIT_PUSH_RE.search(command):
         messages = _run_git(["log", "@{upstream}..HEAD", "--format=%B"], cwd)

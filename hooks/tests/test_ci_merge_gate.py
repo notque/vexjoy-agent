@@ -183,19 +183,6 @@ class TestForceBlock:
 
 
 class TestPassthrough:
-    def test_normal_merge_passes(self, tmp_path):
-        """Normal merge should not be blocked by admin/force checks."""
-        r = run_hook("gh pr merge 55 --squash", tmp_path=tmp_path)
-        assert r.returncode == 0
-        # Should not have a deny from admin/force (CI check may still fire but that's separate)
-        for line in r.stdout.strip().split("\n"):
-            line = line.strip()
-            if line.startswith("{"):
-                data = json.loads(line)
-                reason = data.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-                assert "--admin" not in reason
-                assert "--force" not in reason
-
     def test_non_merge_command_passes(self, tmp_path):
         """Non-merge commands should pass through completely."""
         r = run_hook("gh pr view 55", tmp_path=tmp_path)

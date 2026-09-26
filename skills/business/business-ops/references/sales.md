@@ -3,7 +3,7 @@
 
 Umbrella skill for sales execution: call preparation, pipeline health analysis, outreach drafting, competitive intelligence, and forecasting. Each mode loads its own references on demand. Detects the mode from the request, loads the right context, and executes the appropriate workflow.
 
-**Scope**: Revenue-facing workflows where the user is preparing for, executing, or following up on sales activities. Use csuite for strategic business decisions. Use research-pipeline for deep multi-source research. Use voice-writer for content generation.
+**Scope**: Revenue-facing workflows where the user is preparing for, executing, or following up on sales activities. Use csuite for strategic business decisions. Use research-pipeline for deep multi-source research. Use writing for content generation.
 
 ---
 

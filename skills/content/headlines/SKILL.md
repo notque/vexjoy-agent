@@ -116,7 +116,7 @@ Output format:
 
 ## Integration
 
-- **voice-writer**: when voice-writer's hook scores below 8, the HOOK-GATE agent may run Phases 1-3 here against the article body to surface the concrete detail the opening should lead with.
+- **writing**: when the writing voice pipeline's hook scores below 8, the HOOK-GATE agent may run Phases 1-3 here against the article body to surface the concrete detail the opening should lead with.
 - **content-engine**: supplies titles and subject lines for pipeline output; content-engine owns per-platform format specs.
 - **Standalone**: usable directly on any brief, draft, or topic.
 

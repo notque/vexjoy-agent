@@ -222,7 +222,7 @@ DROP patterns stay in working notes (`pattern-candidates.md` or equivalent)
 and never reach the published file.
 
 The rubric (recurrence, generative power, exclusivity) lives at
-`skills/content/create-voice/references/extraction-validation.md`. Load it on demand
+`skills/content/writing/references/cv-extraction-validation.md`. Load it on demand
 when running the gate; do not duplicate the content here.
 
 Three accepted verdict markers, in priority order:
@@ -270,7 +270,7 @@ Key rules:
 - If SKILL.md exceeds **700 lines**, extraction is mandatory -- it is carrying
   reference content that should not be loaded on every routing decision
 
-The most effective complex skills (`sapcc-review`, `voice-writer`) keep SKILL.md under 600 lines and put operational depth in `references/` and `agents/`. Rich `references/` content adds depth at zero routing cost; deterministic `scripts/` ensure consistency; bundled `agents/` prompts enable specialized dispatch without routing overhead.
+The most effective complex skills (`sapcc-review`, `writing`) keep SKILL.md under 600 lines and put operational depth in `references/` and `agents/`. Rich `references/` content adds depth at zero routing cost; deterministic `scripts/` ensure consistency; bundled `agents/` prompts enable specialized dispatch without routing overhead.
 
 > See `references/progressive-disclosure.md` for the real numbers and extraction decision tree.
 

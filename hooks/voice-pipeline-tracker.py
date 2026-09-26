@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 Voice Pipeline Tracker — utility script (not a hook).
 
-Tracks completion of the 13-phase voice-writer pipeline for VexJoy blog posts.
+Tracks completion of the 13-phase voice pipeline (writing skill) for VexJoy blog posts.
 State stored in ~/.claude/state/voice-pipeline-state.json.
 
 Usage:

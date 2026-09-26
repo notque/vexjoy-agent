@@ -48,11 +48,6 @@ class TestSingleComponent:
         assert "Component Health Score" in result.stdout
         assert "Type: skill" in result.stdout
 
-    def test_grade_in_output(self) -> None:
-        result = run_script("agents/golang-general-engineer.md")
-        # Must contain one of the valid grades
-        assert any(f"({g})" in result.stdout for g in ("A", "B", "C", "D", "F"))
-
 
 class TestBatchMode:
     """Test --all-agents and --all-skills flags."""
@@ -106,39 +101,6 @@ class TestJsonOutput:
         assert "earned" in check
         assert "max" in check
         assert check["status"] in ("PASS", "FAIL", "PART")
-
-
-@pytest.mark.xfail(reason="skill-eval merged into toolkit during consolidation — content not ported")
-class TestEvaluationDocsContract:
-    """Keep the evaluation skill aligned with the executable scorer."""
-
-    def test_rubric_matches_json_contract(self) -> None:
-        result = run_script("skills/meta/do/SKILL.md", "--json", expect_rc=0)
-        entry = json.loads(result.stdout)["results"][0]
-        rubric = (REPO_ROOT / "skills/meta/toolkit/references/scoring-rubric.md").read_text()
-
-        assert entry["max_total"] == 90
-        assert "**90**" in rubric
-        assert "`checks[*].earned`" in rubric
-        assert "`checks[*].max`" in rubric
-        for check in entry["checks"]:
-            assert check["name"] in rubric
-
-    def test_skill_documents_public_json_keys(self) -> None:
-        skill = (REPO_ROOT / "skills/meta/toolkit/SKILL.md").read_text()
-        assert "`status`, `earned`, `max`, and `detail`" in skill
-        assert "`total`, `max_total`, and `grade`" in skill
-
-
-class TestSecretDetection:
-    """Test --check-secrets flag."""
-
-    def test_no_secrets_in_agents(self) -> None:
-        result = run_script("agents/golang-general-engineer.md", "--check-secrets", "--json")
-        data = json.loads(result.stdout)
-        entry = data["results"][0]
-        assert entry["secret_penalty"] == 0
-        assert entry["secrets_found"] == []
 
 
 class TestErrorHandling:

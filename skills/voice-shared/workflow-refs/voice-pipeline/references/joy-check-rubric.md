@@ -1,6 +1,6 @@
 # Joy-Check Rubric
 
-Full reference for Phase 6 (JOY-CHECK) of the voice-writer pipeline.
+Full reference for Phase 6 (JOY-CHECK) of the voice pipeline.
 
 ---
 

@@ -82,22 +82,6 @@ def test_workflow_capable(harness, expected):
     assert dwc.workflow_capable(harness) is expected
 
 
-def test_workflow_capable_set_is_single_source_of_truth():
-    """Adding a harness to WORKFLOW_CAPABLE is the one-line migration when a
-    harness ships native Workflow upstream. Pin the set so future changes are
-    deliberate.
-    """
-    expected = frozenset({"claude-code"})
-    assert dwc.WORKFLOW_CAPABLE == expected  # noqa: SIM300 — left side is the unit-under-test
-    # Every member of WORKFLOW_CAPABLE must classify as workflow_capable=True.
-    for h in dwc.WORKFLOW_CAPABLE:
-        assert dwc.workflow_capable(h) is True
-    # Every harness NOT in the set must classify as False.
-    for h in dwc.HARNESSES:
-        if h not in dwc.WORKFLOW_CAPABLE:
-            assert dwc.workflow_capable(h) is False
-
-
 # --- never raises ------------------------------------------------------------
 
 

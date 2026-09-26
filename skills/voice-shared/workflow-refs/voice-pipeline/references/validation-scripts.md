@@ -1,6 +1,6 @@
 # Validation Scripts Reference
 
-Command reference and output schema for Phase 4 (VALIDATE) of the voice-writer pipeline.
+Command reference and output schema for Phase 4 (VALIDATE) of the voice pipeline.
 
 ---
 

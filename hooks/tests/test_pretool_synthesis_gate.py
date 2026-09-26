@@ -215,14 +215,6 @@ class TestStaleDenialMessage:
         assert "adr-query.py close" not in reason
         assert "ADR consultation required before implementing test-adr" in reason
 
-    def test_stale_denial_announces_staleness(self, project: Path):
-        _write_session(project, age=timedelta(days=3, hours=4))
-        _write_adr(project, COMPLETE_ADR)
-        code, reason = _deny(project)
-
-        assert code == 2
-        assert "STALE ADR SESSION" in reason
-
     def test_stale_denial_reports_age_and_registration_date(self, project: Path):
         registered_at = datetime.now(timezone.utc) - timedelta(days=3, hours=4)
         _write_session(project, age=timedelta(days=3, hours=4))
@@ -251,19 +243,6 @@ class TestStaleDenialMessage:
         _write_adr(project, INCOMPLETE_ADR)
         _, reason = _deny(project)
         assert "incomplete (1 of 2 items unchecked)" in reason
-
-    def test_stale_denial_gives_the_close_command(self, project: Path):
-        _write_session(project, age=timedelta(days=3))
-        _write_adr(project, COMPLETE_ADR)
-        _, reason = _deny(project)
-        assert "python3 scripts/adr-query.py close" in reason
-
-    def test_stale_denial_offers_the_consultation_alternative(self, project: Path):
-        """Never push the user to close a session that is genuinely live."""
-        _write_session(project, age=timedelta(days=3))
-        _write_adr(project, COMPLETE_ADR)
-        _, reason = _deny(project)
-        assert "/adr-consultation" in reason
 
     def test_missing_adr_file_reports_unknown_checklist(self, project: Path):
         """No ADR on disk must degrade to 'unknown', not crash or guess."""

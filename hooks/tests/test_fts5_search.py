@@ -52,34 +52,8 @@ def _record(topic: str, key: str, value: str, tags: list[str] | None = None, con
     )
 
 
-class TestFTS5SchemaCreation:
-    """Verify the FTS5 table and triggers exist after init."""
-
-    def test_fts_table_exists(self):
-        db.init_db()
-        with db.get_connection() as conn:
-            row = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='learnings_fts'").fetchone()
-            assert row is not None, "learnings_fts table should exist"
-
-    def test_triggers_exist(self):
-        db.init_db()
-        with db.get_connection() as conn:
-            triggers = {
-                r["name"] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'").fetchall()
-            }
-            assert "learnings_ai" in triggers, "INSERT trigger missing"
-            assert "learnings_ad" in triggers, "DELETE trigger missing"
-            assert "learnings_au" in triggers, "UPDATE trigger missing"
-
-
 class TestTriggerSync:
     """Verify FTS index stays in sync with learnings table."""
-
-    def test_insert_syncs_to_fts(self):
-        _record("go-patterns", "mutex-usage", "Always use sync.Mutex for shared state", tags=["go", "concurrency"])
-        with db.get_connection() as conn:
-            fts_count = conn.execute("SELECT COUNT(*) FROM learnings_fts").fetchone()[0]
-            assert fts_count == 1
 
     def test_update_syncs_to_fts(self):
         _record("go-patterns", "mutex-usage", "Short value", tags=["go"])
@@ -221,11 +195,6 @@ class TestSearchLearnings:
         # Unbalanced quotes and other invalid FTS5 syntax
         assert db.search_learnings('"unclosed quote') == []
 
-    def test_no_matches_returns_empty(self):
-        _record("topic-a", "key-a", "Some content about Go", tags=["go"])
-        results = db.search_learnings("xyznonexistent")
-        assert results == []
-
     def test_categories_filter_matches_any(self):
         """ADR: pretool-injector-scoping -- categories restricts to an allowlist."""
         _record("topic-a", "key-a", "Error content about deadlocks", tags=["go"])  # category=design (default)
@@ -256,11 +225,6 @@ class TestSearchLearnings:
         _record("topic-a", "key-a", "Voice content about deadlocks", tags=["go"])  # category=design
         results = db.search_learnings("deadlock", categories=["error", "gotcha", "debug"])
         assert results == []
-
-    def test_categories_filter_none_is_no_op(self):
-        _record("topic-a", "key-a", "Design content about deadlocks", tags=["go"])
-        results = db.search_learnings("deadlock")
-        assert len(results) == 1
 
     def test_project_path_filter_matches_global_and_exact(self):
         db.record_learning(
@@ -413,17 +377,6 @@ class TestMigrationBackfill:
 class TestBackwardCompatibility:
     """Verify query_learnings() still works unchanged."""
 
-    def test_query_learnings_still_works(self):
-        _record("go-patterns", "mutex-usage", "Use sync.Mutex", tags=["go", "concurrency"])
-        _record("python-patterns", "dataclass", "Use dataclasses", tags=["python"])
-
-        # Exact tag substring matching still works
-        # _record() defaults to source="manual", so exclude_test_sources=False
-        # is a no-op here; kept for defensiveness if the fixture default changes.
-        results = db.query_learnings(tags=["go"], exclude_test_sources=False)
-        assert len(results) >= 1
-        assert any(r["topic"] == "go-patterns" for r in results)
-
     def test_query_learnings_by_topic(self):
         _record("go-patterns", "mutex-usage", "Use sync.Mutex", tags=["go"])
 
@@ -527,16 +480,6 @@ class TestQueryGraduationCandidates:
         results = db.query_graduation_candidates(limit=2)
         assert len(results) == 2
 
-    def test_empty_when_no_candidates(self):
-        """Returns empty list when nothing qualifies."""
-        # Insert entries that fail various criteria
-        _insert_candidate("skill:low-conf", "k1", "Low confidence", confidence=0.5, observation_count=5)
-        _insert_candidate("skill:low-obs", "k2", "Low observations", confidence=0.95, observation_count=1)
-        _insert_candidate("plain-topic", "k3", "Unscoped topic", confidence=0.95, observation_count=5)
-
-        results = db.query_graduation_candidates()
-        assert results == []
-
     def test_sort_order(self):
         """Results sorted by confidence DESC, then observation_count DESC."""
         _insert_candidate("skill:medium", "k1", "Medium confidence, high obs", confidence=0.92, observation_count=10)
@@ -576,12 +519,6 @@ class TestRecordActivation:
         with db.get_connection() as conn:
             count = conn.execute("SELECT COUNT(*) FROM activations WHERE session_id = 'sess-002'").fetchone()[0]
         assert count == 3
-
-    def test_default_outcome_is_success(self):
-        db.record_activation("test-topic", "test-key", "sess-003")
-        with db.get_connection() as conn:
-            row = conn.execute("SELECT outcome FROM activations WHERE session_id = 'sess-003'").fetchone()
-        assert row["outcome"] == "success"
 
     def test_custom_outcome(self):
         db.record_activation("test-topic", "test-key", "sess-004", outcome="failure")

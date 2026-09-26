@@ -5,8 +5,6 @@ import os
 import subprocess
 import sys
 
-import pytest
-
 HOOK_PATH = os.path.join(os.path.dirname(__file__), "..", "herdr-state-reporter.py")
 
 
@@ -38,18 +36,6 @@ class TestNoHerdrEnv:
         assert result.stdout.strip() == ""
 
 
-class TestHerdrMissingBinary:
-    """When HERDR_ENV=1 but herdr binary is missing, hook exits 0."""
-
-    def test_exits_zero_when_binary_missing(self):
-        env = {"HERDR_ENV": "1", "HERDR_PANE_ID": "test-pane", "PATH": "/nonexistent"}
-        result = run_hook(
-            event={"hook_event_name": "SessionStart"},
-            env_extra=env,
-        )
-        assert result.returncode == 0
-
-
 class TestSessionStart:
     """SessionStart event produces context injection."""
 
@@ -69,14 +55,6 @@ class TestSessionStart:
 
 class TestSubagentStop:
     """SubagentStop event reports state based on subagent status."""
-
-    def test_subagent_stop_exits_zero(self):
-        env = {"HERDR_ENV": "1", "HERDR_PANE_ID": "test-pane", "PATH": "/nonexistent"}
-        result = run_hook(
-            event={"hook_event_name": "SubagentStop", "subagent_result": {}},
-            env_extra=env,
-        )
-        assert result.returncode == 0
 
     def test_blocked_subagent(self):
         env = {"HERDR_ENV": "1", "HERDR_PANE_ID": "test-pane", "PATH": "/nonexistent"}

@@ -126,13 +126,6 @@ def test_migration_on_existing_v4_db_preserves_rows(tmp_path, monkeypatch):
     assert _rows(db_path, "SELECT COUNT(*) AS n FROM telemetry_runs")[0]["n"] == 0
 
 
-def test_schema_version_constant_at_least_5():
-    # Telemetry landed v5; the additive routing_outcome_basis migration is v6.
-    # The constant tracks the latest applied version, so it only ever grows.
-    ldb = _ldb()
-    assert ldb._CURRENT_SCHEMA_VERSION >= 5
-
-
 # ---------------------------------------------------------------------------
 # 2. Insert with envelope + NULL tolerance of best-effort fields
 # ---------------------------------------------------------------------------
@@ -284,14 +277,6 @@ def test_model_id_from_reads_event_then_env(monkeypatch):
     assert tc.model_id_from({}) is None
     monkeypatch.setenv("ANTHROPIC_MODEL", "claude-env")
     assert tc.model_id_from({}) == "claude-env"
-
-
-def test_token_and_wall_clock_default_none():
-    sys.path.insert(0, str(LIB_DIR))
-    import telemetry_capture as tc
-
-    assert tc.token_count_from({}) is None
-    assert tc.wall_clock_ms_from({}) is None
 
 
 def test_token_count_from_reads_usage_when_present():

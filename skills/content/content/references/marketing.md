@@ -2,7 +2,7 @@
 
 Umbrella skill for marketing workflows: SEO audits, campaign planning, content strategy, email sequences, competitive analysis, brand review, and performance reporting. Each mode loads its own reference files on demand -- this skill detects the mode, loads the right references, and executes the appropriate framework.
 
-**Scope**: Marketing strategy, content, and analysis. Use business-ops for executive-level growth decisions, voice-writer for voice-calibrated content, publish for blog pipeline mechanics, and research-pipeline for formal multi-source research.
+**Scope**: Marketing strategy, content, and analysis. Use business-ops for executive-level growth decisions, writing for voice-calibrated content, publish for blog pipeline mechanics, and research-pipeline for formal multi-source research.
 
 ---
 

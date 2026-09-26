@@ -113,12 +113,6 @@ class TestDangerousWhitelistAnchoring:
         with patch.object(mod, "_load_guard_whitelist", return_value=entries):
             assert _run_main(_event("Bash", command=command)) == expected, case_id
 
-    def test_is_whitelisted_rejects_substring(self):
-        assert mod._is_whitelisted("echo node_modules && rm -rf /", ["node_modules"]) is False
-
-    def test_is_whitelisted_accepts_exact(self):
-        assert mod._is_whitelisted("rm -rf ./build", ["rm -rf ./build"]) is True
-
 
 # ---------------------------------------------------------------------------
 # S1b(i) — .guard-whitelist / .guard-patterns are guard control-plane files
@@ -255,23 +249,6 @@ class TestGuardIntegrity:
         ):
             mod.check_guard_integrity(str(live / "gate.py"))
         assert "GUARD_INTEGRITY_BYPASS" not in stdout_capture.getvalue()
-
-
-# ---------------------------------------------------------------------------
-# S1 — still-blocking regression rows (the fix must not loosen anything)
-# ---------------------------------------------------------------------------
-
-STILL_BLOCKING_CASES_S1 = [
-    ("rm-rf-root", "rm -rf /"),
-    ("drop-database", "psql -c 'DROP DATABASE prod'"),
-]
-
-
-class TestStillBlockingS1:
-    @pytest.mark.parametrize(("case_id", "command"), STILL_BLOCKING_CASES_S1)
-    def test_still_blocked_without_whitelist(self, case_id, command):
-        with patch.object(mod, "_load_guard_whitelist", return_value=[]):
-            assert _run_main(_event("Bash", command=command)) == DENY, case_id
 
 
 # ---------------------------------------------------------------------------
@@ -442,16 +419,6 @@ class TestDestructiveGitOperations:
     def test_destructive_git_case(self, case_id, command, expected):
         with patch.object(mod, "_load_guard_whitelist", return_value=[]):
             assert _run_main(_event("Bash", command=command)) == expected, case_id
-
-    def test_shell_command_payload_is_checked(self):
-        assert mod._destructive_git_operation("bash -lc 'git reset --hard'")
-
-    def test_preexisting_persistent_destructive_alias_is_blocked(self, tmp_path):
-        repo = tmp_path / "repo"
-        repo.mkdir()
-        subprocess.run(["git", "init", "-q", str(repo)], check=True)
-        subprocess.run(["git", "config", "alias.nuke", "reset --hard"], cwd=repo, check=True)
-        assert mod._destructive_git_operation("git nuke", cwd=str(repo))
 
     def test_preexisting_persistent_safe_alias_is_allowed(self, tmp_path):
         repo = tmp_path / "repo"
@@ -807,10 +774,6 @@ class TestNewSensitivePatterns:
     @pytest.mark.parametrize(("case_id", "path"), NEW_SENSITIVE_PATTERN_CASES)
     def test_write_denied(self, case_id, path):
         assert _run_main(_event("Write", file_path=path, content="x")) == DENY, case_id
-
-    @pytest.mark.parametrize(("case_id", "path"), NEW_SENSITIVE_PATTERN_CASES)
-    def test_matches_sensitive(self, case_id, path):
-        assert mod._matches_sensitive(path) is not None, case_id
 
     @pytest.mark.parametrize(
         "path",

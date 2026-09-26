@@ -50,14 +50,14 @@ def private_dir(tmp_path, monkeypatch):
     """
     root = tmp_path / "private-tree"
     (root / SYNTH).mkdir(parents=True)
-    (root / SYNTH / "SKILL.md").write_text("---\nname: x\n---\n")
+    (root / SYNTH / "SKILL.md").write_text(f"---\nname: {SYNTH}\n---\n")
     # Interior noise inside the package: excluded from the name set.
     (root / SYNTH / "references").mkdir()
     (root / SYNTH / "references" / "interior-topic-map.md").write_text("ref\n")
     (root / SYNTH / "asset-bundle-dir").mkdir()
     # Nested package layout: <name>/skill/SKILL.md -> <name>.
     (root / "nested-package-skill" / "skill").mkdir(parents=True)
-    (root / "nested-package-skill" / "skill" / "SKILL.md").write_text("---\nname: n\n---\n")
+    (root / "nested-package-skill" / "skill" / "SKILL.md").write_text("---\nname: nested-package-skill\n---\n")
     # Agent component: agents/*.md stem.
     (root / "agents").mkdir()
     (root / "agents" / "hidden-fixture-agent.md").write_text("agent\n")
@@ -254,7 +254,7 @@ class TestPassThrough:
         once one leak landed, every later mention passed.
         """
         (private_dir / "shared-fixture-name").mkdir()
-        (private_dir / "shared-fixture-name" / "SKILL.md").write_text("---\nname: s\n---\n")
+        (private_dir / "shared-fixture-name" / "SKILL.md").write_text("---\nname: shared-fixture-name\n---\n")
         (toolkit_repo / "docs.md").write_text("mentions shared-fixture-name already\n")
         _git(toolkit_repo, "add", "docs.md")
         _git(toolkit_repo, "commit", "-q", "-m", "public docs")
@@ -368,7 +368,7 @@ BRAND = "acmebrand"  # synthetic brand: shared first segment of two private leav
 def _skill(root: Path, *parts: str) -> None:
     d = root.joinpath(*parts)
     d.mkdir(parents=True, exist_ok=True)
-    (d / "SKILL.md").write_text("---\nname: x\n---\n")
+    (d / "SKILL.md").write_text(f"---\nname: {d.name}\n---\n")
 
 
 @pytest.fixture()
@@ -378,6 +378,33 @@ def brand_dir(private_dir):
     (private_dir / "brand" / "agents").mkdir()
     (private_dir / "brand" / "agents" / f"{BRAND}-news-editor.md").write_text("agent\n")
     return private_dir
+
+
+class TestStagedRemoval:
+    def test_commit_that_removes_a_leak_passes(self, private_dir, toolkit_repo):
+        (toolkit_repo / "old.md").write_text(f"mentions {SYNTH}\n")
+        _git(toolkit_repo, "add", "old.md")
+        _git(toolkit_repo, "commit", "-q", "-m", "old leak")
+        (toolkit_repo / "old.md").write_text("clean now\n")
+        _git(toolkit_repo, "add", "old.md")
+        code, _, _, _ = _run_main(_event('git commit -m "scrub"', toolkit_repo))
+        assert code == 0
+
+    def test_commit_that_adds_a_leak_still_blocks(self, private_dir, toolkit_repo):
+        (toolkit_repo / "new.md").write_text(f"mentions {SYNTH}\n")
+        _git(toolkit_repo, "add", "new.md")
+        code, _, _, _ = _run_main(_event('git commit -m "oops"', toolkit_repo))
+        assert code == 2
+
+
+class TestFrontmatterNames:
+    def test_nested_package_uses_deployed_frontmatter_name(self, private_dir, toolkit_repo):
+        """voice/<x>/skill/SKILL.md deploys as its frontmatter name; the bare dir word must not block."""
+        (private_dir / "voice" / "scribe" / "skill").mkdir(parents=True)
+        (private_dir / "voice" / "scribe" / "skill" / "SKILL.md").write_text("---\nname: voice-scribe\n---\n")
+        leaves, _ = mod.private_terms(toolkit_repo)
+        assert "voice-scribe" in leaves
+        assert "scribe" not in leaves
 
 
 class TestBrandTerms:

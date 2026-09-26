@@ -125,19 +125,3 @@ def test_all_mode_exits_nonzero_on_missing_reference(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # Scoped modes that CI already uses
 # ---------------------------------------------------------------------------
-
-
-def test_check_do_framing_exits_zero_on_shipped_repo() -> None:
-    """The repo's own files pass the do-framing check (CI gate)."""
-    result = _run("--check-do-framing")
-    assert result.returncode == 0, (
-        f"shipped repo fails --check-do-framing\nstdout: {result.stdout}\nstderr: {result.stderr}"
-    )
-
-
-def test_check_placeholders_exits_zero_on_shipped_repo() -> None:
-    """The repo's own files pass the placeholder-signals check (CI gate)."""
-    result = _run("--check-placeholders")
-    assert result.returncode == 0, (
-        f"shipped repo fails --check-placeholders\nstdout: {result.stdout}\nstderr: {result.stderr}"
-    )

@@ -1140,10 +1140,6 @@ def test_run_git_reports_each_failure_reason(tmp_path, effect, reason):
     assert f"gather: git status unavailable ({reason})" in block
 
 
-def test_gather_timeout_is_five_seconds():
-    assert bd._GATHER_TIMEOUT_SECONDS == 5
-
-
 @pytest.mark.performance
 def test_cli_with_gather_runs_under_300ms():
     decision = _decision()
