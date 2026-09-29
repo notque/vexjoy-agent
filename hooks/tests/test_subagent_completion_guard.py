@@ -24,7 +24,6 @@ spec.loader.exec_module(mod)
 
 capture_worktree_metadata = mod.capture_worktree_metadata
 format_worktree_output = mod.format_worktree_output
-record_worktree_learning = mod.record_worktree_learning
 check_branch_safety = mod.check_branch_safety
 find_write_tool_in_transcript = mod.find_write_tool_in_transcript
 check_readonly_violation = mod.check_readonly_violation
@@ -303,64 +302,6 @@ class TestFormatWorktreeOutput:
         lines = format_worktree_output(meta)
         assert len(lines) == 1
         assert "[worktree-result]" in lines[0]
-
-
-class TestRecordWorktreeLearning:
-    """Test learning DB recording (best-effort)."""
-
-    def test_empty_meta_does_nothing(self):
-        """No worktree metadata — should not attempt DB access."""
-        # Should not raise
-        record_worktree_learning({}, "some-agent")
-
-    def test_no_branch_does_nothing(self):
-        """Worktree detected but no branch (detached HEAD) — skip recording."""
-        record_worktree_learning(
-            {"is_worktree": True, "branch": "", "worktree_path": "/tmp/wt", "commits_ahead": 0, "uncommitted_files": 0},
-            "some-agent",
-        )
-
-    def test_records_to_learning_db(self):
-        """Verify record_learning is called with correct args."""
-        meta = {
-            "is_worktree": True,
-            "worktree_path": "/tmp/wt-feat",
-            "branch": "feat/audit-impl",
-            "commits_ahead": 3,
-            "has_uncommitted": False,
-            "uncommitted_files": 0,
-        }
-        mock_record = MagicMock()
-        mock_module = MagicMock()
-        mock_module.record_learning = mock_record
-
-        with patch.dict("sys.modules", {"learning_db_v2": mock_module}):
-            record_worktree_learning(meta, "golang-general-engineer")
-
-        mock_record.assert_called_once()
-        call_kwargs = mock_record.call_args
-        assert call_kwargs[1]["topic"] == "worktree-branches"
-        assert call_kwargs[1]["key"] == "worktree-feat/audit-impl"
-        assert "path=/tmp/wt-feat" in call_kwargs[1]["value"]
-        assert call_kwargs[1]["category"] == "effectiveness"
-        assert call_kwargs[1]["confidence"] == 0.8
-        assert "worktree" in call_kwargs[1]["tags"]
-        assert "feat/audit-impl" in call_kwargs[1]["tags"]
-        assert "golang-general-engineer" in call_kwargs[1]["tags"]
-        assert call_kwargs[1]["source"] == "hook:subagent-completion-guard"
-
-    def test_exception_in_db_does_not_raise(self):
-        """Learning DB errors must be swallowed silently."""
-        meta = {
-            "is_worktree": True,
-            "worktree_path": "/tmp/wt",
-            "branch": "feat/test",
-            "commits_ahead": 1,
-            "has_uncommitted": False,
-            "uncommitted_files": 0,
-        }
-        # Should not raise even if DB import fails
-        record_worktree_learning(meta, "test-agent")
 
 
 # ---------------------------------------------------------------------------

@@ -2413,50 +2413,6 @@ def search_learnings(
             return []
 
 
-def query_graduation_candidates(
-    *,
-    min_confidence: float = 0.9,
-    min_observations: int = 3,
-    limit: int = 10,
-) -> list[dict]:
-    """Return learning entries that are candidates for graduation into agent/skill files.
-
-    Graduation criteria (all must be met):
-    - confidence >= min_confidence
-    - observation_count >= min_observations
-    - graduated_to IS NULL (not already graduated)
-    - topic is scoped (starts with 'skill:' or 'agent:')
-
-    Args:
-        min_confidence: Minimum confidence threshold (default 0.9).
-        min_observations: Minimum observation count (default 3).
-        limit: Maximum number of results to return (default 10).
-
-    Returns:
-        List of learning dicts sorted by confidence DESC, then observation_count DESC.
-        Each dict contains: id, topic, key, value, category, confidence,
-        observation_count, first_seen, last_seen, tags.
-    """
-    init_db()
-
-    with get_connection() as conn:
-        rows = conn.execute(
-            """
-            SELECT id, topic, key, value, category, confidence,
-                   observation_count, first_seen, last_seen, tags
-            FROM learnings
-            WHERE confidence >= ?
-              AND observation_count >= ?
-              AND graduated_to IS NULL
-              AND (topic LIKE 'skill:%' OR topic LIKE 'agent:%')
-            ORDER BY confidence DESC, observation_count DESC
-            LIMIT ?
-            """,
-            (min_confidence, min_observations, limit),
-        ).fetchall()
-        return [dict(row) for row in rows]
-
-
 def lookup_error_solution(
     error_message: str,
     min_confidence: float = 0.7,
@@ -2480,47 +2436,6 @@ def lookup_error_solution(
         if row:
             return dict(row)
         return None
-
-
-def record_activations(
-    entries: list[tuple[str, str]],
-    session_id: str | None = None,
-    outcome: str = "success",
-) -> None:
-    """Record that multiple learnings were surfaced during a session.
-
-    Uses a single connection + executemany for efficiency.
-    Called from injection hooks to track which learnings are actually used.
-
-    Args:
-        entries: List of (topic, key) pairs to record.
-        session_id: Session identifier.
-        outcome: Outcome string (default "success").
-    """
-    if not entries:
-        return
-    init_db()
-    now = datetime.now().isoformat()
-    rows = [(topic, key, session_id, now, outcome) for topic, key in entries]
-    with get_connection() as conn:
-        conn.executemany(
-            "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
-            rows,
-        )
-        conn.commit()
-
-
-def record_activation(
-    topic: str,
-    key: str,
-    session_id: str | None = None,
-    outcome: str = "success",
-) -> None:
-    """Record that a learning was surfaced during a session.
-
-    Thin wrapper around record_activations() for single-entry convenience.
-    """
-    record_activations([(topic, key)], session_id, outcome)
 
 
 def record_instruction_compliance(

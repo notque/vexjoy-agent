@@ -769,21 +769,6 @@ def get_tool_output(result: object) -> str:
     return ""
 
 
-def get_tool_error(result: object) -> str:
-    """Return the tool's error/stderr string when an error occurred.
-
-    Claude/Codex surface 'error'; Factory uses 'stderr' (and exitCode != 0
-    indicates failure). Returns empty string when no error.
-    """
-    if not isinstance(result, dict):
-        return ""
-    if result.get("error"):
-        return result["error"]
-    if result.get("exitCode", 0) != 0:
-        return result.get("stderr", "") or result.get("stdout", "")
-    return ""
-
-
 def is_tool_error(result: object) -> bool:
     """Detect tool failure across schemas.
 

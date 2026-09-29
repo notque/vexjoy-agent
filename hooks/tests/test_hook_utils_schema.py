@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for schema-compatibility helpers in hook_utils.
 
-Covers get_tool_result, get_tool_output, get_tool_error, and is_tool_error
+Covers get_tool_result, get_tool_input, get_tool_output, and is_tool_error
 across Claude/Codex and Factory CLI schemas.
 """
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from hook_utils import get_tool_error, get_tool_input, get_tool_output, get_tool_result, is_tool_error
+from hook_utils import get_tool_input, get_tool_output, get_tool_result, is_tool_error
 
 # ===== get_tool_result =====
 
@@ -66,32 +66,6 @@ def test_get_tool_output_both_keys_output_wins():
 
 def test_get_tool_output_flattens_content_blocks():
     assert get_tool_output([{"type": "text", "text": "one"}, {"type": "text", "text": "two"}]) == "one\ntwo"
-
-
-# ===== get_tool_error =====
-
-
-def test_get_tool_error_explicit_error_key():
-    assert get_tool_error({"error": "something failed"}) == "something failed"
-
-
-def test_get_tool_error_exit_code_nonzero_with_stderr():
-    result = {"exitCode": 1, "stderr": "bad error", "stdout": "some output"}
-    assert get_tool_error(result) == "bad error"
-
-
-def test_get_tool_error_exit_code_nonzero_only_stdout():
-    result = {"exitCode": 2, "stderr": "", "stdout": "fallback output"}
-    assert get_tool_error(result) == "fallback output"
-
-
-def test_get_tool_error_exit_code_zero_no_error():
-    assert get_tool_error({"exitCode": 0, "stderr": "", "stdout": "ok"}) == ""
-
-
-def test_get_tool_error_explicit_error_empty_string():
-    # Empty string for 'error' should not be treated as an error
-    assert get_tool_error({"error": "", "exitCode": 0}) == ""
 
 
 # ===== is_tool_error =====

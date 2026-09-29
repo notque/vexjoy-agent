@@ -9,8 +9,7 @@ Enforces safety tiers and captures metadata at the moment any subagent stops:
     Detects if cwd is a git worktree (not the main repo), captures the
     branch name, commit count, and uncommitted file status. Outputs
     structured [worktree-result]/[worktree-warning]/[worktree-empty]
-    lines so the dispatcher knows what to merge/cleanup. Records the
-    worktree-to-branch mapping in the learning DB.
+    lines so the dispatcher knows what to merge/cleanup.
 
   Tier 1: Branch Safety Guard (ALWAYS ACTIVE)
     Blocks if the subagent committed directly to master/main.
@@ -163,42 +162,6 @@ def format_worktree_output(meta: dict) -> list[str]:
         lines.append(f"[worktree-empty] Worktree {path} has no changes — safe to remove")
 
     return lines
-
-
-def record_worktree_learning(meta: dict, agent_type: str) -> None:
-    """
-    Record worktree-to-branch mapping in the learning DB (best-effort).
-
-    Uses lazy import to avoid slowing down the common non-worktree path.
-    """
-    if not meta or not meta.get("is_worktree"):
-        return
-
-    branch = meta.get("branch", "")
-    if not branch:
-        return
-
-    try:
-        # Lazy import — only pay the cost when we actually have worktree data
-        sys.path.insert(0, str(Path(__file__).parent / "lib"))
-        from learning_db_v2 import record_learning
-
-        record_learning(
-            topic="worktree-branches",
-            key=f"worktree-{branch}",
-            value=(
-                f"path={meta['worktree_path']} branch={branch} "
-                f"commits={meta['commits_ahead']} "
-                f"uncommitted={meta['uncommitted_files']}"
-            ),
-            category="effectiveness",
-            confidence=0.8,
-            tags=["worktree", branch, agent_type] if agent_type else ["worktree", branch],
-            source="hook:subagent-completion-guard",
-        )
-    except Exception:
-        # Best-effort — never block the hook for a learning DB write
-        pass
 
 
 # ---------------------------------------------------------------------------

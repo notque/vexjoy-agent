@@ -148,12 +148,6 @@ def _push_cwds(command: str, default_cwd: str | None) -> list[Path]:
     return pushes
 
 
-def _push_cwd(command: str, default_cwd: str | None) -> Path | None:
-    """Compatibility helper returning the first push context."""
-    contexts = _push_cwds(command, default_cwd)
-    return contexts[0] if contexts else None
-
-
 def _git_paths(project_root: Path, args: list[str]) -> list[str]:
     """Run a NUL-delimited Git path query, returning no paths on failure."""
     try:
