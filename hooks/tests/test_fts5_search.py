@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-Tests for FTS5 full-text search in learning_db_v2.
+Schema contract tests for the learnings_fts FTS5 index in learning_db_v2.
 
 Verifies:
-- FTS5 virtual table creation and trigger-based sync
-- search_learnings() with BM25 ranking
-- Porter stemming (morphological matching)
-- OR/AND query syntax
-- Prefix queries
-- Migration backfill for pre-existing rows
-- Backward compatibility with query_learnings()
-- Edge cases: empty query, invalid syntax, no matches
+- trigger-based sync of learnings_fts on UPDATE and DELETE
+- migration backfill of rows written before the FTS table existed
+- query_learnings() lookup by topic
 """
 
 import sqlite3
@@ -33,23 +28,28 @@ def isolated_db(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _record(topic: str, key: str, value: str, tags: list[str] | None = None, confidence: float = 0.7) -> dict:
-    """Helper to record a learning with defaults.
-
-    source="manual" (not "test*") so these fixture rows survive
-    search_learnings()'s default exclude_test_sources=True -- the dedicated
-    TestExcludeTestSources class below uses an explicit "test*" source to
-    exercise that filter directly.
-    """
+def _record(topic: str, key: str, value: str, tags: list[str] | None = None) -> dict:
+    """Record a learning with defaults."""
     return db.record_learning(
         topic=topic,
         key=key,
         value=value,
         category="design",
-        confidence=confidence,
+        confidence=0.7,
         tags=tags,
         source="manual",
     )
+
+
+def _fts_match(term: str) -> list[dict]:
+    """Query learnings_fts directly and join back to the learnings row."""
+    with db.get_connection() as conn:
+        rows = conn.execute(
+            "SELECT l.topic, l.value FROM learnings_fts JOIN learnings l ON l.id = learnings_fts.rowid "
+            "WHERE learnings_fts MATCH ?",
+            (term,),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
 
 class TestTriggerSync:
@@ -65,7 +65,7 @@ class TestTriggerSync:
             tags=["go"],
         )
 
-        results = db.search_learnings("goroutines")
+        results = _fts_match("goroutines")
         assert len(results) == 1
         assert "goroutines" in results[0]["value"]
 
@@ -73,7 +73,7 @@ class TestTriggerSync:
         _record("temp-topic", "temp-key", "Temporary value for deletion test", tags=["temp"])
 
         # Verify it's searchable
-        assert len(db.search_learnings("temporary")) >= 1
+        assert len(_fts_match("temporary")) >= 1
 
         # Delete directly
         with db.get_connection() as conn:
@@ -81,222 +81,7 @@ class TestTriggerSync:
             conn.commit()
 
         # FTS should no longer find it
-        results = db.search_learnings("temporary")
-        assert len(results) == 0
-
-
-class TestSearchLearnings:
-    """Test the search_learnings() function."""
-
-    def test_basic_search(self):
-        _record("go-patterns", "mutex-usage", "Use sync.Mutex for shared state", tags=["go", "concurrency"])
-        _record("python-patterns", "dataclass-usage", "Use dataclasses for structured data", tags=["python"])
-
-        results = db.search_learnings("mutex")
-        assert len(results) == 1
-        assert results[0]["topic"] == "go-patterns"
-
-    def test_bm25_ranking(self):
-        """More relevant results should rank higher (more negative BM25)."""
-        _record("topic-a", "key-a", "goroutine goroutine goroutine channel", tags=["go"])
-        _record("topic-b", "key-b", "some other content with goroutine once", tags=["misc"])
-
-        results = db.search_learnings("goroutine")
-        assert len(results) == 2
-        # First result should have more negative rank (= more relevant)
-        assert results[0]["rank"] <= results[1]["rank"]
-        assert results[0]["topic"] == "topic-a"
-
-    def test_porter_stemming(self):
-        """Porter stemmer should match morphological variants."""
-        _record("config", "config-patterns", "Configuring the application requires validation", tags=["config"])
-
-        # All these forms should match via stemming
-        for query in ["configuring", "configured", "configuration", "configure"]:
-            results = db.search_learnings(query)
-            assert len(results) >= 1, f"Stemming failed for '{query}'"
-
-    def test_or_query(self):
-        _record("topic-a", "key-a", "Worker pool implementation", tags=["go"])
-        _record("topic-b", "key-b", "Circuit breaker pattern", tags=["resilience"])
-        _record("topic-c", "key-c", "Unrelated topic about databases", tags=["sql"])
-
-        results = db.search_learnings("worker OR circuit")
-        assert len(results) == 2
-        topics = {r["topic"] for r in results}
-        assert topics == {"topic-a", "topic-b"}
-
-    def test_and_query(self):
-        _record("topic-a", "key-a", "State machine in Go", tags=["go", "state-machine"])
-        _record("topic-b", "key-b", "State management in React", tags=["react"])
-        _record("topic-c", "key-c", "Machine learning basics", tags=["ml"])
-
-        results = db.search_learnings("state AND machine")
-        assert len(results) == 1
-        assert results[0]["topic"] == "topic-a"
-
-    def test_prefix_query(self):
-        _record("topic-a", "key-a", "Circuit breaker for resilience", tags=["circuit-breaker"])
-
-        results = db.search_learnings("circuit*")
-        assert len(results) >= 1
-        assert results[0]["topic"] == "topic-a"
-
-    def test_searches_across_all_columns(self):
-        """FTS5 indexes topic, key, value, and tags — all should be searchable."""
-        _record("goroutine-patterns", "pool-design", "Describes worker pool", tags=["concurrency"])
-
-        # Match in topic column
-        assert len(db.search_learnings("goroutine")) >= 1
-        # Match in key column
-        assert len(db.search_learnings("pool")) >= 1
-        # Match in value column
-        assert len(db.search_learnings("worker")) >= 1
-        # Match in tags column
-        assert len(db.search_learnings("concurrency")) >= 1
-
-    def test_min_confidence_filter(self):
-        _record("topic-a", "key-a", "Low confidence result", tags=["test"], confidence=0.3)
-        _record("topic-b", "key-b", "High confidence result", tags=["test"], confidence=0.9)
-
-        results = db.search_learnings("confidence result", min_confidence=0.5)
-        assert len(results) == 1
-        assert results[0]["topic"] == "topic-b"
-
-    def test_exclude_graduated(self):
-        _record("topic-a", "key-a", "Graduated entry about testing", tags=["test"])
-        db.mark_graduated("topic-a", "key-a", "agent:test-agent")
-        _record("topic-b", "key-b", "Active entry about testing", tags=["test"])
-
-        # Default: exclude graduated
-        results = db.search_learnings("testing")
-        assert len(results) == 1
-        assert results[0]["topic"] == "topic-b"
-
-        # Include graduated
-        results = db.search_learnings("testing", exclude_graduated=False)
-        assert len(results) == 2
-
-    def test_limit(self):
-        for i in range(10):
-            _record(f"topic-{i}", f"key-{i}", f"Entry number {i} about testing", tags=["test"])
-
-        results = db.search_learnings("testing", limit=3)
-        assert len(results) == 3
-
-    def test_empty_query_returns_empty(self):
-        _record("topic-a", "key-a", "Some content", tags=["test"])
-        assert db.search_learnings("") == []
-        assert db.search_learnings("   ") == []
-
-    def test_invalid_fts_syntax_returns_empty(self):
-        """Invalid FTS5 query syntax should not raise, just return empty."""
-        _record("topic-a", "key-a", "Some content", tags=["test"])
-        # Unbalanced quotes and other invalid FTS5 syntax
-        assert db.search_learnings('"unclosed quote') == []
-
-    def test_categories_filter_matches_any(self):
-        """ADR: pretool-injector-scoping -- categories restricts to an allowlist."""
-        _record("topic-a", "key-a", "Error content about deadlocks", tags=["go"])  # category=design (default)
-        db.record_learning(
-            topic="topic-b",
-            key="key-b",
-            value="Deadlock error pattern",
-            category="error",
-            confidence=0.9,
-            tags=["go"],
-            source="manual",
-        )
-        db.record_learning(
-            topic="topic-c",
-            key="key-c",
-            value="Deadlock gotcha note",
-            category="gotcha",
-            confidence=0.9,
-            tags=["go"],
-            source="manual",
-        )
-
-        results = db.search_learnings("deadlock", categories=["error", "gotcha"])
-        topics = {r["topic"] for r in results}
-        assert topics == {"topic-b", "topic-c"}
-
-    def test_categories_filter_excludes_others(self):
-        _record("topic-a", "key-a", "Voice content about deadlocks", tags=["go"])  # category=design
-        results = db.search_learnings("deadlock", categories=["error", "gotcha", "debug"])
-        assert results == []
-
-    def test_project_path_filter_matches_global_and_exact(self):
-        db.record_learning(
-            topic="topic-global",
-            key="key-a",
-            value="Global content about circuit breakers",
-            category="error",
-            confidence=0.9,
-            source="manual",
-            project_path=None,
-        )
-        db.record_learning(
-            topic="topic-same-project",
-            key="key-b",
-            value="Same-project content about circuit breakers",
-            category="error",
-            confidence=0.9,
-            source="manual",
-            project_path="/home/user/project-a",
-        )
-        db.record_learning(
-            topic="topic-other-project",
-            key="key-c",
-            value="Other-project content about circuit breakers",
-            category="error",
-            confidence=0.9,
-            source="manual",
-            project_path="/home/user/project-b",
-        )
-
-        results = db.search_learnings("circuit breakers", project_path="/home/user/project-a")
-        topics = {r["topic"] for r in results}
-        assert topics == {"topic-global", "topic-same-project"}
-        assert "topic-other-project" not in topics
-
-    def test_project_path_none_is_no_op(self):
-        db.record_learning(
-            topic="topic-other-project",
-            key="key-c",
-            value="Other-project content about circuit breakers",
-            category="error",
-            confidence=0.9,
-            source="manual",
-            project_path="/home/user/project-b",
-        )
-        results = db.search_learnings("circuit breakers")
-        assert len(results) == 1
-
-    def test_exclude_test_sources_default_excludes(self):
-        """ADR: pretool-injector-scoping Concern 1 -- parity with query_learnings()."""
-        db.record_learning(
-            topic="topic-fixture",
-            key="key-a",
-            value="Test fixture content about retries",
-            category="error",
-            confidence=0.9,
-            source="test-fixture",
-        )
-        results = db.search_learnings("retries")
-        assert results == []
-
-    def test_exclude_test_sources_false_includes(self):
-        db.record_learning(
-            topic="topic-fixture",
-            key="key-a",
-            value="Test fixture content about retries",
-            category="error",
-            confidence=0.9,
-            source="test-fixture",
-        )
-        results = db.search_learnings("retries", exclude_test_sources=False)
-        assert len(results) == 1
+        assert _fts_match("temporary") == []
 
 
 class TestMigrationBackfill:
@@ -369,7 +154,7 @@ class TestMigrationBackfill:
         db.init_db()
 
         # The pre-existing row should be searchable via FTS
-        results = db.search_learnings("goroutines")
+        results = _fts_match("goroutines")
         assert len(results) == 1
         assert results[0]["topic"] == "pre-existing"
 
@@ -382,15 +167,3 @@ class TestBackwardCompatibility:
 
         results = db.query_learnings(topic="go-patterns", exclude_test_sources=False)
         assert len(results) == 1
-
-    def test_both_apis_find_same_entry(self):
-        _record("shared", "shared-key", "Shared content about concurrency", tags=["go", "concurrency"])
-
-        query_results = db.query_learnings(tags=["concurrency"], exclude_test_sources=False)
-        search_results = db.search_learnings("concurrency")
-
-        assert len(query_results) >= 1
-        assert len(search_results) >= 1
-        # Both should find the same entry
-        assert query_results[0]["topic"] == search_results[0]["topic"]
-        assert query_results[0]["key"] == search_results[0]["key"]

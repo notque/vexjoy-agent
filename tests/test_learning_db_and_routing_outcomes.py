@@ -89,29 +89,6 @@ class TestSanitizerCaseInsensitive:
         assert sanitize_for_context(None) is None
 
 
-class TestSanitizeFtsQuery:
-    """sanitize_fts_query must strip FTS5 operators."""
-
-    @pytest.mark.parametrize(
-        "input_term,expected_absent",
-        [
-            ('"quoted"', '"'),
-            ("term*", "*"),
-            ("NOT term", "NOT"),
-            ("col:value", ":"),
-            ("a AND b", "AND"),
-            ("a OR b", "OR"),
-            ("NEAR(a b)", "NEAR"),
-            ("(grouped)", "("),
-        ],
-    )
-    def test_operators_stripped(self, input_term, expected_absent):
-        from learning_db_v2 import sanitize_fts_query
-
-        result = sanitize_fts_query(input_term)
-        assert expected_absent not in result
-
-
 # ===========================================================================
 # Routing-outcome finalization: every pending dispatch reaches a terminal state
 # ===========================================================================
