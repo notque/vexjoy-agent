@@ -264,7 +264,8 @@ class AgentResult:
 def find_declared_references(agent_file: Path) -> list[str]:
     """Extract all references/... paths mentioned in an agent .md file."""
     content = agent_file.read_text(encoding="utf-8")
-    agent_dir = AGENTS_DIR / agent_file.stem
+    agents_dir = agent_file.parent
+    agent_dir = agents_dir / agent_file.stem
 
     raw_paths: list[str] = []
 
@@ -282,7 +283,7 @@ def find_declared_references(agent_file: Path) -> list[str]:
         elif raw.startswith("../"):
             candidate = str((agent_file.parent / raw).resolve())
         else:
-            candidate = str(AGENTS_DIR / raw)
+            candidate = str(agents_dir / raw)
 
         if candidate not in seen:
             seen.add(candidate)
@@ -291,12 +292,12 @@ def find_declared_references(agent_file: Path) -> list[str]:
     return resolved
 
 
-def validate_reference_file(ref_path: Path) -> list[ReferenceIssue]:
+def validate_reference_file(ref_path: Path, agents_dir: Path = AGENTS_DIR) -> list[ReferenceIssue]:
     """Check structural requirements of a single reference .md file."""
     issues: list[ReferenceIssue] = []
     content = ref_path.read_text(encoding="utf-8")
     try:
-        rel = str(ref_path.relative_to(AGENTS_DIR))
+        rel = str(ref_path.relative_to(agents_dir))
     except ValueError:
         rel = str(ref_path.relative_to(REPO_ROOT))
 
@@ -343,7 +344,7 @@ def validate_agent(agent_file: Path, check_structure: bool = True) -> AgentResul
         if not ref_path.exists():
             result.missing.append(path_str)
         elif check_structure:
-            result.issues.extend(validate_reference_file(ref_path))
+            result.issues.extend(validate_reference_file(ref_path, agent_file.parent))
 
     return result
 
@@ -634,12 +635,12 @@ def run_check_skill_calls(json_output: bool) -> int:
     return 1 if failures else 0
 
 
-def find_all_reference_files() -> list[Path]:
+def find_all_reference_files(agents_dir: Path = AGENTS_DIR) -> list[Path]:
     """Find every .md file inside any references/ subdirectory under agents/."""
-    return list(AGENTS_DIR.rglob("references/*.md"))
+    return list(agents_dir.rglob("references/*.md"))
 
 
-def find_orphan_references(all_results: list[AgentResult]) -> list[Path]:
+def find_orphan_references(all_results: list[AgentResult], agents_dir: Path = AGENTS_DIR) -> list[Path]:
     """Return reference files that exist on disk but aren't declared by any agent."""
     declared_set: set[str] = set()
     for result in all_results:
@@ -647,7 +648,7 @@ def find_orphan_references(all_results: list[AgentResult]) -> list[Path]:
             declared_set.add(str(Path(path_str).resolve()))
 
     orphans: list[Path] = []
-    for ref_file in find_all_reference_files():
+    for ref_file in find_all_reference_files(agents_dir):
         if str(ref_file.resolve()) not in declared_set:
             orphans.append(ref_file)
     return orphans
@@ -657,6 +658,7 @@ def print_text_results(
     results: list[AgentResult],
     orphans: list[Path],
     placeholders: list[tuple[str, int, str]] | None = None,
+    agents_dir: Path = AGENTS_DIR,
 ) -> None:
     """Print human-readable validation output."""
     for result in results:
@@ -670,7 +672,7 @@ def print_text_results(
         else:
             print(f"  {result.name}: {present_count}/{total} references present, {issue_count} issues")
             for path_str in result.missing:
-                rel = Path(path_str).relative_to(AGENTS_DIR) if AGENTS_DIR in Path(path_str).parents else path_str
+                rel = Path(path_str).relative_to(agents_dir) if agents_dir in Path(path_str).parents else path_str
                 print(f"    MISSING: {rel}")
             for issue in result.issues:
                 label = issue.kind.upper().replace("-", "_")
@@ -679,7 +681,7 @@ def print_text_results(
     if orphans:
         print("\nOrphan reference files (not declared by any agent):")
         for orphan in orphans:
-            print(f"  ORPHAN: {orphan.relative_to(AGENTS_DIR)}")
+            print(f"  ORPHAN: {orphan.relative_to(agents_dir)}")
 
     if placeholders:
         print("\nPlaceholder loading-table signals (cannot disambiguate which reference to load):")
@@ -710,6 +712,7 @@ def build_json_results(
     results: list[AgentResult],
     orphans: list[Path],
     placeholders: list[tuple[str, int, str]] | None = None,
+    agents_dir: Path = AGENTS_DIR,
 ) -> dict:
     """Build JSON-serializable results dict."""
     agents_out = []
@@ -734,7 +737,7 @@ def build_json_results(
     placeholders = placeholders or []
     return {
         "agents": agents_out,
-        "orphans": [str(o.relative_to(AGENTS_DIR)) for o in orphans],
+        "orphans": [str(o.relative_to(agents_dir)) for o in orphans],
         "placeholder_signals": [
             {"file": rel, "line": lineno, "signal": signal} for rel, lineno, signal in placeholders
         ],
@@ -777,6 +780,13 @@ def main() -> None:
         metavar="PATH",
         help="Backlog JSON to skip known violations (default: artifacts/joy-check-sweep-backlog.json)",
     )
+    parser.add_argument(
+        "--agents-dir",
+        type=Path,
+        default=AGENTS_DIR,
+        metavar="PATH",
+        help="Agents directory for --agent and --all (default: the repo agents/ dir)",
+    )
     parser.add_argument("--json", dest="json_output", action="store_true", help="JSON output for CI")
     parser.add_argument(
         "--failures-only",
@@ -804,16 +814,17 @@ def main() -> None:
         )
 
     check_structure = not args.check_declared
+    agents_dir: Path = args.agents_dir
 
     agent_files: list[Path] = []
     if args.agent:
-        candidate = AGENTS_DIR / f"{args.agent}.md"
+        candidate = agents_dir / f"{args.agent}.md"
         if not candidate.exists():
             print(f"ERROR: Agent file not found: {candidate}", file=sys.stderr)
             sys.exit(1)
         agent_files = [candidate]
     else:
-        agent_files = sorted(AGENTS_DIR.glob("*.md"))
+        agent_files = sorted(agents_dir.glob("*.md"))
         agent_files = [f for f in agent_files if f.name not in {"README.md"}]
 
     results: list[AgentResult] = []
@@ -828,8 +839,8 @@ def main() -> None:
     orphans: list[Path] = []
     placeholders: list[tuple[str, int, str]] = []
     if args.all and check_structure:
-        all_agent_results = [validate_agent(f, check_structure=False) for f in sorted(AGENTS_DIR.glob("*.md"))]
-        orphans = find_orphan_references(all_agent_results)
+        all_agent_results = [validate_agent(f, check_structure=False) for f in sorted(agents_dir.glob("*.md"))]
+        orphans = find_orphan_references(all_agent_results, agents_dir)
         placeholders = find_placeholder_signals()
 
     # Filter for --failures-only: only agents with issues
@@ -839,13 +850,13 @@ def main() -> None:
     display_orphans = orphans  # always show orphans (they are issues)
 
     if args.json_output:
-        output = build_json_results(display_results, display_orphans, placeholders)
+        output = build_json_results(display_results, display_orphans, placeholders, agents_dir)
         if args.failures_only:
             output["summary"]["message"] = f"{passing_agents} of {total_agents} agents passed validation"
         print(json.dumps(output, indent=2))
         sys.exit(1 if any(not r.ok for r in results) or bool(orphans) or bool(placeholders) else 0)
     else:
-        print_text_results(display_results, display_orphans, placeholders)
+        print_text_results(display_results, display_orphans, placeholders, agents_dir)
         if args.failures_only:
             print(f"\n{passing_agents} of {total_agents} agents passed validation")
         has_failures = any(not r.ok for r in results) or bool(orphans) or bool(placeholders)
