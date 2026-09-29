@@ -56,7 +56,7 @@ You have deep expertise in:
 
 | Skill | When to call | Action |
 |-------|--------------|--------|
-| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 
 **Rule**: Use the exact action in each applicable row.
 

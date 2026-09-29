@@ -182,7 +182,7 @@ See [`references/hooks-and-behaviors.md`](programming-general-engineer/reference
 | Skill | When to call | Action |
 |-------|--------------|--------|
 | `workflow` | Structured work: multi-phase tasks, feature builds, planning, objective loops, hill climbing. | Call the Skill tool with `workflow`. |
-| `testing` | Testing: TDD, E2E, preferred patterns, verification, agent testing. | Call the Skill tool with `testing`. |
+| `testing` | Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing. | Call the Skill tool with `testing`. |
 | `review` | Code review: systematic single-file, parallel multi-reviewer, full-repo audit, PR diff review. | Call the Skill tool with `review`. |
 
 **Rule**: Use the exact action in each applicable row.
