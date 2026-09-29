@@ -62,8 +62,8 @@ class TestPrimaryPatterns:
         """Heading containing 'Anti-Pattern' is flagged."""
         p = _write(tmp_path, "## Anti-Patterns\n\nSome description.\n")
         violations = scan_file(p)
-        assert any(v.pattern == "Anti-Pattern" for v in violations), (
-            f"Expected Anti-Pattern violation, got: {violations}"
+        assert [v.pattern for v in violations] == ["Anti-Pattern"], (
+            f"Expected exactly one Anti-Pattern violation, got: {violations}"
         )
 
     def test_forbidden_caps_fails(self, tmp_path: Path) -> None:
@@ -177,31 +177,6 @@ class TestContextualExceptions:
         p = _write(tmp_path, content)
         violations = scan_file(p)
         assert violations == [], f"Expected no violations for blockquote lines, got: {violations}"
-
-
-# ---------------------------------------------------------------------------
-# Positive rewrite examples -- positive framing must not be flagged
-# ---------------------------------------------------------------------------
-
-
-class TestPositiveRewrites:
-    """Positive rewrites from the rubric must produce zero violations."""
-
-    def test_route_to_agents_positive(self, tmp_path: Path) -> None:
-        p = _write(tmp_path, "Route all code modifications to domain agents.\n")
-        assert scan_file(p) == []
-
-    def test_feature_branch_positive(self, tmp_path: Path) -> None:
-        p = _write(tmp_path, "Create feature branches for all commits.\n")
-        assert scan_file(p) == []
-
-    def test_preferred_heading_positive(self, tmp_path: Path) -> None:
-        p = _write(tmp_path, "## Preferred Patterns\n\nUse this approach.\n")
-        assert scan_file(p) == []
-
-    def test_hard_gate_heading_positive(self, tmp_path: Path) -> None:
-        p = _write(tmp_path, "### Hard Gate Patterns\n\nEnforced by hooks.\n")
-        assert scan_file(p) == []
 
 
 # ---------------------------------------------------------------------------

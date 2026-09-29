@@ -443,7 +443,7 @@ class TestStopAsyncRewake:
             state_file.write_text(
                 json.dumps(
                     {
-                        "hash": mod._diff_signature("/repo", diff),
+                        "hash": mod._dedup().signature("/repo", diff),
                         "ts": 0,
                         "ts_iso": "1970-01-01T00:00:00+00:00",
                         "cwd": "/repo",
@@ -465,7 +465,7 @@ class TestStopAsyncRewake:
             state_file.write_text(
                 json.dumps(
                     {
-                        "hash": mod._diff_signature("/repo", diff),
+                        "hash": mod._dedup().signature("/repo", diff),
                         "ts": stale_ts,
                         "ts_iso": "2020-01-01T00:00:00+00:00",
                         "cwd": "/repo",

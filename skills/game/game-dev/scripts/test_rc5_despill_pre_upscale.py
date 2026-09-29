@@ -182,9 +182,6 @@ def test_full_pipeline_pre_despill_reduces_wide_pink(tmp_path: Path) -> None:
 
 def test_post_anchor_despill_helper_exists_and_callable() -> None:
     """`_post_anchor_despill_pink` is the documented RC-5 cleanup helper."""
-    assert hasattr(sprite_anchor, "_post_anchor_despill_pink"), (
-        "RC-5 expects `_post_anchor_despill_pink` in sprite_anchor"
-    )
     helper = sprite_anchor._post_anchor_despill_pink
     # Build a 10x10 RGBA array with pink-cast pixels at silhouette edge.
     arr = np.zeros((10, 10, 4), dtype=np.uint8)

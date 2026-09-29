@@ -3,8 +3,8 @@
 
 The full phrasing corpus lives in scripts/routing-benchmark.json as
 pre_route_only / pre_route_negative rows and is enforced by
-scripts/routing-benchmark.py in CI. This file keeps one in-process case per
-trigger family and idiom guard.
+scripts/routing-benchmark.py in CI, which owns the idiom negatives. This file
+keeps one in-process positive case per trigger family.
 
 The corpus is the contract: if a phrase fails, fix the trigger or guard, do not
 drop the case. See `adr/pr-create-skill-guard.md`.
@@ -38,21 +38,8 @@ POSITIVE = [
     "wrap this up and merge",  # merge intent
 ]
 
-NEGATIVE = [
-    "push back on this design",  # push idiom
-    "ship of Theseus",  # ship idiom
-    "publish a paper to arxiv",  # publish, not code
-    "merge personalities at the offsite",  # merge idiom
-]
-
 
 @pytest.mark.parametrize("phrase", POSITIVE)
 def test_force_routes_to_pr_workflow(route, phrase: str) -> None:
     result = route(phrase)
     assert (result["skill"], result["match_type"]) == ("pr-workflow", "force_route"), result
-
-
-@pytest.mark.parametrize("phrase", NEGATIVE)
-def test_does_not_force_route_to_pr_workflow(route, phrase: str) -> None:
-    result = route(phrase)
-    assert not (result.get("skill") == "pr-workflow" and result.get("match_type") == "force_route"), result

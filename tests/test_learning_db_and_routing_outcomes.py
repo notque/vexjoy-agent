@@ -4,8 +4,9 @@
 Formerly test_learning_loop_fixes.py. The learning loop was retired; the
 classes that covered its deleted hooks went with it. What remains covers
 subsystems that survive on top of learning_db_v2: the context sanitizers,
-routing-outcome finalization (next-turn finalizer plus the Stop fallback),
-and the shared get_db_dir() path resolver.
+routing-outcome finalization by the next-turn finalizer (the Stop fallback
+lives in hooks/tests/test_routing_decision_recorder.py), and the shared
+get_db_dir() path resolver.
 """
 
 from __future__ import annotations
@@ -96,8 +97,7 @@ class TestSanitizerCaseInsensitive:
 
 class TestOutcomeFinalizerCoverage:
     """567 decisions vs 41 outcomes. Every pending decision must reach a
-    terminal state (failure/success/neutral) by session end. The Stop
-    fallback must resolve whatever UserPromptSubmit did not.
+    terminal state by session end; UserPromptSubmit resolves it here.
     """
 
     @pytest.fixture()
@@ -107,109 +107,6 @@ class TestOutcomeFinalizerCoverage:
         state_dir.mkdir()
         with patch.dict(os.environ, {"CLAUDE_ROUTING_STATE_DIR": str(state_dir)}):
             yield state_dir
-
-    def test_stop_resolves_all_pending(self, tmp_learning_dir, routing_state_dir):
-        """After Stop fires, no pending outcomes remain."""
-        import learning_db_v2
-
-        learning_db_v2._initialized = False
-        learning_db_v2.init_db()
-
-        # Seed a decision row
-        learning_db_v2.record_learning(
-            topic="routing",
-            key="test-agent:test-skill",
-            value="test route",
-            category="effectiveness",
-            confidence=0.5,
-            source="test-seed",
-        )
-
-        from routing_outcome_state import append_pending_outcome, peek_pending_outcomes
-
-        session_id = "test-session-stop"
-        append_pending_outcome(session_id, "test-agent:test-skill", errors=False)
-
-        # Verify pending exists
-        pending = peek_pending_outcomes(session_id)
-        assert len(pending) == 1, "Pre-condition: one pending outcome"
-
-        # Fire the Stop fallback
-        import importlib.util
-
-        spec = importlib.util.spec_from_file_location(
-            "routing_outcome_stop_fallback",
-            str(HOOKS_DIR / "routing-outcome-stop-fallback.py"),
-        )
-        stop_fallback = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(stop_fallback)
-        stop_fallback.finalize_routing_outcomes(session_id)
-
-        # After Stop: pending must be empty
-        remaining = peek_pending_outcomes(session_id)
-        assert len(remaining) == 0, f"Stop left {len(remaining)} pending outcomes unresolved"
-
-        # T4 deterministic floor: a CLEAN autonomous run carries no acceptance
-        # evidence, so resolving it must be a no-op -- never a boost.
-        from routing_outcome_score import _current_confidence
-
-        conf = _current_confidence("test-agent:test-skill")
-        assert conf == 0.5, f"clean Stop run must not change confidence, got {conf}"
-
-    def test_fixture_replay_three_decisions(self, tmp_learning_dir, routing_state_dir):
-        """Three decisions (error, clean, clean) -> finalizer resolves all three.
-        Outcome: 1 failure + 2 neutral.
-        """
-        import learning_db_v2
-
-        learning_db_v2._initialized = False
-        learning_db_v2.init_db()
-
-        keys = ["a:s1", "b:s2", "c:s3"]
-        for k in keys:
-            learning_db_v2.record_learning(
-                topic="routing",
-                key=k,
-                value=f"route {k}",
-                category="effectiveness",
-                confidence=0.5,
-                source="test-seed",
-            )
-
-        from routing_outcome_state import (
-            append_pending_outcome,
-            peek_pending_outcomes,
-        )
-
-        session_id = "test-session-fixture"
-        # a:s1 has errors, b:s2 and c:s3 are clean
-        append_pending_outcome(session_id, "a:s1", errors=True)
-        append_pending_outcome(session_id, "b:s2", errors=False)
-        append_pending_outcome(session_id, "c:s3", errors=False)
-
-        pending = peek_pending_outcomes(session_id)
-        assert len(pending) == 3
-
-        # Simulate the Stop fallback
-        import importlib.util
-
-        spec = importlib.util.spec_from_file_location(
-            "routing_outcome_stop_fallback",
-            str(HOOKS_DIR / "routing-outcome-stop-fallback.py"),
-        )
-        stop_fallback = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(stop_fallback)
-        stop_fallback.finalize_routing_outcomes(session_id)
-
-        # All resolved
-        remaining = peek_pending_outcomes(session_id)
-        assert len(remaining) == 0, f"Left {len(remaining)} pending"
-
-        # Verify the error key was decayed
-        from routing_outcome_score import _current_confidence
-
-        conf_a = _current_confidence("a:s1")
-        assert conf_a < 0.5, f"Error key not decayed: {conf_a}"
 
     def test_userprompt_resolves_single_pending(self, tmp_learning_dir, routing_state_dir):
         """A single pending dispatch + acceptance prompt -> success outcome."""

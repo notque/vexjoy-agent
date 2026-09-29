@@ -353,11 +353,6 @@ def _dedup() -> DiffDedup:
     return DiffDedup(_STATE_DIR, _STATE_FILE, ttl_seconds=_dedup_ttl_seconds())
 
 
-def _diff_signature(cwd: str | None, diff: str) -> str:
-    """Hash (cwd, diff) so different repos with identical diffs don't collide."""
-    return _dedup().signature(cwd, diff)
-
-
 def _is_duplicate_diff(cwd: str | None, diff: str) -> tuple[bool, str | None]:
     """Return (is_duplicate, last_seen_iso). Hash match is permanent by default.
 

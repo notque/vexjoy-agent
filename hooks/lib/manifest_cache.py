@@ -89,14 +89,6 @@ def _stored_hash() -> str:
         return ""
 
 
-def is_fresh(scripts_dir: Path) -> bool:
-    """True when the cache exists and the sidecar matches current inputs."""
-    stored = _stored_hash()
-    if not stored or not CACHE_FILE.is_file():
-        return False
-    return stored == compute_input_hash(scripts_dir)
-
-
 def _atomic_write(path: Path, text: str) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")

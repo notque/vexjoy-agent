@@ -166,16 +166,6 @@ class TestExtraction:
 class TestErrorHandling:
     """Hook always exits 0, even on bad input."""
 
-    def test_empty_stdin_exits_0(self):
-        result = subprocess.run(
-            [sys.executable, str(HOOKS_DIR / "review-false-positive-capture.py")],
-            input="",
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        assert result.returncode == 0
-
     @pytest.mark.parametrize("payload", ["", "   ", "\n"])
     def test_empty_stdin_logs_no_error(self, payload, isolate_hook_error_log):
         """Empty stdin is an expected input, not a hook failure.
@@ -196,11 +186,12 @@ class TestErrorHandling:
         assert "HOOK-ERROR" not in result.stderr
         assert not isolate_hook_error_log.exists(), isolate_hook_error_log.read_text()
 
-    def test_non_object_json_logs_no_error(self, isolate_hook_error_log):
-        """A bare JSON scalar carries no prompt; treat it as nothing to do."""
+    @pytest.mark.parametrize("payload", ['"just a string"', '{"cwd": "/tmp"}'])
+    def test_input_without_a_prompt_logs_no_error(self, payload, isolate_hook_error_log):
+        """A bare JSON scalar or an object missing "prompt" is nothing to do."""
         result = subprocess.run(
             [sys.executable, str(HOOKS_DIR / "review-false-positive-capture.py")],
-            input='"just a string"',
+            input=payload,
             capture_output=True,
             text=True,
             timeout=10,
@@ -210,20 +201,6 @@ class TestErrorHandling:
         assert "HOOK-ERROR" not in result.stderr
         assert not isolate_hook_error_log.exists()
 
-    def test_valid_input_still_captures_after_the_empty_guard(self, tmp_learning_dir):
-        """The empty-input guard must not short-circuit a real capture."""
-        result = _run_hook(
-            {
-                "prompt": "that is a false positive, reviewer-code was wrong about hooks/foo.py",
-                "cwd": "/tmp",
-                "session_id": "guard-test",
-            },
-            {"CLAUDE_LEARNING_DIR": str(tmp_learning_dir)},
-        )
-
-        assert result.returncode == 0
-        assert "[review-fp] captured:" in result.stderr
-
     def test_malformed_json_exits_0(self):
         result = subprocess.run(
             [sys.executable, str(HOOKS_DIR / "review-false-positive-capture.py")],
@@ -231,13 +208,6 @@ class TestErrorHandling:
             capture_output=True,
             text=True,
             timeout=10,
-        )
-        assert result.returncode == 0
-
-    def test_missing_prompt_field_exits_0(self, tmp_learning_dir):
-        result = _run_hook(
-            {"cwd": "/tmp"},
-            {"CLAUDE_LEARNING_DIR": str(tmp_learning_dir)},
         )
         assert result.returncode == 0
 

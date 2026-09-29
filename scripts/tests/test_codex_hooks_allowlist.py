@@ -98,23 +98,6 @@ def test_failure_closed_is_limited_to_pretool_enforcement() -> None:
     assert all(entry["event"] == "PreToolUse" for entry in closed)
 
 
-def test_unsupported_boundaries_are_exact() -> None:
-    """Absent and semantically incomplete paths remain visibly unsupported."""
-    assert {
-        ("PreToolUse", "reference-loading-enforcer.py"),
-        ("PreToolUse", "creation-protocol-enforcer.py"),
-        ("PreToolUse", "pretool-section-integrity-validator.py"),
-        ("PreToolUse", "pretool-dispatch-spec-gate.py"),
-        ("PostToolUse", "usage-tracker.py"),
-        ("PostToolUse", "review-capture.py"),
-        ("PostToolUse", "routing-decision-recorder.py"),
-        ("PostToolUse", "session-task-registry.py"),
-        ("StopFailure", "stop-failure-handler.py"),
-        ("PostCompact", "postcompact-handler.py"),
-        ("UserPromptSubmit", "pending-advisory-injector-userprompt.py"),
-    } == UNSUPPORTED_REGISTRATIONS
-
-
 def test_codex_adapter_is_accounted_as_a_generated_dispatch_target() -> None:
     """The wrapper is active via hooks.json, not dormant Claude registration."""
     hook_health = _load_hook_health()

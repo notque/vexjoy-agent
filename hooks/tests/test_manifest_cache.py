@@ -89,12 +89,11 @@ def scripts_dir(home: Path) -> Path:
 
 def test_absent_cache_regenerates(fake_home):
     sdir = scripts_dir(fake_home)
-    assert not mc.is_fresh(sdir)
     assert mc.refresh(sdir) == "refreshed"
     assert gen_count(fake_home) == 1
     assert "AGENTS:" in mc.CACHE_FILE.read_text(encoding="utf-8")
     assert mc.HASH_FILE.read_text(encoding="utf-8").strip() == mc.compute_input_hash(sdir)
-    assert mc.is_fresh(sdir)
+    assert mc.refresh(sdir) == "fresh"
 
 
 def test_cache_hit_runs_no_generator(fake_home):
@@ -114,7 +113,6 @@ def test_changed_input_hash_regenerates(fake_home):
     index = fake_home / ".claude" / "skills" / "INDEX.json"
     index.write_text('{"skills": {"a": {}, "brand-new": {}}}', encoding="utf-8")
 
-    assert not mc.is_fresh(sdir)
     assert mc.refresh(sdir) == "refreshed"
     assert gen_count(fake_home) == 2
     assert "brand-new" in mc.CACHE_FILE.read_text(encoding="utf-8")
@@ -126,10 +124,9 @@ def test_corrupted_hash_sidecar_regenerates(fake_home):
 
     mc.HASH_FILE.write_text("deadbeef-corrupted\n", encoding="utf-8")
 
-    assert not mc.is_fresh(sdir)
     assert mc.refresh(sdir) == "refreshed"
     assert gen_count(fake_home) == 2
-    assert mc.is_fresh(sdir)
+    assert mc.refresh(sdir) == "fresh"
 
 
 def test_input_presence_changes_hash(fake_home):
@@ -154,7 +151,7 @@ def test_generator_failure_keeps_old_cache(fake_home):
     status = mc.refresh(sdir)
     assert status.startswith("failed")
     assert mc.CACHE_FILE.read_text(encoding="utf-8") == old_cache
-    assert not mc.is_fresh(sdir)  # stale sidecar: next check retries
+    assert mc.refresh(sdir).startswith("failed")  # stale sidecar: next check retries
 
 
 @pytest.mark.skipif(shutil.which("sha256sum") is None, reason="sha256sum not available")

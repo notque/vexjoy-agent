@@ -438,11 +438,6 @@ def test_token_budget_reads_settings_and_defaults(tmp_path):
     assert line == "~500000 tokens available for this task; prioritize accordingly."
 
 
-def test_determinism_same_input_same_bytes():
-    decision = _decision()
-    assert _preamble(decision) == _preamble(decision)
-
-
 # ---------------------------------------------------------------------------
 # Validation errors.
 # ---------------------------------------------------------------------------

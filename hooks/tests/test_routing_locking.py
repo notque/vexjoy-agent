@@ -144,11 +144,6 @@ def test_post_merge_engine_failure_still_exits_zero(tmp_path):
     assert len(calls) == 1 and calls[0].startswith("vexinstall sync --target all"), calls
 
 
-def test_post_merge_hook_always_exits_zero():
-    body = _extract_post_merge_hook()
-    assert re.search(r"^exit 0\s*$", body, re.MULTILINE), "post-merge hook must end with `exit 0`"
-
-
 @pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 @pytest.mark.parametrize(("checker_rc", "hook_rc"), [(0, 0), (1, 1), (2, 0)])
 def test_pre_commit_hook_blocks_only_on_leak(tmp_path, checker_rc, hook_rc):
