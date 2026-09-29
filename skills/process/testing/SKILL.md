@@ -1,6 +1,6 @@
 ---
 name: testing
-description: "Testing: TDD, E2E, preferred patterns, verification, agent testing."
+description: "Testing: TDD, E2E, preferred patterns, test-value audits, verification, agent testing."
 user-invocable: false
 allowed-tools:
   - Read
@@ -28,6 +28,12 @@ routing:
     - "test quality issue"
     - "slow tests"
     - "over-mocking"
+    - "test audit"
+    - "audit tests"
+    - "low-value tests"
+    - "prune tests"
+    - "test bloat"
+    - "delete useless tests"
     - "test agents"
     - "agent testing"
     - "subagent testing"
@@ -50,7 +56,7 @@ routing:
 
 # Testing
 
-Six modes. Match the request to one mode and follow its section. Read
+Seven modes. Match the request to one mode and follow its section. Read
 repository CLAUDE.md first -- project conventions override defaults here.
 
 ## Mode Selection
@@ -59,6 +65,7 @@ repository CLAUDE.md first -- project conventions override defaults here.
 |---|---|
 | Write tests first, TDD, red-green-refactor | **TDD** |
 | Flaky, brittle, test smell, over-mocking, slow tests | **Pattern Quality** |
+| Audit or prune low-value, duplicate, or implementation-coupled tests | **Test Audit** |
 | Test an agent, subagent testing, validate agent | **Agent Testing** |
 | Run vitest, JavaScript/TypeScript tests | **Vitest Runner** |
 | Playwright, E2E, end-to-end, browser test | **E2E (Playwright)** |
@@ -76,6 +83,9 @@ cycle. Do not batch multiple features into one cycle.
 Write a test describing desired behavior before implementation exists. Use
 Arrange-Act-Assert, descriptive names, one concept per test. Run the test and
 show full output.
+
+Every new or changed test, in any mode, must first pass the authoring gate in
+`references/audit-test-value.md`.
 
 **Gate** -- proceed only when all true:
 - Test file created and saved
@@ -188,6 +198,27 @@ files modified, tests affected, suite status.
 | Cannot determine if pattern is a quality issue | Check comments, consider test layer, flag MEDIUM with trade-offs |
 | Fix changes test behavior | Identify original intent, write correct assertion, note as separate finding |
 | Suite has hundreds of quality issues | Fix HIGH severity first, recommend TDD going forward, suggest fix-on-touch |
+
+---
+
+## Test Audit
+
+Find and remove tests that do not earn their maintenance cost, and the
+test-only production seams they keep alive. Load
+`references/audit-test-value.md` and follow it; it holds the authoring gate,
+junk patterns, retention bar, evidence fields, validation, and handoff.
+
+Use Pattern Quality to fix a test that guards real behavior badly. Use Test
+Audit to decide whether a test should exist at all.
+
+| Scope | Sub-mode |
+|---|---|
+| Writing or changing a test | Authoring gate |
+| Focused sweep of a few candidates | Audit |
+| Every test one subsystem owns | Campaign |
+
+**Gate**: Every deletion has all candidate evidence fields recorded. Owner and
+full suites pass. Production and test LOC reported separately.
 
 ---
 
@@ -407,6 +438,7 @@ Load when the signal applies.
 | Language-specific fix strategies | `references/patterns-fix-strategies.md` | Fix patterns and tooling per language |
 | Test blind spots | `references/patterns-blind-spot-taxonomy.md` | 6-category gap taxonomy |
 | Load test scenarios | `references/patterns-load-test-scenarios.md` | Smoke, stress, spike, soak configs |
+| New-test gate, test audits, pruning campaigns | `references/audit-test-value.md` | Authoring gate, junk patterns, retention bar, evidence, validation |
 | Agent dispatch patterns | `references/agents-testing-patterns.md` | Dispatch, negative, A/B |
 | Agent testing examples | `references/agents-examples-and-errors.md` | Worked examples and error cases |
 | E2E async patterns | `references/e2e-async.md` | Promise.all, race conditions, teardown |
