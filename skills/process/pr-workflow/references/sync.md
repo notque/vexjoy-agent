@@ -221,7 +221,7 @@ Solution:
 
 ## References
 
-- `/pr-review` -- Comprehensive PR review (used in the review-fix loop)
+- `/pr-review` -- Comprehensive PR review slash command (not the `review` skill; used in the review-fix loop)
 - `/pr-cleanup` -- Post-merge branch cleanup
 - `scripts/classify-repo.py` -- Repo classification for workflow gating
 - `scripts/adr-decision-coverage.py` -- ADR decision coverage checker

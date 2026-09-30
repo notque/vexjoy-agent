@@ -376,3 +376,28 @@ class TestRealRepoRun:
         data = json.loads(output.read_text(encoding="utf-8"))
         # Floor tracks the post-consolidation catalog; raise it with new skills.
         assert 35 <= len(data["skills"]) <= 80
+
+
+class TestHybridDirIndexing:
+    """Hybrid dirs (top-level SKILL.md + nested skill subdirs) appear fully in index."""
+
+    def test_hybrid_dir_top_and_nested_both_indexed(self, tmp_path: Path) -> None:
+        """A hybrid dir's top-level skill and its nested skill both appear in the index."""
+        skills_dir = tmp_path / "skills"
+        # Top-level hybrid skill (e.g. skills/process/SKILL.md)
+        process_dir = skills_dir / "process"
+        process_dir.mkdir(parents=True)
+        (process_dir / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="process"))
+        # Nested skill under the hybrid dir (e.g. skills/process/pr-workflow/SKILL.md)
+        nested_dir = process_dir / "pr-workflow"
+        nested_dir.mkdir()
+        (nested_dir / "SKILL.md").write_text(_SKILL_FRONTMATTER.format(name="pr-workflow"))
+
+        index, _warnings = gsi.generate_index(
+            source_dir=skills_dir,
+            dir_prefix="skills",
+            collection_key="skills",
+        )
+
+        assert "process" in index["skills"], "Top-level hybrid skill must be indexed"
+        assert "pr-workflow" in index["skills"], "Nested skill in hybrid dir must be indexed"

@@ -238,7 +238,7 @@ Win condition for each implementation:
 
 **Step 1: Handle winners (WIN status)**
 
-For each winning implementation, create a PR using the template from `references/evolve-scripts.md` § Step 1, then merge. After creating the PR, run pr-review to validate, then merge.
+For each winning implementation, create a PR using the template from `references/evolve-scripts.md` § Step 1, then merge. After creating the PR, run /pr-review to validate, then merge.
 
 The multi-persona critique + A/B testing gate is the review. Auto-merge is safe because the validation happened before this step.
 

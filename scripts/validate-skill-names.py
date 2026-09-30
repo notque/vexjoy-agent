@@ -38,6 +38,10 @@ def find_duplicates(repo: Path) -> dict[str, list[str]]:
             continue
         if (top / "SKILL.md").is_file():
             seen.setdefault(top.name, []).append(top.relative_to(repo).as_posix())
+            # Hybrid dir: also scan immediate subdirs for nested skills.
+            for child in sorted(top.iterdir()):
+                if child.is_dir() and (child / "SKILL.md").is_file():
+                    seen.setdefault(child.name, []).append(child.relative_to(repo).as_posix())
             continue
         for child in sorted(top.iterdir()):
             if child.is_dir() and (child / "SKILL.md").is_file():

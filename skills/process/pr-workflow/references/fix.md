@@ -207,7 +207,7 @@ Solution:
 ### Related Skills
 - `pr-pipeline` — For creating PRs from scratch
 - `review` — For reviewing code without fixing (skill); use `/pr-review` command for full multi-agent PR review
-- `systematic-debugging` — For general debugging unrelated to PR comments
+- `debugging` — For general debugging unrelated to PR comments
 
 ### PR Comment Best Practices
 - Always validate before fixing (this prevents introducing bugs that reviewers caught)
