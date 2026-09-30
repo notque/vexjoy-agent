@@ -443,6 +443,17 @@ def generate_index(
         # Check if this directory directly contains a SKILL.md (flat layout)
         if (child / "SKILL.md").exists():
             _process_skill_dir(child)
+            # Hybrid directory: also recurse into subdirectories that are skills
+            # (e.g. skills/process/ has its own SKILL.md AND nested pr-workflow/, workflow/, etc.)
+            for nested in sorted(child.iterdir()):
+                if not nested.is_dir():
+                    continue
+                if nested.is_symlink() and not include_private:
+                    continue
+                if (nested / "SKILL.md").exists():
+                    _process_skill_dir(nested)
+                elif (nested / "skill" / "SKILL.md").exists():
+                    _process_skill_dir(nested, skill_file_override=nested / "skill" / "SKILL.md")
         # Check for nested skill/SKILL.md layout (e.g., voice-example/skill/SKILL.md)
         elif (child / "skill" / "SKILL.md").exists():
             _process_skill_dir(child, skill_file_override=child / "skill" / "SKILL.md")
