@@ -39,6 +39,8 @@ def find_duplicates(repo: Path) -> dict[str, list[str]]:
         if (top / "SKILL.md").is_file():
             seen.setdefault(top.name, []).append(top.relative_to(repo).as_posix())
             # Hybrid dir: also scan immediate subdirs for nested skills.
+            # Intentionally scans only 1 level deep (vs. generate-skill-index.py's 2 levels):
+            # this is a fast-fail gate, not an exhaustive mirror of the indexer.
             for child in sorted(top.iterdir()):
                 if child.is_dir() and (child / "SKILL.md").is_file():
                     seen.setdefault(child.name, []).append(child.relative_to(repo).as_posix())

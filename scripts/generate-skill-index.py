@@ -455,17 +455,6 @@ def generate_index(
                     _process_skill_dir(nested)
                 elif (nested / "skill" / "SKILL.md").exists():
                     _process_skill_dir(nested, skill_file_override=nested / "skill" / "SKILL.md")
-                else:
-                    # Third level within hybrid dir: e.g., skills/process/subcat/{name}/SKILL.md
-                    for deep in sorted(nested.iterdir()):
-                        if not deep.is_dir():
-                            continue
-                        if deep.is_symlink() and not include_private:
-                            continue
-                        if (deep / "SKILL.md").exists():
-                            _process_skill_dir(deep)
-                        elif (deep / "skill" / "SKILL.md").exists():
-                            _process_skill_dir(deep, skill_file_override=deep / "skill" / "SKILL.md")
         # Check for nested skill/SKILL.md layout (e.g., voice-example/skill/SKILL.md)
         elif (child / "skill" / "SKILL.md").exists():
             _process_skill_dir(child, skill_file_override=child / "skill" / "SKILL.md")
