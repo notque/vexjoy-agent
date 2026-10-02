@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.2
+# hook-version: 1.1.3
 """
 PreToolUse Hook: Unified Gate (ADR-068)
 
@@ -51,6 +51,11 @@ _CURRENT_COMMAND: str = ""
 # ═══════════════════════════════════════════════════════════════
 
 # (patterns are inline in check_gitignore_bypass function)
+
+# Owner-approved escape hatch: a command starting with this prefix skips the
+# gitignore guard and emits an audit line. Same shape as CLAUDE_GATE_BYPASS;
+# deliberately not named in the deny message (agents ask the owner first).
+_GITIGNORE_BYPASS = "GITIGNORE_GUARD_BYPASS=1"
 
 # ═══════════════════════════════════════════════════════════════
 # 2. GIT SUBMISSION PATTERNS (pretool-git-submission-gate.py)
@@ -1542,6 +1547,9 @@ def _git_force_add_paths(command: str) -> list[str]:
 
 def check_gitignore_bypass(command: str) -> None:
     """Block git add -f on gitignored paths and .gitignore edits."""
+    if command.lstrip().startswith(_GITIGNORE_BYPASS + " "):
+        print(f"[gitignore-bypass] AUDIT: owner-approved bypass used: {command[:200]}", file=sys.stderr)
+        return
     # Block 1: .gitignore modification attempts
     cmd_part = command.split("<<")[0] if "<<" in command else command
     if (
@@ -1551,8 +1559,8 @@ def check_gitignore_bypass(command: str) -> None:
     ):
         _block(
             "[gitignore-bypass] BLOCKED: Agents must not modify .gitignore.\n"
-            "[gitignore-bypass] This file controls repository safety boundaries.",
-            reason="Agents must not modify .gitignore. This file controls repository safety boundaries.",
+            "[gitignore-bypass] This file controls repository safety boundaries. Ask the owner.",
+            reason="Agents must not modify .gitignore. This file controls repository safety boundaries. Ask the owner before changing it.",
         )
 
     # Fast path: no git add in command

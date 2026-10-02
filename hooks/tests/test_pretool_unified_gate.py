@@ -149,6 +149,28 @@ class TestCheckGitignoreBypass:
         payload = _make_bash_event("git add main.py")
         assert _run_main(payload) == 0
 
+    def test_gitignore_sed_with_owner_bypass_prefix_allowed(self, capsys):
+        payload = _make_bash_event("GITIGNORE_GUARD_BYPASS=1 sed -i 's/foo/bar/' .gitignore")
+        assert _run_main(payload) == 0
+        assert "[gitignore-bypass] AUDIT" in capsys.readouterr().err
+
+    def test_git_add_force_with_owner_bypass_prefix_allowed(self):
+        result = MagicMock()
+        result.stdout = "data.json\n"
+        result.returncode = 0
+        payload = _make_bash_event("GITIGNORE_GUARD_BYPASS=1 git add -f data.json")
+        with patch("subprocess.run", return_value=result):
+            assert _run_main(payload) == 0
+
+    def test_bypass_prefix_mid_command_still_blocked(self):
+        payload = _make_bash_event("echo x && GITIGNORE_GUARD_BYPASS=1 sed -i 's/a/b/' .gitignore")
+        assert _run_main(payload) == 2
+
+    def test_deny_message_does_not_name_bypass(self, capsys):
+        _run_main(_make_bash_event("echo '*.log' > .gitignore"))
+        captured = capsys.readouterr()
+        assert "GITIGNORE_GUARD_BYPASS" not in captured.out + captured.err
+
     def test_git_add_long_force_flag_blocked_on_ignored(self):
         """git add --force on an ignored path should be blocked."""
         result = MagicMock()
