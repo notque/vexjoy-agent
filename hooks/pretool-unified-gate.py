@@ -85,6 +85,13 @@ _GIT_SUBMISSION_PATTERNS = [
 
 _DANGEROUS_BYPASS_ENV = "DANGEROUS_GUARD_BYPASS"
 
+# Owner-approved escape hatch: a command starting with this prefix skips the
+# dangerous-command guard and emits an audit line. Same shape as
+# GITIGNORE_GUARD_BYPASS / CLAUDE_GATE_BYPASS; deliberately not named in the
+# deny message (agents ask the owner first). The env var above only works when
+# set in the hook's own environment, which an agent's command cannot reach.
+_DANGEROUS_BYPASS_PREFIX = "DANGEROUS_GUARD_BYPASS=1"
+
 _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     # Filesystem destruction (rm) moved to _rm_destructive_target (audit S2):
     # the old four regexes matched four literal command shapes and were
@@ -1669,6 +1676,9 @@ _DANGEROUS_SAFE_PATH_HINTS = {
 def check_dangerous_command(command: str) -> None:
     """Block destructive commands unless bypassed or whitelisted."""
     if os.environ.get(_DANGEROUS_BYPASS_ENV) == "1":
+        return
+    if command.lstrip().startswith(_DANGEROUS_BYPASS_PREFIX + " "):
+        print(f"[dangerous-command] AUDIT: owner-approved bypass used: {command[:200]}", file=sys.stderr)
         return
 
     # Load whitelist once before scanning rather than on each match.

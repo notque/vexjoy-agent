@@ -246,6 +246,28 @@ class TestCheckDangerousCommand:
         payload = _make_bash_event("psql -c 'DROP DATABASE mydb'")
         assert _run_main(payload) == 2
 
+    def test_drop_database_with_owner_bypass_prefix_allowed(self, capsys):
+        payload = _make_bash_event("DANGEROUS_GUARD_BYPASS=1 psql -c 'DROP DATABASE mydb'")
+        assert _run_main(payload) == 0
+        assert "[dangerous-command] AUDIT" in capsys.readouterr().err
+
+    def test_rm_rf_with_owner_bypass_prefix_allowed(self):
+        payload = _make_bash_event("DANGEROUS_GUARD_BYPASS=1 rm -rf /")
+        assert _run_main(payload) == 0
+
+    def test_dangerous_bypass_prefix_mid_command_still_blocked(self):
+        payload = _make_bash_event("echo x && DANGEROUS_GUARD_BYPASS=1 psql -c 'DROP DATABASE mydb'")
+        assert _run_main(payload) == 2
+
+    def test_dangerous_bypass_prefix_wrong_value_still_blocked(self):
+        payload = _make_bash_event("DANGEROUS_GUARD_BYPASS=0 psql -c 'DROP DATABASE mydb'")
+        assert _run_main(payload) == 2
+
+    def test_dangerous_deny_message_does_not_name_bypass(self, capsys):
+        _run_main(_make_bash_event("psql -c 'DROP DATABASE mydb'"))
+        captured = capsys.readouterr()
+        assert "DANGEROUS_GUARD_BYPASS" not in captured.out + captured.err
+
     def test_drop_database_case_insensitive_blocked(self):
         payload = _make_bash_event("psql -c 'drop database mydb'")
         assert _run_main(payload) == 2
