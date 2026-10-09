@@ -140,7 +140,7 @@ Exit code 3 with the exception type and message. Most common causes:
 
 ### Fonts render as system default instead of design tokens
 
-Birchline tokens use a system font stack (`-apple-system`, `Inter`, `Segoe UI`, …). Whatever's available locally renders. Embedded `@font-face` with a `data:` URL works in Playwright PDF; CDN font URLs do not (and would violate the self-contained constraint anyway).
+Body text uses a system font stack (`system-ui`, `-apple-system`, `Segoe UI`, …), so whatever is installed locally renders. Headings use the embedded Archivo Black face, which renders everywhere. Embedded `@font-face` with a `data:` URL works in Playwright PDF; CDN font URLs do not (and would violate the self-contained constraint anyway).
 
 ### Images timing — blank rectangles in the PDF
 

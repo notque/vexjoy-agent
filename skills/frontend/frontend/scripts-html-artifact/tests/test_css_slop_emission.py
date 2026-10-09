@@ -22,8 +22,15 @@ scan_css = slop.scan_css
 
 STAMP_RE = re.compile(r"/\* vexjoy-artifact: shape=(\S+) theme=(\S+) contrast=(pass|fail|n/a) \*/")
 
+# Minimal stand-in for templates/fonts/archivo-black.css: embedded face plus a heading rule.
+HEADING_FONT_CSS = (
+    '@font-face { font-family: "Archivo Black"; src: url(data:font/woff2;base64,AAAA) format("woff2"); }'
+    " h1, h2, h3 { font-family: var(--font-heading); }"
+)
+
 # Clean CSS: no slop patterns.
-CLEAN_HTML = """<!DOCTYPE html>
+CLEAN_HTML = (
+    """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,9 +43,11 @@ CLEAN_HTML = """<!DOCTYPE html>
 </head>
 <body><h1>Hello</h1><p>content</p></body>
 </html>"""
+).replace("<style>", "<style>" + HEADING_FONT_CSS)
 
 # Slop CSS: transition-all + gradient-text-headline on h1.
-SLOP_HTML = """<!DOCTYPE html>
+SLOP_HTML = (
+    """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,6 +59,7 @@ SLOP_HTML = """<!DOCTYPE html>
 </head>
 <body><h1>Headline</h1><p>content</p></body>
 </html>"""
+).replace("<style>", "<style>" + HEADING_FONT_CSS)
 
 
 def _write_tmp(content: str) -> Path:

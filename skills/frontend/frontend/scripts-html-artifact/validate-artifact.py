@@ -86,6 +86,31 @@ def _check_self_contained(content: str, result: ValidationResult) -> None:
         result.errors.append(f"Not self-contained: found {', '.join(externals)}.")
 
 
+_HEADING_TAG_RE = re.compile(r"<h[1-3][\s>]", re.IGNORECASE)
+_FONT_FACE_RE = re.compile(r"@font-face\s*\{[^}]*\}", re.IGNORECASE)
+_HEADING_FACE_RE = re.compile(r"""font-family\s*:\s*["']?Archivo Black["']?""", re.IGNORECASE)
+_HEADING_USE_RE = re.compile(
+    r"""(?:font-family|font)\s*:[^;}]*(?:["']Archivo Black["']|var\(--font-heading\))""", re.IGNORECASE
+)
+
+
+def _check_heading_font(content: str, result: ValidationResult) -> None:
+    """Pages with h1-h3 must embed Archivo Black as a data: URL and apply it to headings."""
+    if not _HEADING_TAG_RE.search(content):
+        result.checks["heading_font"] = True
+        return
+    faces = [f for f in _FONT_FACE_RE.findall(content) if _HEADING_FACE_RE.search(f)]
+    embedded = any("url(data:" in f.replace(" ", "") for f in faces)
+    applied = bool(_HEADING_USE_RE.search(_FONT_FACE_RE.sub("", content)))
+    result.checks["heading_font"] = embedded and applied
+    if not embedded:
+        result.errors.append(
+            "Headings need an embedded Archivo Black @font-face with a data: URL; inline templates/fonts/archivo-black.css."
+        )
+    elif not applied:
+        result.errors.append("Archivo Black is embedded but no rule applies it; use font-family: var(--font-heading).")
+
+
 def _check_has_style(content: str, result: ValidationResult) -> None:
     """Must contain <style> tag (inline CSS required)."""
     passed = bool(re.search(r"<style[\s>]", content, re.IGNORECASE))
@@ -210,6 +235,7 @@ def validate_artifact(file_path: Path, shape: str | None = None) -> ValidationRe
     _check_doctype(content, result)
     _check_title(content, result)
     _check_self_contained(content, result)
+    _check_heading_font(content, result)
     _check_has_style(content, result)
     _check_meta_viewport(content, result)
     _check_reasonable_size(file_path, result)

@@ -82,9 +82,9 @@ All themes share the same semantic alias layer. Components reference aliases, no
 
 ## Heading Font: Archivo Black
 
-Archivo Black is the default heading face for every HTML artifact.
+Archivo Black is the required heading face for every HTML artifact. `validate-artifact.py` errors on any page with h1–h3 that lacks an embedded Archivo Black `@font-face` (a `data:` URL) or a rule applying it.
 
-- **Source:** `templates/fonts/archivo-black.css` embeds the latin subset as a base64 woff2 (about 10 KB) and defines `--font-heading`. `assemble-template.py` injects it after the reset, so every shape and theme gets it.
+- **Source:** `templates/fonts/archivo-black.css` embeds the latin subset as a base64 woff2 (about 10 KB) and defines `--font-heading`. `assemble-template.py` injects it after the reset, so every shape and theme gets it. Saved templates in `templates/saved/` carry their own copy; a test fails if a copy drifts from the source file.
 - **Hand-written artifacts:** inline the whole file into the page's `<style>`. Don't add a Google Fonts `<link>`: `validate-artifact.py` rejects external stylesheets, and an embedded face also renders offline from `file://`.
 - **Where it applies:** h1–h3, the `--type-display`, `--type-h1` and `--type-h2` tokens, and short title elements such as card titles and decision picks. Body text, captions, nav, labels, table cells and SVG diagram labels keep the theme's text face (`--font-sans`, or `--font-mono` for code). Archivo Black is a heavy display face and hurts readability below about 16px or in running text.
 - **Weight:** the face has one weight, 400. Set `font-weight: 400` and `font-synthesis: none` wherever it is used. Never ask for 600–800: the browser fakes the bold and smears the letterforms.
