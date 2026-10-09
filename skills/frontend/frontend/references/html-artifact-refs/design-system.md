@@ -72,11 +72,24 @@ All themes share the same semantic alias layer. Components reference aliases, no
 | Layer | Examples | Purpose |
 |---|---|---|
 | Raw colors | `--color-primary`, `--color-danger` | Theme-specific palette |
-| Typography | `--type-body`, `--type-caption` | Font stacks with weight/size/line-height |
+| Typography | `--font-heading`, `--type-display`, `--type-h1`, `--type-body`, `--type-caption` | Font stacks with weight/size/line-height. Display and heading tokens use `--font-heading` (Archivo Black) |
 | Spacing | `--sp-1` through `--sp-8` | 4px base scale |
 | Semantic | `--bg-page`, `--text-primary`, `--accent`, `--accent-text`, `--accent-fill`, `--accent-fill-hover`, `--on-accent-fill` | Component-facing aliases |
 
 **Rule:** Components use semantic aliases (`--bg-surface`, `--text-muted`, `--accent`). Never reference raw color values directly.
+
+---
+
+## Heading Font: Archivo Black
+
+Archivo Black is the default heading face for every HTML artifact.
+
+- **Source:** `templates/fonts/archivo-black.css` embeds the latin subset as a base64 woff2 (about 10 KB) and defines `--font-heading`. `assemble-template.py` injects it after the reset, so every shape and theme gets it.
+- **Hand-written artifacts:** inline the whole file into the page's `<style>`. Don't add a Google Fonts `<link>`: `validate-artifact.py` rejects external stylesheets, and an embedded face also renders offline from `file://`.
+- **Where it applies:** h1–h3, the `--type-display`, `--type-h1` and `--type-h2` tokens, and short title elements such as card titles and decision picks. Body text, captions, nav, labels, table cells and SVG diagram labels keep the theme's text face (`--font-sans`, or `--font-mono` for code). Archivo Black is a heavy display face and hurts readability below about 16px or in running text.
+- **Weight:** the face has one weight, 400. Set `font-weight: 400` and `font-synthesis: none` wherever it is used. Never ask for 600–800: the browser fakes the bold and smears the letterforms.
+- **Fallback:** `"Arial Black", "Helvetica Neue", system-ui, sans-serif` keeps a heavy weight if the embedded face fails.
+- **License:** SIL OFL 1.1, in `templates/fonts/ArchivoBlack-OFL.txt`. Embedding and redistribution are permitted.
 
 ---
 

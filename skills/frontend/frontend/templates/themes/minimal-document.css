@@ -11,8 +11,8 @@
   --font-serif: Georgia, 'Times New Roman', serif;
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
-  --type-display: 500 44px/1.15 var(--font-serif); --type-h1: 500 30px/1.25 var(--font-serif);
-  --type-h2: 500 22px/1.35 var(--font-serif); --type-body: 400 17px/1.7 var(--font-sans);
+  --type-display: 400 44px/1.15 var(--font-heading); --type-h1: 400 30px/1.25 var(--font-heading);
+  --type-h2: 400 22px/1.35 var(--font-heading); --type-body: 400 17px/1.7 var(--font-sans);
   --type-small: 400 15px/1.6 var(--font-sans); --type-caption: 500 12px/1.4 var(--font-sans);
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
