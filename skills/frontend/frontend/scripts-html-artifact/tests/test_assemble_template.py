@@ -128,7 +128,7 @@ class TestAssembleTemplateDirect:
     @pytest.mark.parametrize("theme", ["birchline", "dark-focus", "minimal-document", "interactive-warm"])
     def test_heading_font_embedded(self, theme: str) -> None:
         html = assemble_template("report", "Test", theme=theme)
-        assert '@font-face' in html and 'font-family: "Archivo Black"' in html
+        assert "@font-face" in html and 'font-family: "Archivo Black"' in html
         assert "data:font/woff2;base64," in html
         assert "fonts.googleapis.com" not in html
         # heading tokens resolve to the embedded face, at its only weight
