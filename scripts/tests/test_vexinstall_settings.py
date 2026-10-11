@@ -168,6 +168,12 @@ def test_repo_settings_disable_prompt_suggestion() -> None:
     assert sm.desired_env_from_repo(root).get("CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION") == "false"
 
 
+def test_repo_settings_give_subagents_1h_cache() -> None:
+    # subagents blocking on 5-15 min sims re-wrote their whole context once the 5m cache expired
+    root = Path(__file__).resolve().parents[2]
+    assert sm.desired_env_from_repo(root).get("CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL") == "1h"
+
+
 def test_remove_retired_env_only_shipped_value() -> None:
     settings = {"env": {"CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1", "KEEP": "x"}}
     assert sm.remove_retired_env(settings) == ["CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING"]
