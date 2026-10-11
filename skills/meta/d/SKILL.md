@@ -308,14 +308,14 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
-| Task type | Model | Cost O/S/H per run | Deciding Jev evidence |
+| Task type | Model | Cost O/S/H per run (USD) | Deciding Jev evidence |
 |---|---|---|---|
-| locate, lookup, cite lines | haiku | $0.43 / $0.19 / $0.02 | haiku 0.91 |
-| mechanical edit (rename, 11 files) | haiku | $0.26 / $0.11 / $0.007 | haiku 0.93 with scope evidence |
-| review, find planted bugs | haiku | $0.4 / $0.15 / $0.01 | haiku 0.95 (n=1) |
-| debug: root cause + regression test | sonnet | $0.39 / $0.20 / $0.015 | sonnet 0.88; haiku test 2.00 vs 2.86 |
-| feature in an existing pattern (7 files) | sonnet | $1.30 / $0.32 / $0.088 | sonnet 0.64; Opus edited unrequested docs |
-| long lane (9-10 files, UI text) | sonnet | $1.66 / $0.46 / $0.25 | sonnet 0.77 |
+| locate, lookup, cite lines | haiku | 0.43 / 0.19 / 0.02 | haiku 0.91 |
+| mechanical edit (rename, 11 files) | haiku | 0.26 / 0.11 / 0.007 | haiku 0.93 with scope evidence |
+| review, find planted bugs | haiku | 0.4 / 0.15 / 0.01 | haiku 0.95 (n=1) |
+| debug: root cause + regression test | sonnet | 0.39 / 0.20 / 0.015 | sonnet 0.88; haiku test 2.00 vs 2.86 |
+| feature in an existing pattern (7 files) | sonnet | 1.30 / 0.32 / 0.088 | sonnet 0.64; Opus edited unrequested docs |
+| long lane (9-10 files, UI text) | sonnet | 1.66 / 0.46 / 0.25 | sonnet 0.77 |
 | no row fits | sonnet | n/a | sonnet 0.54 / haiku 0.45 (split) |
 
 Opus won no measured task.
