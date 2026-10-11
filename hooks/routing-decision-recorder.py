@@ -126,6 +126,7 @@ _EFFORT_RE = re.compile(r"\beffort=(low|medium|high|xhigh|max)", re.IGNORECASE)
 _VALID_MODELS = frozenset(
     {
         "inherit",
+        "haiku",
         "sonnet",
         "opus",
         "codex",

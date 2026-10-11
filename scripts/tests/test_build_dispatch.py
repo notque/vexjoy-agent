@@ -450,7 +450,7 @@ def test_token_budget_reads_settings_and_defaults(tmp_path):
         {"agent": "Bad Agent!"},
         {"complexity": "low"},  # the audit's real-world invalid value
         {"complexity": ""},
-        {"model": "haiku"},  # retired model — not in VALID_MODELS
+        {"model": "haiku-3"},  # unknown model — not in VALID_MODELS
         {"health": {"confidence": 1.5}},
         {"health": {"confidence": 0.5, "action": "boost"}},
         {"health": {"confidence": 0.5, "n": -1}},
@@ -769,13 +769,13 @@ SUPPLIED_CLAUDE_POINTS = {
 @pytest.mark.parametrize(
     ("task_class", "model", "effort"),
     [
-        ("low-risk", "opus", "low"),
-        ("standard", "opus", "medium"),
+        ("low-risk", "haiku", "low"),
+        ("standard", "sonnet", "medium"),
         ("high-risk", "opus", "high"),
     ],
 )
-def test_anthropic_policy_selects_opus_at_every_task_class(task_class, model, effort):
-    """Anthropic automatic task classes select Opus 5, effort rising with risk class."""
+def test_anthropic_policy_maps_tiers_to_measured_models(task_class, model, effort):
+    """Task-fit eval: low-risk haiku, standard sonnet, high-risk opus; effort rises with risk."""
     decision = _decision(model=None, model_policy=task_class, provider="anthropic")
     marker = bd.build_marker(decision)
 
@@ -785,14 +785,13 @@ def test_anthropic_policy_selects_opus_at_every_task_class(task_class, model, ef
     assert recorder.parse_model_effort(marker) == effort
 
 
-def test_anthropic_policy_points_are_unmeasured_and_effort_rises_with_risk():
-    """Opus 5 carries no DeepSWE point; the policy is grounded on effort ordering."""
+def test_anthropic_policy_models_are_known_and_effort_rises_with_risk():
+    """Every tier names a known Claude model; effort still rises with risk."""
     order = ["low", "medium", "high", "xhigh", "max"]
     previous = -1
     for policy in ("low-risk", "standard", "high-risk", "max-power"):
         model, effort = bd.ANTHROPIC_AUTO_POLICIES[policy]
-        assert model == "opus", f"{policy} selects {model}, not the Opus 5 default"
-        assert (model, effort) not in SUPPLIED_CLAUDE_POINTS, f"{policy} claims a benchmark point Opus 5 does not have"
+        assert model in bd.ANTHROPIC_MODELS, f"{policy} selects unknown model {model}"
         assert order.index(effort) > previous, f"{policy} breaks the start-low effort ordering"
         previous = order.index(effort)
 
@@ -815,14 +814,22 @@ def test_supplied_points_match_the_documented_benchmark_table():
     )
 
 
-@pytest.mark.parametrize("model", ("sonnet",))
-def test_off_policy_claude_models_require_manual_override(model):
-    """Opus 5 is the default; sonnet is the manual-only pick."""
-    with pytest.raises(bd.InputError, match="manual_model_override"):
-        bd.build_marker(_decision(model=model))
-    # With manual_override they work fine
-    marker = bd.build_marker(_decision(model=model, manual_model_override=True))
+@pytest.mark.parametrize("model", ("haiku", "sonnet", "opus"))
+def test_explicit_claude_models_need_no_override(model):
+    """haiku, sonnet, and opus are all accepted explicitly; the marker and recorder carry them."""
+    marker = bd.build_marker(_decision(model=model))
     assert f"model={model}" in marker
+    assert recorder.parse_model(marker) == model
+
+
+def test_policy_differing_pick_still_requires_manual_override():
+    """A model that differs from the policy's tier needs manual_model_override and an effort."""
+    with pytest.raises(bd.InputError, match="manual_model_override"):
+        bd.build_marker(_decision(model="opus", model_policy="low-risk"))
+    marker = bd.build_marker(
+        _decision(model="sonnet", model_effort="medium", model_policy="low-risk", manual_model_override=True)
+    )
+    assert "model=sonnet" in marker
 
 
 def test_claude_model_effort_round_trip():
@@ -838,8 +845,8 @@ def test_provider_absent_defaults_to_anthropic():
     """Missing provider field defaults to 'anthropic' (Claude Code is primary)."""
     decision = _decision(model=None, model_policy="standard")
     marker = bd.build_marker(decision)
-    # Should resolve via Anthropic table: opus/medium
-    assert "model=opus" in marker
+    # Should resolve via Anthropic table: sonnet/medium
+    assert "model=sonnet" in marker
     assert "effort=medium" in marker
 
 

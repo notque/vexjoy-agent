@@ -1,6 +1,6 @@
 # Explicit model selection
 
-Use this reference only when choosing a model override or a legacy policy. The normal `/do` dispatch uses `model: "inherit"` and omits model and effort overrides from the agent tool call. The builder produces a prompt; the dispatcher must apply that instruction.
+Task-to-model choice lives in `skills/meta/d/references/model-task-fit.md`. Use this reference for override rules and legacy policy tables. `inherit` remains valid when no task type fits. The builder produces a prompt; the dispatcher must apply that instruction.
 
 ## Compatibility policies
 
@@ -8,7 +8,7 @@ Use this reference only when choosing a model override or a legacy policy. The n
 
 - `max-power` requires `manual_model_override=true`.
 - A model different from a policy's choice requires `manual_model_override=true` and an explicit `model_effort`.
-- Explicit GPT-5.6 choices require effort and manual override. GPT-5.5 and Sonnet require manual override. Opus/max requires manual override.
+- Explicit GPT-5.6 choices require effort and manual override. GPT-5.5 requires manual override. Opus/max requires manual override. Haiku, sonnet, and opus need none unless they differ from the policy tier.
 - Claude effort is advisory when the agent tool has no effort parameter. Only pass options the tool supports.
 - Cross-provider calls remain deliberate, explicit choices. Do not infer a cross-provider upgrade from historical scores.
 - A route marker records a requested selection. It does not establish which model ran. Report actual identity only from harness execution metadata.
@@ -28,10 +28,10 @@ Measurement cells: Pass@1 / average USD per task / output tokens / steps. Higher
 | Task class | Selection | pts/$ | Why |
 |---|---|---|---|
 | deterministic | no LLM | — | Run the script directly. |
-| low-risk | `opus` / `low` | n/a | Current session model, owner-directed default; effort floor per start-low. |
-| standard | `opus` / `medium` | n/a | Current session model, owner-directed default; one tier up for standard work. |
-| high-risk | `opus` / `high` | n/a | Current session model, owner-directed default; high effort for risk-bearing work. |
-| max-power | `opus` / `xhigh` | n/a | Current session model, owner-directed default; `manual_model_override=true`; state justification in task_spec intent. |
+| low-risk | `haiku` / `low` | n/a | Task-fit eval: matched quality on lookup, rename, review at the lowest cost. |
+| standard | `sonnet` / `medium` | n/a | Task-fit eval: won debug, feature, long-lane work. |
+| high-risk | `opus` / `high` | n/a | Unmeasured tier; a miss is costly. |
+| max-power | `opus` / `xhigh` | n/a | `manual_model_override=true`; state justification in task_spec intent. |
 
 | Variant | max | xhigh | high | medium | low |
 |---|---|---|---|---|---|

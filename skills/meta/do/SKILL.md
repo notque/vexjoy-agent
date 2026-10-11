@@ -311,7 +311,7 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<agent>", "skill": "<skill; omit when agent-only>",
   "pipeline": "<pipeline; omit when Phase 2 returned null>",
   "complexity": "<trivial|simple|medium|complex>",
-  "model": "inherit",
+  "model": "<haiku|sonnet|opus from Model choice>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|other>",
   "manual_model_override": false,
@@ -329,24 +329,40 @@ python3 "$SDIR/build-dispatch.py" --json '{
 }'
 ```
 
-`agent`/`skill`/`complexity`: Phase 2 (null→`-`). `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Agents and pipelines stay out of Skill-tool calls. Fan-out: one call per agent, same `skill`/`pipeline`. `model`: **required Medium+**; use `inherit` by default. Explicit overrides follow `references/model-selection.md`. `provider` describes the active harness (anthropic|openai|other), not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `fallback_reason`: **required when `agent=general-purpose`** — the one-line reason from the Agent-greediness gate, any prose; `build-dispatch.py` slugifies it and appends `fallback=<slug>` to the marker so every fallback is countable. Dispatch fails without it. `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
+`agent`/`skill`/`complexity`: Phase 2 (null→`-`). `pipeline`: the Phase 2 pick, passed so the marker carries it; omit when null. The builder validates each name against its index, then emits this exact action contract once per callable skill, primary first with ordered stack de-duplication: `Call the Skill tool with \`skill-name\`.` Shared-pattern stack entries remain prompt injections. Agents and pipelines stay out of Skill-tool calls. Fan-out: one call per agent, same `skill`/`pipeline`. `model`: **required Medium+**; pick from **Model choice** below. Override rules: `references/model-selection.md`. `provider` describes the active harness (anthropic|openai|other), not an installed directory. `health`: `-` (in-context weights read retired — `docs/route-loop-validation.md`). `fallback_reason`: **required when `agent=general-purpose`** — the one-line reason from the Agent-greediness gate, any prose; `build-dispatch.py` slugifies it and appends `fallback=<slug>` to the marker so every fallback is countable. Dispatch fails without it. `stack`: Phase 3. `task_spec`: mandatory Simple+ (Phase 3 Step G); the script rejects an empty spec at Medium+; creation+"match ADR". `thinking_override`: slow=security/arch/5+files; fast=lookups.
 
 `[do-route]` = SOLE signal for `routing-decision-recorder`. Sub-agents excluded.
 
 **Fallback:** `[do-route] agent={a} skill={s|-} complexity={c}[ pipeline={p}] health=- model={m|-}`, Task Spec inline, dispatch.
 
-**Model selection.** Default to `model: "inherit"`. Omit `model_policy`, `model_effort`, and tool-level model/effort overrides. Do not pass the word `inherit` to an agent tool as a model name. This uses the current session model when the harness supports inheritance. If it cannot, report the limitation rather than silently selecting another model.
+**Model choice.** Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
 
-The marker records the requested selection, not an observed worker model. The actual model remains unknown unless the harness reports it. Do not infer session identity from installed script directories or historical model tables.
+| Task type | Model | Cost O/S/H per run | Deciding Jev evidence |
+|---|---|---|---|
+| locate, lookup, cite lines | haiku | $0.43 / $0.19 / $0.02 | haiku 0.91 |
+| mechanical edit (rename, 11 files) | haiku | $0.26 / $0.11 / $0.007 | haiku 0.93 with scope evidence |
+| review, find planted bugs | haiku | $0.4 / $0.15 / $0.01 | haiku 0.95 (n=1) |
+| debug: root cause + regression test | sonnet | $0.39 / $0.20 / $0.015 | sonnet 0.88; haiku test 2.00 vs 2.86 |
+| feature in an existing pattern (7 files) | sonnet | $1.30 / $0.32 / $0.088 | sonnet 0.64; Opus edited unrequested docs |
+| long lane (9-10 files, UI text) | sonnet | $1.66 / $0.46 / $0.25 | sonnet 0.77 |
+| no row fits | sonnet | n/a | sonnet 0.54 / haiku 0.45 (split) |
 
-Medium+ must provide `model: "inherit"`, a supported explicit model, or a policy. For a deliberate override, load `references/model-selection.md`; existing provider policies and explicit choices remain supported. Use scripts for deterministic work. Change model or effort only for a concrete task need or a missed acceptance criterion. Session configuration stays under the user's control. Codex prompts stay read-only and public unless the task requires otherwise.
+Opus won no measured task.
+
+Tiers (`model_policy`): low-risk = haiku, standard = sonnet, high-risk (unmeasured, costly miss) = opus. `max-power` stays opus/xhigh and needs `manual_model_override=true`. Use `inherit` only when no row or tier fits and the session model is acceptable.
+
+Escalate on a miss: haiku, then sonnet, then opus. Retry once on the next model when an objective check fails (tests, `tsc`, `ruff`, acceptance command) or a Jev blocker Noul is at least 0.6.
+
+Evidence limits: one repo, one run per cell; the review row is n=1. Full record, Jev questions, probabilities, and the re-measure method: `skills/meta/d/references/model-task-fit.md`.
+
+The marker records the requested selection, not an observed worker model. Report actual identity only from harness metadata. Use scripts for deterministic work. Session configuration stays under the user's control. Codex prompts stay read-only and public unless the task requires otherwise.
 
 **Complex (3+ sources):**
 
 | Verbs | Mode |
 |---|---|
-| list/count/extract/inventory/search/check/find/grep | Scripts when deterministic; otherwise readers → synthesis, inheriting the session model |
-| review/audit/assess/analyze/debug/investigate/evaluate | Single agent, inheriting the session model |
+| list/count/extract/inventory/search/check/find/grep | Scripts when deterministic; otherwise readers → synthesis, model per **Model choice** |
+| review/audit/assess/analyze/debug/investigate/evaluate | Single agent, model per **Model choice** |
 
 Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`flags.worktree`. Non-org: 3 reviews→fix→PR. Org: confirm git.
 

@@ -48,6 +48,7 @@ Input schema (missing optional fields degrade gracefully — block omitted):
       "model_policy": null,                        // optional policy, not with inherit
       "model_effort": null,                        // explicit picks only, not with inherit
       "manual_model_override": false,               // required for non-default GPT picks
+                                                   // and policy-differing picks
       "context_mode": "summary",                   // summary|files|none; default files
       "health": {"confidence": 0.72, "n": 6,       // optional; absent/blank
                  "failure": 0, "action": "keep",   // confidence => health=-
@@ -159,9 +160,9 @@ VALID_COMPLEXITY = ("trivial", "simple", "medium", "complex")
 GPT_56_MODELS = ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
 GPT_56_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 LEGACY_GPT_55 = "gpt-5.5"
-VALID_MODELS = ("inherit", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS)
+VALID_MODELS = ("inherit", "haiku", "sonnet", "opus", "codex", LEGACY_GPT_55, *GPT_56_MODELS)
 VALID_PROVIDERS = ("anthropic", "openai", "other")
-ANTHROPIC_MODELS = ("opus", "sonnet")
+ANTHROPIC_MODELS = ("opus", "sonnet", "haiku")
 
 # DeepSWE Pass@1 / cost benchmark defaults per provider lane.
 # `deterministic` deliberately has no model: use scripts.
@@ -171,13 +172,12 @@ OPENAI_AUTO_POLICIES = {
     "high-risk": ("gpt-5.6-sol", "xhigh"),  # 71 / $4.70
     "max-power": ("gpt-5.6-sol", "max"),  # 73 / $8.39, explicit only
 }
-# Anthropic lane: Opus 5 is the owner-directed default at every task class
-# (it is the model the harness runs). It has no DeepSWE run yet, so these
-# points carry no Pass@1/cost annotation — effort still follows
-# start-low-escalate-on-miss.
+# Anthropic lane: tiers follow the blind Jev task-fit eval (2026-10), see
+# skills/meta/d/references/model-task-fit.md. Opus never won a measured task, so
+# it is the unmeasured high-risk tier only; escalate haiku -> sonnet -> opus on a miss.
 ANTHROPIC_AUTO_POLICIES = {
-    "low-risk": ("opus", "low"),
-    "standard": ("opus", "medium"),
+    "low-risk": ("haiku", "low"),
+    "standard": ("sonnet", "medium"),
     "high-risk": ("opus", "high"),
     "max-power": ("opus", "xhigh"),  # explicit only
 }
@@ -312,9 +312,8 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
     """Return the validated ``(model, effort)`` for one dispatch decision.
 
     Harness-aware: ``provider`` selects the automatic policy table.
-    Anthropic lane defaults select Opus 5 at every task class (owner
-    directive + current session model); sonnet is manual-only, kept for
-    cost, context-window, and latency constraints.
+    Anthropic lane defaults map low-risk to haiku, standard to sonnet, and
+    high-risk to opus (task-fit eval); haiku and sonnet need no override.
     OpenAI lane defaults select GPT-5.6 Sol/Terra.  Effort is recorded in
     the marker for all models; for Claude lanes it is advisory (the harness
     Agent tool does not accept per-call effort).
@@ -384,15 +383,9 @@ def resolve_model_selection(decision: dict, provider: str = "anthropic") -> tupl
             raise InputError("legacy gpt-5.5 requires manual_model_override=true")
         return model, effort
 
-    # Claude models (opus, sonnet) and codex wrapper.
+    # Claude models (opus, sonnet, haiku) and codex wrapper.
     # Effort is optional and advisory for Claude lanes — recorded in the
     # marker (model@effort) for telemetry but not passed to the Agent tool.
-    if model == "sonnet":
-        if not manual:
-            raise InputError(
-                f"'{model}' requires manual_model_override=true "
-                "(Opus 5 is the Anthropic-lane default; off-policy picks stay explicit)"
-            )
     if model == "opus" and effort == "max" and not manual:
         raise InputError("opus/max requires manual_model_override=true (unmeasured top tier; escalate on a miss)")
     return model, effort
