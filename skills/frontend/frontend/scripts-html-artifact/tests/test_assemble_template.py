@@ -125,6 +125,17 @@ class TestAssembleTemplateDirect:
 
     # --- Base reset injection test ---
 
+    @pytest.mark.parametrize("theme", ["birchline", "dark-focus", "minimal-document", "interactive-warm"])
+    def test_heading_font_embedded(self, theme: str) -> None:
+        html = assemble_template("report", "Test", theme=theme)
+        assert "@font-face" in html and 'font-family: "Archivo Black"' in html
+        assert "data:font/woff2;base64," in html
+        assert "fonts.googleapis.com" not in html
+        # heading tokens resolve to the embedded face, at its only weight
+        assert "--type-h1: 400" in html and "var(--font-heading)" in html
+        # font layer comes before the theme so themes can reference --font-heading
+        assert html.index("Archivo Black") < html.index("Theme ===")
+
     def test_base_reset_always_included(self) -> None:
         html = assemble_template("spec", "Test")
         assert "box-sizing: border-box" in html

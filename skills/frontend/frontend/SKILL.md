@@ -206,7 +206,7 @@ Low confidence falls back to report. Hybrid shapes: primary controls layout, sec
 
 Run: `python3 ${CLAUDE_SKILL_DIR}/scripts-html-artifact/assemble-template.py --shape {shape} --title "{title}" --components {components}`
 
-Load `references/html-artifact-refs/design-system.md`. For diagram shapes, also load `references/html-artifact-refs/shape-diagram-illustration.md` and `references/html-artifact-refs/diagram-layering.md`. Per-shape must-include rules live in `agents/html-builder.md`.
+Load `references/html-artifact-refs/design-system.md`. Headings must use Archivo Black (embedded `templates/fonts/archivo-black.css`, weight 400, `font-synthesis: none`). The assembler injects it; hand-written artifacts inline that file rather than linking Google Fonts. `validate-artifact.py` errors without it. For diagram shapes, also load `references/html-artifact-refs/shape-diagram-illustration.md` and `references/html-artifact-refs/diagram-layering.md`. Per-shape must-include rules live in `agents/html-builder.md`.
 
 ### Phase 3: Generate
 

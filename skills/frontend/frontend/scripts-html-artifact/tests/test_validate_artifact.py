@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -19,24 +20,30 @@ from importlib import import_module
 validate_mod = import_module("validate-artifact")
 validate_artifact = validate_mod.validate_artifact
 
+# Minimal stand-in for templates/fonts/archivo-black.css: embedded face plus a heading rule.
+HEADING_FONT_CSS = (
+    '@font-face { font-family: "Archivo Black"; src: url(data:font/woff2;base64,AAAA) format("woff2"); }'
+    " h1, h2, h3 { font-family: var(--font-heading); }"
+)
+
 VALID_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Artifact</title>
-    <style>body { margin: 0; }</style>
+    <style>body { margin: 0; } HEADING_FONT</style>
 </head>
 <body>
     <h1>Hello</h1>
 </body>
-</html>"""
+</html>""".replace("HEADING_FONT", HEADING_FONT_CSS)
 
 VALID_HTML_WITH_COPY = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor</title>
-    <style>body { margin: 0; }</style>
+    <style>body { margin: 0; } HEADING_FONT</style>
 </head>
 <body>
     <h1>Editor</h1>
@@ -44,7 +51,7 @@ VALID_HTML_WITH_COPY = """<!DOCTYPE html>
     function copyToClipboard(text) { navigator.clipboard.writeText(text); }
     </script>
 </body>
-</html>"""
+</html>""".replace("HEADING_FONT", HEADING_FONT_CSS)
 
 MINIMAL_VALID = """<!DOCTYPE html>
 <html>
@@ -82,6 +89,46 @@ class TestValidateArtifactDirect:
             assert all(result.checks.values())
             assert result.errors == []
             assert result.warnings == []
+        finally:
+            path.unlink()
+
+    # --- Heading font (Archivo Black) ---
+
+    def test_heading_without_embedded_font_fails(self) -> None:
+        path = _write_tmp(VALID_HTML.replace(HEADING_FONT_CSS, ""))
+        try:
+            result = validate_artifact(path)
+            assert not result.valid
+            assert result.checks["heading_font"] is False
+            assert any("Archivo Black" in e for e in result.errors)
+        finally:
+            path.unlink()
+
+    def test_heading_font_linked_not_embedded_fails(self) -> None:
+        linked = '@font-face { font-family: "Archivo Black"; src: url(https://fonts.gstatic.com/x.woff2); }'
+        path = _write_tmp(VALID_HTML.replace(HEADING_FONT_CSS, linked + " h1 { font-family: 'Archivo Black'; }"))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["heading_font"] is False
+            assert any("data: URL" in e for e in result.errors)
+        finally:
+            path.unlink()
+
+    def test_heading_font_embedded_but_unused_fails(self) -> None:
+        face_only = HEADING_FONT_CSS.split(" h1, h2, h3")[0]
+        path = _write_tmp(VALID_HTML.replace(HEADING_FONT_CSS, face_only))
+        try:
+            result = validate_artifact(path)
+            assert result.checks["heading_font"] is False
+            assert any("no rule applies it" in e for e in result.errors)
+        finally:
+            path.unlink()
+
+    def test_heading_font_not_required_without_headings(self) -> None:
+        path = _write_tmp(MINIMAL_VALID)
+        try:
+            result = validate_artifact(path)
+            assert result.checks["heading_font"] is True
         finally:
             path.unlink()
 
@@ -314,3 +361,18 @@ class TestCLIInterface:
             assert result["checks"]["has_export_button"] is True
         finally:
             path.unlink()
+
+
+SAVED_DIR = Path(__file__).parent.parent.parent / "templates" / "saved"
+FONT_FILE = Path(__file__).parent.parent.parent / "templates" / "fonts" / "archivo-black.css"
+
+
+@pytest.mark.parametrize("name", sorted(p.stem for p in SAVED_DIR.glob("*.html")))
+def test_saved_templates_embed_current_heading_font(name: str) -> None:
+    """Saved templates carry their own copy of the font CSS; it must match the source file."""
+    html = (SAVED_DIR / f"{name}.html").read_text(encoding="utf-8")
+    font_data = re.search(r"base64,[A-Za-z0-9+/=]+", FONT_FILE.read_text(encoding="utf-8")).group(0)
+    assert font_data in html, f"{name}.html is missing or has a stale copy of fonts/archivo-black.css"
+    result = validate_mod.ValidationResult()
+    validate_mod._check_heading_font(html, result)
+    assert result.checks["heading_font"], result.errors

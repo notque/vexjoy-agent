@@ -115,6 +115,11 @@ def assemble_template(
     if reset_css:
         css_parts.append(reset_css)
 
+    # 1b. Heading font (embedded Archivo Black; defines --font-heading used by theme type tokens)
+    font_css = _read_template("fonts/archivo-black.css")
+    if font_css:
+        css_parts.append(font_css)
+
     # 2. Theme CSS (replaces the base template's Birchline tokens)
     theme_css = _read_template(f"themes/{resolved_theme}.css")
     if theme_css:
