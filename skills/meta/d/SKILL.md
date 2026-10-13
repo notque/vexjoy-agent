@@ -101,6 +101,8 @@ Jev could not classify this request. `JEV_RESULT.source` explains why:
   Vercel AI Gateway (`AI_GATEWAY_API_KEY`) or the direct Jev API
   (`TYPESAFE_API_KEY`), selected by `JEV_TRANSPORT=auto|vercel|direct`.
 - `invalid-pick` — Jev's pick was not a valid manifest name.
+- `low-fit-skill` — Jev's skill pick scored a fit under 0.1, so the script
+  rejected it. Treat it as any other fallback.
 - `error` — a Jev call timed out or failed.
 
 Show:
@@ -201,12 +203,17 @@ Apply directly:
 
 - `agent` / `skill` / `pipeline`: use `JEV_RESULT`'s values as-is. Already
   validated against the live manifest membership sets inside the script.
-  `agent_source: skill-default` means Jev found no domain agent and the
-  script used the skill's owning agent.
-- `agent` is `null` or `general-purpose`: pick from `/do`'s Agent-greediness
-  table (`skills/meta/do/SKILL.md`, Phase 2 Step 0b) when a row fits the
-  request's domain. Otherwise keep `general-purpose` and write a one-line
-  `fallback_reason`: `general-purpose: <why no listed agent covers this>`.
+  `agent_source` says how the agent was set: `jev` (Jev's pick),
+  `domain-table` (the script ran `/do`'s Agent-greediness table on the
+  request), `fit-demote` (a shortlisted domain agent with fit 0.5 or higher
+  replaced `general-purpose`), or `skill-default` (the skill's owning agent).
+- `agent` is still `null` or `general-purpose`: the script already ran the
+  table, so keep it and write a one-line `fallback_reason`:
+  `general-purpose: <why no listed agent covers this>`. Pick from the table
+  yourself only when a row clearly fits a domain the script's patterns miss.
+- `model` / `model_policy` / `model_task`: use `JEV_RESULT` as-is (Phase 5).
+  `model_probabilities` holds the task Choice probabilities and the
+  `high_risk` Noul, for the report.
 - `complexity`: use `JEV_RESULT.complexity` when set. When `null` (always for
   `pre-route-force`), default to `medium`, except a single one-line trivial
   fix → `simple`.
@@ -285,7 +292,8 @@ python3 "$SDIR/build-dispatch.py" --json '{
   "agent": "<JEV_RESULT.agent>", "skill": "<JEV_RESULT.skill; omit when agent-only>",
   "pipeline": "<JEV_RESULT.pipeline; omit when null>",
   "complexity": "<from Phase 2>",
-  "model": "<haiku|sonnet|opus from Model choice>",
+  "model": "<JEV_RESULT.model; hand-pick from Model choice only when null>",
+  "model_policy": "<JEV_RESULT.model_policy; omit when model is hand-picked>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|other>",
   "manual_model_override": false,
@@ -306,7 +314,7 @@ python3 "$SDIR/build-dispatch.py" --json '{
 
 #### Model choice
 
-Set `model` from the task type, not `inherit`. Pass the same `model` on every Agent call, including Explore and Plan.
+Set `model` from `JEV_RESULT.model` (with `model_policy`), not `inherit`. The script asks a `model_task` Choice and a `high_risk` Noul in the stage-2 request and maps them: a task whose top probability is under 0.7 gets sonnet; a final skill or pipeline of `pr-workflow`, `pr-pipeline`, `security`, or `deploy`, or `high_risk` at 0.6 or higher, gets opus. `model` is `null` on fallback and trivial results: hand-pick from the table below. The table stays as the reference the script encodes. Pass the same `model` on every Agent call, including Explore and Plan.
 
 | Task type | Model | Cost O/S/H per run (USD) | Deciding Jev evidence |
 |---|---|---|---|

@@ -360,6 +360,201 @@ GATE_NOUL_INSTRUCTIONS = {
 }
 
 
+# --- Shortlist backfill, agent-greediness table, skill-fit guard (2026-10 d router fixes) -------------------------
+
+# Stage-1 probabilities below this are ties at zero, not evidence. Sorting such ties kept the API's alphabetical
+# key order and padded 37/50 agent and 33/50 skill shortlists with irrelevant names.
+SHORTLIST_PROB_FLOOR = 0.005
+# Only the extreme low end of the skill fit Noul is a usable guard: right picks had a median fit of 0.65 and wrong
+# picks 0.63 (50-row eval), but a pick at 0.02 was a pure miss. Do not raise this into a general threshold.
+SKILL_FIT_FLOOR = 0.10
+# A general-purpose pick yields to a shortlisted domain agent whose own fit Noul is at least this high.
+AGENT_DEMOTE_FIT = 0.5
+
+_STOPWORDS = frozenset(
+    {
+        "this",
+        "that",
+        "with",
+        "from",
+        "into",
+        "your",
+        "have",
+        "what",
+        "when",
+        "then",
+        "them",
+        "they",
+        "will",
+        "would",
+        "could",
+        "should",
+        "about",
+        "there",
+        "their",
+        "which",
+        "while",
+        "where",
+        "these",
+        "those",
+        "just",
+        "also",
+        "more",
+        "some",
+        "than",
+        "only",
+        "over",
+        "such",
+        "make",
+        "please",
+        "want",
+        "need",
+        "like",
+        "give",
+        "write",
+        "fix",
+        "add",
+        "run",
+        "use",
+        "using",
+        "show",
+        "tell",
+        "help",
+        "does",
+        "done",
+        "before",
+        "after",
+        "each",
+        "every",
+        "other",
+        "same",
+    }
+)
+_WORD_RE = re.compile(r"[a-z][a-z0-9]{3,}")
+
+# Port of /do's Agent-greediness table (skills/meta/do/SKILL.md Phase 2 Step 0b): a domain signal in the request
+# names an agent. Used three ways: backfill for the stage-1 agent shortlist, the pick when Jev returned null or
+# general-purpose, and the skill-conditioned shortlist extras. First match wins for the pick; every match backfills.
+DOMAIN_AGENT_TABLE: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(pattern), agent)
+    for pattern, agent in (
+        (
+            r"(?i:\bgolang\b|\bgoroutines?\b|\bgo\.mod\b|\w\.go\b)|\bGo\b(?! (?:ahead|on|for|to|with|back|over)\b)",
+            "golang-general-engineer",
+        ),
+        (
+            r"(?i:\bpython\b|\bpytest\b|\bpyproject\b|\w\.py\b|\bdjango\b|\bflask\b|\bfastapi\b)",
+            "python-general-engineer",
+        ),
+        (r"(?i:\bswift(?:ui)?\b|\bxctest\b|\bxcode\b)", "swift-general-engineer"),
+        (r"(?i:\bkotlin\b)", "kotlin-general-engineer"),
+        (r"(?i:\bphp\b|\blaravel\b)", "php-general-engineer"),
+        (r"(?i:\bpeewee\b|\bsqlite\b)", "sqlite-peewee-engineer"),
+        (r"(?i:\bsql\b|\bpostgres(?:ql)?\b|\bmysql\b|\bschema migrations?\b|\bquery plans?\b)", "database-engineer"),
+        (r"(?i:\betl\b|\belt\b|\bdata warehouse\b|\bdbt\b|\bairflow\b|\bkafka\b)", "data-engineer"),
+        (r"(?i:\bkubernetes\b|\bk8s\b|\bkubectl\b|\bhelm\b)", "kubernetes-helm-engineer"),
+        (r"(?i:\bansible\b|\bplaybooks?\b)", "ansible-automation-engineer"),
+        (r"(?i:\bprometheus\b|\bgrafana\b|\bpromql\b)", "prometheus-grafana-engineer"),
+        (r"(?i:\bopensearch\b|\belasticsearch\b)", "opensearch-elasticsearch-engineer"),
+        (r"(?i:\brabbitmq\b|\bamqp\b)", "rabbitmq-messaging-engineer"),
+        (r"(?i:\breact native\b|\bexpo\b)", "react-native-engineer"),
+        (r"(?i:\bnode\.?js\b|\bexpress(?:js)?\b|\bwebhooks?\b)", "nodejs-api-engineer"),
+        (
+            r"(?i:\btypescript\b|\breact\b|\btsx\b|\bvite\b|\bwebpack\b|\bredux\b|\w\.tsx?\b)",
+            "typescript-frontend-engineer",
+        ),
+        (r"(?i:\bplaywright\b|\bvitest\b|\be2e\b|\bend-to-end\b|\btest coverage\b)", "testing-automation-engineer"),
+        (r"(?i:\bskill\.md\b|\bindex\.json\b|\brouting tables?\b|\bADRs?\b)", "toolkit-governance-engineer"),
+        (r"(?i:\bposttooluse\b|\buserpromptsubmit\b|\bclaude code hooks?\b)", "hook-development-engineer"),
+        (r"(?i:\bmcp servers?\b)", "mcp-local-docs-engineer"),
+        (r"(?i:\bwcag\b|\baccessibility\b|\bresponsive layouts?\b)", "ui-design-engineer"),
+        (r"(?i:\bcore web vitals\b|\blighthouse\b|\bbundle size\b)", "performance-optimization-engineer"),
+        (r"(?i:\brunbooks?\b|\bapi docs?\b)", "technical-documentation-engineer"),
+        (r"(?i:\bphases?\b|\bone batch\b|\bworkstreams?\b|\bmilestones?\b)", "project-coordinator-engineer"),
+    )
+)
+
+
+def _domain_agent_hits(request_text: str) -> list[str]:
+    """Agents whose Agent-greediness table row matches the request, in table order, deduplicated."""
+    hits: list[str] = []
+    for pattern, agent in DOMAIN_AGENT_TABLE:
+        if agent not in hits and pattern.search(request_text or ""):
+            hits.append(agent)
+    return hits
+
+
+def _lexical_overlap(request_text: str, name: str, description: str) -> int:
+    """Count request words that also appear in a candidate's name or short description (stopwords removed)."""
+    words = {w for w in _WORD_RE.findall((request_text or "").lower()) if w not in _STOPWORDS}
+    haystack = set(_WORD_RE.findall(f"{name.replace('-', ' ')} {description}".lower()))
+    return len(words & haystack)
+
+
+MODEL_TASK_QUESTION_KEY = "model_task"
+HIGH_RISK_QUESTION_KEY = "high_risk"
+MODEL_CONFIDENCE_FLOOR = 0.7  # top task probability below this -> sonnet (the safer default)
+HIGH_RISK_THRESHOLD = 0.6
+# A final skill or pipeline in this set always runs on opus: a miss is costly (git history, security, live deploys).
+MODEL_SAFETY_NAMES = frozenset({"pr-workflow", "pr-pipeline", "security", "deploy"})
+MODEL_TASK_TIER = {
+    "locate": "low-risk",
+    "mech_edit": "low-risk",
+    "review": "low-risk",
+    "deep_debug": "standard",
+    "ts_feature": "standard",
+    "long_lane": "standard",
+    "unmatched": "standard",
+}
+MODEL_BY_TIER = {"low-risk": "haiku", "standard": "sonnet", "high-risk": "opus"}
+# Rows come from skills/meta/d/references/model-task-fit.md (blind Jev eval, 2026-10).
+MODEL_TASK_INSTRUCTIONS = (
+    "Which kind of task is this request, for choosing the cheapest model that does it well? Judge the work asked "
+    "for, not the topic."
+)
+MODEL_TASK_CRITERIA = {
+    "locate": {
+        "what": "Read-only lookup: find where something is or how it works and cite it.",
+        "not_for": "Any change to files, or finding the cause of a failure.",
+        "examples": ["where is the retry logic", "what does this config key do"],
+    },
+    "mech_edit": {
+        "what": "Mechanical multi-file edit with a fixed rule: rename, move, reformat.",
+        "not_for": "Edits that need design choices or new behavior.",
+        "examples": ["rename this function everywhere", "update the import path in all files"],
+    },
+    "review": {
+        "what": "Read existing code or docs and report problems, with no fix requested.",
+        "not_for": "Fixing what is found, or building anything.",
+        "examples": ["review this diff for bugs", "audit this file"],
+    },
+    "deep_debug": {
+        "what": "Find a root cause of a failure and fix it, usually with a regression test.",
+        "not_for": "Simple lookups or planned feature work.",
+        "examples": ["memory grows until the service dies, find why", "this test fails sometimes"],
+    },
+    "ts_feature": {
+        "what": "Build one new feature or change by following an existing code pattern, with tests.",
+        "not_for": "Bug hunts, renames, or work spanning many UI files.",
+        "examples": ["add a filter option like the existing ones", "add an endpoint with tests"],
+    },
+    "long_lane": {
+        "what": "Large job across 9 or more files or long text, such as UI wording or a broad migration.",
+        "not_for": "Small edits in 1 to 3 files.",
+        "examples": ["rewrite the labels across every screen", "port the whole module"],
+    },
+    "unmatched": {
+        "what": "None of the above fits: planning, advice, mixed or unclear work.",
+        "not_for": "Work that clearly matches another row.",
+        "examples": ["help me decide how to structure this", "draft a plan"],
+    },
+}
+HIGH_RISK_INSTRUCTIONS = (
+    "True when a mistake in doing this request would be costly or hard to undo: it changes shared or live "
+    "state, security, credentials, money, deploys, or deletes data. False for read-only or easily reversed work."
+)
+
+
 def _fit_instructions(kind: str, name: str, criteria_text: str) -> str:
     """Per-candidate 'does this genuinely fit' Noul instructions (stage 2)."""
     return (
@@ -536,6 +731,37 @@ def _top_names_by_probability(probabilities: dict | None, valid_names: set[str],
     return [name for name, _ in items[:top_n]]
 
 
+def _backfilled_shortlist(
+    probabilities: dict | None,
+    valid_names: set[str],
+    top_n: int,
+    extras: list[str],
+    request_text: str,
+    criteria: dict[str, str],
+) -> list[str]:
+    """Stage-1 shortlist: Jev's ranked names, then request-relevant backfill, never alphabetical filler.
+
+    Order: names with real probability (>= SHORTLIST_PROB_FLOOR), then `extras` (domain-table and
+    skill-conditioned candidates), then names whose short description shares 2+ words with the request. A list
+    shorter than `top_n` is fine. When nothing clears the floor the plain ranking is returned so stage 2 still
+    has candidates.
+    """
+    ranked = _top_names_by_probability(probabilities, valid_names, len(valid_names))
+    probs = {str(k): float(v) for k, v in (probabilities or {}).items()}
+    head = [n for n in ranked if probs.get(n, 0.0) >= SHORTLIST_PROB_FLOOR][:top_n]
+    for name in extras:
+        if len(head) >= top_n:
+            break
+        if name in valid_names and name not in head:
+            head.append(name)
+    if len(head) < top_n:
+        scored = [(_lexical_overlap(request_text, n, criteria.get(n, "")), n) for n in ranked if n not in head]
+        scored = [(o, n) for o, n in scored if o >= 2]
+        scored.sort(key=lambda on: -on[0])  # stable: ties keep Jev's order
+        head += [n for _, n in scored[: top_n - len(head)]]
+    return head or ranked[:top_n]
+
+
 PROJECT_CONTEXT_INSTRUCTIONS = (
     " The state's `project` field lists the languages, frameworks, and datastores detected in the repository "
     "this request is about. When the request names no language or framework, use `project` to pick the domain."
@@ -699,6 +925,13 @@ def _build_stage2_payload(
     for name, instructions in DOMAIN_NOUL_INSTRUCTIONS.items():
         questions[f"{DOMAIN_NOUL_PREFIX}{_sanitize_key(name)}"] = {"type": "noul", "instructions": instructions}
 
+    questions[MODEL_TASK_QUESTION_KEY] = {
+        "type": "choice",
+        "instructions": MODEL_TASK_INSTRUCTIONS,
+        "criteria": MODEL_TASK_CRITERIA,
+    }
+    questions[HIGH_RISK_QUESTION_KEY] = {"type": "noul", "instructions": HIGH_RISK_INSTRUCTIONS}
+
     for name in fanout_candidates:
         questions[f"fanout__{_sanitize_key(name)}"] = {
             "type": "noul",
@@ -781,6 +1014,10 @@ def _build_result(
         "gate_score": gate_score,
         "fits_scores": fits_scores,
         "stage1_shortlist": stage1_shortlist,
+        "model_task": None,
+        "model": None,
+        "model_policy": None,
+        "model_probabilities": None,
     }
 
 
@@ -894,6 +1131,9 @@ def _parse_stage1(
     skill_names: set[str],
     pipeline_names: set[str],
     shortlist_n: int = STAGE1_SHORTLIST_N,
+    request_text: str = "",
+    agent_criteria: dict[str, str] | None = None,
+    skill_criteria: dict[str, str] | None = None,
 ) -> dict:
     """Parse stage 1's answers into shortlists + gate_score. Raises on malformed shape."""
     answers = data["answers"]
@@ -902,8 +1142,19 @@ def _parse_stage1(
     skill_probs = answers["skill"].get("probabilities") or {}
     pipeline_probs = answers["pipeline"].get("probabilities") or {}
 
-    agent_shortlist = _top_names_by_probability(agent_probs, agent_names, shortlist_n)
-    skill_shortlist = _top_names_by_probability(skill_probs, skill_names, shortlist_n)
+    # Each shortlist backfills from the other's top picks: the domain agent table and skill-owning agents feed
+    # the agent list, an agent's domain skill feeds the skill list.
+    top_agents = _top_names_by_probability(agent_probs, agent_names, 3)
+    top_skills = _top_names_by_probability(skill_probs, skill_names, 3)
+    agent_extras = _domain_agent_hits(request_text)
+    agent_extras += [AGENT_BY_SKILL[s] for s in top_skills if s in AGENT_BY_SKILL]
+    skill_extras = [DOMAIN_SKILL_BY_AGENT[a] for a in top_agents + agent_extras if a in DOMAIN_SKILL_BY_AGENT]
+    agent_shortlist = _backfilled_shortlist(
+        agent_probs, agent_names, shortlist_n, agent_extras, request_text, agent_criteria or {}
+    )
+    skill_shortlist = _backfilled_shortlist(
+        skill_probs, skill_names, shortlist_n, skill_extras, request_text, skill_criteria or {}
+    )
     # Pipeline: always forward the single highest-probability REAL (non-"none")
     # candidate into stage 2, regardless of whether "none" won stage 1's
     # truncated pass -- avoids the cheap pass prematurely foreclosing a real
@@ -947,7 +1198,8 @@ def _select_fanout_candidates(
     if top_prob >= FANOUT_DOMINANCE_PROB:
         return []
     start = max(FANOUT_RANK_START, len(agent_shortlist))  # fan-out candidates rank just below the shortlist
-    return ranked[start : start + FANOUT_MAX_CANDIDATES]
+    candidates = ranked[start : start + FANOUT_MAX_CANDIDATES]
+    return [n for n in candidates if float((agent_probs or {}).get(n, 0.0)) >= SHORTLIST_PROB_FLOOR]
 
 
 def _parse_stage2(
@@ -1040,8 +1292,18 @@ def _parse_stage2(
     # -- see this function's docstring). It no longer means "a valid pick
     # scored below an unvalidated threshold" -- that gate was removed
     # 2026-09-16 per the owner's explicit instruction.
-    fallback = agent_final is None or skill_final is None
-    if fallback:
+    low_fit_skill = skill_final is not None and skill_fit is not None and skill_fit < SKILL_FIT_FLOOR
+    fallback = agent_final is None or skill_final is None or low_fit_skill
+    rejected: dict | None = None
+    if low_fit_skill and agent_final is not None:
+        reasoning = (
+            f"skill pick {skill_final!r} rejected: fit {skill_fit} is below {SKILL_FIT_FLOOR}; defer to full /do"
+        )
+        source = "low-fit-skill"
+        # Slots go null so a caller that reads agent/skill never acts on the rejected pick.
+        rejected = {"agent": agent_final, "skill": skill_final, "pipeline": pipeline_final, "skill_fit": skill_fit}
+        agent_final = skill_final = pipeline_final = None
+    elif fallback:
         reasoning = (
             f"invalid pick (not a manifest-member/shortlisted name): agent={agent_choice!r}, skill={skill_choice!r}"
         )
@@ -1071,10 +1333,30 @@ def _parse_stage2(
     else:
         confidence_label = "low"
 
+    agent_fits: dict[str, float] = {}
+    for name in agent_shortlist:
+        key = f"agent_fit__{_sanitize_key(name)}"
+        if key in answers:
+            agent_fits[name] = float(answers[key]["noul"])
+
+    model_answer = answers.get(MODEL_TASK_QUESTION_KEY)
+    risk_answer = answers.get(HIGH_RISK_QUESTION_KEY)
+    model_probabilities: dict | None = None
+    if isinstance(model_answer, dict) and model_answer.get("probabilities"):
+        model_probabilities = {
+            "model_task": {str(k): float(v) for k, v in model_answer["probabilities"].items()},
+            "high_risk": float(risk_answer["noul"])
+            if isinstance(risk_answer, dict) and "noul" in risk_answer
+            else None,
+        }
+
     return {
         "agent": agent_final,
         "skill": skill_final,
         "pipeline": pipeline_final,
+        "agent_fits": agent_fits,
+        "rejected_pick": rejected,
+        "model_probabilities": model_probabilities,
         "agents": agents_fanout,
         "complexity": complexity,
         "confidence": confidence_label,
@@ -1130,7 +1412,9 @@ def _classify(
     try:
         stage1_payload = _build_stage1_payload(request_text, agent_criteria, skill_criteria, pipeline_criteria, project)
         data1, latency1 = _call_jev(stage1_payload, timeout)
-        stage1 = _parse_stage1(data1, agent_names, skill_names, pipeline_names, shortlist_n)
+        stage1 = _parse_stage1(
+            data1, agent_names, skill_names, pipeline_names, shortlist_n, request_text, agent_criteria, skill_criteria
+        )
         usage1 = _extract_usage(data1)
     except Exception as exc:
         return _error_result(exc, jev_called=True, reason_prefix="jev stage-1 call failed"), skill_names
@@ -1212,6 +1496,10 @@ def _classify(
         stage1_shortlist=stage1_shortlist,
     )
     result["domain_scores"] = decision["domain_scores"]
+    result["agent_fits"] = decision["agent_fits"]
+    result["rejected_pick"] = decision["rejected_pick"]
+    result["model_probabilities"] = decision["model_probabilities"]
+    result["_agent_names"] = sorted(agent_names)  # internal: route() pops it before output
     return result, skill_names
 
 
@@ -1270,8 +1558,24 @@ def _attachments(result: dict, skill_names: set[str]) -> list[str]:
     return attach
 
 
-def _default_agent(result: dict) -> str | None:
-    """Owning agent for the primary or an attached skill when the route has no domain agent."""
+def _demote_general_purpose(result: dict) -> str | None:
+    """Best shortlisted domain agent that should replace a general-purpose pick, or None.
+
+    /do treats general-purpose as the last resort. Stage 2 already scored every shortlisted agent with a fit
+    Noul, so a non-general agent that clears AGENT_DEMOTE_FIT and beats general-purpose's own fit wins.
+    """
+    fits = result.get("agent_fits") or {}
+    gp_fit = float(fits.get("general-purpose", 0.0))
+    best = [(fit, name) for name, fit in fits.items() if name != "general-purpose" and fit >= AGENT_DEMOTE_FIT]
+    best = [(fit, name) for fit, name in best if fit > gp_fit]
+    return max(best)[1] if best else None
+
+
+def _default_agent(result: dict, request_text: str = "", agent_names: set[str] | None = None) -> str | None:
+    """Domain agent for a route with none: Agent-greediness table, then the skill's owning agent."""
+    for hit in _domain_agent_hits(request_text):
+        if not agent_names or hit in agent_names:
+            return hit
     for name in [result.get("skill")] + list(result.get("attach") or []):
         agent = AGENT_BY_SKILL.get(name or "")
         if agent:
@@ -1279,11 +1583,45 @@ def _default_agent(result: dict) -> str | None:
     return None
 
 
+def _model_pick(result: dict) -> dict:
+    """Map the stage-2 task Choice and risk Noul to a model. Pure policy.
+
+    Safety skills or pipelines and a high-risk Noul at HIGH_RISK_THRESHOLD or more pick opus. A task Choice whose
+    top probability is under MODEL_CONFIDENCE_FLOOR picks sonnet. Otherwise the task row sets the tier. With no
+    Jev evidence (a force route after a Jev failure) the pick is sonnet, or opus for a safety name.
+    """
+    probs = result.get("model_probabilities") or {}
+    task_probs = probs.get("model_task") or {}
+    high_risk = probs.get("high_risk")
+    task = max(task_probs, key=task_probs.get) if task_probs else None
+    top = task_probs[task] if task else None
+    safety = {result.get("skill"), result.get("pipeline")} & MODEL_SAFETY_NAMES
+    if safety:
+        tier, why = "high-risk", f"safety name {sorted(safety)[0]}"
+    elif high_risk is not None and high_risk >= HIGH_RISK_THRESHOLD:
+        tier, why = "high-risk", f"high_risk={high_risk:.2f}"
+    elif task is None:
+        tier, why = "standard", "no task evidence"
+    elif top < MODEL_CONFIDENCE_FLOOR:
+        tier, why = "standard", f"task {task} top probability {top:.2f} below {MODEL_CONFIDENCE_FLOOR}"
+    else:
+        tier, why = MODEL_TASK_TIER.get(task, "standard"), f"task {task} at {top:.2f}"
+    return {
+        "model_task": task,
+        "model": MODEL_BY_TIER[tier],
+        "model_policy": tier,
+        "model_probabilities": result.get("model_probabilities"),
+        "model_reason": why,
+    }
+
+
 def _merge_safety_force(forced: dict, classified: dict) -> dict:
     """Safety force route keeps its skill and pipeline; Jev supplies the agent and attachments."""
     merged = dict(forced)
     for key in ("agents", "signals", "signal_scores", "domain_scores", "gate_score", "fits_scores"):
         merged[key] = classified.get(key)
+    merged["agent_fits"] = classified.get("agent_fits")
+    merged["model_probabilities"] = classified.get("model_probabilities")
     merged["agents"] = classified.get("agents") or []
     merged["agent"] = forced.get("agent") or classified.get("agent")
     merged["jev_called"] = True
@@ -1328,6 +1666,7 @@ def route(
     classified, skill_names = _classify(
         request_text, gate_threshold, fits_threshold, timeout, project, shortlist_n, hint_skill=hint
     )
+    agent_names = set(classified.pop("_agent_names", []))
     usable = not classified.get("fallback") and classified.get("source") == "jev"
 
     if forced is None:
@@ -1360,10 +1699,18 @@ def route(
         else "jev"
     )
     if result.get("agent") in (None, "general-purpose"):
-        default = _default_agent(result)
-        if default:
-            result["agent"] = default
-            result["agent_source"] = "skill-default"
+        # /do's order: the request's own domain signal, then a shortlisted agent that fits, then the skill's owner.
+        table = _default_agent({}, request_text, agent_names)
+        demoted = _demote_general_purpose(result) if result.get("agent") == "general-purpose" else None
+        if table:
+            result["agent"], result["agent_source"] = table, "domain-table"
+        elif demoted:
+            result["agent"], result["agent_source"] = demoted, "fit-demote"
+        else:
+            default = _default_agent(result)
+            if default:
+                result["agent"], result["agent_source"] = default, "skill-default"
+    result.update(_model_pick(result))
     return result
 
 

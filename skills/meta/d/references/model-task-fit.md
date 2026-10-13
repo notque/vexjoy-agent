@@ -35,6 +35,20 @@ Opus won no measured task.
 
 `build-dispatch.py` maps `model_policy` low-risk / standard / high-risk to haiku/low, sonnet/medium, opus/high. `max-power` stays opus/xhigh and needs `manual_model_override=true`.
 
+## Auto pick in `jev-route.py`
+
+`scripts/jev-route.py` makes this table executable. The stage-2 request (no extra round trip) carries a `model_task` Choice over the seven rows above, each with `what`, `not_for`, and `examples`, and a `high_risk` Noul. Code maps the answer:
+
+| Condition (first match wins) | `model_policy` | `model` |
+|---|---|---|
+| Final skill or pipeline is `pr-workflow`, `pr-pipeline`, `security`, or `deploy` | high-risk | opus |
+| `high_risk` at 0.6 or higher | high-risk | opus |
+| No task answer, or top task probability under 0.7 | standard | sonnet |
+| `locate`, `mech_edit`, `review` | low-risk | haiku |
+| `deep_debug`, `ts_feature`, `long_lane`, `unmatched` | standard | sonnet |
+
+The result carries `model_task`, `model`, `model_policy`, `model_probabilities`, and `model_reason`. They are `null` on fallback and trivial results. A force route after a Jev failure gets sonnet, or opus for a safety name. The `d` skill passes `model` and `model_policy` to `build-dispatch.py` unchanged.
+
 ## Escalate on a miss
 
 Order: haiku, sonnet, opus. Retry once on the next model when either holds:

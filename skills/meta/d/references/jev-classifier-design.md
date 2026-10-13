@@ -324,11 +324,21 @@ Decision card:
 - Private overlay skills and agents (`owner: overlay:*`, or legacy `INDEX.local.json`-only entries) enter the candidate set only when the request names their domain: a word from their name or triggers that the public catalog never uses (`routing_index_merge.gate_private_entries`). Before, private skills reached the stage-1 skill shortlist on 40 of 57 eval requests, and one beat `research` on the primary pick.
 - A pre-route suggestion (`matched: false` with a `skill`, from a suggest-only trigger such as "ship it" inside "before I ship it") joins the stage-2 shortlist as a hint and never stands alone.
 
+## Router fixes (v1.4, 2026-10)
+
+Measured on 50 gold rows from `scripts/routing-ab-corpus.json` against a `/do` proxy: `/d` pair 29/50, agent 43/50, and 17 general-purpose picks. Three fixes, no new round trip:
+
+- **Shortlist backfill.** `_top_names_by_probability` kept the API's alphabetical key order for stage-1 ties at zero, so 37/50 agent and 33/50 skill shortlists carried filler. `_backfilled_shortlist` keeps names at `SHORTLIST_PROB_FLOOR` (0.005) or higher, then adds extras (the `DOMAIN_AGENT_TABLE` hits, the agent that owns a top skill, the domain skill of a top agent), then names sharing 2 or more words with the request. A shortlist can be shorter than 6. Fan-out candidates need the same floor.
+- **Agent greediness.** `DOMAIN_AGENT_TABLE` ports `/do`'s table as request patterns. For a null or `general-purpose` agent the order is: table hit, a shortlisted agent whose fit Noul is 0.5 or higher and beats general-purpose (`fit-demote`), the skill's owning agent. `agent_source` records which.
+- **Skill-fit guard.** A skill pick with fit under `SKILL_FIT_FLOOR` (0.1) returns `fallback: true, source: "low-fit-skill"`, so `/d` defers to `/do`. Fit is not a general threshold: right picks had a median of 0.65 and wrong picks 0.63. Only the extreme low end is used.
+
+Model pick: stage 2 also carries a `model_task` Choice and a `high_risk` Noul (see `model-task-fit.md`). The script returns `model_task`, `model`, `model_policy`, `model_probabilities`, and `model_reason`; they are `null` on fallback and trivial results.
+
 ## Fallback-to-`/do` behavior
 
 `fallback: true` on any of: `unavailable` (presence check failed), a
-sub-`fits_threshold` or invalid-membership agent/skill pick (`source:
-"low-confidence"`), or `error` (a stage-1 or stage-2 HTTP/parse/timeout
+skill pick with fit under 0.1 (`source: "low-fit-skill"`), an invalid-membership agent/skill pick (`source:
+"invalid-pick"`), or `error` (a stage-1 or stage-2 HTTP/parse/timeout
 failure). In every case `/d`'s SKILL.md Phase 1F instructs reading
 `skills/meta/do/SKILL.md` in full and running its Phase 1-4 unmodified — not
 a degraded in-between state. `jev-trivial-bypass` is NOT a fallback signal —
