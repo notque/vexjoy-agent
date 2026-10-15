@@ -220,6 +220,11 @@ Audit to decide whether a test should exist at all.
 **Gate**: Every deletion has all candidate evidence fields recorded. Owner and
 full suites pass. Production and test LOC reported separately.
 
+To find hook or validator tests that miss real bugs, run
+`python3 scripts/mutation-check.py --hook hooks/<name>.py`. It plants small AST
+bugs, runs the tests, and lists surviving mutants. Use `--all` for every hook
+(about 30 minutes) and `--json` for machine output. Run it on demand, not in CI.
+
 ---
 
 ## Agent Testing
