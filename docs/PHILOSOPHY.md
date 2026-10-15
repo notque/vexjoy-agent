@@ -41,6 +41,6 @@ Verify the behavior you claim. A passing command proves only what it checked. Sa
 
 ## Change with current evidence
 
-Past results do not prove present capability, and agreement between models is evidence, not ground truth. Run an experiment only when it informs a decision. Low use invites review but does not prove low value. Record useful negative results, with scope and decision, in [what-didnt-work.md](what-didnt-work.md). Decisions live in code, tests, and that registry, not in committed evaluation write-ups. Merge overlapping mechanisms and remove what no longer earns its complexity.
+Past results do not prove present capability, and agreement between models is evidence, not ground truth. Run an experiment only when it informs a decision. Low use invites review but does not prove low value. Decisions live in code and tests, not in committed evaluation write-ups. Merge overlapping mechanisms and remove what no longer earns its complexity.
 
 Operational sources: [repository instructions](../CLAUDE.md), [`/do`](../skills/meta/do/SKILL.md), and [building with Jev](../skills/meta/building-with-jev/SKILL.md).

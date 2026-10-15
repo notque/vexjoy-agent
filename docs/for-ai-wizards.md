@@ -267,8 +267,6 @@ Review skills fan out independent perspectives, then validate their claims again
 
 The `roast` pattern uses several reader perspectives—such as newcomer, contrarian, pragmatic builder, skeptical senior, and pedant—to expose different failure modes. Parallel code review instead separates security, business logic, and architecture. These are discovery roles, not independent authorities: the coordinator verifies file paths, line references, and claimed behavior before producing a verdict such as BLOCK, FIX, or APPROVE.
 
-The negative-results registry prevents repeated failed experiments. Record a failure or rollback in `docs/what-didnt-work.md` with the expectation, observed result, evidence location, and decision. `scripts/tests/test_negative_results_registry.py` checks the format. Nothing promotes those observations into an agent or skill automatically; a human edits the relevant instruction.
-
 For prose, `scripts/scan-ai-patterns.py` checks documentation against `scripts/data/banned-patterns.json`. Treat it as a mechanical signal, not a substitute for editorial judgment.
 
 ## Evidence for Completion

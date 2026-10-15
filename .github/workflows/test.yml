@@ -36,7 +36,6 @@ jobs:
       - run: python scripts/validate-references.py --check-size
       - run: python scripts/validate-references.py --check-skill-calls
       - run: python scripts/validate_positive_instruction_docs.py --fleet
-      - run: python scripts/validate-doc-links.py --check-negative-results
       - run: python scripts/validate-doc-commands.py --check-sdir
       - run: python scripts/validate-skill-frontmatter.py
       - run: python scripts/validate-index-integrity.py

@@ -53,8 +53,7 @@ One diff pair (T03) was character-identical across arms. Sign test on 4-2
 1. **Simulated same-context.** Arm B injected reviewer reasoning into a fresh
    prompt; a true same-context arm continues the reviewer agent's session
    (SendMessage). Injection tests "reasoning transfer," not "warm context."
-2. **Corpus too easy.** Hardening path per the fact-check precedent
-   (what-didnt-work 2026-06-12): multi-file bugs, misleading findings
+2. **Corpus too easy.** Hardening path: multi-file bugs, misleading findings
    (reviewer's proposed fix is wrong), bugs where the obvious fix breaks a
    different test — these give anchoring bias something to anchor on.
 3. **n=8, one sample per (trial, arm)**: no self-consistency estimate.

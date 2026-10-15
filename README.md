@@ -111,7 +111,7 @@ The content engine researches, drafts in a calibrated voice, checks 397 writing 
 
 ## It Proves Its Own Changes
 
-Toolkit changes use direct review and relevant checks. Model comparisons can settle specific uncertainties; they are not required for every edit. [PHILOSOPHY.md](docs/PHILOSOPHY.md) explains the validation policy. [what-didnt-work.md](docs/what-didnt-work.md) records failed experiments, routing reversals, unvalidated A/B citations, disabled lint rules, and program refutations.
+Toolkit changes use direct review and relevant checks. Model comparisons can settle specific uncertainties; they are not required for every edit. [PHILOSOPHY.md](docs/PHILOSOPHY.md) explains the validation policy.
 
 The automated nightly evolution loop (`/evolve`, writes to `evolution-reports/`) ran regularly through mid-May 2026. It is currently dormant; recent evidence has come from manual PRs instead.
 

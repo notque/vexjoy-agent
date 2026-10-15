@@ -34,4 +34,4 @@ Keep this fail-open behavior:
 
 ## Model
 
-Use opus. On 48 review units (323 findings), the refuter dropped 20 findings and none was valid by both judges or a planted bug. Recall held at 0.875. False positives per review fell from 0.500 to 0.229 on the primary label, 0.604 to 0.312 on opus labels, and 1.000 to 0.646 on GPT labels. A batched sonnet call missed the GPT-label bar (0.708 against a 0.700 limit; see `docs/what-didnt-work.md`). One opus call costs about $0.14 per review.
+Use opus. On 48 review units (323 findings), the refuter dropped 20 findings and none was valid by both judges or a planted bug. Recall held at 0.875. False positives per review fell from 0.500 to 0.229 on the primary label, 0.604 to 0.312 on opus labels, and 1.000 to 0.646 on GPT labels. A batched sonnet call missed the GPT-label bar (0.708 against a 0.700 limit). One opus call costs about $0.14 per review.

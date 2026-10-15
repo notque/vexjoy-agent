@@ -15,8 +15,6 @@ allowed-tools:
 routing:
   not_for: "multi-phase feature work (use workflow), code review (use review)"
   triggers:
-    - "what didn't work"
-    - "negative results"
     - "route health"
     - "routing telemetry"
     - "review roi"
@@ -53,7 +51,7 @@ Five modes. Parse the request to pick one. Default to **retro** when ambiguous.
 
 | Signal | Mode |
 |--------|------|
-| Negative results, what didn't work, routing stats, review ROI, retro | **Retro** |
+| Routing stats, review ROI, retro | **Retro** |
 | Hand off, package state, session pickup, rehydrate | **Handoff** |
 | Pair program, step by step, walk me through, one change at a time | **Pair** |
 | Subagent per task, execute plan, fresh context | **Subagent** |
@@ -63,14 +61,12 @@ Five modes. Parse the request to pick one. Default to **retro** when ambiguous.
 
 ## Mode: Retro
 
-Read-only retrospective. Two stores: `docs/what-didnt-work.md` (negative-results
-registry) and `learning.db` (routing/review telemetry via `scripts/learning-db.py`).
+Read-only retrospective. Store: `learning.db` (routing/review telemetry via `scripts/learning-db.py`).
 
 ### Subcommands
 
 | Argument | Action |
 |----------|--------|
-| (none), what-didnt-work | Read `docs/what-didnt-work.md`. Group by date. Show each Decision verdict up front. If missing, report no negative results recorded. |
 | routing, route health | Run `python3 ~/.claude/scripts/learning-db.py route-health`, then `route-stats --by agent` (or the user's dimension). Present outcome basis before rates. |
 | reviews, review ROI | Run `learning-db.py review-roi` and `review-fps`. Present cost, findings, and false positives per agent in one table. |
 
