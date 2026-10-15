@@ -61,6 +61,8 @@ Three modes. Select by request signal:
 
 Default: Research Pipeline.
 
+**Final report.** When the final report synthesizes two or more dispatched agents' findings, run one self-review pass on the draft before delivery: `skills/shared-patterns/report-self-review.md` (separate dispatch, `model: opus`). It applies to Mode A and Mode B.
+
 ---
 
 ## Mode A: Research Pipeline
