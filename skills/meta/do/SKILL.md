@@ -368,6 +368,8 @@ Simple/Medium: direct. Feature-branch; mods commit. `isolation:"worktree"`→`fl
 
 **Step 3: Multi-part / fan-out** — deps sequential; independent parallel (max 10). Phase 2 `agents` → ONE `build-dispatch.py` call and ONE Agent dispatch per agent: N agents = N calls = N markers, one marker each. Emit the parallel Agent calls in a single message. Each agent gets its own `files` and scope. Sequential stages pass relevant prior results and evidence locations; synthesis receives the findings and access to evidence from every required stage. Packing several markers into one Bash/Workflow script keeps them recorded but forfeits route-fit scoring, which reads a lone marker per event.
 
+**Complex fan-in report** — when 2+ agents feed one synthesized report, run one self-review pass on the draft before delivery: `skills/shared-patterns/report-self-review.md` (one separate dispatch, no marker, `model: opus`). Not for Trivial, Simple, or Medium routes.
+
 **Step 4: Auto-Pipeline Fallback** (no match, Simple+) — `auto-pipeline`. None → closest+`workflow`. Never empty skill.
 
 **Lazy-completion check.** "Done" on enumerable → compare scope; short → reject, re-dispatch (`references/lazy-completion-detector.md`). Re-dispatch → route failure.

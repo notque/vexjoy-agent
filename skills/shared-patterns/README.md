@@ -31,6 +31,7 @@ See [Anti-Rationalization](../skills/shared-patterns/anti-rationalization-core.m
 | `gate-enforcement.md` | Phase transition rules | Workflow skills |
 | `verification-checklist.md` | Pre-completion checks | All skills |
 | `execution-report-format.md` | Structured output format | Review/analysis skills |
+| `report-self-review.md` | One revision pass that removes unsupported claims from a synthesized final report | /do Complex fan-in, research, assessment |
 | `severity-classification.md` | Issue severity definitions | Review skills |
 | `output-schemas.md` | Standardized agent output patterns | All agents |
 | `forbidden-patterns-template.md` | Template for domain-specific hard gates | Domain agents (Go, Python, etc.) |
