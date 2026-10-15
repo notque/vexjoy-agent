@@ -58,15 +58,14 @@ The full cycle, in order:
 2. **Implement** changes
 3. **Review** using the risk-selected lane in `pr-workflow`
 4. **Fix** confirmed findings and rerun affected checks
-5. **Record** any dead end in `docs/what-didnt-work.md` with its evidence location
-6. **Edit** the agent or skill file yourself when a finding should change behavior
-7. **Commit** (conventional format, no AI attribution)
-8. **Push** to remote
-9. **PR** via `gh pr create`
-10. **CI** passes
-11. **Merge**
+5. **Edit** the agent or skill file yourself when a finding should change behavior
+6. **Commit** (conventional format, no AI attribution)
+7. **Push** to remote
+8. **PR** via `gh pr create`
+9. **CI** passes
+10. **Merge**
 
-The `pr-workflow` skill automates steps 3 through 10.
+The `pr-workflow` skill automates steps 3 through 9.
 
 ## Quality Gates
 
@@ -96,7 +95,7 @@ The default marker filter in `pyproject.toml` skips `slow and integration` (inst
 
 Tests must be safe to run in parallel: write under `tmp_path`, change env and cwd with `monkeypatch`, and give any hook-created `/tmp` state a unique session id. The root `conftest.py` strips live session ids and API keys so tests stay offline and never touch a running session's state.
 
-Doc-structure checks (reference sizes, Skill-call wording, joy-check fleet scan, negative-results registry, `$SDIR` portability) are validators in `scripts/`, run by the CI lint job, not per-file pytest cases.
+Doc-structure checks (reference sizes, Skill-call wording, joy-check fleet scan, `$SDIR` portability) are validators in `scripts/`, run by the CI lint job, not per-file pytest cases.
 
 Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verification. Agents and skills use the validators and review methodology in `skills/meta/toolkit/`.
 
@@ -115,7 +114,3 @@ Hooks: feed JSON, assert JSON output. Scripts: deterministic input/output verifi
 **50ms hook budget.** Hooks fire on every tool call. Keep them fast. `scripts/benchmark-hooks.py` validates this.
 
 **Wabi-sabi in docs.** Write like a human. Contractions fine. Fragments fine. Banned words: "delve", "leverage", "comprehensive", "robust", "streamline", "empower". `scripts/scan-ai-patterns.py` catches violations.
-
-### Negative results
-
-Tried something that lost? Record it in `docs/what-didnt-work.md` before you forget. One dated section, four fields (Expectation, What happened, Evidence, Decision), newest on top. Evidence must be a location, not a claim. Check the file before re-running an experiment, so you don't re-litigate a decision already made.

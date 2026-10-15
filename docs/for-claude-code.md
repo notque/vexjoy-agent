@@ -221,4 +221,3 @@ User says "fix the failing Go tests"
 7. **Plans before complexity.** Medium+ tasks require a plan file (`task_plan.md`). Don't skip planning.
 8. **Verify before declaring done.** `verification-before-completion` exists for a reason. Run the checks.
 9. **Anti-rationalization is non-negotiable.** If evidence contradicts your hypothesis, update the hypothesis.
-10. **Check prior failures.** Search `docs/what-didnt-work.md` before repeating an experiment.

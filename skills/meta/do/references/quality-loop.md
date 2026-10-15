@@ -94,8 +94,7 @@ required failed checks block merge. A draft may document unfinished work honestl
   not an assumed `main~1`. Document deviations in the ADR's Implementation Notes
   and mark checklist items completed, partial, or deviated.
 - **12 — Report:** State what changed, what checks ran, and any material limits.
-  Record reusable lessons in their owning skill/agent through a reviewed edit;
-  refuted experiments belong in `docs/what-didnt-work.md`.
+  Record reusable lessons in their owning skill/agent through a reviewed edit.
 - **13 — Cleanup:** After completion, mark the applicable ADR Accepted, move it
   to `adr/completed/{name}.md`, and clear its `.adr-session.json`. Remove this
   task's temporary plan/state artifacts only when no longer needed for resumption.

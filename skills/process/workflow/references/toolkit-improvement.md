@@ -487,8 +487,7 @@ fi
 **Goal**: Write this run's reusable patterns where a human will read them next.
 
 For each non-obvious pattern or successful remediation, route it to the file that owns it:
-a refuted experiment to `docs/what-didnt-work.md` with an evidence location, a component
-gap to that component's own file through a reviewed edit. A pattern that reaches no file
+a component gap to that component's own file through a reviewed edit. A pattern that reaches no file
 reaches no future session.
 
 Write a session summary artifact:

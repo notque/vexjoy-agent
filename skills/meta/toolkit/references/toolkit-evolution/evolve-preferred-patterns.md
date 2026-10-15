@@ -8,7 +8,7 @@ Reference for Phase 3 CRITIQUE (fallback), failure modes, error handling, and co
 
 - **Improving without measuring** -- every change must have a baseline and A/B result. "It looks better" is not evidence.
 - **Merging without validation** -- every winner must pass multi-persona critique (STRONG consensus) AND A/B testing (WIN status) before merge. The validation gates are the review.
-- **Ignoring negative results** -- failed experiments are valuable data. Record them in the learning DB so the same idea is not re-proposed.
+- **Ignoring failed experiments** -- they are valuable data. Record them in the learning DB so the same idea is not re-proposed.
 - **Improving everything at once** -- max 3 implementations per cycle. Focus compounds; scatter dissipates.
 - **Running without diagnosis** -- do not propose solutions without evidence of problems first. Solutions looking for problems create phantom work.
 - **Proposing duplicates** -- always check INDEX.json before proposing a new skill or capability. Extend existing skills when possible.

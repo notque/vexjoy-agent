@@ -6,7 +6,7 @@ Maintainer contract. Not runtime context — load only when changing this skill.
 
 Move one measured number to a target: baseline with variance, profile the cost,
 then accept or revert one change per iteration on measured evidence, stopping on
-target, budget, or plateau. The ledger of hypotheses and negative results is a
+target, budget, or plateau. The ledger of hypotheses and reverted iterations is a
 deliverable alongside the code.
 
 ## Scope

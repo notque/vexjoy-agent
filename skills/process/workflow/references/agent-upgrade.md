@@ -59,12 +59,11 @@ ls skills/ | grep [name]
 **Step 2**: Call the Skill tool with `agent-evaluation`. Evaluate the target file to get the baseline score (0–100) and grade (A/B/C/F).
 For ordinary maintenance, record the existing behavior, relevant requirements, and checks instead of a model score.
 
-**Step 3**: Read the telemetry and the registry for this agent:
+**Step 3**: Read the telemetry for this agent:
 ```bash
 python3 ~/.claude/scripts/learning-db.py route-stats --by agent 2>/dev/null || echo "No routing telemetry available"
-grep -n -i "[agent-name]" docs/what-didnt-work.md 2>/dev/null || echo "No recorded negative results"
 ```
-A high error rate names a gap worth fixing; a registry entry names a fix already tried and refuted.
+A high error rate names a gap worth fixing.
 
 **Step 4**: Check for staleness markers in the target file:
 - Missing frontmatter fields: `context`, `model`, `user-invocable` (for skills)

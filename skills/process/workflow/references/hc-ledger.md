@@ -89,5 +89,5 @@ Resume from the ledger, never from conversation memory:
    the tree or the fixture drifted — re-baseline rather than continue.
 4. Continue at the next iteration number.
 
-Negative results carry the ledger's value. A reverted iteration is recorded in
+Reverted iterations carry the ledger's value. A reverted iteration is recorded in
 full: it is what stops the next person re-walking the same dead end.

@@ -91,7 +91,7 @@ python3 ~/.claude/scripts/learning-db.py route-stats --by errors
 python3 ~/.claude/scripts/learning-db.py review-roi
 ```
 
-Read `route-health` first: it reports the outcome basis, and a per-route error rate computed mostly from neutral outcomes describes the scorer rather than the router. A route with many dispatches and a high error rate is a routing gap; a component with zero dispatches over a long window is shelf-ware. For prior cycle history and already-shelved proposals, read `docs/what-didnt-work.md` and `references/evolution-history.md` — re-proposing a rejected idea is the failure this step prevents.
+Read `route-health` first: it reports the outcome basis, and a per-route error rate computed mostly from neutral outcomes describes the scorer rather than the router. A route with many dispatches and a high error rate is a routing gap; a component with zero dispatches over a long window is shelf-ware. For prior cycle history and already-shelved proposals, read `references/evolution-history.md` — re-proposing a rejected idea is the failure this step prevents.
 
 ## DIAGNOSE Step 2: Git History Scan
 

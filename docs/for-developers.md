@@ -116,15 +116,14 @@ The full cycle:
 2. **Implement** changes
 3. **Review** using the risk-selected lane in `pr-workflow`
 4. **Fix** confirmed findings and rerun affected checks
-5. **Record** any dead end in `docs/what-didnt-work.md` with its evidence location
-6. **Edit** the agent or skill file yourself when a finding should change behavior
-7. **Commit** in conventional format
-8. **Push** to remote with tracking
-9. **PR** creation via `gh pr create`
-10. **CI** must pass
-11. **Merge** after CI, required review, and authorization
+5. **Edit** the agent or skill file yourself when a finding should change behavior
+6. **Commit** in conventional format
+7. **Push** to remote with tracking
+8. **PR** creation via `gh pr create`
+9. **CI** must pass
+10. **Merge** after CI, required review, and authorization
 
-The `pr-workflow` skill automates steps 3 through 10.
+The `pr-workflow` skill automates steps 3 through 9.
 
 ## Testing
 

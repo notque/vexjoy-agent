@@ -64,21 +64,7 @@ git branch -r --merged origin/main | grep "origin/feat/evolve-" | while read bra
 done
 ```
 
-## Step 2: Record a failed proposal
-
-A proposal that was built and lost is a negative result. Append it to `docs/what-didnt-work.md` in the registry's six-field format, newest first:
-
-```
-## {YYYY-MM-DD} {description}
-- Expectation: {what we expected}
-- What happened: {what happened}
-- Evidence: {file:line, eval path, or PR number}
-- Decision: rejected | deferred | revisit-if {condition}
-```
-
-Name an evidence location, never a bare claim. One lookup here prevents re-running a settled experiment next cycle.
-
-## Step 3: Record the cycle summary
+## Step 2: Record the cycle summary
 
 Append the cycle result to `references/evolution-history.md`: `{N}` proposals evaluated, `{M}` built, `{W}` winners, `{L}` losses, top win `{description}`, focus `{area or 'general'}`.
 

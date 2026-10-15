@@ -24,7 +24,7 @@ The primary entry point is `/do`, which routes your request to the appropriate a
 |---------|---------|
 | `/install` | Verify toolkit installation, diagnose issues, guide setup |
 | `/pr-review` | Comprehensive PR review with review-findings capture |
-| `/retro` | Session retrospective: negative-results registry, session audit |
+| `/retro` | Session retrospective: routing and review telemetry, session audit |
 | `/reddit-moderate` | Reddit moderation: modqueue, classification, actions |
 | `/generate-claudemd` | Generate project-specific CLAUDE.md from repo analysis |
 | `/github-notifications` | Triage GitHub notifications: fetch, classify, report |
