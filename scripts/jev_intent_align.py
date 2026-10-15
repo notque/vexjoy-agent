@@ -127,16 +127,21 @@ def _prob(answers: dict[str, Any], key: str) -> float:
 
 
 def _complete_answers(answers: Any, keys: Any) -> bool:
-    """Require a numeric noul probability for every batched question."""
+    """Require a real probability, a number in [0, 1], for every batched question.
+
+    A string, bool, NaN, infinity, or out-of-range value is not an answer. Clamping
+    it would turn garbage into a firm yes or no (``min(1.0, nan)`` is ``1.0``).
+    """
     if not isinstance(answers, dict):
         return False
     for key in keys:
         answer = answers.get(key)
-        if not isinstance(answer, dict) or isinstance(answer.get("noul"), bool):
+        if not isinstance(answer, dict):
             return False
-        try:
-            float(answer["noul"])
-        except (KeyError, TypeError, ValueError):
+        value = answer.get("noul")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return False
+        if not 0.0 <= value <= 1.0:  # False for NaN and for values outside [0, 1]
             return False
     return True
 

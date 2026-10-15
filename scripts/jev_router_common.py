@@ -327,6 +327,21 @@ TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MODEL = "jev-latest"
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect: urllib would resend the Authorization header to the new host."""
+
+    def redirect_request(self, *_args: object, **_kwargs: object) -> None:
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def _open_url(request: urllib.request.Request, timeout: float):
+    """Open one request on the pinned endpoint without following redirects."""
+    return _OPENER.open(request, timeout=timeout)
+
+
 def _read_json_object(path: Path) -> dict:
     """Read one settings file as a dict. Any failure -> {} (never raises)."""
     try:
@@ -558,7 +573,7 @@ def call_jev(
     try:
         while True:
             try:
-                with urllib.request.urlopen(request, timeout=timeout) as response:
+                with _open_url(request, timeout=timeout) as response:
                     raw = response.read()
                 break
             except urllib.error.HTTPError as exc:
@@ -709,7 +724,7 @@ def validate_jev_response(data: dict) -> tuple[bool, list[str]]:
             if "noul" in answer:
                 has_type = True
                 val = answer["noul"]
-                if not isinstance(val, (int, float)):
+                if isinstance(val, bool) or not isinstance(val, (int, float)):
                     errors.append(f"{key}: noul is not numeric ({type(val).__name__})")
                 elif not (0.0 <= float(val) <= 1.0):
                     errors.append(f"{key}: noul {val} outside [0, 1]")
@@ -725,7 +740,7 @@ def validate_jev_response(data: dict) -> tuple[bool, list[str]]:
             if "score" in answer:
                 has_type = True
                 val = answer["score"]
-                if not isinstance(val, (int, float)):
+                if isinstance(val, bool) or not isinstance(val, (int, float)):
                     errors.append(f"{key}: score is not numeric ({type(val).__name__})")
 
             if not has_type:
@@ -752,7 +767,7 @@ def validate_jev_response(data: dict) -> tuple[bool, list[str]]:
             # Confidence (optional)
             conf = answer.get("confidence")
             if conf is not None:
-                if not isinstance(conf, (int, float)):
+                if isinstance(conf, bool) or not isinstance(conf, (int, float)):
                     errors.append(f"{key}: confidence is not numeric")
                 elif not (0.0 <= float(conf) <= 1.0):
                     errors.append(f"{key}: confidence {conf} outside [0, 1]")
@@ -770,21 +785,21 @@ def validated_call_jev(
     *,
     script_name: str | None = None,
 ) -> tuple[dict, float]:
-    """Call Jev and validate the response (fail-open).
+    """Call Jev and validate the response (fail-closed).
 
-    Wraps ``call_jev`` with ``validate_jev_response``. Invalid responses
-    log warnings to stderr but still return the data so callers degrade
-    gracefully.
+    Wraps ``call_jev`` with ``validate_jev_response``. An invalid response is
+    logged to stderr and raises ``ValueError``: callers already treat a failed
+    call as "no answer" and take their safe default, so malformed data is never
+    acted on. The message names fields and types only, never response text.
 
     Returns ``(response_json, latency_ms)`` — same as ``call_jev``.
     """
-    import sys
-
     data, latency_ms = call_jev(payload, api_key, timeout, script_name=script_name)
     is_valid, errors = validate_jev_response(data)
     if not is_valid:
         for err in errors[:5]:
             print(f"[jev-validate] WARNING: {err}", file=sys.stderr)
+        raise ValueError("invalid Jev response: " + "; ".join(errors[:5]))
     return data, latency_ms
 
 

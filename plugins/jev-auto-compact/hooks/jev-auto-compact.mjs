@@ -46,6 +46,8 @@ const ABRIDGE_TEXT_THRESHOLD = 550;
 const ABRIDGE_HEAD = 400;
 const ABRIDGE_TAIL = 150;
 const JEV_URL = 'https://api.typesafe.ai/v1/systemone';
+/** A Jev request that has not answered by now counts as failed, so a hung request cannot hang the session. */
+const JEV_TIMEOUT_MS = 20000;
 const JEV_MODEL = 'jev-latest';
 /**
  * After a `{skip}` (Jev found nothing to prune) the transcript is unchanged,
@@ -376,16 +378,28 @@ function batchCalls(candidates, stateTokens) {
 // Jev API call
 // ---------------------------------------------------------------------------
 
-async function callJev(fetchFn, apiKey, state, questions) {
+async function callJev(fetchFn, apiKey, state, questions, timeoutMs = JEV_TIMEOUT_MS) {
   const payload = { model: JEV_MODEL, state, questions };
-  const response = await fetchFn(JEV_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Jev request timed out')), timeoutMs);
   });
+  let response;
+  try {
+    response = await Promise.race([
+      fetchFn(JEV_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const err = new Error(`Jev HTTP ${response.status}`);
@@ -402,9 +416,12 @@ async function callJev(fetchFn, apiKey, state, questions) {
 // Decision logic
 // ---------------------------------------------------------------------------
 
+// A Noul is a probability. Anything else (a string, NaN, a value outside
+// [0, 1]) counts as no answer, and no answer keeps the call.
 function noulValue(answers, key) {
   const a = answers[key];
-  if (!a || typeof a.noul !== 'number') return null;
+  if (!a || typeof a.noul !== 'number' || !Number.isFinite(a.noul)) return null;
+  if (a.noul < 0 || a.noul > 1) return null;
   return a.noul;
 }
 
@@ -505,8 +522,9 @@ function applyDecisions(messages, decisions, calls) {
  * @param {string} apiKey
  * @param {SessionMessage[]} messages
  * @param {(line: string) => void} [log] status-only diagnostics (never a payload)
+ * @param {{timeoutMs?: number}} [options] per-request timeout in ms
  */
-export async function compact(fetchFn, apiKey, messages, log = () => {}) {
+export async function compact(fetchFn, apiKey, messages, log = () => {}, { timeoutMs = JEV_TIMEOUT_MS } = {}) {
   const calls = collectCalls(messages);
   if (calls.length === 0) return { messages, stats: { totalCalls: 0, ratio: 0, errorBatches: 0, redactions: 0 } };
 
@@ -561,8 +579,12 @@ export async function compact(fetchFn, apiKey, messages, log = () => {}) {
       n_questions: Object.keys(batchQuestions).length,
     };
     try {
-      const jevData = await callJev(fetchFn, apiKey, state, batchQuestions);
-      Object.assign(answers, jevData.answers || {});
+      const jevData = await callJev(fetchFn, apiKey, state, batchQuestions, timeoutMs);
+      // Keep only answers to questions this batch asked: a reply must not
+      // overwrite the answer to another batch's call.
+      for (const [id, answer] of Object.entries(jevData.answers || {})) {
+        if (Object.hasOwn(batchQuestions, id)) answers[id] = answer;
+      }
       jevCalls++;
       const u = jevData.usage || {};
       callLog.push({

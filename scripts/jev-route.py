@@ -529,6 +529,18 @@ def _build_full_criteria_maps(
     return agent_full, skill_full, pipeline_full
 
 
+def _noul(answers: dict, key: str) -> float:
+    """Read one Noul probability; raise unless it is a number in [0, 1].
+
+    A malformed answer must fail the stage (the caller falls back to full /do
+    routing), not be clamped or coerced into a confident-looking score.
+    """
+    value = answers[key]["noul"]
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+        raise ValueError(f"Jev answer {key!r} is not a probability in [0, 1]: {value!r}")
+    return float(value)
+
+
 def _top_names_by_probability(probabilities: dict | None, valid_names: set[str], top_n: int) -> list[str]:
     """Rank `probabilities` (name -> 0..1) restricted to `valid_names`, take top_n."""
     items = [(str(name), float(prob)) for name, prob in (probabilities or {}).items() if str(name) in valid_names]
@@ -911,9 +923,9 @@ def _parse_stage1(
     pipeline_top = _top_names_by_probability(pipeline_probs, pipeline_names, 1)
     pipeline_top1 = pipeline_top[0] if pipeline_top else None
 
-    needs_skill = float(answers["needs_skill"]["noul"])
-    needs_pipeline = float(answers["needs_pipeline"]["noul"])
-    prose_suffices = float(answers["prose_suffices"]["noul"])
+    needs_skill = _noul(answers, "needs_skill")
+    needs_pipeline = _noul(answers, "needs_pipeline")
+    prose_suffices = _noul(answers, "prose_suffices")
     gate_score = (needs_skill + needs_pipeline + (1.0 - prose_suffices)) / 3.0
 
     return {
@@ -988,7 +1000,7 @@ def _parse_stage2(
         if choice is None or choice not in valid_names or choice not in shortlist:
             return None, None
         fit_key = f"{dimension}_fit__{_sanitize_key(choice)}"
-        fit = float(answers[fit_key]["noul"]) if fit_key in answers else None
+        fit = _noul(answers, fit_key) if fit_key in answers else None
         return choice, fit
 
     # agent_final/skill_final/pipeline_final always take the top Choice pick
@@ -1009,21 +1021,21 @@ def _parse_stage2(
             pipeline_final = pipeline_top1
             fit_key = f"pipeline_fit__{_sanitize_key(pipeline_top1)}"
             if fit_key in answers:
-                pipeline_fit = float(answers[fit_key]["noul"])
+                pipeline_fit = _noul(answers, fit_key)
         # pipeline_choice == "none", or an off-shortlist name -> stays None:
         # Jev's own answer (genuinely no pipeline fits), not a threshold veto.
 
     signals: dict[str, bool] = {}
     signal_scores: dict[str, float] = {}
     for key in NOUL_SIGNAL_KEYS:
-        score = float(answers[key]["noul"])
+        score = _noul(answers, key)
         signal_scores[key] = score
         signals[key] = score >= STACK_SIGNAL_THRESHOLD
 
     agents_fanout: list[str] = []
     for name in fanout_candidates:
         fit_key = f"fanout__{_sanitize_key(name)}"
-        if fit_key in answers and float(answers[fit_key]["noul"]) >= fits_threshold:
+        if fit_key in answers and _noul(answers, fit_key) >= fits_threshold:
             agents_fanout.append(name)
 
     fits_scores = {"agent": agent_fit, "skill": skill_fit, "pipeline": pipeline_fit}
@@ -1032,7 +1044,7 @@ def _parse_stage2(
     for name in DOMAIN_NOUL_INSTRUCTIONS:
         key = f"{DOMAIN_NOUL_PREFIX}{_sanitize_key(name)}"
         if key in answers:
-            domain_scores[name] = float(answers[key]["noul"])
+            domain_scores[name] = _noul(answers, key)
 
     # Fallback now means exactly one thing here: Jev's agent or skill answer
     # was not a valid manifest-member/shortlisted name (a real "nothing to

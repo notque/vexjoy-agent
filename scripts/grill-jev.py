@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -419,6 +420,38 @@ def _suggest_action(qid: str, qtype: str, answer: dict[str, Any], question_text:
 # ---------------------------------------------------------------------------
 
 
+def _is_probability(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and 0.0 <= value <= 1.0
+
+
+def _answer_problem(question: dict[str, Any], answer: Any) -> str | None:
+    """Why ``answer`` is not a usable answer to ``question``, or None when it is.
+
+    A missing or malformed answer is unknown, never a pass: the caller records it
+    as unanswered (exit 2) instead of reading it as "no finding".
+    """
+    if not isinstance(answer, dict):
+        return "no answer returned"
+    qtype = question.get("type", "noul")
+    criteria = question.get("criteria")
+    if qtype == "noul":
+        return None if _is_probability(answer.get("noul")) else "noul is not a probability in [0, 1]"
+    if qtype == "choice":
+        choice = answer.get("choice")
+        if not isinstance(choice, str) or (isinstance(criteria, dict) and criteria and choice not in criteria):
+            return "choice is not one of the offered options"
+        if answer.get("confidence") is not None and not _is_probability(answer["confidence"]):
+            return "confidence is not a probability in [0, 1]"
+        return None
+    if qtype == "score":
+        score = answer.get("score")
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+            return "score is not a number"
+        if isinstance(criteria, list) and criteria and not 0 <= score <= len(criteria) - 1:
+            return "score is outside the offered levels"
+    return None
+
+
 def _run_battery(
     state: dict[str, Any],
     questions: dict[str, Any],
@@ -437,8 +470,7 @@ def _run_battery(
 
     def send(batch_qs: dict[str, Any]) -> None:
         try:
-            all_answers.update(jev_transport.evaluate(state, batch_qs, timeout=timeout).get("answers", {}))
-            return
+            reply = jev_transport.evaluate(state, batch_qs, timeout=timeout)
         except jev_transport.JevTransportError as exc:
             if exc.source == jev_transport.REQUEST_TOO_LARGE:
                 raise
@@ -453,6 +485,12 @@ def _run_battery(
                 service_ok.append(True)
             qid = next(iter(batch_qs))
             all_answers[qid] = {"type": batch_qs[qid].get("type"), "error": str(exc)}
+        else:
+            replied = reply.get("answers") if isinstance(reply, dict) else None
+            for qid, question in batch_qs.items():
+                answer = replied.get(qid) if isinstance(replied, dict) else None
+                problem = _answer_problem(question, answer)
+                all_answers[qid] = {"type": question.get("type"), "error": problem} if problem else answer
 
     for batch in batches:
         send({qid: questions[qid] for qid in batch})

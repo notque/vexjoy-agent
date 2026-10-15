@@ -48,6 +48,11 @@ class TestVendorTokens:
             (FAKE_SLACK, "slack"),
             (FAKE_GOOGLE, "google"),
             (FAKE_JWT, "jwt"),
+            ("glpat-" + "x" * 20, "gitlab"),
+            ("npm_" + "x" * 36, "npm"),
+            ("hf_" + "x" * 34, "huggingface"),
+            ("vck_" + "x" * 32, "vercel"),
+            ("dckr_pat_" + "x" * 27, "docker"),
         ],
     )
     def test_redacts_each_vendor_format(self, value: str, kind: str) -> None:
@@ -208,6 +213,58 @@ class TestRedactPayload:
         out, n = jev_redact.redact_payload(payload)
         assert n == 0
         assert out == payload
+
+    def test_redacts_secrets_in_dict_keys(self) -> None:
+        payload = {"state": {f"https://host/x?access_token={FAKE_HEX40}": "page", "plain": FAKE_GHP}, "questions": {}}
+        out, n = jev_redact.redact_payload(payload)
+        assert n == 2
+        dumped = repr(out)
+        assert FAKE_HEX40 not in dumped
+        assert FAKE_GHP not in dumped
+        assert "plain" in out["state"]
+
+    def test_keys_that_redact_to_one_placeholder_do_not_merge(self) -> None:
+        payload = {"state": {f"token={'a' * 12}": 1, f"token={'a' * 12}.": 2}, "questions": {}}
+        out, _ = jev_redact.redact_payload(payload)
+        assert sorted(out["state"].values()) == [1, 2]
+
+    def test_redacts_every_question_field(self) -> None:
+        payload = {
+            "state": {},
+            "questions": {
+                "q": {"type": "noul", "instructions": "x", "note": f"seen {FAKE_GHP}", "examples": [FAKE_AWS]}
+            },
+        }
+        out, n = jev_redact.redact_payload(payload)
+        assert n == 2
+        assert FAKE_GHP not in repr(out)
+        assert FAKE_AWS not in repr(out)
+
+
+class TestToolInput:
+    @pytest.mark.parametrize(
+        "text",
+        [
+            '{"file_path":"/home/u/app/.env"}',
+            '{"command":"cat ~/.ssh/id_rsa"}',
+            '{"file_path":"/home/u/.aws/credentials"}',
+            '{"command":"openssl x509 -in cert.pem"}',
+        ],
+    )
+    def test_protected_path_input_is_withheld_whole(self, text: str) -> None:
+        out, count = jev_redact.redact_tool_input(text)
+        assert out == jev_redact.WITHHELD_INPUT
+        assert count == 1
+
+    def test_ordinary_input_is_redacted_not_withheld(self) -> None:
+        out, count = jev_redact.redact_tool_input(f'{{"command":"echo {FAKE_GHP}"}}')
+        assert FAKE_GHP not in out
+        assert out != jev_redact.WITHHELD_INPUT
+        assert count == 1
+
+    def test_clean_input_unchanged(self) -> None:
+        text = '{"file_path":"/src/app.py"}'
+        assert jev_redact.redact_tool_input(text) == (text, 0)
 
 
 class TestProtectedPath:

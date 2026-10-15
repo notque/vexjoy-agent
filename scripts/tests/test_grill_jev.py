@@ -73,6 +73,56 @@ def test_run_battery_isolates_a_failing_question_and_keeps_the_rest(monkeypatch)
     assert ["probe"] in calls  # a probe told a bad question apart from an outage
 
 
+def _battery() -> dict:
+    return {
+        "n": _noul("n?"),
+        "c": {
+            "type": "choice",
+            "report_choices": ["bad"],
+            "instructions": {"question": "c?"},
+            "criteria": {"ok": {"what": "fine"}, "bad": {"what": "not fine"}},
+        },
+        "s": {
+            "type": "score",
+            "instructions": {"question": "s?"},
+            "criteria": [{"summary": "low", "signals": []}, {"summary": "high", "signals": []}],
+        },
+    }
+
+
+def test_run_battery_marks_missing_and_malformed_answers_unanswered(monkeypatch, capsys) -> None:
+    grill = _load_module()
+    cases = {
+        "missing": {},
+        "noul_nan": {"n": {"noul": float("nan")}, "c": {"choice": "ok"}, "s": {"score": 0.5}},
+        "noul_string": {"n": {"noul": "0.1"}, "c": {"choice": "ok"}, "s": {"score": 0.5}},
+        "noul_out_of_range": {"n": {"noul": 4}, "c": {"choice": "ok"}, "s": {"score": 0.5}},
+        "choice_not_offered": {"n": {"noul": 0.1}, "c": {"choice": "banana"}, "s": {"score": 0.5}},
+        "score_off_scale": {"n": {"noul": 0.1}, "c": {"choice": "ok"}, "s": {"score": 9}},
+        "answer_not_an_object": {"n": [0.1], "c": "ok", "s": 1},
+    }
+    for name, replied in cases.items():
+        monkeypatch.setattr(
+            grill.jev_transport, "evaluate", lambda _s, _q, replied=replied, **_kw: {"answers": replied}
+        )
+        answers = grill._run_battery({"artifact": "x"}, _battery(), timeout=1)
+        unanswered = {qid for qid, a in answers.items() if "error" in a}
+        assert unanswered, f"{name}: a bad reply was read as an answer"
+        assert grill._print_report(answers, _battery(), "general", 0.7, True) == 2
+    capsys.readouterr()
+    clean = {"n": {"noul": 0.1}, "c": {"choice": "ok"}, "s": {"score": 0.5}}
+    monkeypatch.setattr(grill.jev_transport, "evaluate", lambda _s, _q, **_kw: {"answers": clean})
+    assert grill._run_battery({"artifact": "x"}, _battery(), timeout=1) == clean
+
+
+def test_run_battery_ignores_answers_to_questions_it_did_not_ask(monkeypatch) -> None:
+    grill = _load_module()
+    reply = {"n": {"noul": 0.1}, "c": {"choice": "ok"}, "s": {"score": 0.5}, "extra": {"noul": 0.0}}
+    monkeypatch.setattr(grill.jev_transport, "evaluate", lambda _s, _q, **_kw: {"answers": reply})
+    answers = grill._run_battery({"artifact": "x"}, _battery(), timeout=1)
+    assert set(answers) == {"n", "c", "s"}
+
+
 def test_run_battery_raises_when_jev_is_down(monkeypatch) -> None:
     import pytest
 

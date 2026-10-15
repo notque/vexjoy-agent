@@ -158,8 +158,34 @@ class TestRunJevRoute:
         assert result == {"matched": True, "agent": "code-reviewer"}
         call_args = mock_run.call_args[0][0]
         assert "jev-route.py" in call_args[1]
-        assert "--request" in call_args
-        assert "fix the bug" in call_args
+        assert "--request-file" in call_args
+
+    def test_prompt_travels_in_a_private_temp_file_not_argv(self) -> None:
+        secret_prompt = "--help deploy with token ghp_" + "x" * 36
+        seen: dict = {}
+
+        def fake_run(argv, **_kwargs):
+            path = Path(argv[argv.index("--request-file") + 1])
+            seen["argv"] = argv
+            seen["text"] = path.read_text(encoding="utf-8")
+            seen["mode"] = path.stat().st_mode & 0o777
+            seen["path"] = path
+            return MagicMock(returncode=0, stdout=json.dumps({"matched": True}))
+
+        with patch("subprocess.run", side_effect=fake_run):
+            assert hook.run_jev_route(secret_prompt) == {"matched": True}
+
+        assert all(secret_prompt not in arg and "ghp_" not in arg for arg in seen["argv"])
+        assert "--request" not in seen["argv"]
+        assert seen["text"] == secret_prompt
+        assert seen["mode"] == 0o600
+        assert not seen["path"].exists()
+
+    @patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="x", timeout=20))
+    def test_temp_file_is_removed_when_the_script_times_out(self, mock_run: MagicMock) -> None:
+        assert hook.run_jev_route("test") is None
+        argv = mock_run.call_args[0][0]
+        assert not Path(argv[argv.index("--request-file") + 1]).exists()
 
     @patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="x", timeout=20))
     def test_timeout_returns_none(self, _mock: MagicMock) -> None:

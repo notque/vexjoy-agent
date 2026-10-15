@@ -109,6 +109,23 @@ def test_split_failure_raises_instead_of_partial_answers() -> None:
         jev_limits.split_and_run({"text": "y" * 4000}, _many_questions(12), send_one)
 
 
+def test_split_merge_keeps_only_answers_to_questions_each_request_asked() -> None:
+    questions = _many_questions(12)
+
+    def send_one(state, asked):
+        answers = {k: {"noul": 0.9} for k in asked}
+        if "q11" in asked:  # the last request also answers q0 and an id nobody asked
+            answers["q0"] = {"noul": 0.0}
+            answers["unasked"] = {"noul": 0.0}
+        return {"answers": answers}
+
+    result = jev_limits.split_and_run({"text": "y" * 4000}, questions, send_one)
+
+    assert result["_meta"]["split"]["requests"] > 1
+    assert set(result["answers"]) == set(questions)
+    assert result["answers"]["q0"] == {"noul": 0.9}
+
+
 def test_transport_direct_splits_too(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
     monkeypatch.setenv("TYPESAFE_API_KEY", "direct")
