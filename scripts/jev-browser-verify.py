@@ -32,7 +32,7 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_router_common
-import jev_untrusted
+from lib import jev_untrusted
 
 DEFAULT_TIMEOUT = 8.0
 MAX_TEXT_LEN = 6000

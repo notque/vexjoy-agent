@@ -45,7 +45,7 @@ from urllib.parse import urlparse
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-import jev_untrusted
+from lib import jev_untrusted
 
 DRIVER = _SCRIPTS_DIR / "lib" / "jev_browser" / "cdp_driver.mjs"
 MAX_STEPS = 60
