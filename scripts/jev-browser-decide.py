@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -50,11 +51,17 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_router_common
+from lib import jev_untrusted
 
 DEFAULT_TIMEOUT = 8.0
 MAX_ELEMENTS = 250
 MAX_HISTORY = 10
 MAX_TEXT_LEN = 6000
+MAX_TITLE = 200
+MAX_URL = 500
+MAX_VALUE = 80
+MAX_NAV = 200
+MAX_ACTION = 300
 
 # ---------------------------------------------------------------------------
 # Operations
@@ -130,7 +137,7 @@ def _clean_label(raw: str) -> str:
     """
     if not raw:
         return ""
-    lines = [ln.strip() for ln in raw.split("\n") if ln.strip()]
+    lines = [ln for ln in (jev_untrusted.flat(part, 200) for part in str(raw).splitlines()) if ln]
     if not lines:
         return ""
     main = lines[0][:80]
@@ -170,11 +177,11 @@ def _build_element_table(elements: list[dict]) -> str:
 
     lines: list[str] = []
     for el in ordered:
-        idx = el.get("index", "?")
-        role = el.get("role", "element")
+        idx = jev_untrusted.flat(el.get("index", "?"), 12)
+        role = jev_untrusted.flat(el.get("role", "element"), 40)
         label = _clean_label(el.get("label", ""))
-        value = el.get("value", "")
-        ops = ", ".join(el.get("operations", []))
+        value = jev_untrusted.flat(el.get("value", ""), MAX_VALUE)
+        ops = ", ".join(str(o) for o in el.get("operations", []))
         checked = el.get("checked")
         selected = el.get("selected")
         suffix_parts: list[str] = []
@@ -189,7 +196,7 @@ def _build_element_table(elements: list[dict]) -> str:
         if el.get("external"):
             suffix_parts.append("leaves this site")
         elif el.get("nav"):
-            suffix_parts.append(f"navigates away to {el['nav']}")
+            suffix_parts.append(f"navigates away to {jev_untrusted.flat(el['nav'], MAX_NAV)}")
         suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
         lines.append(f"[{idx}] {role}: {label}{suffix} [{ops}]")
     if len(elements) > MAX_ELEMENTS:
@@ -215,9 +222,10 @@ def _build_history_text(history: list[dict]) -> str:
         action = h.get("action", "unknown")
         changed = h.get("page_changed")
         changed_str = f" (page {'changed' if changed else 'unchanged'})" if changed is not None else ""
-        text = h.get("text")
+        action = jev_untrusted.flat(action, MAX_ACTION)
+        text = jev_untrusted.flat(h.get("text"), MAX_ACTION)
         text_str = f' text="{text}"' if text else ""
-        note = f" [{h['note']}]" if h.get("note") else ""
+        note = f" [{jev_untrusted.flat(h['note'], MAX_ACTION)}]" if h.get("note") else ""
         lines.append(f"{i}. {action}{text_str}{changed_str}{note}")
     return "\n".join(lines)
 
@@ -231,24 +239,24 @@ def _group_targets(elements: list[dict]) -> dict[str, dict[str, dict]]:
             if op in TARGET_OPS:
                 group = targets.setdefault(op, {})
                 criteria_entry: dict = {
-                    "element": f"[{idx}] {el.get('label', '')}",
-                    "role": el.get("role", ""),
+                    "element": f"[{jev_untrusted.flat(idx, 12)}] {_clean_label(el.get('label', ''))}",
+                    "role": jev_untrusted.flat(el.get("role", ""), 40),
                 }
                 if el.get("value"):
-                    criteria_entry["current_value"] = el["value"]
+                    criteria_entry["current_value"] = jev_untrusted.flat(el["value"], MAX_VALUE)
                 for attr in ("checked", "selected", "expanded", "offscreen", "external", "nav"):
                     if attr in el:
-                        criteria_entry[attr] = el[attr]
+                        criteria_entry[attr] = jev_untrusted.flat(el[attr], MAX_NAV) if attr == "nav" else el[attr]
                 # SELECT elements with options use compound index
                 if op == "SELECT" and "options" in el:
                     for opt in el["options"]:
                         opt_idx = opt.get("index", idx)
                         opt_label = _clean_label(opt.get("label", ""))
-                        opt_text = opt.get("text", opt_label)
+                        opt_text = jev_untrusted.flat(opt.get("text", opt_label), MAX_VALUE)
                         group[opt_idx] = {
                             "element": f"[{opt_idx}] {opt_label}",
                             "role": "option",
-                            "current_value": opt.get("value", ""),
+                            "current_value": jev_untrusted.flat(opt.get("value", ""), MAX_VALUE),
                             "option_text": opt_text,
                         }
                 else:
@@ -272,8 +280,8 @@ def build_payload(request: dict) -> dict:
     page_text = jev_router_common.bound_text(page.get("text", ""), MAX_TEXT_LEN)
     state: dict = {
         "page": {
-            "url": page.get("url", ""),
-            "title": page.get("title", ""),
+            "url": jev_untrusted.flat(page.get("url", ""), MAX_URL),
+            "title": jev_untrusted.flat(page.get("title", ""), MAX_TITLE),
             "settled": "yes"
             if page.get("settled", True)
             else "NO: content was still changing when observed; WAIT before judging",
@@ -286,7 +294,7 @@ def build_payload(request: dict) -> dict:
     # Inject explicit dedup instruction when history is present
     if history:
         recent = history[-8:]
-        dedup_lines = [h.get("action", "unknown") for h in recent]
+        dedup_lines = [jev_untrusted.flat(h.get("action", "unknown"), MAX_ACTION) for h in recent]
         state["actions_already_taken"] = dedup_lines
 
     # Determine available operations from elements
@@ -355,17 +363,31 @@ def build_payload(request: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _unit(value: object) -> float | None:
+    """A finite number in [0, 1], else None. Anything else is a bad answer."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value) if math.isfinite(value) and 0 <= value <= 1 else None
+
+
+def _probs(raw: object, skip: str | None = None) -> dict[str, float]:
+    """Keep only well-formed probabilities; a malformed entry counts as 0."""
+    if not isinstance(raw, dict):
+        return {}
+    return {str(k): _unit(v) or 0.0 for k, v in raw.items() if k != skip}
+
+
 def _validate_choice(answer: dict, valid_ids: set[str]) -> dict | None:
     """Validate a Choice answer. Returns the answer dict or None."""
     try:
         choice = answer.get("choice")
         probs = answer.get("probabilities", {})
         confidence = answer.get("confidence", 0)
-        if choice not in valid_ids:
+        if not isinstance(choice, str) or choice not in valid_ids:
             return None
         if not isinstance(probs, dict):
             return None
-        if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):
+        if _unit(confidence) is None:
             return None
         return answer
     except (TypeError, KeyError):
@@ -380,9 +402,11 @@ def parse_response(data: dict, request: dict) -> dict:
 
     # Parse operation
     op_answer = answers.get("operation", {})
+    if not isinstance(op_answer, dict):
+        op_answer = {}
     operation = op_answer.get("choice", "BLOCKED")
-    op_probs = op_answer.get("probabilities", {})
-    confidence = float(op_answer.get("confidence", 0))
+    op_probs = _probs(op_answer.get("probabilities"))
+    confidence = _unit(op_answer.get("confidence")) or 0.0
 
     # Parse target for the selected operation
     target = None
@@ -393,7 +417,12 @@ def parse_response(data: dict, request: dict) -> dict:
     no_target_for: str | None = None
     no_target_probability: float | None = None
 
-    if operation in targets:
+    if not isinstance(operation, str) or operation not in (set(targets) | CONTROL_OPS | TERMINAL_OPS):
+        # Not an operation this question offered: a bad answer, never executed.
+        invalid_answer = True
+        operation = "RETRY"
+        confidence = 0.0
+    elif operation in targets:
         target_key = f"{operation.lower()}_target"
         target_answer = answers.get(target_key, {})
         valid_targets = set(targets[operation].keys()) | {NO_TARGET}
@@ -407,8 +436,8 @@ def parse_response(data: dict, request: dict) -> dict:
             target_confidence = float(validated.get("confidence", 0))
         elif validated:
             target = validated["choice"]
-            target_probs = {k: float(v) for k, v in validated.get("probabilities", {}).items() if k != NO_TARGET}
-            no_target_probability = float(validated.get("probabilities", {}).get(NO_TARGET, 0.0))
+            target_probs = _probs(validated.get("probabilities"), skip=NO_TARGET)
+            no_target_probability = _unit(validated.get("probabilities", {}).get(NO_TARGET)) or 0.0
             target_confidence = float(validated.get("confidence", 0))
         else:
             # Target validation failed (index never offered, bad probabilities).
@@ -418,10 +447,10 @@ def parse_response(data: dict, request: dict) -> dict:
             confidence = 0.0
 
     still = answers.get("still_loading", {}).get("noul")
-    still_loading = round(float(still), 4) if isinstance(still, (int, float)) else None
+    still_loading = round(_unit(still), 4) if _unit(still) is not None else None
 
     content_raw = answers.get("content_assessment", {}).get("noul")
-    content_assessment = round(float(content_raw), 4) if isinstance(content_raw, (int, float)) else None
+    content_assessment = round(_unit(content_raw), 4) if _unit(content_raw) is not None else None
 
     out = {
         "operation": operation,
@@ -429,7 +458,7 @@ def parse_response(data: dict, request: dict) -> dict:
         "confidence": round(confidence, 4),
         "still_loading": still_loading,
         "content_assessment": content_assessment,
-        "operation_probabilities": {k: round(float(v), 4) for k, v in op_probs.items()},
+        "operation_probabilities": {k: round(v, 4) for k, v in op_probs.items()},
         "target_probabilities": {k: round(v, 4) for k, v in target_probs.items()},
         "target_confidence": round(target_confidence, 4) if target_confidence is not None else None,
         "needs_text": operation in TEXT_OPS,

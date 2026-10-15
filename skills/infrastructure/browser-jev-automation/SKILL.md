@@ -62,7 +62,7 @@ One Jev call per decision cycle. Speculative fan-out: operation Choice + per-ope
 |---|---|
 | `--url`, `--goal` | Required. Loopback URLs only unless `--allow-remote` |
 | `--check-url-contains X`, `--check-text-contains Y` | Deterministic checks that must pass for DONE |
-| `--secret-env LABEL=ENV_VAR` | Type the variable's value into fields whose label contains `LABEL`; unset variable fails preflight |
+| `--secret-env LABEL=ENV_VAR` | Type the variable's value into fields whose label contains `LABEL`; unset variable fails preflight. Refused with `--allow-remote`: name the host with `--allow-host` so a hostile page cannot collect a secret |
 | `--allow-host HOST` | Permit one host and its subdomains (repeatable). Off-origin navigation elsewhere is reverted |
 | `--allow-remote` | Permit any host. Page text then reaches Jev and, for composed text, the text model |
 | `--header NAME=ENV_VAR` | Send a header on every request with the variable's value (staging bypass tokens). Never logged |
@@ -98,7 +98,11 @@ One browser per audit, one snapshot per page, one Jev call per goal (~100-200 ms
 - The node registry lives in a CDP isolated world. Page scripts cannot see or rewrite it (live test asserts `typeof window.__jevBrowser === "undefined"` from the page).
 - Loopback URLs only by default. `--allow-host` widens per host. If a click leaves the allowed origin (sign-in redirect, external link), the agent returns to the last good URL, tells Jev which action caused it, and blocks after three such trips.
 - Secrets: the log shows `(secret)`; after a secret is typed, every later snapshot is scrubbed before Jev, the text model, or the log sees it. Password inputs never expose their value (`(filled)`).
-- Page text reaches Jev and the text model as untrusted data. Instructions say so explicitly.
+- Page text reaches Jev and the text model as untrusted data. Instructions say so explicitly. Every page string in a Jev state (title, URL, labels, values, history) is flattened to one capped line by `scripts/lib/jev_untrusted.py`, so it cannot forge a new element row. The text-model prompt wraps page data in `<untrusted-page-data>` tags after redaction and removes any copy of the tag the page planted. `jev_router_common` redacts every Jev payload before send.
+- Jev answers are parsed strictly: an operation that was not offered, a target that was not offered, or a probability that is not a finite number in [0, 1] is a bad answer (`RETRY`, bounded by the stall guard), never executed.
+- A CLICK on a link to a host outside loopback and `--allow-host` is refused before it is sent; a link with no known host is refused too. Text from the text model over 500 characters is refused, not typed.
+- The text API needs `https` (loopback `http` allowed for tests) and never follows a redirect, so its key stays with the configured host. The Node driver and Chromium get an environment without keys, tokens, or the `--secret-env` and `--header` variables.
+- `jev-browser-verify.py --url` and `--audit-file` do not send a page to Jev if it redirected off the allowed hosts.
 - Chromium runs a throwaway profile. Sandboxed launch first; `--no-sandbox` only when Chromium reports "No usable sandbox" (user namespaces disabled). The ready line reports `sandbox: true|false`.
 
 ## Key patterns (learned from jev-ultrafast)
