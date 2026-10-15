@@ -65,6 +65,7 @@ Three modes. Pick one by request shape, default to systematic.
 | Dispatching Architecture reviewer in parallel mode | `references/architecture-smell-baseline.md` | 12 Fowler smells with language counter-examples and severity cap |
 | Writing full-repo report | `references/report-template.md` | Report structure and field definitions |
 | Dispatching full-repo wave agents | `references/audit-playbook.md` | 8-category checklists with evidence requirements |
+| Disproving findings before report (Systematic Phase 3.5, Parallel Step 3) | `references/disprove-pass.md` | Refuter dispatch, drop rule, fail-open cases, model choice |
 | Receiving review feedback | `references/receiving-feedback.md` | Feedback-handling patterns |
 
 ## Severity Classification
@@ -121,7 +122,7 @@ Assess risks: security (auth, validation, injection, secrets), performance (N+1,
 
 ### Phase 3.5: VERIFY FINDINGS
 
-Before reporting, check each finding's input sequence, existing guards, and proposed fix. Drop unreachable or already-handled claims. Deduplicate when combining reviews; resolve severity from evidence.
+Before reporting, check each finding's input sequence, existing guards, and proposed fix. Drop unreachable or already-handled claims. Deduplicate when combining reviews; resolve severity from evidence. Then run the disprove pass in `references/disprove-pass.md`: it drops findings refuted by quoted code and keeps the rest.
 
 ### Phase 4: DOCUMENT
 
@@ -173,7 +174,7 @@ Pass `references/architecture-smell-baseline.md` verbatim to the Architecture re
 
 ### Step 3: Aggregate and Verdict
 
-Deduplicate findings, resolve severity disagreements from evidence. Apply shared verdict rules. Output a single combined report with severity matrix, combined findings, and recommendation.
+Deduplicate findings, resolve severity disagreements from evidence. Run the disprove pass in `references/disprove-pass.md` on the merged list. Apply shared verdict rules. Output a single combined report with severity matrix, combined findings, and recommendation.
 
 **Gate:** Every reviewer returned, or missing coverage is explicitly stated without claiming approval.
 
@@ -212,6 +213,7 @@ Merge deterministic scores with LLM findings. Identify systemic patterns (3+ fil
 | Error | Solution |
 |---|---|
 | Reviewer times out or returns nothing | Report partial findings, note gap, retry on reduced scope |
+| Disprove pass fails or returns unparseable output | Keep all findings, note the gap in the verdict |
 | Validator script missing | Run review without validation, note gap in verdict |
 | score-component.py fails | Proceed with LLM review only, note gap in report |
 | Too many files for single session | Split by directory: scripts/, hooks/, agents/, skills/ |
