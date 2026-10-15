@@ -32,6 +32,13 @@ Query it: read this file, run `grep -c '^## 2026' docs/what-didnt-work.md`, or r
 
 Experiments recorded after the seed set. Same four bold fields; `###` headings keep the seed-count checks in `scripts/tests/test_negative_results_registry.py` stable. Newest on top.
 
+### 2026-10-15 Batched sonnet as the review disprove pass
+
+- **Expectation**: one sonnet call per review, with all findings together, would cut false positives as much as one opus call per finding at half the cost.
+- **What happened**: on 48 review units (323 findings) it dropped 18 findings and kept recall at 0.875. It passed the false-positive bar on primary labels (0.271 against 0.350) and opus labels (0.375 against 0.423) but missed it on GPT labels (0.708 against 0.700). Batched opus passed all three (0.229, 0.312, 0.646) at about $0.14 per review against $0.07 for sonnet.
+- **Evidence**: `skills/review/review/references/disprove-pass.md`; `scripts/disprove-findings.py`.
+- **Decision**: rejected. The pass runs on opus. revisit-if a sonnet release clears the GPT-label bar on the same units.
+
 ### 2026-08-28 Learning loop retired: measurement found no path from capture to value
 
 - **Expectation**: capturing every error, correction, and task outcome would build a corpus that injected the right hint at the right moment and graduated proven knowledge into skill files.
