@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: Review Findings Capture
 
@@ -100,6 +100,9 @@ def extract_findings(text: str) -> dict[str, int | list[str]]:
     }
 
 
+_BYPASS_ENV = "REVIEW_CAPTURE_BYPASS"
+
+
 def main() -> None:
     """Process PostToolUse events for Agent tool review findings.
 
@@ -110,6 +113,11 @@ def main() -> None:
     4. Record to learning.db
     5. Exit silently (no context injection)
     """
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[review-capture] Bypassed via REVIEW_CAPTURE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data:

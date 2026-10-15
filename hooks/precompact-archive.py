@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.0
+# hook-version: 2.0.1
 """
 PreCompact Hook: ADR Survival Anchor
 
@@ -87,8 +87,16 @@ def inject_adr_anchor(event: dict) -> None:
         hook_error("precompact-archive", e)
 
 
+_BYPASS_ENV = "PRECOMPACT_ARCHIVE_BYPASS"
+
+
 def main():
     """Print the ADR survival anchor before context compression."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[precompact-archive] Bypassed via PRECOMPACT_ARCHIVE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         # Read event data from stdin
         event_data = read_stdin(timeout=2)

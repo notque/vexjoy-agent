@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PreToolUse Hook: Prompt Injection Scanner (self-filters to Write and Edit)
 
@@ -97,7 +97,18 @@ def _scan_content(content: str, file_path: str) -> list[str]:
 # ═══════════════════════════════════════════════════════════════
 
 
+_BYPASS_ENV = "PRETOOL_PROMPT_INJECTION_SCANNER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[pretool-prompt-injection-scanner] Bypassed via PRETOOL_PROMPT_INJECTION_SCANNER_BYPASS=1",
+                file=sys.stderr,
+            )
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     raw = read_stdin(timeout=2)  # Must be under settings.json 3s external timeout

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: GitHub Briefing Injector
 
@@ -100,8 +100,16 @@ def _write_sidecar(briefing_path: Path) -> None:
         _debug(f"Sidecar write failed (non-fatal): {e}")
 
 
+_BYPASS_ENV = "SESSION_GITHUB_BRIEFING_BYPASS"
+
+
 def main() -> None:
     """Inject KAIROS briefing into session context if enabled and fresh."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-github-briefing] Bypassed via SESSION_GITHUB_BRIEFING_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         # Opt-in gate
         if os.environ.get("CLAUDE_KAIROS_ENABLED", "").lower() != "true":

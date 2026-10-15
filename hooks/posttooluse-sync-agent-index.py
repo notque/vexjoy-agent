@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.0
+# hook-version: 2.0.1
 """
 PostToolUse Hook: refresh the installed agent index on agent-file edits.
 
@@ -16,6 +16,7 @@ skill-index hook and before posttool-docs-drift-alert.py):
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -46,8 +47,16 @@ def is_agent_file(file_path: str) -> bool:
     return Path(file_path).name not in _EXCLUDE
 
 
+_BYPASS_ENV = "POSTTOOLUSE_SYNC_AGENT_INDEX_BYPASS"
+
+
 def main() -> None:
     """Process PostToolUse hook event."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttooluse-sync-agent-index] Bypassed via POSTTOOLUSE_SYNC_AGENT_INDEX_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         from stdin_timeout import read_stdin
 

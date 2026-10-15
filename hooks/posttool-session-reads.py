@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.1.0
+# hook-version: 2.1.1
 """
 PostToolUse Hook: Session Read Tracker
 
@@ -28,6 +28,7 @@ Design Principles:
 """
 
 import json
+import os
 import re
 import shlex
 import sys
@@ -135,6 +136,9 @@ def _fresh(entry: dict, cutoff: datetime) -> bool:
     return ts >= cutoff
 
 
+_BYPASS_ENV = "POSTTOOL_SESSION_READS_BYPASS"
+
+
 def main() -> None:
     """Record Read tool file paths and read-only Bash paths for this session.
 
@@ -145,6 +149,11 @@ def main() -> None:
        deduplicated on (session, path)
     4. Exit silently (no context injection)
     """
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttool-session-reads] Bypassed via POSTTOOL_SESSION_READS_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data:

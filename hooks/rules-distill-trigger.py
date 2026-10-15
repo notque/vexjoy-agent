@@ -61,7 +61,15 @@ def _update_state() -> None:
     )
 
 
+_BYPASS_ENV = "RULES_DISTILL_TRIGGER_BYPASS"
+
+
 def main() -> int:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[rules-distill-trigger] Bypassed via RULES_DISTILL_TRIGGER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     # Exit silently if not stale
     if not _is_stale():
         return 0

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 Claude Code hook: Alert when documentation may be out of sync after file writes.
 
@@ -129,8 +129,16 @@ def _check_drift(repo_root: Path) -> tuple[bool, str]:
     return False, ""
 
 
+_BYPASS_ENV = "POSTTOOL_DOCS_DRIFT_ALERT_BYPASS"
+
+
 def main() -> None:
     """Main hook entry point."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttool-docs-drift-alert] Bypassed via POSTTOOL_DOCS_DRIFT_ALERT_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     hook_input: dict | None = None
 
     # Read from stdin with timeout protection

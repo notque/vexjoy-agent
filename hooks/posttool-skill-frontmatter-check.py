@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: Skill Frontmatter Validation
 
@@ -10,6 +10,7 @@ Advisory hook — always exits 0.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -22,8 +23,19 @@ from stdin_timeout import read_stdin
 SKILL_FILE_RE = re.compile(r"skills/(?:[^/]+/)+SKILL\.md$")
 
 
+_BYPASS_ENV = "POSTTOOL_SKILL_FRONTMATTER_CHECK_BYPASS"
+
+
 def main():
     """Process PostToolUse hook event."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[posttool-skill-frontmatter-check] Bypassed via POSTTOOL_SKILL_FRONTMATTER_CHECK_BYPASS=1",
+                file=sys.stderr,
+            )
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data.strip():

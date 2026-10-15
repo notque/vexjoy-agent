@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PreToolUse hook: Strategic Compact Advisor
 
@@ -100,7 +100,15 @@ def _get_and_increment_count() -> int:
 # --- Main --------------------------------------------------------------------
 
 
+_BYPASS_ENV = "SUGGEST_COMPACT_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[suggest-compact] Bypassed via SUGGEST_COMPACT_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         _run()
     except Exception as e:

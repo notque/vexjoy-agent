@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 UserPromptSubmit hook — auto-inject Codex cross-model review for PR review operations.
 
@@ -111,7 +111,15 @@ def codex_is_available() -> bool:
         return False
 
 
+_BYPASS_ENV = "CODEX_AUTO_REVIEW_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[codex-auto-review] Bypassed via CODEX_AUTO_REVIEW_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     raw = read_stdin(timeout=5)

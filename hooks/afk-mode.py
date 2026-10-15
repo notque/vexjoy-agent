@@ -55,7 +55,15 @@ def is_afk() -> bool:
     return False
 
 
+_BYPASS_ENV = "AFK_MODE_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[afk-mode] Bypassed via AFK_MODE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     mode = os.environ.get("CLAUDE_AFK_MODE", "always").strip().lower()
 
     if mode == "always":

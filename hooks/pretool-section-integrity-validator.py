@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 PreToolUse:Agent Hook: Section-Integrity Validator
 
@@ -109,8 +109,19 @@ def _get_skill_names(project_root: Path) -> set[str]:
     return _skills_cache
 
 
+_BYPASS_ENV = "PRETOOL_SECTION_INTEGRITY_VALIDATOR_BYPASS"
+
+
 def main() -> None:
     """Validate subagent_type against INDEX files."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[pretool-section-integrity-validator] Bypassed via PRETOOL_SECTION_INTEGRITY_VALIDATOR_BYPASS=1",
+                file=sys.stderr,
+            )
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     raw = read_stdin(timeout=2)

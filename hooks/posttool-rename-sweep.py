@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: Post-Rename Reference Sweep
 
@@ -87,7 +87,15 @@ def grep_for_stem(stem: str, search_root: str) -> list:
         return []
 
 
+_BYPASS_ENV = "POSTTOOL_RENAME_SWEEP_BYPASS"
+
+
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttool-rename-sweep] Bypassed via POSTTOOL_RENAME_SWEEP_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=5)
         if not raw:

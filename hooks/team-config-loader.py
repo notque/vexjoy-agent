@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: Team Configuration Loader
 
@@ -199,7 +199,15 @@ def inject_config(config: dict, config_path: Path) -> None:
             print(f"[team-config] Env: {key}={value}")
 
 
+_BYPASS_ENV = "TEAM_CONFIG_LOADER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[team-config-loader] Bypassed via TEAM_CONFIG_LOADER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         config_path = find_config()
         if config_path is None:

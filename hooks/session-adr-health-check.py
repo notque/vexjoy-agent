@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: ADR Session Health Check
 
@@ -66,7 +66,15 @@ def _resolve_adr_path(session: dict, project_dir: Path) -> tuple[str | None, boo
     return str(raw_path), adr_path.exists()
 
 
+_BYPASS_ENV = "SESSION_ADR_HEALTH_CHECK_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-adr-health-check] Bypassed via SESSION_ADR_HEALTH_CHECK_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     # Resolve project directory: CLAUDE_PROJECT_DIR > cwd

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 3.0.0
+# hook-version: 3.0.1
 """
 UserPromptSubmit hook -- pre-run jev-route.py on a /d invocation and inject
 JEV_RESULT before the model generates a single token.
@@ -142,7 +142,17 @@ def build_injection(jev_result: dict) -> str:
     )
 
 
+_BYPASS_ENV = "JEV_ROUTE_INJECTOR_USERPROMPT_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[jev-route-injector-userprompt] Bypassed via JEV_ROUTE_INJECTOR_USERPROMPT_BYPASS=1", file=sys.stderr
+            )
+        sys.exit(0)
+
     raw = read_stdin(timeout=5)
     if not raw or not raw.strip():
         empty_output(EVENT_NAME).print_and_exit()

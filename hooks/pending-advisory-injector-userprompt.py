@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 UserPromptSubmit Hook: Pending Advisory Injector
 
@@ -19,6 +19,7 @@ MAX_AGE_S (a stale drift note from yesterday is noise, not guidance).
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -71,7 +72,18 @@ def drain(session_id: str, now: float | None = None) -> str | None:
     )
 
 
+_BYPASS_ENV = "PENDING_ADVISORY_INJECTOR_USERPROMPT_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[pending-advisory-injector-userprompt] Bypassed via PENDING_ADVISORY_INJECTOR_USERPROMPT_BYPASS=1",
+                file=sys.stderr,
+            )
+        sys.exit(0)
+
     try:
         event = json.load(sys.stdin)
     except Exception:

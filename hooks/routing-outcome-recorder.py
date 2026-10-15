@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SubagentStop Hook: Routing Outcome Validator (action B, formerly /do Phase 5)
 
@@ -66,7 +66,15 @@ def _max_requeue() -> int:
     return MAX_REQUEUE_ATTEMPTS
 
 
+_BYPASS_ENV = "ROUTING_OUTCOME_RECORDER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[routing-outcome-recorder] Bypassed via ROUTING_OUTCOME_RECORDER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=2)
         if not raw:

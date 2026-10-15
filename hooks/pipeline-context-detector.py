@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 UserPromptSubmit Hook: Pipeline Creator Context Detection
 
@@ -331,8 +331,16 @@ def build_environmental_state(prompt: str, base_dir: Path) -> dict:
     }
 
 
+_BYPASS_ENV = "PIPELINE_CONTEXT_DETECTOR_BYPASS"
+
+
 def main():
     """Main entry point for the hook."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[pipeline-context-detector] Bypassed via PIPELINE_CONTEXT_DETECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

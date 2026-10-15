@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 SessionStart Hook: Zsh Shell Detection
 
@@ -69,8 +69,16 @@ def get_zsh_injection() -> str:
     return "[zsh-shell] Detected Zsh shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
 
 
+_BYPASS_ENV = "ZSH_SHELL_DETECTOR_BYPASS"
+
+
 def main():
     """Main entry point for the hook."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[zsh-shell-detector] Bypassed via ZSH_SHELL_DETECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

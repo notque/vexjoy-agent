@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.1.1
 """
 UserPromptSubmit Hook: Routing Outcome Finalizer (next-turn resolution)
 
@@ -311,7 +311,15 @@ def is_acceptance(prompt: str) -> bool:
     return True
 
 
+_BYPASS_ENV = "ROUTING_OUTCOME_FINALIZER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[routing-outcome-finalizer] Bypassed via ROUTING_OUTCOME_FINALIZER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=2)
         if not raw:

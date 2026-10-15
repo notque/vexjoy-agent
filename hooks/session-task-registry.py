@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart + PostToolUse + SubagentStop Hook: Durable Inter-Session Task Registry
 
@@ -187,7 +187,15 @@ def handle_subagent_stop(event: dict) -> None:
             return
 
 
+_BYPASS_ENV = "SESSION_TASK_REGISTRY_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-task-registry] Bypassed via SESSION_TASK_REGISTRY_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=2)
 

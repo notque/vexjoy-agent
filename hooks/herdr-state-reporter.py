@@ -57,7 +57,15 @@ def _handle_subagent_stop(event: dict) -> None:
         _report_state("idle")
 
 
+_BYPASS_ENV = "HERDR_STATE_REPORTER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[herdr-state-reporter] Bypassed via HERDR_STATE_REPORTER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     if not _herdr_available():
         sys.exit(0)
 

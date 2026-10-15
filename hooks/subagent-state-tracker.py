@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SubagentStop Hook: State Tracker
 
@@ -100,7 +100,15 @@ def _classify_status(event: dict) -> str:
     return "completed"
 
 
+_BYPASS_ENV = "SUBAGENT_STATE_TRACKER_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[subagent-state-tracker] Bypassed via SUBAGENT_STATE_TRACKER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=2)
         if not raw:
