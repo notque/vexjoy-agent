@@ -266,8 +266,10 @@ def _merge_split_results(results: list[dict[str, Any]], groups: list[dict[str, A
     attempts = retries = 0
     usage_in = usage_out = 0
     usage_complete = True
-    for result in results:
-        answers.update(result.get("answers") or {})
+    for result, group in zip(results, groups):
+        # Keep only answers to questions this request asked: a reply must not
+        # overwrite another request's answer, or add an answer nobody asked for.
+        answers.update({k: v for k, v in (result.get("answers") or {}).items() if k in group})
         meta = result.get("_meta") if isinstance(result.get("_meta"), dict) else {}
         retry = meta.get("retry") if isinstance(meta.get("retry"), dict) else {}
         attempts += int(retry.get("attempts") or 1)

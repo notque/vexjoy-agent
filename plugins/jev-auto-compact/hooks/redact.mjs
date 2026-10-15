@@ -7,7 +7,7 @@
  *
  * TYPE names are shared with the Python twin (`scripts/jev_redact.py`):
  *   bearer, cookie, jwt, aws_key, aws_secret, github, openai, slack, google,
- *   pem, url_credentials, kv_secret
+ *   gitlab, npm, huggingface, vercel, docker, pem, url_credentials, kv_secret, entropy
  *
  * Replacement: `<redacted:TYPE:last4>` when the value is >= 12 chars,
  * `<redacted:TYPE>` otherwise. Zero dependencies.
@@ -58,11 +58,21 @@ const RULES = [
     (m) => mark('openai', m)],
   ['slack', /\bxox[abp]-[A-Za-z0-9-]{10,}\b/g, (m) => mark('slack', m)],
   ['google', /\bAIza[0-9A-Za-z_-]{35}\b/g, (m) => mark('google', m)],
+  ['gitlab', /\bglpat-[A-Za-z0-9_-]{20,}/g, (m) => mark('gitlab', m)],
+  ['npm', /\bnpm_[A-Za-z0-9]{30,}\b/g, (m) => mark('npm', m)],
+  ['huggingface', /\bhf_[A-Za-z0-9]{30,}\b/g, (m) => mark('huggingface', m)],
+  ['vercel', /\bvck_[A-Za-z0-9_-]{20,}/g, (m) => mark('vercel', m)],
+  ['docker', /\bdckr_pat_[A-Za-z0-9_-]{20,}/g, (m) => mark('docker', m)],
   // A key inside an existing mark (`<redacted:kv_secret:…`) is never a key,
   // and a value never spans into a mark's `<`/`>`.
   ['kv_secret',
     /(?<!redacted:)\b([A-Za-z0-9_.-]*(?:secret|token|passw|api[_-]?key|private|credential|auth)[A-Za-z0-9_.-]*)("?\s*[:=]\s*["']?)(?!<redacted:)([^\s"',;<>]{8,})/gi,
     (m, key, sep, val) => `${key}${sep}${mark('kv_secret', val)}`],
+  // A bare long token next to a key name with no `=`/`:` between them
+  // (`token <32+ chars>`). Twin of the `entropy` rule in scripts/jev_redact.py.
+  ['entropy',
+    /(?<!redacted:)\b([A-Za-z0-9_.-]*(?:secret|token|passw|api[_-]?key|private|credential|auth)[A-Za-z0-9_.-]*\W{1,6})((?:[A-Za-z0-9+/=_-]{32,}|[0-9a-f]{32,}))/gi,
+    (m, head, val) => `${head}${mark('entropy', val)}`],
 ];
 
 /**

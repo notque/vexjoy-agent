@@ -477,6 +477,47 @@ class TestCompactPipeline:
                 assert decision["action"] == "keep"
                 assert decision["reason"] == "missing_answer"
 
+    @pytest.mark.parametrize("bad", [float("nan"), -2.0, 7.0, "0.1", True, None])
+    def test_non_probability_answer_keeps_the_call(self, bad):
+        """NaN, out-of-range, string, and bool answers must not decide a drop."""
+        messages = _transcript_with_calls(6)
+
+        def mock_bad(payload, api_key, timeout):
+            return {"answers": {q: {"noul": bad} for q in payload["questions"]}}, 10.0
+
+        with (
+            patch.object(jev_compact.jev_router_common, "typesafe_available", return_value=(True, "ok")),
+            patch.object(jev_compact.jev_router_common, "validated_call_jev", side_effect=mock_bad),
+            patch.dict(os.environ, {"TYPESAFE_API_KEY": "test-key"}),
+        ):
+            result = jev_compact.compact(messages, preserve_recent=2)
+
+        assert result["stats"]["dropped_call"] == 0
+        assert result["stats"]["dropped_result"] == 0
+
+    def test_answer_to_another_batchs_question_is_ignored(self):
+        """Each batch may answer only the questions it asked."""
+        messages = _transcript_with_calls(8)
+        every_key = [f"{kind}_t{n}" for n in range(1, 9) for kind in ("call", "result", "referenced")]
+
+        def mock_call(payload, api_key, timeout):
+            asked = set(payload["questions"])
+            answers = {q: {"noul": 0.9} for q in asked}
+            answers.update({q: {"noul": 0.0} for q in every_key if q not in asked})
+            return {"answers": answers}, 10.0
+
+        with (
+            patch.object(jev_compact.jev_router_common, "typesafe_available", return_value=(True, "ok")),
+            patch.object(jev_compact.jev_router_common, "validated_call_jev", side_effect=mock_call),
+            patch.object(jev_compact, "batch_calls", lambda cands, _tokens: [[c] for c in cands]),
+            patch.dict(os.environ, {"TYPESAFE_API_KEY": "test-key"}),
+        ):
+            result = jev_compact.compact(messages, preserve_recent=2)
+
+        assert result["stats"]["jev_calls"] > 1
+        assert result["stats"]["dropped_call"] == 0
+        assert result["stats"]["dropped_result"] == 0
+
 
 import os
 
@@ -570,6 +611,31 @@ class TestStateRedaction:
         assert FAKE_AWS not in dumped
         assert "<redacted:aws-key:XXXX>" in entry["text"]
         assert "<redacted:aws-key:XXXX>" in entry["tool_calls"][0]["input"]
+
+    def test_tool_input_is_redacted_before_it_is_cut(self) -> None:
+        """A cut inside a token must not leave a prefix too short for a pattern to match."""
+        call = {
+            "seq_id": "t1",
+            "tool": "Bash",
+            "input": "echo " + "-" * 25 + " " + FAKE_GHP,
+            "is_error": False,
+            "result_chars": 10,
+        }
+        entry = jev_compact._build_history_entry(_msg("assistant", "go"), 0, {0: [call]}, 45, False, False, {0})
+        assert entry is not None
+        assert "ghp_" not in entry["tool_calls"][0]["input"]
+
+    def test_protected_path_tool_input_is_withheld_whole(self) -> None:
+        call = {
+            "seq_id": "t1",
+            "tool": "Edit",
+            "input": json.dumps({"file_path": "/home/u/app/.env", "new_string": "DB_HOST=prod-db-1.internal"}),
+            "is_error": False,
+            "result_chars": 10,
+        }
+        entry = jev_compact._build_history_entry(_msg("assistant", "go"), 0, {0: [call]}, 1000, False, False, {0})
+        assert entry is not None
+        assert entry["tool_calls"][0]["input"] == "[input withheld: protected path]"
 
     def test_redact_state_off_leaves_text(self) -> None:
         msgs = [_msg("user", f"token {FAKE_GHP}")]

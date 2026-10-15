@@ -32,6 +32,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
@@ -87,7 +88,7 @@ def extract_request_text(prompt: str) -> str | None:
 
 def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dict | None:
     """Run jev-route.py directly (list-argv subprocess -- no shell, so no
-    quoting risk from ``request_text``).
+    quoting risk from ``request_text``, which travels in a temp file).
 
     Returns the parsed JEV_RESULT dict, or None on any failure -- every
     failure path here means "fail open," not "block."
@@ -100,13 +101,19 @@ def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dic
     script = Path(__file__).resolve().parent.parent / "scripts" / "jev-route.py"
     if not script.is_file():
         return None
+    # The prompt goes in a private temp file, not argv: argv is readable by every
+    # local user in `ps`, and a prompt can hold a pasted secret or start with "-".
+    tmp_path: str | None = None
     try:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as tmp:
+            tmp.write(request_text)
+            tmp_path = tmp.name
         proc = subprocess.run(
             [
                 sys.executable,
                 str(script),
-                "--request",
-                request_text,
+                "--request-file",
+                tmp_path,
                 "--json-compact",
                 "--timeout",
                 str(JEV_ROUTE_ATTEMPT_TIMEOUT_SECONDS),
@@ -120,6 +127,12 @@ def run_jev_route(request_text: str, session_id: str = "", cwd: str = "") -> dic
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except OSError:
+                pass
     if proc.returncode != 0:
         return None
     try:

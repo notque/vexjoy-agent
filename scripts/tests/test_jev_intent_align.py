@@ -118,6 +118,27 @@ def test_incomplete_answers_fail_open_instead_of_false_alignment(monkeypatch: py
     assert result["aligned"] is False
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), 7, -0.5, "0.9", True, None])
+def test_non_probability_answer_is_an_error_not_a_clamped_alignment(
+    monkeypatch: pytest.MonkeyPatch, bad: object
+) -> None:
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-token")
+    answers = {key: {"noul": 0.9} for key in align.build_payload("r", "i", _route())["questions"]}
+    for key in (
+        "intent_is_too_narrow",
+        "intent_adds_unrequested_work",
+        "route_omits_material_scope",
+        "essential_clarification_needed",
+    ):
+        answers[key] = {"noul": 0.1}
+    monkeypatch.setattr(align.jev_transport, "evaluate", lambda *_args, **_kwargs: {"answers": dict(answers)})
+    assert align.evaluate_alignment("r", _route(), "i")["alignment"] == "aligned"
+    answers["can_proceed_with_proposed_intent"] = {"noul": bad}
+    result = align.evaluate_alignment("r", _route(), "i")
+    assert result["alignment"] == "error"
+    assert result["aligned"] is False
+
+
 def test_unavailable_gateway_is_a_receipt_not_a_crash(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)

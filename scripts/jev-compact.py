@@ -381,6 +381,13 @@ def _redact_for_state(text: str) -> str:
     return jev_redact.redact_text(text)[0]
 
 
+def _redact_input_for_state(text: str) -> str:
+    """Redact one tool input for Jev state: a protected path withholds it whole."""
+    if not REDACT_STATE or not text:
+        return text
+    return jev_redact.redact_tool_input(text)[0]
+
+
 def _build_history_entry(
     msg: dict,
     idx: int,
@@ -430,8 +437,8 @@ def _build_history_entry(
     if msg_calls:
         tc_list = []
         for call in msg_calls:
-            inp = call["input"][:input_limit] if len(call["input"]) > input_limit else call["input"]
-            inp = _redact_for_state(inp)
+            # Redact first, then cut: a cut can leave the front of a secret too short to match a pattern.
+            inp = _redact_input_for_state(call["input"])[:input_limit]
             status = "error" if call.get("is_error") else "ok"
             tc_list.append(
                 {
@@ -997,7 +1004,9 @@ def compact(
         }
 
         data, latency = jev_router_common.validated_call_jev(payload, api_key, timeout)
-        batch_answers = data.get("answers", {})
+        # Keep only answers to questions this batch asked: a reply must not
+        # overwrite the answer to another batch's call.
+        batch_answers = {k: v for k, v in data.get("answers", {}).items() if k in all_questions}
         usage = jev_router_common.extract_usage(data)
         return batch_answers, latency, usage
 
@@ -1093,12 +1102,18 @@ def compact(
 
 
 def _noul_value(answers: dict, key: str) -> float | None:
-    """Extract a Noul probability from Jev answers."""
+    """Extract a Noul probability from Jev answers; None unless it is a number in [0, 1].
+
+    None means no answer, and no answer keeps the call. NaN, a bool, a string, or
+    a value outside [0, 1] must not decide a drop.
+    """
     answer = answers.get(key)
     if not isinstance(answer, dict):
         return None
     val = answer.get("noul")
-    if not isinstance(val, (int, float)):
+    if isinstance(val, bool) or not isinstance(val, (int, float)):
+        return None
+    if not 0.0 <= val <= 1.0:  # False for NaN
         return None
     return float(val)
 

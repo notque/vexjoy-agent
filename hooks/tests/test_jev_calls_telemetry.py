@@ -73,7 +73,7 @@ def test_call_jev_records_success_and_failure(tmp_path, monkeypatch):
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(jrc.urllib.request, "urlopen", lambda _req, **_kw: _Resp(body))
+    monkeypatch.setattr(jrc, "_open_url", lambda _req, **_kw: _Resp(body))
     data, ms = jrc.call_jev(
         {"model": "jev-latest", "state": {}, "questions": {"q": {"type": "noul", "instructions": "x"}}}, "k", 5
     )
@@ -82,7 +82,7 @@ def test_call_jev_records_success_and_failure(tmp_path, monkeypatch):
     def boom(req, **_kw):
         raise jrc.urllib.error.HTTPError(req.full_url, 422, "bad", {}, io.BytesIO(b"schema"))
 
-    monkeypatch.setattr(jrc.urllib.request, "urlopen", boom)
+    monkeypatch.setattr(jrc, "_open_url", boom)
     try:
         jrc.call_jev({"questions": {}}, "k", 5)
     except RuntimeError:
@@ -106,6 +106,6 @@ def test_telemetry_failure_never_breaks_call(tmp_path, monkeypatch):
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(jrc.urllib.request, "urlopen", lambda _req, **_kw: _Resp(body))
+    monkeypatch.setattr(jrc, "_open_url", lambda _req, **_kw: _Resp(body))
     data, _ = jrc.call_jev({"questions": {}}, "k", 5)
     assert data == {"answers": {}}

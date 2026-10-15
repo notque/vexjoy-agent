@@ -46,6 +46,13 @@ const cases = [
   ['kv_secret', '"password": "hunter2hunter2"', 'hunter2hunter2', '<redacted:kv_secret:ter2>'],
   ['kv_secret', 'my_token: 1234567890ab', '1234567890ab', '<redacted:kv_secret:90ab>'],
   ['kv_secret', 'private_credential=abcdefghijklmnop', 'abcdefghijklmnop', '<redacted:kv_secret:mnop>'],
+  // Vendor prefixes and the bare-token rule match scripts/jev_redact.py (see test_jev_redact.py).
+  ['gitlab', 'glpat-' + 'a1B2c3D4e5F6g7H8i9J0', 'glpat-' + 'a1B2c3D4e5F6g7H8i9J0', '<redacted:gitlab:i9J0>'],
+  ['npm', 'npm_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8', 'npm_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8', '<redacted:npm:q7R8>'],
+  ['huggingface', 'hf_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5', 'hf_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5', '<redacted:huggingface:N4o5>'],
+  ['vercel', 'vck_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6', 'vck_' + 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6', '<redacted:vercel:o5P6>'],
+  ['docker', 'dckr_pat_' + 'a1B2c3D4e5F6g7H8i9J0k1L2', 'dckr_pat_' + 'a1B2c3D4e5F6g7H8i9J0k1L2', '<redacted:docker:k1L2>'],
+  ['entropy', 'token a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8', '<redacted:entropy:e7f8>'],
 ];
 
 for (const [type, input, secret, expected] of cases) {
