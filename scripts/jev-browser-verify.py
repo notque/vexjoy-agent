@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -31,10 +32,15 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_router_common
+import jev_untrusted
 
 DEFAULT_TIMEOUT = 8.0
 MAX_TEXT_LEN = 6000
 MAX_EVIDENCE = 80
+MAX_TITLE = 200
+MAX_URL = 500
+MAX_VALUE = 80
+MAX_ACTION = 300
 GOAL_MET_THRESHOLD = 0.5
 GOAL_MET_THRESHOLD_WITH_CHECKS = 0.3
 PASS_EVIDENCE = 0.5  # normalized evidence score required for `passed`
@@ -75,7 +81,7 @@ def _clean_label(raw: str) -> str:
     """
     if not raw:
         return ""
-    lines = [ln.strip() for ln in raw.split("\n") if ln.strip()]
+    lines = [ln for ln in (jev_untrusted.flat(part, 200) for part in str(raw).splitlines()) if ln]
     if not lines:
         return ""
     main = lines[0][:60]
@@ -112,18 +118,20 @@ def build_payload(request: dict) -> dict:
 
     state = {
         "page": {
-            "url": page.get("url", ""),
-            "title": page.get("title", ""),
+            "url": jev_untrusted.flat(page.get("url", ""), MAX_URL),
+            "title": jev_untrusted.flat(page.get("title", ""), MAX_TITLE),
             "text": jev_router_common.bound_text(page.get("text", ""), MAX_TEXT_LEN),
         },
         "elements": "\n".join(
-            f"[{e.get('index')}] {e.get('role', '')}: {_clean_label(e.get('label', ''))}"
-            + (f" (value={e['value']})" if e.get("value") else "")
+            f"[{jev_untrusted.flat(e.get('index'), 12)}] {jev_untrusted.flat(e.get('role', ''), 40)}: "
+            f"{_clean_label(e.get('label', ''))}"
+            + (f" (value={jev_untrusted.flat(e['value'], MAX_VALUE)})" if e.get("value") else "")
             + (f" (checked={e['checked']})" if "checked" in e else "")
             for e in elements
         ),
         "recent_actions": "\n".join(
-            f"{i}. {h.get('action', '')}" + (f' text="{h["text"]}"' if h.get("text") else "")
+            f"{i}. {jev_untrusted.flat(h.get('action', ''), MAX_ACTION)}"
+            + (f' text="{jev_untrusted.flat(h["text"], MAX_ACTION)}"' if h.get("text") else "")
             for i, h in enumerate(history, 1)
         )
         or "No actions taken yet.",
@@ -209,8 +217,8 @@ def build_payload(request: dict) -> dict:
             "type": "choice",
             "criteria": {
                 str(e.get("index")): {
-                    "element": f"[{e.get('index')}] {_clean_label(e.get('label', ''))}",
-                    "role": e.get("role", ""),
+                    "element": f"[{jev_untrusted.flat(e.get('index'), 12)}] {_clean_label(e.get('label', ''))}",
+                    "role": jev_untrusted.flat(e.get("role", ""), 40),
                 }
                 for e in elements
             },
@@ -222,12 +230,21 @@ def build_payload(request: dict) -> dict:
     return {"model": jev_router_common.JEV_MODEL, "state": state, "questions": questions}
 
 
+def _finite(v: object, high: float = 1.0) -> float | None:
+    """A finite number in [0, high], else None (NaN, inf, bool, text, out of range)."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return float(v) if math.isfinite(v) and 0 <= v <= high else None
+
+
 def _noul(answers: dict, key: str) -> float | None:
     a = answers.get(key, {})
+    if not isinstance(a, dict):
+        return None
     for k in ("noul", "score", "probability", "value"):
-        v = a.get(k)
-        if isinstance(v, (int, float)):
-            return float(v)
+        v = _finite(a.get(k))
+        if v is not None:
+            return v
     return None
 
 
@@ -235,13 +252,15 @@ def _score01(answers: dict, key: str, n_criteria: int) -> float | None:
     """A Score answer is an index on the criteria scale (0..n-1, possibly
     fractional). Normalize to 0..1."""
     a = answers.get(key, {})
+    if not isinstance(a, dict):
+        return None
     v = a.get("score")
     if isinstance(v, str) and v[:1].isdigit():
         v = float(v[0])
-    if not isinstance(v, (int, float)):
-        v = a.get("noul") if isinstance(a.get("noul"), (int, float)) else None
-        return float(v) if v is not None else None
-    return max(0.0, min(1.0, float(v) / max(1, n_criteria - 1)))
+    v = _finite(v, high=max(1, n_criteria - 1))
+    if v is None:
+        return _finite(a.get("noul"))
+    return max(0.0, min(1.0, v / max(1, n_criteria - 1)))
 
 
 def parse_response(data: dict, request: dict) -> dict:
@@ -255,7 +274,8 @@ def parse_response(data: dict, request: dict) -> dict:
     p_interactive = _noul(answers, "interactive_elements_work")
     p_user_understands = _noul(answers, "user_would_understand")
     valid = {str(e.get("index")) for e in request.get("elements", [])[:MAX_EVIDENCE]}
-    ev = answers.get("evidence_element", {}).get("choice")
+    ev_answer = answers.get("evidence_element", {})
+    ev = ev_answer.get("choice") if isinstance(ev_answer, dict) else None
     contradicted = p_contra is not None and p_contra >= NOUL_YES
     loading = p_loading is not None and p_loading >= NOUL_YES
     clauses = split_goal(request.get("goal", ""))
@@ -284,7 +304,7 @@ def parse_response(data: dict, request: dict) -> dict:
         "has_error": p_err is not None and p_err >= NOUL_YES,
         "has_error_probability": round(p_err, 4) if p_err is not None else None,
         "page_loaded": p_loaded is None or p_loaded >= NOUL_YES,
-        "evidence_element": ev if ev in valid else None,
+        "evidence_element": ev if isinstance(ev, str) and ev in valid else None,
         "interactive_elements_work": p_interactive is not None and p_interactive >= NOUL_YES,
         "interactive_elements_work_probability": round(p_interactive, 4) if p_interactive is not None else None,
         "user_would_understand": p_user_understands is not None and p_user_understands >= NOUL_YES,
@@ -366,11 +386,14 @@ def check_url(
     timeout: float = DEFAULT_TIMEOUT,
     driver=None,
     headers=None,
+    allow_hosts: set[str] | None = None,
+    allow_remote: bool = False,
+    drop_env: set[str] | None = None,
 ) -> dict:
     """Open one page with the harness driver and verify each goal against one snapshot."""
     agent = _load_agent()
     own = driver is None
-    drv = driver or agent.Driver()
+    drv = driver or agent.Driver(drop_env=drop_env)
     try:
         opened = drv.call("open", url=url, headers=headers or {})
         if not opened.get("ok"):
@@ -382,6 +405,9 @@ def check_url(
         if own:
             drv.close()
     snap = obs["result"]
+    if not agent._host_allowed(snap.get("url") or "", allow_hosts or set(), allow_remote):
+        # The page redirected off the allowed hosts: its text never reaches Jev.
+        return {"url": url, "passed": False, "error": "page left the allowed hosts; not judged", "results": []}
     page = {"url": snap.get("url"), "title": snap.get("title"), "text": snap.get("text")}
     results = []
     for goal in goals:
@@ -402,17 +428,34 @@ def check_url(
     }
 
 
-def run_audit(base: str, pages: dict[str, list[str]], *, timeout: float = DEFAULT_TIMEOUT, headers=None) -> dict:
+def run_audit(
+    base: str,
+    pages: dict[str, list[str]],
+    *,
+    timeout: float = DEFAULT_TIMEOUT,
+    headers=None,
+    allow_hosts: set[str] | None = None,
+    allow_remote: bool = False,
+    drop_env: set[str] | None = None,
+) -> dict:
     """Audit pages: {path: [goals]} against one base URL, one driver for all pages."""
     agent = _load_agent()
-    drv = agent.Driver()
+    drv = agent.Driver(drop_env=drop_env)
     results = []
     try:
         for path, goals in pages.items():
             results.append(
                 {
                     "path": path,
-                    **check_url(f"{base.rstrip('/')}{path}", goals, timeout=timeout, driver=drv, headers=headers),
+                    **check_url(
+                        f"{base.rstrip('/')}{path}",
+                        goals,
+                        timeout=timeout,
+                        driver=drv,
+                        headers=headers,
+                        allow_hosts=allow_hosts,
+                        allow_remote=allow_remote,
+                    ),
                 }
             )
     finally:
@@ -444,6 +487,7 @@ def main() -> int:
             audit = json.loads(Path(args.audit_file).read_text(encoding="utf-8")) if args.audit_file else None
             target = args.url or audit.get("base", "")
             allow_hosts = {h.lower().lstrip(".") for h in args.allow_host}
+            drop_env = {spec.partition("=")[2] for spec in args.header}
             _, err, headers = agent.preflight(target, args.allow_remote, [], allow_hosts, args.header)
             if err:
                 print(json.dumps({"passed": False, "error": err}, indent=indent))
@@ -455,9 +499,26 @@ def main() -> int:
                 if args.check_text_contains:
                     checks["text_contains"] = args.check_text_contains
                 goals = args.goal or ["the page loaded correctly and shows its expected content"]
-                out = check_url(args.url, goals, checks=checks, timeout=args.timeout, headers=headers)
+                out = check_url(
+                    args.url,
+                    goals,
+                    checks=checks,
+                    timeout=args.timeout,
+                    headers=headers,
+                    allow_hosts=allow_hosts,
+                    allow_remote=args.allow_remote,
+                    drop_env=drop_env,
+                )
             else:
-                out = run_audit(target, audit.get("pages", {}), timeout=args.timeout, headers=headers)
+                out = run_audit(
+                    target,
+                    audit.get("pages", {}),
+                    timeout=args.timeout,
+                    headers=headers,
+                    allow_hosts=allow_hosts,
+                    allow_remote=args.allow_remote,
+                    drop_env=drop_env,
+                )
             print(json.dumps(out, indent=indent))
             return 0
         raw = Path(args.request_file).read_text(encoding="utf-8") if args.request_file else args.request

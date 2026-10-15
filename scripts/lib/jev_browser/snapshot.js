@@ -219,11 +219,14 @@
     if (!onscreen) entry.offscreen = true;
     const t = (el.type || "").toLowerCase();
     if (el.tagName === "A" && el.href) {
-      if (!el.href.startsWith(location.origin)) entry.external = true;
-      else {
+      if (!el.href.startsWith(location.origin)) {
+        // The agent refuses a click whose host it may not visit; no host fails closed.
+        entry.external = true;
+        try { entry.host = new URL(el.href).hostname.slice(0, 253); } catch {}
+      } else {
         try {
           const u = new URL(el.href);
-          if (u.pathname !== location.pathname) entry.nav = u.pathname;
+          if (u.pathname !== location.pathname) entry.nav = u.pathname.slice(0, 200);
         } catch {}
       }
     }
@@ -263,7 +266,7 @@
 
   return {
     url: location.href,
-    title: document.title,
+    title: (document.title || "").slice(0, 200),
     text,
     scroll: { x: Math.round(scrollX), y: Math.round(scrollY) },
     page_key: reg.pageKey(),
