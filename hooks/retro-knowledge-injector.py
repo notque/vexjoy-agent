@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 3.0.0
+# hook-version: 3.0.1
 """
 SessionStart Hook: Retro Knowledge Auto-Injection — stub retained for settings.json compatibility.
 
@@ -24,8 +24,15 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, hook_error
 
+_BYPASS_ENV = "RETRO_KNOWLEDGE_INJECTOR_BYPASS"
+
 
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[retro-knowledge-injector] Bypassed via RETRO_KNOWLEDGE_INJECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     empty_output("SessionStart").print_and_exit()
 
 

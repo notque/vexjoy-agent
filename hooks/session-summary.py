@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 Stop Hook: Session Summary and Metrics
 
@@ -25,9 +25,16 @@ from hook_utils import get_session_id, hook_error
 from learning_db_v2 import get_stats, record_session
 from stdin_timeout import read_stdin
 
+_BYPASS_ENV = "SESSION_SUMMARY_BYPASS"
+
 
 def main():
     """Generate session summary on conversation end."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-summary] Bypassed via SESSION_SUMMARY_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         cwd = os.getcwd()

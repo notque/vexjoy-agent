@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 UserPromptSubmit Hook: Dynamic Skill/Agent Evaluation
 
@@ -211,6 +211,9 @@ def should_skip(prompt: str) -> bool:
     return bool(prompt_lower.endswith("?") and len(prompt_lower) < 50)
 
 
+_BYPASS_ENV = "SKILL_EVALUATOR_BYPASS"
+
+
 def main():
     """Process UserPromptSubmit hook event.
 
@@ -220,6 +223,11 @@ def main():
     routing guidance injected. The Agent tool descriptions in the system
     prompt already list all available agents.
     """
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[skill-evaluator] Bypassed via SKILL_EVALUATOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     return
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 3.0.0
+# hook-version: 3.0.1
 """
 SessionStart Hook: Dream Payload Injector (ADR-147)
 
@@ -133,8 +133,16 @@ def surface_dream_report() -> str:
         return ""
 
 
+_BYPASS_ENV = "SESSION_CONTEXT_BYPASS"
+
+
 def main():
     """Inject the overnight dream payload and notice at session start."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-context] Bypassed via SESSION_CONTEXT_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         cwd = os.getcwd()
 

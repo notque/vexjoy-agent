@@ -11,8 +11,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+_BYPASS_ENV = "STOP_FAILURE_HANDLER_BYPASS"
+
 
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[stop-failure-handler] Bypassed via STOP_FAILURE_HANDLER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         state_dir = Path.home() / ".claude" / "state"
         state_dir.mkdir(parents=True, exist_ok=True)

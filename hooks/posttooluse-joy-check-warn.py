@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: Joy-Check Framing Validation
 
@@ -11,6 +11,7 @@ Patterns mirror scripts/validate_positive_instruction_docs.py.
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -57,7 +58,15 @@ def scan_file(path: Path) -> list[tuple[int, str, str]]:
     return violations
 
 
+_BYPASS_ENV = "POSTTOOLUSE_JOY_CHECK_WARN_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttooluse-joy-check-warn] Bypassed via POSTTOOLUSE_JOY_CHECK_WARN_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data.strip():

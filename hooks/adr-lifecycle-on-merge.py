@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """PostToolUse Hook: ADR lifecycle checker on merge.
 
 Fires after a Bash tool use. Detects merge commands (gh pr merge / git merge)
@@ -262,7 +262,15 @@ def process_merge(command: str) -> str | None:
     return "\n".join(lines)
 
 
+_BYPASS_ENV = "ADR_LIFECYCLE_ON_MERGE_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[adr-lifecycle-on-merge] Bypassed via ADR_LIFECYCLE_ON_MERGE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     raw = read_stdin(timeout=3)
     if not raw.strip():
         empty_output(EVENT_NAME).print_and_exit()

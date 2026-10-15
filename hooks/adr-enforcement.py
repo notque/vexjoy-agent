@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: ADR Compliance Enforcement
 
@@ -186,7 +186,15 @@ def format_pass(file_path: str, check_result: dict) -> str:
     return f"[adr-enforcement] COMPLIANCE CHECK: {display_path} — PASS"
 
 
+_BYPASS_ENV = "ADR_ENFORCEMENT_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[adr-enforcement] Bypassed via ADR_ENFORCEMENT_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         # ADR enforcement is opt-in. Set ADR_ENFORCEMENT=1 to enable.
         if os.environ.get("ADR_ENFORCEMENT") != "1":

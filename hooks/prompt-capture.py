@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 # Voice sample capture — records authentic user prompts to learning.db as voice corpus.
 """
 UserPromptSubmit Hook: Capture user prompts as voice samples.
@@ -175,7 +175,15 @@ def is_natural_language(text: str) -> bool:
     return True
 
 
+_BYPASS_ENV = "PROMPT_CAPTURE_BYPASS"
+
+
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[prompt-capture] Bypassed via PROMPT_CAPTURE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=5)
         if not raw:

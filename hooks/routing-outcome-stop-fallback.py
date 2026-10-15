@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.0
+# hook-version: 2.0.1
 """
 Stop Hook: Routing-Outcome Session-End Fallback
 
@@ -17,6 +17,7 @@ Design Principles:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -84,8 +85,18 @@ def finalize_routing_outcomes(session_id: str) -> None:
         hook_error("routing-outcome-stop-fallback", e)
 
 
+_BYPASS_ENV = "ROUTING_OUTCOME_STOP_FALLBACK_BYPASS"
+
+
 def main():
     """Resolve still-pending routing outcomes at session end."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[routing-outcome-stop-fallback] Bypassed via ROUTING_OUTCOME_STOP_FALLBACK_BYPASS=1", file=sys.stderr
+            )
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data:

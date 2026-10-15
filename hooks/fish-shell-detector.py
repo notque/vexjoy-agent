@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 SessionStart Hook: Fish Shell Detection
 
@@ -83,8 +83,16 @@ def get_fish_injection() -> str:
     return "[fish-shell] Detected Fish shell user\n[auto-skill] deploy\nCall the Skill tool with `deploy`."
 
 
+_BYPASS_ENV = "FISH_SHELL_DETECTOR_BYPASS"
+
+
 def main():
     """Main entry point for the hook."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[fish-shell-detector] Bypassed via FISH_SHELL_DETECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

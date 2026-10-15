@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse Hook: Usage Tracking for Skills and Agents
 
@@ -23,9 +23,16 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import hook_error
 from stdin_timeout import read_stdin
 
+_BYPASS_ENV = "USAGE_TRACKER_BYPASS"
+
 
 def main():
     """Process PostToolUse events, recording Skill and Agent invocations."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[usage-tracker] Bypassed via USAGE_TRACKER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data:

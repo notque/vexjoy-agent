@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 UserPromptSubmit Hook: Capture review false-positive signals.
 
@@ -14,6 +14,7 @@ the `record-review-fp` subcommand in scripts/learning-db.py.
 
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -104,7 +105,17 @@ def extract_source_file(text: str) -> str:
     return path.lstrip("/") or "unknown"
 
 
+_BYPASS_ENV = "REVIEW_FALSE_POSITIVE_CAPTURE_BYPASS"
+
+
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print(
+                "[review-false-positive-capture] Bypassed via REVIEW_FALSE_POSITIVE_CAPTURE_BYPASS=1", file=sys.stderr
+            )
+        sys.exit(0)
+
     try:
         # Empty stdin is a normal condition, not a failure: read_stdin returns ""
         # on a 2s timeout or a closed pipe, and smoke tests invoke the hook with

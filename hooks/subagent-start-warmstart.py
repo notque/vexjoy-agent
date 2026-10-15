@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SubagentStart Hook: Subagent Warm Start
 
@@ -22,6 +22,7 @@ Design Principles:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -35,6 +36,9 @@ from warmstart_lib import gather_context_block
 EVENT_NAME = "SubagentStart"
 
 
+_BYPASS_ENV = "SUBAGENT_START_WARMSTART_BYPASS"
+
+
 def main() -> None:
     """Build the parent-context block and inject it into the subagent.
 
@@ -43,6 +47,11 @@ def main() -> None:
     2. Gather parent session context from on-disk state
     3. Inject via context_output(SubagentStart, ...)
     """
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[subagent-start-warmstart] Bypassed via SUBAGENT_START_WARMSTART_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         event_data = read_stdin(timeout=2)
         if not event_data:

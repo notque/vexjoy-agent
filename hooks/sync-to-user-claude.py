@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.0
+# hook-version: 2.0.1
 """SessionStart hook: run ``vexinstall sync --target all`` from the toolkit repo.
 
 Thin, fail-open wrapper (installer spec 5.1). The engine in scripts/vexinstall
@@ -103,8 +103,16 @@ def run(repo: Path) -> int:
     return 0
 
 
+_BYPASS_ENV = "SYNC_TO_USER_CLAUDE_BYPASS"
+
+
 def main() -> int:
     """Hook entry point: always exit 0."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[sync-to-user-claude] Bypassed via SYNC_TO_USER_CLAUDE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         return run(Path.cwd())
     except Exception as exc:  # fail open: a broken sync must never block a session

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: Operator Context Detection
 
@@ -260,8 +260,16 @@ def get_profile_injection(profile: str, detection: str) -> str:
     return f"[operator-context] Profile: {profile} — {summary}\n[operator-context] Detection: {detection}"
 
 
+_BYPASS_ENV = "OPERATOR_CONTEXT_DETECTOR_BYPASS"
+
+
 def main():
     """Main entry point for the hook."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[operator-context-detector] Bypassed via OPERATOR_CONTEXT_DETECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

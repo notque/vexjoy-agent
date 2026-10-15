@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """SessionStart Hook: hash-gated /do routing-manifest cache.
 
 ADR router-improvement-program C5. Verifies (or rebuilds) the disk cache of
@@ -33,7 +33,15 @@ from manifest_cache import CACHE_FILE, refresh, resolve_scripts_dir
 EVENT_NAME = "SessionStart"
 
 
+_BYPASS_ENV = "SESSION_MANIFEST_CACHE_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[session-manifest-cache] Bypassed via SESSION_MANIFEST_CACHE_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     scripts_dir = resolve_scripts_dir()
     if scripts_dir is None:
         # No deployed toolkit — nothing to cache.

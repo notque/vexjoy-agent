@@ -11,8 +11,15 @@ import os
 import sys
 from pathlib import Path
 
+_BYPASS_ENV = "POSTCOMPACT_HANDLER_BYPASS"
+
 
 def main():
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[postcompact-handler] Bypassed via POSTCOMPACT_HANDLER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         cwd = Path(os.getcwd())
 

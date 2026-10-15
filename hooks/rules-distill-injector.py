@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 SessionStart Hook: Rules Distillation Candidate Injector — ADR-114.
 
@@ -93,7 +93,15 @@ def build_injection(candidates: list[dict], distilled_at: str) -> str:
     return "\n".join(lines)
 
 
+_BYPASS_ENV = "RULES_DISTILL_INJECTOR_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[rules-distill-injector] Bypassed via RULES_DISTILL_INJECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

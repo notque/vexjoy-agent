@@ -562,7 +562,15 @@ def run(args: argparse.Namespace, raw_input: str) -> dict[str, Any]:
         return failure_output(args.event, args.failure_policy, str(exc))
 
 
+_BYPASS_ENV = "CODEX_HOOK_ADAPTER_BYPASS"
+
+
 def main() -> int:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[codex-hook-adapter] Bypassed via CODEX_HOOK_ADAPTER_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     args = _parser().parse_args()
     try:
         output = run(args, sys.stdin.read())

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 2.0.0
+# hook-version: 2.0.1
 """
 PostToolUse:Write,Edit Hook: Unified Security Pattern Scanner
 
@@ -79,7 +79,15 @@ def _load_scanner_module():
         return None
 
 
+_BYPASS_ENV = "POSTTOOL_SECURITY_SCAN_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttool-security-scan] Bypassed via POSTTOOL_SECURITY_SCAN_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         raw = read_stdin(timeout=2)
         event = json.loads(raw)

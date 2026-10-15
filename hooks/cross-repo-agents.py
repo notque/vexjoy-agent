@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.1.0
+# hook-version: 1.1.1
 """
 SessionStart Hook: Cross-Repo Agent Discovery
 
@@ -102,8 +102,16 @@ def discover_local_agents(cwd: str) -> list[dict]:
     return sorted(agents, key=lambda x: x["name"])
 
 
+_BYPASS_ENV = "CROSS_REPO_AGENTS_BYPASS"
+
+
 def main():
     """Discover and inject local agents at session start."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[cross-repo-agents] Bypassed via CROSS_REPO_AGENTS_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     try:
         cwd = os.getcwd()
 

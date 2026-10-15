@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PostToolUse:Bash Hook: Bash Injection Scan
 
@@ -84,7 +84,15 @@ def _resolve_path(raw: str) -> Path | None:
         return None
 
 
+_BYPASS_ENV = "POSTTOOL_BASH_INJECTION_SCAN_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[posttool-bash-injection-scan] Bypassed via POSTTOOL_BASH_INJECTION_SCAN_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     raw = read_stdin(timeout=2)
     if not raw:
         empty_output(EVENT_NAME).print_and_exit()

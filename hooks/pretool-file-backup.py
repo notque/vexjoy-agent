@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 1.0.1
 """
 PreToolUse:Edit Hook: File Backup Before Edit
 
@@ -43,7 +43,15 @@ _SESSION_ID = os.environ.get("CLAUDE_SESSION_ID", str(os.getpid()))
 _BACKUP_ROOT = Path("/tmp/.claude-backups") / _SESSION_ID
 
 
+_BYPASS_ENV = "PRETOOL_FILE_BACKUP_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[pretool-file-backup] Bypassed via PRETOOL_FILE_BACKUP_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)

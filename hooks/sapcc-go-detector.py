@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 SessionStart Hook: SAP Converged Cloud Go Project Detection
 
@@ -118,8 +118,16 @@ def get_sapcc_injection(module_name: str) -> str:
     )
 
 
+_BYPASS_ENV = "SAPCC_GO_DETECTOR_BYPASS"
+
+
 def main():
     """Main entry point for the hook."""
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[sapcc-go-detector] Bypassed via SAPCC_GO_DETECTOR_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.1
+# hook-version: 1.0.2
 """
 SessionStart Hook: Hook-Version Parity Check
 
@@ -90,7 +90,15 @@ def build_warning(drifted: list[str]) -> str:
     )
 
 
+_BYPASS_ENV = "HOOK_VERSION_PARITY_CHECK_BYPASS"
+
+
 def main() -> None:
+    if os.environ.get(_BYPASS_ENV) == "1":
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            print("[hook-version-parity-check] Bypassed via HOOK_VERSION_PARITY_CHECK_BYPASS=1", file=sys.stderr)
+        sys.exit(0)
+
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())).resolve()
