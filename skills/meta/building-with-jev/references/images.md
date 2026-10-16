@@ -53,6 +53,8 @@ The API never resizes. One image outside a limit fails the whole request with 40
 
 Pass `JevImage(path, prepare=False)` to send bytes unchanged. They must already pass the limits.
 
+Capture sharp. Jev reads high-resolution images better, and a TypeSafe engineer advises a long side of at least 1080 px, with JPEGs of about 512 KB to 2 MB. Shoot phone viewports at `deviceScaleFactor` 2 or 3, crop to the region instead of shrinking a full page, and pay the extra tokens rather than downscaling. Upscaling a small capture adds no detail. Send structured facts (measured numbers, a one-line legend per image) beside every image: the image and the structure together beat either alone.
+
 ## Token cost and splitting
 
 Image bytes never count toward the text estimate. `jev_limits` adds `width * height / 375` tokens per use (`jev_images.IMAGE_PIXELS_PER_TOKEN`). Measured on the direct API on 2026-10-16: 300x300 cost 271 tokens, 800x600 cost 1,301, 1568x1568 cost 6,300. Read `usage.input_tokens` in the response for the real cost, and re-measure when the model changes.
