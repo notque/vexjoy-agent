@@ -15,6 +15,10 @@ Usage:
     python3 scripts/manage-accounts.py install-aliases [--shell fish|bash|zsh] [--dry-run]
     python3 scripts/manage-accounts.py remove <name>
 
+Every generated alias passes DEFAULT_CLAUDE_ARGS (including --chrome). install-aliases
+also writes cm0, which starts the default profile (~/.claude): it clears any inherited
+CLAUDE_CONFIG_DIR and never sets one, so the default login keeps working.
+
 Examples:
     python3 scripts/manage-accounts.py add work --alias cwork
     python3 scripts/manage-accounts.py add personal --alias cpersonal
@@ -40,7 +44,9 @@ DEFAULT_CONFIG = Path.home() / ".claude"
 # install.sh writes these into ~/.claude; every account links to them.
 SHARED_ENTRIES = ("skills", "agents", "commands")
 # Flags every account launch passes to claude, before any user args.
-DEFAULT_CLAUDE_ARGS = ("--dangerously-skip-permissions", '--system-prompt="."')
+DEFAULT_CLAUDE_ARGS = ("--dangerously-skip-permissions", "--chrome", '--system-prompt="."')
+# Alias for the default profile (~/.claude). Always emitted; never sets CLAUDE_CONFIG_DIR.
+DEFAULT_PROFILE_ALIAS = "cm0"
 
 
 # ---------------------------------------------------------------------------
@@ -91,6 +97,9 @@ def cmd_add(args: argparse.Namespace) -> int:
 
     # Validate alias uniqueness
     alias = args.alias or _default_alias(accounts)
+    if alias == DEFAULT_PROFILE_ALIAS:
+        print(f"error: alias '{alias}' is reserved for the default profile", file=sys.stderr)
+        return 1
     existing_aliases = {v.get("alias") for v in accounts.values()}
     if alias in existing_aliases:
         print(f"error: alias '{alias}' is already used by another account", file=sys.stderr)
@@ -311,6 +320,9 @@ _BASH_ALIAS_FOOTER = "# end managed block"
 
 def _fish_alias_block(accounts: dict[str, dict]) -> str:
     lines = [_FISH_ALIAS_HEADER]
+    lines.append(f"function {DEFAULT_PROFILE_ALIAS}")
+    lines.append(f"    env -u CLAUDE_CONFIG_DIR claude {' '.join(DEFAULT_CLAUDE_ARGS)} $argv")
+    lines.append("end")
     for name, info in sorted(accounts.items(), key=lambda kv: kv[1].get("alias", kv[0])):
         alias = info.get("alias", f"c_{name}")
         cfg = info.get("config_dir", str(config_dir(name)))
@@ -325,6 +337,7 @@ def _fish_alias_block(accounts: dict[str, dict]) -> str:
 
 def _bash_alias_block(accounts: dict[str, dict]) -> str:
     lines = [_BASH_ALIAS_HEADER]
+    lines.append(f"alias {DEFAULT_PROFILE_ALIAS}='env -u CLAUDE_CONFIG_DIR claude {' '.join(DEFAULT_CLAUDE_ARGS)}'")
     for name, info in sorted(accounts.items(), key=lambda kv: kv[1].get("alias", kv[0])):
         alias = info.get("alias", f"c_{name}")
         cfg = info.get("config_dir", str(config_dir(name)))
@@ -388,6 +401,7 @@ def _do_install_aliases(shell: str | None, dry_run: bool) -> int:
 
     print()
     print("Aliases:")
+    print(f"  {DEFAULT_PROFILE_ALIAS:12}  →  (default profile)")
     for name, info in sorted(accounts.items(), key=lambda kv: kv[1].get("alias", kv[0])):
         alias = info.get("alias", f"c_{name}")
         print(f"  {alias:12}  →  {name}")
