@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 3.0.1
+# hook-version: 4.0.0
 """
 UserPromptSubmit hook -- pre-run jev-route.py on a /d invocation and inject
 JEV_RESULT before the model generates a single token.
@@ -10,21 +10,19 @@ choosing to comply. This hook runs the script before the model has a choice.
 This hook detects a raw ``/d ...`` invocation at UserPromptSubmit (the
 earliest hook point in the turn, before /d's own instructions are read),
 runs ``scripts/jev-route.py`` itself, and injects the resulting JSON as
-additionalContext. By the time the model's first token for this turn is
-generated, JEV_RESULT already exists in context -- Phase 1 of
-skills/meta/d/SKILL.md then reads it instead of running the script, for
-the case this hook successfully detects and completes in time.
+additionalContext. JEV_RESULT holds the deterministic part of the route: the
+safety force route (pr-workflow, security) when pre-route.py matches one, the
+Jev attachment evidence, and the project facts. The session model picks the
+agent, skill, and pipeline itself in Phase 1 of skills/meta/d/SKILL.md.
 
 Honest limit, not overclaimed: this is real, mechanical enforcement for a
-detected, on-time /d invocation -- the classification happens outside the
-model's control, deterministically, before generation starts. It is NOT
-100%% immunity: an invocation shape the regex below does not recognize, or a
-hook failure/timeout, silently falls through to Phase 1's own prose-driven
-script call (same behavior as before this hook existed) -- this hook fails
-open in every failure mode, it never blocks the prompt. See
-docs/injected-context-contracts.md's ``[jev-route-injector]`` entry for the
-full contract, and skills/meta/d/SKILL.md Phase 1 for how the injected
-result is consumed.
+detected, on-time /d invocation -- the guard and the Jev attachment call
+happen outside the model's control, deterministically, before generation
+starts. It is NOT 100%% immunity: an invocation shape the regex below does
+not recognize, or a hook failure/timeout, silently falls through to Phase 1's
+own prose-driven script call -- this hook fails open in every failure mode,
+it never blocks the prompt. See docs/injected-context-contracts.md's
+``[jev-route-injector]`` entry for the full contract.
 """
 
 import json
@@ -147,10 +145,11 @@ def build_injection(jev_result: dict) -> str:
     return (
         "[jev-route-injector] JEV_RESULT precomputed by this hook before your first token this "
         "turn -- do NOT run scripts/jev-route.py again for this request; skills/meta/d/SKILL.md "
-        "Phase 1 gates on this being present. The carried JEV_RESULT.intent_alignment is the "
-        "Phase-1 baseline receipt (JEV_RESULT.intent_alignment) ONLY; it does NOT satisfy Phase 2. "
-        "You MUST still write PROPOSED_INTENT and run scripts/jev-intent-align.py on that text "
-        "before any routing banner or dispatch. JEV_RESULT = "
+        "Phase 1 gates on this being present. It holds the safety force route, the attachment evidence, "
+        "and the project facts. It does NOT pick the agent, skill, or pipeline: you pick them in Phase 1 "
+        "with the /do rules, then run scripts/jev-route.py --finalize. Phase 2 still requires you to write "
+        "PROPOSED_INTENT and run scripts/jev-intent-align.py on that text before any routing banner or "
+        "dispatch. JEV_RESULT = "
         f"{json.dumps(jev_result)}"
     )
 

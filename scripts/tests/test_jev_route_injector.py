@@ -232,6 +232,11 @@ class TestBuildInjection:
         text = hook.build_injection(data)
         assert json.dumps(data) in text
 
+    def test_text_tells_the_model_to_pick_then_finalize(self) -> None:
+        text = hook.build_injection({"forced": None})
+        assert "--finalize" in text
+        assert "do NOT run scripts/jev-route.py again" in text
+
 
 # ------------------------------------------------------------------ #
 # main

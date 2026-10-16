@@ -1,4 +1,4 @@
-"""Integration contracts for route transport, project context, and shortlists."""
+"""Integration contracts for route transport and project context."""
 
 from __future__ import annotations
 
@@ -75,30 +75,10 @@ class TestProjectContext:
         assert "abc123" not in context
 
     def test_bare_request_state_is_unchanged_without_project(self):
-        payload = jev_route._build_stage1_payload("fix it", {"a": "x"}, {"s": "y"}, {"none": "z"})
+        payload = jev_route._build_attach_payload("fix it")
         assert payload["state"] == "fix it"
-        assert jev_route.PROJECT_CONTEXT_INSTRUCTIONS not in payload["questions"]["agent"]["instructions"]
 
-    def test_project_facts_go_in_state_and_agent_instructions(self):
+    def test_project_facts_go_in_state(self):
         project = {"languages": ["python"]}
-        payload = jev_route._build_stage1_payload("fix it", {"a": "x"}, {"s": "y"}, {"none": "z"}, project)
+        payload = jev_route._build_attach_payload("fix it", project)
         assert payload["state"] == {"request": "fix it", "project": project}
-        assert jev_route.PROJECT_CONTEXT_INSTRUCTIONS in payload["questions"]["agent"]["instructions"]
-
-    def test_shortlist_size_is_a_parameter(self):
-        probs = {f"a{i}": 1.0 - i / 10 for i in range(8)}
-        data = {
-            "answers": {
-                "agent": {"probabilities": probs},
-                "skill": {"probabilities": probs},
-                "pipeline": {"probabilities": {}},
-                "needs_skill": {"noul": 0.9},
-                "needs_pipeline": {"noul": 0.1},
-                "prose_suffices": {"noul": 0.1},
-            }
-        }
-        names = set(probs)
-        assert (
-            len(jev_route._parse_stage1(data, names, names, set())["agent_shortlist"]) == jev_route.STAGE1_SHORTLIST_N
-        )
-        assert jev_route._parse_stage1(data, names, names, set(), 4)["skill_shortlist"] == [f"a{i}" for i in range(4)]

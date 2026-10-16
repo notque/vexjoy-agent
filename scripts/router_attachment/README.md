@@ -37,21 +37,23 @@ Attached skills are the primary `skill` plus `stack`, excluding shared patterns 
 
 | Router | What runs | Cost |
 |---|---|---|
-| `d-code` | `scripts/jev-route.py` per case (Jev through Vercel AI Gateway) | about 9k Jev tokens per case |
-| `d-model` | `claude -p --model claude-opus-4-6 --tools ""` applies `skills/meta/d/SKILL.md` to recorded `d-code` output | about $0.065 per case |
+| `d-prepare` | `scripts/jev-route.py` prepare per case: the force guard and one Jev attachment evaluation (Jev through Vercel AI Gateway) | about 800 Jev input tokens per case |
+| `d-model` | A model plays the `/d` session: it reads `skills/meta/d/SKILL.md`, `/do`'s rule text (`print-route-rules.py`), and the per-request manifest, picks the route, then `jev-route.py --finalize` adds the attachments | about $0.07 per case |
 | `do-model` | Same model applies `skills/meta/do/SKILL.md` to the per-request routing manifest (`routing-manifest.py --request-file`) and the `pre-route.py` result | about $0.093 per case |
 
 Model runs ask only for the build-dispatch routing JSON; nothing executes. The first call warms the prompt cache before the rest fan out.
 
 ```bash
 OUT=/tmp/router-attach-$(date +%s)
-python3 scripts/router_attachment/run_eval.py --router d-code --out $OUT/d-code.json --workers 2
-python3 scripts/router_attachment/run_eval.py --router d-model --jev-results $OUT/d-code.json --out $OUT/d-model.json --workers 3
+python3 scripts/router_attachment/run_eval.py --router d-prepare --out $OUT/d-prepare.json --workers 2
+python3 scripts/router_attachment/run_eval.py --router d-model --jev-results $OUT/d-prepare.json --out $OUT/d-model.json --workers 3
 python3 scripts/router_attachment/run_eval.py --router do-model --out $OUT/do-model.json --workers 3
 python3 scripts/router_attachment/intent_eval.py --out $OUT/intent.json
 ```
 
-Use two `d-code` workers: three concurrent routes hit a burst of Gateway failures on 2026-09-22.
+Use two `d-prepare` workers: three concurrent calls hit a burst of Gateway failures on 2026-09-22.
+
+Results below this line were recorded with the earlier Jev two-stage pick (`d-code`). The session-pick results are in the last section.
 
 ## Results (2026-09-22)
 
@@ -88,3 +90,14 @@ Change: `/do` reads the manifest with `get-routing-manifest.sh --request-file`, 
 No run attached a private skill, before or after, so the gain sits within run-to-run variance (earlier baseline runs scored held-out full 0.929 and 0.786). The change removes 17 lines (about 3.5 KB) from every `/do` manifest.
 
 `d-model` v1.1 precision falls below `d-code` because the model added skill names that no longer exist (`test-driven-development`, `parallel-code-review`), which `build-dispatch.py` rejects. Changes and the decision card: `skills/meta/d/references/jev-classifier-design.md`, "Attachment step".
+
+## Results (2026-10-15): session pick
+
+Change: the session model picks the agent, skill, and pipeline with `/do`'s rule text and the per-request manifest, and Jev supplies the attachment evidence (`d-prepare`). `d-model` ran twice on `claude-opus-4-6`, 3 workers, one shared `d-prepare` run.
+
+| Run | Dev agent / recall / precision / full | Held-out agent / recall / precision / full | Cost |
+|---|---|---|---|
+| `/d` session pick, run 1 | 0.977 / 1.000 / 0.969 / 0.977 | 1.000 / 1.000 / 0.955 / 1.000 | $4.69 (cold cache) |
+| `/d` session pick, run 2 | 0.977 / 1.000 / 0.969 / 0.977 | 1.000 / 1.000 / 1.000 / 1.000 | $2.04 |
+
+Both runs miss the same dev case on agent and full attach, and neither attaches a forbidden agent or skill.

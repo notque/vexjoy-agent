@@ -19,14 +19,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-JEV_ROUTE = REPO_ROOT / "scripts" / "jev-route.py"
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import d_route_model
+
 DEFAULT_TIMEOUT = 8.0
 DEFAULT_WORKERS = 4
 
@@ -73,23 +74,14 @@ def case_split(case: dict) -> str:
 
 
 def route_one(request: str, timeout: float) -> dict:
+    """prepare -> session-model pick -> finalize (scripts/d_route_model.py)."""
     try:
-        proc = subprocess.run(
-            [sys.executable, str(JEV_ROUTE), "--request", request, "--json-compact"],
-            capture_output=True,
-            text=True,
-            timeout=timeout + 10,
-            check=False,
-            cwd=str(REPO_ROOT),
-        )
-        return json.loads(proc.stdout)
+        return d_route_model.pick_route(request)
     except Exception as exc:
-        return {"fallback": True, "skill": None, "source": f"error: {exc}"}
+        return {"skill": None, "source": f"error: {exc}"}
 
 
 def is_correct(case: dict, result: dict) -> bool:
-    if result.get("fallback"):
-        return False
     return result.get("skill") == case["expected_skill"]
 
 
@@ -132,7 +124,7 @@ def summarize(rows: list[dict]) -> dict:
         "n": n,
         "correct": correct,
         "accuracy_pct": round(100 * correct / n, 1) if n else 0,
-        "fallbacks": sum(bool(r["result"].get("fallback")) for r in rows),
+        "errors": sum(str(r["result"].get("source", "")).startswith("error") for r in rows),
         "by_skill": by_skill,
     }
 
@@ -168,7 +160,7 @@ def main():
             pct = 100 * d["correct"] / d["n"] if d["n"] else 0
             wrongs = ", ".join(set(str(w) for w in d["wrong_picks"][:5]))
             print(f"  {skill:<28} {d['correct']:>8}/{d['n']:<6} {pct:>5.0f}%  {wrongs}")
-        print(f"\nTotal: {s['correct']}/{s['n']} = {s['accuracy_pct']}%  (fallbacks: {s['fallbacks']})")
+        print(f"\nTotal: {s['correct']}/{s['n']} = {s['accuracy_pct']}%  (errors: {s['errors']})")
 
     if args.out:
         with open(args.out, "w") as fh:

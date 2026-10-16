@@ -2,20 +2,23 @@
 """Router-attachment eval: does /d or /do attach the right agent and skills?
 
 Routers under test:
-  d-code    jev-route.py output only (the deterministic + Jev part of /d).
-  d-model   a model applies /d's SKILL.md to that JEV_RESULT and emits the
-            build-dispatch decision (what /d really dispatches).
-  do-model  a model applies /do's SKILL.md to the routing manifest plus the
-            pre-route.py result and emits the build-dispatch decision.
+  d-prepare  jev-route.py prepare output only (safety force route and attachment
+             evidence). Writes the JEV_RESULT that d-model replays.
+  d-model    a model plays the /d session: it reads /d's SKILL.md, /do's routing
+             rules, and the routing manifest, picks the agent, skill, and
+             pipeline, and `jev-route.py --finalize` adds the attachments
+             (scripts/d_route_model.py).
+  do-model   a model applies /do's SKILL.md to the routing manifest plus the
+             pre-route.py result and emits the build-dispatch decision.
 
 Model runs use `claude -p --model <model> --tools ""` and ask only for the
 routing JSON. Every run writes a fresh JSON file; scoring is pure and shared
 with scripts/tests/test_router_attachment_eval.py.
 
 Usage:
-  python3 scripts/router_attachment/run_eval.py --router d-code --out /tmp/x/d-code.json
-  python3 scripts/router_attachment/run_eval.py --router d-model --jev-results /tmp/x/d-code.json --out ...
-  python3 scripts/router_attachment/run_eval.py --score /tmp/x/d-code.json
+  python3 scripts/router_attachment/run_eval.py --router d-prepare --out /tmp/x/d-prepare.json
+  python3 scripts/router_attachment/run_eval.py --router d-model --jev-results /tmp/x/d-prepare.json --out ...
+  python3 scripts/router_attachment/run_eval.py --score /tmp/x/d-model.json
 """
 
 from __future__ import annotations
@@ -34,6 +37,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
+sys.path.insert(0, str(REPO / "scripts"))
+import d_route_model
+
 CASES = HERE / "cases.json"
 DEFAULT_MODEL = "claude-opus-4-6"
 
@@ -151,24 +157,6 @@ def report(rows: list[dict], cases: list[dict], patterns: set[str]) -> dict:
 # ---------------------------------------------------------------- runners
 
 
-def run_jev_route(request: str) -> dict:
-    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
-        fh.write(request)
-        path = fh.name
-    try:
-        proc = subprocess.run(
-            [sys.executable, str(REPO / "scripts" / "jev-route.py"), "--request-file", path, "--json-compact"],
-            capture_output=True,
-            text=True,
-            cwd=str(REPO),
-            timeout=90,
-            check=False,
-        )
-        return json.loads(proc.stdout)
-    finally:
-        Path(path).unlink(missing_ok=True)
-
-
 def run_pre_route(request: str) -> dict:
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
         fh.write(request)
@@ -187,79 +175,6 @@ def run_pre_route(request: str) -> dict:
         Path(path).unlink(missing_ok=True)
 
 
-def d_code_decision(jev: dict) -> dict:
-    """What /d's script output alone attaches (no model interpretation)."""
-    stack = list(jev.get("attach") or []) or list(jev.get("stack") or [])
-    return {
-        "agent": jev.get("agent"),
-        "skill": jev.get("skill"),
-        "pipeline": jev.get("pipeline"),
-        "stack": stack,
-        "agents": jev.get("agents") or [],
-    }
-
-
-_JSON_RE = re.compile(r"\{.*\}", re.S)
-
-
-def call_model(system_file: Path, prompt: str, model: str, scratch: Path) -> tuple[dict | None, float, str, dict]:
-    env = dict(os.environ)
-    env.pop("CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING", None)
-    cmd = [
-        "claude",
-        "-p",
-        "--model",
-        model,
-        "--tools",
-        "",
-        "--output-format",
-        "json",
-        "--exclude-dynamic-system-prompt-sections",
-        "--append-system-prompt-file",
-        str(system_file),
-    ]
-    for attempt in range(3):
-        proc = subprocess.run(
-            cmd, input=prompt, capture_output=True, text=True, env=env, cwd=str(scratch), timeout=300, check=False
-        )
-        try:
-            outer = json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            time.sleep(5 * (attempt + 1))
-            continue
-        cost = float(outer.get("total_cost_usd") or 0.0)
-        usage = outer.get("usage") or {}
-        usage = {
-            k: usage.get(k)
-            for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
-        }
-        text = outer.get("result") or ""
-        match = _JSON_RE.search(text)
-        if match:
-            try:
-                return json.loads(match.group(0)), cost, text, usage
-            except json.JSONDecodeError:
-                pass
-        return None, cost, text, usage
-    return None, 0.0, "claude -p failed", {}
-
-
-D_PROMPT = """You are executing the /d skill (its SKILL.md is in your system prompt) for the user request below.
-Phase 1 already ran: JEV_RESULT is given. Phase 2 intent alignment returned `aligned` with no issues.
-Do not execute the task and do not call tools. Apply Phases 3 and 4 exactly as SKILL.md instructs, then output
-ONLY the JSON decision object you would pass to build-dispatch.py in Phase 5, restricted to these keys:
-{"agent": ..., "agents": [...], "skill": ..., "pipeline": ..., "stack": [...]}
-No prose, no code fences.
-
-User request:
-<request>
-%s
-</request>
-
-JEV_RESULT:
-%s
-"""
-
 DO_PROMPT = """You are executing the /do skill (its SKILL.md and the routing manifest are in your system prompt) for the
 user request below. You cannot run tools: the manifest text is already provided, and PRE_ROUTE_RESULT is the output of
 pre-route.py for this request. Do not execute the task. Apply Phases 1-3 exactly as SKILL.md instructs, then output
@@ -277,50 +192,43 @@ PRE_ROUTE_RESULT:
 """
 
 
-def build_system_file(router: str, scratch: Path, case: dict | None = None) -> Path:
-    """System prompt file. For do-model, pass *case*: /do reads the manifest per request.
+def build_do_system_file(scratch: Path, case: dict) -> Path:
+    """System prompt file for do-model: /do reads the manifest per request.
 
     The manifest is built with the request, as `get-routing-manifest.sh
     --request-file` does, so private entries appear only when the request names
     their domain.
     """
-    if router == "d-model":
-        text = (REPO / "skills" / "meta" / "d" / "SKILL.md").read_text(encoding="utf-8")
-        path = scratch / f"{router}-system.md"
-    else:
-        request = (case or {}).get("request", "")
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
-            fh.write(request)
-            request_path = fh.name
-        try:
-            manifest = subprocess.run(
-                [sys.executable, str(REPO / "scripts" / "routing-manifest.py"), "--request-file", request_path],
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=str(REPO),
-            ).stdout
-        finally:
-            Path(request_path).unlink(missing_ok=True)
-        text = (
-            (REPO / "skills" / "meta" / "do" / "SKILL.md").read_text(encoding="utf-8")
-            + "\n\n# Routing manifest (output of get-routing-manifest.sh)\n\n"
-            + manifest
-        )
-        # Name by content: requests whose gated manifest is identical share one
-        # file, so they share the prompt-cache prefix.
-        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
-        path = scratch / f"{router}-system-{digest}.md"
+    text = (
+        (REPO / "skills" / "meta" / "do" / "SKILL.md").read_text(encoding="utf-8")
+        + "\n\n# Routing manifest (output of get-routing-manifest.sh)\n\n"
+        + d_route_model.manifest_for(case["request"])
+    )
+    # Name by content: requests whose gated manifest is identical share one
+    # file, so they share the prompt-cache prefix.
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    path = scratch / f"do-model-system-{digest}.md"
     path.write_text(text, encoding="utf-8")
     return path
 
 
+def d_model_decision(route: dict) -> dict:
+    """What /d dispatches: the finalized route, with `attach` as the stack."""
+    return {
+        "agent": route.get("agent"),
+        "skill": route.get("skill"),
+        "pipeline": route.get("pipeline"),
+        "stack": list(route.get("attach") or []) or list(route.get("stack") or []),
+        "agents": route.get("agents") or [],
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--router", choices=["d-code", "d-model", "do-model"])
+    ap.add_argument("--router", choices=["d-prepare", "d-model", "do-model"])
     ap.add_argument("--split", default="all", choices=["all", "dev", "ood"])
     ap.add_argument("--out", type=Path, help="fresh results JSON path")
-    ap.add_argument("--jev-results", type=Path, help="d-code results to reuse as JEV_RESULT for d-model")
+    ap.add_argument("--jev-results", type=Path, help="d-prepare results to reuse as JEV_RESULT for d-model")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--only", default="", help="comma-separated case ids")
@@ -352,27 +260,29 @@ def main() -> int:
         for row in json.loads(args.jev_results.read_text(encoding="utf-8"))["rows"]:
             jev_cache[row["id"]] = row["raw"]
 
-    system_file = build_system_file(args.router, scratch) if args.router == "d-model" else None
-
     def one(case: dict) -> dict:
         started = time.monotonic()
-        if args.router == "d-code":
-            raw = run_jev_route(case["request"])
+        if args.router == "d-prepare":
+            raw = d_route_model.prepare(case["request"])
+            return {"id": case["id"], "raw": raw, "decision": None, "cost_usd": 0.0, "s": time.monotonic() - started}
+        if args.router == "d-model":
+            route = d_route_model.pick_route(
+                case["request"], model=args.model, scratch=scratch, prepared=jev_cache.get(case["id"])
+            )
             return {
+                "usage": route["usage_model"],
                 "id": case["id"],
-                "raw": raw,
-                "decision": d_code_decision(raw),
-                "cost_usd": 0.0,
+                "raw": route["prepared"],
+                "decision": d_model_decision(route),
+                "problems": route["problems"],
+                "cost_usd": route["cost_usd"],
+                "text": route["decision_text"],
                 "s": time.monotonic() - started,
             }
-        if args.router == "d-model":
-            raw = jev_cache.get(case["id"]) or run_jev_route(case["request"])
-            prompt = D_PROMPT % (case["request"], json.dumps(raw))
-        else:
-            raw = run_pre_route(case["request"])
-            prompt = DO_PROMPT % (case["request"], json.dumps(raw))
-        case_system = system_file or build_system_file(args.router, scratch, case)
-        decision, cost, text, usage = call_model(case_system, prompt, args.model, scratch)
+        raw = run_pre_route(case["request"])
+        decision, cost, text, usage = d_route_model.call_model(
+            build_do_system_file(scratch, case), DO_PROMPT % (case["request"], json.dumps(raw)), args.model, scratch
+        )
         return {
             "usage": usage,
             "id": case["id"],
@@ -390,7 +300,7 @@ def main() -> int:
 
     result = {
         "router": args.router,
-        "model": args.model if args.router != "d-code" else None,
+        "model": args.model if args.router != "d-prepare" else None,
         "split": args.split,
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "cost_usd": round(sum(r["cost_usd"] for r in rows), 4),
