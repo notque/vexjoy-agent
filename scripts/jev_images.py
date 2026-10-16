@@ -40,7 +40,9 @@ MIN_PIXELS = 78_400
 MAX_PIXELS = 2_458_624
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_REQUEST_BYTES = 32 * 1024 * 1024
-JPEG_QUALITY = 90
+# 95, not 90 (2026-10-16): TypeSafe says Jev reads JPEGs of about 512 KB-2 MB best. A 1568x1176 UI-like
+# image encodes to 247 KB at q90 and 291 KB at q95; a noisy photo-like one to 450 KB and 615 KB.
+JPEG_QUALITY = 95
 
 # --- Token estimate (MEASURED once, 2026-10-16; re-measure when the model changes) ---
 # TypeSafe publishes no per-image token count. Measured on the direct API
@@ -128,6 +130,17 @@ def _open(src: Any) -> Any:
     return im
 
 
+def open_image(src: Any) -> Any:
+    """Open a path, bytes, or Pillow image as an RGB Pillow image with EXIF rotation applied.
+
+    Use it to crop or tile a full-resolution source before wrapping the pieces in ``JevImage``.
+    """
+    _, ImageOps = _pil()
+    im = _open(src)
+    im = ImageOps.exif_transpose(im) or im
+    return im.convert("RGB")
+
+
 def _has_transparency(im: Any) -> bool:
     if im.mode in ("RGBA", "LA", "PA"):
         alpha = im.convert("RGBA").getchannel("A")
@@ -161,7 +174,7 @@ def prepare_image(src: Any) -> PreparedImage:
 
     Steps: apply EXIF rotation, shrink to fit 1568 px, upscale an image with a
     side under 280 px (padding instead when upscaling would pass 1568 px), then
-    encode as baseline JPEG at quality 90. An image with real transparency stays
+    encode as baseline JPEG at quality 95. An image with real transparency stays
     PNG. Returns ``(data, fmt, width, height)``.
     """
     Image, ImageOps = _pil()

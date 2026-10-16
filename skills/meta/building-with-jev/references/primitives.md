@@ -106,4 +106,14 @@ Validate before acting: `validate_jev_response` checks Noul in [0,1], Choice is 
 
 ## Box
 
-A question with `type` `box` and `instructions` such as "the next-turn button in the page image" returns `box` (`top`, `bottom`, `left`, `right`, each 0 to 1 of the image) and `confidence`. It needs an image and Jev 1.14, and it always returns edges, so pair it with a "visible?" Noul. Details: `images.md`.
+A question with `type` `box` and `instructions` such as "the next-turn button in `page`" returns `box` (`top`, `bottom`, `left`, `right`, each 0 to 1 of the image, from the top-left) and `confidence`. It takes `instructions` only, needs an image and Jev 1.14, and mixes with other question types in one request. Multiply the fractions by the image size for pixels.
+
+Rules for the question:
+
+- A Box always returns edges, never "not found". Pair it with a presence Noul and ignore the box when the Noul is low.
+- Ask one target per Box. Name several targets with one Box each.
+- If the image may hold several look-alikes, add a Choice `none` / `one` / `several`.
+- A target can be a picture: reference a second image in the instructions.
+
+`scripts/jev_box.py` wraps these patterns: `locate(image, target)` runs the presence, count, refine, tile, and edge-check steps and returns one box in fractions of your original image. Box is experimental: treat it as one signal beside app data, a presence Choice, and edge checks. On images a present/absent Choice reads more decisively than a Noul. Patterns, escalation, and measured numbers: `images.md`.
+
