@@ -1,14 +1,14 @@
 ---
-description: "Jev-first router: A/B variant of /do. One TypeSafe call replaces the manifest read; falls back to /do when unavailable or unconfident."
+description: "Jev-validated router: the session picks the route with /do's rules; Jev answers the attachment questions and checks the restated intent."
 argument-hint: "[request]"
 allowed-tools: ["Read", "Bash", "Grep", "Glob", "Skill", "Task"]
 ---
 
-# /d - Jev-first Router (A/B variant of /do)
+# /d - Jev-validated Router
 
-Route user requests using a Jev classifier call instead of `/do`'s
-in-context manifest read. Use `/d` to A/B-test against `/do`; use `/do` for
-normal work.
+Route user requests with `/do`'s rule text and manifest, then use Jev to
+attach domain skills and check that the restated outcome survives the route.
+Use `/d` to A/B-test against `/do`; use `/do` for normal work.
 
 ## Instructions
 
@@ -20,16 +20,14 @@ Base directory: $CLAUDE_PROJECT_DIR or the current working directory
 Skill file: skills/meta/d/SKILL.md
 ```
 
-**Phase 1: CLASSIFY** — One `scripts/jev-route.py` call: deterministic
-force-route guard, then (if not force-routed) the merged Jev classification.
-**Phase 1F: FALLBACK** — On `fallback: true` (TypeSafe unavailable, low
-confidence, or error), read `skills/meta/do/SKILL.md` in full and run its
-Phase 1-4 unmodified.
+**Phase 1: CLASSIFY** — `scripts/jev-route.py` runs the force-route guard and
+one Jev attachment evaluation. You pick the agent, skill, and pipeline with
+`/do`'s rules (`scripts/print-route-rules.py`) and the routing manifest, then
+`jev-route.py --finalize` validates the pick and adds the attachments.
 **Phase 2: ALIGN INTENT** — MANDATORY before any banner or dispatch. Write
-`PROPOSED_INTENT`, run `jev-intent-align.py` on it. `JEV_RESULT.intent_alignment`
-from the hook is the baseline only — it does NOT satisfy Phase 2.
-**Phase 3: DECIDE** — Apply the Jev/force-route decision. Display the routing
-banner only after Phase 2 completes.
+`PROPOSED_INTENT` for the finalized route, run `jev-intent-align.py` on it.
+**Phase 3: DECIDE** — Show the finalized route. Display the routing banner
+only after Phase 2 completes.
 **Phase 4: ENHANCE** — Map stack signals to concrete stack entries.
 **Phase 5: EXECUTE** — Same Task Spec + `build-dispatch.py` contract `/do`
 uses, reused unmodified.
@@ -47,7 +45,7 @@ The routing banner MUST include the Phase 2 intent alignment result:
  Selected:
    -> Agent: [name] - [reasoning]
    -> Skill: [name] - [reasoning]
-   -> Source: [jev|pre-route-force] (confidence: [level])
+   -> Source: [session|pre-route-force] (confidence: [level])
 
  Invoking...
 ===================================================================
@@ -55,12 +53,9 @@ The routing banner MUST include the Phase 2 intent alignment result:
 
 A banner printed without the `Intent` block means Phase 2 was skipped — that is not allowed.
 
-On fallback, the banner instead states `ROUTING (/d -> falling back to
-/do): [reason]` and control passes entirely to `/do`'s own instructions.
-
 For the full design (why `/d` exists as a separate command, the
-request/response contract, fallback-condition reasoning, measured eval
-results), read `skills/meta/d/SKILL.md` and
+request/response contract, measured eval results), read
+`skills/meta/d/SKILL.md` and
 `skills/meta/d/references/jev-classifier-design.md`.
 
 ARGUMENTS: $ARGUMENTS

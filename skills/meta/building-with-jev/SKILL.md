@@ -208,7 +208,7 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 | Speculative fan-out | every branch's questions in one call, each stating its own premise ("if this is a refund request, ..."); heads are independent and cannot see one another's answers; code ignores unused heads and their uncertainty | `scripts/jev-browser-decide.py` |
 | Confidence-gated routing | a floor below which nothing acts and a higher bar for high-stakes actions; paths act / confirm / hand off. Select both thresholds from labeled data and action costs | `scripts/jev-route.py` |
 | Composite scoring | one Score per dimension, normalize by `len(criteria) - 1`, weights in code. Weighted sums suit preferences that offset one another; an "any serious violation" rule needs its own Noul per condition | `references/composition-patterns.md` |
-| Intent routing | Choice for intent plus complexity Score, both confidence-gated | `scripts/jev-route.py` |
+| Domain attachment | one Noul per domain, attach above a 0.6 floor, code caps the count; Jev supplies evidence, code decides | `scripts/jev-route.py` |
 | Taxonomy walk | one Choice per level; each option's criteria is its trimmed subtree; follow several branches when close | `references/composition-patterns.md` |
 | Multi-Noul decomposition | split a compound goal into one Noul per clause; combine in code | `references/composition-patterns.md` |
 | Cascade plus verification | one wide request per unit; code thresholds pick survivors. Send a second request when the first answer is needed to fetch evidence, build new state, or decide the next options; it carries only what the first lacked | `references/composition-patterns.md` |

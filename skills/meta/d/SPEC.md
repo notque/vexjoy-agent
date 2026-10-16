@@ -1,136 +1,115 @@
-# SPEC: /d — Jev-first router
+# SPEC: /d — session-pick router with Jev validation
 
 Maintenance contract. Load only when creating, evaluating, or redesigning
 this skill — not during ordinary routing (SKILL.md's phases are the runtime
 contract).
 
 ## Purpose
-Alternate entry point to `/do` that replaces the in-context routing-manifest
-read with bounded external Jev classification calls, cutting per-dispatch router
-context cost when Jev is available. Intent preservation is production behavior:
-the router must return the requested apple, not expand it into an orchard.
+Alternate entry point to `/do`. The session model picks the agent, skill, and
+pipeline from the full routing manifest with `/do`'s own rule text. Jev
+validates that the restated outcome survives the route and answers the
+attachment questions. Intent preservation is production behavior: the router
+must return the requested apple, not expand it into an orchard.
 
 ## Scope
-- Classify agent/skill/pipeline/complexity/stack-signals for one user
-  request, via `scripts/jev-route.py`.
-- Defer entirely to `/do`'s Phase 1-4 when Jev is unavailable, a Jev
-  call errors, or Jev names an invalid/off-manifest pick.
+- Run the force-route guard and one Jev attachment evaluation before the pick,
+  via `scripts/jev-route.py` (prepare).
+- Validate the pick against the live manifest and compute `attach` after it,
+  via `scripts/jev-route.py --finalize`.
+- Print `/do`'s Phase 2 rule text for the pick, via `scripts/print-route-rules.py`.
 - Execute Phase 5 (Task Spec + `build-dispatch.py`) identically to `/do`.
 
 ## Intent alignment
-Every matched `/d` route receives a hook-time baseline and a required runtime
-intent restatement. One batched Jev judgment checks that the intended outcome
-and constraints survive routing; it reports scope loss, added work, route
-mismatch, and essential ambiguity without fabricating a task. The runtime
-receipt for the agent's actual `PROPOSED_INTENT` satisfies the instruction
-gate; the hook-time baseline receipt is evidence, not a substitute for it.
-This is not hook enforcement, so the user remains the final backstop if an
-agent violates the contract.
+Every `/d` route receives a required runtime intent restatement. One batched
+Jev judgment checks that the intended outcome and constraints survive routing;
+it reports scope loss, added work, route mismatch, and essential ambiguity
+without fabricating a task. The receipt for the agent's actual `PROPOSED_INTENT`
+satisfies the instruction gate. There is no hook-time baseline: the route does
+not exist until the session model picks it, so a baseline would judge an empty
+route. This is not hook enforcement, so the user remains the final backstop if
+an agent violates the contract.
 
 This is a production requirement grounded in repeated daily use: preventing
-unrequested scope expansion is the feature's primary value. If classification
-falls back before a route exists, intent checking
-cannot run and `/d` delegates to `/do` rather than pretending it was validated.
+unrequested scope expansion is the feature's primary value.
 
 ## Non-goals
-- Not a replacement for `/do`: `/d` is a production Jev-backed entry point,
-  while `/do` remains the manifest-based fallback and separate default route.
+- Not a replacement for `/do`: `/d` shares `/do`'s rule text and manifest, and
+  adds Jev's attachment answers and outcome validation.
 - Not a new manifest format, INDEX schema, or `build-dispatch.py` contract
   change.
 - Not a new telemetry/marker schema — dispatches still emit `[do-route]` via
   the shared `build-dispatch.py`.
-- Does not reimplement `/do`'s Phase 1-3 semantic reasoning in Python; it
-  replaces that reasoning with an external classifier plus a Python-side
-  validation/floor layer, not a rules rewrite.
+- Jev does not pick the agent, skill, or pipeline. A 2026-10 paired
+  measurement showed the session model with `/do`'s rule text beating Jev's
+  two-stage pick (`references/jev-classifier-design.md`).
 
 ## Invariants
 1. `scripts/pre-route.py`'s deterministic force-route guard always runs
-   first. Its pr-workflow, pr-pipeline, and security matches are never
-   overridden by Jev. Other force matches are hints on Jev's stage-2
-   shortlist, matching `/do` Phase 2 Step 1(b); they stand alone only when
-   Jev fails or calls the request trivial.
-2. Every agent/skill/pipeline name returned to the caller is validated
-   against the live `AGENTS:`/`SKILLS:`/`PIPELINES:` manifest membership
-   before use.
-3. Manifest-membership validation is the ONLY thing that can invalidate a
-   primary agent/skill/pipeline pick (2026-09-16, fits-threshold removal):
-   every name returned to the caller must be a real, shortlisted manifest
-   entry, or that dimension is rejected to `null` -> fallback, never a
-   guess. Jev's top-ranked Choice pick is otherwise always used, with no
-   minimum fit score required — the earlier `--fits-threshold`-gated
-   rejection on primary selection (default 0.30) was removed per the
-   owner's explicit instruction ("it picks the most relevant option instead
-   of having some .7 requirement... I don't want there to be any artificial
-   limit").
-   `--fits-threshold` still exists, scoped down to gating optional
-   fan-out-candidate inclusion only — it no longer gates primary selection.
-   `--confidence-floor` remains accepted on the CLI for backward
-   compatibility but has no effect on routing (superseded since the v1-to-v2
-   redesign, unchanged by this removal). A stage-1 gate score below
-   `--gate-threshold` (default 0.30) is a distinct terminal state
-   (`jev-trivial-bypass`), not a fallback, and is completely unaffected by
-   this invariant's rewrite — it decides whether routing is needed at all,
-   not which candidate wins among real options.
+   first. Its pr-workflow, pr-pipeline, and security matches override the
+   picked skill and pipeline in `--finalize` (`/do` Phase 2 Step 1(a)). Other
+   force matches are not carried into `JEV_RESULT`, matching `/do` Step 1(b).
+2. Every agent, skill, and pipeline name in the route is validated against the
+   live `AGENTS:`/`SKILLS:`/`PIPELINES:` manifest membership in `--finalize`.
+   A name outside it is dropped and listed in `problems`. `d` and `do` are
+   never valid skills.
+3. The rule text is single-sourced. `/d` prints `/do`'s Phase 2 span with
+   `print-route-rules.py` and never copies it.
+   `scripts/tests/test_print_route_rules.py` fails when an anchor or a rule
+   leaves `/do`'s SKILL.md.
 4. `JEV_TRANSPORT=auto|vercel|direct` selects the transport. Auto prefers
    `AI_GATEWAY_API_KEY`, then `TYPESAFE_API_KEY`. Credential values are never
    passed as arguments, logged, printed, or persisted.
 5. `skills/meta/do/SKILL.md` and `commands/do.md` are never modified by this
    skill or its scripts.
-6. On any fallback signal, `/d` executes `/do`'s full Phase 1-4 instructions
-   unmodified — never a partial/degraded `/d`-only path. `jev-trivial-bypass`
-   is not a fallback signal; it is handled directly (Phase 1T), matching
-   `/do`'s own Trivial contract.
+6. Jev failure never blocks routing. Without attachment evidence the route
+   keeps the pre-route stack and the agent domain floor. The Phase 2 validator
+   reports `unavailable`, and the request continues.
 7. `jev-route.py` uses the shared transport selector. A missing Gateway bridge
-   or unavailable direct API must never crash `/d`; it must fail open to `/do`.
-8. Classification uses at most two Vercel AI Gateway Jev evaluations (one for
-   a trivial bypass, two for a routed request, force routes included). Every matched `/d` route adds
-   one batched runtime intent-alignment evaluation; it never makes one request
-   per question. The Vercel transport is a supported production dependency.
-
-9. Every matched route carries `attach`: manifest-valid extra skills from
-   code policy (`_attachments` in `jev-route.py`), at most three. `/d`
-   passes it as the dispatch `stack` unchanged. A route with no domain agent
-   takes the primary or attached skill's owning agent.
+   or unavailable direct API must never crash `/d`.
+8. `/d` uses at most two Vercel AI Gateway Jev evaluations per request: one
+   for the attachment questions (prepare) and one batched intent-alignment
+   evaluation (Phase 2). Neither makes one request per question. `--finalize`
+   never calls Jev. The Vercel transport is a supported production dependency.
+9. Every route carries `attach`: manifest-valid extra skills from code policy
+   (`_attachments` in `jev-route.py`), at most three. `/d` passes it as the
+   dispatch `stack` unchanged. A route with no domain agent takes the primary
+   or attached skill's owning agent. An empty skill takes `workflow`.
 
 ## Dependencies
-- `scripts/jev-route.py`, `scripts/jev_intent_align.py` (classification and alignment)
-- `scripts/pre-route.py`, `scripts/routing-manifest.py` (reused, unmodified)
+- `scripts/jev-route.py`, `scripts/print-route-rules.py`, `scripts/jev_intent_align.py`
+- `scripts/pre-route.py`, `scripts/routing-manifest.py`, `scripts/get-routing-manifest.sh` (reused, unmodified)
 - `scripts/build-dispatch.py` (reused, unmodified — Phase 5)
 - Jev transport selector (`scripts/jev_transport.py`), Vercel AI Gateway bridge
   (`scripts/jev_vercel.py` and `scripts/jev_gateway/jev_vercel_gateway.mjs`),
   direct client (`scripts/jev_router_common.py`), and their credentials
+- Eval drivers: `scripts/d_route_model.py`, `scripts/jev-eval.py`,
+  `scripts/jev-eval-live.py`, `scripts/router_attachment/run_eval.py`
 
 ## Known limitations (not blocking, tracked)
-- Hidden prose coupling: `jev-route.py`'s classifier instructions
-  hand-paraphrase `/do`'s Phase 1-3 text with no automated drift check (see
-  `references/jev-classifier-design.md` "Hidden coupling").
-- Route classification has no independent verification beyond Jev's own
-  self-reported fit scores
-  (`/do`'s Step 0 has the orchestrator's live reasoning as an implicit
-  check; `/d` does not have an equivalent for a confident-but-wrong pick).
-  Since the 2026-09-16 fits-threshold removal, this is more relevant, not
-  less: a low-fit pick is no longer deferred to `/do`, it is dispatched
-  as-is. Monitored via regression evaluation, not solved structurally in this
-  pass — see `references/jev-classifier-design.md`
-  "Confident-wrong risk," strengthened (not softened) by that change.
-- Removing the primary fits threshold means fallback no longer acts as an
-  uncertainty backstop for a low-fit but manifest-valid pick. The intent gate
-  constrains outcome drift, but does not prove that route classification is
-  optimal.
-- The two-stage classifier plus runtime alignment adds network latency. Vercel
-  is preferred in `auto` mode because it is the required, currently cost-free
-  production path; direct Jev remains the explicit alternative.
+- The pick is one model reply. A rerun with unchanged code changes the pick on
+  about 11% of corpus rows, so compare arms only with two runs each and count a
+  row as changed when both runs agree.
+- Route classification has no independent verification beyond the session
+  model's own reasoning and the manifest-membership check. A confident wrong
+  pick is dispatched as-is. Monitored via the corpus run, not solved
+  structurally — see `references/jev-classifier-design.md` "Confident-wrong risk".
+- The pick reads the whole manifest (about 10k tokens) and `/do`'s rule text
+  (about 2k tokens) in the session. Jev's two-stage pick kept them out of the
+  session; `/d` now spends that context for a higher pair accuracy.
+- The Jev attachment call adds network latency. Vercel is preferred in `auto`
+  mode because it is the required, currently cost-free production path; direct
+  Jev remains the explicit alternative.
 
 ## Release criteria
-- The instructions require a matched route to obtain a runtime receipt for the
-  exact proposed intent before acting, unless validation is explicitly reported
-  unavailable and the fail-open contract is followed.
+- The instructions require a runtime receipt for the exact proposed intent
+  before acting, unless validation is explicitly reported unavailable and the
+  fail-open contract is followed.
 - Added work, lost scope, route mismatch, and essential ambiguity exercise the
   alignment gates in `EVAL.md`.
 - Vercel `auto` preference, explicit transport isolation, retry bounds,
   credential redaction, and direct-transport parity remain covered.
-- Force-route, trivial-bypass, unavailable, error, and invalid-pick paths
-  resolve according to their documented contracts.
+- Force-route, unavailable, error, and invalid-pick paths resolve according to
+  their documented contracts.
 - `scripts/tests/test_router_attachment_eval.py` passes, and a live run of
   `scripts/router_attachment/` does not drop below the last recorded run in
   `EVAL.md`.

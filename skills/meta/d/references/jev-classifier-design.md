@@ -1,391 +1,163 @@
-# Jev classifier design
+# /d design: session pick, Jev evidence
 
-Deep reference for `/d` (`skills/meta/d/SKILL.md`). Load this when explaining,
-tuning, or extending the router; SKILL.md's phases are enough to run it.
+Deep reference for `/d` (`skills/meta/d/SKILL.md`). Load it when explaining,
+tuning, or extending the router. SKILL.md's phases are enough to run it.
 
-**v2 redesign, 2026-09-16.** This document describes the CURRENT two-stage
-design. v1 (single flat `Choice` call per dimension) is superseded; its
-numbers are cited only as the documented before/after baseline
-(`scripts/routing-ab-results/jev-router-v1-2026-09-16/VERDICT.md`).
+## Design in one table
 
-## Presence contract
+| Step | Owner | Script |
+|---|---|---|
+| Force-route guard (`pr-workflow`, `pr-pipeline`, `security`) | code | `pre-route.py`, kept by `jev-route.py` prepare |
+| Attachment evidence: 5 signal Nouls, 6 domain Nouls, one Jev call | Jev | `jev-route.py` prepare |
+| Pick agent, skill, pipeline from the full manifest with `/do`'s rule text | session model | `print-route-rules.py`, `get-routing-manifest.sh --request-file` |
+| Validate names against the live manifest, apply the safety force route, attach skills, derive complexity | code | `jev-route.py --finalize` |
+| Check the restated outcome survives the route | Jev | `jev-intent-align.py` (Phase 2) |
 
-`scripts/jev_router_common.py: typesafe_available() -> (bool, str)`. Unchanged
-by the v2 redesign. True only when both hold:
+Jev supplies evidence and a check. It does not pick the primary route.
 
-1. `TYPESAFE_API_KEY` is set and non-empty in the environment (value never
-   read into logs, prints, or files — only its presence is checked).
-2. `enabledPlugins["typesafe@typesafe-ai"] == true` in the merged settings:
-   `~/.claude/settings.local.json` values win over `~/.claude/settings.json`
-   for any key present in both; a missing file is `{}`, not an error.
+## Why the pick moved to the session
 
-Either condition false -> `/d` never attempts a network call. This is a
-presence check, not a health check — a configured-but-down TypeSafe endpoint
-still attempts the call and falls back on the resulting timeout/error, not on
-this check.
+The earlier design asked Jev two questions per request: a wide rank over the
+catalog, then a shortlist rerank with a fits threshold. Every Jev answer saw
+only a truncated catalog slice, and about a quarter of requests fell back to
+`/do`.
 
-## Why v1 was replaced
+A paired measurement on `scripts/routing-ab-corpus.json` v1.5 (269 rows) found
+the Jev pick below `/do`'s rule text applied by a model. Both arms got the same
+repo facts for the 91 rows recorded with a workload, and each arm ran twice.
 
-v1 asked ONE flat `Choice` question per dimension (agent, skill, pipeline,
-complexity) over ALL manifest candidates at once, with descriptions truncated
-to ~100 characters each — and never sent `not_for` disambiguation text to Jev
-at all, at any point, for any dimension. Two independent problems, not one:
+| Arm | Pair correct (run 1 / run 2) | General-purpose or null picks |
+|---|---|---|
+| Jev two-stage pick (previous `/d`) | 146 / 146 | 67 / 69 |
+| `/do` rules, model pick (proxy) | 172 | 55 |
+| Session pick plus Jev attachments (this design) | 178 / 178 | 70 / 66 |
 
-1. **Truncation cut real disambiguating content inside `description` itself**
-   for any entry whose description ran past ~100 characters (several
-   agent/skill descriptions do — see "Cookbook reuse and divergence" below
-   for the measured effect).
-2. **`not_for` was never in the payload, truncated or not.** Many entries
-   carry an explicit `not_for` clause naming the exact sibling skill/agent a
-   request is likely to be confused with (e.g. `reviewer-code`'s `not_for`
-   says "business-logic correctness, ADR conformance... (use reviewer-domain)").
-   v1's single pass had no way to show Jev that text, so Jev had no signal
-   telling it "not this one, that one" beyond the short descriptions
-   themselves.
+The structural cause: the pick needs the whole manifest and the cross-rule
+reading (SECTION-INTEGRITY, SPECIFICITY, COMBINATION DOCTRINE, the two
+greediness gates). A model reading `/do`'s text does that. Per-question Jev
+calls over a shortlist cannot.
 
-Owner-mandated fix: a two-stage progressive-disclosure pattern (cheap wide
-rank, then full-detail shortlist rerank), NOT the cookbook's shape
-transplanted wholesale — see below for exactly what was kept and what
-changed, and why.
+Paired change against the previous `/d`, counting a row only when both runs of
+an arm agree: 38 rows recovered, 10 lost, McNemar p < 0.001. Against the `/do`
+proxy, 23 rows only this design got right and 17 only the proxy did (p = 0.43).
 
-## Request/response shape (v2, two calls)
+Lost rows fall in three groups:
 
-Up to TWO `POST https://api.typesafe.ai/v1/systemone` calls per routing
-decision that reaches Jev at all: 0 when TypeSafe is unavailable, 1 on
-trivial-bypass (stage 1 only), 2 otherwise (stage 1 + stage 2), force routes
-included since v1.2. Each evaluation is packed at the reliable request size
-(`jev_transport.evaluate_packed`), so one evaluation can be several small
-requests sent at once. Never
-per-dimension, never more than 2 — this is a hard cost constraint, not a
-default that grows with manifest size.
+| Group | Rows | Cause |
+|---|---|---|
+| Sibling-skill choice | 61, 133, 211, 214, 245 | The pick chose a close skill (`review` for `assessment`, `workflow` for `domain`, `assessment` for `docs-sync-checker`). The agent was right. `/do` makes the same choice on 133, 211, and 214. |
+| Out-of-catalog request | 21, 78 | The pick returned `general-purpose` and `workflow` for a request no catalog entry covers. Gold wants a content or no-op route. |
+| Weak gold | 34, 123, 129 | Gold is `content`, or no pick at all, and a defensible `writing` or `research` pick scores wrong. |
 
-### Stage 1 (wide rank + trivial-bypass gate)
+## Single-sourced rule text
 
-One call. Body:
+`/do` Phase 2 holds the routing rules. `scripts/print-route-rules.py` prints the
+span from `**Routing rules (ALL apply):**` up to `**Section validator (before
+dispatch):**` straight from `skills/meta/do/SKILL.md`. `/d` never copies it, so
+the two routers cannot drift. `scripts/tests/test_print_route_rules.py` fails when
+an anchor moves or a rule leaves that span. The old hand-written Jev
+instruction strings (the hidden coupling this document used to list as a known
+limitation) are gone.
 
-```json
-{
-  "state": "<user request verbatim>",
-  "model": "jev-latest",
-  "questions": {
-    "agent":    {"type": "choice", "instructions": "...", "criteria": {"<agent>": "<~100-char desc>", ..., "general-purpose": "..."}},
-    "skill":    {"type": "choice", "instructions": "...", "criteria": {"<skill>": "<~100-char desc>", ...}},
-    "pipeline": {"type": "choice", "instructions": "...", "criteria": {"<pipeline>": "<~100-char desc>", ..., "none": "..."}},
-    "needs_skill":     {"type": "noul", "instructions": "..."},
-    "needs_pipeline":  {"type": "noul", "instructions": "..."},
-    "prose_suffices":  {"type": "noul", "instructions": "..."}
-  }
-}
-```
+## What Jev still decides
 
-`criteria` for `agent`/`skill`/`pipeline` are the SAME ~100-char truncated
-descriptions v1 built (`_truncate_desc`, `_build_criteria_maps` — reused
-unchanged; a cheap skim doesn't need full text, only stage 2 does). Response:
-`{model, answers: {qid: Answer}, usage}`. Each `choice` answer carries
-`{choice, probabilities, confidence}` — `jev-route.py` reads `probabilities`
-(not just the single top `choice`) to build shortlists, since the whole point
-of stage 1 is "who are the top ~3 contenders," not "who is the single best
-guess from a cheap pass."
+### Attachment evidence (prepare)
 
-`jev-route.py` (`_parse_stage1`) computes, per single-select dimension:
+One batched evaluation of 11 Nouls. State: the request, plus project facts
+(languages, frameworks, datastores, names only) when a repo is known.
 
-- **agent, skill**: top `STAGE1_SHORTLIST_N` (3) names by `probabilities`,
-  restricted to live manifest membership.
-- **pipeline**: top 1 REAL (non-`"none"`) candidate by `probabilities`,
-  computed unconditionally — even when `"none"` won stage 1's own `choice`.
-  Rationale: with only ~29 pipeline candidates and a cheap truncated pass,
-  "none" can win narrowly on a genuinely ambiguous case; forwarding the
-  best real candidate anyway gives stage 2's full-detail rerank a real
-  chance to confirm or reject it, rather than letting the cheap pass
-  foreclose the pipeline slot before the precise pass ever runs. This is
-  the same "don't let cheap-pass noise be final" reasoning behind giving
-  agent/skill a 3-wide shortlist instead of trusting stage 1's single top
-  pick outright — pipeline gets a 1-wide shortlist only because there are
-  far fewer real candidates to protect against, not because the reasoning
-  differs.
+| Group | Nouls | Used for |
+|---|---|---|
+| Signals | `tests_requested`, `research_needed`, `comprehensive_review`, `local_only`, `objective_loop_worthy` | `SIGNAL_SKILLS` in `jev-route.py` and the complexity derivation |
+| Domain | `programming`, `frontend`, `kubernetes`, `testing`, `building-with-jev`, `research` | Attach the domain skill when the score is 0.6 or higher |
 
-`gate_score` = mean of the three oriented gate `Noul`s: `needs_skill`,
-`needs_pipeline`, and `1 - prose_suffices` (prose_suffices is inverted before
-averaging, so a HIGH gate_score always means "routing is needed," matching
-the other two nouls' orientation). Below `--gate-threshold` (default 0.30):
-**trivial-bypass** — `source: "jev-trivial-bypass"`, `complexity: "trivial"`,
-`agent`/`skill`/`pipeline` all `null`, `matched: true`, `fallback: false`.
-Stage 2's HTTP call is skipped entirely; this is the one case with only one
-round trip. This maps directly onto `/do`'s own Trivial classification
-(`skills/meta/do/SKILL.md` Phase 1: "Trivial: ONLY user-named file by
-path... never dispatches, handled directly") — `/d`'s SKILL.md Phase 1T
-handles it the same way: direct, no Phase 4.
+`_noul` accepts a score only inside 0 to 1 and treats anything else as
+missing. A Jev failure or a malformed answer sets `error`, leaves the evidence
+empty, and routing continues.
 
-### State and shortlist size
+Measured on the corpus: p50 549 ms, p95 666 ms, mean 820 input and 210 output
+tokens per call.
 
-`state` is the bare request string when no project facts exist. When the hook
-passes `--cwd`, `detect_project_context()` reads marker files (for example
-`pyproject.toml`, `package.json`, `go.mod`) and dependency manifests in that
-directory, and `state` becomes `{"request": ..., "project": {"languages":
-[...], "frameworks": [...], "datastores": [...]}}`. The project block holds
-names only, never paths or file contents. The agent instructions gain one
-sentence that tells Jev to use `project` when the request names no language.
+### Attachment policy (finalize)
 
-The stage-1 shortlist is 6 agents and 6 skills (`STAGE1_SHORTLIST_N`,
-`--shortlist`). Stage 2 cannot pick outside the shortlist, so its size caps
-accuracy. Measure coverage offline from the stored stage-1 probabilities in
-`jev_calls` before changing it.
+`_attachments` builds `attach` in this order and stops at three skills: the
+pre-route stack, the agent's domain floor (`DOMAIN_SKILL_BY_AGENT`), domain
+Nouls at 0.6 or higher by score, then `SIGNAL_SKILLS`. Names outside the live
+manifest drop out. `_default_agent` fills a null or `general-purpose` agent from
+the skill's owner (`AGENT_BY_SKILL`).
 
-Score the router with `scripts/jev-eval.py --split dev` while tuning and
-`--split test` once at the end. `--workload-dir NAME=PATH` supplies the
-repository for corpus cases that record a workload.
+### Intent alignment (Phase 2)
 
-### Stage 2 (shortlist rerank + fits + multi-select), only when gate clears
+Unchanged: one batched `jev-intent-align.py` evaluation of the agent's
+`PROPOSED_INTENT` against the route. The route is the finalized `ROUTE`.
 
-One call, only reached when `gate_score >= gate_threshold`. Body (shape,
-candidate counts vary per request):
+## What code enforces
 
-```json
-{
-  "state": "<user request verbatim>",
-  "model": "jev-latest",
-  "questions": {
-    "agent":                 {"type": "choice", "instructions": "...", "criteria": {"<top-6 agent shortlist>": "<full desc NOT: not_for>"}},
-    "agent_fit__<name>":     {"type": "noul", "instructions": "..."},
-    "skill":                 {"type": "choice", "instructions": "...", "criteria": {"<top-6 skill shortlist>": "<full desc NOT: not_for>"}},
-    "skill_fit__<name>":     {"type": "noul", "instructions": "..."},
-    "pipeline":              {"type": "choice", "instructions": "...", "criteria": {"<top-1 pipeline>": "...", "none": "..."}},
-    "pipeline_fit__<name>":  {"type": "noul", "instructions": "..."},
-    "tests_requested":       {"type": "noul", "instructions": "..."},
-    "research_needed":       {"type": "noul", "instructions": "..."},
-    "comprehensive_review":  {"type": "noul", "instructions": "..."},
-    "local_only":            {"type": "noul", "instructions": "..."},
-    "objective_loop_worthy": {"type": "noul", "instructions": "..."},
-    "fanout__<name>":        {"type": "noul", "instructions": "..."}
-  }
-}
-```
-
-Criteria text for every stage-2 candidate is `description + (" NOT: " +
-not_for if present)`, sourced straight from `routing-manifest.py`'s live
-`load_entries()` output — already untruncated, no filesystem reads of
-SKILL.md/agent.md files added. Question keys for per-candidate `Noul`s are
-sanitized names (`_sanitize_key`, `[^a-zA-Z0-9_]` -> `_`) prefixed by
-dimension (`agent_fit__`, `skill_fit__`, `pipeline_fit__`, `fanout__`), with
-an in-memory map back to the original manifest name for parsing.
-
-**Fits check** (`_parse_stage2`, `--fits-threshold`, default 0.30): for each
-single-select dimension, the stage-2 `Choice` picks one name from the
-shortlist; that SAME name's own per-candidate fit `Noul` is then checked
-against `fits_threshold`. Below threshold -> that dimension's pick is
-rejected to `null`, regardless of what the `Choice` answer said. This reads
-owner's "the BEST-shortlisted candidate's own fit-Noul" as "the candidate the
-stage-2 Choice actually selected" (not a separate max-over-shortlist search)
-— `Choice` produces the name, `Noul` is the fit veto on that specific name.
-`fits_scores` in the result reports this per-dimension value for eval
-visibility (`{"agent": x, "skill": y, "pipeline": z_or_null}`).
-
-**Fallback trigger**: `agent` rejected (invalid membership OR sub-threshold
-fit) OR `skill` rejected -> the WHOLE decision is `fallback: true` — this
-replaces v1's flat `agent_conf < confidence_floor` check. `pipeline` is
-NEVER gated into the fallback decision (same as v1: a `null` pipeline is
-often the correct answer, most requests are single-phase).
-
-**Multi-select**: the 5 stack signals are independent per-candidate `Noul`s
-over the WHOLE request (not per-manifest-candidate), unchanged in mechanism
-from v1 — just moved into stage 2's call (they need the same rich context
-stage 2 already has, and stage 1's trivial-bypass gate makes them moot when
-it fires, so stage 2 is the natural home). Fan-out candidates (`agents`
-field) are a NEW per-candidate `Noul` over agents ranked just below the
-primary shortlist (the three agents ranked just after it in stage 1),
-asking "should this agent ALSO run in parallel, on a distinct independent
-subtask" — see "Fan-out selection rule" below for the exact gating heuristic
-and why it exists.
-
-## Complexity: dropped as a Jev question, derived in Python
-
-v1 asked Jev a fourth `Choice` question for `complexity`. v2 does not — the
-owner's exact stage-1/stage-2 question lists never include a complexity
-`Choice`, and asking one would violate the "never proliferating" cost
-constraint for no clear benefit once gate_score, the final picks, and the
-5 stack signals already exist. `jev-route.py` derives `complexity`
-deterministically after stage 2 resolves:
-
-- `pipeline` set OR `agents` (fan-out) non-empty -> `"complex"` (matches
-  `/do`'s own "2+ agents... or a genuine multi-phase pipeline" criterion)
-- else any stack signal true -> `"medium"` (matches `/do`'s "extra rigor"
-  criterion)
-- else -> `"simple"`
-- trivial-bypass -> `"trivial"` (stage 1 only, no stage 2 needed to know this)
-
-This is a deliberate, documented trade: one fewer Jev question per decision,
-a small saved cost, in exchange for a simpler and fully auditable Python rule
-instead of a fifth judgment call riding in the same HTTP call.
-
-## Fan-out selection rule
-
-`_select_fanout_candidates`: agents ranked 4-6 in stage 1's probability
-ranking (`FANOUT_RANK_START=3`, `FANOUT_MAX_CANDIDATES=3`), asked a
-per-candidate fan-out `Noul`, but ONLY when BOTH:
-
-1. `gate_score >= FANOUT_GATE_SCORE_MIN` (0.6) — a heuristic proxy for
-   "this is substantive/complex work," well above the 0.30 trivial-bypass
-   floor, so borderline-trivial requests never pay for fan-out questions.
-2. The top-ranked agent's stage-1 probability is `< FANOUT_DOMINANCE_PROB`
-   (0.75) — a heuristic proxy for "more than one plausible domain owner
-   exists." When one agent clearly dominates, fan-out questions would almost
-   certainly all come back false, so they're skipped rather than spent.
-
-Both thresholds are cost-control heuristics, not precision claims — read
-`/do`'s own MULTI-AGENT RULE (`skills/meta/do/SKILL.md` Phase 1: "Parallel
-FIRST: 2+ failures / 3+ subtasks -> multiple Agent tools") before changing
-the fan-out `Noul`'s instructions text, so the question asked matches what
-`/do` actually means by fan-out-worthy.
-
-**Known gap, not wired**: `scripts/build-dispatch.py`'s `--json` schema has
-no dedicated fan-out/`agents` field — it dispatches exactly one agent per
-call. This is not actually a `/d`-specific gap: `/do`'s own real multi-agent
-mechanism is separate parallel `Agent` tool calls issued by the orchestrator
-alongside the primary `build-dispatch.py` dispatch, not a `build-dispatch.py`
-JSON field. `/d`'s Phase 4 reuses that same mechanism unmodified
-(`skills/meta/d/SKILL.md` Phase 3/4) — `JEV_RESULT.agents` is a list to read
-at that existing fan-out decision point, not a new contract to invent.
-
-## Cookbook reuse and divergence
-
-TypeSafe's `skill_suggestion` cookbook (`https://docs.typesafe.ai/cookbooks/skill_suggestion.md`)
-is the source of the two-stage progressive-disclosure pattern adopted here.
-Its own published benchmark (182 skills, 488 requests, `claude-haiku-4-5`):
-suggestion-assisted selection cut wrong loads from 16.8% to 7.3% (2.3x fewer)
-and needless loads from 9.8% to 4.0% (2.4x fewer), against an oracle floor of
-2.5%/1.2%. **This is the cookbook's own benchmark, on its own single-pick
-skill-selection task — not a `/d`-specific measurement.** `/d`'s own numbers
-(this session's `scripts/routing-ab-results/jev-router-v2-2026-09-16/VERDICT.md`)
-are the ones that actually matter for `/d`'s promotion decision; cite the
-cookbook figure only as the stated rationale for trying the pattern at all.
-
-**Reused as-is**:
-- The two-stage shape itself: cheap wide `Choice` rank over truncated
-  descriptions, then a `Choice` + per-candidate `Noul` rerank over a
-  shortlist with full descriptions.
-- The gate-then-fits threshold pattern: a cheap up-front gate (mean of
-  oriented `Noul`s) deciding whether to do the expensive pass at all, then a
-  per-candidate `Noul` "does this genuinely fit" veto on the expensive
-  pass's own pick. `/d`'s `GATE_THRESHOLD`/`FITS_THRESHOLD` defaults (0.30
-  each) match the cookbook's own defaults.
-
-**Deliberately diverged, and why**:
-- **Multi-slot vs. single-pick.** The cookbook selects ONE skill suggestion.
-  `/do`'s actual contract (`skills/meta/do/SKILL.md` COMBINATION DOCTRINE) is
-  multi-slot: a primary agent plus an independent fan-out `agents` list, a
-  primary skill plus an independent `stack` list, and one optional pipeline.
-  `/d` runs the cookbook's single-pick shape three times over (once per
-  single-select dimension: agent, skill, pipeline), not once.
-- **Multi-select via independent Noul, not Choice.** The 5 stack signals and
-  the fan-out candidates are "zero or more apply independently," not "pick
-  one." A `Choice`'s `probabilities` are a distribution that sums to 1 across
-  its options — the wrong shape for "any subset can be true at once." Each
-  multi-select dimension is instead an independent per-candidate `Noul`,
-  exactly as v1 already did for the 5 stack signals (that part of v1 was
-  already right; v2 keeps it and extends the same pattern to fan-out).
-- **Pipeline gets a 1-wide, not 3-wide, stage-2 shortlist.** The cookbook
-  reranks a fixed top-3. `/d` only has ~29 pipeline candidates total (versus
-  182 skills in the cookbook's benchmark), and pipeline is the rarest
-  non-null pick across the corpus — a 1-wide "best real candidate vs. none"
-  shortlist was judged precise enough without paying for 2 more Choice
-  criteria entries and 2 more fit-`Noul`s on every non-trivial request. The
-  stage-2 fits-check still always runs for whichever real candidate stage 1
-  forwarded — never skipped, only narrower.
-- **Complexity dropped as a question entirely** (see above) — the cookbook
-  has no complexity-equivalent question to diverge from; this is a `/d`-side
-  simplification enabled by already having gate_score, the final picks, and
-  the stack signals to derive it from.
-
-## Attachment step (v1.2, 2026-09-22)
-
-v1.1 filled one `skill` slot and left `stack` empty on every Jev route, so a
-Go bug fix loaded `debugging` but not `programming`, and "add a regression
-test" never loaded `testing`. The Phase 4 signal table named four skills that
-no longer existed, and `build-dispatch.py` rejects unknown names. Non-safety
-force matches ended classification with `agent: null` (21 of 57 eval
-requests; "write post" matched "Write a PostToolUse hook").
-
-Decision card:
-
-| Field | Value |
+| Rule | Where |
 |---|---|
-| Desired behavior | Per request, attach the domain umbrella skills whose references the work needs. Baseline: v1.1 `/d`, dev full attach 0.558; `/do` 0.837. |
-| Judgments | Stage 2 adds one Noul per domain skill (`programming`, `frontend`, `kubernetes`, `testing`, `building-with-jev`, `research`), one property each. Above 0.6 means the work touches that domain. |
-| Evidence | The request text, same state as the other stage-2 questions. |
-| Policy | `_attachments`: pre-route stack, agent domain floor (`DOMAIN_SKILL_BY_AGENT`), domain Nouls at 0.6 or higher by score, then signal skills (`SIGNAL_SKILLS`); unknown names dropped; at most 3 skills. `_default_agent` fills a null or `general-purpose` agent from `AGENT_BY_SKILL`. |
-| Batchable | All attachment Nouls ride in the stage-2 call; no extra request. |
-| Failure | Jev failure keeps the pre-route force result or falls back to `/do`; missing domain Nouls attach only the floor and signals. |
-| Falsifying test | `scripts/router_attachment/`: ship only if dev full attach beats `/do` and held-out does not fall below 0.85. Measured 0.930 dev, 0.929 held-out. |
-| Versions | `typesafe-ai/jev` through Vercel; Noul text in `DOMAIN_NOUL_INSTRUCTIONS`; policy tables in `jev-route.py`. Re-run the eval after any edit to either or a catalog rename. |
-| Integrity | Held-out results were visible after round 1; the `research` Noul answered a dev miss and a held-out miss together, so the held-out split is not fully untouched. `fixtures/jev-answers-r2.json` pins the recorded answers the offline test replays. |
+| A safety force route (`pr-workflow`, `pr-pipeline`, high-confidence `security`) overrides the picked skill and pipeline | `finalize`, matching `/do` Step 1(a) |
+| Other force matches and suggestions are not passed to the pick | `_forced`, matching `/do` Step 1(b) |
+| A name outside `AGENTS:`, `SKILLS:`, or `PIPELINES:` is dropped and listed in `problems` | `finalize` |
+| The router entry points `d` and `do` are never valid skills | `finalize` |
+| A skill name in the agent slot moves to the skill slot | `finalize` |
+| An empty skill becomes `workflow` (`skill_source: "fallback"`), the skill-greediness gate's default | `finalize` |
+| `general-purpose` without a `fallback_reason` is a problem | `finalize` |
 
-## Candidate hygiene (v1.3, 2026-09-23)
+## Cost per request
 
-- Private overlay skills and agents (`owner: overlay:*`, or legacy `INDEX.local.json`-only entries) enter the candidate set only when the request names their domain: a word from their name or triggers that the public catalog never uses (`routing_index_merge.gate_private_entries`). Before, private skills reached the stage-1 skill shortlist on 40 of 57 eval requests, and one beat `research` on the primary pick.
-- A pre-route suggestion (`matched: false` with a `skill`, from a suggest-only trigger such as "ship it" inside "before I ship it") joins the stage-2 shortlist as a hint and never stands alone.
+| Part | Previous `/d` | This design |
+|---|---|---|
+| Jev calls before the pick | 2 (rank, rerank), about 9k Jev tokens | 1, about 800 input and 210 output tokens |
+| Jev intent alignment | 1 batched call | 1 batched call |
+| Session context for the pick | route JSON only | `/do` rules (about 2k tokens) plus the manifest (about 10k tokens), read once |
+| Fallback to `/do` | 26% of requests, then the full `/do` read | none |
+| Pick cost in the eval (`claude -p`, prompt cache warm) | n/a | $0.019 per request on Sonnet |
 
-## Fallback-to-`/do` behavior
+The session pays the manifest read on every Simple-and-above request. The
+previous `/d` paid it on the 26% that fell back, plus two Jev calls on all of
+them.
 
-`fallback: true` on any of: `unavailable` (presence check failed), a
-sub-`fits_threshold` or invalid-membership agent/skill pick (`source:
-"low-confidence"`), or `error` (a stage-1 or stage-2 HTTP/parse/timeout
-failure). In every case `/d`'s SKILL.md Phase 1F instructs reading
-`skills/meta/do/SKILL.md` in full and running its Phase 1-4 unmodified — not
-a degraded in-between state. `jev-trivial-bypass` is NOT a fallback signal —
-it is a real terminal state handled by Phase 1T, distinct from Phase 1F.
+## Gateway presence
 
-Measured on `scripts/routing-ab-corpus.json` v1.5 (269 cases,
-`scripts/routing-ab-results/jev-router-v2-2026-09-16/VERDICT.md`): fallback
-rate 26.0% (down from v1's 62.1% on the same corpus family, measured on
-corpus v1.4) — still common, not a rare edge case, but the fits-threshold
-redesign materially reduced how often it fires versus v1's flat confidence
-floor.
+`scripts/jev_transport.py` selects the transport (`JEV_TRANSPORT=auto|vercel|direct`).
+Auto prefers `AI_GATEWAY_API_KEY`, then `TYPESAFE_API_KEY`. The presence check is
+not a health check: a configured Jev that is down still attempts the call and
+sets `error` on the failure.
 
-## Confident-wrong risk (read before trusting this router with real traffic)
+## Confident-wrong risk
 
-Unchanged conclusion from v1, restated because it still applies and the
-redesign does not remove it: the fits-threshold catches an uncertain Jev
-answer. It does NOT catch a systematically confident-but-wrong classifier —
-that failure mode broke the rejected `tiered-v2` manifest experiment (3 new
-safety-bucket misses, all confident or null, not low-confidence). The
-fits-threshold is a per-request rejection trigger, a better one than v1's
-flat confidence floor (it checks "does THIS specific candidate genuinely fit"
-rather than "was the classifier confident in general"), but it is still a
-**runtime** safety net, not a systematic-confident-wrong-classifier backstop.
-That job still belongs to the eval gate: `scripts/routing-ab-corpus.json`'s
-`SAFETY_BUCKETS` (`benchmark-force_route`, `false-positive-guard`,
-`paraphrase-git`, `paraphrase-security`) are checked individually, per
-bucket, before `/d` is trusted with real traffic — a confidently-wrong
-pattern fails that gate outright, at any confidence or fits-score level.
-`benchmark-force_route`/`paraphrase-git`/`paraphrase-security` are
-additionally protected at runtime by construction: they're supposed to be
-caught by `pre-route.py` before Jev is ever called (0 HTTP calls, 0 fits
-checks in play). `false-positive-guard` has no such runtime backstop, in
-`/d` or in `/do` — idiom traps (e.g. "fish out the bug") rely on semantic
-judgment catching them, whether that judgment is `/do`'s self-route or
-Jev's classification; neither router has a deterministic guard for this
-bucket, an existing property of semantic routing generally, not something
-`/d` introduced. The v2 redesign measured PASS on this gate (0
-critical findings) on the same corpus that measured v1's PASS — the
-redesign did not introduce a new safety regression, but it also did not, and
-does not claim to, solve the underlying confident-wrong risk structurally.
+The session pick has no independent verifier. A confident wrong pick is
+dispatched as-is, and the Phase 2 intent check sees only the restated outcome and
+the route, not the catalog. The membership check catches invented names, not
+wrong real ones.
 
-## Hidden coupling (known limitation, unchanged by v2)
+The backstop is the eval gate: `SAFETY_BUCKETS` (`benchmark-force_route`,
+`false-positive-guard`, `paraphrase-git`, `paraphrase-security`) are checked
+bucket by bucket on every full run. `benchmark-force_route`, `paraphrase-git`,
+and `paraphrase-security` are also protected at runtime, because `pre-route.py`
+catches them before the session picks and `finalize` pins the result.
+`false-positive-guard` has no runtime backstop in `/d` or `/do`: idiom traps rely
+on the model reading means, not words.
 
-`jev-route.py`'s `instructions`/criteria strings across both stages are a
-hand-written paraphrase of `/do`'s prose (Phase 1 Trivial table, Phase 2
-SECTION-INTEGRITY/FORCE-ROUTE/SPECIFICITY/COMBINATION DOCTRINE/MULTI-AGENT
-RULE, Phase 3 signal table). Nothing automatically keeps these in sync with
-`/do`'s prose — if `/do`'s semantics change, `jev-route.py`'s instruction
-strings must be updated by hand in the same change. No drift-detection CI
-gate exists for this yet.
+On this design: `paraphrase-git` 6/6 and `paraphrase-security` 4/4 in both runs,
+`benchmark-force_route` 5/7 in both runs (two rows where the pick chose a
+language agent and a close skill), `false-positive-guard` 6/7 in both runs.
 
 ## Data egress
 
-Stage 1 sends the raw request text and truncated agent/skill/pipeline
-names+descriptions to `api.typesafe.ai`; stage 2 (when reached) sends the
-request text again plus the shortlisted candidates' full descriptions. Same
-kind of call as any other model API this toolkit already talks to.
-Trivial-bypassed requests send less (stage 1 only). Since v1.2, force-routed
-requests go through both stages too, so Jev can pick the agent and
-attachments.
+Prepare sends the request text and, when a repo is known, project facts (names
+only) to the Jev gateway. Intent alignment sends the request, the restated
+intent, and the route. Catalog text never leaves the machine: the manifest goes
+to the session model only. Before this design, every request also sent catalog
+names and descriptions to Jev in both pick stages.
+
+## Re-running the measurement
+
+```bash
+python3 scripts/jev-eval.py --out-dir <fresh-dir> --workload-dir <name>=<dir-with-requirements.txt>
+python3 scripts/router_attachment/run_eval.py --router d-prepare --out <fresh>/d-prepare.json
+python3 scripts/router_attachment/run_eval.py --router d-model --jev-results <fresh>/d-prepare.json --out <fresh>/d-model.json
+```
+
+Run each arm twice. A rerun with unchanged code changes the pick on about 11%
+of rows, so count a row as changed only when both runs agree.

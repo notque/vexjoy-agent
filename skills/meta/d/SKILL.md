@@ -1,7 +1,7 @@
 ---
 name: d
-version: "1.3.0"
-description: "Jev request router: validates the requested outcome, then dispatches to the matched agent, skill, and pipeline."
+version: "2.0.0"
+description: "Request router: picks the agent, skill, and pipeline with /do's rules, then uses Jev to validate the requested outcome and attach extra skills."
 user-invocable: true
 argument-hint: "[request]"
 allowed-tools:
@@ -22,17 +22,12 @@ routing:
 
 # /d — Jev Router
 
-Classifies requests through Jev and dispatches to the matched
-agent, skill, and pipeline. Before every dispatch, it restates the requested
-outcome and uses Jev to check that the restatement and route preserve it.
-
-The classification path has four layers: a deterministic `pre-route.py`
-force-route guard (offline, runs first, authoritative for git/security
-only), a configured Jev transport presence check, a two-stage classification
-(a cheap wide-rank stage 1 over all manifest candidates plus a trivial-bypass
-gate, then a full-detail shortlist-rerank stage 2 with per-candidate fit
-checks, stack/fan-out signals, and domain-attachment checks), and a
-deterministic attachment step that lists the extra skills to load.
+Routes a request in four parts. A deterministic `pre-route.py` guard keeps
+git/PR and security work on their quality gates. You, the session model, pick
+the agent, skill, and pipeline from the full routing manifest with `/do`'s rule
+text. Jev answers the attachment questions that add extra skills, and validates
+that the restated outcome survives the route. A script validates your pick and
+computes the attachments.
 
 Design rationale: `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md`.
 
@@ -45,85 +40,98 @@ After intent alignment resolves: `===` routing banner. Both required.
 
 ### Phase 1: CLASSIFY
 
-`scripts/jev-route.py` owns the entire classification in one subprocess call.
-
-When `JEV_RESULT` is already in context (the `jev-route-injector` hook ran the script before your first token), use it and skip the command below.
-
-```bash
-REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
-python3 "$SDIR/jev-route.py" --request-file "$REQUEST_FILE" --json-compact
-rm -f "$REQUEST_FILE"
-```
-
 Resolve `$SDIR`: `${HOME}/.claude/scripts`, falling back through
 `.hermes`/`.factory`/`.codex`/`.reasonix`, or the repo's `scripts/`
 directory.
 
-Hold the result as `JEV_RESULT`. Shape (stable — see design reference for
-full schema):
+**Step 1 — JEV_RESULT.** When `JEV_RESULT` is already in context (the
+`jev-route-injector` hook ran the script before your first token), use it and
+skip the command below.
 
-`available`, `jev_called`, `matched`, `fallback`, `fallback_reason`,
-`agent`, `agent_source`, `skill`, `pipeline`, `attach`, `complexity`,
-`confidence`, `match_type`, `reasoning`, `stack`, `signals`,
-`signal_scores`, `domain_scores`, `source`, `latency_ms`, `usage`, `agents`,
-`gate_score`, `fits_scores`, `stage1_shortlist`, `pre_route_hint`, and
-`intent_alignment` (the hook-generated baseline alignment receipt).
-
-`attach` is the list of extra skills that ride with `skill` (for example
-`programming` for Go work, `testing` when tests are part of the work). The
-script already validated every name; it is the whole Phase 4 stack.
-
-`latency_ms` and `usage` are itemized dicts
-(`{"stage1_ms","stage2_ms","total_ms"}` and `{"stage1","stage2"}`). Read
-`.total_ms` for a single latency figure.
-
-**Gate**: `fallback == true` → Phase 1F. Every matched result,
-including `source == "jev-trivial-bypass"`, proceeds to Phase 2: ALIGN INTENT.
-
----
-
-### Phase 1T: TRIVIAL-BYPASS (source == "jev-trivial-bypass")
-
-Stage 1's gate fired: `gate_score` below threshold, no agent/skill/pipeline
-is needed. It remains a direct-handling path, but it must still pass through
-Phase 2 so the user outcome is restated and Jev validates it. After an
-aligned Phase 2 result, show `Classification: Trivial` and
-`Source: jev-trivial-bypass`, then answer or do the one-line action directly.
-Do not run Phases 3–5 or call `build-dispatch.py`. Stop there.
-
----
-
-### Phase 1F: UNAVAILABLE (fallback == true)
-
-Jev could not classify this request. `JEV_RESULT.source` explains why:
-
-- `unavailable` — neither configured Jev transport is available. `/d` accepts
-  Vercel AI Gateway (`AI_GATEWAY_API_KEY`) or the direct Jev API
-  (`TYPESAFE_API_KEY`), selected by `JEV_TRANSPORT=auto|vercel|direct`.
-- `invalid-pick` — Jev's pick was not a valid manifest name.
-- `error` — a Jev call timed out or failed.
-
-Show:
-
-```
-===================================================================
- /d: Jev unavailable — [JEV_RESULT.fallback_reason]
- Use /do for manifest-based routing.
-===================================================================
+```bash
+REQUEST_FILE=$(mktemp); printf '%s' "{user_request}" > "$REQUEST_FILE"
+python3 "$SDIR/jev-route.py" --request-file "$REQUEST_FILE" --json-compact
 ```
 
-Fail open to `/do`'s full routing flow and continue the request. Do not reject
-the request merely because Vercel AI Gateway is unavailable.
+Fields: `available`, `jev_called`, `source`, `forced`, `stack`, `project`,
+`signals`, `signal_scores`, `domain_scores`, `error`, `latency_ms`, `usage`.
+`forced` is the safety force route (`pr-workflow`, `pr-pipeline`, `security`)
+or `null`. `project` holds the request repository's languages, frameworks, and
+datastores (names only) or `null`. `error` is set when Jev was unavailable or
+its answers were unusable. Routing continues, and `attach` then carries only
+the pre-route stack and the agent domain floor.
+
+**Step 2 — Pick.** Set the complexity from `/do` Phase 1 (Trivial, Simple,
+Medium, Complex). Trivial: go to Phase 1T.
+
+For Simple and above, load `/do`'s routing rules and the manifest. Read the rule
+text in full and apply every rule:
+
+```bash
+python3 "$SDIR/print-route-rules.py"
+bash "$SDIR/get-routing-manifest.sh" --request-file "$REQUEST_FILE"
+```
+
+The manifest is large. If Bash truncates it or saves it to a file, read the
+whole file before you pick. Use `JEV_RESULT.project` when the request names no
+language or framework.
+
+Return the decision as JSON. Do not print it:
+
+```
+{"agent": "<AGENTS: name or null>", "agents": ["<extra fan-out agents>"],
+ "skill": "<SKILLS: name or null>", "pipeline": "<PIPELINES: name or null>",
+ "complexity": "simple|medium|complex", "confidence": "high|medium|low",
+ "reasoning": "<one sentence>",
+ "fallback_reason": "general-purpose: <why no listed agent covers this>"}
+```
+
+`fallback_reason` is required when `agent` is `general-purpose`, and only then.
+
+When `JEV_RESULT.forced` is set, its `skill` and `pipeline` are final: step 3
+overrides your values for them. Pick the `agent` and `agents` that fit, as
+`/do` Phase 2 Step 1(a) does.
+
+**Step 3 — Finalize.** Write `JEV_RESULT` and the decision to temporary files
+and run:
+
+```bash
+python3 "$SDIR/jev-route.py" --finalize --result-file "$RESULT_FILE" --decision-file "$DECISION_FILE" --json-compact
+rm -f "$REQUEST_FILE" "$RESULT_FILE" "$DECISION_FILE"
+```
+
+Hold the output as `ROUTE`: `agent`, `agent_source`, `skill`, `skill_source`,
+`pipeline`, `agents`, `attach`, `stack`, `complexity`, `confidence`,
+`reasoning`, `fallback_reason`, `source`, `signals`, `domain_scores`, and
+`problems`. The script checks every name against the live manifest, applies the
+safety force route, fills an empty skill with `workflow`, and gives a null or
+`general-purpose` agent the owning agent of the skill. `attach` is the list of
+extra skills that ride with `skill` (for example `programming` for Go work,
+`testing` when tests are part of the work). It is the whole Phase 4 stack.
+
+**Gate**: `problems` empty → Phase 2. `problems` set → fix the decision, run
+step 3 once more, and carry any problem that remains into `task_spec.gaps`. The
+output has an `error` key and no route fields → use your decision as `ROUTE`
+with `attach` set to `[]`.
 
 ---
 
-### Phase 2: ALIGN INTENT (required for every matched /d route)
+### Phase 1T: TRIVIAL (complexity == Trivial)
 
-**MANDATORY STOP:** For every matched `/d` invocation, write
-`PROPOSED_INTENT` and run the validator on that exact text before any routing
-banner, dispatch, answer, edit, or other action. `JEV_RESULT.intent_alignment`
-is only the hook baseline and does not satisfy Phase 2. This requirement has no
-exception for force routes, trivial routes, or an apparently aligned baseline.
+Direct-handling path. It still goes through Phase 2 so the user outcome is
+restated and Jev validates it; use `{"complexity": "trivial"}` as the route
+file. After an aligned Phase 2 result, show `Classification: Trivial`, then
+answer or do the one-line action directly. Do not run Phases 3–5 or call
+`build-dispatch.py`. Stop there.
+
+---
+
+### Phase 2: ALIGN INTENT (required for every /d route)
+
+**MANDATORY STOP:** For every `/d` invocation, write `PROPOSED_INTENT` and run
+the validator on that exact text before any routing banner, dispatch, answer,
+edit, or other action. This requirement has no exception for force routes or
+trivial routes.
 
 Before selecting the work method, write `PROPOSED_INTENT`: a concise one- or
 two-sentence restatement of what the user wants accomplished. State the
@@ -137,11 +145,8 @@ whether clarification is needed. Do not describe the selected agent, skill,
 or implementation mechanics as the outcome. Preserve the user's words where
 precision matters.
 
-Run the Jev validator even when the hook already supplied
-`JEV_RESULT.intent_alignment`; that receipt validates a conservative baseline,
-while this call validates the actual restatement that will enter the task spec.
-Put the request, route JSON, and proposed intent in temporary files rather
-than shell-splicing user text, then call:
+Put the request, the `ROUTE` JSON, and the proposed intent in temporary files
+rather than shell-splicing user text, then call:
 
 ```bash
 python3 "$SDIR/jev-intent-align.py" \
@@ -169,48 +174,29 @@ Intent alignment (/d):
 
 - `clarification_needed == true` → ask one concise question that names the
   essential ambiguity; do not dispatch until answered.
-- `alignment == aligned` and `source == jev-trivial-bypass` → direct handling
-  in Phase 1T; otherwise → Phase 3.
+- `alignment == aligned` and complexity is Trivial → direct handling in
+  Phase 1T; otherwise → Phase 3.
 - `alignment == review` because scope is lost, work was added, or the route
   cannot cover the request → correct `PROPOSED_INTENT` or the route and run
   this validator once more. Carry unresolved issues into `task_spec.gaps`; do
   not silently proceed as though Jev approved it.
 - `alignment == unavailable` or `error` → state that validation was
   unavailable, preserve the verbatim request and proposed intent in the task
-  spec, then continue under the normal `/d` routing result. Gateway outage
-  must not become a false request rejection.
-
-This runtime gate applies to every matched route, including force-routes and
-trivial bypasses. A Phase 1 fallback cannot run this gate because no usable Jev
-route exists; it fails open to `/do` as described in Phase 1F.
+  spec, then continue under the `ROUTE` result. Gateway outage must not
+  become a false request rejection.
 
 This is an instruction gate enforced by the `/d` contract, not a hook-enforced
 technical boundary. The user remains the final backstop if an agent violates it.
 
 ---
 
-### Phase 3: DECIDE (fallback == false, after aligned intent)
+### Phase 3: DECIDE (after aligned intent)
 
-`JEV_RESULT.source` is either `pre-route-force` (a git/PR or security force
-route kept its skill and pipeline, or Jev failed on another force match) or
-`jev` (Jev classification, manifest-validated). A non-safety force match
-appears only as `pre_route_hint`: Jev saw it on its shortlist and made the
-pick.
-
-Apply directly:
-
-- `agent` / `skill` / `pipeline`: use `JEV_RESULT`'s values as-is. Already
-  validated against the live manifest membership sets inside the script.
-  `agent_source: skill-default` means Jev found no domain agent and the
-  script used the skill's owning agent.
-- `agent` is `null` or `general-purpose`: pick from `/do`'s Agent-greediness
-  table (`skills/meta/do/SKILL.md`, Phase 2 Step 0b) when a row fits the
-  request's domain. Otherwise keep `general-purpose` and write a one-line
-  `fallback_reason`: `general-purpose: <why no listed agent covers this>`.
-- `complexity`: use `JEV_RESULT.complexity` when set. When `null` (always for
-  `pre-route-force`), default to `medium`, except a single one-line trivial
-  fix → `simple`.
-- Confidence: `JEV_RESULT.confidence` (`high`/`medium`/`low`).
+Use `ROUTE`'s `agent`, `skill`, `pipeline`, and `complexity` as-is. The script
+validated them against the live manifest. `agent_source: skill-default` means
+the pick named no domain agent and the script used the skill's owning agent. A
+`general-purpose` agent carries `ROUTE.fallback_reason`. When `complexity` is
+`null`, use `medium`, except a single one-line trivial fix → `simple`.
 
 **Routing banner** (Phase 2 intent block + routing block, both required, printed together):
 
@@ -224,11 +210,11 @@ Apply directly:
    -> Alignment: [aligned|review|unavailable] [— issues, if any]
 
  Selected:
-   -> Agent: [JEV_RESULT.agent] - [JEV_RESULT.reasoning]
-   -> Skill: [JEV_RESULT.skill] - [JEV_RESULT.reasoning]
-   -> Attached: [JEV_RESULT.attach, comma-separated, or "none"]
-   -> Pipeline: [JEV_RESULT.pipeline, if set]
-   -> Source: [JEV_RESULT.source] (confidence: [JEV_RESULT.confidence])
+   -> Agent: [ROUTE.agent] - [ROUTE.reasoning]
+   -> Skill: [ROUTE.skill] - [ROUTE.reasoning]
+   -> Attached: [ROUTE.attach, comma-separated, or "none"]
+   -> Pipeline: [ROUTE.pipeline, if set]
+   -> Source: [ROUTE.source] (confidence: [ROUTE.confidence])
 
  Invoking...
 ===================================================================
@@ -244,7 +230,7 @@ and is not allowed.
 
 ### Phase 4: ENHANCE (attach skills)
 
-`stack` = `JEV_RESULT.attach`, in order, plus `anti-rationalization-core`.
+`stack` = `ROUTE.attach`, in order, plus `anti-rationalization-core`.
 Copy the names exactly. Do not add, rename, or drop skills: the script built
 `attach` from these rules, and `build-dispatch.py` rejects any name absent
 from `skills/INDEX.json`.
@@ -262,13 +248,13 @@ you:
 
 - `comprehensive_review` attached `review` and a real multi-file diff
   exists: `right-size-review.py` outranks it, so drop `review` from `stack`.
-- `signals.research_needed` is true: add `research-coordinator-engineer` to
-  the fan-out agents.
+- `signals.research_needed` is true: add `research-coordinator-engineer`
+  to the fan-out agents.
 
-**Fan-out agents**: union `JEV_RESULT.agents` (script-computed fan-out picks,
-each passed its per-candidate fit check) into the `research_needed` agent
-list, deduped. Dispatch fan-out agents as separate parallel `Agent` tool
-calls alongside the primary `build-dispatch.py` dispatch.
+**Fan-out agents**: union `ROUTE.agents` (your MULTI-AGENT RULE picks, each
+validated against the manifest) into the `research_needed` agent list,
+deduped. Dispatch fan-out agents as separate parallel `Agent` tool calls
+alongside the primary `build-dispatch.py` dispatch.
 
 **Gate**: Stack applied. Phase 5.
 
@@ -282,16 +268,16 @@ Build the task spec with `request_verbatim` unchanged and `intent` exactly
 
 ```bash
 python3 "$SDIR/build-dispatch.py" --json '{
-  "agent": "<JEV_RESULT.agent>", "skill": "<JEV_RESULT.skill; omit when agent-only>",
-  "pipeline": "<JEV_RESULT.pipeline; omit when null>",
-  "complexity": "<from Phase 2>",
+  "agent": "<ROUTE.agent>", "skill": "<ROUTE.skill; omit when agent-only>",
+  "pipeline": "<ROUTE.pipeline; omit when null>",
+  "complexity": "<ROUTE.complexity>",
   "model": "<haiku|sonnet|opus from Model choice>",
   "context_mode": "summary",
   "provider": "<anthropic|openai|other>",
   "manual_model_override": false,
   "health": "-",
   "fallback_reason": "<REQUIRED when agent=general-purpose; omit otherwise>",
-  "stack": ["<JEV_RESULT.attach, in order>", "anti-rationalization-core"],
+  "stack": ["<ROUTE.attach, in order>", "anti-rationalization-core"],
   "task_spec": {"request_verbatim": "<user message, unchanged>", "intent": "...",
                 "constraints": "<applicable rules, limits, and authorization>",
                 "decisions": "...",
@@ -367,8 +353,8 @@ Skip grill-jev when:
 
 ## Error handling
 
-Errors inside `jev-route.py` resolve to `fallback: true, source: "error"` —
-Phase 1F reports the error and fails open to `/do`.
+Errors inside `jev-route.py` resolve to an `error` key and an empty evidence
+set. Routing continues; Phase 2 reports an unavailable validation.
 
 When changing how the router or validator builds or sends Jev requests, apply
 `skills/shared-patterns/jev-production-lessons.md`: stage requests at or under the reliable size, send each
@@ -377,13 +363,15 @@ stage's requests together, and retry by status code.
 ## References
 
 - `${CLAUDE_SKILL_DIR}/references/jev-classifier-design.md` — request/response
-  contract, fallback conditions, phase-by-phase design decisions
+  contract, what Jev still decides, design decisions
 - `${CLAUDE_SKILL_DIR}/references/model-task-fit.md` — model per task type,
   measured cost and Jev scores, re-measure method
 - `${CLAUDE_SKILL_DIR}/SPEC.md`, `${CLAUDE_SKILL_DIR}/EVAL.md` — maintenance
   contract and regression cases (load only when creating, evaluating, or
   redesigning this skill)
-- `scripts/jev-route.py`, `scripts/jev-intent-align.py`, `scripts/jev_transport.py`, `scripts/jev_vercel.py`,
+- `scripts/jev-route.py`, `scripts/print-route-rules.py`, `scripts/jev-intent-align.py`,
+  `scripts/jev_transport.py`, `scripts/jev_vercel.py`,
   `scripts/jev_gateway/jev_vercel_gateway.mjs`, `scripts/pre-route.py`,
   `scripts/routing-manifest.py`, `scripts/build-dispatch.py`
+- Rule text: `skills/meta/do/SKILL.md` Phase 2 (printed by `print-route-rules.py`)
 - Jev hook: `hooks/jev-route-injector-userprompt.py` (UserPromptSubmit) precomputes `JEV_RESULT`

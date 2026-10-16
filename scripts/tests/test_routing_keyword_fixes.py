@@ -146,7 +146,7 @@ def test_suggestion_ranks_below_a_force_match() -> None:
     assert pre_route.determine_confidence(candidates["skill:review"], request) == "high"
 
 
-def test_jev_route_passes_a_suggestion_as_a_hint() -> None:
+def test_jev_route_does_not_carry_a_suggestion_forward() -> None:
     suggestion = {
         "matched": False,
         "agent": None,
@@ -157,14 +157,7 @@ def test_jev_route_passes_a_suggestion_as_a_hint() -> None:
         "reasoning": "suggest-only match",
         "stack": [],
     }
-    failed = {"fallback": True, "source": "error", "jev_called": True, "fallback_reason": "boom"}
-    with (
-        mock.patch.object(jev_route, "_run_pre_route", return_value=suggestion),
-        mock.patch.object(jev_route, "_classify", return_value=(failed, set())) as classify,
-    ):
-        result = jev_route.route("look over my diff before I ship it", 0.3, 0.3, 5)
-    assert classify.call_args.kwargs["hint_skill"] == "pr-workflow"
-    assert result.get("skill") != "pr-workflow"  # a suggestion never stands alone
+    assert jev_route._forced(suggestion) is None  # a suggestion never stands alone, and /d does not show it
 
 
 # ---------------------------------------------------------------- private gate
@@ -250,25 +243,6 @@ def test_pre_route_gates_private_force_entries() -> None:
     assert pre_route.route("research the fastest json parser", entries=catalog)["matched"] is False
     hit = pre_route.route("research acmebrand ratings", entries=catalog)
     assert (hit["matched"], hit["skill"]) == (True, "acmebrand-research")
-
-
-def test_jev_route_drops_private_candidates_without_domain_match() -> None:
-    seen: dict = {}
-
-    def capture(request_text, agent_criteria, skill_criteria, pipeline_criteria, project):
-        seen["skills"] = set(skill_criteria)
-        raise RuntimeError("stop after candidate building")
-
-    manifest = [dict(e, agent=None) for e in _synthetic_catalog()]
-    with (
-        mock.patch.object(jev_route.jev_transport, "available", return_value=(True, "")),
-        mock.patch.object(jev_route, "_load_manifest_entries", return_value=manifest),
-        mock.patch.object(jev_route, "_build_stage1_payload", side_effect=capture),
-    ):
-        jev_route._classify("research the history of RSS", 0.3, 0.3, 5, None, 3)
-        assert seen["skills"] == {"research", "writing"}
-        jev_route._classify("research the acmebrand archive", 0.3, 0.3, 5, None, 3)
-        assert "acmebrand-research" in seen["skills"]
 
 
 def _write_index(path: Path, kind: str, items: dict) -> None:

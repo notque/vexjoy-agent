@@ -1,8 +1,9 @@
 """Deterministic parts of the router-attachment eval (scripts/router_attachment/).
 
-Replays recorded Jev answers through jev-route.py's attachment and agent-default
-policy offline, scores them with the eval's own scorer, and checks the /d
-contract names only skills that exist. No Jev or model calls.
+Replays recorded picks and Jev attachment evidence through jev-route.py's
+attachment and agent-default policy offline, scores them with the eval's own
+scorer, and checks the /d contract names only skills that exist. No Jev or
+model calls.
 """
 
 from __future__ import annotations
@@ -110,7 +111,7 @@ def test_recorded_answers_meet_attachment_floor(catalog):
     for case in cases:
         record = fixture[case["id"]]
         decision = record if record.get("source") == "jev-trivial-bypass" else _replay(record, catalog["skills"])
-        rows.append({"id": case["id"], "decision": run_eval.d_code_decision(decision)})
+        rows.append({"id": case["id"], "decision": run_eval.d_model_decision(decision)})
     report = run_eval.report(rows, cases, PATTERNS)
     assert report["dev"]["full_attach"] >= 0.9, report["misses"]
     assert report["ood"]["full_attach"] >= 0.85, report["misses"]
@@ -164,86 +165,15 @@ def test_d_skill_attach_table_names_only_real_skills(skills_index, agents_index)
         assert name in skills_index or name in PATTERNS, name
 
 
-def _classified(**overrides) -> dict:
-    base = {
-        "fallback": False,
-        "source": "jev",
-        "jev_called": True,
-        "agent": "golang-general-engineer",
-        "skill": "programming",
-        "pipeline": None,
-        "stack": [],
-        "agents": [],
-        "signals": {"tests_requested": False},
-        "domain_scores": {"programming": 0.95},
-        "complexity": "simple",
-        "reasoning": "jev pick",
-    }
-    base.update(overrides)
-    return base
+def test_d_skill_names_the_scripts_it_runs():
+    text = (REPO / "skills" / "meta" / "d" / "SKILL.md").read_text(encoding="utf-8")
+    for script in re.findall(r'"\$SDIR/([a-z0-9_.-]+\.(?:py|sh))"', text):
+        assert (SCRIPTS / script).is_file(), script
+    for needed in ("jev-route.py", "print-route-rules.py", "get-routing-manifest.sh", "--finalize"):
+        assert needed in text
 
 
-def _force(skill: str, pipeline: str | None = None, stack: list | None = None) -> dict:
-    return {
-        "matched": True,
-        "confidence": "high",
-        "match_type": "force_route",
-        "agent": None,
-        "skill": skill,
-        "pipeline": pipeline,
-        "reasoning": f"matched triggers for {skill}",
-        "stack": stack or [],
-    }
-
-
-def test_safety_force_route_keeps_skill_and_takes_jev_agent(skills_index):
-    with (
-        mock.patch.object(jev_route, "_run_pre_route", return_value=_force("pr-workflow", stack=["programming"])),
-        mock.patch.object(
-            jev_route, "_classify", return_value=(_classified(skill="code-quality"), set(skills_index))
-        ) as classify,
-    ):
-        result = jev_route.route("commit main.go and open a PR", 0.3, 0.3, 5)
-    assert classify.call_args.kwargs["hint_skill"] is None
-    assert result["source"] == "pre-route-force"
-    assert result["skill"] == "pr-workflow"
-    assert result["agent"] == "golang-general-engineer"
-    assert result["attach"] == ["programming"]
-
-
-def test_safety_force_route_survives_jev_failure():
-    failed = {"fallback": True, "source": "error", "jev_called": True, "fallback_reason": "boom"}
-    with (
-        mock.patch.object(jev_route, "_run_pre_route", return_value=_force("security")),
-        mock.patch.object(jev_route, "_classify", return_value=(failed, set())),
-    ):
-        result = jev_route.route("security audit of auth", 0.3, 0.3, 5)
-    assert result["skill"] == "security"
-    assert result["fallback"] is False
-    assert result["agent"] == "reviewer-system"  # skill-owned default agent
-
-
-def test_other_force_route_is_a_hint_not_a_verdict(skills_index):
-    with (
-        mock.patch.object(jev_route, "_run_pre_route", return_value=_force(None, pipeline="writing")),
-        mock.patch.object(
-            jev_route,
-            "_classify",
-            return_value=(_classified(agent="hook-development-engineer", skill="workflow"), set(skills_index)),
-        ),
-    ):
-        result = jev_route.route("Write a PostToolUse hook", 0.3, 0.3, 5)
-    assert result["source"] == "jev"
-    assert result["pipeline"] is None
-    assert result["pre_route_hint"]["pipeline"] == "writing"
-
-
-def test_other_force_route_stands_when_jev_calls_it_trivial(skills_index):
-    trivial = {"fallback": False, "source": "jev-trivial-bypass", "jev_called": True}
-    with (
-        mock.patch.object(jev_route, "_run_pre_route", return_value=_force("building-with-jev")),
-        mock.patch.object(jev_route, "_classify", return_value=(trivial, set(skills_index))),
-    ):
-        result = jev_route.route("jev", 0.3, 0.3, 5)
-    assert result["skill"] == "building-with-jev"
-    assert result["agent"] == "python-general-engineer"
+def test_d_model_decision_uses_attach_as_the_stack():
+    route = {"agent": "golang-general-engineer", "skill": "debugging", "attach": ["programming"], "stack": ["x"]}
+    assert run_eval.d_model_decision(route)["stack"] == ["programming"]
+    assert run_eval.d_model_decision({"skill": "debugging", "stack": ["x"]})["stack"] == ["x"]
