@@ -7,6 +7,7 @@ import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from . import accounts as accounts_mod
 from . import gitutil
 from . import index as index_mod
 from . import settings as settings_mod
@@ -224,6 +225,21 @@ def _check_settings(ctx: Context, findings: list[Finding]) -> None:
             )
 
 
+def _check_accounts(ctx: Context, findings: list[Finding]) -> None:
+    for plan in accounts_mod.plan_all(ctx):
+        spath = str(plan.settings_path)
+        for entry in plan.links_add:
+            findings.append(Finding(ERROR, "account-link-missing", "claude", str(plan.config_dir / entry), plan.name))
+        for problem in plan.problems:
+            findings.append(Finding(ERROR, "account-link-conflict", "claude", str(plan.config_dir), problem))
+        if plan.settings_error:
+            findings.append(Finding(ERROR, "account-settings-unreadable", "claude", spath, plan.settings_error))
+        elif plan.merge is not None and plan.merge.changed:
+            m = plan.merge
+            detail = f"{plan.name}: missing={len(m.added)} stale={len(m.removed) + len(m.deduped)}"
+            findings.append(Finding(ERROR, "account-hooks-drift", "claude", spath, detail))
+
+
 def _check_repo(ctx: Context, findings: list[Finding]) -> None:
     repo = ctx.source_root
     for line in gitutil.status_porcelain(repo):
@@ -258,6 +274,7 @@ def run_doctor(opts: Options) -> Result:
     if "claude" in targets:
         _check_scan_roots(ctx, findings)
         _check_settings(ctx, findings)
+        _check_accounts(ctx, findings)
     _check_repo(ctx, findings)
     errors = sum(1 for f in findings if f.level == ERROR)
     warns = sum(1 for f in findings if f.level == WARN)

@@ -59,6 +59,16 @@ Allowlists:
 
 A target other than claude is planned only when its root dir exists (`--target all`).
 
+## Account profiles
+
+Claude Code reads hooks from the `settings.json` of the config dir it runs with. A `CLAUDE_CONFIG_DIR` profile with no registrations runs no toolkit hooks outside the repo. When the claude target is applied (`apply` or `sync`), the engine handles each profile in `~/.claude-accounts/accounts.json` (`scripts/manage-accounts.py`) after `~/.claude`:
+
+- Links `skills`, `agents`, `commands`, `hooks`, and `scripts` to the `~/.claude` entries when the profile has none. A real dir or a link elsewhere is reported (`doctor`: `account-link-conflict`) and left alone.
+- Merges the toolkit-owned hook registrations into the profile's `settings.json` with the same owner rule as `~/.claude/settings.json`. Env, auth, model, permissions, plugins, MCP servers, and non-owned hooks stay as they are. Env vars from the repo settings are not added to profiles.
+- Copies the old file to `~/.claude/vexjoy/backups/<name>-settings.<ts>.json` before a write (newest 10 kept). `restore-settings` does not cover profiles; copy the backup back by hand.
+
+`plan` prints one `account <name>: links +N, hooks missing=M stale=S` line per profile. `doctor` reports `account-hooks-drift` (error) when `missing` or `stale` is not 0. `uninstall` removes the owned registrations from profiles and keeps the links.
+
 ## Operations
 
 | Task | Command |

@@ -30,3 +30,15 @@ Install or repair VexJoy Agent with the vexinstall engine. The engine lives in `
 Exit codes: 0 ok, 1 error, 2 usage, 3 collision, 4 guard (write into the repo refused), 5 mass-removal cap, 6 source refused (worktree, `/tmp`, or moved repo), 7 lock timeout.
 
 `./install.sh` runs `apply --takeover` for every present runtime; the SessionStart hook runs `sync --target all`. Pass `--takeover` to `apply` only when the plan shows `takeover` entries the user wants replaced. Undo an apply with `python3 -m vexinstall restore-trash <ts>` and `restore-settings <ts>`.
+
+## Profiles and updates
+
+`apply` and `sync` also link each `CLAUDE_CONFIG_DIR` profile in `~/.claude-accounts/accounts.json` to `~/.claude` and register the toolkit hooks in the profile's `settings.json`, keeping its other keys. `doctor` prints `account-hooks-drift` with `missing=` and `stale=` counts when a profile is behind.
+
+Run the installer from a clean `main` clone, not a working branch, so live hooks track `main`. After a merge, update every profile with one command:
+
+```bash
+git -C <clean-clone> pull --ff-only && <clean-clone>/install.sh
+```
+
+The SessionStart sync runs only when the session starts in a toolkit checkout, so it does not keep profiles current for sessions in other repos. It never pulls.
