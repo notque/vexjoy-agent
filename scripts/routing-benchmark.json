@@ -1026,14 +1026,6 @@
       }
     },
     {
-      "request": "deploy to dev to test my hermes stack change in a lab before merging to master",
-      "expected_agent": null,
-      "expected_skill": "deploy",
-      "category": "infrastructure",
-      "routing_tier": "candidate",
-      "notes": "Dev-branch deploy intent — routes to dev-branch-deploy for the Hermes/Maia Concourse dev lane."
-    },
-    {
       "request": "get API p99 under 200ms using the same load-test dataset on every run",
       "expected_agent": null,
       "expected_skill": "toolkit",
