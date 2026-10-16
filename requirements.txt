@@ -40,3 +40,6 @@ google-auth>=2.22
 
 # Required for the review-output validation gate (parallel/systematic code review)
 jsonschema>=4.0
+
+# Required for sending images to Jev (scripts/jev_images.py)
+Pillow>=10.0
