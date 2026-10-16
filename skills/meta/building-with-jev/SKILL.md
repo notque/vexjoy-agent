@@ -178,6 +178,21 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 
 `confidence` on a Choice or Score measures how concentrated the distribution is. It does not say the workflow is right, and it is not permission to act. Several acceptable options also spread probability, so low confidence on a harmless preference choice is fine. Set thresholds from your labeled data and the cost of each action.
 
+## Images
+
+When the goal is visual (a render, a screenshot, a frame, a reference picture), send the picture. A text description lets Jev judge the description. Describe pixels in text only when no image exists, and always add the measured numbers beside the image. Images are dreamer-ready: use them to steer hill-climbs and reviews, never as the only deploy gate. API, limits, routing, and token cost: `references/images.md`.
+
+| Put the image in | When | Example |
+|---|---|---|
+| `state` | Several questions judge the same picture. It is billed once per request. | The candidate render, the rated reference. |
+| `instructions` | One question needs it. Only that question pays. | "Does `candidate` match this picture: `{img:ref}`?" |
+| `criteria` | An answer is defined by example pictures. | Choice options, Score levels, or Noul `true`/`false` each carrying a `JevImage` example. |
+
+- **Box** (`"type": "box"`) returns where a target is, as `top`, `bottom`, `left`, `right` fractions of the image. It always returns a box, so ask a Noul "is it visible?" beside it and read `confidence`.
+- One trait per question, as for text. Add a separate "anything worse?" Noul.
+- Each use of an image bills its tokens again (about 1 per 390 px). Put a shared image in state, not in every question.
+- Skills with their own image section: `jev-design` (review renders), `browser-jev-automation` (locate with Box), `grill-jev` (visual plans).
+
 ## Question rules
 
 - State the exact condition. Jev reads scoping words and negations literally. When you find yourself explaining what you meant after a miss, that explanation is the missing half of the instruction.
@@ -197,6 +212,7 @@ The same procedure replaces a skill: the skill's phases supply the signals and q
 - State is evidence, not instructions. No coaching in state; rules go in `instructions` and `criteria`.
 - Send only what the questions need. Irrelevant detail lowers accuracy and hides which input caused a miss.
 - Bound every field with a named constant; keep the tail; note omitted characters; label sections (`[Request]`, `[Diff]`, `[Prior Assessment]`).
+- For visual evidence, put the image in state (see Images). Do not replace a rendered output with a description of it.
 - Convert numbers to words or buckets. Compute dates, durations, counts, and sums in code. Jev does not count: one Noul per item, sum in code.
 - A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. The account also has a per-second limit (250,000 input tokens per second, 1,200 requests per minute on 2026-09-22) shared by every request, retry, user, and eval. Check the [models page](https://docs.typesafe.ai/models.md) for current limits. The state is billed again in every request, so fill each request with as many questions as fit before you start a second one. Fit state in stages. Every stage that calls Jev needs fitting, not just the first.
 - Keep observed facts and inferred values in separate, labeled fields. Check that the state is still current before you act on an answer about it.

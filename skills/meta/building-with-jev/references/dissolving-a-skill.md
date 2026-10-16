@@ -88,3 +88,5 @@ Only `--fix` mode: rewriting a flagged paragraph to shift its framing while pres
 ### Proving agreement
 
 Run the dissolved program on joy-check's existing labeled cases (rubric examples in `references/writing-rubric.md` and `references/instruction-rubric.md`). Compare each item's score and label against the rubric's expected classification. The dissolved version ships only when agreement matches or exceeds the LLM-based version on those cases.
+
+When a phase judges rendered output (a screenshot or a frame), the dissolved question takes the image in `state` instead of a text description. See `images.md`.
