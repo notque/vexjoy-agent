@@ -49,7 +49,7 @@ elif intent["choice"] == "approve_transfer":
     act() if intent["confidence"] > HIGH_STAKES_CONFIDENCE else confirm()
 ```
 
-Select thresholds on labeled data and the cost of a wrong call; one system may need several. Gate a Score's confidence too, not only the Choice's. Keep thresholds as named policy constants and report their calibration.
+Select thresholds on labeled data and the cost of a wrong call; one system may need several. For a Choice, the top probability and the top-to-second ratio are alternatives to `confidence` worth trying (`primitives.md`). If you only need the best option, skip the gate and take `choice`. Gate a Score's confidence too, not only the Choice's. Keep thresholds as named policy constants and report their calibration.
 
 Treat low confidence on a non-terminal browser action as a reason to hold the pick, re-observe, and count it toward the stall guard. Set the cutoff from labeled data and action costs. Terminal claims skip this gate only when an independent verification gate controls them.
 
@@ -70,7 +70,7 @@ A Choice for intent beside a complexity Score can route each intent to determini
 
 ## Taxonomy walk
 
-One Choice per tree level; walk in code. Each option's criteria value is its subtree, so Jev sees what lives under a branch before committing. Trim large subtrees to direct children and a sample of leaves. When probabilities are close, follow several branches (beam) and let a later level or a per-leaf Noul settle it. Two calls for a two-level tree, not one call per leaf.
+One Choice per tree level; walk in code. Each option's criteria value is its subtree, so Jev sees what lives under a branch before committing. Trim large subtrees to direct children and a sample of leaves. When probabilities are close, follow several branches (beam) and let a later level or a per-leaf Noul settle it. Score each path by the length-normalized geometric mean of its edge probabilities, `prod(p) ** (1 / decisions)`, so a shallow leaf and a deep leaf compare fairly, and ask all `K` frontier nodes in one request. When confidence at a fine level stays low, report the parent label instead of forcing a leaf: that costs no second call. More techniques: `cookbook-techniques.md`. Two calls for a two-level tree, not one call per leaf.
 
 ## Choice picks, Nouls decide whether to pick
 

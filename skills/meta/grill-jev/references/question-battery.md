@@ -22,6 +22,7 @@ one generic question per heading:
 | Consistency | Contradictions, duplicate work, naming, conventions, assumptions, documentation |
 | Reversibility | Rollback, migration, cleanup, rollback testing, audit trail |
 | Security | Credentials, authorization, input validation, destructive actions, rate limits, logs |
+| Jev usage | Counting or dates asked of Jev, compound questions, Noul-per-candidate where a Choice fits, option-order bias, unpinned `jev-latest`, confidence gates on every answer, image-only gates |
 | Cost & throughput | Calls, tokens, and requests per run and per second vs documented limits; fan-out; concurrency cap; retry backoff and budget; eval cost; production transport |
 
 ## Battery Format
