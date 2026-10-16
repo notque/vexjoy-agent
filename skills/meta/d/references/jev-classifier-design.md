@@ -49,6 +49,10 @@ Lost rows fall in three groups:
 | Out-of-catalog request | 21, 78 | The pick returned `general-purpose` and `workflow` for a request no catalog entry covers. Gold wants a content or no-op route. |
 | Weak gold | 34, 123, 129 | Gold is `content`, or no pick at all, and a defensible `writing` or `research` pick scores wrong. |
 
+### Held-out follow-up (not a gate)
+
+A second set of 67 real requests from 11 repos, labelled before any router ran, scored the new `/d` at 42 and `/do` at 46 on rows right in both of two runs (Sonnet for both; means 44 and 49). The rows carried no repo facts, so `/d` had no `JEV_RESULT.project`; `/d` picked `general-purpose` more often on read-only Go questions. The corpus result above stays the basis for the change.
+
 ## Single-sourced rule text
 
 `/do` Phase 2 holds the routing rules. `scripts/print-route-rules.py` prints the
