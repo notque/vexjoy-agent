@@ -116,6 +116,8 @@ One browser per audit, one snapshot per page, one Jev call per goal (~100-200 ms
 - **Text reuse only on identical context**: cached by `(url, target, label, current value)`.
 - **Transient Jev errors retry as WAIT** up to `STALL_LIMIT` (3); `unavailable` blocks at once.
 - **Low-confidence picks are held**: a non-DONE operation under `LOW_CONFIDENCE` (0.45) is not executed; the loop re-observes and counts toward the stall guard.
+- **Option order**: the element table is priority-sorted, and Jev leans toward the first option on some inputs. For a high-stakes target (submit, delete, pay), ask the target Choice twice in the same request, once with the options reversed, and act only when both orders agree. The top-to-second probability ratio is a cheaper check on a close pick; measure it against `LOW_CONFIDENCE` before replacing it.
+- **Pre-filter options**: offer only controls that are visible, enabled, and legal for the operation. Offered everything, Jev picks degenerate options repeatedly. A runner-up from `probabilities` is the retry after a no-effect action; never sample.
 - **Settle before judging**: `observe` waits for the DOM to be quiet (600 ms, capped at 3 s) and reports `quiet`; WAIT pauses 1.5 s then settles up to 8 s; a rejected DONE triggers a WAIT before the next decision. Jev sees `page.settled` and history notes when content was still changing.
 - **Whole-page element table**: rendered controls below the fold are offered too, marked `offscreen`; the driver scrolls them into view. Covered controls (modal backdrop, sticky header) are dropped at snapshot time, so an open modal leaves only its own controls.
 - **Links say where they go**: `navigates away to /path` or `leaves this site`, and decide's rules forbid them unless the goal names that page.
@@ -199,7 +201,7 @@ Apply [Jev production rules](../../shared-patterns/jev-production-lessons.md) wh
 
 - Keep each request at or under the reliable size from `python3 scripts/jev-size-probe.py --payload <dumped requests>` (2.5–4k tokens via Gateway until measured). Large pages grow the element table: bound it by the priority sort and field limits rather than sending the whole page.
 - Use Vercel AI Gateway. Too much context is the most common failure, and page snapshots are the usual cause: estimate each request before sending and trim the element table or split questions rather than send an oversized request. A ~100-token probe that returns proves the cause is size.
-- Retry a lone fast Gateway 503 after 50–150 ms. Back off exponentially on 429/529. Never retry 401/402/422.
+- Retry a lone fast Gateway 503 after 50–150 ms. Back off exponentially on 429/529, honoring `Retry-After` and `retry-after-ms`. Never retry 401/402/422.
 - Every retry counts against `--max-requests`.
 
 ## Error handling

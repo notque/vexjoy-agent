@@ -33,4 +33,5 @@ answers = jev_transport.evaluate(state, questions, timeout=90)["answers"]
 
 - One trait per question, with a separate "anything worse" Noul.
 - A Noul in 0.4-0.6 means the question or the picture is wrong. Crop to the area in doubt and ask again.
-- Two images at 800 x 600 cost about 2,600 tokens. Stay within the per-request budget in `jev-production-lessons.md`.
+- Send the candidate and reference sharp: at least 1,080 px on the long side (JPEG of about 512 KB to 2 MB is the sweet spot, per a TypeSafe engineer), and mobile captures at `deviceScaleFactor` 2 or more. Two images at 1280 x 800 cost about 5,400 tokens; accept that rather than shrinking. Stay within the per-request budget in `jev-production-lessons.md`.
+- Put structured context beside the pictures (measured numbers, owner's words); a picture alone is the weakest state.

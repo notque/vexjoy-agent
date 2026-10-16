@@ -125,9 +125,21 @@ A plan can be complete, feasible, and safe and still fail in production because 
 
 0. **Check it against the rules.** Load `skills/shared-patterns/jev-production-lessons.md` and turn every unticked pre-ship checklist item into a `cost_` Noul with `report_when: "false"`. Name the exact number in the question: "Does the plan keep every request at or under 4k tokens or a measured reliable size?", "Does it send each stage's requests at once, with an instance cap near floor(0.25 × 250,000 / tokens_per_request)?", "Does it set attempts, per-attempt timeout, run deadline, and a retry budget near 4 × requests × failure rate?"
 1. **Price it first.** When the artifact calls Jev, build (or ask for) a JSON of every request one run sends and run `python3 scripts/jev-budget-check.py --payload run.json --concurrency C --concurrent-runs N --attempts A`, plus `--eval-cases N` for any eval the plan runs. A `fail` is a high-signal finding on its own; a `warn` goes in the report. Put the check's summary in state under `budget` so battery questions can inspect it.
-2. **Ask about throughput explicitly.** Include Cost & throughput questions (see `references/question-battery.md`): does the plan state tokens per run and per second against the documented limits (250,000 input tokens per second and 1,200 requests per minute for Jev on 2026-09-22)? Does it fan full detail out over every unit, or cascade? Is in-flight concurrency capped? Do retries use jittered exponential backoff with a per-run budget? Is the eval priced and paced? Which errors mean "back off" on the production transport (Vercel AI Gateway reports upstream overload as 503)?
+2. **Ask about throughput explicitly.** Include Cost & throughput questions (see `references/question-battery.md`): does the plan state tokens per run and per second against the account's rate limits (250,000 input tokens per second and 1,200 requests per minute on 2026-09-22; the TypeSafe console holds the current numbers)? Does it fan full detail out over every unit, or cascade? Is in-flight concurrency capped? Do retries use jittered exponential backoff with a per-run budget? Is the eval priced and paced? Which errors mean "back off" on the production transport (Vercel AI Gateway reports upstream overload as 503)?
 3. **Treat "each request fits" as unproven.** A plan that shows every request under the per-request limit has not shown the run fits. Look for the per-second number.
 4. **Diagnoses need measurements.** When the artifact explains a failure (an outage, a size cap, a bad payload), ask whether it measured the run's own rate and retry count and tested a small known-good request on the same transport before concluding.
+
+## Plans that use Jev's judgments
+
+A plan whose steps call Jev can fail on the questions rather than the volume. Grill it on the model's known edges (`skills/meta/building-with-jev/references/question-design.md`, Known model edges), as Noul or Choice questions with named evidence:
+
+- Does any Jev question ask for counting, arithmetic, date order, or a magnitude read from a `score`? Code should.
+- Is any question a compound of several judgments, or a "which one" asked as a Noul per candidate? Split it, or use a Choice with `none`.
+- Does a Choice lean on option order, with no reversed-order check for a high-stakes pick?
+- Does the plan pin a versioned model ID, or does it use `jev-latest`, which moves between versions (1.13.0 now, 1.14.0 about 2026-10-21)? A threshold tuned on one version needs a rerun on the next.
+- Does it gate on `confidence` for every answer, where taking the best option would do? Does it treat a Noul near 0.5 as "medium"?
+- Does it put untrusted text in state with no criteria naming what counts as evidence?
+- Does it depend on images, Box, or long context, which TypeSafe labels non-production, as the only gate?
 
 ## Question generation prompt
 
@@ -151,7 +163,8 @@ For each question, choose the most appropriate Jev primitive:
   realism, detection speed.
 
 Use array compare instructions when two or more fields in the state
-need to be compared side by side.
+need to be compared side by side. Score levels are situations, 2 to 10 of them;
+phrase every Noul so a high value means yes; ask "which one" as a Choice.
 
 Focus questions on the actual content of the artifact. A plan with no
 database steps needs no database migration questions. A plan with a

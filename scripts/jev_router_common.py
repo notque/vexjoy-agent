@@ -30,6 +30,8 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Mapping
+from email.message import Message
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -427,19 +429,33 @@ def _retry_delay(exc: urllib.error.HTTPError, attempt: int) -> float | None:
     Only HTTP 429 and 529 are retried. The wait doubles each attempt with
     jitter, so parallel callers that failed together do not retry together
     (synchronized retries turn a rate limit into a retry storm). It honors a
-    numeric ``Retry-After`` header as a floor and never exceeds
+    numeric ``retry-after-ms`` or ``Retry-After`` header as a floor and never exceeds
     ``_RETRY_MAX_SLEEP_S`` so a hook's own timeout still bounds the call.
     """
     if exc.code not in _RETRY_CODES or attempt >= _retry_max():
         return None
-    retry_after = None
-    header = exc.headers.get("Retry-After") if exc.headers is not None else None
-    if header:
-        try:
-            retry_after = float(header)
-        except (ValueError, TypeError):
-            pass
+    retry_after = _retry_after_seconds(exc.headers)
     return jev_limits.backoff_delay(attempt, retry_after, rng=_jitter, base=_RETRY_BASE_S, cap=_RETRY_MAX_SLEEP_S)
+
+
+def _retry_after_seconds(headers: Mapping[str, str] | Message | None) -> float | None:
+    """Server-requested wait in seconds: ``retry-after-ms`` first, then numeric ``Retry-After``.
+
+    The TypeSafe SDKs honor both headers. A missing, non-numeric, or negative value is None.
+    """
+    if headers is None:
+        return None
+    for name, scale in (("retry-after-ms", 0.001), ("Retry-After", 1.0)):
+        raw = headers.get(name)
+        if not raw:
+            continue
+        try:
+            value = float(raw) * scale
+        except (ValueError, TypeError):
+            continue
+        if value >= 0:
+            return value
+    return None
 
 
 def _error_kind(exc: urllib.error.HTTPError) -> str:
