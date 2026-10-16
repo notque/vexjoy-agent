@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: "Deploy and infrastructure: web deploy, dev branches, cron, package install, shell configuration."
+description: "Deploy and infrastructure: web deploy, cron, package install, shell configuration."
 user-invocable: true
 allowed-tools:
   - Read
@@ -33,9 +33,6 @@ routing:
     - "put site online"
     - "serve this website"
     - "point my domain"
-    - "dev branch"
-    - "deploy to dev"
-    - "dev lane"
     - "create cron job"
     - "scheduled task"
     - "cron safety"
@@ -62,7 +59,6 @@ Six modes. Match the request to a section.
 | Signal | Section |
 |--------|---------|
 | Deploy site, HTTPS, nginx, go live, public site | A. Public Web Deploy |
-| Dev branch, Concourse dev lane, hermes/maia | B. Dev-Branch Deploy |
 | Cron job, scheduled task, audit cron script | C. Cron Automation |
 | Headless agent, wrapper script, recurring Claude task | D. Headless Cron Creator |
 | Install toolkit, verify setup, health check | E. Toolkit Install |
@@ -86,19 +82,6 @@ Serve public sites through nginx/Caddy/Apache -- never a raw dev server. Local p
 5. **Verify**: Run the 13-item security checklist. Spot-check: `curl -s https://<fqdn>/.env -w '%{http_code}\n'` (expect 403/404), `ss -tlnp` (no app ports public).
 
 Load `references/public-web-deploy.md` for the full 13-item checklist, nginx config blocks, and error handling.
-
----
-
-## B. Dev-Branch Deploy
-
-Test Hermes or Maia stack changes in a live lab region before merging to master via Concourse `dev` lane.
-
-1. **Preflight**: Verify dev branch on both repos + pipeline wired.
-2. **Merge feature into dev branch**: `git checkout <stack>-dev-branch && git merge --no-ff origin/<feature> && git push`. Never force-push.
-3. **Validate**: Dev lane green. `fly -t <target> watch -j <stack>/deploy-to-dev-<region>`.
-4. **Merge to master** via PR after dev validation.
-
-Load `references/dev-branch-deploy.md` for stack parameters, preflight commands, and pipeline regeneration.
 
 ---
 
@@ -212,7 +195,6 @@ All references below are >100 lines of domain-specific content. Load as directed
 | Reference | Lines | Domain |
 |-----------|-------|--------|
 | `references/public-web-deploy.md` | 259 | Full public deploy workflow + security checklist |
-| `references/dev-branch-deploy.md` | 156 | Concourse dev-branch workflow |
 | `references/cron-automation.md` | 194 | 9-point cron audit checklist |
 | `references/headless-cron-creator.md` | 150 | Headless cron job creation |
 | `references/install.md` | 195 | Toolkit install and health check |
