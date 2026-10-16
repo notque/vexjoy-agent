@@ -266,7 +266,7 @@ def test_fish_alias_block_uses_set_lx():
     block = ma._fish_alias_block(accounts)
     assert "set -lx CLAUDE_CONFIG_DIR" in block
     assert "function cwork" in block
-    assert 'claude --dangerously-skip-permissions --system-prompt="." $argv' in block
+    assert 'claude --dangerously-skip-permissions --chrome --system-prompt="." $argv' in block
 
 
 def test_bash_alias_block_inlines_env():
@@ -274,7 +274,54 @@ def test_bash_alias_block_inlines_env():
     block = ma._bash_alias_block(accounts)
     assert "alias cwork=" in block
     assert "CLAUDE_CONFIG_DIR" in block
-    assert 'claude --dangerously-skip-permissions --system-prompt="."' in block
+    assert 'claude --dangerously-skip-permissions --chrome --system-prompt="."' in block
+
+
+_TWO = {
+    "max1": {"alias": "cm1", "config_dir": "/tmp/max1"},
+    "max2": {"alias": "cm2", "config_dir": "/tmp/max2"},
+}
+
+
+@pytest.mark.parametrize("builder", ["_fish_alias_block", "_bash_alias_block"])
+def test_every_alias_has_chrome_flag(builder):
+    block = getattr(ma, builder)(_TWO)
+    claude_lines = [ln for ln in block.splitlines() if "claude --" in ln]
+    assert len(claude_lines) == 3  # cm0 + two accounts
+    assert all("--chrome" in ln for ln in claude_lines)
+
+
+@pytest.mark.parametrize("builder", ["_fish_alias_block", "_bash_alias_block"])
+def test_cm0_clears_config_dir_and_never_sets_it(builder):
+    block = getattr(ma, builder)(_TWO)
+    cm0 = next(ln for ln in block.splitlines() if "cm0" in ln)
+    if builder == "_fish_alias_block":
+        body = block.split("function cm0\n")[1].split("end\n")[0]
+    else:
+        body = cm0
+    assert "env -u CLAUDE_CONFIG_DIR claude" in body
+    assert "CLAUDE_CONFIG_DIR=" not in body
+    assert "set -lx" not in body
+    assert "--chrome" in body
+
+
+@pytest.mark.parametrize("builder", ["_fish_alias_block", "_bash_alias_block"])
+def test_cm0_present_with_no_accounts(builder):
+    assert "cm0" in getattr(ma, builder)({})
+
+
+def test_existing_aliases_keep_config_dir():
+    fish = ma._fish_alias_block(_TWO)
+    assert 'set -lx CLAUDE_CONFIG_DIR "/tmp/max1"' in fish
+    assert fish.count("set -lx CLAUDE_CONFIG_DIR") == 2
+    bash = ma._bash_alias_block(_TWO)
+    assert 'alias cm2=\'CLAUDE_CONFIG_DIR="/tmp/max2" claude ' in bash
+
+
+def test_cmd_add_rejects_reserved_cm0_alias(tmp_path, monkeypatch):
+    monkeypatch.setattr(ma, "ACCOUNTS_ROOT", tmp_path / "acc")
+    monkeypatch.setattr(ma, "REGISTRY", tmp_path / "acc" / "accounts.json")
+    assert ma.cmd_add(_make_args(name="x", alias="cm0")) == 1
 
 
 # ---------------------------------------------------------------------------
