@@ -185,6 +185,32 @@ jobs:
       - name: Smoke-test all registered hooks
         run: python scripts/smoke-test-hooks.py --ci
 
+  mutation-check:
+    # Report-only: mutates the hooks a PR changes and lists the mutants their tests miss.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.lock pytest
+      - name: Mutate changed hooks
+        run: |
+          targets=$(python scripts/mutation-check.py --list | awk '$1 == "hook" {print $2}')
+          args=""
+          for f in $(git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -E '^hooks/[^/]+\.py$' || true); do
+            if echo "$targets" | grep -qx "$(basename "$f")"; then args="$args --hook $f"; fi
+          done
+          if [ -z "$args" ]; then
+            echo "No changed hook with tests; nothing to mutate." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python scripts/mutation-check.py $args --workers 4 | tee mutation.txt
+          { echo '```'; cat mutation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
   trigger-ambiguity:
     # Advisory: audit-trigger-ambiguity.py always exits 0; this job is always green.
     # It prints the ranked undisambiguated-collision list into the CI log each run.
