@@ -45,6 +45,7 @@ Script: `scripts/manage-accounts.py`. Registry: `~/.claude-accounts/accounts.jso
 | Validate all accounts | `python3 scripts/manage-accounts.py check` |
 | Launch an account | `python3 scripts/manage-accounts.py launch <name>` |
 | Share skills, agents, commands from `~/.claude` | `python3 scripts/manage-accounts.py link [<name>]` |
+| Register toolkit hooks in every account's `settings.json` | `./install.sh` (vexinstall `apply`; see `docs/installer-layout.md`) |
 | Install/update aliases | `python3 scripts/manage-accounts.py install-aliases` |
 | Preview alias changes | `python3 scripts/manage-accounts.py install-aliases --dry-run` |
 | Remove an account | `python3 scripts/manage-accounts.py remove <name>` |

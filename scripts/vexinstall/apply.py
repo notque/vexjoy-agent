@@ -6,6 +6,7 @@ import os
 import time
 from pathlib import Path
 
+from . import accounts as accounts_mod
 from . import external
 from . import index as index_mod
 from . import ledger as ledger_mod
@@ -95,6 +96,10 @@ def run_plan(opts: Options) -> Result:
             elif f.changed():
                 plan.notes.append(f"external {f.path}: would write")
     res = Result(data=plan.to_json(), out=_plan_lines(plan))
+    if "claude" in targets:
+        acct = accounts_mod.plan_all(ctx)
+        res.out.extend(a.summary() for a in acct)
+        res.data["accounts"] = [a.to_json() for a in acct]
     if plan.collisions or ctx.public.duplicate_skill_names():
         res.code = int(ExitCode.COLLISION)
         res.err.extend(f"collision: {c.describe()}" for c in plan.collisions)
@@ -296,6 +301,7 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
             execute_target(plan.targets[t], ctx, trash, guard, ledger, skip)
         if "claude" in targets:
             report["settings"] = apply_settings(ctx, ledger, guard, desired=None)
+            report["accounts"] = accounts_mod.apply_all(ctx, guard)
         ext: list[external.ExternalFile] = []
         for t in targets:
             ext.extend(external.desired(t, ADAPTERS[t].root_path(ctx.home), ctx.source_root, ctx.profile))
@@ -329,6 +335,10 @@ def _apply_locked(ctx: Context, opts: Options, sync: bool, guard: Guard, label: 
     res.data = report
     line = summary_line(label, plan, ledger)
     res.out.append(line)
+    res.out.extend(accounts_mod.report_lines(report.get("accounts", [])))
+    for a in report.get("accounts", []):
+        if a.get("error"):
+            res.err.append(f"[{label}] warning: account {a['name']}: {a['error']}")
     if not sync:
         res.out.extend(_plan_lines(plan)[1:])
     return res
@@ -370,8 +380,10 @@ def run_uninstall(opts: Options) -> Result:
                     removed.append(e.dest)
                 ctx.ledger.entries.pop(e.dest, None)
             settings_report = None
+            accounts_report: list[dict] = []
             if "claude" in targets:
                 settings_report = apply_settings(ctx, ctx.ledger, guard, desired={})
+                accounts_report = accounts_mod.apply_all(ctx, guard, desired={}, links=False)
                 ctx.ledger.settings.pop("claude", None)
             ledger_mod.save(ledger_mod.ledger_path(sdir), ctx.ledger, guard)
             report = {
@@ -380,6 +392,7 @@ def run_uninstall(opts: Options) -> Result:
                 "removed": removed,
                 "skipped_user_edited": skipped,
                 "settings": settings_report,
+                "accounts": accounts_report,
                 "trash": str(trash.dir) if trash.items else None,
             }
             write_report(sdir / "reports", ts, report, guard)
