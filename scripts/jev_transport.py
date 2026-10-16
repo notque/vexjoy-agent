@@ -185,7 +185,8 @@ def _direct_one(
     images_header: bool = False,
 ) -> dict[str, Any]:
     started = time.monotonic()
-    payload: dict[str, Any] = {"state": state, "model": jev_router_common.JEV_MODEL, "questions": questions}
+    model = jev_images.BOX_MODEL if jev_images.has_box(questions) else jev_router_common.JEV_MODEL
+    payload: dict[str, Any] = {"state": state, "model": model, "questions": questions}
     extras: dict[str, Any] = {}
     if images_header:
         extras["extra_headers"] = {jev_images.IMAGES_HEADER: "true"}

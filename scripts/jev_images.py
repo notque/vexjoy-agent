@@ -52,6 +52,10 @@ IMAGE_PIXELS_PER_TOKEN = 375
 IMAGE_TOKEN_MEASUREMENT = "2026-10-16 direct API: 300x300=271, 800x600=1301, 1568x1568=6300 tokens"
 
 IMAGES_HEADER = "TypeSafe-Danger-Zone-Images"
+# Box questions need Jev 1.14; "jev-latest" resolved to 1.13 and returned 400
+# on 2026-10-16, and "jev-1.14" was also refused. Move back to "jev-latest"
+# once it reaches 1.14.
+BOX_MODEL = "jev-1.14.0"
 
 _PLACEHOLDER = re.compile(r"\{img:([A-Za-z0-9_.-]+)\}")
 _MIME = {"jpg": "image/jpeg", "png": "image/png"}

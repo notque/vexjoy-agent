@@ -334,6 +334,15 @@ def test_box_question_sends_header_and_forces_direct(wire: list[Any], monkeypatc
     assert request.get_header(jev_images.IMAGES_HEADER.capitalize()) == "true"
     assert request.get_header("Content-type") == "application/json"
     assert "assets" not in json.loads(request.data)
+    assert json.loads(request.data)["model"] == jev_images.BOX_MODEL
+
+
+def test_requests_without_box_keep_the_default_model(wire: list[Any], tmp_path: Path) -> None:
+    shot = JevImage(_png(tmp_path / "a.png", (400, 400)))
+    jev_transport.evaluate({"frame": shot}, {"q": {"type": "noul", "instructions": "ok?"}}, timeout=5)
+    (request,) = wire
+    body = request.data.decode("latin-1")
+    assert '"model": "jev-latest"' in body or '"model":"jev-latest"' in body
 
 
 def test_bad_image_is_a_transport_error_without_sending(wire: list[Any], tmp_path: Path) -> None:
