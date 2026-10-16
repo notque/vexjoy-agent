@@ -10,25 +10,29 @@ A Box question returns the target's edges as fractions of the image, so code con
 |---|---|
 | Capture a viewport screenshot with the driver's `screenshot` command | Program |
 | Ask `box` for the target, named in the instruction | Jev |
-| Check `confidence`, then compute the center: x = (left + right) / 2 times viewport width | Program |
+| Check `needs_escalation`, then read the center: x = (left + right) / 2 times viewport width | Program |
 | Click, then re-observe and verify | Program |
 
 ```python
-from jev_images import JevImage
-import jev_transport
+import jev_box
 
-shot = JevImage("viewport.png")    # 1280 x 800 viewport, about 2,700 tokens
-questions = {
-    "target": {"type": "box", "instructions": "the round 'next turn' button in `page`"},
-    "present": {"type": "noul", "instructions": "Is the 'next turn' button visible in `page`?"},
-}
-a = jev_transport.evaluate({"page": shot}, questions, timeout=90)["answers"]
-if a["present"]["noul"] > 0.7 and a["target"]["confidence"] > 0.7:
-    box = a["target"]["box"]       # top, bottom, left, right: 0 to 1
-    x, y = (box["left"] + box["right"]) / 2 * 1280, (box["top"] + box["bottom"]) / 2 * 800
+res = jev_box.locate("viewport.png", "the round 'next turn' button", context=dom_facts)   # 1280 x 800 viewport
+if res.needs_escalation:
+    ...                                # not confident: read the screenshot with a stronger model
+elif res.status == "found":
+    x, y = res.center                  # click point in viewport pixels
 ```
 
-- Ask the `present` Noul beside every Box. A Box always returns edges, even when the target is absent.
+`locate` sends the Box with a presence Noul and a count Choice in one request, then refines or checks edges when needed. Box is experimental: confirm the target against the DOM first when it can answer, and re-observe after the click. See [images.md](../../../meta/building-with-jev/references/images.md) for `tile_grid`, `reference`, and the measured numbers.
+
+| Situation | Call |
+|---|---|
+| Small control in a large page | `locate(shot, target)`: a low-confidence first box gets a refine crop from the original. |
+| Several look-alike controls | Describe the one you want. On `several`, pass `tile_grid=(rows, cols)` or narrow the text. |
+| Icon you have a picture of | `locate(shot, "the matching icon", reference="icon.png")`. |
+| Fast click, box is enough | `locate(shot, target, edge_check=False)` saves a request. |
+
+- `locate` reads the presence Noul for you. Hand-built Box questions need one beside them, because a Box always returns edges.
 - Capture at the viewport size you convert with. The driver's device scale factor must match, or scale the point.
 - If the click does not change the page, the verify phase catches it. Do not retry the same box more than once.
 
