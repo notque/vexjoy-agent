@@ -35,6 +35,7 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+import jev_images
 import jev_limits
 import jev_redact
 
@@ -459,14 +460,29 @@ def _error_kind(exc: urllib.error.HTTPError) -> str:
     return ""
 
 
+def _asset_refs(payload: dict) -> dict[str, str]:
+    """Part name -> reference for every asset in the payload."""
+    assets = payload.get("assets")
+    if not isinstance(assets, dict):
+        return {}
+    return {str(a.get("part")): ref for ref, a in assets.items() if isinstance(a, dict)}
+
+
 def call_jev(
     payload: dict,
     api_key: str,
     timeout: float,
     *,
     script_name: str | None = None,
+    image_parts: dict[str, tuple[bytes, str]] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> tuple[dict, float]:
     """POST one Jev call. Returns (response_json, latency_ms).
+
+    ``image_parts`` (part name -> ``(bytes, content_type)``) sends the request as
+    multipart with the JSON as part ``request``; the payload's ``assets`` map
+    names the parts. ``extra_headers`` adds headers such as
+    ``TypeSafe-Danger-Zone-Images``. Image bytes are never logged.
 
     Stdlib urllib.request only (no third-party HTTP dependency).
     Raises on any failure; the caller catches broadly and never includes
@@ -490,7 +506,20 @@ def call_jev(
     if n_redacted > 0:
         print(f"[jev-redact] {n_redacted} value(s) redacted before send", file=sys.stderr)
 
+    if image_parts:
+        # A redaction pass can rewrite a reference that sits next to a sensitive-looking key;
+        # the API rejects an unreferenced asset, so fail here with a clear cause.
+        text = json.dumps(payload)
+        lost = [name for name, ref in _asset_refs(payload).items() if ref not in text]
+        if lost:
+            raise RuntimeError("image reference lost in redaction; rename the state key that holds it")
+
     phash = _payload_hash(payload)
+    if image_parts:
+        digest = hashlib.sha256()
+        for name in sorted(image_parts):
+            digest.update(name.encode() + hashlib.sha256(image_parts[name][0]).digest())
+        phash = hashlib.sha256((phash + digest.hexdigest()).encode()).hexdigest()[:16]
     n_questions = len(payload.get("questions") or {}) if isinstance(payload.get("questions"), dict) else 0
 
     # --- Circuit breaker ---
@@ -561,13 +590,13 @@ def call_jev(
         # Fallthrough: the owner failed or timed out; make our own request.
 
     # --- Network call ---
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        TYPESAFE_URL,
-        data=body,
-        method="POST",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-    )
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if image_parts:
+        body, headers["Content-Type"] = jev_images.encode_multipart(payload, image_parts)
+    else:
+        body = json.dumps(payload).encode("utf-8")
+    headers.update(extra_headers or {})
+    request = urllib.request.Request(TYPESAFE_URL, data=body, method="POST", headers=headers)
     start = time.monotonic()
     attempt = 0
     try:

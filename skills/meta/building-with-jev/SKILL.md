@@ -59,6 +59,7 @@ Prefer direct judgments over supplied evidence. Bounded action selection is vali
 | dissolving a skill, replacing an LLM with Jev, three-tier classification | `references/dissolving-a-skill.md` | Method, phase table, worked example |
 | decision surface, card, gate design, threshold, what numbers mean, failure behavior, versions | `references/decision-card.md` | Decision card template: fields every gate must define before code ships |
 | position of a judgment, operand, gate, post-judge, selector, verifier, logical operators, dissolve a skill phase | `references/composition-positions.md` | 11 positions a judgment can occupy relative to a function, mapped to our scripts, with the walk-the-positions procedure |
+| image, screenshot, rendered frame, reference picture, Box question, `JevImage` | `references/images.md` | Send images through the transport: limits, preparation, token cost, visual hill-climb anchors |
 | iteratively improve a skill, rubric, prompt, policy, or other artifact with broad Jev feedback | `references/iteration-with-jev.md` | Controlled A/B iteration, wide independent question batteries, variance checks, stopping rules, and avoiding optimization artifacts |
 | model limitations, version changes, or a failure-mode audit | `references/question-design.md`, `references/state-and-budget.md`, `references/primitives.md`, `references/improve-and-calibrate.md` | Literal wording, arithmetic and dates, indirection, state filtering, hostile state, structural invariants, generation boundaries, and labeled retesting |
 
