@@ -82,6 +82,8 @@ empty, and routing continues.
 Measured on the corpus: p50 549 ms, p95 666 ms, mean 820 input and 210 output
 tokens per call.
 
+The measurement ran on the `jev-latest` alias, which pointed at `jev-1.13.0`. TypeSafe moves the alias to `jev-1.14.0` about a week after its 2026-10-14 release. Rerun the `d-prepare` arm (see "Re-running the measurement") after the move before trusting the 0.6 attachment floor, and read `model` in each response to see which version answered.
+
 ### Attachment policy (finalize)
 
 `_attachments` builds `attach` in this order and stops at three skills: the

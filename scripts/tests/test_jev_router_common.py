@@ -657,6 +657,21 @@ class TestRetry:
         retry_sleeps = [s for s in sleeps if s < 10]
         assert retry_sleeps == [3.0, common._RETRY_MAX_SLEEP_S]
 
+    def test_retry_after_ms_wins_over_retry_after(self):
+        assert common._retry_after_seconds({"retry-after-ms": "1500", "Retry-After": "9"}) == pytest.approx(1.5)
+        assert common._retry_after_seconds({"Retry-After": "4"}) == 4.0
+
+    @pytest.mark.parametrize("headers", [None, {}, {"retry-after-ms": "soon"}, {"Retry-After": "-2"}])
+    def test_retry_after_ignores_missing_or_bad_values(self, headers):
+        assert common._retry_after_seconds(headers) is None
+
+    def test_bad_retry_after_ms_falls_back_to_retry_after(self):
+        assert common._retry_after_seconds({"retry-after-ms": "x", "Retry-After": "2"}) == 2.0
+
+    def test_retry_delay_honors_retry_after_ms_as_a_floor(self):
+        delay = common._retry_delay(_http_error(429, headers={"retry-after-ms": "3000"}), 0)
+        assert delay == pytest.approx(3.0)
+
     def test_gives_up_after_the_retry_limit(self, monkeypatch):
         sleeps: list[float] = []
         monkeypatch.setattr(common.time, "sleep", sleeps.append)

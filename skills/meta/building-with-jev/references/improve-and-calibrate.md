@@ -20,11 +20,18 @@ Find the failing question before changing anything. Collect labeled examples, ru
 | Rewording one question trades errors | one question weighs several properties | split into atomic questions |
 | Each answer right, decision wrong | policy | change weights or thresholds in code; leave questions alone |
 | Slow or costly | sequential calls | merge into one request; keep a second only when it depends on the first |
+| Answer flips when the options are reordered | the model leans to the first option | compare with reversed options; sharpen `not_for`; act only when both orders agree |
+| Answers shift with no code change | an alias (`jev-latest`) moved to a new version | read the stored `model`; pin a versioned ID; rerun the labeled set before retuning (`models-and-limits.md`) |
+| A "which one" Noul scores a wrong candidate high | a Noul judges one claim with no rival | ask a Choice over the candidates with `none` |
 | Findings unverifiable | whole-input judgment | judge per file or element; anchor to file:line |
 | Severity all one band | levels not situations | rewrite levels; add a second-opinion Score in verification |
 | `max_tokens_exceeded` mid-pipeline | a later stage skipped fitting | cap items per call at every stage; count `calls_failed` per stage |
 | `calls_failed` nonzero, output looks fine | defaults masquerading as answers | surface failed calls; never default silently on a safety path |
 | One query works; real use or an eval fails with 429, 529, or Gateway 503 | the run spends too much of the per-second limit; synchronized retries amplify it | price with `scripts/jev-budget-check.py`; cascade; cap in-flight requests; jittered backoff (see below) |
+
+## When one sharpening is not enough
+
+After one sharpening pass (a split, added evidence, tighter criteria), a Noul still in 0.4 to 0.6 or a Choice or Score still split goes to a stronger model, not to a third re-ask. Re-asking unchanged evidence is fishing for a yes. See "Escalate when Jev is unsure" in `SKILL.md`. Before building a bigger question, ask a coding agent to propose two or three decompositions and run each on the labeled set.
 
 ## Service failure or wrong design
 
@@ -46,7 +53,7 @@ Do not infer the state of one transport from another: a direct-key 401 or 402 sa
 - Keep the answer space stable once code depends on it. Adding or removing a level or option changes what every earlier answer meant and invalidates stored calibration.
 - General rules in instructions and criteria; specific names and values only in `examples`.
 - Do not loosen criteria to remove a false positive. Sharpen the boundary by adding the misjudged case to `not_for` or the `false` side.
-- Pin the model version when thresholds are tuned on measured behavior. Rerun the labeled set and reread the jaggedness page when the model changes.
+- Pin the model version when thresholds are tuned on measured behavior (`jev-latest` moves; use `jev-1.13.0` style IDs). Rerun the labeled set and reread the jaggedness page when the model changes.
 - Treat state as a design lever only when it supplies evidence needed by the decision. More context is not a fix. Change one state, instruction, criterion, or policy lever at a time so a result remains attributable.
 - Do not use a generic probability label, bundled cues, or a list of loosely related tells as a decision surface. Ask a narrow, observable question with `not_for` or restraint cases that protect valid exceptions, quoted input, domain-specific values, and already-supported conclusions.
 

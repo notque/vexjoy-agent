@@ -32,8 +32,8 @@ Used by `building-with-jev`, `grill-jev`, `browser-jev-automation`, `jev-design`
 |---|---|---|
 | Tokens per request (state + every question) | 64,000 | models.md |
 | State + longest single question | 32,000 | models.md |
-| Input tokens per second, whole account | 250,000 | models.md |
-| Requests per minute, whole account | 1,200 | models.md |
+| Input tokens per second, whole account | 250,000 | models.md on 2026-09-22; now the developer console |
+| Requests per minute, whole account | 1,200 | models.md on 2026-09-22; now the console (per second) |
 | Tokens per request with a low transient-failure rate via Gateway | **~2.5–4k** | measured 2026-09-22 (re-measure) |
 
 The account limits are shared by every request, retry, user, eval, and other app on the account.
@@ -107,7 +107,7 @@ Never ask the full question set about every item.
 | Response | Action |
 |---|---|
 | 503 via Gateway, single, fast | retry after `50 + random() * 100` ms |
-| 429, 529, or every third 503 in a run | backoff `step = min(4000, 500 * 2**attempt)`, wait `step/2 + random()*step/2`, `Retry-After` as a floor; halve in-flight (minimum 4) |
+| 429, 529, or every third 503 in a run | backoff `step = min(4000, 500 * 2**attempt)`, wait `step/2 + random()*step/2`, `Retry-After` or `retry-after-ms` as a floor; halve in-flight (minimum 4) |
 | 401, 402, 422 | stop; never retry |
 | timeout | retry within the run deadline |
 

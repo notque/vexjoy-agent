@@ -36,7 +36,7 @@ Clean labels before Jev sees them: collapse multi-line DOM labels to "Settings (
 
 ## Budget
 
-A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. Check the [models page](https://docs.typesafe.ai/models.md) for current limits.
+A request holds 64,000 tokens: the state plus every question. The state plus the longest single question must stay under 32,000. There is no cap on the question count. `TypeSafe-Danger-Zone-Long-Context: true` raises both limits to 262,000, at lower accuracy and speed; do not use it before filtering and cascading (`models-and-limits.md`).
 
 Every request re-sends the whole state, so pack each request by the measured size of its questions and cap the requests per run. Aligned constants in `scripts/jev-compact.py` and `plugins/jev-auto-compact/hooks/jev-auto-compact.mjs`: `MAX_STATE_TOKENS = 12000` (fitting target), `STATE_HARD_LIMIT_TOKENS = 28000`, `MAX_REQUEST_TOKENS = 56000`, `MAX_REQUESTS_PER_COMPACTION = 4`. The margins cover a rough token estimate. When a run does not fit, send nothing and take the fallback path.
 
@@ -62,7 +62,7 @@ One call over a whole multi-file diff returns findings with no file and no usabl
 
 ## Rate limits: price the run per second
 
-The request limits above are per request. The account also has rate limits shared by every request, retry, concurrent user, and eval: **250,000 input tokens per second and 1,200 requests per minute** on the [models page](https://docs.typesafe.ai/models.md) (checked 2026-09-22; "subject to dynamic adjustment"). Exceeding them returns 429 (rate limit) or 529 (overloaded) from the direct API, and 503 `GatewayInternalServerError` through Vercel AI Gateway.
+The request limits above are per request. The account also has rate limits shared by every request, retry, concurrent user, and eval. On 2026-09-22 the [models page](https://docs.typesafe.ai/models.md) printed **250,000 input tokens per second and 1,200 requests per minute**; it now says limits are per organization, in tokens and requests per second, and shown in the developer console. Our planning constants keep the 2026-09-22 numbers: read the console when a run fails. Exceeding them returns 429 (rate limit) or 529 (overloaded) from the direct API, and 503 `GatewayInternalServerError` through Vercel AI Gateway.
 
 Batching makes each request fit; it does not make the run fit. Worked failure (jev-sap, 2026-09): 311 products, four heads each, split into about 20 requests of about 14,000 tokens and sent at once. Every request was far under 64,000 tokens. One search spent about 250,000 to 300,000 tokens in about a second, the whole per-second limit, so a single user tripped it. Each failed request retried after 100 to 400 ms with no jitter, all together, resending its full state; searches logged 37 to 47 retries. An 81-case baseline eval then sent about 24 million tokens in a few minutes. The failures looked like an outage or a payload bug. They were the program: too many tokens per second, and requests large enough that the Gateway's transient 503 rate was over half (measured afterwards; see "Size requests by measured failure rate" below). The fix was a cascade of ~3k-token requests, 6 in flight, with jittered retries: ~49k billed tokens per search, all 36 test searches verified, p50 1.9 s.
 

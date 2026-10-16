@@ -1,9 +1,11 @@
 """Documented Jev service limits and the arithmetic that keeps a program under them.
 
 Source: https://docs.typesafe.ai/models.md and https://docs.typesafe.ai/api.md
-(checked 2026-09-22). The docs say rate limits "are subject to dynamic
-adjustment": re-read the models page when a run starts failing with 429/529,
-or with 503 through Vercel AI Gateway.
+(checked 2026-09-22; models.md re-read 2026-10-16). The per-second numbers
+below are the 2026-09-22 reading: the models page now defers to the developer
+console, per organization, in tokens and requests per second. Re-read the
+console when a run starts failing with 429/529, or with 503 through Vercel AI
+Gateway.
 
 Why this module exists: a program can keep every request far under the
 64k-token request limit and still fail, because one run fans out enough

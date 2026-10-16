@@ -46,6 +46,9 @@ Do not collapse distinct decisions into one broad `same` label. Keep classificat
 - Examples are concrete instances, not descriptions of instances. "I was charged twice" helps; "a message about a billing problem" does not.
 - Examples steer only when they resemble real inputs. Test matching and non-matching examples on representative labeled cases; keep examples only when they improve the relevant decision without harming boundary cases.
 - Keep specific names and values in `examples`; keep general rules in `what`.
+- Option names and descriptions are both sent. The API accepts 255 options and any value shape, including `null` and nested subtrees. The keys `what`, `not_for`, and `examples` are our convention, not API fields: you may pick other names.
+- Give the full legitimate option list, not a shortlist: options cost a few tokens each. Code removes options that are illegal or irrelevant for this state before the call. Offered impossible or degenerate options, Jev picks them (a game agent took "1 plate" 25 times in a row when every amount was offered).
+- Jev leans toward the first option on some inputs (jaggedness page, "Choice option order"). For a high-stakes pick, ask again with the options reversed in the same request (two questions, same state) and act only when both agree; otherwise treat the answer as unsure.
 
 ### Score
 
@@ -68,6 +71,11 @@ Criteria optional. When the boundary is subtle:
 ```
 
 `criteria.true`/`criteria.false` accept JSON objects for complex boundaries.
+
+- Phrase it so a high value means yes: "Does the message contain personal data?", never "Is it free of personal data?". A statement works too ("The customer requests a refund"). Try both phrasings on labeled data.
+- "Any" removes the middle ground: "Does the resume show any Python use?" beats "Is the candidate strong in Python?". For degree, use a Score.
+- Test with and without `criteria`; keep whichever scores better on labeled cases.
+- Several labels that can all apply: one Noul per label, not one Choice.
 
 ### Progress comparison
 
@@ -94,6 +102,33 @@ Each option's `what` summarizes its resulting state, not the action that produce
 Scores calibrate magnitude; Nouls decide. Do not use a Score as a boolean proxy. When the answer has no in-between, use a Choice or several Nouls. If two types fit, prefer the one code acts on directly.
 
 Use all three where they fit and ask them in the same call: "is the commit ready" (Noul), designated readiness dimensions (Nouls), "overall readiness" (Score), "what happens next: commit, cleanup, block" (Choice).
+
+## Which one: Choice, not a Noul per candidate
+
+When the answer is "which of these", ask one Choice over the candidates. A game agent that read an item's identity measured 0.92 to 1.00 on a Choice and 0.44 to 0.70 on a Noul per candidate for the same input, and a "does it say X?" Noul gave 0.60 for a wrong item. A Noul judges one proposition with no rival to compare, so a loose match scores high. This agrees with the docs: a Choice picks among a set; a Noul measures a single claim.
+
+- Add a `none` option so absence can win. A Choice always puts its probability somewhere, so its top option can win with nothing true.
+- When an absolute check also matters, add a Noul beside the Choice ("does the document contain an answer at all?") and act on the pick only when both pass (`composition-patterns.md`, Choice picks, Nouls decide whether to pick).
+- Read a printed number with a Choice whose options are the numbers ("1" to "N"). Do not use that to count objects: Jev does not count, so count in code and keep Jev for reading one value.
+
+## Known model edges (jev-1.13)
+
+From the [jaggedness page](https://docs.typesafe.ai/model-jaggedness/jev-1.13.md) (reviewed by TypeSafe 2026-10-02). Check the page for the version you deploy.
+
+| Edge | What happens | Do |
+|---|---|---|
+| Literal reading | Scoping words and negations read at face value | State the exact condition; put the boundary case in criteria |
+| Counting and math | No reliable counts, sums, or magnitudes | Code does it; one Noul per item, sum in code; never interpolate a quantity from `score` |
+| Numeric forms | Hex colors, RGB triples, assembly, and binary do worse than names and high-level code | Convert in code to a name or bucket |
+| Dates | Ordering, spans, and windows are unreliable | Choice per date part with a "not stated" option; code builds the date |
+| Indirection | Double negatives and multi-hop questions lose accuracy | Ask directly; name the path |
+| Large state | Unrelated detail distracts ("context rot") | Filter first; use a relevance Noul per passage when code cannot |
+| Adversarial text | Injected or self-arguing text can move the answer | Name what counts in criteria; test hostile cases |
+| Contradiction | Instructions and criteria that disagree confuse it | Make criteria an extension of the instruction |
+| Option order | Leans to the first option | Reorder and compare |
+| Generation | Not trained to write text | Choose among candidates code or an LLM produced |
+
+Also avoid asking what code can compute, hiding several judgments in one question, and multi-layer reasoning questions.
 
 ## Ask many specific questions
 
