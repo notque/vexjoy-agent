@@ -55,7 +55,7 @@ python3 scripts/weak_model_run.py --task tasks/pool.txt --out runs/r0/guided-poo
 
 1. Run the deterministic checks and the rubric on every output.
 2. **Look at the artifacts yourself**: read the code, render the pages. For UI, take full-page screenshots at 375 and 1280 px, light and dark, **after scrolling to the bottom** (scroll-reveal content is blank otherwise), and run the page-check script in `skills/shared-patterns/ui-design-judgment.md` section 10.
-3. Optionally ask Jev bounded questions about compact extracted facts (headings, button labels, CSS facts, error counts), never whole files. Keep requests under 3,500 tokens (`jev_transport.evaluate_packed`).
+3. Optionally ask Jev bounded questions about compact extracted facts (headings, button labels, CSS facts, error counts), never whole files. Keep requests under 3,500 tokens (`jev_transport.evaluate_packed`). For screenshots of the rendered UI, send them as images instead of describing them (`skills/meta/building-with-jev/references/images.md`).
 4. Check your harness before blaming the model. Tall screenshot windows break `100vh` heroes; screenshots taken before scrolling show blank sections. Run the acceptance tests against a reference solution before any model run, and make lint rules the task's own contract forces (for example a required `timeout` parameter) non-scoring. Fix the harness, then judge.
 
 ### 5. Turn failures into rules

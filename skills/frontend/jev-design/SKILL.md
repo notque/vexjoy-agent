@@ -82,6 +82,7 @@ Use the `frontend` skill. Follow this order:
 
 Build with [UI design judgment](../../shared-patterns/ui-design-judgment.md) and its [recipes](../../shared-patterns/ui-design-recipes.md). Render the screen and review it with [references/visual-review.md](references/visual-review.md). Use the harness's screenshot tool (Playwright or chrome-devtools MCP). Capture 375, 768, and 1280 px widths in light and dark mode.
 
+- Send the desktop and mobile screenshots to Jev, one Noul per trait, with the rated reference in the same state. Load [references/jev-images.md](references/jev-images.md) for captures, question set, and code. Image answers steer the review. They do not replace the checklist.
 - Report each finding as a fact with a location: "Primary button in the dialog footer is below the fold at 375 px", not "spacing feels off".
 - Fix code-level findings in code. Put requirement-level findings (a wrong component, the wrong tone) back into `brief.json`, and rerun phase 2.
 - Stop after three review rounds. Report what remains.

@@ -133,6 +133,10 @@ The text model writes one value. It never picks actions or judges progress.
 
 ---
 
+## Screenshots and Box
+
+When DOM text cannot identify the target (canvas, charts, icon-only controls, text in images), take a `screenshot`, ask a Box question for the target plus a "visible?" Noul, and click the box center. Keep deterministic verifiers as the veto. Load `references/jev-images.md` for the pattern and code; API and limits: [images.md](../../meta/building-with-jev/references/images.md).
+
 ## Phase 1: OBSERVE
 
 `observe` evaluates `snapshot.js` in the isolated world. Output:
@@ -213,6 +217,7 @@ Field-tested on 5 Star Booker (loopback dev server): closes the help modal, sele
 
 ## References
 
+- `references/jev-images.md`: screenshot and Box locate pattern
 - [jev-ultrafast](https://github.com/browser-use/jev-ultrafast): patterns studied, code not reused
 - `docs/PHILOSOPHY.md`: three execution tiers
 - `scripts/jev_router_common.py`: `validated_call_jev`, `bound_text`, `typesafe_available`

@@ -115,6 +115,10 @@ Generate questions covering these nine areas, weighted by what the artifact cont
 | Security & safety | auth, data exposure, destructive operations |
 | Cost & throughput | calls, tokens, and requests per run and per second against the provider's documented rate limits; fan-out size; concurrency; retry policy; eval cost |
 
+## Visual goals
+
+When the plan or artifact has a visual goal, require a rendered candidate and a reference image in the state instead of a description. If either is missing, that is the first finding. Load `references/visual-plans.md` for the state, the question set, and the code. `scripts/grill-jev.py` is text-only; send visual batteries through `jev_transport.evaluate`. API and limits: [images.md](../building-with-jev/references/images.md).
+
 ## Plans that call Jev or another metered API
 
 A plan can be complete, feasible, and safe and still fail in production because one run spends the provider's per-second limit. Grill it on arithmetic, not just on prose:
@@ -251,7 +255,7 @@ OVERALL READINESS: 1.4/3 — partially complete; address findings before executi
 }
 ```
 
-Question-authoring guide: `references/question-battery.md`.
+Question-authoring guide: `references/question-battery.md`. Visual goals: `references/visual-plans.md`.
 
 ## Integration into planning workflows
 

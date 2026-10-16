@@ -92,3 +92,7 @@ Structural identities you might expect are not guaranteed:
 - A Choice is relative (which option wins); a Noul is absolute (it can be low for every option). Use both on a shortlist: the Choice picks, per-option Nouls decide whether to pick at all.
 
 Validate before acting: `validate_jev_response` checks Noul in [0,1], Choice is a string, Score is numeric, probabilities in [0,1] summing to about 1, confidence in [0,1]. Advisory callers log and continue; safety callers treat an invalid response as unavailable.
+
+## Box
+
+A question with `type` `box` and `instructions` such as "the next-turn button in the page image" returns `box` (`top`, `bottom`, `left`, `right`, each 0 to 1 of the image) and `confidence`. It needs an image and Jev 1.14, and it always returns edges, so pair it with a "visible?" Noul. Details: `images.md`.

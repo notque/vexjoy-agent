@@ -12,6 +12,10 @@ Check the rendered screen, not the code. This checklist applies [UI design judgm
 
 Toggle dark mode by adding the `dark` class to `<html>`, or by emulating `prefers-color-scheme: dark` when the app follows the system.
 
+## Ask Jev about the screenshots
+
+After the screenshots exist, send them to Jev as images (one Noul per trait) rather than describing them: see [jev-images.md](jev-images.md). Run the checklist below either way.
+
 ## Checklist
 
 **Hierarchy**
