@@ -26,7 +26,7 @@ Everything below is identical between stacks except these values.
 **Constants (both stacks):**
 - Team: `monitoring`
 - Lab regions the dev lane deploys to: `qa-de-1`, `qa-de-2`, `qa-de-3`, `eu-de-3`
-- Repos the dev branch must exist on: `cc/secrets` (GHE `github.wdf.sap.corp`) **and** `sapcc/helm-charts` (github.com)
+- Repos the dev branch must exist on: the secrets repo (internal GitHub Enterprise) **and** the helm charts repo (github.com)
 - Local `cc/secrets` clone: `~/gh/secrets`
 
 ## The two lanes

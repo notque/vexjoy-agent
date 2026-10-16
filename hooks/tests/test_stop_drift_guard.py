@@ -637,7 +637,7 @@ class TestIsToolkitRepo:
 
 class TestToolkitRepoGate:
     def test_non_toolkit_repo_no_ops_even_with_reviewable_drift(self):
-        """Regression for the false positive in unrelated repos (e.g. Hermez):
+        """Regression for the false positive in unrelated repos:
         a reviewable diff in a NON-toolkit cwd exits 0 and never rewakes."""
         spy = _CheckSpy(results={SMOKE: _drift()})
         with patch.object(mod, "_run_check", side_effect=spy):
