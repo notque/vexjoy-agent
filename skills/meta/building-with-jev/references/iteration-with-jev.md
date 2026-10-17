@@ -30,6 +30,8 @@ Use code to expose probabilities, constraints, regressions, variance, cost, and 
 
 Before each image round, hash-diff the kept and candidate renders (prove the pixels changed), include a byte-identical control pair (its `better` and `worse` reads are the noise floor, 0.11 to 0.17 in one run), and check by looking that the number you optimize is the visual cause Jev named. A measured gain (eye-window luma +4 and +7) that did not register as better (0.19 to 0.32) was a proxy that agreed with Jev by accident.
 
+Freeze the question set across rounds. A Noul's answer on identical images can move with the sibling questions in the same request: 0.33 became 0.49 to 0.55 when only the other wordings changed, while repeating the identical request varied by 0.03 or less. Keep the same questions in the same request across rounds, or ask `worse` in its own request. Prefer a Choice when a decision must be stable across rounds: in one field run Choices stayed order-stable (margins 1.6 to 2.7) while Noul reads drifted.
+
 ## 6. Select and stop
 
 Choose the smallest change that produces a material, repeatable improvement while all protected dimensions remain within their allowed regression. Stop broad iteration when the same candidate or disposition wins across frozen repeats, material-revision probability is low, and remaining issues are targeted polish or missing external evidence. More self-evaluation is not progress after convergence.
