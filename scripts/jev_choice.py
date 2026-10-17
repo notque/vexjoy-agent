@@ -17,6 +17,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 MARGIN_MIN = 2.0  # at or above this p_max / p_second the pick agreed under reversed option order 29/29
+# Two-option Choices flip only at the bottom: on 112 synthetic winner Choices (60 near-equal pairs, 2026-10-16,
+# jev-1.14.0) all 4 order flips had margin under 1.5 (p_max under 0.6); none at 1.5 or more. Few binaries fell in
+# 1.5 to 2.0 (n=2), so 1.5 is provisional. Margin 2.0 on a binary means p_max 0.667, which many valid picks miss.
+MARGIN_MIN_BY_ARITY: dict[int, float] = {2: 1.5}
 
 
 @dataclass(frozen=True)
@@ -62,10 +66,21 @@ def order_averaged_margin(forward: Mapping[str, float], reverse: Mapping[str, fl
     return choice_margin({k: (forward[k] + reverse[k]) / 2 for k in forward}).margin
 
 
-def should_escalate(read: ChoiceRead, *, consequences_differ: bool, margin_min: float = MARGIN_MIN) -> bool:
-    """True only when the pick is unstable AND the leading options differ in outcome cost.
+def margin_min_for(n_options: int) -> float:
+    """The margin bar for a Choice with ``n_options`` options: ``MARGIN_MIN_BY_ARITY`` or ``MARGIN_MIN``."""
+    return MARGIN_MIN_BY_ARITY.get(n_options, MARGIN_MIN)
 
-    A flat Choice over interchangeable options needs no stronger model: take the argmax, or let code break the tie.
-    The caller decides ``consequences_differ`` from state (lethal possible, irreversible, money, owner-visible).
+
+def is_settled(read: ChoiceRead, *, margin_min: float | None = None) -> bool:
+    """True when the lead over the runner-up meets the bar for this arity (``read.n`` classes)."""
+    return read.margin >= (margin_min if margin_min is not None else margin_min_for(read.n))
+
+
+def should_escalate(read: ChoiceRead, *, consequences_differ: bool, margin_min: float | None = None) -> bool:
+    """True only when the leading options differ in outcome cost AND the pick is not settled.
+
+    Consequence gating comes first: a low-consequence or reversible pick takes the argmax at any margin, and
+    the margin bar applies only to consequential decisions. The caller decides ``consequences_differ`` from
+    state (lethal possible, irreversible, money, owner-visible). ``margin_min`` defaults to the per-arity bar.
     """
-    return consequences_differ and read.margin < margin_min
+    return consequences_differ and not is_settled(read, margin_min=margin_min)
