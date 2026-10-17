@@ -306,6 +306,22 @@ Source: DR GM-jobs build, jev-1.14.0. Not re-run.
 - Claim: a Noul undecided at 0.42 in both orders on a code fact (is the Strategy chip gated on the same capability as the Game Plan screen?).
 - Rule: settle it in code with a test. [question-design.md](question-design.md).
 
+## DeepRoute GM-jobs round 3 (recorded)
+
+Source: DR GM-jobs round 3, jev-1.14.0. Not re-run.
+
+### Excluded `worse` that stays high; `better` stuck near 0.6
+- Claims: excluding the named trade-off from `worse` dropped it on desktop (0.50 to 0.33) but barely on mobile (0.58 to 0.53); the diagnostic Choice read `season_pushed` 0.52, `cramped` 0.23 (hero read as crowded at 0.84). `better` stuck at 0.56, 0.65, 0.66 over three rounds when the existing UI already served the job.
+- Outcome: idea 1 was parked after three unkept rounds. Jev picked "park and build idea 2" at 0.60/0.69 (order-averaged margin about 2.5) and "drop desktop" at 0.73/0.74. A worked example of the stop rule.
+- Rules: an excluded `worse` at 0.4 to 0.6 is a stop-and-diagnose signal; a stuck `better` means the change is redundant, not mis-worded. [iteration-with-jev.md](iteration-with-jev.md).
+
+### Fixed-bar cut-off read flips (confirms the GM-jobs entry)
+- Claim: Jev's read of a fixed-bar cut-off flipped with how much of the element showed (0.02 and 0.03 to 0.90); the bounding-box guard was steady. Rule: keep the measured guard. [images.md](images.md).
+
+### Non-Jev lessons
+- Derive a client capability gate from the screen's server guard, not from a plausible name: team-settings against the broad `ModernAPIWrites` showed an editable chip wrongly.
+- Directory-wide formatters (`biome check --write <dir>`) reformatted 62 unrelated files. Pass named files only.
+
 ## Transport and ops
 
 ### Cost and latency (DR)
