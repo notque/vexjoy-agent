@@ -179,6 +179,13 @@ Plus `actions` (`e2:fill`, `e3:sel:ca`, `scroll_down`, `wait`), `page_key`, `gua
 
 **Gate**: loop or stop. Every exit carries `reason`.
 
+### Walkthrough validity
+
+- Count coverage without direct-URL fallbacks. A fallback navigates by URL when the player could not find the control, so it hides sections a player cannot reach (field case: 88 fallbacks on mobile against 43 on desktop, hiding 6 sections).
+- Assert the landing route before you count a probe. A deep-link probe that lands on the wrong screen is inconclusive, not a negative.
+- Check each tile's screen identity before you score it. When the layout has no nav rail (mobile), screen detection can fall back and score a tile as the wrong screen, which invalidates its scores; the screen under the viewport centre wins.
+- Close open overlays (a command palette, a modal) before each click, and tag each failure as a harness failure or a product failure. Most click failures in one field walkthrough were the harness clicking behind an open overlay.
+
 ---
 
 ## Long tasks: checkpoint search
