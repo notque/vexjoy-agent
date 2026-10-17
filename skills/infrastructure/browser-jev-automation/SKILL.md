@@ -215,7 +215,7 @@ Every Jev failure resolves to BLOCKED or a bounded WAIT retry. Scripts exit 0 wi
 | `scripts/tests/test_jev_browser_harness.py` | Offline: decide payload/parse, verify parse and veto, agent loop with fake driver (secrets, stale, stall, budget, rejected DONE, Jev-error retry, preflight, scrub) |
 | `scripts/tests/test_jev_browser_live.py` | Real Chromium on a loopback fixture: snapshot contract, password masking, isolated world, covered-target rejection, stale guard, select/checkbox/scroll/submit, end-to-end secret scrubbing. Skips without Node + Chromium |
 
-Field-tested on 5 Star Booker (loopback dev server): closes the help modal, selects promotions, picks a mode, starts booking, spins the venue; the three-page audit from `mmr-ratings-dev/scripts/jev_browser_validate.py` runs through `--audit-file` unchanged.
+Field-tested on a booking-sim web app (loopback dev server): closes the help modal, selects promotions, picks a mode, starts booking, spins the venue; a three-page audit script runs through `--audit-file` unchanged.
 
 ## References
 

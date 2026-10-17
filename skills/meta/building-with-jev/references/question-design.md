@@ -48,7 +48,7 @@ Do not collapse distinct decisions into one broad `same` label. Keep classificat
 - Keep specific names and values in `examples`; keep general rules in `what`.
 - Option names and descriptions are both sent. The API accepts 255 options and any value shape, including `null` and nested subtrees. The keys `what`, `not_for`, and `examples` are our convention, not API fields: you may pick other names.
 - Give the full legitimate option list, not a shortlist: options cost a few tokens each. Code removes options that are illegal or irrelevant for this state before the call. Offered impossible or degenerate options, Jev picks them (a game agent took "1 plate" 25 times in a row when every amount was offered).
-- Merge equivalent options (same template, cost, effect) into one before you send, or sum their probability by class before you read the margin. Identical options split the mass and make a flat answer look like a split. When goals are vague the options are near-equal and the Choice is flat by nature: give it a goal that has an answer, and let code break a remaining tie (`field-learnings.md`, Choice option sets).
+- Merge equivalent options (same template, cost, effect) into one before you send, or sum their probability by class before you read the margin. Identical options split the mass and make a flat answer look like a split. When goals are vague the options are near-equal and the Choice is flat by nature: give it a goal that has an answer, and let code break a remaining tie.
 - Count distinct options before you ask. Code-enumerated options that collapse to one or none (6 seed salts gave 1 distinct card) mean the generator is broken, not Jev: fail loudly instead of calling.
 - Adding an option can flip the pick: a near-duplicate of the winner took it (0.79 to 0.76 for the new option). Rerun after any change to the option set, fold near-duplicates into the option they copy, and reconcile sub-answers that contradict the headline in code. Dedupe code-generated options by label.
 - Jev leans toward the first option on some inputs (jaggedness page, "Choice option order"). For a high-stakes pick, ask again with the options reversed in the same request (two questions, same state) and act only when both agree; otherwise treat the answer as unsure.
@@ -80,7 +80,7 @@ Criteria optional. When the boundary is subtle:
 - Test with and without `criteria`; keep whichever scores better on labeled cases.
 - Examples act as a near-exhaustive set: a form you leave out is pushed toward no (a sort control read 0.27 with narrow examples, 0.95 with broad ones, 0.73 with none). List every form that should count, or drop the examples.
 - A Noul whose median sits near 0.5 to 0.7 across all items is probably compound or under-evidenced. Split it into one Noul per condition to see which one fails; do not expect splitting to fix separation on easy items.
-- A design fork ("which approach") over bare options can come back confident and wrong; add the measured facts (counts, latencies, what already exists) before you trust it. If it stays split after the facts, ask a narrower Noul on the leading option (`field-learnings.md`).
+- A design fork ("which approach") over bare options can come back confident and wrong; add the measured facts (counts, latencies, what already exists) before you trust it. If it stays split after the facts, ask a narrower Noul on the leading option.
 - Several labels that can all apply: one Noul per label, not one Choice.
 
 ### Progress comparison
@@ -111,7 +111,7 @@ Use all three where they fit and ask them in the same call: "is the commit ready
 
 ## Do not ask Jev about facts the code can check
 
-A Noul that stays undecided in both option orders (0.42 each) on a code fact ("is the Strategy chip gated on the same capability as the Game Plan screen?") is not a judgment question. Settle it in code with a test. Keep Jev for what code cannot measure or compare (`field-learnings.md`, DeepRoute GM-jobs build).
+A Noul that stays undecided in both option orders (0.42 each) on a code fact ("is the Strategy chip gated on the same capability as the Game Plan screen?") is not a judgment question. Settle it in code with a test. Keep Jev for what code cannot measure or compare.
 
 ## Which one: Choice, not a Noul per candidate
 

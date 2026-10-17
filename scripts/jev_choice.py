@@ -1,6 +1,6 @@
 """Read a Jev Choice's probabilities: top, margin over the runner-up, and a consequence-gated escalation test.
 
-A flat Choice over many near-equal options is normal, not a failure (references/field-learnings.md).
+A flat Choice over many near-equal options is normal, not a failure.
 Two reads matter: ``margin`` (``p_max / p_second``) says whether the argmax is stable, and whether
 the split options differ in outcome cost says whether a stronger model is worth paying for.
 ``classes`` sums the probability of options that are the same thing (duplicate cards, one action
