@@ -287,6 +287,25 @@ DR applied the corrections from the batch 1 and batch 4 entries above and re-mea
 - Review list thresholds: DR tiered it ("likely" at 0.8 or more, "check" at 0.6 to 0.8, sorted by p, per-tier hit rate tracked). Jev picked 0.7 at 0.57/0.53 (order-averaged margin about 2.0), so DR settled it in code because the options differ only in review cost.
 - Rule: when thresholds differ only in the cost of a cheap review, tier instead of choosing one. [composition-patterns.md](composition-patterns.md).
 
+## DeepRoute GM-jobs build (recorded)
+
+Source: DR GM-jobs build, jev-1.14.0. Not re-run.
+
+### `worse` on additive layout work
+- Claim: `worse` fired on the cost the design necessarily carries (content pushed below the fold) and stayed at 0.66 after the specific losses were fixed (`lost_info` 0.90 to 0.78, `hero_small` 0.65 to 0.38); a diagnostic Choice named `season_pushed` at 0.63.
+- Rule: ask `worse` twice (plain, and excluding the named trade-off); keep only if the excluded answer is under 0.4; never put "this is decided" in the plain question's state. [iteration-with-jev.md](iteration-with-jev.md).
+
+### Fixed bars and CSS precedence
+- Claim: Jev read a section cut by a fixed bottom tab bar as normal (`season_cut` 0.02 and 0.03 while measurably cut, n=2). An unlayered component CSS rule beat a Tailwind `max-sm:hidden` utility, and only the rendered screenshot showed it.
+- Rules: a measured guard (bounding box against the fixed bar rect); re-render and look after every CSS change before asking Jev. [images.md](images.md) (Defect checks).
+
+### Margin rule on a 3-option Choice
+- Claim: the margin rule worked cleanly on a 3-option visibility Choice (margin 21.2, order-stable). Field confirmation of the large-N entry.
+
+### Code facts are not judgment questions
+- Claim: a Noul undecided at 0.42 in both orders on a code fact (is the Strategy chip gated on the same capability as the Game Plan screen?).
+- Rule: settle it in code with a test. [question-design.md](question-design.md).
+
 ## Transport and ops
 
 ### Cost and latency (DR)

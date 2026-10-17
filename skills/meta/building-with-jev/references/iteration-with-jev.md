@@ -34,6 +34,8 @@ Before each image round, hash-diff the kept and candidate renders (prove the pix
 
 Choose the smallest change that produces a material, repeatable improvement while all protected dimensions remain within their allowed regression. Stop broad iteration when the same candidate or disposition wins across frozen repeats, material-revision probability is low, and remaining issues are targeted polish or missing external evidence. More self-evaluation is not progress after convergence.
 
+When a trade-off was decided before the round from measured facts (additive layout work pushes content below the fold), `worse` fires on that cost and stays high even after the specific losses are fixed (DeepRoute: 0.66 after `lost_info` 0.90 to 0.78 and `hero_small` 0.65 to 0.38). Ask `worse` twice: plain, and "anything worse other than <the named trade-off>". Report both and keep only if the excluded answer is under 0.4. Never add "this is decided" to the state of the plain question: that argues the bar away silently (`field-learnings.md`).
+
 Jev agreement validates the judge-facing rubric, not the real-world outcome. Before promoting a durable rule, test the selected artifact on representative held-out tasks or human-confirmed labels and measure the downstream action. Record unresolved disagreement and the rejected alternatives; do not describe model consensus as proof.
 
 ## Minimum report

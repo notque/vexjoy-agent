@@ -109,6 +109,10 @@ Scores calibrate magnitude; Nouls decide. Do not use a Score as a boolean proxy.
 
 Use all three where they fit and ask them in the same call: "is the commit ready" (Noul), designated readiness dimensions (Nouls), "overall readiness" (Score), "what happens next: commit, cleanup, block" (Choice).
 
+## Do not ask Jev about facts the code can check
+
+A Noul that stays undecided in both option orders (0.42 each) on a code fact ("is the Strategy chip gated on the same capability as the Game Plan screen?") is not a judgment question. Settle it in code with a test. Keep Jev for what code cannot measure or compare (`field-learnings.md`, DeepRoute GM-jobs build).
+
 ## Which one: Choice, not a Noul per candidate
 
 When the answer is "which of these", ask one Choice over the candidates. A game agent that read an item's identity measured 0.92 to 1.00 on a Choice and 0.44 to 0.70 on a Noul per candidate for the same input, and a "does it say X?" Noul gave 0.60 for a wrong item. A Noul judges one proposition with no rival to compare, so a loose match scores high. This agrees with the docs: a Choice picks among a set; a Noul measures a single claim.
