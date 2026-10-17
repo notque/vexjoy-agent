@@ -67,11 +67,13 @@ const legacyAnswers = (answers, providerMetadata) => {
   }));
 };
 
+const MODEL_ID = process.env.JEV_GATEWAY_MODEL || "typesafe-ai/jev-1.14.0";
+
 try {
   if (!process.env.AI_GATEWAY_API_KEY) throw new Error("AI_GATEWAY_API_KEY is not set");
   const payload = await readInput();
   const result = await evaluate({
-    model: gateway.evaluationModel("typesafe-ai/jev"),
+    model: gateway.evaluationModel(MODEL_ID),
     state: payload.state,
     questions: questionsForGateway(payload.questions),
     // Python owns the bounded retry policy and its persisted attempt receipts.
@@ -79,7 +81,7 @@ try {
   });
   const routing = result.providerMetadata?.gateway?.routing;
   process.stdout.write(JSON.stringify({
-    model: result.response?.modelId || "typesafe-ai/jev",
+    model: result.response?.modelId || MODEL_ID,
     answers: legacyAnswers(result.answers, result.providerMetadata),
     usage: {
       input_tokens: result.usage?.inputTokens,

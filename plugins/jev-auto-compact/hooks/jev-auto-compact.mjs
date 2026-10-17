@@ -48,7 +48,7 @@ const ABRIDGE_TAIL = 150;
 const JEV_URL = 'https://api.typesafe.ai/v1/systemone';
 /** A Jev request that has not answered by now counts as failed, so a hung request cannot hang the session. */
 const JEV_TIMEOUT_MS = 20000;
-const JEV_MODEL = 'jev-latest';
+const JEV_MODEL = 'jev-1.14.0';
 /**
  * After a `{skip}` (Jev found nothing to prune) the transcript is unchanged,
  * so asking again next turn only repeats the same cold-cache Jev pass. Retry

@@ -327,7 +327,7 @@ def _count_call(
 
 TYPESAFE_PLUGIN_KEY = "typesafe@typesafe-ai"
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
-JEV_MODEL = "jev-latest"
+JEV_MODEL = "jev-1.14.0"  # pinned 2026-10-16 (owner); gateway pins typesafe-ai/jev-1.14.0
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):

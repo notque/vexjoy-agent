@@ -64,5 +64,5 @@ def test_direct_transport_sends_same_state_and_questions(monkeypatch: pytest.Mon
     state = {"request": "test"}
     questions = {"ok": {"type": "noul", "instructions": "Is this a test?"}}
     result = jev_transport.evaluate(state, questions, timeout=3)
-    assert seen["payload"] == {"state": state, "model": "jev-latest", "questions": questions}
+    assert seen["payload"] == {"state": state, "model": "jev-1.14.0", "questions": questions}
     assert result["_meta"]["transport"] == jev_transport.DIRECT

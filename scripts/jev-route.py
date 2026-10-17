@@ -57,7 +57,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import jev_transport
 
-JEV_MODEL = "typesafe-ai/jev"
+JEV_MODEL = "typesafe-ai/jev-1.14.0"
 
 # Noul signal -> booleans at this threshold (raw scores also reported).
 STACK_SIGNAL_THRESHOLD = 0.6
