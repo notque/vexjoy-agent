@@ -24,6 +24,8 @@ Run the original before editing. Store probabilities, question and payload versi
 
 Change one structural hypothesis or a small related set per round. Prefer complete candidates over independently optimizing fragments: locally preferred sentences can compose into a repetitive or incoherent artifact. Carry prior results as labeled history only when they help interpret the next comparison; do not coach Jev toward the prior winner. Re-run the unchanged battery against the baseline and every candidate.
 
+Judge before and after in one request, and score the anchor (the reference) in the same rubric and state form as the candidates as a calibration check. Paired scores in one request agreed within 0.18 over two runs; do not trust a gap under about 0.2 (`field-learnings.md`).
+
 Use code to expose probabilities, constraints, regressions, variance, cost, and Pareto tradeoffs. Do not hide a severe failure in one average. Treat contradictions as possible construct differences, poor wording, thin evidence, or variance.
 
 ## 6. Select and stop

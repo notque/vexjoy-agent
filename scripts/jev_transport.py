@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import time
+import warnings
 from typing import Any
 
 import jev_images
@@ -171,9 +172,28 @@ def _evaluate_images(
     except jev_limits.RequestTooLarge as exc:
         raise JevTransportError(str(exc), source=REQUEST_TOO_LARGE) from exc
     meta = result.setdefault("_meta", {})
+    _note_resent_state_images(meta, bound, tokens)
     meta["transport"] = DIRECT
     meta["images"] = jev_images.image_meta(bound.assets)
     return result
+
+
+def _note_resent_state_images(meta: dict[str, Any], bound: Any, tokens: dict[str, int]) -> None:
+    """Record and warn when a split resends state images in every part (billing multiplies)."""
+    split = meta.get("split")
+    if not isinstance(split, dict) or not bound.assets:
+        return
+    uses = jev_images.ref_uses(bound.assets, bound.state, {})
+    per_request = sum(tokens[ref] * n for ref, n in uses.items())
+    resent = per_request * (int(split.get("requests", 1)) - 1)
+    if resent <= 0:
+        return
+    split["state_image_tokens_resent"] = resent
+    warnings.warn(
+        f"Jev request split into {split['requests']} parts; each resends the state images, "
+        f"about {resent} extra input tokens. Send fewer questions per state or one request per image.",
+        stacklevel=3,
+    )
 
 
 def _direct_one(
