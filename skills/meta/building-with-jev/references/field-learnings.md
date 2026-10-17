@@ -73,6 +73,17 @@ Sources: DR = DeepRoute (UI lab: player and images lanes), RTA = road-to-aew, MM
 - Verdict: PARTLY. Merging does not change which play wins; it changes the margin you read. An unmerged list can show a false lead (the copies share mass) or a false split (second place is a copy of first).
 - Rule: merge or sum equivalent options before you read the margin: `choice_margin(probs, classes)`. [question-design.md](question-design.md) (Choice).
 
+### The margin bar for 2-way Choices (MMR GM A/B v2; re-run)
+- Claim: the margin rule (`p_max / p_second` of 2 or more is settled) did not reduce escalations in a GM game: undecided per season 27 to 42 (margin) against 16 to 25 (top-p band), and escalations hit the cap of 12 in both arms. About 60% of decisions are 2-way winner Choices, and margin 2.0 means p_max of 0.667 for a binary, while many picks sit at 0.60 to 0.67. DR's 46 to 0 was on many-option Choices.
+- Repro: 112 synthetic winner Choices, forward against reversed option order: 64 two-wrestler matches with overall within 3 (59 had margin 2 or more, p_max median 0.95, 0 flips); 48 near-identical pairs (overall within 1, mirrored stats; median p_max 0.88). Plus 12 three-way and 12 five-way. Flip rate for the 2-way Choices (n=112): margin 1.0 to 1.25: 3 of 10; 1.25 to 1.5: 1 of 4; 1.5 to 2.0: 0 of 2; 2.0 and up: 0 of 96. By p_max: under 0.6: 4 of 14 flipped; 0.6 and up: 0 of 98. Three-way: margin 1.25 to 1.5: 2 of 3; 1.5 to 2.0: 1 of 2; 2.0 and up: 0 of 7. Five-way: 0 flips in 12 (margins 1.25 to 2.0: 0 of 4). The forward pick was the first option 59 of 112 times on 2-way Choices (no first-option lean).
+- Verdict: PARTLY. The margin rule holds, but 2.0 is too strict for binaries: all 4 flips had margin under 1.5 (p_max under 0.6). Few binaries fell in 1.5 to 2.0 (n=2), so the 1.5 bar is provisional. The larger cause of the cap is that the rule was applied to every decision.
+- Rule: gate on consequences first; a low-consequence or reversible pick takes the argmax at any margin; apply the margin bar only to consequential decisions, with 1.5 for 2 options and 2.0 for 3 or more. `scripts/jev_choice.py`: `margin_min_for`, `is_settled`, `should_escalate`.
+
+### Compare the LLM player against a greedy baseline (MMR GM A/B v2, recorded)
+- Claim: 5 seeds: jev show 56.2 against bot 55.7; attendance 2450 against 2243; morale 59.2 against 65.6 (losing morale in 0 of 5); a greedy player matched the show mean at no morale cost.
+- Source: mmr-ratings GM A/B v2. Not re-run.
+- Rules: compare an LLM player against a greedy baseline, not only the incumbent bot, or you credit Jev with what a simple rule already gets. Report regressions per guard (morale fell 6.4 points on average while the show mean held), not one headline score.
+
 ### Order sensitivity grows as the lead shrinks (RTA, DR)
 - Claim: reversed criteria agreed 5 of 6 on combat picks (4 to 6 options) vs 1 of 5 on 40 UI options.
 - Repro: see the gradient above. Agreement tracks margin, and option count matters only through margin. Few options with a clear lead are stable; many equal options are not; N alone predicted little in our runs.

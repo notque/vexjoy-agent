@@ -55,3 +55,23 @@ def test_order_averaged_margin_cancels_first_option_lean() -> None:
     assert jev_choice.order_averaged_margin(fwd, rev) == pytest.approx(0.4 / 0.35)
     with pytest.raises(ValueError):
         jev_choice.order_averaged_margin(fwd, {"a": 1.0})
+
+
+def test_binary_bar_is_lower_than_the_default() -> None:
+    assert jev_choice.margin_min_for(2) == 1.5
+    assert jev_choice.margin_min_for(3) == jev_choice.MARGIN_MIN
+    pick = jev_choice.choice_margin({"a": 0.62, "b": 0.38})  # margin 1.63
+    assert jev_choice.is_settled(pick)
+    assert not jev_choice.should_escalate(pick, consequences_differ=True)
+    close = jev_choice.choice_margin({"a": 0.55, "b": 0.45})  # margin 1.22
+    assert jev_choice.should_escalate(close, consequences_differ=True)
+
+
+def test_low_consequence_takes_argmax_at_any_margin() -> None:
+    close = jev_choice.choice_margin({"a": 0.51, "b": 0.49})
+    assert not jev_choice.should_escalate(close, consequences_differ=False)
+
+
+def test_explicit_margin_min_overrides_arity() -> None:
+    pick = jev_choice.choice_margin({"a": 0.62, "b": 0.38})
+    assert jev_choice.should_escalate(pick, consequences_differ=True, margin_min=2.0)
