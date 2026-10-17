@@ -56,7 +56,7 @@ You drive the work; Jev is the map you keep checking to see if you are closer to
 **Read answers honestly:**
 
 - A Noul in 0.4-0.6, or a split Choice or Score, is not an answer. Report the split, then split the question, sharpen criteria, or add evidence. If it stays split after one sharpening, escalate the decision to a stronger model instead of looping (`building-with-jev`, Escalate when Jev is unsure).
-- Re-ask only after the state changes, and record the change. Re-asking the same evidence until it passes is fishing for a yes.
+- Re-ask only after the state or the question set changes, and record the change. Re-asking the same evidence until it passes is fishing for a yes.
 - Before a deploy, merge, migration, or deletion, every `ready`, `gap`, and `worse` answer must be decisive.
 - `confidence` is distribution shape, not correctness. A Jev answer is never owner approval.
 
