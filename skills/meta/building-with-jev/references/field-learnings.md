@@ -252,6 +252,41 @@ RTA's merge plus consequence gate: 0 escalations over 55 calls and 88k tokens, d
 - Verdict: VALIDATED, caused by our transport. `evaluate()` now records `_meta.split.state_image_tokens_resent` and emits a `UserWarning` when a split resends state images.
 - Rule: keep state images few and questions per image modest; send one request per image, or per 3 or 4 images, rather than one state with many images and hundreds of questions. [images.md](images.md) (Token cost and splitting).
 
+## Field confirmations (DeepRoute round 2)
+
+DR applied the corrections from the batch 1 and batch 4 entries above and re-measured on real screens (`player/REPORT.md` and `images/REPORT.md`, Round 2 sections, `/home/feedgen/deeproute-jevlab/research/jev-ui-lab-2026-10-16/`). Recorded, not re-run; each confirms a rule already written here. jev-1.14.0.
+
+### Per-kind defect Nouls on real screens (confirms the defect-Noul rule)
+- n=100 real screens, labels verified. Clean screens flagged: broad Noul 52 of 73; per-kind Nouls 6 of 73 at 0.6, 2 of 73 at 0.7, 0 of 73 at 0.8. Real defects caught: 6 of 6 (broad), then 5 of 6, 4 of 6, 4 of 6 at those gates. Kind correct: 3 of 6 (Choice) vs 5 of 6. Held-out set: 6 of 62 flagged vs 41. Open overlays caught 15 of 15 vs 2 of 15. About 5k tokens per screen.
+- Gap: an exemption fired on dark portrait cards until its wording named the visual signature ("dark or gray card").
+- Rule: spell out the visual signature in exemption wording, not the category. [images.md](images.md) (Defect checks).
+
+### A decisive DOM fact inside the visual Noul (new, DR)
+- An 8 px broken-image glyph was invisible to a picture-only Noul. Adding a DOM-fact clause ("answer true when `dom.failed_image_requests` lists an image that failed") took it from 0.28 to 0.97, with 0 new clean flags on 19 screens. It beat zoom crops (Jev 1.00, n=1).
+- Rule: put the decisive DOM fact inside the wording of the visual Noul. [images.md](images.md) (Defect checks).
+
+### Two-stage goal then action (confirms the large-N entry)
+- Goal stage (6 options or fewer) then action stage (10 or fewer, text-only) with a margin read: order agreement 10 of 10 on the goal, 8 of 10 on the raw action (10 of 10 with a code tie-break), against 1 of 5 before; 0 escalations against 46; Jev time per session 43 to 66 s down to 8 s; tokens 234 to 276k down to 163 to 212k.
+- Rule: group, then act; read the margin; break ties in code. [primitives.md](primitives.md), Escalation above.
+
+### Box is not a UI-defect locator (confirms the Box entry)
+- Box `absent` on flagged screens was right 4 of 4 (false flags), but it was also absent on one real low-contrast near-black helmet. IoU against DOM rects on real hits was 0.095 and 0.012.
+- Rule: use Box for controls and clear objects, not as a defect locator; read `absent` as evidence against a flag, not proof of absence. [images.md](images.md) (Locate a target with Box).
+
+### Contact grids on real data (confirms the grid entry)
+- Per-tile Noul against the six-way Choice: planted recall 16 of 16 to 15 of 16 (14 of 16 at the gate); clean false positives 6 to 1; real grids 69 flags at 36% false to 31 at 13% false, 18 at the act gate with 0 false; tokens 17.8 to 18.7k down to 7.6 to 11.7k per grid. Act gate `p_normal <= 0.1`. Person photos flagged 0 of 225. Dark helmets are the main false-flag group; false flags cluster at `p_normal` 0.31 to 0.44.
+- Rule: act at `p_normal <= 0.1`, send 0.1 to 0.5 to review. [images.md](images.md) (Contact grids).
+
+### Full-page stitches read as broken (MMR, recorded; confirms the public-screen and per-kind entries)
+- Claim: a "broken?" Noul on full-page captures (`shot_gm_surfaces.mjs`, DPR 2, tiled top and bottom) flagged 16 of 31 at 0.6 or more while the measures found 0 problems. A state fact ("image edges are viewport or crop edges; content past them is scrolling") and a question narrowed to defects inside the image gave 7 flagged and 12 undecided. By eye the remaining flags were capture artifacts: Playwright's full-page stitch repainted a fixed "Run the show" bar over content, an intentionally clipped swipe carousel, and reserved empty space.
+- Rule: capture viewport tiles at scroll positions; hide or capture fixed and sticky elements separately; give DOM facts for fixed, sticky, and overflow-x elements; calibrate on a labeled broken set. [images.md](images.md) (Defect checks).
+
+### Harness settle, dark owner art, tiered review (DR, recorded)
+- SPA skeleton settle: wait at least 1 s and require two consecutive clear polls (skeleton captures 7 of 25 down to 0 of 50).
+- Intentionally dark owner art (a black reaper helmet, mean RGB 23) reads as "broken" to both Jev and Box. Treat it as a UI contrast issue, not a defect, and allow-list known dark art.
+- Review list thresholds: DR tiered it ("likely" at 0.8 or more, "check" at 0.6 to 0.8, sorted by p, per-tier hit rate tracked). Jev picked 0.7 at 0.57/0.53 (order-averaged margin about 2.0), so DR settled it in code because the options differ only in review cost.
+- Rule: when thresholds differ only in the cost of a cheap review, tier instead of choosing one. [composition-patterns.md](composition-patterns.md).
+
 ## Transport and ops
 
 ### Cost and latency (DR)
