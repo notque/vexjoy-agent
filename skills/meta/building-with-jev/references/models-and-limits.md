@@ -50,11 +50,14 @@ Our position: do not use it. Filter and cascade first (`state-and-budget.md`). O
 |---|---|---|
 | 400 | Body breaks a rule (encoding, nesting, number, bad compression); with `max_tokens_exceeded`, the request is over the context limit | Fix the request. Shrink or split for `max_tokens_exceeded`. |
 | 401 | Missing or bad key | Stop. |
+| 402 | Billing failure (one direct key returned it; MMR, recorded) | Stop. Do not retry; tell the owner. |
 | 413 | Body over 32 MiB | Shrink. |
 | 415 | Unsupported or stacked `Content-Encoding` | Fix the header. |
 | 422 | Failed validation; the body names the field | Fix the question. Never retry. |
 | 429 | Rate limit | Back off, then retry. |
 | 529 | Overloaded | Back off, then retry. |
+
+Billed input tokens run about 1.25x `len(json) / 4` plus about 275 fixed per request, and more on repetitive structured text; read `usage.input_tokens` and plan with 30% headroom (`field-learnings.md`, Transport and ops).
 
 Through Vercel AI Gateway, rate limits and overload arrive as 503 (`production lessons`, rule 5).
 

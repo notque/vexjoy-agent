@@ -59,7 +59,36 @@ Capture sharp. Jev reads high-resolution images better, and a TypeSafe engineer 
 
 Image bytes never count toward the text estimate. `jev_limits` adds `width * height / 375` tokens per use (`jev_images.IMAGE_PIXELS_PER_TOKEN`). Measured on the direct API on 2026-10-16: 300x300 cost 271 tokens, 800x600 cost 1,301, 1568x1568 cost 6,300. Read `usage.input_tokens` in the response for the real cost, and re-measure when the model changes.
 
-Image requests split only above 32,000 estimated tokens (the 3,500 and 4,500 limits come from Gateway failures and do not apply to direct calls). A split request carries the state images and only the question images its own questions use. Each split resends the state images, so keep images out of state when only one question needs them.
+Billing is per request, not per question: three state images cost 9,614, 10,190, and 12,258 input tokens with 1, 6, and 24 questions. A split is what multiplies it: 7 state images with 230 questions became 7 requests that each resent all 7 images (179,022 tokens against 37,898 for 140 questions in one request). `evaluate()` records `_meta.split.state_image_tokens_resent` and warns when it happens. Keep state images few, send one request per image or per 3 or 4 images, and keep questions per image modest. The estimate runs about 25% low, so a split starts later than it says.
+
+Image requests split only above 32,000 estimated tokens (the 3,500 and 4,500 limits come from Gateway failures and do not apply to direct calls). A split request carries the state images and only the question images its own questions use. Every split resends every state image, so keep images out of state when only one question needs them.
+
+## Defect checks on screenshots
+
+A broad "is something broken here" Noul over-flags: on 4 clean synthetic pages with an intentional scrolling tab strip and silhouette avatars it read 0.85 and 0.80 on two of them (DeepRoute saw 54 of 100 real screens flagged for 3 real defects). Ask one Noul per defect kind instead, with the intent in the wording: broken-image icon, overlapping text, error banner, text cut off "where the content is not meant to scroll". That gave 0 of 4 clean flagged (all 0.15 or lower) and 6 of 6 defects found at 0.90 to 1.00, and the firing kind named the defect (a follow-up kind Choice was wrong on 2 of 3 for DeepRoute).
+
+- A list of `intentional_patterns` in state cut false positives to 0 of 4 but also dropped a real broken-image defect to 0.47 and 0.25. List patterns narrowly, then check that real defects of the same kind still fire.
+- Pair every flag with the app's own facts (DOM errors, failed requests, store state): they beat a visual read. For image QA, check references against disk and fetch status first; Jev adds little over Pillow for corruption and is best for semantic checks (wrong content, colours, crop).
+- Hide fixed-position bars before a full-page capture, take viewport slices, and send the frames that show the property under judgment: a key-pose strip in time order, not the impact frame with a damage badge on it (RTA: `anatomy_broken` read 0.83 to 0.86 on the static frame and 0.34 to 0.44 on the strip, n=4). Remove overlays that are not part of the property.
+- A flag is not a verdict on a person's photo: use a deterministic allow-list or a "was this intended?" step for unexpected-but-real content, audit false positives by subgroup, and never act automatically on a Jev flag of a person.
+- Text-only options are weak for fine pose identity: on stylised two-figure pictograms a near-miss identity Noul had AUC 0.574 and an identity Choice with same-type distractors 0.517 (RTA, n=36, scoped negative; reference renders per option are being tried). Use hard near-miss distractors, keep the name out of state, and expect to need pictures per option.
+
+Evidence and numbers: `field-learnings.md` (Images and Box).
+
+## Contact grids
+
+To check many tiles (product photos, avatars), draw one image with a visible number on every tile and a legend in state (`grid` has 24 numbered tiles, 6 columns, each should show X). On a synthetic 24-tile grid with 8 planted defects:
+
+| Shape | Input tokens | Result |
+|---|---|---|
+| 24 six-way Choices, short criteria | 6,634 | 8 of 8 found and labeled |
+| 24 per-tile Noul "is this normal?" | 3,897 | 8 of 8 found, 0 false positives |
+| 5 per-kind Choices over tile numbers plus `none` | 4,324 | one tile per kind: 5 of 8 |
+| 1 grid-level Noul | 3,345 | gross defects 0.00; clean grids only 0.78 |
+
+- Use a per-tile Noul to find candidates; ask the six-way Choice only on the flagged tiles. Keep criteria to a few words: repeated long criteria were most of DeepRoute's 18.7k tokens per grid.
+- Gate on the chosen option's probability (0.9 or more), not on the label. Real tiles produced false positives at 0.47 to 0.80 that our synthetic tiles did not.
+- A per-kind Choice names one tile per kind, so it misses repeats. A grid-level Noul does not locate and read 0.0 to 0.8 on real grids; never make it the only check. Jev does not count or aggregate.
 
 ## Locate a target with Box
 
@@ -96,7 +125,8 @@ Rules:
 - Crops come from the original image, never the shrunk copy. A crop keeps each side at 280 px or more and the aspect under 5.5:1, so `prepare_image` never pads and the fractions stay true.
 - Jev reads high-resolution pictures better: aim for a long side of at least 1080 px. `res.warnings` names any picture sent below that.
 - `to_parent(child_box, crop_box)` maps edges found in a crop back to the full image. `pad`, `crop`, `tiles`, `to_pixels`, `center`, and `iou` are public helpers.
-- Name one target per call, in words that single out one instance.
+- Name one target per call, in words that single out one instance and that the page can match: "the broken image" found a broken-image icon 2 of 2 (IoU 0.88 and 0.93) and "the clipped text" aimed at overlapping text returned `several` 2 of 2. A concrete location added no IoU. On a screen a Noul flagged, `absent` is evidence against the flag: DeepRoute's 55 calls on flagged real screens found 0 because 52 of 54 had no defect.
+- Run our Jev client without `python3 -I`: it hides a user-site Pillow, and `jev_images` and `jev_box` fail to import. Use a venv with Pillow when you must isolate.
 - An image wider or taller than 5.5:1 raises `JevBoxError`: tile it first.
 - `needs_escalation` is true for an indecisive presence (0.3 up to `presence_min`), presence and count that disagree, `several` with no `tile_grid`, a final confidence under the minimum, a refine or tile crop that missed, or an edge check still moving after the last round. Hand those to a stronger model instead of looping.
 

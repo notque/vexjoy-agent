@@ -48,6 +48,8 @@ Do not collapse distinct decisions into one broad `same` label. Keep classificat
 - Keep specific names and values in `examples`; keep general rules in `what`.
 - Option names and descriptions are both sent. The API accepts 255 options and any value shape, including `null` and nested subtrees. The keys `what`, `not_for`, and `examples` are our convention, not API fields: you may pick other names.
 - Give the full legitimate option list, not a shortlist: options cost a few tokens each. Code removes options that are illegal or irrelevant for this state before the call. Offered impossible or degenerate options, Jev picks them (a game agent took "1 plate" 25 times in a row when every amount was offered).
+- Merge equivalent options (same template, cost, effect) into one before you send, or sum their probability by class before you read the margin. Identical options split the mass and make a flat answer look like a split. When goals are vague the options are near-equal and the Choice is flat by nature: give it a goal that has an answer, and let code break a remaining tie (`field-learnings.md`, Choice option sets).
+- Adding an option can flip the pick: a near-duplicate of the winner took it (0.79 to 0.76 for the new option). Rerun after any change to the option set, fold near-duplicates into the option they copy, and reconcile sub-answers that contradict the headline in code. Dedupe code-generated options by label.
 - Jev leans toward the first option on some inputs (jaggedness page, "Choice option order"). For a high-stakes pick, ask again with the options reversed in the same request (two questions, same state) and act only when both agree; otherwise treat the answer as unsure.
 
 ### Score
@@ -75,6 +77,9 @@ Criteria optional. When the boundary is subtle:
 - Phrase it so a high value means yes: "Does the message contain personal data?", never "Is it free of personal data?". A statement works too ("The customer requests a refund"). Try both phrasings on labeled data.
 - "Any" removes the middle ground: "Does the resume show any Python use?" beats "Is the candidate strong in Python?". For degree, use a Score.
 - Test with and without `criteria`; keep whichever scores better on labeled cases.
+- Examples act as a near-exhaustive set: a form you leave out is pushed toward no (a sort control read 0.27 with narrow examples, 0.95 with broad ones, 0.73 with none). List every form that should count, or drop the examples.
+- A Noul whose median sits near 0.5 to 0.7 across all items is probably compound or under-evidenced. Split it into one Noul per condition to see which one fails; do not expect splitting to fix separation on easy items.
+- A design fork ("which approach") over bare options can come back confident and wrong; add the measured facts (counts, latencies, what already exists) before you trust it. If it stays split after the facts, ask a narrower Noul on the leading option (`field-learnings.md`).
 - Several labels that can all apply: one Noul per label, not one Choice.
 
 ### Progress comparison

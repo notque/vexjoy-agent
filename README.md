@@ -9,7 +9,7 @@ VexJoy Agent connects plain-English requests to specialist agents, skills, and w
 The aim is to give capable models useful domain knowledge without making you learn the toolkit's catalog.
 
 <!-- Counts here must match the Four Layers table (~line 143). Verify both: python3 scripts/validate-doc-counts.py -->
-43 agents, 62 skills, 78 hooks, 153 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
+43 agents, 62 skills, 78 hooks, 154 scripts. Agents carry domain knowledge, skills provide reusable methods, hooks enforce selected checks, and scripts handle repeatable plumbing.
 
 Works across Claude Code (`/do`), Codex (`$do`), Factory (`/do`), Reasonix (`/do`).
 
@@ -175,7 +175,7 @@ Mirrors agents (as "droids"), skills, and hooks into `~/.factory/`. Hook config 
 <details>
 <summary><b>Reasonix Support</b></summary>
 
-Mirrors skills, 153 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
+Mirrors skills, 154 scripts, and 10 allowlisted hook registrations into `~/.reasonix/`. Reasonix has no agent or custom-command surface; `/do` arrives as a skill. It exposes four events: PreToolUse, PostToolUse, UserPromptSubmit, and Stop. MCP, model, and permissions in `~/.reasonix/config.json` remain user-owned.
 
 </details>
 
@@ -254,7 +254,7 @@ One report-only script surfaces upkeep work; it prints a digest and never edits,
 
 - `python3 scripts/stale-skill-scan.py --top 20` ranks stale skills and agents as pruning candidates. Run it quarterly; see [docs/deprecation-template.md](docs/deprecation-template.md).
 
-Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 153 scripts.
+Scheduled work follows the same boundary as everything else: judgment uses models; repeatable plumbing uses 154 scripts.
 
 | Need | Use |
 |---|---|
