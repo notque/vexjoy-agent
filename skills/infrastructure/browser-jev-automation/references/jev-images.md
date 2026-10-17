@@ -38,7 +38,7 @@ elif res.status == "found":
 
 ## Defect checks
 
-A broad "is something broken" Noul over-flags intentional patterns (scrolling tab strips, placeholder avatars). Ask one Noul per defect kind, hide fixed bars, capture viewport slices, and read the DOM fault count first. Rules and numbers: [images.md](../../../meta/building-with-jev/references/images.md) (Defect checks) and [field-learnings.md](../../../meta/building-with-jev/references/field-learnings.md).
+A broad "is something broken" Noul over-flags intentional patterns (scrolling tab strips, placeholder avatars). Ask one Noul per defect kind, hide fixed bars, capture viewport slices, and read the DOM fault count first. Rules and numbers: [images.md](../../../meta/building-with-jev/references/images.md) (Defect checks).
 
 ## Other uses
 

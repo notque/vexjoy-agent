@@ -104,7 +104,7 @@ Programs decide the obvious ends; Jev judges the middle. In compaction, determin
 
 ## Tier instead of choosing a threshold
 
-When two thresholds differ only in the cost of a cheap review, do not pick one: tier the list. DeepRoute's review list used "likely" at 0.8 or more and "check" at 0.6 to 0.8, sorted by probability, and tracked each tier's hit rate. Jev's own pick (0.7, at 0.57/0.53, order-averaged margin about 2.0) was borderline, so code settled it. Pick a single threshold only when the actions differ in cost or risk (`field-learnings.md`, Field confirmations).
+When two thresholds differ only in the cost of a cheap review, do not pick one: tier the list. A review list can use "likely" at 0.8 or more and "check" at 0.6 to 0.8, sorted by probability, with each tier's hit rate tracked. In one field case Jev's own pick (0.7, at 0.57/0.53, order-averaged margin about 2.0) was borderline, so code settled it. Pick a single threshold only when the actions differ in cost or risk.
 
 ## History injection and stall detection
 

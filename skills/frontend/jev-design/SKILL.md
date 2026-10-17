@@ -41,7 +41,7 @@ Turn the user's request into `brief.json`. Read [references/brief-writing.md](re
 
 ### Deriving a brief from an existing screen
 
-The planner has no vision input and picks components, not layout. Read the screen (DOM, a screenshot) yourself and write the brief from it: one requirement per region, each with 1 or 2 capabilities and a role written as a verb plus an object. Three capabilities per requirement abstained with `no_compatible_component`; vague roles abstained with `low_fitness`, and verb-plus-object roles selected (data-table 0.94). Layout stays with you in phase 3. Evidence: `skills/meta/building-with-jev/references/field-learnings.md`.
+The planner has no vision input and picks components, not layout. Read the screen (DOM, a screenshot) yourself and write the brief from it: one requirement per region, each with 1 or 2 capabilities and a role written as a verb plus an object. Three capabilities per requirement abstained with `no_compatible_component`; vague roles abstained with `low_fitness`, and verb-plus-object roles selected (data-table 0.94). Layout stays with you in phase 3.
 
 ## 2. Pick
 
