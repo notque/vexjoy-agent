@@ -69,6 +69,7 @@ A broad "is something broken here" Noul over-flags: on 4 clean synthetic pages w
 
 - A list of `intentional_patterns` in state cut false positives to 0 of 4 but also dropped a real broken-image defect to 0.47 and 0.25. List patterns narrowly, then check that real defects of the same kind still fire.
 - Pair every flag with the app's own facts (DOM errors, failed requests, store state): they beat a visual read. For image QA, check references against disk and fetch status first; Jev adds little over Pillow for corruption and is best for semantic checks (wrong content, colours, crop).
+- Jev cannot judge pixel sizes, counts, exact measurements, or small text from an image: a 32 px button read 0.71 for "44 px or more", and a visibility Noul missed small tab labels. Measure each in code (sizes, bounding-box overlap, DOM visibility) and send the number; each is a code guard, not a Jev question (`field-learnings.md`).
 - Hide fixed-position bars before a full-page capture, take viewport slices, and send the frames that show the property under judgment: a key-pose strip in time order, not the impact frame with a damage badge on it (RTA: `anatomy_broken` read 0.83 to 0.86 on the static frame and 0.34 to 0.44 on the strip, n=4). Remove overlays that are not part of the property.
 - A flag is not a verdict on a person's photo: use a deterministic allow-list or a "was this intended?" step for unexpected-but-real content, audit false positives by subgroup, and never act automatically on a Jev flag of a person.
 - Fine pose or near-miss identity in stylised art is at chance on 1.14 (20 of 36 correct, AUC 0.554, with confident errors); use it only as a labeled re-test benchmark (`field-learnings.md`).
@@ -164,5 +165,7 @@ Jev reads the description and the image together, but it ranks a candidate again
 3. Put the candidate render in the state the same way, plus the measured numbers (pixel widths, timings).
 4. Ask "how far is the candidate from the reference" as a Score, and ask a separate Noul: "did anything get worse?"
 5. Show the owner a side-by-side before you report progress.
+
+Validate each anchor before you score against it (data present, not an error page, a validity Noul; an empty capture read 0.50, real pages 0.96 to 0.98), and rate anchors with a Score in the same image form as candidates (provisional: real table crops 2.26 to 2.60, an empty capture 0.60). A ladder saturates at the top: to rank two good candidates, add a level above the reference or use a pairwise Compare in both orders.
 
 When the owner's eye and Jev disagree, write the owner's note into the ladder level and re-score the baseline. See `references/iteration-with-jev.md`.

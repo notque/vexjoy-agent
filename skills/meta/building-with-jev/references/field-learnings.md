@@ -154,6 +154,40 @@ RTA's merge plus consequence gate: 0 escalations over 55 calls and 88k tokens, d
 - Verdict: scoped negative (replaces the earlier "PARTLY").
 - Rule: do not use Jev to judge fine pose or near-miss identity in stylised art on 1.14. Use the labeled set only as a re-test benchmark when the model version changes. A Choice that picks the named move is a name prior, not identity evidence. [images.md](images.md) (Defect checks).
 
+### Jev cannot judge pixel sizes (DR redesign; re-run)
+- Claim: a "thumb-friendly, 44 px or more" Score read 0.96 to 2.02 while the measured minimum tap target was 16 to 20 px.
+- Repro: four synthetic 1280x800 pages with a row of six buttons at 16, 20, 32, and 48 px tall, state legend "1 image pixel = 1 CSS pixel", a Noul "are the buttons at least 44 px tall?" and a Score ladder whose signals name pixel bands. Noul: 0.14, 0.18, 0.71, 0.91. Score: 0.52, 0.78, 1.67, 2.84 (ladder levels 0 to 4).
+- Verdict: PARTLY. With a declared scale and a ladder that names pixel bands, buttons far from the threshold sort correctly (16 and 20 px read no, 48 px reads yes). A button near it fails: 32 px read 0.71 for "44 px or more". DR's real pages gave no scale legend and had clutter, and read far higher.
+- Rule: never gate on a size Jev reads off an image. Measure in code and send the number; keep Jev for "does it look cramped". Traits Jev cannot judge from an image, each needing a code guard: pixel sizes and distances, counts, exact measurements, small text. [images.md](images.md) (Defect checks).
+
+### Visibility Noul per control (DR redesign, recorded)
+- Claim: a visibility Noul per named control matched DOM visibility 8 of 10; both misses were small tab labels ("Free Agents" 0.06, "Game Log" 0.23) that were visible.
+- Rule: small text is a miss class; take visibility from the DOM and use Jev only for what the DOM cannot say.
+
+### Anchors saturate; validate them (DR redesign, recorded)
+- Claims: an anchored density ladder separated "table not in view" (0.22) from "in view" (2.90) but saturated at the top (candidates 2.96 and 2.91). Old-versus-new Compare with Wayback anchors worked when both pages showed real data (0 of 3 order flips). The weak points were the anchors: an empty box-score capture, a "player not found" page, archive.org rate-limiting after a 6-page burst (about 4 min), a direct PFR 403. Validity Nouls per anchor: empty box score 0.50, home page 0.72, real pages 0.96 to 0.98. A real PFR table crop rated 2.26 to 2.60 on the anchor Score; an empty capture 0.60 with validity 0.50.
+- Rule: validate each anchor (data present, not an error page, a validity Noul) before you score against it; rate anchors with a Score in the same image form as candidates; pace archive.org fetches. To rank two good candidates, add a level above the reference or use a pairwise Compare in both orders. [images.md](images.md) (Hill-climb with images).
+
+### On mockups, `worse` and a reversed Choice do the work (DR redesign, recorded)
+- Claim: `better` saturated (0.95 to 0.99); `worse` plus a reversed-order A/B Choice separated candidates. A clip/overlap Noul caught overlapping tab labels (0.72) where the DOM clipped-text count was 0.
+- Rule: for close candidates lean on `worse` and an order-reversed Choice; add a bounding-box overlap check in code.
+
+### Numbers in state versus the image (DR redesign, recorded)
+- Claim: a wrong number in state (650 against a true 1194) moved image judgments by 0.07 or less: the image dominated. Untested: a number that contradicts the image.
+- Rule: do not rely on state numbers to correct an image read; measure from the image in code.
+
+### Near-tied rankings (DR redesign, recorded)
+- Claim: an 8-way ranking Choice was near-tied (0.31, 0.305, 0.285); a sharpened top-3 question changed the order.
+- Rule: call it a split when `p_max / p_second` averaged over both orders is under 2 (`jev_choice.order_averaged_margin`), then ask a narrower question over the leaders.
+
+### Planner abstentions (DR redesign, recorded)
+- Claim: the `jev-design` planner abstained (`no_compatible_component`, then `low_fitness`) until each requirement had 1 or 2 capabilities and a verb-plus-object role, then selected (data-table 0.94). It has no vision input and picks components, not layout.
+- Rule: see `jev-design` SKILL.md, "Deriving a brief from an existing screen".
+
+### Budget guards per lane (DR, recorded)
+- Claim: a budget guard keyed ledger-wide stopped other lanes.
+- Rule: scope budgets by lane prefix.
+
 ### Not-a-photo mixes unexpected-but-real with defective; bias (DR images, recorded)
 - Claims: 37 of 69 flags were real logos or other legitimate content; false positives skewed toward dark-skinned faces (flagged wrong team colors) and dark helmets (flagged corrupt).
 - Source: `/home/feedgen/deeproute-jevlab/research/jev-ui-lab-2026-10-16/images/REPORT.md`. Not re-run on people photos. Flat dark and light synthetic tiles showed no skew (0 false positives).

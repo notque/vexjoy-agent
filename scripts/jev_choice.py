@@ -51,6 +51,17 @@ def choice_margin(probabilities: Mapping[str, float], classes: Mapping[str, str]
     return ChoiceRead(choice=top, p_max=p_max, p_second=p_second, margin=margin, n=len(ranked))
 
 
+def order_averaged_margin(forward: Mapping[str, float], reverse: Mapping[str, float]) -> float:
+    """Margin of the mean of two answers to the same Choice asked in forward and reversed option order.
+
+    Averaging cancels first-option lean. Below ``MARGIN_MIN`` the pick is a split. Raises ValueError when the
+    two answers cover different options.
+    """
+    if set(forward) != set(reverse):
+        raise ValueError("forward and reverse cover different options")
+    return choice_margin({k: (forward[k] + reverse[k]) / 2 for k in forward}).margin
+
+
 def should_escalate(read: ChoiceRead, *, consequences_differ: bool, margin_min: float = MARGIN_MIN) -> bool:
     """True only when the pick is unstable AND the leading options differ in outcome cost.
 
