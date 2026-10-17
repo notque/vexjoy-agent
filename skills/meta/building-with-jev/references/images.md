@@ -76,6 +76,8 @@ A broad "is something broken here" Noul over-flags: on 4 clean synthetic pages w
 
 Evidence and numbers: `field-learnings.md` (Images and Box).
 
+A literal, single-condition image Noul works. "Is the bottom cut off?" on labeled crops: clean 0.03 to 0.05, cropped 0.99, 10 of 10 (the pixel measure was also 10 of 10); 58 real 1200x630 cards all read 0.02 to 0.05 with the edge measure at 0; 2.4 to 4.6k tokens per card (MMR). Scope: crop-style cutoffs only. Pair it with the pixel edge measure.
+
 ## Contact grids
 
 To check many tiles (product photos, avatars), draw one image with a visible number on every tile and a legend in state (`grid` has 24 numbered tiles, 6 columns, each should show X). On a synthetic 24-tile grid with 8 planted defects:
@@ -165,6 +167,14 @@ Jev reads the description and the image together, but it ranks a candidate again
 3. Put the candidate render in the state the same way, plus the measured numbers (pixel widths, timings).
 4. Ask "how far is the candidate from the reference" as a Score, and ask a separate Noul: "did anything get worse?"
 5. Show the owner a side-by-side before you report progress.
+
+On an image goal, put the anchor images into the Score ladder levels ("reads like the owner's 1/10 {img:base}" up to "9/10 {img:mod}"). A ladder of text signals alone failed the anchor check: the owner's 9/10 mod read 2.03 against 1.98 for the 1/10 base, flat over levels 1 to 3 (MMR). With anchor images in the levels, mod read 2.26 to 2.48 and base 1.14 to 1.54: ordered right, but base did not land at level 0 even though level 0 was its own image (0.11 to 0.18 there). Expect partial calibration. It cost 31 to 41k tokens per request with 6 to 8 images (fine on the direct API).
+
+Before every image before/after:
+
+- Hash-diff kept against candidate (`hashlib.sha1` of each file or tile) and prove the pixels changed. A render path at resolution 2 ignored the edits (0 of 16 tiles changed), and Jev would have judged identical images.
+- Include a byte-identical control pair (same sha1 as kept) in the batch as a free noise check: `better` and `worse` read 0.11 to 0.17 on identical images, which is the noise floor for that question.
+- Check that the measured number is the visual cause Jev named, by looking, before the round. An eye-window luma gain of +4 and +7 did not register as better (0.19 to 0.32) and both rounds were reverted: the number agreed with Jev only by accident, and the real cause was the eye pixels.
 
 Validate each anchor before you score against it (data present, not an error page, a validity Noul; an empty capture read 0.50, real pages 0.96 to 0.98), and rate anchors with a Score in the same image form as candidates (provisional: real table crops 2.26 to 2.60, an empty capture 0.60). A ladder saturates at the top: to rank two good candidates, add a level above the reference or use a pairwise Compare in both orders.
 
