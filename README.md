@@ -201,7 +201,7 @@ Strips built-in tool-use instructions. The toolkit's agents, skills, hooks, and 
 | Agents | 43 | Domain knowledge: idiom tables, failure mode catalogs, error-to-fix mappings |
 | Skills | 62 | Reusable guidance and methodology for recurring work. |
 | Hooks | 78 | Lifecycle checks, context injection, and telemetry. |
-| Scripts | 153 | Repeatable validation, orchestration, and plumbing. |
+| Scripts | 154 | Repeatable validation, orchestration, and plumbing. |
 
 Full skill catalog: [docs/skills.md](docs/skills.md).
 
