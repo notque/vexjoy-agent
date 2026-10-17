@@ -71,7 +71,7 @@ A broad "is something broken here" Noul over-flags: on 4 clean synthetic pages w
 - Pair every flag with the app's own facts (DOM errors, failed requests, store state): they beat a visual read. For image QA, check references against disk and fetch status first; Jev adds little over Pillow for corruption and is best for semantic checks (wrong content, colours, crop).
 - Hide fixed-position bars before a full-page capture, take viewport slices, and send the frames that show the property under judgment: a key-pose strip in time order, not the impact frame with a damage badge on it (RTA: `anatomy_broken` read 0.83 to 0.86 on the static frame and 0.34 to 0.44 on the strip, n=4). Remove overlays that are not part of the property.
 - A flag is not a verdict on a person's photo: use a deterministic allow-list or a "was this intended?" step for unexpected-but-real content, audit false positives by subgroup, and never act automatically on a Jev flag of a person.
-- Text-only options are weak for fine pose identity: on stylised two-figure pictograms a near-miss identity Noul had AUC 0.574 and an identity Choice with same-type distractors 0.517 (RTA, n=36, scoped negative; reference renders per option are being tried). Use hard near-miss distractors, keep the name out of state, and expect to need pictures per option.
+- Fine pose or near-miss identity in stylised art is at chance on 1.14 (20 of 36 correct, AUC 0.554, with confident errors); use it only as a labeled re-test benchmark (`field-learnings.md`).
 
 Evidence and numbers: `field-learnings.md` (Images and Box).
 

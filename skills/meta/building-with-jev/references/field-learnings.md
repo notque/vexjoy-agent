@@ -146,11 +146,13 @@ RTA's merge plus consequence gate: 0 escalations over 55 calls and 88k tokens, d
 - Source: road-to-aew `scripts/pictogram_jev_qa.py eval`. Not re-run.
 - Rule: send the frames that show the property you judge and remove overlays (badges, HUD) that are not part of it. [images.md](images.md) (Defect checks).
 
-### Fine pose identity from text-only options is at chance (RTA, recorded, scoped negative)
-- Claim: for stylised two-figure SVG pictograms on 1.14.0, near-miss pose identity: Noul AUC 0.574 (15 of 18 false positives at 0.5); an identity Choice with same-type distractors from other scenes picked the named move 18 of 18 on positives and 16 of 18 on mismatches (AUC 0.517, a name prior); `action_hidden`, anatomy, and the readability Score were identical across classes (n=36). The "Choice beats Noul for identity" rule held for distinct objects, not for fine pose distinctions.
-- Source: road-to-aew `scripts/pictogram_jev_qa.py eval`. Not re-run; a round with reference renders per option in criteria is pending.
-- Verdict: PARTLY, scoped negative.
-- Rule: use hard near-miss distractors, keep the name out of state, and do not read a Choice that picks the named move as identity evidence when the name is visible. [images.md](images.md) (Defect checks).
+### Fine pose identity in stylised art is at chance (RTA, recorded, scoped negative)
+- Claim: near-miss pose identity for stylised flat SVG two-figure poses does not work on jev-1.14.0, even with the card name hidden. State: a key-pose strip (about 1.5 to 2k px wide) and `body_part_targeted`; options: the true move, 3 hard same-family near-misses from the move mechanics, and `none_of_these`, seeded shuffle. Result: 20 of 36 correct (56%), AUC 0.554, about 2.0k tokens per request (n=36). Errors were confident (0.86 to 0.94); strikes collapsed to "haymaker"; Jev did not read whether a rope launch or landing is present from the strips. Earlier round (card name in state, Noul and Choice): Noul AUC 0.574, Choice AUC 0.517 with a name prior; `action_hidden`, anatomy, and the readability Score were identical across classes.
+- Per-option reference images were infeasible: they leak the answer.
+- Scope: stylised flat SVG poses. Untested: one panel per request at higher resolution, Box on the contact point, photo references.
+- Source: road-to-aew `scripts/pictogram_jev_qa.py eval` and `scripts/data/pictogram_qa_labeled.json`, shipped as an experimental tool for re-testing future Jev versions. Not re-run here.
+- Verdict: scoped negative (replaces the earlier "PARTLY").
+- Rule: do not use Jev to judge fine pose or near-miss identity in stylised art on 1.14. Use the labeled set only as a re-test benchmark when the model version changes. A Choice that picks the named move is a name prior, not identity evidence. [images.md](images.md) (Defect checks).
 
 ### Not-a-photo mixes unexpected-but-real with defective; bias (DR images, recorded)
 - Claims: 37 of 69 flags were real logos or other legitimate content; false positives skewed toward dark-skinned faces (flagged wrong team colors) and dark helmets (flagged corrupt).
