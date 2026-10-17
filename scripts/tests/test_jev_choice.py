@@ -47,3 +47,11 @@ def test_escalation_needs_both_a_split_and_a_consequence() -> None:
     assert jev_choice.should_escalate(flat, consequences_differ=True)
     assert not jev_choice.should_escalate(flat, consequences_differ=False)
     assert not jev_choice.should_escalate(clear, consequences_differ=True)
+
+
+def test_order_averaged_margin_cancels_first_option_lean() -> None:
+    fwd = {"a": 0.5, "b": 0.3, "c": 0.2}
+    rev = {"a": 0.2, "b": 0.5, "c": 0.3}
+    assert jev_choice.order_averaged_margin(fwd, rev) == pytest.approx(0.4 / 0.35)
+    with pytest.raises(ValueError):
+        jev_choice.order_averaged_margin(fwd, {"a": 1.0})
