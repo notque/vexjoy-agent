@@ -207,6 +207,28 @@ RTA's merge plus consequence gate: 0 escalations over 55 calls and 88k tokens, d
 - Claim: a budget guard keyed ledger-wide stopped other lanes.
 - Rule: scope budgets by lane prefix.
 
+### Direct image calls look like cache hits but are not (MMR; re-run)
+- Claim: direct image requests averaged 0.09 s over 58 cards against 0.45 s for Gateway text calls.
+- Repro: the same image 4 times through `evaluate()`: 0.15, 0.09, 0.18, 0.10 s, billed 3,350 input tokens each time, answers 0.28, 0.30, 0.28, no `cached` flag. Short text Noul: direct 0.05 to 0.08 s, Gateway 0.36 to 0.41 s. A repeated text payload on the direct path: 0.004 s, `_meta.cached: true`, no `usage`.
+- Verdict: VALIDATED as a transport difference; NOT a cache. Image payloads get fresh uuid references, so they never hit the cache. The Gateway adds about 0.3 s per call.
+- Rule: see [models-and-limits.md](models-and-limits.md) (Latency). Check `_meta.cached` and `usage` to tell a cache hit from a fast call.
+
+### Literal image Noul for cutoffs (MMR, recorded)
+- Claim: "bottom cut off?" separated cleanly: n=10 labeled, clean 0.03 to 0.05, cropped 0.99, 10 of 10 (pixel measure also 10 of 10); 58 real 1200x630 cards read 0.02 to 0.05, edge measure 0; 2.4 to 4.6k tokens per card.
+- Rule: a positive example of a literal, single-condition image Noul. Scope: crop-style cutoffs only. [images.md](images.md).
+
+### Anchor images belong in the ladder levels (MMR, recorded)
+- Claim: text-signal ladder: owner's 9/10 mod 2.03 against 1/10 base 1.98 (women: mod 1.66 below base 1.91), flat over levels 1 to 3. With anchor images in the levels: mod 2.26 to 2.48, base 1.14 to 1.54 (ordered right, base not at level 0 although level 0 was its own image, 0.11 to 0.18 there). 31 to 41k tokens per request with 6 to 8 images.
+- Rule: on image goals put the anchor images into the ladder levels; expect partial calibration. [images.md](images.md) (Hill-climb with images).
+
+### Control pair, hash-diff, and the proxy trap (MMR, recorded)
+- Claims: a byte-identical control group (sha1-identical kept and candidate tiles) read `better` and `worse` 0.11 to 0.17, a free noise check. A render path at resolution 2 ignored the edits (0 of 16 tiles changed). A measured improvement (eye-window luma +4 and +7) read 0.19 to 0.32 as better and both rounds were reverted: the metric was a proxy; the real visual cause was the eye pixels.
+- Rules: hash-diff before every image before/after; include an identical control pair; verify by looking that the measured number is the cause Jev named before the round. [images.md](images.md), [iteration-with-jev.md](iteration-with-jev.md).
+
+### Escalation cap under top-p versus margin (MMR, pending)
+- Claim: escalations hit the cap of 12 per season under the top-p rule; an A/B v2 compares against the margin rule.
+- Status: pending MMR's numbers. Expected from the Escalation section: the margin rule plus the consequence gate should fire far less often.
+
 ### Not-a-photo mixes unexpected-but-real with defective; bias (DR images, recorded)
 - Claims: 37 of 69 flags were real logos or other legitimate content; false positives skewed toward dark-skinned faces (flagged wrong team colors) and dark helmets (flagged corrupt).
 - Source: `/home/feedgen/deeproute-jevlab/research/jev-ui-lab-2026-10-16/images/REPORT.md`. Not re-run on people photos. Flat dark and light synthetic tiles showed no skew (0 false positives).
