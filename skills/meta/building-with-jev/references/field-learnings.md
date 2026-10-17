@@ -85,6 +85,25 @@ Sources: DR = DeepRoute (UI lab: player and images lanes), RTA = road-to-aew, MM
 - Verdict: VALIDATED for near-equivalent additions (they take the pick); unrelated additions lower top p a little.
 - Rule: rerun and re-read after you change an option set; fold a near-duplicate into the option it duplicates; reconcile any sub-answer that disagrees with the headline in code. [question-design.md](question-design.md) (Choice).
 
+### Count distinct options before you ask (MMR, recorded)
+- Claim: `auto_book_solo_card` over 6 seed salts produced 1 distinct card, so the Choice never ran.
+- Source: mmr-ratings GM player. Not re-run.
+- Rule: count distinct options before the call; with one or none, the generator is broken, not Jev. Fail loudly instead of asking. [question-design.md](question-design.md) (Choice).
+
+### A sharpened re-ask can flip the pick (MMR)
+- Claim: after a sharpening pass the pick flipped (accept 0.52 to decline 0.77; card_1 0.46 to card_4 0.35; sign_1428 0.38 to sign_1352 0.40); Sonnet agreed with the sharpened pick once and the original once. Proposal: a flip is disagreement, not firming up.
+- Repro: 6 synthetic forks (contract, card, free agent, maintenance window, route, bug). Each asked bare, then with measured facts that favor one option, then with neutral facts (office plants, coffee). Bare picked the facts-favored option 3 of 6 (top p 0.44 to 0.98); with the facts, 6 of 6 (top p 0.95 to 1.00). Informative facts flipped 3 of 6 bare picks, all toward the favored option. Neutral facts also flipped 2 of 6 bare picks (the two with bare top p 0.44 and 0.54, maintenance and route); the other flips of low-p picks were noise.
+- Verdict: PARTLY. A flip toward options the added facts bear on is a correction (the sharpened pick was right 6 of 6), not a disagreement. A flip with no new relevant fact, or a sharpened pick that is itself flat (top p 0.35 to 0.40, margin under 2), is disagreement: the bare pick was noise or the sharpening did not settle it.
+- Rule: after a sharpening pass, take the sharpened pick when its margin is 2 or more and the new facts bear on the options. If the picks differ and the sharpened answer is still flat, and the options differ in consequence, escalate, keep the escalation's pick, and log all three (original, sharpened, escalated). If consequences do not differ, take the sharpened pick (it has more facts). SKILL.md, "Escalate when Jev is unsure".
+
+### Reversal lowers p but keeps the pick (MMR, recorded)
+- Claim: reversed order kept the pick but p fell from 0.91 to 0.76 and margin from 18 to 4.8 (n=1).
+- Rule: consistent with the margin rule (margin 2 or more is stable); no new rule.
+
+### Winner Choices lean toward the favourite (MMR, recorded, open)
+- Claim: winner Choices picked the champion or the higher-momentum wrestler 21 of 21 times at 0.83 to 0.97.
+- Status: an open bias to measure, not tested here. Suggested mitigation: state the booking plan as a fact. Do not use a Jev winner pick where the outcome should be uncertain without a plan in state.
+
 ### Duplicate labels fail at the Gateway (MMR)
 - Claim: options with the same label ("heading: Diana Strong" vs "control: Diana Strong") failed with "did not select a highest-probability option".
 - Repro: prefixed labels, and labels that differ only by a trailing space, ran on both the Gateway and the direct API with no error. Two options with identical `what` text returned 0.65/0.35, an arbitrary split. A list of one-key objects as `criteria` fails at the Gateway.
@@ -195,6 +214,10 @@ RTA's merge plus consequence gate: 0 escalations over 55 calls and 88k tokens, d
 - A direct key once returned 402 (billing). Do not retry; tell the owner ([models-and-limits.md](models-and-limits.md)).
 - Cache keys must include the item name. Poll for stuck detection instead of a fixed sleep.
 - Source: `/home/feedgen/mmr-ratings-dev/docs`.
+
+### GM-player cost (MMR, recorded)
+- Claim: 1.1 to 2.1k tokens per decision with a 20-wrestler roster; a season is about 250k tokens (about 1 cent); about 0.45 s per call; escalation through `claude -p` takes 10 to 20 s.
+- Rule: budget Jev by input tokens; plan for escalation latency of 10 to 20 s, not Jev's 0.45 s.
 
 ### Run our Jev client without `-I` (RTA)
 - `python3 -I` ignores the user site, so Pillow installed there is hidden and `jev_images` and `jev_box` fail to import. The `-I` rule is for Python that reads untrusted downloads; run the Jev client without it, or use a venv that has Pillow. [images.md](images.md).
