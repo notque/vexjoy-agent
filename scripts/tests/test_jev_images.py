@@ -342,7 +342,7 @@ def test_requests_without_box_keep_the_default_model(wire: list[Any], tmp_path: 
     jev_transport.evaluate({"frame": shot}, {"q": {"type": "noul", "instructions": "ok?"}}, timeout=5)
     (request,) = wire
     body = request.data.decode("latin-1")
-    assert '"model": "jev-latest"' in body or '"model":"jev-latest"' in body
+    assert '"model": "jev-1.14.0"' in body or '"model":"jev-1.14.0"' in body
 
 
 def test_bad_image_is_a_transport_error_without_sending(wire: list[Any], tmp_path: Path) -> None:
@@ -405,7 +405,7 @@ def test_text_only_path_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     questions = {"ok": {"type": "noul", "instructions": "{img:x} stays text"}}
     jev_transport.evaluate({"a": 1}, questions, timeout=3)
     assert seen["kwargs"] == {"script_name": "jev_transport.py"}
-    assert seen["payload"] == {"state": {"a": 1}, "model": "jev-latest", "questions": questions}
+    assert seen["payload"] == {"state": {"a": 1}, "model": "jev-1.14.0", "questions": questions}
 
 
 def test_text_only_http_request_is_plain_json(monkeypatch: pytest.MonkeyPatch) -> None:

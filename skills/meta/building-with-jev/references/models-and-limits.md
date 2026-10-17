@@ -6,9 +6,9 @@ Read the [models page](https://docs.typesafe.ai/models.md) and [API page](https:
 
 | Name | Points to | Use |
 |---|---|---|
-| `jev-1.13.0` | itself | Production default until the alias moves. Jaggedness page applies. |
-| `jev-1.14.0` | itself | Released 2026-10-14. Small gains everywhere, largest for non-English text. Required for Box. |
-| `jev-latest` | `jev-1.13.0` now; TypeSafe says it moves to `jev-1.14.0` about a week after release | SDK default. Our shared client sends it (`JEV_MODEL` in `scripts/jev_router_common.py`). |
+| `jev-1.13.0` | itself | Previous version. Jaggedness page applies. |
+| `jev-1.14.0` | itself | Released 2026-10-14. Small gains everywhere, largest for non-English text. Required for Box. **Our pinned model** (owner, 2026-10-16): `JEV_MODEL` in `scripts/jev_router_common.py` for direct calls, `typesafe-ai/jev-1.14.0` in the Gateway bridge (override with `JEV_GATEWAY_MODEL`). |
+| `jev-latest` | `jev-1.13.0` now; TypeSafe says it moves to `jev-1.14.0` about a week after release | SDK default. We do not send it; pin instead. |
 | `jev-preview` | `jev-1.14.0` | Newest build, official or not. Moves first. |
 
 - An alias moves without any change in your code, so answers can shift. Each response's `model` field names the versioned ID that answered: store it with every answer.

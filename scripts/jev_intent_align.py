@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import jev_router_common
 import jev_transport
 
 try:
@@ -218,9 +219,9 @@ def _finish_receipt(
     source = str(result.get("source") or "unavailable")
     default_model = None
     if source == jev_transport.VERCEL:
-        default_model = "typesafe-ai/jev"
+        default_model = "typesafe-ai/jev-1.14.0"
     elif source == jev_transport.DIRECT:
-        default_model = "jev-latest"
+        default_model = jev_router_common.JEV_MODEL
     normalized = {
         "available": False,
         "source": source,
@@ -398,7 +399,7 @@ def evaluate_alignment(
     result = {
         "available": True,
         "source": source,
-        "model": model or ("typesafe-ai/jev" if source == jev_transport.VERCEL else "jev-latest"),
+        "model": model or ("typesafe-ai/jev-1.14.0" if source == jev_transport.VERCEL else jev_router_common.JEV_MODEL),
         "proposed_intent": candidate,
         "alignment": "aligned" if aligned else "review",
         "aligned": aligned,

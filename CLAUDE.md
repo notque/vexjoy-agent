@@ -60,7 +60,7 @@ You drive the work; Jev is the map you keep checking to see if you are closer to
 - Before a deploy, merge, migration, or deletion, every `ready`, `gap`, and `worse` answer must be decisive.
 - `confidence` is distribution shape, not correctness. A Jev answer is never owner approval.
 
-**Mechanics:** call `evaluate_packed(state, questions, timeout=90)` in `scripts/jev_transport.py`. Keep requests near 3.5k tokens and runs under 50k. `questions` is a dict, not a list. Choice uses `criteria` (`what`, `not_for`, `examples`; field names inside are conventions, up to 255 options), not `options`; Score uses a `criteria` list of `{summary, signals}` (2-10 levels); Noul uses `criteria.true`/`criteria.false`. `jev-latest` is an alias that moves between versions: pin a versioned ID when a threshold depends on it. Send scrubbed text only.
+**Mechanics:** call `evaluate_packed(state, questions, timeout=90)` in `scripts/jev_transport.py`. Keep requests near 3.5k tokens and runs under 50k. `questions` is a dict, not a list. Choice uses `criteria` (`what`, `not_for`, `examples`; field names inside are conventions, up to 255 options), not `options`; Score uses a `criteria` list of `{summary, signals}` (2-10 levels); Noul uses `criteria.true`/`criteria.false`. The client pins `jev-1.14.0` (Gateway: `typesafe-ai/jev-1.14.0`); `jev-latest` is an alias that moves, so don't use it where a threshold depends on it. Send scrubbed text only.
 
 **Report the climb:** per round, the ladder level before and after with probabilities, measured numbers, what was kept and reverted, and open gaps ranked by Jev.
 
