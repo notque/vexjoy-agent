@@ -211,7 +211,7 @@ If nothing reusable was learned, skip recording. Generic findings like "add more
 
 **Step 2: Record via retro-record-adhoc**
 
-For each reusable finding, call the command below. It writes to `~/.claude/learning/learning.db` (or `$CLAUDE_LEARNING_DIR`) with the repo path as metadata, never to files in the reviewed repo. Nonzero exit means the learning was not saved.
+For each reusable finding, call the command below. It writes to `~/.claude/learning/learning.db` (or `$CLAUDE_LEARNING_DIR`), never to files in the reviewed repo. A TOPIC/KEY pair is shared across repos: if it already exists, the row keeps the first repo's path, and the JSON output shows the stored `project_path`. Nonzero exit means the learning was not saved.
 
 ```bash
 python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"

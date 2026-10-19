@@ -23,7 +23,8 @@ Usage:
     python3 scripts/feature-state.py worktree FEATURE path     # Print worktree path
     python3 scripts/feature-state.py worktree FEATURE cleanup  # Remove worktree after merge
 
-    python3 scripts/feature-state.py retro-audit                # Audit legacy retro/L2 files (read-only)
+    python3 scripts/feature-state.py retro-audit                # Legacy: audit old retro/L2 files (read-only)
+    python3 scripts/feature-state.py retro-candidates           # Legacy: list old retro/L2 graduation candidates
 
     python3 scripts/feature-state.py complete FEATURE          # Archive feature, cleanup worktree
     python3 scripts/feature-state.py abandon FEATURE --reason "reason"  # Abandon feature
@@ -567,14 +568,24 @@ def _record_learning_db(
     tags: list[str],
     source: str,
     project_path: Path,
+    source_detail: str | None = None,
 ) -> tuple[dict[str, Any], Path]:
     """Write one learning to learning.db and return (row, db_path).
+
+    The DB path is resolved before the write, so an error raised after the
+    commit cannot report a saved learning as failed. The returned row carries
+    the project_path stored in the DB, which stays with the first writer of a
+    topic/key (it is not updated on conflict), or None if the read-back fails.
 
     Raises:
         LearningDBError: learning_db_v2 cannot be imported or the write fails.
     """
     try:
         db = _load_learning_db()
+    except ImportError as err:
+        raise LearningDBError(f"cannot import learning_db_v2: {err}") from err
+    try:
+        db_path = Path(db.get_db_path())
         row = db.record_learning(
             topic=topic,
             key=key.lower().replace(" ", "-"),
@@ -583,20 +594,40 @@ def _record_learning_db(
             confidence=CONFIDENCE_SCORES.get(confidence.lower(), CONFIDENCE_SCORES["medium"]),
             tags=[t for t in tags if t],
             source=source,
+            source_detail=source_detail,
             project_path=str(project_path),
         )
-        return row, Path(db.get_db_path())
-    except ImportError as err:
-        raise LearningDBError(f"cannot import learning_db_v2: {err}") from err
     except (sqlite3.Error, OSError) as err:
         raise LearningDBError(f"learning.db write failed for {topic}/{key}: {err}") from err
+    row["project_path"] = _stored_project_path(db, row["topic"], row["key"])
+    return row, db_path
+
+
+def _stored_project_path(db: Any, topic: str, key: str) -> str | None:
+    """Read back the project_path stored for topic/key, or None if the read fails.
+
+    Runs after the write committed, so a failure here must not fail the write.
+    """
+    try:
+        with db.get_connection() as conn:
+            found = conn.execute(
+                "SELECT project_path FROM learnings WHERE topic = ? AND key = ?",
+                (topic, key),
+            ).fetchone()
+    except (sqlite3.Error, OSError):
+        return None
+    if found is None or found[0] is None:
+        return None
+    return str(found[0])
 
 
 def cmd_retro_record_adhoc(args: argparse.Namespace) -> int:
     """Record a learning in learning.db without a feature context.
 
     Used by /do and /pr-review learning phases. Nothing is written to the
-    working repo; the repo root is stored only as project_path metadata.
+    working repo. The repo root is sent as project_path, but learning.db keeps
+    the first writer's project_path when topic/key already exists, so the
+    output reports the stored project_path read back from the row.
     """
     root = find_project_root()
     topic = slugify(args.topic)
@@ -611,11 +642,22 @@ def cmd_retro_record_adhoc(args: argparse.Namespace) -> int:
             project_path=root,
         )
     except LearningDBError as err:
-        print(f"retro-record-adhoc: {err}", file=sys.stderr)
+        output_error(f"retro-record-adhoc: {err}")
         return 1
 
-    status = "new" if row.get("is_new") else f"seen {row.get('observation_count')}x"
-    print(f"recorded {row['topic']}/{row['key']} ({status}) in {db_path} for project {root}")
+    output_json(
+        {
+            "action": "retro-record-adhoc",
+            "recorded": True,
+            "topic": row["topic"],
+            "key": row["key"],
+            "is_new": bool(row.get("is_new")),
+            "observation_count": row.get("observation_count"),
+            "db_path": str(db_path),
+            "project_path": row.get("project_path"),
+        },
+        args,
+    )
     return 0
 
 
@@ -792,21 +834,25 @@ def cmd_complete(args: argparse.Namespace) -> int:
         output_error(f"Feature '{feature}' not found")
         return 1
 
-    # Record retro knowledge BEFORE moving state (archival reads state file).
-    # On failure, stop so the state file stays put and complete can be retried.
+    # Record retro knowledge BEFORE moving state. Each saved learning is marked
+    # in the state file, so on failure the state stays put and a retry of
+    # complete skips what was already saved.
     try:
-        learnings_recorded = _archive_retro_knowledge(root, feature_dir, feature)
+        learnings_recorded, learnings_skipped = _archive_retro_knowledge(root, feature_dir, state)
     except LearningDBError as err:
-        output_error(f"complete aborted, learnings not saved: {err}")
+        output_error(f"complete aborted, {err}")
         return 1
 
-    # Move state to completed
+    # Move state to completed. A concurrent complete may have moved it already.
     completed_dir = feature_dir / "state" / "completed"
     completed_dir.mkdir(parents=True, exist_ok=True)
     state_file = feature_dir / "state" / f"{feature}.json"
-    if state_file.exists():
-        dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
+    dest = completed_dir / f"{date.today().isoformat()}-{feature}.json"
+    try:
         state_file.rename(dest)
+        state_moved = True
+    except FileNotFoundError:
+        state_moved = False
 
     # Cleanup worktree
     if state.worktree_path and Path(state.worktree_path).exists():
@@ -822,8 +868,10 @@ def cmd_complete(args: argparse.Namespace) -> int:
             "action": "complete",
             "feature": feature,
             "archived": True,
+            "state_moved": state_moved,
             "retro_archived": learnings_recorded > 0,
             "learnings_recorded": learnings_recorded,
+            "learnings_already_saved": learnings_skipped,
         },
         args,
     )
@@ -869,27 +917,53 @@ def _detect_languages(feature_dir: Path, feature: str) -> list[str]:
     return sorted(languages) if languages else ["*"]
 
 
-def _archive_retro_knowledge(root: Path, feature_dir: Path, feature: str) -> int:
+def feature_topic(root: Path, feature: str) -> str:
+    """Return the learning.db topic for a feature: ``<repo-slug>--<feature>``.
+
+    learning.db rows are unique per (topic, key) across all repos, so a bare
+    feature name would merge same-named features from different repos. Topics
+    elsewhere are kebab-case slugs with no ``/`` (export writes ``<topic>.md``),
+    and slugify never emits ``--``, so the double dash separates repo from
+    feature without ambiguity. Repos that share a directory name still share
+    a namespace.
+    """
+    return f"{slugify(root.name) or 'repo'}--{feature}"
+
+
+def _archive_retro_knowledge(root: Path, feature_dir: Path, state: FeatureState) -> tuple[int, int]:
     """Record a feature's L2 knowledge in learning.db on completion.
 
     Sources: MEDIUM/HIGH retro_records from the feature state, plus promoted
     .feature/context/<phase>/*.md files not already covered by a record.
-    Each becomes a learning with topic=<feature> and project_path=<root>.
-    Nothing is written to the working repo.
+    Each becomes a learning with topic=feature_topic(root, feature),
+    source=feature:<feature>, and project_path=<root>. Nothing is written to
+    the working repo.
+
+    After each successful write the entry is marked ``db_recorded`` in
+    state.retro_records (context files get a record with ``source: context``)
+    and the state is saved, so a retried complete skips entries already saved
+    instead of counting them twice.
+
+    A record's per-feature ``observations`` count is not carried into
+    observation_count: record_learning has no way to set it, and calling it
+    once per observation would fake new sightings. The count is kept as text
+    in source_detail (``feature-observations=N``) for reference only;
+    graduation and ranking do not read it.
 
     Returns:
-        Number of learnings recorded.
+        (saved, skipped): learnings saved in total including earlier runs, and
+        how many of those were skipped because an earlier run saved them.
 
     Raises:
-        LearningDBError: a learning could not be written.
+        LearningDBError: a learning could not be written. The message starts
+            with "N of M learnings saved".
     """
-    entries: dict[str, tuple[str, str]] = {}  # key -> (value, confidence)
-    state = load_state(feature_dir, feature)
-    if state:
-        for key, record in state.retro_records.items():
-            confidence = str(record.get("confidence", "low")).lower()
-            if confidence in ("medium", "high"):
-                entries[key] = (str(record.get("value", "")), confidence)
+    feature = state.name
+    entries: dict[str, tuple[str, str, int]] = {}  # key -> (value, confidence, observations)
+    for key, record in state.retro_records.items():
+        confidence = str(record.get("confidence", "low")).lower()
+        if confidence in ("medium", "high"):
+            entries[key] = (str(record.get("value", "")), confidence, int(record.get("observations", 1)))
 
     for phase in PHASES:
         context_dir = feature_dir / "context" / phase
@@ -901,10 +975,10 @@ def _archive_retro_knowledge(root: Path, feature_dir: Path, feature: str) -> int
             except OSError:
                 continue
             if content and "(populated by retro loop)" not in content and path.stem not in entries:
-                entries[path.stem] = (content, "medium")
+                entries[path.stem] = (content, "medium", 1)
 
     if not entries:
-        return 0
+        return 0, 0
 
     tags: set[str] = set()
     for key in entries:
@@ -912,21 +986,38 @@ def _archive_retro_knowledge(root: Path, feature_dir: Path, feature: str) -> int
     tags = _expand_tags(tags)
     tags.update(lang for lang in _detect_languages(feature_dir, feature) if lang != "*")
 
-    for key, (value, confidence) in entries.items():
-        _record_learning_db(
-            feature,
-            key,
-            value,
-            confidence=confidence,
-            tags=sorted(tags),
-            source=f"feature:{feature}",
-            project_path=root,
-        )
-    return len(entries)
+    done = {key for key in entries if state.retro_records.get(key, {}).get("db_recorded")}
+    topic = feature_topic(root, feature)
+    skipped = len(done)
+    for key, (value, confidence, observations) in entries.items():
+        if key in done:
+            continue
+        try:
+            _record_learning_db(
+                topic,
+                key,
+                value,
+                confidence=confidence,
+                tags=sorted(tags),
+                source=f"feature:{feature}",
+                source_detail=f"feature-observations={observations}" if observations > 1 else None,
+                project_path=root,
+            )
+        except LearningDBError as err:
+            raise LearningDBError(f"{len(done)} of {len(entries)} learnings saved: {err}") from err
+        record = state.retro_records.setdefault(key, {"value": value, "confidence": confidence, "source": "context"})
+        record["db_recorded"] = True
+        save_state(feature_dir, state)
+        done.add(key)
+    return len(done), skipped
 
 
 def cmd_retro_audit(args: argparse.Namespace) -> int:
-    """Audit retro/L2 files for staleness, orphans, and quality issues."""
+    """Legacy: audit old per-repo retro/L2 files for staleness, orphans, and quality issues.
+
+    Nothing writes retro/ any more; learnings live in learning.db. This only
+    reads retro/L2 files left in a repo by older versions of this script.
+    """
     root = find_project_root()
     retro_dir = root / "retro"
     l2_dir = retro_dir / "L2"
@@ -1005,15 +1096,15 @@ def cmd_retro_audit(args: argparse.Namespace) -> int:
 
 
 def cmd_retro_candidates(args: argparse.Namespace) -> int:
-    """Identify L2 entries mature enough for graduation into agents/skills.
+    """Legacy: list entries in old per-repo retro/L2 files that meet graduation criteria.
 
-    Graduation criteria (ALL must be met):
-    - Confidence: HIGH
-    - Observation count: >= 3 (clustered [Nx] >= 3)
-    - Content is specific and actionable (not generic advice) — left to AI reviewer
+    Nothing writes retro/ any more; learnings live in learning.db. This only
+    reads retro/L2 files left in a repo by older versions of this script, and
+    nothing in the toolkit consumes its output.
 
-    This command does the deterministic pre-filtering. The AI skill
-    (/retro graduate) evaluates the candidates for actual graduation.
+    Criteria (all must hold):
+    - File confidence: HIGH
+    - Observation count from the old ``### Heading [Nx]`` suffix: >= --min-observations
     """
     root = find_project_root()
     retro_dir = root / "retro"
@@ -1235,10 +1326,13 @@ def main() -> int:
     p_done.add_argument("feature", help="Feature name")
 
     # retro-audit
-    subparsers.add_parser("retro-audit", help="Audit legacy retro/L2 files (read-only)")
+    subparsers.add_parser("retro-audit", help="Legacy: audit old retro/L2 files left by older versions (read-only)")
 
     # retro-candidates
-    p_rc = subparsers.add_parser("retro-candidates", help="Identify L2 entries mature enough for graduation")
+    p_rc = subparsers.add_parser(
+        "retro-candidates",
+        help="Legacy: list graduation candidates from old retro/L2 files (read-only)",
+    )
     p_rc.add_argument("--min-observations", type=int, default=3, help="Minimum observation count (default: 3)")
 
     # abandon

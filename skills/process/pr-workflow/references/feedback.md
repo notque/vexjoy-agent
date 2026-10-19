@@ -140,7 +140,7 @@ Leave INVALID comments unchanged. Escalate NEEDS-DISCUSSION items to the user.
 
 ### Phase 5: LEARN
 
-**Goal**: Extract reusable review patterns into the retro knowledge store.
+**Goal**: Extract reusable review patterns into learning.db.
 
 After fixes are applied, reflect on what was learned:
 
